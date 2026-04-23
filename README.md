@@ -74,6 +74,12 @@ indexes 等都应是 YAML。
 - **构建**：`bun run build` → `tsc`，将 `src/` 编译到 `dist/`
 - **测试**：`bun test/run.ts` — bun 原生执行 TypeScript 测试文件，测试对象为编译后的 `dist/` 输出
 
+## YAML 工具链基线
+
+- YAML 解析与序列化基础库：`js-yaml`
+- Schema 校验基础库：`ajv` + `ajv-formats`
+- 本阶段仅完成依赖选型与接入，不在此阶段实现完整的 YAML 校验层与 strict workflow 子命令迁移；相关实现在后续里程碑变更中推进。
+
 ## 仓库状态
 
 CLI 基础已建立（Milestone 02 第一个变更已完成）。
