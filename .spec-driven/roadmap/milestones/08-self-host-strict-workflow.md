@@ -1,4 +1,4 @@
-# 07 Self Host Strict Workflow
+# 08 Self Host Strict Workflow
 
 ## Goal
 Move this repository's own workflow state from bootstrap `.spec-driven/` Markdown artifacts to `.strict-spec-driven/` YAML artifacts after the strict workflow and migration tooling are ready.
@@ -33,6 +33,7 @@ Move this repository's own workflow state from bootstrap `.spec-driven/` Markdow
 
 ## Dependencies
 - `06-migration-tooling` must provide a safe migration command and migration skill.
+- `07-strict-operations-and-documentation` should provide installable skills, validation, and accurate strict workflow documentation before self-hosting.
 - `04-strict-spec-skills` and `05-strict-roadmap-workflow` should provide usable strict workflows before self-hosting.
 - `03-core-yaml-workflow` must support the full propose through archive lifecycle before repository guidance switches.
 

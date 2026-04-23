@@ -29,7 +29,9 @@ Port roadmap planning, milestone, recommendation, proposal, and sync workflows t
 - `rename-roadmap-skills-to-strict-roadmap` - Declared: planned - rename roadmap-plan, roadmap-milestone, roadmap-recommend, roadmap-propose, and roadmap-sync to the strict roadmap prefix.
 - `define-yaml-roadmap-schema` - Declared: planned - define roadmap index and milestone YAML schemas with ordered IDs, status, scope, criteria, risks, dependencies, notes, and planned changes.
 - `port-roadmap-cli-commands` - Declared: planned - update roadmap validation, status, index regeneration, sync, and archive reconciliation scripts to read and write `.strict-spec-driven/roadmap/` YAML files.
+- `port-roadmap-recommend-and-propose` - Declared: planned - port recommendation and roadmap-to-change proposal handoff so strict roadmap planned changes create strict YAML change scaffolds without duplicating metadata.
 - `update-roadmap-skills-for-yaml` - Declared: planned - rewrite roadmap skill instructions to operate on YAML roadmap artifacts, strict command names, numbered milestone files, and single-line planned change entries.
+- `update-installation-for-strict-roadmap-skills` - Declared: planned - update installation and validation logic so strict roadmap skills are installed and checked consistently with strict spec skills.
 
 ## Dependencies
 - `01-yaml-contracts-and-naming` must establish prefix and artifact naming rules.

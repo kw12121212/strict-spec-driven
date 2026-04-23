@@ -30,7 +30,9 @@ Port the main spec-driven lifecycle to strict YAML artifacts under `.strict-spec
 - `port-apply-to-yaml-tasks` - Declared: planned - read and update `tasks.yaml` while preserving one-task-at-a-time completion semantics and machine-readable task status output.
 - `port-verify-to-yaml` - Declared: planned - validate YAML artifacts, task status, open questions, explicit test commands, mappings, delta operations, and spec alignment.
 - `port-archive-to-yaml-merge` - Declared: planned - merge YAML delta specs into main YAML specs, update specs indexes, and archive completed changes under date-prefixed directories.
-- `port-core-utility-commands` - Declared: planned - update list, modify, cancel, and review support for `.strict-spec-driven/` YAML artifacts.
+- `port-list-modify-cancel-to-yaml` - Declared: planned - update list, modify, and cancel support for active and archived `.strict-spec-driven/changes/` YAML artifacts.
+- `port-review-to-yaml` - Declared: planned - update review behavior to inspect strict YAML proposals, designs, tasks, questions, deltas, mappings, and verification evidence.
+- `port-spec-mapping-validation-commands` - Declared: planned - port verify-spec-mappings, mapping coverage audits, and unmapped evidence audits to structured YAML spec mapping fields.
 
 ## Dependencies
 - `02-strict-cli-foundation` must provide the validation layer and strict scaffold.

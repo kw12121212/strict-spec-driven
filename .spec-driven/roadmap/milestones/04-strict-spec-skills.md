@@ -23,12 +23,14 @@ Rename and update the spec workflow skills so agents operate on strict YAML arti
 - Skill command snippets reference the strict CLI names, `.strict-spec-driven/`, and YAML filenames such as `proposal.yaml`, `design.yaml`, `tasks.yaml`, and `questions.yaml`.
 - Skill validation catches stale `spec-driven-*`, `.spec-driven/`, and Markdown-artifact references where strict names are required outside migration contexts.
 - Skill schema validation covers frontmatter metadata, required command sections, symlink or bundled-script assumptions, and explicit command references.
-- Core skills cover init, propose, apply, verify, review, archive, auto, modify, cancel, simple-task, spec-edit, sync-specs, and mapping maintenance equivalents.
+- Core skills cover init, propose, apply, verify, review, archive, auto, modify, cancel, brainstorm, simple-task, spec-content, spec-edit, sync-specs, and mapping maintenance equivalents.
 
 ## Planned Changes
 - `rename-spec-skills-to-strict-spec` - Declared: planned - rename core spec workflow skills and metadata from `spec-driven-*` to `strict-spec-*` while preserving Agent Skills frontmatter requirements.
-- `update-core-skills-for-yaml-artifacts` - Declared: planned - update init, propose, apply, verify, review, archive, auto, modify, cancel, simple-task, spec-edit, sync-specs, and mapping instructions for YAML artifacts.
+- `update-core-skills-for-yaml-artifacts` - Declared: planned - update init, propose, apply, verify, review, archive, auto, modify, and cancel instructions for YAML artifacts.
+- `update-planning-and-spec-content-skills-for-yaml` - Declared: planned - update brainstorm, simple-task, spec-content, spec-edit, sync-specs, and mapping repair skills for strict YAML specs and deltas.
 - `update-installation-for-strict-spec-skills` - Declared: planned - update install and validation logic so strict spec skills can be installed, symlinked, and checked consistently across supported agent CLIs.
+- `port-spec-skill-schema-validation` - Declared: planned - port skill schema validation for strict spec skills, including frontmatter metadata, command sections, command references, and bundled script assumptions.
 - `add-stale-reference-validation` - Declared: planned - fail validation when strict skills retain obsolete `.spec-driven/`, `spec-driven-*`, or Markdown artifact instructions outside migration contexts.
 
 ## Dependencies

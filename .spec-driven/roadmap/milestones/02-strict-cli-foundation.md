@@ -27,7 +27,9 @@ Bootstrap a TypeScript CLI foundation that can create, parse, validate, and test
 
 ## Planned Changes
 - `bootstrap-typescript-cli` - Declared: planned - add package, TypeScript config, strict ESM script entrypoint, compiled `dist/` output, and repeatable test runner based on reference conventions.
+- `select-yaml-schema-tooling` - Declared: planned - choose and pin the YAML parser, schema validation approach, dependency policy, and build/test commands used by the strict CLI foundation.
 - `add-yaml-validation-layer` - Declared: planned - implement shared YAML parse, stringify, schema validation, path-aware diagnostics, and deterministic serialization utilities for all commands.
+- `create-strict-template-assets` - Declared: planned - add bundled YAML template assets for config, specs index, specs README, roadmap index, and empty changes state used by init and tests.
 - `implement-strict-init` - Declared: planned - create `.strict-spec-driven/` scaffold with YAML config, specs, roadmap, changes, and template files without clobbering existing state.
 - `add-yaml-fixtures-and-tests` - Declared: planned - add repeatable fixtures and tests for valid scaffold generation, invalid YAML diagnostics, enum validation, reference validation, and idempotent init.
 

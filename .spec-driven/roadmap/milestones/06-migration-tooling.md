@@ -30,7 +30,10 @@ Provide a migration command and skill that convert legacy `.spec-driven/` Markdo
 ## Planned Changes
 - `implement-spec-to-strict-migrate-command` - Declared: planned - add a command that migrates `.spec-driven/` projects into `.strict-spec-driven/` YAML scaffold and artifacts with preflight checks and overwrite protection.
 - `add-strict-spec-migrate-skill` - Declared: planned - create a migration skill that runs preflight checks, invokes the migration script, reviews reports, validates generated YAML, and guides manual follow-up.
-- `convert-workflow-markdown-artifacts-to-yaml` - Declared: planned - implement converters for all supported `.spec-driven/**` workflow Markdown artifacts, including proposal, design, tasks, questions, specs, roadmap, indexes, active changes, archived changes, and mapping frontmatter.
+- `convert-specs-and-deltas-to-yaml` - Declared: planned - convert main specs, delta specs, requirement scenarios, operation sections, and mapping frontmatter into strict YAML spec artifacts.
+- `convert-change-artifacts-to-yaml` - Declared: planned - convert active and archived proposal, design, tasks, and questions artifacts into strict YAML change directories while preserving status and archive dates.
+- `convert-roadmap-artifacts-to-yaml` - Declared: planned - convert roadmap indexes, milestone files, statuses, dependencies, risks, notes, and planned change entries into strict YAML roadmap artifacts.
+- `convert-config-and-indexes-to-yaml` - Declared: planned - convert config, specs indexes, roadmap indexes, and generated scaffold metadata into strict YAML files with schema validation.
 - `add-migration-tests-and-reporting` - Declared: planned - test successful migrations, ambiguous migrations, malformed Markdown, archive directories, roadmap status derivation, idempotent reruns, and actionable migration reports.
 
 ## Dependencies
