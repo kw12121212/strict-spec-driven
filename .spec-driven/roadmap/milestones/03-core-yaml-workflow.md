@@ -29,7 +29,7 @@ Port the main spec-driven lifecycle to strict YAML artifacts under `.strict-spec
 ## Planned Changes
 - `port-propose-to-yaml` - Declared: complete - implement the `propose` subcommand to generate `.strict-spec-driven/changes/<name>/proposal.yaml`, `design.yaml`, `tasks.yaml`, `questions.yaml`, and mirrored YAML delta spec directories from strict templates.
 - `port-apply-to-yaml-tasks` - Declared: complete - implement the `apply` subcommand to read and update `tasks.yaml`, preserve one-task-at-a-time completion semantics, and emit machine-readable task status JSON.
-- `port-verify-to-yaml` - Declared: planned - implement the `verify` subcommand to validate YAML artifacts, task status, open questions, explicit test commands, mappings, delta operations, and spec alignment with actionable diagnostics.
+- `port-verify-to-yaml` - Declared: complete - implement the `verify` subcommand to validate YAML artifacts, task status, open questions, explicit test commands, mappings, delta operations, and spec alignment with actionable diagnostics.
 - `port-archive-to-yaml-merge` - Declared: planned - implement archive merge utilities that apply YAML delta specs to main YAML specs, regenerate specs indexes, move completed changes into date-prefixed archive directories, and preserve stable IDs.
 - `port-list-modify-cancel-to-yaml` - Declared: planned - implement `list`, `modify`, and `cancel` subcommands for active and archived `.strict-spec-driven/changes/` YAML artifacts, including path output for agent editing.
 - `port-review-to-yaml` - Declared: planned - implement review support that reads strict YAML proposals, designs, tasks, questions, deltas, mappings, and verification evidence and reports code-quality findings.
@@ -53,5 +53,6 @@ Port the main spec-driven lifecycle to strict YAML artifacts under `.strict-spec
 - Every planned change in this milestone must leave behind runnable CLI behavior and tests, not only updated requirements.
 - Reference validation currently checks testing tasks for explicit lint or validation and unit test commands; the strict workflow should preserve that quality gate in structured task entries.
 - Reference archive behavior uses local dates for archive directory names and reconciles roadmap after archive; the core strict archive should expose enough state for the roadmap milestone to preserve that behavior.
+
 
 

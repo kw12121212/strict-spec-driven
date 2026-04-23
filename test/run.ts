@@ -766,6 +766,872 @@ async function main(): Promise<void> {
     rmSync(applyDeterminismDir, { recursive: true, force: true });
   }
 
+  section("[12] verify command");
+
+  const verifyModule = await loadDistModule<{
+    verifyChange(rootDir: string, changeName: string): {
+      valid: boolean;
+      diagnostics: Array<{ source: string; artifactPath: string; fieldPath: string; message: string; expected?: string; actual?: string }>;
+      changeName: string;
+      totalTasks: number;
+      completeTasks: number;
+      remainingPending: number;
+      openQuestionCount: number;
+    };
+  }>("verify.js");
+
+  // 12a: valid fully-complete change
+  const verifyValidDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-valid-"));
+  try {
+    const vChangeDir = path.join(verifyValidDir, ".strict-spec-driven", "changes", "valid-change");
+    mkdirSync(vChangeDir, { recursive: true });
+    mkdirSync(path.join(vChangeDir, "specs"), { recursive: true });
+
+    writeFileSync(path.join(vChangeDir, "proposal.yaml"), [
+      "schema: strict-spec-driven/change-proposal/v1",
+      "schema_version: 1",
+      "artifact_type: change_proposal",
+      "schema_file: test",
+      "change:",
+      "  id: valid-change",
+      "  status: proposed",
+      "summary:",
+      "  what:",
+      "    - Test change",
+      "  why:",
+      "    - Testing",
+      "scope:",
+      "  in: []",
+      "  out: []",
+      "unchanged_behavior: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "design.yaml"), [
+      "schema: strict-spec-driven/change-design/v1",
+      "schema_version: 1",
+      "artifact_type: change_design",
+      "schema_file: test",
+      "change: valid-change",
+      "approach:",
+      "  - Test approach",
+      "decisions: []",
+      "alternatives: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "tasks.yaml"), [
+      "schema: strict-spec-driven/task-list/v1",
+      "schema_version: 1",
+      "artifact_type: task_list",
+      "schema_file: test",
+      "change: valid-change",
+      "sections:",
+      "  - name: Implementation",
+      "    tasks:",
+      "      - id: impl-1",
+      "        text: Do the work",
+      "        status: complete",
+      "  - name: Testing",
+      "    tasks:",
+      "      - id: test-build",
+      "        text: Build",
+      "        status: complete",
+      "        command: bun run build",
+      "      - id: test-unit",
+      "        text: Unit tests",
+      "        status: complete",
+      "        command: bun test/run.ts",
+      "  - name: Verification",
+      "    tasks:",
+      "      - id: verify-1",
+      "        text: Verify scope",
+      "        status: complete",
+      "testing_gates:",
+      "  validation_task: test-build",
+      "  unit_test_task: test-unit",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "questions.yaml"), [
+      "schema: strict-spec-driven/question-list/v1",
+      "schema_version: 1",
+      "artifact_type: question_list",
+      "schema_file: test",
+      "change: valid-change",
+      "open: []",
+      "resolved: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "specs", "cli.yaml"), [
+      "schema: strict-spec-driven/delta-spec/v1",
+      "schema_version: 1",
+      "artifact_type: delta_spec",
+      "schema_file: test",
+      "target_spec: cli-foundation",
+      "mapping:",
+      "  implementation: []",
+      "  tests: []",
+      "operations:",
+      "  ADDED:",
+      "    - requirement:",
+      "        id: verify-req",
+      "        strength: MUST",
+      "        statement: The system MUST verify.",
+      "        scenarios: []",
+      "  MODIFIED: []",
+      "  REMOVED: []",
+    ].join("\n") + "\n", "utf8");
+
+    const validResult = verifyModule.verifyChange(verifyValidDir, "valid-change");
+    assert(validResult.valid, "valid fully-complete change passes verification", `diagnostics: ${JSON.stringify(validResult.diagnostics)}`);
+    assert(validResult.changeName === "valid-change", "verify result includes changeName");
+    assert(validResult.totalTasks === 4, "verify result includes totalTasks", `got ${validResult.totalTasks}`);
+    assert(validResult.completeTasks === 4, "verify result includes completeTasks", `got ${validResult.completeTasks}`);
+    assert(validResult.remainingPending === 0, "verify result reports zero remainingPending");
+    assert(validResult.openQuestionCount === 0, "verify result reports zero openQuestionCount");
+
+    const validCli = cli(["verify", "valid-change"], { cwd: verifyValidDir });
+    assert(validCli.status === 0, "verify CLI exits zero for valid change", `got ${validCli.status}`);
+    const validCliJson = JSON.parse(validCli.stdout.trim());
+    assert(validCliJson.valid === true, "verify CLI JSON output includes valid=true");
+
+    // verify output is deterministic
+    const validCli2 = cli(["verify", "valid-change"], { cwd: verifyValidDir });
+    assert(validCli.stdout.trim() === validCli2.stdout.trim(), "verify CLI output is deterministic across runs");
+  } finally {
+    rmSync(verifyValidDir, { recursive: true, force: true });
+  }
+
+  // 12b: incomplete tasks
+  const verifyIncompleteDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-incomplete-"));
+  try {
+    const vChangeDir = path.join(verifyIncompleteDir, ".strict-spec-driven", "changes", "incomplete");
+    mkdirSync(vChangeDir, { recursive: true });
+    mkdirSync(path.join(vChangeDir, "specs"), { recursive: true });
+
+    writeFileSync(path.join(vChangeDir, "proposal.yaml"), [
+      "schema: strict-spec-driven/change-proposal/v1",
+      "schema_version: 1",
+      "artifact_type: change_proposal",
+      "schema_file: test",
+      "change:",
+      "  id: incomplete",
+      "  status: proposed",
+      "summary:",
+      "  what:",
+      "    - Test",
+      "  why:",
+      "    - Test",
+      "scope:",
+      "  in: []",
+      "  out: []",
+      "unchanged_behavior: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "design.yaml"), [
+      "schema: strict-spec-driven/change-design/v1",
+      "schema_version: 1",
+      "artifact_type: change_design",
+      "schema_file: test",
+      "change: incomplete",
+      "approach:",
+      "  - Test",
+      "decisions: []",
+      "alternatives: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "tasks.yaml"), [
+      "schema: strict-spec-driven/task-list/v1",
+      "schema_version: 1",
+      "artifact_type: task_list",
+      "schema_file: test",
+      "change: incomplete",
+      "sections:",
+      "  - name: Implementation",
+      "    tasks:",
+      "      - id: impl-1",
+      "        text: Do the work",
+      "        status: pending",
+      "  - name: Testing",
+      "    tasks:",
+      "      - id: test-build",
+      "        text: Build",
+      "        status: complete",
+      "        command: bun run build",
+      "      - id: test-unit",
+      "        text: Unit tests",
+      "        status: complete",
+      "        command: bun test/run.ts",
+      "  - name: Verification",
+      "    tasks:",
+      "      - id: verify-1",
+      "        text: Verify",
+      "        status: complete",
+      "testing_gates:",
+      "  validation_task: test-build",
+      "  unit_test_task: test-unit",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "questions.yaml"), [
+      "schema: strict-spec-driven/question-list/v1",
+      "schema_version: 1",
+      "artifact_type: question_list",
+      "schema_file: test",
+      "change: incomplete",
+      "open: []",
+      "resolved: []",
+    ].join("\n") + "\n", "utf8");
+
+    const incompleteResult = verifyModule.verifyChange(verifyIncompleteDir, "incomplete");
+    assert(!incompleteResult.valid, "incomplete tasks cause verification failure");
+    assert(
+      incompleteResult.diagnostics.some((d) => d.source === "task_completion"),
+      "incomplete tasks produce task_completion diagnostic",
+    );
+    assert(incompleteResult.totalTasks === 4, "incomplete change reports totalTasks=4", `got ${incompleteResult.totalTasks}`);
+    assert(incompleteResult.completeTasks === 3, "incomplete change reports completeTasks=3", `got ${incompleteResult.completeTasks}`);
+    assert(incompleteResult.remainingPending === 1, "incomplete change reports remainingPending=1", `got ${incompleteResult.remainingPending}`);
+
+    const incompleteCli = cli(["verify", "incomplete"], { cwd: verifyIncompleteDir });
+    assert(incompleteCli.status !== 0, "verify CLI exits non-zero for incomplete tasks", `got ${incompleteCli.status}`);
+  } finally {
+    rmSync(verifyIncompleteDir, { recursive: true, force: true });
+  }
+
+  // 12c: open questions
+  const verifyQuestionsDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-questions-"));
+  try {
+    const vChangeDir = path.join(verifyQuestionsDir, ".strict-spec-driven", "changes", "open-qs");
+    mkdirSync(vChangeDir, { recursive: true });
+    mkdirSync(path.join(vChangeDir, "specs"), { recursive: true });
+
+    writeFileSync(path.join(vChangeDir, "proposal.yaml"), [
+      "schema: strict-spec-driven/change-proposal/v1",
+      "schema_version: 1",
+      "artifact_type: change_proposal",
+      "schema_file: test",
+      "change:",
+      "  id: open-qs",
+      "  status: proposed",
+      "summary:",
+      "  what:",
+      "    - Test",
+      "  why:",
+      "    - Test",
+      "scope:",
+      "  in: []",
+      "  out: []",
+      "unchanged_behavior: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "design.yaml"), [
+      "schema: strict-spec-driven/change-design/v1",
+      "schema_version: 1",
+      "artifact_type: change_design",
+      "schema_file: test",
+      "change: open-qs",
+      "approach:",
+      "  - Test",
+      "decisions: []",
+      "alternatives: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "tasks.yaml"), [
+      "schema: strict-spec-driven/task-list/v1",
+      "schema_version: 1",
+      "artifact_type: task_list",
+      "schema_file: test",
+      "change: open-qs",
+      "sections:",
+      "  - name: Implementation",
+      "    tasks:",
+      "      - id: impl-1",
+      "        text: Do work",
+      "        status: complete",
+      "  - name: Testing",
+      "    tasks:",
+      "      - id: test-build",
+      "        text: Build",
+      "        status: complete",
+      "        command: bun run build",
+      "      - id: test-unit",
+      "        text: Unit tests",
+      "        status: complete",
+      "        command: bun test/run.ts",
+      "  - name: Verification",
+      "    tasks:",
+      "      - id: verify-1",
+      "        text: Verify",
+      "        status: complete",
+      "testing_gates:",
+      "  validation_task: test-build",
+      "  unit_test_task: test-unit",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "questions.yaml"), [
+      "schema: strict-spec-driven/question-list/v1",
+      "schema_version: 1",
+      "artifact_type: question_list",
+      "schema_file: test",
+      "change: open-qs",
+      "open:",
+      "        - id: q1",
+      "          question: What?",
+      "          context: testing",
+      "          status: open",
+      "resolved: []",
+    ].join("\n") + "\n", "utf8");
+
+    const qsResult = verifyModule.verifyChange(verifyQuestionsDir, "open-qs");
+    assert(!qsResult.valid, "open questions cause verification failure");
+    assert(
+      qsResult.diagnostics.some((d) => d.source === "open_questions"),
+      "open questions produce open_questions diagnostic",
+    );
+    assert(qsResult.openQuestionCount === 1, "verify reports openQuestionCount=1", `got ${qsResult.openQuestionCount}`);
+
+    const qsCli = cli(["verify", "open-qs"], { cwd: verifyQuestionsDir });
+    assert(qsCli.status !== 0, "verify CLI exits non-zero for open questions", `got ${qsCli.status}`);
+  } finally {
+    rmSync(verifyQuestionsDir, { recursive: true, force: true });
+  }
+
+  // 12d: invalid testing gates
+  const verifyGatesDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-gates-"));
+  try {
+    const vChangeDir = path.join(verifyGatesDir, ".strict-spec-driven", "changes", "bad-gates");
+    mkdirSync(vChangeDir, { recursive: true });
+    mkdirSync(path.join(vChangeDir, "specs"), { recursive: true });
+
+    writeFileSync(path.join(vChangeDir, "proposal.yaml"), [
+      "schema: strict-spec-driven/change-proposal/v1",
+      "schema_version: 1",
+      "artifact_type: change_proposal",
+      "schema_file: test",
+      "change:",
+      "  id: bad-gates",
+      "  status: proposed",
+      "summary:",
+      "  what:",
+      "    - Test",
+      "  why:",
+      "    - Test",
+      "scope:",
+      "  in: []",
+      "  out: []",
+      "unchanged_behavior: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "design.yaml"), [
+      "schema: strict-spec-driven/change-design/v1",
+      "schema_version: 1",
+      "artifact_type: change_design",
+      "schema_file: test",
+      "change: bad-gates",
+      "approach:",
+      "  - Test",
+      "decisions: []",
+      "alternatives: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "tasks.yaml"), [
+      "schema: strict-spec-driven/task-list/v1",
+      "schema_version: 1",
+      "artifact_type: task_list",
+      "schema_file: test",
+      "change: bad-gates",
+      "sections:",
+      "  - name: Implementation",
+      "    tasks:",
+      "      - id: impl-1",
+      "        text: Do work",
+      "        status: complete",
+      "  - name: Testing",
+      "    tasks:",
+      "      - id: test-build",
+      "        text: Build",
+      "        status: complete",
+      "        command: bun run build",
+      "      - id: test-unit",
+      "        text: Unit tests",
+      "        status: complete",
+      "        command: bun test/run.ts",
+      "  - name: Verification",
+      "    tasks:",
+      "      - id: verify-1",
+      "        text: Verify",
+      "        status: complete",
+      "testing_gates:",
+      "  validation_task: nonexistent-task",
+      "  unit_test_task: test-unit",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "questions.yaml"), [
+      "schema: strict-spec-driven/question-list/v1",
+      "schema_version: 1",
+      "artifact_type: question_list",
+      "schema_file: test",
+      "change: bad-gates",
+      "open: []",
+      "resolved: []",
+    ].join("\n") + "\n", "utf8");
+
+    const gatesResult = verifyModule.verifyChange(verifyGatesDir, "bad-gates");
+    assert(!gatesResult.valid, "invalid testing gates cause verification failure");
+    assert(
+      gatesResult.diagnostics.some((d) => d.source === "testing_gates"),
+      "invalid testing gates produce testing_gates diagnostic",
+    );
+    assert(
+      gatesResult.diagnostics.some((d) => d.message.includes("nonexistent-task")),
+      "testing gates diagnostic names the missing task ID",
+    );
+  } finally {
+    rmSync(verifyGatesDir, { recursive: true, force: true });
+  }
+
+  // 12e: malformed delta spec
+  const verifyDeltaDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-delta-"));
+  try {
+    const vChangeDir = path.join(verifyDeltaDir, ".strict-spec-driven", "changes", "bad-delta");
+    mkdirSync(vChangeDir, { recursive: true });
+    mkdirSync(path.join(vChangeDir, "specs"), { recursive: true });
+
+    writeFileSync(path.join(vChangeDir, "proposal.yaml"), [
+      "schema: strict-spec-driven/change-proposal/v1",
+      "schema_version: 1",
+      "artifact_type: change_proposal",
+      "schema_file: test",
+      "change:",
+      "  id: bad-delta",
+      "  status: proposed",
+      "summary:",
+      "  what:",
+      "    - Test",
+      "  why:",
+      "    - Test",
+      "scope:",
+      "  in: []",
+      "  out: []",
+      "unchanged_behavior: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "design.yaml"), [
+      "schema: strict-spec-driven/change-design/v1",
+      "schema_version: 1",
+      "artifact_type: change_design",
+      "schema_file: test",
+      "change: bad-delta",
+      "approach:",
+      "  - Test",
+      "decisions: []",
+      "alternatives: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "tasks.yaml"), [
+      "schema: strict-spec-driven/task-list/v1",
+      "schema_version: 1",
+      "artifact_type: task_list",
+      "schema_file: test",
+      "change: bad-delta",
+      "sections:",
+      "  - name: Implementation",
+      "    tasks:",
+      "      - id: impl-1",
+      "        text: Do work",
+      "        status: complete",
+      "  - name: Testing",
+      "    tasks:",
+      "      - id: test-build",
+      "        text: Build",
+      "        status: complete",
+      "        command: bun run build",
+      "      - id: test-unit",
+      "        text: Unit tests",
+      "        status: complete",
+      "        command: bun test/run.ts",
+      "  - name: Verification",
+      "    tasks:",
+      "      - id: verify-1",
+      "        text: Verify",
+      "        status: complete",
+      "testing_gates:",
+      "  validation_task: test-build",
+      "  unit_test_task: test-unit",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "questions.yaml"), [
+      "schema: strict-spec-driven/question-list/v1",
+      "schema_version: 1",
+      "artifact_type: question_list",
+      "schema_file: test",
+      "change: bad-delta",
+      "open: []",
+      "resolved: []",
+    ].join("\n") + "\n", "utf8");
+
+    // malformed delta spec with wrong schema id
+    writeFileSync(path.join(vChangeDir, "specs", "bad.yaml"), "invalid_field: true\n", "utf8");
+
+    const deltaResult = verifyModule.verifyChange(verifyDeltaDir, "bad-delta");
+    assert(!deltaResult.valid, "malformed delta spec causes verification failure");
+    assert(
+      deltaResult.diagnostics.some((d) => d.artifactPath.includes("specs")),
+      "delta spec diagnostic references specs path",
+    );
+  } finally {
+    rmSync(verifyDeltaDir, { recursive: true, force: true });
+  }
+
+  // 12f: exclusive target conflicts
+  const verifyConflictDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-conflict-"));
+  try {
+    // change-a: MODIFIED req-1
+    const changeADir = path.join(verifyConflictDir, ".strict-spec-driven", "changes", "change-a");
+    mkdirSync(changeADir, { recursive: true });
+    mkdirSync(path.join(changeADir, "specs"), { recursive: true });
+
+    writeFileSync(path.join(changeADir, "proposal.yaml"), [
+      "schema: strict-spec-driven/change-proposal/v1",
+      "schema_version: 1",
+      "artifact_type: change_proposal",
+      "schema_file: test",
+      "change:",
+      "  id: change-a",
+      "  status: proposed",
+      "summary:",
+      "  what:",
+      "    - Test",
+      "  why:",
+      "    - Test",
+      "scope:",
+      "  in: []",
+      "  out: []",
+      "unchanged_behavior: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(changeADir, "design.yaml"), [
+      "schema: strict-spec-driven/change-design/v1",
+      "schema_version: 1",
+      "artifact_type: change_design",
+      "schema_file: test",
+      "change: change-a",
+      "approach:",
+      "  - Test",
+      "decisions: []",
+      "alternatives: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(changeADir, "tasks.yaml"), [
+      "schema: strict-spec-driven/task-list/v1",
+      "schema_version: 1",
+      "artifact_type: task_list",
+      "schema_file: test",
+      "change: change-a",
+      "sections:",
+      "  - name: Implementation",
+      "    tasks:",
+      "      - id: impl-1",
+      "        text: Do work",
+      "        status: complete",
+      "  - name: Testing",
+      "    tasks:",
+      "      - id: test-build",
+      "        text: Build",
+      "        status: complete",
+      "        command: bun run build",
+      "      - id: test-unit",
+      "        text: Unit tests",
+      "        status: complete",
+      "        command: bun test/run.ts",
+      "  - name: Verification",
+      "    tasks:",
+      "      - id: verify-1",
+      "        text: Verify",
+      "        status: complete",
+      "testing_gates:",
+      "  validation_task: test-build",
+      "  unit_test_task: test-unit",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(changeADir, "questions.yaml"), [
+      "schema: strict-spec-driven/question-list/v1",
+      "schema_version: 1",
+      "artifact_type: question_list",
+      "schema_file: test",
+      "change: change-a",
+      "open: []",
+      "resolved: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(changeADir, "specs", "delta.yaml"), [
+      "schema: strict-spec-driven/delta-spec/v1",
+      "schema_version: 1",
+      "artifact_type: delta_spec",
+      "schema_file: test",
+      "target_spec: some-spec",
+      "mapping:",
+      "  implementation: []",
+      "  tests: []",
+      "operations:",
+      "  ADDED: []",
+      "  MODIFIED:",
+      "    - target_requirement: req-1",
+      "      replacement:",
+      "        id: req-1",
+      "        strength: MUST",
+      "        statement: Modified version",
+      "        scenarios: []",
+      "  REMOVED: []",
+    ].join("\n") + "\n", "utf8");
+
+    // change-b: also MODIFIED req-1 (conflict)
+    const changeBDir = path.join(verifyConflictDir, ".strict-spec-driven", "changes", "change-b");
+    mkdirSync(changeBDir, { recursive: true });
+    mkdirSync(path.join(changeBDir, "specs"), { recursive: true });
+
+    writeFileSync(path.join(changeBDir, "proposal.yaml"), [
+      "schema: strict-spec-driven/change-proposal/v1",
+      "schema_version: 1",
+      "artifact_type: change_proposal",
+      "schema_file: test",
+      "change:",
+      "  id: change-b",
+      "  status: proposed",
+      "summary:",
+      "  what:",
+      "    - Test",
+      "  why:",
+      "    - Test",
+      "scope:",
+      "  in: []",
+      "  out: []",
+      "unchanged_behavior: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(changeBDir, "design.yaml"), [
+      "schema: strict-spec-driven/change-design/v1",
+      "schema_version: 1",
+      "artifact_type: change_design",
+      "schema_file: test",
+      "change: change-b",
+      "approach:",
+      "  - Test",
+      "decisions: []",
+      "alternatives: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(changeBDir, "tasks.yaml"), [
+      "schema: strict-spec-driven/task-list/v1",
+      "schema_version: 1",
+      "artifact_type: task_list",
+      "schema_file: test",
+      "change: change-b",
+      "sections:",
+      "  - name: Implementation",
+      "    tasks:",
+      "      - id: impl-1",
+      "        text: Do work",
+      "        status: complete",
+      "  - name: Testing",
+      "    tasks:",
+      "      - id: test-build",
+      "        text: Build",
+      "        status: complete",
+      "        command: bun run build",
+      "      - id: test-unit",
+      "        text: Unit tests",
+      "        status: complete",
+      "        command: bun test/run.ts",
+      "  - name: Verification",
+      "    tasks:",
+      "      - id: verify-1",
+      "        text: Verify",
+      "        status: complete",
+      "testing_gates:",
+      "  validation_task: test-build",
+      "  unit_test_task: test-unit",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(changeBDir, "questions.yaml"), [
+      "schema: strict-spec-driven/question-list/v1",
+      "schema_version: 1",
+      "artifact_type: question_list",
+      "schema_file: test",
+      "change: change-b",
+      "open: []",
+      "resolved: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(changeBDir, "specs", "delta.yaml"), [
+      "schema: strict-spec-driven/delta-spec/v1",
+      "schema_version: 1",
+      "artifact_type: delta_spec",
+      "schema_file: test",
+      "target_spec: some-spec",
+      "mapping:",
+      "  implementation: []",
+      "  tests: []",
+      "operations:",
+      "  ADDED: []",
+      "  MODIFIED:",
+      "    - target_requirement: req-1",
+      "      replacement:",
+      "        id: req-1",
+      "        strength: MUST",
+      "        statement: Other modified version",
+      "        scenarios: []",
+      "  REMOVED: []",
+    ].join("\n") + "\n", "utf8");
+
+    const conflictResultA = verifyModule.verifyChange(verifyConflictDir, "change-a");
+    assert(!conflictResultA.valid, "exclusive target conflict causes verification failure");
+    assert(
+      conflictResultA.diagnostics.some((d) => d.source === "exclusive_active_target"),
+      "exclusive target conflict produces exclusive_active_target diagnostic",
+    );
+    assert(
+      conflictResultA.diagnostics.some((d) => d.message.includes("req-1")),
+      "exclusive target diagnostic names conflicting requirement ID",
+    );
+    assert(
+      conflictResultA.diagnostics.some((d) => d.message.includes("change-a") && d.message.includes("change-b")),
+      "exclusive target diagnostic names both conflicting changes",
+    );
+
+    const conflictCliA = cli(["verify", "change-a"], { cwd: verifyConflictDir });
+    assert(conflictCliA.status !== 0, "verify CLI exits non-zero for target conflict", `got ${conflictCliA.status}`);
+  } finally {
+    rmSync(verifyConflictDir, { recursive: true, force: true });
+  }
+
+  // 12g: missing change
+  const verifyMissingDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-missing-"));
+  try {
+    mkdirSync(path.join(verifyMissingDir, ".strict-spec-driven", "changes"), { recursive: true });
+
+    const missingModule = verifyModule.verifyChange(verifyMissingDir, "no-such-change");
+    assert(false, "verify missing change should throw", `got result: ${JSON.stringify(missingModule)}`);
+  } catch (e) {
+    assert(
+      (e instanceof Error ? e.message : String(e)).includes("not found"),
+      "verify missing change throws 'not found' error",
+    );
+  } finally {
+    rmSync(verifyMissingDir, { recursive: true, force: true });
+  }
+
+  // 12h: missing change via CLI
+  const verifyMissingCliDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-missingcli-"));
+  try {
+    mkdirSync(path.join(verifyMissingCliDir, ".strict-spec-driven", "changes"), { recursive: true });
+    const missingCli = cli(["verify", "no-such-change"], { cwd: verifyMissingCliDir });
+    assert(missingCli.status !== 0, "verify CLI exits non-zero for missing change", `got ${missingCli.status}`);
+    assert(
+      missingCli.stderr.includes("not found"),
+      "verify CLI stderr reports 'not found' for missing change",
+    );
+  } finally {
+    rmSync(verifyMissingCliDir, { recursive: true, force: true });
+  }
+
+  // 12i: verify CLI argument validation
+  const verifyNoArgDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-noarg-"));
+  try {
+    const noArg = cli(["verify"], { cwd: verifyNoArgDir });
+    assert(noArg.status !== 0, "verify without change name exits non-zero");
+    assert(noArg.stderr.includes("Usage:"), "verify without change name prints usage");
+  } finally {
+    rmSync(verifyNoArgDir, { recursive: true, force: true });
+  }
+
+  // 12j: verify from dist-only environment
+  const distOnlyVerifyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-dist-only-verify-"));
+  try {
+    const vChangeDir = path.join(distOnlyVerifyDir, ".strict-spec-driven", "changes", "dist-verify-test");
+    mkdirSync(vChangeDir, { recursive: true });
+    mkdirSync(path.join(vChangeDir, "specs"), { recursive: true });
+
+    writeFileSync(path.join(vChangeDir, "proposal.yaml"), [
+      "schema: strict-spec-driven/change-proposal/v1",
+      "schema_version: 1",
+      "artifact_type: change_proposal",
+      "schema_file: test",
+      "change:",
+      "  id: dist-verify-test",
+      "  status: proposed",
+      "summary:",
+      "  what:",
+      "    - Test",
+      "  why:",
+      "    - Test",
+      "scope:",
+      "  in: []",
+      "  out: []",
+      "unchanged_behavior: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "design.yaml"), [
+      "schema: strict-spec-driven/change-design/v1",
+      "schema_version: 1",
+      "artifact_type: change_design",
+      "schema_file: test",
+      "change: dist-verify-test",
+      "approach:",
+      "  - Test",
+      "decisions: []",
+      "alternatives: []",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "tasks.yaml"), [
+      "schema: strict-spec-driven/task-list/v1",
+      "schema_version: 1",
+      "artifact_type: task_list",
+      "schema_file: test",
+      "change: dist-verify-test",
+      "sections:",
+      "  - name: Implementation",
+      "    tasks:",
+      "      - id: impl-1",
+      "        text: Do work",
+      "        status: complete",
+      "  - name: Testing",
+      "    tasks:",
+      "      - id: test-build",
+      "        text: Build",
+      "        status: complete",
+      "        command: bun run build",
+      "      - id: test-unit",
+      "        text: Unit tests",
+      "        status: complete",
+      "        command: bun test/run.ts",
+      "  - name: Verification",
+      "    tasks:",
+      "      - id: verify-1",
+      "        text: Verify",
+      "        status: complete",
+      "testing_gates:",
+      "  validation_task: test-build",
+      "  unit_test_task: test-unit",
+    ].join("\n") + "\n", "utf8");
+
+    writeFileSync(path.join(vChangeDir, "questions.yaml"), [
+      "schema: strict-spec-driven/question-list/v1",
+      "schema_version: 1",
+      "artifact_type: question_list",
+      "schema_file: test",
+      "change: dist-verify-test",
+      "open: []",
+      "resolved: []",
+    ].join("\n") + "\n", "utf8");
+
+    const distVerifyCli = cli(["verify", "dist-verify-test"], { cwd: distOnlyVerifyDir });
+    assert(distVerifyCli.status === 0, "verify succeeds from dist-only temp directory", `got ${distVerifyCli.status}`);
+    const distVerifyJson = JSON.parse(distVerifyCli.stdout.trim());
+    assert(distVerifyJson.valid === true, "verify from dist reports valid=true");
+    assert(distVerifyJson.changeName === "dist-verify-test", "verify from dist reports correct changeName");
+  } finally {
+    rmSync(distOnlyVerifyDir, { recursive: true, force: true });
+  }
+
   console.log("");
   const total = passed + failed;
   if (failed === 0) {

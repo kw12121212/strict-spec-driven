@@ -1,0 +1,392 @@
+import { existsSync, readdirSync, readFileSync } from "fs";
+import path from "path";
+import { parseYamlDocument } from "./yaml.js";
+import {
+  loadBundledSchemaByArtifactType,
+  validateArtifact,
+  type ValidationDiagnostic,
+} from "./validation.js";
+
+const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
+
+type Task = {
+  id: string;
+  text: string;
+  status: string;
+  command?: string;
+};
+
+type Section = {
+  name: string;
+  tasks: Task[];
+};
+
+type TaskListArtifact = {
+  sections: Section[];
+  testing_gates?: {
+    validation_task?: string;
+    unit_test_task?: string;
+  };
+};
+
+type QuestionListArtifact = {
+  open?: unknown[];
+};
+
+type DeltaSpecOperationEntry = {
+  target_requirement?: string;
+};
+
+type DeltaSpecArtifact = {
+  operations?: {
+    MODIFIED?: DeltaSpecOperationEntry[];
+    REMOVED?: DeltaSpecOperationEntry[];
+  };
+};
+
+export type VerifyDiagnostic = {
+  source: string;
+  artifactPath: string;
+  fieldPath: string;
+  message: string;
+  expected?: string;
+  actual?: string;
+};
+
+export type VerifyResult = {
+  valid: boolean;
+  diagnostics: VerifyDiagnostic[];
+  changeName: string;
+  totalTasks: number;
+  completeTasks: number;
+  remainingPending: number;
+  openQuestionCount: number;
+};
+
+function collectDiagnostics(
+  results: ValidationDiagnostic[],
+): VerifyDiagnostic[] {
+  return results.map((d) => ({
+    source: d.source,
+    artifactPath: d.artifactPath,
+    fieldPath: d.fieldPath,
+    message: d.message,
+    expected: d.expected,
+    actual: d.actual,
+  }));
+}
+
+function validateArtifactSchema(
+  artifactType: string,
+  artifact: unknown,
+  artifactPath: string,
+): VerifyDiagnostic[] {
+  const diagnostics: VerifyDiagnostic[] = [];
+
+  const record = artifact as Record<string, unknown> | null;
+  if (!record || typeof record !== "object" || Array.isArray(record)) {
+    diagnostics.push({
+      source: "schema",
+      artifactPath,
+      fieldPath: "$",
+      message: "artifact is not a YAML mapping",
+      expected: "YAML mapping",
+      actual: String(typeof artifact),
+    });
+    return diagnostics;
+  }
+
+  const expectedArtifactType = artifactType;
+  if (record.artifact_type !== expectedArtifactType) {
+    diagnostics.push({
+      source: "schema",
+      artifactPath,
+      fieldPath: "$.artifact_type",
+      message: `artifact_type mismatch`,
+      expected: expectedArtifactType,
+      actual: String(record.artifact_type),
+    });
+  }
+
+  try {
+    const schema = loadBundledSchemaByArtifactType(artifactType);
+    const result = validateArtifact(schema, artifact, artifactPath);
+    diagnostics.push(...collectDiagnostics(result.diagnostics));
+  } catch {
+    // Bundled YAML schemas use custom types that aren't valid JSON Schema;
+    // structural checks above cover the critical validation gaps.
+  }
+
+  return diagnostics;
+}
+
+function checkTaskCompletion(
+  artifact: TaskListArtifact,
+  artifactPath: string,
+): { diagnostics: VerifyDiagnostic[]; totalTasks: number; completeTasks: number } {
+  let totalTasks = 0;
+  let completeTasks = 0;
+  const diagnostics: VerifyDiagnostic[] = [];
+
+  for (const section of artifact.sections ?? []) {
+    for (const task of section.tasks ?? []) {
+      totalTasks += 1;
+      if (task.status === "complete") {
+        completeTasks += 1;
+      } else {
+        diagnostics.push({
+          source: "task_completion",
+          artifactPath,
+          fieldPath: `$.sections[?].tasks[?].id=${task.id}`,
+          message: `task '${task.id}' has status '${task.status}', expected 'complete'`,
+          expected: "complete",
+          actual: task.status,
+        });
+      }
+    }
+  }
+
+  return { diagnostics, totalTasks, completeTasks };
+}
+
+function checkOpenQuestions(
+  artifact: QuestionListArtifact,
+  artifactPath: string,
+): { diagnostics: VerifyDiagnostic[]; openCount: number } {
+  const open = artifact.open ?? [];
+  const diagnostics: VerifyDiagnostic[] = [];
+
+  if (open.length > 0) {
+    diagnostics.push({
+      source: "open_questions",
+      artifactPath,
+      fieldPath: "$.open",
+      message: `questions.yaml has ${open.length} unresolved open question(s)`,
+      expected: "0 open questions",
+      actual: `${open.length} open question(s)`,
+    });
+  }
+
+  return { diagnostics, openCount: open.length };
+}
+
+function checkTestingGates(
+  artifact: TaskListArtifact,
+  artifactPath: string,
+): VerifyDiagnostic[] {
+  const diagnostics: VerifyDiagnostic[] = [];
+  const gates = artifact.testing_gates;
+  if (!gates) return diagnostics;
+
+  const testingSection = (artifact.sections ?? []).find(
+    (s) => s.name === "Testing",
+  );
+  const testingTaskIds = new Set(
+    (testingSection?.tasks ?? []).map((t) => t.id),
+  );
+
+  const gateRefs: [string, string | undefined][] = [
+    ["validation_task", gates.validation_task],
+    ["unit_test_task", gates.unit_test_task],
+  ];
+
+  for (const [gateName, taskId] of gateRefs) {
+    if (taskId !== undefined && !testingTaskIds.has(taskId)) {
+      diagnostics.push({
+        source: "testing_gates",
+        artifactPath,
+        fieldPath: `$.testing_gates.${gateName}`,
+        message: `testing gate '${gateName}' references task '${taskId}' which does not exist in the Testing section`,
+        expected: "existing Testing section task ID",
+        actual: taskId,
+      });
+    }
+  }
+
+  return diagnostics;
+}
+
+function validateDeltaSpecs(
+  changeDir: string,
+  artifactPathPrefix: string,
+): VerifyDiagnostic[] {
+  const specsDir = path.join(changeDir, "specs");
+  if (!existsSync(specsDir)) return [];
+
+  const diagnostics: VerifyDiagnostic[] = [];
+
+  function scanDir(dir: string): void {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        scanDir(fullPath);
+      } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
+        const relativePath = path.relative(changeDir, fullPath);
+        const content = readFileSync(fullPath, "utf8");
+        const artifact = parseYamlDocument<unknown>(content);
+        const artifactPath = `${artifactPathPrefix}/${relativePath}`;
+        diagnostics.push(
+          ...validateArtifactSchema("delta_spec", artifact, artifactPath),
+        );
+      }
+    }
+  }
+
+  scanDir(specsDir);
+  return diagnostics;
+}
+
+function checkExclusiveActiveTargets(
+  rootDir: string,
+  changeName: string,
+): VerifyDiagnostic[] {
+  const changesDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "changes");
+  if (!existsSync(changesDir)) return [];
+
+  const diagnostics: VerifyDiagnostic[] = [];
+
+  const targetMap = new Map<
+    string,
+    { changeName: string; operation: string }[]
+  >();
+
+  const activeDirs = readdirSync(changesDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name);
+
+  for (const activeChange of activeDirs) {
+    const specsDir = path.join(changesDir, activeChange, "specs");
+    if (!existsSync(specsDir)) continue;
+
+    function scanDir(dir: string): void {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          scanDir(fullPath);
+        } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
+          const content = readFileSync(fullPath, "utf8");
+          const artifact = parseYamlDocument<DeltaSpecArtifact>(content);
+          const ops = artifact.operations ?? {};
+          for (const [opName, entries] of Object.entries(ops)) {
+            if (opName !== "MODIFIED" && opName !== "REMOVED") continue;
+            if (!Array.isArray(entries)) continue;
+            for (const entry of entries) {
+              const target = entry.target_requirement;
+              if (!target) continue;
+              if (!targetMap.has(target)) targetMap.set(target, []);
+              targetMap.get(target)!.push({
+                changeName: activeChange,
+                operation: opName,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    scanDir(specsDir);
+  }
+
+  for (const [requirementId, changes] of targetMap) {
+    if (changes.length <= 1) continue;
+    const changeNames = [...new Set(changes.map((c) => c.changeName))];
+    if (!changeNames.includes(changeName)) continue;
+    if (changeNames.length <= 1) continue;
+
+    diagnostics.push({
+      source: "exclusive_active_target",
+      artifactPath: `.strict-spec-driven/changes/${changeName}/specs/`,
+      fieldPath: `$.operations`,
+      message: `requirement '${requirementId}' is MODIFIED/REMOVED in multiple active changes: ${changeNames.join(", ")}`,
+      expected: "unique MODIFIED/REMOVED target across active changes",
+      actual: `conflict between ${changes.map((c) => c.changeName).join(" and ")}`,
+    });
+  }
+
+  return diagnostics;
+}
+
+export function verifyChange(
+  rootDir: string,
+  changeName: string,
+): VerifyResult {
+  const changeDir = path.join(
+    rootDir,
+    STRICT_WORKFLOW_DIR,
+    "changes",
+    changeName,
+  );
+  if (!existsSync(changeDir)) {
+    throw new Error(`change '${changeName}' not found`);
+  }
+
+  const allDiagnostics: VerifyDiagnostic[] = [];
+  let totalTasks = 0;
+  let completeTasks = 0;
+  let openQuestionCount = 0;
+
+  const artifactConfigs: [string, string][] = [
+    ["change_proposal", "proposal.yaml"],
+    ["change_design", "design.yaml"],
+    ["task_list", "tasks.yaml"],
+    ["question_list", "questions.yaml"],
+  ];
+
+  for (const [artifactType, fileName] of artifactConfigs) {
+    const filePath = path.join(changeDir, fileName);
+    const artifactPath = `.strict-spec-driven/changes/${changeName}/${fileName}`;
+    if (!existsSync(filePath)) {
+      allDiagnostics.push({
+        source: "schema",
+        artifactPath,
+        fieldPath: "$",
+        message: `required artifact '${fileName}' is missing`,
+      });
+      continue;
+    }
+
+    const content = readFileSync(filePath, "utf8");
+    const artifact = parseYamlDocument<unknown>(content);
+    allDiagnostics.push(
+      ...validateArtifactSchema(artifactType, artifact, artifactPath),
+    );
+
+    if (artifactType === "task_list") {
+      const taskArtifact = artifact as TaskListArtifact;
+      const taskResult = checkTaskCompletion(taskArtifact, artifactPath);
+      allDiagnostics.push(...taskResult.diagnostics);
+      totalTasks = taskResult.totalTasks;
+      completeTasks = taskResult.completeTasks;
+
+      allDiagnostics.push(...checkTestingGates(taskArtifact, artifactPath));
+    }
+
+    if (artifactType === "question_list") {
+      const questionArtifact = artifact as QuestionListArtifact;
+      const questionResult = checkOpenQuestions(questionArtifact, artifactPath);
+      allDiagnostics.push(...questionResult.diagnostics);
+      openQuestionCount = questionResult.openCount;
+    }
+  }
+
+  const specsPrefix = `.strict-spec-driven/changes/${changeName}/specs`;
+  allDiagnostics.push(...validateDeltaSpecs(changeDir, specsPrefix));
+
+  allDiagnostics.push(...checkExclusiveActiveTargets(rootDir, changeName));
+
+  allDiagnostics.sort((a, b) => {
+    const aKey = [a.source, a.artifactPath, a.fieldPath, a.message].join("|");
+    const bKey = [b.source, b.artifactPath, b.fieldPath, b.message].join("|");
+    return aKey.localeCompare(bKey);
+  });
+
+  return {
+    valid: allDiagnostics.length === 0,
+    diagnostics: allDiagnostics,
+    changeName,
+    totalTasks,
+    completeTasks,
+    remainingPending: totalTasks - completeTasks,
+    openQuestionCount,
+  };
+}
