@@ -1,0 +1,38 @@
+schema: spec-driven
+context: |
+  strict-spec-driven is a YAML-first variant of ../auto-spec-driven.
+  It keeps the existing Agent Skills workflow concept intact, but converts the
+  spec-driven artifacts and related documentation formats from Markdown-centric
+  conventions into strict YAML schemas.
+  Scripts may diverge from the reference project where needed to create,
+  validate, parse, and enforce those YAML schemas deterministically.
+  The project should use the reference repository for workflow semantics while
+  treating YAML schema enforcement as the primary product constraint.
+rules:
+  specs:
+    - Describe observable behavior only — no implementation details, technology
+      choices, or internal structure
+    - MUST = required with no exceptions; SHOULD = default unless explicitly
+      justified; MAY = genuinely optional
+    - Each requirement must be independently verifiable from outside the system
+  change:
+    - Implement only what is in scope in proposal.md — if scope needs to expand,
+      use /spec-driven-modify first, never expand silently
+    - When a requirement or task is ambiguous, ask the user before proceeding —
+      do not assume or guess
+    - Delta specs must reflect what was actually built, not the original plan
+    - Mark tasks [x] immediately upon completion — never batch at the end
+    - Every change must include test tasks (lint + unit tests at minimum)
+  code:
+    - Read existing code before modifying it
+    - Implement only what the current task requires — no speculative features
+    - No abstractions for hypothetical future needs (YAGNI)
+  test:
+    - Tests must verify observable behavior described in specs, not internal
+      implementation details
+    - Each test must be independent — no shared mutable state between tests
+    - Prefer real dependencies over mocks for code the project owns
+# fileMatch:              # per-pattern rules applied in addition to global rules above
+#   - pattern: "**/*.test.*"
+#     rules:
+#       - Tests must cover happy path, error cases, and edge cases
