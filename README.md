@@ -88,7 +88,7 @@ CLI 基础已建立（Milestone 02 第一个变更已完成）。
 
 - `package.json`：`strict-spec-driven` 包，`build` + `test` 脚本
 - `tsconfig.json`：严格 TypeScript 配置，`src/` → `dist/`
-- `src/index.ts`：CLI 入口，命令路由骨架
+- `src/strict-spec-cli.ts`：CLI 入口，命令路由骨架
 - `test/run.ts`：测试套件，使用 pass/fail 计数模式
 - `AGENTS.md`：代理入口，引用 `RTK.md`
 - `RTK.md`：本仓库的 AI 工作说明

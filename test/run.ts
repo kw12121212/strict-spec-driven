@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
-const CLI = path.join(ROOT, "dist", "index.js");
+const CLI = path.join(ROOT, "dist", "strict-spec-cli.js");
 const VALIDATION_FIXTURE_ROOT = path.join(ROOT, "test", "fixtures", "validation");
 
 type YamlModule = {
@@ -355,7 +355,71 @@ async function main(): Promise<void> {
     rmSync(initTempDir, { recursive: true, force: true });
   }
 
-  section("[6] fixture-driven validation matrix");
+  section("[6] propose command");
+
+  const proposeTempDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-driven-propose-"));
+  try {
+    const invalidName = cli(["propose", "Invalid_Name"], { cwd: proposeTempDir });
+    assert(invalidName.status !== 0, "propose rejects invalid change names", `got exit code ${invalidName.status}`);
+    assert(
+      invalidName.stderr.includes("kebab-case"),
+      "propose invalid-name failure reports kebab-case requirement",
+      `stderr: ${invalidName.stderr.trim()}`,
+    );
+    assert(
+      !existsSync(path.join(proposeTempDir, ".strict-spec-driven", "changes", "Invalid_Name")),
+      "propose invalid-name failure does not create change directory",
+    );
+
+    const changeName = "add-propose-command";
+    const firstPropose = cli(["propose", changeName], { cwd: proposeTempDir });
+    assert(firstPropose.status === 0, "propose creates strict change scaffold", `got exit code ${firstPropose.status}`);
+
+    const changeDir = path.join(proposeTempDir, ".strict-spec-driven", "changes", changeName);
+    assert(existsSync(changeDir), "propose creates change directory");
+
+    const expectedArtifacts = ["proposal.yaml", "design.yaml", "tasks.yaml", "questions.yaml"];
+    for (const artifact of expectedArtifacts) {
+      assert(
+        existsSync(path.join(changeDir, artifact)),
+        `propose creates planning artifact (${artifact})`,
+      );
+    }
+    assert(existsSync(path.join(changeDir, "specs")), "propose creates specs directory");
+    assert(
+      firstPropose.stdout.includes(`Created strict change scaffold at .strict-spec-driven/changes/${changeName}/`),
+      "propose output identifies created change directory",
+      `stdout: ${firstPropose.stdout.trim()}`,
+    );
+    for (const artifact of [...expectedArtifacts, "specs/"]) {
+      assert(
+        firstPropose.stdout.includes(`- .strict-spec-driven/changes/${changeName}/${artifact}`),
+        `propose output lists created path (.strict-spec-driven/changes/${changeName}/${artifact})`,
+      );
+    }
+
+    const proposalArtifact = readFileSync(path.join(changeDir, "proposal.yaml"), "utf8");
+    assert(
+      proposalArtifact.includes(`id: ${changeName}`),
+      "propose template placeholders are rendered with change name",
+    );
+
+    const duplicatePropose = cli(["propose", changeName], { cwd: proposeTempDir });
+    assert(duplicatePropose.status !== 0, "propose rejects duplicate changes", `got exit code ${duplicatePropose.status}`);
+    assert(
+      duplicatePropose.stderr.includes("already exists"),
+      "propose duplicate-change failure reports existing change collision",
+      `stderr: ${duplicatePropose.stderr.trim()}`,
+    );
+    assert(
+      readFileSync(path.join(changeDir, "proposal.yaml"), "utf8") === proposalArtifact,
+      "propose duplicate-change failure preserves existing artifacts",
+    );
+  } finally {
+    rmSync(proposeTempDir, { recursive: true, force: true });
+  }
+
+  section("[7] fixture-driven validation matrix");
 
   const fixtureSchema = {
     type: "object",

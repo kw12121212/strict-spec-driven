@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { parseYamlFile } from "./yaml.js";
@@ -13,6 +13,13 @@ const REQUIRED_SCAFFOLD_ASSETS = [
   "changes/STATE.yaml",
   "specs/README.md",
 ] as const;
+const REQUIRED_CHANGE_TEMPLATE_ASSETS = [
+  "changes/proposal.yaml",
+  "changes/design.yaml",
+  "changes/tasks.yaml",
+  "changes/questions.yaml",
+] as const;
+const CHANGE_TEMPLATE_NAME_PLACEHOLDER = "{{change_name}}";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const LEGACY_WORKFLOW_DIR = ".spec-driven";
@@ -22,6 +29,12 @@ export type StrictInitResult = {
   created: string[];
   skipped: string[];
   warnings: string[];
+};
+
+export type StrictChangeScaffoldResult = {
+  changeDir: string;
+  planningArtifacts: string[];
+  specsDir: string;
 };
 
 function normalizeRelativeScaffoldPath(relativePath: string): string {
@@ -34,6 +47,10 @@ function normalizeRelativeScaffoldPath(relativePath: string): string {
     throw new Error(`Scaffold asset path must be normalized, got '${relativePath}'`);
   }
   return normalized;
+}
+
+function toRepoRelativePath(rootDir: string, absolutePath: string): string {
+  return path.relative(rootDir, absolutePath).split(path.sep).join("/");
 }
 
 export function getBundledScaffoldPath(relativePath: string): string {
@@ -60,6 +77,43 @@ export function getRequiredBundledScaffoldAssets(): string[] {
 
 export function findMissingRequiredScaffoldAssets(): string[] {
   return getRequiredBundledScaffoldAssets().filter((relativePath) => !existsSync(getBundledScaffoldPath(relativePath)));
+}
+
+export function getRequiredBundledChangeTemplateAssets(): string[] {
+  return [...REQUIRED_CHANGE_TEMPLATE_ASSETS];
+}
+
+export function findMissingRequiredChangeTemplateAssets(): string[] {
+  return getRequiredBundledChangeTemplateAssets().filter((relativePath) => !existsSync(getBundledScaffoldPath(relativePath)));
+}
+
+export function initializeStrictChangeScaffold(rootDir: string, changeName: string): StrictChangeScaffoldResult {
+  const strictChangesRootDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "changes");
+  const changeDir = path.join(strictChangesRootDir, changeName);
+  const repoRelativeChangeDir = toRepoRelativePath(rootDir, changeDir);
+  if (existsSync(changeDir)) {
+    throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
+  }
+
+  mkdirSync(changeDir, { recursive: true });
+  const planningArtifacts: string[] = [];
+  for (const templateAssetPath of getRequiredBundledChangeTemplateAssets()) {
+    const outputFileName = path.basename(templateAssetPath);
+    const outputPath = path.join(changeDir, outputFileName);
+    const templateContent = readBundledScaffoldTemplate(templateAssetPath);
+    const outputContent = templateContent.replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, changeName);
+    writeFileSync(outputPath, outputContent, "utf8");
+    planningArtifacts.push(toRepoRelativePath(rootDir, outputPath));
+  }
+
+  const specsDir = path.join(changeDir, "specs");
+  mkdirSync(specsDir, { recursive: true });
+
+  return {
+    changeDir: repoRelativeChangeDir,
+    planningArtifacts,
+    specsDir: `${toRepoRelativePath(rootDir, specsDir)}/`,
+  };
 }
 
 export function initializeStrictScaffold(rootDir: string): StrictInitResult {
