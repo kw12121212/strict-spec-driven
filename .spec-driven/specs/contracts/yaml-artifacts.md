@@ -1,9 +1,9 @@
 ---
 mapping:
   implementation:
-    - .strict-spec-driven/schemas/schema-registry.yaml
-    - .strict-spec-driven/schemas/registry.yaml
-    - .strict-spec-driven/examples/schema-registry.yaml
+    - templates/strict-spec-driven/schemas/schema-registry.yaml
+    - templates/strict-spec-driven/schemas/registry.yaml
+    - templates/strict-spec-driven/examples/schema-registry.yaml
   tests:
 ---
 
@@ -265,13 +265,14 @@ The system MUST require concrete schema files and minimal valid example files to
 - THEN the example artifact data is available through structured YAML fields
 
 ### Requirement: strict-schema-file-organization
-The system MUST store strict workflow schema files under `.strict-spec-driven/schemas/` and minimal valid example files under `.strict-spec-driven/examples/`.
+The system MUST store repository-bundled strict workflow schema files under `templates/strict-spec-driven/schemas/` and minimal valid example files under `templates/strict-spec-driven/examples/`, separate from `.strict-spec-driven/` workflow state.
 
 #### Scenario: schema and example directories are discoverable
 - GIVEN the strict workflow repository files are reviewed
 - WHEN concrete schema and example locations are checked
-- THEN schema files are available under `.strict-spec-driven/schemas/`
-- AND minimal valid example files are available under `.strict-spec-driven/examples/`
+- THEN schema files are available under `templates/strict-spec-driven/schemas/`
+- AND minimal valid example files are available under `templates/strict-spec-driven/examples/`
+- AND `.strict-spec-driven/` is not used to store repository-bundled schema or example assets
 
 ### Requirement: strict-schema-example-file-naming
 The system MUST name schema and example files so each required artifact family has a corresponding schema file and example file with matching artifact identity.
@@ -486,12 +487,12 @@ The system MUST distinguish skill and slash-command prefix rules from CLI entryp
 - AND each naming surface is checked against its own strict naming rule
 
 ### Requirement: yaml-schema-registry-location
-The system MUST define a strict YAML schema registry under `.strict-spec-driven/schemas/` that lets validators, generators, migration tooling, and skills discover supported strict workflow artifact schemas.
+The system MUST define a strict YAML schema registry under `templates/strict-spec-driven/schemas/` that lets validators, generators, migration tooling, and skills discover supported strict workflow artifact schemas.
 
 #### Scenario: registry location is discoverable
 - GIVEN strict workflow tooling needs to discover supported schemas
 - WHEN the schema registry location is checked
-- THEN the registry location is identified under `.strict-spec-driven/schemas/`
+- THEN the registry location is identified under `templates/strict-spec-driven/schemas/`
 - AND the registry is separate from roadmap, proposal, and archived change artifacts
 
 #### Scenario: registry is structured YAML

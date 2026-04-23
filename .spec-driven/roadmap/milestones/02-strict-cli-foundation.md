@@ -29,9 +29,9 @@ Bootstrap a TypeScript CLI foundation that can create, parse, validate, and test
 ## Planned Changes
 - `bootstrap-typescript-cli` - Declared: complete - add `package.json`, `tsconfig.json`, TypeScript source entrypoint, strict ESM command router, compiled `dist/` output, and repeatable `npm run build` plus `npm test` runner based on reference conventions.
 - `select-yaml-schema-tooling` - Declared: planned - pin `js-yaml` and `ajv` with `ajv-formats` in `package.json`, document the dependency policy, and wire both into the TypeScript build and test scripts.
-- `add-yaml-validation-layer` - Declared: planned - implement shared source modules for YAML parse/stringify, schema loading from `.strict-spec-driven/schemas/`, path-aware diagnostics, reference checks, duplicate-ID checks, and deterministic serialization.
+- `add-yaml-validation-layer` - Declared: planned - implement shared source modules for YAML parse/stringify, schema loading from bundled `templates/strict-spec-driven/schemas/`, path-aware diagnostics, reference checks, duplicate-ID checks, and deterministic serialization.
 - `create-strict-template-assets` - Declared: planned - add bundled template YAML files for config, specs index, roadmap index, empty changes state, and seed README guidance used by init and fixture tests.
-- `implement-strict-init` - Declared: planned - implement the `init` subcommand to create `.strict-spec-driven/` config, specs, roadmap, changes, schema, and example assets without clobbering existing user state.
+- `implement-strict-init` - Declared: planned - implement the `init` subcommand to create `.strict-spec-driven/` config, specs, roadmap, and changes from bundled template assets without clobbering existing user state.
 - `add-yaml-fixtures-and-tests` - Declared: planned - add test fixtures and automated tests for valid scaffold generation, invalid YAML diagnostics, enum validation, reference validation, duplicate IDs, unsupported shapes, and idempotent init.
 
 ## Dependencies
@@ -55,4 +55,3 @@ Bootstrap a TypeScript CLI foundation that can create, parse, validate, and test
 - Coexistence rule: if `init` detects an existing `.spec-driven/` directory it should emit a single warning and continue without error. Strict CLI commands must read only from `.strict-spec-driven/` and must not scan `.spec-driven/` for workflow state.
 - Atomic write strategy: all file write operations must write to a sibling `.partial` file first, then atomically rename to the final path on success. On failure the `.partial` file is left in place and the next run must report it rather than silently overwriting the final target.
 - Reference tests reset fixture state and run against compiled `dist/` output; strict tests should keep that pattern once TypeScript sources exist.
-

@@ -42,6 +42,10 @@ Skills 本身仍可以保持 `SKILL.md`，因为这是 Agent Skills 的包装格
 下由 workflow 生成和消费的 specs、changes、roadmap、tasks、questions、
 indexes 等都应是 YAML。
 
+仓库自带的 schema 和示例文件不是某个项目的 workflow state，统一放在
+`templates/strict-spec-driven/schemas/` 和
+`templates/strict-spec-driven/examples/`，供初始化、校验、迁移和测试复用。
+
 以下 Markdown 文件可以作为明确例外：
 
 - `SKILL.md`：Agent Skills 包装格式要求
@@ -82,6 +86,8 @@ CLI 基础已建立（Milestone 02 第一个变更已完成）。
 - `test/run.ts`：测试套件，使用 pass/fail 计数模式
 - `AGENTS.md`：代理入口，引用 `RTK.md`
 - `RTK.md`：本仓库的 AI 工作说明
+- `templates/strict-spec-driven/schemas/`：仓库内置 strict YAML schema 资产
+- `templates/strict-spec-driven/examples/`：仓库内置 minimal valid YAML 示例资产
 - `.spec-driven/config.yaml`：项目上下文和通用规则
 - `.spec-driven/specs/`：规格目录（含 `contracts/yaml-artifacts.md` 和 `cli/foundation.md`）
 - `.spec-driven/roadmap/`：路线图目录

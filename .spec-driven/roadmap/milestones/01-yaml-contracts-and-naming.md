@@ -5,7 +5,7 @@ Define the strict YAML artifact contracts and naming model before migrating CLI 
 
 ## In Scope
 - Define schema families for main specs, delta specs, change proposals, designs, tasks, questions, spec indexes, roadmap indexes, roadmap milestones, and planned change entries.
-- Create concrete schema and example assets under `.strict-spec-driven/schemas/` and `.strict-spec-driven/examples/` so validators, generators, and skills have files to consume.
+- Create concrete schema and example assets under `templates/strict-spec-driven/schemas/` and `templates/strict-spec-driven/examples/` so validators, generators, and skills have repository-bundled files to consume without mixing them into workflow state.
 - Define field-level contracts for required fields, optional fields, enum values, relationship references, stable IDs, and minimal valid examples.
 - Translate reference Markdown semantics from `../auto-spec-driven` into structured YAML fields instead of Markdown headings, list indentation, frontmatter, or prose-only conventions.
 - Establish `.strict-spec-driven/` as the product workflow directory that replaces `.spec-driven/` for strict workflow state.
@@ -23,7 +23,7 @@ Define the strict YAML artifact contracts and naming model before migrating CLI 
 
 ## Done Criteria
 - YAML schemas are documented with required fields, optional fields, enum values, relationship fields, stable identifiers, and examples.
-- Concrete YAML schema files and minimal example files exist for every required artifact family under `.strict-spec-driven/`.
+- Concrete YAML schema files and minimal example files exist for every required artifact family under `templates/strict-spec-driven/`.
 - Artifact examples cover at least one valid main spec, delta spec, proposal, design, task list, question list, spec index, roadmap index, milestone, and planned change entry.
 - The directory rename from `.spec-driven/` to `.strict-spec-driven/` is explicit in the contract.
 - Skill, slash-command, and CLI command naming rules are explicit and non-overlapping.
@@ -34,7 +34,7 @@ Define the strict YAML artifact contracts and naming model before migrating CLI 
 ## Planned Changes
 - `define-yaml-artifact-schemas` - Declared: complete - update `.spec-driven/specs/contracts/yaml-artifacts.md` with strict YAML artifact requirements for specs, proposals, designs, tasks, questions, indexes, roadmap milestones, planned change entries, and validation-ready examples.
 - `define-concrete-yaml-schema-files` - Declared: complete - add contract requirements that concrete schema and example files must exist for strict workflow artifacts, including parseability and artifact-family coverage.
-- `materialize-concrete-yaml-schema-files` - Declared: complete - create `.strict-spec-driven/schemas/*.yaml` and `.strict-spec-driven/examples/*.yaml` files for all required artifact families and validate their YAML parseability and artifact identity.
+- `materialize-concrete-yaml-schema-files` - Declared: complete - create `templates/strict-spec-driven/schemas/*.yaml` and `templates/strict-spec-driven/examples/*.yaml` files for all required artifact families and validate their YAML parseability and artifact identity.
 - `define-schema-versioning-and-registry` - Declared: complete - update schema files and docs with stable schema IDs, versioning rules, artifact type names, registry file locations, compatibility expectations, legacy migration mapping rules, unsupported-shape warning fields, and manual follow-up reporting for strict YAML artifacts.
 - `define-strict-directory-and-prefixes` - Declared: complete - define `.strict-spec-driven/` as the workflow directory and rename skill and command families to `strict-spec-*` and `strict-roadmap-*`.
 - `define-command-naming-model` - Declared: complete - distinguish skill names, slash commands, CLI entrypoints, CLI subcommands, and installer-facing names so strict naming is applied consistently.

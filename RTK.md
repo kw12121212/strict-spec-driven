@@ -31,6 +31,11 @@ All spec-driven artifacts and related documentation formats should be represente
 as strict YAML where practical. Scripts should create, parse, and validate YAML
 through structured APIs rather than ad hoc text manipulation.
 
+`.strict-spec-driven/` is reserved for generated or migrated workflow state.
+Repository-bundled schema and example assets live under
+`templates/strict-spec-driven/` so validators, generators, and init tooling can
+consume them without treating them as active project artifacts.
+
 Skills may remain Markdown `SKILL.md` files because they are part of the Agent
 Skills packaging format. Skill behavior should be updated only when required to
 describe YAML artifact contracts accurately.
