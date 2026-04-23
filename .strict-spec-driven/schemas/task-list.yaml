@@ -1,34 +1,85 @@
-schema: strict-spec-driven-schema
+schema: strict-spec-driven/schema/v1
 schema_version: 1
+schema_id: strict-spec-driven/task-list/v1
 artifact_type: task_list
+artifact_name: task-list
 description: Strict YAML task list artifact.
-example: ../examples/task-list.yaml
-top_level:
-  type: mapping
-required_fields:
-  - name: schema
+example_ref: ../examples/task-list.yaml
+additional_fields: false
+fields:
+  schema:
     type: string
-  - name: schema_version
+    required: true
+    const: strict-spec-driven/task-list/v1
+  schema_version:
     type: integer
-  - name: change
+    required: true
+    const: 1
+  artifact_type:
     type: string
-  - name: sections
+    required: true
+    const: task_list
+  schema_file:
+    type: string
+    required: true
+  change:
+    type: string
+    required: true
+    references: change_proposal.change.id
+  sections:
     type: sequence
-optional_fields: []
-enums:
-  task_status:
-    - pending
-    - complete
-  section_name:
-    - Implementation
-    - Testing
-    - Verification
-relationships:
-  change: Matches change.id from the proposal artifact.
-stable_identifiers:
-  - sections[].tasks[].id
-uniqueness:
-  - sections[].tasks[].id is unique within the task list.
-supported_shapes:
-  sections: sequence of section mappings.
-  tasks: sequence of task mappings with id, text, status.
+    required: true
+    unique_by: name
+    required_names:
+      - Implementation
+      - Testing
+      - Verification
+    items:
+      type: mapping
+      additional_fields: false
+      fields:
+        name:
+          type: string
+          required: true
+          enum:
+            - Implementation
+            - Testing
+            - Verification
+        tasks:
+          type: sequence
+          required: true
+          min_items: 1
+          unique_by: id
+          items:
+            type: mapping
+            additional_fields: false
+            fields:
+              id:
+                type: string
+                required: true
+              text:
+                type: string
+                required: true
+              status:
+                type: string
+                required: true
+                enum:
+                  - pending
+                  - complete
+              command:
+                type: string
+                required_when:
+                  section: Testing
+  testing_gates:
+    type: mapping
+    required: true
+    additional_fields: false
+    fields:
+      validation_task:
+        type: string
+        required: true
+        references: sections[name=Testing].tasks.id
+      unit_test_task:
+        type: string
+        required: true
+        references: sections[name=Testing].tasks.id

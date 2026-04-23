@@ -1,4 +1,4 @@
-schema: strict-spec-driven-change-design
+schema: strict-spec-driven/change-design/v1
 schema_version: 1
 artifact_type: change_design
 schema_file: ../schemas/change-design.yaml

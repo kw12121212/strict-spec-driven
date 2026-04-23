@@ -1,34 +1,68 @@
-schema: strict-spec-driven-schema
+schema: strict-spec-driven/schema/v1
 schema_version: 1
+schema_id: strict-spec-driven/change-design/v1
 artifact_type: change_design
+artifact_name: change-design
 description: Strict YAML change design artifact.
-example: ../examples/change-design.yaml
-top_level:
-  type: mapping
-required_fields:
-  - name: schema
+example_ref: ../examples/change-design.yaml
+additional_fields: false
+fields:
+  schema:
     type: string
-  - name: schema_version
+    required: true
+    const: strict-spec-driven/change-design/v1
+  schema_version:
     type: integer
-  - name: change
+    required: true
+    const: 1
+  artifact_type:
     type: string
-  - name: approach
+    required: true
+    const: change_design
+  schema_file:
+    type: string
+    required: true
+  change:
+    type: string
+    required: true
+    references: change_proposal.change.id
+  approach:
     type: sequence
-  - name: decisions
+    required: true
+    min_items: 1
+    items:
+      type: string
+  decisions:
     type: sequence
-  - name: alternatives
+    required: true
+    items:
+      type: mapping
+      additional_fields: false
+      fields:
+        id:
+          type: string
+          required: true
+        decision:
+          type: string
+          required: true
+        rationale:
+          type: string
+          required: true
+  alternatives:
     type: sequence
-optional_fields:
-  - name: risks
+    required: true
+    items:
+      type: mapping
+      additional_fields: false
+      fields:
+        option:
+          type: string
+          required: true
+        reason:
+          type: string
+          required: true
+  risks:
     type: sequence
-enums: {}
-relationships:
-  change: Matches change.id from the proposal artifact.
-stable_identifiers:
-  - change
-uniqueness:
-  - change identifies one design artifact.
-supported_shapes:
-  approach: sequence of strings
-  decisions: sequence of mappings with id, decision, rationale
-  alternatives: sequence of mappings with option and reason
+    required: false
+    items:
+      type: string

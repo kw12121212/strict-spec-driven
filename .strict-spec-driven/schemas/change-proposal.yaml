@@ -1,39 +1,88 @@
-schema: strict-spec-driven-schema
+schema: strict-spec-driven/schema/v1
 schema_version: 1
+schema_id: strict-spec-driven/change-proposal/v1
 artifact_type: change_proposal
+artifact_name: change-proposal
 description: Strict YAML change proposal artifact.
-example: ../examples/change-proposal.yaml
-top_level:
-  type: mapping
-required_fields:
-  - name: schema
+example_ref: ../examples/change-proposal.yaml
+additional_fields: false
+fields:
+  schema:
     type: string
-  - name: schema_version
+    required: true
+    const: strict-spec-driven/change-proposal/v1
+  schema_version:
     type: integer
-  - name: change
+    required: true
+    const: 1
+  artifact_type:
+    type: string
+    required: true
+    const: change_proposal
+  schema_file:
+    type: string
+    required: true
+  change:
     type: mapping
-  - name: summary
+    required: true
+    additional_fields: false
+    fields:
+      id:
+        type: string
+        required: true
+        identifier: change
+      status:
+        type: string
+        required: true
+        enum:
+          - proposed
+          - active
+          - complete
+  summary:
     type: mapping
-  - name: scope
+    required: true
+    additional_fields: false
+    fields:
+      what:
+        type: sequence
+        required: true
+        min_items: 1
+        items:
+          type: string
+      why:
+        type: sequence
+        required: true
+        min_items: 1
+        items:
+          type: string
+  scope:
     type: mapping
-  - name: unchanged_behavior
+    required: true
+    additional_fields: false
+    fields:
+      in:
+        type: sequence
+        required: true
+        items:
+          type: string
+      out:
+        type: sequence
+        required: true
+        items:
+          type: string
+  unchanged_behavior:
     type: sequence
-optional_fields:
-  - name: roadmap
+    required: true
+    items:
+      type: string
+  roadmap:
     type: mapping
-enums:
-  change_status:
-    - proposed
-    - active
-    - complete
-relationships:
-  roadmap.planned_change: May reference a planned change id from a roadmap milestone.
-stable_identifiers:
-  - change.id
-uniqueness:
-  - change.id is unique across active and archived changes.
-supported_shapes:
-  summary.what: sequence of strings
-  summary.why: sequence of strings
-  scope.in: sequence of strings
-  scope.out: sequence of strings
+    required: false
+    additional_fields: false
+    fields:
+      milestone:
+        type: string
+        required: true
+      planned_change:
+        type: string
+        required: true

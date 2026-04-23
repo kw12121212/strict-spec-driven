@@ -1,0 +1,16 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: ../schemas/question-list.yaml
+change: example-change
+open:
+  - id: choose-example
+    question: Which valid option should be used?
+    context: The answer determines the implementation choice.
+    status: open
+resolved:
+  - id: confirmed-example
+    question: Is the example valid?
+    context: The answer confirms the contract.
+    answer: Yes.
+    status: resolved

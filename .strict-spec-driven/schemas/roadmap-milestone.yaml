@@ -1,48 +1,88 @@
-schema: strict-spec-driven-schema
+schema: strict-spec-driven/schema/v1
 schema_version: 1
+schema_id: strict-spec-driven/roadmap-milestone/v1
 artifact_type: roadmap_milestone
+artifact_name: roadmap-milestone
 description: Strict YAML roadmap milestone artifact.
-example: ../examples/roadmap-milestone.yaml
-top_level:
-  type: mapping
-required_fields:
-  - name: schema
+example_ref: ../examples/roadmap-milestone.yaml
+additional_fields: false
+fields:
+  schema:
     type: string
-  - name: schema_version
+    required: true
+    const: strict-spec-driven/roadmap-milestone/v1
+  schema_version:
     type: integer
-  - name: milestone
-    type: mapping
-  - name: scope
-    type: mapping
-  - name: planned_changes
-    type: sequence
-  - name: status
+    required: true
+    const: 1
+  artifact_type:
     type: string
-optional_fields:
-  - name: dependencies
+    required: true
+    const: roadmap_milestone
+  schema_file:
+    type: string
+    required: true
+  milestone:
+    type: mapping
+    required: true
+    additional_fields: false
+    fields:
+      id:
+        type: string
+        required: true
+      title:
+        type: string
+        required: true
+  goal:
+    type: string
+    required: true
+  scope:
+    type: mapping
+    required: true
+    additional_fields: false
+    fields:
+      in:
+        type: sequence
+        required: true
+        items:
+          type: string
+      out:
+        type: sequence
+        required: true
+        items:
+          type: string
+  done_criteria:
     type: sequence
-  - name: risks
+    required: true
+    items:
+      type: string
+  planned_changes:
     type: sequence
-  - name: notes
+    required: true
+    max_items: 10
+    unique_by: id
+    items:
+      type: planned_change_entry
+  dependencies:
     type: sequence
-enums:
-  milestone_status:
-    - proposed
-    - active
-    - blocked
-    - complete
-  planned_change_status:
-    - planned
-    - complete
-relationships:
-  planned_changes[].id: May be promoted into a change.id.
-stable_identifiers:
-  - milestone.id
-  - planned_changes[].id
-uniqueness:
-  - milestone.id is unique within roadmap state.
-  - planned_changes[].id is unique within one milestone.
-supported_shapes:
-  scope.in: sequence of strings
-  scope.out: sequence of strings
-  planned_changes: sequence of planned change mappings.
+    required: true
+    items:
+      type: string
+  risks:
+    type: sequence
+    required: true
+    items:
+      type: string
+  status:
+    type: string
+    required: true
+    enum:
+      - proposed
+      - active
+      - blocked
+      - complete
+  notes:
+    type: sequence
+    required: true
+    items:
+      type: string

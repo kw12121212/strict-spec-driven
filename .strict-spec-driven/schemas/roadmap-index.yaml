@@ -1,30 +1,50 @@
-schema: strict-spec-driven-schema
+schema: strict-spec-driven/schema/v1
 schema_version: 1
+schema_id: strict-spec-driven/roadmap-index/v1
 artifact_type: roadmap_index
+artifact_name: roadmap-index
 description: Strict YAML roadmap index artifact.
-example: ../examples/roadmap-index.yaml
-top_level:
-  type: mapping
-required_fields:
-  - name: schema
+example_ref: ../examples/roadmap-index.yaml
+additional_fields: false
+fields:
+  schema:
     type: string
-  - name: schema_version
+    required: true
+    const: strict-spec-driven/roadmap-index/v1
+  schema_version:
     type: integer
-  - name: milestones
+    required: true
+    const: 1
+  artifact_type:
+    type: string
+    required: true
+    const: roadmap_index
+  schema_file:
+    type: string
+    required: true
+  milestones:
     type: sequence
-optional_fields: []
-enums:
-  milestone_status:
-    - proposed
-    - active
-    - blocked
-    - complete
-relationships:
-  milestones[].path: Points to a roadmap milestone artifact.
-stable_identifiers:
-  - milestones[].id
-uniqueness:
-  - milestones[].id is unique within the roadmap index.
-  - milestones[].path is unique within the roadmap index.
-supported_shapes:
-  milestones: sequence of mappings with id, title, path, status.
+    required: true
+    unique_by: id
+    items:
+      type: mapping
+      additional_fields: false
+      fields:
+        id:
+          type: string
+          required: true
+        title:
+          type: string
+          required: true
+        path:
+          type: string
+          required: true
+          path: repo-relative
+        status:
+          type: string
+          required: true
+          enum:
+            - proposed
+            - active
+            - blocked
+            - complete

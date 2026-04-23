@@ -1,33 +1,81 @@
-schema: strict-spec-driven-schema
+schema: strict-spec-driven/schema/v1
 schema_version: 1
+schema_id: strict-spec-driven/question-list/v1
 artifact_type: question_list
+artifact_name: question-list
 description: Strict YAML question list artifact.
-example: ../examples/question-list.yaml
-top_level:
-  type: mapping
-required_fields:
-  - name: schema
+example_ref: ../examples/question-list.yaml
+coverage_examples:
+  - ../examples/question-list.open.yaml
+additional_fields: false
+fields:
+  schema:
     type: string
-  - name: schema_version
+    required: true
+    const: strict-spec-driven/question-list/v1
+  schema_version:
     type: integer
-  - name: change
+    required: true
+    const: 1
+  artifact_type:
     type: string
-  - name: open
+    required: true
+    const: question_list
+  schema_file:
+    type: string
+    required: true
+  change:
+    type: string
+    required: true
+    references: change_proposal.change.id
+  open:
     type: sequence
-  - name: resolved
+    required: true
+    items:
+      type: question
+  resolved:
     type: sequence
-optional_fields: []
-enums:
-  question_status:
-    - open
-    - resolved
-relationships:
-  change: Matches change.id from the proposal artifact.
-stable_identifiers:
+    required: true
+    items:
+      type: resolved_question
+unique_across:
   - open[].id
   - resolved[].id
-uniqueness:
-  - Question ids are unique across open and resolved questions.
-supported_shapes:
-  open: sequence of question mappings.
-  resolved: sequence of question mappings with answer.
+definitions:
+  question:
+    type: mapping
+    additional_fields: false
+    fields:
+      id:
+        type: string
+        required: true
+      question:
+        type: string
+        required: true
+      context:
+        type: string
+        required: true
+      status:
+        type: string
+        required: true
+        const: open
+  resolved_question:
+    type: mapping
+    additional_fields: false
+    fields:
+      id:
+        type: string
+        required: true
+      question:
+        type: string
+        required: true
+      context:
+        type: string
+        required: true
+      answer:
+        type: string
+        required: true
+      status:
+        type: string
+        required: true
+        const: resolved

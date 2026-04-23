@@ -1,4 +1,4 @@
-schema: strict-spec-driven-planned-change-entry
+schema: strict-spec-driven/planned-change-entry/v1
 schema_version: 1
 artifact_type: planned_change_entry
 schema_file: ../schemas/planned-change-entry.yaml

@@ -1,4 +1,4 @@
-schema: strict-spec-driven-change-proposal
+schema: strict-spec-driven/change-proposal/v1
 schema_version: 1
 artifact_type: change_proposal
 schema_file: ../schemas/change-proposal.yaml

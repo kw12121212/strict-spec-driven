@@ -1,44 +1,106 @@
-schema: strict-spec-driven-schema
+schema: strict-spec-driven/schema/v1
 schema_version: 1
+schema_id: strict-spec-driven/main-spec/v1
 artifact_type: main_spec
+artifact_name: main-spec
 description: Strict YAML main spec artifact.
-example: ../examples/main-spec.yaml
-top_level:
-  type: mapping
-required_fields:
-  - name: schema
+example_ref: ../examples/main-spec.yaml
+additional_fields: false
+fields:
+  schema:
     type: string
-  - name: schema_version
+    required: true
+    const: strict-spec-driven/main-spec/v1
+  schema_version:
     type: integer
-  - name: spec
+    required: true
+    const: 1
+  artifact_type:
+    type: string
+    required: true
+    const: main_spec
+  schema_file:
+    type: string
+    required: true
+  spec:
     type: mapping
-  - name: mapping
+    required: true
+    additional_fields: false
+    fields:
+      id:
+        type: string
+        required: true
+        identifier: spec
+      title:
+        type: string
+        required: true
+  mapping:
     type: mapping
-  - name: requirements
+    required: true
+    additional_fields: false
+    fields:
+      implementation:
+        type: sequence
+        required: true
+        items:
+          type: string
+          path: repo-relative
+      tests:
+        type: sequence
+        required: true
+        items:
+          type: string
+          path: repo-relative
+  requirements:
     type: sequence
-optional_fields: []
-enums:
-  requirement_strength:
-    - MUST
-    - SHOULD
-    - MAY
-  scenario_step_kind:
-    - GIVEN
-    - WHEN
-    - THEN
-    - AND
-relationships:
-  implementation_paths: mapping.implementation contains repo-relative paths.
-  test_paths: mapping.tests contains repo-relative paths.
-stable_identifiers:
-  - spec.id
-  - requirements[].id
-  - requirements[].scenarios[].id
-uniqueness:
-  - spec.id is unique across main specs.
-  - requirements[].id is unique within one spec.
-  - requirements[].scenarios[].id is unique within one requirement.
-supported_shapes:
-  requirements: sequence of requirement mappings.
-  scenarios: sequence of scenario mappings.
-  steps: ordered sequence of step mappings.
+    required: true
+    unique_by: id
+    items:
+      type: mapping
+      additional_fields: false
+      fields:
+        id:
+          type: string
+          required: true
+          identifier: requirement
+        strength:
+          type: string
+          required: true
+          enum:
+            - MUST
+            - SHOULD
+            - MAY
+        statement:
+          type: string
+          required: true
+        scenarios:
+          type: sequence
+          required: true
+          unique_by: id
+          items:
+            type: mapping
+            additional_fields: false
+            fields:
+              id:
+                type: string
+                required: true
+                identifier: scenario
+              steps:
+                type: sequence
+                required: true
+                min_items: 1
+                items:
+                  type: mapping
+                  additional_fields: false
+                  fields:
+                    kind:
+                      type: string
+                      required: true
+                      enum:
+                        - GIVEN
+                        - WHEN
+                        - THEN
+                        - AND
+                    text:
+                      type: string
+                      required: true

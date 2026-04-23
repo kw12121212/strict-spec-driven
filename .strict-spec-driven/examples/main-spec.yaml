@@ -1,4 +1,4 @@
-schema: strict-spec-driven-main-spec
+schema: strict-spec-driven/main-spec/v1
 schema_version: 1
 artifact_type: main_spec
 schema_file: ../schemas/main-spec.yaml

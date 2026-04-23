@@ -1,4 +1,4 @@
-schema: strict-spec-driven-roadmap-milestone
+schema: strict-spec-driven/roadmap-milestone/v1
 schema_version: 1
 artifact_type: roadmap_milestone
 schema_file: ../schemas/roadmap-milestone.yaml
@@ -11,10 +11,17 @@ scope:
     - Planned strict workflow behavior.
   out:
     - Unrelated behavior.
+done_criteria:
+  - The planned behavior is implemented and verified.
 planned_changes:
-  - id: example-change
+  - schema: strict-spec-driven/planned-change-entry/v1
+    schema_version: 1
+    artifact_type: planned_change_entry
+    schema_file: ../schemas/planned-change-entry.yaml
+    id: example-change
     status: planned
     summary: Add one planned strict workflow behavior.
+    depends_on: []
 dependencies: []
 risks: []
 status: proposed

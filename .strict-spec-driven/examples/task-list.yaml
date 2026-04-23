@@ -1,4 +1,4 @@
-schema: strict-spec-driven-task-list
+schema: strict-spec-driven/task-list/v1
 schema_version: 1
 artifact_type: task_list
 schema_file: ../schemas/task-list.yaml
@@ -14,11 +14,16 @@ sections:
       - id: validate-example
         text: Run validation for the example behavior.
         status: pending
+        command: npm run build
       - id: unit-test-example
         text: Run unit tests for the example behavior.
         status: pending
+        command: npm test
   - name: Verification
     tasks:
       - id: verify-example
         text: Verify implementation matches proposal scope.
         status: pending
+testing_gates:
+  validation_task: validate-example
+  unit_test_task: unit-test-example
