@@ -28,7 +28,7 @@ Bootstrap a TypeScript CLI foundation that can create, parse, validate, and test
 
 ## Planned Changes
 - `bootstrap-typescript-cli` - Declared: complete - add `package.json`, `tsconfig.json`, TypeScript source entrypoint, strict ESM command router, compiled `dist/` output, and repeatable `npm run build` plus `npm test` runner based on reference conventions.
-- `select-yaml-schema-tooling` - Declared: planned - choose and pin YAML parser and validation dependencies in `package.json`, document the dependency policy, and wire the selected tools into build and test scripts.
+- `select-yaml-schema-tooling` - Declared: planned - pin `js-yaml` and `ajv` with `ajv-formats` in `package.json`, document the dependency policy, and wire both into the TypeScript build and test scripts.
 - `add-yaml-validation-layer` - Declared: planned - implement shared source modules for YAML parse/stringify, schema loading from `.strict-spec-driven/schemas/`, path-aware diagnostics, reference checks, duplicate-ID checks, and deterministic serialization.
 - `create-strict-template-assets` - Declared: planned - add bundled template YAML files for config, specs index, roadmap index, empty changes state, and seed README guidance used by init and fixture tests.
 - `implement-strict-init` - Declared: planned - implement the `init` subcommand to create `.strict-spec-driven/` config, specs, roadmap, changes, schema, and example assets without clobbering existing user state.
@@ -50,6 +50,9 @@ Bootstrap a TypeScript CLI foundation that can create, parse, validate, and test
 ## Notes
 - Scripts should use structured YAML APIs instead of ad hoc text manipulation.
 - Each CLI foundation change must produce executable source, package scripts, fixtures, or tests; contract-only updates belong in milestone 01.
-- The reference CLI currently exposes subcommands such as `propose`, `modify`, `apply`, `verify`, `verify-spec-mappings`, `verify-roadmap`, `archive`, `cancel`, `init`, `run-maintenance`, `migrate`, and `list`; this milestone should create only the strict foundation needed for those later ports.
+- YAML tooling decision: use `js-yaml` for YAML parsing and `ajv` with `ajv-formats` for schema validation. Both run without native bindings in Bun and support JSON Schema Draft-07. The `select-yaml-schema-tooling` change should pin these packages and wire them into build and test rather than performing open-ended tooling research.
+- Reference command surface: the strict CLI should eventually expose the same subcommand verbs as the reference project — `init`, `propose`, `modify`, `apply`, `verify`, `verify-spec-mappings`, `verify-roadmap`, `archive`, `cancel`, `list`, `run-maintenance`, `migrate`, `ship`. This milestone establishes the entrypoint and router only; later milestones port individual subcommands. Intentional behavioral differences from reference behavior must be recorded in `.spec-driven/specs/contracts/yaml-artifacts.md` rather than left as implicit changes.
+- Coexistence rule: if `init` detects an existing `.spec-driven/` directory it should emit a single warning and continue without error. Strict CLI commands must read only from `.strict-spec-driven/` and must not scan `.spec-driven/` for workflow state.
+- Atomic write strategy: all file write operations must write to a sibling `.partial` file first, then atomically rename to the final path on success. On failure the `.partial` file is left in place and the next run must report it rather than silently overwriting the final target.
 - Reference tests reset fixture state and run against compiled `dist/` output; strict tests should keep that pattern once TypeScript sources exist.
 

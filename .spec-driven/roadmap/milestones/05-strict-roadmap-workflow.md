@@ -38,6 +38,7 @@ Port roadmap planning, milestone, recommendation, proposal, and sync workflows t
 - `01-yaml-contracts-and-naming` must establish prefix and artifact naming rules.
 - `02-strict-cli-foundation` must provide YAML validation utilities.
 - `03-core-yaml-workflow` must expose active and archived change state in a form roadmap sync can rely on.
+- No dependency on `04-strict-spec-skills`; M04 and M05 can proceed in parallel once M03 is complete.
 
 ## Risks
 - Roadmap migration could conflict with core change archive semantics if planned change references are not stable.

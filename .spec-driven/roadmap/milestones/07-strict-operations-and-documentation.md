@@ -29,8 +29,8 @@ Finish the strict workflow operational surfaces that sit outside the core spec a
 
 ## Planned Changes
 - `port-maintenance-workflow-to-yaml` - Declared: planned - implement strict `run-maintenance` behavior, maintenance config YAML, generated maintenance change artifacts, task completion, verification, archive flow, and tests.
-- `port-ship-workflow-to-strict` - Declared: planned - implement or document strict ship guidance for archived changes, roadmap status checks, git commit creation, push behavior, failure handling, and verification tests.
-- `implement-strict-installation-scripts` - Declared: planned - add install and uninstall scripts for global and project-local strict skill installation, marketplace metadata updates, and legacy-name safeguards.
+- `port-ship-workflow-to-strict` - Declared: planned - implement `strict-spec-driven ship` as a CLI subcommand that verifies an archived change, inspects roadmap status, creates a focused git commit, and hands off push with documented commands and verification tests.
+- `implement-strict-installation-scripts` - Declared: planned - add install and uninstall scripts for global and project-local strict skill installation and legacy-name safeguards.
 - `port-strict-skill-validation-suite` - Declared: planned - port skill-schema validation source and validate-skills tests for strict skill frontmatter, command snippets, symlinks, bundled scripts, and stale references.
 - `write-strict-user-documentation` - Declared: planned - add README, QUICKSTART, ROADMAP_GUIDE, and Chinese equivalents that explain strict setup, commands, artifacts, schema/example files, and migration boundaries.
 - `document-strict-agent-guidance` - Declared: planned - update AGENTS and RTK guidance for contributors and agents using strict commands, YAML artifacts, validation commands, and reference-project comparison.

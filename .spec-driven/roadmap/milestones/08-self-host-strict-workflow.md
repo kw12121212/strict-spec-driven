@@ -52,3 +52,4 @@ Move this repository's own workflow state from bootstrap `.spec-driven/` Markdow
 - Self-hosting planned changes must produce actual migrated state, validation evidence, guidance edits, or a documented retirement decision; do not close them with roadmap/spec text alone.
 - The current active `define-yaml-artifact-schemas` change should either be archived before self-hosting or migrated with an explicit active-change status.
 - This milestone is the point where strict workflow dogfooding replaces bootstrap roadmap maintenance.
+- Bootstrap period archived changes accumulated under `.spec-driven/` between M03 and M08 are first-class migration test fixtures; the migration command should treat them as a realistic test of archive date prefix handling and roadmap reconciliation rather than a problem to work around.

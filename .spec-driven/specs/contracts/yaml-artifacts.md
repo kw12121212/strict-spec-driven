@@ -159,6 +159,27 @@ The system MUST require strict YAML delta modifications and removals to target e
 - WHEN the removal target is inspected
 - THEN the target existing requirement is identified by stable requirement identifier
 
+### Requirement: yaml-delta-merge-conflict-rules
+The system MUST define deterministic merge conflict rules for archive behavior so that delta merge outcomes are predictable without manual resolution.
+
+#### Scenario: exclusive active target is enforced at verify time
+- GIVEN two active changes each have a delta that targets the same requirement ID with MODIFIED or REMOVED
+- WHEN verify is run against either active change
+- THEN the duplicate active target is reported as a deterministic validation failure
+- AND archive is blocked until the conflict is resolved
+
+#### Scenario: modified entry with missing target is treated as added
+- GIVEN a MODIFIED delta entry targets a requirement ID that does not exist in the main spec at archive time
+- WHEN archive merge is executed
+- THEN the entry is treated as ADDED in the merge output
+- AND the outcome is recorded in the archive merge report
+
+#### Scenario: removed entry with missing target is skipped
+- GIVEN a REMOVED delta entry targets a requirement ID that does not exist in the main spec at archive time
+- WHEN archive merge is executed
+- THEN the entry is silently skipped
+- AND the skipped removal is recorded in the archive merge report
+
 ### Requirement: yaml-delta-removal-reason
 The system MUST require each strict YAML removed requirement delta to include a structured removal reason.
 

@@ -91,6 +91,18 @@ fields:
             reason:
               type: string
               required: true
+merge_rules:
+  exclusive_active_target: |
+    A requirement ID that appears as a MODIFIED or REMOVED target in one active change
+    MUST NOT appear as a MODIFIED or REMOVED target in any other active change.
+    Verify must enforce this constraint and report it as a deterministic validation failure.
+  modified_missing_target: |
+    If a MODIFIED entry targets a requirement ID that does not exist in the main spec at
+    archive time, the entry is treated as ADDED and recorded in the archive merge report.
+  removed_missing_target: |
+    If a REMOVED entry targets a requirement ID that does not exist in the main spec at
+    archive time, the entry is silently skipped and recorded as a skipped removal in the
+    archive merge report.
 definitions:
   requirement:
     type: mapping

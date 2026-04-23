@@ -37,6 +37,7 @@ Rename and update the spec workflow skills so agents operate on strict YAML arti
 ## Dependencies
 - `03-core-yaml-workflow` should define the command behavior the skills call.
 - `02-strict-cli-foundation` must expose a stable compiled script path or installable command for skill snippets.
+- No dependency on `05-strict-roadmap-workflow`; M04 and M05 can proceed in parallel once M03 is complete.
 
 ## Risks
 - Renaming skills without strong validation could leave mixed old and new command names in prompts.
