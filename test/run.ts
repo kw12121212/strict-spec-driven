@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "child_process";
-import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
@@ -96,8 +96,8 @@ function assert(condition: boolean, label: string, details = ""): void {
   }
 }
 
-function cli(args: string[]): { status: number; stdout: string; stderr: string } {
-  const result = spawnSync("node", [CLI, ...args], { encoding: "utf8" });
+function cli(args: string[], options?: { cwd?: string }): { status: number; stdout: string; stderr: string } {
+  const result = spawnSync("node", [CLI, ...args], { encoding: "utf8", cwd: options?.cwd });
   return {
     status: typeof result.status === "number" ? result.status : 1,
     stdout: result.stdout ?? "",
@@ -302,6 +302,53 @@ async function main(): Promise<void> {
 
   const scaffoldReadme = scaffoldModule.readBundledScaffoldTemplate("specs/README.md");
   assert(scaffoldReadme.includes("# Strict Specs"), "scaffold README guidance is readable text");
+
+  section("[5] init command");
+
+  const initTempDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-driven-init-"));
+  try {
+    mkdirSync(path.join(initTempDir, ".spec-driven"), { recursive: true });
+
+    const initFirst = cli(["init"], { cwd: initTempDir });
+    assert(initFirst.status === 0, "init exits zero when scaffold assets are available", `got exit code ${initFirst.status}`);
+    assert(
+      initFirst.stderr.split("\n").filter((line) => line.includes(".spec-driven/")).length === 1,
+      "init emits one coexistence warning when .spec-driven exists",
+      `stderr: ${initFirst.stderr.trim()}`,
+    );
+
+    const strictRoot = path.join(initTempDir, ".strict-spec-driven");
+    const requiredArtifacts = [
+      "config.yaml",
+      "specs/INDEX.yaml",
+      "roadmap/INDEX.yaml",
+      "changes/STATE.yaml",
+      "specs/README.md",
+    ];
+    for (const artifactPath of requiredArtifacts) {
+      assert(
+        existsSync(path.join(strictRoot, artifactPath)),
+        `init creates scaffold artifact (${artifactPath})`,
+      );
+    }
+
+    const configPath = path.join(strictRoot, "config.yaml");
+    writeFileSync(configPath, "custom: keep-me\n", "utf8");
+    unlinkSync(path.join(strictRoot, "specs", "README.md"));
+
+    const initSecond = cli(["init"], { cwd: initTempDir });
+    assert(initSecond.status === 0, "init rerun exits zero", `got exit code ${initSecond.status}`);
+    assert(
+      readFileSync(configPath, "utf8") === "custom: keep-me\n",
+      "init rerun preserves existing strict artifacts (non-clobber)",
+    );
+    assert(
+      existsSync(path.join(strictRoot, "specs", "README.md")),
+      "init rerun creates missing scaffold artifacts without overwriting existing files",
+    );
+  } finally {
+    rmSync(initTempDir, { recursive: true, force: true });
+  }
 
   console.log("");
   const total = passed + failed;

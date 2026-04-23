@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { parseYamlFile } from "./yaml.js";
@@ -13,6 +13,16 @@ const REQUIRED_SCAFFOLD_ASSETS = [
   "changes/STATE.yaml",
   "specs/README.md",
 ] as const;
+
+const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
+const LEGACY_WORKFLOW_DIR = ".spec-driven";
+
+export type StrictInitResult = {
+  rootDir: string;
+  created: string[];
+  skipped: string[];
+  warnings: string[];
+};
 
 function normalizeRelativeScaffoldPath(relativePath: string): string {
   const normalized = relativePath.split("\\").join("/");
@@ -50,4 +60,35 @@ export function getRequiredBundledScaffoldAssets(): string[] {
 
 export function findMissingRequiredScaffoldAssets(): string[] {
   return getRequiredBundledScaffoldAssets().filter((relativePath) => !existsSync(getBundledScaffoldPath(relativePath)));
+}
+
+export function initializeStrictScaffold(rootDir: string): StrictInitResult {
+  const warnings: string[] = [];
+  const created: string[] = [];
+  const skipped: string[] = [];
+
+  const strictRootDir = path.join(rootDir, STRICT_WORKFLOW_DIR);
+  const legacyRootDir = path.join(rootDir, LEGACY_WORKFLOW_DIR);
+
+  if (existsSync(legacyRootDir) && statSync(legacyRootDir).isDirectory()) {
+    warnings.push("Warning: detected legacy '.spec-driven/' directory; strict init will continue using '.strict-spec-driven/'.");
+  }
+
+  for (const assetPath of getRequiredBundledScaffoldAssets()) {
+    const targetPath = path.join(strictRootDir, assetPath);
+    if (existsSync(targetPath)) {
+      skipped.push(assetPath);
+      continue;
+    }
+    mkdirSync(path.dirname(targetPath), { recursive: true });
+    copyFileSync(getBundledScaffoldPath(assetPath), targetPath);
+    created.push(assetPath);
+  }
+
+  return {
+    rootDir: strictRootDir,
+    created,
+    skipped,
+    warnings,
+  };
 }

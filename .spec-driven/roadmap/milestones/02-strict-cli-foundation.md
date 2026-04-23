@@ -31,7 +31,7 @@ Bootstrap a TypeScript CLI foundation that can create, parse, validate, and test
 - `select-yaml-schema-tooling` - Declared: complete - pin `js-yaml` and `ajv` with `ajv-formats` in `package.json`, document the dependency policy, and wire both into the TypeScript build and test scripts.
 - `add-yaml-validation-layer` - Declared: complete - implement shared source modules for YAML parse/stringify, schema loading from bundled `templates/strict-spec-driven/schemas/`, path-aware diagnostics, reference checks, duplicate-ID checks, and deterministic serialization.
 - `create-strict-template-assets` - Declared: complete - add bundled template YAML files for config, specs index, roadmap index, empty changes state, and seed README guidance used by init and fixture tests.
-- `implement-strict-init` - Declared: planned - implement the `init` subcommand to create `.strict-spec-driven/` config, specs, roadmap, and changes from bundled template assets without clobbering existing user state.
+- `implement-strict-init` - Declared: complete - implement the `init` subcommand to create `.strict-spec-driven/` config, specs, roadmap, and changes from bundled template assets without clobbering existing user state.
 - `add-yaml-fixtures-and-tests` - Declared: planned - add test fixtures and automated tests for valid scaffold generation, invalid YAML diagnostics, enum validation, reference validation, duplicate IDs, unsupported shapes, and idempotent init. Test cases must trace back to M01 requirement identifiers in `yaml-artifacts.md` so that every M01 scenario has a corresponding pass/fail signal. Positive tests confirm valid examples pass validation; negative tests confirm invalid artifacts produce deterministic failures with actionable diagnostics.
 
 ## Dependencies
@@ -56,6 +56,7 @@ Bootstrap a TypeScript CLI foundation that can create, parse, validate, and test
 - Atomic write strategy: all file write operations must write to a sibling `.partial` file first, then atomically rename to the final path on success. On failure the `.partial` file is left in place and the next run must report it rather than silently overwriting the final target.
 - Reference tests reset fixture state and run against compiled `dist/` output; strict tests should keep that pattern once TypeScript sources exist.
 - **Spec-to-test traceability**: M01 produced dozens of requirements and scenarios in `.spec-driven/specs/contracts/yaml-artifacts.md`, but none of them are verified by machines yet. The real risk is that detailed specs create a false sense of correctness — specs are for humans, tests are for machines. M02 must close this gap. Every requirement from M01 should have a corresponding test case: positive tests that load valid examples and confirm they pass validation, and negative tests that construct artifacts with missing fields, invalid enums, duplicate IDs, or illegal paths and confirm they produce deterministic validation failures. When M02 is complete, `npm test` should prove that M01's requirements are enforced, not just documented. The `add-yaml-fixtures-and-tests` planned change is the primary vehicle for this; it should trace its test cases back to M01 requirement identifiers rather than testing only ad hoc scenarios.
+
 
 
 

@@ -1,0 +1,46 @@
+# add-yaml-fixtures-and-tests
+
+## What
+
+- Add a fixture matrix and automated tests that exercise strict YAML artifact
+  validation across valid and invalid inputs.
+- Expand test coverage for deterministic diagnostics, enum and reference
+  validation, duplicate-ID checks, unsupported shapes, and strict init
+  idempotency behavior.
+- Add explicit traceability from M01 requirement identifiers in
+  `.spec-driven/specs/contracts/yaml-artifacts.md` to the tests added in this
+  change.
+
+## Why
+
+Milestone 02 has one remaining planned change and currently risks a gap between
+documented contract requirements and executable enforcement. This change closes
+that gap by adding deterministic fixture-driven tests so `bun test/run.ts`
+proves key M01 contract requirements instead of relying on prose-only
+confidence.
+
+## Scope
+
+In scope:
+- Add strict YAML fixture files for positive and negative validation scenarios.
+- Extend `test/run.ts` coverage to assert deterministic diagnostics and
+  validation outcomes for key schema and semantic checks.
+- Add M01 requirement-to-test traceability notes in test definitions or nearby
+  test metadata so each covered requirement is auditable.
+- Verify that init idempotency and coexistence behavior remain enforced by
+  automated tests.
+
+Out of scope:
+- New CLI subcommand implementation beyond test and fixture additions.
+- Any roadmap command migration, workflow lifecycle porting, or skill renaming
+  work from later milestones.
+- Migration of repository state from `.spec-driven/` to
+  `.strict-spec-driven/`.
+
+## Unchanged Behavior
+
+Behaviors that must not change as a result of this change (leave blank if nothing is at risk):
+- Existing strict CLI runtime behavior remains unchanged; this change adds test
+  and fixture coverage only.
+- Existing scaffold template and schema asset semantics remain source-of-truth
+  inputs and are not redefined by this proposal.
