@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
@@ -61,6 +61,14 @@ type ValidationModule = {
       }>;
     },
   ): { valid: boolean; diagnostics: ValidationDiagnostic[] };
+};
+
+type ScaffoldModule = {
+  getBundledScaffoldPath(relativePath: string): string;
+  readBundledScaffoldTemplate(relativePath: string): string;
+  loadBundledScaffoldYaml<T>(relativePath: string): T;
+  getRequiredBundledScaffoldAssets(): string[];
+  findMissingRequiredScaffoldAssets(): string[];
 };
 
 let passed = 0;
@@ -229,6 +237,71 @@ async function main(): Promise<void> {
     combinedResult.diagnostics.some((diagnostic) => diagnostic.source === "duplicate_id"),
     "validateArtifact output includes duplicate diagnostics",
   );
+
+  section("[4] scaffold template assets");
+
+  const scaffoldModule = await loadDistModule<ScaffoldModule>("scaffold.js");
+  let traversalRejected = false;
+  try {
+    scaffoldModule.getBundledScaffoldPath("../config.yaml");
+  } catch {
+    traversalRejected = true;
+  }
+  assert(traversalRejected, "scaffold path helper rejects parent-directory traversal");
+
+  let absoluteRejected = false;
+  try {
+    scaffoldModule.getBundledScaffoldPath(path.join(ROOT, "config.yaml"));
+  } catch {
+    absoluteRejected = true;
+  }
+  assert(absoluteRejected, "scaffold path helper rejects absolute paths");
+
+  const firstAssetList = scaffoldModule.getRequiredBundledScaffoldAssets();
+  const secondAssetList = scaffoldModule.getRequiredBundledScaffoldAssets();
+  assert(
+    JSON.stringify(firstAssetList) === JSON.stringify(secondAssetList),
+    "required scaffold asset manifest is deterministic",
+  );
+  assert(firstAssetList.length === 5, "required scaffold asset manifest includes five assets");
+  assert(
+    firstAssetList.every((asset) => asset.endsWith(".yaml") || asset.endsWith(".md")),
+    "required scaffold asset manifest contains expected file types",
+  );
+
+  for (const relativeAssetPath of firstAssetList) {
+    const absoluteAssetPath = scaffoldModule.getBundledScaffoldPath(relativeAssetPath);
+    const exists = existsSync(absoluteAssetPath);
+    assert(exists, `required scaffold asset exists (${relativeAssetPath})`);
+    assert(exists ? statSync(absoluteAssetPath).isFile() : false, `required scaffold asset is a file (${relativeAssetPath})`);
+    const relativeToTemplates = path.relative(
+      path.join(ROOT, "templates", "strict-spec-driven"),
+      absoluteAssetPath,
+    ).split(path.sep).join("/");
+    assert(
+      relativeToTemplates.startsWith("scaffold/"),
+      `required scaffold asset lives in scaffold bundle (${relativeAssetPath})`,
+      `resolved path: ${relativeToTemplates}`,
+    );
+  }
+
+  const missingAssets = scaffoldModule.findMissingRequiredScaffoldAssets();
+  assert(missingAssets.length === 0, "required scaffold assets are all present");
+
+  const scaffoldConfig = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("config.yaml");
+  assert(scaffoldConfig.artifact_type === "workflow_config", "scaffold config template is loadable YAML");
+
+  const scaffoldSpecIndex = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("specs/INDEX.yaml");
+  assert(scaffoldSpecIndex.artifact_type === "spec_index", "scaffold specs index template is loadable YAML");
+
+  const scaffoldRoadmapIndex = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("roadmap/INDEX.yaml");
+  assert(scaffoldRoadmapIndex.artifact_type === "roadmap_index", "scaffold roadmap index template is loadable YAML");
+
+  const scaffoldChangeState = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("changes/STATE.yaml");
+  assert(scaffoldChangeState.artifact_type === "change_state_index", "scaffold changes state template is loadable YAML");
+
+  const scaffoldReadme = scaffoldModule.readBundledScaffoldTemplate("specs/README.md");
+  assert(scaffoldReadme.includes("# Strict Specs"), "scaffold README guidance is readable text");
 
   console.log("");
   const total = passed + failed;

@@ -1,0 +1,5 @@
+schema: strict-spec-driven/roadmap-index/v1
+schema_version: 1
+artifact_type: roadmap_index
+schema_file: ../schemas/roadmap-index.yaml
+milestones: []

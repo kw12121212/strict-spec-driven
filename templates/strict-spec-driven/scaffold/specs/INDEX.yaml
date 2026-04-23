@@ -1,0 +1,5 @@
+schema: strict-spec-driven/spec-index/v1
+schema_version: 1
+artifact_type: spec_index
+schema_file: ../schemas/spec-index.yaml
+specs: []

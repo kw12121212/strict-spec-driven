@@ -2,10 +2,24 @@
 import { fileURLToPath } from "url";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 import { compileSchema, createSchemaValidator } from "./validation.js";
+import {
+  findMissingRequiredScaffoldAssets,
+  getBundledScaffoldPath,
+  getRequiredBundledScaffoldAssets,
+  loadBundledScaffoldYaml,
+  readBundledScaffoldTemplate,
+} from "./scaffold.js";
 
 export const commands: Record<string, () => void> = {};
 export { parseYamlDocument, stringifyYamlDocument };
 export { compileSchema, createSchemaValidator };
+export {
+  getBundledScaffoldPath,
+  readBundledScaffoldTemplate,
+  loadBundledScaffoldYaml,
+  getRequiredBundledScaffoldAssets,
+  findMissingRequiredScaffoldAssets,
+};
 
 export function run(argv: string[]): number {
   const [subcommand] = argv;
