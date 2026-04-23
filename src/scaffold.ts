@@ -3,8 +3,14 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { parseYamlFile } from "./yaml.js";
 
-const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const BUNDLED_SCAFFOLD_DIR = path.join(PROJECT_ROOT, "templates", "strict-spec-driven", "scaffold");
+function getBundledDir(...segments: string[]): string {
+  const thisDir = path.dirname(fileURLToPath(import.meta.url));
+  const distPath = path.join(thisDir, "templates", ...segments);
+  if (existsSync(distPath)) return distPath;
+  return path.join(thisDir, "..", "templates", ...segments);
+}
+
+const BUNDLED_SCAFFOLD_DIR = getBundledDir("strict-spec-driven", "scaffold");
 
 const REQUIRED_SCAFFOLD_ASSETS = [
   "config.yaml",

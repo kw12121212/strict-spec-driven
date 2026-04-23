@@ -1,5 +1,6 @@
 import AjvModule, { type ErrorObject, type ValidateFunction } from "ajv";
 import addFormatsModule from "ajv-formats";
+import { existsSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { parseYamlFile } from "./yaml.js";
@@ -48,8 +49,14 @@ export type ReferenceCheckRule = {
   description?: string;
 };
 
-const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const BUNDLED_SCHEMA_DIR = path.join(PROJECT_ROOT, "templates", "strict-spec-driven", "schemas");
+function getBundledDir(...segments: string[]): string {
+  const thisDir = path.dirname(fileURLToPath(import.meta.url));
+  const distPath = path.join(thisDir, "templates", ...segments);
+  if (existsSync(distPath)) return distPath;
+  return path.join(thisDir, "..", "templates", ...segments);
+}
+
+const BUNDLED_SCHEMA_DIR = getBundledDir("strict-spec-driven", "schemas");
 
 function resolveAjvConstructor(): new (options: Record<string, unknown>) => ValidatorLike {
   const value = AjvModule as unknown as {

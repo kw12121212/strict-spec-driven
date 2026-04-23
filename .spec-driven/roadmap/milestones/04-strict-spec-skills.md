@@ -27,7 +27,7 @@ Rename and update the spec workflow skills so agents operate on strict YAML arti
 - Core skills cover init, propose, apply, verify, review, archive, auto, modify, cancel, brainstorm, simple-task, spec-content, spec-edit, sync-specs, and mapping maintenance equivalents.
 
 ## Planned Changes
-- `rename-spec-skills-to-strict-spec` - Declared: planned - create strict spec skill directories and `SKILL.md` metadata for `strict-spec-*` equivalents while preserving Agent Skills frontmatter requirements and removing legacy install names.
+- `rename-spec-skills-to-strict-spec` - Declared: planned - create strict spec skill directories and `SKILL.md` metadata for `strict-spec-*` equivalents while preserving Agent Skills frontmatter requirements and removing legacy install names. Each skill directory must have `scripts -> ../../dist/scripts` and `templates -> ../../dist/templates` symlinks created at build time, matching the reference project convention and closing the symlink requirement deferred from M02.
 - `update-core-skills-for-yaml-artifacts` - Declared: planned - update init, propose, apply, verify, review, archive, auto, modify, and cancel `SKILL.md` instructions to read/write `proposal.yaml`, `design.yaml`, `tasks.yaml`, `questions.yaml`, YAML specs, and strict CLI commands.
 - `update-planning-and-spec-content-skills-for-yaml` - Declared: planned - update brainstorm, simple-task, spec-content, spec-edit, sync-specs, and mapping repair skills to edit strict YAML specs and deltas through structured fields.
 - `update-installation-for-strict-spec-skills` - Declared: planned - update installer scripts, marketplace metadata, symlink behavior, and validation checks so strict spec skills install consistently across supported agent CLIs.

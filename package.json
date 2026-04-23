@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp -r templates dist/templates",
     "test": "bun test/run.ts"
   },
   "devDependencies": {

@@ -69,6 +69,7 @@ type ScaffoldModule = {
   readBundledScaffoldTemplate(relativePath: string): string;
   loadBundledScaffoldYaml<T>(relativePath: string): T;
   getRequiredBundledScaffoldAssets(): string[];
+  getRequiredBundledChangeTemplateAssets(): string[];
   findMissingRequiredScaffoldAssets(): string[];
 };
 
@@ -279,14 +280,10 @@ async function main(): Promise<void> {
     const exists = existsSync(absoluteAssetPath);
     assert(exists, `required scaffold asset exists (${relativeAssetPath})`);
     assert(exists ? statSync(absoluteAssetPath).isFile() : false, `required scaffold asset is a file (${relativeAssetPath})`);
-    const relativeToTemplates = path.relative(
-      path.join(ROOT, "templates", "strict-spec-driven"),
-      absoluteAssetPath,
-    ).split(path.sep).join("/");
     assert(
-      relativeToTemplates.startsWith("scaffold/"),
+      absoluteAssetPath.split(path.sep).join("/").includes("/scaffold/"),
       `required scaffold asset lives in scaffold bundle (${relativeAssetPath})`,
-      `resolved path: ${relativeToTemplates}`,
+      `resolved path: ${absoluteAssetPath}`,
     );
   }
 
@@ -574,6 +571,65 @@ async function main(): Promise<void> {
     invalidDuplicateDiagnostics[0]?.fieldPath === "$.requirements[1].id",
     "[M01:yaml-requirement-and-scenario-identifiers] fixture duplicate-id diagnostics include duplicate field path",
   );
+
+  section("[8] bundled template assets in dist");
+
+  const distTemplatesRoot = path.join(ROOT, "dist", "templates", "strict-spec-driven");
+  const distScaffoldDir = path.join(distTemplatesRoot, "scaffold");
+  const distSchemasDir = path.join(distTemplatesRoot, "schemas");
+
+  assert(existsSync(distScaffoldDir), "dist/templates/strict-spec-driven/scaffold exists after build");
+  assert(existsSync(distSchemasDir), "dist/templates/strict-spec-driven/schemas exists after build");
+
+  for (const relativeAssetPath of scaffoldModule.getRequiredBundledScaffoldAssets()) {
+    const distAssetPath = path.join(distScaffoldDir, relativeAssetPath);
+    assert(existsSync(distAssetPath), `dist scaffold asset exists (${relativeAssetPath})`);
+    assert(statSync(distAssetPath).isFile(), `dist scaffold asset is a file (${relativeAssetPath})`);
+  }
+
+  for (const changeAsset of scaffoldModule.getRequiredBundledChangeTemplateAssets()) {
+    const distAssetPath = path.join(distScaffoldDir, changeAsset);
+    assert(existsSync(distAssetPath), `dist change template asset exists (${changeAsset})`);
+    assert(statSync(distAssetPath).isFile(), `dist change template asset is a file (${changeAsset})`);
+  }
+
+  const distSchemaFiles = ["registry.yaml", "main-spec.yaml", "delta-spec.yaml", "task-list.yaml", "question-list.yaml"];
+  for (const schemaFile of distSchemaFiles) {
+    const distSchemaPath = path.join(distSchemasDir, schemaFile);
+    assert(existsSync(distSchemaPath), `dist schema file exists (${schemaFile})`);
+    assert(statSync(distSchemaPath).isFile(), `dist schema file is a file (${schemaFile})`);
+  }
+
+  section("[9] init from dist-only environment");
+
+  const distOnlyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-dist-only-init-"));
+  try {
+    const distOnlyInit = cli(["init"], { cwd: distOnlyDir });
+    assert(distOnlyInit.status === 0, "init succeeds from dist-only temp directory", `got exit code ${distOnlyInit.status}`);
+    const strictRoot = path.join(distOnlyDir, ".strict-spec-driven");
+    assert(existsSync(strictRoot), "init from dist creates .strict-spec-driven directory");
+    for (const artifact of ["config.yaml", "specs/INDEX.yaml", "roadmap/INDEX.yaml", "changes/STATE.yaml", "specs/README.md"]) {
+      assert(existsSync(path.join(strictRoot, artifact)), `init from dist creates artifact (${artifact})`);
+    }
+  } finally {
+    rmSync(distOnlyDir, { recursive: true, force: true });
+  }
+
+  section("[10] propose from dist-only environment");
+
+  const distOnlyProposeDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-dist-only-propose-"));
+  try {
+    const distOnlyPropose = cli(["propose", "test-change"], { cwd: distOnlyProposeDir });
+    assert(distOnlyPropose.status === 0, "propose succeeds from dist-only temp directory", `got exit code ${distOnlyPropose.status}`);
+    const changeDir = path.join(distOnlyProposeDir, ".strict-spec-driven", "changes", "test-change");
+    assert(existsSync(changeDir), "propose from dist creates change directory");
+    for (const artifact of ["proposal.yaml", "design.yaml", "tasks.yaml", "questions.yaml"]) {
+      assert(existsSync(path.join(changeDir, artifact)), `propose from dist creates artifact (${artifact})`);
+    }
+    assert(existsSync(path.join(changeDir, "specs")), "propose from dist creates specs directory");
+  } finally {
+    rmSync(distOnlyProposeDir, { recursive: true, force: true });
+  }
 
   console.log("");
   const total = passed + failed;
