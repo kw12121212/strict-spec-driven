@@ -27,7 +27,7 @@ Bootstrap a TypeScript CLI foundation that can create, parse, validate, and test
 - The scaffold separates template files from generated project state so future installation and migration work do not conflate them.
 
 ## Planned Changes
-- `bootstrap-typescript-cli` - Declared: planned - add `package.json`, `tsconfig.json`, TypeScript source entrypoint, strict ESM command router, compiled `dist/` output, and repeatable `npm run build` plus `npm test` runner based on reference conventions.
+- `bootstrap-typescript-cli` - Declared: complete - add `package.json`, `tsconfig.json`, TypeScript source entrypoint, strict ESM command router, compiled `dist/` output, and repeatable `npm run build` plus `npm test` runner based on reference conventions.
 - `select-yaml-schema-tooling` - Declared: planned - choose and pin YAML parser and validation dependencies in `package.json`, document the dependency policy, and wire the selected tools into build and test scripts.
 - `add-yaml-validation-layer` - Declared: planned - implement shared source modules for YAML parse/stringify, schema loading from `.strict-spec-driven/schemas/`, path-aware diagnostics, reference checks, duplicate-ID checks, and deterministic serialization.
 - `create-strict-template-assets` - Declared: planned - add bundled template YAML files for config, specs index, roadmap index, empty changes state, and seed README guidance used by init and fixture tests.
@@ -52,3 +52,4 @@ Bootstrap a TypeScript CLI foundation that can create, parse, validate, and test
 - Each CLI foundation change must produce executable source, package scripts, fixtures, or tests; contract-only updates belong in milestone 01.
 - The reference CLI currently exposes subcommands such as `propose`, `modify`, `apply`, `verify`, `verify-spec-mappings`, `verify-roadmap`, `archive`, `cancel`, `init`, `run-maintenance`, `migrate`, and `list`; this milestone should create only the strict foundation needed for those later ports.
 - Reference tests reset fixture state and run against compiled `dist/` output; strict tests should keep that pattern once TypeScript sources exist.
+

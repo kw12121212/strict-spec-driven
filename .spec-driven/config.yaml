@@ -8,6 +8,10 @@ context: |
   validate, parse, and enforce those YAML schemas deterministically.
   The project should use the reference repository for workflow semantics while
   treating YAML schema enforcement as the primary product constraint.
+  Tech stack: Bun (runtime and package manager), TypeScript (strict, ESM,
+  NodeNext), compiled from src/ to dist/ via tsc. Tests run with
+  `bun test/run.ts` against compiled dist/ output. Build command: bun run build.
+  Test command: bun test/run.ts.
 rules:
   specs:
     - Describe observable behavior only — no implementation details, technology

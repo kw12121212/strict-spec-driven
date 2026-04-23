@@ -63,18 +63,29 @@ indexes 等都应是 YAML。
 
 具体 schema 需要通过后续 spec-driven change 明确后再实现。
 
+## 技术栈
+
+- **运行时 / 包管理器**：[Bun](https://bun.sh) — 用于安装依赖、构建和执行测试
+- **语言**：TypeScript（strict 模式，ESM，NodeNext 模块解析）
+- **构建**：`bun run build` → `tsc`，将 `src/` 编译到 `dist/`
+- **测试**：`bun test/run.ts` — bun 原生执行 TypeScript 测试文件，测试对象为编译后的 `dist/` 输出
+
 ## 仓库状态
 
-当前仓库已初始化 `.spec-driven/`，但还没有实现代码、构建脚本或测试套件。
+CLI 基础已建立（Milestone 02 第一个变更已完成）。
 
 已有文件：
 
+- `package.json`：`strict-spec-driven` 包，`build` + `test` 脚本
+- `tsconfig.json`：严格 TypeScript 配置，`src/` → `dist/`
+- `src/index.ts`：CLI 入口，命令路由骨架
+- `test/run.ts`：测试套件，使用 pass/fail 计数模式
 - `AGENTS.md`：代理入口，引用 `RTK.md`
 - `RTK.md`：本仓库的 AI 工作说明
 - `.spec-driven/config.yaml`：项目上下文和通用规则
-- `.spec-driven/specs/`：规格目录 scaffold
-- `.spec-driven/roadmap/`：路线图目录 scaffold
-- `.spec-driven/changes/`：变更目录 scaffold
+- `.spec-driven/specs/`：规格目录（含 `contracts/yaml-artifacts.md` 和 `cli/foundation.md`）
+- `.spec-driven/roadmap/`：路线图目录
+- `.spec-driven/changes/`：变更目录
 
 ## 后续建议
 
