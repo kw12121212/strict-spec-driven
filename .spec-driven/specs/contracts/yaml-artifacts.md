@@ -15,7 +15,7 @@ The system MUST define strict YAML schemas for main specs, delta specs, change p
 - THEN every required artifact family has a YAML schema definition
 
 ### Requirement: yaml-schema-field-contracts
-The system MUST define required fields, optional fields, enum values, relationship fields, stable identifiers, and minimal valid examples for each strict YAML artifact schema.
+The system MUST define required fields, optional fields, enum values, relationship fields, stable identifiers, uniqueness scopes, matching rules, and minimal valid examples for each strict YAML artifact schema.
 
 #### Scenario: schema fields are reviewable
 - GIVEN a strict YAML artifact schema
@@ -30,8 +30,159 @@ The system MUST provide at least one minimal valid YAML example for each require
 - WHEN the required artifact families are compared with the available examples
 - THEN main specs, delta specs, change proposals, change designs, task lists, question lists, spec indexes, roadmap indexes, roadmap milestones, and planned change entries each have at least one minimal valid YAML example
 
+### Requirement: yaml-main-spec-file-model
+The system MUST define strict YAML main spec files as YAML documents with structured schema identity, stable spec identity, human-readable title, file-level mappings, and requirement collections.
+
+#### Scenario: main spec top-level fields are structured
+- GIVEN a strict YAML main spec file is reviewed
+- WHEN its top-level data is inspected
+- THEN the schema identity is available as a structured field
+- AND the stable spec identifier is available as a structured field
+- AND the human-readable title is available as a structured field
+- AND implementation and test mappings are available as structured file-level fields
+- AND requirements are available as a structured collection
+
+### Requirement: yaml-main-spec-requirement-model
+The system MUST represent each strict YAML main spec requirement with a stable identifier, RFC 2119 strength enum, observable behavior statement, and zero or more structured scenarios.
+
+#### Scenario: main spec requirement fields are structured
+- GIVEN a strict YAML main spec requirement is reviewed
+- WHEN its requirement data is inspected
+- THEN the requirement identifier is available as a structured field
+- AND the RFC 2119 strength is available as a structured field with a valid MUST, SHOULD, or MAY value
+- AND the observable behavior statement is available as a structured field
+- AND scenarios are available as a structured collection
+
+#### Scenario: requirement strength values are constrained
+- GIVEN a strict YAML main spec requirement is validated
+- WHEN the requirement strength is checked
+- THEN MUST, SHOULD, and MAY are accepted values
+- AND other strength values can be reported as deterministic validation failures
+
+### Requirement: yaml-scenario-step-model
+The system MUST represent strict YAML scenarios with stable scenario identifiers and ordered structured step entries that preserve GIVEN, WHEN, THEN, and AND semantics without relying on Markdown bullet formatting.
+
+#### Scenario: scenario steps are machine-readable
+- GIVEN a strict YAML scenario is reviewed
+- WHEN its steps are inspected
+- THEN the scenario identifier is available as a structured field
+- AND each step has a structured step kind with a valid GIVEN, WHEN, THEN, or AND value
+- AND each step has structured step text
+- AND the step order is preserved
+
+### Requirement: yaml-requirement-and-scenario-identifiers
+The system MUST require stable identifiers for strict YAML specs, requirements, and scenarios that can be validated for uniqueness within their owning scope.
+
+#### Scenario: spec identifiers are stable
+- GIVEN a strict YAML main spec file is renamed or moved
+- WHEN archive or validation behavior matches the spec to known workflow state
+- THEN the stable spec identifier remains available without deriving identity from the file path alone
+
+#### Scenario: duplicate requirement identifiers can be rejected
+- GIVEN a strict YAML spec file repeats a requirement identifier
+- WHEN validation is run against the spec and delta model
+- THEN the duplicate requirement identifier can be reported as a deterministic validation failure
+
+#### Scenario: duplicate scenario identifiers can be rejected
+- GIVEN a strict YAML requirement repeats a scenario identifier within that requirement
+- WHEN validation is run against the spec and delta model
+- THEN the duplicate scenario identifier can be reported as a deterministic validation failure
+
+### Requirement: yaml-spec-file-mapping-model
+The system MUST represent implementation and test mappings for strict YAML spec files as structured file-level fields containing normalized repo-relative file path collections.
+
+#### Scenario: mappings stay outside requirement prose
+- GIVEN a strict YAML spec file is reviewed
+- WHEN implementation and test mappings are inspected
+- THEN the mappings are available in structured file-level fields
+- AND the mappings are not embedded in requirement or scenario prose
+
+#### Scenario: mapping paths are repo-relative
+- GIVEN a strict YAML spec mapping is validated
+- WHEN each implementation or test path is checked
+- THEN normalized repo-relative paths are accepted
+- AND absolute paths or parent-directory traversal paths can be reported as deterministic validation failures
+
+### Requirement: yaml-main-spec-minimal-example
+The system MUST provide a minimal valid YAML main spec example that includes schema identity, stable spec identity, title, mapping fields, one requirement, one scenario, and ordered scenario steps.
+
+#### Scenario: main spec example is complete enough to validate
+- GIVEN the strict YAML main spec contract is reviewed
+- WHEN its minimal valid example is inspected
+- THEN every required top-level main spec field is present
+- AND every required requirement field is present
+- AND every required scenario field is present
+
+#### Scenario: main spec example demonstrates enum and mapping values
+- GIVEN the strict YAML main spec example is inspected
+- WHEN requirement strength, scenario step kinds, and mapping fields are reviewed
+- THEN the example demonstrates a valid MUST, SHOULD, or MAY requirement strength
+- AND the example demonstrates valid GIVEN, WHEN, THEN, and optional AND step kinds
+- AND the example demonstrates implementation and test mapping fields as repo-relative path collections
+
+### Requirement: yaml-delta-operation-model
+The system MUST represent strict YAML delta specs with structured schema identity, target spec identity, and explicit ADDED, MODIFIED, and REMOVED operation collections instead of Markdown section headings.
+
+#### Scenario: delta operation groups are structured
+- GIVEN a strict YAML delta spec is reviewed
+- WHEN the requested spec changes are inspected
+- THEN the schema identity is available as a structured field
+- AND the target spec identity is available as a structured field
+- AND added requirements are available through a structured ADDED collection
+- AND modified requirements are available through a structured MODIFIED collection
+- AND removed requirements are available through a structured REMOVED collection
+
+#### Scenario: empty operation groups remain explicit
+- GIVEN a strict YAML delta spec has no entries for one operation kind
+- WHEN the operation groups are inspected
+- THEN the empty operation kind remains identifiable without relying on an omitted Markdown heading
+
+### Requirement: yaml-delta-stable-matching
+The system MUST require strict YAML delta modifications and removals to target existing requirements by stable requirement identifier.
+
+#### Scenario: added requirements carry stable identifiers
+- GIVEN a strict YAML delta spec adds a requirement
+- WHEN the added requirement is inspected
+- THEN the added requirement includes the same stable requirement fields required by a main spec requirement
+
+#### Scenario: modified requirements target stable identifiers
+- GIVEN a strict YAML delta spec modifies a requirement
+- WHEN the modification target is inspected
+- THEN the target existing requirement is identified by stable requirement identifier
+- AND the replacement requirement data is available as structured fields
+
+#### Scenario: removed requirements target stable identifiers
+- GIVEN a strict YAML delta spec removes a requirement
+- WHEN the removal target is inspected
+- THEN the target existing requirement is identified by stable requirement identifier
+
+### Requirement: yaml-delta-removal-reason
+The system MUST require each strict YAML removed requirement delta to include a structured removal reason.
+
+#### Scenario: removal rationale is reviewable
+- GIVEN a strict YAML delta spec removes a requirement
+- WHEN the removal entry is reviewed
+- THEN the reason for removal is available as a structured field
+
+### Requirement: yaml-delta-minimal-example
+The system MUST provide a minimal valid YAML delta spec example that includes schema identity, target spec identity, and explicit ADDED, MODIFIED, and REMOVED operation collections.
+
+#### Scenario: delta spec example is complete enough to validate
+- GIVEN the strict YAML delta spec contract is reviewed
+- WHEN its minimal valid example is inspected
+- THEN every required top-level delta spec field is present
+- AND each delta operation collection is represented as structured YAML data
+- AND modification and removal entries demonstrate stable requirement identifier matching
+
+#### Scenario: delta spec example demonstrates operation payloads
+- GIVEN the strict YAML delta spec example is inspected
+- WHEN ADDED, MODIFIED, and REMOVED entries are reviewed
+- THEN the added entry demonstrates the required main spec requirement fields
+- AND the modified entry demonstrates a target requirement identifier and replacement requirement fields
+- AND the removed entry demonstrates a target requirement identifier and removal reason
+
 ### Requirement: structured-yaml-semantics
-The system MUST represent workflow artifact meaning through structured YAML fields rather than Markdown headings, list indentation, or free-form prose conventions.
+The system MUST represent workflow artifact meaning through structured YAML fields rather than Markdown headings, frontmatter, list indentation, or free-form prose conventions.
 
 #### Scenario: artifact meaning is structured
 - GIVEN a strict YAML workflow artifact

@@ -34,7 +34,7 @@ Define the strict YAML artifact contracts and naming model before migrating CLI 
 - `define-strict-directory-and-prefixes` - Declared: complete - define `.strict-spec-driven/` as the workflow directory and rename skill and command families to `strict-spec-*` and `strict-roadmap-*`.
 - `define-command-naming-model` - Declared: complete - distinguish skill names, slash commands, CLI entrypoints, CLI subcommands, and installer-facing names so strict naming is applied consistently.
 - `define-markdown-exception-policy` - Declared: planned - document which Markdown files remain allowed for packaging or repository documentation and require all generated or consumed workflow artifacts to be YAML.
-- `define-yaml-spec-and-delta-model` - Declared: planned - translate RFC 2119 requirements, scenarios, mappings, and ADDED/MODIFIED/REMOVED deltas into structured YAML fields with stable requirement and scenario identifiers.
+- `define-yaml-spec-and-delta-model` - Declared: complete - translate RFC 2119 requirements, scenarios, mappings, and ADDED/MODIFIED/REMOVED deltas into structured YAML fields with stable requirement and scenario identifiers.
 - `define-migration-compatibility-contract` - Declared: planned - specify how legacy `.spec-driven/` Markdown artifacts map into strict YAML files without changing workflow intent.
 
 ## Dependencies
@@ -55,3 +55,4 @@ Define the strict YAML artifact contracts and naming model before migrating CLI 
 - The roadmap is currently stored under the bootstrap `.spec-driven/roadmap/` directory because migration tooling does not exist yet; the target product directory is `.strict-spec-driven/`.
 - `SKILL.md` remains Markdown only as a packaging container; strict workflow artifacts generated or consumed by skills must be YAML.
 - Reference artifacts to compare include `template/config.yaml`, `template/specs/README.md`, change artifact templates created by `propose`, roadmap milestone sections validated by `verify-roadmap`, and spec mapping frontmatter validated by `verify-spec-mappings`.
+
