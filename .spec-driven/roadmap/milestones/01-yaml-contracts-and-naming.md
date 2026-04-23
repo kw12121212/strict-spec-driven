@@ -30,7 +30,7 @@ Define the strict YAML artifact contracts and naming model before migrating CLI 
 - Any deliberate difference from `../auto-spec-driven` is recorded as a YAML-contract decision rather than an accidental workflow change.
 
 ## Planned Changes
-- `define-yaml-artifact-schemas` - Declared: planned - define strict YAML schemas for specs, proposals, designs, tasks, questions, indexes, roadmap milestones, planned change entries, and validation-ready examples.
+- `define-yaml-artifact-schemas` - Declared: complete - define strict YAML schemas for specs, proposals, designs, tasks, questions, indexes, roadmap milestones, planned change entries, and validation-ready examples.
 - `define-strict-directory-and-prefixes` - Declared: planned - define `.strict-spec-driven/` as the workflow directory and rename skill and command families to `strict-spec-*` and `strict-roadmap-*`.
 - `define-command-naming-model` - Declared: planned - distinguish skill names, slash commands, CLI entrypoints, CLI subcommands, and installer-facing names so strict naming is applied consistently.
 - `define-markdown-exception-policy` - Declared: planned - document which Markdown files remain allowed for packaging or repository documentation and require all generated or consumed workflow artifacts to be YAML.
