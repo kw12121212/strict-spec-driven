@@ -4,7 +4,10 @@ mapping:
     - templates/strict-spec-driven/schemas/schema-registry.yaml
     - templates/strict-spec-driven/schemas/registry.yaml
     - templates/strict-spec-driven/examples/schema-registry.yaml
+    - src/validation.ts
+    - src/yaml.ts
   tests:
+    - test/run.ts
 ---
 
 # Strict YAML Artifact Schemas
@@ -332,7 +335,7 @@ The system MUST represent workflow artifact meaning through structured YAML fiel
 - AND the meaning does not depend on Markdown section titles or list formatting
 
 ### Requirement: deterministic-schema-validation
-The system MUST define strict YAML artifact schemas precisely enough for scripts to validate missing required fields, invalid enum values, invalid references, malformed YAML, duplicate stable identifiers, and unsupported artifact shapes.
+The system MUST define strict YAML artifact schemas and validation diagnostics precisely enough for scripts to report missing required fields, invalid enum values, invalid references, malformed YAML, duplicate stable identifiers, and unsupported artifact shapes with artifact-path and field-path context.
 
 #### Scenario: invalid artifacts can be rejected
 - GIVEN a strict YAML workflow artifact with a schema violation
@@ -343,6 +346,12 @@ The system MUST define strict YAML artifact schemas precisely enough for scripts
 - GIVEN a strict YAML workflow artifact repeats a stable identifier where uniqueness is required
 - WHEN validation is run against the artifact contract
 - THEN the duplicate identifier can be reported as a deterministic validation failure
+
+#### Scenario: diagnostics include actionable location context
+- GIVEN validation reports an artifact contract failure
+- WHEN diagnostics are emitted
+- THEN each diagnostic identifies the artifact path and field path
+- AND each diagnostic includes expected-versus-actual details when validator data provides those values
 
 ### Requirement: schema-contract-preserves-reference-semantics
 The system MUST preserve the reference workflow semantics from `../auto-spec-driven` unless the YAML schema contract explicitly requires a deliberate difference.
