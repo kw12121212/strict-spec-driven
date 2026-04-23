@@ -631,6 +631,141 @@ async function main(): Promise<void> {
     rmSync(distOnlyProposeDir, { recursive: true, force: true });
   }
 
+  section("[11] apply command");
+
+  const applyHappyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-apply-happy-"));
+  try {
+    mkdirSync(path.join(applyHappyDir, ".strict-spec-driven", "changes", "my-change"), { recursive: true });
+    writeFileSync(
+      path.join(applyHappyDir, ".strict-spec-driven", "changes", "my-change", "tasks.yaml"),
+      [
+        "schema: strict-spec-driven/task-list/v1",
+        "sections:",
+        "  - name: Implementation",
+        "    tasks:",
+        "      - id: task-a",
+        "        text: First task",
+        "        status: pending",
+        "      - id: task-b",
+        "        text: Second task",
+        "        status: pending",
+        "  - name: Testing",
+        "    tasks:",
+        "      - id: test-a",
+        "        text: Run tests",
+        "        status: pending",
+        "        command: bun test/run.ts",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    const applyFirst = cli(["apply", "my-change"], { cwd: applyHappyDir });
+    assert(applyFirst.status === 0, "apply exits zero when pending tasks exist", `got exit code ${applyFirst.status}`);
+    const firstJson = JSON.parse(applyFirst.stdout.trim());
+    assert(firstJson.sectionName === "Implementation", "apply json includes completed section name");
+    assert(firstJson.taskId === "task-a", "apply json includes completed task id");
+    assert(firstJson.taskText === "First task", "apply json includes completed task text");
+    assert(firstJson.totalTasks === 3, "apply json includes total task count");
+    assert(firstJson.remainingPending === 2, "apply json includes remaining pending count");
+
+    const updatedContent = readFileSync(
+      path.join(applyHappyDir, ".strict-spec-driven", "changes", "my-change", "tasks.yaml"),
+      "utf8",
+    );
+    const updatedParsed = yamlModule.parseYamlDocument<{ sections: Array<{ name: string; tasks: Array<{ id: string; status: string }> }> }>(updatedContent);
+    assert(
+      updatedParsed.sections[0].tasks[0].status === "complete" &&
+        updatedParsed.sections[0].tasks[1].status === "pending" &&
+        updatedParsed.sections[1].tasks[0].status === "pending",
+      "apply only modifies the first pending task status",
+    );
+
+    const applySecond = cli(["apply", "my-change"], { cwd: applyHappyDir });
+    assert(applySecond.status === 0, "apply second invocation exits zero");
+    const secondJson = JSON.parse(applySecond.stdout.trim());
+    assert(secondJson.taskId === "task-b", "apply second invocation completes next pending task");
+    assert(secondJson.remainingPending === 1, "apply second invocation reports correct remaining count");
+
+    const applyThird = cli(["apply", "my-change"], { cwd: applyHappyDir });
+    assert(applyThird.status === 0, "apply third invocation exits zero");
+    const thirdJson = JSON.parse(applyThird.stdout.trim());
+    assert(thirdJson.taskId === "test-a", "apply third invocation completes task from second section");
+    assert(thirdJson.remainingPending === 0, "apply third invocation reports zero remaining");
+
+    const applyAllDone = cli(["apply", "my-change"], { cwd: applyHappyDir });
+    assert(applyAllDone.status !== 0, "apply rejects when all tasks complete", `got exit code ${applyAllDone.status}`);
+    assert(
+      applyAllDone.stderr.includes("no pending tasks"),
+      "apply all-complete failure reports no pending tasks",
+      `stderr: ${applyAllDone.stderr.trim()}`,
+    );
+  } finally {
+    rmSync(applyHappyDir, { recursive: true, force: true });
+  }
+
+  const applyMissingDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-apply-missing-"));
+  try {
+    mkdirSync(path.join(applyMissingDir, ".strict-spec-driven", "changes"), { recursive: true });
+    const applyMissing = cli(["apply", "no-such-change"], { cwd: applyMissingDir });
+    assert(applyMissing.status !== 0, "apply rejects missing change", `got exit code ${applyMissing.status}`);
+    assert(
+      applyMissing.stderr.includes("not found"),
+      "apply missing-change failure reports change not found",
+      `stderr: ${applyMissing.stderr.trim()}`,
+    );
+  } finally {
+    rmSync(applyMissingDir, { recursive: true, force: true });
+  }
+
+  const applyEmptyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-apply-empty-"));
+  try {
+    mkdirSync(path.join(applyEmptyDir, ".strict-spec-driven", "changes", "empty-tasks"), { recursive: true });
+    writeFileSync(
+      path.join(applyEmptyDir, ".strict-spec-driven", "changes", "empty-tasks", "tasks.yaml"),
+      "sections: []\n",
+      "utf8",
+    );
+    const applyEmpty = cli(["apply", "empty-tasks"], { cwd: applyEmptyDir });
+    assert(applyEmpty.status !== 0, "apply rejects when tasks.yaml has no sections", `got exit code ${applyEmpty.status}`);
+    assert(
+      applyEmpty.stderr.includes("no pending tasks"),
+      "apply empty-tasks failure reports no pending tasks",
+      `stderr: ${applyEmpty.stderr.trim()}`,
+    );
+  } finally {
+    rmSync(applyEmptyDir, { recursive: true, force: true });
+  }
+
+  const applyDeterminismDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-apply-det-"));
+  try {
+    mkdirSync(path.join(applyDeterminismDir, ".strict-spec-driven", "changes", "det-test"), { recursive: true });
+    const tasksContent = [
+      "sections:",
+      "  - name: Build",
+      "    tasks:",
+      "      - id: build",
+      "        text: Build step",
+      "        status: pending",
+    ].join("\n") + "\n";
+
+    for (let i = 0; i < 2; i++) {
+      writeFileSync(
+        path.join(applyDeterminismDir, ".strict-spec-driven", "changes", "det-test", "tasks.yaml"),
+        tasksContent,
+        "utf8",
+      );
+      const result = cli(["apply", "det-test"], { cwd: applyDeterminismDir });
+      assert(result.status === 0, `apply determinism run ${i + 1} exits zero`);
+      const parsed = JSON.parse(result.stdout.trim());
+      assert(
+        parsed.sectionName === "Build" && parsed.taskId === "build" && parsed.taskText === "Build step",
+        `apply determinism run ${i + 1} output matches expected fields`,
+      );
+    }
+  } finally {
+    rmSync(applyDeterminismDir, { recursive: true, force: true });
+  }
+
   console.log("");
   const total = passed + failed;
   if (failed === 0) {

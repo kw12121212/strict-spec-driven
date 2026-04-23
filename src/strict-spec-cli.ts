@@ -13,6 +13,7 @@ import {
   loadBundledScaffoldYaml,
   readBundledScaffoldTemplate,
 } from "./scaffold.js";
+import { applyTask, readChangeTasks, writeChangeTasks } from "./apply.js";
 
 export type CommandHandler = (argv: string[]) => number | void;
 export const commands: Record<string, CommandHandler> = {};
@@ -30,6 +31,7 @@ export {
   initializeStrictScaffold,
   initializeStrictChangeScaffold,
 };
+export { applyTask, readChangeTasks, writeChangeTasks };
 
 function runInit(): number {
   const missingAssets = findMissingRequiredScaffoldAssets();
@@ -90,6 +92,32 @@ function runPropose(argv: string[]): number {
 
 commands.init = () => runInit();
 commands.propose = (argv) => runPropose(argv);
+
+function runApply(argv: string[]): number {
+  const [changeName, ...extraArgs] = argv;
+  if (!changeName || extraArgs.length > 0) {
+    process.stderr.write("Usage: strict-spec-driven apply <change-name>\n");
+    return 1;
+  }
+  if (!CHANGE_NAME_PATTERN.test(changeName)) {
+    process.stderr.write("Error: change name must be kebab-case (lowercase letters, numbers, and hyphens)\n");
+    return 1;
+  }
+
+  try {
+    const tasksYaml = readChangeTasks(process.cwd(), changeName);
+    const { result, updatedYaml } = applyTask(tasksYaml);
+    writeChangeTasks(process.cwd(), changeName, updatedYaml);
+    process.stdout.write(JSON.stringify(result) + "\n");
+    return 0;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Error: ${message}\n`);
+    return 1;
+  }
+}
+
+commands.apply = (argv) => runApply(argv);
 
 export function run(argv: string[]): number {
   const [subcommand, ...subcommandArgs] = argv;
