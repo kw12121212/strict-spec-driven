@@ -1,0 +1,8 @@
+schema: strict-spec-driven-spec-index
+schema_version: 1
+artifact_type: spec_index
+schema_file: ../schemas/spec-index.yaml
+specs:
+  - id: example-spec
+    title: Example Spec
+    path: specs/example-spec.yaml

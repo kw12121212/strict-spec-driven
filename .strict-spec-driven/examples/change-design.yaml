@@ -1,0 +1,15 @@
+schema: strict-spec-driven-change-design
+schema_version: 1
+artifact_type: change_design
+schema_file: ../schemas/change-design.yaml
+change: example-change
+approach:
+  - Update the relevant workflow artifact.
+decisions:
+  - id: use-structured-yaml
+    decision: Represent workflow meaning with structured YAML fields.
+    rationale: Structured fields can be parsed deterministically.
+alternatives:
+  - option: Keep prose-only Markdown conventions.
+    reason: Rejected because strict validation needs structured data.
+risks: []

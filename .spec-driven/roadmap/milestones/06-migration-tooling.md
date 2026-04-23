@@ -5,6 +5,7 @@ Provide a migration command and skill that convert legacy `.spec-driven/` Markdo
 
 ## In Scope
 - Add a migration script that reads `.spec-driven/` and writes `.strict-spec-driven/`.
+- Create migration CLI source, migration skill instructions, fixtures, conversion modules, generated reports, validation hooks, and tests.
 - Convert all `.spec-driven/**` workflow Markdown artifacts to YAML formats where the legacy structure is supported.
 - Add a dedicated migration skill for agent-assisted conversion and review.
 - Report unsupported or ambiguous Markdown structures without silently inventing data.
@@ -28,13 +29,13 @@ Provide a migration command and skill that convert legacy `.spec-driven/` Markdo
 - Ambiguous migration cases are represented as manual follow-ups rather than guessed YAML fields.
 
 ## Planned Changes
-- `implement-spec-to-strict-migrate-command` - Declared: planned - add a command that migrates `.spec-driven/` projects into `.strict-spec-driven/` YAML scaffold and artifacts with preflight checks and overwrite protection.
-- `add-strict-spec-migrate-skill` - Declared: planned - create a migration skill that runs preflight checks, invokes the migration script, reviews reports, validates generated YAML, and guides manual follow-up.
-- `convert-specs-and-deltas-to-yaml` - Declared: planned - convert main specs, delta specs, requirement scenarios, operation sections, and mapping frontmatter into strict YAML spec artifacts.
-- `convert-change-artifacts-to-yaml` - Declared: planned - convert active and archived proposal, design, tasks, and questions artifacts into strict YAML change directories while preserving status and archive dates.
-- `convert-roadmap-artifacts-to-yaml` - Declared: planned - convert roadmap indexes, milestone files, statuses, dependencies, risks, notes, and planned change entries into strict YAML roadmap artifacts.
-- `convert-config-and-indexes-to-yaml` - Declared: planned - convert config, specs indexes, roadmap indexes, and generated scaffold metadata into strict YAML files with schema validation.
-- `add-migration-tests-and-reporting` - Declared: planned - test successful migrations, ambiguous migrations, malformed Markdown, archive directories, roadmap status derivation, idempotent reruns, and actionable migration reports.
+- `implement-spec-to-strict-migrate-command` - Declared: planned - implement a `migrate` subcommand that reads `.spec-driven/`, writes `.strict-spec-driven/`, performs preflight checks, enforces overwrite protection, and emits a structured migration report.
+- `add-strict-spec-migrate-skill` - Declared: planned - create a strict migration `SKILL.md` package that runs preflight checks, invokes the migration command, reviews reports, validates generated YAML, and guides manual follow-up.
+- `convert-specs-and-deltas-to-yaml` - Declared: planned - implement conversion modules and fixtures for main specs, delta specs, requirement scenarios, operation sections, and mapping frontmatter into strict YAML spec artifacts.
+- `convert-change-artifacts-to-yaml` - Declared: planned - implement conversion modules and fixtures for active and archived proposal, design, tasks, and questions artifacts into strict YAML change directories while preserving status and archive dates.
+- `convert-roadmap-artifacts-to-yaml` - Declared: planned - implement conversion modules and fixtures for roadmap indexes, milestone files, statuses, dependencies, risks, notes, and planned change entries into strict YAML roadmap artifacts.
+- `convert-config-and-indexes-to-yaml` - Declared: planned - implement conversion modules and validation tests for config, specs indexes, roadmap indexes, and generated scaffold metadata into strict YAML files.
+- `add-migration-tests-and-reporting` - Declared: planned - add automated tests and report snapshots for successful migrations, ambiguous migrations, malformed Markdown, archive directories, roadmap status derivation, idempotent reruns, and actionable migration reports.
 
 ## Dependencies
 - `03-core-yaml-workflow` and `05-strict-roadmap-workflow` must define the target YAML formats.
@@ -52,6 +53,7 @@ Provide a migration command and skill that convert legacy `.spec-driven/` Markdo
 
 ## Notes
 - The migration must preserve legacy `.spec-driven/` by default and write into `.strict-spec-driven/`.
+- Migration planned changes must produce executable converter code, fixtures, reports, validation hooks, tests, or migration skill instructions; do not close them with schema wording only.
 - Any Markdown artifact that cannot be confidently converted should be reported as a manual follow-up rather than guessed.
 - Repository documentation and `SKILL.md` packaging files are outside this migration command unless a later change explicitly defines a separate documentation migration.
 - Supported source patterns should be derived from reference templates, reference CLI generated artifacts, and canonical roadmap milestone sections rather than arbitrary Markdown parsing.

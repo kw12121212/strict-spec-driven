@@ -1,0 +1,21 @@
+schema: strict-spec-driven-roadmap-milestone
+schema_version: 1
+artifact_type: roadmap_milestone
+schema_file: ../schemas/roadmap-milestone.yaml
+milestone:
+  id: example-milestone
+  title: Example Milestone
+goal: Define one milestone goal.
+scope:
+  in:
+    - Planned strict workflow behavior.
+  out:
+    - Unrelated behavior.
+planned_changes:
+  - id: example-change
+    status: planned
+    summary: Add one planned strict workflow behavior.
+dependencies: []
+risks: []
+status: proposed
+notes: []

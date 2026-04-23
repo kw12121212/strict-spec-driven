@@ -1,0 +1,44 @@
+schema: strict-spec-driven-schema
+schema_version: 1
+artifact_type: delta_spec
+description: Strict YAML delta spec artifact.
+example: ../examples/delta-spec.yaml
+top_level:
+  type: mapping
+required_fields:
+  - name: schema
+    type: string
+  - name: schema_version
+    type: integer
+  - name: target_spec
+    type: string
+  - name: operations
+    type: mapping
+optional_fields:
+  - name: mapping
+    type: mapping
+enums:
+  operation_kind:
+    - ADDED
+    - MODIFIED
+    - REMOVED
+  requirement_strength:
+    - MUST
+    - SHOULD
+    - MAY
+relationships:
+  target_spec: Matches the stable spec.id of a main spec.
+  modified_target: operations.MODIFIED[].target_requirement matches an existing requirement id.
+  removed_target: operations.REMOVED[].target_requirement matches an existing requirement id.
+stable_identifiers:
+  - target_spec
+  - operations.ADDED[].requirement.id
+  - operations.MODIFIED[].target_requirement
+  - operations.REMOVED[].target_requirement
+uniqueness:
+  - operations.ADDED[].requirement.id is unique within the delta.
+  - Each target requirement appears at most once across MODIFIED and REMOVED.
+supported_shapes:
+  operations.ADDED: sequence
+  operations.MODIFIED: sequence
+  operations.REMOVED: sequence

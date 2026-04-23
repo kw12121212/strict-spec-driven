@@ -1,0 +1,34 @@
+schema: strict-spec-driven-schema
+schema_version: 1
+artifact_type: change_design
+description: Strict YAML change design artifact.
+example: ../examples/change-design.yaml
+top_level:
+  type: mapping
+required_fields:
+  - name: schema
+    type: string
+  - name: schema_version
+    type: integer
+  - name: change
+    type: string
+  - name: approach
+    type: sequence
+  - name: decisions
+    type: sequence
+  - name: alternatives
+    type: sequence
+optional_fields:
+  - name: risks
+    type: sequence
+enums: {}
+relationships:
+  change: Matches change.id from the proposal artifact.
+stable_identifiers:
+  - change
+uniqueness:
+  - change identifies one design artifact.
+supported_shapes:
+  approach: sequence of strings
+  decisions: sequence of mappings with id, decision, rationale
+  alternatives: sequence of mappings with option and reason

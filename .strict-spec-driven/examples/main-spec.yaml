@@ -1,0 +1,23 @@
+schema: strict-spec-driven-main-spec
+schema_version: 1
+artifact_type: main_spec
+schema_file: ../schemas/main-spec.yaml
+spec:
+  id: example-spec
+  title: Example Spec
+mapping:
+  implementation: []
+  tests: []
+requirements:
+  - id: example-requirement
+    strength: MUST
+    statement: The system MUST expose one observable behavior.
+    scenarios:
+      - id: success
+        steps:
+          - kind: GIVEN
+            text: an example precondition
+          - kind: WHEN
+            text: the example action occurs
+          - kind: THEN
+            text: the observable result is available

@@ -5,6 +5,7 @@ Move this repository's own workflow state from bootstrap `.spec-driven/` Markdow
 
 ## In Scope
 - Run the strict migration tooling against this repository's bootstrap `.spec-driven/` directory.
+- Produce the actual self-hosted `.strict-spec-driven/` workflow state, validation logs, updated repository guidance, and an explicit bootstrap retirement decision.
 - Review generated `.strict-spec-driven/` YAML artifacts for schema validity and semantic parity.
 - Switch repository guidance to use `strict-spec-*` and `strict-roadmap-*` workflows for future work.
 - Retire bootstrap `.spec-driven/` usage once the strict workflow can maintain itself.
@@ -26,10 +27,10 @@ Move this repository's own workflow state from bootstrap `.spec-driven/` Markdow
 - Future changes can be proposed, applied, verified, archived, and reconciled using only strict workflow commands.
 
 ## Planned Changes
-- `migrate-repo-workflow-to-strict` - Declared: planned - use the migration command to convert this repository's bootstrap `.spec-driven/` roadmap, specs, config, active changes, and archived changes into `.strict-spec-driven/` YAML artifacts.
-- `verify-self-hosted-strict-state` - Declared: planned - run strict validation on the generated `.strict-spec-driven/` state and fix schema, reference, roadmap, or semantic issues.
-- `update-repo-guidance-for-strict-workflow` - Declared: planned - update README and agent instructions to prefer `strict-spec-*`, `strict-roadmap-*`, and `.strict-spec-driven/` once strict commands can maintain the state.
-- `decide-bootstrap-directory-retirement` - Declared: planned - document whether the old `.spec-driven/` bootstrap state is preserved, archived, or removed after strict self-hosting works.
+- `migrate-repo-workflow-to-strict` - Declared: planned - run the migration command to convert this repository's bootstrap `.spec-driven/` roadmap, specs, config, active changes, and archived changes into actual `.strict-spec-driven/` YAML artifacts.
+- `verify-self-hosted-strict-state` - Declared: planned - run strict validation commands on the generated `.strict-spec-driven/` state, save or summarize validation output, and fix schema, reference, roadmap, or semantic issues.
+- `update-repo-guidance-for-strict-workflow` - Declared: planned - update README, AGENTS, RTK, and workflow examples to prefer `strict-spec-*`, `strict-roadmap-*`, and `.strict-spec-driven/` once strict commands can maintain the state.
+- `decide-bootstrap-directory-retirement` - Declared: planned - document whether the old `.spec-driven/` bootstrap state is preserved, archived, or removed after strict self-hosting works, including exact follow-up commands or manual steps.
 
 ## Dependencies
 - `06-migration-tooling` must provide a safe migration command and migration skill.
@@ -48,5 +49,6 @@ Move this repository's own workflow state from bootstrap `.spec-driven/` Markdow
 
 ## Notes
 - This is intentionally late in the roadmap; the current bootstrap `.spec-driven/` roadmap remains acceptable until strict migration is available.
+- Self-hosting planned changes must produce actual migrated state, validation evidence, guidance edits, or a documented retirement decision; do not close them with roadmap/spec text alone.
 - The current active `define-yaml-artifact-schemas` change should either be archived before self-hosting or migrated with an explicit active-change status.
 - This milestone is the point where strict workflow dogfooding replaces bootstrap roadmap maintenance.

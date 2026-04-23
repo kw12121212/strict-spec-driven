@@ -5,6 +5,7 @@ Bootstrap a TypeScript CLI foundation that can create, parse, validate, and test
 
 ## In Scope
 - Establish the package, TypeScript, strict ESM, build, and test skeleton based on the reference project's `package.json`, `tsconfig`, and `test/run.js` conventions.
+- Add source files for the strict CLI entrypoint, command router, filesystem helpers, YAML loading, schema registry access, diagnostics, fixtures, and test harness.
 - Add a reusable YAML parsing, serialization, and validation layer around structured YAML APIs.
 - Implement strict initialization that creates `.strict-spec-driven/` instead of `.spec-driven/`.
 - Generate strict scaffold files for config, specs, roadmap, changes, and template content using YAML artifact names.
@@ -26,12 +27,12 @@ Bootstrap a TypeScript CLI foundation that can create, parse, validate, and test
 - The scaffold separates template files from generated project state so future installation and migration work do not conflate them.
 
 ## Planned Changes
-- `bootstrap-typescript-cli` - Declared: planned - add package, TypeScript config, strict ESM script entrypoint, compiled `dist/` output, and repeatable test runner based on reference conventions.
-- `select-yaml-schema-tooling` - Declared: planned - choose and pin the YAML parser, schema validation approach, dependency policy, and build/test commands used by the strict CLI foundation.
-- `add-yaml-validation-layer` - Declared: planned - implement shared YAML parse, stringify, schema validation, path-aware diagnostics, and deterministic serialization utilities for all commands.
-- `create-strict-template-assets` - Declared: planned - add bundled YAML template assets for config, specs index, specs README, roadmap index, and empty changes state used by init and tests.
-- `implement-strict-init` - Declared: planned - create `.strict-spec-driven/` scaffold with YAML config, specs, roadmap, changes, and template files without clobbering existing state.
-- `add-yaml-fixtures-and-tests` - Declared: planned - add repeatable fixtures and tests for valid scaffold generation, invalid YAML diagnostics, enum validation, reference validation, and idempotent init.
+- `bootstrap-typescript-cli` - Declared: planned - add `package.json`, `tsconfig.json`, TypeScript source entrypoint, strict ESM command router, compiled `dist/` output, and repeatable `npm run build` plus `npm test` runner based on reference conventions.
+- `select-yaml-schema-tooling` - Declared: planned - choose and pin YAML parser and validation dependencies in `package.json`, document the dependency policy, and wire the selected tools into build and test scripts.
+- `add-yaml-validation-layer` - Declared: planned - implement shared source modules for YAML parse/stringify, schema loading from `.strict-spec-driven/schemas/`, path-aware diagnostics, reference checks, duplicate-ID checks, and deterministic serialization.
+- `create-strict-template-assets` - Declared: planned - add bundled template YAML files for config, specs index, roadmap index, empty changes state, and seed README guidance used by init and fixture tests.
+- `implement-strict-init` - Declared: planned - implement the `init` subcommand to create `.strict-spec-driven/` config, specs, roadmap, changes, schema, and example assets without clobbering existing user state.
+- `add-yaml-fixtures-and-tests` - Declared: planned - add test fixtures and automated tests for valid scaffold generation, invalid YAML diagnostics, enum validation, reference validation, duplicate IDs, unsupported shapes, and idempotent init.
 
 ## Dependencies
 - `01-yaml-contracts-and-naming` should define the first schema version before implementation.
@@ -48,5 +49,6 @@ Bootstrap a TypeScript CLI foundation that can create, parse, validate, and test
 
 ## Notes
 - Scripts should use structured YAML APIs instead of ad hoc text manipulation.
+- Each CLI foundation change must produce executable source, package scripts, fixtures, or tests; contract-only updates belong in milestone 01.
 - The reference CLI currently exposes subcommands such as `propose`, `modify`, `apply`, `verify`, `verify-spec-mappings`, `verify-roadmap`, `archive`, `cancel`, `init`, `run-maintenance`, `migrate`, and `list`; this milestone should create only the strict foundation needed for those later ports.
 - Reference tests reset fixture state and run against compiled `dist/` output; strict tests should keep that pattern once TypeScript sources exist.

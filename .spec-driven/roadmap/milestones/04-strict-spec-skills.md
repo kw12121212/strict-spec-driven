@@ -5,6 +5,7 @@ Rename and update the spec workflow skills so agents operate on strict YAML arti
 
 ## In Scope
 - Rename spec workflow skills from `spec-driven-*` to `strict-spec-*`.
+- Create or update concrete `SKILL.md` packages, command snippets, bundled script references, installer metadata, and skill validation tests for strict spec workflows.
 - Update skill instructions to read and write `.strict-spec-driven/` YAML artifacts.
 - Keep skills in Markdown `SKILL.md` packaging while changing their artifact contracts.
 - Update command snippets in skills to call the strict CLI commands and verify exact command names before execution.
@@ -26,12 +27,12 @@ Rename and update the spec workflow skills so agents operate on strict YAML arti
 - Core skills cover init, propose, apply, verify, review, archive, auto, modify, cancel, brainstorm, simple-task, spec-content, spec-edit, sync-specs, and mapping maintenance equivalents.
 
 ## Planned Changes
-- `rename-spec-skills-to-strict-spec` - Declared: planned - rename core spec workflow skills and metadata from `spec-driven-*` to `strict-spec-*` while preserving Agent Skills frontmatter requirements.
-- `update-core-skills-for-yaml-artifacts` - Declared: planned - update init, propose, apply, verify, review, archive, auto, modify, and cancel instructions for YAML artifacts.
-- `update-planning-and-spec-content-skills-for-yaml` - Declared: planned - update brainstorm, simple-task, spec-content, spec-edit, sync-specs, and mapping repair skills for strict YAML specs and deltas.
-- `update-installation-for-strict-spec-skills` - Declared: planned - update install and validation logic so strict spec skills can be installed, symlinked, and checked consistently across supported agent CLIs.
-- `port-spec-skill-schema-validation` - Declared: planned - port skill schema validation for strict spec skills, including frontmatter metadata, command sections, command references, and bundled script assumptions.
-- `add-stale-reference-validation` - Declared: planned - fail validation when strict skills retain obsolete `.spec-driven/`, `spec-driven-*`, or Markdown artifact instructions outside migration contexts.
+- `rename-spec-skills-to-strict-spec` - Declared: planned - create strict spec skill directories and `SKILL.md` metadata for `strict-spec-*` equivalents while preserving Agent Skills frontmatter requirements and removing legacy install names.
+- `update-core-skills-for-yaml-artifacts` - Declared: planned - update init, propose, apply, verify, review, archive, auto, modify, and cancel `SKILL.md` instructions to read/write `proposal.yaml`, `design.yaml`, `tasks.yaml`, `questions.yaml`, YAML specs, and strict CLI commands.
+- `update-planning-and-spec-content-skills-for-yaml` - Declared: planned - update brainstorm, simple-task, spec-content, spec-edit, sync-specs, and mapping repair skills to edit strict YAML specs and deltas through structured fields.
+- `update-installation-for-strict-spec-skills` - Declared: planned - update installer scripts, marketplace metadata, symlink behavior, and validation checks so strict spec skills install consistently across supported agent CLIs.
+- `port-spec-skill-schema-validation` - Declared: planned - port skill schema validation scripts and tests for strict spec `SKILL.md` frontmatter, command sections, command references, bundled script assumptions, and required workflow text.
+- `add-stale-reference-validation` - Declared: planned - add validation tests that fail when strict skills retain obsolete `.spec-driven/`, `spec-driven-*`, or Markdown artifact instructions outside explicit migration contexts.
 
 ## Dependencies
 - `03-core-yaml-workflow` should define the command behavior the skills call.
@@ -48,5 +49,6 @@ Rename and update the spec workflow skills so agents operate on strict YAML arti
 
 ## Notes
 - `SKILL.md` remains Markdown because Agent Skills packaging depends on it.
+- Planned changes here must modify actual skill packages, installer metadata, validation scripts, or tests; pure contract wording belongs in earlier milestones.
 - Reference skill validation uses YAML frontmatter parsing and Markdown AST checks; the strict validator should keep package-level Markdown validation while validating strict artifact references in the body.
 - The reference project installs copied skills into an agent store and symlinks CLI-specific directories; strict installation can reuse that topology with strict names.

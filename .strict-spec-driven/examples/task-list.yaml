@@ -1,0 +1,24 @@
+schema: strict-spec-driven-task-list
+schema_version: 1
+artifact_type: task_list
+schema_file: ../schemas/task-list.yaml
+change: example-change
+sections:
+  - name: Implementation
+    tasks:
+      - id: implement-example
+        text: Implement the example behavior.
+        status: pending
+  - name: Testing
+    tasks:
+      - id: validate-example
+        text: Run validation for the example behavior.
+        status: pending
+      - id: unit-test-example
+        text: Run unit tests for the example behavior.
+        status: pending
+  - name: Verification
+    tasks:
+      - id: verify-example
+        text: Verify implementation matches proposal scope.
+        status: pending

@@ -1,0 +1,22 @@
+schema: strict-spec-driven-change-proposal
+schema_version: 1
+artifact_type: change_proposal
+schema_file: ../schemas/change-proposal.yaml
+change:
+  id: example-change
+  status: proposed
+summary:
+  what:
+    - Add one observable workflow behavior.
+  why:
+    - The behavior is needed by the strict workflow.
+scope:
+  in:
+    - Add the specified behavior.
+  out:
+    - Implement unrelated workflow behavior.
+unchanged_behavior:
+  - Existing workflow semantics remain unchanged.
+roadmap:
+  milestone: example-milestone
+  planned_change: example-change

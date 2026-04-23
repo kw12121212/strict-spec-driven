@@ -1,0 +1,39 @@
+schema: strict-spec-driven-schema
+schema_version: 1
+artifact_type: change_proposal
+description: Strict YAML change proposal artifact.
+example: ../examples/change-proposal.yaml
+top_level:
+  type: mapping
+required_fields:
+  - name: schema
+    type: string
+  - name: schema_version
+    type: integer
+  - name: change
+    type: mapping
+  - name: summary
+    type: mapping
+  - name: scope
+    type: mapping
+  - name: unchanged_behavior
+    type: sequence
+optional_fields:
+  - name: roadmap
+    type: mapping
+enums:
+  change_status:
+    - proposed
+    - active
+    - complete
+relationships:
+  roadmap.planned_change: May reference a planned change id from a roadmap milestone.
+stable_identifiers:
+  - change.id
+uniqueness:
+  - change.id is unique across active and archived changes.
+supported_shapes:
+  summary.what: sequence of strings
+  summary.why: sequence of strings
+  scope.in: sequence of strings
+  scope.out: sequence of strings

@@ -1,0 +1,8 @@
+schema: strict-spec-driven-planned-change-entry
+schema_version: 1
+artifact_type: planned_change_entry
+schema_file: ../schemas/planned-change-entry.yaml
+id: example-change
+status: planned
+summary: Add one planned strict workflow behavior.
+depends_on: []

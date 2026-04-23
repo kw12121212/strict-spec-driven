@@ -1,0 +1,44 @@
+schema: strict-spec-driven-schema
+schema_version: 1
+artifact_type: main_spec
+description: Strict YAML main spec artifact.
+example: ../examples/main-spec.yaml
+top_level:
+  type: mapping
+required_fields:
+  - name: schema
+    type: string
+  - name: schema_version
+    type: integer
+  - name: spec
+    type: mapping
+  - name: mapping
+    type: mapping
+  - name: requirements
+    type: sequence
+optional_fields: []
+enums:
+  requirement_strength:
+    - MUST
+    - SHOULD
+    - MAY
+  scenario_step_kind:
+    - GIVEN
+    - WHEN
+    - THEN
+    - AND
+relationships:
+  implementation_paths: mapping.implementation contains repo-relative paths.
+  test_paths: mapping.tests contains repo-relative paths.
+stable_identifiers:
+  - spec.id
+  - requirements[].id
+  - requirements[].scenarios[].id
+uniqueness:
+  - spec.id is unique across main specs.
+  - requirements[].id is unique within one spec.
+  - requirements[].scenarios[].id is unique within one requirement.
+supported_shapes:
+  requirements: sequence of requirement mappings.
+  scenarios: sequence of scenario mappings.
+  steps: ordered sequence of step mappings.

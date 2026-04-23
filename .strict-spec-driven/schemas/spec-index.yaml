@@ -1,0 +1,26 @@
+schema: strict-spec-driven-schema
+schema_version: 1
+artifact_type: spec_index
+description: Strict YAML spec index artifact.
+example: ../examples/spec-index.yaml
+top_level:
+  type: mapping
+required_fields:
+  - name: schema
+    type: string
+  - name: schema_version
+    type: integer
+  - name: specs
+    type: sequence
+optional_fields: []
+enums: {}
+relationships:
+  specs[].path: Points to a main spec file.
+  specs[].id: Matches the target spec.id.
+stable_identifiers:
+  - specs[].id
+uniqueness:
+  - specs[].id is unique within the index.
+  - specs[].path is unique within the index.
+supported_shapes:
+  specs: sequence of mappings with id, title, path.

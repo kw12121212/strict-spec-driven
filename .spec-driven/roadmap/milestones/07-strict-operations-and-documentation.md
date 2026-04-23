@@ -5,6 +5,7 @@ Finish the strict workflow operational surfaces that sit outside the core spec a
 
 ## In Scope
 - Port the maintenance workflow from configured repository checks to strict YAML maintenance changes.
+- Create operational CLI commands, installation scripts, validation scripts, skill packages, README/guide documents, and tests for the strict workflow.
 - Port the ship workflow for archived strict changes, roadmap status review, git commit creation, and push handoff.
 - Implement strict installation and uninstallation scripts for global and project-local skill installs.
 - Port package scripts and skill validation commands needed to build, test, validate, install, and uninstall the strict workflow.
@@ -27,12 +28,12 @@ Finish the strict workflow operational surfaces that sit outside the core spec a
 - Documentation examples use strict command names and YAML filenames only outside explicit legacy or migration sections.
 
 ## Planned Changes
-- `port-maintenance-workflow-to-yaml` - Declared: planned - port run-maintenance behavior, maintenance config, generated maintenance changes, task completion, verification, and archive flow to strict YAML artifacts.
-- `port-ship-workflow-to-strict` - Declared: planned - create strict ship guidance for archived changes, roadmap status checks, git commit creation, push behavior, and failure handling.
-- `implement-strict-installation-scripts` - Declared: planned - add install and uninstall scripts for global and project-local strict skill installation with legacy-name safeguards.
-- `port-strict-skill-validation-suite` - Declared: planned - port skill-schema validation and validate-skills tests for strict skill frontmatter, command snippets, symlinks, bundled scripts, and stale references.
-- `write-strict-user-documentation` - Declared: planned - add README, QUICKSTART, ROADMAP_GUIDE, and Chinese equivalents that explain strict setup, commands, artifacts, and migration boundaries.
-- `document-strict-agent-guidance` - Declared: planned - update AGENTS and RTK guidance for contributors and agents using strict commands, YAML artifacts, validation, and reference-project comparison.
+- `port-maintenance-workflow-to-yaml` - Declared: planned - implement strict `run-maintenance` behavior, maintenance config YAML, generated maintenance change artifacts, task completion, verification, archive flow, and tests.
+- `port-ship-workflow-to-strict` - Declared: planned - implement or document strict ship guidance for archived changes, roadmap status checks, git commit creation, push behavior, failure handling, and verification tests.
+- `implement-strict-installation-scripts` - Declared: planned - add install and uninstall scripts for global and project-local strict skill installation, marketplace metadata updates, and legacy-name safeguards.
+- `port-strict-skill-validation-suite` - Declared: planned - port skill-schema validation source and validate-skills tests for strict skill frontmatter, command snippets, symlinks, bundled scripts, and stale references.
+- `write-strict-user-documentation` - Declared: planned - add README, QUICKSTART, ROADMAP_GUIDE, and Chinese equivalents that explain strict setup, commands, artifacts, schema/example files, and migration boundaries.
+- `document-strict-agent-guidance` - Declared: planned - update AGENTS and RTK guidance for contributors and agents using strict commands, YAML artifacts, validation commands, and reference-project comparison.
 
 ## Dependencies
 - `02-strict-cli-foundation` must provide build and test scripts.
@@ -51,4 +52,5 @@ Finish the strict workflow operational surfaces that sit outside the core spec a
 
 ## Notes
 - Reference surfaces include `install.sh`, `validate-skills.ts`, `skill-schema.yaml`, `spec-driven-maintenance`, `spec-driven-ship`, README, QUICKSTART, and ROADMAP_GUIDE.
+- Operational planned changes must create scripts, skills, validation tests, or user-facing docs; pure spec updates are not enough for this milestone.
 - This milestone keeps operational polish separate from the first strict lifecycle implementation so self-hosting starts from documented, installable workflows.

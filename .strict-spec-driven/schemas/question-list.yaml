@@ -1,0 +1,33 @@
+schema: strict-spec-driven-schema
+schema_version: 1
+artifact_type: question_list
+description: Strict YAML question list artifact.
+example: ../examples/question-list.yaml
+top_level:
+  type: mapping
+required_fields:
+  - name: schema
+    type: string
+  - name: schema_version
+    type: integer
+  - name: change
+    type: string
+  - name: open
+    type: sequence
+  - name: resolved
+    type: sequence
+optional_fields: []
+enums:
+  question_status:
+    - open
+    - resolved
+relationships:
+  change: Matches change.id from the proposal artifact.
+stable_identifiers:
+  - open[].id
+  - resolved[].id
+uniqueness:
+  - Question ids are unique across open and resolved questions.
+supported_shapes:
+  open: sequence of question mappings.
+  resolved: sequence of question mappings with answer.

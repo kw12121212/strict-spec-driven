@@ -1,0 +1,48 @@
+schema: strict-spec-driven-schema
+schema_version: 1
+artifact_type: roadmap_milestone
+description: Strict YAML roadmap milestone artifact.
+example: ../examples/roadmap-milestone.yaml
+top_level:
+  type: mapping
+required_fields:
+  - name: schema
+    type: string
+  - name: schema_version
+    type: integer
+  - name: milestone
+    type: mapping
+  - name: scope
+    type: mapping
+  - name: planned_changes
+    type: sequence
+  - name: status
+    type: string
+optional_fields:
+  - name: dependencies
+    type: sequence
+  - name: risks
+    type: sequence
+  - name: notes
+    type: sequence
+enums:
+  milestone_status:
+    - proposed
+    - active
+    - blocked
+    - complete
+  planned_change_status:
+    - planned
+    - complete
+relationships:
+  planned_changes[].id: May be promoted into a change.id.
+stable_identifiers:
+  - milestone.id
+  - planned_changes[].id
+uniqueness:
+  - milestone.id is unique within roadmap state.
+  - planned_changes[].id is unique within one milestone.
+supported_shapes:
+  scope.in: sequence of strings
+  scope.out: sequence of strings
+  planned_changes: sequence of planned change mappings.

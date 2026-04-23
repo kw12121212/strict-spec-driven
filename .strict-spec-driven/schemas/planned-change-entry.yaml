@@ -1,0 +1,30 @@
+schema: strict-spec-driven-schema
+schema_version: 1
+artifact_type: planned_change_entry
+description: Strict YAML planned change entry artifact.
+example: ../examples/planned-change-entry.yaml
+top_level:
+  type: mapping
+required_fields:
+  - name: id
+    type: string
+  - name: status
+    type: string
+  - name: summary
+    type: string
+optional_fields:
+  - name: depends_on
+    type: sequence
+enums:
+  planned_change_status:
+    - planned
+    - complete
+relationships:
+  id: May become change.id when promoted.
+  depends_on: References other planned change ids.
+stable_identifiers:
+  - id
+uniqueness:
+  - id is unique within one milestone.
+supported_shapes:
+  entry: mapping with id, status, summary.
