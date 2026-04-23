@@ -1,0 +1,145 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/schema-registry/v1
+artifact_type: schema_registry
+artifact_name: schema-registry
+description: Strict YAML schema registry artifact.
+example_ref: ../examples/schema-registry.yaml
+additional_fields: false
+fields:
+  schema:
+    type: string
+    required: true
+    const: strict-spec-driven/schema-registry/v1
+  schema_version:
+    type: integer
+    required: true
+    const: 1
+  artifact_type:
+    type: string
+    required: true
+    const: schema_registry
+  schema_file:
+    type: string
+    required: true
+  registry:
+    type: mapping
+    required: true
+    additional_fields: false
+    fields:
+      id:
+        type: string
+        required: true
+        identifier: registry
+      status:
+        type: string
+        required: true
+        enum:
+          - current
+          - deprecated
+          - superseded
+  entries:
+    type: sequence
+    required: true
+    min_items: 1
+    unique_by: schema_id
+    items:
+      type: mapping
+      additional_fields: false
+      fields:
+        schema_id:
+          type: string
+          required: true
+          identifier: schema
+        schema_version:
+          type: integer
+          required: true
+        artifact_type:
+          type: string
+          required: true
+        artifact_name:
+          type: string
+          required: true
+        schema_file:
+          type: string
+          required: true
+        primary_example:
+          type: string
+          required: true
+        compatibility:
+          type: mapping
+          required: true
+          additional_fields: false
+          fields:
+            status:
+              type: string
+              required: true
+              enum:
+                - current
+                - deprecated
+                - superseded
+            introduced_in:
+              type: integer
+              required: true
+            supersedes:
+              type: sequence
+              required: true
+              items:
+                type: string
+            superseded_by:
+              type: string
+              required: false
+            compatible_with:
+              type: sequence
+              required: true
+              items:
+                type: string
+            notes:
+              type: sequence
+              required: true
+              items:
+                type: string
+  migration:
+    type: mapping
+    required: true
+    additional_fields: false
+    fields:
+      legacy_root:
+        type: string
+        required: true
+      strict_root:
+        type: string
+        required: true
+      role_mappings:
+        type: sequence
+        required: true
+        min_items: 1
+        unique_by: legacy_role
+        items:
+          type: mapping
+          additional_fields: false
+          fields:
+            legacy_role:
+              type: string
+              required: true
+            artifact_type:
+              type: string
+              required: true
+            schema_id:
+              type: string
+              required: true
+              references: entries.schema_id
+      unsupported_shape_reporting:
+        type: mapping
+        required: true
+        additional_fields: false
+        fields:
+          warning_fields:
+            type: sequence
+            required: true
+            min_items: 1
+            items:
+              type: string
+          manual_follow_up_field:
+            type: string
+            required: true

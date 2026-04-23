@@ -35,12 +35,11 @@ Define the strict YAML artifact contracts and naming model before migrating CLI 
 - `define-yaml-artifact-schemas` - Declared: complete - update `.spec-driven/specs/contracts/yaml-artifacts.md` with strict YAML artifact requirements for specs, proposals, designs, tasks, questions, indexes, roadmap milestones, planned change entries, and validation-ready examples.
 - `define-concrete-yaml-schema-files` - Declared: complete - add contract requirements that concrete schema and example files must exist for strict workflow artifacts, including parseability and artifact-family coverage.
 - `materialize-concrete-yaml-schema-files` - Declared: complete - create `.strict-spec-driven/schemas/*.yaml` and `.strict-spec-driven/examples/*.yaml` files for all required artifact families and validate their YAML parseability and artifact identity.
-- `define-schema-versioning-and-registry` - Declared: planned - update schema files and docs with stable schema IDs, versioning rules, artifact type names, registry file locations, and compatibility expectations for strict YAML artifacts.
+- `define-schema-versioning-and-registry` - Declared: complete - update schema files and docs with stable schema IDs, versioning rules, artifact type names, registry file locations, compatibility expectations, legacy migration mapping rules, unsupported-shape warning fields, and manual follow-up reporting for strict YAML artifacts.
 - `define-strict-directory-and-prefixes` - Declared: complete - define `.strict-spec-driven/` as the workflow directory and rename skill and command families to `strict-spec-*` and `strict-roadmap-*`.
 - `define-command-naming-model` - Declared: complete - distinguish skill names, slash commands, CLI entrypoints, CLI subcommands, and installer-facing names so strict naming is applied consistently.
 - `define-markdown-exception-policy` - Declared: complete - update specs and contributor docs to list allowed Markdown files such as `SKILL.md`, `README.md`, `AGENTS.md`, and `RTK.md`, while requiring generated or consumed workflow artifacts to be YAML.
 - `define-yaml-spec-and-delta-model` - Declared: complete - translate RFC 2119 requirements, scenarios, mappings, and ADDED/MODIFIED/REMOVED deltas into structured YAML fields with stable requirement and scenario identifiers.
-- `define-migration-compatibility-contract` - Declared: planned - add migration mapping rules for legacy `.spec-driven/` Markdown artifacts to strict YAML files, including unsupported-shape warning fields and manual follow-up reporting.
 
 ## Dependencies
 - The reference behavior in `../auto-spec-driven` must remain available for comparison.
@@ -53,7 +52,7 @@ Define the strict YAML artifact contracts and naming model before migrating CLI 
 - Ambiguous naming between skills, slash commands, CLI entrypoints, and subcommands could make installation and prompt validation brittle.
 
 ## Status
-- Declared: proposed
+- Declared: complete
 
 ## Notes
 - This milestone should finish before large implementation work begins.

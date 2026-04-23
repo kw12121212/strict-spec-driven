@@ -1,0 +1,181 @@
+schema: strict-spec-driven/schema-registry/v1
+schema_version: 1
+artifact_type: schema_registry
+schema_file: schema-registry.yaml
+registry:
+  id: strict-spec-driven-schema-registry
+  status: current
+entries:
+  - schema_id: strict-spec-driven/main-spec/v1
+    schema_version: 1
+    artifact_type: main_spec
+    artifact_name: main-spec
+    schema_file: main-spec.yaml
+    primary_example: ../examples/main-spec.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+  - schema_id: strict-spec-driven/delta-spec/v1
+    schema_version: 1
+    artifact_type: delta_spec
+    artifact_name: delta-spec
+    schema_file: delta-spec.yaml
+    primary_example: ../examples/delta-spec.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+  - schema_id: strict-spec-driven/change-proposal/v1
+    schema_version: 1
+    artifact_type: change_proposal
+    artifact_name: change-proposal
+    schema_file: change-proposal.yaml
+    primary_example: ../examples/change-proposal.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+  - schema_id: strict-spec-driven/change-design/v1
+    schema_version: 1
+    artifact_type: change_design
+    artifact_name: change-design
+    schema_file: change-design.yaml
+    primary_example: ../examples/change-design.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+  - schema_id: strict-spec-driven/task-list/v1
+    schema_version: 1
+    artifact_type: task_list
+    artifact_name: task-list
+    schema_file: task-list.yaml
+    primary_example: ../examples/task-list.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+  - schema_id: strict-spec-driven/question-list/v1
+    schema_version: 1
+    artifact_type: question_list
+    artifact_name: question-list
+    schema_file: question-list.yaml
+    primary_example: ../examples/question-list.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+  - schema_id: strict-spec-driven/spec-index/v1
+    schema_version: 1
+    artifact_type: spec_index
+    artifact_name: spec-index
+    schema_file: spec-index.yaml
+    primary_example: ../examples/spec-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+  - schema_id: strict-spec-driven/roadmap-index/v1
+    schema_version: 1
+    artifact_type: roadmap_index
+    artifact_name: roadmap-index
+    schema_file: roadmap-index.yaml
+    primary_example: ../examples/roadmap-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+  - schema_id: strict-spec-driven/roadmap-milestone/v1
+    schema_version: 1
+    artifact_type: roadmap_milestone
+    artifact_name: roadmap-milestone
+    schema_file: roadmap-milestone.yaml
+    primary_example: ../examples/roadmap-milestone.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+  - schema_id: strict-spec-driven/planned-change-entry/v1
+    schema_version: 1
+    artifact_type: planned_change_entry
+    artifact_name: planned-change-entry
+    schema_file: planned-change-entry.yaml
+    primary_example: ../examples/planned-change-entry.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+  - schema_id: strict-spec-driven/schema-registry/v1
+    schema_version: 1
+    artifact_type: schema_registry
+    artifact_name: schema-registry
+    schema_file: schema-registry.yaml
+    primary_example: ../examples/schema-registry.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+migration:
+  legacy_root: .spec-driven
+  strict_root: .strict-spec-driven
+  role_mappings:
+    - legacy_role: main_spec_markdown
+      artifact_type: main_spec
+      schema_id: strict-spec-driven/main-spec/v1
+    - legacy_role: delta_spec_markdown
+      artifact_type: delta_spec
+      schema_id: strict-spec-driven/delta-spec/v1
+    - legacy_role: change_proposal_markdown
+      artifact_type: change_proposal
+      schema_id: strict-spec-driven/change-proposal/v1
+    - legacy_role: change_design_markdown
+      artifact_type: change_design
+      schema_id: strict-spec-driven/change-design/v1
+    - legacy_role: task_list_markdown
+      artifact_type: task_list
+      schema_id: strict-spec-driven/task-list/v1
+    - legacy_role: question_list_markdown
+      artifact_type: question_list
+      schema_id: strict-spec-driven/question-list/v1
+    - legacy_role: spec_index_markdown
+      artifact_type: spec_index
+      schema_id: strict-spec-driven/spec-index/v1
+    - legacy_role: roadmap_index_markdown
+      artifact_type: roadmap_index
+      schema_id: strict-spec-driven/roadmap-index/v1
+    - legacy_role: roadmap_milestone_markdown
+      artifact_type: roadmap_milestone
+      schema_id: strict-spec-driven/roadmap-milestone/v1
+    - legacy_role: planned_change_entry_markdown
+      artifact_type: planned_change_entry
+      schema_id: strict-spec-driven/planned-change-entry/v1
+  unsupported_shape_reporting:
+    warning_fields:
+      - source_path
+      - legacy_role
+      - reason
+      - manual_follow_up
+    manual_follow_up_field: manual_follow_up
