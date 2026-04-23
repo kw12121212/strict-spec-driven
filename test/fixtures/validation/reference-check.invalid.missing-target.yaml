@@ -1,0 +1,4 @@
+entries:
+  - schema_id: strict-spec-driven/main-spec/v1
+links:
+  - schema_id: strict-spec-driven/missing/v1

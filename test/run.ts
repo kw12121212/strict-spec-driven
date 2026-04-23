@@ -9,6 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
 const CLI = path.join(ROOT, "dist", "index.js");
+const VALIDATION_FIXTURE_ROOT = path.join(ROOT, "test", "fixtures", "validation");
 
 type YamlModule = {
   parseYamlDocument<T>(input: string): T;
@@ -103,6 +104,10 @@ function cli(args: string[], options?: { cwd?: string }): { status: number; stdo
     stdout: result.stdout ?? "",
     stderr: result.stderr ?? "",
   };
+}
+
+function fixturePath(fileName: string): string {
+  return path.join(VALIDATION_FIXTURE_ROOT, fileName);
 }
 
 async function loadDistModule<T>(fileName: string): Promise<T> {
@@ -349,6 +354,162 @@ async function main(): Promise<void> {
   } finally {
     rmSync(initTempDir, { recursive: true, force: true });
   }
+
+  section("[6] fixture-driven validation matrix");
+
+  const fixtureSchema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["id", "kind", "tags"],
+    properties: {
+      id: { type: "string" },
+      kind: { type: "string", enum: ["alpha", "beta"] },
+      tags: { type: "array", minItems: 1, items: { type: "string" } },
+    },
+  };
+
+  const validFixture = yamlModule.parseYamlFile<Record<string, unknown>>(fixturePath("schema-check.valid.yaml"));
+  const validFixtureResult = validationModule.validateWithSchema(
+    fixtureSchema,
+    validFixture,
+    "fixture://schema-check.valid.yaml",
+  );
+  assert(validFixtureResult.valid, "[M01:yaml-schema-field-contracts] fixture valid schema case passes");
+
+  const missingRequiredFixture = yamlModule.parseYamlFile<Record<string, unknown>>(
+    fixturePath("schema-check.invalid.missing-required.yaml"),
+  );
+  const missingRequiredResult = validationModule.validateWithSchema(
+    fixtureSchema,
+    missingRequiredFixture,
+    "fixture://schema-check.invalid.missing-required.yaml",
+  );
+  assert(
+    !missingRequiredResult.valid,
+    "[M01:yaml-schema-field-contracts] fixture missing-required case fails schema validation",
+  );
+  assert(
+    missingRequiredResult.diagnostics.some((diagnostic) => diagnostic.fieldPath === "$.id"),
+    "[M01:yaml-schema-field-contracts] fixture missing-required diagnostics include missing field path",
+  );
+
+  const invalidEnumFixture = yamlModule.parseYamlFile<Record<string, unknown>>(fixturePath("schema-check.invalid.enum.yaml"));
+  const invalidEnumResult = validationModule.validateWithSchema(
+    fixtureSchema,
+    invalidEnumFixture,
+    "fixture://schema-check.invalid.enum.yaml",
+  );
+  assert(
+    !invalidEnumResult.valid,
+    "[M01:yaml-main-spec-requirement-model] fixture invalid-enum case fails schema validation",
+  );
+  assert(
+    invalidEnumResult.diagnostics.some((diagnostic) => diagnostic.fieldPath === "$.kind"),
+    "[M01:yaml-main-spec-requirement-model] fixture invalid-enum diagnostics include enum field path",
+  );
+
+  const invalidShapeFixture = yamlModule.parseYamlFile<unknown>(fixturePath("schema-check.invalid.shape.yaml"));
+  const invalidShapeResultA = validationModule.validateWithSchema(
+    fixtureSchema,
+    invalidShapeFixture,
+    "fixture://schema-check.invalid.shape.yaml",
+  );
+  const invalidShapeResultB = validationModule.validateWithSchema(
+    fixtureSchema,
+    invalidShapeFixture,
+    "fixture://schema-check.invalid.shape.yaml",
+  );
+  assert(
+    !invalidShapeResultA.valid,
+    "[M01:deterministic-schema-validation] fixture unsupported-shape case fails schema validation",
+  );
+  assert(
+    JSON.stringify(invalidShapeResultA.diagnostics) === JSON.stringify(invalidShapeResultB.diagnostics),
+    "[M01:deterministic-schema-validation] fixture unsupported-shape diagnostics are deterministic",
+  );
+
+  let malformedRejected = false;
+  try {
+    yamlModule.parseYamlFile(fixturePath("schema-check.invalid.malformed.yaml"));
+  } catch {
+    malformedRejected = true;
+  }
+  assert(
+    malformedRejected,
+    "[M01:deterministic-schema-validation] fixture malformed-yaml case is rejected during parsing",
+  );
+
+  const validReferenceFixture = yamlModule.parseYamlFile<Record<string, unknown>>(fixturePath("reference-check.valid.yaml"));
+  const validReferenceDiagnostics = validationModule.runReferenceChecks(
+    validReferenceFixture,
+    "fixture://reference-check.valid.yaml",
+    [
+      {
+        sourceCollectionPath: "links",
+        sourceField: "schema_id",
+        targetCollectionPath: "entries",
+        targetField: "schema_id",
+      },
+    ],
+  );
+  assert(
+    validReferenceDiagnostics.length === 0,
+    "[M01:yaml-migration-artifact-role-mapping] fixture valid-reference case produces no diagnostics",
+  );
+
+  const invalidReferenceFixture = yamlModule.parseYamlFile<Record<string, unknown>>(
+    fixturePath("reference-check.invalid.missing-target.yaml"),
+  );
+  const invalidReferenceDiagnostics = validationModule.runReferenceChecks(
+    invalidReferenceFixture,
+    "fixture://reference-check.invalid.missing-target.yaml",
+    [
+      {
+        sourceCollectionPath: "links",
+        sourceField: "schema_id",
+        targetCollectionPath: "entries",
+        targetField: "schema_id",
+      },
+    ],
+  );
+  assert(
+    invalidReferenceDiagnostics.length === 1,
+    "[M01:yaml-migration-artifact-role-mapping] fixture invalid-reference case produces one diagnostic",
+  );
+  assert(
+    invalidReferenceDiagnostics[0]?.fieldPath === "$.links[0].schema_id",
+    "[M01:yaml-migration-artifact-role-mapping] fixture invalid-reference diagnostics include source field path",
+  );
+
+  const validDuplicateFixture = yamlModule.parseYamlFile<Record<string, unknown>>(
+    fixturePath("duplicate-check.valid.requirement-id.yaml"),
+  );
+  const validDuplicateDiagnostics = validationModule.runDuplicateIdChecks(
+    validDuplicateFixture,
+    "fixture://duplicate-check.valid.requirement-id.yaml",
+    [{ collectionPath: "requirements", idField: "id" }],
+  );
+  assert(
+    validDuplicateDiagnostics.length === 0,
+    "[M01:yaml-requirement-and-scenario-identifiers] fixture valid-duplicate-id case produces no diagnostics",
+  );
+
+  const invalidDuplicateFixture = yamlModule.parseYamlFile<Record<string, unknown>>(
+    fixturePath("duplicate-check.invalid.requirement-id.yaml"),
+  );
+  const invalidDuplicateDiagnostics = validationModule.runDuplicateIdChecks(
+    invalidDuplicateFixture,
+    "fixture://duplicate-check.invalid.requirement-id.yaml",
+    [{ collectionPath: "requirements", idField: "id" }],
+  );
+  assert(
+    invalidDuplicateDiagnostics.length === 1,
+    "[M01:yaml-requirement-and-scenario-identifiers] fixture duplicate-id case produces one diagnostic",
+  );
+  assert(
+    invalidDuplicateDiagnostics[0]?.fieldPath === "$.requirements[1].id",
+    "[M01:yaml-requirement-and-scenario-identifiers] fixture duplicate-id diagnostics include duplicate field path",
+  );
 
   console.log("");
   const total = passed + failed;

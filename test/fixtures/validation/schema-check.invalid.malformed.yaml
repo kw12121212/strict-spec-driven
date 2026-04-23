@@ -1,0 +1,5 @@
+id: malformed
+kind: alpha
+tags:
+  - core
+  - bad: [
