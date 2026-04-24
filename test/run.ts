@@ -2459,6 +2459,166 @@ async function main(): Promise<void> {
     rmSync(cancelMissingDir, { recursive: true, force: true });
   }
 
+  section("[15] verify-spec-mappings command");
+
+  // 15a: verify-spec-mappings succeeds with complete mapping coverage and no unmapped evidence
+  const verifyMappingsValidDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-mappings-valid-"));
+  try {
+    mkdirSync(path.join(verifyMappingsValidDir, ".spec-driven", "specs", "cli"), { recursive: true });
+    mkdirSync(path.join(verifyMappingsValidDir, "src"), { recursive: true });
+    mkdirSync(path.join(verifyMappingsValidDir, "test"), { recursive: true });
+    writeFileSync(path.join(verifyMappingsValidDir, "src", "strict-spec-cli.ts"), "export {};\n", "utf8");
+    writeFileSync(path.join(verifyMappingsValidDir, "test", "run.ts"), "export {};\n", "utf8");
+    writeFileSync(path.join(verifyMappingsValidDir, "package.json"), "{\n  \"name\": \"tmp\"\n}\n", "utf8");
+    writeFileSync(path.join(verifyMappingsValidDir, "tsconfig.json"), "{\n  \"compilerOptions\": {}\n}\n", "utf8");
+    writeFileSync(
+      path.join(verifyMappingsValidDir, ".spec-driven", "specs", "cli", "foundation.md"),
+      [
+        "---",
+        "mapping:",
+        "  implementation:",
+        "    - src/strict-spec-cli.ts",
+        "    - package.json",
+        "    - tsconfig.json",
+        "  tests:",
+        "    - test/run.ts",
+        "---",
+        "",
+        "# CLI Foundation",
+        "",
+        "### Requirement: sample",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const validMappingsResult = cli(["verify-spec-mappings"], { cwd: verifyMappingsValidDir });
+    assert(validMappingsResult.status === 0, "verify-spec-mappings exits zero when mapping coverage is complete");
+    const validMappingsJson = JSON.parse(validMappingsResult.stdout.trim());
+    assert(validMappingsJson.valid === true, "verify-spec-mappings valid output includes valid=true");
+    assert(Array.isArray(validMappingsJson.diagnostics) && validMappingsJson.diagnostics.length === 0, "verify-spec-mappings emits no diagnostics when valid");
+    assert(
+      validMappingsJson.summary.unmappedImplementationCount === 0 && validMappingsJson.summary.unmappedTestCount === 0,
+      "verify-spec-mappings summary reports zero unmapped evidence on success",
+    );
+  } finally {
+    rmSync(verifyMappingsValidDir, { recursive: true, force: true });
+  }
+
+  // 15b: verify-spec-mappings reports missing legacy specs inputs
+  const verifyMappingsMissingSpecsDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-mappings-missing-specs-"));
+  try {
+    const missingSpecsResult = cli(["verify-spec-mappings"], { cwd: verifyMappingsMissingSpecsDir });
+    assert(missingSpecsResult.status !== 0, "verify-spec-mappings exits non-zero when .spec-driven/specs is missing");
+    const missingSpecsJson = JSON.parse(missingSpecsResult.stdout.trim());
+    assert(missingSpecsJson.valid === false, "verify-spec-mappings missing-input output includes valid=false");
+    assert(
+      missingSpecsJson.diagnostics.some(
+        (diagnostic: ValidationDiagnostic) =>
+          diagnostic.source === "mapping_input" &&
+          diagnostic.message.includes(".spec-driven/specs"),
+      ),
+      "verify-spec-mappings reports mapping_input diagnostic when specs directory is missing",
+    );
+  } finally {
+    rmSync(verifyMappingsMissingSpecsDir, { recursive: true, force: true });
+  }
+
+  // 15c: verify-spec-mappings reports mapping coverage gaps and unmapped evidence
+  const verifyMappingsInvalidDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-mappings-invalid-"));
+  try {
+    mkdirSync(path.join(verifyMappingsInvalidDir, ".spec-driven", "specs", "cli"), { recursive: true });
+    mkdirSync(path.join(verifyMappingsInvalidDir, "src"), { recursive: true });
+    mkdirSync(path.join(verifyMappingsInvalidDir, "test"), { recursive: true });
+    writeFileSync(path.join(verifyMappingsInvalidDir, "src", "mapped.ts"), "export {};\n", "utf8");
+    writeFileSync(path.join(verifyMappingsInvalidDir, "src", "unmapped.ts"), "export {};\n", "utf8");
+    writeFileSync(path.join(verifyMappingsInvalidDir, "test", "run.ts"), "export {};\n", "utf8");
+    writeFileSync(path.join(verifyMappingsInvalidDir, "package.json"), "{\n  \"name\": \"tmp\"\n}\n", "utf8");
+    writeFileSync(path.join(verifyMappingsInvalidDir, "tsconfig.json"), "{\n  \"compilerOptions\": {}\n}\n", "utf8");
+    writeFileSync(
+      path.join(verifyMappingsInvalidDir, ".spec-driven", "specs", "cli", "foundation.md"),
+      [
+        "---",
+        "mapping:",
+        "  implementation:",
+        "    - src/mapped.ts",
+        "  tests: []",
+        "---",
+        "",
+        "# CLI Foundation",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const invalidMappingsResult = cli(["verify-spec-mappings"], { cwd: verifyMappingsInvalidDir });
+    assert(invalidMappingsResult.status !== 0, "verify-spec-mappings exits non-zero for coverage or unmapped diagnostics");
+    const invalidMappingsJson = JSON.parse(invalidMappingsResult.stdout.trim());
+    assert(invalidMappingsJson.valid === false, "verify-spec-mappings invalid output includes valid=false");
+    assert(
+      invalidMappingsJson.diagnostics.some(
+        (diagnostic: ValidationDiagnostic) =>
+          diagnostic.source === "mapping_coverage" &&
+          diagnostic.fieldPath === "$.mapping.tests",
+      ),
+      "verify-spec-mappings reports mapping_coverage diagnostic for empty tests mapping",
+    );
+    assert(
+      invalidMappingsJson.diagnostics.some(
+        (diagnostic: ValidationDiagnostic) =>
+          diagnostic.source === "unmapped_evidence" &&
+          diagnostic.artifactPath === "src/unmapped.ts",
+      ),
+      "verify-spec-mappings reports unmapped implementation evidence diagnostics",
+    );
+  } finally {
+    rmSync(verifyMappingsInvalidDir, { recursive: true, force: true });
+  }
+
+  // 15d: verify-spec-mappings output is deterministic for the same repository state
+  const verifyMappingsDeterministicDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-mappings-deterministic-"));
+  try {
+    mkdirSync(path.join(verifyMappingsDeterministicDir, ".spec-driven", "specs", "contracts"), { recursive: true });
+    mkdirSync(path.join(verifyMappingsDeterministicDir, "src"), { recursive: true });
+    mkdirSync(path.join(verifyMappingsDeterministicDir, "test"), { recursive: true });
+    writeFileSync(path.join(verifyMappingsDeterministicDir, "src", "validation.ts"), "export {};\n", "utf8");
+    writeFileSync(path.join(verifyMappingsDeterministicDir, "test", "run.ts"), "export {};\n", "utf8");
+    writeFileSync(path.join(verifyMappingsDeterministicDir, "package.json"), "{\n  \"name\": \"tmp\"\n}\n", "utf8");
+    writeFileSync(path.join(verifyMappingsDeterministicDir, "tsconfig.json"), "{\n  \"compilerOptions\": {}\n}\n", "utf8");
+    writeFileSync(
+      path.join(verifyMappingsDeterministicDir, ".spec-driven", "specs", "contracts", "yaml-artifacts.md"),
+      [
+        "---",
+        "mapping:",
+        "  implementation:",
+        "    - src/validation.ts",
+        "    - package.json",
+        "    - tsconfig.json",
+        "  tests:",
+        "    - test/run.ts",
+        "---",
+        "",
+        "# Contract",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const first = cli(["verify-spec-mappings"], { cwd: verifyMappingsDeterministicDir });
+    const second = cli(["verify-spec-mappings"], { cwd: verifyMappingsDeterministicDir });
+    assert(first.status === second.status, "verify-spec-mappings deterministic run has stable exit status");
+    assert(first.stdout.trim() === second.stdout.trim(), "verify-spec-mappings deterministic run has stable JSON output");
+  } finally {
+    rmSync(verifyMappingsDeterministicDir, { recursive: true, force: true });
+  }
+
+  // 15e: verify-spec-mappings argument validation
+  const verifyMappingsArgValidationDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-mappings-arg-"));
+  try {
+    const argValidation = cli(["verify-spec-mappings", "extra-arg"], { cwd: verifyMappingsArgValidationDir });
+    assert(argValidation.status !== 0, "verify-spec-mappings rejects unexpected arguments");
+    assert(argValidation.stderr.includes("Usage:"), "verify-spec-mappings prints usage on invalid arguments");
+  } finally {
+    rmSync(verifyMappingsArgValidationDir, { recursive: true, force: true });
+  }
+
   console.log("");
   const total = passed + failed;
   if (failed === 0) {
