@@ -32,7 +32,7 @@ Finish the strict workflow lifecycle under `.strict-spec-driven/` so active chan
 - `port-apply-to-yaml-tasks` - Declared: complete - implement the `apply` subcommand to read and update `tasks.yaml`, preserve one-task-at-a-time completion semantics, and emit machine-readable task status JSON.
 - `port-verify-to-yaml` - Declared: complete - implement the `verify` subcommand to validate YAML artifacts, task status, open questions, explicit test commands, mappings, delta operations, and spec alignment with actionable diagnostics.
 - `port-archive-to-yaml-merge` - Declared: complete - implement archive merge utilities that apply YAML delta specs to main YAML specs, regenerate specs indexes, move completed changes into date-prefixed archive directories, and preserve stable identifiers.
-- `port-list-modify-cancel-to-yaml` - Declared: planned - implement `list`, `modify`, and `cancel` subcommands for active and archived `.strict-spec-driven/changes/` YAML artifacts, including path output for agent editing.
+- `port-list-modify-cancel-to-yaml` - Declared: complete - implement `list`, `modify`, and `cancel` subcommands for active and archived `.strict-spec-driven/changes/` YAML artifacts, including path output for agent editing.
 - `port-review-to-yaml` - Declared: planned - implement review support that reads strict YAML proposals, designs, tasks, questions, deltas, mappings, and verification evidence and reports code-quality findings.
 - `port-spec-mapping-validation-commands` - Declared: planned - implement `verify-spec-mappings`, mapping coverage audits, and unmapped evidence audits against structured YAML spec mapping fields.
 
@@ -57,5 +57,6 @@ Finish the strict workflow lifecycle under `.strict-spec-driven/` so active chan
 - Change-creation guardrail: `port-archive-to-yaml-merge` owns delta merge semantics, archive directory naming, archive move behavior, and specs index regeneration, but it does not own roadmap CLI UX or Markdown migration conversion.
 - Change-creation guardrail: `port-list-modify-cancel-to-yaml` owns active or archived change discovery and artifact path output; review findings stay in `port-review-to-yaml`, and mapping audits stay in `port-spec-mapping-validation-commands`.
 - Change-creation guardrail: `port-review-to-yaml` should consume strict artifacts and verification evidence to report review findings, but it should not silently redefine verify gates that belong to `port-verify-to-yaml`.
+
 
 

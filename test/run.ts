@@ -2137,6 +2137,328 @@ async function main(): Promise<void> {
     rmSync(archiveCollisionDir, { recursive: true, force: true });
   }
 
+  section("[14] list/modify/cancel commands");
+
+  function writeArchivedChangeArtifacts(rootDir: string, archiveDirName: string): string {
+    const archiveDir = path.join(rootDir, ".strict-spec-driven", "changes", "archive", archiveDirName);
+    const archivedChangeName = archiveDirName.replace(/^\d{4}-\d{2}-\d{2}-/, "");
+
+    mkdirSync(path.join(archiveDir, "specs", "cli"), { recursive: true });
+
+    writeFileSync(
+      path.join(archiveDir, "proposal.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/change-proposal/v1",
+        schema_version: 1,
+        artifact_type: "change_proposal",
+        schema_file: "test",
+        change: {
+          id: archivedChangeName,
+          status: "proposed",
+        },
+        summary: {
+          what: ["Archived change"],
+          why: ["Test coverage"],
+        },
+        scope: {
+          in: [],
+          out: [],
+        },
+        unchanged_behavior: [],
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(archiveDir, "design.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/change-design/v1",
+        schema_version: 1,
+        artifact_type: "change_design",
+        schema_file: "test",
+        change: archivedChangeName,
+        approach: ["Archived design"],
+        decisions: [],
+        alternatives: [],
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(archiveDir, "tasks.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/task-list/v1",
+        schema_version: 1,
+        artifact_type: "task_list",
+        schema_file: "test",
+        change: archivedChangeName,
+        sections: [
+          {
+            name: "Implementation",
+            tasks: [
+              {
+                id: "impl-1",
+                text: "Archived implementation",
+                status: "complete",
+              },
+            ],
+          },
+        ],
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(archiveDir, "questions.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/question-list/v1",
+        schema_version: 1,
+        artifact_type: "question_list",
+        schema_file: "test",
+        change: archivedChangeName,
+        open: [],
+        resolved: [],
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(archiveDir, "specs", "cli", "foundation.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/delta-spec/v1",
+        schema_version: 1,
+        artifact_type: "delta_spec",
+        schema_file: "test",
+        target_spec: "cli-foundation",
+        mapping: {
+          implementation: [],
+          tests: [],
+        },
+        operations: {
+          ADDED: [],
+          MODIFIED: [],
+          REMOVED: [],
+        },
+      }),
+      "utf8",
+    );
+
+    return archiveDir;
+  }
+
+  // 14a: list reports active statuses and archived directories
+  const listHappyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-list-happy-"));
+  try {
+    writeValidChangeArtifacts(listHappyDir, "active-progress", { implementationStatus: "pending" });
+    writeValidChangeArtifacts(listHappyDir, "active-blocked", { openQuestion: true });
+    const archivedAlpha = `${formatLocalDateStamp()}-archived-alpha`;
+    const archivedBeta = `${formatLocalDateStamp()}-archived-beta`;
+    writeArchivedChangeArtifacts(listHappyDir, archivedAlpha);
+    writeArchivedChangeArtifacts(listHappyDir, archivedBeta);
+
+    const listResult = cli(["list"], { cwd: listHappyDir });
+    assert(listResult.status === 0, "list exits zero when active/archived changes exist", `got ${listResult.status}`);
+    assert(listResult.stdout.includes("Active:"), "list output includes Active section");
+    assert(
+      listResult.stdout.includes("active-progress    in-progress (3/4)"),
+      "list output includes active change status derived from tasks",
+      `stdout: ${listResult.stdout.trim()}`,
+    );
+    assert(
+      listResult.stdout.includes("active-blocked    blocked"),
+      "list output includes blocked status derived from open questions",
+      `stdout: ${listResult.stdout.trim()}`,
+    );
+    assert(listResult.stdout.includes("Archived:"), "list output includes Archived section");
+    assert(
+      listResult.stdout.includes(archivedAlpha) && listResult.stdout.includes(archivedBeta),
+      "list output includes archived directory names",
+      `stdout: ${listResult.stdout.trim()}`,
+    );
+  } finally {
+    rmSync(listHappyDir, { recursive: true, force: true });
+  }
+
+  // 14b: list handles empty strict changes state
+  const listEmptyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-list-empty-"));
+  try {
+    mkdirSync(path.join(listEmptyDir, ".strict-spec-driven", "changes"), { recursive: true });
+    const listEmptyResult = cli(["list"], { cwd: listEmptyDir });
+    assert(listEmptyResult.status === 0, "list exits zero when no changes exist", `got ${listEmptyResult.status}`);
+    assert(
+      listEmptyResult.stdout.includes("No changes."),
+      "list empty state reports no changes",
+      `stdout: ${listEmptyResult.stdout.trim()}`,
+    );
+  } finally {
+    rmSync(listEmptyDir, { recursive: true, force: true });
+  }
+
+  // 14c: modify with no argument lists active changes with status summaries
+  const modifyListDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-modify-list-"));
+  try {
+    writeValidChangeArtifacts(modifyListDir, "modify-active", { implementationStatus: "pending" });
+    const modifyListResult = cli(["modify"], { cwd: modifyListDir });
+    assert(modifyListResult.status === 0, "modify without target exits zero", `got ${modifyListResult.status}`);
+    assert(
+      modifyListResult.stdout.includes("Active changes:"),
+      "modify without target prints Active changes heading",
+      `stdout: ${modifyListResult.stdout.trim()}`,
+    );
+    assert(
+      modifyListResult.stdout.includes("modify-active    in-progress (3/4)"),
+      "modify without target includes active change status",
+      `stdout: ${modifyListResult.stdout.trim()}`,
+    );
+  } finally {
+    rmSync(modifyListDir, { recursive: true, force: true });
+  }
+
+  // 14d: modify reports strict artifact paths for active targets
+  const modifyActiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-modify-active-"));
+  try {
+    const changeName = "modify-artifacts";
+    writeValidChangeArtifacts(modifyActiveDir, changeName);
+    writeDeltaSpecArtifact(modifyActiveDir, changeName, "cli/list-modify.yaml", "cli-foundation", {
+      ADDED: [],
+      MODIFIED: [],
+      REMOVED: [],
+    });
+
+    const modifyActiveResult = cli(["modify", changeName], { cwd: modifyActiveDir });
+    assert(modifyActiveResult.status === 0, "modify active target exits zero", `got ${modifyActiveResult.status}`);
+    assert(
+      modifyActiveResult.stdout.includes(`.strict-spec-driven/changes/${changeName}/proposal.yaml`),
+      "modify active target reports proposal artifact path",
+      `stdout: ${modifyActiveResult.stdout.trim()}`,
+    );
+    assert(
+      modifyActiveResult.stdout.includes(`.strict-spec-driven/changes/${changeName}/design.yaml`) &&
+        modifyActiveResult.stdout.includes(`.strict-spec-driven/changes/${changeName}/tasks.yaml`) &&
+        modifyActiveResult.stdout.includes(`.strict-spec-driven/changes/${changeName}/questions.yaml`),
+      "modify active target reports planning artifact paths",
+      `stdout: ${modifyActiveResult.stdout.trim()}`,
+    );
+    assert(
+      modifyActiveResult.stdout.includes(`.strict-spec-driven/changes/${changeName}/specs/cli/list-modify.yaml`),
+      "modify active target reports delta spec paths",
+      `stdout: ${modifyActiveResult.stdout.trim()}`,
+    );
+  } finally {
+    rmSync(modifyActiveDir, { recursive: true, force: true });
+  }
+
+  // 14e: modify supports archived targets by exact archive directory name
+  const modifyArchiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-modify-archive-"));
+  try {
+    const archiveDirName = `${formatLocalDateStamp()}-modify-target`;
+    writeArchivedChangeArtifacts(modifyArchiveDir, archiveDirName);
+
+    const modifyArchivedResult = cli(["modify", archiveDirName], { cwd: modifyArchiveDir });
+    assert(modifyArchivedResult.status === 0, "modify archived target exits zero for exact archive directory name");
+    assert(
+      modifyArchivedResult.stdout.includes(`.strict-spec-driven/changes/archive/${archiveDirName}/proposal.yaml`),
+      "modify archived target reports archived planning artifact paths",
+      `stdout: ${modifyArchivedResult.stdout.trim()}`,
+    );
+    assert(
+      modifyArchivedResult.stdout.includes(`.strict-spec-driven/changes/archive/${archiveDirName}/specs/cli/foundation.yaml`),
+      "modify archived target reports archived delta spec paths",
+      `stdout: ${modifyArchivedResult.stdout.trim()}`,
+    );
+  } finally {
+    rmSync(modifyArchiveDir, { recursive: true, force: true });
+  }
+
+  // 14f: modify rejects bare archived target names
+  const modifyAmbiguousDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-modify-ambiguous-"));
+  try {
+    const archiveDirName = `${formatLocalDateStamp()}-modify-target`;
+    writeArchivedChangeArtifacts(modifyAmbiguousDir, archiveDirName);
+
+    const modifyAmbiguousResult = cli(["modify", "modify-target"], { cwd: modifyAmbiguousDir });
+    assert(modifyAmbiguousResult.status !== 0, "modify rejects archived bare-name target", `got ${modifyAmbiguousResult.status}`);
+    assert(
+      modifyAmbiguousResult.stderr.includes("exact archive directory names"),
+      "modify archived bare-name rejection explains exact archive target requirement",
+      `stderr: ${modifyAmbiguousResult.stderr.trim()}`,
+    );
+  } finally {
+    rmSync(modifyAmbiguousDir, { recursive: true, force: true });
+  }
+
+  // 14g: modify rejects missing targets
+  const modifyMissingDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-modify-missing-"));
+  try {
+    mkdirSync(path.join(modifyMissingDir, ".strict-spec-driven", "changes"), { recursive: true });
+    const modifyMissingResult = cli(["modify", "does-not-exist"], { cwd: modifyMissingDir });
+    assert(modifyMissingResult.status !== 0, "modify missing target exits non-zero", `got ${modifyMissingResult.status}`);
+    assert(
+      modifyMissingResult.stderr.includes("not found"),
+      "modify missing target reports not found",
+      `stderr: ${modifyMissingResult.stderr.trim()}`,
+    );
+  } finally {
+    rmSync(modifyMissingDir, { recursive: true, force: true });
+  }
+
+  // 14h: cancel removes active changes
+  const cancelActiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-cancel-active-"));
+  try {
+    const changeName = "cancel-me";
+    writeValidChangeArtifacts(cancelActiveDir, changeName);
+
+    const cancelActiveResult = cli(["cancel", changeName], { cwd: cancelActiveDir });
+    assert(cancelActiveResult.status === 0, "cancel active change exits zero", `got ${cancelActiveResult.status}`);
+    assert(
+      !existsSync(path.join(cancelActiveDir, ".strict-spec-driven", "changes", changeName)),
+      "cancel active change removes active directory",
+    );
+    assert(
+      cancelActiveResult.stdout.includes(`Cancelled: .strict-spec-driven/changes/${changeName}`),
+      "cancel active change confirms cancellation path",
+      `stdout: ${cancelActiveResult.stdout.trim()}`,
+    );
+  } finally {
+    rmSync(cancelActiveDir, { recursive: true, force: true });
+  }
+
+  // 14i: cancel rejects archived targets and preserves archive history
+  const cancelArchiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-cancel-archive-"));
+  try {
+    const archiveDirName = `${formatLocalDateStamp()}-cancel-target`;
+    const archivedPath = writeArchivedChangeArtifacts(cancelArchiveDir, archiveDirName);
+
+    const cancelArchivedResult = cli(["cancel", archiveDirName], { cwd: cancelArchiveDir });
+    assert(cancelArchivedResult.status !== 0, "cancel archived target exits non-zero", `got ${cancelArchivedResult.status}`);
+    assert(
+      existsSync(archivedPath),
+      "cancel archived target preserves archived directory",
+    );
+    assert(
+      cancelArchivedResult.stderr.includes("limited to active changes"),
+      "cancel archived target rejection explains active-only boundary",
+      `stderr: ${cancelArchivedResult.stderr.trim()}`,
+    );
+  } finally {
+    rmSync(cancelArchiveDir, { recursive: true, force: true });
+  }
+
+  // 14j: cancel rejects missing targets
+  const cancelMissingDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-cancel-missing-"));
+  try {
+    mkdirSync(path.join(cancelMissingDir, ".strict-spec-driven", "changes"), { recursive: true });
+    const cancelMissingResult = cli(["cancel", "missing-change"], { cwd: cancelMissingDir });
+    assert(cancelMissingResult.status !== 0, "cancel missing target exits non-zero", `got ${cancelMissingResult.status}`);
+    assert(
+      cancelMissingResult.stderr.includes("not found"),
+      "cancel missing target reports not found",
+      `stderr: ${cancelMissingResult.stderr.trim()}`,
+    );
+  } finally {
+    rmSync(cancelMissingDir, { recursive: true, force: true });
+  }
+
   console.log("");
   const total = passed + failed;
   if (failed === 0) {
