@@ -3977,6 +3977,171 @@ async function main(): Promise<void> {
     rmSync(roadmapCycleDir, { recursive: true, force: true });
   }
 
+  section("[18] migrate command");
+
+  function writeLegacyMigrationFixture(rootDir: string, configContent?: string): void {
+    mkdirSync(path.join(rootDir, ".spec-driven", "specs"), { recursive: true });
+    mkdirSync(path.join(rootDir, ".spec-driven", "roadmap"), { recursive: true });
+    mkdirSync(path.join(rootDir, ".spec-driven", "changes", "demo-change"), { recursive: true });
+
+    writeFileSync(
+      path.join(rootDir, ".spec-driven", "config.yaml"),
+      configContent
+        ?? [
+          "schema: spec-driven",
+          "context: |",
+          "  Demo project context for migrate tests.",
+          "rules:",
+          "  specs:",
+          "    - Describe observable behavior only",
+          "  change:",
+          "    - Keep scope focused",
+          "  code:",
+          "    - Reuse existing helpers",
+          "  test:",
+          "    - Tests remain independent",
+        ].join("\n") + "\n",
+      "utf8",
+    );
+    writeFileSync(path.join(rootDir, ".spec-driven", "specs", "INDEX.md"), "# Specs Index\n", "utf8");
+    writeFileSync(path.join(rootDir, ".spec-driven", "roadmap", "INDEX.md"), "# Roadmap Index\n", "utf8");
+    writeFileSync(
+      path.join(rootDir, ".spec-driven", "changes", "demo-change", "proposal.md"),
+      "# demo-change\n",
+      "utf8",
+    );
+  }
+
+  const migrateHappyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-happy-"));
+  try {
+    writeLegacyMigrationFixture(migrateHappyDir);
+    const legacyConfigBefore = readFileSync(path.join(migrateHappyDir, ".spec-driven", "config.yaml"), "utf8");
+
+    const migrateHappy = cli(["migrate"], { cwd: migrateHappyDir });
+    assert(migrateHappy.status === 0, "migrate exits zero for valid bootstrap state");
+    const migrateHappyJson = JSON.parse(migrateHappy.stdout.trim());
+    assert(migrateHappyJson.valid === true, "migrate reports valid=true on successful migration");
+    assert(
+      migrateHappyJson.converted.some(
+        (artifact: { sourcePath?: string; targetPath: string }) =>
+          artifact.sourcePath === ".spec-driven/config.yaml" && artifact.targetPath === ".strict-spec-driven/config.yaml",
+      ),
+      "migrate reports converted strict config output",
+    );
+    assert(
+      migrateHappyJson.converted.some(
+        (artifact: { targetPath: string }) => artifact.targetPath === ".strict-spec-driven/specs/INDEX.yaml",
+      ),
+      "migrate reports initialized strict scaffold assets",
+    );
+    assert(
+      migrateHappyJson.skipped.some(
+        (artifact: { sourcePath: string }) => artifact.sourcePath === ".spec-driven/specs/INDEX.md",
+      ),
+      "migrate reports skipped legacy markdown artifacts without converters",
+    );
+    assert(
+      migrateHappyJson.manualFollowUp.some(
+        (item: { sourcePath: string }) => item.sourcePath === ".spec-driven/roadmap/INDEX.md",
+      ),
+      "migrate records manual follow-up for deferred legacy roadmap artifacts",
+    );
+
+    const migratedConfig = yamlModule.parseYamlFile<{
+      schema: string;
+      artifact_type: string;
+      context: string;
+      rules: Record<string, unknown>;
+    }>(path.join(migrateHappyDir, ".strict-spec-driven", "config.yaml"));
+    assert(
+      migratedConfig.schema === "strict-spec-driven/config/v1"
+        && migratedConfig.artifact_type === "workflow_config",
+      "migrate writes strict workflow config metadata",
+    );
+    assert(
+      migratedConfig.context.includes("Demo project context for migrate tests."),
+      "migrate preserves legacy config context in strict output",
+    );
+    assert(
+      readFileSync(path.join(migrateHappyDir, ".spec-driven", "config.yaml"), "utf8") === legacyConfigBefore,
+      "migrate leaves legacy bootstrap config unchanged",
+    );
+  } finally {
+    rmSync(migrateHappyDir, { recursive: true, force: true });
+  }
+
+  const migrateMissingSourceDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-missing-"));
+  try {
+    const missingSource = cli(["migrate"], { cwd: migrateMissingSourceDir });
+    assert(missingSource.status !== 0, "migrate exits non-zero when .spec-driven is missing");
+    const missingSourceJson = JSON.parse(missingSource.stdout.trim());
+    assert(missingSourceJson.valid === false, "migrate reports valid=false when bootstrap source is missing");
+    assert(
+      missingSourceJson.errors.some(
+        (diagnostic: { code: string; sourcePath?: string }) =>
+          diagnostic.code === "legacy_source_missing" && diagnostic.sourcePath === ".spec-driven",
+      ),
+      "migrate identifies missing bootstrap source state in errors output",
+    );
+  } finally {
+    rmSync(migrateMissingSourceDir, { recursive: true, force: true });
+  }
+
+  const migrateConflictDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-conflict-"));
+  try {
+    writeLegacyMigrationFixture(migrateConflictDir);
+    mkdirSync(path.join(migrateConflictDir, ".strict-spec-driven"), { recursive: true });
+    writeFileSync(path.join(migrateConflictDir, ".strict-spec-driven", "existing.txt"), "keep me\n", "utf8");
+
+    const conflict = cli(["migrate"], { cwd: migrateConflictDir });
+    assert(conflict.status !== 0, "migrate exits non-zero for non-empty strict target conflicts");
+    const conflictJson = JSON.parse(conflict.stdout.trim());
+    assert(conflictJson.valid === false, "migrate reports valid=false for strict target conflicts");
+    assert(
+      conflictJson.errors.some((diagnostic: { code: string }) => diagnostic.code === "strict_target_conflict"),
+      "migrate reports overwrite-protection conflict details",
+    );
+    assert(
+      readFileSync(path.join(migrateConflictDir, ".strict-spec-driven", "existing.txt"), "utf8") === "keep me\n",
+      "migrate leaves existing strict target files unchanged on conflict",
+    );
+  } finally {
+    rmSync(migrateConflictDir, { recursive: true, force: true });
+  }
+
+  const migrateInvalidConfigDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-invalid-config-"));
+  try {
+    writeLegacyMigrationFixture(migrateInvalidConfigDir, "schema: spec-driven\nrules: [unterminated\n");
+    const invalidConfig = cli(["migrate"], { cwd: migrateInvalidConfigDir });
+    assert(invalidConfig.status !== 0, "migrate exits non-zero for malformed legacy config YAML");
+    const invalidConfigJson = JSON.parse(invalidConfig.stdout.trim());
+    assert(invalidConfigJson.valid === false, "migrate reports valid=false for malformed legacy config");
+    assert(
+      invalidConfigJson.errors.some(
+        (diagnostic: { code: string; sourcePath?: string }) =>
+          diagnostic.code === "legacy_config_invalid" && diagnostic.sourcePath === ".spec-driven/config.yaml",
+      ),
+      "migrate reports malformed legacy config against the source artifact path",
+    );
+  } finally {
+    rmSync(migrateInvalidConfigDir, { recursive: true, force: true });
+  }
+
+  const migrateDeterministicDirA = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-deterministic-a-"));
+  const migrateDeterministicDirB = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-deterministic-b-"));
+  try {
+    writeLegacyMigrationFixture(migrateDeterministicDirA);
+    writeLegacyMigrationFixture(migrateDeterministicDirB);
+
+    const first = cli(["migrate"], { cwd: migrateDeterministicDirA });
+    const second = cli(["migrate"], { cwd: migrateDeterministicDirB });
+    assert(first.status === second.status, "migrate deterministic run has stable exit status");
+    assert(first.stdout.trim() === second.stdout.trim(), "migrate deterministic run has stable JSON output");
+  } finally {
+    rmSync(migrateDeterministicDirA, { recursive: true, force: true });
+    rmSync(migrateDeterministicDirB, { recursive: true, force: true });
+  }
+
   console.log("");
   const total = passed + failed;
   if (failed === 0) {
