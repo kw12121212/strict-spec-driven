@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: port-list-modify-cancel-to-yaml
+  status: complete
+summary:
+  what:
+    - >-
+      Implement `list`, `modify`, and `cancel` CLI subcommands for strict workflow changes under
+      `.strict-spec-driven/changes/`, with deterministic path output for agent editing and explicit
+      archive safety boundaries.
+  why:
+    - >-
+      Milestone 03 still lacks the operational commands needed to inspect and manage strict YAML
+      changes after `propose`, `apply`, `verify`, and `archive` were ported. Without these commands,
+      agent workflows cannot reliably discover active and archived changes, locate editing
+      artifacts, or safely cancel abandoned active work.
+scope:
+  in: []
+  out: []
+unchanged_behavior:
+  - Existing `init`, `propose`, `apply`, `verify`, and `archive` command behavior remains unchanged.
+  - Strict YAML artifact schemas and scaffold template file formats remain unchanged.

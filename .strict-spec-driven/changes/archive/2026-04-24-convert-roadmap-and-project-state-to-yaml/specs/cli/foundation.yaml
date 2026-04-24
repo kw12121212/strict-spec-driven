@@ -1,0 +1,83 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/migrate.ts
+    - src/converters/roadmap.ts
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-migrate-converts-roadmap-and-project-state
+        strength: MUST
+        statement: >-
+          The system MUST convert legacy `.spec-driven/roadmap/` Markdown artifacts and the legacy
+          specs index into strict YAML equivalents during a `migrate` run, writing results under
+          `.strict-spec-driven/roadmap/` and the strict specs index path.
+        scenarios:
+          - id: migrate-converts-roadmap-index-and-milestones
+            steps:
+              - kind: GIVEN
+                text: >-
+                  legacy `roadmap/INDEX.md` and one or more `roadmap/milestones/*.md` files exist
+                  under `.spec-driven/`
+              - kind: WHEN
+                text: '`strict-spec-driven migrate` is executed'
+              - kind: THEN
+                text: >-
+                  the roadmap index is written as a strict YAML artifact under
+                  `.strict-spec-driven/roadmap/`
+              - kind: AND
+                text: >-
+                  each milestone file is converted to a strict YAML milestone artifact preserving
+                  goal, scope, done criteria, dependencies, risks, notes, status, and planned change
+                  entries
+              - kind: AND
+                text: the converted artifacts appear in the migration report as converted entries
+          - id: migrate-converts-specs-index
+            steps:
+              - kind: GIVEN
+                text: a legacy `specs/INDEX.md` exists under `.spec-driven/`
+              - kind: WHEN
+                text: '`strict-spec-driven migrate` is executed'
+              - kind: THEN
+                text: >-
+                  the specs index is written as a strict YAML artifact under
+                  `.strict-spec-driven/specs/`
+              - kind: AND
+                text: the converted artifact appears in the migration report as a converted entry
+          - id: unsupported-roadmap-markdown-shape-becomes-manual-follow-up
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a legacy roadmap artifact has a Markdown structure that cannot be
+                  deterministically mapped to strict YAML fields
+              - kind: WHEN
+                text: '`strict-spec-driven migrate` is executed'
+              - kind: THEN
+                text: the artifact appears in the migration report as a manual follow-up item
+              - kind: AND
+                text: no strict YAML output is invented for that artifact
+  MODIFIED:
+    - target_requirement: cli-migrate-converts-bootstrap-workflow-state
+      replacement:
+        id: cli-migrate-converts-bootstrap-workflow-state
+        strength: MUST
+        statement: >-
+          The system MUST provide a `migrate` subcommand that reads legacy `.spec-driven/` workflow
+          state and migrates supported bootstrap config, main specs, delta specs, active and
+          archived change artifacts, roadmap index, roadmap milestones, and the specs index into
+          strict YAML output under `.strict-spec-driven/`, initializes any remaining required strict
+          scaffold assets, and reports only unsupported or ambiguous legacy artifacts as manual
+          follow-up items.
+        scenarios: []
+  REMOVED:
+    - target_requirement: cli-migrate-converts-bootstrap-workflow-state (scenario only)
+      reason: >-
+        The scenario "migrate continues to defer roadmap and project-state artifacts outside this
+        change" described a temporary deferral state. That deferral is resolved by this change; the
+        scenario is removed from the main spec after archive.

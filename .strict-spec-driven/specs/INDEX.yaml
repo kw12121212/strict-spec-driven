@@ -1,0 +1,11 @@
+schema: strict-spec-driven/spec-index/v1
+schema_version: 1
+artifact_type: spec_index
+schema_file: templates/strict-spec-driven/schemas/spec-index.yaml
+specs:
+  - id: cli-foundation
+    title: CLI Foundation
+    path: .strict-spec-driven/specs/cli/foundation.yaml
+  - id: contracts-yaml-artifacts
+    title: Strict YAML Artifact Schemas
+    path: .strict-spec-driven/specs/contracts/yaml-artifacts.yaml

@@ -1,0 +1,35 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: select-yaml-schema-tooling
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: 在 `package.json` 中增加并固定 `js-yaml`、`ajv`、`ajv-formats`，并同步锁文件。
+        status: complete
+      - id: implementation-2
+        text: 更新 CLI 基础层相关代码或入口，使上述依赖在仓库中可被编译与引用。
+        status: complete
+      - id: implementation-3
+        text: 补充依赖选择与用途说明，明确该变更仅覆盖工具选型与接入边界。
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — build validation for dependency wiring
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: Run `bun test/run.ts` — unit tests for dependency wiring
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

@@ -1,0 +1,42 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: materialize-concrete-yaml-schema-files
+  status: complete
+summary:
+  what:
+    - >-
+      Create the concrete YAML schema files and minimal valid example files required by the strict
+      YAML artifact contract. This is a corrective follow-up to the archived
+      `define-concrete-yaml-schema-files` change, which defined the requirement but did not
+      materialize the files.
+  why:
+    - >-
+      The strict workflow now says schema and example files MUST exist for every required artifact
+      family. Validators, generators, migration tooling, and skills need actual parseable YAML files
+      to target, not only prose requirements.
+scope:
+  in:
+    - Add concrete YAML schema files under `.strict-spec-driven/schemas/`.
+    - Add minimal valid YAML example files under `.strict-spec-driven/examples/`.
+    - >-
+      Cover main specs, delta specs, change proposals, change designs, task lists, question lists,
+      spec indexes, roadmap indexes, roadmap milestones, and planned change entries.
+    - >-
+      Keep schema identity, artifact type, version, required fields, optional fields, enum values,
+      relationship fields, stable identifiers, uniqueness scopes, supported shapes, and example
+      associations in structured YAML fields.
+    - Record the chosen schema/example file organization in the spec contract.
+  out:
+    - Implementing a CLI validator.
+    - Choosing a permanent third-party validation library.
+    - Migrating bootstrap `.spec-driven/` artifacts into `.strict-spec-driven/`.
+    - Replacing the later schema registry and compatibility milestone.
+unchanged_behavior:
+  - >-
+    Existing bootstrap `.spec-driven/` Markdown artifacts remain the active planning workflow until
+    migration tooling exists.
+  - Existing archived changes and roadmap state remain intact.
+  - Reference workflow semantics from `../auto-spec-driven` remain the baseline.

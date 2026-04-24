@@ -1,0 +1,92 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/migrate.ts
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: yaml-migrated-core-spec-preservation
+        strength: MUST
+        statement: >-
+          The system MUST preserve strict workflow identity, ordering, and mapping data when legacy
+          Markdown main specs and delta specs are converted into strict YAML artifacts.
+        scenarios:
+          - id: migrated-main-specs-preserve-stable-identifiers-and-mappings
+            steps:
+              - kind: GIVEN
+                text: migration tooling converts a legacy Markdown main spec
+              - kind: WHEN
+                text: the generated strict YAML spec artifact is inspected
+              - kind: THEN
+                text: >-
+                  the migrated artifact preserves the stable spec, requirement, and scenario
+                  identifiers represented by the legacy workflow state
+              - kind: AND
+                text: >-
+                  implementation and test mappings remain represented as structured file-level data
+                  rather than requirement prose
+              - kind: AND
+                text: scenario ordering remains recoverable from the strict YAML artifact data
+          - id: migrated-delta-specs-preserve-operation-intent
+            steps:
+              - kind: GIVEN
+                text: migration tooling converts a legacy Markdown delta spec
+              - kind: WHEN
+                text: the generated strict YAML delta artifact is inspected
+              - kind: THEN
+                text: >-
+                  added, modified, and removed requirement operations remain represented through the
+                  strict YAML delta structure
+              - kind: AND
+                text: >-
+                  any preserved requirement identifiers remain reviewable through structured YAML
+                  fields
+    - requirement:
+        id: yaml-migrated-change-artifact-state-preservation
+        strength: MUST
+        statement: >-
+          The system MUST preserve active and archived change state when legacy Markdown proposal,
+          design, tasks, and questions artifacts are converted into strict YAML change artifacts.
+        scenarios:
+          - id: migrated-active-changes-preserve-task-and-question-state
+            steps:
+              - kind: GIVEN
+                text: migration tooling converts an active legacy change directory
+              - kind: WHEN
+                text: the generated strict YAML change artifacts are inspected
+              - kind: THEN
+                text: >-
+                  proposal, design, tasks, and questions content remains represented in the
+                  corresponding strict artifact families
+              - kind: AND
+                text: >-
+                  completed versus pending task state remains reviewable through structured YAML
+                  data
+              - kind: AND
+                text: >-
+                  open versus resolved question state remains reviewable through structured YAML
+                  data
+          - id: migrated-archived-changes-preserve-archive-date-behavior
+            steps:
+              - kind: GIVEN
+                text: >-
+                  migration tooling converts an archived legacy change directory with a
+                  date-prefixed folder name
+              - kind: WHEN
+                text: the generated strict archived change output is inspected
+              - kind: THEN
+                text: >-
+                  the archive-date prefix remains preserved in the migrated strict archive location
+                  or archived change identity
+              - kind: AND
+                text: >-
+                  the migrated archived change remains distinguishable from active strict changes
+                  without reconstructing that state from Markdown headings
+  MODIFIED: []
+  REMOVED: []

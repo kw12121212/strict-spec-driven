@@ -1,0 +1,329 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation: []
+  tests: []
+operations:
+  ADDED:
+    - requirement:
+        id: yaml-main-spec-file-model
+        strength: MUST
+        statement: >-
+          The system MUST define strict YAML main spec files as YAML documents with structured
+          schema identity, stable spec identity, human-readable title, file-level mappings, and
+          requirement collections.
+        scenarios:
+          - id: main-spec-top-level-fields-are-structured
+            steps:
+              - kind: GIVEN
+                text: a strict YAML main spec file is reviewed
+              - kind: WHEN
+                text: its top-level data is inspected
+              - kind: THEN
+                text: the schema identity is available as a structured field
+              - kind: AND
+                text: the stable spec identifier is available as a structured field
+              - kind: AND
+                text: the human-readable title is available as a structured field
+              - kind: AND
+                text: implementation and test mappings are available as structured file-level fields
+              - kind: AND
+                text: requirements are available as a structured collection
+    - requirement:
+        id: yaml-main-spec-requirement-model
+        strength: MUST
+        statement: >-
+          The system MUST represent each strict YAML main spec requirement with a stable identifier,
+          RFC 2119 strength enum, observable behavior statement, and zero or more structured
+          scenarios.
+        scenarios:
+          - id: main-spec-requirement-fields-are-structured
+            steps:
+              - kind: GIVEN
+                text: a strict YAML main spec requirement is reviewed
+              - kind: WHEN
+                text: its requirement data is inspected
+              - kind: THEN
+                text: the requirement identifier is available as a structured field
+              - kind: AND
+                text: >-
+                  the RFC 2119 strength is available as a structured field with a valid MUST,
+                  SHOULD, or MAY value
+              - kind: AND
+                text: the observable behavior statement is available as a structured field
+              - kind: AND
+                text: scenarios are available as a structured collection
+          - id: requirement-strength-values-are-constrained
+            steps:
+              - kind: GIVEN
+                text: a strict YAML main spec requirement is validated
+              - kind: WHEN
+                text: the requirement strength is checked
+              - kind: THEN
+                text: MUST, SHOULD, and MAY are accepted values
+              - kind: AND
+                text: other strength values can be reported as deterministic validation failures
+    - requirement:
+        id: yaml-scenario-step-model
+        strength: MUST
+        statement: >-
+          The system MUST represent strict YAML scenarios with stable scenario identifiers and
+          ordered structured step entries that preserve GIVEN, WHEN, THEN, and AND semantics without
+          relying on Markdown bullet formatting.
+        scenarios:
+          - id: scenario-steps-are-machine-readable
+            steps:
+              - kind: GIVEN
+                text: a strict YAML scenario is reviewed
+              - kind: WHEN
+                text: its steps are inspected
+              - kind: THEN
+                text: the scenario identifier is available as a structured field
+              - kind: AND
+                text: each step has a structured step kind with a valid GIVEN, WHEN, THEN, or AND value
+              - kind: AND
+                text: each step has structured step text
+              - kind: AND
+                text: the step order is preserved
+    - requirement:
+        id: yaml-requirement-and-scenario-identifiers
+        strength: MUST
+        statement: >-
+          The system MUST require stable identifiers for strict YAML specs, requirements, and
+          scenarios that can be validated for uniqueness within their owning scope.
+        scenarios:
+          - id: spec-identifiers-are-stable
+            steps:
+              - kind: GIVEN
+                text: a strict YAML main spec file is renamed or moved
+              - kind: WHEN
+                text: archive or validation behavior matches the spec to known workflow state
+              - kind: THEN
+                text: >-
+                  the stable spec identifier remains available without deriving identity from the
+                  file path alone
+          - id: duplicate-requirement-identifiers-can-be-rejected
+            steps:
+              - kind: GIVEN
+                text: a strict YAML spec file repeats a requirement identifier
+              - kind: WHEN
+                text: validation is run against the spec and delta model
+              - kind: THEN
+                text: >-
+                  the duplicate requirement identifier can be reported as a deterministic validation
+                  failure
+          - id: duplicate-scenario-identifiers-can-be-rejected
+            steps:
+              - kind: GIVEN
+                text: a strict YAML requirement repeats a scenario identifier within that requirement
+              - kind: WHEN
+                text: validation is run against the spec and delta model
+              - kind: THEN
+                text: >-
+                  the duplicate scenario identifier can be reported as a deterministic validation
+                  failure
+    - requirement:
+        id: yaml-spec-file-mapping-model
+        strength: MUST
+        statement: >-
+          The system MUST represent implementation and test mappings for strict YAML spec files as
+          structured file-level fields containing normalized repo-relative file path collections.
+        scenarios:
+          - id: mappings-stay-outside-requirement-prose
+            steps:
+              - kind: GIVEN
+                text: a strict YAML spec file is reviewed
+              - kind: WHEN
+                text: implementation and test mappings are inspected
+              - kind: THEN
+                text: the mappings are available in structured file-level fields
+              - kind: AND
+                text: the mappings are not embedded in requirement or scenario prose
+          - id: mapping-paths-are-repo-relative
+            steps:
+              - kind: GIVEN
+                text: a strict YAML spec mapping is validated
+              - kind: WHEN
+                text: each implementation or test path is checked
+              - kind: THEN
+                text: normalized repo-relative paths are accepted
+              - kind: AND
+                text: >-
+                  absolute paths or parent-directory traversal paths can be reported as
+                  deterministic validation failures
+    - requirement:
+        id: yaml-main-spec-minimal-example
+        strength: MUST
+        statement: >-
+          The system MUST provide a minimal valid YAML main spec example that includes schema
+          identity, stable spec identity, title, mapping fields, one requirement, one scenario, and
+          ordered scenario steps.
+        scenarios:
+          - id: main-spec-example-is-complete-enough-to-validate
+            steps:
+              - kind: GIVEN
+                text: the strict YAML main spec contract is reviewed
+              - kind: WHEN
+                text: its minimal valid example is inspected
+              - kind: THEN
+                text: every required top-level main spec field is present
+              - kind: AND
+                text: every required requirement field is present
+              - kind: AND
+                text: every required scenario field is present
+          - id: main-spec-example-demonstrates-enum-and-mapping-values
+            steps:
+              - kind: GIVEN
+                text: the strict YAML main spec example is inspected
+              - kind: WHEN
+                text: requirement strength, scenario step kinds, and mapping fields are reviewed
+              - kind: THEN
+                text: the example demonstrates a valid MUST, SHOULD, or MAY requirement strength
+              - kind: AND
+                text: the example demonstrates valid GIVEN, WHEN, THEN, and optional AND step kinds
+              - kind: AND
+                text: >-
+                  the example demonstrates implementation and test mapping fields as repo-relative
+                  path collections
+    - requirement:
+        id: yaml-delta-operation-model
+        strength: MUST
+        statement: >-
+          The system MUST represent strict YAML delta specs with structured schema identity, target
+          spec identity, and explicit ADDED, MODIFIED, and REMOVED operation collections instead of
+          Markdown section headings.
+        scenarios:
+          - id: delta-operation-groups-are-structured
+            steps:
+              - kind: GIVEN
+                text: a strict YAML delta spec is reviewed
+              - kind: WHEN
+                text: the requested spec changes are inspected
+              - kind: THEN
+                text: the schema identity is available as a structured field
+              - kind: AND
+                text: the target spec identity is available as a structured field
+              - kind: AND
+                text: added requirements are available through a structured ADDED collection
+              - kind: AND
+                text: modified requirements are available through a structured MODIFIED collection
+              - kind: AND
+                text: removed requirements are available through a structured REMOVED collection
+          - id: empty-operation-groups-remain-explicit
+            steps:
+              - kind: GIVEN
+                text: a strict YAML delta spec has no entries for one operation kind
+              - kind: WHEN
+                text: the operation groups are inspected
+              - kind: THEN
+                text: >-
+                  the empty operation kind remains identifiable without relying on an omitted
+                  Markdown heading
+    - requirement:
+        id: yaml-delta-stable-matching
+        strength: MUST
+        statement: >-
+          The system MUST require strict YAML delta modifications and removals to target existing
+          requirements by stable requirement identifier.
+        scenarios:
+          - id: added-requirements-carry-stable-identifiers
+            steps:
+              - kind: GIVEN
+                text: a strict YAML delta spec adds a requirement
+              - kind: WHEN
+                text: the added requirement is inspected
+              - kind: THEN
+                text: >-
+                  the added requirement includes the same stable requirement fields required by a
+                  main spec requirement
+          - id: modified-requirements-target-stable-identifiers
+            steps:
+              - kind: GIVEN
+                text: a strict YAML delta spec modifies a requirement
+              - kind: WHEN
+                text: the modification target is inspected
+              - kind: THEN
+                text: the target existing requirement is identified by stable requirement identifier
+              - kind: AND
+                text: the replacement requirement data is available as structured fields
+          - id: removed-requirements-target-stable-identifiers
+            steps:
+              - kind: GIVEN
+                text: a strict YAML delta spec removes a requirement
+              - kind: WHEN
+                text: the removal target is inspected
+              - kind: THEN
+                text: the target existing requirement is identified by stable requirement identifier
+    - requirement:
+        id: yaml-delta-removal-reason
+        strength: MUST
+        statement: >-
+          The system MUST require each strict YAML removed requirement delta to include a structured
+          removal reason.
+        scenarios:
+          - id: removal-rationale-is-reviewable
+            steps:
+              - kind: GIVEN
+                text: a strict YAML delta spec removes a requirement
+              - kind: WHEN
+                text: the removal entry is reviewed
+              - kind: THEN
+                text: the reason for removal is available as a structured field
+    - requirement:
+        id: yaml-delta-minimal-example
+        strength: MUST
+        statement: >-
+          The system MUST provide a minimal valid YAML delta spec example that includes schema
+          identity, target spec identity, and explicit ADDED, MODIFIED, and REMOVED operation
+          collections.
+        scenarios:
+          - id: delta-spec-example-is-complete-enough-to-validate
+            steps:
+              - kind: GIVEN
+                text: the strict YAML delta spec contract is reviewed
+              - kind: WHEN
+                text: its minimal valid example is inspected
+              - kind: THEN
+                text: every required top-level delta spec field is present
+              - kind: AND
+                text: each delta operation collection is represented as structured YAML data
+              - kind: AND
+                text: >-
+                  modification and removal entries demonstrate stable requirement identifier
+                  matching
+          - id: delta-spec-example-demonstrates-operation-payloads
+            steps:
+              - kind: GIVEN
+                text: the strict YAML delta spec example is inspected
+              - kind: WHEN
+                text: ADDED, MODIFIED, and REMOVED entries are reviewed
+              - kind: THEN
+                text: the added entry demonstrates the required main spec requirement fields
+              - kind: AND
+                text: >-
+                  the modified entry demonstrates a target requirement identifier and replacement
+                  requirement fields
+              - kind: AND
+                text: the removed entry demonstrates a target requirement identifier and removal reason
+  MODIFIED:
+    - target_requirement: yaml-schema-field-contracts
+      replacement:
+        id: yaml-schema-field-contracts
+        strength: MUST
+        statement: >-
+          The system MUST define required fields, optional fields, enum values, relationship fields,
+          stable identifiers, uniqueness scopes, matching rules, and minimal valid examples for each
+          strict YAML artifact schema.
+        scenarios: []
+    - target_requirement: structured-yaml-semantics
+      replacement:
+        id: structured-yaml-semantics
+        strength: MUST
+        statement: >-
+          The system MUST represent workflow artifact meaning through structured YAML fields rather
+          than Markdown headings, frontmatter, list indentation, or free-form prose conventions.
+        scenarios: []
+  REMOVED: []

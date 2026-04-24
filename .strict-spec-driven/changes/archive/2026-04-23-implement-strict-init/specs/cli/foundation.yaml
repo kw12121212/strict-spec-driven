@@ -1,0 +1,79 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/index.ts
+    - src/scaffold.ts
+    - templates/strict-spec-driven/scaffold/config.yaml
+    - templates/strict-spec-driven/scaffold/specs/INDEX.yaml
+    - templates/strict-spec-driven/scaffold/roadmap/INDEX.yaml
+    - templates/strict-spec-driven/scaffold/changes/STATE.yaml
+    - templates/strict-spec-driven/scaffold/specs/README.md
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-init-creates-strict-workflow-scaffold
+        strength: MUST
+        statement: >-
+          The system MUST provide an `init` subcommand that creates strict workflow state under
+          `.strict-spec-driven/` using bundled scaffold template assets.
+        scenarios:
+          - id: init-creates-missing-strict-scaffold-artifacts
+            steps:
+              - kind: GIVEN
+                text: a repository with bundled strict scaffold template assets
+              - kind: AND
+                text: '`.strict-spec-driven/` does not yet exist'
+              - kind: WHEN
+                text: '`strict-spec-driven init` is executed'
+              - kind: THEN
+                text: '`.strict-spec-driven/` is created'
+              - kind: AND
+                text: >-
+                  strict config, specs index, roadmap index, changes state, and seed README guidance
+                  artifacts are created from bundled templates
+    - requirement:
+        id: cli-init-is-idempotent-and-non-clobbering
+        strength: MUST
+        statement: >-
+          The system MUST make `init` idempotent and MUST NOT overwrite existing strict workflow
+          artifacts.
+        scenarios:
+          - id: existing-strict-artifacts-are-preserved-on-rerun
+            steps:
+              - kind: GIVEN
+                text: '`.strict-spec-driven/` already exists with user-authored artifact content'
+              - kind: WHEN
+                text: '`strict-spec-driven init` is executed again'
+              - kind: THEN
+                text: existing strict workflow artifacts are left unchanged
+              - kind: AND
+                text: only missing required scaffold artifacts are created
+    - requirement:
+        id: cli-init-handles-bootstrap-coexistence
+        strength: MUST
+        statement: >-
+          The system MUST allow strict scaffold initialization to proceed when a legacy
+          `.spec-driven/` directory is present and MUST emit a warning about coexistence.
+        scenarios:
+          - id: init-warns-and-continues-when-bootstrap-directory-exists
+            steps:
+              - kind: GIVEN
+                text: a repository contains `.spec-driven/`
+              - kind: WHEN
+                text: '`strict-spec-driven init` is executed'
+              - kind: THEN
+                text: >-
+                  the command emits one warning indicating `.spec-driven/` is bootstrap or legacy
+                  workflow state
+              - kind: AND
+                text: >-
+                  strict scaffold initialization continues without failing solely due to that
+                  directory's presence
+  MODIFIED: []
+  REMOVED: []

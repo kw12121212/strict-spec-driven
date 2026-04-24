@@ -1,0 +1,17 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: define-schema-versioning-and-registry
+open: []
+resolved:
+  - id: >-
+      should-define-schema-versioning-and-registry-and-define-migration-compatibility-contract-be-handled-as-one-spec-change
+    question: >-
+      Should `define-schema-versioning-and-registry` and `define-migration-compatibility-contract`
+      be handled as one spec change?
+    context: >-
+      The roadmap lists them as separate planned changes, but migration compatibility depends on
+      stable schema IDs, artifact types, version compatibility, and registry lookup behavior.
+    answer: Yes. Combine both planned items into the same spec change.
+    status: resolved

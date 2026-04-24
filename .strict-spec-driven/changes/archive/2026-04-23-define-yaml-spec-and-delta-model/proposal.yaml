@@ -1,0 +1,65 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: define-yaml-spec-and-delta-model
+  status: complete
+summary:
+  what:
+    - >-
+      Define the strict YAML model for main specs and delta specs. This change will document how the
+      strict workflow represents:
+    - requirement identifiers and RFC 2119 strength
+    - requirement statements as observable behavior
+    - scenario identifiers and GIVEN/WHEN/THEN steps
+    - implementation and test mappings
+    - ADDED, MODIFIED, and REMOVED delta operations
+    - stable matching rules for archive and validation workflows
+  why:
+    - >-
+      The repository has already defined broad YAML artifact coverage, the target
+      `.strict-spec-driven/` directory, and strict command naming. The next blocker is the exact
+      spec and delta shape, because later CLI foundation, archive merge, verification, migration,
+      and skill update work all need a deterministic YAML contract for requirements and scenarios.
+      Without this model, implementation work would have to infer how Markdown headings, frontmatter
+      mappings, and delta sections should become structured YAML. This change makes those decisions
+      explicit before code depends on them.
+scope:
+  in:
+    - Add delta spec requirements for strict YAML main spec files.
+    - Add delta spec requirements for strict YAML delta spec files.
+    - >-
+      Require strict YAML main specs to expose schema identity, stable spec identity, title,
+      file-level mappings, and requirement collections through structured fields.
+    - Require stable requirement and scenario identifiers.
+    - Require RFC 2119 strength to be represented as a structured enum value.
+    - >-
+      Require scenario steps to preserve GIVEN, WHEN, THEN, and optional AND semantics through
+      structured fields.
+    - >-
+      Require implementation and test mappings to remain normalized file-level, repo-relative
+      structured fields rather than requirement prose.
+    - >-
+      Require ADDED, MODIFIED, and REMOVED delta operations to match existing requirements by stable
+      identifier.
+    - Require minimal valid YAML examples for the main spec and delta spec models.
+  out:
+    - Implementing parsers, validators, archive merging, or migration commands.
+    - Choosing the final YAML validation library or TypeScript schema library.
+    - >-
+      Defining every non-spec artifact schema beyond fields needed to reference the spec and delta
+      model.
+    - Converting this repository's bootstrap `.spec-driven/` state to `.strict-spec-driven/`.
+    - Encoding parser library choices, validation library choices, or CLI merge mechanics.
+unchanged_behavior:
+  - >-
+    Reference workflow semantics from `../auto-spec-driven` remain the baseline unless this contract
+    records a deliberate YAML-specific difference.
+  - Specs continue to describe observable behavior rather than implementation details.
+  - >-
+    Existing bootstrap `.spec-driven/` Markdown artifacts remain the active planning workflow until
+    strict migration tooling exists.
+  - >-
+    `SKILL.md`, `README.md`, `AGENTS.md`, and `RTK.md` remain allowed Markdown files because they
+    are packaging or repository documentation, not strict workflow artifacts.

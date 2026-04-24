@@ -1,0 +1,75 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/skills.ts
+    - skills/strict-spec-init/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-apply/SKILL.md
+    - skills/strict-spec-verify/SKILL.md
+    - skills/strict-spec-review/SKILL.md
+    - skills/strict-spec-archive/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-spec-modify/SKILL.md
+    - skills/strict-spec-cancel/SKILL.md
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: strict-core-skill-command-contract
+        strength: MUST
+        statement: >-
+          The system MUST provide strict core lifecycle skill packages for `init`, `propose`,
+          `apply`, `verify`, `review`, `archive`, `auto`, `modify`, and `cancel` with explicit
+          command mappings that reference the strict bundled CLI subcommands those skills depend on.
+        scenarios:
+          - id: core-skills-expose-concrete-strict-commands
+            steps:
+              - kind: GIVEN
+                text: a strict core lifecycle `SKILL.md` file is reviewed
+              - kind: WHEN
+                text: its `## This Skill's Commands` section is inspected
+              - kind: THEN
+                text: >-
+                  the command mapping identifies the specific strict bundled CLI command entry or
+                  entries the skill uses
+              - kind: AND
+                text: the command mapping is not limited to a generic placeholder command
+    - requirement:
+        id: strict-core-skill-guidance-contract
+        strength: MUST
+        statement: >-
+          The system MUST ensure strict core lifecycle skill packages describe
+          `.strict-spec-driven/` YAML workflow artifacts and preserve the split where scripts handle
+          deterministic mechanics while skill prompts handle planning and judgment.
+        scenarios:
+          - id: core-skills-reference-strict-workflow-artifacts
+            steps:
+              - kind: GIVEN
+                text: a strict core lifecycle `SKILL.md` file is reviewed
+              - kind: WHEN
+                text: its prerequisites and workflow instructions are inspected
+              - kind: THEN
+                text: >-
+                  the skill describes `.strict-spec-driven/` YAML workflow artifacts rather than
+                  legacy or generic workflow state
+          - id: core-skills-preserve-prompt-vs-script-responsibilities
+            steps:
+              - kind: GIVEN
+                text: a strict core lifecycle skill prompt is reviewed
+              - kind: WHEN
+                text: its workflow guidance is inspected
+              - kind: THEN
+                text: >-
+                  deterministic parsing, validation, scaffolding, and merge behavior remain
+                  delegated to the strict CLI commands
+              - kind: AND
+                text: >-
+                  the prompt guidance remains focused on planning, editing, review, and user
+                  decision checkpoints
+  MODIFIED: []
+  REMOVED: []

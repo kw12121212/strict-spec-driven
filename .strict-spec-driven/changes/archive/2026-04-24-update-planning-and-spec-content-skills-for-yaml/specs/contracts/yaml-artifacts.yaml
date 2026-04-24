@@ -1,0 +1,74 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/skills.ts
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-simple-task/SKILL.md
+    - skills/strict-spec-spec-edit/SKILL.md
+    - skills/strict-spec-sync-specs/SKILL.md
+    - skills/strict-spec-resync-code-mapping/SKILL.md
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: strict-planning-skill-command-contract
+        strength: MUST
+        statement: >-
+          The system MUST provide strict planning and documentation skill packages for `brainstorm`,
+          `simple-task`, `spec-edit`, `sync-specs`, and `resync-code-mapping` with explicit command
+          mappings that reference the strict bundled CLI subcommands those skills depend on.
+        scenarios:
+          - id: planning-skills-expose-concrete-strict-commands
+            steps:
+              - kind: GIVEN
+                text: a strict planning or documentation `SKILL.md` file is reviewed
+              - kind: WHEN
+                text: its `## This Skill's Commands` section is inspected
+              - kind: THEN
+                text: >-
+                  the command mapping identifies the specific strict bundled CLI command entry or
+                  entries the skill uses
+              - kind: AND
+                text: the command mapping is not limited to a generic placeholder command
+    - requirement:
+        id: strict-planning-skill-guidance-contract
+        strength: MUST
+        statement: >-
+          The system MUST ensure strict planning and documentation skill packages describe
+          `.strict-spec-driven/` YAML workflow artifacts and preserve the intended boundaries
+          between brainstorming, simple tasks, direct main-spec edits, repository spec
+          synchronization, and mapping repair.
+        scenarios:
+          - id: planning-skills-reference-strict-workflow-artifacts
+            steps:
+              - kind: GIVEN
+                text: a strict planning or documentation `SKILL.md` file is reviewed
+              - kind: WHEN
+                text: its prerequisites and workflow instructions are inspected
+              - kind: THEN
+                text: >-
+                  the skill describes `.strict-spec-driven/` YAML workflow artifacts rather than
+                  legacy or packaging-only placeholder state
+          - id: planning-skills-preserve-workflow-ownership-boundaries
+            steps:
+              - kind: GIVEN
+                text: the strict planning and documentation skill prompts are reviewed
+              - kind: WHEN
+                text: their workflow guidance is inspected
+              - kind: THEN
+                text: direct main-spec editing remains owned by `strict-spec-spec-edit`
+              - kind: AND
+                text: repository drift synchronization remains owned by `strict-spec-sync-specs`
+              - kind: AND
+                text: mapping repair remains owned by `strict-spec-resync-code-mapping`
+              - kind: AND
+                text: >-
+                  the prompts do not require a separate `strict-spec-spec-content` package to make
+                  those workflows usable
+  MODIFIED: []
+  REMOVED: []

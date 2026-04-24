@@ -1,0 +1,77 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-migration-tests-and-reporting
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Add `--force` / `-f` flag to the `migrate` subcommand in `src/strict-spec-cli.ts` and
+          thread it through to the overwrite-protection check in `src/migrate.ts`
+        status: complete
+      - id: implementation-2
+        text: >-
+          Preserve the migration report JSON `warnings` and `manualFollowUp` top-level arrays in
+          `src/migrate.ts` and keep successful rerun output deterministic
+        status: complete
+      - id: implementation-3
+        text: >-
+          Add test helpers and section [18] cases for ambiguous spec Markdown (no requirement
+          blocks, non-standard heading) — assert `warnings` or `manualFollowUp` entries reference
+          those files with `valid: true`
+        status: complete
+      - id: implementation-4
+        text: >-
+          Add test cases for malformed spec Markdown frontmatter (broken YAML block) — assert
+          warnings/manual follow-up preserve the source path while partial migration remains valid
+        status: complete
+      - id: implementation-5
+        text: >-
+          Confirm archive date prefix directory handling remains covered by the migrate happy-path
+          assertions that preserve archived change identity in report output
+        status: complete
+      - id: implementation-6
+        text: >-
+          Add test case for idempotent rerun: run `migrate` then `migrate --force`, assert both
+          stdout outputs are identical
+        status: complete
+      - id: implementation-7
+        text: >-
+          Add test cases verifying `warnings` and `manualFollowUp` arrays are present in all
+          migration report outputs
+        status: complete
+      - id: implementation-8
+        text: >-
+          Add unit-level converter tests for core workflow artifacts (proposal, design, tasks,
+          questions) by importing from `dist/` in a new section [20]
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: >-
+          Run `bun run build` — build validation after adding `--force` flag and report field
+          changes
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: Run `bun test/run.ts` — unit tests covering all new and existing migration test cases
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify `migrate` without `--force` still exits non-zero when `.strict-spec-driven/` exists
+        status: complete
+      - id: verification-2
+        text: >-
+          Verify all new test assertions pass and no previously passing section [18] or [19] tests
+          regress
+        status: complete
+      - id: verification-3
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

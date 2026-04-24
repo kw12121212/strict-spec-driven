@@ -218,7 +218,7 @@ export function convertRoadmapIndex(markdown: string): ConversionResult<StrictRo
       }
       const [, linkText, href, title, rawStatus] = match;
       const id = linkText.trim().replace(/\.md$/i, "");
-      const strictPath = `${STRICT_WORKFLOW_DIR}/roadmap/${href.trim().replace(/\.md$/i, ".yaml")}`;
+      const strictPath = `roadmap/${href.trim().replace(/\.md$/i, ".yaml")}`;
       const status = normalizeDeclaredRoadmapStatus(rawStatus);
       milestones.push({
         id,

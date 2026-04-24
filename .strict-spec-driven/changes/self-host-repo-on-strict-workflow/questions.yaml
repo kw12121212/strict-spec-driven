@@ -1,0 +1,16 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: self-host-repo-on-strict-workflow
+open: []
+resolved:
+  - id: what-should-happen-to-the-bootstrap-spec-driven-directory-after-successful-self-hosting
+    question: What should happen to the bootstrap `.spec-driven/` directory after successful self-hosting?
+    context: >-
+      The cutover needs an explicit repository policy because guidance, migration expectations, and
+      unchanged-behavior boundaries depend on whether bootstrap artifacts are preserved or removed.
+    answer: >-
+      Preserve `.spec-driven/` as legacy migration input for now, while making
+      `.strict-spec-driven/` the preferred active workflow state.
+    status: resolved

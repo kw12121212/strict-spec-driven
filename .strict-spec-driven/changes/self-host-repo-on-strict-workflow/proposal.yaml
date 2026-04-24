@@ -1,0 +1,74 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: self-host-repo-on-strict-workflow
+  status: active
+summary:
+  what:
+    - >-
+      Run the repository cutover from bootstrap `.spec-driven/` Markdown workflow state to
+      self-hosted `.strict-spec-driven/` YAML workflow state, then fix any strict-state or migration
+      gaps that block this repository from using its own strict workflow surfaces as the default
+      path. This change will:
+    - >-
+      execute the existing migration flow against this repository's real bootstrap specs, roadmap,
+      and archived changes
+    - >-
+      repair any migration, validation, schema, or strict-command issues exposed by the generated
+      repository state
+    - add regression coverage for any self-host-specific gaps discovered during the cutover
+    - >-
+      generate and keep the resulting `.strict-spec-driven/` state in the repository as the
+      preferred workflow state
+    - update repository guidance to prefer strict workflow names, paths, and artifact locations
+    - >-
+      preserve `.spec-driven/` as legacy migration input for now, rather than deleting or
+      repurposing it
+  why:
+    - >-
+      Dependency order makes this the best next change because milestone 06 assumes a validated
+      self-hosted strict workflow before maintenance, ship, installation, or user documentation can
+      be treated as final. The migration command, converters, and coverage already exist. What is
+      still missing is proof that this repository can run on the generated strict state without
+      hidden manual repair steps or ambiguous bootstrap policy. Landing this change creates the
+      concrete repository state and policy baseline that the remaining operations and documentation
+      work should describe.
+scope:
+  in:
+    - run the current `strict-spec-driven migrate` flow against this repository
+    - >-
+      commit the generated `.strict-spec-driven/` artifacts needed for this repository's active
+      specs, roadmap, and change history
+    - >-
+      fix strict migration, validation, or repository-state issues that block the migrated output
+      from being usable as real strict workflow state
+    - >-
+      update repository guidance and agent instructions to prefer `.strict-spec-driven/`,
+      `strict-spec-*`, and `strict-roadmap-*` surfaces
+    - >-
+      document the bootstrap preservation decision that `.spec-driven/` remains legacy migration
+      input during the transition
+    - >-
+      add or extend tests for any self-host-specific migration or strict-state regressions uncovered
+      during the cutover
+  out:
+    - deleting `.spec-driven/` or introducing destructive bootstrap cleanup by default
+    - >-
+      designing new migration behavior unrelated to issues actually exposed by this repository's
+      cutover
+    - milestone-06 maintenance, ship, install, uninstall, or public documentation polish
+    - >-
+      inventing a new legacy compatibility contract beyond preserving `.spec-driven/` as migration
+      input
+unchanged_behavior:
+  - >-
+    `.spec-driven/` remains preserved as bootstrap or legacy workflow input and is not treated as
+    the active strict target directory.
+  - >-
+    Existing strict CLI subcommands and skill packaging behavior stay unchanged except where
+    repository self-hosting exposes a concrete defect.
+  - >-
+    Migration continues to report unsupported or ambiguous legacy structures explicitly instead of
+    guessing strict YAML data.

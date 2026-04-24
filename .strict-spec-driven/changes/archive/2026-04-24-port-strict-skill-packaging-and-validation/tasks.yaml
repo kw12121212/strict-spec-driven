@@ -1,0 +1,49 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: port-strict-skill-packaging-and-validation
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Define strict skill package directories and metadata for `strict-spec-*` and
+          `strict-roadmap-*` families.
+        status: complete
+      - id: implementation-2
+        text: >-
+          Update installer-facing and marketplace metadata to strict naming and remove stale legacy
+          install names in strict contexts.
+        status: complete
+      - id: implementation-3
+        text: >-
+          Implement skill packaging validation for frontmatter metadata, command references, stale
+          legacy names, and broken symlink targets.
+        status: complete
+      - id: implementation-4
+        text: >-
+          Enforce and validate `scripts -> ../../dist/scripts` and `templates ->
+          ../../dist/templates` packaging assumptions.
+        status: complete
+      - id: implementation-5
+        text: Add or update automated checks that exercise valid and invalid skill packaging states.
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` build validation after packaging and validator updates.
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: Run `bun test/run.ts` unit tests for strict skill packaging and validation diagnostics.
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

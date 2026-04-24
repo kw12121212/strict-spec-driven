@@ -1,0 +1,50 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: define-yaml-spec-and-delta-model
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Add delta spec requirements for structured YAML main spec requirement, scenario, and
+          mapping fields
+        status: complete
+      - id: implementation-2
+        text: >-
+          Add delta spec requirements for structured YAML delta spec ADDED, MODIFIED, and REMOVED
+          operation fields
+        status: complete
+      - id: implementation-3
+        text: Document the spec and delta model decisions in `proposal.md` and `design.md`
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: >-
+          Run validation command `find . -maxdepth 2 -type f -name 'package.json' -o -name
+          'pnpm-lock.yaml' -o -name 'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o
+          -name 'tsconfig.json'` to confirm no lint or validation runner exists for this spec-only
+          change
+        status: complete
+        command: >-
+          find . -maxdepth 2 -type f -name 'package.json' -o -name 'pnpm-lock.yaml' -o -name
+          'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o -name 'tsconfig.json'
+      - id: testing-2
+        text: >-
+          Run unit test command `find . -maxdepth 2 -type f -name 'package.json' -o -name
+          'pnpm-lock.yaml' -o -name 'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o
+          -name 'tsconfig.json'` to confirm no unit test runner exists for this spec-only change
+        status: complete
+        command: >-
+          find . -maxdepth 2 -type f -name 'package.json' -o -name 'pnpm-lock.yaml' -o -name
+          'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o -name 'tsconfig.json'
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify proposal artifacts match the roadmap item and remain planning-only
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

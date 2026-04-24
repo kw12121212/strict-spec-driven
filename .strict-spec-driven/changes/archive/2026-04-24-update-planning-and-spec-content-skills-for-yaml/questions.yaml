@@ -1,0 +1,16 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: update-planning-and-spec-content-skills-for-yaml
+open: []
+resolved:
+  - id: should-this-change-add-a-separate-strict-spec-spec-content-skill-package
+    question: Should this change add a separate `strict-spec-spec-content` skill package?
+    context: >-
+      The roadmap item still names `spec-content`, but the current strict repo does not package that
+      skill and the reference workflow has removed it in favor of `modify` plus `spec-edit`.
+    answer: >-
+      No. Align this change with the current reference workflow and keep `strict-spec-spec-content`
+      out of the strict package surface.
+    status: resolved

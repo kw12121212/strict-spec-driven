@@ -1,0 +1,90 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - install.sh
+    - scripts/strict-spec-driven.js
+    - skills/marketplace.json
+    - skills/strict-spec-archive/SKILL.md
+    - skills/strict-spec-apply/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-cancel/SKILL.md
+    - skills/strict-spec-init/SKILL.md
+    - skills/strict-spec-maintenance/SKILL.md
+    - skills/strict-spec-modify/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-resync-code-mapping/SKILL.md
+    - skills/strict-spec-review/SKILL.md
+    - skills/strict-spec-ship/SKILL.md
+    - skills/strict-spec-simple-task/SKILL.md
+    - skills/strict-spec-spec-edit/SKILL.md
+    - skills/strict-spec-sync-specs/SKILL.md
+    - skills/strict-spec-verify/SKILL.md
+    - skills/strict-roadmap-milestone/SKILL.md
+    - skills/strict-roadmap-plan/SKILL.md
+    - skills/strict-roadmap-propose/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+    - skills/strict-roadmap-sync/SKILL.md
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: strict-skill-packaging-layout-contract
+        strength: MUST
+        statement: >-
+          The system MUST provide strict skill packaging surfaces for both `strict-spec-*` and
+          `strict-roadmap-*` families with installer-facing metadata that uses strict namespace
+          names in non-migration contexts.
+        scenarios:
+          - id: strict-skill-families-are-packaged-with-strict-naming
+            steps:
+              - kind: GIVEN
+                text: strict workflow skill packaging metadata is reviewed
+              - kind: WHEN
+                text: spec workflow and roadmap workflow skill entries are checked
+              - kind: THEN
+                text: skill package names use `strict-spec-*` and `strict-roadmap-*` families
+              - kind: AND
+                text: >-
+                  legacy `spec-driven-*` and `roadmap-*` names are not treated as default strict
+                  package names outside explicit migration compatibility behavior
+              - kind: AND
+                text: marketplace skill entries match strict skill directory names
+    - requirement:
+        id: strict-skill-packaging-validation-contract
+        strength: MUST
+        statement: >-
+          The system MUST validate strict skill packages for required metadata fields, declared
+          command references, stale legacy-name references, and bundled symlink assumptions.
+        scenarios:
+          - id: valid-strict-skill-package-passes-validation
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a strict skill package includes required frontmatter metadata and command
+                  references
+              - kind: AND
+                text: package symlinks resolve to expected bundled script and template targets
+              - kind: WHEN
+                text: skill packaging validation runs
+              - kind: THEN
+                text: no validation error is emitted
+          - id: stale-naming-or-broken-symlink-fails-validation
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a strict skill package uses stale legacy naming references or a broken bundled
+                  symlink target
+              - kind: WHEN
+                text: skill packaging validation runs
+              - kind: THEN
+                text: validation fails deterministically
+              - kind: AND
+                text: diagnostics identify the package path and failing field or link target
+  MODIFIED: []
+  REMOVED: []

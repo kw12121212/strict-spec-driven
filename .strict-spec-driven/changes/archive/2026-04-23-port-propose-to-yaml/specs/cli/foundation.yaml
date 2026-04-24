@@ -1,0 +1,84 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/strict-spec-cli.ts
+    - src/scaffold.ts
+    - templates/strict-spec-driven/scaffold/changes/proposal.yaml
+    - templates/strict-spec-driven/scaffold/changes/design.yaml
+    - templates/strict-spec-driven/scaffold/changes/tasks.yaml
+    - templates/strict-spec-driven/scaffold/changes/questions.yaml
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-propose-creates-strict-change-scaffold
+        strength: MUST
+        statement: >-
+          The system MUST provide a `propose` subcommand that creates strict change planning
+          artifacts under `.strict-spec-driven/changes/<name>/`.
+        scenarios:
+          - id: propose-scaffolds-strict-yaml-artifacts
+            steps:
+              - kind: GIVEN
+                text: a valid kebab-case change name that does not already exist
+              - kind: WHEN
+                text: '`strict-spec-driven propose <name>` is executed'
+              - kind: THEN
+                text: the change directory is created under `.strict-spec-driven/changes/`
+              - kind: AND
+                text: >-
+                  `proposal.yaml`, `design.yaml`, `tasks.yaml`, and `questions.yaml` are created
+                  from strict templates
+              - kind: AND
+                text: a `specs/` directory is created for delta specs
+    - requirement:
+        id: cli-propose-validates-change-name-and-collision
+        strength: MUST
+        statement: >-
+          The system MUST reject invalid strict change names and existing strict change collisions
+          before writing scaffold files.
+        scenarios:
+          - id: propose-rejects-invalid-name
+            steps:
+              - kind: GIVEN
+                text: a requested change name that is not kebab-case
+              - kind: WHEN
+                text: '`strict-spec-driven propose <name>` is executed'
+              - kind: THEN
+                text: the command exits non-zero
+              - kind: AND
+                text: no strict change directory is created
+          - id: propose-rejects-duplicate-change
+            steps:
+              - kind: GIVEN
+                text: '`.strict-spec-driven/changes/<name>/` already exists'
+              - kind: WHEN
+                text: '`strict-spec-driven propose <name>` is executed'
+              - kind: THEN
+                text: the command exits non-zero
+              - kind: AND
+                text: existing change artifacts are left unchanged
+    - requirement:
+        id: cli-propose-reports-created-artifacts
+        strength: MUST
+        statement: >-
+          The system MUST emit deterministic output listing the strict change artifacts created by
+          `propose`.
+        scenarios:
+          - id: propose-output-includes-artifact-paths
+            steps:
+              - kind: GIVEN
+                text: '`strict-spec-driven propose <name>` completes successfully'
+              - kind: WHEN
+                text: command output is reviewed
+              - kind: THEN
+                text: output identifies the created strict change directory
+              - kind: AND
+                text: output lists the created planning artifact paths for follow-up editing
+  MODIFIED: []
+  REMOVED: []

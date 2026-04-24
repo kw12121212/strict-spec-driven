@@ -4346,6 +4346,41 @@ async function main(): Promise<void> {
       "done-change",
       { archived: true },
     );
+    writeLegacyChangeFixture(
+      path.join(".spec-driven", "changes", "archive", "2026-04-02-empty-mapping-change"),
+      "empty-mapping-change",
+      { archived: true },
+    );
+    writeFileSync(
+      path.join(
+        rootDir,
+        ".spec-driven",
+        "changes",
+        "archive",
+        "2026-04-02-empty-mapping-change",
+        "specs",
+        "cli",
+        "foundation.md",
+      ),
+      [
+        "---",
+        "mapping:",
+        "  implementation:",
+        "  tests:",
+        "---",
+        "",
+        "## ADDED Requirements",
+        "",
+        "### Requirement: archived-empty-mapping-delta",
+        "The system MUST preserve archived deltas that omit legacy mapping entries.",
+        "",
+        "#### Scenario: archived empty mapping migrates",
+        "- GIVEN an archived legacy delta leaves implementation and test mappings blank",
+        "- WHEN the delta is migrated to strict YAML",
+        "- THEN the migrated mapping remains an empty structured collection",
+      ].join("\n") + "\n",
+      "utf8",
+    );
   }
 
   function assertMigrationReportArrays(report: Record<string, unknown>, labelPrefix: string): void {
@@ -4654,6 +4689,31 @@ async function main(): Promise<void> {
       migratedArchivedDelta.target_spec === "cli-foundation",
       "migrate preserves archive-date directories while converting archived delta specs",
     );
+    const migratedArchivedEmptyMappingDelta = yamlModule.parseYamlFile<{
+      target_spec: string;
+      mapping: { implementation: string[]; tests: string[] };
+    }>(path.join(
+      migrateHappyDir,
+      ".strict-spec-driven",
+      "changes",
+      "archive",
+      "2026-04-02-empty-mapping-change",
+      "specs",
+      "cli",
+      "foundation.yaml",
+    ));
+    assert(
+      migratedArchivedEmptyMappingDelta.target_spec === "cli-foundation",
+      "migrate preserves archived delta target spec when legacy mapping fields are blank",
+    );
+    assert(
+      JSON.stringify(migratedArchivedEmptyMappingDelta.mapping) === JSON.stringify({
+        implementation: [],
+        tests: [],
+      }),
+      "migrate normalizes blank legacy mapping fields to empty arrays",
+      `got ${JSON.stringify(migratedArchivedEmptyMappingDelta.mapping)}`,
+    );
     assert(
       readFileSync(path.join(migrateHappyDir, ".spec-driven", "config.yaml"), "utf8") === legacyConfigBefore,
       "migrate leaves legacy bootstrap config unchanged",
@@ -4672,7 +4732,8 @@ async function main(): Promise<void> {
     assert(
       migratedRoadmapIndex.milestones.length === 1
         && migratedRoadmapIndex.milestones[0]?.id === "01-demo"
-        && migratedRoadmapIndex.milestones[0]?.status === "active",
+        && migratedRoadmapIndex.milestones[0]?.status === "active"
+        && migratedRoadmapIndex.milestones[0]?.path === "roadmap/milestones/01-demo.yaml",
       "migrate preserves roadmap index milestone identity and status",
     );
 
@@ -4713,6 +4774,10 @@ async function main(): Promise<void> {
     );
     assert(migratedRoadmapMilestone.status === "active", "migrate preserves roadmap milestone declared status");
     assert(migratedRoadmapMilestone.notes.length === 1, "migrate preserves roadmap milestone notes");
+    const migratedRoadmapStatus = cli(["roadmap-status"], { cwd: migrateHappyDir });
+    assert(migratedRoadmapStatus.status === 0, "roadmap-status accepts migrated roadmap state");
+    const migratedRoadmapStatusJson = JSON.parse(migratedRoadmapStatus.stdout.trim());
+    assert(migratedRoadmapStatusJson.valid === true, "roadmap-status reports valid=true for migrated roadmap state");
   } finally {
     rmSync(migrateHappyDir, { recursive: true, force: true });
   }
@@ -4937,7 +5002,7 @@ async function main(): Promise<void> {
       "convertRoadmapIndex preserves milestone id and status from link and text",
     );
     assert(
-      validIndexResult.artifact.milestones[0]?.path === ".strict-spec-driven/roadmap/milestones/01-first-milestone.yaml",
+      validIndexResult.artifact.milestones[0]?.path === "roadmap/milestones/01-first-milestone.yaml",
       "convertRoadmapIndex derives strict YAML milestone path from href",
       `got ${validIndexResult.artifact.milestones[0]?.path}`,
     );

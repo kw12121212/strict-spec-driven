@@ -1,0 +1,44 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-yaml-fixtures-and-tests
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Add strict YAML validation fixtures for positive and negative artifact cases under
+          `test/fixtures/` with deterministic naming and coverage notes.
+        status: complete
+      - id: implementation-2
+        text: >-
+          Extend `test/run.ts` to execute fixture-driven validation assertions for malformed YAML,
+          missing required fields, invalid enums, invalid references, duplicate IDs, and unsupported
+          shapes.
+        status: complete
+      - id: implementation-3
+        text: >-
+          Add M01 requirement ID traceability markers from
+          `.spec-driven/specs/contracts/yaml-artifacts.md` to the new fixture-driven tests.
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — build/typecheck validation after fixture and test updates
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: >-
+          Run `bun test/run.ts` — run unit tests for strict YAML fixture validation and
+          deterministic diagnostics
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

@@ -1,0 +1,130 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/strict-spec-cli.ts
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-verify-spec-mappings-subcommand
+        strength: MUST
+        statement: >-
+          The system MUST provide a `verify-spec-mappings` subcommand for strict spec-mapping
+          audits.
+        scenarios:
+          - id: verify-spec-mappings-runs-from-repository-state
+            steps:
+              - kind: GIVEN
+                text: '`.spec-driven/specs/` contains one or more main spec files'
+              - kind: WHEN
+                text: '`strict-spec-driven verify-spec-mappings` is executed'
+              - kind: THEN
+                text: the command runs mapping audits against available spec mapping fields
+              - kind: AND
+                text: command output is emitted as parseable JSON
+          - id: verify-spec-mappings-reports-missing-specs-directory
+            steps:
+              - kind: GIVEN
+                text: '`.spec-driven/specs/` does not exist'
+              - kind: WHEN
+                text: '`strict-spec-driven verify-spec-mappings` is executed'
+              - kind: THEN
+                text: the command exits non-zero
+              - kind: AND
+                text: a diagnostic explains that spec mapping inputs are unavailable
+    - requirement:
+        id: cli-verify-spec-mappings-audits-mapping-coverage
+        strength: MUST
+        statement: >-
+          The system MUST audit mapping coverage across main spec mapping fields and report
+          diagnostics when mapping coverage is incomplete.
+        scenarios:
+          - id: mapped-implementation-and-tests-produce-no-coverage-diagnostics
+            steps:
+              - kind: GIVEN
+                text: >-
+                  each main spec has mapping frontmatter with non-empty implementation and test path
+                  collections
+              - kind: WHEN
+                text: '`strict-spec-driven verify-spec-mappings` is executed'
+              - kind: THEN
+                text: mapping-coverage diagnostics are not emitted
+          - id: missing-mapping-coverage-produces-diagnostics
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a main spec omits mapping frontmatter or has an empty implementation or test
+                  mapping collection
+              - kind: WHEN
+                text: '`strict-spec-driven verify-spec-mappings` is executed'
+              - kind: THEN
+                text: a diagnostic is emitted identifying the spec path and missing coverage
+    - requirement:
+        id: cli-verify-spec-mappings-audits-unmapped-evidence
+        strength: MUST
+        statement: >-
+          The system MUST audit unmapped repository evidence by reporting implementation or test
+          files that are not referenced by any spec mapping entry.
+        scenarios:
+          - id: fully-mapped-repository-evidence-produces-no-unmapped-diagnostics
+            steps:
+              - kind: GIVEN
+                text: >-
+                  relevant implementation and test files are each referenced by at least one spec
+                  mapping entry
+              - kind: WHEN
+                text: '`strict-spec-driven verify-spec-mappings` is executed'
+              - kind: THEN
+                text: unmapped-evidence diagnostics are not emitted
+          - id: unmapped-evidence-produces-diagnostics
+            steps:
+              - kind: GIVEN
+                text: >-
+                  at least one relevant implementation or test file is not referenced by any spec
+                  mapping entry
+              - kind: WHEN
+                text: '`strict-spec-driven verify-spec-mappings` is executed'
+              - kind: THEN
+                text: a diagnostic is emitted identifying each unmapped file path
+    - requirement:
+        id: cli-verify-spec-mappings-emits-deterministic-json-output
+        strength: MUST
+        statement: >-
+          The system MUST emit deterministic JSON output for mapping audit results, including
+          validity, diagnostics, and mapping summary counts.
+        scenarios:
+          - id: output-is-parseable-json
+            steps:
+              - kind: GIVEN
+                text: '`strict-spec-driven verify-spec-mappings` completes'
+              - kind: WHEN
+                text: command stdout is parsed as JSON
+              - kind: THEN
+                text: the JSON includes `valid` as a boolean
+              - kind: AND
+                text: the JSON includes `diagnostics` as an array
+              - kind: AND
+                text: the JSON includes summary counts for mapped and unmapped evidence
+          - id: exit-status-reflects-diagnostic-validity
+            steps:
+              - kind: GIVEN
+                text: mapping diagnostics are present
+              - kind: WHEN
+                text: '`strict-spec-driven verify-spec-mappings` is executed'
+              - kind: THEN
+                text: the command exits non-zero
+          - id: successful-audit-exits-zero
+            steps:
+              - kind: GIVEN
+                text: no mapping diagnostics are present
+              - kind: WHEN
+                text: '`strict-spec-driven verify-spec-mappings` is executed'
+              - kind: THEN
+                text: the command exits with exit code zero
+  MODIFIED: []
+  REMOVED: []

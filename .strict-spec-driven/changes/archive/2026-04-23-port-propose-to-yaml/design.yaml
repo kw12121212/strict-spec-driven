@@ -1,0 +1,65 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: port-propose-to-yaml
+approach:
+  - >-
+    Add a `propose` command path in the strict CLI that validates the requested change name,
+    resolves the strict changes root, and creates the target change directory.
+  - >-
+    Rename the CLI entry source file from `src/index.ts` to `src/strict-spec-cli.ts` (compiled as
+    `dist/strict-spec-cli.js`) and update related references so command ownership is explicit in the
+    source layout.
+  - >-
+    Seed required YAML artifacts (`proposal.yaml`, `design.yaml`, `tasks.yaml`, `questions.yaml`)
+    from bundled strict templates so artifact shape is deterministic.
+  - >-
+    Create a mirrored `specs/` directory in the scaffolded change and leave delta content to
+    agent-authored planning work.
+  - >-
+    Return machine-readable, path-oriented command output that confirms what was created and where
+    follow-up edits should happen.
+decisions:
+  - id: >-
+      keep-propose-limited-to-deterministic-artifact-scaffolding-do-not-couple-apply-verify-archive-semantics-into-this-change
+    decision: >-
+      Keep `propose` limited to deterministic artifact scaffolding; do not couple
+      apply/verify/archive semantics into this change.
+    rationale: >-
+      Keep `propose` limited to deterministic artifact scaffolding; do not couple
+      apply/verify/archive semantics into this change.
+  - id: >-
+      include-the-cli-entry-filename-correction-in-this-same-change-to-avoid-splitting-command-surface-work-across-two-near-term-refactors
+    decision: >-
+      Include the CLI entry filename correction in this same change to avoid splitting
+      command-surface work across two near-term refactors.
+    rationale: >-
+      Include the CLI entry filename correction in this same change to avoid splitting
+      command-surface work across two near-term refactors.
+  - id: >-
+      reuse-strict-template-assets-rather-than-inline-ad-hoc-yaml-assembly-in-the-command-implementation
+    decision: >-
+      Reuse strict template assets rather than inline ad hoc YAML assembly in the command
+      implementation.
+    rationale: >-
+      Reuse strict template assets rather than inline ad hoc YAML assembly in the command
+      implementation.
+  - id: fail-fast-when-a-change-already-exists-to-preserve-non-destructive-behavior
+    decision: Fail fast when a change already exists to preserve non-destructive behavior.
+    rationale: Fail fast when a change already exists to preserve non-destructive behavior.
+  - id: >-
+      keep-strict-output-rooted-in-strict-spec-driven-changes-to-preserve-separation-from-bootstrap-spec-driven-state
+    decision: >-
+      Keep strict output rooted in `.strict-spec-driven/changes/` to preserve separation from
+      bootstrap `.spec-driven/` state.
+    rationale: >-
+      Keep strict output rooted in `.strict-spec-driven/changes/` to preserve separation from
+      bootstrap `.spec-driven/` state.
+alternatives:
+  - option: Scaffolding Markdown artifacts first and converting later
+    reason: rejected because it breaks the strict YAML-first contract for milestone 03.
+  - option: Allowing `propose` to overwrite existing change directories
+    reason: rejected because it risks data loss and non-deterministic planning state.
+  - option: Delaying specs updates until later core commands land
+    reason: rejected because this command needs observable contract coverage as soon as it is introduced.

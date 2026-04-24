@@ -1,0 +1,124 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation: []
+  tests: []
+operations:
+  ADDED:
+    - requirement:
+        id: yaml-artifact-schema-coverage
+        strength: MUST
+        statement: >-
+          The system MUST define strict YAML schemas for main specs, delta specs, change proposals,
+          change designs, task lists, question lists, spec indexes, roadmap indexes, roadmap
+          milestones, and planned change entries.
+        scenarios:
+          - id: required-artifact-families-are-covered
+            steps:
+              - kind: GIVEN
+                text: the strict workflow artifact contract is reviewed
+              - kind: WHEN
+                text: each required artifact family is checked
+              - kind: THEN
+                text: every required artifact family has a YAML schema definition
+    - requirement:
+        id: yaml-schema-field-contracts
+        strength: MUST
+        statement: >-
+          The system MUST define required fields, optional fields, enum values, relationship fields,
+          stable identifiers, and minimal valid examples for each strict YAML artifact schema.
+        scenarios:
+          - id: schema-fields-are-reviewable
+            steps:
+              - kind: GIVEN
+                text: a strict YAML artifact schema
+              - kind: WHEN
+                text: a human or script reviews the schema contract
+              - kind: THEN
+                text: >-
+                  the required fields, optional fields, enum values, relationships, stable
+                  identifiers, and minimal valid example are identifiable without relying on
+                  unstated convention
+    - requirement:
+        id: yaml-schema-example-coverage
+        strength: MUST
+        statement: >-
+          The system MUST provide at least one minimal valid YAML example for each required artifact
+          family.
+        scenarios:
+          - id: artifact-examples-cover-the-contract
+            steps:
+              - kind: GIVEN
+                text: strict YAML artifact schema examples are reviewed
+              - kind: WHEN
+                text: the required artifact families are compared with the available examples
+              - kind: THEN
+                text: >-
+                  main specs, delta specs, change proposals, change designs, task lists, question
+                  lists, spec indexes, roadmap indexes, roadmap milestones, and planned change
+                  entries each have at least one minimal valid YAML example
+    - requirement:
+        id: structured-yaml-semantics
+        strength: MUST
+        statement: >-
+          The system MUST represent workflow artifact meaning through structured YAML fields rather
+          than Markdown headings, list indentation, or free-form prose conventions.
+        scenarios:
+          - id: artifact-meaning-is-structured
+            steps:
+              - kind: GIVEN
+                text: a strict YAML workflow artifact
+              - kind: WHEN
+                text: its workflow meaning is inspected
+              - kind: THEN
+                text: the meaning is available through named YAML fields
+              - kind: AND
+                text: the meaning does not depend on Markdown section titles or list formatting
+    - requirement:
+        id: deterministic-schema-validation
+        strength: MUST
+        statement: >-
+          The system MUST define strict YAML artifact schemas precisely enough for scripts to
+          validate missing required fields, invalid enum values, invalid references, malformed YAML,
+          duplicate stable identifiers, and unsupported artifact shapes.
+        scenarios:
+          - id: invalid-artifacts-can-be-rejected
+            steps:
+              - kind: GIVEN
+                text: a strict YAML workflow artifact with a schema violation
+              - kind: WHEN
+                text: validation is run against the artifact contract
+              - kind: THEN
+                text: the violation can be reported as a deterministic validation failure
+          - id: duplicate-identifiers-can-be-rejected
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a strict YAML workflow artifact repeats a stable identifier where uniqueness is
+                  required
+              - kind: WHEN
+                text: validation is run against the artifact contract
+              - kind: THEN
+                text: the duplicate identifier can be reported as a deterministic validation failure
+    - requirement:
+        id: schema-contract-preserves-reference-semantics
+        strength: MUST
+        statement: >-
+          The system MUST preserve the reference workflow semantics from `../auto-spec-driven`
+          unless the YAML schema contract explicitly requires a deliberate difference.
+        scenarios:
+          - id: reference-behavior-remains-the-baseline
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a strict YAML artifact schema is compared with the corresponding reference
+                  workflow artifact
+              - kind: WHEN
+                text: a behavior difference exists
+              - kind: THEN
+                text: the difference is documented as a deliberate YAML contract decision
+  MODIFIED: []
+  REMOVED: []

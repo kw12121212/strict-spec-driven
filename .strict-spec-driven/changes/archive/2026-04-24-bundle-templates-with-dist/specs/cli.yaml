@@ -1,0 +1,111 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli
+mapping:
+  implementation:
+    - src/scaffold.ts
+    - src/validation.ts
+    - package.json
+    - test/run.ts
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-build-bundles-templates
+        strength: MUST
+        statement: >-
+          The system MUST copy the `templates/` directory into `dist/templates/` as part of the
+          build step so compiled scripts can resolve scaffold and schema assets without depending on
+          the source tree.
+        scenarios:
+          - id: templates-appear-in-dist-after-build
+            steps:
+              - kind: GIVEN
+                text: the TypeScript sources compile successfully
+              - kind: WHEN
+                text: '`bun run build` completes'
+              - kind: THEN
+                text: >-
+                  `dist/templates/strict-spec-driven/scaffold/` contains all required scaffold
+                  template assets
+              - kind: AND
+                text: >-
+                  `dist/templates/strict-spec-driven/schemas/` contains all schema and registry
+                  assets
+    - requirement:
+        id: cli-template-resolution-from-dist
+        strength: MUST
+        statement: >-
+          The system MUST resolve bundled template directories relative to `import.meta.url` so that
+          compiled scripts in `dist/` find templates under `dist/templates/` without depending on
+          the source tree.
+        scenarios:
+          - id: compiled-scripts-find-scaffold-templates
+            steps:
+              - kind: GIVEN
+                text: '`dist/` contains compiled JS and `dist/templates/` contains copied template assets'
+              - kind: WHEN
+                text: a compiled script resolves a scaffold template path
+              - kind: THEN
+                text: the template is found under `dist/templates/strict-spec-driven/scaffold/`
+          - id: compiled-scripts-find-schema-assets
+            steps:
+              - kind: GIVEN
+                text: '`dist/` contains compiled JS and `dist/templates/` contains copied template assets'
+              - kind: WHEN
+                text: a compiled script resolves a schema path
+              - kind: THEN
+                text: the schema is found under `dist/templates/strict-spec-driven/schemas/`
+    - requirement:
+        id: cli-template-resolution-fallback
+        strength: MUST
+        statement: >-
+          The system MUST fall back to `../templates/` relative to the module file when
+          `dist/templates/` does not exist, so template resolution works during development before
+          the copy step runs.
+        scenarios:
+          - id: source-tree-fallback-when-dist-templates-missing
+            steps:
+              - kind: GIVEN
+                text: '`dist/templates/` does not exist'
+              - kind: WHEN
+                text: a script resolves a bundled template path
+              - kind: THEN
+                text: >-
+                  the template is found under `../templates/strict-spec-driven/` relative to the
+                  module file
+    - requirement:
+        id: cli-init-works-from-dist-only
+        strength: MUST
+        statement: >-
+          The system MUST allow `strict-spec-driven init` to create scaffold files correctly when
+          run from the compiled `dist/` output without the source tree present.
+        scenarios:
+          - id: init-succeeds-from-dist-only-environment
+            steps:
+              - kind: GIVEN
+                text: only the `dist/` directory exists with compiled JS and bundled templates
+              - kind: WHEN
+                text: '`strict-spec-driven init` is executed'
+              - kind: THEN
+                text: it creates `.strict-spec-driven/` with all required scaffold artifacts
+    - requirement:
+        id: cli-propose-works-from-dist-only
+        strength: MUST
+        statement: >-
+          The system MUST allow `strict-spec-driven propose` to create change scaffolds correctly
+          when run from the compiled `dist/` output without the source tree present.
+        scenarios:
+          - id: propose-succeeds-from-dist-only-environment
+            steps:
+              - kind: GIVEN
+                text: only the `dist/` directory exists with compiled JS and bundled templates
+              - kind: WHEN
+                text: '`strict-spec-driven propose <name>` is executed'
+              - kind: THEN
+                text: it creates the change directory with all planning artifacts
+  MODIFIED: []
+  REMOVED: []

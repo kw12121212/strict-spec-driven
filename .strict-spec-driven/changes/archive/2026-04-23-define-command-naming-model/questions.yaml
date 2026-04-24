@@ -1,0 +1,20 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: define-command-naming-model
+open: []
+resolved:
+  - id: >-
+      should-the-strict-cli-entrypoint-remain-compatible-with-spec-driven-or-should-it-become-a-strict-specific-entrypoint-such-as-strict-spec-driven
+    question: >-
+      Should the strict CLI entrypoint remain compatible with `spec-driven`, or should it become a
+      strict-specific entrypoint such as `strict-spec-driven`?
+    context: >-
+      The command naming model must distinguish skill names, slash commands, CLI entrypoints, CLI
+      subcommands, and installer-facing names before CLI foundation work begins.
+    answer: >-
+      Use a strict-specific CLI entrypoint. This proposal records `strict-spec-driven` as the strict
+      CLI entrypoint, with legacy compatibility aliases deferred to migration-specific work if
+      needed.
+    status: resolved

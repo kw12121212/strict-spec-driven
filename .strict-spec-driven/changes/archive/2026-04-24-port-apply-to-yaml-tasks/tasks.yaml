@@ -1,0 +1,41 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: port-apply-to-yaml-tasks
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Create `src/apply.ts` with core task-apply logic: locate next pending task, update status,
+          produce status result
+        status: complete
+      - id: implementation-2
+        text: >-
+          Add `runApply` handler in `strict-spec-cli.ts` and register `apply` subcommand in the
+          command router
+        status: complete
+      - id: implementation-3
+        text: Wire `src/apply.ts` exports through `strict-spec-cli.ts` re-exports for test access
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — lint or validation task
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: >-
+          Run `bun test/run.ts` — unit tests covering apply happy path, missing change,
+          all-complete, empty tasks, JSON output determinism
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

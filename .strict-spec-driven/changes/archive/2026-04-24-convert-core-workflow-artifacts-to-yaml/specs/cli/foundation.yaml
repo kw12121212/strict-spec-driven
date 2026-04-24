@@ -1,0 +1,86 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/migrate.ts
+  tests:
+    - test/run.ts
+operations:
+  ADDED: []
+  MODIFIED:
+    - target_requirement: cli-migrate-converts-bootstrap-workflow-state
+      replacement:
+        id: cli-migrate-converts-bootstrap-workflow-state
+        strength: MUST
+        statement: >-
+          The system MUST provide a `migrate` subcommand that reads legacy `.spec-driven/` workflow
+          state, migrates supported bootstrap config, main specs, delta specs, and active and
+          archived change artifacts into strict YAML output under `.strict-spec-driven/`,
+          initializes any remaining required strict scaffold assets, and reports only unsupported or
+          still-unimplemented legacy artifacts as deferred follow-up items.
+        scenarios:
+          - id: migrate-converts-legacy-specs-and-change-artifacts-into-strict-workflow-state
+            steps:
+              - kind: GIVEN
+                text: >-
+                  legacy main specs, delta specs, and active or archived changes exist under
+                  `.spec-driven/`
+              - kind: AND
+                text: no unsafe strict target conflict blocks execution
+              - kind: WHEN
+                text: '`strict-spec-driven migrate` is executed'
+              - kind: THEN
+                text: >-
+                  the command writes strict YAML spec and change artifacts under
+                  `.strict-spec-driven/`
+              - kind: AND
+                text: >-
+                  the command updates the strict spec index to reference the migrated main spec
+                  outputs
+              - kind: AND
+                text: >-
+                  the migrated artifacts preserve the stable identifiers, mappings, task state,
+                  question state, and archive-date behavior required by the strict workflow
+              - kind: AND
+                text: the source `.spec-driven/` artifacts remain unchanged
+          - id: migrate-continues-to-defer-roadmap-and-project-state-artifacts-outside-this-change
+            steps:
+              - kind: GIVEN
+                text: roadmap and project-state converters are not implemented yet
+              - kind: WHEN
+                text: '`strict-spec-driven migrate` converts the supported core workflow artifacts'
+              - kind: THEN
+                text: >-
+                  unsupported roadmap or project-state artifacts are still reported as deferred
+                  follow-up items
+              - kind: AND
+                text: the command does not invent strict YAML roadmap or project-state content for them
+    - target_requirement: cli-migrate-emits-structured-report-output
+      replacement:
+        id: cli-migrate-emits-structured-report-output
+        strength: MUST
+        statement: >-
+          The system MUST emit a structured migration report for each migration run so the operator
+          can review converted core workflow artifacts, remaining deferred artifacts, failures,
+          warnings, and manual follow-up items.
+        scenarios:
+          - id: migrate-report-distinguishes-converted-core-workflow-artifacts-from-deferred-artifacts
+            steps:
+              - kind: GIVEN
+                text: >-
+                  `strict-spec-driven migrate` converts supported core workflow artifacts while
+                  roadmap or project-state converters are still pending
+              - kind: WHEN
+                text: the migration result is inspected
+              - kind: THEN
+                text: >-
+                  converted spec and change artifacts appear in converted entries with their strict
+                  target paths
+              - kind: AND
+                text: >-
+                  unsupported roadmap or project-state artifacts remain identifiable through skipped
+                  entries or manual follow-up items with source references
+  REMOVED: []

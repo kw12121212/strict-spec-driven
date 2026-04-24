@@ -1,0 +1,20 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: define-yaml-artifact-schemas
+open: []
+resolved:
+  - id: >-
+      what-concrete-lint-or-validation-command-and-unit-test-command-should-this-repository-use-for-the-change-tasks
+    question: >-
+      What concrete lint or validation command and unit test command should this repository use for
+      the change tasks?
+    context: >-
+      The repository currently has no `package.json`, source tree, or test runner. The proposal
+      records expected command forms, but implementation should not treat those as resolved runnable
+      commands until the project chooses or introduces the actual commands.
+    answer: >-
+      No lint or unit test command exists yet for this spec-only change; verify by repository
+      inspection instead of introducing project scaffolding.
+    status: resolved

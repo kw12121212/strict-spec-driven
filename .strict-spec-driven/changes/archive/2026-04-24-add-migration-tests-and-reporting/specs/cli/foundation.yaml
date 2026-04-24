@@ -1,0 +1,103 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/strict-spec-cli.ts
+    - src/migrate.ts
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-migrate-force-rerun
+        strength: MUST
+        statement: >-
+          The system MUST allow `strict-spec-driven migrate` to rerun into an existing non-empty
+          `.strict-spec-driven/` directory only when the operator explicitly passes `--force` or
+          `-f`.
+        scenarios:
+          - id: rerun-without-force-stays-blocked
+            steps:
+              - kind: GIVEN
+                text: '`strict-spec-driven migrate` already populated `.strict-spec-driven/`'
+              - kind: WHEN
+                text: the operator runs `strict-spec-driven migrate` again without `--force`
+              - kind: THEN
+                text: the command exits non-zero
+              - kind: AND
+                text: the result identifies the strict target conflict
+          - id: rerun-with-force-reuses-the-same-structured-output
+            steps:
+              - kind: GIVEN
+                text: '`strict-spec-driven migrate` already populated `.strict-spec-driven/`'
+              - kind: WHEN
+                text: the operator runs `strict-spec-driven migrate --force`
+              - kind: THEN
+                text: the command exits zero
+              - kind: AND
+                text: the result matches the structured migration report from the initial successful run
+          - id: short-force-flag-reruns-migration
+            steps:
+              - kind: GIVEN
+                text: '`strict-spec-driven migrate` already populated `.strict-spec-driven/`'
+              - kind: WHEN
+                text: the operator runs `strict-spec-driven migrate -f`
+              - kind: THEN
+                text: the command exits zero
+              - kind: AND
+                text: the result matches the structured migration report from the initial successful run
+    - requirement:
+        id: cli-migrate-report-collections-are-always-arrays
+        strength: MUST
+        statement: >-
+          The system MUST emit `converted`, `skipped`, `warnings`, `errors`, and `manualFollowUp` as
+          top-level array fields in every migration report, including successful, partial, and
+          blocked runs.
+        scenarios:
+          - id: successful-migration-keeps-warning-collections-explicit
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a migration run converts all supported artifacts without deferred legacy spec
+                  files
+              - kind: WHEN
+                text: the migration report is inspected
+              - kind: THEN
+                text: '`warnings` is present as an array'
+              - kind: AND
+                text: '`manualFollowUp` is present as an array'
+          - id: partial-migration-keeps-deferred-collections-explicit
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a migration run converts supported artifacts while deferring ambiguous legacy spec
+                  files
+              - kind: WHEN
+                text: the migration report is inspected
+              - kind: THEN
+                text: '`skipped` is present as an array'
+              - kind: AND
+                text: '`warnings` is present as an array'
+              - kind: AND
+                text: '`manualFollowUp` is present as an array'
+          - id: blocked-migration-keeps-report-collections-explicit
+            steps:
+              - kind: GIVEN
+                text: a migration run is blocked before conversion completes
+              - kind: WHEN
+                text: the migration report is inspected
+              - kind: THEN
+                text: '`converted` is present as an array'
+              - kind: AND
+                text: '`skipped` is present as an array'
+              - kind: AND
+                text: '`warnings` is present as an array'
+              - kind: AND
+                text: '`errors` is present as an array'
+              - kind: AND
+                text: '`manualFollowUp` is present as an array'
+  MODIFIED: []
+  REMOVED: []

@@ -1,0 +1,46 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: port-list-modify-cancel-to-yaml
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Add strict change discovery helpers for active and archived directories, including active
+          status derivation from strict planning artifacts
+        status: complete
+      - id: implementation-2
+        text: >-
+          Add `list` and `modify` command handlers in `src/strict-spec-cli.ts`, including
+          deterministic editable-artifact path output
+        status: complete
+      - id: implementation-3
+        text: >-
+          Add `cancel` command handler in `src/strict-spec-cli.ts` for active changes only, with
+          explicit rejection of archived targets
+        status: complete
+      - id: implementation-4
+        text: >-
+          Add and update tests in `test/run.ts` covering list/modify/cancel happy paths and failure
+          paths
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — build validation task
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: Run `bun test/run.ts` — unit tests for list/modify/cancel behavior
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

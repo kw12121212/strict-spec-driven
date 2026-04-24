@@ -1,0 +1,114 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/apply.ts
+    - src/strict-spec-cli.ts
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-apply-reads-tasks-yaml
+        strength: MUST
+        statement: >-
+          The system MUST provide an `apply` subcommand that reads `tasks.yaml` from a named active
+          strict change directory under `.strict-spec-driven/changes/<name>/`.
+        scenarios:
+          - id: apply-locates-tasks-for-an-existing-change
+            steps:
+              - kind: GIVEN
+                text: >-
+                  `.strict-spec-driven/changes/<name>/tasks.yaml` exists with at least one pending
+                  task
+              - kind: WHEN
+                text: '`strict-spec-driven apply <name>` is executed'
+              - kind: THEN
+                text: the command reads and parses the tasks artifact from the change directory
+          - id: apply-rejects-missing-change
+            steps:
+              - kind: GIVEN
+                text: '`.strict-spec-driven/changes/<name>/` does not exist'
+              - kind: WHEN
+                text: '`strict-spec-driven apply <name>` is executed'
+              - kind: THEN
+                text: the command exits non-zero
+              - kind: AND
+                text: an error message is written to stderr indicating the change was not found
+    - requirement:
+        id: cli-apply-completes-next-pending-task
+        strength: MUST
+        statement: >-
+          The system MUST complete exactly one pending task per `apply` invocation by locating the
+          first task with `status: pending` across all task sections, setting its status to
+          `complete`, and writing the updated `tasks.yaml` back to disk.
+        scenarios:
+          - id: apply-completes-first-pending-task
+            steps:
+              - kind: GIVEN
+                text: a strict change has `tasks.yaml` with multiple pending tasks across sections
+              - kind: WHEN
+                text: '`strict-spec-driven apply <name>` is executed'
+              - kind: THEN
+                text: 'the first task with `status: pending` across sections is set to `complete`'
+              - kind: AND
+                text: the updated `tasks.yaml` is written back to the change directory
+              - kind: AND
+                text: no other task statuses are modified
+          - id: apply-preserves-tasks-yaml-structure
+            steps:
+              - kind: GIVEN
+                text: a strict change has `tasks.yaml` with sections, task fields, and testing gates
+              - kind: WHEN
+                text: '`strict-spec-driven apply <name>` is executed'
+              - kind: THEN
+                text: >-
+                  the `tasks.yaml` sections, task identifiers, task text, commands, and testing
+                  gates remain unchanged
+              - kind: AND
+                text: only the target task `status` field is modified
+    - requirement:
+        id: cli-apply-rejects-all-complete
+        strength: MUST
+        statement: The system MUST exit non-zero when no pending tasks remain in the change.
+        scenarios:
+          - id: apply-rejects-when-all-tasks-complete
+            steps:
+              - kind: GIVEN
+                text: 'a strict change has `tasks.yaml` with all tasks having `status: complete`'
+              - kind: WHEN
+                text: '`strict-spec-driven apply <name>` is executed'
+              - kind: THEN
+                text: the command exits non-zero
+              - kind: AND
+                text: an error message is written to stderr indicating no pending tasks remain
+    - requirement:
+        id: cli-apply-emits-task-status-json
+        strength: MUST
+        statement: >-
+          The system MUST emit a deterministic JSON object to stdout describing the completed task
+          and remaining task summary.
+        scenarios:
+          - id: apply-output-is-parseable-json
+            steps:
+              - kind: GIVEN
+                text: '`strict-spec-driven apply <name>` completes a task successfully'
+              - kind: WHEN
+                text: command stdout is parsed as JSON
+              - kind: THEN
+                text: the JSON includes the completed task section name, task id, and task text
+              - kind: AND
+                text: the JSON includes the total task count and remaining pending count
+          - id: apply-status-output-is-deterministic
+            steps:
+              - kind: GIVEN
+                text: the same change tasks state is applied twice in sequence
+              - kind: WHEN
+                text: each JSON output is compared
+              - kind: THEN
+                text: each output reflects only the task completed in that invocation
+  MODIFIED: []
+  REMOVED: []

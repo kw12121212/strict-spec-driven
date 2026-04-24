@@ -1,0 +1,66 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: harden-concrete-yaml-schema-dialect
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: Update schema files to use stable `schema_id` values and recursive field definitions
+        status: complete
+      - id: implementation-2
+        text: >-
+          Make planned change entries use the same artifact identity fields as other strict
+          artifacts
+        status: complete
+      - id: implementation-3
+        text: >-
+          Update minimal examples so `schema` values match schema IDs and no minimal example
+          contains blocking workflow state
+        status: complete
+      - id: implementation-4
+        text: Add coverage examples for delta operations and open questions
+        status: complete
+      - id: implementation-5
+        text: Add task-list testing gates and explicit testing command fields
+        status: complete
+      - id: implementation-6
+        text: Add delta spec requirements for the hardened schema dialect
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: >-
+          Run validation command `python3 -c "import glob, yaml; [yaml.safe_load(open(path,
+          encoding='utf-8')) for path in glob.glob('.strict-spec-driven/schemas/*.yaml') +
+          glob.glob('.strict-spec-driven/examples/*.yaml')]; print('yaml ok')"` to parse all schema
+          and example YAML files
+        status: complete
+        command: >-
+          python3 -c "import glob, yaml; [yaml.safe_load(open(path, encoding='utf-8')) for path in
+          glob.glob('.strict-spec-driven/schemas/*.yaml') +
+          glob.glob('.strict-spec-driven/examples/*.yaml')]; print('yaml ok')"
+      - id: testing-2
+        text: >-
+          Run validation command `python3 - <<'PY'` identity check to confirm each primary example
+          references its schema file and schema ID
+        status: complete
+        command: python3 - <<'PY'
+      - id: testing-3
+        text: >-
+          Run unit test command `find . -maxdepth 2 -type f -name 'package.json' -o -name
+          'pnpm-lock.yaml' -o -name 'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o
+          -name 'tsconfig.json'` to confirm no unit test runner exists for this artifact-only change
+        status: complete
+        command: >-
+          find . -maxdepth 2 -type f -name 'package.json' -o -name 'pnpm-lock.yaml' -o -name
+          'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o -name 'tsconfig.json'
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify schema and example hardening matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

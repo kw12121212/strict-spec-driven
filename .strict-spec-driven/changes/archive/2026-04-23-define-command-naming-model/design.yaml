@@ -1,0 +1,60 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: define-command-naming-model
+approach:
+  - >-
+    Add contract-focused delta requirements under `specs/contracts/` that turn the remaining naming
+    decisions into observable behavior. The change keeps naming rules at the contract level rather
+    than implementing commands, because the strict TypeScript CLI foundation has not been
+    bootstrapped yet. The delta spec will extend the existing `cli-naming-remains-separate`
+    requirement by defining the command surfaces and then adding explicit rules for the CLI
+    entrypoint, CLI subcommands, and installer-facing names.
+decisions:
+  - id: use-strict-spec-driven-as-the-strict-cli-entrypoint
+    decision: Use `strict-spec-driven` as the strict CLI entrypoint.
+    rationale: >-
+      This matches the repository and product name, gives scripts a strict-specific executable, and
+      avoids overloading the legacy/reference `spec-driven` command.
+  - id: >-
+      keep-cli-subcommands-concise-beneath-the-strict-entrypoint-such-as-init-propose-verify-or-future-roadmap-oriented-command-names
+    decision: >-
+      Keep CLI subcommands concise beneath the strict entrypoint, such as `init`, `propose`,
+      `verify`, or future roadmap-oriented command names.
+    rationale: >-
+      The entrypoint already carries the strict namespace, so repeating `strict-spec-*` in every
+      subcommand would make commands harder to read without adding precision.
+  - id: >-
+      treat-skill-names-and-slash-commands-as-agent-user-facing-surfaces-distinct-from-cli-entrypoints-and-subcommands
+    decision: >-
+      Treat skill names and slash commands as agent/user-facing surfaces, distinct from CLI
+      entrypoints and subcommands.
+    rationale: Skills can keep descriptive strict prefixes while scripts use deterministic CLI command names.
+  - id: require-installer-facing-names-to-remain-strict-explicit
+    decision: Require installer-facing names to remain strict-explicit.
+    rationale: >-
+      Installation should not silently map legacy `spec-driven-*` skills or `spec-driven` commands
+      to strict workflows unless migration tooling defines that compatibility.
+  - id: leave-legacy-compatibility-aliases-to-the-migration-compatibility-roadmap-item
+    decision: Leave legacy compatibility aliases to the migration compatibility roadmap item.
+    rationale: >-
+      This prevents the first strict CLI contract from promising aliases that could weaken
+      validation or blur strict and legacy workflow state.
+alternatives:
+  - option: Reuse `spec-driven` as the strict CLI entrypoint
+    reason: >-
+      rejected because it would conflate the strict YAML workflow with the reference
+      Markdown-centric command surface and make stale-reference validation weaker.
+  - option: Prefix every CLI subcommand with `strict-spec-*` or `strict-roadmap-*`
+    reason: >-
+      rejected because the entrypoint already carries the strict namespace and command verbosity
+      would not improve validation.
+  - option: Define compatibility aliases now
+    reason: >-
+      rejected because the roadmap has a dedicated migration compatibility contract, and aliases
+      need to be evaluated against migration safety rather than guessed here.
+  - option: Leave the CLI entrypoint undecided until implementation
+    reason: >-
+      rejected because the next milestone needs a stable package and command target before
+      bootstrapping scripts, tests, and skill snippets.

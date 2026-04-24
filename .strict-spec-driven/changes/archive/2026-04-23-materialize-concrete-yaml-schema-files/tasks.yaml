@@ -1,0 +1,55 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: materialize-concrete-yaml-schema-files
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: Create concrete YAML schema files for all required artifact families
+        status: complete
+      - id: implementation-2
+        text: Create minimal valid YAML example files for all required artifact families
+        status: complete
+      - id: implementation-3
+        text: >-
+          Add delta spec coverage for the `.strict-spec-driven/schemas/` and
+          `.strict-spec-driven/examples/` organization
+        status: complete
+      - id: implementation-4
+        text: Verify schema and example file coverage against the artifact family list
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: >-
+          Run validation command `python3 -c "import glob, yaml; [yaml.safe_load(open(path,
+          encoding='utf-8')) for path in glob.glob('.strict-spec-driven/schemas/*.yaml') +
+          glob.glob('.strict-spec-driven/examples/*.yaml')]; print('yaml ok')"` to parse all schema
+          and example YAML files
+        status: complete
+        command: >-
+          python3 -c "import glob, yaml; [yaml.safe_load(open(path, encoding='utf-8')) for path in
+          glob.glob('.strict-spec-driven/schemas/*.yaml') +
+          glob.glob('.strict-spec-driven/examples/*.yaml')]; print('yaml ok')"
+      - id: testing-2
+        text: >-
+          Run unit test command `find . -maxdepth 2 -type f -name 'package.json' -o -name
+          'pnpm-lock.yaml' -o -name 'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o
+          -name 'tsconfig.json'` to confirm no unit test runner exists for this artifact-only change
+        status: complete
+        command: >-
+          find . -maxdepth 2 -type f -name 'package.json' -o -name 'pnpm-lock.yaml' -o -name
+          'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o -name 'tsconfig.json'
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify every required artifact family has one schema file and one example file
+        status: complete
+      - id: verification-2
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

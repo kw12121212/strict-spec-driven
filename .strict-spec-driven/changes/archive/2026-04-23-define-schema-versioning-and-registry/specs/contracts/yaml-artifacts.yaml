@@ -1,0 +1,286 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - .strict-spec-driven/schemas/schema-registry.yaml
+    - .strict-spec-driven/schemas/registry.yaml
+    - .strict-spec-driven/examples/schema-registry.yaml
+  tests: []
+operations:
+  ADDED:
+    - requirement:
+        id: yaml-schema-registry-location
+        strength: MUST
+        statement: >-
+          The system MUST define a strict YAML schema registry under `.strict-spec-driven/schemas/`
+          that lets validators, generators, migration tooling, and skills discover supported strict
+          workflow artifact schemas.
+        scenarios:
+          - id: registry-location-is-discoverable
+            steps:
+              - kind: GIVEN
+                text: strict workflow tooling needs to discover supported schemas
+              - kind: WHEN
+                text: the schema registry location is checked
+              - kind: THEN
+                text: the registry location is identified under `.strict-spec-driven/schemas/`
+              - kind: AND
+                text: the registry is separate from roadmap, proposal, and archived change artifacts
+          - id: registry-is-structured-yaml
+            steps:
+              - kind: GIVEN
+                text: the strict schema registry file is loaded
+              - kind: WHEN
+                text: the registry is syntactically valid
+              - kind: THEN
+                text: registry identity and schema entries are available through structured YAML fields
+              - kind: AND
+                text: >-
+                  registry meaning does not depend on Markdown headings, frontmatter, or prose-only
+                  conventions
+    - requirement:
+        id: yaml-schema-registry-entry-model
+        strength: MUST
+        statement: >-
+          The system MUST represent each schema registry entry with structured schema ID, schema
+          version, artifact type, artifact name, schema file path, primary example file path, and
+          compatibility metadata.
+        scenarios:
+          - id: registry-entries-expose-schema-identity
+            steps:
+              - kind: GIVEN
+                text: a strict YAML schema registry entry is reviewed
+              - kind: WHEN
+                text: its fields are inspected
+              - kind: THEN
+                text: the schema ID is available as structured YAML data
+              - kind: AND
+                text: the schema version is available as structured YAML data
+              - kind: AND
+                text: the artifact type and artifact name are available as structured YAML data
+              - kind: AND
+                text: the schema and primary example file paths are available as structured YAML data
+          - id: registry-entries-expose-compatibility-data
+            steps:
+              - kind: GIVEN
+                text: a strict YAML schema registry entry is reviewed
+              - kind: WHEN
+                text: compatibility behavior is inspected
+              - kind: THEN
+                text: compatibility metadata is available as structured YAML data
+              - kind: AND
+                text: >-
+                  tooling can determine whether the entry is current, deprecated, or superseded
+                  without relying on prose-only notes
+    - requirement:
+        id: yaml-schema-registry-file-coverage
+        strength: MUST
+        statement: >-
+          The system MUST list every supported strict workflow artifact schema in the strict YAML
+          schema registry.
+        scenarios:
+          - id: supported-schemas-are-registered
+            steps:
+              - kind: GIVEN
+                text: the strict YAML schema registry is reviewed
+              - kind: WHEN
+                text: >-
+                  the concrete schema files for supported artifact families are compared with
+                  registry entries
+              - kind: THEN
+                text: every supported artifact schema has a registry entry
+              - kind: AND
+                text: each registry entry points to a parseable concrete schema file
+              - kind: AND
+                text: each registry entry points to a parseable primary example file
+    - requirement:
+        id: yaml-schema-id-stability
+        strength: MUST
+        statement: >-
+          The system MUST treat schema IDs as stable semantic identifiers for strict workflow
+          artifact schemas rather than deriving identity only from file paths.
+        scenarios:
+          - id: schema-identity-survives-file-organization-changes
+            steps:
+              - kind: GIVEN
+                text: a strict YAML schema file is moved or reorganized
+              - kind: WHEN
+                text: the schema ID remains unchanged
+              - kind: THEN
+                text: tooling can still identify the artifact schema by stable semantic identity
+    - requirement:
+        id: yaml-schema-version-compatibility
+        strength: MUST
+        statement: >-
+          The system MUST define schema version compatibility rules that distinguish compatible
+          contract clarifications from incompatible artifact shape changes.
+        scenarios:
+          - id: compatible-schema-changes-are-identifiable
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a strict YAML schema changes without removing required semantics or changing
+                  existing field meanings
+              - kind: WHEN
+                text: compatibility is evaluated
+              - kind: THEN
+                text: the change can be identified as compatible according to the versioning contract
+          - id: incompatible-schema-changes-require-an-explicit-version-boundary
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a strict YAML schema change removes required fields, changes enum meaning, changes
+                  identifier matching, or changes artifact relationships
+              - kind: WHEN
+                text: compatibility is evaluated
+              - kind: THEN
+                text: the change requires an explicit incompatible version boundary
+    - requirement:
+        id: yaml-artifact-type-registry
+        strength: MUST
+        statement: >-
+          The system MUST define artifact type names and artifact names as registry-controlled
+          values for all strict workflow artifact families.
+        scenarios:
+          - id: artifact-type-names-are-not-ad-hoc
+            steps:
+              - kind: GIVEN
+                text: a strict YAML artifact is validated
+              - kind: WHEN
+                text: its artifact type and artifact name are checked
+              - kind: THEN
+                text: the values can be matched to registry-controlled values
+              - kind: AND
+                text: >-
+                  unsupported artifact type names can be reported as deterministic validation
+                  failures
+    - requirement:
+        id: yaml-migration-artifact-role-mapping
+        strength: MUST
+        statement: >-
+          The system MUST define migration mapping rules from supported legacy `.spec-driven/`
+          Markdown artifact roles to strict `.strict-spec-driven/` YAML artifact types.
+        scenarios:
+          - id: supported-legacy-artifact-roles-map-to-strict-artifact-types
+            steps:
+              - kind: GIVEN
+                text: migration tooling reads a supported legacy `.spec-driven/` Markdown artifact
+              - kind: WHEN
+                text: the artifact role is identified
+              - kind: THEN
+                text: >-
+                  the corresponding strict YAML artifact type is determined from the migration
+                  compatibility contract
+              - kind: AND
+                text: the generated artifact uses a registry-controlled schema ID and artifact type
+          - id: core-legacy-artifact-roles-are-supported
+            steps:
+              - kind: GIVEN
+                text: migration tooling reads supported legacy `.spec-driven/` Markdown workflow state
+              - kind: WHEN
+                text: >-
+                  main specs, delta specs, proposals, designs, tasks, questions, spec indexes,
+                  roadmap indexes, roadmap milestones, or planned change entries are identified by
+                  role
+              - kind: THEN
+                text: >-
+                  each supported role maps to the corresponding strict YAML artifact type defined by
+                  the registry
+          - id: migration-mappings-are-machine-readable
+            steps:
+              - kind: GIVEN
+                text: the strict YAML schema registry is reviewed
+              - kind: WHEN
+                text: migration role mappings are inspected
+              - kind: THEN
+                text: each supported legacy role is available as structured YAML data
+              - kind: AND
+                text: each supported legacy role identifies a registry-controlled strict artifact type
+              - kind: AND
+                text: each supported legacy role identifies a registry-controlled schema ID
+    - requirement:
+        id: yaml-migration-relationship-preservation
+        strength: MUST
+        statement: >-
+          The system MUST require migration behavior to preserve supported workflow relationships
+          when converting legacy `.spec-driven/` Markdown artifacts into strict YAML artifacts.
+        scenarios:
+          - id: migration-preserves-change-relationships
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a legacy change contains proposal, design, task, question, and delta spec
+                  artifacts
+              - kind: WHEN
+                text: migration converts the change to strict YAML
+              - kind: THEN
+                text: the generated strict artifacts preserve the change name relationship
+              - kind: AND
+                text: delta specs remain associated with their target main spec identities
+          - id: migration-preserves-roadmap-relationships
+            steps:
+              - kind: GIVEN
+                text: a legacy roadmap milestone contains planned change entries
+              - kind: WHEN
+                text: migration converts the roadmap to strict YAML
+              - kind: THEN
+                text: planned change entries remain associated with their owning milestone
+              - kind: AND
+                text: archived or active change state can still be reconciled by change name
+    - requirement:
+        id: yaml-migration-unsupported-shape-reporting
+        strength: MUST
+        statement: >-
+          The system MUST require migration tooling to report unsupported legacy Markdown shapes
+          through structured warnings and manual follow-up entries rather than silently dropping or
+          guessing artifact semantics.
+        scenarios:
+          - id: unsupported-legacy-shape-is-reported
+            steps:
+              - kind: GIVEN
+                text: >-
+                  migration tooling encounters a legacy Markdown artifact shape that cannot be
+                  mapped deterministically
+              - kind: WHEN
+                text: migration reports the result
+              - kind: THEN
+                text: the unsupported shape is recorded as a structured warning
+              - kind: AND
+                text: the report identifies the source artifact path
+              - kind: AND
+                text: the report identifies the manual follow-up needed
+          - id: unsupported-shape-warning-fields-are-registered
+            steps:
+              - kind: GIVEN
+                text: the strict YAML schema registry is reviewed
+              - kind: WHEN
+                text: unsupported-shape reporting rules are inspected
+              - kind: THEN
+                text: the required warning fields are available as structured YAML data
+              - kind: AND
+                text: the manual follow-up field is available as structured YAML data
+    - requirement:
+        id: yaml-migration-compatibility-boundary
+        strength: MUST
+        statement: >-
+          The system MUST define migration compatibility as legacy-input support rather than
+          treating legacy `.spec-driven/` Markdown artifacts as valid strict workflow target
+          artifacts.
+        scenarios:
+          - id: legacy-artifacts-remain-migration-input-only
+            steps:
+              - kind: GIVEN
+                text: a repository contains legacy `.spec-driven/` Markdown workflow artifacts
+              - kind: WHEN
+                text: strict workflow validation and migration compatibility rules are applied
+              - kind: THEN
+                text: those artifacts are accepted only as migration input
+              - kind: AND
+                text: >-
+                  generated strict workflow target artifacts still use `.strict-spec-driven/` YAML
+                  formats
+  MODIFIED: []
+  REMOVED: []

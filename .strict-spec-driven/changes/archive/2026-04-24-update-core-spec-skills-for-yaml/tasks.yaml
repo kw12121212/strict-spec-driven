@@ -1,0 +1,48 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: update-core-spec-skills-for-yaml
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Rewrite the nine core `strict-spec-*` lifecycle `SKILL.md` files so they describe
+          `.strict-spec-driven/` YAML artifacts and the strict lifecycle responsibilities they own.
+        status: complete
+      - id: implementation-2
+        text: >-
+          Replace generic command placeholders in those core skills with explicit strict bundled CLI
+          command mappings for each supported subcommand.
+        status: complete
+      - id: implementation-3
+        text: >-
+          Extend repository validation or smoke coverage so placeholder-only core skill content is
+          rejected and aligned strict command references are checked.
+        status: complete
+      - id: implementation-4
+        text: >-
+          Update or add automated checks that exercise passing and failing core strict skill content
+          states.
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: >-
+          Run `bun run validate-skills` — validation coverage for strict core skill command
+          references and packaging expectations.
+        status: complete
+        command: bun run validate-skills
+      - id: testing-2
+        text: Run `bun test/run.ts` — unit tests for strict core skill content and validation behavior.
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

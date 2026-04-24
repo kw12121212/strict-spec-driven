@@ -1,0 +1,29 @@
+schema: strict-spec-driven/roadmap-index/v1
+schema_version: 1
+artifact_type: roadmap_index
+schema_file: templates/strict-spec-driven/schemas/roadmap-index.yaml
+milestones:
+  - id: 01-yaml-contracts-and-naming
+    title: 01 YAML Contracts And Naming
+    path: roadmap/milestones/01-yaml-contracts-and-naming.yaml
+    status: complete
+  - id: 02-strict-cli-foundation
+    title: 02 Strict CLI Foundation
+    path: roadmap/milestones/02-strict-cli-foundation.yaml
+    status: complete
+  - id: 03-core-strict-workflow
+    title: 03 Core Strict Workflow
+    path: roadmap/milestones/03-core-strict-workflow.yaml
+    status: complete
+  - id: 04-strict-workflow-skills-and-roadmap
+    title: 04 Strict Workflow Skills And Roadmap
+    path: roadmap/milestones/04-strict-workflow-skills-and-roadmap.yaml
+    status: complete
+  - id: 05-migration-and-self-hosting
+    title: 05 Migration And Self Hosting
+    path: roadmap/milestones/05-migration-and-self-hosting.yaml
+    status: proposed
+  - id: 06-operations-and-documentation
+    title: 06 Operations And Documentation
+    path: roadmap/milestones/06-operations-and-documentation.yaml
+    status: proposed

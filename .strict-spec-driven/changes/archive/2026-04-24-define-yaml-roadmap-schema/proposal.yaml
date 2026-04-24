@@ -1,0 +1,66 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: define-yaml-roadmap-schema
+  status: complete
+summary:
+  what:
+    - >-
+      Finalize the strict YAML contract for roadmap artifacts by pinning down the observable
+      structure for roadmap indexes, roadmap milestones, and planned change entries. This change
+      will define the roadmap-specific schema expectations that later strict roadmap commands and
+      skills rely on, including:
+    - ordered milestone entries in the roadmap index
+    - >-
+      structured milestone fields for goal, scope, done criteria, dependencies, risks, status,
+      notes, and planned changes
+    - >-
+      structured planned change entries with stable IDs, declared statuses, summaries, and
+      dependency references
+    - >-
+      example and validation coverage that proves the roadmap schema assets are bundled and
+      reviewable as first-class strict workflow artifacts
+  why:
+    - >-
+      Milestone 04 still has roadmap work blocked behind a fully specified artifact contract. The
+      repository already contains baseline roadmap schema and example files under
+      `templates/strict-spec-driven/`, but the current proposal-level contract does not yet make
+      roadmap-specific ordering, milestone planning sections, or planned change dependency fields
+      explicit enough for later roadmap validation and skill rewrites. Landing this schema-focused
+      change first keeps the roadmap branch on dependency order: it gives
+      `port-strict-roadmap-workflow` a stable YAML target instead of forcing command and skill
+      behavior to infer roadmap structure from partial examples or loose prose.
+scope:
+  in:
+    - >-
+      Add roadmap-specific delta spec requirements under
+      `.spec-driven/specs/contracts/yaml-artifacts.md`.
+    - Define the strict YAML contract for ordered roadmap index milestone entries.
+    - >-
+      Define the strict YAML contract for milestone scope, done criteria, dependencies, risks,
+      notes, declared status, and planned change lists.
+    - >-
+      Define the strict YAML contract for planned change IDs, declared statuses, summaries, and
+      dependency references.
+    - >-
+      Align roadmap schema, example, registry, scaffold, and validation coverage with the finalized
+      contract.
+  out:
+    - Implementing `strict-roadmap-*` CLI commands or recommendation logic.
+    - Rewriting roadmap skill instructions beyond what the finalized schema contract requires.
+    - Migrating bootstrap `.spec-driven/roadmap/` Markdown artifacts into strict YAML project state.
+    - >-
+      Changing milestone ordering policy, roadmap milestone ownership, or later migration and
+      self-hosting scope.
+unchanged_behavior:
+  - >-
+    Bootstrap `.spec-driven/roadmap/` Markdown artifacts remain the active roadmap planning format
+    until strict migration work lands.
+  - >-
+    The existing strict CLI remains limited to scaffold, lifecycle, validation, and skill-packaging
+    behavior; this change does not add roadmap commands.
+  - >-
+    Roadmap recommendation, sync, and proposal-handoff behavior remains owned by
+    `port-strict-roadmap-workflow`.

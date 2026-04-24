@@ -353,7 +353,7 @@ function replaceMarkdownExtension(repoRelativePath: string): string {
 }
 
 function normalizeMappingPathList(value: unknown, description: string): string[] {
-  if (value === undefined) {
+  if (value === undefined || value === null) {
     return [];
   }
   if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {

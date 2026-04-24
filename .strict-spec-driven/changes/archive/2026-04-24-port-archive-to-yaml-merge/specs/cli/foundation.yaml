@@ -1,0 +1,198 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/archive.ts
+    - src/strict-spec-cli.ts
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-archive-reads-active-change-artifacts
+        strength: MUST
+        statement: >-
+          The system MUST provide an `archive` subcommand that reads planning artifacts and delta
+          specs from a named active strict change directory under
+          `.strict-spec-driven/changes/<name>/`.
+        scenarios:
+          - id: archive-locates-artifacts-for-an-existing-change
+            steps:
+              - kind: GIVEN
+                text: >-
+                  `.strict-spec-driven/changes/<name>/` exists with proposal, design, tasks,
+                  questions, and delta spec files
+              - kind: WHEN
+                text: '`strict-spec-driven archive <name>` is executed'
+              - kind: THEN
+                text: the command reads the change artifacts needed for archive processing
+          - id: archive-rejects-missing-change
+            steps:
+              - kind: GIVEN
+                text: '`.strict-spec-driven/changes/<name>/` does not exist'
+              - kind: WHEN
+                text: '`strict-spec-driven archive <name>` is executed'
+              - kind: THEN
+                text: the command exits non-zero
+              - kind: AND
+                text: an error message is written to stderr indicating the change was not found
+    - requirement:
+        id: cli-archive-requires-verified-change-state
+        strength: MUST
+        statement: >-
+          The system MUST block archive when the named active change has incomplete tasks, open
+          questions, or validation diagnostics.
+        scenarios:
+          - id: archive-rejects-incomplete-or-unresolved-change-state
+            steps:
+              - kind: GIVEN
+                text: a strict change has at least one pending task or at least one open question
+              - kind: WHEN
+                text: '`strict-spec-driven archive <name>` is executed'
+              - kind: THEN
+                text: the command exits non-zero
+              - kind: AND
+                text: the change remains in the active changes directory
+          - id: archive-rejects-schema-invalid-change-artifacts
+            steps:
+              - kind: GIVEN
+                text: a strict change contains an artifact that fails strict schema validation
+              - kind: WHEN
+                text: '`strict-spec-driven archive <name>` is executed'
+              - kind: THEN
+                text: the command exits non-zero
+              - kind: AND
+                text: the archive move is not performed
+    - requirement:
+        id: cli-archive-merges-delta-specs-into-main-specs
+        strength: MUST
+        statement: >-
+          The system MUST merge delta specs from the archived change into their corresponding main
+          strict specs using stable requirement identifiers and explicit ADDED, MODIFIED, and
+          REMOVED operations.
+        scenarios:
+          - id: archive-applies-added-and-modified-operations
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a strict change includes delta specs with ADDED and MODIFIED entries targeting
+                  existing strict main specs
+              - kind: WHEN
+                text: '`strict-spec-driven archive <name>` is executed'
+              - kind: THEN
+                text: ADDED requirements are appended to the target specs
+              - kind: AND
+                text: >-
+                  MODIFIED requirements replace the targeted requirements by stable requirement
+                  identifier
+          - id: archive-applies-removed-operations
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a strict change includes delta specs with REMOVED entries targeting existing
+                  requirements
+              - kind: WHEN
+                text: '`strict-spec-driven archive <name>` is executed'
+              - kind: THEN
+                text: targeted requirements are removed from the target main specs
+    - requirement:
+        id: cli-archive-applies-missing-target-merge-rules
+        strength: MUST
+        statement: The system MUST apply deterministic missing-target merge rules during archive processing.
+        scenarios:
+          - id: missing-modified-target-is-treated-as-added
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a delta MODIFIED entry targets a requirement ID missing from the target main spec
+                  at archive time
+              - kind: WHEN
+                text: '`strict-spec-driven archive <name>` is executed'
+              - kind: THEN
+                text: the replacement requirement is merged as an added requirement
+              - kind: AND
+                text: the fallback outcome is recorded in the archive merge report
+          - id: missing-removed-target-is-skipped
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a delta REMOVED entry targets a requirement ID missing from the target main spec
+                  at archive time
+              - kind: WHEN
+                text: '`strict-spec-driven archive <name>` is executed'
+              - kind: THEN
+                text: the removal is skipped
+              - kind: AND
+                text: the skipped removal is recorded in the archive merge report
+    - requirement:
+        id: cli-archive-moves-change-to-date-prefixed-archive
+        strength: MUST
+        statement: >-
+          The system MUST move a successfully archived change from the active changes directory to
+          `.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` using local date naming.
+        scenarios:
+          - id: successful-archive-move-uses-date-prefixed-destination
+            steps:
+              - kind: GIVEN
+                text: '`strict-spec-driven archive <name>` completes merge successfully'
+              - kind: WHEN
+                text: archive move behavior is evaluated
+              - kind: THEN
+                text: the active change directory is removed from `.strict-spec-driven/changes/`
+              - kind: AND
+                text: >-
+                  the change is present at
+                  `.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/`
+          - id: archive-destination-collisions-use-deterministic-suffixes
+            steps:
+              - kind: GIVEN
+                text: '`.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` already exists'
+              - kind: WHEN
+                text: '`strict-spec-driven archive <name>` completes merge successfully'
+              - kind: THEN
+                text: the archived change uses the next available destination suffix
+              - kind: AND
+                text: the existing archive directory is preserved
+    - requirement:
+        id: cli-archive-regenerates-spec-index-after-merge
+        strength: MUST
+        statement: >-
+          The system MUST regenerate strict specs index artifacts after archive merge writes updated
+          main strict specs.
+        scenarios:
+          - id: specs-index-reflects-merged-spec-state
+            steps:
+              - kind: GIVEN
+                text: archive merges one or more delta specs into main strict specs
+              - kind: WHEN
+                text: '`strict-spec-driven archive <name>` completes'
+              - kind: THEN
+                text: the strict specs index is regenerated from the resulting spec state
+              - kind: AND
+                text: index entries remain aligned with the available main strict spec files
+    - requirement:
+        id: cli-archive-emits-deterministic-json-output
+        strength: MUST
+        statement: >-
+          The system MUST emit deterministic JSON to stdout describing archive validity, merge
+          outcomes, and archive destination details.
+        scenarios:
+          - id: archive-output-is-parseable-json
+            steps:
+              - kind: GIVEN
+                text: '`strict-spec-driven archive <name>` completes'
+              - kind: WHEN
+                text: command stdout is parsed as JSON
+              - kind: THEN
+                text: the output includes archive validity state
+              - kind: AND
+                text: >-
+                  the output includes merged, skipped, and conflict/fallback outcome summaries when
+                  present
+              - kind: AND
+                text: the output includes the archive destination path
+  MODIFIED: []
+  REMOVED: []

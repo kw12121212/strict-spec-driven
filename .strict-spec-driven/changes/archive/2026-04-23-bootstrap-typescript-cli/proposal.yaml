@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: bootstrap-typescript-cli
+  status: complete
+summary:
+  what:
+    - >-
+      Add `package.json`, `tsconfig.json`, a TypeScript source entrypoint, a strict ESM command
+      router, compiled `dist/` output, and a repeatable `bun run build` + `bun test` runner for the
+      strict-spec-driven CLI.
+  why:
+    - >-
+      All Milestone 02 implementation work — YAML validation layer, strict init, template assets,
+      and fixtures — requires a compilable TypeScript project with a working build and test harness
+      before any of it can proceed. This change creates that foundation following the conventions
+      established by the reference project at `../auto-spec-driven`.
+scope:
+  in:
+    - >-
+      `package.json` with `build` and `test` scripts using bun, TypeScript dev dependency, and
+      strict ESM (`"type": "module"`)
+    - '`tsconfig.json` modelled on the reference project''s config'
+    - >-
+      TypeScript source entrypoint at `src/index.ts` with a minimal command router that dispatches
+      subcommands
+    - Compiled output to `dist/` via `bun run build`
+    - Test runner at `test/run.js` following the reference project pattern
+    - At least one passing smoke test that verifies the compiled entrypoint is reachable
+  out:
+    - YAML parsing or validation logic (covered by `add-yaml-validation-layer`)
+    - The `init` subcommand implementation (covered by `implement-strict-init`)
+    - Template asset generation (covered by `create-strict-template-assets`)
+    - Skill rewrites or installer scripts
+unchanged_behavior:
+  - >-
+    The existing `.strict-spec-driven/schemas/` and `.strict-spec-driven/examples/` files produced
+    by Milestone 01 must not be modified or removed.

@@ -1,0 +1,105 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/review.ts
+    - src/strict-spec-cli.ts
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-review-reads-active-change-artifacts
+        strength: MUST
+        statement: >-
+          The system MUST provide a `review` subcommand that reads all strict YAML change artifacts
+          (proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and any delta spec files under
+          `specs/`) from a named active change directory under
+          `.strict-spec-driven/changes/<name>/`.
+        scenarios:
+          - id: review-locates-artifacts-for-an-existing-change
+            steps:
+              - kind: GIVEN
+                text: '`.strict-spec-driven/changes/<name>/` exists with planning artifacts'
+              - kind: WHEN
+                text: '`strict-spec-driven review <name>` is executed'
+              - kind: THEN
+                text: the command reads and parses each planning artifact from the change directory
+          - id: review-rejects-missing-change
+            steps:
+              - kind: GIVEN
+                text: '`.strict-spec-driven/changes/<name>/` does not exist'
+              - kind: WHEN
+                text: '`strict-spec-driven review <name>` is executed'
+              - kind: THEN
+                text: the command exits non-zero
+              - kind: AND
+                text: an error message is written to stderr indicating the change was not found
+    - requirement:
+        id: cli-review-reports-code-quality-findings
+        strength: MUST
+        statement: >-
+          The system MUST report advisory code-quality findings across `requirement-quality`,
+          `mapping-coverage`, `delta-coherence`, and `proposal-clarity` categories without
+          duplicating or replacing verify lifecycle gates.
+        scenarios:
+          - id: review-findings-are-advisory-only
+            steps:
+              - kind: GIVEN
+                text: a strict change has verify diagnostics
+              - kind: WHEN
+                text: '`strict-spec-driven review <name>` is executed'
+              - kind: THEN
+                text: review finding output is separate from verify diagnostic output
+              - kind: AND
+                text: verify lifecycle gates are not re-evaluated as review findings
+          - id: review-reports-findings-in-structured-categories
+            steps:
+              - kind: GIVEN
+                text: a strict change has reviewable artifacts
+              - kind: WHEN
+                text: '`strict-spec-driven review <name>` is executed'
+              - kind: THEN
+                text: each finding includes a fixed category string, message, and optional path
+    - requirement:
+        id: cli-review-emits-deterministic-json-output
+        strength: MUST
+        statement: >-
+          The system MUST emit a deterministic JSON object to stdout containing `valid`,
+          `changeName`, `findings`, and `findingCount`.
+        scenarios:
+          - id: review-output-is-parseable-json
+            steps:
+              - kind: GIVEN
+                text: '`strict-spec-driven review <name>` completes'
+              - kind: WHEN
+                text: command stdout is parsed as JSON
+              - kind: THEN
+                text: the JSON includes `valid` as a boolean
+              - kind: AND
+                text: the JSON includes `changeName` as a string
+              - kind: AND
+                text: the JSON includes `findings` as an array
+              - kind: AND
+                text: the JSON includes `findingCount` as a number
+          - id: review-exits-zero-when-findings-are-advisory
+            steps:
+              - kind: GIVEN
+                text: a strict change has code-quality findings but no input errors
+              - kind: WHEN
+                text: '`strict-spec-driven review <name>` is executed'
+              - kind: THEN
+                text: the command exits with exit code zero
+          - id: review-exits-non-zero-on-input-error
+            steps:
+              - kind: GIVEN
+                text: the named change directory does not exist or an artifact is unparseable
+              - kind: WHEN
+                text: '`strict-spec-driven review <name>` is executed'
+              - kind: THEN
+                text: the command exits with a non-zero exit code
+  MODIFIED: []
+  REMOVED: []

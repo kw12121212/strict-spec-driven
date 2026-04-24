@@ -1,0 +1,63 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/migrate.ts
+    - src/scaffold.ts
+    - src/strict-spec-cli.ts
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: yaml-migration-report-envelope
+        strength: MUST
+        statement: >-
+          The system MUST define a structured migration report model for strict migration runs that
+          records converted artifacts, initialized scaffold artifacts, skipped artifacts, warnings,
+          errors, and manual follow-up items, while preserving source-artifact references for legacy
+          inputs that were converted, skipped, or deferred.
+        scenarios:
+          - id: migration-report-preserves-actionable-source-context-for-legacy-inputs
+            steps:
+              - kind: GIVEN
+                text: migration tooling converts supported legacy `.spec-driven/` artifacts
+              - kind: WHEN
+                text: the migration report is reviewed
+              - kind: THEN
+                text: each converted legacy artifact entry identifies the relevant source artifact path
+              - kind: AND
+                text: each skipped artifact entry identifies the relevant source artifact path
+              - kind: AND
+                text: >-
+                  each warning or error identifies the source artifact path that triggered the
+                  outcome
+          - id: migration-report-records-initialized-strict-scaffold-assets
+            steps:
+              - kind: GIVEN
+                text: >-
+                  migration tooling initializes required strict scaffold artifacts during a
+                  migration run
+              - kind: WHEN
+                text: the migration report is reviewed
+              - kind: THEN
+                text: each initialized scaffold artifact entry identifies its strict target path
+              - kind: AND
+                text: >-
+                  the entry does not need to invent a legacy source-artifact mapping when the
+                  scaffold asset came from bundled strict templates
+          - id: migration-report-captures-manual-follow-up-items
+            steps:
+              - kind: GIVEN
+                text: migration tooling encounters an unsupported or ambiguous legacy Markdown shape
+              - kind: WHEN
+                text: the migration report is emitted
+              - kind: THEN
+                text: the report records a manual follow-up item for that source artifact
+              - kind: AND
+                text: the follow-up item explains what could not be converted deterministically
+  MODIFIED: []
+  REMOVED: []

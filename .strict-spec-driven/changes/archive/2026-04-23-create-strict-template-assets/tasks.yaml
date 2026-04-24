@@ -1,0 +1,41 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: create-strict-template-assets
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Add scaffold template files under `templates/strict-spec-driven/scaffold/` for config,
+          specs index, roadmap index, empty changes state, and seed README guidance.
+        status: complete
+      - id: implementation-2
+        text: >-
+          Ensure scaffold templates are deterministic and keep strict scaffold assets separated from
+          schema and example assets.
+        status: complete
+      - id: implementation-3
+        text: >-
+          Add or update repository references that `implement-strict-init` and fixture tests will
+          use to locate the scaffold template files.
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — build validation for scaffold template asset changes
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: Run `bun test/run.ts` — unit tests validating strict scaffold template asset behavior
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

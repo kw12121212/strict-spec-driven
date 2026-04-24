@@ -1,0 +1,64 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: implement-spec-to-strict-migrate-command
+approach:
+  - 'Implement the migration command in four passes:'
+  - >-
+    Add CLI routing and preflight behavior extend the strict CLI with a `migrate` subcommand
+    entrypoint inspect legacy `.spec-driven/` source presence, strict target state, and overwrite
+    policy before any write occurs fail deterministically when the migration cannot proceed safely
+  - >-
+    Define migration execution and report aggregation execute migration as a command-level
+    orchestration flow rather than as ad hoc one-off scripts collect converted files, skipped files,
+    warnings, errors, and manual follow-up items into one structured report preserve repo-relative
+    source references so follow-up work stays actionable
+  - >-
+    Keep converter boundaries explicit let this change own orchestration, preflight checks,
+    overwrite protection, and the report envelope keep artifact-specific Markdown parsing and field
+    mapping in later conversion changes so this proposal does not absorb core-workflow or roadmap
+    conversion scope
+  - >-
+    Add regression coverage exercise successful migration command execution against supported
+    fixtures cover missing source, malformed input, and unsafe target conflicts verify the command
+    leaves legacy source artifacts untouched by default and emits deterministic report structure
+decisions:
+  - id: keep-the-migration-command-and-report-envelope-together-in-one-change
+    decision: Keep the migration command and report envelope together in one change.
+    rationale: >-
+      The roadmap item explicitly owns orchestration, preflight checks, overwrite policy, and
+      reporting, and splitting those pieces would blur the dependency boundary for later converter
+      work.
+  - id: default-to-preserving-legacy-spec-driven-inputs-and-rejecting-unsafe-target-overwrites
+    decision: Default to preserving legacy `.spec-driven/` inputs and rejecting unsafe target overwrites.
+    rationale: >-
+      Safe migration needs a non-destructive default before this repository can attempt self-hosting
+      on generated strict state.
+  - id: treat-the-structured-migration-report-as-a-first-class-output-of-the-command
+    decision: Treat the structured migration report as a first-class output of the command.
+    rationale: >-
+      Migration success is not only about written files; the operator also needs a deterministic
+      account of skips, warnings, errors, and manual follow-up items.
+  - id: keep-artifact-specific-field-mapping-out-of-this-change
+    decision: Keep artifact-specific field mapping out of this change.
+    rationale: >-
+      Converter modules for specs, roadmap state, and archived changes remain separate roadmap items
+      so the proposal stays aligned with milestone guardrails.
+alternatives:
+  - option: Start with `convert-core-workflow-artifacts-to-yaml`.
+    reason: >-
+      Rejected because it creates converter logic before the canonical migration command, preflight
+      policy, and report envelope exist.
+  - option: Start with `convert-roadmap-and-project-state-to-yaml`.
+    reason: >-
+      Rejected for the same reason: it is a narrower converter slice that fits better behind a real
+      migration entrypoint.
+  - option: Combine the migration command with `add-strict-spec-migrate-skill`.
+    reason: >-
+      Rejected because the skill should document and drive an implemented command, not invent
+      command behavior while the CLI surface is still missing.
+  - option: Jump directly to `self-host-repo-on-strict-workflow`.
+    reason: >-
+      Rejected because self-hosting depends on credible migration behavior, not just milestone
+      intent.

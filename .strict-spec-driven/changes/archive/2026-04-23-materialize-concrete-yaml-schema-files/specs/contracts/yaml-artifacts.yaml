@@ -1,0 +1,50 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation: []
+  tests: []
+operations:
+  ADDED:
+    - requirement:
+        id: strict-schema-file-organization
+        strength: MUST
+        statement: >-
+          The system MUST store strict workflow schema files under `.strict-spec-driven/schemas/`
+          and minimal valid example files under `.strict-spec-driven/examples/`.
+        scenarios:
+          - id: schema-and-example-directories-are-discoverable
+            steps:
+              - kind: GIVEN
+                text: the strict workflow repository files are reviewed
+              - kind: WHEN
+                text: concrete schema and example locations are checked
+              - kind: THEN
+                text: schema files are available under `.strict-spec-driven/schemas/`
+              - kind: AND
+                text: minimal valid example files are available under `.strict-spec-driven/examples/`
+    - requirement:
+        id: strict-schema-example-file-naming
+        strength: MUST
+        statement: >-
+          The system MUST name schema and example files so each required artifact family has a
+          corresponding schema file and example file with matching artifact identity.
+        scenarios:
+          - id: artifact-family-file-pairs-are-identifiable
+            steps:
+              - kind: GIVEN
+                text: the strict workflow schema and example directories are reviewed
+              - kind: WHEN
+                text: an artifact family is checked
+              - kind: THEN
+                text: a schema file for that artifact family is identifiable
+              - kind: AND
+                text: an example file for that artifact family is identifiable
+              - kind: AND
+                text: >-
+                  the schema and example expose matching artifact type identity through structured
+                  YAML fields
+  MODIFIED: []
+  REMOVED: []

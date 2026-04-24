@@ -1,0 +1,55 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: convert-roadmap-and-project-state-to-yaml
+  status: complete
+summary:
+  what:
+    - >-
+      Add a dedicated roadmap conversion module (`src/converters/roadmap.ts`) that translates legacy
+      `.spec-driven/roadmap/` Markdown artifacts — roadmap indexes, milestone files, planned change
+      entries — and the legacy specs index into strict YAML equivalents. Wire this module into the
+      existing `migrate` command so those artifact families are converted rather than deferred.
+  why:
+    - >-
+      The `migrate` command already converts main specs, delta specs, and all change artifacts. But
+      roadmap milestones, the roadmap index, and the specs index are currently deferred with
+      explicit placeholder messages: "Implement roadmap and project-state migration converters
+      before attempting to migrate." Without this converter coverage, a full migration run cannot
+      reach the self-hosting step (`self-host-repo-on-strict-workflow`), and comprehensive migration
+      tests and the migration skill (`add-migration-tests-and-reporting`,
+      `add-strict-spec-migrate-skill`) cannot be built with confidence.
+scope:
+  in:
+    - 'New `src/converters/roadmap.ts` module implementing converter functions for:'
+    - '`roadmap/INDEX.md` → strict roadmap index YAML'
+    - >-
+      `roadmap/milestones/*.md` → strict roadmap milestone YAML (goal, scope, done criteria,
+      dependencies, risks, notes, status, planned change entries)
+    - '`specs/INDEX.md` → strict specs index YAML'
+    - >-
+      Update `src/migrate.ts` to call the new converters instead of deferring these artifact
+      families
+    - >-
+      Fixture files under `test/fixtures/` for roadmap and specs index conversion scenarios (minimal
+      valid, malformed, unsupported shapes)
+    - >-
+      Tests in `test/run.ts` covering milestone conversion, index conversion, planned change entry
+      fields, status fields, and deferred/unsupported Markdown shapes
+  out:
+    - '`config.yaml` conversion (already implemented in `migrate.ts`)'
+    - Scaffold metadata generation (already handled by `init` / scaffold logic)
+    - Public documentation or migration skill
+    - Self-hosting cutover (belongs to `self-host-repo-on-strict-workflow`)
+    - Converting packaging Markdown (`SKILL.md`, `README.md`, `AGENTS.md`)
+unchanged_behavior:
+  - >-
+    All existing spec, delta, proposal, design, task, and question conversion paths in `migrate.ts`
+    remain unchanged.
+  - Preflight checks, overwrite protection, and migration report structure are unchanged.
+  - >-
+    Artifacts that were already deferred for reasons other than roadmap/specs-index (e.g.,
+    `specs/README.md`) continue to be deferred.
+  - '`config.yaml` conversion behavior is unchanged.'

@@ -1,0 +1,55 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: proposal-bundle-templates-with-dist
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Update `src/scaffold.ts` to replace `PROJECT_ROOT`/`BUNDLED_SCAFFOLD_DIR` with
+          `import.meta.url`-relative resolution using a `getBundledDir` helper that checks
+          `dist/templates/` first then falls back to `../templates/`
+        status: complete
+      - id: implementation-2
+        text: >-
+          Update `src/validation.ts` to replace `PROJECT_ROOT`/`BUNDLED_SCHEMA_DIR` with the same
+          `import.meta.url`-relative resolution pattern
+        status: complete
+      - id: implementation-3
+        text: Update `package.json` build script from `tsc` to `tsc && cp -r templates dist/templates`
+        status: complete
+      - id: implementation-4
+        text: >-
+          Add a new test section in `test/run.ts` verifying bundled template assets exist under
+          `dist/templates/` after build
+        status: complete
+      - id: implementation-5
+        text: >-
+          Add a test verifying `strict-spec-driven init` works from a temp directory using only
+          compiled output
+        status: complete
+      - id: implementation-6
+        text: >-
+          Add a test verifying `strict-spec-driven propose` works from a temp directory using only
+          compiled output
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — build command including template copy
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: Run `bun test/run.ts` — unit tests including template resolution and CLI integration
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

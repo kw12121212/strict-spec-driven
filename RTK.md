@@ -31,6 +31,11 @@ All spec-driven artifacts and related documentation formats should be represente
 as strict YAML where practical. Scripts should create, parse, and validate YAML
 through structured APIs rather than ad hoc text manipulation.
 
+`.strict-spec-driven/` is the preferred active workflow state for this
+repository's self-hosted strict workflow. `.spec-driven/` remains preserved as
+bootstrap or migration input and should not be treated as an equivalent active
+target.
+
 `.strict-spec-driven/` is reserved for generated or migrated workflow state.
 Repository-bundled schema and example assets live under
 `templates/strict-spec-driven/` so validators, generators, and init tooling can

@@ -1,0 +1,129 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/strict-spec-cli.ts
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-list-reports-active-and-archived-strict-changes
+        strength: MUST
+        statement: >-
+          The system MUST provide a `list` subcommand that reports active and archived strict
+          changes from `.strict-spec-driven/changes/`.
+        scenarios:
+          - id: list-reports-active-changes
+            steps:
+              - kind: GIVEN
+                text: >-
+                  one or more active strict change directories exist under
+                  `.strict-spec-driven/changes/`
+              - kind: WHEN
+                text: '`strict-spec-driven list` is executed'
+              - kind: THEN
+                text: the command output includes active change names
+              - kind: AND
+                text: >-
+                  each active change includes a status summary derived from strict planning
+                  artifacts
+          - id: list-reports-archived-changes
+            steps:
+              - kind: GIVEN
+                text: >-
+                  one or more archived strict change directories exist under
+                  `.strict-spec-driven/changes/archive/`
+              - kind: WHEN
+                text: '`strict-spec-driven list` is executed'
+              - kind: THEN
+                text: the command output includes archived directory names
+          - id: list-handles-empty-state
+            steps:
+              - kind: GIVEN
+                text: no active and no archived strict changes exist
+              - kind: WHEN
+                text: '`strict-spec-driven list` is executed'
+              - kind: THEN
+                text: the command reports that no changes are present
+    - requirement:
+        id: cli-modify-reports-strict-artifact-paths
+        strength: MUST
+        statement: >-
+          The system MUST provide a `modify` subcommand that reports editable strict artifact paths
+          for the selected change.
+        scenarios:
+          - id: modify-with-no-argument-lists-active-changes
+            steps:
+              - kind: GIVEN
+                text: one or more active strict changes exist
+              - kind: WHEN
+                text: '`strict-spec-driven modify` is executed without a change target'
+              - kind: THEN
+                text: the command lists active changes with status summaries
+          - id: modify-reports-active-change-artifacts
+            steps:
+              - kind: GIVEN
+                text: '`.strict-spec-driven/changes/<name>/` exists'
+              - kind: WHEN
+                text: '`strict-spec-driven modify <name>` is executed'
+              - kind: THEN
+                text: >-
+                  the command output lists `proposal.yaml`, `design.yaml`, `tasks.yaml`,
+                  `questions.yaml`, and the `specs/` delta spec paths for that change
+          - id: modify-reports-archived-change-artifacts-by-exact-directory-name
+            steps:
+              - kind: GIVEN
+                text: '`.strict-spec-driven/changes/archive/<archive-dir>/` exists'
+              - kind: WHEN
+                text: >-
+                  `strict-spec-driven modify <archive-dir>` is executed with the exact archive
+                  directory name
+              - kind: THEN
+                text: >-
+                  the command output lists the strict planning artifact and delta spec paths for the
+                  archived change
+          - id: modify-rejects-archived-bare-name-ambiguity
+            steps:
+              - kind: GIVEN
+                text: archived changes exist whose directories use `YYYY-MM-DD-<name>`
+              - kind: WHEN
+                text: '`strict-spec-driven modify <name>` is executed without the date prefix'
+              - kind: THEN
+                text: the command exits non-zero
+              - kind: AND
+                text: the error explains that archived targets require exact archive directory names
+    - requirement:
+        id: cli-cancel-removes-active-strict-changes-only
+        strength: MUST
+        statement: >-
+          The system MUST provide a `cancel` subcommand that removes active strict changes and
+          rejects archived change targets.
+        scenarios:
+          - id: cancel-removes-an-active-change
+            steps:
+              - kind: GIVEN
+                text: '`.strict-spec-driven/changes/<name>/` exists'
+              - kind: WHEN
+                text: '`strict-spec-driven cancel <name>` is executed'
+              - kind: THEN
+                text: the active change directory is removed
+              - kind: AND
+                text: command output confirms cancellation
+          - id: cancel-rejects-archived-target
+            steps:
+              - kind: GIVEN
+                text: '`.strict-spec-driven/changes/archive/<archive-dir>/` exists'
+              - kind: WHEN
+                text: '`strict-spec-driven cancel <archive-dir>` is executed'
+              - kind: THEN
+                text: the command exits non-zero
+              - kind: AND
+                text: the archived directory remains unchanged
+              - kind: AND
+                text: the error explains that cancel is limited to active changes
+  MODIFIED: []
+  REMOVED: []

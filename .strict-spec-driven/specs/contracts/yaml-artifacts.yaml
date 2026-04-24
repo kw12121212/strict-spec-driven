@@ -1,0 +1,1733 @@
+schema: strict-spec-driven/main-spec/v1
+schema_version: 1
+artifact_type: main_spec
+schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
+spec:
+  id: contracts-yaml-artifacts
+  title: Strict YAML Artifact Schemas
+mapping:
+  implementation:
+    - src/migrate.ts
+    - src/scaffold.ts
+    - templates/strict-spec-driven/schemas/schema-registry.yaml
+    - templates/strict-spec-driven/schemas/registry.yaml
+    - templates/strict-spec-driven/schemas/roadmap-index.yaml
+    - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+    - templates/strict-spec-driven/schemas/planned-change-entry.yaml
+    - templates/strict-spec-driven/examples/schema-registry.yaml
+    - templates/strict-spec-driven/examples/roadmap-index.yaml
+    - templates/strict-spec-driven/examples/roadmap-index.ordering.yaml
+    - templates/strict-spec-driven/examples/roadmap-milestone.yaml
+    - templates/strict-spec-driven/examples/roadmap-milestone.planning.yaml
+    - templates/strict-spec-driven/examples/planned-change-entry.yaml
+    - src/validation.ts
+    - src/yaml.ts
+    - install.sh
+    - scripts/strict-spec-driven.js
+    - skills/marketplace.json
+    - skills/strict-spec-archive/SKILL.md
+    - skills/strict-spec-apply/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-cancel/SKILL.md
+    - skills/strict-spec-init/SKILL.md
+    - skills/strict-spec-maintenance/SKILL.md
+    - skills/strict-spec-modify/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-resync-code-mapping/SKILL.md
+    - skills/strict-spec-review/SKILL.md
+    - skills/strict-spec-ship/SKILL.md
+    - skills/strict-spec-simple-task/SKILL.md
+    - skills/strict-spec-spec-edit/SKILL.md
+    - skills/strict-spec-sync-specs/SKILL.md
+    - skills/strict-spec-verify/SKILL.md
+    - skills/strict-roadmap-milestone/SKILL.md
+    - skills/strict-roadmap-plan/SKILL.md
+    - skills/strict-roadmap-propose/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+    - skills/strict-roadmap-sync/SKILL.md
+    - README.md
+    - RTK.md
+  tests:
+    - test/run.ts
+requirements:
+  - id: yaml-artifact-schema-coverage
+    strength: MUST
+    statement: >-
+      The system MUST define strict YAML schemas for main specs, delta specs, change proposals,
+      change designs, task lists, question lists, spec indexes, roadmap indexes, roadmap milestones,
+      and planned change entries.
+    scenarios:
+      - id: required-artifact-families-are-covered
+        steps:
+          - kind: GIVEN
+            text: the strict workflow artifact contract is reviewed
+          - kind: WHEN
+            text: each required artifact family is checked
+          - kind: THEN
+            text: every required artifact family has a YAML schema definition
+  - id: yaml-schema-field-contracts
+    strength: MUST
+    statement: >-
+      The system MUST define required fields, optional fields, enum values, relationship fields,
+      stable identifiers, uniqueness scopes, matching rules, and minimal valid examples for each
+      strict YAML artifact schema.
+    scenarios:
+      - id: schema-fields-are-reviewable
+        steps:
+          - kind: GIVEN
+            text: a strict YAML artifact schema
+          - kind: WHEN
+            text: a human or script reviews the schema contract
+          - kind: THEN
+            text: >-
+              the required fields, optional fields, enum values, relationships, stable identifiers,
+              and minimal valid example are identifiable without relying on unstated convention
+  - id: yaml-schema-example-coverage
+    strength: MUST
+    statement: >-
+      The system MUST provide at least one minimal valid YAML example for each required artifact
+      family.
+    scenarios:
+      - id: artifact-examples-cover-the-contract
+        steps:
+          - kind: GIVEN
+            text: strict YAML artifact schema examples are reviewed
+          - kind: WHEN
+            text: the required artifact families are compared with the available examples
+          - kind: THEN
+            text: >-
+              main specs, delta specs, change proposals, change designs, task lists, question lists,
+              spec indexes, roadmap indexes, roadmap milestones, and planned change entries each
+              have at least one minimal valid YAML example
+  - id: yaml-main-spec-file-model
+    strength: MUST
+    statement: >-
+      The system MUST define strict YAML main spec files as YAML documents with structured schema
+      identity, stable spec identity, human-readable title, file-level mappings, and requirement
+      collections.
+    scenarios:
+      - id: main-spec-top-level-fields-are-structured
+        steps:
+          - kind: GIVEN
+            text: a strict YAML main spec file is reviewed
+          - kind: WHEN
+            text: its top-level data is inspected
+          - kind: THEN
+            text: the schema identity is available as a structured field
+          - kind: AND
+            text: the stable spec identifier is available as a structured field
+          - kind: AND
+            text: the human-readable title is available as a structured field
+          - kind: AND
+            text: implementation and test mappings are available as structured file-level fields
+          - kind: AND
+            text: requirements are available as a structured collection
+  - id: yaml-main-spec-requirement-model
+    strength: MUST
+    statement: >-
+      The system MUST represent each strict YAML main spec requirement with a stable identifier, RFC
+      2119 strength enum, observable behavior statement, and zero or more structured scenarios.
+    scenarios:
+      - id: main-spec-requirement-fields-are-structured
+        steps:
+          - kind: GIVEN
+            text: a strict YAML main spec requirement is reviewed
+          - kind: WHEN
+            text: its requirement data is inspected
+          - kind: THEN
+            text: the requirement identifier is available as a structured field
+          - kind: AND
+            text: >-
+              the RFC 2119 strength is available as a structured field with a valid MUST, SHOULD, or
+              MAY value
+          - kind: AND
+            text: the observable behavior statement is available as a structured field
+          - kind: AND
+            text: scenarios are available as a structured collection
+      - id: requirement-strength-values-are-constrained
+        steps:
+          - kind: GIVEN
+            text: a strict YAML main spec requirement is validated
+          - kind: WHEN
+            text: the requirement strength is checked
+          - kind: THEN
+            text: MUST, SHOULD, and MAY are accepted values
+          - kind: AND
+            text: other strength values can be reported as deterministic validation failures
+  - id: yaml-scenario-step-model
+    strength: MUST
+    statement: >-
+      The system MUST represent strict YAML scenarios with stable scenario identifiers and ordered
+      structured step entries that preserve GIVEN, WHEN, THEN, and AND semantics without relying on
+      Markdown bullet formatting.
+    scenarios:
+      - id: scenario-steps-are-machine-readable
+        steps:
+          - kind: GIVEN
+            text: a strict YAML scenario is reviewed
+          - kind: WHEN
+            text: its steps are inspected
+          - kind: THEN
+            text: the scenario identifier is available as a structured field
+          - kind: AND
+            text: each step has a structured step kind with a valid GIVEN, WHEN, THEN, or AND value
+          - kind: AND
+            text: each step has structured step text
+          - kind: AND
+            text: the step order is preserved
+  - id: yaml-requirement-and-scenario-identifiers
+    strength: MUST
+    statement: >-
+      The system MUST require stable identifiers for strict YAML specs, requirements, and scenarios
+      that can be validated for uniqueness within their owning scope.
+    scenarios:
+      - id: spec-identifiers-are-stable
+        steps:
+          - kind: GIVEN
+            text: a strict YAML main spec file is renamed or moved
+          - kind: WHEN
+            text: archive or validation behavior matches the spec to known workflow state
+          - kind: THEN
+            text: >-
+              the stable spec identifier remains available without deriving identity from the file
+              path alone
+      - id: duplicate-requirement-identifiers-can-be-rejected
+        steps:
+          - kind: GIVEN
+            text: a strict YAML spec file repeats a requirement identifier
+          - kind: WHEN
+            text: validation is run against the spec and delta model
+          - kind: THEN
+            text: >-
+              the duplicate requirement identifier can be reported as a deterministic validation
+              failure
+      - id: duplicate-scenario-identifiers-can-be-rejected
+        steps:
+          - kind: GIVEN
+            text: a strict YAML requirement repeats a scenario identifier within that requirement
+          - kind: WHEN
+            text: validation is run against the spec and delta model
+          - kind: THEN
+            text: >-
+              the duplicate scenario identifier can be reported as a deterministic validation
+              failure
+  - id: yaml-spec-file-mapping-model
+    strength: MUST
+    statement: >-
+      The system MUST represent implementation and test mappings for strict YAML spec files as
+      structured file-level fields containing normalized repo-relative file path collections.
+    scenarios:
+      - id: mappings-stay-outside-requirement-prose
+        steps:
+          - kind: GIVEN
+            text: a strict YAML spec file is reviewed
+          - kind: WHEN
+            text: implementation and test mappings are inspected
+          - kind: THEN
+            text: the mappings are available in structured file-level fields
+          - kind: AND
+            text: the mappings are not embedded in requirement or scenario prose
+      - id: mapping-paths-are-repo-relative
+        steps:
+          - kind: GIVEN
+            text: a strict YAML spec mapping is validated
+          - kind: WHEN
+            text: each implementation or test path is checked
+          - kind: THEN
+            text: normalized repo-relative paths are accepted
+          - kind: AND
+            text: >-
+              absolute paths or parent-directory traversal paths can be reported as deterministic
+              validation failures
+  - id: yaml-main-spec-minimal-example
+    strength: MUST
+    statement: >-
+      The system MUST provide a minimal valid YAML main spec example that includes schema identity,
+      stable spec identity, title, mapping fields, one requirement, one scenario, and ordered
+      scenario steps.
+    scenarios:
+      - id: main-spec-example-is-complete-enough-to-validate
+        steps:
+          - kind: GIVEN
+            text: the strict YAML main spec contract is reviewed
+          - kind: WHEN
+            text: its minimal valid example is inspected
+          - kind: THEN
+            text: every required top-level main spec field is present
+          - kind: AND
+            text: every required requirement field is present
+          - kind: AND
+            text: every required scenario field is present
+      - id: main-spec-example-demonstrates-enum-and-mapping-values
+        steps:
+          - kind: GIVEN
+            text: the strict YAML main spec example is inspected
+          - kind: WHEN
+            text: requirement strength, scenario step kinds, and mapping fields are reviewed
+          - kind: THEN
+            text: the example demonstrates a valid MUST, SHOULD, or MAY requirement strength
+          - kind: AND
+            text: the example demonstrates valid GIVEN, WHEN, THEN, and optional AND step kinds
+          - kind: AND
+            text: >-
+              the example demonstrates implementation and test mapping fields as repo-relative path
+              collections
+  - id: yaml-delta-operation-model
+    strength: MUST
+    statement: >-
+      The system MUST represent strict YAML delta specs with structured schema identity, target spec
+      identity, and explicit ADDED, MODIFIED, and REMOVED operation collections instead of Markdown
+      section headings.
+    scenarios:
+      - id: delta-operation-groups-are-structured
+        steps:
+          - kind: GIVEN
+            text: a strict YAML delta spec is reviewed
+          - kind: WHEN
+            text: the requested spec changes are inspected
+          - kind: THEN
+            text: the schema identity is available as a structured field
+          - kind: AND
+            text: the target spec identity is available as a structured field
+          - kind: AND
+            text: added requirements are available through a structured ADDED collection
+          - kind: AND
+            text: modified requirements are available through a structured MODIFIED collection
+          - kind: AND
+            text: removed requirements are available through a structured REMOVED collection
+      - id: empty-operation-groups-remain-explicit
+        steps:
+          - kind: GIVEN
+            text: a strict YAML delta spec has no entries for one operation kind
+          - kind: WHEN
+            text: the operation groups are inspected
+          - kind: THEN
+            text: >-
+              the empty operation kind remains identifiable without relying on an omitted Markdown
+              heading
+  - id: yaml-delta-stable-matching
+    strength: MUST
+    statement: >-
+      The system MUST require strict YAML delta modifications and removals to target existing
+      requirements by stable requirement identifier.
+    scenarios:
+      - id: added-requirements-carry-stable-identifiers
+        steps:
+          - kind: GIVEN
+            text: a strict YAML delta spec adds a requirement
+          - kind: WHEN
+            text: the added requirement is inspected
+          - kind: THEN
+            text: >-
+              the added requirement includes the same stable requirement fields required by a main
+              spec requirement
+      - id: modified-requirements-target-stable-identifiers
+        steps:
+          - kind: GIVEN
+            text: a strict YAML delta spec modifies a requirement
+          - kind: WHEN
+            text: the modification target is inspected
+          - kind: THEN
+            text: the target existing requirement is identified by stable requirement identifier
+          - kind: AND
+            text: the replacement requirement data is available as structured fields
+      - id: removed-requirements-target-stable-identifiers
+        steps:
+          - kind: GIVEN
+            text: a strict YAML delta spec removes a requirement
+          - kind: WHEN
+            text: the removal target is inspected
+          - kind: THEN
+            text: the target existing requirement is identified by stable requirement identifier
+  - id: yaml-delta-merge-conflict-rules
+    strength: MUST
+    statement: >-
+      The system MUST define deterministic merge conflict rules for archive behavior so that delta
+      merge outcomes are predictable without manual resolution.
+    scenarios:
+      - id: exclusive-active-target-is-enforced-at-verify-time
+        steps:
+          - kind: GIVEN
+            text: >-
+              two active changes each have a delta that targets the same requirement ID with
+              MODIFIED or REMOVED
+          - kind: WHEN
+            text: verify is run against either active change
+          - kind: THEN
+            text: the duplicate active target is reported as a deterministic validation failure
+          - kind: AND
+            text: archive is blocked until the conflict is resolved
+      - id: modified-entry-with-missing-target-is-treated-as-added
+        steps:
+          - kind: GIVEN
+            text: >-
+              a MODIFIED delta entry targets a requirement ID that does not exist in the main spec
+              at archive time
+          - kind: WHEN
+            text: archive merge is executed
+          - kind: THEN
+            text: the entry is treated as ADDED in the merge output
+          - kind: AND
+            text: the outcome is recorded in the archive merge report
+      - id: removed-entry-with-missing-target-is-skipped
+        steps:
+          - kind: GIVEN
+            text: >-
+              a REMOVED delta entry targets a requirement ID that does not exist in the main spec at
+              archive time
+          - kind: WHEN
+            text: archive merge is executed
+          - kind: THEN
+            text: the entry is silently skipped
+          - kind: AND
+            text: the skipped removal is recorded in the archive merge report
+  - id: yaml-delta-removal-reason
+    strength: MUST
+    statement: >-
+      The system MUST require each strict YAML removed requirement delta to include a structured
+      removal reason.
+    scenarios:
+      - id: removal-rationale-is-reviewable
+        steps:
+          - kind: GIVEN
+            text: a strict YAML delta spec removes a requirement
+          - kind: WHEN
+            text: the removal entry is reviewed
+          - kind: THEN
+            text: the reason for removal is available as a structured field
+  - id: yaml-delta-minimal-example
+    strength: MUST
+    statement: >-
+      The system MUST provide a minimal valid YAML delta spec example that includes schema identity,
+      target spec identity, and explicit ADDED, MODIFIED, and REMOVED operation collections.
+    scenarios:
+      - id: delta-spec-example-is-complete-enough-to-validate
+        steps:
+          - kind: GIVEN
+            text: the strict YAML delta spec contract is reviewed
+          - kind: WHEN
+            text: its minimal valid example is inspected
+          - kind: THEN
+            text: every required top-level delta spec field is present
+          - kind: AND
+            text: each delta operation collection is represented as structured YAML data
+          - kind: AND
+            text: modification and removal entries demonstrate stable requirement identifier matching
+      - id: delta-spec-example-demonstrates-operation-payloads
+        steps:
+          - kind: GIVEN
+            text: the strict YAML delta spec example is inspected
+          - kind: WHEN
+            text: ADDED, MODIFIED, and REMOVED entries are reviewed
+          - kind: THEN
+            text: the added entry demonstrates the required main spec requirement fields
+          - kind: AND
+            text: >-
+              the modified entry demonstrates a target requirement identifier and replacement
+              requirement fields
+          - kind: AND
+            text: the removed entry demonstrates a target requirement identifier and removal reason
+  - id: yaml-concrete-schema-file-coverage
+    strength: MUST
+    statement: >-
+      The system MUST provide concrete YAML schema files for main specs, delta specs, change
+      proposals, change designs, task lists, question lists, spec indexes, roadmap indexes, roadmap
+      milestones, and planned change entries.
+    scenarios:
+      - id: schema-files-cover-every-required-artifact-family
+        steps:
+          - kind: GIVEN
+            text: the strict workflow schema files are reviewed
+          - kind: WHEN
+            text: the required artifact families are compared with the available schema files
+          - kind: THEN
+            text: every required artifact family has at least one concrete YAML schema file
+  - id: yaml-concrete-schema-file-identity
+    strength: MUST
+    statement: >-
+      The system MUST require each concrete YAML schema file to expose structured artifact type and
+      schema version fields.
+    scenarios:
+      - id: schema-file-identity-is-machine-readable
+        steps:
+          - kind: GIVEN
+            text: a concrete YAML schema file is inspected
+          - kind: WHEN
+            text: its identity fields are reviewed
+          - kind: THEN
+            text: the artifact type is available as a structured field
+          - kind: AND
+            text: the schema version is available as a structured field
+  - id: yaml-concrete-schema-file-contract
+    strength: MUST
+    statement: >-
+      The system MUST require concrete YAML schema files to define required fields, optional fields,
+      enum values, relationship fields, stable identifier fields, uniqueness scopes, and supported
+      top-level shapes as structured YAML data.
+    scenarios:
+      - id: schema-file-contract-is-structured
+        steps:
+          - kind: GIVEN
+            text: a concrete YAML schema file is inspected
+          - kind: WHEN
+            text: its validation contract is reviewed
+          - kind: THEN
+            text: required fields are available as structured data
+          - kind: AND
+            text: optional fields are available as structured data
+          - kind: AND
+            text: enum values are available as structured data
+          - kind: AND
+            text: relationship fields are available as structured data
+          - kind: AND
+            text: stable identifier and uniqueness rules are available as structured data
+          - kind: AND
+            text: supported top-level shapes are available as structured data
+  - id: yaml-concrete-example-file-coverage
+    strength: MUST
+    statement: >-
+      The system MUST provide minimal valid YAML example files for main specs, delta specs, change
+      proposals, change designs, task lists, question lists, spec indexes, roadmap indexes, roadmap
+      milestones, and planned change entries.
+    scenarios:
+      - id: example-files-cover-every-required-artifact-family
+        steps:
+          - kind: GIVEN
+            text: the strict workflow example files are reviewed
+          - kind: WHEN
+            text: the required artifact families are compared with the available example files
+          - kind: THEN
+            text: every required artifact family has at least one minimal valid YAML example file
+  - id: yaml-example-schema-association
+    strength: MUST
+    statement: >-
+      The system MUST make each minimal valid YAML example file associated with the concrete schema
+      file or artifact type it demonstrates.
+    scenarios:
+      - id: examples-identify-their-schema-target
+        steps:
+          - kind: GIVEN
+            text: a minimal valid YAML example file is inspected
+          - kind: WHEN
+            text: its schema association is reviewed
+          - kind: THEN
+            text: >-
+              the target schema file or target artifact type is identifiable through structured YAML
+              data or repository-defined file organization
+  - id: yaml-schema-and-example-parseability
+    strength: MUST
+    statement: >-
+      The system MUST require concrete schema files and minimal valid example files to be parseable
+      as YAML documents without relying on Markdown headings, frontmatter, list indentation, or
+      prose-only conventions.
+    scenarios:
+      - id: schema-files-are-parseable-yaml
+        steps:
+          - kind: GIVEN
+            text: a concrete schema file is loaded by a YAML parser
+          - kind: WHEN
+            text: the file is syntactically valid
+          - kind: THEN
+            text: the schema contract is available through structured YAML fields
+      - id: example-files-are-parseable-yaml
+        steps:
+          - kind: GIVEN
+            text: a minimal valid example file is loaded by a YAML parser
+          - kind: WHEN
+            text: the file is syntactically valid
+          - kind: THEN
+            text: the example artifact data is available through structured YAML fields
+  - id: strict-schema-file-organization
+    strength: MUST
+    statement: >-
+      The system MUST store repository-bundled strict workflow schema files under
+      `templates/strict-spec-driven/schemas/` and minimal valid example files under
+      `templates/strict-spec-driven/examples/`, separate from `.strict-spec-driven/` workflow state.
+    scenarios:
+      - id: schema-and-example-directories-are-discoverable
+        steps:
+          - kind: GIVEN
+            text: the strict workflow repository files are reviewed
+          - kind: WHEN
+            text: concrete schema and example locations are checked
+          - kind: THEN
+            text: schema files are available under `templates/strict-spec-driven/schemas/`
+          - kind: AND
+            text: >-
+              minimal valid example files are available under
+              `templates/strict-spec-driven/examples/`
+          - kind: AND
+            text: >-
+              `.strict-spec-driven/` is not used to store repository-bundled schema or example
+              assets
+  - id: strict-schema-example-file-naming
+    strength: MUST
+    statement: >-
+      The system MUST name schema and example files so each required artifact family has a
+      corresponding schema file and example file with matching artifact identity.
+    scenarios:
+      - id: artifact-family-file-pairs-are-identifiable
+        steps:
+          - kind: GIVEN
+            text: the strict workflow schema and example directories are reviewed
+          - kind: WHEN
+            text: an artifact family is checked
+          - kind: THEN
+            text: a schema file for that artifact family is identifiable
+          - kind: AND
+            text: an example file for that artifact family is identifiable
+          - kind: AND
+            text: >-
+              the schema and example expose matching artifact type identity through structured YAML
+              fields
+  - id: yaml-schema-dialect-is-machine-readable
+    strength: MUST
+    statement: >-
+      The system MUST represent concrete schema file validation rules through machine-readable
+      nested fields rather than prose-only shape descriptions.
+    scenarios:
+      - id: nested-fields-are-inspectable
+        steps:
+          - kind: GIVEN
+            text: a concrete schema file is reviewed
+          - kind: WHEN
+            text: a nested artifact field is checked
+          - kind: THEN
+            text: the field type is available through structured YAML data
+          - kind: AND
+            text: required status is available through structured YAML data
+          - kind: AND
+            text: >-
+              enum, const, item, uniqueness, reference, and additional-field rules are available
+              through structured YAML data where they apply
+  - id: yaml-artifact-schema-identity-consistency
+    strength: MUST
+    statement: >-
+      The system MUST make every strict YAML artifact example identify the schema ID of the schema
+      file it demonstrates.
+    scenarios:
+      - id: examples-match-schema-identity
+        steps:
+          - kind: GIVEN
+            text: a concrete schema file and its primary example are reviewed
+          - kind: WHEN
+            text: their identity fields are compared
+          - kind: THEN
+            text: the example `schema` value matches the schema file `schema_id`
+          - kind: AND
+            text: the example `artifact_type` value matches the schema file `artifact_type`
+  - id: yaml-minimal-and-coverage-example-separation
+    strength: MUST
+    statement: >-
+      The system MUST keep minimal valid examples separate from richer coverage examples when
+      coverage data would introduce optional operations or blocking workflow state.
+    scenarios:
+      - id: minimal-examples-remain-minimal
+        steps:
+          - kind: GIVEN
+            text: a strict YAML artifact family has optional operations or blocking workflow state
+          - kind: WHEN
+            text: its primary minimal example is inspected
+          - kind: THEN
+            text: the primary example avoids optional operations and blocking workflow state
+          - kind: AND
+            text: richer coverage examples are identified separately when needed
+  - id: yaml-roadmap-index-ordering-contract
+    strength: MUST
+    statement: >-
+      The system MUST represent roadmap index milestone ordering through structured YAML sequence
+      data rather than relying on Markdown list formatting or filename sorting alone.
+    scenarios:
+      - id: roadmap-index-preserves-milestone-order
+        steps:
+          - kind: GIVEN
+            text: a strict roadmap index artifact is reviewed
+          - kind: WHEN
+            text: the `milestones` field is inspected
+          - kind: THEN
+            text: milestone entries appear in an ordered YAML sequence
+          - kind: AND
+            text: each entry exposes structured `id`, `title`, `path`, and `status` fields
+          - kind: AND
+            text: milestone order remains recoverable from the artifact data alone
+  - id: yaml-roadmap-milestone-planning-model
+    strength: MUST
+    statement: >-
+      The system MUST represent roadmap milestone planning state through structured YAML fields for
+      goal, scope, done criteria, dependencies, risks, status, notes, and planned change entries.
+    scenarios:
+      - id: roadmap-milestone-exposes-planning-sections-as-fields
+        steps:
+          - kind: GIVEN
+            text: a strict roadmap milestone artifact is reviewed
+          - kind: WHEN
+            text: its planning content is inspected
+          - kind: THEN
+            text: the milestone goal is available as structured YAML data
+          - kind: AND
+            text: in-scope and out-of-scope items are available through structured YAML fields
+          - kind: AND
+            text: >-
+              done criteria, dependencies, risks, and notes are available through structured YAML
+              fields
+          - kind: AND
+            text: >-
+              the milestone status is available as a structured YAML field rather than a prose
+              heading
+          - kind: AND
+            text: planned changes are available as structured YAML entries owned by the milestone
+      - id: milestone-declared-status-uses-roadmap-enums
+        steps:
+          - kind: GIVEN
+            text: a strict roadmap milestone artifact is validated
+          - kind: WHEN
+            text: the milestone status is inspected
+          - kind: THEN
+            text: the declared status is limited to `proposed`, `active`, `blocked`, or `complete`
+  - id: yaml-planned-change-entry-dependency-model
+    strength: MUST
+    statement: >-
+      The system MUST represent each planned change entry with a stable identifier, declared status,
+      summary, and structured dependency references.
+    scenarios:
+      - id: planned-change-entries-expose-roadmap-planning-fields
+        steps:
+          - kind: GIVEN
+            text: a strict planned change entry is reviewed
+          - kind: WHEN
+            text: its fields are inspected
+          - kind: THEN
+            text: the entry exposes structured `id`, `status`, `summary`, and `depends_on` fields
+          - kind: AND
+            text: the entry status is limited to `planned` or `complete`
+          - kind: AND
+            text: >-
+              dependency references are expressed as structured planned change identifiers instead
+              of prose-only notes
+  - id: yaml-roadmap-example-contract-coverage
+    strength: MUST
+    statement: >-
+      The system MUST provide roadmap example artifacts that demonstrate the roadmap schema contract
+      fields needed for validation and review while keeping the primary minimal examples minimal.
+    scenarios:
+      - id: primary-roadmap-examples-remain-minimal
+        steps:
+          - kind: GIVEN
+            text: the primary strict roadmap examples are reviewed
+          - kind: WHEN
+            text: minimal example content is inspected
+          - kind: THEN
+            text: the primary roadmap index example remains a minimal valid artifact
+          - kind: AND
+            text: the primary roadmap milestone example remains a minimal valid artifact
+          - kind: AND
+            text: richer workflow-state coverage is kept in separate roadmap example files
+      - id: roadmap-coverage-examples-demonstrate-milestone-ordering-fields
+        steps:
+          - kind: GIVEN
+            text: the strict roadmap index coverage example is reviewed
+          - kind: WHEN
+            text: its milestone entries are inspected
+          - kind: THEN
+            text: >-
+              the coverage example demonstrates ordered milestone entries with structured `id`,
+              `title`, `path`, and `status` fields
+      - id: roadmap-coverage-example-demonstrates-planning-fields
+        steps:
+          - kind: GIVEN
+            text: the strict roadmap milestone coverage example is reviewed
+          - kind: WHEN
+            text: its roadmap-specific fields are inspected
+          - kind: THEN
+            text: >-
+              the coverage example demonstrates structured scope, done criteria, dependencies,
+              risks, status, notes, and planned change entry fields
+          - kind: AND
+            text: >-
+              the planned change entry example remains aligned with the milestone coverage example's
+              dependency and status model
+  - id: strict-roadmap-skill-command-contract
+    strength: MUST
+    statement: >-
+      The system MUST provide strict roadmap skill packages for `plan`, `milestone`, `recommend`,
+      `propose`, and `sync` with explicit command mappings that reference the strict roadmap
+      command(s) and shared strict change commands those skills depend on.
+    scenarios:
+      - id: roadmap-skills-expose-concrete-strict-commands
+        steps:
+          - kind: GIVEN
+            text: a strict roadmap `SKILL.md` file is reviewed
+          - kind: WHEN
+            text: its `## This Skill's Commands` section is inspected
+          - kind: THEN
+            text: >-
+              the command mapping identifies the specific strict command entry or entries the skill
+              uses
+          - kind: AND
+            text: the command mapping is not limited to generic placeholder commands
+  - id: strict-roadmap-skill-guidance-contract
+    strength: MUST
+    statement: >-
+      The system MUST ensure strict roadmap skill packages describe `.strict-spec-driven/roadmap/`
+      YAML artifacts, canonical milestone ordering, declared and derived roadmap status rules, and
+      the prompt-vs-script split used by the strict workflow.
+    scenarios:
+      - id: roadmap-skills-reference-strict-roadmap-artifacts
+        steps:
+          - kind: GIVEN
+            text: a strict roadmap skill prompt is reviewed
+          - kind: WHEN
+            text: its prerequisites and workflow guidance are inspected
+          - kind: THEN
+            text: >-
+              the skill describes `.strict-spec-driven/roadmap/` YAML artifacts and the roadmap
+              files it reads or writes
+          - kind: AND
+            text: >-
+              the skill does not fall back to generic or legacy roadmap instructions where strict
+              behavior is required
+      - id: roadmap-skills-preserve-deterministic-mechanics-in-scripts
+        steps:
+          - kind: GIVEN
+            text: a strict roadmap skill prompt is reviewed
+          - kind: WHEN
+            text: its workflow steps are inspected
+          - kind: THEN
+            text: >-
+              deterministic validation, status derivation, index regeneration, and proposal
+              scaffolding remain delegated to strict CLI commands
+          - kind: AND
+            text: >-
+              the prompt guidance remains focused on recommendation, planning judgment, editing, and
+              user checkpoints
+  - id: strict-roadmap-proposal-handoff-contract
+    strength: MUST
+    statement: >-
+      The system MUST ensure roadmap recommendation and roadmap proposal-handoff behavior convert
+      exactly one planned change into a normal strict change scaffold without duplicating
+      roadmap-only planning metadata inside the change artifacts.
+    scenarios:
+      - id: roadmap-recommendation-hands-off-one-planned-change-to-strict-propose
+        steps:
+          - kind: GIVEN
+            text: a roadmap milestone includes a planned change entry
+          - kind: WHEN
+            text: the strict roadmap recommendation flow is accepted and the proposal handoff runs
+          - kind: THEN
+            text: a normal strict change scaffold is created for that planned change
+          - kind: AND
+            text: >-
+              the change artifacts describe proposal scope for that one change rather than copying
+              the full milestone plan
+      - id: roadmap-proposal-handoff-preserves-canonical-planned-change-identity
+        steps:
+          - kind: GIVEN
+            text: a planned change already exists as a single roadmap item under one milestone
+          - kind: WHEN
+            text: the roadmap proposal handoff creates the strict change scaffold
+          - kind: THEN
+            text: the resulting change uses the planned change name as its change identity
+          - kind: AND
+            text: the roadmap artifact remains the canonical home of milestone-level planning metadata
+  - id: yaml-task-testing-gates
+    strength: MUST
+    statement: >-
+      The system MUST represent validation and unit test task gates in task-list artifacts through
+      structured fields.
+    scenarios:
+      - id: testing-gates-are-machine-readable
+        steps:
+          - kind: GIVEN
+            text: a strict YAML task-list artifact is reviewed
+          - kind: WHEN
+            text: testing gates are inspected
+          - kind: THEN
+            text: the validation task reference is available as structured YAML data
+          - kind: AND
+            text: the unit test task reference is available as structured YAML data
+          - kind: AND
+            text: testing tasks expose explicit runnable command fields
+  - id: structured-yaml-semantics
+    strength: MUST
+    statement: >-
+      The system MUST represent workflow artifact meaning through structured YAML fields rather than
+      Markdown headings, frontmatter, list indentation, or free-form prose conventions.
+    scenarios:
+      - id: artifact-meaning-is-structured
+        steps:
+          - kind: GIVEN
+            text: a strict YAML workflow artifact
+          - kind: WHEN
+            text: its workflow meaning is inspected
+          - kind: THEN
+            text: the meaning is available through named YAML fields
+          - kind: AND
+            text: the meaning does not depend on Markdown section titles or list formatting
+  - id: deterministic-schema-validation
+    strength: MUST
+    statement: >-
+      The system MUST define strict YAML artifact schemas and validation diagnostics precisely
+      enough for scripts to report missing required fields, invalid enum values, invalid references,
+      malformed YAML, duplicate stable identifiers, and unsupported artifact shapes with
+      artifact-path and field-path context.
+    scenarios:
+      - id: invalid-artifacts-can-be-rejected
+        steps:
+          - kind: GIVEN
+            text: a strict YAML workflow artifact with a schema violation
+          - kind: WHEN
+            text: validation is run against the artifact contract
+          - kind: THEN
+            text: the violation can be reported as a deterministic validation failure
+      - id: duplicate-identifiers-can-be-rejected
+        steps:
+          - kind: GIVEN
+            text: >-
+              a strict YAML workflow artifact repeats a stable identifier where uniqueness is
+              required
+          - kind: WHEN
+            text: validation is run against the artifact contract
+          - kind: THEN
+            text: the duplicate identifier can be reported as a deterministic validation failure
+      - id: diagnostics-include-actionable-location-context
+        steps:
+          - kind: GIVEN
+            text: validation reports an artifact contract failure
+          - kind: WHEN
+            text: diagnostics are emitted
+          - kind: THEN
+            text: each diagnostic identifies the artifact path and field path
+          - kind: AND
+            text: >-
+              each diagnostic includes expected-versus-actual details when validator data provides
+              those values
+  - id: schema-contract-preserves-reference-semantics
+    strength: MUST
+    statement: >-
+      The system MUST preserve the reference workflow semantics from `../auto-spec-driven` unless
+      the YAML schema contract explicitly requires a deliberate difference.
+    scenarios:
+      - id: reference-behavior-remains-the-baseline
+        steps:
+          - kind: GIVEN
+            text: >-
+              a strict YAML artifact schema is compared with the corresponding reference workflow
+              artifact
+          - kind: WHEN
+            text: a behavior difference exists
+          - kind: THEN
+            text: the difference is documented as a deliberate YAML contract decision
+  - id: strict-workflow-directory
+    strength: MUST
+    statement: >-
+      The system MUST define `.strict-spec-driven/` as the target workflow state directory for
+      strict YAML spec-driven artifacts.
+    scenarios:
+      - id: strict-workflow-directory-is-identifiable
+        steps:
+          - kind: GIVEN
+            text: the strict workflow artifact contract is reviewed
+          - kind: WHEN
+            text: the target workflow state directory is checked
+          - kind: THEN
+            text: >-
+              `.strict-spec-driven/` is identified as the directory for strict YAML workflow
+              artifacts
+  - id: bootstrap-directory-compatibility
+    strength: MUST
+    statement: >-
+      The system MUST treat `.spec-driven/` as a bootstrap or legacy workflow directory rather than
+      the target strict YAML workflow directory.
+    scenarios:
+      - id: bootstrap-state-remains-distinct-from-strict-state
+        steps:
+          - kind: GIVEN
+            text: a repository still uses `.spec-driven/` before strict migration tooling exists
+          - kind: WHEN
+            text: the strict workflow directory contract is reviewed
+          - kind: THEN
+            text: '`.spec-driven/` is not identified as the target strict YAML workflow directory'
+          - kind: AND
+            text: '`.strict-spec-driven/` remains the target strict YAML workflow directory'
+  - id: markdown-exception-categories
+    strength: MUST
+    statement: >-
+      The system MUST define the Markdown file categories that remain allowed in a strict YAML
+      workflow repository because they are not strict workflow artifacts.
+    scenarios:
+      - id: packaging-markdown-remains-allowed
+        steps:
+          - kind: GIVEN
+            text: the strict YAML artifact contract is reviewed
+          - kind: WHEN
+            text: Agent Skills packaging files are checked
+          - kind: THEN
+            text: '`SKILL.md` is identified as an allowed Markdown exception'
+          - kind: AND
+            text: >-
+              the exception is limited to the skill packaging container rather than generated or
+              consumed strict workflow state
+      - id: repository-documentation-remains-allowed
+        steps:
+          - kind: GIVEN
+            text: the strict YAML artifact contract is reviewed
+          - kind: WHEN
+            text: repository documentation files are checked
+          - kind: THEN
+            text: >-
+              `README.md`, `AGENTS.md`, `RTK.md`, and similar non-workflow documentation are allowed
+              to remain Markdown
+          - kind: AND
+            text: >-
+              repository documentation is not treated as strict workflow state unless a later schema
+              explicitly classifies it that way
+  - id: workflow-artifacts-use-yaml
+    strength: MUST
+    statement: >-
+      The system MUST require generated or consumed strict workflow artifacts to use YAML formats
+      rather than Markdown formats.
+    scenarios:
+      - id: strict-workflow-state-is-yaml
+        steps:
+          - kind: GIVEN
+            text: strict workflow artifacts under `.strict-spec-driven/` are reviewed
+          - kind: WHEN
+            text: >-
+              specs, delta specs, proposals, designs, tasks, questions, indexes, roadmap indexes,
+              roadmap milestones, and planned change entries are checked
+          - kind: THEN
+            text: each artifact family is required to use YAML structure
+          - kind: AND
+            text: >-
+              Markdown headings, list formatting, or frontmatter are not accepted as the
+              authoritative structure for those artifact families
+      - id: strict-generated-filenames-are-yaml
+        steps:
+          - kind: GIVEN
+            text: a strict workflow command or skill generates workflow artifacts
+          - kind: WHEN
+            text: artifact filenames are selected
+          - kind: THEN
+            text: >-
+              generated proposal, design, task, question, spec, delta, index, roadmap, and milestone
+              artifacts use YAML filenames
+          - kind: AND
+            text: legacy Markdown artifact filenames are not generated as strict workflow targets
+  - id: bootstrap-markdown-is-legacy-input
+    strength: MUST
+    statement: >-
+      The system MUST treat bootstrap or legacy `.spec-driven/` Markdown artifacts as migration
+      input rather than valid target artifacts for strict workflows.
+    scenarios:
+      - id: bootstrap-artifacts-are-not-strict-targets
+        steps:
+          - kind: GIVEN
+            text: a repository still contains `.spec-driven/` Markdown workflow artifacts
+          - kind: WHEN
+            text: the strict Markdown exception policy is reviewed
+          - kind: THEN
+            text: those artifacts are identified as bootstrap or legacy workflow state
+          - kind: AND
+            text: they are not treated as valid `.strict-spec-driven/` target artifacts
+      - id: migration-can-read-legacy-markdown
+        steps:
+          - kind: GIVEN
+            text: migration tooling reads supported `.spec-driven/` Markdown artifacts
+          - kind: WHEN
+            text: the Markdown exception policy is applied
+          - kind: THEN
+            text: reading those legacy artifacts for conversion remains allowed
+          - kind: AND
+            text: the generated strict workflow output is still required to use YAML artifacts
+  - id: markdown-exception-validation-boundary
+    strength: MUST
+    statement: >-
+      The system MUST require validation and migration behavior to distinguish Markdown exceptions
+      from strict workflow artifacts by artifact role.
+    scenarios:
+      - id: validators-do-not-reject-packaging-documentation
+        steps:
+          - kind: GIVEN
+            text: validation checks strict workflow artifact formats
+          - kind: WHEN
+            text: >-
+              an allowed Markdown exception such as `SKILL.md`, `README.md`, `AGENTS.md`, or
+              `RTK.md` is encountered outside strict workflow state
+          - kind: THEN
+            text: the file is not rejected merely because it is Markdown
+      - id: validators-reject-strict-workflow-markdown-targets
+        steps:
+          - kind: GIVEN
+            text: validation checks strict workflow artifact formats
+          - kind: WHEN
+            text: a generated or consumed strict workflow artifact is represented only as Markdown
+          - kind: THEN
+            text: the artifact can be reported as a deterministic validation failure
+  - id: command-surface-boundaries
+    strength: MUST
+    statement: >-
+      The system MUST distinguish skill names, slash commands, CLI entrypoints, CLI subcommands, and
+      installer-facing names as separate command naming surfaces.
+    scenarios:
+      - id: command-naming-surfaces-are-reviewable
+        steps:
+          - kind: GIVEN
+            text: the strict workflow naming contract is reviewed
+          - kind: WHEN
+            text: public command names are categorized
+          - kind: THEN
+            text: >-
+              skill names, slash commands, CLI entrypoints, CLI subcommands, and installer-facing
+              names are each identifiable as separate naming surfaces
+  - id: strict-spec-command-prefix
+    strength: MUST
+    statement: >-
+      The system MUST define `strict-spec-*` as the naming family for strict spec workflow skills
+      and slash commands.
+    scenarios:
+      - id: strict-spec-workflow-commands-are-distinguishable
+        steps:
+          - kind: GIVEN
+            text: a strict spec workflow skill or slash command name is reviewed
+          - kind: WHEN
+            text: its public prefix is checked
+          - kind: THEN
+            text: it uses the `strict-spec-*` naming family
+  - id: strict-roadmap-command-prefix
+    strength: MUST
+    statement: >-
+      The system MUST define `strict-roadmap-*` as the naming family for strict roadmap workflow
+      skills and slash commands.
+    scenarios:
+      - id: strict-roadmap-workflow-commands-are-distinguishable
+        steps:
+          - kind: GIVEN
+            text: a strict roadmap workflow skill or slash command name is reviewed
+          - kind: WHEN
+            text: its public prefix is checked
+          - kind: THEN
+            text: it uses the `strict-roadmap-*` naming family
+  - id: strict-cli-entrypoint
+    strength: MUST
+    statement: >-
+      The system MUST define `strict-spec-driven` as the CLI entrypoint for strict YAML workflow
+      commands.
+    scenarios:
+      - id: strict-cli-entrypoint-is-explicit
+        steps:
+          - kind: GIVEN
+            text: the strict workflow naming contract is reviewed
+          - kind: WHEN
+            text: the CLI entrypoint for strict YAML workflow commands is checked
+          - kind: THEN
+            text: '`strict-spec-driven` is identified as the strict CLI entrypoint'
+  - id: cli-subcommand-naming-model
+    strength: MUST
+    statement: >-
+      The system MUST define CLI subcommands as stable workflow verb or verb-object names under the
+      `strict-spec-driven` entrypoint rather than as `strict-spec-*` or `strict-roadmap-*` prefixed
+      skill names.
+    scenarios:
+      - id: cli-subcommands-do-not-duplicate-skill-prefixes
+        steps:
+          - kind: GIVEN
+            text: a strict CLI command name is reviewed
+          - kind: WHEN
+            text: its subcommand is checked
+          - kind: THEN
+            text: the subcommand is a workflow verb or verb-object name
+          - kind: AND
+            text: >-
+              the subcommand does not rely on the `strict-spec-*` or `strict-roadmap-*` skill naming
+              families for its strict namespace
+  - id: installer-facing-strict-names
+    strength: MUST
+    statement: >-
+      The system MUST require installer-facing package, skill, or command names for strict workflows
+      to identify the strict workflow namespace explicitly and avoid silent legacy aliases outside
+      migration-defined compatibility behavior.
+    scenarios:
+      - id: installer-names-preserve-the-strict-namespace
+        steps:
+          - kind: GIVEN
+            text: strict workflow installation metadata is reviewed
+          - kind: WHEN
+            text: package, skill, or command names are exposed for installation
+          - kind: THEN
+            text: the names identify the strict workflow namespace
+          - kind: AND
+            text: >-
+              legacy `spec-driven` or `spec-driven-*` names are not treated as strict workflow
+              aliases unless a migration compatibility contract defines that behavior
+  - id: cli-naming-remains-separate
+    strength: MUST
+    statement: >-
+      The system MUST distinguish skill and slash-command prefix rules from CLI entrypoint, CLI
+      subcommand, and installer-facing naming rules, and MUST apply each rule only to its own naming
+      surface.
+    scenarios:
+      - id: cli-naming-is-not-implied-by-skill-prefixes
+        steps:
+          - kind: GIVEN
+            text: the strict workflow naming contract is reviewed
+          - kind: WHEN
+            text: CLI entrypoint, CLI subcommand, or installer-facing names are considered
+          - kind: THEN
+            text: >-
+              they are not treated as automatically defined by the `strict-spec-*` or
+              `strict-roadmap-*` skill and slash-command prefixes
+          - kind: AND
+            text: each naming surface is checked against its own strict naming rule
+  - id: yaml-schema-registry-location
+    strength: MUST
+    statement: >-
+      The system MUST define a strict YAML schema registry under
+      `templates/strict-spec-driven/schemas/` that lets validators, generators, migration tooling,
+      and skills discover supported strict workflow artifact schemas.
+    scenarios:
+      - id: registry-location-is-discoverable
+        steps:
+          - kind: GIVEN
+            text: strict workflow tooling needs to discover supported schemas
+          - kind: WHEN
+            text: the schema registry location is checked
+          - kind: THEN
+            text: the registry location is identified under `templates/strict-spec-driven/schemas/`
+          - kind: AND
+            text: the registry is separate from roadmap, proposal, and archived change artifacts
+      - id: registry-is-structured-yaml
+        steps:
+          - kind: GIVEN
+            text: the strict schema registry file is loaded
+          - kind: WHEN
+            text: the registry is syntactically valid
+          - kind: THEN
+            text: registry identity and schema entries are available through structured YAML fields
+          - kind: AND
+            text: >-
+              registry meaning does not depend on Markdown headings, frontmatter, or prose-only
+              conventions
+  - id: yaml-schema-registry-entry-model
+    strength: MUST
+    statement: >-
+      The system MUST represent each schema registry entry with structured schema ID, schema
+      version, artifact type, artifact name, schema file path, primary example file path, and
+      compatibility metadata.
+    scenarios:
+      - id: registry-entries-expose-schema-identity
+        steps:
+          - kind: GIVEN
+            text: a strict YAML schema registry entry is reviewed
+          - kind: WHEN
+            text: its fields are inspected
+          - kind: THEN
+            text: the schema ID is available as structured YAML data
+          - kind: AND
+            text: the schema version is available as structured YAML data
+          - kind: AND
+            text: the artifact type and artifact name are available as structured YAML data
+          - kind: AND
+            text: the schema and primary example file paths are available as structured YAML data
+      - id: registry-entries-expose-compatibility-data
+        steps:
+          - kind: GIVEN
+            text: a strict YAML schema registry entry is reviewed
+          - kind: WHEN
+            text: compatibility behavior is inspected
+          - kind: THEN
+            text: compatibility metadata is available as structured YAML data
+          - kind: AND
+            text: >-
+              tooling can determine whether the entry is current, deprecated, or superseded without
+              relying on prose-only notes
+  - id: yaml-schema-registry-file-coverage
+    strength: MUST
+    statement: >-
+      The system MUST list every supported strict workflow artifact schema in the strict YAML schema
+      registry.
+    scenarios:
+      - id: supported-schemas-are-registered
+        steps:
+          - kind: GIVEN
+            text: the strict YAML schema registry is reviewed
+          - kind: WHEN
+            text: >-
+              the concrete schema files for supported artifact families are compared with registry
+              entries
+          - kind: THEN
+            text: every supported artifact schema has a registry entry
+          - kind: AND
+            text: each registry entry points to a parseable concrete schema file
+          - kind: AND
+            text: each registry entry points to a parseable primary example file
+  - id: yaml-schema-id-stability
+    strength: MUST
+    statement: >-
+      The system MUST treat schema IDs as stable semantic identifiers for strict workflow artifact
+      schemas rather than deriving identity only from file paths.
+    scenarios:
+      - id: schema-identity-survives-file-organization-changes
+        steps:
+          - kind: GIVEN
+            text: a strict YAML schema file is moved or reorganized
+          - kind: WHEN
+            text: the schema ID remains unchanged
+          - kind: THEN
+            text: tooling can still identify the artifact schema by stable semantic identity
+  - id: yaml-schema-version-compatibility
+    strength: MUST
+    statement: >-
+      The system MUST define schema version compatibility rules that distinguish compatible contract
+      clarifications from incompatible artifact shape changes.
+    scenarios:
+      - id: compatible-schema-changes-are-identifiable
+        steps:
+          - kind: GIVEN
+            text: >-
+              a strict YAML schema changes without removing required semantics or changing existing
+              field meanings
+          - kind: WHEN
+            text: compatibility is evaluated
+          - kind: THEN
+            text: the change can be identified as compatible according to the versioning contract
+      - id: incompatible-schema-changes-require-an-explicit-version-boundary
+        steps:
+          - kind: GIVEN
+            text: >-
+              a strict YAML schema change removes required fields, changes enum meaning, changes
+              identifier matching, or changes artifact relationships
+          - kind: WHEN
+            text: compatibility is evaluated
+          - kind: THEN
+            text: the change requires an explicit incompatible version boundary
+  - id: yaml-artifact-type-registry
+    strength: MUST
+    statement: >-
+      The system MUST define artifact type names and artifact names as registry-controlled values
+      for all strict workflow artifact families.
+    scenarios:
+      - id: artifact-type-names-are-not-ad-hoc
+        steps:
+          - kind: GIVEN
+            text: a strict YAML artifact is validated
+          - kind: WHEN
+            text: its artifact type and artifact name are checked
+          - kind: THEN
+            text: the values can be matched to registry-controlled values
+          - kind: AND
+            text: unsupported artifact type names can be reported as deterministic validation failures
+  - id: yaml-migration-artifact-role-mapping
+    strength: MUST
+    statement: >-
+      The system MUST define migration mapping rules from supported legacy `.spec-driven/` Markdown
+      artifact roles to strict `.strict-spec-driven/` YAML artifact types.
+    scenarios:
+      - id: supported-legacy-artifact-roles-map-to-strict-artifact-types
+        steps:
+          - kind: GIVEN
+            text: migration tooling reads a supported legacy `.spec-driven/` Markdown artifact
+          - kind: WHEN
+            text: the artifact role is identified
+          - kind: THEN
+            text: >-
+              the corresponding strict YAML artifact type is determined from the migration
+              compatibility contract
+          - kind: AND
+            text: the generated artifact uses a registry-controlled schema ID and artifact type
+      - id: core-legacy-artifact-roles-are-supported
+        steps:
+          - kind: GIVEN
+            text: migration tooling reads supported legacy `.spec-driven/` Markdown workflow state
+          - kind: WHEN
+            text: >-
+              main specs, delta specs, proposals, designs, tasks, questions, spec indexes, roadmap
+              indexes, roadmap milestones, or planned change entries are identified by role
+          - kind: THEN
+            text: >-
+              each supported role maps to the corresponding strict YAML artifact type defined by the
+              registry
+      - id: migration-mappings-are-machine-readable
+        steps:
+          - kind: GIVEN
+            text: the strict YAML schema registry is reviewed
+          - kind: WHEN
+            text: migration role mappings are inspected
+          - kind: THEN
+            text: each supported legacy role is available as structured YAML data
+          - kind: AND
+            text: each supported legacy role identifies a registry-controlled strict artifact type
+          - kind: AND
+            text: each supported legacy role identifies a registry-controlled schema ID
+  - id: yaml-migration-relationship-preservation
+    strength: MUST
+    statement: >-
+      The system MUST require migration behavior to preserve supported workflow relationships when
+      converting legacy `.spec-driven/` Markdown artifacts into strict YAML artifacts.
+    scenarios:
+      - id: migration-preserves-change-relationships
+        steps:
+          - kind: GIVEN
+            text: a legacy change contains proposal, design, task, question, and delta spec artifacts
+          - kind: WHEN
+            text: migration converts the change to strict YAML
+          - kind: THEN
+            text: the generated strict artifacts preserve the change name relationship
+          - kind: AND
+            text: delta specs remain associated with their target main spec identities
+      - id: migration-preserves-roadmap-relationships
+        steps:
+          - kind: GIVEN
+            text: a legacy roadmap milestone contains planned change entries
+          - kind: WHEN
+            text: migration converts the roadmap to strict YAML
+          - kind: THEN
+            text: planned change entries remain associated with their owning milestone
+          - kind: AND
+            text: archived or active change state can still be reconciled by change name
+  - id: yaml-migration-unsupported-shape-reporting
+    strength: MUST
+    statement: >-
+      The system MUST require migration tooling to report unsupported legacy Markdown shapes through
+      structured warnings and manual follow-up entries rather than silently dropping or guessing
+      artifact semantics.
+    scenarios:
+      - id: unsupported-legacy-shape-is-reported
+        steps:
+          - kind: GIVEN
+            text: >-
+              migration tooling encounters a legacy Markdown artifact shape that cannot be mapped
+              deterministically
+          - kind: WHEN
+            text: migration reports the result
+          - kind: THEN
+            text: the unsupported shape is recorded as a structured warning
+          - kind: AND
+            text: the report identifies the source artifact path
+          - kind: AND
+            text: the report identifies the manual follow-up needed
+      - id: unsupported-shape-warning-fields-are-registered
+        steps:
+          - kind: GIVEN
+            text: the strict YAML schema registry is reviewed
+          - kind: WHEN
+            text: unsupported-shape reporting rules are inspected
+          - kind: THEN
+            text: the required warning fields are available as structured YAML data
+          - kind: AND
+            text: the manual follow-up field is available as structured YAML data
+  - id: yaml-migration-compatibility-boundary
+    strength: MUST
+    statement: >-
+      The system MUST define migration compatibility as legacy-input support rather than treating
+      legacy `.spec-driven/` Markdown artifacts as valid strict workflow target artifacts.
+    scenarios:
+      - id: legacy-artifacts-remain-migration-input-only
+        steps:
+          - kind: GIVEN
+            text: a repository contains legacy `.spec-driven/` Markdown workflow artifacts
+          - kind: WHEN
+            text: strict workflow validation and migration compatibility rules are applied
+          - kind: THEN
+            text: those artifacts are accepted only as migration input
+          - kind: AND
+            text: >-
+              generated strict workflow target artifacts still use `.strict-spec-driven/` YAML
+              formats
+  - id: yaml-migration-report-envelope
+    strength: MUST
+    statement: >-
+      The system MUST define a structured migration report model for strict migration runs that
+      records converted artifacts, initialized scaffold artifacts, skipped artifacts, warnings,
+      errors, and manual follow-up items, while preserving source-artifact references for legacy
+      inputs that were converted, skipped, or deferred.
+    scenarios:
+      - id: migration-report-preserves-actionable-source-context-for-legacy-inputs
+        steps:
+          - kind: GIVEN
+            text: migration tooling converts supported legacy `.spec-driven/` artifacts
+          - kind: WHEN
+            text: the migration report is reviewed
+          - kind: THEN
+            text: each converted legacy artifact entry identifies the relevant source artifact path
+          - kind: AND
+            text: each skipped artifact entry identifies the relevant source artifact path
+          - kind: AND
+            text: each warning or error identifies the source artifact path that triggered the outcome
+      - id: migration-report-records-initialized-strict-scaffold-assets
+        steps:
+          - kind: GIVEN
+            text: >-
+              migration tooling initializes required strict scaffold artifacts during a migration
+              run
+          - kind: WHEN
+            text: the migration report is reviewed
+          - kind: THEN
+            text: each initialized scaffold artifact entry identifies its strict target path
+          - kind: AND
+            text: >-
+              the entry does not need to invent a legacy source-artifact mapping when the scaffold
+              asset came from bundled strict templates
+      - id: migration-report-captures-manual-follow-up-items
+        steps:
+          - kind: GIVEN
+            text: migration tooling encounters an unsupported or ambiguous legacy Markdown shape
+          - kind: WHEN
+            text: the migration report is emitted
+          - kind: THEN
+            text: the report records a manual follow-up item for that source artifact
+          - kind: AND
+            text: the follow-up item explains what could not be converted deterministically
+  - id: yaml-migrated-core-spec-preservation
+    strength: MUST
+    statement: >-
+      The system MUST preserve strict workflow identity, ordering, and mapping data when legacy
+      Markdown main specs and delta specs are converted into strict YAML artifacts.
+    scenarios:
+      - id: migrated-main-specs-preserve-stable-identifiers-and-mappings
+        steps:
+          - kind: GIVEN
+            text: migration tooling converts a legacy Markdown main spec
+          - kind: WHEN
+            text: the generated strict YAML spec artifact is inspected
+          - kind: THEN
+            text: >-
+              the migrated artifact preserves the stable spec, requirement, and scenario identifiers
+              represented by the legacy workflow state
+          - kind: AND
+            text: >-
+              implementation and test mappings remain represented as structured file-level data
+              rather than requirement prose
+          - kind: AND
+            text: scenario ordering remains recoverable from the strict YAML artifact data
+      - id: migrated-delta-specs-preserve-operation-intent
+        steps:
+          - kind: GIVEN
+            text: migration tooling converts a legacy Markdown delta spec
+          - kind: WHEN
+            text: the generated strict YAML delta artifact is inspected
+          - kind: THEN
+            text: >-
+              added, modified, and removed requirement operations remain represented through the
+              strict YAML delta structure
+          - kind: AND
+            text: any preserved requirement identifiers remain reviewable through structured YAML fields
+  - id: yaml-migrated-change-artifact-state-preservation
+    strength: MUST
+    statement: >-
+      The system MUST preserve active and archived change state when legacy Markdown proposal,
+      design, tasks, and questions artifacts are converted into strict YAML change artifacts.
+    scenarios:
+      - id: migrated-active-changes-preserve-task-and-question-state
+        steps:
+          - kind: GIVEN
+            text: migration tooling converts an active legacy change directory
+          - kind: WHEN
+            text: the generated strict YAML change artifacts are inspected
+          - kind: THEN
+            text: >-
+              proposal, design, tasks, and questions content remains represented in the
+              corresponding strict artifact families
+          - kind: AND
+            text: completed versus pending task state remains reviewable through structured YAML data
+          - kind: AND
+            text: open versus resolved question state remains reviewable through structured YAML data
+      - id: migrated-archived-changes-preserve-archive-date-behavior
+        steps:
+          - kind: GIVEN
+            text: >-
+              migration tooling converts an archived legacy change directory with a date-prefixed
+              folder name
+          - kind: WHEN
+            text: the generated strict archived change output is inspected
+          - kind: THEN
+            text: >-
+              the archive-date prefix remains preserved in the migrated strict archive location or
+              archived change identity
+          - kind: AND
+            text: >-
+              the migrated archived change remains distinguishable from active strict changes
+              without reconstructing that state from Markdown headings
+  - id: strict-skill-packaging-layout-contract
+    strength: MUST
+    statement: >-
+      The system MUST provide strict skill packaging surfaces for both `strict-spec-*` and
+      `strict-roadmap-*` families with installer-facing metadata that uses strict namespace names in
+      non-migration contexts.
+    scenarios:
+      - id: strict-skill-families-are-packaged-with-strict-naming
+        steps:
+          - kind: GIVEN
+            text: strict workflow skill packaging metadata is reviewed
+          - kind: WHEN
+            text: spec workflow and roadmap workflow skill entries are checked
+          - kind: THEN
+            text: skill package names use `strict-spec-*` and `strict-roadmap-*` families
+          - kind: AND
+            text: >-
+              legacy `spec-driven-*` and `roadmap-*` names are not treated as default strict package
+              names outside explicit migration compatibility behavior
+          - kind: AND
+            text: marketplace skill entries match strict skill directory names
+  - id: strict-skill-packaging-validation-contract
+    strength: MUST
+    statement: >-
+      The system MUST validate strict skill packages for required metadata fields, declared command
+      references, stale legacy-name references, and bundled symlink assumptions.
+    scenarios:
+      - id: valid-strict-skill-package-passes-validation
+        steps:
+          - kind: GIVEN
+            text: a strict skill package includes required frontmatter metadata and command references
+          - kind: AND
+            text: package symlinks resolve to expected bundled script and template targets
+          - kind: WHEN
+            text: skill packaging validation runs
+          - kind: THEN
+            text: no validation error is emitted
+      - id: stale-naming-or-broken-symlink-fails-validation
+        steps:
+          - kind: GIVEN
+            text: >-
+              a strict skill package uses stale legacy naming references or a broken bundled symlink
+              target
+          - kind: WHEN
+            text: skill packaging validation runs
+          - kind: THEN
+            text: validation fails deterministically
+          - kind: AND
+            text: diagnostics identify the package path and failing field or link target
+  - id: strict-core-skill-command-contract
+    strength: MUST
+    statement: >-
+      The system MUST provide strict core lifecycle skill packages for `init`, `propose`, `apply`,
+      `verify`, `review`, `archive`, `auto`, `modify`, and `cancel` with explicit command mappings
+      that reference the strict bundled CLI subcommands those skills depend on.
+    scenarios:
+      - id: core-skills-expose-concrete-strict-commands
+        steps:
+          - kind: GIVEN
+            text: a strict core lifecycle `SKILL.md` file is reviewed
+          - kind: WHEN
+            text: its `## This Skill's Commands` section is inspected
+          - kind: THEN
+            text: >-
+              the command mapping identifies the specific strict bundled CLI command entry or
+              entries the skill uses
+          - kind: AND
+            text: the command mapping is not limited to a generic placeholder command
+  - id: strict-core-skill-guidance-contract
+    strength: MUST
+    statement: >-
+      The system MUST ensure strict core lifecycle skill packages describe `.strict-spec-driven/`
+      YAML workflow artifacts and preserve the split where scripts handle deterministic mechanics
+      while skill prompts handle planning and judgment.
+    scenarios:
+      - id: core-skills-reference-strict-workflow-artifacts
+        steps:
+          - kind: GIVEN
+            text: a strict core lifecycle `SKILL.md` file is reviewed
+          - kind: WHEN
+            text: its prerequisites and workflow instructions are inspected
+          - kind: THEN
+            text: >-
+              the skill describes `.strict-spec-driven/` YAML workflow artifacts rather than legacy
+              or generic workflow state
+      - id: core-skills-preserve-prompt-vs-script-responsibilities
+        steps:
+          - kind: GIVEN
+            text: a strict core lifecycle skill prompt is reviewed
+          - kind: WHEN
+            text: its workflow guidance is inspected
+          - kind: THEN
+            text: >-
+              deterministic parsing, validation, scaffolding, and merge behavior remain delegated to
+              the strict CLI commands
+          - kind: AND
+            text: >-
+              the prompt guidance remains focused on planning, editing, review, and user decision
+              checkpoints
+  - id: strict-planning-skill-command-contract
+    strength: MUST
+    statement: >-
+      The system MUST provide strict planning and documentation skill packages for `brainstorm`,
+      `simple-task`, `spec-edit`, `sync-specs`, and `resync-code-mapping` with explicit command
+      mappings that reference the strict bundled CLI subcommands those skills depend on.
+    scenarios:
+      - id: planning-skills-expose-concrete-strict-commands
+        steps:
+          - kind: GIVEN
+            text: a strict planning or documentation `SKILL.md` file is reviewed
+          - kind: WHEN
+            text: its `## This Skill's Commands` section is inspected
+          - kind: THEN
+            text: >-
+              the command mapping identifies the specific strict bundled CLI command entry or
+              entries the skill uses
+          - kind: AND
+            text: the command mapping is not limited to a generic placeholder command
+  - id: strict-planning-skill-guidance-contract
+    strength: MUST
+    statement: >-
+      The system MUST ensure strict planning and documentation skill packages describe
+      `.strict-spec-driven/` YAML workflow artifacts and preserve the intended boundaries between
+      brainstorming, simple tasks, direct main-spec edits, repository spec synchronization, and
+      mapping repair.
+    scenarios:
+      - id: planning-skills-reference-strict-workflow-artifacts
+        steps:
+          - kind: GIVEN
+            text: a strict planning or documentation `SKILL.md` file is reviewed
+          - kind: WHEN
+            text: its prerequisites and workflow instructions are inspected
+          - kind: THEN
+            text: >-
+              the skill describes `.strict-spec-driven/` YAML workflow artifacts rather than legacy
+              or packaging-only placeholder state
+      - id: planning-skills-preserve-workflow-ownership-boundaries
+        steps:
+          - kind: GIVEN
+            text: the strict planning and documentation skill prompts are reviewed
+          - kind: WHEN
+            text: their workflow guidance is inspected
+          - kind: THEN
+            text: direct main-spec editing remains owned by `strict-spec-spec-edit`
+          - kind: AND
+            text: repository drift synchronization remains owned by `strict-spec-sync-specs`
+          - kind: AND
+            text: mapping repair remains owned by `strict-spec-resync-code-mapping`
+          - kind: AND
+            text: >-
+              the prompts do not require a separate `strict-spec-spec-content` package to make those
+              workflows usable
+  - id: self-hosted-repository-guidance-prefers-strict-surfaces
+    strength: MUST
+    statement: >-
+      The system MUST require a self-hosted repository's guidance to describe
+      `.strict-spec-driven/`, `strict-spec-*`, and `strict-roadmap-*` as the default workflow
+      surfaces while limiting `.spec-driven/` and legacy names to bootstrap or migration context.
+    scenarios:
+      - id: repository-guidance-prefers-strict-workflow-state-after-self-hosting
+        steps:
+          - kind: GIVEN
+            text: a repository has adopted `.strict-spec-driven/` workflow state
+          - kind: WHEN
+            text: its workflow guidance is reviewed
+          - kind: THEN
+            text: '`.strict-spec-driven/` is identified as the preferred active workflow directory'
+          - kind: AND
+            text: '`.spec-driven/` is identified only as preserved bootstrap or migration input'
+          - kind: AND
+            text: the two directories are not presented as equivalent active targets
+      - id: repository-guidance-prefers-strict-command-families-after-self-hosting
+        steps:
+          - kind: GIVEN
+            text: a repository has adopted self-hosted strict workflow state
+          - kind: WHEN
+            text: its workflow names are reviewed
+          - kind: THEN
+            text: >-
+              `strict-spec-*` and `strict-roadmap-*` are presented as the default skill and
+              slash-command families
+          - kind: AND
+            text: legacy names appear only in bootstrap, migration, or historical context

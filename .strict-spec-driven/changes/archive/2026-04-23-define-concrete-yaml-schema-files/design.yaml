@@ -1,0 +1,63 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: define-concrete-yaml-schema-files
+approach:
+  - >-
+    Add contract-level requirements to `contracts/yaml-artifacts.md` that make schema and example
+    files first-class strict workflow artifacts. This is still a planning-only change. The delta
+    spec should define observable requirements for what future file sets must contain and how humans
+    or scripts can recognize completeness, without selecting a parser, schema dialect, or runtime
+    validator.
+decisions:
+  - id: >-
+      require-concrete-files-instead-of-prose-only-schema-descriptions-so-later-validators-and-skills-can-load-stable-artifacts
+    decision: >-
+      Require concrete files instead of prose-only schema descriptions so later validators and
+      skills can load stable artifacts.
+    rationale: >-
+      Require concrete files instead of prose-only schema descriptions so later validators and
+      skills can load stable artifacts.
+  - id: >-
+      require-one-identifiable-schema-contract-for-each-required-artifact-family-while-leaving-the-exact-directory-layout-and-registry-naming-to-the-dedicated-versioning-and-registry-roadmap-item
+    decision: >-
+      Require one identifiable schema contract for each required artifact family, while leaving the
+      exact directory layout and registry naming to the dedicated versioning and registry roadmap
+      item.
+    rationale: >-
+      Require one identifiable schema contract for each required artifact family, while leaving the
+      exact directory layout and registry naming to the dedicated versioning and registry roadmap
+      item.
+  - id: require-examples-to-be-separate-minimal-yaml-documents-associated-with-their-schemas
+    decision: Require examples to be separate minimal YAML documents associated with their schemas.
+    rationale: This gives future tests concrete valid inputs without embedding examples in Markdown prose.
+  - id: >-
+      keep-schema-version-as-a-required-file-level-field-but-defer-compatibility-rules-schema-ids-and-registry-behavior-to-define-schema-versioning-and-registry
+    decision: >-
+      Keep schema version as a required file-level field, but defer compatibility rules, schema IDs,
+      and registry behavior to `define-schema-versioning-and-registry`.
+    rationale: >-
+      Keep schema version as a required file-level field, but defer compatibility rules, schema IDs,
+      and registry behavior to `define-schema-versioning-and-registry`.
+  - id: >-
+      avoid-implementation-mappings-because-the-repository-has-no-source-tree-package-manifest-or-test-runner-yet
+    decision: >-
+      Avoid implementation mappings because the repository has no source tree, package manifest, or
+      test runner yet.
+    rationale: >-
+      Avoid implementation mappings because the repository has no source tree, package manifest, or
+      test runner yet.
+alternatives:
+  - option: Define schemas only in narrative spec text
+    reason: >-
+      rejected because validators and generators would still need to infer file contracts from
+      prose.
+  - option: Choose JSON Schema, OpenAPI, or a custom validator format now
+    reason: >-
+      rejected because this roadmap item only needs concrete YAML file contracts; the final
+      validation library belongs to later CLI foundation work.
+  - option: Combine all schemas and examples into one required file
+    reason: >-
+      rejected because a single-file requirement would over-constrain the future layout before the
+      schema registry item decides naming and compatibility rules.

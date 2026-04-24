@@ -1,0 +1,27 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: define-markdown-exception-policy
+open: []
+resolved:
+  - id: >-
+      should-the-recommended-change-be-define-markdown-exception-policy-from-milestone-01-yaml-contracts-and-naming
+    question: >-
+      Should the recommended change be `define-markdown-exception-policy` from milestone
+      `01-yaml-contracts-and-naming`?
+    context: The roadmap recommendation needed confirmation before scaffolding proposal artifacts.
+    answer: Yes.
+    status: resolved
+  - id: >-
+      which-repo-unit-test-command-should-this-change-use-before-the-repository-has-a-package-and-test-runner
+    question: >-
+      Which repo unit test command should this change use before the repository has a package and
+      test runner?
+    context: >-
+      This repository currently has no `package.json` or local test runner, but the spec-driven
+      verifier requires each proposal to name an explicit unit test command.
+    answer: >-
+      Use `node --test` as the interim explicit unit tests command for this contract-only proposal
+      until the CLI foundation defines a package test script.
+    status: resolved

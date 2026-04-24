@@ -1,0 +1,52 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: harden-concrete-yaml-schema-dialect
+approach:
+  - 'Replace the descriptive schema-file shape with a compact internal schema dialect:'
+  - '`schema` identifies a schema document.'
+  - '`schema_id` identifies the artifact schema that examples reference.'
+  - '`artifact_type` identifies the artifact family.'
+  - >-
+    `fields` recursively describes required fields, types, enum or const values, item shapes,
+    reference hints, uniqueness rules, and additional-field policy. The dialect is intentionally
+    simple and repository-native. It is not a full validator implementation yet, but it gives the
+    CLI foundation concrete data to interpret later.
+decisions:
+  - id: keep-yaml-schema-files-in-strict-spec-driven-schemas
+    decision: Keep YAML schema files in `.strict-spec-driven/schemas/`.
+    rationale: Keep YAML schema files in `.strict-spec-driven/schemas/`.
+  - id: keep-examples-in-strict-spec-driven-examples
+    decision: Keep examples in `.strict-spec-driven/examples/`.
+    rationale: Keep examples in `.strict-spec-driven/examples/`.
+  - id: use-schemaid-as-the-stable-artifact-identity-and-make-example-schema-values-match-that-id
+    decision: >-
+      Use `schema_id` as the stable artifact identity and make example `schema` values match that
+      ID.
+    rationale: >-
+      Use `schema_id` as the stable artifact identity and make example `schema` values match that
+      ID.
+  - id: keep-schema
+    decision: Keep `schema
+    rationale: >-
+      strict-spec-driven/schema/v1` for schema documents to separate schema-document identity from
+      artifact schema identity.
+  - id: >-
+      require-planned-change-entries-to-carry-the-same-strict-artifact-identity-fields-as-the-other-artifact-families
+    decision: >-
+      Require planned change entries to carry the same strict artifact identity fields as the other
+      artifact families.
+    rationale: >-
+      Require planned change entries to carry the same strict artifact identity fields as the other
+      artifact families.
+  - id: add-task-list-testinggates-to-make-validation-and-unit-test-requirements-machine-readable
+    decision: Add task-list `testing_gates` to make validation and unit test requirements machine-readable.
+    rationale: Add task-list `testing_gates` to make validation and unit test requirements machine-readable.
+alternatives:
+  - option: Switch directly to JSON Schema
+    reason: rejected for now because the roadmap has not selected final validation tooling.
+  - option: Leave descriptions as strings
+    reason: rejected because later validators would need to parse prose.
+  - option: Keep open questions in the minimal question example
+    reason: rejected because open questions intentionally block automated execution.

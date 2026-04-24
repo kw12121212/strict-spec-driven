@@ -1,0 +1,47 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/index.ts
+    - src/scaffold.ts
+    - templates/strict-spec-driven/scaffold/config.yaml
+    - templates/strict-spec-driven/scaffold/specs/INDEX.yaml
+    - templates/strict-spec-driven/scaffold/specs/README.md
+    - templates/strict-spec-driven/scaffold/roadmap/INDEX.yaml
+    - templates/strict-spec-driven/scaffold/changes/STATE.yaml
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-strict-scaffold-template-assets
+        strength: MUST
+        statement: >-
+          The system MUST provide bundled strict scaffold template assets that can seed initial
+          `.strict-spec-driven/` project state for init and fixture-driven tests.
+        scenarios:
+          - id: required-scaffold-template-asset-families-are-present
+            steps:
+              - kind: GIVEN
+                text: the strict CLI bundled templates are inspected
+              - kind: WHEN
+                text: scaffold template assets are enumerated
+              - kind: THEN
+                text: >-
+                  template assets exist for strict config, specs index, roadmap index, empty changes
+                  state, and seed README guidance
+          - id: scaffold-templates-remain-separate-from-contract-schemas-and-examples
+            steps:
+              - kind: GIVEN
+                text: strict template directories are inspected
+              - kind: WHEN
+                text: scaffold template assets are compared to schema and example assets
+              - kind: THEN
+                text: scaffold assets are stored as a distinct template bundle
+              - kind: AND
+                text: schema and example files remain dedicated to validation contracts and examples
+  MODIFIED: []
+  REMOVED: []

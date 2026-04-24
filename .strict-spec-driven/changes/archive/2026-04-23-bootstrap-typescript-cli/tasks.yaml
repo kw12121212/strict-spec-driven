@@ -1,0 +1,51 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: bootstrap-typescript-cli
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Add `package.json` with name `strict-spec-driven`, `"type": "module"`, `build` script
+          (`bun run tsc`), `test` script (`bun run test/run.js`), and TypeScript as a dev dependency
+        status: complete
+      - id: implementation-2
+        text: >-
+          Add `tsconfig.json` with `strict`, `module: NodeNext`, `moduleResolution: NodeNext`,
+          `outDir: dist`, and `rootDir: src` following the reference project config
+        status: complete
+      - id: implementation-3
+        text: >-
+          Add `src/index.ts` as the CLI entrypoint with a minimal command router that reads
+          `process.argv[2]`, dispatches to a subcommand map, prints usage for unknown commands, and
+          exits non-zero on failure
+        status: complete
+      - id: implementation-4
+        text: >-
+          Add `test/run.js` test runner using the reference project's pass/fail counter pattern and
+          at least one smoke test that imports and calls the compiled entrypoint module
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — typecheck and compile `src/` to `dist/` with zero TypeScript errors
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: >-
+          Run `bun test/run.ts` — unit tests pass with the smoke test confirming the compiled
+          entrypoint is reachable
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: >-
+          Verify implementation matches proposal scope: `dist/` output exists, `bun run build` and
+          `bun run test/run.js` both pass, `.strict-spec-driven/` contents are unmodified
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

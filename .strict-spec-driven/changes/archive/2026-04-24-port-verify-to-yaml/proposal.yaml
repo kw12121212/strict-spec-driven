@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: port-verify-to-yaml
+  status: complete
+summary:
+  what:
+    - >-
+      Implement the `verify` CLI subcommand for the strict YAML spec-driven workflow. Given a named
+      active change under `.strict-spec-driven/changes/<name>/`, verify validates all change
+      artifacts (proposal, design, tasks, questions, delta specs) against their registered schemas,
+      checks task completion status, enforces open-question blocking, validates testing gates,
+      checks delta operation consistency, and enforces exclusive active target constraints. It emits
+      deterministic JSON diagnostics to stdout.
+  why:
+    - >-
+      The strict workflow currently has `init`, `propose`, and `apply` subcommands but no
+      verification gate. Without `verify`, there is no quality gate between applying tasks and
+      archiving a change. The reference project enforces schema validity, task completion,
+      unresolved-question blocking, explicit test commands, mapping coverage, and delta conflict
+      detection — all of which must be ported to the strict YAML workflow before archive can
+      function safely.
+scope:
+  in: []
+  out: []
+unchanged_behavior:
+  - '`init`, `propose`, and `apply` subcommands remain unchanged'
+  - Existing validation layer (`validation.ts`) is reused, not replaced
+  - Existing schema registry and bundled schemas are used as-is
+  - Test command (`bun test/run.ts`) and build command (`bun run build`) remain unchanged

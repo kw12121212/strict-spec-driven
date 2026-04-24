@@ -1,0 +1,143 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/roadmap-index.yaml
+    - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+    - templates/strict-spec-driven/schemas/planned-change-entry.yaml
+    - templates/strict-spec-driven/schemas/registry.yaml
+    - templates/strict-spec-driven/examples/roadmap-index.yaml
+    - templates/strict-spec-driven/examples/roadmap-index.ordering.yaml
+    - templates/strict-spec-driven/examples/roadmap-milestone.yaml
+    - templates/strict-spec-driven/examples/roadmap-milestone.planning.yaml
+    - templates/strict-spec-driven/examples/planned-change-entry.yaml
+    - templates/strict-spec-driven/scaffold/roadmap/INDEX.yaml
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: yaml-roadmap-index-ordering-contract
+        strength: MUST
+        statement: >-
+          The system MUST represent roadmap index milestone ordering through structured YAML
+          sequence data rather than relying on Markdown list formatting or filename sorting alone.
+        scenarios:
+          - id: roadmap-index-preserves-milestone-order
+            steps:
+              - kind: GIVEN
+                text: a strict roadmap index artifact is reviewed
+              - kind: WHEN
+                text: the `milestones` field is inspected
+              - kind: THEN
+                text: milestone entries appear in an ordered YAML sequence
+              - kind: AND
+                text: each entry exposes structured `id`, `title`, `path`, and `status` fields
+              - kind: AND
+                text: milestone order remains recoverable from the artifact data alone
+    - requirement:
+        id: yaml-roadmap-milestone-planning-model
+        strength: MUST
+        statement: >-
+          The system MUST represent roadmap milestone planning state through structured YAML fields
+          for goal, scope, done criteria, dependencies, risks, status, notes, and planned change
+          entries.
+        scenarios:
+          - id: roadmap-milestone-exposes-planning-sections-as-fields
+            steps:
+              - kind: GIVEN
+                text: a strict roadmap milestone artifact is reviewed
+              - kind: WHEN
+                text: its planning content is inspected
+              - kind: THEN
+                text: the milestone goal is available as structured YAML data
+              - kind: AND
+                text: in-scope and out-of-scope items are available through structured YAML fields
+              - kind: AND
+                text: >-
+                  done criteria, dependencies, risks, and notes are available through structured
+                  YAML fields
+              - kind: AND
+                text: >-
+                  the milestone status is available as a structured YAML field rather than a prose
+                  heading
+              - kind: AND
+                text: planned changes are available as structured YAML entries owned by the milestone
+          - id: milestone-declared-status-uses-roadmap-enums
+            steps:
+              - kind: GIVEN
+                text: a strict roadmap milestone artifact is validated
+              - kind: WHEN
+                text: the milestone status is inspected
+              - kind: THEN
+                text: the declared status is limited to `proposed`, `active`, `blocked`, or `complete`
+    - requirement:
+        id: yaml-planned-change-entry-dependency-model
+        strength: MUST
+        statement: >-
+          The system MUST represent each planned change entry with a stable identifier, declared
+          status, summary, and structured dependency references.
+        scenarios:
+          - id: planned-change-entries-expose-roadmap-planning-fields
+            steps:
+              - kind: GIVEN
+                text: a strict planned change entry is reviewed
+              - kind: WHEN
+                text: its fields are inspected
+              - kind: THEN
+                text: the entry exposes structured `id`, `status`, `summary`, and `depends_on` fields
+              - kind: AND
+                text: the entry status is limited to `planned` or `complete`
+              - kind: AND
+                text: >-
+                  dependency references are expressed as structured planned change identifiers
+                  instead of prose-only notes
+    - requirement:
+        id: yaml-roadmap-example-contract-coverage
+        strength: MUST
+        statement: >-
+          The system MUST provide roadmap example artifacts that demonstrate the roadmap schema
+          contract fields needed for validation and review while keeping the primary minimal
+          examples minimal.
+        scenarios:
+          - id: primary-roadmap-examples-remain-minimal
+            steps:
+              - kind: GIVEN
+                text: the primary strict roadmap examples are reviewed
+              - kind: WHEN
+                text: minimal example content is inspected
+              - kind: THEN
+                text: the primary roadmap index example remains a minimal valid artifact
+              - kind: AND
+                text: the primary roadmap milestone example remains a minimal valid artifact
+              - kind: AND
+                text: richer workflow-state coverage is kept in separate roadmap example files
+          - id: roadmap-coverage-examples-demonstrate-milestone-ordering-fields
+            steps:
+              - kind: GIVEN
+                text: the strict roadmap index coverage example is reviewed
+              - kind: WHEN
+                text: its milestone entries are inspected
+              - kind: THEN
+                text: >-
+                  the coverage example demonstrates ordered milestone entries with structured `id`,
+                  `title`, `path`, and `status` fields
+          - id: roadmap-coverage-example-demonstrates-planning-fields
+            steps:
+              - kind: GIVEN
+                text: the strict roadmap milestone coverage example is reviewed
+              - kind: WHEN
+                text: its roadmap-specific fields are inspected
+              - kind: THEN
+                text: >-
+                  the coverage example demonstrates structured scope, done criteria, dependencies,
+                  risks, status, notes, and planned change entry fields
+              - kind: AND
+                text: >-
+                  the planned change entry example remains aligned with the milestone coverage
+                  example's dependency and status model
+  MODIFIED: []
+  REMOVED: []

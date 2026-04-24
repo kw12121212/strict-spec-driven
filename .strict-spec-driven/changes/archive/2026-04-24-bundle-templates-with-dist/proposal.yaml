@@ -1,0 +1,38 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: proposal-bundle-templates-with-dist
+  status: complete
+summary:
+  what:
+    - >-
+      Update the build step to copy `templates/` into `dist/templates/`, change template resolution
+      in source modules from `PROJECT_ROOT` (source-tree-relative) to `import.meta.url`-relative
+      paths, and add tests verifying the compiled CLI can locate all required template assets when
+      run from `dist/` alone.
+  why:
+    - >-
+      Currently `scaffold.ts` and `validation.ts` derive `BUNDLED_SCAFFOLD_DIR` and
+      `BUNDLED_SCHEMA_DIR` by resolving `../templates/strict-spec-driven/...` relative to
+      `PROJECT_ROOT` (the parent of the source file's directory). This works when running from the
+      source tree but breaks when running compiled JS from `dist/` — the compiled code would look
+      for `templates/` in `dist/../templates/` rather than `dist/templates/`. The milestone done
+      criteria require: "The build output under `dist/` includes `templates/` so compiled scripts
+      resolve scaffold and change-template assets without depending on the source tree" and "Tests
+      confirm that the compiled CLI can find all required template assets when run from `dist/`
+      alone." The planned change also mentions creating `scripts -> ../../dist/scripts` and
+      `templates -> ../../dist/templates` symlinks under each skill directory. This repository has
+      no skill directories yet, so symlink creation is out of scope for this change and should be
+      deferred to milestone 04.
+scope:
+  in: []
+  out: []
+unchanged_behavior:
+  - >-
+    `strict-spec-driven init` and `strict-spec-driven propose` continue to work identically from the
+    CLI.
+  - Template asset contents and validation behavior are unchanged.
+  - The test harness in `test/run.ts` continues to run against `dist/` output.
+  - No new runtime dependencies are introduced.

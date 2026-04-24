@@ -1,0 +1,68 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/converters/roadmap.ts
+    - src/migrate.ts
+    - src/strict-spec-cli.ts
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-migrate-supports-repository-self-hosting
+        strength: MUST
+        statement: >-
+          The system MUST allow a repository's actual bootstrap `.spec-driven/` workflow state to be
+          migrated into `.strict-spec-driven/` output that is usable as the repository's active
+          strict workflow state without rewriting the preserved bootstrap source artifacts.
+        scenarios:
+          - id: self-host-cutover-migrates-repository-workflow-state
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a repository contains bootstrap specs, roadmap artifacts, and archived or active
+                  changes under `.spec-driven/`
+              - kind: WHEN
+                text: '`strict-spec-driven migrate` is executed for the repository cutover'
+              - kind: THEN
+                text: >-
+                  the command writes corresponding strict YAML workflow state under
+                  `.strict-spec-driven/`
+              - kind: AND
+                text: >-
+                  the migrated output preserves the identities and relationships needed by strict
+                  workflow commands
+              - kind: AND
+                text: the source `.spec-driven/` artifacts remain unchanged
+          - id: self-host-cutover-normalizes-blank-legacy-mappings
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a legacy archived delta leaves `mapping.implementation` or `mapping.tests` blank
+                  in Markdown frontmatter
+              - kind: WHEN
+                text: '`strict-spec-driven migrate` is executed for the repository cutover'
+              - kind: THEN
+                text: >-
+                  the migrated strict delta keeps those mapping fields as empty structured path
+                  collections
+              - kind: AND
+                text: the change is not deferred only because the legacy mapping fields were blank
+          - id: roadmap-status-accepts-migrated-roadmap-index-paths
+            steps:
+              - kind: GIVEN
+                text: >-
+                  `strict-spec-driven migrate` has produced strict roadmap state for the repository
+                  cutover
+              - kind: WHEN
+                text: '`strict-spec-driven roadmap-status` reads the migrated strict roadmap'
+              - kind: THEN
+                text: migrated milestone paths resolve without reference diagnostics
+              - kind: AND
+                text: roadmap status validation succeeds against the migrated roadmap index
+  MODIFIED: []
+  REMOVED: []

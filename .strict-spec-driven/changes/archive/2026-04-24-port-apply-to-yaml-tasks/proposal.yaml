@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: port-apply-to-yaml-tasks
+  status: complete
+summary:
+  what:
+    - >-
+      Implement the `apply` CLI subcommand that reads and updates `tasks.yaml` for an active strict
+      change, presenting the next incomplete task, marking it complete on invocation, and emitting
+      machine-readable task status JSON.
+  why:
+    - >-
+      The spec-driven lifecycle flows propose → apply → verify → archive. The `propose` subcommand
+      already scaffolds strict change artifacts including `tasks.yaml`. The `apply` subcommand is
+      the next command needed to drive task completion through the strict workflow. Later commands
+      (`verify`, `archive`) depend on task state that `apply` manages.
+scope:
+  in: []
+  out: []
+unchanged_behavior:
+  - Existing `init` and `propose` subcommands remain unchanged.
+  - The `tasks.yaml` template structure and field names remain unchanged.
+  - The validation layer, scaffold utilities, and YAML utilities remain unchanged.

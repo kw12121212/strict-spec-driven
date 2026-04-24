@@ -24,6 +24,8 @@ Skills 本身仍可以保持 `SKILL.md`，因为这是 Agent Skills 的包装格
 ## 命名与目录约定
 
 - 工作流目录从 `.spec-driven/` 改为 `.strict-spec-driven/`。
+- 当前仓库优先把 `.strict-spec-driven/` 视为 active workflow state。
+- `.spec-driven/` 保留为 bootstrap / migration input，不再作为 strict workflow target。
 - spec workflow 技能和 slash commands 从 `spec-driven-*` 改为 `strict-spec-*`。
 - roadmap workflow 技能和 slash commands 从 `roadmap-*` 改为 `strict-roadmap-*`。
 - CLI entrypoint 和 subcommand 命名需要单独定义，不能和 skill/slash command 命名混用。
@@ -82,7 +84,11 @@ indexes 等都应是 YAML。
 
 ## 仓库状态
 
-CLI 基础已建立（Milestone 02 第一个变更已完成）。
+仓库已经具备 self-hosted strict workflow state：
+
+- `.strict-spec-driven/` 是当前优先使用的 strict workflow state
+- `.spec-driven/` 仍保留为 bootstrap / legacy migration input，用于迁移、对照和历史记录
+- 严格工作流的实现、测试和技能打包仍然围绕仓库内的 TypeScript、templates、scripts、skills 和 test 目录维护
 
 已有文件：
 
@@ -94,32 +100,18 @@ CLI 基础已建立（Milestone 02 第一个变更已完成）。
 - `RTK.md`：本仓库的 AI 工作说明
 - `templates/strict-spec-driven/schemas/`：仓库内置 strict YAML schema 资产
 - `templates/strict-spec-driven/examples/`：仓库内置 minimal valid YAML 示例资产
+- `.strict-spec-driven/`：当前仓库的 self-hosted strict workflow state
 - `.spec-driven/config.yaml`：项目上下文和通用规则
 - `.spec-driven/specs/`：规格目录（含 `contracts/yaml-artifacts.md` 和 `cli/foundation.md`）
 - `.spec-driven/roadmap/`：路线图目录
 - `.spec-driven/changes/`：变更目录
 
-## 后续建议
+## 当前工作流建议
 
-建议先用 roadmap 或 proposal 明确 YAML schema 迁移的第一阶段，例如：
-
-```text
-/roadmap-plan
-```
-
-或直接创建第一个变更：
-
-```text
-/spec-driven-propose define yaml artifact schemas
-```
-
-第一阶段可以优先定义：
-
-- main specs YAML schema
-- change artifacts YAML schema
-- roadmap milestone YAML schema
-- YAML validation rules
-- 从 `.spec-driven/**` workflow Markdown artifacts 到 `.strict-spec-driven/**` YAML artifacts 的迁移策略
+- 规划路线图时，优先使用 `strict-roadmap-*` 技能和对应命令族。
+- 执行 strict change 时，优先使用 `strict-spec-*` 技能和对应命令族。
+- 需要查看或验证当前 strict workflow state 时，以 `.strict-spec-driven/` 为准。
+- 只有在迁移、回溯 bootstrap 历史、或检查 legacy 输入兼容性时，才参考 `.spec-driven/`。
 
 ## 开发约定
 

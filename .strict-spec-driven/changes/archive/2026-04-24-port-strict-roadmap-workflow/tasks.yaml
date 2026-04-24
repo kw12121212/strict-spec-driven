@@ -1,0 +1,47 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: port-strict-roadmap-workflow
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Add strict roadmap loading, validation, status derivation, and `roadmap-status` command
+          routing for `.strict-spec-driven/roadmap/`
+        status: complete
+      - id: implementation-2
+        text: >-
+          Implement strict roadmap sync, index regeneration, and archive reconciliation so milestone
+          and planned change state stays aligned with active and archived strict changes
+        status: complete
+      - id: implementation-3
+        text: >-
+          Replace placeholder `strict-roadmap-*` skill prompts with YAML-aware roadmap guidance and
+          add regression coverage for roadmap skill content and proposal handoff
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: >-
+          Run `bun run validate-skills` — validation task for strict roadmap skill command
+          references and content coverage
+        status: complete
+        command: bun run validate-skills
+      - id: testing-2
+        text: >-
+          Run `bun test/run.ts` — unit tests covering roadmap status, sync/reconciliation, and
+          roadmap proposal handoff behavior
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: >-
+          Verify implementation matches the milestone-04 roadmap workflow scope without absorbing
+          planning-skill, migration, or operations work
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

@@ -1,0 +1,15 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: convert-roadmap-and-project-state-to-yaml
+open: []
+resolved:
+  - id: >-
+      should-the-roadmap-converter-live-inside-src-migrate-ts-or-in-a-dedicated-src-converters-roadmap-ts-module
+    question: >-
+      Should the roadmap converter live inside `src/migrate.ts` or in a dedicated
+      `src/converters/roadmap.ts` module?
+    context: '`src/migrate.ts` is 56 KB; a dedicated module enables isolated testing.'
+    answer: Split into `src/converters/roadmap.ts`. Confirmed by user.
+    status: resolved

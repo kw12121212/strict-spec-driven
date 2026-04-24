@@ -1,0 +1,66 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - package.json
+    - tsconfig.json
+    - src/index.ts
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-build-and-test-commands
+        strength: MUST
+        statement: >-
+          The system MUST provide `build` and `test` package scripts that compile TypeScript sources
+          to `dist/` and run the test suite using bun.
+        scenarios:
+          - id: build-compiles-without-errors
+            steps:
+              - kind: GIVEN
+                text: the TypeScript sources under `src/` are syntactically valid
+              - kind: WHEN
+                text: '`bun run build` is executed'
+              - kind: THEN
+                text: the TypeScript compiler produces compiled output under `dist/` with zero errors
+          - id: test-suite-is-executable
+            steps:
+              - kind: GIVEN
+                text: the `dist/` output exists
+              - kind: WHEN
+                text: '`bun run test/run.js` is executed'
+              - kind: THEN
+                text: the test suite runs and reports pass or fail status
+    - requirement:
+        id: cli-unknown-subcommand-rejection
+        strength: MUST
+        statement: >-
+          The system MUST exit non-zero and write a usage hint to stderr when invoked with an
+          unknown subcommand or no arguments.
+        scenarios:
+          - id: unknown-subcommand-exits-non-zero
+            steps:
+              - kind: GIVEN
+                text: the `strict-spec-driven` CLI is invoked with an unrecognized subcommand
+              - kind: WHEN
+                text: the command router processes the argument
+              - kind: THEN
+                text: the process exits with a non-zero exit code
+              - kind: AND
+                text: a usage hint is written to stderr
+          - id: no-arg-invocation-exits-non-zero
+            steps:
+              - kind: GIVEN
+                text: the `strict-spec-driven` CLI is invoked with no arguments
+              - kind: WHEN
+                text: the command router processes the argument
+              - kind: THEN
+                text: the process exits with a non-zero exit code
+              - kind: AND
+                text: a usage hint is written to stderr
+  MODIFIED: []
+  REMOVED: []
