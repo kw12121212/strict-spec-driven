@@ -1,6 +1,6 @@
 ---
 name: strict-roadmap-plan
-description: Strict skill package metadata scaffold for strict-roadmap-plan.
+description: Create or restructure a strict YAML roadmap under .strict-spec-driven/roadmap/.
 metadata:
   skill_id: strict_roadmap_plan
   author: strict-spec-driven
@@ -8,16 +8,57 @@ metadata:
   version: 1.0.0
 ---
 
-# strict-roadmap-plan
+You are helping the user create or restructure the strict roadmap.
 
 ## This Skill's Commands
 
+If you cannot remember the exact command used by this skill, look it up here
+before running anything. Do not guess.
 
 ```yaml
-list-changes: node {{SKILL_DIR}}/scripts/strict-spec-driven.js list
-inspect-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js modify [change-name|archive-dir]
+init: node {{SKILL_DIR}}/scripts/strict-spec-driven.js init
+roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
+roadmap-sync: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync
 ```
 
 ## Prerequisites
 
-Use strict workflow artifacts under .strict-spec-driven/.
+The `.strict-spec-driven/` directory must exist at the project root. Before
+proceeding, verify that strict workflow state already exists or initialize it.
+
+## Steps
+
+1. **Read strict project context** — inspect `.strict-spec-driven/config.yaml`,
+   `.strict-spec-driven/specs/INDEX.yaml`, and the main strict YAML specs that
+   define the current system.
+
+2. **Inspect the current roadmap state** — run:
+   ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
+   ```
+   Use the returned milestone order, diagnostics, and derived status summaries
+   as the basis for any roadmap edits under `.strict-spec-driven/roadmap/`.
+
+3. **Create or revise roadmap YAML artifacts** — update:
+   - `.strict-spec-driven/roadmap/INDEX.yaml`
+   - `.strict-spec-driven/roadmap/milestones/*.yaml`
+   Keep milestone planning in structured YAML fields such as `goal`, `scope`,
+   `done_criteria`, `planned_changes`, `dependencies`, `risks`, `status`, and
+   `notes`.
+
+4. **Normalize roadmap state** — run:
+   ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync
+   ```
+   Use this to regenerate canonical index state and reconcile roadmap status
+   with active and archived strict changes.
+
+5. **Summarize the result** — report the milestone set, the next planned change
+   candidates, and any roadmap diagnostics that still need human attention.
+
+## Rules
+
+- Keep all roadmap state under `.strict-spec-driven/roadmap/`
+- Keep planned changes owned by exactly one milestone
+- Keep milestone files numbered and stable once the roadmap exists
+- Keep each milestone to ten planned changes or fewer

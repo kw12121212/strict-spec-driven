@@ -3550,6 +3550,363 @@ async function main(): Promise<void> {
     rmSync(reviewFindingDir, { recursive: true, force: true });
   }
 
+  section("[17] roadmap workflow commands");
+
+  function writeRoadmapIndexArtifact(
+    rootDir: string,
+    milestones: Array<{ id: string; title: string; path: string; status: string }>,
+  ): void {
+    const indexPath = path.join(rootDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
+    mkdirSync(path.dirname(indexPath), { recursive: true });
+    writeFileSync(
+      indexPath,
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/roadmap-index/v1",
+        schema_version: 1,
+        artifact_type: "roadmap_index",
+        schema_file: "../schemas/roadmap-index.yaml",
+        milestones,
+      }),
+      "utf8",
+    );
+  }
+
+  function writeRoadmapMilestoneArtifact(
+    rootDir: string,
+    fileName: string,
+    options: {
+      id: string;
+      title: string;
+      goal: string;
+      status: string;
+      plannedChanges: Array<{ id: string; status: string; summary: string; depends_on: string[] }>;
+    },
+  ): void {
+    const milestonePath = path.join(rootDir, ".strict-spec-driven", "roadmap", "milestones", fileName);
+    mkdirSync(path.dirname(milestonePath), { recursive: true });
+    writeFileSync(
+      milestonePath,
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/roadmap-milestone/v1",
+        schema_version: 1,
+        artifact_type: "roadmap_milestone",
+        schema_file: "../schemas/roadmap-milestone.yaml",
+        milestone: {
+          id: options.id,
+          title: options.title,
+        },
+        goal: options.goal,
+        scope: {
+          in: ["Strict roadmap workflow behavior."],
+          out: ["Unrelated behavior."],
+        },
+        done_criteria: ["The roadmap workflow is implemented and verified."],
+        planned_changes: options.plannedChanges.map((plannedChange) => ({
+          schema: "strict-spec-driven/planned-change-entry/v1",
+          schema_version: 1,
+          artifact_type: "planned_change_entry",
+          schema_file: "../schemas/planned-change-entry.yaml",
+          id: plannedChange.id,
+          status: plannedChange.status,
+          summary: plannedChange.summary,
+          depends_on: plannedChange.depends_on,
+        })),
+        dependencies: [],
+        risks: [],
+        status: options.status,
+        notes: [],
+      }),
+      "utf8",
+    );
+  }
+
+  const roadmapHappyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-happy-"));
+  try {
+    mkdirSync(path.join(roadmapHappyDir, ".strict-spec-driven", "changes", "active-change"), { recursive: true });
+    mkdirSync(
+      path.join(roadmapHappyDir, ".strict-spec-driven", "changes", "archive", `${formatLocalDateStamp()}-archived-change`),
+      { recursive: true },
+    );
+
+    writeRoadmapMilestoneArtifact(roadmapHappyDir, "01-roadmap.yaml", {
+      id: "01-roadmap",
+      title: "Roadmap Workflow",
+      goal: "Keep strict roadmap state aligned with change state.",
+      status: "blocked",
+      plannedChanges: [
+        {
+          id: "active-change",
+          status: "planned",
+          summary: "Active work remains in progress.",
+          depends_on: [],
+        },
+        {
+          id: "archived-change",
+          status: "planned",
+          summary: "Archived work should reconcile to complete.",
+          depends_on: ["active-change"],
+        },
+      ],
+    });
+
+    writeRoadmapIndexArtifact(roadmapHappyDir, [
+      {
+        id: "01-roadmap",
+        title: "Roadmap Workflow",
+        path: "roadmap/milestones/01-roadmap.yaml",
+        status: "blocked",
+      },
+    ]);
+
+    const roadmapStatusBefore = cli(["roadmap-status"], { cwd: roadmapHappyDir });
+    assert(roadmapStatusBefore.status === 0, "roadmap-status exits zero for a structurally valid roadmap");
+    const roadmapStatusBeforeJson = JSON.parse(roadmapStatusBefore.stdout.trim());
+    assert(roadmapStatusBeforeJson.valid === true, "roadmap-status reports valid=true for structurally valid roadmap");
+    assert(roadmapStatusBeforeJson.milestones.length === 1, "roadmap-status reports one milestone");
+    assert(
+      roadmapStatusBeforeJson.milestones[0].path === "roadmap/milestones/01-roadmap.yaml",
+      "roadmap-status reports milestone path in roadmap order",
+    );
+    assert(
+      roadmapStatusBeforeJson.milestones[0].declaredStatus === "blocked"
+        && roadmapStatusBeforeJson.milestones[0].derivedStatus === "active",
+      "roadmap-status reports declared and derived milestone statuses",
+    );
+    assert(
+      roadmapStatusBeforeJson.milestones[0].plannedChanges[0].state === "active"
+        && roadmapStatusBeforeJson.milestones[0].plannedChanges[1].state === "archived",
+      "roadmap-status derives planned change state from active and archived strict changes",
+    );
+    assert(
+      roadmapStatusBeforeJson.milestones[0].plannedChanges[1].derivedStatus === "complete",
+      "roadmap-status derives archived planned changes as complete",
+    );
+    assert(
+      roadmapStatusBeforeJson.milestones[0].mismatches.length === 1
+        && roadmapStatusBeforeJson.milestones[0].plannedChanges[1].mismatches.length === 1,
+      "roadmap-status reports mismatch details without failing structural validation",
+    );
+
+    const roadmapSync = cli(["roadmap-sync"], { cwd: roadmapHappyDir });
+    assert(roadmapSync.status === 0, "roadmap-sync exits zero for reconcilable roadmap state", `got ${roadmapSync.status}`);
+    const roadmapSyncJson = JSON.parse(roadmapSync.stdout.trim());
+    assert(roadmapSyncJson.valid === true, "roadmap-sync reports valid=true after reconciliation");
+    assert(
+      roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/INDEX.yaml")
+        && roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/01-roadmap.yaml"),
+      "roadmap-sync reports updated index and milestone files",
+      `updatedFiles: ${JSON.stringify(roadmapSyncJson.updatedFiles)}`,
+    );
+
+    const syncedMilestone = yamlModule.parseYamlFile<{
+      status: string;
+      planned_changes: Array<{ id: string; status: string }>;
+    }>(path.join(roadmapHappyDir, ".strict-spec-driven", "roadmap", "milestones", "01-roadmap.yaml"));
+    assert(syncedMilestone.status === "active", "roadmap-sync rewrites milestone status to derived status");
+    assert(
+      syncedMilestone.planned_changes[0]?.status === "planned"
+        && syncedMilestone.planned_changes[1]?.status === "complete",
+      "roadmap-sync rewrites planned change declared statuses from workflow state",
+    );
+
+    const syncedIndex = yamlModule.parseYamlFile<{
+      milestones: Array<{ id: string; title: string; path: string; status: string }>;
+    }>(path.join(roadmapHappyDir, ".strict-spec-driven", "roadmap", "INDEX.yaml"));
+    assert(
+      syncedIndex.milestones.length === 1
+        && syncedIndex.milestones[0]?.status === "active"
+        && syncedIndex.milestones[0]?.path === "roadmap/milestones/01-roadmap.yaml",
+      "roadmap-sync regenerates canonical roadmap index entries from milestone state",
+    );
+
+    const roadmapStatusAfter = cli(["roadmap-status"], { cwd: roadmapHappyDir });
+    assert(roadmapStatusAfter.status === 0, "roadmap-status stays zero after roadmap-sync");
+    const roadmapStatusAfterJson = JSON.parse(roadmapStatusAfter.stdout.trim());
+    assert(
+      roadmapStatusAfterJson.milestones[0].mismatches.length === 0
+        && roadmapStatusAfterJson.milestones[0].plannedChanges.every((plannedChange: { mismatches: unknown[] }) => plannedChange.mismatches.length === 0),
+      "roadmap-sync clears milestone and planned change mismatch state",
+    );
+  } finally {
+    rmSync(roadmapHappyDir, { recursive: true, force: true });
+  }
+
+  const roadmapInvalidDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-invalid-"));
+  try {
+    writeRoadmapIndexArtifact(roadmapInvalidDir, [
+      {
+        id: "01-invalid",
+        title: "Invalid Milestone",
+        path: "roadmap/milestones/01-invalid.yaml",
+        status: "proposed",
+      },
+    ]);
+
+    const invalidMilestonePath = path.join(
+      roadmapInvalidDir,
+      ".strict-spec-driven",
+      "roadmap",
+      "milestones",
+      "01-invalid.yaml",
+    );
+    mkdirSync(path.dirname(invalidMilestonePath), { recursive: true });
+    writeFileSync(
+      invalidMilestonePath,
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/roadmap-milestone/v1",
+        schema_version: 1,
+        artifact_type: "roadmap_milestone",
+        schema_file: "../schemas/roadmap-milestone.yaml",
+        milestone: {
+          id: "01-invalid",
+          title: "Invalid Milestone",
+        },
+        goal: "Broken milestone artifact",
+        scope: {
+          in: ["Test invalid roadmap artifact"],
+          out: [],
+        },
+        done_criteria: ["Needs planned changes"],
+        dependencies: [],
+        risks: [],
+        status: "proposed",
+        notes: [],
+      }),
+      "utf8",
+    );
+
+    const invalidRoadmapStatus = cli(["roadmap-status"], { cwd: roadmapInvalidDir });
+    assert(invalidRoadmapStatus.status !== 0, "roadmap-status exits non-zero for invalid roadmap artifacts");
+    const invalidRoadmapJson = JSON.parse(invalidRoadmapStatus.stdout.trim());
+    assert(invalidRoadmapJson.valid === false, "roadmap-status reports valid=false for invalid roadmap artifact");
+    assert(
+      invalidRoadmapJson.diagnostics.some(
+        (diagnostic: { artifactPath: string; fieldPath: string }) =>
+          diagnostic.artifactPath === ".strict-spec-driven/roadmap/milestones/01-invalid.yaml"
+          && diagnostic.fieldPath === "$.planned_changes",
+      ),
+      "roadmap-status diagnostics identify the invalid artifact path and field path",
+    );
+
+    const invalidRoadmapSync = cli(["roadmap-sync"], { cwd: roadmapInvalidDir });
+    assert(invalidRoadmapSync.status !== 0, "roadmap-sync exits non-zero when milestone artifacts are invalid");
+  } finally {
+    rmSync(roadmapInvalidDir, { recursive: true, force: true });
+  }
+
+  const invalidRoadmapSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-roadmap-skill-invalid-"));
+  try {
+    const invalidRoadmapSkillDir = path.join(invalidRoadmapSkillRoot, "skills", "strict-roadmap-recommend");
+    mkdirSync(path.join(invalidRoadmapSkillRoot, "dist", "scripts"), { recursive: true });
+    mkdirSync(path.join(invalidRoadmapSkillRoot, "dist", "templates"), { recursive: true });
+    mkdirSync(invalidRoadmapSkillDir, { recursive: true });
+
+    symlinkSync("../../dist/scripts", path.join(invalidRoadmapSkillDir, "scripts"));
+    symlinkSync("../../dist/templates", path.join(invalidRoadmapSkillDir, "templates"));
+
+    writeFileSync(
+      path.join(invalidRoadmapSkillDir, "SKILL.md"),
+      [
+        "---",
+        "name: strict-roadmap-recommend",
+        "description: stub",
+        "metadata:",
+        "  skill_id: strict_roadmap_recommend",
+        "  author: strict-spec-driven",
+        "  type: agent_skill",
+        "  version: 1.0.0",
+        "---",
+        "",
+        "You are helping with roadmap work.",
+        "",
+        "## This Skill's Commands",
+        "",
+        "```yaml",
+        "cli: node {{SKILL_DIR}}/scripts/strict-spec-driven.js <command>",
+        "```",
+        "",
+        "## Prerequisites",
+        "",
+        "Use strict workflow artifacts.",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(invalidRoadmapSkillRoot, "skills", "marketplace.json"),
+      JSON.stringify(
+        {
+          schema: "strict-spec-driven/skill-marketplace/v1",
+          namespace: "strict-spec-driven",
+          skills: [{ name: "strict-roadmap-recommend", family: "strict-roadmap" }],
+        },
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+
+    const invalidRoadmapSkillResult = skillValidationModule.validateStrictSkillPackaging(invalidRoadmapSkillRoot);
+    assert(!invalidRoadmapSkillResult.valid, "strict skill validation fails for placeholder roadmap skill content");
+    assert(
+      invalidRoadmapSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.roadmap.placeholder_command"),
+      "placeholder roadmap skill reports roadmap-specific placeholder diagnostic",
+    );
+    assert(
+      invalidRoadmapSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.roadmap.required_heading.missing"),
+      "placeholder roadmap skill reports missing roadmap workflow heading diagnostic",
+    );
+    assert(
+      invalidRoadmapSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.roadmap.required_snippet.missing"),
+      "placeholder roadmap skill reports missing strict roadmap artifact reference diagnostic",
+    );
+  } finally {
+    rmSync(invalidRoadmapSkillRoot, { recursive: true, force: true });
+  }
+
+  const roadmapCycleDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-cycle-"));
+  try {
+    writeRoadmapIndexArtifact(roadmapCycleDir, [
+      {
+        id: "01-cycle",
+        title: "Cycle Milestone",
+        path: "roadmap/milestones/01-cycle.yaml",
+        status: "proposed",
+      },
+    ]);
+
+    writeRoadmapMilestoneArtifact(roadmapCycleDir, "01-cycle.yaml", {
+      id: "01-cycle",
+      title: "Cycle Milestone",
+      goal: "Detect invalid dependency cycles.",
+      status: "proposed",
+      plannedChanges: [
+        {
+          id: "change-a",
+          status: "planned",
+          summary: "First change",
+          depends_on: ["change-b"],
+        },
+        {
+          id: "change-b",
+          status: "planned",
+          summary: "Second change",
+          depends_on: ["change-a"],
+        },
+      ],
+    });
+
+    const cycleStatus = cli(["roadmap-status"], { cwd: roadmapCycleDir });
+    assert(cycleStatus.status !== 0, "roadmap-status exits non-zero for cyclic planned change dependencies");
+    const cycleJson = JSON.parse(cycleStatus.stdout.trim());
+    assert(
+      cycleJson.diagnostics.some((diagnostic: { message: string }) => diagnostic.message.includes("acyclic")),
+      "roadmap-status reports a cycle diagnostic for planned change dependencies",
+    );
+  } finally {
+    rmSync(roadmapCycleDir, { recursive: true, force: true });
+  }
+
   console.log("");
   const total = passed + failed;
   if (failed === 0) {

@@ -44,14 +44,14 @@ const EXPECTED_TEMPLATE_SYMLINK = "../../dist/templates";
 const COMMAND_PREFIX = "node {{SKILL_DIR}}/scripts/strict-spec-driven.js";
 const GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
 
-type CoreSkillExpectation = {
+type SkillContentExpectation = {
   requiredCommands: Record<string, string>;
   requiredHeadings: string[];
   requiredSnippets: string[];
   forbiddenSnippets?: string[];
 };
 
-const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, CoreSkillExpectation> = {
+const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
   "strict-spec-init": {
     requiredCommands: {
       init: `${COMMAND_PREFIX} init`,
@@ -142,6 +142,52 @@ const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, CoreSkillExpectation> = {
     },
     requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [".strict-spec-driven/"],
+  },
+};
+
+const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
+  "strict-roadmap-plan": {
+    requiredCommands: {
+      init: `${COMMAND_PREFIX} init`,
+      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/roadmap/"],
+  },
+  "strict-roadmap-milestone": {
+    requiredCommands: {
+      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/roadmap/"],
+  },
+  "strict-roadmap-recommend": {
+    requiredCommands: {
+      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      propose: `${COMMAND_PREFIX} propose <change-name>`,
+      verify: `${COMMAND_PREFIX} verify <change-name>`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/roadmap/"],
+  },
+  "strict-roadmap-propose": {
+    requiredCommands: {
+      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      propose: `${COMMAND_PREFIX} propose <change-name>`,
+      verify: `${COMMAND_PREFIX} verify <change-name>`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/roadmap/"],
+  },
+  "strict-roadmap-sync": {
+    requiredCommands: {
+      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/roadmap/"],
   },
 };
 
@@ -289,6 +335,10 @@ function validateFrontmatterFields(
 }
 
 function validateLegacyReferences(content: string, skillPath: string, diagnostics: SkillPackagingDiagnostic[]): void {
+  const contentWithoutStrictRoadmapCommands = content.replace(
+    /node \{\{SKILL_DIR\}\}\/scripts\/strict-spec-driven\.js\s+roadmap-(?:status|sync|plan|milestone|recommend|propose)\b/g,
+    "node {{SKILL_DIR}}/scripts/strict-spec-driven.js <roadmap-command>",
+  );
   const checks: Array<{ code: string; regex: RegExp; message: string }> = [
     {
       code: "skill.reference.legacy_workflow_dir",
@@ -302,13 +352,16 @@ function validateLegacyReferences(content: string, skillPath: string, diagnostic
     },
     {
       code: "skill.reference.legacy_roadmap_prefix",
-      regex: /(?<!strict-)roadmap-/g,
+      regex: /(?<!strict-)roadmap-(?:plan|milestone|recommend|propose|sync)\b(?!:)/g,
       message: "stale legacy roadmap skill prefix found; use strict-roadmap-* names",
     },
   ];
 
   for (const check of checks) {
-    const match = check.regex.exec(content);
+    const sourceContent = check.code === "skill.reference.legacy_roadmap_prefix"
+      ? contentWithoutStrictRoadmapCommands
+      : content;
+    const match = check.regex.exec(sourceContent);
     check.regex.lastIndex = 0;
     if (!match) continue;
     diagnostics.push(
@@ -321,22 +374,25 @@ function validateLegacyReferences(content: string, skillPath: string, diagnostic
   }
 }
 
-function validateCoreSkillContent(
+function validateSkillContentAgainstExpectation(
   skillName: string,
   content: string,
   commands: Record<string, string>,
   skillPath: string,
   diagnostics: SkillPackagingDiagnostic[],
+  expectationMap: Record<string, SkillContentExpectation>,
+  diagnosticPrefix: "skill.core" | "skill.roadmap",
+  label: string,
 ): void {
-  const expectation = CORE_STRICT_SKILL_EXPECTATIONS[skillName];
+  const expectation = expectationMap[skillName];
   if (!expectation) return;
 
   if (content.includes(GENERIC_COMMAND_PLACEHOLDER)) {
     diagnostics.push(
       makeDiagnostic(
-        "skill.core.placeholder_command",
+        `${diagnosticPrefix}.placeholder_command`,
         skillPath,
-        "core strict skills must replace the generic placeholder command mapping with explicit commands",
+        `${label} must replace the generic placeholder command mapping with explicit commands`,
         "explicit command mapping",
         GENERIC_COMMAND_PLACEHOLDER,
       ),
@@ -347,9 +403,9 @@ function validateCoreSkillContent(
     if (!content.includes(heading)) {
       diagnostics.push(
         makeDiagnostic(
-          "skill.core.required_heading.missing",
+          `${diagnosticPrefix}.required_heading.missing`,
           skillPath,
-          `core strict skill is missing required section heading '${heading}'`,
+          `${label} is missing required section heading '${heading}'`,
           heading,
         ),
       );
@@ -360,9 +416,9 @@ function validateCoreSkillContent(
     if (!content.includes(snippet)) {
       diagnostics.push(
         makeDiagnostic(
-          "skill.core.required_snippet.missing",
+          `${diagnosticPrefix}.required_snippet.missing`,
           skillPath,
-          `core strict skill must reference '${snippet}'`,
+          `${label} must reference '${snippet}'`,
           snippet,
         ),
       );
@@ -373,9 +429,9 @@ function validateCoreSkillContent(
     if (content.includes(snippet)) {
       diagnostics.push(
         makeDiagnostic(
-          "skill.core.forbidden_snippet.present",
+          `${diagnosticPrefix}.forbidden_snippet.present`,
           skillPath,
-          `core strict skill contains misleading prompt text '${snippet}'`,
+          `${label} contains misleading prompt text '${snippet}'`,
           "prompt text aligned with implemented CLI behavior",
           snippet,
         ),
@@ -388,9 +444,9 @@ function validateCoreSkillContent(
     if (!actualValue) {
       diagnostics.push(
         makeDiagnostic(
-          "skill.core.command.missing",
+          `${diagnosticPrefix}.command.missing`,
           `${skillPath}#commands.${commandName}`,
-          `core strict skill is missing required command entry '${commandName}'`,
+          `${label} is missing required command entry '${commandName}'`,
           expectedValue,
         ),
       );
@@ -400,15 +456,53 @@ function validateCoreSkillContent(
     if (!actualValue.includes(expectedValue)) {
       diagnostics.push(
         makeDiagnostic(
-          "skill.core.command.invalid",
+          `${diagnosticPrefix}.command.invalid`,
           `${skillPath}#commands.${commandName}`,
-          `core strict skill command '${commandName}' must reference the expected strict CLI subcommand`,
+          `${label} command '${commandName}' must reference the expected strict CLI subcommand`,
           expectedValue,
           actualValue,
         ),
       );
     }
   }
+}
+
+function validateCoreSkillContent(
+  skillName: string,
+  content: string,
+  commands: Record<string, string>,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  validateSkillContentAgainstExpectation(
+    skillName,
+    content,
+    commands,
+    skillPath,
+    diagnostics,
+    CORE_STRICT_SKILL_EXPECTATIONS,
+    "skill.core",
+    "core strict skill",
+  );
+}
+
+function validateRoadmapSkillContent(
+  skillName: string,
+  content: string,
+  commands: Record<string, string>,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  validateSkillContentAgainstExpectation(
+    skillName,
+    content,
+    commands,
+    skillPath,
+    diagnostics,
+    ROADMAP_STRICT_SKILL_EXPECTATIONS,
+    "skill.roadmap",
+    "strict roadmap skill",
+  );
 }
 
 function validateCommandSection(
@@ -521,6 +615,7 @@ function validateCommandSection(
   }
 
   validateCoreSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
+  validateRoadmapSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
 }
 
 function validateRequiredSymlink(

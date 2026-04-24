@@ -20,6 +20,7 @@ import { verifyChange } from "./verify.js";
 import { reviewChange } from "./review.js";
 import { archiveChange } from "./archive.js";
 import { validateStrictSkillPackaging } from "./skills.js";
+import { getRoadmapStatus, syncRoadmap } from "./roadmap.js";
 
 export type CommandHandler = (argv: string[]) => number | void;
 export const commands: Record<string, CommandHandler> = {};
@@ -86,6 +87,7 @@ export { applyTask, readChangeTasks, writeChangeTasks };
 export { verifyChange };
 export { reviewChange };
 export { archiveChange };
+export { getRoadmapStatus, syncRoadmap };
 
 function normalizeRepoRelativePath(rootDir: string, absolutePath: string): string {
   return path.relative(rootDir, absolutePath).split(path.sep).join("/");
@@ -776,6 +778,32 @@ function runValidateSkills(argv: string[]): number {
 }
 
 commands["validate-skills"] = (argv) => runValidateSkills(argv);
+
+function runRoadmapStatus(argv: string[]): number {
+  if (argv.length > 0) {
+    process.stderr.write("Usage: strict-spec-driven roadmap-status\n");
+    return 1;
+  }
+
+  const result = getRoadmapStatus(process.cwd());
+  process.stdout.write(`${JSON.stringify(result)}\n`);
+  return result.valid ? 0 : 1;
+}
+
+commands["roadmap-status"] = (argv) => runRoadmapStatus(argv);
+
+function runRoadmapSync(argv: string[]): number {
+  if (argv.length > 0) {
+    process.stderr.write("Usage: strict-spec-driven roadmap-sync\n");
+    return 1;
+  }
+
+  const result = syncRoadmap(process.cwd());
+  process.stdout.write(`${JSON.stringify(result)}\n`);
+  return result.valid ? 0 : 1;
+}
+
+commands["roadmap-sync"] = (argv) => runRoadmapSync(argv);
 
 function runArchive(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
