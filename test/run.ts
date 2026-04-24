@@ -124,6 +124,48 @@ type RoadmapConverterModule = {
   convertSpecsIndex(markdown: string): RoadmapConversionResult<SpecsIndexArtifact>;
 };
 
+type MigrateConverterModule = {
+  parseLegacyProposal(
+    sourcePath: string,
+    content: string,
+    fallbackChangeId: string,
+    archived: boolean,
+  ): {
+    change: { id: string; status: string };
+    summary: { what: string[]; why: string[] };
+    scope: { in: string[]; out: string[] };
+    unchanged_behavior: string[];
+  };
+  parseLegacyDesign(
+    sourcePath: string,
+    content: string,
+    changeId: string,
+  ): {
+    change: string;
+    approach: string[];
+    decisions: Array<{ id: string; decision: string; rationale: string }>;
+    alternatives: Array<{ option: string; reason: string }>;
+  };
+  parseLegacyTasks(
+    sourcePath: string,
+    content: string,
+    changeId: string,
+  ): {
+    change: string;
+    sections: Array<{ name: string; tasks: Array<{ status: string; command?: string }> }>;
+    testing_gates: { validation_task: string; unit_test_task: string };
+  };
+  parseLegacyQuestions(
+    sourcePath: string,
+    content: string,
+    changeId: string,
+  ): {
+    change: string;
+    open: Array<{ question: string; context: string; status: string }>;
+    resolved: Array<{ question: string; answer: string; status: string }>;
+  };
+};
+
 let passed = 0;
 let failed = 0;
 
@@ -4306,6 +4348,14 @@ async function main(): Promise<void> {
     );
   }
 
+  function assertMigrationReportArrays(report: Record<string, unknown>, labelPrefix: string): void {
+    assert(Array.isArray(report.converted), `${labelPrefix} report includes converted array`);
+    assert(Array.isArray(report.skipped), `${labelPrefix} report includes skipped array`);
+    assert(Array.isArray(report.warnings), `${labelPrefix} report includes warnings array`);
+    assert(Array.isArray(report.errors), `${labelPrefix} report includes errors array`);
+    assert(Array.isArray(report.manualFollowUp), `${labelPrefix} report includes manualFollowUp array`);
+  }
+
   const migrateHappyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-happy-"));
   try {
     writeLegacyMigrationFixture(migrateHappyDir);
@@ -4315,6 +4365,7 @@ async function main(): Promise<void> {
     assert(migrateHappy.status === 0, "migrate exits zero for valid bootstrap state");
     const migrateHappyJson = JSON.parse(migrateHappy.stdout.trim());
     assert(migrateHappyJson.valid === true, "migrate reports valid=true on successful migration");
+    assertMigrationReportArrays(migrateHappyJson, "successful migrate");
     assert(
       migrateHappyJson.converted.some(
         (artifact: { sourcePath?: string; targetPath: string }) =>
@@ -4666,12 +4717,95 @@ async function main(): Promise<void> {
     rmSync(migrateHappyDir, { recursive: true, force: true });
   }
 
+  const migratePartialDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-partial-"));
+  try {
+    writeLegacyMigrationFixture(migratePartialDir);
+    writeFileSync(
+      path.join(migratePartialDir, ".spec-driven", "specs", "cli", "no-requirements.md"),
+      [
+        "# No Requirements",
+        "",
+        "This legacy spec has a heading but no requirement blocks.",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+    writeFileSync(
+      path.join(migratePartialDir, ".spec-driven", "specs", "cli", "non-standard-heading.md"),
+      [
+        "# Non Standard Heading",
+        "",
+        "## Requirement: legacy-heading",
+        "The system MUST keep this legacy heading shape reviewable.",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+    writeFileSync(
+      path.join(migratePartialDir, ".spec-driven", "specs", "cli", "broken-frontmatter.md"),
+      [
+        "---",
+        "mapping: [unterminated",
+        "---",
+        "# Broken Frontmatter",
+        "",
+        "### Requirement: broken-frontmatter",
+        "The system MUST reject malformed frontmatter deterministically.",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    const partial = cli(["migrate"], { cwd: migratePartialDir });
+    assert(partial.status === 0, "migrate exits zero when unsupported spec files are deferred");
+    const partialJson = JSON.parse(partial.stdout.trim());
+    assert(partialJson.valid === true, "migrate keeps valid=true when partial migration defers unsupported spec files");
+    assertMigrationReportArrays(partialJson, "partial migrate");
+    assert(
+      partialJson.converted.some(
+        (artifact: { kind: string; sourcePath?: string }) =>
+          artifact.kind === "main_spec" && artifact.sourcePath === ".spec-driven/specs/cli/foundation.md",
+      ),
+      "partial migrate still converts supported legacy spec files",
+    );
+
+    const deferredSpecPaths = [
+      ".spec-driven/specs/cli/no-requirements.md",
+      ".spec-driven/specs/cli/non-standard-heading.md",
+      ".spec-driven/specs/cli/broken-frontmatter.md",
+    ];
+    assert(
+      deferredSpecPaths.every((sourcePath) =>
+        partialJson.skipped.some((artifact: { sourcePath: string }) => artifact.sourcePath === sourcePath),
+      ),
+      "partial migrate records skipped entries for ambiguous and malformed spec files",
+    );
+    assert(
+      deferredSpecPaths.every((sourcePath) =>
+        partialJson.warnings.some((diagnostic: { sourcePath?: string }) => diagnostic.sourcePath === sourcePath),
+      ),
+      "partial migrate records warnings for ambiguous and malformed spec files",
+    );
+    assert(
+      deferredSpecPaths.every((sourcePath) =>
+        partialJson.manualFollowUp.some((entry: { sourcePath: string }) => entry.sourcePath === sourcePath),
+      ),
+      "partial migrate records manual follow-up entries for ambiguous and malformed spec files",
+    );
+    assert(
+      !existsSync(path.join(migratePartialDir, ".strict-spec-driven", "specs", "cli", "no-requirements.yaml"))
+        && !existsSync(path.join(migratePartialDir, ".strict-spec-driven", "specs", "cli", "non-standard-heading.yaml"))
+        && !existsSync(path.join(migratePartialDir, ".strict-spec-driven", "specs", "cli", "broken-frontmatter.yaml")),
+      "partial migrate does not invent strict YAML output for deferred legacy spec files",
+    );
+  } finally {
+    rmSync(migratePartialDir, { recursive: true, force: true });
+  }
+
   const migrateMissingSourceDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-missing-"));
   try {
     const missingSource = cli(["migrate"], { cwd: migrateMissingSourceDir });
     assert(missingSource.status !== 0, "migrate exits non-zero when .spec-driven is missing");
     const missingSourceJson = JSON.parse(missingSource.stdout.trim());
     assert(missingSourceJson.valid === false, "migrate reports valid=false when bootstrap source is missing");
+    assertMigrationReportArrays(missingSourceJson, "missing-source migrate");
     assert(
       missingSourceJson.errors.some(
         (diagnostic: { code: string; sourcePath?: string }) =>
@@ -4693,6 +4827,7 @@ async function main(): Promise<void> {
     assert(conflict.status !== 0, "migrate exits non-zero for non-empty strict target conflicts");
     const conflictJson = JSON.parse(conflict.stdout.trim());
     assert(conflictJson.valid === false, "migrate reports valid=false for strict target conflicts");
+    assertMigrationReportArrays(conflictJson, "conflict migrate");
     assert(
       conflictJson.errors.some((diagnostic: { code: string }) => diagnostic.code === "strict_target_conflict"),
       "migrate reports overwrite-protection conflict details",
@@ -4712,6 +4847,7 @@ async function main(): Promise<void> {
     assert(invalidConfig.status !== 0, "migrate exits non-zero for malformed legacy config YAML");
     const invalidConfigJson = JSON.parse(invalidConfig.stdout.trim());
     assert(invalidConfigJson.valid === false, "migrate reports valid=false for malformed legacy config");
+    assertMigrationReportArrays(invalidConfigJson, "invalid-config migrate");
     assert(
       invalidConfigJson.errors.some(
         (diagnostic: { code: string; sourcePath?: string }) =>
@@ -4736,6 +4872,43 @@ async function main(): Promise<void> {
   } finally {
     rmSync(migrateDeterministicDirA, { recursive: true, force: true });
     rmSync(migrateDeterministicDirB, { recursive: true, force: true });
+  }
+
+  const migrateForceDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-force-"));
+  try {
+    writeLegacyMigrationFixture(migrateForceDir);
+
+    const first = cli(["migrate"], { cwd: migrateForceDir });
+    assert(first.status === 0, "migrate initial run exits zero before rerun checks");
+    const firstJson = JSON.parse(first.stdout.trim());
+    assertMigrationReportArrays(firstJson, "first migrate rerun check");
+
+    const blockedRerun = cli(["migrate"], { cwd: migrateForceDir });
+    assert(blockedRerun.status !== 0, "migrate rerun without --force exits non-zero after initial migration");
+    const blockedRerunJson = JSON.parse(blockedRerun.stdout.trim());
+    assertMigrationReportArrays(blockedRerunJson, "blocked rerun");
+    assert(
+      blockedRerunJson.errors.some((diagnostic: { code: string }) => diagnostic.code === "strict_target_conflict"),
+      "migrate rerun without --force preserves overwrite protection",
+    );
+
+    const forcedRerun = cli(["migrate", "--force"], { cwd: migrateForceDir });
+    assert(forcedRerun.status === 0, "migrate --force exits zero for idempotent rerun");
+    const forcedRerunJson = JSON.parse(forcedRerun.stdout.trim());
+    assertMigrationReportArrays(forcedRerunJson, "forced rerun");
+    assert(
+      forcedRerun.stdout.trim() === first.stdout.trim(),
+      "migrate --force rerun preserves identical JSON output",
+    );
+
+    const shortForcedRerun = cli(["migrate", "-f"], { cwd: migrateForceDir });
+    assert(shortForcedRerun.status === 0, "migrate -f exits zero for idempotent rerun");
+    assert(
+      shortForcedRerun.stdout.trim() === first.stdout.trim(),
+      "migrate -f rerun preserves identical JSON output",
+    );
+  } finally {
+    rmSync(migrateForceDir, { recursive: true, force: true });
   }
 
   section("[19] roadmap converter");
@@ -4929,6 +5102,164 @@ async function main(): Promise<void> {
   } finally {
     rmSync(idempotentMigrateDir, { recursive: true, force: true });
   }
+
+  section("[20] core workflow converters");
+
+  const migrateConverterModule = await loadDistModule<MigrateConverterModule>("migrate.js");
+
+  const proposalArtifact = migrateConverterModule.parseLegacyProposal(
+    ".spec-driven/changes/example-change/proposal.md",
+    [
+      "# Example Change",
+      "",
+      "## What",
+      "",
+      "- Add `--force` rerun support.",
+      "",
+      "## Why",
+      "",
+      "- Migration reruns need deterministic overwrite behavior.",
+      "",
+      "## Scope",
+      "",
+      "In scope:",
+      "",
+      "- Preserve supported conversion behavior.",
+      "",
+      "Out of scope:",
+      "",
+      "- Destructive cleanup of strict workflow state.",
+      "",
+      "## Unchanged Behavior",
+      "",
+      "- `migrate` without `--force` still refuses unsafe overwrites.",
+    ].join("\n") + "\n",
+    "fallback-change",
+    false,
+  );
+  assert(
+    proposalArtifact.change.id === "example-change" && proposalArtifact.change.status === "active",
+    "parseLegacyProposal derives active change id from proposal heading",
+  );
+  assert(
+    proposalArtifact.scope.in.length === 1 && proposalArtifact.scope.out.length === 1,
+    "parseLegacyProposal preserves in-scope and out-of-scope entries",
+  );
+  assert(
+    proposalArtifact.unchanged_behavior[0] === "`migrate` without `--force` still refuses unsafe overwrites.",
+    "parseLegacyProposal preserves unchanged behavior bullets",
+  );
+
+  const archivedProposalArtifact = migrateConverterModule.parseLegacyProposal(
+    ".spec-driven/changes/archive/2026-04-01-example-change/proposal.md",
+    "# Archived Example\n\n## What\n\n- Preserve archived state.\n\n## Why\n\n- Archive output must stay reviewable.\n",
+    "fallback-change",
+    true,
+  );
+  assert(
+    archivedProposalArtifact.change.status === "complete",
+    "parseLegacyProposal marks archived proposals complete",
+  );
+
+  const designArtifact = migrateConverterModule.parseLegacyDesign(
+    ".spec-driven/changes/example-change/design.md",
+    [
+      "# Design: example-change",
+      "",
+      "## Approach",
+      "",
+      "1. Parse the legacy artifact.",
+      "- Preserve the canonical Markdown meaning.",
+      "2. Write the strict YAML output.",
+      "- Keep the output deterministic.",
+      "",
+      "## Key Decisions",
+      "",
+      "- **Keep reruns deterministic**: Stable output makes migration reviewable.",
+      "",
+      "## Alternatives Considered",
+      "",
+      "- **Delete the target directory**: Rejected because force-based reruns should not require destructive cleanup.",
+    ].join("\n") + "\n",
+    "example-change",
+  );
+  assert(
+    designArtifact.change === "example-change" && designArtifact.approach.length === 2,
+    "parseLegacyDesign preserves change id and ordered approach items",
+  );
+  assert(
+    designArtifact.decisions[0]?.id === "keep-reruns-deterministic",
+    "parseLegacyDesign derives deterministic decision identifiers from bold labels",
+  );
+  assert(
+    designArtifact.alternatives[0]?.option === "Delete the target directory",
+    "parseLegacyDesign preserves alternative option labels",
+  );
+
+  const tasksArtifact = migrateConverterModule.parseLegacyTasks(
+    ".spec-driven/changes/example-change/tasks.md",
+    [
+      "# Tasks: example-change",
+      "",
+      "## Implementation",
+      "",
+      "- [ ] Add `--force` support to the CLI.",
+      "",
+      "## Testing",
+      "",
+      "- [x] Run `bun run build` — build validation for migrate changes",
+      "- [ ] Run `bun test/run.ts` — unit tests for migrate changes",
+      "",
+      "## Verification",
+      "",
+      "- [ ] Verify implementation matches proposal scope",
+    ].join("\n") + "\n",
+    "example-change",
+  );
+  assert(
+    tasksArtifact.change === "example-change"
+      && tasksArtifact.sections.find((section) => section.name === "Implementation")?.tasks[0]?.status === "pending",
+    "parseLegacyTasks preserves change id and implementation task status",
+  );
+  assert(
+    tasksArtifact.sections.find((section) => section.name === "Testing")?.tasks[0]?.command === "bun run build"
+      && tasksArtifact.sections.find((section) => section.name === "Testing")?.tasks[1]?.command === "bun test/run.ts",
+    "parseLegacyTasks extracts backticked testing commands",
+  );
+  assert(
+    tasksArtifact.testing_gates.validation_task === "testing-1"
+      && tasksArtifact.testing_gates.unit_test_task === "testing-2",
+    "parseLegacyTasks derives deterministic testing gate task identifiers",
+  );
+
+  const questionsArtifact = migrateConverterModule.parseLegacyQuestions(
+    ".spec-driven/changes/example-change/questions.md",
+    [
+      "# Questions: example-change",
+      "",
+      "## Open",
+      "",
+      "- [ ] Q: Should reruns preserve identical JSON output?",
+      "  Context: Force-based reruns need deterministic report output.",
+      "",
+      "## Resolved",
+      "",
+      "- [x] Q: Should warnings remain non-blocking?",
+      "  Context: Ambiguous legacy artifacts should not halt partial migration.",
+      "  A: Yes. They should stay warnings with manual follow-up entries.",
+    ].join("\n") + "\n",
+    "example-change",
+  );
+  assert(
+    questionsArtifact.change === "example-change"
+      && questionsArtifact.open[0]?.status === "open"
+      && questionsArtifact.resolved[0]?.status === "resolved",
+    "parseLegacyQuestions preserves open and resolved question status",
+  );
+  assert(
+    questionsArtifact.resolved[0]?.answer === "Yes. They should stay warnings with manual follow-up entries.",
+    "parseLegacyQuestions preserves resolved answers",
+  );
 
   console.log("");
   const total = passed + failed;

@@ -8,7 +8,7 @@ import {
 } from "fs";
 import path from "path";
 import { convertRoadmapIndex, convertRoadmapMilestone, convertSpecsIndex } from "./converters/roadmap.js";
-import { initializeStrictScaffold, loadBundledScaffoldYaml } from "./scaffold.js";
+import { getRequiredBundledScaffoldAssets, initializeStrictScaffold, loadBundledScaffoldYaml } from "./scaffold.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
 const LEGACY_WORKFLOW_DIR = ".spec-driven";
@@ -991,7 +991,7 @@ function parseLegacyDeltaSpec(
   };
 }
 
-function parseLegacyProposal(
+export function parseLegacyProposal(
   sourcePath: string,
   content: string,
   fallbackChangeId: string,
@@ -1035,7 +1035,7 @@ function parseLegacyProposal(
   };
 }
 
-function parseLegacyDesign(
+export function parseLegacyDesign(
   sourcePath: string,
   content: string,
   changeId: string,
@@ -1086,7 +1086,7 @@ function parseLegacyDesign(
   };
 }
 
-function parseLegacyTasks(
+export function parseLegacyTasks(
   sourcePath: string,
   content: string,
   changeId: string,
@@ -1189,7 +1189,7 @@ function parseLegacyTasks(
   };
 }
 
-function parseLegacyQuestions(
+export function parseLegacyQuestions(
   sourcePath: string,
   content: string,
   changeId: string,
@@ -1886,7 +1886,13 @@ function loadStrictConfigFromLegacy(rootDir: string, errors: MigrationDiagnostic
   };
 }
 
-export function migrateLegacyWorkflow(rootDir: string): MigrationResult {
+function getReportedStrictScaffoldAssets(): string[] {
+  return getRequiredBundledScaffoldAssets()
+    .filter((assetPath) => assetPath !== "config.yaml")
+    .sort((left, right) => left.localeCompare(right));
+}
+
+export function migrateLegacyWorkflow(rootDir: string, options?: { force?: boolean }): MigrationResult {
   const legacyRootAbsolutePath = path.join(rootDir, LEGACY_WORKFLOW_DIR);
   const strictRootAbsolutePath = path.join(rootDir, STRICT_WORKFLOW_DIR);
   const result: MigrationResult = {
@@ -1923,11 +1929,11 @@ export function migrateLegacyWorkflow(rootDir: string): MigrationResult {
       );
       return sortMigrationResult(result);
     }
-    if (readdirSync(strictRootAbsolutePath).length > 0) {
+    if (readdirSync(strictRootAbsolutePath).length > 0 && !options?.force) {
       result.errors.push(
         makeDiagnostic(
           "strict_target_conflict",
-          "Cannot migrate into a non-empty .strict-spec-driven directory without a future safe rerun policy.",
+          "Cannot migrate into a non-empty .strict-spec-driven directory without --force.",
           undefined,
           STRICT_WORKFLOW_DIR,
         ),
@@ -1958,14 +1964,11 @@ export function migrateLegacyWorkflow(rootDir: string): MigrationResult {
 
   const handledLegacyFiles = new Set<string>([LEGACY_CONFIG_PATH]);
 
-  for (const createdAsset of scaffoldResult.created.sort((left, right) => left.localeCompare(right))) {
-    if (createdAsset === "config.yaml") {
-      continue;
-    }
+  for (const scaffoldAsset of getReportedStrictScaffoldAssets()) {
     result.converted.push({
       kind: "strict_scaffold_asset",
-      targetPath: `${STRICT_WORKFLOW_DIR}/${createdAsset}`,
-      note: "Initialized strict scaffold asset pending dedicated legacy content converters.",
+      targetPath: `${STRICT_WORKFLOW_DIR}/${scaffoldAsset}`,
+      note: "Ensured required strict scaffold asset is available for migration output.",
     });
   }
 

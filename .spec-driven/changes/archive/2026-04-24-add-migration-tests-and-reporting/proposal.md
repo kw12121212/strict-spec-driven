@@ -1,0 +1,34 @@
+# add-migration-tests-and-reporting
+
+## What
+
+Add a `--force` flag to the `migrate` command and expand the migration test suite to cover: ambiguous Markdown structures, malformed spec content, archive date prefixes, idempotent reruns via `--force`, actionable migration report fields (warnings, skipped, manual follow-up), partial migrations, and core workflow artifact converter unit tests. All new tests use structural assertions in `test/run.ts`, consistent with existing patterns.
+
+## Why
+
+The migration command and converters are fully built but their test coverage has concrete gaps. The milestone 05 done criteria explicitly requires tests for ambiguous migrations, idempotent reruns, malformed Markdown, and actionable reports. The self-hosting guardrail states that `self-host-repo-on-strict-workflow` starts only after "migration command and converter coverage are credible." This change makes that credibility measurable.
+
+## Scope
+
+In scope:
+- Add `--force` flag to `migrate` command that allows overwriting an existing `.strict-spec-driven/` target
+- Add test cases for ambiguous spec Markdown (missing heading level, no requirement blocks, non-standard structure) producing warnings or manual follow-up items in the report
+- Add test cases for malformed spec YAML frontmatter (broken YAML, missing required fields)
+- Add test cases for archive date prefix handling in change directory names
+- Add test cases for idempotent reruns: running `migrate --force` twice on the same source produces identical output
+- Add test cases verifying actionable report structure: `warnings`, `skipped`, `manualFollowUp` arrays in JSON output
+- Add test cases for partial migration: mix of convertible and unsupported source files
+- Add unit-level test cases for core workflow artifact converters (proposal, design, tasks, questions)
+- All new tests added to `test/run.ts` as structural assertions
+
+Out of scope:
+- Committed JSON snapshot files
+- Changes to converter logic beyond what is needed to emit proper `warnings` and `manualFollowUp` entries
+- Changing existing passing test assertions
+- Self-hosting the repository
+
+## Unchanged Behavior
+
+- `migrate` without `--force` must still exit non-zero and refuse to overwrite an existing `.strict-spec-driven/` target
+- All existing section [18] and [19] test assertions must continue to pass
+- The report JSON structure must remain backwards-compatible: `valid`, `converted`, `skipped`, `errors` fields unchanged

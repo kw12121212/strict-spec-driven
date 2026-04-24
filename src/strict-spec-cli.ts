@@ -782,13 +782,18 @@ function runValidateSkills(argv: string[]): number {
 commands["validate-skills"] = (argv) => runValidateSkills(argv);
 
 function runMigrate(argv: string[]): number {
-  if (argv.length > 0) {
-    process.stderr.write("Usage: strict-spec-driven migrate\n");
+  let force = false;
+  for (const arg of argv) {
+    if (arg === "--force" || arg === "-f") {
+      force = true;
+      continue;
+    }
+    process.stderr.write("Usage: strict-spec-driven migrate [--force|-f]\n");
     return 1;
   }
 
   try {
-    const result = migrateLegacyWorkflow(process.cwd());
+    const result = migrateLegacyWorkflow(process.cwd(), { force });
     process.stdout.write(`${JSON.stringify(result)}\n`);
     return result.valid ? 0 : 1;
   } catch (error) {
