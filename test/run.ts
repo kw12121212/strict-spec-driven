@@ -3864,6 +3864,76 @@ async function main(): Promise<void> {
     rmSync(invalidRoadmapSkillRoot, { recursive: true, force: true });
   }
 
+  const invalidPlanningSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-planning-skill-invalid-"));
+  try {
+    const invalidPlanningSkillDir = path.join(invalidPlanningSkillRoot, "skills", "strict-spec-sync-specs");
+    mkdirSync(path.join(invalidPlanningSkillRoot, "dist", "scripts"), { recursive: true });
+    mkdirSync(path.join(invalidPlanningSkillRoot, "dist", "templates"), { recursive: true });
+    mkdirSync(invalidPlanningSkillDir, { recursive: true });
+
+    symlinkSync("../../dist/scripts", path.join(invalidPlanningSkillDir, "scripts"));
+    symlinkSync("../../dist/templates", path.join(invalidPlanningSkillDir, "templates"));
+
+    writeFileSync(
+      path.join(invalidPlanningSkillDir, "SKILL.md"),
+      [
+        "---",
+        "name: strict-spec-sync-specs",
+        "description: stub",
+        "metadata:",
+        "  skill_id: strict_spec_sync_specs",
+        "  author: strict-spec-driven",
+        "  type: agent_skill",
+        "  version: 1.0.0",
+        "---",
+        "",
+        "You are helping with strict spec syncing.",
+        "",
+        "## This Skill's Commands",
+        "",
+        "```yaml",
+        "cli: node {{SKILL_DIR}}/scripts/strict-spec-driven.js <command>",
+        "```",
+        "",
+        "## Prerequisites",
+        "",
+        "Use strict workflow artifacts.",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(invalidPlanningSkillRoot, "skills", "marketplace.json"),
+      JSON.stringify(
+        {
+          schema: "strict-spec-driven/skill-marketplace/v1",
+          namespace: "strict-spec-driven",
+          skills: [{ name: "strict-spec-sync-specs", family: "strict-spec" }],
+        },
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+
+    const invalidPlanningSkillResult = skillValidationModule.validateStrictSkillPackaging(invalidPlanningSkillRoot);
+    assert(!invalidPlanningSkillResult.valid, "strict skill validation fails for placeholder planning skill content");
+    assert(
+      invalidPlanningSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.planning.placeholder_command"),
+      "placeholder planning skill reports planning-specific placeholder diagnostic",
+    );
+    assert(
+      invalidPlanningSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.planning.required_heading.missing"),
+      "placeholder planning skill reports missing planning workflow heading diagnostic",
+    );
+    assert(
+      invalidPlanningSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.planning.required_snippet.missing"),
+      "placeholder planning skill reports missing strict planning artifact reference diagnostic",
+    );
+  } finally {
+    rmSync(invalidPlanningSkillRoot, { recursive: true, force: true });
+  }
+
   const roadmapCycleDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-cycle-"));
   try {
     writeRoadmapIndexArtifact(roadmapCycleDir, [

@@ -191,6 +191,47 @@ const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation>
   },
 };
 
+const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
+  "strict-spec-brainstorm": {
+    requiredCommands: {
+      propose: `${COMMAND_PREFIX} propose <change-name>`,
+      verify: `${COMMAND_PREFIX} verify <change-name>`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/", "proposal.yaml", "questions.yaml"],
+  },
+  "strict-spec-simple-task": {
+    requiredCommands: {
+      "list-changes": `${COMMAND_PREFIX} list`,
+      "inspect-change": `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
+      "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/", ".strict-spec-driven/changes/"],
+  },
+  "strict-spec-spec-edit": {
+    requiredCommands: {
+      "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/specs/", "mapping.implementation", "mapping.tests"],
+  },
+  "strict-spec-sync-specs": {
+    requiredCommands: {
+      "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/specs/", "INDEX.yaml"],
+  },
+  "strict-spec-resync-code-mapping": {
+    requiredCommands: {
+      "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/specs/", "mapping.implementation", "mapping.tests"],
+  },
+};
+
 function toPosix(value: string): string {
   return value.split(path.sep).join("/");
 }
@@ -381,7 +422,7 @@ function validateSkillContentAgainstExpectation(
   skillPath: string,
   diagnostics: SkillPackagingDiagnostic[],
   expectationMap: Record<string, SkillContentExpectation>,
-  diagnosticPrefix: "skill.core" | "skill.roadmap",
+  diagnosticPrefix: "skill.core" | "skill.roadmap" | "skill.planning",
   label: string,
 ): void {
   const expectation = expectationMap[skillName];
@@ -505,6 +546,25 @@ function validateRoadmapSkillContent(
   );
 }
 
+function validatePlanningSkillContent(
+  skillName: string,
+  content: string,
+  commands: Record<string, string>,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  validateSkillContentAgainstExpectation(
+    skillName,
+    content,
+    commands,
+    skillPath,
+    diagnostics,
+    PLANNING_STRICT_SKILL_EXPECTATIONS,
+    "skill.planning",
+    "strict planning skill",
+  );
+}
+
 function validateCommandSection(
   skillName: string,
   content: string,
@@ -616,6 +676,7 @@ function validateCommandSection(
 
   validateCoreSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateRoadmapSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
+  validatePlanningSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
 }
 
 function validateRequiredSymlink(

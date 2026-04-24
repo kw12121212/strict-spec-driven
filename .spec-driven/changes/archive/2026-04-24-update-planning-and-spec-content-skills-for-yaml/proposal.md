@@ -1,0 +1,70 @@
+# update-planning-and-spec-content-skills-for-yaml
+
+## What
+
+Replace the remaining placeholder planning-layer strict skill packages with real
+YAML-aware instructions for:
+- `strict-spec-brainstorm`
+- `strict-spec-simple-task`
+- `strict-spec-spec-edit`
+- `strict-spec-sync-specs`
+- `strict-spec-resync-code-mapping`
+
+This change will:
+- rewrite those `SKILL.md` files so they reference `.strict-spec-driven/` YAML
+  artifacts, strict command names, and the correct planning/documentation
+  workflow boundaries
+- extend `src/skills.ts` validation expectations so these planning/documentation
+  skills are checked for explicit command mappings and required strict workflow
+  guidance, not just generic package shape
+- add or update automated checks so placeholder-only planning skills fail
+  validation deterministically
+- align with the current reference workflow by keeping delta-spec routing in
+  `strict-spec-modify` and direct main-spec editing in `strict-spec-spec-edit`
+  instead of reintroducing a separate `strict-spec-spec-content` package
+
+## Why
+
+Milestone 04 is blocked on one remaining planned change, and the current repo
+still shows that gap clearly: the planning/documentation strict skills are thin
+metadata stubs, `src/skills.ts` only carries semantic expectations for the core
+strict-spec and strict-roadmap families, and the user-facing planning surface is
+not yet aligned with the strict YAML workflow.
+
+Finishing this change next completes the earliest incomplete milestone before
+the migration and self-hosting work in milestone 05. It also closes the gap
+between the packaged strict skills and the reference workflow shape the project
+is trying to preserve.
+
+## Scope
+
+In scope:
+- update only the planning/documentation strict skills listed above
+- replace generic or skeletal command sections with explicit strict bundled CLI
+  command mappings
+- describe `.strict-spec-driven/` YAML artifact locations, editing rules, and
+  confirmation checkpoints where those skills rely on them
+- extend repository validation or smoke coverage so placeholder planning skills
+  and missing strict guidance are rejected
+- keep the proposal aligned with the current reference workflow decision that no
+  separate strict `spec-content` skill is required
+
+Out of scope:
+- adding a new `strict-spec-spec-content` package
+- rewriting roadmap skills already covered by `port-strict-roadmap-workflow`
+- maintenance and ship workflow work owned by milestone 06
+- changing strict CLI subcommand semantics already delivered in milestone 03
+- migration tooling, self-hosting, installation polish, or public
+  documentation work from milestones 05 and 06
+
+## Unchanged Behavior
+
+Behaviors that must not change as a result of this change (leave blank if nothing is at risk):
+- `strict-spec-driven` command behavior remains defined by the CLI and tests, not
+  by skill prompt prose
+- strict skill packaging names, marketplace metadata shape, and symlink layout
+  remain owned by `port-strict-skill-packaging-and-validation`
+- `strict-spec-modify` continues to own change-local delta spec editing, and
+  `strict-spec-spec-edit` continues to own direct main-spec editing
+- roadmap workflow behavior remains owned by the dedicated roadmap milestone 04
+  changes

@@ -29,7 +29,7 @@ Unify the agent-facing skill surface and the roadmap workflow around the strict 
 ## Planned Changes
 - `port-strict-skill-packaging-and-validation` - Declared: complete - create strict spec and strict roadmap skill directories and `SKILL.md` metadata, remove legacy install names, update installer scripts and marketplace metadata, enforce `scripts -> ../../dist/scripts` and `templates -> ../../dist/templates` symlink behavior, and port validation for frontmatter, command references, stale legacy names, bundled script assumptions, and broken symlinks.
 - `update-core-spec-skills-for-yaml` - Declared: complete - update init, propose, apply, verify, review, archive, auto, modify, and cancel skill instructions to use `.strict-spec-driven/` and YAML change artifacts.
-- `update-planning-and-spec-content-skills-for-yaml` - Declared: planned - update brainstorm, simple-task, spec-content, spec-edit, sync-specs, and mapping repair skills to edit strict YAML specs and deltas through structured fields.
+- `update-planning-and-spec-content-skills-for-yaml` - Declared: complete - update brainstorm, simple-task, spec-content, spec-edit, sync-specs, and mapping repair skills to edit strict YAML specs and deltas through structured fields.
 - `define-yaml-roadmap-schema` - Declared: complete - finalize concrete YAML roadmap index and milestone schemas plus examples covering ordering, status, scope, criteria, dependencies, risks, notes, and planned change entries.
 - `port-strict-roadmap-workflow` - Declared: complete - implement roadmap validation, status, index regeneration, sync, and archive reconciliation commands for `.strict-spec-driven/roadmap/`, add recommendation and roadmap-to-change proposal handoff without duplicating planning metadata, and rewrite roadmap plan, milestone, recommend, propose, and sync skills for YAML roadmap artifacts, strict command names, numbered milestone files, and single-line planned change entries.
 
@@ -44,7 +44,7 @@ Unify the agent-facing skill surface and the roadmap workflow around the strict 
 - Installation or symlink mistakes could make strict skills appear present while failing at runtime.
 
 ## Status
-- Declared: proposed
+- Declared: complete
 
 ## Notes
 - This merger is intentional: spec skills and roadmap workflow are both thin layers over the same strict CLI and the same install and validation surfaces.
@@ -56,6 +56,8 @@ Unify the agent-facing skill surface and the roadmap workflow around the strict 
 - Change-creation guardrail: `update-core-spec-skills-for-yaml` is limited to init, propose, apply, verify, review, archive, auto, modify, and cancel skills; brainstorm, simple-task, spec-content, spec-edit, sync-specs, and mapping repair stay in `update-planning-and-spec-content-skills-for-yaml`.
 - Change-creation guardrail: `define-yaml-roadmap-schema` must land concrete schema and example assets plus validation-facing contracts before command behavior expands; CLI and skill execution logic belongs to `port-strict-roadmap-workflow`.
 - Change-creation guardrail: `port-strict-roadmap-workflow` may combine roadmap CLI commands, recommendation or proposal handoff, and roadmap skills only when they share the same roadmap artifact contract; if work splits later, keep recommendation and roadmap-propose behavior grouped with roadmap state reconciliation rather than with generic skill packaging.
+
+
 
 
 
