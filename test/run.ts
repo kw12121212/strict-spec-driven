@@ -85,6 +85,45 @@ type SkillValidationModule = {
   };
 };
 
+type RoadmapConversionResult<T> =
+  | { ok: true; artifact: T }
+  | { ok: false; reason: string; recommendation: string };
+
+type RoadmapIndexArtifact = {
+  schema: string;
+  schema_version: number;
+  artifact_type: string;
+  milestones: Array<{ id: string; title: string; path: string; status: string }>;
+};
+
+type RoadmapMilestoneArtifact = {
+  schema: string;
+  schema_version: number;
+  artifact_type: string;
+  milestone: { id: string; title: string };
+  goal: string;
+  scope: { in: string[]; out: string[] };
+  done_criteria: string[];
+  planned_changes: Array<{ id: string; status: string; summary: string; depends_on: string[] }>;
+  dependencies: string[];
+  risks: string[];
+  status: string;
+  notes: string[];
+};
+
+type SpecsIndexArtifact = {
+  schema: string;
+  schema_version: number;
+  artifact_type: string;
+  specs: Array<{ id: string; title: string; path: string }>;
+};
+
+type RoadmapConverterModule = {
+  convertRoadmapIndex(markdown: string): RoadmapConversionResult<RoadmapIndexArtifact>;
+  convertRoadmapMilestone(markdown: string, filename: string): RoadmapConversionResult<RoadmapMilestoneArtifact>;
+  convertSpecsIndex(markdown: string): RoadmapConversionResult<SpecsIndexArtifact>;
+};
+
 let passed = 0;
 let failed = 0;
 
@@ -3981,7 +4020,7 @@ async function main(): Promise<void> {
 
   function writeLegacyMigrationFixture(rootDir: string, configContent?: string): void {
     mkdirSync(path.join(rootDir, ".spec-driven", "specs", "cli"), { recursive: true });
-    mkdirSync(path.join(rootDir, ".spec-driven", "roadmap"), { recursive: true });
+    mkdirSync(path.join(rootDir, ".spec-driven", "roadmap", "milestones"), { recursive: true });
     mkdirSync(path.join(rootDir, ".spec-driven", "changes"), { recursive: true });
 
     writeFileSync(
@@ -4050,7 +4089,50 @@ async function main(): Promise<void> {
       ].join("\n") + "\n",
       "utf8",
     );
-    writeFileSync(path.join(rootDir, ".spec-driven", "roadmap", "INDEX.md"), "# Roadmap Index\n", "utf8");
+    writeFileSync(
+      path.join(rootDir, ".spec-driven", "roadmap", "INDEX.md"),
+      [
+        "# Roadmap Index",
+        "",
+        "## Milestones",
+        "- [01-demo.md](milestones/01-demo.md) - 01 Demo Milestone - active",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+    writeFileSync(
+      path.join(rootDir, ".spec-driven", "roadmap", "milestones", "01-demo.md"),
+      [
+        "# 01 Demo Milestone",
+        "",
+        "## Goal",
+        "Demonstrate roadmap migration for testing.",
+        "",
+        "## In Scope",
+        "- Convert roadmap artifacts.",
+        "",
+        "## Out of Scope",
+        "- Production readiness.",
+        "",
+        "## Done Criteria",
+        "- Migration produces valid YAML.",
+        "",
+        "## Planned Changes",
+        "- `demo-change` - Declared: complete - implement the demo migration change.",
+        "",
+        "## Dependencies",
+        "- No dependencies.",
+        "",
+        "## Risks",
+        "- None identified.",
+        "",
+        "## Status",
+        "- Declared: active",
+        "",
+        "## Notes",
+        "- Test fixture milestone.",
+      ].join("\n") + "\n",
+      "utf8",
+    );
 
     function writeLegacyChangeFixture(
       relativeChangeDir: string,
@@ -4283,10 +4365,11 @@ async function main(): Promise<void> {
       "migrate still reports initialized strict scaffold assets",
     );
     assert(
-      migrateHappyJson.skipped.some(
-        (artifact: { sourcePath: string }) => artifact.sourcePath === ".spec-driven/specs/INDEX.md",
+      migrateHappyJson.converted.some(
+        (artifact: { sourcePath?: string; kind: string }) =>
+          artifact.kind === "spec_index" && artifact.sourcePath === ".spec-driven/specs/INDEX.md",
       ),
-      "migrate still reports deferred legacy project-state artifacts",
+      "migrate converts legacy specs index into strict spec_index artifact",
     );
     assert(
       migrateHappyJson.skipped.some(
@@ -4295,10 +4378,19 @@ async function main(): Promise<void> {
       "migrate keeps legacy specs README as deferred follow-up",
     );
     assert(
-      migrateHappyJson.manualFollowUp.some(
-        (item: { sourcePath: string }) => item.sourcePath === ".spec-driven/roadmap/INDEX.md",
+      migrateHappyJson.converted.some(
+        (artifact: { sourcePath?: string; kind: string }) =>
+          artifact.kind === "roadmap_index" && artifact.sourcePath === ".spec-driven/roadmap/INDEX.md",
       ),
-      "migrate records manual follow-up for deferred legacy roadmap artifacts",
+      "migrate converts legacy roadmap index into strict roadmap_index artifact",
+    );
+    assert(
+      migrateHappyJson.converted.some(
+        (artifact: { sourcePath?: string; kind: string }) =>
+          artifact.kind === "roadmap_milestone"
+          && artifact.sourcePath === ".spec-driven/roadmap/milestones/01-demo.md",
+      ),
+      "migrate converts legacy roadmap milestone into strict roadmap_milestone artifact",
     );
 
     const migratedConfig = yamlModule.parseYamlFile<{
@@ -4515,6 +4607,61 @@ async function main(): Promise<void> {
       readFileSync(path.join(migrateHappyDir, ".spec-driven", "config.yaml"), "utf8") === legacyConfigBefore,
       "migrate leaves legacy bootstrap config unchanged",
     );
+
+    const migratedRoadmapIndex = yamlModule.parseYamlFile<{
+      schema: string;
+      artifact_type: string;
+      milestones: Array<{ id: string; title: string; path: string; status: string }>;
+    }>(path.join(migrateHappyDir, ".strict-spec-driven", "roadmap", "INDEX.yaml"));
+    assert(
+      migratedRoadmapIndex.schema === "strict-spec-driven/roadmap-index/v1"
+        && migratedRoadmapIndex.artifact_type === "roadmap_index",
+      "migrate writes strict YAML roadmap index output",
+    );
+    assert(
+      migratedRoadmapIndex.milestones.length === 1
+        && migratedRoadmapIndex.milestones[0]?.id === "01-demo"
+        && migratedRoadmapIndex.milestones[0]?.status === "active",
+      "migrate preserves roadmap index milestone identity and status",
+    );
+
+    const migratedRoadmapMilestone = yamlModule.parseYamlFile<{
+      schema: string;
+      artifact_type: string;
+      milestone: { id: string; title: string };
+      goal: string;
+      scope: { in: string[]; out: string[] };
+      done_criteria: string[];
+      planned_changes: Array<{ id: string; status: string; summary: string }>;
+      status: string;
+      notes: string[];
+    }>(path.join(migrateHappyDir, ".strict-spec-driven", "roadmap", "milestones", "01-demo.yaml"));
+    assert(
+      migratedRoadmapMilestone.schema === "strict-spec-driven/roadmap-milestone/v1"
+        && migratedRoadmapMilestone.artifact_type === "roadmap_milestone",
+      "migrate writes strict YAML roadmap milestone output",
+    );
+    assert(
+      migratedRoadmapMilestone.milestone.id === "01-demo"
+        && migratedRoadmapMilestone.milestone.title === "01 Demo Milestone",
+      "migrate derives roadmap milestone identity from filename and heading",
+    );
+    assert(
+      migratedRoadmapMilestone.goal.includes("roadmap migration"),
+      "migrate preserves roadmap milestone goal text",
+    );
+    assert(
+      migratedRoadmapMilestone.scope.in.length === 1 && migratedRoadmapMilestone.scope.out.length === 1,
+      "migrate preserves roadmap milestone scope sections",
+    );
+    assert(
+      migratedRoadmapMilestone.planned_changes.length === 1
+        && migratedRoadmapMilestone.planned_changes[0]?.id === "demo-change"
+        && migratedRoadmapMilestone.planned_changes[0]?.status === "complete",
+      "migrate preserves planned change entry fields including status",
+    );
+    assert(migratedRoadmapMilestone.status === "active", "migrate preserves roadmap milestone declared status");
+    assert(migratedRoadmapMilestone.notes.length === 1, "migrate preserves roadmap milestone notes");
   } finally {
     rmSync(migrateHappyDir, { recursive: true, force: true });
   }
@@ -4589,6 +4736,198 @@ async function main(): Promise<void> {
   } finally {
     rmSync(migrateDeterministicDirA, { recursive: true, force: true });
     rmSync(migrateDeterministicDirB, { recursive: true, force: true });
+  }
+
+  section("[19] roadmap converter");
+
+  const ROADMAP_FIXTURE_ROOT = path.join(ROOT, "test", "fixtures", "roadmap");
+
+  const roadmapConverterModule = await loadDistModule<RoadmapConverterModule>("converters/roadmap.js");
+
+  const validIndexContent = readFileSync(path.join(ROADMAP_FIXTURE_ROOT, "valid-index.md"), "utf8");
+  const validIndexResult = roadmapConverterModule.convertRoadmapIndex(validIndexContent);
+  assert(validIndexResult.ok === true, "convertRoadmapIndex succeeds for valid index with milestones");
+  if (validIndexResult.ok) {
+    assert(
+      validIndexResult.artifact.schema === "strict-spec-driven/roadmap-index/v1"
+        && validIndexResult.artifact.artifact_type === "roadmap_index",
+      "convertRoadmapIndex output has correct schema and artifact_type",
+    );
+    assert(
+      validIndexResult.artifact.milestones.length === 2,
+      "convertRoadmapIndex parses two milestone entries from valid index",
+      `got ${validIndexResult.artifact.milestones.length}`,
+    );
+    assert(
+      validIndexResult.artifact.milestones[0]?.id === "01-first-milestone"
+        && validIndexResult.artifact.milestones[0]?.status === "complete",
+      "convertRoadmapIndex preserves milestone id and status from link and text",
+    );
+    assert(
+      validIndexResult.artifact.milestones[0]?.path === ".strict-spec-driven/roadmap/milestones/01-first-milestone.yaml",
+      "convertRoadmapIndex derives strict YAML milestone path from href",
+      `got ${validIndexResult.artifact.milestones[0]?.path}`,
+    );
+    assert(
+      validIndexResult.artifact.milestones[1]?.id === "02-second-milestone"
+        && validIndexResult.artifact.milestones[1]?.status === "proposed",
+      "convertRoadmapIndex maps proposed status for second milestone",
+    );
+  }
+
+  const emptyIndexContent = readFileSync(path.join(ROADMAP_FIXTURE_ROOT, "empty-index.md"), "utf8");
+  const emptyIndexResult = roadmapConverterModule.convertRoadmapIndex(emptyIndexContent);
+  assert(emptyIndexResult.ok === true, "convertRoadmapIndex succeeds for index with no milestones section");
+  if (emptyIndexResult.ok) {
+    assert(
+      emptyIndexResult.artifact.milestones.length === 0,
+      "convertRoadmapIndex returns empty milestones array for index with no ## Milestones section",
+    );
+  }
+
+  const validMilestoneContent = readFileSync(
+    path.join(ROADMAP_FIXTURE_ROOT, "milestones", "valid-milestone.md"),
+    "utf8",
+  );
+  const validMilestoneResult = roadmapConverterModule.convertRoadmapMilestone(
+    validMilestoneContent,
+    "valid-milestone.md",
+  );
+  assert(validMilestoneResult.ok === true, "convertRoadmapMilestone succeeds for valid milestone with all sections");
+  if (validMilestoneResult.ok) {
+    assert(
+      validMilestoneResult.artifact.schema === "strict-spec-driven/roadmap-milestone/v1"
+        && validMilestoneResult.artifact.artifact_type === "roadmap_milestone",
+      "convertRoadmapMilestone output has correct schema and artifact_type",
+    );
+    assert(
+      validMilestoneResult.artifact.milestone.id === "valid-milestone"
+        && validMilestoneResult.artifact.milestone.title === "01 First Milestone",
+      "convertRoadmapMilestone derives milestone id from filename and title from heading",
+    );
+    assert(
+      validMilestoneResult.artifact.goal.length > 0,
+      "convertRoadmapMilestone captures goal text",
+    );
+    assert(
+      validMilestoneResult.artifact.scope.in.length > 0 && validMilestoneResult.artifact.scope.out.length > 0,
+      "convertRoadmapMilestone captures in-scope and out-of-scope entries",
+    );
+    assert(
+      validMilestoneResult.artifact.done_criteria.length > 0,
+      "convertRoadmapMilestone captures done criteria",
+    );
+    assert(
+      validMilestoneResult.artifact.planned_changes.length === 2,
+      "convertRoadmapMilestone parses all planned change entries",
+      `got ${validMilestoneResult.artifact.planned_changes.length}`,
+    );
+    assert(
+      validMilestoneResult.artifact.planned_changes[0]?.id === "define-schemas"
+        && validMilestoneResult.artifact.planned_changes[0]?.status === "complete",
+      "convertRoadmapMilestone maps planned change id and complete status",
+    );
+    assert(
+      validMilestoneResult.artifact.planned_changes[1]?.id === "implement-cli"
+        && validMilestoneResult.artifact.planned_changes[1]?.status === "planned",
+      "convertRoadmapMilestone maps planned change id and planned status for non-complete entry",
+    );
+    assert(
+      validMilestoneResult.artifact.planned_changes[0]?.depends_on.length === 0,
+      "convertRoadmapMilestone defaults planned change depends_on to empty array",
+    );
+    assert(
+      validMilestoneResult.artifact.status === "complete",
+      "convertRoadmapMilestone parses declared status from ## Status section",
+    );
+    assert(
+      validMilestoneResult.artifact.notes.length > 0,
+      "convertRoadmapMilestone captures notes entries",
+    );
+  }
+
+  const malformedMilestoneContent = readFileSync(
+    path.join(ROADMAP_FIXTURE_ROOT, "milestones", "malformed-milestone.md"),
+    "utf8",
+  );
+  const malformedMilestoneResult = roadmapConverterModule.convertRoadmapMilestone(
+    malformedMilestoneContent,
+    "malformed-milestone.md",
+  );
+  assert(
+    malformedMilestoneResult.ok === false,
+    "convertRoadmapMilestone fails for milestone missing ## Status section",
+  );
+  if (!malformedMilestoneResult.ok) {
+    assert(
+      malformedMilestoneResult.reason.includes("Status"),
+      "convertRoadmapMilestone failure reason mentions missing Status section",
+      `got reason: ${malformedMilestoneResult.reason}`,
+    );
+    assert(
+      malformedMilestoneResult.recommendation.length > 0,
+      "convertRoadmapMilestone failure includes a recommendation",
+    );
+  }
+
+  const unsupportedShapeContent = readFileSync(
+    path.join(ROADMAP_FIXTURE_ROOT, "milestones", "unsupported-shape.md"),
+    "utf8",
+  );
+  const unsupportedShapeResult = roadmapConverterModule.convertRoadmapMilestone(
+    unsupportedShapeContent,
+    "unsupported-shape.md",
+  );
+  assert(
+    unsupportedShapeResult.ok === false,
+    "convertRoadmapMilestone fails for unsupported Markdown shape with no headings",
+  );
+
+  const validSpecsIndexContent = readFileSync(path.join(ROADMAP_FIXTURE_ROOT, "valid-specs-index.md"), "utf8");
+  const validSpecsIndexResult = roadmapConverterModule.convertSpecsIndex(validSpecsIndexContent);
+  assert(validSpecsIndexResult.ok === true, "convertSpecsIndex succeeds for valid specs index");
+  if (validSpecsIndexResult.ok) {
+    assert(
+      validSpecsIndexResult.artifact.schema === "strict-spec-driven/spec-index/v1"
+        && validSpecsIndexResult.artifact.artifact_type === "spec_index",
+      "convertSpecsIndex output has correct schema and artifact_type",
+    );
+    assert(
+      validSpecsIndexResult.artifact.specs.length === 2,
+      "convertSpecsIndex parses two spec entries from valid index",
+      `got ${validSpecsIndexResult.artifact.specs.length}`,
+    );
+    assert(
+      validSpecsIndexResult.artifact.specs[0]?.id === "contracts-yaml-artifacts"
+        && validSpecsIndexResult.artifact.specs[0]?.title === "Strict YAML artifact schema contract",
+      "convertSpecsIndex derives spec id from path and preserves title",
+    );
+    assert(
+      validSpecsIndexResult.artifact.specs[0]?.path === ".strict-spec-driven/specs/contracts/yaml-artifacts.yaml",
+      "convertSpecsIndex derives strict YAML spec path from href",
+      `got ${validSpecsIndexResult.artifact.specs[0]?.path}`,
+    );
+    assert(
+      validSpecsIndexResult.artifact.specs[1]?.id === "cli-foundation",
+      "convertSpecsIndex derives spec id matching migrate.ts buildSpecIdFromRelativePath convention",
+    );
+  }
+
+  const idempotentMigrateDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-idempotent-"));
+  try {
+    writeLegacyMigrationFixture(idempotentMigrateDir);
+    const migrateResult = cli(["migrate"], { cwd: idempotentMigrateDir });
+    assert(migrateResult.status === 0, "roadmap migration exits zero on first run");
+    assert(
+      existsSync(path.join(idempotentMigrateDir, ".strict-spec-driven", "roadmap", "INDEX.yaml")),
+      "roadmap migration writes strict roadmap index YAML",
+    );
+    assert(
+      existsSync(path.join(idempotentMigrateDir, ".strict-spec-driven", "roadmap", "milestones", "01-demo.yaml")),
+      "roadmap migration writes strict roadmap milestone YAML",
+    );
+  } finally {
+    rmSync(idempotentMigrateDir, { recursive: true, force: true });
   }
 
   console.log("");

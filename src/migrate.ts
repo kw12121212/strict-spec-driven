@@ -7,6 +7,7 @@ import {
   writeFileSync,
 } from "fs";
 import path from "path";
+import { convertRoadmapIndex, convertRoadmapMilestone, convertSpecsIndex } from "./converters/roadmap.js";
 import { initializeStrictScaffold, loadBundledScaffoldYaml } from "./scaffold.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
@@ -21,6 +22,8 @@ const CHANGE_DESIGN_SCHEMA_FILE = "templates/strict-spec-driven/schemas/change-d
 const TASK_LIST_SCHEMA_FILE = "templates/strict-spec-driven/schemas/task-list.yaml";
 const QUESTION_LIST_SCHEMA_FILE = "templates/strict-spec-driven/schemas/question-list.yaml";
 const SPEC_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/spec-index.yaml";
+const LEGACY_ROADMAP_DIR = `${LEGACY_WORKFLOW_DIR}/roadmap`;
+const STRICT_ROADMAP_DIR = `${STRICT_WORKFLOW_DIR}/roadmap`;
 
 type StrictWorkflowConfig = {
   schema: "strict-spec-driven/config/v1";
@@ -44,6 +47,9 @@ type MigrationArtifactKind =
   | "change_design"
   | "task_list"
   | "question_list"
+  | "roadmap_index"
+  | "roadmap_milestone"
+  | "spec_index"
   | "legacy_markdown_artifact"
   | "legacy_project_state";
 
@@ -56,7 +62,10 @@ export type MigrationConvertedArtifact = {
     | "change_proposal"
     | "change_design"
     | "task_list"
-    | "question_list";
+    | "question_list"
+    | "roadmap_index"
+    | "roadmap_milestone"
+    | "spec_index";
   targetPath: string;
   sourcePath?: string;
   note: string;
@@ -1616,6 +1625,169 @@ function describeDeferredLegacyArtifact(repoRelativePath: string): DeferredLegac
   };
 }
 
+function convertLegacyRoadmapArtifacts(
+  rootDir: string,
+  result: MigrationResult,
+  handledLegacyFiles: Set<string>,
+): void {
+  const legacyRoadmapRoot = path.join(rootDir, LEGACY_ROADMAP_DIR);
+  if (!existsSync(legacyRoadmapRoot) || !statSync(legacyRoadmapRoot).isDirectory()) {
+    return;
+  }
+
+  const legacyIndexPath = `${LEGACY_ROADMAP_DIR}/INDEX.md`;
+  const legacyIndexAbsPath = path.join(legacyRoadmapRoot, "INDEX.md");
+  if (existsSync(legacyIndexAbsPath) && statSync(legacyIndexAbsPath).isFile()) {
+    handledLegacyFiles.add(legacyIndexPath);
+    try {
+      const content = readFileSync(legacyIndexAbsPath, "utf8");
+      const conversionResult = convertRoadmapIndex(content);
+      if (!conversionResult.ok) {
+        recordDeferredArtifact(
+          result,
+          legacyIndexPath,
+          conversionResult.reason,
+          conversionResult.recommendation,
+          "legacy_markdown_artifact",
+          "conversion_ambiguous",
+        );
+      } else {
+        const strictIndexPath = `${STRICT_ROADMAP_DIR}/INDEX.yaml`;
+        writeYamlFile(buildStrictMarkdownTargetPath(rootDir, strictIndexPath), conversionResult.artifact);
+        result.converted.push({
+          kind: "roadmap_index",
+          sourcePath: legacyIndexPath,
+          targetPath: strictIndexPath,
+          note: "Migrated legacy roadmap index into a strict YAML roadmap_index artifact.",
+        });
+      }
+    } catch (error) {
+      const deferredArtifact = makeConversionFailure(legacyIndexPath, error);
+      recordDeferredArtifact(
+        result,
+        legacyIndexPath,
+        deferredArtifact.reason,
+        deferredArtifact.recommendation,
+        deferredArtifact.kind,
+        "conversion_ambiguous",
+      );
+    }
+  }
+
+  const legacyMilestonesRoot = path.join(legacyRoadmapRoot, "milestones");
+  if (!existsSync(legacyMilestonesRoot) || !statSync(legacyMilestonesRoot).isDirectory()) {
+    return;
+  }
+
+  const milestoneFiles = listFilesRecursive(legacyMilestonesRoot)
+    .map((absolutePath) => toRepoRelativePath(rootDir, absolutePath))
+    .filter((repoRelativePath) => repoRelativePath.endsWith(".md"))
+    .sort((left, right) => left.localeCompare(right));
+
+  for (const legacyMilestoneFile of milestoneFiles) {
+    handledLegacyFiles.add(legacyMilestoneFile);
+    try {
+      const content = readFileSync(path.join(rootDir, legacyMilestoneFile), "utf8");
+      const filename = path.basename(legacyMilestoneFile);
+      const conversionResult = convertRoadmapMilestone(content, filename);
+      if (!conversionResult.ok) {
+        recordDeferredArtifact(
+          result,
+          legacyMilestoneFile,
+          conversionResult.reason,
+          conversionResult.recommendation,
+          "legacy_markdown_artifact",
+          "conversion_ambiguous",
+        );
+        continue;
+      }
+      const strictMilestonePath = toPosix(
+        legacyMilestoneFile
+          .replace(`${LEGACY_ROADMAP_DIR}/`, `${STRICT_ROADMAP_DIR}/`)
+          .replace(/\.md$/i, ".yaml"),
+      );
+      writeYamlFile(buildStrictMarkdownTargetPath(rootDir, strictMilestonePath), conversionResult.artifact);
+      result.converted.push({
+        kind: "roadmap_milestone",
+        sourcePath: legacyMilestoneFile,
+        targetPath: strictMilestonePath,
+        note: "Migrated legacy roadmap milestone into a strict YAML roadmap_milestone artifact.",
+      });
+    } catch (error) {
+      const deferredArtifact = makeConversionFailure(legacyMilestoneFile, error);
+      recordDeferredArtifact(
+        result,
+        legacyMilestoneFile,
+        deferredArtifact.reason,
+        deferredArtifact.recommendation,
+        deferredArtifact.kind,
+        "conversion_ambiguous",
+      );
+    }
+  }
+}
+
+function convertLegacySpecsIndex(
+  rootDir: string,
+  result: MigrationResult,
+  handledLegacyFiles: Set<string>,
+): void {
+  const legacySpecsIndexPath = `${LEGACY_WORKFLOW_DIR}/specs/INDEX.md`;
+  const legacySpecsIndexAbsPath = path.join(rootDir, LEGACY_WORKFLOW_DIR, "specs", "INDEX.md");
+
+  if (!existsSync(legacySpecsIndexAbsPath) || !statSync(legacySpecsIndexAbsPath).isFile()) {
+    return;
+  }
+
+  handledLegacyFiles.add(legacySpecsIndexPath);
+
+  const strictSpecsIndexPath = `${STRICT_WORKFLOW_DIR}/specs/INDEX.yaml`;
+  const strictSpecsIndexAbsPath = path.join(rootDir, STRICT_WORKFLOW_DIR, "specs", "INDEX.yaml");
+
+  if (existsSync(strictSpecsIndexAbsPath)) {
+    result.converted.push({
+      kind: "spec_index",
+      sourcePath: legacySpecsIndexPath,
+      targetPath: strictSpecsIndexPath,
+      note: "Legacy specs index converted: strict spec index regenerated from migrated spec artifacts.",
+    });
+    return;
+  }
+
+  try {
+    const content = readFileSync(legacySpecsIndexAbsPath, "utf8");
+    const conversionResult = convertSpecsIndex(content);
+    if (!conversionResult.ok) {
+      recordDeferredArtifact(
+        result,
+        legacySpecsIndexPath,
+        conversionResult.reason,
+        conversionResult.recommendation,
+        "legacy_markdown_artifact",
+        "conversion_ambiguous",
+      );
+      return;
+    }
+    writeYamlFile(strictSpecsIndexAbsPath, conversionResult.artifact);
+    result.converted.push({
+      kind: "spec_index",
+      sourcePath: legacySpecsIndexPath,
+      targetPath: strictSpecsIndexPath,
+      note: "Migrated legacy specs index into a strict YAML spec_index artifact.",
+    });
+  } catch (error) {
+    const deferredArtifact = makeConversionFailure(legacySpecsIndexPath, error);
+    recordDeferredArtifact(
+      result,
+      legacySpecsIndexPath,
+      deferredArtifact.reason,
+      deferredArtifact.recommendation,
+      deferredArtifact.kind,
+      "conversion_ambiguous",
+    );
+  }
+}
+
 function sortMigrationResult(result: MigrationResult): MigrationResult {
   result.converted.sort((left, right) => {
     const leftKey = [left.targetPath, left.sourcePath ?? "", left.kind, left.note].join("|");
@@ -1799,6 +1971,8 @@ export function migrateLegacyWorkflow(rootDir: string): MigrationResult {
 
   convertLegacySpecArtifacts(rootDir, result, handledLegacyFiles);
   convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles);
+  convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles);
+  convertLegacySpecsIndex(rootDir, result, handledLegacyFiles);
 
   for (const legacyFile of legacyFiles) {
     if (handledLegacyFiles.has(legacyFile)) {
