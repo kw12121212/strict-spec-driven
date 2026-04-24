@@ -31,7 +31,7 @@ Deliver a safe migration path from bootstrap `.spec-driven/` Markdown artifacts 
 
 ## Planned Changes
 - `implement-spec-to-strict-migrate-command` - Declared: complete - implement a `migrate` subcommand that reads `.spec-driven/`, writes `.strict-spec-driven/`, performs preflight checks, enforces overwrite protection, and emits a structured migration report.
-- `add-strict-spec-migrate-skill` - Declared: planned - create a strict migration skill package that runs preflight checks, invokes migration, reviews reports, validates generated YAML, and guides manual follow-up.
+- `add-strict-spec-migrate-skill` - Declared: complete - create a strict migration skill package that runs preflight checks, invokes migration, reviews reports, validates generated YAML, and guides manual follow-up.
 - `convert-core-workflow-artifacts-to-yaml` - Declared: complete - implement conversion modules and fixtures for main specs, delta specs, requirement scenarios, operation sections, mapping frontmatter, and active and archived proposal, design, tasks, and questions artifacts so strict YAML spec and change directories preserve status, stable identifiers, and archive dates.
 - `convert-roadmap-and-project-state-to-yaml` - Declared: complete - implement conversion modules and validation tests for roadmap indexes, milestone files, statuses, dependencies, risks, notes, planned change entries, config, specs indexes, roadmap indexes, and generated scaffold metadata into strict YAML project state files.
 - `add-migration-tests-and-reporting` - Declared: complete - add automated tests and report snapshots for successful migrations, ambiguous migrations, malformed Markdown, archive directories, roadmap status derivation, idempotent reruns, and actionable migration reports.
@@ -48,7 +48,7 @@ Deliver a safe migration path from bootstrap `.spec-driven/` Markdown artifacts 
 - Treating migration and self-hosting as separate milestones can create a false finish state where tooling exists but no real repository proves it works.
 
 ## Status
-- Declared: proposed
+- Declared: complete
 
 ## Notes
 - This merger is intentional: migration is not complete until the repository can actually run on the generated strict state.
@@ -61,6 +61,8 @@ Deliver a safe migration path from bootstrap `.spec-driven/` Markdown artifacts 
 - Change-creation guardrail: `convert-core-workflow-artifacts-to-yaml` owns spec, delta, proposal, design, task, and question conversion where stable identifiers, statuses, and archive date rules overlap; it should not absorb roadmap, config, or index conversion.
 - Change-creation guardrail: `convert-roadmap-and-project-state-to-yaml` owns roadmap milestones, roadmap indexes, config, specs indexes, and scaffold metadata, but it does not own self-host cutover or public guidance updates.
 - Change-creation guardrail: `self-host-repo-on-strict-workflow` starts only after migration command and converter coverage are credible, and it is not complete until migrated files, validation evidence, guidance updates, and the exact bootstrap retirement decision all exist together.
+
+
 
 
 

@@ -232,6 +232,18 @@ const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation
   },
 };
 
+const MIGRATION_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
+  "strict-spec-migrate": {
+    requiredCommands: {
+      migrate: `${COMMAND_PREFIX} migrate [--force|-f]`,
+      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".spec-driven/", ".strict-spec-driven/"],
+  },
+};
+
 function toPosix(value: string): string {
   return value.split(path.sep).join("/");
 }
@@ -375,17 +387,17 @@ function validateFrontmatterFields(
   }
 }
 
-function validateLegacyReferences(content: string, skillPath: string, diagnostics: SkillPackagingDiagnostic[]): void {
+function validateLegacyReferences(
+  skillName: string,
+  content: string,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
   const contentWithoutStrictRoadmapCommands = content.replace(
     /node \{\{SKILL_DIR\}\}\/scripts\/strict-spec-driven\.js\s+roadmap-(?:status|sync|plan|milestone|recommend|propose)\b/g,
     "node {{SKILL_DIR}}/scripts/strict-spec-driven.js <roadmap-command>",
   );
   const checks: Array<{ code: string; regex: RegExp; message: string }> = [
-    {
-      code: "skill.reference.legacy_workflow_dir",
-      regex: /\.spec-driven\//g,
-      message: "stale legacy workflow directory reference found; use .strict-spec-driven/",
-    },
     {
       code: "skill.reference.legacy_spec_prefix",
       regex: /(?<!strict-)spec-driven-/g,
@@ -397,6 +409,13 @@ function validateLegacyReferences(content: string, skillPath: string, diagnostic
       message: "stale legacy roadmap skill prefix found; use strict-roadmap-* names",
     },
   ];
+  if (skillName !== "strict-spec-migrate") {
+    checks.unshift({
+      code: "skill.reference.legacy_workflow_dir",
+      regex: /\.spec-driven\//g,
+      message: "stale legacy workflow directory reference found; use .strict-spec-driven/",
+    });
+  }
 
   for (const check of checks) {
     const sourceContent = check.code === "skill.reference.legacy_roadmap_prefix"
@@ -422,7 +441,7 @@ function validateSkillContentAgainstExpectation(
   skillPath: string,
   diagnostics: SkillPackagingDiagnostic[],
   expectationMap: Record<string, SkillContentExpectation>,
-  diagnosticPrefix: "skill.core" | "skill.roadmap" | "skill.planning",
+  diagnosticPrefix: "skill.core" | "skill.roadmap" | "skill.planning" | "skill.migration",
   label: string,
 ): void {
   const expectation = expectationMap[skillName];
@@ -565,6 +584,25 @@ function validatePlanningSkillContent(
   );
 }
 
+function validateMigrationSkillContent(
+  skillName: string,
+  content: string,
+  commands: Record<string, string>,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  validateSkillContentAgainstExpectation(
+    skillName,
+    content,
+    commands,
+    skillPath,
+    diagnostics,
+    MIGRATION_STRICT_SKILL_EXPECTATIONS,
+    "skill.migration",
+    "strict migration skill",
+  );
+}
+
 function validateCommandSection(
   skillName: string,
   content: string,
@@ -677,6 +715,7 @@ function validateCommandSection(
   validateCoreSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateRoadmapSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validatePlanningSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
+  validateMigrationSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
 }
 
 function validateRequiredSymlink(
@@ -918,7 +957,7 @@ export function validateStrictSkillPackaging(rootDir: string): SkillPackagingVal
     if (frontmatter) {
       validateFrontmatterFields(frontmatter, skillName, skillPath, diagnostics);
     }
-    validateLegacyReferences(content, skillPath, diagnostics);
+    validateLegacyReferences(skillName, content, skillPath, diagnostics);
     validateCommandSection(skillName, content, skillPath, diagnostics);
     validateRequiredSymlink(skillDir, skillName, "scripts", EXPECTED_SCRIPT_SYMLINK, diagnostics);
     validateRequiredSymlink(skillDir, skillName, "templates", EXPECTED_TEMPLATE_SYMLINK, diagnostics);
