@@ -4,7 +4,11 @@
   "type": "module",
   "scripts": {
     "build": "tsc && rm -rf dist/templates dist/scripts && cp -r templates dist/templates && cp -r scripts dist/scripts",
+    "install-strict-skills": "bash install.sh",
+    "install-strict-skills:project": "bash install.sh --project",
     "test": "bun test/run.ts",
+    "uninstall-strict-skills": "bash install.sh --uninstall",
+    "uninstall-strict-skills:project": "bash install.sh --uninstall --project",
     "validate-skills": "bun run build && node dist/strict-spec-cli.js validate-skills"
   },
   "devDependencies": {
