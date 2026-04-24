@@ -14,8 +14,7 @@ metadata:
 
 
 ```yaml
-cli: node {{SKILL_DIR}}/scripts/strict-spec-driven.js <command>
-
+verify-spec-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings
 ```
 
 ## Prerequisites

@@ -42,6 +42,108 @@ const REQUIRED_METADATA_FIELDS = ["skill_id", "author", "type", "version"] as co
 const EXPECTED_SCRIPT_SYMLINK = "../../dist/scripts";
 const EXPECTED_TEMPLATE_SYMLINK = "../../dist/templates";
 const COMMAND_PREFIX = "node {{SKILL_DIR}}/scripts/strict-spec-driven.js";
+const GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
+
+type CoreSkillExpectation = {
+  requiredCommands: Record<string, string>;
+  requiredHeadings: string[];
+  requiredSnippets: string[];
+  forbiddenSnippets?: string[];
+};
+
+const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, CoreSkillExpectation> = {
+  "strict-spec-init": {
+    requiredCommands: {
+      init: `${COMMAND_PREFIX} init`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/"],
+  },
+  "strict-spec-propose": {
+    requiredCommands: {
+      propose: `${COMMAND_PREFIX} propose <change-name>`,
+      verify: `${COMMAND_PREFIX} verify <change-name>`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/"],
+    forbiddenSnippets: [
+      "Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/.",
+    ],
+  },
+  "strict-spec-apply": {
+    requiredCommands: {
+      modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
+      apply: `${COMMAND_PREFIX} apply <change-name>`,
+      verify: `${COMMAND_PREFIX} verify <change-name>`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/"],
+  },
+  "strict-spec-verify": {
+    requiredCommands: {
+      modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
+      verify: `${COMMAND_PREFIX} verify <change-name>`,
+      "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/"],
+  },
+  "strict-spec-review": {
+    requiredCommands: {
+      modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
+      verify: `${COMMAND_PREFIX} verify <change-name>`,
+      review: `${COMMAND_PREFIX} review <change-name>`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/"],
+  },
+  "strict-spec-archive": {
+    requiredCommands: {
+      modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
+      verify: `${COMMAND_PREFIX} verify <change-name>`,
+      "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
+      archive: `${COMMAND_PREFIX} archive <change-name>`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/"],
+    forbiddenSnippets: [
+      "any change to roadmap state caused by archive",
+      "ask the user to confirm the change truly has no observable",
+    ],
+  },
+  "strict-spec-auto": {
+    requiredCommands: {
+      propose: `${COMMAND_PREFIX} propose <change-name>`,
+      apply: `${COMMAND_PREFIX} apply <change-name>`,
+      verify: `${COMMAND_PREFIX} verify <change-name>`,
+      review: `${COMMAND_PREFIX} review <change-name>`,
+      "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
+      archive: `${COMMAND_PREFIX} archive <change-name>`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/"],
+    forbiddenSnippets: [
+      "empty-spec-impact decisions block progress",
+      "empty-spec-impact decision has been explicitly confirmed",
+    ],
+  },
+  "strict-spec-modify": {
+    requiredCommands: {
+      modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
+      verify: `${COMMAND_PREFIX} verify <change-name>`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/"],
+  },
+  "strict-spec-cancel": {
+    requiredCommands: {
+      modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
+      cancel: `${COMMAND_PREFIX} cancel <change-name>`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/"],
+  },
+};
 
 function toPosix(value: string): string {
   return value.split(path.sep).join("/");
@@ -219,7 +321,102 @@ function validateLegacyReferences(content: string, skillPath: string, diagnostic
   }
 }
 
-function validateCommandSection(content: string, skillPath: string, diagnostics: SkillPackagingDiagnostic[]): void {
+function validateCoreSkillContent(
+  skillName: string,
+  content: string,
+  commands: Record<string, string>,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  const expectation = CORE_STRICT_SKILL_EXPECTATIONS[skillName];
+  if (!expectation) return;
+
+  if (content.includes(GENERIC_COMMAND_PLACEHOLDER)) {
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.core.placeholder_command",
+        skillPath,
+        "core strict skills must replace the generic placeholder command mapping with explicit commands",
+        "explicit command mapping",
+        GENERIC_COMMAND_PLACEHOLDER,
+      ),
+    );
+  }
+
+  for (const heading of expectation.requiredHeadings) {
+    if (!content.includes(heading)) {
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.core.required_heading.missing",
+          skillPath,
+          `core strict skill is missing required section heading '${heading}'`,
+          heading,
+        ),
+      );
+    }
+  }
+
+  for (const snippet of expectation.requiredSnippets) {
+    if (!content.includes(snippet)) {
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.core.required_snippet.missing",
+          skillPath,
+          `core strict skill must reference '${snippet}'`,
+          snippet,
+        ),
+      );
+    }
+  }
+
+  for (const snippet of expectation.forbiddenSnippets ?? []) {
+    if (content.includes(snippet)) {
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.core.forbidden_snippet.present",
+          skillPath,
+          `core strict skill contains misleading prompt text '${snippet}'`,
+          "prompt text aligned with implemented CLI behavior",
+          snippet,
+        ),
+      );
+    }
+  }
+
+  for (const [commandName, expectedValue] of Object.entries(expectation.requiredCommands)) {
+    const actualValue = commands[commandName];
+    if (!actualValue) {
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.core.command.missing",
+          `${skillPath}#commands.${commandName}`,
+          `core strict skill is missing required command entry '${commandName}'`,
+          expectedValue,
+        ),
+      );
+      continue;
+    }
+
+    if (!actualValue.includes(expectedValue)) {
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.core.command.invalid",
+          `${skillPath}#commands.${commandName}`,
+          `core strict skill command '${commandName}' must reference the expected strict CLI subcommand`,
+          expectedValue,
+          actualValue,
+        ),
+      );
+    }
+  }
+}
+
+function validateCommandSection(
+  skillName: string,
+  content: string,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
   const sectionMatch = content.match(/## This Skill's Commands[\s\S]*?```yaml\s*([\s\S]*?)```/m);
   if (!sectionMatch) {
     diagnostics.push(
@@ -283,6 +480,7 @@ function validateCommandSection(content: string, skillPath: string, diagnostics:
     return;
   }
 
+  const normalizedCommands: Record<string, string> = {};
   for (const [name, value] of entries) {
     if (typeof value !== "string" || value.trim().length === 0) {
       diagnostics.push(
@@ -294,6 +492,7 @@ function validateCommandSection(content: string, skillPath: string, diagnostics:
       );
       continue;
     }
+    normalizedCommands[name] = value;
     if (!value.includes(COMMAND_PREFIX)) {
       diagnostics.push(
         makeDiagnostic(
@@ -304,8 +503,24 @@ function validateCommandSection(content: string, skillPath: string, diagnostics:
           value,
         ),
       );
+      continue;
+    }
+
+    const commandSuffix = value.slice(value.indexOf(COMMAND_PREFIX) + COMMAND_PREFIX.length).trim();
+    if (commandSuffix.length === 0 || commandSuffix === "<command>" || value.includes(GENERIC_COMMAND_PLACEHOLDER)) {
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.commands_section.command.placeholder",
+          `${skillPath}#commands.${name}`,
+          "command entries must replace the generic strict CLI placeholder with an explicit subcommand and parameters",
+          `${COMMAND_PREFIX} <explicit-subcommand>`,
+          value,
+        ),
+      );
     }
   }
+
+  validateCoreSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
 }
 
 function validateRequiredSymlink(
@@ -548,7 +763,7 @@ export function validateStrictSkillPackaging(rootDir: string): SkillPackagingVal
       validateFrontmatterFields(frontmatter, skillName, skillPath, diagnostics);
     }
     validateLegacyReferences(content, skillPath, diagnostics);
-    validateCommandSection(content, skillPath, diagnostics);
+    validateCommandSection(skillName, content, skillPath, diagnostics);
     validateRequiredSymlink(skillDir, skillName, "scripts", EXPECTED_SCRIPT_SYMLINK, diagnostics);
     validateRequiredSymlink(skillDir, skillName, "templates", EXPECTED_TEMPLATE_SYMLINK, diagnostics);
   }

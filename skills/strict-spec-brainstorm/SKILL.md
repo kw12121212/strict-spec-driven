@@ -14,8 +14,8 @@ metadata:
 
 
 ```yaml
-cli: node {{SKILL_DIR}}/scripts/strict-spec-driven.js <command>
-
+propose-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
+verify-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
 
 ## Prerequisites

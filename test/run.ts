@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
@@ -227,6 +227,314 @@ async function main(): Promise<void> {
     );
   } finally {
     rmSync(invalidSkillsRoot, { recursive: true, force: true });
+  }
+
+  const invalidCoreSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-core-skill-validation-invalid-"));
+  try {
+    const invalidCoreSkillDir = path.join(invalidCoreSkillRoot, "skills", "strict-spec-init");
+    mkdirSync(path.join(invalidCoreSkillRoot, "dist", "scripts"), { recursive: true });
+    mkdirSync(path.join(invalidCoreSkillRoot, "dist", "templates"), { recursive: true });
+    mkdirSync(invalidCoreSkillDir, { recursive: true });
+
+    symlinkSync("../../dist/scripts", path.join(invalidCoreSkillDir, "scripts"));
+    symlinkSync("../../dist/templates", path.join(invalidCoreSkillDir, "templates"));
+
+    writeFileSync(
+      path.join(invalidCoreSkillDir, "SKILL.md"),
+      [
+        "---",
+        "name: strict-spec-init",
+        "description: stub",
+        "metadata:",
+        "  skill_id: strict_spec_init",
+        "  author: strict-spec-driven",
+        "  type: agent_skill",
+        "  version: 1.0.0",
+        "---",
+        "",
+        "# strict-spec-init",
+        "",
+        "## This Skill's Commands",
+        "",
+        "```yaml",
+        "cli: node {{SKILL_DIR}}/scripts/strict-spec-driven.js <command>",
+        "```",
+        "",
+        "## Prerequisites",
+        "",
+        "Use strict workflow artifacts under .strict-spec-driven/.",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(invalidCoreSkillRoot, "skills", "marketplace.json"),
+      JSON.stringify(
+        {
+          schema: "strict-spec-driven/skill-marketplace/v1",
+          namespace: "strict-spec-driven",
+          skills: [{ name: "strict-spec-init", family: "strict-spec" }],
+        },
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+
+    const invalidCoreResult = skillValidationModule.validateStrictSkillPackaging(invalidCoreSkillRoot);
+    assert(!invalidCoreResult.valid, "strict skill package validation fails for placeholder core skill content");
+    assert(
+      invalidCoreResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.core.placeholder_command"),
+      "placeholder core skill reports generic command placeholder diagnostic",
+    );
+    assert(
+      invalidCoreResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.core.required_heading.missing"),
+      "placeholder core skill reports missing workflow heading diagnostic",
+    );
+  } finally {
+    rmSync(invalidCoreSkillRoot, { recursive: true, force: true });
+  }
+
+  const invalidGenericCommandSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-generic-command-invalid-"));
+  try {
+    const invalidGenericCommandSkillDir = path.join(invalidGenericCommandSkillRoot, "skills", "strict-spec-simple-task");
+    mkdirSync(path.join(invalidGenericCommandSkillRoot, "dist", "scripts"), { recursive: true });
+    mkdirSync(path.join(invalidGenericCommandSkillRoot, "dist", "templates"), { recursive: true });
+    mkdirSync(invalidGenericCommandSkillDir, { recursive: true });
+
+    symlinkSync("../../dist/scripts", path.join(invalidGenericCommandSkillDir, "scripts"));
+    symlinkSync("../../dist/templates", path.join(invalidGenericCommandSkillDir, "templates"));
+
+    writeFileSync(
+      path.join(invalidGenericCommandSkillDir, "SKILL.md"),
+      [
+        "---",
+        "name: strict-spec-simple-task",
+        "description: Handle a strict simple task.",
+        "metadata:",
+        "  skill_id: strict_spec_simple_task",
+        "  author: strict-spec-driven",
+        "  type: agent_skill",
+        "  version: 1.0.0",
+        "---",
+        "",
+        "You are helping the user with a strict simple task.",
+        "",
+        "## This Skill's Commands",
+        "",
+        "```yaml",
+        "cli: node {{SKILL_DIR}}/scripts/strict-spec-driven.js <command>",
+        "```",
+        "",
+        "## Prerequisites",
+        "",
+        "Use strict workflow artifacts under .strict-spec-driven/.",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(invalidGenericCommandSkillRoot, "skills", "marketplace.json"),
+      JSON.stringify(
+        {
+          schema: "strict-spec-driven/skill-marketplace/v1",
+          namespace: "strict-spec-driven",
+          skills: [{ name: "strict-spec-simple-task", family: "strict-spec" }],
+        },
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+
+    const invalidGenericCommandResult = skillValidationModule.validateStrictSkillPackaging(invalidGenericCommandSkillRoot);
+    assert(!invalidGenericCommandResult.valid, "strict skill package validation fails for generic command placeholder in any skill");
+    assert(
+      invalidGenericCommandResult.diagnostics.some(
+        (diagnostic) =>
+          diagnostic.code === "skill.commands_section.command.placeholder"
+          && diagnostic.path === "skills/strict-spec-simple-task/SKILL.md#commands.cli",
+      ),
+      "generic command placeholder reports explicit subcommand diagnostic for non-core skill",
+    );
+  } finally {
+    rmSync(invalidGenericCommandSkillRoot, { recursive: true, force: true });
+  }
+
+  const invalidSemanticSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-core-skill-semantics-invalid-"));
+  try {
+    const semanticSkillNames = ["strict-spec-propose", "strict-spec-archive", "strict-spec-auto"];
+    mkdirSync(path.join(invalidSemanticSkillRoot, "dist", "scripts"), { recursive: true });
+    mkdirSync(path.join(invalidSemanticSkillRoot, "dist", "templates"), { recursive: true });
+
+    for (const skillName of semanticSkillNames) {
+      const skillDir = path.join(invalidSemanticSkillRoot, "skills", skillName);
+      mkdirSync(skillDir, { recursive: true });
+      symlinkSync("../../dist/scripts", path.join(skillDir, "scripts"));
+      symlinkSync("../../dist/templates", path.join(skillDir, "templates"));
+    }
+
+    writeFileSync(
+      path.join(invalidSemanticSkillRoot, "skills", "strict-spec-propose", "SKILL.md"),
+      [
+        "---",
+        "name: strict-spec-propose",
+        "description: Propose a new strict change. Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/.",
+        "metadata:",
+        "  skill_id: strict_spec_propose",
+        "  author: strict-spec-driven",
+        "  type: agent_skill",
+        "  version: 1.0.0",
+        "---",
+        "",
+        "You are helping the user create a strict YAML change proposal under .strict-spec-driven/.",
+        "",
+        "## This Skill's Commands",
+        "",
+        "```yaml",
+        "propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>",
+        "verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>",
+        "```",
+        "",
+        "## Prerequisites",
+        "",
+        "Use strict workflow artifacts under .strict-spec-driven/.",
+        "",
+        "## Steps",
+        "",
+        "1. Draft the proposal.",
+        "",
+        "## Rules",
+        "",
+        "- Keep the proposal aligned with the strict CLI.",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(invalidSemanticSkillRoot, "skills", "strict-spec-archive", "SKILL.md"),
+      [
+        "---",
+        "name: strict-spec-archive",
+        "description: Archive a completed strict YAML change.",
+        "metadata:",
+        "  skill_id: strict_spec_archive",
+        "  author: strict-spec-driven",
+        "  type: agent_skill",
+        "  version: 1.0.0",
+        "---",
+        "",
+        "You are helping the user archive a strict YAML change under .strict-spec-driven/.",
+        "",
+        "## This Skill's Commands",
+        "",
+        "```yaml",
+        "modify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js modify [change-name|archive-dir]",
+        "verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>",
+        "verify-spec-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings",
+        "archive: node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>",
+        "```",
+        "",
+        "## Prerequisites",
+        "",
+        "Use strict workflow artifacts under .strict-spec-driven/.",
+        "",
+        "## Steps",
+        "",
+        "1. Confirm the result.",
+        "   - any change to roadmap state caused by archive",
+        "",
+        "## Rules",
+        "",
+        "- Use the strict archive command.",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(invalidSemanticSkillRoot, "skills", "strict-spec-auto", "SKILL.md"),
+      [
+        "---",
+        "name: strict-spec-auto",
+        "description: Run the strict workflow end to end without extra confirmation unless open questions or empty-spec-impact decisions block progress.",
+        "metadata:",
+        "  skill_id: strict_spec_auto",
+        "  author: strict-spec-driven",
+        "  type: agent_skill",
+        "  version: 1.0.0",
+        "---",
+        "",
+        "You are running the strict workflow end to end for a single strict YAML change.",
+        "",
+        "## This Skill's Commands",
+        "",
+        "```yaml",
+        "propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>",
+        "apply: node {{SKILL_DIR}}/scripts/strict-spec-driven.js apply <change-name>",
+        "verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>",
+        "review: node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>",
+        "verify-spec-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings",
+        "archive: node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>",
+        "```",
+        "",
+        "## Prerequisites",
+        "",
+        "Use strict workflow artifacts under .strict-spec-driven/.",
+        "",
+        "## Steps",
+        "",
+        "1. Run the workflow.",
+        "2. If the change verifies and reviews cleanly, and any empty-spec-impact decision has been explicitly confirmed, archive it.",
+        "",
+        "## Rules",
+        "",
+        "- The workflow is automatic except when open questions or empty-spec-impact decisions block progress.",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(invalidSemanticSkillRoot, "skills", "marketplace.json"),
+      JSON.stringify(
+        {
+          schema: "strict-spec-driven/skill-marketplace/v1",
+          namespace: "strict-spec-driven",
+          skills: semanticSkillNames.map((name) => ({ name, family: "strict-spec" })),
+        },
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+
+    const invalidSemanticResult = skillValidationModule.validateStrictSkillPackaging(invalidSemanticSkillRoot);
+    assert(!invalidSemanticResult.valid, "strict skill package validation fails for misleading core skill claims");
+    assert(
+      invalidSemanticResult.diagnostics.some(
+        (diagnostic) =>
+          diagnostic.code === "skill.core.forbidden_snippet.present"
+          && diagnostic.path === "skills/strict-spec-propose/SKILL.md",
+      ),
+      "misleading propose scaffold claim reports forbidden snippet diagnostic",
+    );
+    assert(
+      invalidSemanticResult.diagnostics.some(
+        (diagnostic) =>
+          diagnostic.code === "skill.core.forbidden_snippet.present"
+          && diagnostic.path === "skills/strict-spec-archive/SKILL.md",
+      ),
+      "misleading archive roadmap claim reports forbidden snippet diagnostic",
+    );
+    assert(
+      invalidSemanticResult.diagnostics.some(
+        (diagnostic) =>
+          diagnostic.code === "skill.core.forbidden_snippet.present"
+          && diagnostic.path === "skills/strict-spec-auto/SKILL.md",
+      ),
+      "misleading auto empty-spec-impact claim reports forbidden snippet diagnostic",
+    );
+  } finally {
+    rmSync(invalidSemanticSkillRoot, { recursive: true, force: true });
   }
 
   section("[2] yaml utilities");

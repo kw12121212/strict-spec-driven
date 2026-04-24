@@ -14,8 +14,10 @@ metadata:
 
 
 ```yaml
-cli: node {{SKILL_DIR}}/scripts/strict-spec-driven.js <command>
-
+list-changes: node {{SKILL_DIR}}/scripts/strict-spec-driven.js list
+inspect-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js modify [change-name|archive-dir]
+verify-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
+verify-spec-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings
 ```
 
 ## Prerequisites

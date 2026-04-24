@@ -1,0 +1,68 @@
+# update-core-spec-skills-for-yaml
+
+## What
+
+Replace the placeholder strict core lifecycle skill packages with real
+YAML-aware instructions for:
+- `strict-spec-init`
+- `strict-spec-propose`
+- `strict-spec-apply`
+- `strict-spec-verify`
+- `strict-spec-review`
+- `strict-spec-archive`
+- `strict-spec-auto`
+- `strict-spec-modify`
+- `strict-spec-cancel`
+
+This change will:
+- rewrite those `SKILL.md` files to reference `.strict-spec-driven/` YAML
+  artifacts and the strict command set
+- give each skill an explicit command mapping for the strict bundled CLI rather
+  than a generic placeholder command block
+- keep the prompts aligned with the existing rule that scripts handle
+  deterministic filesystem and validation mechanics while agents handle
+  planning, editing, review, and user-facing judgment
+- add or update automated checks so core strict skill content is not left as
+  packaging-only metadata stubs
+
+## Why
+
+Milestone 04 already established strict skill packaging, naming, and validation,
+but the core strict spec skills are still metadata scaffolds rather than usable
+workflow prompts. That leaves the main strict lifecycle in an awkward middle
+state: the CLI exists and the skill packages install cleanly, yet the agent
+instructions that should drive `init`, `propose`, `apply`, `verify`, `review`,
+`archive`, `auto`, `modify`, and `cancel` do not describe the actual strict YAML
+workflow.
+
+Landing this change next unlocks the primary strict workflow surface before the
+broader planning-skill and roadmap-workflow tracks proceed.
+
+## Scope
+
+In scope:
+- update only the nine core `strict-spec-*` lifecycle skill prompts listed
+  above
+- replace generic command placeholders with explicit strict CLI command entries
+- describe `.strict-spec-driven/` artifact locations and YAML editing
+  expectations where those skills rely on them
+- add or update repository validation or smoke tests that confirm the core
+  skills are aligned with the strict CLI and are no longer placeholder-only
+  content
+
+Out of scope:
+- roadmap skill rewrites owned by `port-strict-roadmap-workflow`
+- planning and spec-content skill rewrites owned by
+  `update-planning-and-spec-content-skills-for-yaml`
+- changes to strict CLI command semantics already delivered in milestone 03
+- migration tooling, self-hosting, installation polish, or public
+  documentation work from milestones 05 and 06
+
+## Unchanged Behavior
+
+Behaviors that must not change as a result of this change (leave blank if nothing is at risk):
+- `strict-spec-driven` command behavior remains defined by the CLI, not by skill
+  prompt prose
+- strict skill packaging names, marketplace metadata, and symlink layout remain
+  as delivered by `port-strict-skill-packaging-and-validation`
+- roadmap workflow behavior remains owned by later milestone 04 roadmap changes
