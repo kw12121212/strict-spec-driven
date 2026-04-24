@@ -2619,6 +2619,339 @@ async function main(): Promise<void> {
     rmSync(verifyMappingsArgValidationDir, { recursive: true, force: true });
   }
 
+  section("[16] review command");
+
+  const reviewModule = await loadDistModule<{
+    reviewChange(rootDir: string, changeName: string): {
+      valid: boolean;
+      changeName: string;
+      findings: Array<{ category: string; message: string; path?: string }>;
+      findingCount: number;
+    };
+  }>("review.js");
+
+  // 16a: review happy path with zero findings
+  const reviewHappyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-review-happy-"));
+  try {
+    const changeName = "review-clean";
+    const changeDir = path.join(reviewHappyDir, ".strict-spec-driven", "changes", changeName);
+    mkdirSync(path.join(changeDir, "specs"), { recursive: true });
+
+    writeFileSync(
+      path.join(changeDir, "proposal.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/change-proposal/v1",
+        schema_version: 1,
+        artifact_type: "change_proposal",
+        schema_file: "test",
+        change: {
+          id: changeName,
+          status: "proposed",
+        },
+        summary: {
+          what: ["Review command emits deterministic advisory findings"],
+          why: ["Cover review workflow behavior"],
+        },
+        scope: {
+          in: ["review command"],
+          out: ["archive behavior"],
+        },
+        unchanged_behavior: ["verify behavior remains unchanged"],
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "design.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/change-design/v1",
+        schema_version: 1,
+        artifact_type: "change_design",
+        schema_file: "test",
+        change: changeName,
+        approach: ["Run verify and derive advisory findings"],
+        decisions: [],
+        alternatives: [],
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "tasks.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/task-list/v1",
+        schema_version: 1,
+        artifact_type: "task_list",
+        schema_file: "test",
+        change: changeName,
+        sections: [
+          {
+            name: "Implementation",
+            tasks: [{ id: "impl-1", text: "Implement review", status: "complete" }],
+          },
+          {
+            name: "Testing",
+            tasks: [
+              { id: "test-build", text: "Build", status: "complete", command: "bun run build" },
+              { id: "test-unit", text: "Unit tests", status: "complete", command: "bun test/run.ts" },
+            ],
+          },
+          {
+            name: "Verification",
+            tasks: [{ id: "verify-1", text: "Verify scope", status: "complete" }],
+          },
+        ],
+        testing_gates: {
+          validation_task: "test-build",
+          unit_test_task: "test-unit",
+        },
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "questions.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/question-list/v1",
+        schema_version: 1,
+        artifact_type: "question_list",
+        schema_file: "test",
+        change: changeName,
+        open: [],
+        resolved: [],
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "specs", "cli.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/delta-spec/v1",
+        schema_version: 1,
+        artifact_type: "delta_spec",
+        schema_file: "test",
+        target_spec: "cli-foundation",
+        mapping: {
+          implementation: ["src/review.ts"],
+          tests: ["test/run.ts"],
+        },
+        operations: {
+          ADDED: [
+            {
+              requirement: {
+                id: "review-happy-req",
+                strength: "MUST",
+                statement: "The system MUST emit structured review findings output for changes.",
+                scenarios: [{ name: "review output", steps: [] }],
+              },
+            },
+          ],
+          MODIFIED: [],
+          REMOVED: [],
+        },
+      }),
+      "utf8",
+    );
+
+    const reviewResult = reviewModule.reviewChange(reviewHappyDir, changeName);
+    assert(reviewResult.valid === true, "review module marks valid=true for readable artifacts");
+    assert(reviewResult.findingCount === 0, "review module reports zero findings for clean artifacts");
+    assert(reviewResult.findings.length === 0, "review module returns empty findings array when clean");
+
+    const reviewCli = cli(["review", changeName], { cwd: reviewHappyDir });
+    assert(reviewCli.status === 0, "review CLI exits zero for advisory review output", `got ${reviewCli.status}`);
+    const reviewCliJson = JSON.parse(reviewCli.stdout.trim());
+    assert(reviewCliJson.valid === true, "review CLI output includes valid=true");
+    assert(reviewCliJson.findingCount === 0, "review CLI output includes findingCount=0");
+
+    const reviewCliDeterministic = cli(["review", changeName], { cwd: reviewHappyDir });
+    assert(
+      reviewCli.stdout.trim() === reviewCliDeterministic.stdout.trim(),
+      "review CLI output is deterministic for identical repository state",
+    );
+  } finally {
+    rmSync(reviewHappyDir, { recursive: true, force: true });
+  }
+
+  // 16b: review rejects missing change
+  const reviewMissingDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-review-missing-"));
+  try {
+    mkdirSync(path.join(reviewMissingDir, ".strict-spec-driven", "changes"), { recursive: true });
+    const missingChangeResult = cli(["review", "missing-change"], { cwd: reviewMissingDir });
+    assert(missingChangeResult.status !== 0, "review exits non-zero for missing change", `got ${missingChangeResult.status}`);
+    assert(
+      missingChangeResult.stderr.includes("not found"),
+      "review missing-change failure reports not found",
+      `stderr: ${missingChangeResult.stderr.trim()}`,
+    );
+  } finally {
+    rmSync(reviewMissingDir, { recursive: true, force: true });
+  }
+
+  // 16c: review rejects unparseable artifact
+  const reviewParseErrorDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-review-parse-"));
+  try {
+    const changeName = "bad-yaml";
+    const changeDir = path.join(reviewParseErrorDir, ".strict-spec-driven", "changes", changeName);
+    mkdirSync(path.join(changeDir, "specs"), { recursive: true });
+
+    writeFileSync(path.join(changeDir, "proposal.yaml"), "summary: [\n", "utf8");
+    writeFileSync(path.join(changeDir, "design.yaml"), "artifact_type: change_design\n", "utf8");
+    writeFileSync(path.join(changeDir, "tasks.yaml"), "artifact_type: task_list\nsections: []\n", "utf8");
+    writeFileSync(path.join(changeDir, "questions.yaml"), "artifact_type: question_list\nopen: []\n", "utf8");
+
+    const parseErrorResult = cli(["review", changeName], { cwd: reviewParseErrorDir });
+    assert(parseErrorResult.status !== 0, "review exits non-zero for unparseable artifacts", `got ${parseErrorResult.status}`);
+    assert(
+      parseErrorResult.stderr.includes("failed to parse"),
+      "review parse failure reports parse error context",
+      `stderr: ${parseErrorResult.stderr.trim()}`,
+    );
+  } finally {
+    rmSync(reviewParseErrorDir, { recursive: true, force: true });
+  }
+
+  // 16d: review reports advisory findings categories
+  const reviewFindingDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-review-findings-"));
+  try {
+    const changeName = "review-findings";
+    const changeDir = path.join(reviewFindingDir, ".strict-spec-driven", "changes", changeName);
+    mkdirSync(path.join(changeDir, "specs"), { recursive: true });
+
+    writeFileSync(
+      path.join(changeDir, "proposal.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/change-proposal/v1",
+        schema_version: 1,
+        artifact_type: "change_proposal",
+        schema_file: "test",
+        change: {
+          id: changeName,
+          status: "proposed",
+        },
+        summary: {
+          what: ["Tiny"],
+          why: ["Tiny"],
+        },
+        scope: {
+          in: [],
+          out: [],
+        },
+        unchanged_behavior: [],
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "design.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/change-design/v1",
+        schema_version: 1,
+        artifact_type: "change_design",
+        schema_file: "test",
+        change: changeName,
+        approach: ["Test"],
+        decisions: [],
+        alternatives: [],
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "tasks.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/task-list/v1",
+        schema_version: 1,
+        artifact_type: "task_list",
+        schema_file: "test",
+        change: changeName,
+        sections: [
+          {
+            name: "Implementation",
+            tasks: [{ id: "impl-1", text: "Do work", status: "complete" }],
+          },
+          {
+            name: "Testing",
+            tasks: [
+              { id: "test-build", text: "Build", status: "complete", command: "bun run build" },
+              { id: "test-unit", text: "Unit tests", status: "complete", command: "bun test/run.ts" },
+            ],
+          },
+          {
+            name: "Verification",
+            tasks: [{ id: "verify-1", text: "Verify", status: "complete" }],
+          },
+        ],
+        testing_gates: {
+          validation_task: "test-build",
+          unit_test_task: "test-unit",
+        },
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "questions.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/question-list/v1",
+        schema_version: 1,
+        artifact_type: "question_list",
+        schema_file: "test",
+        change: changeName,
+        open: [],
+        resolved: [],
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "specs", "cli.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/delta-spec/v1",
+        schema_version: 1,
+        artifact_type: "delta_spec",
+        schema_file: "test",
+        target_spec: "cli-foundation",
+        mapping: {
+          implementation: [],
+          tests: [],
+        },
+        operations: {
+          ADDED: [
+            {
+              requirement: {
+                id: "review-findings-req",
+                strength: "MUST",
+                statement: "Short text",
+                scenarios: [],
+              },
+            },
+          ],
+          MODIFIED: [],
+          REMOVED: [],
+        },
+      }),
+      "utf8",
+    );
+
+    const findingsResult = reviewModule.reviewChange(reviewFindingDir, changeName);
+    assert(findingsResult.findingCount > 0, "review module emits at least one advisory finding when quality issues exist");
+    assert(
+      findingsResult.findings.some((finding) => finding.category === "requirement-quality"),
+      "review findings include requirement-quality category",
+    );
+    assert(
+      findingsResult.findings.some((finding) => finding.category === "mapping-coverage"),
+      "review findings include mapping-coverage category",
+    );
+    assert(
+      findingsResult.findings.some((finding) => finding.category === "proposal-clarity"),
+      "review findings include proposal-clarity category",
+    );
+  } finally {
+    rmSync(reviewFindingDir, { recursive: true, force: true });
+  }
+
   console.log("");
   const total = passed + failed;
   if (failed === 0) {
