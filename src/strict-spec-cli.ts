@@ -15,6 +15,7 @@ import {
 } from "./scaffold.js";
 import { applyTask, readChangeTasks, writeChangeTasks } from "./apply.js";
 import { verifyChange } from "./verify.js";
+import { archiveChange } from "./archive.js";
 
 export type CommandHandler = (argv: string[]) => number | void;
 export const commands: Record<string, CommandHandler> = {};
@@ -34,6 +35,7 @@ export {
 };
 export { applyTask, readChangeTasks, writeChangeTasks };
 export { verifyChange };
+export { archiveChange };
 
 function runInit(): number {
   const missingAssets = findMissingRequiredScaffoldAssets();
@@ -144,6 +146,30 @@ function runVerify(argv: string[]): number {
 }
 
 commands.verify = (argv) => runVerify(argv);
+
+function runArchive(argv: string[]): number {
+  const [changeName, ...extraArgs] = argv;
+  if (!changeName || extraArgs.length > 0) {
+    process.stderr.write("Usage: strict-spec-driven archive <change-name>\n");
+    return 1;
+  }
+  if (!CHANGE_NAME_PATTERN.test(changeName)) {
+    process.stderr.write("Error: change name must be kebab-case (lowercase letters, numbers, and hyphens)\n");
+    return 1;
+  }
+
+  try {
+    const result = archiveChange(process.cwd(), changeName);
+    process.stdout.write(JSON.stringify(result) + "\n");
+    return result.valid ? 0 : 1;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    process.stderr.write(`Error: ${message}\n`);
+    return 1;
+  }
+}
+
+commands.archive = (argv) => runArchive(argv);
 
 export function run(argv: string[]): number {
   const [subcommand, ...subcommandArgs] = argv;

@@ -1632,6 +1632,511 @@ async function main(): Promise<void> {
     rmSync(distOnlyVerifyDir, { recursive: true, force: true });
   }
 
+  section("[13] archive command");
+
+  function formatLocalDateStamp(date = new Date()): string {
+    const year = String(date.getFullYear());
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  function writeMainSpecArtifact(
+    rootDir: string,
+    relativePath: string,
+    specId: string,
+    title: string,
+    requirements: Array<{ id: string; statement: string }>,
+  ): void {
+    const specPath = path.join(rootDir, ".strict-spec-driven", "specs", relativePath);
+    mkdirSync(path.dirname(specPath), { recursive: true });
+    writeFileSync(
+      specPath,
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/main-spec/v1",
+        schema_version: 1,
+        artifact_type: "main_spec",
+        schema_file: "test",
+        spec: {
+          id: specId,
+          title,
+        },
+        mapping: {
+          implementation: [],
+          tests: [],
+        },
+        requirements: requirements.map((requirement) => ({
+          id: requirement.id,
+          strength: "MUST",
+          statement: requirement.statement,
+          scenarios: [],
+        })),
+      }),
+      "utf8",
+    );
+  }
+
+  function writeValidChangeArtifacts(
+    rootDir: string,
+    changeName: string,
+    options: { implementationStatus?: "pending" | "complete"; openQuestion?: boolean } = {},
+  ): void {
+    const changeDir = path.join(rootDir, ".strict-spec-driven", "changes", changeName);
+    mkdirSync(path.join(changeDir, "specs"), { recursive: true });
+
+    writeFileSync(
+      path.join(changeDir, "proposal.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/change-proposal/v1",
+        schema_version: 1,
+        artifact_type: "change_proposal",
+        schema_file: "test",
+        change: {
+          id: changeName,
+          status: "proposed",
+        },
+        summary: {
+          what: ["Archive test change"],
+          why: ["Archive test coverage"],
+        },
+        scope: {
+          in: [],
+          out: [],
+        },
+        unchanged_behavior: [],
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "design.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/change-design/v1",
+        schema_version: 1,
+        artifact_type: "change_design",
+        schema_file: "test",
+        change: changeName,
+        approach: ["Archive test design"],
+        decisions: [],
+        alternatives: [],
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "tasks.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/task-list/v1",
+        schema_version: 1,
+        artifact_type: "task_list",
+        schema_file: "test",
+        change: changeName,
+        sections: [
+          {
+            name: "Implementation",
+            tasks: [
+              {
+                id: "impl-1",
+                text: "Do work",
+                status: options.implementationStatus ?? "complete",
+              },
+            ],
+          },
+          {
+            name: "Testing",
+            tasks: [
+              {
+                id: "test-build",
+                text: "Build",
+                status: "complete",
+                command: "bun run build",
+              },
+              {
+                id: "test-unit",
+                text: "Unit tests",
+                status: "complete",
+                command: "bun test/run.ts",
+              },
+            ],
+          },
+          {
+            name: "Verification",
+            tasks: [
+              {
+                id: "verify-1",
+                text: "Verify",
+                status: "complete",
+              },
+            ],
+          },
+        ],
+        testing_gates: {
+          validation_task: "test-build",
+          unit_test_task: "test-unit",
+        },
+      }),
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "questions.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/question-list/v1",
+        schema_version: 1,
+        artifact_type: "question_list",
+        schema_file: "test",
+        change: changeName,
+        open: options.openQuestion
+          ? [
+              {
+                id: "q-1",
+                question: "Open question",
+                context: "Archive test",
+                status: "open",
+              },
+            ]
+          : [],
+        resolved: [],
+      }),
+      "utf8",
+    );
+  }
+
+  function writeDeltaSpecArtifact(
+    rootDir: string,
+    changeName: string,
+    fileName: string,
+    targetSpec: string,
+    operations: {
+      ADDED?: Array<{ requirement: { id: string; strength: string; statement: string; scenarios: unknown[] } }>;
+      MODIFIED?: Array<{
+        target_requirement: string;
+        replacement: { id: string; strength: string; statement: string; scenarios: unknown[] };
+      }>;
+      REMOVED?: Array<{ target_requirement: string; reason: string }>;
+    },
+  ): void {
+    const deltaPath = path.join(rootDir, ".strict-spec-driven", "changes", changeName, "specs", fileName);
+    mkdirSync(path.dirname(deltaPath), { recursive: true });
+    writeFileSync(
+      deltaPath,
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/delta-spec/v1",
+        schema_version: 1,
+        artifact_type: "delta_spec",
+        schema_file: "test",
+        target_spec: targetSpec,
+        mapping: {
+          implementation: [],
+          tests: [],
+        },
+        operations: {
+          ADDED: operations.ADDED ?? [],
+          MODIFIED: operations.MODIFIED ?? [],
+          REMOVED: operations.REMOVED ?? [],
+        },
+      }),
+      "utf8",
+    );
+  }
+
+  // 13a: happy path archive merge + move + index regeneration
+  const archiveHappyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-happy-"));
+  try {
+    const changeName = "archive-happy";
+    writeMainSpecArtifact(
+      archiveHappyDir,
+      "cli/foundation.yaml",
+      "cli-foundation",
+      "CLI Foundation",
+      [
+        { id: "req-base", statement: "Base requirement" },
+        { id: "req-remove", statement: "Removed requirement" },
+      ],
+    );
+    mkdirSync(path.join(archiveHappyDir, ".strict-spec-driven", "specs"), { recursive: true });
+    writeFileSync(
+      path.join(archiveHappyDir, ".strict-spec-driven", "specs", "INDEX.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/spec-index/v1",
+        schema_version: 1,
+        artifact_type: "spec_index",
+        schema_file: "test",
+        specs: [],
+      }),
+      "utf8",
+    );
+    writeValidChangeArtifacts(archiveHappyDir, changeName);
+    writeDeltaSpecArtifact(archiveHappyDir, changeName, "cli.yaml", "cli-foundation", {
+      ADDED: [
+        {
+          requirement: {
+            id: "req-added",
+            strength: "MUST",
+            statement: "Added requirement",
+            scenarios: [],
+          },
+        },
+      ],
+      MODIFIED: [
+        {
+          target_requirement: "req-base",
+          replacement: {
+            id: "req-base",
+            strength: "MUST",
+            statement: "Updated requirement",
+            scenarios: [],
+          },
+        },
+      ],
+      REMOVED: [
+        {
+          target_requirement: "req-remove",
+          reason: "No longer needed",
+        },
+      ],
+    });
+
+    const archiveResult = cli(["archive", changeName], { cwd: archiveHappyDir });
+    assert(archiveResult.status === 0, "archive exits zero for a valid complete change", `got ${archiveResult.status}`);
+    const archiveJson = JSON.parse(archiveResult.stdout.trim());
+    assert(archiveJson.valid === true, "archive output marks valid=true");
+    assert(archiveJson.mergeSummary.specsUpdated === 1, "archive merge summary reports one updated spec");
+    assert(archiveJson.mergeSummary.added === 1, "archive merge summary reports ADDED count");
+    assert(archiveJson.mergeSummary.modified === 1, "archive merge summary reports MODIFIED count");
+    assert(archiveJson.mergeSummary.removed === 1, "archive merge summary reports REMOVED count");
+    assert(
+      archiveJson.mergeSummary.modifiedMissingTargetAsAdded === 0,
+      "archive merge summary reports zero MODIFIED fallback additions",
+    );
+    assert(
+      archiveJson.mergeSummary.removedMissingTargetSkipped === 0,
+      "archive merge summary reports zero skipped REMOVED entries",
+    );
+
+    const expectedArchivePath = `.strict-spec-driven/changes/archive/${formatLocalDateStamp()}-${changeName}`;
+    assert(
+      archiveJson.archiveDestination === expectedArchivePath,
+      "archive output includes deterministic archive destination path",
+      `got ${archiveJson.archiveDestination}`,
+    );
+    assert(
+      !existsSync(path.join(archiveHappyDir, ".strict-spec-driven", "changes", changeName)),
+      "archive removes the active change directory",
+    );
+    assert(
+      existsSync(path.join(archiveHappyDir, archiveJson.archiveDestination)),
+      "archive moves the change into archive destination",
+    );
+
+    const mergedMainSpec = yamlModule.parseYamlFile<{ requirements: Array<{ id: string; statement: string }> }>(
+      path.join(archiveHappyDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml"),
+    );
+    const mergedIds = mergedMainSpec.requirements.map((requirement) => requirement.id);
+    assert(
+      JSON.stringify(mergedIds) === JSON.stringify(["req-base", "req-added"]),
+      "archive merge applies MODIFIED, ADDED, and REMOVED operations to main spec",
+      `got ${JSON.stringify(mergedIds)}`,
+    );
+    assert(
+      mergedMainSpec.requirements.find((requirement) => requirement.id === "req-base")?.statement === "Updated requirement",
+      "archive MODIFIED operation replaces requirement by stable identifier",
+    );
+
+    const regeneratedIndex = yamlModule.parseYamlFile<{ specs: Array<{ id: string; path: string }> }>(
+      path.join(archiveHappyDir, ".strict-spec-driven", "specs", "INDEX.yaml"),
+    );
+    assert(
+      regeneratedIndex.specs.some(
+        (entry) =>
+          entry.id === "cli-foundation" &&
+          entry.path === ".strict-spec-driven/specs/cli/foundation.yaml",
+      ),
+      "archive regenerates specs index from merged main spec state",
+    );
+  } finally {
+    rmSync(archiveHappyDir, { recursive: true, force: true });
+  }
+
+  // 13b: invalid preconditions block archive
+  const archiveBlockedDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-blocked-"));
+  try {
+    const changeName = "archive-blocked";
+    writeMainSpecArtifact(
+      archiveBlockedDir,
+      "cli/foundation.yaml",
+      "cli-foundation",
+      "CLI Foundation",
+      [{ id: "req-base", statement: "Base requirement" }],
+    );
+    writeValidChangeArtifacts(archiveBlockedDir, changeName, { implementationStatus: "pending" });
+    writeDeltaSpecArtifact(archiveBlockedDir, changeName, "cli.yaml", "cli-foundation", {
+      ADDED: [],
+      MODIFIED: [],
+      REMOVED: [],
+    });
+
+    const blockedResult = cli(["archive", changeName], { cwd: archiveBlockedDir });
+    assert(blockedResult.status !== 0, "archive exits non-zero when change fails pre-archive verification");
+    assert(
+      blockedResult.stderr.includes("failed verification"),
+      "archive precondition failure reports verification blocker",
+      `stderr: ${blockedResult.stderr.trim()}`,
+    );
+    assert(
+      existsSync(path.join(archiveBlockedDir, ".strict-spec-driven", "changes", changeName)),
+      "archive precondition failure keeps change in active directory",
+    );
+  } finally {
+    rmSync(archiveBlockedDir, { recursive: true, force: true });
+  }
+
+  // 13c: MODIFIED missing target falls back to ADDED
+  const archiveModifiedFallbackDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-modfallback-"));
+  try {
+    const changeName = "archive-mod-fallback";
+    writeMainSpecArtifact(
+      archiveModifiedFallbackDir,
+      "cli/foundation.yaml",
+      "cli-foundation",
+      "CLI Foundation",
+      [{ id: "req-existing", statement: "Existing requirement" }],
+    );
+    writeValidChangeArtifacts(archiveModifiedFallbackDir, changeName);
+    writeDeltaSpecArtifact(archiveModifiedFallbackDir, changeName, "cli.yaml", "cli-foundation", {
+      ADDED: [],
+      MODIFIED: [
+        {
+          target_requirement: "req-missing",
+          replacement: {
+            id: "req-fallback",
+            strength: "MUST",
+            statement: "Fallback added requirement",
+            scenarios: [],
+          },
+        },
+      ],
+      REMOVED: [],
+    });
+
+    const fallbackResult = cli(["archive", changeName], { cwd: archiveModifiedFallbackDir });
+    assert(fallbackResult.status === 0, "archive succeeds when MODIFIED target is missing");
+    const fallbackJson = JSON.parse(fallbackResult.stdout.trim());
+    assert(
+      fallbackJson.mergeSummary.modifiedMissingTargetAsAdded === 1,
+      "archive records MODIFIED missing-target fallback in summary",
+    );
+    assert(fallbackJson.mergeSummary.modified === 0, "archive reports zero direct MODIFIED replacements for fallback case");
+    assert(
+      Array.isArray(fallbackJson.mergedSpecs[0]?.modifiedMissingTargetAsAdded) &&
+        fallbackJson.mergedSpecs[0].modifiedMissingTargetAsAdded.includes("req-missing"),
+      "archive merged-spec report includes missing MODIFIED target identifier",
+    );
+
+    const mergedFallbackSpec = yamlModule.parseYamlFile<{ requirements: Array<{ id: string }> }>(
+      path.join(archiveModifiedFallbackDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml"),
+    );
+    assert(
+      mergedFallbackSpec.requirements.some((requirement) => requirement.id === "req-fallback"),
+      "archive treats missing MODIFIED target replacement as ADDED requirement",
+    );
+  } finally {
+    rmSync(archiveModifiedFallbackDir, { recursive: true, force: true });
+  }
+
+  // 13d: REMOVED missing target is skipped
+  const archiveRemovedSkipDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-remskip-"));
+  try {
+    const changeName = "archive-remove-skip";
+    writeMainSpecArtifact(
+      archiveRemovedSkipDir,
+      "cli/foundation.yaml",
+      "cli-foundation",
+      "CLI Foundation",
+      [{ id: "req-existing", statement: "Existing requirement" }],
+    );
+    writeValidChangeArtifacts(archiveRemovedSkipDir, changeName);
+    writeDeltaSpecArtifact(archiveRemovedSkipDir, changeName, "cli.yaml", "cli-foundation", {
+      ADDED: [],
+      MODIFIED: [],
+      REMOVED: [
+        {
+          target_requirement: "req-ghost",
+          reason: "No longer exists",
+        },
+      ],
+    });
+
+    const removedSkipResult = cli(["archive", changeName], { cwd: archiveRemovedSkipDir });
+    assert(removedSkipResult.status === 0, "archive succeeds when REMOVED target is missing");
+    const removedSkipJson = JSON.parse(removedSkipResult.stdout.trim());
+    assert(removedSkipJson.mergeSummary.removed === 0, "archive reports zero direct removals for missing target");
+    assert(
+      removedSkipJson.mergeSummary.removedMissingTargetSkipped === 1,
+      "archive records skipped REMOVED missing-target count",
+    );
+    assert(
+      Array.isArray(removedSkipJson.mergedSpecs[0]?.removedMissingTargetSkipped) &&
+        removedSkipJson.mergedSpecs[0].removedMissingTargetSkipped.includes("req-ghost"),
+      "archive merged-spec report includes skipped REMOVED target identifier",
+    );
+
+    const mergedRemovedSkipSpec = yamlModule.parseYamlFile<{ requirements: Array<{ id: string }> }>(
+      path.join(archiveRemovedSkipDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml"),
+    );
+    assert(
+      JSON.stringify(mergedRemovedSkipSpec.requirements.map((requirement) => requirement.id)) ===
+        JSON.stringify(["req-existing"]),
+      "archive keeps existing requirements unchanged when REMOVED target is missing",
+    );
+  } finally {
+    rmSync(archiveRemovedSkipDir, { recursive: true, force: true });
+  }
+
+  // 13e: archive destination collision handling
+  const archiveCollisionDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-collision-"));
+  try {
+    const changeName = "archive-collision";
+    const archiveDate = formatLocalDateStamp();
+    const existingArchivePath = path.join(
+      archiveCollisionDir,
+      ".strict-spec-driven",
+      "changes",
+      "archive",
+      `${archiveDate}-${changeName}`,
+    );
+    mkdirSync(existingArchivePath, { recursive: true });
+
+    writeMainSpecArtifact(
+      archiveCollisionDir,
+      "cli/foundation.yaml",
+      "cli-foundation",
+      "CLI Foundation",
+      [{ id: "req-existing", statement: "Existing requirement" }],
+    );
+    writeValidChangeArtifacts(archiveCollisionDir, changeName);
+    writeDeltaSpecArtifact(archiveCollisionDir, changeName, "cli.yaml", "cli-foundation", {
+      ADDED: [],
+      MODIFIED: [],
+      REMOVED: [],
+    });
+
+    const collisionResult = cli(["archive", changeName], { cwd: archiveCollisionDir });
+    assert(collisionResult.status === 0, "archive succeeds when default archive destination already exists");
+    const collisionJson = JSON.parse(collisionResult.stdout.trim());
+    assert(
+      collisionJson.archiveDestination.endsWith(`${archiveDate}-${changeName}-2`),
+      "archive appends numeric suffix when archive destination collides",
+      `got ${collisionJson.archiveDestination}`,
+    );
+    assert(
+      existsSync(path.join(archiveCollisionDir, collisionJson.archiveDestination)),
+      "archive creates suffixed archive directory when collision occurs",
+    );
+  } finally {
+    rmSync(archiveCollisionDir, { recursive: true, force: true });
+  }
+
   console.log("");
   const total = passed + failed;
   if (failed === 0) {
