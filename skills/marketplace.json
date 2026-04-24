@@ -1,0 +1,27 @@
+{
+  "schema": "strict-spec-driven/skill-marketplace/v1",
+  "namespace": "strict-spec-driven",
+  "skills": [
+    { "name": "strict-roadmap-milestone", "family": "strict-roadmap" },
+    { "name": "strict-roadmap-plan", "family": "strict-roadmap" },
+    { "name": "strict-roadmap-propose", "family": "strict-roadmap" },
+    { "name": "strict-roadmap-recommend", "family": "strict-roadmap" },
+    { "name": "strict-roadmap-sync", "family": "strict-roadmap" },
+    { "name": "strict-spec-apply", "family": "strict-spec" },
+    { "name": "strict-spec-archive", "family": "strict-spec" },
+    { "name": "strict-spec-auto", "family": "strict-spec" },
+    { "name": "strict-spec-brainstorm", "family": "strict-spec" },
+    { "name": "strict-spec-cancel", "family": "strict-spec" },
+    { "name": "strict-spec-init", "family": "strict-spec" },
+    { "name": "strict-spec-maintenance", "family": "strict-spec" },
+    { "name": "strict-spec-modify", "family": "strict-spec" },
+    { "name": "strict-spec-propose", "family": "strict-spec" },
+    { "name": "strict-spec-resync-code-mapping", "family": "strict-spec" },
+    { "name": "strict-spec-review", "family": "strict-spec" },
+    { "name": "strict-spec-ship", "family": "strict-spec" },
+    { "name": "strict-spec-simple-task", "family": "strict-spec" },
+    { "name": "strict-spec-spec-edit", "family": "strict-spec" },
+    { "name": "strict-spec-sync-specs", "family": "strict-spec" },
+    { "name": "strict-spec-verify", "family": "strict-spec" }
+  ]
+}

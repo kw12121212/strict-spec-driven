@@ -11,6 +11,7 @@ mapping:
     - src/apply.ts
     - src/verify.ts
     - src/review.ts
+    - src/skills.ts
     - templates/strict-spec-driven/scaffold/config.yaml
     - templates/strict-spec-driven/scaffold/changes/proposal.yaml
     - templates/strict-spec-driven/scaffold/changes/design.yaml
@@ -651,3 +652,26 @@ The system MUST emit a deterministic JSON object to stdout containing `valid`, `
 - GIVEN the named change directory does not exist or an artifact is unparseable
 - WHEN `strict-spec-driven review <name>` is executed
 - THEN the command exits with a non-zero exit code
+
+### Requirement: cli-skill-packaging-validation-smoke-coverage
+The system MUST include automated checks that exercise strict skill packaging
+validation behavior for both passing and failing package states.
+
+#### Scenario: packaging checks confirm valid strict package state
+- GIVEN strict skill packages satisfy metadata, command reference, and symlink
+  assumptions
+- WHEN repository automated checks are executed
+- THEN strict skill packaging checks pass
+
+#### Scenario: packaging checks report deterministic diagnostics for invalid state
+- GIVEN a strict skill package has stale naming, missing required metadata, or
+  broken symlink assumptions
+- WHEN repository automated checks are executed
+- THEN strict skill packaging checks fail
+- AND diagnostics remain machine-readable and path-specific
+
+#### Scenario: validate-skills command emits machine-readable results
+- GIVEN strict skill packaging validation is executed through CLI
+- WHEN `strict-spec-driven validate-skills` runs
+- THEN command output is parseable JSON
+- AND output includes validity, deterministic diagnostics, and summary counts

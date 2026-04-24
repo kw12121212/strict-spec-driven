@@ -3,8 +3,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "tsc && cp -r templates dist/templates",
-    "test": "bun test/run.ts"
+    "build": "tsc && rm -rf dist/templates dist/scripts && cp -r templates dist/templates && cp -r scripts dist/scripts",
+    "test": "bun test/run.ts",
+    "validate-skills": "bun run build && node dist/strict-spec-cli.js validate-skills"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

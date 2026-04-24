@@ -19,6 +19,7 @@ import { applyTask, readChangeTasks, writeChangeTasks } from "./apply.js";
 import { verifyChange } from "./verify.js";
 import { reviewChange } from "./review.js";
 import { archiveChange } from "./archive.js";
+import { validateStrictSkillPackaging } from "./skills.js";
 
 export type CommandHandler = (argv: string[]) => number | void;
 export const commands: Record<string, CommandHandler> = {};
@@ -762,6 +763,19 @@ function runVerifySpecMappings(argv: string[]): number {
 }
 
 commands["verify-spec-mappings"] = (argv) => runVerifySpecMappings(argv);
+
+function runValidateSkills(argv: string[]): number {
+  if (argv.length > 0) {
+    process.stderr.write("Usage: strict-spec-driven validate-skills\n");
+    return 1;
+  }
+
+  const result = validateStrictSkillPackaging(process.cwd());
+  process.stdout.write(`${JSON.stringify(result)}\n`);
+  return result.valid ? 0 : 1;
+}
+
+commands["validate-skills"] = (argv) => runValidateSkills(argv);
 
 function runArchive(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;

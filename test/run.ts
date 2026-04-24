@@ -73,6 +73,18 @@ type ScaffoldModule = {
   findMissingRequiredScaffoldAssets(): string[];
 };
 
+type SkillValidationModule = {
+  validateStrictSkillPackaging(rootDir: string): {
+    valid: boolean;
+    diagnostics: Array<{ code: string; path: string; message: string; expected?: string; actual?: string }>;
+    summary: {
+      skillCount: number;
+      marketplaceCount: number;
+      diagnosticsCount: number;
+    };
+  };
+};
+
 let passed = 0;
 let failed = 0;
 
@@ -134,6 +146,88 @@ async function main(): Promise<void> {
     "unknown subcommand prints usage hint to stderr",
     `stderr: ${unknownCmd.stderr.trim()}`,
   );
+
+  section("[2] strict skill packaging validation");
+
+  const skillValidationModule = await loadDistModule<SkillValidationModule>("skills.js");
+  const packageValidation = skillValidationModule.validateStrictSkillPackaging(ROOT);
+  assert(packageValidation.valid, "strict skill package validation passes in repository state");
+  assert(packageValidation.summary.skillCount > 0, "strict skill package validation reports non-zero skill count");
+  assert(
+    packageValidation.summary.skillCount === packageValidation.summary.marketplaceCount,
+    "marketplace metadata count matches discovered strict skills",
+  );
+
+  const validateSkillsCli = cli(["validate-skills"], { cwd: ROOT });
+  assert(validateSkillsCli.status === 0, "validate-skills CLI exits zero for valid strict skill packaging");
+  const validateSkillsJson = JSON.parse(validateSkillsCli.stdout.trim());
+  assert(validateSkillsJson.valid === true, "validate-skills CLI emits valid=true JSON");
+
+  const invalidSkillsRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-validation-invalid-"));
+  try {
+    const invalidSkillsDir = path.join(invalidSkillsRoot, "skills", "strict-spec-demo");
+    mkdirSync(invalidSkillsDir, { recursive: true });
+
+    writeFileSync(
+      path.join(invalidSkillsDir, "SKILL.md"),
+      [
+        "---",
+        "name: strict-spec-demo",
+        "description: demo",
+        "metadata:",
+        "  skill_id: strict_spec_demo",
+        "  author: strict-spec-driven",
+        "  type: agent_skill",
+        "  version: 1.0.0",
+        "---",
+        "",
+        "# strict-spec-demo",
+        "",
+        "## This Skill's Commands",
+        "",
+        "```yaml",
+        "demo: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify demo",
+        "```",
+        "",
+        "## Notes",
+        "",
+        "Legacy reference: .spec-driven/changes",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(invalidSkillsRoot, "skills", "marketplace.json"),
+      JSON.stringify(
+        {
+          schema: "strict-spec-driven/skill-marketplace/v1",
+          namespace: "strict-spec-driven",
+          skills: [{ name: "strict-spec-demo", family: "strict-spec" }],
+        },
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+
+    const invalidResultA = skillValidationModule.validateStrictSkillPackaging(invalidSkillsRoot);
+    const invalidResultB = skillValidationModule.validateStrictSkillPackaging(invalidSkillsRoot);
+    assert(!invalidResultA.valid, "strict skill package validation fails for invalid packaging state");
+    assert(
+      invalidResultA.diagnostics.some((diagnostic) => diagnostic.code === "skill.scripts_symlink.missing"),
+      "invalid packaging reports missing scripts symlink diagnostic",
+    );
+    assert(
+      invalidResultA.diagnostics.some((diagnostic) => diagnostic.code === "skill.reference.legacy_workflow_dir"),
+      "invalid packaging reports stale legacy workflow reference diagnostic",
+    );
+    assert(
+      JSON.stringify(invalidResultA) === JSON.stringify(invalidResultB),
+      "strict skill package diagnostics are deterministic across runs",
+    );
+  } finally {
+    rmSync(invalidSkillsRoot, { recursive: true, force: true });
+  }
 
   section("[2] yaml utilities");
 
