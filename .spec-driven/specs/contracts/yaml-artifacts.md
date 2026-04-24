@@ -3,7 +3,15 @@ mapping:
   implementation:
     - templates/strict-spec-driven/schemas/schema-registry.yaml
     - templates/strict-spec-driven/schemas/registry.yaml
+    - templates/strict-spec-driven/schemas/roadmap-index.yaml
+    - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+    - templates/strict-spec-driven/schemas/planned-change-entry.yaml
     - templates/strict-spec-driven/examples/schema-registry.yaml
+    - templates/strict-spec-driven/examples/roadmap-index.yaml
+    - templates/strict-spec-driven/examples/roadmap-index.ordering.yaml
+    - templates/strict-spec-driven/examples/roadmap-milestone.yaml
+    - templates/strict-spec-driven/examples/roadmap-milestone.planning.yaml
+    - templates/strict-spec-driven/examples/planned-change-entry.yaml
     - src/validation.ts
     - src/yaml.ts
     - install.sh

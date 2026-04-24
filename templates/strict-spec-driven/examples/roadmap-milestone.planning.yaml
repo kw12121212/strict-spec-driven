@@ -1,0 +1,42 @@
+schema: strict-spec-driven/roadmap-milestone/v1
+schema_version: 1
+artifact_type: roadmap_milestone
+schema_file: ../schemas/roadmap-milestone.yaml
+milestone:
+  id: 02-roadmap-workflow
+  title: Roadmap Workflow
+goal: Define strict roadmap workflow behavior.
+scope:
+  in:
+    - Strict roadmap validation and recommendation behavior.
+    - Structured roadmap proposal handoff behavior.
+  out:
+    - Migration of legacy Markdown roadmap artifacts.
+done_criteria:
+  - The roadmap contract is implemented and verified.
+  - Roadmap validation can inspect milestone and planned change structure.
+planned_changes:
+  - schema: strict-spec-driven/planned-change-entry/v1
+    schema_version: 1
+    artifact_type: planned_change_entry
+    schema_file: ../schemas/planned-change-entry.yaml
+    id: example-change
+    status: planned
+    summary: Add roadmap validation behavior.
+    depends_on: []
+  - schema: strict-spec-driven/planned-change-entry/v1
+    schema_version: 1
+    artifact_type: planned_change_entry
+    schema_file: ../schemas/planned-change-entry.yaml
+    id: example-follow-up
+    status: planned
+    summary: Add roadmap proposal handoff behavior.
+    depends_on:
+      - example-change
+dependencies:
+  - 01-foundation
+risks:
+  - Roadmap behavior could drift from the schema contract if validation is incomplete.
+status: active
+notes:
+  - Roadmap skills should consume the same structured artifact contract as CLI validation.

@@ -556,6 +556,72 @@ async function main(): Promise<void> {
     rmSync(tempDir, { recursive: true, force: true });
   }
 
+  const roadmapIndexExample = yamlModule.parseYamlFile<{
+    milestones: Array<{ id: string; title: string; path: string; status: string }>;
+  }>(path.join(ROOT, "templates", "strict-spec-driven", "examples", "roadmap-index.yaml"));
+  assert(
+    roadmapIndexExample.milestones.length >= 1 &&
+      roadmapIndexExample.milestones.every(
+        (milestone) =>
+          milestone.id.length > 0 &&
+          milestone.title.length > 0 &&
+          milestone.path.length > 0 &&
+          milestone.status.length > 0,
+      ),
+    "primary roadmap index example stays minimal while exposing required milestone fields",
+  );
+
+  const roadmapMilestoneExample = yamlModule.parseYamlFile<{
+    dependencies: string[];
+    risks: string[];
+    notes: string[];
+    planned_changes: Array<{ id: string; depends_on: string[] }>;
+  }>(path.join(ROOT, "templates", "strict-spec-driven", "examples", "roadmap-milestone.yaml"));
+  assert(roadmapMilestoneExample.dependencies.length === 0, "primary roadmap milestone example keeps dependencies minimal");
+  assert(roadmapMilestoneExample.risks.length === 0, "primary roadmap milestone example keeps risks minimal");
+  assert(roadmapMilestoneExample.notes.length === 0, "primary roadmap milestone example keeps notes minimal");
+  assert(
+    roadmapMilestoneExample.planned_changes.length === 1 &&
+      roadmapMilestoneExample.planned_changes[0]?.depends_on.length === 0,
+    "primary roadmap milestone example keeps planned change dependencies minimal",
+  );
+
+  const roadmapIndexOrderingExample = yamlModule.parseYamlFile<{
+    milestones: Array<{ id: string; title: string; path: string; status: string }>;
+  }>(path.join(ROOT, "templates", "strict-spec-driven", "examples", "roadmap-index.ordering.yaml"));
+  const roadmapIndexOrderingText = readFileSync(
+    path.join(ROOT, "templates", "strict-spec-driven", "examples", "roadmap-index.ordering.yaml"),
+    "utf8",
+  );
+  const roadmapIndexDeclaredOrder = Array.from(roadmapIndexOrderingText.matchAll(/^\s*-\s+id:\s+(.+)\s*$/gm)).map((match) => match[1]);
+  assert(roadmapIndexOrderingExample.milestones.length >= 2, "roadmap index coverage example includes multiple milestones");
+  assert(
+    roadmapIndexOrderingExample.milestones.every(
+      (milestone) =>
+        milestone.id.length > 0 &&
+        milestone.title.length > 0 &&
+        milestone.path.length > 0 &&
+        milestone.status.length > 0,
+    ),
+    "roadmap index coverage example demonstrates ordered milestone entries",
+  );
+
+  const roadmapMilestonePlanningExample = yamlModule.parseYamlFile<{
+    status: string;
+    dependencies: string[];
+    risks: string[];
+    notes: string[];
+    planned_changes: Array<{ id: string; status: string; depends_on: string[] }>;
+  }>(path.join(ROOT, "templates", "strict-spec-driven", "examples", "roadmap-milestone.planning.yaml"));
+  assert(roadmapMilestonePlanningExample.dependencies.length >= 1, "roadmap milestone coverage example includes milestone dependencies");
+  assert(roadmapMilestonePlanningExample.risks.length >= 1, "roadmap milestone coverage example includes milestone risks");
+  assert(roadmapMilestonePlanningExample.notes.length >= 1, "roadmap milestone coverage example includes milestone notes");
+  assert(roadmapMilestonePlanningExample.planned_changes.length >= 2, "roadmap milestone coverage example includes multiple planned changes");
+  assert(
+    roadmapMilestonePlanningExample.planned_changes[1]?.depends_on[0] === roadmapMilestonePlanningExample.planned_changes[0]?.id,
+    "roadmap milestone coverage example preserves planned change dependency linkage",
+  );
+
   section("[3] validation layer utilities");
 
   const validationModule = await loadDistModule<ValidationModule>("validation.js");
@@ -567,6 +633,96 @@ async function main(): Promise<void> {
 
   const bySchemaId = validationModule.loadBundledSchemaBySchemaId("strict-spec-driven/main-spec/v1");
   assert(bySchemaId.artifact_type === "main_spec", "loadBundledSchemaBySchemaId resolves schema IDs");
+
+  const roadmapIndexSchema = validationModule.loadBundledSchemaByArtifactType("roadmap_index") as {
+    artifact_type: string;
+    fields: {
+      milestones: {
+        unique_by: string;
+        items: {
+          fields: {
+            status: {
+              enum: string[];
+            };
+          };
+        };
+      };
+    };
+  };
+  assert(roadmapIndexSchema.artifact_type === "roadmap_index", "roadmap index schema resolves by artifact type");
+  assert(
+    roadmapIndexSchema.fields.milestones.unique_by === "id",
+    "roadmap index schema keeps milestone uniqueness keyed by id",
+  );
+
+  const roadmapMilestoneSchema = validationModule.loadBundledSchemaBySchemaId("strict-spec-driven/roadmap-milestone/v1") as {
+    artifact_type: string;
+    fields: {
+      milestone: {
+        fields: {
+          id: {
+            type: string;
+          };
+        };
+      };
+      planned_changes: {
+        items: {
+          type: string;
+        };
+      };
+      status: {
+        enum: string[];
+      };
+    };
+  };
+  assert(roadmapMilestoneSchema.artifact_type === "roadmap_milestone", "roadmap milestone schema resolves by schema ID");
+  assert(
+    roadmapMilestoneSchema.fields.milestone.fields.id.type === "string",
+    "roadmap milestone schema keeps milestone ids as structured string fields",
+  );
+  assert(
+    roadmapMilestoneSchema.fields.planned_changes.items.type === "planned_change_entry",
+    "roadmap milestone schema keeps planned changes typed as planned change entries",
+  );
+  const plannedChangeSchema = validationModule.loadBundledSchemaByArtifactType("planned_change_entry") as {
+    artifact_type: string;
+    fields: {
+      status: {
+        enum: string[];
+      };
+    };
+  };
+  assert(plannedChangeSchema.artifact_type === "planned_change_entry", "planned change schema resolves by artifact type");
+  assert(
+    roadmapIndexDeclaredOrder.length >= 2 &&
+      roadmapIndexOrderingExample.milestones[0]?.id === roadmapIndexDeclaredOrder[0] &&
+      roadmapIndexOrderingExample.milestones[1]?.id === roadmapIndexDeclaredOrder[1],
+    "roadmap index coverage example preserves the declared milestone order",
+  );
+  assert(
+    roadmapIndexOrderingExample.milestones.every((milestone) =>
+      roadmapIndexSchema.fields.milestones.items.fields.status.enum.includes(milestone.status),
+    ),
+    "roadmap index coverage example statuses stay within roadmap schema enums",
+  );
+  assert(
+    roadmapMilestoneSchema.fields.status.enum.includes(roadmapMilestonePlanningExample.status),
+    "roadmap milestone coverage example status stays within roadmap schema enums",
+  );
+  assert(
+    roadmapMilestonePlanningExample.planned_changes.every((plannedChange) =>
+      plannedChangeSchema.fields.status.enum.includes(plannedChange.status),
+    ),
+    "roadmap milestone coverage example planned change statuses stay within planned change schema enums",
+  );
+  assert(
+    roadmapMilestonePlanningExample.planned_changes[1]?.depends_on[0] === roadmapMilestonePlanningExample.planned_changes[0]?.id,
+    "roadmap milestone coverage example preserves planned change dependency linkage",
+  );
+  assert(
+    roadmapMilestonePlanningExample.dependencies.length >= 1,
+    "roadmap milestone coverage example keeps milestone dependency fields populated",
+  );
 
   const testJsonSchema = {
     type: "object",
@@ -700,6 +856,7 @@ async function main(): Promise<void> {
 
   const scaffoldRoadmapIndex = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("roadmap/INDEX.yaml");
   assert(scaffoldRoadmapIndex.artifact_type === "roadmap_index", "scaffold roadmap index template is loadable YAML");
+  assert(Array.isArray(scaffoldRoadmapIndex.milestones), "scaffold roadmap index template includes milestone sequence field");
 
   const scaffoldChangeState = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("changes/STATE.yaml");
   assert(scaffoldChangeState.artifact_type === "change_state_index", "scaffold changes state template is loadable YAML");
@@ -995,12 +1152,51 @@ async function main(): Promise<void> {
     assert(statSync(distAssetPath).isFile(), `dist change template asset is a file (${changeAsset})`);
   }
 
-  const distSchemaFiles = ["registry.yaml", "main-spec.yaml", "delta-spec.yaml", "task-list.yaml", "question-list.yaml"];
+  const distSchemaFiles = [
+    "registry.yaml",
+    "main-spec.yaml",
+    "delta-spec.yaml",
+    "task-list.yaml",
+    "question-list.yaml",
+    "roadmap-index.yaml",
+    "roadmap-milestone.yaml",
+    "planned-change-entry.yaml",
+  ];
   for (const schemaFile of distSchemaFiles) {
     const distSchemaPath = path.join(distSchemasDir, schemaFile);
     assert(existsSync(distSchemaPath), `dist schema file exists (${schemaFile})`);
     assert(statSync(distSchemaPath).isFile(), `dist schema file is a file (${schemaFile})`);
   }
+
+  const distExampleFiles = [
+    "roadmap-index.yaml",
+    "roadmap-index.ordering.yaml",
+    "roadmap-milestone.yaml",
+    "roadmap-milestone.planning.yaml",
+    "planned-change-entry.yaml",
+  ];
+  for (const exampleFile of distExampleFiles) {
+    const distExamplePath = path.join(ROOT, "dist", "templates", "strict-spec-driven", "examples", exampleFile);
+    assert(existsSync(distExamplePath), `dist example file exists (${exampleFile})`);
+    assert(statSync(distExamplePath).isFile(), `dist example file is a file (${exampleFile})`);
+  }
+
+  const distRoadmapIndexExample = yamlModule.parseYamlFile<{ milestones: Array<{ id: string }> }>(
+    path.join(ROOT, "dist", "templates", "strict-spec-driven", "examples", "roadmap-index.ordering.yaml"),
+  );
+  const distRoadmapIndexOrderingText = readFileSync(
+    path.join(ROOT, "dist", "templates", "strict-spec-driven", "examples", "roadmap-index.ordering.yaml"),
+    "utf8",
+  );
+  const distRoadmapIndexDeclaredOrder = Array.from(distRoadmapIndexOrderingText.matchAll(/^\s*-\s+id:\s+(.+)\s*$/gm)).map(
+    (match) => match[1],
+  );
+  assert(
+    distRoadmapIndexDeclaredOrder.length >= 2 &&
+      distRoadmapIndexExample.milestones[0]?.id === distRoadmapIndexDeclaredOrder[0] &&
+      distRoadmapIndexExample.milestones[1]?.id === distRoadmapIndexDeclaredOrder[1],
+    "dist roadmap index coverage example preserves milestone ordering",
+  );
 
   section("[9] init from dist-only environment");
 

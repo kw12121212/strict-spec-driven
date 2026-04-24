@@ -1,0 +1,13 @@
+schema: strict-spec-driven/roadmap-index/v1
+schema_version: 1
+artifact_type: roadmap_index
+schema_file: ../schemas/roadmap-index.yaml
+milestones:
+  - id: 01-foundation
+    title: Foundation
+    path: roadmap/milestones/01-foundation.yaml
+    status: complete
+  - id: 02-roadmap-workflow
+    title: Roadmap Workflow
+    path: roadmap/milestones/02-roadmap-workflow.yaml
+    status: active
