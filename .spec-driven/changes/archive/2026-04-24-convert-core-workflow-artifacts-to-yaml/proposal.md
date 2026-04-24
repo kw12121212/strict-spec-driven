@@ -1,0 +1,79 @@
+# convert-core-workflow-artifacts-to-yaml
+
+## What
+
+Implement the first artifact-specific migration converters that plug into the
+existing `strict-spec-driven migrate` command so legacy Markdown specs and
+change artifacts can become strict YAML workflow state instead of being
+reported only as deferred follow-up.
+
+This change will:
+
+- add conversion support for legacy main specs, delta specs, requirement
+  scenarios, operation sections, and mapping data under `.spec-driven/specs/`
+- convert active and archived legacy proposal, design, tasks, and questions
+  artifacts into strict YAML change artifacts under `.strict-spec-driven/`
+- preserve stable identifiers, task and question state, mapping data, and
+  archived change date prefixes while converting core workflow artifacts
+- extend migration fixtures, tests, and report expectations so converted core
+  workflow artifacts are reported as real conversions while unsupported
+  roadmap and project-state artifacts remain deferred
+- keep the existing migration command as the orchestration boundary rather than
+  turning this change into a separate standalone migration flow
+
+## Why
+
+Dependency order now favors the first converter slice behind the already-landed
+`migrate` command. The repository has a real migration entrypoint, preflight
+policy, and report envelope, but it still cannot convert the core workflow
+artifacts that matter most for self-hosting: legacy specs plus 29 archived
+legacy changes.
+
+Without this change, migration proves only that strict scaffold assets and
+workflow config can be written. It does not yet preserve the repository's
+archived workflow history, delta structure, task state, or spec identity.
+Landing this proposal next gives milestone 05 credible core-workflow coverage
+before roadmap-state conversion, migration-skill packaging, broader report
+coverage, or self-hosting are attempted.
+
+## Scope
+
+In scope:
+
+- convert legacy main specs and delta specs under `.spec-driven/specs/` into
+  strict YAML spec artifacts
+- convert active and archived legacy changes under `.spec-driven/changes/`
+  into strict YAML proposal, design, tasks, and questions artifacts
+- preserve stable identifiers, scenario ordering, delta operation intent,
+  mapping data, task completion state, question state, and archive-date
+  prefixes during conversion
+- regenerate strict spec index entries from the migrated main specs without
+  treating legacy `INDEX.md` prose as migrated project-state content
+- extend migration fixtures, report expectations, and automated tests for the
+  newly supported core workflow artifact families
+- keep unsupported or still-unimplemented roadmap and project-state artifacts
+  explicitly deferred to the separate
+  `convert-roadmap-and-project-state-to-yaml` change
+
+Out of scope:
+
+- converting roadmap milestones, roadmap indexes, planned change entries,
+  config, specs indexes, or scaffold metadata owned by
+  `convert-roadmap-and-project-state-to-yaml`
+- creating the migration skill package owned by `add-strict-spec-migrate-skill`
+- running the repository self-hosting cutover or deciding bootstrap retirement
+  policy owned by `self-host-repo-on-strict-workflow`
+- broadening migration reporting beyond what is needed to reflect the newly
+  supported core workflow conversions
+- milestone 06 maintenance, ship, packaging, or public documentation work
+
+## Unchanged Behavior
+
+Behaviors that must not change as a result of this change (leave blank if nothing is at risk):
+
+- Existing `migrate` preflight checks, overwrite protection, and non-destructive
+  source preservation remain in place.
+- Unsupported or ambiguous legacy structures continue to become explicit manual
+  follow-up items instead of guessed strict YAML output.
+- Roadmap and project-state conversion remains a separate follow-on milestone 05
+  change rather than being absorbed here.

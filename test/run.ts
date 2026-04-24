@@ -3980,9 +3980,9 @@ async function main(): Promise<void> {
   section("[18] migrate command");
 
   function writeLegacyMigrationFixture(rootDir: string, configContent?: string): void {
-    mkdirSync(path.join(rootDir, ".spec-driven", "specs"), { recursive: true });
+    mkdirSync(path.join(rootDir, ".spec-driven", "specs", "cli"), { recursive: true });
     mkdirSync(path.join(rootDir, ".spec-driven", "roadmap"), { recursive: true });
-    mkdirSync(path.join(rootDir, ".spec-driven", "changes", "demo-change"), { recursive: true });
+    mkdirSync(path.join(rootDir, ".spec-driven", "changes"), { recursive: true });
 
     writeFileSync(
       path.join(rootDir, ".spec-driven", "config.yaml"),
@@ -4003,12 +4003,224 @@ async function main(): Promise<void> {
         ].join("\n") + "\n",
       "utf8",
     );
-    writeFileSync(path.join(rootDir, ".spec-driven", "specs", "INDEX.md"), "# Specs Index\n", "utf8");
-    writeFileSync(path.join(rootDir, ".spec-driven", "roadmap", "INDEX.md"), "# Roadmap Index\n", "utf8");
     writeFileSync(
-      path.join(rootDir, ".spec-driven", "changes", "demo-change", "proposal.md"),
-      "# demo-change\n",
+      path.join(rootDir, ".spec-driven", "specs", "INDEX.md"),
+      [
+        "# Specs Index",
+        "",
+        "- [cli/foundation.md](cli/foundation.md) - CLI Foundation",
+      ].join("\n") + "\n",
       "utf8",
+    );
+    writeFileSync(path.join(rootDir, ".spec-driven", "specs", "README.md"), "# Specs\n", "utf8");
+    writeFileSync(
+      path.join(rootDir, ".spec-driven", "specs", "cli", "foundation.md"),
+      [
+        "---",
+        "mapping:",
+        "  implementation:",
+        "    - src/example.ts",
+        "  tests:",
+        "    - test/example.test.ts",
+        "---",
+        "",
+        "# CLI Foundation",
+        "",
+        "### Requirement: cli-example",
+        "The system MUST preserve one migrated observable behavior.",
+        "",
+        "#### Scenario: first scenario",
+        "- GIVEN one legacy precondition",
+        "- WHEN one legacy action happens",
+        "- THEN one observable result is available",
+        "- AND the result remains reviewable",
+        "",
+        "#### Scenario: second scenario",
+        "- GIVEN another legacy precondition",
+        "- WHEN another legacy action happens",
+        "- THEN another observable result is visible",
+        "",
+        "### Requirement: legacy-removed",
+        "The system MUST expose one requirement that a delta later removes.",
+        "",
+        "#### Scenario: removable requirement",
+        "- GIVEN the removable behavior exists",
+        "- WHEN the behavior is inspected",
+        "- THEN the requirement can later be removed by a delta",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+    writeFileSync(path.join(rootDir, ".spec-driven", "roadmap", "INDEX.md"), "# Roadmap Index\n", "utf8");
+
+    function writeLegacyChangeFixture(
+      relativeChangeDir: string,
+      changeName: string,
+      options: { archived: boolean },
+    ): void {
+      const changeDir = path.join(rootDir, relativeChangeDir);
+      mkdirSync(path.join(changeDir, "specs", "cli"), { recursive: true });
+
+      writeFileSync(
+        path.join(changeDir, "proposal.md"),
+        [
+          `# ${changeName}`,
+          "",
+          "## What",
+          "",
+          `- ${options.archived ? "Archive" : "Continue"} one converted workflow behavior.`,
+          "",
+          "## Why",
+          "",
+          "- The migrated change artifacts must preserve planning context.",
+          "",
+          "## Scope",
+          "",
+          "In scope:",
+          "",
+          "- Preserve proposal summary fields.",
+          "- Preserve scope and unchanged-behavior bullets.",
+          "",
+          "Out of scope:",
+          "",
+          "- Invent unrelated workflow behavior.",
+          "",
+          "## Unchanged Behavior",
+          "",
+          "Behaviors that must not change as a result of this change (leave blank if nothing is at risk):",
+          "",
+          "- Existing migrate preflight behavior remains unchanged.",
+        ].join("\n") + "\n",
+        "utf8",
+      );
+
+      writeFileSync(
+        path.join(changeDir, "design.md"),
+        [
+          `# Design: ${changeName}`,
+          "",
+          "## Approach",
+          "",
+          "1. Parse the legacy artifact.",
+          "- Preserve the canonical Markdown meaning.",
+          "2. Write the strict YAML output.",
+          "- Keep the output deterministic.",
+          "",
+          "## Key Decisions",
+          "",
+          "- Keep migration deterministic. Stable output makes migration reviewable.",
+          "",
+          "## Alternatives Considered",
+          "",
+          "- Rebuild the artifact manually. Rejected because migration should preserve the recorded workflow state automatically.",
+        ].join("\n") + "\n",
+        "utf8",
+      );
+
+      writeFileSync(
+        path.join(changeDir, "tasks.md"),
+        [
+          `# Tasks: ${changeName}`,
+          "",
+          "## Implementation",
+          options.archived
+            ? "- [x] Preserve the archived workflow state."
+            : "- [ ] Preserve the active workflow state.",
+          "",
+          "## Testing",
+          "",
+          "- [x] Run `bun run build` — build validation for migrated change behavior",
+          options.archived
+            ? "- [x] Run `bun test/run.ts` — unit tests for archived migration behavior"
+            : "- [ ] Run `bun test/run.ts` — unit tests for active migration behavior",
+          "",
+          "## Verification",
+          "",
+          options.archived
+            ? "- [x] Verify implementation matches proposal scope"
+            : "- [ ] Verify implementation matches proposal scope",
+        ].join("\n") + "\n",
+        "utf8",
+      );
+
+      writeFileSync(
+        path.join(changeDir, "questions.md"),
+        options.archived
+          ? [
+              `# Questions: ${changeName}`,
+              "",
+              "## Open",
+              "",
+              "<!-- No open questions -->",
+              "",
+              "## Resolved",
+              "",
+              "- [x] Q: Should the archived migration preserve completed workflow state?",
+              "  Context: Archived changes should remain distinguishable from active changes after migration.",
+              "  A: Yes. Archived migrated changes keep completed tasks and resolved questions.",
+            ].join("\n") + "\n"
+          : [
+              `# Questions: ${changeName}`,
+              "",
+              "## Open",
+              "",
+              "- [ ] Q: Should the active migration preserve open workflow questions?",
+              "  Context: Active migrated changes may still carry unresolved planning state.",
+              "",
+              "## Resolved",
+              "",
+              "- [x] Q: Should the migrated active change preserve the chosen build command?",
+              "  Context: Testing tasks need explicit commands after migration.",
+              "  A: Yes. Preserve `bun run build` exactly.",
+            ].join("\n") + "\n",
+        "utf8",
+      );
+
+      writeFileSync(
+        path.join(changeDir, "specs", "cli", "foundation.md"),
+        [
+          "---",
+          "mapping:",
+          "  implementation:",
+          "    - src/migrate.ts",
+          "  tests:",
+          "    - test/run.ts",
+          "---",
+          "",
+          "## ADDED Requirements",
+          "",
+          "### Requirement: delta-added",
+          "The system MUST expose one converted delta addition.",
+          "",
+          "#### Scenario: added requirement migrates",
+          "- GIVEN the delta converter runs",
+          "- WHEN the added requirement is inspected",
+          "- THEN the added requirement remains reviewable",
+          "",
+          "## MODIFIED Requirements",
+          "",
+          "### Requirement: cli-example",
+          "Previously: The system MUST preserve one migrated observable behavior.",
+          "The system MUST preserve one updated migrated observable behavior.",
+          "",
+          "#### Scenario: modified requirement migrates",
+          "- GIVEN the delta converter runs",
+          "- WHEN the modified requirement is inspected",
+          "- THEN the replacement statement remains reviewable",
+          "",
+          "## REMOVED Requirements",
+          "",
+          "### Requirement: legacy-removed",
+          "Reason: The legacy requirement was retired.",
+        ].join("\n") + "\n",
+        "utf8",
+      );
+    }
+
+    writeLegacyChangeFixture(path.join(".spec-driven", "changes", "demo-change"), "demo-change", { archived: false });
+    writeLegacyChangeFixture(
+      path.join(".spec-driven", "changes", "archive", "2026-04-01-done-change"),
+      "done-change",
+      { archived: true },
     );
   }
 
@@ -4030,15 +4242,57 @@ async function main(): Promise<void> {
     );
     assert(
       migrateHappyJson.converted.some(
+        (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+          artifact.kind === "main_spec"
+          && artifact.sourcePath === ".spec-driven/specs/cli/foundation.md"
+          && artifact.targetPath === ".strict-spec-driven/specs/cli/foundation.yaml",
+      ),
+      "migrate reports converted main spec output",
+    );
+    assert(
+      migrateHappyJson.converted.some(
+        (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+          artifact.kind === "change_proposal"
+          && artifact.sourcePath === ".spec-driven/changes/demo-change/proposal.md"
+          && artifact.targetPath === ".strict-spec-driven/changes/demo-change/proposal.yaml",
+      ),
+      "migrate reports converted active change proposal output",
+    );
+    assert(
+      migrateHappyJson.converted.some(
+        (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+          artifact.kind === "delta_spec"
+          && artifact.sourcePath === ".spec-driven/changes/demo-change/specs/cli/foundation.md"
+          && artifact.targetPath === ".strict-spec-driven/changes/demo-change/specs/cli/foundation.yaml",
+      ),
+      "migrate reports converted active change delta output",
+    );
+    assert(
+      migrateHappyJson.converted.some(
+        (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+          artifact.kind === "change_proposal"
+          && artifact.sourcePath === ".spec-driven/changes/archive/2026-04-01-done-change/proposal.md"
+          && artifact.targetPath === ".strict-spec-driven/changes/archive/2026-04-01-done-change/proposal.yaml",
+      ),
+      "migrate reports converted archived change proposal output",
+    );
+    assert(
+      migrateHappyJson.converted.some(
         (artifact: { targetPath: string }) => artifact.targetPath === ".strict-spec-driven/specs/INDEX.yaml",
       ),
-      "migrate reports initialized strict scaffold assets",
+      "migrate still reports initialized strict scaffold assets",
     );
     assert(
       migrateHappyJson.skipped.some(
         (artifact: { sourcePath: string }) => artifact.sourcePath === ".spec-driven/specs/INDEX.md",
       ),
-      "migrate reports skipped legacy markdown artifacts without converters",
+      "migrate still reports deferred legacy project-state artifacts",
+    );
+    assert(
+      migrateHappyJson.skipped.some(
+        (artifact: { sourcePath: string }) => artifact.sourcePath === ".spec-driven/specs/README.md",
+      ),
+      "migrate keeps legacy specs README as deferred follow-up",
     );
     assert(
       migrateHappyJson.manualFollowUp.some(
@@ -4061,6 +4315,201 @@ async function main(): Promise<void> {
     assert(
       migratedConfig.context.includes("Demo project context for migrate tests."),
       "migrate preserves legacy config context in strict output",
+    );
+    const migratedMainSpec = yamlModule.parseYamlFile<{
+      schema: string;
+      artifact_type: string;
+      spec: { id: string; title: string };
+      mapping: { implementation: string[]; tests: string[] };
+      requirements: Array<{
+        id: string;
+        statement: string;
+        scenarios: Array<{ id: string; steps: Array<{ kind: string; text: string }> }>;
+      }>;
+    }>(path.join(migrateHappyDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml"));
+    assert(
+      migratedMainSpec.schema === "strict-spec-driven/main-spec/v1"
+        && migratedMainSpec.artifact_type === "main_spec",
+      "migrate writes strict YAML main spec output",
+    );
+    assert(
+      migratedMainSpec.spec.id === "cli-foundation" && migratedMainSpec.spec.title === "CLI Foundation",
+      "migrate derives strict main spec identity from legacy spec path and heading",
+    );
+    assert(
+      JSON.stringify(migratedMainSpec.mapping) === JSON.stringify({
+        implementation: ["src/example.ts"],
+        tests: ["test/example.test.ts"],
+      }),
+      "migrate preserves legacy main spec mappings",
+      `got ${JSON.stringify(migratedMainSpec.mapping)}`,
+    );
+    assert(
+      JSON.stringify(migratedMainSpec.requirements.find((requirement) => requirement.id === "cli-example")?.scenarios.map((scenario) => scenario.id))
+        === JSON.stringify(["first-scenario", "second-scenario"]),
+      "migrate derives deterministic scenario identifiers for migrated main specs",
+    );
+    assert(
+      migratedMainSpec.requirements.find((requirement) => requirement.id === "cli-example")?.scenarios[0]?.steps[0]?.kind === "GIVEN",
+      "migrate preserves scenario step ordering for migrated main specs",
+    );
+
+    const migratedSpecIndex = yamlModule.parseYamlFile<{
+      specs: Array<{ id: string; path: string }>;
+    }>(path.join(migrateHappyDir, ".strict-spec-driven", "specs", "INDEX.yaml"));
+    assert(
+      migratedSpecIndex.specs.some(
+        (entry) =>
+          entry.id === "cli-foundation"
+          && entry.path === ".strict-spec-driven/specs/cli/foundation.yaml",
+      ),
+      "migrate regenerates strict spec index entries from converted main specs",
+    );
+
+    const migratedActiveProposal = yamlModule.parseYamlFile<{
+      change: { id: string; status: string };
+      summary: { what: string[]; why: string[] };
+    }>(path.join(migrateHappyDir, ".strict-spec-driven", "changes", "demo-change", "proposal.yaml"));
+    assert(
+      migratedActiveProposal.change.id === "demo-change" && migratedActiveProposal.change.status === "active",
+      "migrate converts active proposal status and change identity",
+    );
+    assert(
+      migratedActiveProposal.summary.what.length === 1 && migratedActiveProposal.summary.why.length === 1,
+      "migrate preserves proposal summary lists",
+    );
+
+    const migratedActiveTasks = yamlModule.parseYamlFile<{
+      sections: Array<{ name: string; tasks: Array<{ status: string; command?: string }> }>;
+      testing_gates: { validation_task: string; unit_test_task: string };
+    }>(path.join(migrateHappyDir, ".strict-spec-driven", "changes", "demo-change", "tasks.yaml"));
+    assert(
+      migratedActiveTasks.sections.find((section) => section.name === "Implementation")?.tasks[0]?.status === "pending",
+      "migrate preserves pending active implementation task state",
+    );
+    assert(
+      migratedActiveTasks.sections.find((section) => section.name === "Testing")?.tasks[0]?.command === "bun run build",
+      "migrate preserves explicit build command in migrated testing tasks",
+    );
+    assert(
+      migratedActiveTasks.sections.find((section) => section.name === "Testing")?.tasks[1]?.command === "bun test/run.ts",
+      "migrate preserves explicit unit test command in migrated testing tasks",
+    );
+    assert(
+      migratedActiveTasks.testing_gates.validation_task === "testing-1"
+        && migratedActiveTasks.testing_gates.unit_test_task === "testing-2",
+      "migrate derives deterministic testing gate task references",
+    );
+
+    const migratedActiveQuestions = yamlModule.parseYamlFile<{
+      open: Array<{ question: string; status: string }>;
+      resolved: Array<{ question: string; answer: string; status: string }>;
+    }>(path.join(migrateHappyDir, ".strict-spec-driven", "changes", "demo-change", "questions.yaml"));
+    assert(
+      migratedActiveQuestions.open.length === 1
+        && migratedActiveQuestions.open[0]?.status === "open"
+        && migratedActiveQuestions.resolved.length === 1
+        && migratedActiveQuestions.resolved[0]?.status === "resolved",
+      "migrate preserves open and resolved question state for active changes",
+    );
+
+    const migratedActiveDelta = yamlModule.parseYamlFile<{
+      target_spec: string;
+      mapping: { implementation: string[]; tests: string[] };
+      operations: {
+        ADDED: Array<{ requirement: { id: string } }>;
+        MODIFIED: Array<{ target_requirement: string; replacement: { statement: string } }>;
+        REMOVED: Array<{ target_requirement: string; reason: string }>;
+      };
+    }>(path.join(migrateHappyDir, ".strict-spec-driven", "changes", "demo-change", "specs", "cli", "foundation.yaml"));
+    assert(
+      migratedActiveDelta.target_spec === "cli-foundation",
+      "migrate derives migrated delta target_spec from legacy delta path",
+    );
+    assert(
+      JSON.stringify(migratedActiveDelta.mapping) === JSON.stringify({
+        implementation: ["src/migrate.ts"],
+        tests: ["test/run.ts"],
+      }),
+      "migrate preserves legacy delta spec mappings",
+    );
+    assert(
+      migratedActiveDelta.operations.ADDED[0]?.requirement.id === "delta-added",
+      "migrate preserves ADDED delta requirement identity",
+    );
+    assert(
+      migratedActiveDelta.operations.MODIFIED[0]?.target_requirement === "cli-example",
+      "migrate preserves MODIFIED delta target requirement identity",
+    );
+    assert(
+      migratedActiveDelta.operations.REMOVED[0]?.reason === "The legacy requirement was retired.",
+      "migrate preserves REMOVED delta reason text",
+    );
+
+    const migratedArchivedProposal = yamlModule.parseYamlFile<{
+      change: { id: string; status: string };
+    }>(path.join(
+      migrateHappyDir,
+      ".strict-spec-driven",
+      "changes",
+      "archive",
+      "2026-04-01-done-change",
+      "proposal.yaml",
+    ));
+    assert(
+      migratedArchivedProposal.change.id === "done-change"
+        && migratedArchivedProposal.change.status === "complete",
+      "migrate preserves archived change identity while marking archived proposals complete",
+    );
+
+    const migratedArchivedTasks = yamlModule.parseYamlFile<{
+      sections: Array<{ name: string; tasks: Array<{ status: string }> }>;
+    }>(path.join(
+      migrateHappyDir,
+      ".strict-spec-driven",
+      "changes",
+      "archive",
+      "2026-04-01-done-change",
+      "tasks.yaml",
+    ));
+    assert(
+      migratedArchivedTasks.sections.find((section) => section.name === "Implementation")?.tasks[0]?.status === "complete",
+      "migrate preserves completed archived task state",
+    );
+
+    const migratedArchivedQuestions = yamlModule.parseYamlFile<{
+      open: unknown[];
+      resolved: Array<{ answer: string; status: string }>;
+    }>(path.join(
+      migrateHappyDir,
+      ".strict-spec-driven",
+      "changes",
+      "archive",
+      "2026-04-01-done-change",
+      "questions.yaml",
+    ));
+    assert(
+      migratedArchivedQuestions.open.length === 0
+        && migratedArchivedQuestions.resolved.length === 1
+        && migratedArchivedQuestions.resolved[0]?.status === "resolved",
+      "migrate preserves archived resolved-question state without inventing open questions",
+    );
+
+    const migratedArchivedDelta = yamlModule.parseYamlFile<{
+      target_spec: string;
+    }>(path.join(
+      migrateHappyDir,
+      ".strict-spec-driven",
+      "changes",
+      "archive",
+      "2026-04-01-done-change",
+      "specs",
+      "cli",
+      "foundation.yaml",
+    ));
+    assert(
+      migratedArchivedDelta.target_spec === "cli-foundation",
+      "migrate preserves archive-date directories while converting archived delta specs",
     );
     assert(
       readFileSync(path.join(migrateHappyDir, ".spec-driven", "config.yaml"), "utf8") === legacyConfigBefore,
