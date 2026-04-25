@@ -22,3 +22,6 @@ rules:
     - Tests must verify observable behavior described in specs, not internal implementation details
     - Each test must be independent — no shared mutable state between tests
     - Prefer real dependencies over mocks for code the project owns
+# maintenance:
+#   checks:
+#     - type: roadmap-sync-check

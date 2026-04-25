@@ -22,6 +22,7 @@ import { archiveChange } from "./archive.js";
 import { validateStrictSkillPackaging } from "./skills.js";
 import { getRoadmapStatus, syncRoadmap } from "./roadmap.js";
 import { migrateLegacyWorkflow } from "./migrate.js";
+import { runMaintenance } from "./maintenance.js";
 
 export type CommandHandler = (argv: string[]) => number | void;
 export const commands: Record<string, CommandHandler> = {};
@@ -90,6 +91,7 @@ export { reviewChange };
 export { archiveChange };
 export { getRoadmapStatus, syncRoadmap };
 export { migrateLegacyWorkflow };
+export { runMaintenance };
 
 function normalizeRepoRelativePath(rootDir: string, absolutePath: string): string {
   return path.relative(rootDir, absolutePath).split(path.sep).join("/");
@@ -830,6 +832,18 @@ function runRoadmapSync(argv: string[]): number {
 }
 
 commands["roadmap-sync"] = (argv) => runRoadmapSync(argv);
+
+function runMaintenanceCommand(argv: string[]): number {
+  if (argv.length > 0) {
+    process.stderr.write("Usage: strict-spec-driven maintenance\n");
+    return 1;
+  }
+  const result = runMaintenance(process.cwd());
+  process.stdout.write(`${JSON.stringify(result)}\n`);
+  return result.valid ? 0 : 1;
+}
+
+commands.maintenance = (argv) => runMaintenanceCommand(argv);
 
 type ShipResult = {
   changeName: string;

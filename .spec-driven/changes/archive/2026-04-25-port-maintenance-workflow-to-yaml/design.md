@@ -1,0 +1,29 @@
+# Design: port-maintenance-workflow-to-yaml
+
+## Approach
+
+Add `src/maintenance.ts` implementing the `runMaintenance` function. Register `commands["maintenance"]` in `src/strict-spec-cli.ts`. The maintenance flow reads a `maintenance` section from `.strict-spec-driven/config.yaml`, iterates configured checks, runs each check, collects results, and — if any check reports findings — generates a named maintenance change via the existing `propose`/`apply`/`archive` scaffold path.
+
+The `roadmap-sync-check` check type calls `syncRoadmap()` internally (already in `src/roadmap.ts`) and captures its return value as findings. If `roadmap-sync` produces mismatches, those mismatches become tasks in the generated maintenance change.
+
+The `maintenance` subcommand emits a deterministic JSON object to stdout with `valid`, `checksRun`, `findingsCount`, and `generatedChange` (name or null).
+
+For the maintenance config, extend the existing `config.yaml` scaffold template with an optional `maintenance` section rather than introducing a separate file — this avoids a new scaffold asset and keeps project config unified.
+
+## Key Decisions
+
+**Reuse `syncRoadmap()` for the roadmap-sync check.** The function already exists and returns structured mismatch data. Calling it directly avoids shell invocation and keeps output deterministic.
+
+**Single config.yaml maintenance section.** Putting the maintenance config inline in `.strict-spec-driven/config.yaml` avoids a new schema file and a new scaffold template artifact. The schema validates the `maintenance` section as an optional top-level key.
+
+**Generate maintenance change name from date and check type.** The generated change is named `maintenance-<YYYY-MM-DD>` (or with a suffix for collisions). This keeps archive directory names predictable and makes the date-of-maintenance obvious without needing a separate metadata field.
+
+**Archive is gated on task completion.** The maintenance change is not auto-archived; the skill prompt guides the operator to complete generated tasks, then calls `strict-spec-driven archive` normally. `maintenance` only seeds the change — it does not run apply or archive automatically.
+
+## Alternatives Considered
+
+**Separate `maintenance.yaml` config file.** Would require a new schema, a new scaffold template asset, and an updated `init` command. Not worth the overhead when the maintenance section is small and optional.
+
+**Shell out to `roadmap-sync` subcommand.** Would introduce process spawning and stdout parsing complexity. Calling the TypeScript function directly is simpler, type-safe, and more testable.
+
+**Auto-archive after all tasks are marked complete.** Would remove operator review. The existing workflow already requires explicit archive; deviating from that pattern for maintenance changes would be inconsistent and surprising.

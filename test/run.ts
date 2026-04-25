@@ -5645,6 +5645,144 @@ async function main(): Promise<void> {
     rmSync(shipRoot, { recursive: true, force: true });
   }
 
+  section("[22] maintenance command");
+
+  // 22a: no config.yaml → clean exit with zero findings
+  const maintNoConfigDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-maint-"));
+  try {
+    mkdirSync(path.join(maintNoConfigDir, ".strict-spec-driven"), { recursive: true });
+    const noConfigResult = cli(["maintenance"], { cwd: maintNoConfigDir });
+    assert(noConfigResult.status === 0, "maintenance exits zero when no config.yaml");
+    const noConfigJson = JSON.parse(noConfigResult.stdout.trim()) as {
+      valid: boolean;
+      checksRun: number;
+      findingsCount: number;
+      generatedChange: string | null;
+    };
+    assert(typeof noConfigJson.valid === "boolean", "maintenance json includes valid field");
+    assert(typeof noConfigJson.checksRun === "number", "maintenance json includes checksRun field");
+    assert(typeof noConfigJson.findingsCount === "number", "maintenance json includes findingsCount field");
+    assert("generatedChange" in noConfigJson, "maintenance json includes generatedChange field");
+    assert(noConfigJson.checksRun === 0, "maintenance checksRun is 0 when no config.yaml");
+    assert(noConfigJson.findingsCount === 0, "maintenance findingsCount is 0 when no config.yaml");
+    assert(noConfigJson.generatedChange === null, "maintenance generatedChange is null when no config.yaml");
+  } finally {
+    rmSync(maintNoConfigDir, { recursive: true, force: true });
+  }
+
+  // 22b: config with no maintenance section → clean exit with zero findings
+  const maintNoSectionDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-maint-"));
+  try {
+    const strictDir = path.join(maintNoSectionDir, ".strict-spec-driven");
+    mkdirSync(strictDir, { recursive: true });
+    writeFileSync(
+      path.join(strictDir, "config.yaml"),
+      "schema: strict-spec-driven/config/v1\nschema_version: 1\nartifact_type: workflow_config\n",
+      "utf8",
+    );
+    const noSectionResult = cli(["maintenance"], { cwd: maintNoSectionDir });
+    assert(noSectionResult.status === 0, "maintenance exits zero when no maintenance section in config");
+    const noSectionJson = JSON.parse(noSectionResult.stdout.trim()) as { checksRun: number; findingsCount: number };
+    assert(noSectionJson.checksRun === 0, "maintenance checksRun is 0 when no maintenance config section");
+    assert(noSectionJson.findingsCount === 0, "maintenance findingsCount is 0 when no maintenance config section");
+  } finally {
+    rmSync(maintNoSectionDir, { recursive: true, force: true });
+  }
+
+  // 22c: roadmap-sync-check with mismatches → findings and generated change
+  const maintMismatchDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-maint-"));
+  try {
+    const strictDir = path.join(maintMismatchDir, ".strict-spec-driven");
+    mkdirSync(path.join(strictDir, "roadmap", "milestones"), { recursive: true });
+    mkdirSync(path.join(strictDir, "changes", "archive", "2026-04-01-test-maint-change"), { recursive: true });
+
+    writeFileSync(
+      path.join(strictDir, "config.yaml"),
+      [
+        "schema: strict-spec-driven/config/v1",
+        "schema_version: 1",
+        "artifact_type: workflow_config",
+        "maintenance:",
+        "  checks:",
+        "    - type: roadmap-sync-check",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(strictDir, "roadmap", "INDEX.yaml"),
+      [
+        "schema: strict-spec-driven/roadmap-index/v1",
+        "schema_version: 1",
+        "artifact_type: roadmap_index",
+        "schema_file: ../schemas/roadmap-index.yaml",
+        "milestones:",
+        "  - id: test-maint-milestone",
+        "    title: Test Maintenance Milestone",
+        "    path: roadmap/milestones/test-maint.yaml",
+        "    status: proposed",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(strictDir, "roadmap", "milestones", "test-maint.yaml"),
+      [
+        "schema: strict-spec-driven/roadmap-milestone/v1",
+        "schema_version: 1",
+        "artifact_type: roadmap_milestone",
+        "schema_file: templates/strict-spec-driven/schemas/roadmap-milestone.yaml",
+        "milestone:",
+        "  id: test-maint-milestone",
+        "  title: Test Maintenance Milestone",
+        "goal: Test milestone for maintenance checks.",
+        "scope:",
+        "  in: []",
+        "  out: []",
+        "done_criteria: []",
+        "planned_changes:",
+        "  - schema: strict-spec-driven/planned-change-entry/v1",
+        "    schema_version: 1",
+        "    artifact_type: planned_change_entry",
+        "    schema_file: templates/strict-spec-driven/schemas/planned-change-entry.yaml",
+        "    id: test-maint-change",
+        "    status: planned",
+        "    summary: Test change for maintenance.",
+        "    depends_on: []",
+        "dependencies: []",
+        "risks: []",
+        "status: proposed",
+        "notes: []",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    const mismatchResult = cli(["maintenance"], { cwd: maintMismatchDir });
+    assert(mismatchResult.status === 0, "maintenance exits zero when roadmap has mismatches");
+    const mismatchJson = JSON.parse(mismatchResult.stdout.trim()) as {
+      valid: boolean;
+      checksRun: number;
+      findingsCount: number;
+      generatedChange: string | null;
+    };
+    assert(mismatchJson.checksRun === 1, "maintenance checksRun is 1 for roadmap-sync-check");
+    assert(mismatchJson.findingsCount > 0, "maintenance findingsCount > 0 when roadmap has mismatches");
+    assert(typeof mismatchJson.generatedChange === "string", "maintenance generatedChange is a string when findings exist");
+    assert(
+      existsSync(path.join(strictDir, "changes", mismatchJson.generatedChange as string)),
+      "maintenance change directory is created under .strict-spec-driven/changes/",
+    );
+
+    // 22d: roadmap-sync-check aligned (roadmap already synced after previous run)
+    const alignedResult = cli(["maintenance"], { cwd: maintMismatchDir });
+    assert(alignedResult.status === 0, "maintenance exits zero when roadmap is aligned");
+    const alignedJson = JSON.parse(alignedResult.stdout.trim()) as { findingsCount: number; generatedChange: string | null };
+    assert(alignedJson.findingsCount === 0, "maintenance findingsCount is 0 when roadmap is aligned");
+    assert(alignedJson.generatedChange === null, "maintenance generatedChange is null when no findings");
+  } finally {
+    rmSync(maintMismatchDir, { recursive: true, force: true });
+  }
+
   console.log("");
   const total = passed + failed;
   if (failed === 0) {

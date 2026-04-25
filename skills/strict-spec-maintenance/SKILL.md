@@ -1,6 +1,6 @@
 ---
 name: strict-spec-maintenance
-description: Strict skill package metadata scaffold for strict-spec-maintenance.
+description: Run configured maintenance checks against the strict workflow repository state, seed a maintenance change from findings, and guide through task completion and archive.
 metadata:
   skill_id: strict_spec_maintenance
   author: strict-spec-driven
@@ -12,17 +12,53 @@ metadata:
 
 ## This Skill's Commands
 
-
 ```yaml
+run-maintenance: node {{SKILL_DIR}}/scripts/strict-spec-driven.js maintenance
 list-changes: node {{SKILL_DIR}}/scripts/strict-spec-driven.js list
-inspect-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js modify [change-name|archive-dir]
-propose-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
 verify-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
-review-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>
-verify-spec-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings
 archive-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>
 ```
 
 ## Prerequisites
 
-Use strict workflow artifacts under .strict-spec-driven/.
+Use strict workflow artifacts under `.strict-spec-driven/`. Before running maintenance:
+
+1. Verify `.strict-spec-driven/` exists.
+2. Verify `.strict-spec-driven/config.yaml` contains a `maintenance` section with at least one configured check.
+
+If no `maintenance` section exists, the command exits with zero findings. Add a check entry to enable maintenance behavior:
+
+```yaml
+maintenance:
+  checks:
+    - type: roadmap-sync-check
+```
+
+## Steps
+
+1. **Run maintenance checks** — execute:
+   ```
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js maintenance
+   ```
+   Parse the JSON output. Fields: `valid`, `checksRun`, `findingsCount`, `generatedChange`.
+
+2. **If `generatedChange` is null** — no findings. No change was created. Report the clean state and stop.
+
+3. **If `generatedChange` is set** — a maintenance change was created under `.strict-spec-driven/changes/<generatedChange>/`. The change contains:
+   - `proposal.yaml`: scope listing each finding
+   - `tasks.yaml`: one implementation task per finding, plus standard testing and verification tasks
+   - `design.yaml`, `questions.yaml`: scaffolded templates for operator review
+
+4. **Work through tasks** — use the standard `/strict-spec-apply <generatedChange>` workflow to complete all pending tasks. For `roadmap-sync-check` findings, the roadmap sync was already applied; implementation tasks are to review and confirm the changes were correct.
+
+5. **Verify and archive** — once all tasks are complete:
+   ```
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <generatedChange>
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <generatedChange>
+   ```
+
+## Notes
+
+- The `maintenance` command runs configured checks and applies automated corrections as a side effect (for example, updating roadmap sync state). The generated change is an auditable record of what was done.
+- Only the `roadmap-sync-check` type is supported in this version. It applies roadmap sync state reconciliation and records each updated file as a finding.
+- The maintenance change name uses the format `maintenance-YYYY-MM-DD` (with a numeric suffix if a collision exists).

@@ -412,7 +412,7 @@ function validateLegacyReferences(
     },
     {
       code: "skill.reference.legacy_roadmap_prefix",
-      regex: /(?<!strict-)roadmap-(?:plan|milestone|recommend|propose|sync)\b(?!:)/g,
+      regex: /(?<!strict-)roadmap-(?:plan|milestone|recommend|propose|sync)\b(?![-:])/g,
       message: "stale legacy roadmap skill prefix found; use strict-roadmap-* names",
     },
   ];
