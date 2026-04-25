@@ -778,6 +778,69 @@ context.assert(
   "committed fixture baseline stays unchanged after repeated copied-workspace scenarios",
 );
 
+context.section("[7c] copied real project CLI init, propose, and list flows");
+
+const copiedWorkspaceCliChangePath = path.join(".strict-spec-driven", "changes", "copied-workspace-cli-change");
+const copiedWorkspaceCliFlow = createCopiedProjectWorkspace("todo-app");
+try {
+  context.assert(
+    !existsSync(path.join(copiedWorkspaceCliFlow.workspaceRoot, ".strict-spec-driven")),
+    "copied workspace CLI flow starts without strict scaffold output",
+  );
+
+  const copiedInit = projectWorkspaceCli(copiedWorkspaceCliFlow.workspaceRoot, ["init"]);
+  context.assert(
+    copiedInit.status === 0,
+    "copied workspace init exits zero alongside the legacy fixture baseline",
+    `stdout: ${copiedInit.stdout.trim()} stderr: ${copiedInit.stderr.trim()}`,
+  );
+  context.assert(
+    copiedInit.stderr.includes("legacy '.spec-driven/' directory"),
+    "copied workspace init reports legacy bootstrap coexistence warning",
+    `stderr: ${copiedInit.stderr.trim()}`,
+  );
+  context.assert(
+    existsSync(path.join(copiedWorkspaceCliFlow.workspaceRoot, ".strict-spec-driven", "config.yaml")),
+    "copied workspace init creates strict scaffold artifacts in the temp workspace",
+  );
+
+  const copiedPropose = projectWorkspaceCli(copiedWorkspaceCliFlow.workspaceRoot, ["propose", "copied-workspace-cli-change"]);
+  context.assert(
+    copiedPropose.status === 0,
+    "copied workspace propose creates a strict active change inside the temp workspace",
+    `stdout: ${copiedPropose.stdout.trim()} stderr: ${copiedPropose.stderr.trim()}`,
+  );
+  context.assert(
+    existsSync(path.join(copiedWorkspaceCliFlow.workspaceRoot, copiedWorkspaceCliChangePath, "proposal.yaml")),
+    "copied workspace propose records change artifacts inside the temp workspace",
+  );
+
+  const copiedList = projectWorkspaceCli(copiedWorkspaceCliFlow.workspaceRoot, ["list"]);
+  context.assert(
+    copiedList.status === 0,
+    "copied workspace list exits zero after a copied-fixture propose flow",
+    `stdout: ${copiedList.stdout.trim()} stderr: ${copiedList.stderr.trim()}`,
+  );
+  context.assert(copiedList.stdout.includes("Active:"), "copied workspace list reports the Active heading");
+  context.assert(
+    copiedList.stdout.includes("copied-workspace-cli-change    proposed"),
+    "copied workspace list reports the proposed copied-workspace change",
+    `stdout: ${copiedList.stdout.trim()}`,
+  );
+  context.assert(
+    !existsSync(path.join(todoProjectRoot, ".strict-spec-driven")),
+    "committed fixture baseline still has no strict scaffold after copied workspace init",
+  );
+  context.assert(
+    !existsSync(path.join(todoProjectRoot, copiedWorkspaceCliChangePath)),
+    "committed fixture baseline stays unchanged after copied init, propose, and list flow",
+  );
+} finally {
+  copiedWorkspaceCliFlow.cleanup();
+}
+
+context.assert(!existsSync(copiedWorkspaceCliFlow.workspaceRoot), "copied workspace CLI flow cleanup removes the temp workspace");
+
 context.section("[8] bundled template assets in dist");
 
 const distTemplatesRoot = path.join(ROOT, "dist", "templates", "strict-spec-driven");

@@ -1,0 +1,53 @@
+# add-todo-project-cli-regression-scenarios
+
+## What
+
+- Add copied-workspace regression scenarios for `init`, `propose`, `list`,
+  `modify`, `cancel`, and `verify-spec-mappings` against the committed
+  `test/fixtures/projects/todo-app/` fixture.
+- Assert command exit codes, human-readable or JSON outputs, and artifact
+  effects inside the copied workspace while keeping the committed fixture
+  baseline unchanged.
+- Extend the existing modular test suites and copied-workspace harness instead
+  of changing production CLI behavior.
+
+## Why
+
+Milestone 09 is the shared regression foundation for the command-surface and
+workflow-domain decomposition work in milestones 07 and 08. The repository now
+has the real todo-project fixture, the copy-and-reset harness, and a modular
+test runner, but it still lacks the command-surface scenarios that milestone 07
+needs as its primary acceptance gate.
+
+Landing this change next follows the roadmap dependency order: it turns the
+existing fixture infrastructure into concrete CLI regression coverage before the
+entrypoint and dispatch refactors begin.
+
+## Scope
+
+In scope:
+- Add copied-workspace scenarios for only the explicitly named milestone-09 CLI
+  commands: `init`, `propose`, `list`, `modify`, `cancel`, and
+  `verify-spec-mappings`.
+- Reuse the existing copied-workspace helpers and modular suite structure for
+  project-level CLI assertions.
+- Add deterministic assertions that confirm the committed fixture stays
+  unchanged while the temp workspace reflects each command's expected effects.
+
+Out of scope:
+- Adding roadmap or migration project-fixture scenarios such as
+  `roadmap-status`, `roadmap-sync`, or `migrate`.
+- Expanding this proposal to additional CLI commands beyond the explicitly named
+  first slice.
+- Changing production code in `src/`, altering CLI semantics, or modifying main
+  specs for user-visible behavior.
+
+## Unchanged Behavior
+
+Behaviors that must not change as a result of this change (leave blank if nothing is at risk):
+- Existing CLI command names, outputs, exit codes, and artifact semantics remain
+  the baseline under `.spec-driven/specs/cli/foundation.md`.
+- The committed fixture under `test/fixtures/projects/todo-app/` remains the
+  read-only baseline input for project-level tests.
+- The repository validation and unit-test entry commands remain `bun run build`
+  and `bun test/run.ts`.
