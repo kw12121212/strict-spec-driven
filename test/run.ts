@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
@@ -219,6 +219,26 @@ function fixturePath(fileName: string): string {
 
 function projectFixturePath(...segments: string[]): string {
   return path.join(PROJECT_FIXTURE_ROOT, ...segments);
+}
+
+function createCopiedProjectWorkspace(fixtureName: string): { workspaceRoot: string; cleanup: () => void } {
+  const fixtureRoot = projectFixturePath(fixtureName);
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), `strict-project-fixture-${fixtureName}-`));
+  const workspaceRoot = path.join(tempRoot, fixtureName);
+  cpSync(fixtureRoot, workspaceRoot, { recursive: true });
+  return {
+    workspaceRoot,
+    cleanup: () => {
+      rmSync(tempRoot, { recursive: true, force: true });
+    },
+  };
+}
+
+function projectWorkspaceCli(
+  workspaceRoot: string,
+  args: string[],
+): { status: number; stdout: string; stderr: string } {
+  return cli(args, { cwd: workspaceRoot });
 }
 
 async function loadDistModule<T>(fileName: string): Promise<T> {
@@ -1465,6 +1485,72 @@ async function main(): Promise<void> {
   assert(
     fixtureDeltaSpec.includes("## ADDED Requirements") && fixtureDeltaSpec.includes("### Requirement: assign-due-dates"),
     "real todo project fixture seeded change includes a delta spec for due dates",
+  );
+
+  section("[7b] copied real project workspace harness");
+
+  const copiedWorkspaceChangePath = path.join(".strict-spec-driven", "changes", "copied-workspace-smoke-change");
+  assert(
+    !existsSync(path.join(todoProjectRoot, copiedWorkspaceChangePath)),
+    "committed fixture baseline starts without copied-workspace smoke change",
+  );
+
+  const firstCopiedWorkspace = createCopiedProjectWorkspace("todo-app");
+  try {
+    assert(
+      firstCopiedWorkspace.workspaceRoot !== todoProjectRoot,
+      "copied workspace helper creates a distinct workspace root",
+    );
+    assert(
+      existsSync(path.join(firstCopiedWorkspace.workspaceRoot, ".spec-driven", "changes", "add-due-dates", "proposal.md")),
+      "copied workspace includes the seeded active change",
+    );
+
+    const firstPropose = projectWorkspaceCli(firstCopiedWorkspace.workspaceRoot, ["propose", "copied-workspace-smoke-change"]);
+    assert(
+      firstPropose.status === 0,
+      "copied workspace allows mutable CLI scenarios without touching baseline fixture",
+      `stdout: ${firstPropose.stdout.trim()} stderr: ${firstPropose.stderr.trim()}`,
+    );
+    assert(
+      existsSync(path.join(firstCopiedWorkspace.workspaceRoot, copiedWorkspaceChangePath, "proposal.yaml")),
+      "copied workspace records new change artifacts inside the temp copy",
+    );
+    assert(
+      !existsSync(path.join(todoProjectRoot, copiedWorkspaceChangePath)),
+      "committed fixture baseline stays unchanged during copied-workspace mutation",
+    );
+  } finally {
+    firstCopiedWorkspace.cleanup();
+  }
+
+  assert(!existsSync(firstCopiedWorkspace.workspaceRoot), "copied workspace cleanup removes the first temp workspace");
+
+  const secondCopiedWorkspace = createCopiedProjectWorkspace("todo-app");
+  try {
+    assert(
+      !existsSync(path.join(secondCopiedWorkspace.workspaceRoot, copiedWorkspaceChangePath)),
+      "fresh copied workspace starts from the committed fixture baseline",
+    );
+
+    const secondPropose = projectWorkspaceCli(secondCopiedWorkspace.workspaceRoot, ["propose", "copied-workspace-smoke-change"]);
+    assert(
+      secondPropose.status === 0,
+      "copied workspace scenarios can be repeated across fresh copies",
+      `stdout: ${secondPropose.stdout.trim()} stderr: ${secondPropose.stderr.trim()}`,
+    );
+    assert(
+      existsSync(path.join(secondCopiedWorkspace.workspaceRoot, copiedWorkspaceChangePath, "proposal.yaml")),
+      "repeat copied workspace run creates the same change artifacts again",
+    );
+  } finally {
+    secondCopiedWorkspace.cleanup();
+  }
+
+  assert(!existsSync(secondCopiedWorkspace.workspaceRoot), "copied workspace cleanup removes the second temp workspace");
+  assert(
+    !existsSync(path.join(todoProjectRoot, copiedWorkspaceChangePath)),
+    "committed fixture baseline stays unchanged after repeated copied-workspace scenarios",
   );
 
   section("[8] bundled template assets in dist");
