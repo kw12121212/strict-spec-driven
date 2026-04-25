@@ -40,6 +40,7 @@ Define the strict YAML artifact contracts and naming model before migrating CLI 
 - `define-command-naming-model` - Declared: complete - distinguish skill names, slash commands, CLI entrypoints, CLI subcommands, and installer-facing names so strict naming is applied consistently.
 - `define-markdown-exception-policy` - Declared: complete - update specs and contributor docs to list allowed Markdown files such as `SKILL.md`, `README.md`, `AGENTS.md`, and `RTK.md`, while requiring generated or consumed workflow artifacts to be YAML.
 - `define-yaml-spec-and-delta-model` - Declared: complete - translate RFC 2119 requirements, scenarios, mappings, and ADDED/MODIFIED/REMOVED deltas into structured YAML fields with stable requirement and scenario identifiers.
+- `harden-concrete-yaml-schema-dialect` - Declared: complete - harden concrete schema files to use a uniform nested field dialect suitable for validator inputs rather than prose-like metadata, update examples to match stable schema identities, and split minimal examples from coverage examples.
 
 ## Dependencies
 - The reference behavior in `../auto-spec-driven` must remain available for comparison.

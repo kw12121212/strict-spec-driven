@@ -153,6 +153,17 @@ planned_changes:
       translate RFC 2119 requirements, scenarios, mappings, and ADDED/MODIFIED/REMOVED deltas into
       structured YAML fields with stable requirement and scenario identifiers.
     depends_on: []
+  - schema: strict-spec-driven/planned-change-entry/v1
+    schema_version: 1
+    artifact_type: planned_change_entry
+    schema_file: templates/strict-spec-driven/schemas/planned-change-entry.yaml
+    id: harden-concrete-yaml-schema-dialect
+    status: complete
+    summary: >-
+      harden concrete schema files to use a uniform nested field dialect suitable for validator
+      inputs rather than prose-like metadata, update examples to match stable schema identities,
+      and split minimal examples from coverage examples.
+    depends_on: []
 dependencies:
   - The reference behavior in `../auto-spec-driven` must remain available for comparison.
   - >-
