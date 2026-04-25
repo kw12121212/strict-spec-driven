@@ -1,9 +1,17 @@
 #!/usr/bin/env node
-import { existsSync, readdirSync, readFileSync, rmSync, statSync } from "fs";
+import { existsSync, readFileSync, rmSync, statSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { exitCliEntrypoint, runCliEntrypoint, type CliCommandHandler } from "./cli/entrypoint.js";
 import { createCliCommandTable } from "./cli/registry.js";
+import {
+  findArchivedMatchesByBareName,
+  getArchiveDir,
+  getChangesDir,
+  listActiveChanges,
+  listArchivedChanges,
+} from "./cli/changes.js";
+import { listFilesRecursive, listYamlFiles, normalizePathSeparators, normalizeRepoRelativePath } from "./cli/fs.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 import { compileSchema, createSchemaValidator } from "./validation.js";
 import {
@@ -28,26 +36,8 @@ import { runMaintenance } from "./maintenance.js";
 
 export type CommandHandler = CliCommandHandler;
 const CHANGE_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const LEGACY_SPECS_DIR = path.join(".spec-driven", "specs");
 const EXCLUDED_MAPPING_SPEC_BASENAMES = new Set(["INDEX.md", "README.md"]);
-
-type TaskListArtifact = {
-  sections?: Array<{
-    tasks?: Array<{
-      status?: string;
-    }>;
-  }>;
-};
-
-type QuestionListArtifact = {
-  open?: unknown[];
-};
-
-type ActiveChangeSummary = {
-  name: string;
-  status: string;
-};
 
 type MappingField = "implementation" | "tests";
 
@@ -93,147 +83,6 @@ export { archiveChange };
 export { getRoadmapStatus, syncRoadmap };
 export { migrateLegacyWorkflow };
 export { runMaintenance };
-
-function normalizeRepoRelativePath(rootDir: string, absolutePath: string): string {
-  return path.relative(rootDir, absolutePath).split(path.sep).join("/");
-}
-
-function getChangesDir(rootDir: string): string {
-  return path.join(rootDir, STRICT_WORKFLOW_DIR, "changes");
-}
-
-function getArchiveDir(rootDir: string): string {
-  return path.join(getChangesDir(rootDir), "archive");
-}
-
-function listDirectoryNames(directoryPath: string): string[] {
-  if (!existsSync(directoryPath) || !statSync(directoryPath).isDirectory()) {
-    return [];
-  }
-
-  return readdirSync(directoryPath, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort((a, b) => a.localeCompare(b));
-}
-
-function readActiveChangeStatus(rootDir: string, changeName: string): string {
-  const changeDir = path.join(getChangesDir(rootDir), changeName);
-  const questionsPath = path.join(changeDir, "questions.yaml");
-  const tasksPath = path.join(changeDir, "tasks.yaml");
-
-  try {
-    if (existsSync(questionsPath)) {
-      const questionsArtifact = parseYamlDocument<QuestionListArtifact>(readFileSync(questionsPath, "utf8"));
-      if (Array.isArray(questionsArtifact.open) && questionsArtifact.open.length > 0) {
-        return "blocked";
-      }
-    }
-
-    if (!existsSync(tasksPath)) {
-      return "proposed";
-    }
-
-    const tasksArtifact = parseYamlDocument<TaskListArtifact>(readFileSync(tasksPath, "utf8"));
-    let total = 0;
-    let complete = 0;
-
-    for (const section of tasksArtifact.sections ?? []) {
-      for (const task of section.tasks ?? []) {
-        total += 1;
-        if (task.status === "complete") {
-          complete += 1;
-        }
-      }
-    }
-
-    if (total === 0 || complete === 0) {
-      return "proposed";
-    }
-    if (complete === total) {
-      return "done";
-    }
-    return `in-progress (${complete}/${total})`;
-  } catch {
-    return "invalid";
-  }
-}
-
-function listActiveChanges(rootDir: string): ActiveChangeSummary[] {
-  return listDirectoryNames(getChangesDir(rootDir))
-    .filter((name) => name !== "archive")
-    .map((name) => ({
-      name,
-      status: readActiveChangeStatus(rootDir, name),
-    }));
-}
-
-function listArchivedChanges(rootDir: string): string[] {
-  return listDirectoryNames(getArchiveDir(rootDir));
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function findArchivedMatchesByBareName(rootDir: string, bareName: string): string[] {
-  const archivedChangePattern = new RegExp(`^\\d{4}-\\d{2}-\\d{2}-${escapeRegExp(bareName)}(?:-\\d+)?$`);
-  return listArchivedChanges(rootDir).filter((archiveDirName) => archivedChangePattern.test(archiveDirName));
-}
-
-function listYamlFiles(directoryPath: string): string[] {
-  if (!existsSync(directoryPath) || !statSync(directoryPath).isDirectory()) {
-    return [];
-  }
-
-  const files: string[] = [];
-
-  function walk(currentPath: string): void {
-    const entries = readdirSync(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
-    for (const entry of entries) {
-      const fullPath = path.join(currentPath, entry.name);
-      if (entry.isDirectory()) {
-        walk(fullPath);
-        continue;
-      }
-      if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
-        files.push(fullPath);
-      }
-    }
-  }
-
-  walk(directoryPath);
-  return files;
-}
-
-function listFilesRecursive(directoryPath: string): string[] {
-  if (!existsSync(directoryPath) || !statSync(directoryPath).isDirectory()) {
-    return [];
-  }
-
-  const files: string[] = [];
-
-  function walk(currentPath: string): void {
-    const entries = readdirSync(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
-    for (const entry of entries) {
-      const fullPath = path.join(currentPath, entry.name);
-      if (entry.isDirectory()) {
-        walk(fullPath);
-        continue;
-      }
-      if (entry.isFile()) {
-        files.push(fullPath);
-      }
-    }
-  }
-
-  walk(directoryPath);
-  return files;
-}
-
-function normalizePathSeparators(value: string): string {
-  return value.split(path.sep).join("/");
-}
 
 function makeMappingDiagnostic(
   source: MappingAuditDiagnostic["source"],

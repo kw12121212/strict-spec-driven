@@ -26,7 +26,7 @@ Reduce the size and coordination burden of the CLI entrypoint layer by splitting
 ## Planned Changes
 - `extract-cli-entrypoint-and-usage-layer` - Declared: complete - move argv normalization, usage rendering, and top-level error or exit handling out of `src/strict-spec-cli.ts` into focused CLI entry modules.
 - `extract-cli-command-registry-and-dispatch` - Declared: complete - move command registration and dispatch into dedicated router modules so the entrypoint no longer owns the full command table directly.
-- `extract-cli-change-discovery-and-status` - Declared: planned - move change listing, archive matching, and active-status calculation into focused helper modules reused by CLI commands.
+- `extract-cli-change-discovery-and-status` - Declared: complete - move change listing, archive matching, and active-status calculation into focused helper modules reused by CLI commands.
 - `extract-cli-spec-mapping-audit` - Declared: planned - move spec-mapping parsing, normalization, evidence collection, and diagnostic sorting into dedicated modules instead of keeping them inline in the entrypoint.
 - `extract-cli-command-handlers-by-domain` - Declared: planned - split init, propose, verify, review, roadmap, migrate, maintenance, ship, list, modify, and cancel handlers into smaller domain-oriented command modules while preserving outputs.
 - `stabilize-cli-output-contracts` - Declared: planned - centralize human-readable and JSON output shaping so command text and machine-readable structures stay stable while modules move.
@@ -49,5 +49,6 @@ Reduce the size and coordination burden of the CLI entrypoint layer by splitting
 - Current hotspot evidence: `src/strict-spec-cli.ts` is about 1093 lines and mixes entrypoint setup, command handlers, shared filesystem utilities, and spec-mapping audit logic in one file.
 - Current test evidence: `test/run.ts` is about 5949 lines and today relies mostly on temporary-directory and single-fixture assertions, so command-surface decomposition needs a stronger shared project-level regression layer.
 - This milestone intentionally focuses on the CLI command surface first so later domain-specific decompositions can happen behind clearer entry boundaries.
+
 
 

@@ -5,7 +5,9 @@ mapping:
     - install.sh
     - tsconfig.json
     - src/cli/argv.ts
+    - src/cli/changes.ts
     - src/cli/entrypoint.ts
+    - src/cli/fs.ts
     - src/cli/registry.ts
     - src/cli/usage.ts
     - src/converters/roadmap.ts
