@@ -590,6 +590,164 @@ try {
   rmSync(roadmapCycleDir, { recursive: true, force: true });
 }
 
+context.section("[17b] copied real project roadmap workflow");
+
+const todoProjectRoot = projectFixturePath("todo-app");
+const todoProjectRoadmapIndexPath = path.join(todoProjectRoot, ".spec-driven", "roadmap", "INDEX.md");
+const todoProjectRoadmapMilestonePath = path.join(
+  todoProjectRoot,
+  ".spec-driven",
+  "roadmap",
+  "milestones",
+  "01-core-todo-workflows.md",
+);
+const copiedWorkspaceRoadmapFlow = createCopiedProjectWorkspace("todo-app");
+try {
+  const copiedRoadmapIndexBefore = readFileSync(
+    path.join(copiedWorkspaceRoadmapFlow.workspaceRoot, ".spec-driven", "roadmap", "INDEX.md"),
+    "utf8",
+  );
+  const copiedRoadmapMilestoneBefore = readFileSync(
+    path.join(copiedWorkspaceRoadmapFlow.workspaceRoot, ".spec-driven", "roadmap", "milestones", "01-core-todo-workflows.md"),
+    "utf8",
+  );
+  const baselineRoadmapIndex = readFileSync(todoProjectRoadmapIndexPath, "utf8");
+  const baselineRoadmapMilestone = readFileSync(todoProjectRoadmapMilestonePath, "utf8");
+
+  context.assert(
+    !existsSync(path.join(copiedWorkspaceRoadmapFlow.workspaceRoot, ".strict-spec-driven")),
+    "copied workspace roadmap flow starts without strict migrated state",
+  );
+
+  const copiedRoadmapStatusBefore = projectWorkspaceCli(copiedWorkspaceRoadmapFlow.workspaceRoot, ["roadmap-status"]);
+  context.assert(
+    copiedRoadmapStatusBefore.status !== 0,
+    "copied workspace roadmap-status exits non-zero before migrate creates strict roadmap state",
+    `stdout: ${copiedRoadmapStatusBefore.stdout.trim()} stderr: ${copiedRoadmapStatusBefore.stderr.trim()}`,
+  );
+  const copiedRoadmapStatusBeforeJson = JSON.parse(copiedRoadmapStatusBefore.stdout.trim());
+  context.assert(
+    copiedRoadmapStatusBeforeJson.diagnostics.some(
+      (diagnostic: { artifactPath: string; message: string }) =>
+        diagnostic.artifactPath === ".strict-spec-driven/roadmap"
+        && diagnostic.message.includes("strict roadmap directory not found"),
+    ),
+    "copied workspace roadmap-status reports missing strict roadmap directory before migrate",
+  );
+
+  const copiedMigrateForRoadmap = projectWorkspaceCli(copiedWorkspaceRoadmapFlow.workspaceRoot, ["migrate"]);
+  context.assert(
+    copiedMigrateForRoadmap.status === 0,
+    "copied workspace migrate prepares strict roadmap state for roadmap command coverage",
+    `stdout: ${copiedMigrateForRoadmap.stdout.trim()} stderr: ${copiedMigrateForRoadmap.stderr.trim()}`,
+  );
+  const copiedMigrateForRoadmapJson = JSON.parse(copiedMigrateForRoadmap.stdout.trim());
+  context.assert(
+    copiedMigrateForRoadmapJson.valid === true,
+    "copied workspace migrate reports valid=true before roadmap assertions",
+  );
+
+  const copiedRoadmapStatusAfter = projectWorkspaceCli(copiedWorkspaceRoadmapFlow.workspaceRoot, ["roadmap-status"]);
+  context.assert(
+    copiedRoadmapStatusAfter.status === 0,
+    "copied workspace roadmap-status accepts migrated strict roadmap state",
+    `stdout: ${copiedRoadmapStatusAfter.stdout.trim()} stderr: ${copiedRoadmapStatusAfter.stderr.trim()}`,
+  );
+  const copiedRoadmapStatusAfterJson = JSON.parse(copiedRoadmapStatusAfter.stdout.trim());
+  context.assert(
+    copiedRoadmapStatusAfterJson.valid === true && copiedRoadmapStatusAfterJson.milestones.length === 1,
+    "copied workspace roadmap-status reports one valid migrated milestone",
+  );
+  context.assert(
+    copiedRoadmapStatusAfterJson.milestones[0].path === "roadmap/milestones/01-core-todo-workflows.yaml"
+      && copiedRoadmapStatusAfterJson.milestones[0].declaredStatus === "proposed"
+      && copiedRoadmapStatusAfterJson.milestones[0].derivedStatus === "active",
+    "copied workspace roadmap-status preserves migrated milestone path and reports active derived state",
+  );
+  context.assert(
+    copiedRoadmapStatusAfterJson.milestones[0].plannedChanges.length === 2
+      && copiedRoadmapStatusAfterJson.milestones[0].plannedChanges[0]?.id === "add-due-dates"
+      && copiedRoadmapStatusAfterJson.milestones[0].plannedChanges[0]?.state === "active"
+      && copiedRoadmapStatusAfterJson.milestones[0].plannedChanges[1]?.id === "add-tag-filtering"
+      && copiedRoadmapStatusAfterJson.milestones[0].plannedChanges[1]?.state === "missing",
+    "copied workspace roadmap-status derives active and missing planned change states from migrated fixture history",
+  );
+  context.assert(
+    copiedRoadmapStatusAfterJson.milestones[0].mismatches.length === 1
+      && copiedRoadmapStatusAfterJson.milestones[0].mismatches[0].includes("declared status 'proposed'"),
+    "copied workspace roadmap-status reports the migrated declared-versus-derived milestone mismatch before sync",
+  );
+
+  const copiedRoadmapSync = projectWorkspaceCli(copiedWorkspaceRoadmapFlow.workspaceRoot, ["roadmap-sync"]);
+  context.assert(
+    copiedRoadmapSync.status === 0,
+    "copied workspace roadmap-sync exits zero after migrate creates reconcilable strict roadmap state",
+    `stdout: ${copiedRoadmapSync.stdout.trim()} stderr: ${copiedRoadmapSync.stderr.trim()}`,
+  );
+  const copiedRoadmapSyncJson = JSON.parse(copiedRoadmapSync.stdout.trim());
+  context.assert(copiedRoadmapSyncJson.valid === true, "copied workspace roadmap-sync reports valid=true");
+  context.assert(
+    copiedRoadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/01-core-todo-workflows.yaml")
+      && copiedRoadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/INDEX.yaml"),
+    "copied workspace roadmap-sync reports migrated roadmap index and milestone rewrites",
+    `updatedFiles: ${JSON.stringify(copiedRoadmapSyncJson.updatedFiles)}`,
+  );
+
+  const copiedSyncedRoadmapIndex = yamlModule.parseYamlFile<{
+    milestones: Array<{ id: string; path: string; status: string }>;
+  }>(path.join(copiedWorkspaceRoadmapFlow.workspaceRoot, ".strict-spec-driven", "roadmap", "INDEX.yaml"));
+  context.assert(
+    copiedSyncedRoadmapIndex.milestones.length === 1
+      && copiedSyncedRoadmapIndex.milestones[0]?.id === "01-core-todo-workflows"
+      && copiedSyncedRoadmapIndex.milestones[0]?.path === "roadmap/milestones/01-core-todo-workflows.yaml"
+      && copiedSyncedRoadmapIndex.milestones[0]?.status === "active",
+    "copied workspace roadmap-sync rewrites migrated roadmap index status to the derived active value",
+  );
+  const copiedSyncedRoadmapMilestone = yamlModule.parseYamlFile<{
+    status: string;
+    planned_changes: Array<{ id: string; status: string }>;
+  }>(path.join(
+    copiedWorkspaceRoadmapFlow.workspaceRoot,
+    ".strict-spec-driven",
+    "roadmap",
+    "milestones",
+    "01-core-todo-workflows.yaml",
+  ));
+  context.assert(
+    copiedSyncedRoadmapMilestone.status === "active",
+    "copied workspace roadmap-sync rewrites the migrated milestone declared status to active",
+  );
+  context.assert(
+    copiedSyncedRoadmapMilestone.planned_changes[0]?.id === "add-due-dates"
+      && copiedSyncedRoadmapMilestone.planned_changes[0]?.status === "planned"
+      && copiedSyncedRoadmapMilestone.planned_changes[1]?.id === "add-tag-filtering"
+      && copiedSyncedRoadmapMilestone.planned_changes[1]?.status === "planned",
+    "copied workspace roadmap-sync preserves planned change identities while keeping unresolved fixture changes planned",
+  );
+  context.assert(
+    readFileSync(path.join(copiedWorkspaceRoadmapFlow.workspaceRoot, ".spec-driven", "roadmap", "INDEX.md"), "utf8")
+      === copiedRoadmapIndexBefore
+      && readFileSync(
+        path.join(copiedWorkspaceRoadmapFlow.workspaceRoot, ".spec-driven", "roadmap", "milestones", "01-core-todo-workflows.md"),
+        "utf8",
+      ) === copiedRoadmapMilestoneBefore,
+    "copied workspace roadmap flow leaves legacy bootstrap roadmap inputs unchanged",
+  );
+  context.assert(
+    readFileSync(todoProjectRoadmapIndexPath, "utf8") === baselineRoadmapIndex
+      && readFileSync(todoProjectRoadmapMilestonePath, "utf8") === baselineRoadmapMilestone
+      && !existsSync(path.join(todoProjectRoot, ".strict-spec-driven")),
+    "committed todo-project fixture baseline stays unchanged during copied workspace roadmap coverage",
+  );
+} finally {
+  copiedWorkspaceRoadmapFlow.cleanup();
+}
+
+context.assert(
+  !existsSync(copiedWorkspaceRoadmapFlow.workspaceRoot),
+  "copied workspace cleanup removes roadmap flow temp workspace",
+);
+
 context.section("[18] migrate command");
 
 function writeLegacyMigrationFixture(rootDir: string, configContent?: string): void {
@@ -924,6 +1082,139 @@ function assertMigrationReportArrays(report: Record<string, unknown>, labelPrefi
   context.assert(Array.isArray(report.errors), `${labelPrefix} report includes errors array`);
   context.assert(Array.isArray(report.manualFollowUp), `${labelPrefix} report includes manualFollowUp array`);
 }
+
+context.section("[18a] copied real project migrate flow");
+
+const todoProjectConfigPath = path.join(todoProjectRoot, ".spec-driven", "config.yaml");
+const copiedWorkspaceMigrateFlow = createCopiedProjectWorkspace("todo-app");
+try {
+  const copiedLegacyConfigBefore = readFileSync(
+    path.join(copiedWorkspaceMigrateFlow.workspaceRoot, ".spec-driven", "config.yaml"),
+    "utf8",
+  );
+  const copiedLegacyRoadmapIndexBefore = readFileSync(
+    path.join(copiedWorkspaceMigrateFlow.workspaceRoot, ".spec-driven", "roadmap", "INDEX.md"),
+    "utf8",
+  );
+  const baselineConfig = readFileSync(todoProjectConfigPath, "utf8");
+  const baselineRoadmapIndex = readFileSync(todoProjectRoadmapIndexPath, "utf8");
+
+  const copiedWorkspaceMigrate = projectWorkspaceCli(copiedWorkspaceMigrateFlow.workspaceRoot, ["migrate"]);
+  context.assert(
+    copiedWorkspaceMigrate.status === 0,
+    "copied workspace migrate exits zero for the committed todo-project fixture",
+    `stdout: ${copiedWorkspaceMigrate.stdout.trim()} stderr: ${copiedWorkspaceMigrate.stderr.trim()}`,
+  );
+  const copiedWorkspaceMigrateJson = JSON.parse(copiedWorkspaceMigrate.stdout.trim());
+  context.assert(copiedWorkspaceMigrateJson.valid === true, "copied workspace migrate reports valid=true");
+  assertMigrationReportArrays(copiedWorkspaceMigrateJson, "copied fixture migrate");
+  context.assert(
+    copiedWorkspaceMigrateJson.skipped.length === 0
+      && copiedWorkspaceMigrateJson.warnings.length === 0
+      && copiedWorkspaceMigrateJson.errors.length === 0
+      && copiedWorkspaceMigrateJson.manualFollowUp.length === 0,
+    "copied workspace migrate completes without deferred artifacts for the todo-project fixture",
+  );
+  context.assert(
+    copiedWorkspaceMigrateJson.converted.some(
+      (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+        artifact.kind === "workflow_config"
+        && artifact.sourcePath === ".spec-driven/config.yaml"
+        && artifact.targetPath === ".strict-spec-driven/config.yaml",
+    ),
+    "copied workspace migrate reports converted workflow config output",
+  );
+  context.assert(
+    copiedWorkspaceMigrateJson.converted.some(
+      (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+        artifact.kind === "roadmap_index"
+        && artifact.sourcePath === ".spec-driven/roadmap/INDEX.md"
+        && artifact.targetPath === ".strict-spec-driven/roadmap/INDEX.yaml",
+    ),
+    "copied workspace migrate reports converted roadmap index output",
+  );
+  context.assert(
+    copiedWorkspaceMigrateJson.converted.some(
+      (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+        artifact.kind === "roadmap_milestone"
+        && artifact.sourcePath === ".spec-driven/roadmap/milestones/01-core-todo-workflows.md"
+        && artifact.targetPath === ".strict-spec-driven/roadmap/milestones/01-core-todo-workflows.yaml",
+    ),
+    "copied workspace migrate reports converted roadmap milestone output",
+  );
+  context.assert(
+    copiedWorkspaceMigrateJson.converted.some(
+      (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+        artifact.kind === "main_spec"
+        && artifact.sourcePath === ".spec-driven/specs/todo-management.md"
+        && artifact.targetPath === ".strict-spec-driven/specs/todo-management.yaml",
+    ),
+    "copied workspace migrate reports converted main spec output",
+  );
+  context.assert(
+    copiedWorkspaceMigrateJson.converted.some(
+      (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+        artifact.kind === "change_proposal"
+        && artifact.sourcePath === ".spec-driven/changes/add-due-dates/proposal.md"
+        && artifact.targetPath === ".strict-spec-driven/changes/add-due-dates/proposal.yaml",
+    ),
+    "copied workspace migrate reports converted active change proposal output",
+  );
+  context.assert(
+    existsSync(path.join(copiedWorkspaceMigrateFlow.workspaceRoot, ".strict-spec-driven", "config.yaml"))
+      && existsSync(path.join(copiedWorkspaceMigrateFlow.workspaceRoot, ".strict-spec-driven", "specs", "todo-management.yaml"))
+      && existsSync(path.join(copiedWorkspaceMigrateFlow.workspaceRoot, ".strict-spec-driven", "changes", "add-due-dates", "proposal.yaml"))
+      && existsSync(path.join(copiedWorkspaceMigrateFlow.workspaceRoot, ".strict-spec-driven", "roadmap", "milestones", "01-core-todo-workflows.yaml")),
+    "copied workspace migrate writes strict config, spec, change, and roadmap artifacts into the temp workspace",
+  );
+
+  const copiedMigratedRoadmapMilestone = yamlModule.parseYamlFile<{
+    milestone: { id: string; title: string };
+    planned_changes: Array<{ id: string; status: string }>;
+    status: string;
+  }>(path.join(
+    copiedWorkspaceMigrateFlow.workspaceRoot,
+    ".strict-spec-driven",
+    "roadmap",
+    "milestones",
+    "01-core-todo-workflows.yaml",
+  ));
+  context.assert(
+    copiedMigratedRoadmapMilestone.milestone.id === "01-core-todo-workflows"
+      && copiedMigratedRoadmapMilestone.milestone.title === "01 Core Todo Workflows",
+    "copied workspace migrate preserves roadmap milestone identity in strict output",
+  );
+  context.assert(
+    copiedMigratedRoadmapMilestone.planned_changes.length === 2
+      && copiedMigratedRoadmapMilestone.planned_changes[0]?.id === "add-due-dates"
+      && copiedMigratedRoadmapMilestone.planned_changes[0]?.status === "planned",
+    "copied workspace migrate preserves planned change entries from the todo-project roadmap",
+  );
+  context.assert(
+    copiedMigratedRoadmapMilestone.status === "proposed",
+    "copied workspace migrate preserves the legacy declared milestone status before roadmap-sync reconciliation",
+  );
+
+  context.assert(
+    readFileSync(path.join(copiedWorkspaceMigrateFlow.workspaceRoot, ".spec-driven", "config.yaml"), "utf8") === copiedLegacyConfigBefore
+      && readFileSync(path.join(copiedWorkspaceMigrateFlow.workspaceRoot, ".spec-driven", "roadmap", "INDEX.md"), "utf8")
+        === copiedLegacyRoadmapIndexBefore,
+    "copied workspace migrate leaves bootstrap config and roadmap inputs unchanged",
+  );
+  context.assert(
+    readFileSync(todoProjectConfigPath, "utf8") === baselineConfig
+      && readFileSync(todoProjectRoadmapIndexPath, "utf8") === baselineRoadmapIndex
+      && !existsSync(path.join(todoProjectRoot, ".strict-spec-driven")),
+    "committed todo-project fixture baseline stays unchanged after copied workspace migrate",
+  );
+} finally {
+  copiedWorkspaceMigrateFlow.cleanup();
+}
+
+context.assert(
+  !existsSync(copiedWorkspaceMigrateFlow.workspaceRoot),
+  "copied workspace cleanup removes migrate flow temp workspace",
+);
 
 const migrateHappyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-happy-"));
 try {
