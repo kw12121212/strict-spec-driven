@@ -43,6 +43,8 @@ mapping:
     - skills/strict-roadmap-recommend/SKILL.md
     - skills/strict-roadmap-sync/SKILL.md
     - README.md
+    - QUICKSTART.md
+    - ROADMAP_GUIDE.md
     - RTK.md
   tests:
     - test/run.ts
