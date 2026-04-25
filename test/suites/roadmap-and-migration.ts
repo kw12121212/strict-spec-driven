@@ -1,0 +1,1944 @@
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
+import os from "os";
+import path from "path";
+import {
+  ROOT,
+  TestContext,
+  cli,
+  createCopiedProjectWorkspace,
+  fixturePath,
+  formatLocalDateStamp,
+  loadDistModule,
+  projectFixturePath,
+  projectWorkspaceCli,
+  runCommand,
+  type MigrateConverterModule,
+  type RoadmapConverterModule,
+  type ScaffoldModule,
+  type SkillValidationModule,
+  type ValidationModule,
+  type YamlModule,
+} from "../support/harness.js";
+
+export async function runRoadmapAndMigrationSuite(context: TestContext): Promise<void> {
+  const yamlModule = await loadDistModule<YamlModule>("yaml.js");
+  const skillValidationModule = await loadDistModule<SkillValidationModule>("skills.js");
+context.section("[17] roadmap workflow commands");
+
+function writeRoadmapIndexArtifact(
+  rootDir: string,
+  milestones: Array<{ id: string; title: string; path: string; status: string }>,
+): void {
+  const indexPath = path.join(rootDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
+  mkdirSync(path.dirname(indexPath), { recursive: true });
+  writeFileSync(
+    indexPath,
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/roadmap-index/v1",
+      schema_version: 1,
+      artifact_type: "roadmap_index",
+      schema_file: "../schemas/roadmap-index.yaml",
+      milestones,
+    }),
+    "utf8",
+  );
+}
+
+function writeRoadmapMilestoneArtifact(
+  rootDir: string,
+  fileName: string,
+  options: {
+    id: string;
+    title: string;
+    goal: string;
+    status: string;
+    plannedChanges: Array<{ id: string; status: string; summary: string; depends_on: string[] }>;
+  },
+): void {
+  const milestonePath = path.join(rootDir, ".strict-spec-driven", "roadmap", "milestones", fileName);
+  mkdirSync(path.dirname(milestonePath), { recursive: true });
+  writeFileSync(
+    milestonePath,
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/roadmap-milestone/v1",
+      schema_version: 1,
+      artifact_type: "roadmap_milestone",
+      schema_file: "../schemas/roadmap-milestone.yaml",
+      milestone: {
+        id: options.id,
+        title: options.title,
+      },
+      goal: options.goal,
+      scope: {
+        in: ["Strict roadmap workflow behavior."],
+        out: ["Unrelated behavior."],
+      },
+      done_criteria: ["The roadmap workflow is implemented and verified."],
+      planned_changes: options.plannedChanges.map((plannedChange) => ({
+        schema: "strict-spec-driven/planned-change-entry/v1",
+        schema_version: 1,
+        artifact_type: "planned_change_entry",
+        schema_file: "../schemas/planned-change-entry.yaml",
+        id: plannedChange.id,
+        status: plannedChange.status,
+        summary: plannedChange.summary,
+        depends_on: plannedChange.depends_on,
+      })),
+      dependencies: [],
+      risks: [],
+      status: options.status,
+      notes: [],
+    }),
+    "utf8",
+  );
+}
+
+const roadmapHappyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-happy-"));
+try {
+  mkdirSync(path.join(roadmapHappyDir, ".strict-spec-driven", "changes", "active-change"), { recursive: true });
+  mkdirSync(
+    path.join(roadmapHappyDir, ".strict-spec-driven", "changes", "archive", `${formatLocalDateStamp()}-archived-change`),
+    { recursive: true },
+  );
+
+  writeRoadmapMilestoneArtifact(roadmapHappyDir, "01-roadmap.yaml", {
+    id: "01-roadmap",
+    title: "Roadmap Workflow",
+    goal: "Keep strict roadmap state aligned with change state.",
+    status: "blocked",
+    plannedChanges: [
+      {
+        id: "active-change",
+        status: "planned",
+        summary: "Active work remains in progress.",
+        depends_on: [],
+      },
+      {
+        id: "archived-change",
+        status: "planned",
+        summary: "Archived work should reconcile to complete.",
+        depends_on: ["active-change"],
+      },
+    ],
+  });
+
+  writeRoadmapIndexArtifact(roadmapHappyDir, [
+    {
+      id: "01-roadmap",
+      title: "Roadmap Workflow",
+      path: "roadmap/milestones/01-roadmap.yaml",
+      status: "blocked",
+    },
+  ]);
+
+  const roadmapStatusBefore = cli(["roadmap-status"], { cwd: roadmapHappyDir });
+  context.assert(roadmapStatusBefore.status === 0, "roadmap-status exits zero for a structurally valid roadmap");
+  const roadmapStatusBeforeJson = JSON.parse(roadmapStatusBefore.stdout.trim());
+  context.assert(roadmapStatusBeforeJson.valid === true, "roadmap-status reports valid=true for structurally valid roadmap");
+  context.assert(roadmapStatusBeforeJson.milestones.length === 1, "roadmap-status reports one milestone");
+  context.assert(
+    roadmapStatusBeforeJson.milestones[0].path === "roadmap/milestones/01-roadmap.yaml",
+    "roadmap-status reports milestone path in roadmap order",
+  );
+  context.assert(
+    roadmapStatusBeforeJson.milestones[0].declaredStatus === "blocked"
+      && roadmapStatusBeforeJson.milestones[0].derivedStatus === "active",
+    "roadmap-status reports declared and derived milestone statuses",
+  );
+  context.assert(
+    roadmapStatusBeforeJson.milestones[0].plannedChanges[0].state === "active"
+      && roadmapStatusBeforeJson.milestones[0].plannedChanges[1].state === "archived",
+    "roadmap-status derives planned change state from active and archived strict changes",
+  );
+  context.assert(
+    roadmapStatusBeforeJson.milestones[0].plannedChanges[1].derivedStatus === "complete",
+    "roadmap-status derives archived planned changes as complete",
+  );
+  context.assert(
+    roadmapStatusBeforeJson.milestones[0].mismatches.length === 1
+      && roadmapStatusBeforeJson.milestones[0].plannedChanges[1].mismatches.length === 1,
+    "roadmap-status reports mismatch details without failing structural validation",
+  );
+
+  const roadmapSync = cli(["roadmap-sync"], { cwd: roadmapHappyDir });
+  context.assert(roadmapSync.status === 0, "roadmap-sync exits zero for reconcilable roadmap state", `got ${roadmapSync.status}`);
+  const roadmapSyncJson = JSON.parse(roadmapSync.stdout.trim());
+  context.assert(roadmapSyncJson.valid === true, "roadmap-sync reports valid=true after reconciliation");
+  context.assert(
+    roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/INDEX.yaml")
+      && roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/01-roadmap.yaml"),
+    "roadmap-sync reports updated index and milestone files",
+    `updatedFiles: ${JSON.stringify(roadmapSyncJson.updatedFiles)}`,
+  );
+
+  const syncedMilestone = yamlModule.parseYamlFile<{
+    status: string;
+    planned_changes: Array<{ id: string; status: string }>;
+  }>(path.join(roadmapHappyDir, ".strict-spec-driven", "roadmap", "milestones", "01-roadmap.yaml"));
+  context.assert(syncedMilestone.status === "active", "roadmap-sync rewrites milestone status to derived status");
+  context.assert(
+    syncedMilestone.planned_changes[0]?.status === "planned"
+      && syncedMilestone.planned_changes[1]?.status === "complete",
+    "roadmap-sync rewrites planned change declared statuses from workflow state",
+  );
+
+  const syncedIndex = yamlModule.parseYamlFile<{
+    milestones: Array<{ id: string; title: string; path: string; status: string }>;
+  }>(path.join(roadmapHappyDir, ".strict-spec-driven", "roadmap", "INDEX.yaml"));
+  context.assert(
+    syncedIndex.milestones.length === 1
+      && syncedIndex.milestones[0]?.status === "active"
+      && syncedIndex.milestones[0]?.path === "roadmap/milestones/01-roadmap.yaml",
+    "roadmap-sync regenerates canonical roadmap index entries from milestone state",
+  );
+
+  const roadmapStatusAfter = cli(["roadmap-status"], { cwd: roadmapHappyDir });
+  context.assert(roadmapStatusAfter.status === 0, "roadmap-status stays zero after roadmap-sync");
+  const roadmapStatusAfterJson = JSON.parse(roadmapStatusAfter.stdout.trim());
+  context.assert(
+    roadmapStatusAfterJson.milestones[0].mismatches.length === 0
+      && roadmapStatusAfterJson.milestones[0].plannedChanges.every((plannedChange: { mismatches: unknown[] }) => plannedChange.mismatches.length === 0),
+    "roadmap-sync clears milestone and planned change mismatch state",
+  );
+} finally {
+  rmSync(roadmapHappyDir, { recursive: true, force: true });
+}
+
+const roadmapAmbiguousDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-ambiguous-"));
+try {
+  mkdirSync(path.join(roadmapAmbiguousDir, ".strict-spec-driven", "changes", "shared-change"), { recursive: true });
+  mkdirSync(
+    path.join(roadmapAmbiguousDir, ".strict-spec-driven", "changes", "archive", `${formatLocalDateStamp()}-shared-change`),
+    { recursive: true },
+  );
+
+  writeRoadmapMilestoneArtifact(roadmapAmbiguousDir, "01-ambiguous.yaml", {
+    id: "01-ambiguous",
+    title: "Ambiguous Roadmap Workflow",
+    goal: "Surface duplicate active and archived change ids as ambiguity.",
+    status: "complete",
+    plannedChanges: [
+      {
+        id: "shared-change",
+        status: "complete",
+        summary: "This change was archived but a duplicate active copy remains.",
+        depends_on: [],
+      },
+    ],
+  });
+
+  writeRoadmapIndexArtifact(roadmapAmbiguousDir, [
+    {
+      id: "01-ambiguous",
+      title: "Ambiguous Roadmap Workflow",
+      path: "roadmap/milestones/01-ambiguous.yaml",
+      status: "complete",
+    },
+  ]);
+
+  const ambiguousRoadmapStatus = cli(["roadmap-status"], { cwd: roadmapAmbiguousDir });
+  context.assert(ambiguousRoadmapStatus.status === 0, "roadmap-status exits zero for ambiguous but structurally valid roadmap state");
+  const ambiguousRoadmapJson = JSON.parse(ambiguousRoadmapStatus.stdout.trim());
+  context.assert(ambiguousRoadmapJson.valid === true, "roadmap-status keeps ambiguous duplicate history as valid roadmap structure");
+  context.assert(
+    ambiguousRoadmapJson.milestones[0].plannedChanges[0].state === "ambiguous",
+    "roadmap-status marks duplicate active and archived change ids as ambiguous state",
+  );
+  context.assert(
+    ambiguousRoadmapJson.milestones[0].plannedChanges[0].derivedStatus === "planned",
+    "roadmap-status does not derive ambiguous duplicate change ids as complete",
+  );
+  context.assert(
+    ambiguousRoadmapJson.milestones[0].derivedStatus === "active",
+    "roadmap-status derives milestone status as active when a planned change is ambiguous",
+  );
+  context.assert(
+    ambiguousRoadmapJson.milestones[0].plannedChanges[0].mismatches.some(
+      (mismatch: string) => mismatch.includes("both active and archived strict change state"),
+    ),
+    "roadmap-status reports an explicit ambiguity mismatch for duplicate active and archived change history",
+  );
+
+  const ambiguousRoadmapSync = cli(["roadmap-sync"], { cwd: roadmapAmbiguousDir });
+  context.assert(ambiguousRoadmapSync.status === 0, "roadmap-sync exits zero for reconcilable ambiguous roadmap state");
+  const syncedAmbiguousMilestone = yamlModule.parseYamlFile<{
+    status: string;
+    planned_changes: Array<{ id: string; status: string }>;
+  }>(path.join(roadmapAmbiguousDir, ".strict-spec-driven", "roadmap", "milestones", "01-ambiguous.yaml"));
+  context.assert(syncedAmbiguousMilestone.status === "active", "roadmap-sync rewrites ambiguous milestone status to active");
+  context.assert(
+    syncedAmbiguousMilestone.planned_changes[0]?.status === "planned",
+    "roadmap-sync rewrites ambiguous planned change status to planned instead of complete",
+  );
+} finally {
+  rmSync(roadmapAmbiguousDir, { recursive: true, force: true });
+}
+
+const roadmapInvalidDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-invalid-"));
+try {
+  writeRoadmapIndexArtifact(roadmapInvalidDir, [
+    {
+      id: "01-invalid",
+      title: "Invalid Milestone",
+      path: "roadmap/milestones/01-invalid.yaml",
+      status: "proposed",
+    },
+  ]);
+
+  const invalidMilestonePath = path.join(
+    roadmapInvalidDir,
+    ".strict-spec-driven",
+    "roadmap",
+    "milestones",
+    "01-invalid.yaml",
+  );
+  mkdirSync(path.dirname(invalidMilestonePath), { recursive: true });
+  writeFileSync(
+    invalidMilestonePath,
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/roadmap-milestone/v1",
+      schema_version: 1,
+      artifact_type: "roadmap_milestone",
+      schema_file: "../schemas/roadmap-milestone.yaml",
+      milestone: {
+        id: "01-invalid",
+        title: "Invalid Milestone",
+      },
+      goal: "Broken milestone artifact",
+      scope: {
+        in: ["Test invalid roadmap artifact"],
+        out: [],
+      },
+      done_criteria: ["Needs planned changes"],
+      dependencies: [],
+      risks: [],
+      status: "proposed",
+      notes: [],
+    }),
+    "utf8",
+  );
+
+  const invalidRoadmapStatus = cli(["roadmap-status"], { cwd: roadmapInvalidDir });
+  context.assert(invalidRoadmapStatus.status !== 0, "roadmap-status exits non-zero for invalid roadmap artifacts");
+  const invalidRoadmapJson = JSON.parse(invalidRoadmapStatus.stdout.trim());
+  context.assert(invalidRoadmapJson.valid === false, "roadmap-status reports valid=false for invalid roadmap artifact");
+  context.assert(
+    invalidRoadmapJson.diagnostics.some(
+      (diagnostic: { artifactPath: string; fieldPath: string }) =>
+        diagnostic.artifactPath === ".strict-spec-driven/roadmap/milestones/01-invalid.yaml"
+        && diagnostic.fieldPath === "$.planned_changes",
+    ),
+    "roadmap-status diagnostics identify the invalid artifact path and field path",
+  );
+
+  const invalidRoadmapSync = cli(["roadmap-sync"], { cwd: roadmapInvalidDir });
+  context.assert(invalidRoadmapSync.status !== 0, "roadmap-sync exits non-zero when milestone artifacts are invalid");
+} finally {
+  rmSync(roadmapInvalidDir, { recursive: true, force: true });
+}
+
+const invalidRoadmapSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-roadmap-skill-invalid-"));
+try {
+  const invalidRoadmapSkillDir = path.join(invalidRoadmapSkillRoot, "skills", "strict-roadmap-recommend");
+  mkdirSync(path.join(invalidRoadmapSkillRoot, "dist", "scripts"), { recursive: true });
+  mkdirSync(path.join(invalidRoadmapSkillRoot, "dist", "templates"), { recursive: true });
+  mkdirSync(invalidRoadmapSkillDir, { recursive: true });
+
+  symlinkSync("../../dist/scripts", path.join(invalidRoadmapSkillDir, "scripts"));
+  symlinkSync("../../dist/templates", path.join(invalidRoadmapSkillDir, "templates"));
+
+  writeFileSync(
+    path.join(invalidRoadmapSkillDir, "SKILL.md"),
+    [
+      "---",
+      "name: strict-roadmap-recommend",
+      "description: stub",
+      "metadata:",
+      "  skill_id: strict_roadmap_recommend",
+      "  author: strict-spec-driven",
+      "  type: agent_skill",
+      "  version: 1.0.0",
+      "---",
+      "",
+      "You are helping with roadmap work.",
+      "",
+      "## This Skill's Commands",
+      "",
+      "```yaml",
+      "cli: node {{SKILL_DIR}}/scripts/strict-spec-driven.js <command>",
+      "```",
+      "",
+      "## Prerequisites",
+      "",
+      "Use strict workflow artifacts.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(invalidRoadmapSkillRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [{ name: "strict-roadmap-recommend", family: "strict-roadmap" }],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const invalidRoadmapSkillResult = skillValidationModule.validateStrictSkillPackaging(invalidRoadmapSkillRoot);
+  context.assert(!invalidRoadmapSkillResult.valid, "strict skill validation fails for placeholder roadmap skill content");
+  context.assert(
+    invalidRoadmapSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.roadmap.placeholder_command"),
+    "placeholder roadmap skill reports roadmap-specific placeholder diagnostic",
+  );
+  context.assert(
+    invalidRoadmapSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.roadmap.required_heading.missing"),
+    "placeholder roadmap skill reports missing roadmap workflow heading diagnostic",
+  );
+  context.assert(
+    invalidRoadmapSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.roadmap.required_snippet.missing"),
+    "placeholder roadmap skill reports missing strict roadmap artifact reference diagnostic",
+  );
+} finally {
+  rmSync(invalidRoadmapSkillRoot, { recursive: true, force: true });
+}
+
+const invalidPlanningSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-planning-skill-invalid-"));
+try {
+  const invalidPlanningSkillDir = path.join(invalidPlanningSkillRoot, "skills", "strict-spec-sync-specs");
+  mkdirSync(path.join(invalidPlanningSkillRoot, "dist", "scripts"), { recursive: true });
+  mkdirSync(path.join(invalidPlanningSkillRoot, "dist", "templates"), { recursive: true });
+  mkdirSync(invalidPlanningSkillDir, { recursive: true });
+
+  symlinkSync("../../dist/scripts", path.join(invalidPlanningSkillDir, "scripts"));
+  symlinkSync("../../dist/templates", path.join(invalidPlanningSkillDir, "templates"));
+
+  writeFileSync(
+    path.join(invalidPlanningSkillDir, "SKILL.md"),
+    [
+      "---",
+      "name: strict-spec-sync-specs",
+      "description: stub",
+      "metadata:",
+      "  skill_id: strict_spec_sync_specs",
+      "  author: strict-spec-driven",
+      "  type: agent_skill",
+      "  version: 1.0.0",
+      "---",
+      "",
+      "You are helping with strict spec syncing.",
+      "",
+      "## This Skill's Commands",
+      "",
+      "```yaml",
+      "cli: node {{SKILL_DIR}}/scripts/strict-spec-driven.js <command>",
+      "```",
+      "",
+      "## Prerequisites",
+      "",
+      "Use strict workflow artifacts.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(invalidPlanningSkillRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [{ name: "strict-spec-sync-specs", family: "strict-spec" }],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const invalidPlanningSkillResult = skillValidationModule.validateStrictSkillPackaging(invalidPlanningSkillRoot);
+  context.assert(!invalidPlanningSkillResult.valid, "strict skill validation fails for placeholder planning skill content");
+  context.assert(
+    invalidPlanningSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.planning.placeholder_command"),
+    "placeholder planning skill reports planning-specific placeholder diagnostic",
+  );
+  context.assert(
+    invalidPlanningSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.planning.required_heading.missing"),
+    "placeholder planning skill reports missing planning workflow heading diagnostic",
+  );
+  context.assert(
+    invalidPlanningSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.planning.required_snippet.missing"),
+    "placeholder planning skill reports missing strict planning artifact reference diagnostic",
+  );
+} finally {
+  rmSync(invalidPlanningSkillRoot, { recursive: true, force: true });
+}
+
+const invalidMigrationSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-migration-skill-invalid-"));
+try {
+  const invalidMigrationSkillDir = path.join(invalidMigrationSkillRoot, "skills", "strict-spec-migrate");
+  mkdirSync(path.join(invalidMigrationSkillRoot, "dist", "scripts"), { recursive: true });
+  mkdirSync(path.join(invalidMigrationSkillRoot, "dist", "templates"), { recursive: true });
+  mkdirSync(invalidMigrationSkillDir, { recursive: true });
+
+  symlinkSync("../../dist/scripts", path.join(invalidMigrationSkillDir, "scripts"));
+  symlinkSync("../../dist/templates", path.join(invalidMigrationSkillDir, "templates"));
+
+  writeFileSync(
+    path.join(invalidMigrationSkillDir, "SKILL.md"),
+    [
+      "---",
+      "name: strict-spec-migrate",
+      "description: stub",
+      "metadata:",
+      "  skill_id: strict_spec_migrate",
+      "  author: strict-spec-driven",
+      "  type: agent_skill",
+      "  version: 1.0.0",
+      "---",
+      "",
+      "You are helping with strict migration work.",
+      "",
+      "## This Skill's Commands",
+      "",
+      "```yaml",
+      "cli: node {{SKILL_DIR}}/scripts/strict-spec-driven.js <command>",
+      "```",
+      "",
+      "## Prerequisites",
+      "",
+      "Use workflow artifacts.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(invalidMigrationSkillRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [{ name: "strict-spec-migrate", family: "strict-spec" }],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const invalidMigrationSkillResult = skillValidationModule.validateStrictSkillPackaging(invalidMigrationSkillRoot);
+  context.assert(!invalidMigrationSkillResult.valid, "strict skill validation fails for placeholder migration skill content");
+  context.assert(
+    invalidMigrationSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.migration.placeholder_command"),
+    "placeholder migration skill reports migration-specific placeholder diagnostic",
+  );
+  context.assert(
+    invalidMigrationSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.migration.required_heading.missing"),
+    "placeholder migration skill reports missing migration workflow heading diagnostic",
+  );
+  context.assert(
+    invalidMigrationSkillResult.diagnostics.some((diagnostic) => diagnostic.code === "skill.migration.required_snippet.missing"),
+    "placeholder migration skill reports missing migration workflow reference diagnostic",
+  );
+} finally {
+  rmSync(invalidMigrationSkillRoot, { recursive: true, force: true });
+}
+
+const roadmapCycleDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-cycle-"));
+try {
+  writeRoadmapIndexArtifact(roadmapCycleDir, [
+    {
+      id: "01-cycle",
+      title: "Cycle Milestone",
+      path: "roadmap/milestones/01-cycle.yaml",
+      status: "proposed",
+    },
+  ]);
+
+  writeRoadmapMilestoneArtifact(roadmapCycleDir, "01-cycle.yaml", {
+    id: "01-cycle",
+    title: "Cycle Milestone",
+    goal: "Detect invalid dependency cycles.",
+    status: "proposed",
+    plannedChanges: [
+      {
+        id: "change-a",
+        status: "planned",
+        summary: "First change",
+        depends_on: ["change-b"],
+      },
+      {
+        id: "change-b",
+        status: "planned",
+        summary: "Second change",
+        depends_on: ["change-a"],
+      },
+    ],
+  });
+
+  const cycleStatus = cli(["roadmap-status"], { cwd: roadmapCycleDir });
+  context.assert(cycleStatus.status !== 0, "roadmap-status exits non-zero for cyclic planned change dependencies");
+  const cycleJson = JSON.parse(cycleStatus.stdout.trim());
+  context.assert(
+    cycleJson.diagnostics.some((diagnostic: { message: string }) => diagnostic.message.includes("acyclic")),
+    "roadmap-status reports a cycle diagnostic for planned change dependencies",
+  );
+} finally {
+  rmSync(roadmapCycleDir, { recursive: true, force: true });
+}
+
+context.section("[18] migrate command");
+
+function writeLegacyMigrationFixture(rootDir: string, configContent?: string): void {
+  mkdirSync(path.join(rootDir, ".spec-driven", "specs", "cli"), { recursive: true });
+  mkdirSync(path.join(rootDir, ".spec-driven", "roadmap", "milestones"), { recursive: true });
+  mkdirSync(path.join(rootDir, ".spec-driven", "changes"), { recursive: true });
+
+  writeFileSync(
+    path.join(rootDir, ".spec-driven", "config.yaml"),
+    configContent
+      ?? [
+        "schema: spec-driven",
+        "context: |",
+        "  Demo project context for migrate tests.",
+        "rules:",
+        "  specs:",
+        "    - Describe observable behavior only",
+        "  change:",
+        "    - Implement only what is in scope in proposal.md — if scope needs to expand, use /spec-driven-modify first, never expand silently",
+        "    - Mark tasks [x] immediately upon completion — never batch at the end",
+        "    - Every change must include test tasks (lint + unit tests at minimum)",
+        "  code:",
+        "    - Reuse existing helpers",
+        "  test:",
+        "    - Tests remain independent",
+      ].join("\n") + "\n",
+    "utf8",
+  );
+  writeFileSync(
+    path.join(rootDir, ".spec-driven", "specs", "INDEX.md"),
+    [
+      "# Specs Index",
+      "",
+      "- [cli/foundation.md](cli/foundation.md) - CLI Foundation",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+  writeFileSync(path.join(rootDir, ".spec-driven", "specs", "README.md"), "# Specs\n", "utf8");
+  writeFileSync(
+    path.join(rootDir, ".spec-driven", "specs", "cli", "foundation.md"),
+    [
+      "---",
+      "mapping:",
+      "  implementation:",
+      "    - src/example.ts",
+      "  tests:",
+      "    - test/example.test.ts",
+      "---",
+      "",
+      "# CLI Foundation",
+      "",
+      "### Requirement: cli-example",
+      "The system MUST preserve one migrated observable behavior.",
+      "",
+      "#### Scenario: first scenario",
+      "- GIVEN one legacy precondition",
+      "- WHEN one legacy action happens",
+      "- THEN one observable result is available",
+      "- AND the result remains reviewable",
+      "",
+      "#### Scenario: second scenario",
+      "- GIVEN another legacy precondition",
+      "- WHEN another legacy action happens",
+      "- THEN another observable result is visible",
+      "",
+      "### Requirement: legacy-removed",
+      "The system MUST expose one requirement that a delta later removes.",
+      "",
+      "#### Scenario: removable requirement",
+      "- GIVEN the removable behavior exists",
+      "- WHEN the behavior is inspected",
+      "- THEN the requirement can later be removed by a delta",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+  writeFileSync(
+    path.join(rootDir, ".spec-driven", "roadmap", "INDEX.md"),
+    [
+      "# Roadmap Index",
+      "",
+      "## Milestones",
+      "- [01-demo.md](milestones/01-demo.md) - 01 Demo Milestone - active",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+  writeFileSync(
+    path.join(rootDir, ".spec-driven", "roadmap", "milestones", "01-demo.md"),
+    [
+      "# 01 Demo Milestone",
+      "",
+      "## Goal",
+      "Demonstrate roadmap migration for testing.",
+      "",
+      "## In Scope",
+      "- Convert roadmap artifacts.",
+      "",
+      "## Out of Scope",
+      "- Production readiness.",
+      "",
+      "## Done Criteria",
+      "- Migration produces valid YAML.",
+      "",
+      "## Planned Changes",
+      "- `demo-change` - Declared: complete - implement the demo migration change.",
+      "",
+      "## Dependencies",
+      "- No dependencies.",
+      "",
+      "## Risks",
+      "- None identified.",
+      "",
+      "## Status",
+      "- Declared: active",
+      "",
+      "## Notes",
+      "- Test fixture milestone.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  function writeLegacyChangeFixture(
+    relativeChangeDir: string,
+    changeName: string,
+    options: { archived: boolean },
+  ): void {
+    const changeDir = path.join(rootDir, relativeChangeDir);
+    mkdirSync(path.join(changeDir, "specs", "cli"), { recursive: true });
+
+    writeFileSync(
+      path.join(changeDir, "proposal.md"),
+      [
+        `# ${changeName}`,
+        "",
+        "## What",
+        "",
+        `- ${options.archived ? "Archive" : "Continue"} one converted workflow behavior.`,
+        "",
+        "## Why",
+        "",
+        "- The migrated change artifacts must preserve planning context.",
+        "",
+        "## Scope",
+        "",
+        "In scope:",
+        "",
+        "- Preserve proposal summary fields.",
+        "- Preserve scope and unchanged-behavior bullets.",
+        "",
+        "Out of scope:",
+        "",
+        "- Invent unrelated workflow behavior.",
+        "",
+        "## Unchanged Behavior",
+        "",
+        "Behaviors that must not change as a result of this change (leave blank if nothing is at risk):",
+        "",
+        "- Existing migrate preflight behavior remains unchanged.",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "design.md"),
+      [
+        `# Design: ${changeName}`,
+        "",
+        "## Approach",
+        "",
+        "1. Parse the legacy artifact.",
+        "- Preserve the canonical Markdown meaning.",
+        "2. Write the strict YAML output.",
+        "- Keep the output deterministic.",
+        "",
+        "## Key Decisions",
+        "",
+        "- Keep migration deterministic. Stable output makes migration reviewable.",
+        "",
+        "## Alternatives Considered",
+        "",
+        "- Rebuild the artifact manually. Rejected because migration should preserve the recorded workflow state automatically.",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "tasks.md"),
+      [
+        `# Tasks: ${changeName}`,
+        "",
+        "## Implementation",
+        options.archived
+          ? "- [x] Preserve the archived workflow state."
+          : "- [ ] Preserve the active workflow state.",
+        "",
+        "## Testing",
+        "",
+        "- [x] Run `bun run build` — build validation for migrated change behavior",
+        options.archived
+          ? "- [x] Run `bun test/run.ts` — unit tests for archived migration behavior"
+          : "- [ ] Run `bun test/run.ts` — unit tests for active migration behavior",
+        "",
+        "## Verification",
+        "",
+        options.archived
+          ? "- [x] Verify implementation matches proposal scope"
+          : "- [ ] Verify implementation matches proposal scope",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "questions.md"),
+      options.archived
+        ? [
+            `# Questions: ${changeName}`,
+            "",
+            "## Open",
+            "",
+            "<!-- No open questions -->",
+            "",
+            "## Resolved",
+            "",
+            "- [x] Q: Should the archived migration preserve completed workflow state?",
+            "  Context: Archived changes should remain distinguishable from active changes after migration.",
+            "  A: Yes. Archived migrated changes keep completed tasks and resolved questions.",
+          ].join("\n") + "\n"
+        : [
+            `# Questions: ${changeName}`,
+            "",
+            "## Open",
+            "",
+            "- [ ] Q: Should the active migration preserve open workflow questions?",
+            "  Context: Active migrated changes may still carry unresolved planning state.",
+            "",
+            "## Resolved",
+            "",
+            "- [x] Q: Should the migrated active change preserve the chosen build command?",
+            "  Context: Testing tasks need explicit commands after migration.",
+            "  A: Yes. Preserve `bun run build` exactly.",
+          ].join("\n") + "\n",
+      "utf8",
+    );
+
+    writeFileSync(
+      path.join(changeDir, "specs", "cli", "foundation.md"),
+      [
+        "---",
+        "mapping:",
+        "  implementation:",
+        "    - src/migrate.ts",
+        "  tests:",
+        "    - test/run.ts",
+        "---",
+        "",
+        "## ADDED Requirements",
+        "",
+        "### Requirement: delta-added",
+        "The system MUST expose one converted delta addition.",
+        "",
+        "#### Scenario: added requirement migrates",
+        "- GIVEN the delta converter runs",
+        "- WHEN the added requirement is inspected",
+        "- THEN the added requirement remains reviewable",
+        "",
+        "## MODIFIED Requirements",
+        "",
+        "### Requirement: cli-example",
+        "Previously: The system MUST preserve one migrated observable behavior.",
+        "The system MUST preserve one updated migrated observable behavior.",
+        "",
+        "#### Scenario: modified requirement migrates",
+        "- GIVEN the delta converter runs",
+        "- WHEN the modified requirement is inspected",
+        "- THEN the replacement statement remains reviewable",
+        "",
+        "## REMOVED Requirements",
+        "",
+        "### Requirement: legacy-removed",
+        "Reason: The legacy requirement was retired.",
+      ].join("\n") + "\n",
+      "utf8",
+    );
+  }
+
+  writeLegacyChangeFixture(path.join(".spec-driven", "changes", "demo-change"), "demo-change", { archived: false });
+  writeLegacyChangeFixture(
+    path.join(".spec-driven", "changes", "archive", "2026-04-01-done-change"),
+    "done-change",
+    { archived: true },
+  );
+  writeLegacyChangeFixture(
+    path.join(".spec-driven", "changes", "archive", "2026-04-02-empty-mapping-change"),
+    "empty-mapping-change",
+    { archived: true },
+  );
+  writeFileSync(
+    path.join(
+      rootDir,
+      ".spec-driven",
+      "changes",
+      "archive",
+      "2026-04-02-empty-mapping-change",
+      "specs",
+      "cli",
+      "foundation.md",
+    ),
+    [
+      "---",
+      "mapping:",
+      "  implementation:",
+      "  tests:",
+      "---",
+      "",
+      "## ADDED Requirements",
+      "",
+      "### Requirement: archived-empty-mapping-delta",
+      "The system MUST preserve archived deltas that omit legacy mapping entries.",
+      "",
+      "#### Scenario: archived empty mapping migrates",
+      "- GIVEN an archived legacy delta leaves implementation and test mappings blank",
+      "- WHEN the delta is migrated to strict YAML",
+      "- THEN the migrated mapping remains an empty structured collection",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+}
+
+function assertMigrationReportArrays(report: Record<string, unknown>, labelPrefix: string): void {
+  context.assert(Array.isArray(report.converted), `${labelPrefix} report includes converted array`);
+  context.assert(Array.isArray(report.skipped), `${labelPrefix} report includes skipped array`);
+  context.assert(Array.isArray(report.warnings), `${labelPrefix} report includes warnings array`);
+  context.assert(Array.isArray(report.errors), `${labelPrefix} report includes errors array`);
+  context.assert(Array.isArray(report.manualFollowUp), `${labelPrefix} report includes manualFollowUp array`);
+}
+
+const migrateHappyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-happy-"));
+try {
+  writeLegacyMigrationFixture(migrateHappyDir);
+  const legacyConfigBefore = readFileSync(path.join(migrateHappyDir, ".spec-driven", "config.yaml"), "utf8");
+
+  const migrateHappy = cli(["migrate"], { cwd: migrateHappyDir });
+  context.assert(migrateHappy.status === 0, "migrate exits zero for valid bootstrap state");
+  const migrateHappyJson = JSON.parse(migrateHappy.stdout.trim());
+  context.assert(migrateHappyJson.valid === true, "migrate reports valid=true on successful migration");
+  assertMigrationReportArrays(migrateHappyJson, "successful migrate");
+  context.assert(
+    migrateHappyJson.converted.some(
+      (artifact: { sourcePath?: string; targetPath: string }) =>
+        artifact.sourcePath === ".spec-driven/config.yaml" && artifact.targetPath === ".strict-spec-driven/config.yaml",
+    ),
+    "migrate reports converted strict config output",
+  );
+  context.assert(
+    migrateHappyJson.converted.some(
+      (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+        artifact.kind === "main_spec"
+        && artifact.sourcePath === ".spec-driven/specs/cli/foundation.md"
+        && artifact.targetPath === ".strict-spec-driven/specs/cli/foundation.yaml",
+    ),
+    "migrate reports converted main spec output",
+  );
+  context.assert(
+    migrateHappyJson.converted.some(
+      (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+        artifact.kind === "change_proposal"
+        && artifact.sourcePath === ".spec-driven/changes/demo-change/proposal.md"
+        && artifact.targetPath === ".strict-spec-driven/changes/demo-change/proposal.yaml",
+    ),
+    "migrate reports converted active change proposal output",
+  );
+  context.assert(
+    migrateHappyJson.converted.some(
+      (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+        artifact.kind === "delta_spec"
+        && artifact.sourcePath === ".spec-driven/changes/demo-change/specs/cli/foundation.md"
+        && artifact.targetPath === ".strict-spec-driven/changes/demo-change/specs/cli/foundation.yaml",
+    ),
+    "migrate reports converted active change delta output",
+  );
+  context.assert(
+    migrateHappyJson.converted.some(
+      (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+        artifact.kind === "change_proposal"
+        && artifact.sourcePath === ".spec-driven/changes/archive/2026-04-01-done-change/proposal.md"
+        && artifact.targetPath === ".strict-spec-driven/changes/archive/2026-04-01-done-change/proposal.yaml",
+    ),
+    "migrate reports converted archived change proposal output",
+  );
+  context.assert(
+    migrateHappyJson.converted.some(
+      (artifact: { targetPath: string }) => artifact.targetPath === ".strict-spec-driven/specs/INDEX.yaml",
+    ),
+    "migrate still reports initialized strict scaffold assets",
+  );
+  context.assert(
+    migrateHappyJson.converted.some(
+      (artifact: { sourcePath?: string; kind: string }) =>
+        artifact.kind === "spec_index" && artifact.sourcePath === ".spec-driven/specs/INDEX.md",
+    ),
+    "migrate converts legacy specs index into strict spec_index artifact",
+  );
+  context.assert(
+    migrateHappyJson.skipped.some(
+      (artifact: { sourcePath: string }) => artifact.sourcePath === ".spec-driven/specs/README.md",
+    ),
+    "migrate keeps legacy specs README as deferred follow-up",
+  );
+  context.assert(
+    migrateHappyJson.converted.some(
+      (artifact: { sourcePath?: string; kind: string }) =>
+        artifact.kind === "roadmap_index" && artifact.sourcePath === ".spec-driven/roadmap/INDEX.md",
+    ),
+    "migrate converts legacy roadmap index into strict roadmap_index artifact",
+  );
+  context.assert(
+    migrateHappyJson.converted.some(
+      (artifact: { sourcePath?: string; kind: string }) =>
+        artifact.kind === "roadmap_milestone"
+        && artifact.sourcePath === ".spec-driven/roadmap/milestones/01-demo.md",
+    ),
+    "migrate converts legacy roadmap milestone into strict roadmap_milestone artifact",
+  );
+
+  const migratedConfig = yamlModule.parseYamlFile<{
+    schema: string;
+    artifact_type: string;
+    context: string;
+    rules: Record<string, unknown>;
+  }>(path.join(migrateHappyDir, ".strict-spec-driven", "config.yaml"));
+  context.assert(
+    migratedConfig.schema === "strict-spec-driven/config/v1"
+      && migratedConfig.artifact_type === "workflow_config",
+    "migrate writes strict workflow config metadata",
+  );
+  context.assert(
+    migratedConfig.context.includes("Demo project context for migrate tests."),
+    "migrate preserves legacy config context in strict output",
+  );
+  const migratedChangeRules = Array.isArray(migratedConfig.rules.change)
+    ? migratedConfig.rules.change.filter((entry): entry is string => typeof entry === "string")
+    : [];
+  context.assert(
+    migratedChangeRules.some((rule) => rule.includes("proposal.yaml") && rule.includes("strict-spec-modify")),
+    "migrate normalizes legacy Markdown proposal and modify references in strict config rules",
+  );
+  context.assert(
+    migratedChangeRules.some((rule) => rule.includes("Mark tasks done immediately upon completion")),
+    "migrate normalizes legacy checkbox wording in strict config rules",
+  );
+  context.assert(
+    migratedChangeRules.some((rule) => rule.includes("validation + unit tests")),
+    "migrate normalizes legacy lint wording in strict config rules",
+  );
+  const migratedMainSpec = yamlModule.parseYamlFile<{
+    schema: string;
+    artifact_type: string;
+    spec: { id: string; title: string };
+    mapping: { implementation: string[]; tests: string[] };
+    requirements: Array<{
+      id: string;
+      statement: string;
+      scenarios: Array<{ id: string; steps: Array<{ kind: string; text: string }> }>;
+    }>;
+  }>(path.join(migrateHappyDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml"));
+  context.assert(
+    migratedMainSpec.schema === "strict-spec-driven/main-spec/v1"
+      && migratedMainSpec.artifact_type === "main_spec",
+    "migrate writes strict YAML main spec output",
+  );
+  context.assert(
+    migratedMainSpec.spec.id === "cli-foundation" && migratedMainSpec.spec.title === "CLI Foundation",
+    "migrate derives strict main spec identity from legacy spec path and heading",
+  );
+  context.assert(
+    JSON.stringify(migratedMainSpec.mapping) === JSON.stringify({
+      implementation: ["src/example.ts"],
+      tests: ["test/example.test.ts"],
+    }),
+    "migrate preserves legacy main spec mappings",
+    `got ${JSON.stringify(migratedMainSpec.mapping)}`,
+  );
+  context.assert(
+    JSON.stringify(migratedMainSpec.requirements.find((requirement) => requirement.id === "cli-example")?.scenarios.map((scenario) => scenario.id))
+      === JSON.stringify(["first-scenario", "second-scenario"]),
+    "migrate derives deterministic scenario identifiers for migrated main specs",
+  );
+  context.assert(
+    migratedMainSpec.requirements.find((requirement) => requirement.id === "cli-example")?.scenarios[0]?.steps[0]?.kind === "GIVEN",
+    "migrate preserves scenario step ordering for migrated main specs",
+  );
+
+  const migratedSpecIndex = yamlModule.parseYamlFile<{
+    specs: Array<{ id: string; path: string }>;
+  }>(path.join(migrateHappyDir, ".strict-spec-driven", "specs", "INDEX.yaml"));
+  context.assert(
+    migratedSpecIndex.specs.some(
+      (entry) =>
+        entry.id === "cli-foundation"
+        && entry.path === ".strict-spec-driven/specs/cli/foundation.yaml",
+    ),
+    "migrate regenerates strict spec index entries from converted main specs",
+  );
+
+  const migratedActiveProposal = yamlModule.parseYamlFile<{
+    change: { id: string; status: string };
+    summary: { what: string[]; why: string[] };
+  }>(path.join(migrateHappyDir, ".strict-spec-driven", "changes", "demo-change", "proposal.yaml"));
+  context.assert(
+    migratedActiveProposal.change.id === "demo-change" && migratedActiveProposal.change.status === "active",
+    "migrate converts active proposal status and change identity",
+  );
+  context.assert(
+    migratedActiveProposal.summary.what.length === 1 && migratedActiveProposal.summary.why.length === 1,
+    "migrate preserves proposal summary lists",
+  );
+
+  const migratedActiveTasks = yamlModule.parseYamlFile<{
+    sections: Array<{ name: string; tasks: Array<{ status: string; command?: string }> }>;
+    testing_gates: { validation_task: string; unit_test_task: string };
+  }>(path.join(migrateHappyDir, ".strict-spec-driven", "changes", "demo-change", "tasks.yaml"));
+  context.assert(
+    migratedActiveTasks.sections.find((section) => section.name === "Implementation")?.tasks[0]?.status === "pending",
+    "migrate preserves pending active implementation task state",
+  );
+  context.assert(
+    migratedActiveTasks.sections.find((section) => section.name === "Testing")?.tasks[0]?.command === "bun run build",
+    "migrate preserves explicit build command in migrated testing tasks",
+  );
+  context.assert(
+    migratedActiveTasks.sections.find((section) => section.name === "Testing")?.tasks[1]?.command === "bun test/run.ts",
+    "migrate preserves explicit unit test command in migrated testing tasks",
+  );
+  context.assert(
+    migratedActiveTasks.testing_gates.validation_task === "testing-1"
+      && migratedActiveTasks.testing_gates.unit_test_task === "testing-2",
+    "migrate derives deterministic testing gate task references",
+  );
+
+  const migratedActiveQuestions = yamlModule.parseYamlFile<{
+    open: Array<{ question: string; status: string }>;
+    resolved: Array<{ question: string; answer: string; status: string }>;
+  }>(path.join(migrateHappyDir, ".strict-spec-driven", "changes", "demo-change", "questions.yaml"));
+  context.assert(
+    migratedActiveQuestions.open.length === 1
+      && migratedActiveQuestions.open[0]?.status === "open"
+      && migratedActiveQuestions.resolved.length === 1
+      && migratedActiveQuestions.resolved[0]?.status === "resolved",
+    "migrate preserves open and resolved question state for active changes",
+  );
+
+  const migratedActiveDelta = yamlModule.parseYamlFile<{
+    target_spec: string;
+    mapping: { implementation: string[]; tests: string[] };
+    operations: {
+      ADDED: Array<{ requirement: { id: string } }>;
+      MODIFIED: Array<{ target_requirement: string; replacement: { statement: string } }>;
+      REMOVED: Array<{ target_requirement: string; reason: string }>;
+    };
+  }>(path.join(migrateHappyDir, ".strict-spec-driven", "changes", "demo-change", "specs", "cli", "foundation.yaml"));
+  context.assert(
+    migratedActiveDelta.target_spec === "cli-foundation",
+    "migrate derives migrated delta target_spec from legacy delta path",
+  );
+  context.assert(
+    JSON.stringify(migratedActiveDelta.mapping) === JSON.stringify({
+      implementation: ["src/migrate.ts"],
+      tests: ["test/run.ts"],
+    }),
+    "migrate preserves legacy delta spec mappings",
+  );
+  context.assert(
+    migratedActiveDelta.operations.ADDED[0]?.requirement.id === "delta-added",
+    "migrate preserves ADDED delta requirement identity",
+  );
+  context.assert(
+    migratedActiveDelta.operations.MODIFIED[0]?.target_requirement === "cli-example",
+    "migrate preserves MODIFIED delta target requirement identity",
+  );
+  context.assert(
+    migratedActiveDelta.operations.REMOVED[0]?.reason === "The legacy requirement was retired.",
+    "migrate preserves REMOVED delta reason text",
+  );
+
+  const migratedArchivedProposal = yamlModule.parseYamlFile<{
+    change: { id: string; status: string };
+  }>(path.join(
+    migrateHappyDir,
+    ".strict-spec-driven",
+    "changes",
+    "archive",
+    "2026-04-01-done-change",
+    "proposal.yaml",
+  ));
+  context.assert(
+    migratedArchivedProposal.change.id === "done-change"
+      && migratedArchivedProposal.change.status === "complete",
+    "migrate preserves archived change identity while marking archived proposals complete",
+  );
+
+  const migratedArchivedTasks = yamlModule.parseYamlFile<{
+    sections: Array<{ name: string; tasks: Array<{ status: string }> }>;
+  }>(path.join(
+    migrateHappyDir,
+    ".strict-spec-driven",
+    "changes",
+    "archive",
+    "2026-04-01-done-change",
+    "tasks.yaml",
+  ));
+  context.assert(
+    migratedArchivedTasks.sections.find((section) => section.name === "Implementation")?.tasks[0]?.status === "complete",
+    "migrate preserves completed archived task state",
+  );
+
+  const migratedArchivedQuestions = yamlModule.parseYamlFile<{
+    open: unknown[];
+    resolved: Array<{ answer: string; status: string }>;
+  }>(path.join(
+    migrateHappyDir,
+    ".strict-spec-driven",
+    "changes",
+    "archive",
+    "2026-04-01-done-change",
+    "questions.yaml",
+  ));
+  context.assert(
+    migratedArchivedQuestions.open.length === 0
+      && migratedArchivedQuestions.resolved.length === 1
+      && migratedArchivedQuestions.resolved[0]?.status === "resolved",
+    "migrate preserves archived resolved-question state without inventing open questions",
+  );
+
+  const migratedArchivedDelta = yamlModule.parseYamlFile<{
+    target_spec: string;
+  }>(path.join(
+    migrateHappyDir,
+    ".strict-spec-driven",
+    "changes",
+    "archive",
+    "2026-04-01-done-change",
+    "specs",
+    "cli",
+    "foundation.yaml",
+  ));
+  context.assert(
+    migratedArchivedDelta.target_spec === "cli-foundation",
+    "migrate preserves archive-date directories while converting archived delta specs",
+  );
+  const migratedArchivedEmptyMappingDelta = yamlModule.parseYamlFile<{
+    target_spec: string;
+    mapping: { implementation: string[]; tests: string[] };
+  }>(path.join(
+    migrateHappyDir,
+    ".strict-spec-driven",
+    "changes",
+    "archive",
+    "2026-04-02-empty-mapping-change",
+    "specs",
+    "cli",
+    "foundation.yaml",
+  ));
+  context.assert(
+    migratedArchivedEmptyMappingDelta.target_spec === "cli-foundation",
+    "migrate preserves archived delta target spec when legacy mapping fields are blank",
+  );
+  context.assert(
+    JSON.stringify(migratedArchivedEmptyMappingDelta.mapping) === JSON.stringify({
+      implementation: [],
+      tests: [],
+    }),
+    "migrate normalizes blank legacy mapping fields to empty arrays",
+    `got ${JSON.stringify(migratedArchivedEmptyMappingDelta.mapping)}`,
+  );
+  context.assert(
+    readFileSync(path.join(migrateHappyDir, ".spec-driven", "config.yaml"), "utf8") === legacyConfigBefore,
+    "migrate leaves legacy bootstrap config unchanged",
+  );
+
+  const migratedRoadmapIndex = yamlModule.parseYamlFile<{
+    schema: string;
+    artifact_type: string;
+    milestones: Array<{ id: string; title: string; path: string; status: string }>;
+  }>(path.join(migrateHappyDir, ".strict-spec-driven", "roadmap", "INDEX.yaml"));
+  context.assert(
+    migratedRoadmapIndex.schema === "strict-spec-driven/roadmap-index/v1"
+      && migratedRoadmapIndex.artifact_type === "roadmap_index",
+    "migrate writes strict YAML roadmap index output",
+  );
+  context.assert(
+    migratedRoadmapIndex.milestones.length === 1
+      && migratedRoadmapIndex.milestones[0]?.id === "01-demo"
+      && migratedRoadmapIndex.milestones[0]?.status === "active"
+      && migratedRoadmapIndex.milestones[0]?.path === "roadmap/milestones/01-demo.yaml",
+    "migrate preserves roadmap index milestone identity and status",
+  );
+
+  const migratedRoadmapMilestone = yamlModule.parseYamlFile<{
+    schema: string;
+    artifact_type: string;
+    milestone: { id: string; title: string };
+    goal: string;
+    scope: { in: string[]; out: string[] };
+    done_criteria: string[];
+    planned_changes: Array<{ id: string; status: string; summary: string }>;
+    status: string;
+    notes: string[];
+  }>(path.join(migrateHappyDir, ".strict-spec-driven", "roadmap", "milestones", "01-demo.yaml"));
+  context.assert(
+    migratedRoadmapMilestone.schema === "strict-spec-driven/roadmap-milestone/v1"
+      && migratedRoadmapMilestone.artifact_type === "roadmap_milestone",
+    "migrate writes strict YAML roadmap milestone output",
+  );
+  context.assert(
+    migratedRoadmapMilestone.milestone.id === "01-demo"
+      && migratedRoadmapMilestone.milestone.title === "01 Demo Milestone",
+    "migrate derives roadmap milestone identity from filename and heading",
+  );
+  context.assert(
+    migratedRoadmapMilestone.goal.includes("roadmap migration"),
+    "migrate preserves roadmap milestone goal text",
+  );
+  context.assert(
+    migratedRoadmapMilestone.scope.in.length === 1 && migratedRoadmapMilestone.scope.out.length === 1,
+    "migrate preserves roadmap milestone scope sections",
+  );
+  context.assert(
+    migratedRoadmapMilestone.planned_changes.length === 1
+      && migratedRoadmapMilestone.planned_changes[0]?.id === "demo-change"
+      && migratedRoadmapMilestone.planned_changes[0]?.status === "complete",
+    "migrate preserves planned change entry fields including status",
+  );
+  context.assert(migratedRoadmapMilestone.status === "active", "migrate preserves roadmap milestone declared status");
+  context.assert(migratedRoadmapMilestone.notes.length === 1, "migrate preserves roadmap milestone notes");
+  const migratedRoadmapStatus = cli(["roadmap-status"], { cwd: migrateHappyDir });
+  context.assert(migratedRoadmapStatus.status === 0, "roadmap-status accepts migrated roadmap state");
+  const migratedRoadmapStatusJson = JSON.parse(migratedRoadmapStatus.stdout.trim());
+  context.assert(migratedRoadmapStatusJson.valid === true, "roadmap-status reports valid=true for migrated roadmap state");
+} finally {
+  rmSync(migrateHappyDir, { recursive: true, force: true });
+}
+
+const migratePartialDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-partial-"));
+try {
+  writeLegacyMigrationFixture(migratePartialDir);
+  writeFileSync(
+    path.join(migratePartialDir, ".spec-driven", "specs", "cli", "no-requirements.md"),
+    [
+      "# No Requirements",
+      "",
+      "This legacy spec has a heading but no requirement blocks.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+  writeFileSync(
+    path.join(migratePartialDir, ".spec-driven", "specs", "cli", "non-standard-heading.md"),
+    [
+      "# Non Standard Heading",
+      "",
+      "## Requirement: legacy-heading",
+      "The system MUST keep this legacy heading shape reviewable.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+  writeFileSync(
+    path.join(migratePartialDir, ".spec-driven", "specs", "cli", "broken-frontmatter.md"),
+    [
+      "---",
+      "mapping: [unterminated",
+      "---",
+      "# Broken Frontmatter",
+      "",
+      "### Requirement: broken-frontmatter",
+      "The system MUST reject malformed frontmatter deterministically.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  const partial = cli(["migrate"], { cwd: migratePartialDir });
+  context.assert(partial.status === 0, "migrate exits zero when unsupported spec files are deferred");
+  const partialJson = JSON.parse(partial.stdout.trim());
+  context.assert(partialJson.valid === true, "migrate keeps valid=true when partial migration defers unsupported spec files");
+  assertMigrationReportArrays(partialJson, "partial migrate");
+  context.assert(
+    partialJson.converted.some(
+      (artifact: { kind: string; sourcePath?: string }) =>
+        artifact.kind === "main_spec" && artifact.sourcePath === ".spec-driven/specs/cli/foundation.md",
+    ),
+    "partial migrate still converts supported legacy spec files",
+  );
+
+  const deferredSpecPaths = [
+    ".spec-driven/specs/cli/no-requirements.md",
+    ".spec-driven/specs/cli/non-standard-heading.md",
+    ".spec-driven/specs/cli/broken-frontmatter.md",
+  ];
+  context.assert(
+    deferredSpecPaths.every((sourcePath) =>
+      partialJson.skipped.some((artifact: { sourcePath: string }) => artifact.sourcePath === sourcePath),
+    ),
+    "partial migrate records skipped entries for ambiguous and malformed spec files",
+  );
+  context.assert(
+    deferredSpecPaths.every((sourcePath) =>
+      partialJson.warnings.some((diagnostic: { sourcePath?: string }) => diagnostic.sourcePath === sourcePath),
+    ),
+    "partial migrate records warnings for ambiguous and malformed spec files",
+  );
+  context.assert(
+    deferredSpecPaths.every((sourcePath) =>
+      partialJson.manualFollowUp.some((entry: { sourcePath: string }) => entry.sourcePath === sourcePath),
+    ),
+    "partial migrate records manual follow-up entries for ambiguous and malformed spec files",
+  );
+  context.assert(
+    !existsSync(path.join(migratePartialDir, ".strict-spec-driven", "specs", "cli", "no-requirements.yaml"))
+      && !existsSync(path.join(migratePartialDir, ".strict-spec-driven", "specs", "cli", "non-standard-heading.yaml"))
+      && !existsSync(path.join(migratePartialDir, ".strict-spec-driven", "specs", "cli", "broken-frontmatter.yaml")),
+    "partial migrate does not invent strict YAML output for deferred legacy spec files",
+  );
+} finally {
+  rmSync(migratePartialDir, { recursive: true, force: true });
+}
+
+const migrateMissingSourceDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-missing-"));
+try {
+  const missingSource = cli(["migrate"], { cwd: migrateMissingSourceDir });
+  context.assert(missingSource.status !== 0, "migrate exits non-zero when .spec-driven is missing");
+  const missingSourceJson = JSON.parse(missingSource.stdout.trim());
+  context.assert(missingSourceJson.valid === false, "migrate reports valid=false when bootstrap source is missing");
+  assertMigrationReportArrays(missingSourceJson, "missing-source migrate");
+  context.assert(
+    missingSourceJson.errors.some(
+      (diagnostic: { code: string; sourcePath?: string }) =>
+        diagnostic.code === "legacy_source_missing" && diagnostic.sourcePath === ".spec-driven",
+    ),
+    "migrate identifies missing bootstrap source state in errors output",
+  );
+} finally {
+  rmSync(migrateMissingSourceDir, { recursive: true, force: true });
+}
+
+const migrateConflictDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-conflict-"));
+try {
+  writeLegacyMigrationFixture(migrateConflictDir);
+  mkdirSync(path.join(migrateConflictDir, ".strict-spec-driven"), { recursive: true });
+  writeFileSync(path.join(migrateConflictDir, ".strict-spec-driven", "existing.txt"), "keep me\n", "utf8");
+
+  const conflict = cli(["migrate"], { cwd: migrateConflictDir });
+  context.assert(conflict.status !== 0, "migrate exits non-zero for non-empty strict target conflicts");
+  const conflictJson = JSON.parse(conflict.stdout.trim());
+  context.assert(conflictJson.valid === false, "migrate reports valid=false for strict target conflicts");
+  assertMigrationReportArrays(conflictJson, "conflict migrate");
+  context.assert(
+    conflictJson.errors.some((diagnostic: { code: string }) => diagnostic.code === "strict_target_conflict"),
+    "migrate reports overwrite-protection conflict details",
+  );
+  context.assert(
+    readFileSync(path.join(migrateConflictDir, ".strict-spec-driven", "existing.txt"), "utf8") === "keep me\n",
+    "migrate leaves existing strict target files unchanged on conflict",
+  );
+} finally {
+  rmSync(migrateConflictDir, { recursive: true, force: true });
+}
+
+const migrateInvalidConfigDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-invalid-config-"));
+try {
+  writeLegacyMigrationFixture(migrateInvalidConfigDir, "schema: spec-driven\nrules: [unterminated\n");
+  const invalidConfig = cli(["migrate"], { cwd: migrateInvalidConfigDir });
+  context.assert(invalidConfig.status !== 0, "migrate exits non-zero for malformed legacy config YAML");
+  const invalidConfigJson = JSON.parse(invalidConfig.stdout.trim());
+  context.assert(invalidConfigJson.valid === false, "migrate reports valid=false for malformed legacy config");
+  assertMigrationReportArrays(invalidConfigJson, "invalid-config migrate");
+  context.assert(
+    invalidConfigJson.errors.some(
+      (diagnostic: { code: string; sourcePath?: string }) =>
+        diagnostic.code === "legacy_config_invalid" && diagnostic.sourcePath === ".spec-driven/config.yaml",
+    ),
+    "migrate reports malformed legacy config against the source artifact path",
+  );
+} finally {
+  rmSync(migrateInvalidConfigDir, { recursive: true, force: true });
+}
+
+const migrateDeterministicDirA = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-deterministic-a-"));
+const migrateDeterministicDirB = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-deterministic-b-"));
+try {
+  writeLegacyMigrationFixture(migrateDeterministicDirA);
+  writeLegacyMigrationFixture(migrateDeterministicDirB);
+
+  const first = cli(["migrate"], { cwd: migrateDeterministicDirA });
+  const second = cli(["migrate"], { cwd: migrateDeterministicDirB });
+  context.assert(first.status === second.status, "migrate deterministic run has stable exit status");
+  context.assert(first.stdout.trim() === second.stdout.trim(), "migrate deterministic run has stable JSON output");
+} finally {
+  rmSync(migrateDeterministicDirA, { recursive: true, force: true });
+  rmSync(migrateDeterministicDirB, { recursive: true, force: true });
+}
+
+const migrateForceDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-force-"));
+try {
+  writeLegacyMigrationFixture(migrateForceDir);
+
+  const first = cli(["migrate"], { cwd: migrateForceDir });
+  context.assert(first.status === 0, "migrate initial run exits zero before rerun checks");
+  const firstJson = JSON.parse(first.stdout.trim());
+  assertMigrationReportArrays(firstJson, "first migrate rerun check");
+
+  const blockedRerun = cli(["migrate"], { cwd: migrateForceDir });
+  context.assert(blockedRerun.status !== 0, "migrate rerun without --force exits non-zero after initial migration");
+  const blockedRerunJson = JSON.parse(blockedRerun.stdout.trim());
+  assertMigrationReportArrays(blockedRerunJson, "blocked rerun");
+  context.assert(
+    blockedRerunJson.errors.some((diagnostic: { code: string }) => diagnostic.code === "strict_target_conflict"),
+    "migrate rerun without --force preserves overwrite protection",
+  );
+
+  const forcedRerun = cli(["migrate", "--force"], { cwd: migrateForceDir });
+  context.assert(forcedRerun.status === 0, "migrate --force exits zero for idempotent rerun");
+  const forcedRerunJson = JSON.parse(forcedRerun.stdout.trim());
+  assertMigrationReportArrays(forcedRerunJson, "forced rerun");
+  context.assert(
+    forcedRerun.stdout.trim() === first.stdout.trim(),
+    "migrate --force rerun preserves identical JSON output",
+  );
+
+  const shortForcedRerun = cli(["migrate", "-f"], { cwd: migrateForceDir });
+  context.assert(shortForcedRerun.status === 0, "migrate -f exits zero for idempotent rerun");
+  context.assert(
+    shortForcedRerun.stdout.trim() === first.stdout.trim(),
+    "migrate -f rerun preserves identical JSON output",
+  );
+
+  mkdirSync(path.join(migrateForceDir, ".strict-spec-driven", "changes", "stale-active-change"), { recursive: true });
+
+  const legacyBackfillDir = path.join(
+    migrateForceDir,
+    ".spec-driven",
+    "changes",
+    "archive",
+    "2026-04-03-backfilled-change",
+  );
+  mkdirSync(path.join(legacyBackfillDir, "specs", "cli"), { recursive: true });
+  const legacyArchivedSourceDir = path.join(
+    migrateForceDir,
+    ".spec-driven",
+    "changes",
+    "archive",
+    "2026-04-01-done-change",
+  );
+  for (const relativePath of [
+    "proposal.md",
+    "design.md",
+    "tasks.md",
+    "questions.md",
+    path.join("specs", "cli", "foundation.md"),
+  ]) {
+    const sourceContent = readFileSync(path.join(legacyArchivedSourceDir, relativePath), "utf8");
+    writeFileSync(
+      path.join(legacyBackfillDir, relativePath),
+      sourceContent
+        .replace(/done-change/g, "backfilled-change")
+        .replace(/Done Change/g, "Backfilled Change")
+        .replace(/Archived Example/g, "Backfilled Change"),
+      "utf8",
+    );
+  }
+
+  const backfillForcedRerun = cli(["migrate", "--force"], { cwd: migrateForceDir });
+  context.assert(backfillForcedRerun.status === 0, "migrate --force exits zero after legacy history changes");
+  const backfillForcedRerunJson = JSON.parse(backfillForcedRerun.stdout.trim());
+  assertMigrationReportArrays(backfillForcedRerunJson, "forced backfill rerun");
+  context.assert(
+    !existsSync(path.join(migrateForceDir, ".strict-spec-driven", "changes", "stale-active-change")),
+    "migrate --force removes stale strict-only active change directories before rebuilding strict state",
+  );
+  context.assert(
+    existsSync(
+      path.join(
+        migrateForceDir,
+        ".strict-spec-driven",
+        "changes",
+        "archive",
+        "2026-04-03-backfilled-change",
+        "proposal.yaml",
+      ),
+    ),
+    "migrate --force backfills newly added legacy archived changes into strict archive history",
+  );
+  context.assert(
+    backfillForcedRerunJson.converted.some(
+      (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+        artifact.kind === "change_proposal"
+        && artifact.sourcePath === ".spec-driven/changes/archive/2026-04-03-backfilled-change/proposal.md"
+        && artifact.targetPath === ".strict-spec-driven/changes/archive/2026-04-03-backfilled-change/proposal.yaml",
+    ),
+    "migrate --force reports backfilled archived change proposal output",
+  );
+} finally {
+  rmSync(migrateForceDir, { recursive: true, force: true });
+}
+
+context.section("[19] roadmap converter");
+
+const ROADMAP_FIXTURE_ROOT = path.join(ROOT, "test", "fixtures", "roadmap");
+
+const roadmapConverterModule = await loadDistModule<RoadmapConverterModule>("converters/roadmap.js");
+
+const validIndexContent = readFileSync(path.join(ROADMAP_FIXTURE_ROOT, "valid-index.md"), "utf8");
+const validIndexResult = roadmapConverterModule.convertRoadmapIndex(validIndexContent);
+context.assert(validIndexResult.ok === true, "convertRoadmapIndex succeeds for valid index with milestones");
+if (validIndexResult.ok) {
+  context.assert(
+    validIndexResult.artifact.schema === "strict-spec-driven/roadmap-index/v1"
+      && validIndexResult.artifact.artifact_type === "roadmap_index",
+    "convertRoadmapIndex output has correct schema and artifact_type",
+  );
+  context.assert(
+    validIndexResult.artifact.milestones.length === 2,
+    "convertRoadmapIndex parses two milestone entries from valid index",
+    `got ${validIndexResult.artifact.milestones.length}`,
+  );
+  context.assert(
+    validIndexResult.artifact.milestones[0]?.id === "01-first-milestone"
+      && validIndexResult.artifact.milestones[0]?.status === "complete",
+    "convertRoadmapIndex preserves milestone id and status from link and text",
+  );
+  context.assert(
+    validIndexResult.artifact.milestones[0]?.path === "roadmap/milestones/01-first-milestone.yaml",
+    "convertRoadmapIndex derives strict YAML milestone path from href",
+    `got ${validIndexResult.artifact.milestones[0]?.path}`,
+  );
+  context.assert(
+    validIndexResult.artifact.milestones[1]?.id === "02-second-milestone"
+      && validIndexResult.artifact.milestones[1]?.status === "proposed",
+    "convertRoadmapIndex maps proposed status for second milestone",
+  );
+}
+
+const emptyIndexContent = readFileSync(path.join(ROADMAP_FIXTURE_ROOT, "empty-index.md"), "utf8");
+const emptyIndexResult = roadmapConverterModule.convertRoadmapIndex(emptyIndexContent);
+context.assert(emptyIndexResult.ok === true, "convertRoadmapIndex succeeds for index with no milestones section");
+if (emptyIndexResult.ok) {
+  context.assert(
+    emptyIndexResult.artifact.milestones.length === 0,
+    "convertRoadmapIndex returns empty milestones array for index with no ## Milestones section",
+  );
+}
+
+const validMilestoneContent = readFileSync(
+  path.join(ROADMAP_FIXTURE_ROOT, "milestones", "valid-milestone.md"),
+  "utf8",
+);
+const validMilestoneResult = roadmapConverterModule.convertRoadmapMilestone(
+  validMilestoneContent,
+  "valid-milestone.md",
+);
+context.assert(validMilestoneResult.ok === true, "convertRoadmapMilestone succeeds for valid milestone with all sections");
+if (validMilestoneResult.ok) {
+  context.assert(
+    validMilestoneResult.artifact.schema === "strict-spec-driven/roadmap-milestone/v1"
+      && validMilestoneResult.artifact.artifact_type === "roadmap_milestone",
+    "convertRoadmapMilestone output has correct schema and artifact_type",
+  );
+  context.assert(
+    validMilestoneResult.artifact.milestone.id === "valid-milestone"
+      && validMilestoneResult.artifact.milestone.title === "01 First Milestone",
+    "convertRoadmapMilestone derives milestone id from filename and title from heading",
+  );
+  context.assert(
+    validMilestoneResult.artifact.goal.length > 0,
+    "convertRoadmapMilestone captures goal text",
+  );
+  context.assert(
+    validMilestoneResult.artifact.scope.in.length > 0 && validMilestoneResult.artifact.scope.out.length > 0,
+    "convertRoadmapMilestone captures in-scope and out-of-scope entries",
+  );
+  context.assert(
+    validMilestoneResult.artifact.done_criteria.length > 0,
+    "convertRoadmapMilestone captures done criteria",
+  );
+  context.assert(
+    validMilestoneResult.artifact.planned_changes.length === 2,
+    "convertRoadmapMilestone parses all planned change entries",
+    `got ${validMilestoneResult.artifact.planned_changes.length}`,
+  );
+  context.assert(
+    validMilestoneResult.artifact.planned_changes[0]?.id === "define-schemas"
+      && validMilestoneResult.artifact.planned_changes[0]?.status === "complete",
+    "convertRoadmapMilestone maps planned change id and complete status",
+  );
+  context.assert(
+    validMilestoneResult.artifact.planned_changes[1]?.id === "implement-cli"
+      && validMilestoneResult.artifact.planned_changes[1]?.status === "planned",
+    "convertRoadmapMilestone maps planned change id and planned status for non-complete entry",
+  );
+  context.assert(
+    validMilestoneResult.artifact.planned_changes[0]?.depends_on.length === 0,
+    "convertRoadmapMilestone defaults planned change depends_on to empty array",
+  );
+  context.assert(
+    validMilestoneResult.artifact.status === "complete",
+    "convertRoadmapMilestone parses declared status from ## Status section",
+  );
+  context.assert(
+    validMilestoneResult.artifact.notes.length > 0,
+    "convertRoadmapMilestone captures notes entries",
+  );
+}
+
+const malformedMilestoneContent = readFileSync(
+  path.join(ROADMAP_FIXTURE_ROOT, "milestones", "malformed-milestone.md"),
+  "utf8",
+);
+const malformedMilestoneResult = roadmapConverterModule.convertRoadmapMilestone(
+  malformedMilestoneContent,
+  "malformed-milestone.md",
+);
+context.assert(
+  malformedMilestoneResult.ok === false,
+  "convertRoadmapMilestone fails for milestone missing ## Status section",
+);
+if (!malformedMilestoneResult.ok) {
+  context.assert(
+    malformedMilestoneResult.reason.includes("Status"),
+    "convertRoadmapMilestone failure reason mentions missing Status section",
+    `got reason: ${malformedMilestoneResult.reason}`,
+  );
+  context.assert(
+    malformedMilestoneResult.recommendation.length > 0,
+    "convertRoadmapMilestone failure includes a recommendation",
+  );
+}
+
+const unsupportedShapeContent = readFileSync(
+  path.join(ROADMAP_FIXTURE_ROOT, "milestones", "unsupported-shape.md"),
+  "utf8",
+);
+const unsupportedShapeResult = roadmapConverterModule.convertRoadmapMilestone(
+  unsupportedShapeContent,
+  "unsupported-shape.md",
+);
+context.assert(
+  unsupportedShapeResult.ok === false,
+  "convertRoadmapMilestone fails for unsupported Markdown shape with no headings",
+);
+
+const validSpecsIndexContent = readFileSync(path.join(ROADMAP_FIXTURE_ROOT, "valid-specs-index.md"), "utf8");
+const validSpecsIndexResult = roadmapConverterModule.convertSpecsIndex(validSpecsIndexContent);
+context.assert(validSpecsIndexResult.ok === true, "convertSpecsIndex succeeds for valid specs index");
+if (validSpecsIndexResult.ok) {
+  context.assert(
+    validSpecsIndexResult.artifact.schema === "strict-spec-driven/spec-index/v1"
+      && validSpecsIndexResult.artifact.artifact_type === "spec_index",
+    "convertSpecsIndex output has correct schema and artifact_type",
+  );
+  context.assert(
+    validSpecsIndexResult.artifact.specs.length === 2,
+    "convertSpecsIndex parses two spec entries from valid index",
+    `got ${validSpecsIndexResult.artifact.specs.length}`,
+  );
+  context.assert(
+    validSpecsIndexResult.artifact.specs[0]?.id === "contracts-yaml-artifacts"
+      && validSpecsIndexResult.artifact.specs[0]?.title === "Strict YAML artifact schema contract",
+    "convertSpecsIndex derives spec id from path and preserves title",
+  );
+  context.assert(
+    validSpecsIndexResult.artifact.specs[0]?.path === ".strict-spec-driven/specs/contracts/yaml-artifacts.yaml",
+    "convertSpecsIndex derives strict YAML spec path from href",
+    `got ${validSpecsIndexResult.artifact.specs[0]?.path}`,
+  );
+  context.assert(
+    validSpecsIndexResult.artifact.specs[1]?.id === "cli-foundation",
+    "convertSpecsIndex derives spec id matching migrate.ts buildSpecIdFromRelativePath convention",
+  );
+}
+
+const idempotentMigrateDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-idempotent-"));
+try {
+  writeLegacyMigrationFixture(idempotentMigrateDir);
+  const migrateResult = cli(["migrate"], { cwd: idempotentMigrateDir });
+  context.assert(migrateResult.status === 0, "roadmap migration exits zero on first run");
+  context.assert(
+    existsSync(path.join(idempotentMigrateDir, ".strict-spec-driven", "roadmap", "INDEX.yaml")),
+    "roadmap migration writes strict roadmap index YAML",
+  );
+  context.assert(
+    existsSync(path.join(idempotentMigrateDir, ".strict-spec-driven", "roadmap", "milestones", "01-demo.yaml")),
+    "roadmap migration writes strict roadmap milestone YAML",
+  );
+} finally {
+  rmSync(idempotentMigrateDir, { recursive: true, force: true });
+}
+
+context.section("[20] core workflow converters");
+
+const migrateConverterModule = await loadDistModule<MigrateConverterModule>("migrate.js");
+
+const proposalArtifact = migrateConverterModule.parseLegacyProposal(
+  ".spec-driven/changes/example-change/proposal.md",
+  [
+    "# Example Change",
+    "",
+    "## What",
+    "",
+    "- Add `--force` rerun support.",
+    "",
+    "## Why",
+    "",
+    "- Migration reruns need deterministic overwrite behavior.",
+    "",
+    "## Scope",
+    "",
+    "In scope:",
+    "",
+    "- Preserve supported conversion behavior.",
+    "",
+    "Out of scope:",
+    "",
+    "- Destructive cleanup of strict workflow state.",
+    "",
+    "## Unchanged Behavior",
+    "",
+    "- `migrate` without `--force` still refuses unsafe overwrites.",
+  ].join("\n") + "\n",
+  "fallback-change",
+  false,
+);
+context.assert(
+  proposalArtifact.change.id === "example-change" && proposalArtifact.change.status === "active",
+  "parseLegacyProposal derives active change id from proposal heading",
+);
+context.assert(
+  proposalArtifact.scope.in.length === 1 && proposalArtifact.scope.out.length === 1,
+  "parseLegacyProposal preserves in-scope and out-of-scope entries",
+);
+context.assert(
+  proposalArtifact.unchanged_behavior[0] === "`migrate` without `--force` still refuses unsafe overwrites.",
+  "parseLegacyProposal preserves unchanged behavior bullets",
+);
+
+const archivedProposalArtifact = migrateConverterModule.parseLegacyProposal(
+  ".spec-driven/changes/archive/2026-04-01-example-change/proposal.md",
+  "# Archived Example\n\n## What\n\n- Preserve archived state.\n\n## Why\n\n- Archive output must stay reviewable.\n",
+  "fallback-change",
+  true,
+);
+context.assert(
+  archivedProposalArtifact.change.status === "complete",
+  "parseLegacyProposal marks archived proposals complete",
+);
+
+const designArtifact = migrateConverterModule.parseLegacyDesign(
+  ".spec-driven/changes/example-change/design.md",
+  [
+    "# Design: example-change",
+    "",
+    "## Approach",
+    "",
+    "1. Parse the legacy artifact.",
+    "- Preserve the canonical Markdown meaning.",
+    "2. Write the strict YAML output.",
+    "- Keep the output deterministic.",
+    "",
+    "## Key Decisions",
+    "",
+    "- **Keep reruns deterministic**: Stable output makes migration reviewable.",
+    "",
+    "## Alternatives Considered",
+    "",
+    "- **Delete the target directory**: Rejected because force-based reruns should not require destructive cleanup.",
+  ].join("\n") + "\n",
+  "example-change",
+);
+context.assert(
+  designArtifact.change === "example-change" && designArtifact.approach.length === 2,
+  "parseLegacyDesign preserves change id and ordered approach items",
+);
+context.assert(
+  designArtifact.decisions[0]?.id === "keep-reruns-deterministic",
+  "parseLegacyDesign derives deterministic decision identifiers from bold labels",
+);
+context.assert(
+  designArtifact.alternatives[0]?.option === "Delete the target directory",
+  "parseLegacyDesign preserves alternative option labels",
+);
+
+const tasksArtifact = migrateConverterModule.parseLegacyTasks(
+  ".spec-driven/changes/example-change/tasks.md",
+  [
+    "# Tasks: example-change",
+    "",
+    "## Implementation",
+    "",
+    "- [ ] Add `--force` support to the CLI.",
+    "",
+    "## Testing",
+    "",
+    "- [x] Run `bun run build` — build validation for migrate changes",
+    "- [ ] Run `bun test/run.ts` — unit tests for migrate changes",
+    "",
+    "## Verification",
+    "",
+    "- [ ] Verify implementation matches proposal scope",
+  ].join("\n") + "\n",
+  "example-change",
+);
+context.assert(
+  tasksArtifact.change === "example-change"
+    && tasksArtifact.sections.find((section) => section.name === "Implementation")?.tasks[0]?.status === "pending",
+  "parseLegacyTasks preserves change id and implementation task status",
+);
+context.assert(
+  tasksArtifact.sections.find((section) => section.name === "Testing")?.tasks[0]?.command === "bun run build"
+    && tasksArtifact.sections.find((section) => section.name === "Testing")?.tasks[1]?.command === "bun test/run.ts",
+  "parseLegacyTasks extracts backticked testing commands",
+);
+context.assert(
+  tasksArtifact.testing_gates.validation_task === "testing-1"
+    && tasksArtifact.testing_gates.unit_test_task === "testing-2",
+  "parseLegacyTasks derives deterministic testing gate task identifiers",
+);
+
+const questionsArtifact = migrateConverterModule.parseLegacyQuestions(
+  ".spec-driven/changes/example-change/questions.md",
+  [
+    "# Questions: example-change",
+    "",
+    "## Open",
+    "",
+    "- [ ] Q: Should reruns preserve identical JSON output?",
+    "  Context: Force-based reruns need deterministic report output.",
+    "",
+    "## Resolved",
+    "",
+    "- [x] Q: Should warnings remain non-blocking?",
+    "  Context: Ambiguous legacy artifacts should not halt partial migration.",
+    "  A: Yes. They should stay warnings with manual follow-up entries.",
+  ].join("\n") + "\n",
+  "example-change",
+);
+context.assert(
+  questionsArtifact.change === "example-change"
+    && questionsArtifact.open[0]?.status === "open"
+    && questionsArtifact.resolved[0]?.status === "resolved",
+  "parseLegacyQuestions preserves open and resolved question status",
+);
+context.assert(
+  questionsArtifact.resolved[0]?.answer === "Yes. They should stay warnings with manual follow-up entries.",
+  "parseLegacyQuestions preserves resolved answers",
+);
+
+}

@@ -28,6 +28,12 @@ mapping:
     - templates/strict-spec-driven/scaffold/changes/STATE.yaml
   tests:
     - test/run.ts
+    - test/support/harness.ts
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/change-lifecycle.ts
+    - test/suites/roadmap-and-migration.ts
+    - test/suites/operations.ts
 ---
 
 # CLI Foundation
