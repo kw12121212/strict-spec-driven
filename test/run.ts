@@ -5549,6 +5549,102 @@ async function main(): Promise<void> {
     "parseLegacyQuestions preserves resolved answers",
   );
 
+  section("[21] ship command");
+
+  const shipNoArgs = cli(["ship"]);
+  assert(shipNoArgs.status !== 0, "ship with no args exits non-zero");
+  assert(shipNoArgs.stderr.includes("Usage:"), "ship with no args prints usage hint to stderr");
+
+  const shipMissingChange = (() => {
+    const tempRoot = mkdtempSync(path.join(os.tmpdir(), "strict-ship-missing-"));
+    try {
+      mkdirSync(path.join(tempRoot, ".strict-spec-driven", "changes", "archive"), { recursive: true });
+      return cli(["ship", "nonexistent-change"], { cwd: tempRoot });
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
+  })();
+  assert(shipMissingChange.status !== 0, "ship with missing archived change exits non-zero");
+  assert(shipMissingChange.stderr.includes("not found"), "ship with missing change reports not found");
+
+  const shipRoot = mkdtempSync(path.join(os.tmpdir(), "strict-ship-valid-"));
+  try {
+    const archiveDir = path.join(shipRoot, ".strict-spec-driven", "changes", "archive");
+    mkdirSync(archiveDir, { recursive: true });
+
+    const exactArchiveName = "2026-04-25-test-ship-change";
+    const exactArchiveDir = path.join(archiveDir, exactArchiveName);
+    mkdirSync(exactArchiveDir, { recursive: true });
+    writeFileSync(
+      path.join(exactArchiveDir, "proposal.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/change-proposal/v1",
+        schema_version: 1,
+        artifact_type: "change_proposal",
+        schema_file: "test",
+        change: { id: "test-ship-change", status: "complete" },
+        summary: {
+          what: ["Ship test change implementation", "Verify ship command output"],
+          why: ["Testing ship command"],
+        },
+        scope: { in: [], out: [] },
+        unchanged_behavior: [],
+      }),
+      "utf8",
+    );
+
+    const shipExact = cli(["ship", exactArchiveName], { cwd: shipRoot });
+    assert(shipExact.status === 0, "ship exits zero for valid archived change (exact name)");
+    const shipExactJson = JSON.parse(shipExact.stdout.trim());
+    assert(shipExactJson.changeName === exactArchiveName, "ship json includes correct changeName");
+    assert(
+      typeof shipExactJson.archivePath === "string" && shipExactJson.archivePath.includes(exactArchiveName),
+      "ship json includes archivePath referencing archive directory",
+    );
+    assert(
+      shipExactJson.proposalSummary.includes("Ship test change implementation"),
+      "ship json includes proposalSummary from proposal.yaml what array",
+    );
+    assert(
+      shipExactJson.roadmapSnapshot !== null && typeof shipExactJson.roadmapSnapshot === "object",
+      "ship json includes roadmapSnapshot object",
+    );
+
+    const shipBareDir = path.join(archiveDir, "2026-04-24-test-ship-bare");
+    mkdirSync(shipBareDir, { recursive: true });
+    writeFileSync(
+      path.join(shipBareDir, "proposal.yaml"),
+      yamlModule.stringifyYamlDocument({
+        schema: "strict-spec-driven/change-proposal/v1",
+        schema_version: 1,
+        artifact_type: "change_proposal",
+        schema_file: "test",
+        change: { id: "test-ship-bare", status: "complete" },
+        summary: { what: ["Bare name test"], why: [] },
+        scope: { in: [], out: [] },
+        unchanged_behavior: [],
+      }),
+      "utf8",
+    );
+    const shipBare = cli(["ship", "test-ship-bare"], { cwd: shipRoot });
+    assert(shipBare.status === 0, "ship exits zero when resolving bare name via date-prefix expansion");
+    const shipBareJson = JSON.parse(shipBare.stdout.trim());
+    assert(
+      shipBareJson.changeName === "2026-04-24-test-ship-bare",
+      "ship bare name resolves to date-prefixed archive directory name",
+    );
+
+    const ambigDir1 = path.join(archiveDir, "2026-04-25-test-ship-ambig");
+    const ambigDir2 = path.join(archiveDir, "2026-04-24-test-ship-ambig");
+    mkdirSync(ambigDir1, { recursive: true });
+    mkdirSync(ambigDir2, { recursive: true });
+    const shipAmbig = cli(["ship", "test-ship-ambig"], { cwd: shipRoot });
+    assert(shipAmbig.status !== 0, "ship exits non-zero for ambiguous bare name");
+    assert(shipAmbig.stderr.includes("ambiguous"), "ship reports ambiguous error for multiple date-prefix matches");
+  } finally {
+    rmSync(shipRoot, { recursive: true, force: true });
+  }
+
   console.log("");
   const total = passed + failed;
   if (failed === 0) {

@@ -1,6 +1,6 @@
 ---
 name: strict-spec-ship
-description: Strict skill package metadata scaffold for strict-spec-ship.
+description: Ship an archived strict YAML change. Verifies the archived change, snapshots roadmap state, constructs a focused git commit message, and hands off git push to the operator.
 metadata:
   skill_id: strict_spec_ship
   author: strict-spec-driven
@@ -8,19 +8,75 @@ metadata:
   version: 1.0.0
 ---
 
-# strict-spec-ship
+You are helping the user ship an archived strict YAML change with a focused git commit.
 
 ## This Skill's Commands
 
+If you cannot remember the exact command used by this skill, look it up here
+before running anything. Do not guess.
 
 ```yaml
-inspect-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js modify [change-name|archive-dir]
-verify-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
-review-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>
-verify-spec-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings
-archive-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>
+ship: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ship <change-name>
 ```
+
+## Responsibility Split
+
+**Handled by CLI scripts**
+- resolve the archived change directory under `.strict-spec-driven/changes/archive/`
+- read the proposal summary from archived change artifacts
+- snapshot current roadmap state
+- emit structured JSON for the skill to consume
+
+**Handled by the AI**
+- construct the focused git commit message from ship command output
+- stage the relevant files with `git add`
+- run `git commit`
+- present `git push` for operator confirmation before executing
 
 ## Prerequisites
 
-Use strict workflow artifacts under .strict-spec-driven/.
+The `.strict-spec-driven/` directory must exist at the project root. The change
+must already be archived under `.strict-spec-driven/changes/archive/` before
+this skill runs. Run `/strict-spec-archive` first if the change is not yet archived.
+
+## Steps
+
+1. **Run the ship command** to get verification JSON:
+   ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js ship <change-name>
+   ```
+   Stop if the command exits non-zero. The output includes `changeName`,
+   `archivePath`, `proposalSummary`, and `roadmapSnapshot`.
+
+2. **Construct the commit message** using the JSON output:
+   - Title line: `feat: <changeName>` (use `fix:`, `chore:`, or `docs:` if
+     `proposalSummary` clearly indicates a different commit type)
+   - Keep the title under 72 characters
+   - Optionally add a short body line from `proposalSummary` if it adds
+     meaningful context beyond the title
+
+3. **Review git status** to confirm which files have changed:
+   ```bash
+   git status
+   ```
+   Confirm the staged and unstaged changes correspond to the archived change
+   before proceeding. Stop if unrelated work-in-progress changes are present.
+
+4. **Stage the relevant files** — use `git add` for the implementation files,
+   test files, skill files, spec files, and workflow artifacts that belong to
+   this change. Do not stage unrelated files.
+
+5. **Commit** with the constructed message:
+   ```bash
+   git commit -m "<commit-message>"
+   ```
+
+6. **Present push** — show the operator the `git push` command and wait for
+   explicit confirmation before executing it.
+
+## Rules
+
+- Do not push without explicit operator confirmation
+- Use the `ship` command output as the source for change name and summary
+- Do not stage files that do not belong to the archived change
+- Do not re-run verify or archive as part of this skill — those steps are done

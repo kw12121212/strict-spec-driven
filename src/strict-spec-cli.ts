@@ -831,6 +831,83 @@ function runRoadmapSync(argv: string[]): number {
 
 commands["roadmap-sync"] = (argv) => runRoadmapSync(argv);
 
+type ShipResult = {
+  changeName: string;
+  archivePath: string;
+  proposalSummary: string;
+  roadmapSnapshot: ReturnType<typeof getRoadmapStatus>;
+};
+
+function runShip(argv: string[]): number {
+  const [target, ...extraArgs] = argv;
+  if (!target || extraArgs.length > 0) {
+    process.stderr.write("Usage: strict-spec-driven ship <change-name>\n");
+    return 1;
+  }
+
+  const rootDir = process.cwd();
+  const archiveRoot = getArchiveDir(rootDir);
+
+  let resolvedArchiveName: string | null = null;
+  const exactDir = path.join(archiveRoot, target);
+  if (existsSync(exactDir) && statSync(exactDir).isDirectory()) {
+    resolvedArchiveName = target;
+  } else {
+    const bareMatches = findArchivedMatchesByBareName(rootDir, target);
+    if (bareMatches.length > 1) {
+      process.stderr.write(
+        `Error: ambiguous archived change name '${target}'; matched: ${bareMatches.join(", ")}\n` +
+          `Specify the full archive directory name to disambiguate.\n`,
+      );
+      return 1;
+    }
+    if (bareMatches.length === 1) {
+      resolvedArchiveName = bareMatches[0];
+    }
+  }
+
+  if (!resolvedArchiveName) {
+    process.stderr.write(`Error: archived change '${target}' not found\n`);
+    return 1;
+  }
+
+  const resolvedArchiveDir = path.join(archiveRoot, resolvedArchiveName);
+  const archivePath = normalizeRepoRelativePath(rootDir, resolvedArchiveDir);
+
+  let proposalSummary = "";
+  const proposalPath = path.join(resolvedArchiveDir, "proposal.yaml");
+  if (existsSync(proposalPath)) {
+    try {
+      const proposalDoc = parseYamlDocument<Record<string, unknown>>(readFileSync(proposalPath, "utf8"));
+      const summary = proposalDoc.summary;
+      if (summary && typeof summary === "object" && !Array.isArray(summary)) {
+        const what = (summary as Record<string, unknown>).what;
+        if (Array.isArray(what)) {
+          proposalSummary = what.filter((item): item is string => typeof item === "string").join(" ");
+        } else if (typeof what === "string") {
+          proposalSummary = what;
+        }
+      }
+    } catch {
+      // proposal.yaml missing or unparseable — leave proposalSummary empty
+    }
+  }
+
+  const roadmapSnapshot = getRoadmapStatus(rootDir);
+
+  const result: ShipResult = {
+    changeName: resolvedArchiveName,
+    archivePath,
+    proposalSummary,
+    roadmapSnapshot,
+  };
+
+  process.stdout.write(JSON.stringify(result) + "\n");
+  return 0;
+}
+
+commands.ship = (argv) => runShip(argv);
+
 function runArchive(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
   if (!changeName || extraArgs.length > 0) {

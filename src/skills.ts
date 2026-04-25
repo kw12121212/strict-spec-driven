@@ -143,6 +143,13 @@ const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = 
     requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [".strict-spec-driven/"],
   },
+  "strict-spec-ship": {
+    requiredCommands: {
+      ship: `${COMMAND_PREFIX} ship <change-name>`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [".strict-spec-driven/"],
+  },
 };
 
 const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
