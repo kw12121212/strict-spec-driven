@@ -6,6 +6,7 @@ mapping:
     - tsconfig.json
     - src/cli/argv.ts
     - src/cli/entrypoint.ts
+    - src/cli/registry.ts
     - src/cli/usage.ts
     - src/converters/roadmap.ts
     - src/migrate.ts

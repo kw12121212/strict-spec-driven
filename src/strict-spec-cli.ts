@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync, rmSync, statSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { exitCliEntrypoint, runCliEntrypoint, type CliCommandHandler } from "./cli/entrypoint.js";
+import { createCliCommandTable } from "./cli/registry.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 import { compileSchema, createSchemaValidator } from "./validation.js";
 import {
@@ -26,7 +27,6 @@ import { migrateLegacyWorkflow } from "./migrate.js";
 import { runMaintenance } from "./maintenance.js";
 
 export type CommandHandler = CliCommandHandler;
-export const commands: Record<string, CommandHandler> = {};
 const CHANGE_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const LEGACY_SPECS_DIR = path.join(".spec-driven", "specs");
@@ -681,9 +681,6 @@ function runPropose(argv: string[]): number {
   }
 }
 
-commands.init = () => runInit();
-commands.propose = (argv) => runPropose(argv);
-
 function runApply(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
   if (!changeName || extraArgs.length > 0) {
@@ -708,8 +705,6 @@ function runApply(argv: string[]): number {
   }
 }
 
-commands.apply = (argv) => runApply(argv);
-
 function runVerify(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
   if (!changeName || extraArgs.length > 0) {
@@ -731,8 +726,6 @@ function runVerify(argv: string[]): number {
     return 1;
   }
 }
-
-commands.verify = (argv) => runVerify(argv);
 
 function runReview(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
@@ -756,8 +749,6 @@ function runReview(argv: string[]): number {
   }
 }
 
-commands.review = (argv) => runReview(argv);
-
 function runVerifySpecMappings(argv: string[]): number {
   if (argv.length > 0) {
     process.stderr.write("Usage: strict-spec-driven verify-spec-mappings\n");
@@ -769,8 +760,6 @@ function runVerifySpecMappings(argv: string[]): number {
   return result.valid ? 0 : 1;
 }
 
-commands["verify-spec-mappings"] = (argv) => runVerifySpecMappings(argv);
-
 function runValidateSkills(argv: string[]): number {
   if (argv.length > 0) {
     process.stderr.write("Usage: strict-spec-driven validate-skills\n");
@@ -781,8 +770,6 @@ function runValidateSkills(argv: string[]): number {
   process.stdout.write(`${JSON.stringify(result)}\n`);
   return result.valid ? 0 : 1;
 }
-
-commands["validate-skills"] = (argv) => runValidateSkills(argv);
 
 function runMigrate(argv: string[]): number {
   let force = false;
@@ -806,8 +793,6 @@ function runMigrate(argv: string[]): number {
   }
 }
 
-commands.migrate = (argv) => runMigrate(argv);
-
 function runRoadmapStatus(argv: string[]): number {
   if (argv.length > 0) {
     process.stderr.write("Usage: strict-spec-driven roadmap-status\n");
@@ -818,8 +803,6 @@ function runRoadmapStatus(argv: string[]): number {
   process.stdout.write(`${JSON.stringify(result)}\n`);
   return result.valid ? 0 : 1;
 }
-
-commands["roadmap-status"] = (argv) => runRoadmapStatus(argv);
 
 function runRoadmapSync(argv: string[]): number {
   if (argv.length > 0) {
@@ -832,8 +815,6 @@ function runRoadmapSync(argv: string[]): number {
   return result.valid ? 0 : 1;
 }
 
-commands["roadmap-sync"] = (argv) => runRoadmapSync(argv);
-
 function runMaintenanceCommand(argv: string[]): number {
   if (argv.length > 0) {
     process.stderr.write("Usage: strict-spec-driven maintenance\n");
@@ -843,8 +824,6 @@ function runMaintenanceCommand(argv: string[]): number {
   process.stdout.write(`${JSON.stringify(result)}\n`);
   return result.valid ? 0 : 1;
 }
-
-commands.maintenance = (argv) => runMaintenanceCommand(argv);
 
 type ShipResult = {
   changeName: string;
@@ -921,8 +900,6 @@ function runShip(argv: string[]): number {
   return 0;
 }
 
-commands.ship = (argv) => runShip(argv);
-
 function runArchive(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
   if (!changeName || extraArgs.length > 0) {
@@ -944,8 +921,6 @@ function runArchive(argv: string[]): number {
     return 1;
   }
 }
-
-commands.archive = (argv) => runArchive(argv);
 
 function runList(argv: string[]): number {
   if (argv.length > 0) {
@@ -982,8 +957,6 @@ function runList(argv: string[]): number {
 
   return 0;
 }
-
-commands.list = (argv) => runList(argv);
 
 function runModify(argv: string[]): number {
   const [target, ...extraArgs] = argv;
@@ -1032,8 +1005,6 @@ function runModify(argv: string[]): number {
   return 1;
 }
 
-commands.modify = (argv) => runModify(argv);
-
 function runCancel(argv: string[]): number {
   const [target, ...extraArgs] = argv;
   if (!target || extraArgs.length > 0) {
@@ -1074,7 +1045,24 @@ function runCancel(argv: string[]): number {
   return 1;
 }
 
-commands.cancel = (argv) => runCancel(argv);
+export const commands = createCliCommandTable({
+  init: () => runInit(),
+  propose: (argv) => runPropose(argv),
+  apply: (argv) => runApply(argv),
+  verify: (argv) => runVerify(argv),
+  review: (argv) => runReview(argv),
+  "verify-spec-mappings": (argv) => runVerifySpecMappings(argv),
+  "validate-skills": (argv) => runValidateSkills(argv),
+  migrate: (argv) => runMigrate(argv),
+  "roadmap-status": (argv) => runRoadmapStatus(argv),
+  "roadmap-sync": (argv) => runRoadmapSync(argv),
+  maintenance: (argv) => runMaintenanceCommand(argv),
+  ship: (argv) => runShip(argv),
+  archive: (argv) => runArchive(argv),
+  list: (argv) => runList(argv),
+  modify: (argv) => runModify(argv),
+  cancel: (argv) => runCancel(argv),
+});
 
 export function run(argv: string[]): number {
   return runCliEntrypoint(argv, commands);

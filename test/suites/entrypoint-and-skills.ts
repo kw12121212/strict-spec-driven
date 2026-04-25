@@ -20,8 +20,36 @@ import {
   type YamlModule,
 } from "../support/harness.js";
 
+type StrictCliModule = {
+  commands: Record<string, unknown>;
+};
+
+type CliRegistryModule = {
+  COMMAND_REGISTRATION_ORDER: string[];
+};
+
 export async function runEntrypointAndSkillsSuite(context: TestContext): Promise<void> {
 context.section("[1] entrypoint smoke test");
+
+const expectedCommandOrder = [
+  "init",
+  "propose",
+  "apply",
+  "verify",
+  "review",
+  "verify-spec-mappings",
+  "validate-skills",
+  "migrate",
+  "roadmap-status",
+  "roadmap-sync",
+  "maintenance",
+  "ship",
+  "archive",
+  "list",
+  "modify",
+  "cancel",
+];
+const expectedCommandUsage = `Commands: ${expectedCommandOrder.join(", ")}`;
 
 const noArgs = cli([]);
 context.assert(noArgs.status !== 0, "no-arg invocation exits non-zero", `got exit code ${noArgs.status}`);
@@ -30,12 +58,22 @@ context.assert(
   "no-arg invocation prints usage hint to stderr",
   `stderr: ${noArgs.stderr.trim()}`,
 );
+context.assert(
+  noArgs.stderr.includes(expectedCommandUsage),
+  "no-arg invocation preserves canonical command listing order",
+  `stderr: ${noArgs.stderr.trim()}`,
+);
 
 const unknownCmd = cli(["unknown-subcommand"]);
 context.assert(unknownCmd.status !== 0, "unknown subcommand exits non-zero", `got exit code ${unknownCmd.status}`);
 context.assert(
   unknownCmd.stderr.includes("Usage:"),
   "unknown subcommand prints usage hint to stderr",
+  `stderr: ${unknownCmd.stderr.trim()}`,
+);
+context.assert(
+  unknownCmd.stderr.includes(expectedCommandUsage),
+  "unknown subcommand preserves canonical command listing order",
   `stderr: ${unknownCmd.stderr.trim()}`,
 );
 
@@ -49,6 +87,18 @@ const validateSkillsDispatchJson = JSON.parse(validateSkillsDispatch.stdout.trim
 context.assert(
   validateSkillsDispatchJson.valid === true,
   "known subcommand preserves JSON stdout through the entrypoint",
+);
+
+const strictCliModule = await loadDistModule<StrictCliModule>("strict-spec-cli.js");
+context.assert(
+  JSON.stringify(Object.keys(strictCliModule.commands)) === JSON.stringify(expectedCommandOrder),
+  "exported command table preserves canonical registration order",
+);
+
+const cliRegistryModule = await loadDistModule<CliRegistryModule>("cli/registry.js");
+context.assert(
+  JSON.stringify(cliRegistryModule.COMMAND_REGISTRATION_ORDER) === JSON.stringify(expectedCommandOrder),
+  "registry module preserves canonical command order",
 );
 
 context.section("[2] strict skill packaging validation");
