@@ -2,6 +2,7 @@
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { exitCliEntrypoint, runCliEntrypoint, type CliCommandHandler } from "./cli/entrypoint.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 import { compileSchema, createSchemaValidator } from "./validation.js";
 import {
@@ -24,7 +25,7 @@ import { getRoadmapStatus, syncRoadmap } from "./roadmap.js";
 import { migrateLegacyWorkflow } from "./migrate.js";
 import { runMaintenance } from "./maintenance.js";
 
-export type CommandHandler = (argv: string[]) => number | void;
+export type CommandHandler = CliCommandHandler;
 export const commands: Record<string, CommandHandler> = {};
 const CHANGE_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
@@ -1076,18 +1077,9 @@ function runCancel(argv: string[]): number {
 commands.cancel = (argv) => runCancel(argv);
 
 export function run(argv: string[]): number {
-  const [subcommand, ...subcommandArgs] = argv;
-  if (!subcommand || !(subcommand in commands)) {
-    process.stderr.write("Usage: strict-spec-driven <command>\n");
-    if (Object.keys(commands).length > 0) {
-      process.stderr.write(`Commands: ${Object.keys(commands).join(", ")}\n`);
-    }
-    return 1;
-  }
-  const status = commands[subcommand](subcommandArgs);
-  return typeof status === "number" ? status : 0;
+  return runCliEntrypoint(argv, commands);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  process.exit(run(process.argv.slice(2)));
+  exitCliEntrypoint(process.argv.slice(2), commands);
 }

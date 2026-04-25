@@ -4,6 +4,9 @@ mapping:
     - package.json
     - install.sh
     - tsconfig.json
+    - src/cli/argv.ts
+    - src/cli/entrypoint.ts
+    - src/cli/usage.ts
     - src/converters/roadmap.ts
     - src/migrate.ts
     - src/strict-spec-cli.ts

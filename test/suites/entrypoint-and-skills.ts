@@ -39,6 +39,18 @@ context.assert(
   `stderr: ${unknownCmd.stderr.trim()}`,
 );
 
+const validateSkillsDispatch = cli(["validate-skills"], { cwd: ROOT });
+context.assert(
+  validateSkillsDispatch.status === 0,
+  "known subcommand dispatches through the entrypoint",
+  `stdout: ${validateSkillsDispatch.stdout.trim()} stderr: ${validateSkillsDispatch.stderr.trim()}`,
+);
+const validateSkillsDispatchJson = JSON.parse(validateSkillsDispatch.stdout.trim());
+context.assert(
+  validateSkillsDispatchJson.valid === true,
+  "known subcommand preserves JSON stdout through the entrypoint",
+);
+
 context.section("[2] strict skill packaging validation");
 
 const skillValidationModule = await loadDistModule<SkillValidationModule>("skills.js");
@@ -50,9 +62,9 @@ context.assert(
   "marketplace metadata count matches discovered strict skills",
 );
 
-const validateSkillsCli = cli(["validate-skills"], { cwd: ROOT });
+const validateSkillsCli = validateSkillsDispatch;
 context.assert(validateSkillsCli.status === 0, "validate-skills CLI exits zero for valid strict skill packaging");
-const validateSkillsJson = JSON.parse(validateSkillsCli.stdout.trim());
+const validateSkillsJson = validateSkillsDispatchJson;
 context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits valid=true JSON");
 
 const invalidSkillsRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-validation-invalid-"));
