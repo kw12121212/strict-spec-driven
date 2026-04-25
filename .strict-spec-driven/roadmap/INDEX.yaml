@@ -22,8 +22,8 @@ milestones:
   - id: 05-migration-and-self-hosting
     title: 05 Migration And Self Hosting
     path: roadmap/milestones/05-migration-and-self-hosting.yaml
-    status: proposed
+    status: complete
   - id: 06-operations-and-documentation
     title: 06 Operations And Documentation
     path: roadmap/milestones/06-operations-and-documentation.yaml
-    status: proposed
+    status: complete

@@ -1,0 +1,66 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - install.sh
+    - package.json
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: strict-skill-installation-script-contract
+        strength: MUST
+        statement: >-
+          The system MUST provide repository install and uninstall surfaces that register strict
+          skill packages from the source repository for both shared/global and project-local use
+          without breaking packaged script and template link assumptions.
+        scenarios:
+          - id: install-surfaces-support-shared-and-project-local-registration
+            steps:
+              - kind: GIVEN
+                text: a user wants to register strict skills from the source repository
+              - kind: WHEN
+                text: the repository install surface is invoked for the default or project-local scope
+              - kind: THEN
+                text: strict skill packages are registered for the selected scope
+              - kind: AND
+                text: the install surface uses strict workflow naming rather than legacy default aliases
+          - id: uninstall-surfaces-remove-the-selected-strict-registration
+            steps:
+              - kind: GIVEN
+                text: strict skills were previously registered from the source repository
+              - kind: WHEN
+                text: the repository uninstall surface is invoked for the same selected scope
+              - kind: THEN
+                text: the strict skill registration is removed for that scope
+              - kind: AND
+                text: unrelated legacy registrations are not silently targeted as strict aliases
+  MODIFIED:
+    - target_requirement: installer-facing-strict-names
+      replacement:
+        id: installer-facing-strict-names
+        strength: MUST
+        statement: >-
+          The system MUST require installer-facing package, skill, command, and install or uninstall
+          entrypoint names for strict workflows to identify the strict workflow namespace explicitly
+          and avoid silent legacy aliases outside migration-defined compatibility behavior.
+        scenarios:
+          - id: installer-names-preserve-the-strict-namespace
+            steps:
+              - kind: GIVEN
+                text: strict workflow installation metadata or install entrypoints are reviewed
+              - kind: WHEN
+                text: >-
+                  package, skill, command, or install and uninstall names are exposed for
+                  installation
+              - kind: THEN
+                text: the names identify the strict workflow namespace
+              - kind: AND
+                text: >-
+                  legacy `spec-driven` or `spec-driven-*` names are not treated as strict workflow
+                  aliases unless a migration compatibility contract defines that behavior
+  REMOVED: []

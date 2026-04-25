@@ -25,14 +25,14 @@ rules:
     - Each requirement must be independently verifiable from outside the system
   change:
     - >-
-      Implement only what is in scope in proposal.md — if scope needs to expand, use
-      /spec-driven-modify first, never expand silently
+      Implement only what is in scope in proposal.yaml — if scope needs to expand, use
+      strict-spec-modify first, never expand silently
     - >-
       When a requirement or task is ambiguous, ask the user before proceeding — do not assume or
       guess
     - Delta specs must reflect what was actually built, not the original plan
-    - Mark tasks [x] immediately upon completion — never batch at the end
-    - Every change must include test tasks (lint + unit tests at minimum)
+    - Mark tasks done immediately upon completion — never batch at the end
+    - Every change must include test tasks (validation + unit tests at minimum)
   code:
     - Read existing code before modifying it
     - Implement only what the current task requires — no speculative features

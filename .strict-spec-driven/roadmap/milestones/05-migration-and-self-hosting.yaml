@@ -82,7 +82,7 @@ planned_changes:
     artifact_type: planned_change_entry
     schema_file: templates/strict-spec-driven/schemas/planned-change-entry.yaml
     id: add-strict-spec-migrate-skill
-    status: planned
+    status: complete
     summary: >-
       create a strict migration skill package that runs preflight checks, invokes migration, reviews
       reports, validates generated YAML, and guides manual follow-up.
@@ -153,7 +153,7 @@ risks:
   - >-
     Treating migration and self-hosting as separate milestones can create a false finish state where
     tooling exists but no real repository proves it works.
-status: proposed
+status: complete
 notes:
   - >-
     This merger is intentional: migration is not complete until the repository can actually run on

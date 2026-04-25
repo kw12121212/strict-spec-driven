@@ -16,7 +16,7 @@ const PLANNED_CHANGE_SCHEMA_ID = "strict-spec-driven/planned-change-entry/v1";
 type DeclaredRoadmapStatus = (typeof DECLARED_ROADMAP_STATUSES)[number];
 type DeclaredPlannedChangeStatus = (typeof DECLARED_PLANNED_CHANGE_STATUSES)[number];
 
-type PlannedChangeState = "missing" | "active" | "archived";
+type PlannedChangeState = "missing" | "active" | "archived" | "ambiguous";
 
 type RoadmapIndexEntry = {
   id: string;
@@ -676,8 +676,11 @@ function getChangeStateIndex(rootDir: string): ChangeStateIndex {
 }
 
 function derivePlannedChangeState(changeStates: ChangeStateIndex, id: string): PlannedChangeState {
-  if (changeStates.archived.has(id)) return "archived";
-  if (changeStates.active.has(id)) return "active";
+  const isActive = changeStates.active.has(id);
+  const isArchived = changeStates.archived.has(id);
+  if (isActive && isArchived) return "ambiguous";
+  if (isArchived) return "archived";
+  if (isActive) return "active";
   return "missing";
 }
 
@@ -688,7 +691,7 @@ function derivePlannedChangeDeclaredStatus(state: PlannedChangeState): DeclaredP
 function deriveMilestoneStatus(states: PlannedChangeState[]): Exclude<DeclaredRoadmapStatus, "blocked"> {
   if (states.length === 0) return "proposed";
   if (states.every((state) => state === "archived")) return "complete";
-  if (states.some((state) => state === "active")) return "active";
+  if (states.some((state) => state === "active" || state === "ambiguous")) return "active";
   return "proposed";
 }
 
@@ -780,6 +783,9 @@ function buildMilestoneStatus(
     const state = derivePlannedChangeState(changeStates, entry.id);
     const derivedStatus = derivePlannedChangeDeclaredStatus(state);
     const mismatches: string[] = [];
+    if (state === "ambiguous") {
+      mismatches.push("planned change exists in both active and archived strict change state; resolve the duplicate history");
+    }
     if (entry.status !== derivedStatus) {
       mismatches.push(`declared planned change status '${entry.status}' does not match derived planned change status '${derivedStatus}'`);
     }

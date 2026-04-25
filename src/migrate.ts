@@ -3,6 +3,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from "fs";
@@ -326,6 +327,39 @@ function writeYamlFile(filePath: string, value: unknown): void {
 
 function normalizeWhitespace(value: string): string {
   return value.trim().replace(/\s+/g, " ");
+}
+
+const LEGACY_CONFIG_TEXT_REPLACEMENTS: Array<readonly [RegExp, string]> = [
+  [/\bproposal\.md\b/g, "proposal.yaml"],
+  [/\bdesign\.md\b/g, "design.yaml"],
+  [/\btasks\.md\b/g, "tasks.yaml"],
+  [/\bquestions\.md\b/g, "questions.yaml"],
+  [/\/spec-driven-modify\b/g, "strict-spec-modify"],
+  [/Mark tasks \[x\] immediately upon completion/g, "Mark tasks done immediately upon completion"],
+  [/\(lint \+ unit tests at minimum\)/g, "(validation + unit tests at minimum)"],
+];
+
+function normalizeLegacyConfigText(value: string): string {
+  let normalized = value;
+  for (const [pattern, replacement] of LEGACY_CONFIG_TEXT_REPLACEMENTS) {
+    normalized = normalized.replace(pattern, replacement);
+  }
+  return normalized;
+}
+
+function normalizeLegacyConfigValue(value: unknown): unknown {
+  if (typeof value === "string") {
+    return normalizeLegacyConfigText(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeLegacyConfigValue(entry));
+  }
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, normalizeLegacyConfigValue(entry)]),
+    );
+  }
+  return value;
 }
 
 function toKebabCase(value: string): string {
@@ -1882,7 +1916,7 @@ function loadStrictConfigFromLegacy(rootDir: string, errors: MigrationDiagnostic
   return {
     ...scaffoldConfig,
     context,
-    rules,
+    rules: normalizeLegacyConfigValue(rules) as Record<string, unknown>,
   };
 }
 
@@ -1939,6 +1973,9 @@ export function migrateLegacyWorkflow(rootDir: string, options?: { force?: boole
         ),
       );
       return sortMigrationResult(result);
+    }
+    if (options?.force) {
+      rmSync(strictRootAbsolutePath, { recursive: true, force: true });
     }
   }
 

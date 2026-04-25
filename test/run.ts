@@ -3965,6 +3965,76 @@ async function main(): Promise<void> {
     rmSync(roadmapHappyDir, { recursive: true, force: true });
   }
 
+  const roadmapAmbiguousDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-ambiguous-"));
+  try {
+    mkdirSync(path.join(roadmapAmbiguousDir, ".strict-spec-driven", "changes", "shared-change"), { recursive: true });
+    mkdirSync(
+      path.join(roadmapAmbiguousDir, ".strict-spec-driven", "changes", "archive", `${formatLocalDateStamp()}-shared-change`),
+      { recursive: true },
+    );
+
+    writeRoadmapMilestoneArtifact(roadmapAmbiguousDir, "01-ambiguous.yaml", {
+      id: "01-ambiguous",
+      title: "Ambiguous Roadmap Workflow",
+      goal: "Surface duplicate active and archived change ids as ambiguity.",
+      status: "complete",
+      plannedChanges: [
+        {
+          id: "shared-change",
+          status: "complete",
+          summary: "This change was archived but a duplicate active copy remains.",
+          depends_on: [],
+        },
+      ],
+    });
+
+    writeRoadmapIndexArtifact(roadmapAmbiguousDir, [
+      {
+        id: "01-ambiguous",
+        title: "Ambiguous Roadmap Workflow",
+        path: "roadmap/milestones/01-ambiguous.yaml",
+        status: "complete",
+      },
+    ]);
+
+    const ambiguousRoadmapStatus = cli(["roadmap-status"], { cwd: roadmapAmbiguousDir });
+    assert(ambiguousRoadmapStatus.status === 0, "roadmap-status exits zero for ambiguous but structurally valid roadmap state");
+    const ambiguousRoadmapJson = JSON.parse(ambiguousRoadmapStatus.stdout.trim());
+    assert(ambiguousRoadmapJson.valid === true, "roadmap-status keeps ambiguous duplicate history as valid roadmap structure");
+    assert(
+      ambiguousRoadmapJson.milestones[0].plannedChanges[0].state === "ambiguous",
+      "roadmap-status marks duplicate active and archived change ids as ambiguous state",
+    );
+    assert(
+      ambiguousRoadmapJson.milestones[0].plannedChanges[0].derivedStatus === "planned",
+      "roadmap-status does not derive ambiguous duplicate change ids as complete",
+    );
+    assert(
+      ambiguousRoadmapJson.milestones[0].derivedStatus === "active",
+      "roadmap-status derives milestone status as active when a planned change is ambiguous",
+    );
+    assert(
+      ambiguousRoadmapJson.milestones[0].plannedChanges[0].mismatches.some(
+        (mismatch: string) => mismatch.includes("both active and archived strict change state"),
+      ),
+      "roadmap-status reports an explicit ambiguity mismatch for duplicate active and archived change history",
+    );
+
+    const ambiguousRoadmapSync = cli(["roadmap-sync"], { cwd: roadmapAmbiguousDir });
+    assert(ambiguousRoadmapSync.status === 0, "roadmap-sync exits zero for reconcilable ambiguous roadmap state");
+    const syncedAmbiguousMilestone = yamlModule.parseYamlFile<{
+      status: string;
+      planned_changes: Array<{ id: string; status: string }>;
+    }>(path.join(roadmapAmbiguousDir, ".strict-spec-driven", "roadmap", "milestones", "01-ambiguous.yaml"));
+    assert(syncedAmbiguousMilestone.status === "active", "roadmap-sync rewrites ambiguous milestone status to active");
+    assert(
+      syncedAmbiguousMilestone.planned_changes[0]?.status === "planned",
+      "roadmap-sync rewrites ambiguous planned change status to planned instead of complete",
+    );
+  } finally {
+    rmSync(roadmapAmbiguousDir, { recursive: true, force: true });
+  }
+
   const roadmapInvalidDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-invalid-"));
   try {
     writeRoadmapIndexArtifact(roadmapInvalidDir, [
@@ -4299,7 +4369,9 @@ async function main(): Promise<void> {
           "  specs:",
           "    - Describe observable behavior only",
           "  change:",
-          "    - Keep scope focused",
+          "    - Implement only what is in scope in proposal.md — if scope needs to expand, use /spec-driven-modify first, never expand silently",
+          "    - Mark tasks [x] immediately upon completion — never batch at the end",
+          "    - Every change must include test tasks (lint + unit tests at minimum)",
           "  code:",
           "    - Reuse existing helpers",
           "  test:",
@@ -4716,6 +4788,21 @@ async function main(): Promise<void> {
     assert(
       migratedConfig.context.includes("Demo project context for migrate tests."),
       "migrate preserves legacy config context in strict output",
+    );
+    const migratedChangeRules = Array.isArray(migratedConfig.rules.change)
+      ? migratedConfig.rules.change.filter((entry): entry is string => typeof entry === "string")
+      : [];
+    assert(
+      migratedChangeRules.some((rule) => rule.includes("proposal.yaml") && rule.includes("strict-spec-modify")),
+      "migrate normalizes legacy Markdown proposal and modify references in strict config rules",
+    );
+    assert(
+      migratedChangeRules.some((rule) => rule.includes("Mark tasks done immediately upon completion")),
+      "migrate normalizes legacy checkbox wording in strict config rules",
+    );
+    assert(
+      migratedChangeRules.some((rule) => rule.includes("validation + unit tests")),
+      "migrate normalizes legacy lint wording in strict config rules",
     );
     const migratedMainSpec = yamlModule.parseYamlFile<{
       schema: string;
@@ -5194,6 +5281,72 @@ async function main(): Promise<void> {
     assert(
       shortForcedRerun.stdout.trim() === first.stdout.trim(),
       "migrate -f rerun preserves identical JSON output",
+    );
+
+    mkdirSync(path.join(migrateForceDir, ".strict-spec-driven", "changes", "stale-active-change"), { recursive: true });
+
+    const legacyBackfillDir = path.join(
+      migrateForceDir,
+      ".spec-driven",
+      "changes",
+      "archive",
+      "2026-04-03-backfilled-change",
+    );
+    mkdirSync(path.join(legacyBackfillDir, "specs", "cli"), { recursive: true });
+    const legacyArchivedSourceDir = path.join(
+      migrateForceDir,
+      ".spec-driven",
+      "changes",
+      "archive",
+      "2026-04-01-done-change",
+    );
+    for (const relativePath of [
+      "proposal.md",
+      "design.md",
+      "tasks.md",
+      "questions.md",
+      path.join("specs", "cli", "foundation.md"),
+    ]) {
+      const sourceContent = readFileSync(path.join(legacyArchivedSourceDir, relativePath), "utf8");
+      writeFileSync(
+        path.join(legacyBackfillDir, relativePath),
+        sourceContent
+          .replace(/done-change/g, "backfilled-change")
+          .replace(/Done Change/g, "Backfilled Change")
+          .replace(/Archived Example/g, "Backfilled Change"),
+        "utf8",
+      );
+    }
+
+    const backfillForcedRerun = cli(["migrate", "--force"], { cwd: migrateForceDir });
+    assert(backfillForcedRerun.status === 0, "migrate --force exits zero after legacy history changes");
+    const backfillForcedRerunJson = JSON.parse(backfillForcedRerun.stdout.trim());
+    assertMigrationReportArrays(backfillForcedRerunJson, "forced backfill rerun");
+    assert(
+      !existsSync(path.join(migrateForceDir, ".strict-spec-driven", "changes", "stale-active-change")),
+      "migrate --force removes stale strict-only active change directories before rebuilding strict state",
+    );
+    assert(
+      existsSync(
+        path.join(
+          migrateForceDir,
+          ".strict-spec-driven",
+          "changes",
+          "archive",
+          "2026-04-03-backfilled-change",
+          "proposal.yaml",
+        ),
+      ),
+      "migrate --force backfills newly added legacy archived changes into strict archive history",
+    );
+    assert(
+      backfillForcedRerunJson.converted.some(
+        (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
+          artifact.kind === "change_proposal"
+          && artifact.sourcePath === ".spec-driven/changes/archive/2026-04-03-backfilled-change/proposal.md"
+          && artifact.targetPath === ".strict-spec-driven/changes/archive/2026-04-03-backfilled-change/proposal.yaml",
+      ),
+      "migrate --force reports backfilled archived change proposal output",
     );
   } finally {
     rmSync(migrateForceDir, { recursive: true, force: true });

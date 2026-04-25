@@ -7,6 +7,7 @@ spec:
   title: Strict YAML Artifact Schemas
 mapping:
   implementation:
+    - package.json
     - src/migrate.ts
     - src/scaffold.ts
     - templates/strict-spec-driven/schemas/schema-registry.yaml
@@ -31,6 +32,7 @@ mapping:
     - skills/strict-spec-brainstorm/SKILL.md
     - skills/strict-spec-cancel/SKILL.md
     - skills/strict-spec-init/SKILL.md
+    - skills/strict-spec-migrate/SKILL.md
     - skills/strict-spec-maintenance/SKILL.md
     - skills/strict-spec-modify/SKILL.md
     - skills/strict-spec-propose/SKILL.md
@@ -47,6 +49,8 @@ mapping:
     - skills/strict-roadmap-recommend/SKILL.md
     - skills/strict-roadmap-sync/SKILL.md
     - README.md
+    - QUICKSTART.md
+    - ROADMAP_GUIDE.md
     - RTK.md
   tests:
     - test/run.ts
@@ -1144,22 +1148,49 @@ requirements:
   - id: installer-facing-strict-names
     strength: MUST
     statement: >-
-      The system MUST require installer-facing package, skill, or command names for strict workflows
-      to identify the strict workflow namespace explicitly and avoid silent legacy aliases outside
-      migration-defined compatibility behavior.
+      The system MUST require installer-facing package, skill, command, and install or uninstall
+      entrypoint names for strict workflows to identify the strict workflow namespace explicitly and
+      avoid silent legacy aliases outside migration-defined compatibility behavior.
     scenarios:
       - id: installer-names-preserve-the-strict-namespace
         steps:
           - kind: GIVEN
-            text: strict workflow installation metadata is reviewed
+            text: strict workflow installation metadata or install entrypoints are reviewed
           - kind: WHEN
-            text: package, skill, or command names are exposed for installation
+            text: package, skill, command, or install and uninstall names are exposed for installation
           - kind: THEN
             text: the names identify the strict workflow namespace
           - kind: AND
             text: >-
               legacy `spec-driven` or `spec-driven-*` names are not treated as strict workflow
               aliases unless a migration compatibility contract defines that behavior
+  - id: strict-skill-installation-script-contract
+    strength: MUST
+    statement: >-
+      The system MUST provide repository install and uninstall surfaces that register strict skill
+      packages from the source repository for both shared/global and project-local use without
+      breaking packaged script and template link assumptions.
+    scenarios:
+      - id: install-surfaces-support-shared-and-project-local-registration
+        steps:
+          - kind: GIVEN
+            text: a user wants to register strict skills from the source repository
+          - kind: WHEN
+            text: the repository install surface is invoked for the default or project-local scope
+          - kind: THEN
+            text: strict skill packages are registered for the selected scope
+          - kind: AND
+            text: the install surface uses strict workflow naming rather than legacy default aliases
+      - id: uninstall-surfaces-remove-the-selected-strict-registration
+        steps:
+          - kind: GIVEN
+            text: strict skills were previously registered from the source repository
+          - kind: WHEN
+            text: the repository uninstall surface is invoked for the same selected scope
+          - kind: THEN
+            text: the strict skill registration is removed for that scope
+          - kind: AND
+            text: unrelated legacy registrations are not silently targeted as strict aliases
   - id: cli-naming-remains-separate
     strength: MUST
     statement: >-
@@ -1700,6 +1731,60 @@ requirements:
             text: >-
               the prompts do not require a separate `strict-spec-spec-content` package to make those
               workflows usable
+  - id: strict-migration-skill-command-contract
+    strength: MUST
+    statement: >-
+      The system MUST provide a strict migration skill package for `migrate` with explicit command
+      mappings that reference the strict bundled CLI commands used for migration execution and
+      post-migration validation.
+    scenarios:
+      - id: migration-skill-exposes-concrete-strict-commands
+        steps:
+          - kind: GIVEN
+            text: the strict migration `SKILL.md` file is reviewed
+          - kind: WHEN
+            text: its `## This Skill's Commands` section is inspected
+          - kind: THEN
+            text: >-
+              the command mapping includes `node {{SKILL_DIR}}/scripts/strict-spec-driven.js
+              migrate`
+          - kind: AND
+            text: >-
+              the command mapping includes strict validation or inspection commands needed after
+              migration
+          - kind: AND
+            text: the command mapping is not limited to a generic placeholder command
+  - id: strict-migration-skill-guidance-contract
+    strength: MUST
+    statement: >-
+      The system MUST ensure the strict migration skill describes `.strict-spec-driven/` YAML
+      workflow artifacts, treats `.spec-driven/` as legacy migration input, and guides operators
+      through structured report review and manual follow-up without inventing missing data.
+    scenarios:
+      - id: migration-skill-describes-the-correct-source-and-target-state
+        steps:
+          - kind: GIVEN
+            text: the strict migration skill prompt is reviewed
+          - kind: WHEN
+            text: its prerequisites and workflow instructions are inspected
+          - kind: THEN
+            text: the skill treats `.spec-driven/` as migration input
+          - kind: AND
+            text: the skill treats `.strict-spec-driven/` as the strict YAML target state
+          - kind: AND
+            text: the prompt does not describe legacy Markdown workflow state as the desired end state
+      - id: migration-skill-preserves-report-review-and-manual-follow-up-boundaries
+        steps:
+          - kind: GIVEN
+            text: a migration run leaves warnings, errors, or manual follow-up items
+          - kind: WHEN
+            text: the strict migration skill guidance is inspected
+          - kind: THEN
+            text: the skill directs the operator to review structured report output
+          - kind: AND
+            text: the skill preserves manual follow-up as an explicit human review step
+          - kind: AND
+            text: the prompt does not claim unsupported structures were silently converted
   - id: self-hosted-repository-guidance-prefers-strict-surfaces
     strength: MUST
     statement: >-
@@ -1731,3 +1816,53 @@ requirements:
               slash-command families
           - kind: AND
             text: legacy names appear only in bootstrap, migration, or historical context
+  - id: strict-ship-skill-command-contract
+    strength: MUST
+    statement: >-
+      The system MUST provide a strict ship skill package for `ship` with an explicit command
+      mapping that references `strict-spec-driven ship` and any strict verification commands the
+      skill depends on.
+    scenarios:
+      - id: ship-skill-exposes-concrete-strict-commands
+        steps:
+          - kind: GIVEN
+            text: the `strict-spec-ship/SKILL.md` file is reviewed
+          - kind: WHEN
+            text: its `## This Skill's Commands` section is inspected
+          - kind: THEN
+            text: >-
+              the command mapping identifies `node {{SKILL_DIR}}/scripts/strict-spec-driven.js ship
+              <change-name>` as the primary ship command
+          - kind: AND
+            text: the command mapping is not limited to a generic placeholder command
+  - id: strict-ship-skill-guidance-contract
+    strength: MUST
+    statement: >-
+      The system MUST ensure the strict ship skill describes `.strict-spec-driven/` YAML workflow
+      artifacts, uses structured `ship` command output to construct a focused git commit, and
+      documents the push handoff for the operator without automating `git push`.
+    scenarios:
+      - id: ship-skill-references-strict-workflow-artifacts
+        steps:
+          - kind: GIVEN
+            text: the `strict-spec-ship/SKILL.md` skill prompt is reviewed
+          - kind: WHEN
+            text: its workflow guidance is inspected
+          - kind: THEN
+            text: >-
+              the skill describes `.strict-spec-driven/changes/archive/` as the source of the
+              archived change being shipped
+          - kind: AND
+            text: the skill does not treat legacy `.spec-driven/` artifacts as the ship source
+      - id: ship-skill-preserves-operator-review-before-push
+        steps:
+          - kind: GIVEN
+            text: the `strict-spec-ship/SKILL.md` workflow is executed for an archived change
+          - kind: WHEN
+            text: the git push step is reached
+          - kind: THEN
+            text: >-
+              the skill presents the `git push` command to the operator for explicit confirmation
+              before execution
+          - kind: AND
+            text: the skill does not automate `git push` without operator review

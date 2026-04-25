@@ -1,0 +1,74 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/marketplace.json
+    - src/skills.ts
+    - skills/strict-spec-migrate/SKILL.md
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: strict-migration-skill-command-contract
+        strength: MUST
+        statement: >-
+          The system MUST provide a strict migration skill package for `migrate` with explicit
+          command mappings that reference the strict bundled CLI commands used for migration
+          execution and post-migration validation.
+        scenarios:
+          - id: migration-skill-exposes-concrete-strict-commands
+            steps:
+              - kind: GIVEN
+                text: the strict migration `SKILL.md` file is reviewed
+              - kind: WHEN
+                text: its `## This Skill's Commands` section is inspected
+              - kind: THEN
+                text: >-
+                  the command mapping includes `node {{SKILL_DIR}}/scripts/strict-spec-driven.js
+                  migrate`
+              - kind: AND
+                text: >-
+                  the command mapping includes strict validation or inspection commands needed after
+                  migration
+              - kind: AND
+                text: the command mapping is not limited to a generic placeholder command
+    - requirement:
+        id: strict-migration-skill-guidance-contract
+        strength: MUST
+        statement: >-
+          The system MUST ensure the strict migration skill describes `.strict-spec-driven/` YAML
+          workflow artifacts, treats `.spec-driven/` as legacy migration input, and guides operators
+          through structured report review and manual follow-up without inventing missing data.
+        scenarios:
+          - id: migration-skill-describes-the-correct-source-and-target-state
+            steps:
+              - kind: GIVEN
+                text: the strict migration skill prompt is reviewed
+              - kind: WHEN
+                text: its prerequisites and workflow instructions are inspected
+              - kind: THEN
+                text: the skill treats `.spec-driven/` as migration input
+              - kind: AND
+                text: the skill treats `.strict-spec-driven/` as the strict YAML target state
+              - kind: AND
+                text: >-
+                  the prompt does not describe legacy Markdown workflow state as the desired end
+                  state
+          - id: migration-skill-preserves-report-review-and-manual-follow-up-boundaries
+            steps:
+              - kind: GIVEN
+                text: a migration run leaves warnings, errors, or manual follow-up items
+              - kind: WHEN
+                text: the strict migration skill guidance is inspected
+              - kind: THEN
+                text: the skill directs the operator to review structured report output
+              - kind: AND
+                text: the skill preserves manual follow-up as an explicit human review step
+              - kind: AND
+                text: the prompt does not claim unsupported structures were silently converted
+  MODIFIED: []
+  REMOVED: []

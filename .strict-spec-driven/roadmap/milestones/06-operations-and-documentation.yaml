@@ -59,7 +59,7 @@ planned_changes:
     artifact_type: planned_change_entry
     schema_file: templates/strict-spec-driven/schemas/planned-change-entry.yaml
     id: port-maintenance-workflow-to-yaml
-    status: planned
+    status: complete
     summary: >-
       implement strict `run-maintenance` behavior, maintenance config YAML, generated maintenance
       change artifacts, archive flow, and tests.
@@ -69,7 +69,7 @@ planned_changes:
     artifact_type: planned_change_entry
     schema_file: templates/strict-spec-driven/schemas/planned-change-entry.yaml
     id: port-ship-workflow-to-strict
-    status: planned
+    status: complete
     summary: >-
       implement strict ship behavior that verifies archived changes, inspects roadmap status,
       creates a focused git commit, and documents the push handoff.
@@ -79,7 +79,7 @@ planned_changes:
     artifact_type: planned_change_entry
     schema_file: templates/strict-spec-driven/schemas/planned-change-entry.yaml
     id: ship-strict-installation-and-packaging
-    status: planned
+    status: complete
     summary: >-
       add install and uninstall scripts for global and project-local strict skill installation with
       legacy-name safeguards and working relative symlink expectations, plus install, uninstall, and
@@ -91,7 +91,7 @@ planned_changes:
     artifact_type: planned_change_entry
     schema_file: templates/strict-spec-driven/schemas/planned-change-entry.yaml
     id: write-strict-user-documentation
-    status: planned
+    status: complete
     summary: >-
       add README, QUICKSTART, ROADMAP_GUIDE, and Chinese equivalents that explain strict setup,
       commands, artifacts, schema and example files, and migration boundaries.
@@ -116,7 +116,7 @@ risks:
   - >-
     Maintenance automation could create noisy or misleading changes if configured checks and safe
     auto-fix behavior are not explicit.
-status: proposed
+status: complete
 notes:
   - >-
     This milestone stays deliberately last because it is operational polish, not a blocker for

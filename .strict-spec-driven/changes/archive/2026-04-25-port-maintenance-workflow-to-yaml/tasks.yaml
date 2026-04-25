@@ -1,0 +1,70 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: port-maintenance-workflow-to-yaml
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Extend `.strict-spec-driven/config.yaml` scaffold template with an optional `maintenance`
+          section listing configured checks (schema: `checks` array with `type` field, first
+          supported value `roadmap-sync-check`)
+        status: complete
+      - id: implementation-2
+        text: >-
+          Add `src/maintenance.ts` implementing `runMaintenance`: reads config maintenance section,
+          runs configured checks, collects findings, generates a maintenance change via propose
+          scaffold when findings exist, emits deterministic JSON output
+        status: complete
+      - id: implementation-3
+        text: >-
+          Implement `roadmap-sync-check` check type inside `src/maintenance.ts` by calling
+          `syncRoadmap()` and mapping returned mismatches to maintenance task entries
+        status: complete
+      - id: implementation-4
+        text: Register `commands["maintenance"]` in `src/strict-spec-cli.ts` wired to `runMaintenance`
+        status: complete
+      - id: implementation-5
+        text: >-
+          Update `skills/strict-spec-maintenance/SKILL.md` to reference `node
+          {{SKILL_DIR}}/scripts/strict-spec-driven.js maintenance` as the primary command with a
+          complete `## This Skill's Commands` block
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: >-
+          Run `bun run build` — validate TypeScript compiles without errors after adding maintenance
+          module
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: >-
+          Run `bun test/run.ts` — unit tests covering: config parsing with maintenance section,
+          `roadmap-sync-check` produces findings when mismatches exist, `roadmap-sync-check`
+          produces no findings when roadmap is aligned, maintenance change directory is created when
+          findings exist, maintenance JSON output fields (`valid`, `checksRun`, `findingsCount`,
+          `generatedChange`) are present and correct, missing or empty maintenance config section
+          exits cleanly with zero findings
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify `strict-spec-driven maintenance` subcommand is registered and routes correctly
+        status: complete
+      - id: verification-2
+        text: >-
+          Verify `strict-spec-maintenance/SKILL.md` references the `maintenance` subcommand
+          explicitly
+        status: complete
+      - id: verification-3
+        text: >-
+          Verify implementation matches proposal scope: no additional check types, no auto-archive,
+          no changes to existing subcommands
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

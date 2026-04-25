@@ -1,0 +1,66 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-spec-ship/SKILL.md
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: strict-ship-skill-command-contract
+        strength: MUST
+        statement: >-
+          The system MUST provide a strict ship skill package for `ship` with an explicit command
+          mapping that references `strict-spec-driven ship` and any strict verification commands the
+          skill depends on.
+        scenarios:
+          - id: ship-skill-exposes-concrete-strict-commands
+            steps:
+              - kind: GIVEN
+                text: the `strict-spec-ship/SKILL.md` file is reviewed
+              - kind: WHEN
+                text: its `## This Skill's Commands` section is inspected
+              - kind: THEN
+                text: >-
+                  the command mapping identifies `node {{SKILL_DIR}}/scripts/strict-spec-driven.js
+                  ship <change-name>` as the primary ship command
+              - kind: AND
+                text: the command mapping is not limited to a generic placeholder command
+    - requirement:
+        id: strict-ship-skill-guidance-contract
+        strength: MUST
+        statement: >-
+          The system MUST ensure the strict ship skill describes `.strict-spec-driven/` YAML
+          workflow artifacts, uses structured `ship` command output to construct a focused git
+          commit, and documents the push handoff for the operator without automating `git push`.
+        scenarios:
+          - id: ship-skill-references-strict-workflow-artifacts
+            steps:
+              - kind: GIVEN
+                text: the `strict-spec-ship/SKILL.md` skill prompt is reviewed
+              - kind: WHEN
+                text: its workflow guidance is inspected
+              - kind: THEN
+                text: >-
+                  the skill describes `.strict-spec-driven/changes/archive/` as the source of the
+                  archived change being shipped
+              - kind: AND
+                text: the skill does not treat legacy `.spec-driven/` artifacts as the ship source
+          - id: ship-skill-preserves-operator-review-before-push
+            steps:
+              - kind: GIVEN
+                text: the `strict-spec-ship/SKILL.md` workflow is executed for an archived change
+              - kind: WHEN
+                text: the git push step is reached
+              - kind: THEN
+                text: >-
+                  the skill presents the `git push` command to the operator for explicit
+                  confirmation before execution
+              - kind: AND
+                text: the skill does not automate `git push` without operator review
+  MODIFIED: []
+  REMOVED: []

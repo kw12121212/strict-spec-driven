@@ -1,0 +1,51 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: write-strict-user-documentation
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Replace `README.md` with English content covering project overview, relationship to
+          auto-spec-driven, directory structure (`.strict-spec-driven/` as active state,
+          `.spec-driven/` as bootstrap/legacy), strict command surface (`strict-spec-driven` CLI
+          subcommands, `strict-spec-*` and `strict-roadmap-*` skill families), schema and example
+          asset locations under `templates/strict-spec-driven/`, migration boundaries, self-hosting
+          status, and development conventions
+        status: complete
+      - id: implementation-2
+        text: >-
+          Add `QUICKSTART.md` covering prerequisites (Bun, Node.js), installation via `install.sh`
+          (global and project-local options), verifying the install, `strict-spec-driven init` to
+          scaffold a new project, and a first change lifecycle walkthrough (propose → apply → verify
+          → archive)
+        status: complete
+      - id: implementation-3
+        text: >-
+          Add `ROADMAP_GUIDE.md` covering milestone YAML structure under
+          `.strict-spec-driven/roadmap/`, planned change entry format, `strict-roadmap-*` skill
+          commands and their purposes, and how to add or complete a planned change entry as a
+          contributor
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: >-
+          Run `bun run build` — validate TypeScript compiles without errors after documentation
+          changes
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: Run `bun test/run.ts` — run unit tests to confirm no regressions
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

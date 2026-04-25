@@ -1,0 +1,47 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: port-ship-workflow-to-strict
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Add `ship` subcommand to `src/strict-spec-cli.ts`: resolve the named archived change
+          directory under `.strict-spec-driven/changes/archive/` (with date-prefix expansion), read
+          `proposal.yaml` for the summary, snapshot roadmap state, and emit structured JSON with
+          `changeName`, `archivePath`, `proposalSummary`, and `roadmapSnapshot`
+        status: complete
+      - id: implementation-2
+        text: >-
+          Add automated skill content check for `strict-spec-ship` in `src/skills.ts` following the
+          existing skill validation pattern — verify the command block references
+          `strict-spec-driven.js ship` and the body includes `.strict-spec-driven/` workflow
+          guidance
+        status: complete
+      - id: implementation-3
+        text: >-
+          Write `skills/strict-spec-ship/SKILL.md` with full workflow instructions: run `ship
+          <name>` to obtain verification JSON, construct focused commit message from `changeName`
+          and `proposalSummary`, run `git add` for change implementation files, run `git commit`,
+          display `git push` for operator review
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — build and typecheck
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: Run `bun test/run.ts` — unit tests
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

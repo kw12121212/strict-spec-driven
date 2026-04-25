@@ -1,0 +1,109 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/maintenance.ts
+    - src/strict-spec-cli.ts
+    - templates/strict-spec-driven/scaffold/config.yaml
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-maintenance-reads-config-and-runs-checks
+        strength: MUST
+        statement: >-
+          The system MUST provide a `maintenance` subcommand that reads the `maintenance` section
+          from `.strict-spec-driven/config.yaml`, runs each configured check, and emits a
+          deterministic JSON object to stdout containing `valid`, `checksRun`, `findingsCount`, and
+          `generatedChange`.
+        scenarios:
+          - id: maintenance-runs-configured-checks-from-config
+            steps:
+              - kind: GIVEN
+                text: >-
+                  `.strict-spec-driven/config.yaml` contains a `maintenance` section with at least
+                  one check entry
+              - kind: WHEN
+                text: '`strict-spec-driven maintenance` is executed'
+              - kind: THEN
+                text: the command runs each configured check
+              - kind: AND
+                text: >-
+                  emits a JSON object with `valid`, `checksRun`, `findingsCount`, and
+                  `generatedChange` fields
+          - id: maintenance-exits-cleanly-when-no-maintenance-section-exists
+            steps:
+              - kind: GIVEN
+                text: '`.strict-spec-driven/config.yaml` has no `maintenance` section'
+              - kind: WHEN
+                text: '`strict-spec-driven maintenance` is executed'
+              - kind: THEN
+                text: the command exits zero
+              - kind: AND
+                text: '`checksRun` is zero and `findingsCount` is zero in the JSON output'
+    - requirement:
+        id: cli-maintenance-roadmap-sync-check
+        strength: MUST
+        statement: >-
+          The system MUST support a `roadmap-sync-check` configured check type that runs
+          roadmap-sync behavior and produces findings for each mismatch between declared and derived
+          roadmap state.
+        scenarios:
+          - id: roadmap-sync-check-produces-findings-for-mismatches
+            steps:
+              - kind: GIVEN
+                text: a maintenance config includes a `roadmap-sync-check` entry
+              - kind: AND
+                text: the current roadmap has at least one declared-vs-derived mismatch
+              - kind: WHEN
+                text: '`strict-spec-driven maintenance` is executed'
+              - kind: THEN
+                text: the check produces one finding per mismatch
+              - kind: AND
+                text: '`findingsCount` in the output reflects the total finding count'
+          - id: roadmap-sync-check-produces-no-findings-for-aligned-roadmap
+            steps:
+              - kind: GIVEN
+                text: a maintenance config includes a `roadmap-sync-check` entry
+              - kind: AND
+                text: the current roadmap has no declared-vs-derived mismatches
+              - kind: WHEN
+                text: '`strict-spec-driven maintenance` is executed'
+              - kind: THEN
+                text: the check produces zero findings
+              - kind: AND
+                text: '`findingsCount` is zero in the output'
+    - requirement:
+        id: cli-maintenance-generates-change-when-findings-exist
+        strength: MUST
+        statement: >-
+          The system MUST generate a named maintenance change under `.strict-spec-driven/changes/`
+          with seeded proposal, design, tasks, and questions artifacts when one or more checks
+          produce findings.
+        scenarios:
+          - id: maintenance-change-is-created-for-non-zero-findings
+            steps:
+              - kind: GIVEN
+                text: at least one configured check produces findings
+              - kind: WHEN
+                text: '`strict-spec-driven maintenance` is executed'
+              - kind: THEN
+                text: a maintenance change directory is created under `.strict-spec-driven/changes/`
+              - kind: AND
+                text: '`generatedChange` in the JSON output names the created change'
+          - id: no-maintenance-change-is-created-when-no-findings-exist
+            steps:
+              - kind: GIVEN
+                text: all configured checks produce zero findings
+              - kind: WHEN
+                text: '`strict-spec-driven maintenance` is executed'
+              - kind: THEN
+                text: no maintenance change directory is created
+              - kind: AND
+                text: '`generatedChange` in the JSON output is null'
+  MODIFIED: []
+  REMOVED: []

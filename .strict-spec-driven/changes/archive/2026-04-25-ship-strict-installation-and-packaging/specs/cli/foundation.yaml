@@ -1,0 +1,58 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - install.sh
+    - package.json
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-installation-and-packaging-smoke-coverage
+        strength: MUST
+        statement: >-
+          The system MUST include automated checks that exercise strict skill installation and
+          uninstallation surfaces together with packaged skill layout expectations.
+        scenarios:
+          - id: install-smoke-checks-confirm-packaged-strict-skills-remain-usable
+            steps:
+              - kind: GIVEN
+                text: >-
+                  strict skill packages expose the expected bundled `scripts` and `templates`
+                  symlinks
+              - kind: WHEN
+                text: repository automated install smoke checks are executed
+              - kind: THEN
+                text: install registration succeeds for the selected scope
+              - kind: AND
+                text: >-
+                  the packaged strict skills keep resolving bundled scripts and templates through
+                  the registered source-repository layout
+          - id: uninstall-smoke-checks-remove-strict-registration-cleanly
+            steps:
+              - kind: GIVEN
+                text: strict skills were registered through the repository install surface
+              - kind: WHEN
+                text: repository automated uninstall smoke checks are executed
+              - kind: THEN
+                text: the registered strict skills are removed for the selected scope
+              - kind: AND
+                text: the smoke checks do not require manual cleanup of copied package files
+          - id: install-smoke-checks-report-deterministic-diagnostics-for-invalid-package-state
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a strict skill package has broken bundled symlinks or stale legacy install naming
+                  assumptions
+              - kind: WHEN
+                text: repository automated install or packaging smoke checks are executed
+              - kind: THEN
+                text: the checks fail
+              - kind: AND
+                text: diagnostics remain machine-readable and path-specific
+  MODIFIED: []
+  REMOVED: []

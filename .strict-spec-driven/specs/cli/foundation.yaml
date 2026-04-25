@@ -8,6 +8,7 @@ spec:
 mapping:
   implementation:
     - package.json
+    - install.sh
     - tsconfig.json
     - src/converters/roadmap.ts
     - src/migrate.ts
@@ -21,6 +22,7 @@ mapping:
     - src/verify.ts
     - src/review.ts
     - src/skills.ts
+    - skills/strict-spec-ship/SKILL.md
     - templates/strict-spec-driven/scaffold/config.yaml
     - templates/strict-spec-driven/scaffold/changes/proposal.yaml
     - templates/strict-spec-driven/scaffold/changes/design.yaml
@@ -1256,6 +1258,46 @@ requirements:
             text: command output is parseable JSON
           - kind: AND
             text: output includes validity, deterministic diagnostics, and summary counts
+  - id: cli-installation-and-packaging-smoke-coverage
+    strength: MUST
+    statement: >-
+      The system MUST include automated checks that exercise strict skill installation and
+      uninstallation surfaces together with packaged skill layout expectations.
+    scenarios:
+      - id: install-smoke-checks-confirm-packaged-strict-skills-remain-usable
+        steps:
+          - kind: GIVEN
+            text: strict skill packages expose the expected bundled `scripts` and `templates` symlinks
+          - kind: WHEN
+            text: repository automated install smoke checks are executed
+          - kind: THEN
+            text: install registration succeeds for the selected scope
+          - kind: AND
+            text: >-
+              the packaged strict skills keep resolving bundled scripts and templates through the
+              registered source-repository layout
+      - id: uninstall-smoke-checks-remove-strict-registration-cleanly
+        steps:
+          - kind: GIVEN
+            text: strict skills were registered through the repository install surface
+          - kind: WHEN
+            text: repository automated uninstall smoke checks are executed
+          - kind: THEN
+            text: the registered strict skills are removed for the selected scope
+          - kind: AND
+            text: the smoke checks do not require manual cleanup of copied package files
+      - id: install-smoke-checks-report-deterministic-diagnostics-for-invalid-package-state
+        steps:
+          - kind: GIVEN
+            text: >-
+              a strict skill package has broken bundled symlinks or stale legacy install naming
+              assumptions
+          - kind: WHEN
+            text: repository automated install or packaging smoke checks are executed
+          - kind: THEN
+            text: the checks fail
+          - kind: AND
+            text: diagnostics remain machine-readable and path-specific
   - id: cli-core-skill-content-validation-smoke-coverage
     strength: MUST
     statement: >-
@@ -1310,6 +1352,34 @@ requirements:
             text: repository automated checks are executed
           - kind: THEN
             text: the planning skill content checks fail
+          - kind: AND
+            text: diagnostics identify the failing skill package deterministically
+  - id: cli-migration-skill-content-validation-smoke-coverage
+    strength: MUST
+    statement: >-
+      The system MUST include automated checks that exercise strict migration skill content for both
+      passing and failing states, not only generic package-shape validation.
+    scenarios:
+      - id: automated-checks-accept-aligned-migration-skill-content
+        steps:
+          - kind: GIVEN
+            text: >-
+              the strict migration skill contains explicit strict command mappings and
+              `.strict-spec-driven/` migration guidance
+          - kind: WHEN
+            text: repository automated checks are executed
+          - kind: THEN
+            text: the migration skill content checks pass
+      - id: automated-checks-reject-placeholder-migration-skill-content
+        steps:
+          - kind: GIVEN
+            text: >-
+              the strict migration skill keeps a generic placeholder command block or omits required
+              migration guidance
+          - kind: WHEN
+            text: repository automated checks are executed
+          - kind: THEN
+            text: the migration skill content checks fail
           - kind: AND
             text: diagnostics identify the failing skill package deterministically
   - id: cli-migrate-converts-bootstrap-workflow-state
@@ -1577,3 +1647,110 @@ requirements:
             text: migrated milestone paths resolve without reference diagnostics
           - kind: AND
             text: roadmap status validation succeeds against the migrated roadmap index
+  - id: cli-ship-reads-archived-change
+    strength: MUST
+    statement: >-
+      The system MUST provide a `ship` subcommand that resolves a named archived change under
+      `.strict-spec-driven/changes/archive/` and reads its proposal summary, supporting both exact
+      archive directory names and bare change names expanded via date-prefix matching.
+    scenarios:
+      - id: ship-resolves-exact-archive-directory-name
+        steps:
+          - kind: GIVEN
+            text: '`.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` exists'
+          - kind: WHEN
+            text: '`strict-spec-driven ship <YYYY-MM-DD>-<name>` is executed'
+          - kind: THEN
+            text: the command reads the archived change artifacts from that directory
+      - id: ship-expands-bare-name-to-date-prefixed-archive-directory
+        steps:
+          - kind: GIVEN
+            text: '`.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` exists'
+          - kind: WHEN
+            text: '`strict-spec-driven ship <name>` is executed with the bare change name'
+          - kind: THEN
+            text: >-
+              the command resolves the archived directory by date-prefix expansion and reads its
+              artifacts
+      - id: ship-reports-ambiguity-when-multiple-date-prefixed-matches-exist
+        steps:
+          - kind: GIVEN
+            text: >-
+              multiple archive directories matching `*-<name>` exist under
+              `.strict-spec-driven/changes/archive/`
+          - kind: WHEN
+            text: '`strict-spec-driven ship <name>` is executed with the bare name'
+          - kind: THEN
+            text: the command exits non-zero
+          - kind: AND
+            text: >-
+              the error message lists the matching archive directories and asks the operator to
+              specify the full archive directory name
+      - id: ship-rejects-missing-archived-change
+        steps:
+          - kind: GIVEN
+            text: no matching archived directory exists for the given name
+          - kind: WHEN
+            text: '`strict-spec-driven ship <name>` is executed'
+          - kind: THEN
+            text: the command exits non-zero
+          - kind: AND
+            text: an error message is written to stderr indicating the archived change was not found
+  - id: cli-ship-emits-deterministic-json-output
+    strength: MUST
+    statement: >-
+      The system MUST emit a deterministic JSON object to stdout from the `ship` subcommand
+      containing `changeName`, `archivePath`, `proposalSummary`, and `roadmapSnapshot`.
+    scenarios:
+      - id: ship-output-is-parseable-json
+        steps:
+          - kind: GIVEN
+            text: '`strict-spec-driven ship <name>` resolves a valid archived change'
+          - kind: WHEN
+            text: command stdout is parsed as JSON
+          - kind: THEN
+            text: the JSON includes `changeName` as a string
+          - kind: AND
+            text: the JSON includes `archivePath` as the resolved archive directory path
+          - kind: AND
+            text: the JSON includes `proposalSummary` derived from the archived `proposal.yaml`
+          - kind: AND
+            text: >-
+              the JSON includes `roadmapSnapshot` reflecting current roadmap milestone and planned
+              change state
+      - id: ship-exits-zero-for-a-valid-archived-change
+        steps:
+          - kind: GIVEN
+            text: a named archived change exists and its artifacts are readable
+          - kind: WHEN
+            text: '`strict-spec-driven ship <name>` is executed'
+          - kind: THEN
+            text: the command exits with exit code zero
+  - id: cli-ship-skill-content-validation-smoke-coverage
+    strength: MUST
+    statement: >-
+      The system MUST include automated checks that exercise strict ship skill content for both
+      passing and failing states, not only package-shape validation.
+    scenarios:
+      - id: automated-checks-accept-aligned-ship-skill-content
+        steps:
+          - kind: GIVEN
+            text: >-
+              `strict-spec-ship/SKILL.md` contains an explicit `ship` command reference and
+              `.strict-spec-driven/` workflow guidance
+          - kind: WHEN
+            text: repository automated checks are executed
+          - kind: THEN
+            text: the ship skill content checks pass
+      - id: automated-checks-reject-placeholder-ship-skill-content
+        steps:
+          - kind: GIVEN
+            text: >-
+              `strict-spec-ship/SKILL.md` retains a generic placeholder command block or omits
+              `.strict-spec-driven/` workflow guidance
+          - kind: WHEN
+            text: repository automated checks are executed
+          - kind: THEN
+            text: the ship skill content checks fail
+          - kind: AND
+            text: diagnostics identify the failing skill package deterministically

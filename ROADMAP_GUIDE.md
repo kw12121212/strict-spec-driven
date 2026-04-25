@@ -17,6 +17,8 @@ The strict roadmap lives under `.strict-spec-driven/roadmap/`:
 
 Both files are strict YAML artifacts validated by the `roadmap-status` and `roadmap-sync` CLI subcommands.
 
+If a preserved bootstrap `.spec-driven/roadmap/` directory also exists, treat it as migration history only. The strict CLI reads and rewrites `.strict-spec-driven/roadmap/` as the canonical roadmap source.
+
 ## Roadmap Index
 
 `INDEX.yaml` lists milestones in canonical order. Each entry has four required fields:
@@ -34,7 +36,7 @@ milestones:
   - id: 02-second-milestone
     title: 02 Second Milestone
     path: roadmap/milestones/02-second-milestone.yaml
-    status: planned
+    status: proposed
 ```
 
 The index is regenerated automatically by `roadmap-sync`. Do not edit it directly; update the milestone files and run `roadmap-sync` to regenerate.

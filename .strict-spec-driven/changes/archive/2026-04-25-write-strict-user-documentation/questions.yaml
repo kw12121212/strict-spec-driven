@@ -1,0 +1,31 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: write-strict-user-documentation
+open: []
+resolved:
+  - id: >-
+      language-strategy-for-readme-should-the-existing-chinese-readme-md-be-replaced-with-english-or-kept-alongside-a-new-english-version
+    question: >-
+      Language strategy for README — should the existing Chinese README.md be replaced with English
+      or kept alongside a new English version?
+    context: >-
+      The existing README.md is written in Chinese; the milestone described "Chinese equivalents"
+      suggesting English as primary.
+    answer: >-
+      English only — replace the existing README.md with an English version. No Chinese equivalents
+      needed.
+    status: resolved
+  - id: file-naming-convention-for-chinese-equivalents-e-g-readme-zh-md-docs-zh
+    question: File naming convention for Chinese equivalents (e.g. README.zh.md, docs/zh/).
+    context: Naming convention would affect artifact paths in tasks.md.
+    answer: English only — no Chinese equivalents, so no naming convention needed.
+    status: resolved
+  - id: is-quickstart-roadmapguide-intended-for-end-users-contributors-or-both
+    question: Is QUICKSTART/ROADMAP_GUIDE intended for end-users, contributors, or both?
+    context: Determines depth and audience for each file.
+    answer: >-
+      QUICKSTART = end-user install and first-run guide; ROADMAP_GUIDE = contributor-facing
+      milestone and roadmap workflow guide.
+    status: resolved

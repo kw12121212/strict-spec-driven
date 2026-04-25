@@ -1,0 +1,21 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: port-maintenance-workflow-to-yaml
+open: []
+resolved:
+  - id: what-cli-subcommand-name-should-the-maintenance-command-use
+    question: What CLI subcommand name should the maintenance command use?
+    context: >-
+      Existing strict subcommands use verb or verb-object naming; the milestone notes referenced
+      `run-maintenance` but the pattern `maintenance` is more consistent with `ship`, `archive`.
+    answer: '`maintenance` (confirmed by user)'
+    status: resolved
+  - id: which-configured-check-type-should-the-first-version-include
+    question: Which configured check type should the first version include?
+    context: >-
+      Determines the maintenance config schema, the default template content, and what tests must
+      cover.
+    answer: '`roadmap-sync-check` only (confirmed by user)'
+    status: resolved

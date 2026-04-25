@@ -33,7 +33,7 @@
 | `src/` | TypeScript CLI 源码 |
 | `dist/` | 编译输出（由构建生成） |
 
-`.spec-driven/` 保留为引导和迁移输入，不是严格迁移后的活跃工作流目录。不要将 `.spec-driven/` 和 `.strict-spec-driven/` 视为等价的活跃目标。
+`.spec-driven/` 保留为引导和迁移输入，不是严格迁移后的活跃工作流目录。不要将 `.spec-driven/` 和 `.strict-spec-driven/` 视为等价的活跃目标；一旦 `.strict-spec-driven/roadmap/` 存在，也不要再把 `.spec-driven/roadmap/` 视为规范路线图来源。
 
 ## 严格命令接口
 
