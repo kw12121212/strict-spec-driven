@@ -1,5 +1,7 @@
 # strict-spec-driven
 
+English | [中文](README.zh.md)
+
 `strict-spec-driven` is a YAML-first variant of `../auto-spec-driven`. It preserves the spec-driven workflow semantics and Agent Skills integration while converting all workflow artifacts — specs, changes, roadmap, tasks, questions — from Markdown-centric conventions into strict YAML schemas enforced by deterministic scripts.
 
 ## Relationship to auto-spec-driven

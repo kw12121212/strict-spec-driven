@@ -1,0 +1,171 @@
+# 快速入门：strict-spec-driven
+
+[English](QUICKSTART.md) | 中文
+
+本指南将引导你从头安装严格工作流 Skills 并运行第一个完整的变更生命周期。
+
+## 前置条件
+
+- [Bun](https://bun.sh) — 运行时、包管理器和测试运行器
+- Node.js（含 `npx`）— Agent Skills 安装程序所需
+
+验证两者均可用：
+
+```sh
+bun --version
+node --version
+```
+
+## 安装严格 Skills
+
+克隆本仓库，然后注册严格 Skill 包，使 Claude Code 可以调用它们：
+
+**全局安装**（在所有项目中可用）：
+```sh
+bash install.sh
+```
+
+**项目本地安装**（仅在目标项目目录中可用）：
+```sh
+bash install.sh --project
+```
+
+两个命令都使用 `npx skills add <repo-dir>` 就地注册 Skill 包。源仓库必须保留在已注册的路径——安装不会复制文件。
+
+**卸载：**
+```sh
+bash install.sh --uninstall           # 全局
+bash install.sh --uninstall --project # 项目本地
+```
+
+### 验证安装
+
+安装后，严格 Skills 应在 Claude Code 中可用。你也可以直接验证 Skill 打包：
+
+```sh
+bun run build
+bun run validate-skills
+```
+
+`validate-skills` 报告任何打包问题（缺失元数据、过时的命令引用、损坏的符号链接）。
+
+## 初始化新项目
+
+导航到要使用严格工作流的项目目录，然后初始化 `.strict-spec-driven/` 脚手架：
+
+**通过 Claude Code 斜杠命令：**
+```
+/strict-spec-init
+```
+
+**或直接通过 CLI：**
+```sh
+node /path/to/strict-spec-driven/dist/strict-spec-cli.js init
+```
+
+这将创建：
+- `.strict-spec-driven/config.yaml` — 项目上下文和规则
+- `.strict-spec-driven/specs/INDEX.yaml` — 规范索引
+- `.strict-spec-driven/roadmap/INDEX.yaml` — 路线图索引
+- `.strict-spec-driven/changes/` — 活跃和已归档变更目录
+- `.strict-spec-driven/specs/README.md` — 规范编写者指南
+
+如果已存在 `.spec-driven/` 引导目录，`init` 会发出警告并继续。使用 `/strict-spec-migrate` 将引导制品转换为严格 YAML。
+
+## 第一个变更生命周期
+
+### 1. 提议变更
+
+为变更选择一个 kebab-case 名称，然后创建其规划制品脚手架：
+
+**通过 Claude Code：**
+```
+/strict-spec-propose my-first-change
+```
+
+**通过 CLI：**
+```sh
+node dist/strict-spec-cli.js propose my-first-change
+```
+
+这将在 `.strict-spec-driven/changes/my-first-change/` 创建：
+- `proposal.yaml` — 是什么以及为什么
+- `design.yaml` — 方案和关键决策
+- `tasks.yaml` — 实现和测试任务
+- `questions.yaml` — 实现前需要解决的开放性问题
+- `specs/` — 可观测行为变化的增量规范文件
+
+在进入执行步骤之前，编辑这些文件以描述变更内容。
+
+### 2. 实现任务
+
+逐一处理 `tasks.yaml` 中的每个待处理任务。`/strict-spec-apply` Skill 每次引导你完成一个任务：
+
+```
+/strict-spec-apply my-first-change
+```
+
+每次任务调用读取下一个待处理任务，实现它，将其标记为完成，并验证未变更的行为保持完整。
+
+也可以通过 CLI 检查任务状态：
+```sh
+node dist/strict-spec-cli.js apply my-first-change
+```
+
+### 3. 验证变更
+
+所有任务完成后，运行验证：
+
+```
+/strict-spec-verify my-first-change
+```
+
+验证检查：
+- 所有任务均为 `status: complete`
+- `questions.yaml` 中无开放性问题
+- 所有规划制品通过严格 YAML 模式验证
+- `specs/` 中的增量规范通过增量规范模式验证
+- 没有两个活跃变更以冲突的修改方式针对同一需求 ID
+
+### 4. 归档变更
+
+验证通过后，归档变更以将其增量规范合并到主严格规范中：
+
+```
+/strict-spec-archive my-first-change
+```
+
+归档操作：
+- 将增量规范合并到 `.strict-spec-driven/specs/` 主规范文件
+- 将变更目录移至 `.strict-spec-driven/changes/archive/YYYY-MM-DD-my-first-change/`
+- 重新生成严格规范索引
+
+### 5. 发布变更（可选）
+
+为已归档的变更创建一个专注的 git 提交：
+
+```
+/strict-spec-ship my-first-change
+```
+
+Ship Skill 读取已归档的变更摘要，构建提交信息，并将 `git push` 交给你明确确认。
+
+## 自动化端到端生命周期
+
+对于范围已经明确的变更，`/strict-spec-auto` 自动运行完整生命周期——提议、执行、验证、审查、归档：
+
+```
+/strict-spec-auto
+```
+
+仅当开放性问题需要用户输入或遇到不可恢复的错误时，该 Skill 才会暂停。
+
+## 从引导状态迁移
+
+如果你的项目使用旧版 `.spec-driven/` Markdown 工作流，将其迁移到严格 YAML：
+
+```
+/strict-spec-migrate
+```
+
+迁移将支持的旧版规范、变更和路线图制品转换为 `.strict-spec-driven/` YAML 格式。不支持或模糊的格式会作为手动跟进事项报告。源 `.spec-driven/` 目录不会被修改。

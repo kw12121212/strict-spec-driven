@@ -1,5 +1,7 @@
 # Quick Start: strict-spec-driven
 
+English | [中文](QUICKSTART.zh.md)
+
 This guide walks you through installing the strict workflow skills and running your first change lifecycle from scratch.
 
 ## Prerequisites
