@@ -23,7 +23,7 @@ Create a repeatable end-to-end regression suite around a real todo project fixtu
 - Milestones 07 and 08 can use this suite as the shared acceptance gate for command-surface and domain-module refactors.
 
 ## Planned Changes
-- `create-real-todo-project-fixture` - Declared: planned - add a committed todo project fixture under `test/fixtures/projects/` with realistic source files, repository metadata, and workflow artifacts that exercise the strict CLI meaningfully.
+- `create-real-todo-project-fixture` - Declared: complete - add a committed todo project fixture under `test/fixtures/projects/` with realistic source files, repository metadata, and workflow artifacts that exercise the strict CLI meaningfully.
 - `add-repeatable-project-copy-and-reset-harness` - Declared: planned - add shared test helpers that copy the committed todo project fixture into a temporary workspace, run commands there, and clean up afterward so tests are repeatable.
 - `split-monolithic-test-runner-into-modules` - Declared: planned - decompose `test/run.ts` into smaller suites and helpers for CLI, roadmap, migration, validation, and project-fixture scenarios.
 - `add-todo-project-cli-regression-scenarios` - Declared: planned - cover init, propose, list, modify, cancel, verify-spec-mappings, and other command-surface behavior against the copied todo project fixture.
@@ -45,3 +45,4 @@ Create a repeatable end-to-end regression suite around a real todo project fixtu
 ## Notes
 - Current evidence: `test/run.ts` is about 5949 lines and the existing fixtures are mostly single-file YAML cases under `test/fixtures/validation/` and small roadmap Markdown inputs under `test/fixtures/roadmap/`.
 - The todo project fixture should be realistic enough to represent a consumer repository, but small enough to be copied and tested repeatedly inside normal local and CI runs.
+

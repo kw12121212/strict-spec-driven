@@ -1,0 +1,18 @@
+schema: spec-driven
+context: |
+  todo-app-fixture is a compact TypeScript todo project used as a committed
+  baseline for project-level regression scenarios.
+  Tech stack: Node.js, TypeScript, node:test.
+  Build command: npm run build.
+  Test command: npm test.
+rules:
+  specs:
+    - Describe observable behavior only
+    - Keep requirements independently verifiable
+  change:
+    - Implement only proposal scope
+    - Ask before expanding scope
+    - Every change includes validation and unit test tasks
+  test:
+    - Prefer real project state over mocks
+    - Keep tests independent

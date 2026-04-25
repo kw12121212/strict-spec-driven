@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
 const CLI = path.join(ROOT, "dist", "strict-spec-cli.js");
 const VALIDATION_FIXTURE_ROOT = path.join(ROOT, "test", "fixtures", "validation");
+const PROJECT_FIXTURE_ROOT = path.join(ROOT, "test", "fixtures", "projects");
 
 type YamlModule = {
   parseYamlDocument<T>(input: string): T;
@@ -214,6 +215,10 @@ function cli(args: string[], options?: { cwd?: string; env?: NodeJS.ProcessEnv }
 
 function fixturePath(fileName: string): string {
   return path.join(VALIDATION_FIXTURE_ROOT, fileName);
+}
+
+function projectFixturePath(...segments: string[]): string {
+  return path.join(PROJECT_FIXTURE_ROOT, ...segments);
 }
 
 async function loadDistModule<T>(fileName: string): Promise<T> {
@@ -1363,6 +1368,103 @@ async function main(): Promise<void> {
   assert(
     invalidDuplicateDiagnostics[0]?.fieldPath === "$.requirements[1].id",
     "[M01:yaml-requirement-and-scenario-identifiers] fixture duplicate-id diagnostics include duplicate field path",
+  );
+
+  section("[7a] real project fixture baseline");
+
+  const todoProjectRoot = projectFixturePath("todo-app");
+  assert(existsSync(todoProjectRoot), "real todo project fixture root exists");
+
+  const requiredProjectArtifacts = [
+    "README.md",
+    ".gitignore",
+    "package.json",
+    "tsconfig.json",
+    "src/index.ts",
+    "src/todos.ts",
+    "test/todos.test.ts",
+    ".spec-driven/config.yaml",
+    ".spec-driven/specs/INDEX.md",
+    ".spec-driven/specs/todo-management.md",
+    ".spec-driven/roadmap/INDEX.md",
+    ".spec-driven/roadmap/milestones/01-core-todo-workflows.md",
+    ".spec-driven/changes/add-due-dates/proposal.md",
+    ".spec-driven/changes/add-due-dates/design.md",
+    ".spec-driven/changes/add-due-dates/tasks.md",
+    ".spec-driven/changes/add-due-dates/questions.md",
+    ".spec-driven/changes/add-due-dates/specs/todo-management.md",
+  ];
+  for (const artifactPath of requiredProjectArtifacts) {
+    assert(
+      existsSync(path.join(todoProjectRoot, artifactPath)),
+      `real todo project fixture artifact exists (${artifactPath})`,
+    );
+  }
+
+  const fixturePackageJson = JSON.parse(readFileSync(projectFixturePath("todo-app", "package.json"), "utf8")) as {
+    name: string;
+    scripts?: Record<string, string>;
+  };
+  assert(fixturePackageJson.name === "todo-app-fixture", "real todo project fixture exposes a stable package name");
+  assert(
+    fixturePackageJson.scripts?.build === "tsc -p tsconfig.json",
+    "real todo project fixture exposes an explicit build command",
+  );
+  assert(
+    fixturePackageJson.scripts?.test === "npm run build && node --test dist/test/todos.test.js",
+    "real todo project fixture exposes an explicit test command",
+  );
+
+  const fixtureReadme = readFileSync(projectFixturePath("todo-app", "README.md"), "utf8");
+  assert(
+    fixtureReadme.includes("committed baseline fixture"),
+    "real todo project fixture README documents baseline fixture intent",
+  );
+
+  const fixtureSpec = readFileSync(projectFixturePath("todo-app", ".spec-driven", "specs", "todo-management.md"), "utf8");
+  assert(
+    fixtureSpec.includes("src/todos.ts") && fixtureSpec.includes("test/todos.test.ts"),
+    "real todo project fixture main spec maps implementation and tests",
+  );
+  assert(
+    fixtureSpec.includes("### Requirement: manage-todo-items"),
+    "real todo project fixture main spec includes core todo requirement text",
+  );
+
+  const fixtureRoadmap = readFileSync(
+    projectFixturePath("todo-app", ".spec-driven", "roadmap", "milestones", "01-core-todo-workflows.md"),
+    "utf8",
+  );
+  assert(
+    fixtureRoadmap.includes("`add-due-dates`") && fixtureRoadmap.includes("`add-tag-filtering`"),
+    "real todo project fixture roadmap seeds multiple planned changes",
+  );
+
+  const fixtureChangeProposal = readFileSync(
+    projectFixturePath("todo-app", ".spec-driven", "changes", "add-due-dates", "proposal.md"),
+    "utf8",
+  );
+  assert(
+    fixtureChangeProposal.toLowerCase().includes("due date"),
+    "real todo project fixture active change proposal describes the seeded change",
+  );
+
+  const fixtureChangeTasks = readFileSync(
+    projectFixturePath("todo-app", ".spec-driven", "changes", "add-due-dates", "tasks.md"),
+    "utf8",
+  );
+  assert(
+    fixtureChangeTasks.includes("`npm run build`") && fixtureChangeTasks.toLowerCase().includes("unit tests"),
+    "real todo project fixture active change tasks include validation and unit test commands",
+  );
+
+  const fixtureDeltaSpec = readFileSync(
+    projectFixturePath("todo-app", ".spec-driven", "changes", "add-due-dates", "specs", "todo-management.md"),
+    "utf8",
+  );
+  assert(
+    fixtureDeltaSpec.includes("## ADDED Requirements") && fixtureDeltaSpec.includes("### Requirement: assign-due-dates"),
+    "real todo project fixture seeded change includes a delta spec for due dates",
   );
 
   section("[8] bundled template assets in dist");
