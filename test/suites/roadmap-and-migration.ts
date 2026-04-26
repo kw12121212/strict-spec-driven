@@ -226,6 +226,11 @@ try {
     },
   ]);
 
+  const detailsStatus = cli(["roadmap-status"], { cwd: roadmapDetailsPresentDir });
+  context.assert(detailsStatus.status === 0, "roadmap-status exits zero for milestone with details");
+  const detailsStatusJson = JSON.parse(detailsStatus.stdout.trim());
+  context.assert(detailsStatusJson.valid === true, "roadmap-status accepts milestone with details");
+
   const detailsSync = cli(["roadmap-sync"], { cwd: roadmapDetailsPresentDir });
   context.assert(detailsSync.status === 0, "roadmap-sync exits zero for milestone with details");
   const syncedDetailsMilestone = yamlModule.parseYamlFile<{
@@ -257,6 +262,11 @@ try {
       status: "active",
     },
   ]);
+
+  const noDetailsStatus = cli(["roadmap-status"], { cwd: roadmapDetailsAbsentDir });
+  context.assert(noDetailsStatus.status === 0, "roadmap-status exits zero for milestone without details");
+  const noDetailsStatusJson = JSON.parse(noDetailsStatus.stdout.trim());
+  context.assert(noDetailsStatusJson.valid === true, "roadmap-status accepts milestone without details");
 
   const noDetailsSync = cli(["roadmap-sync"], { cwd: roadmapDetailsAbsentDir });
   context.assert(noDetailsSync.status === 0, "roadmap-sync exits zero for milestone without details");
@@ -478,6 +488,83 @@ try {
   );
 } finally {
   rmSync(invalidRoadmapSkillRoot, { recursive: true, force: true });
+}
+
+const invalidRoadmapDetailsSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-roadmap-details-skill-invalid-"));
+try {
+  const invalidRoadmapDetailsSkillDir = path.join(invalidRoadmapDetailsSkillRoot, "skills", "strict-roadmap-propose");
+  mkdirSync(path.join(invalidRoadmapDetailsSkillRoot, "dist", "scripts"), { recursive: true });
+  mkdirSync(path.join(invalidRoadmapDetailsSkillRoot, "dist", "templates"), { recursive: true });
+  mkdirSync(invalidRoadmapDetailsSkillDir, { recursive: true });
+
+  symlinkSync("../../dist/scripts", path.join(invalidRoadmapDetailsSkillDir, "scripts"));
+  symlinkSync("../../dist/templates", path.join(invalidRoadmapDetailsSkillDir, "templates"));
+
+  writeFileSync(
+    path.join(invalidRoadmapDetailsSkillDir, "SKILL.md"),
+    [
+      "---",
+      "name: strict-roadmap-propose",
+      "description: stub",
+      "metadata:",
+      "  skill_id: strict_roadmap_propose",
+      "  author: strict-spec-driven",
+      "  type: agent_skill",
+      "  version: 1.0.0",
+      "---",
+      "",
+      "You are helping with strict roadmap work under .strict-spec-driven/roadmap/.",
+      "",
+      "## This Skill's Commands",
+      "",
+      "```yaml",
+      "roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status",
+      "propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>",
+      "verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>",
+      "```",
+      "",
+      "## Prerequisites",
+      "",
+      "Use strict workflow artifacts under .strict-spec-driven/roadmap/.",
+      "",
+      "## Steps",
+      "",
+      "1. Read roadmap context and scaffold the strict change.",
+      "",
+      "## Rules",
+      "",
+      "- Keep the roadmap source of truth in .strict-spec-driven/roadmap/.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(invalidRoadmapDetailsSkillRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [{ name: "strict-roadmap-propose", family: "strict-roadmap" }],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const invalidRoadmapDetailsSkillResult = skillValidationModule.validateStrictSkillPackaging(invalidRoadmapDetailsSkillRoot);
+  context.assert(!invalidRoadmapDetailsSkillResult.valid, "strict skill validation fails when roadmap propose guidance omits details handling");
+  context.assert(
+    invalidRoadmapDetailsSkillResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.required_snippet.missing"
+        && diagnostic.path === "skills/strict-roadmap-propose/SKILL.md"
+        && diagnostic.expected === "`details` field",
+    ),
+    "roadmap skill validation requires details guidance for proposal handoff",
+  );
+} finally {
+  rmSync(invalidRoadmapDetailsSkillRoot, { recursive: true, force: true });
 }
 
 const invalidPlanningSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-planning-skill-invalid-"));

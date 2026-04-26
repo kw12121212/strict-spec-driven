@@ -454,13 +454,24 @@ roadmap items.
 
 ### Requirement: cli-roadmap-validation-and-skill-smoke-coverage
 The system MUST include automated checks that exercise strict roadmap command
-behavior and strict roadmap skill content for both aligned and failing states.
+behavior and strict roadmap skill content for both aligned and failing states,
+including regression coverage for milestones that use the optional `details`
+field across roadmap validation, sync, and proposal-handoff flows.
 
-#### Scenario: automated checks accept aligned roadmap workflow surfaces
+#### Scenario: automated checks accept details-bearing roadmap workflow surfaces
 - GIVEN strict roadmap commands and `strict-roadmap-*` skill packages are aligned
   with `.strict-spec-driven/roadmap/`
+- AND a milestone includes a valid `details` field
 - WHEN repository automated checks are executed
 - THEN the roadmap workflow checks pass
+
+#### Scenario: automated checks accept milestones without details
+- GIVEN strict roadmap commands and `strict-roadmap-*` skill packages are aligned
+  with `.strict-spec-driven/roadmap/`
+- AND a milestone omits the optional `details` field
+- WHEN repository automated checks are executed
+- THEN the roadmap workflow checks pass
+- AND no placeholder or synthetic `details` value is required
 
 #### Scenario: automated checks reject placeholder or stale roadmap surfaces
 - GIVEN a strict roadmap skill keeps a generic placeholder command block or a

@@ -42,6 +42,8 @@ export type SkillContentExpectation = {
   forbiddenSnippets?: string[];
 };
 
+const ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
+
 export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
   "strict-spec-init": {
     requiredCommands: {
@@ -168,7 +170,7 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/roadmap/"],
+    requiredSnippets: [".strict-spec-driven/roadmap/", ROADMAP_DETAILS_GUIDANCE_SNIPPET],
   },
   "strict-roadmap-propose": {
     requiredCommands: {
@@ -177,7 +179,7 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/roadmap/"],
+    requiredSnippets: [".strict-spec-driven/roadmap/", ROADMAP_DETAILS_GUIDANCE_SNIPPET],
   },
   "strict-roadmap-sync": {
     requiredCommands: {
