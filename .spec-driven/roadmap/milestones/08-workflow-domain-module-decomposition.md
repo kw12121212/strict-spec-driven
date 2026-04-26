@@ -26,7 +26,7 @@ Split oversized workflow-domain scripts into smaller modules so roadmap, skill v
 
 ## Planned Changes
 - `split-roadmap-load-validate-derive-sync` - Declared: complete - separate roadmap artifact loading, schema validation, semantic validation, status derivation, canonical milestone rebuilding, and sync writes into focused modules instead of one large file.
-- `split-skill-packaging-parser-rules-and-fs-checks` - Declared: planned - separate frontmatter parsing, skill-content expectation checks, symlink validation, marketplace metadata validation, and diagnostic sorting into smaller validation modules.
+- `split-skill-packaging-parser-rules-and-fs-checks` - Declared: complete - separate frontmatter parsing, skill-content expectation checks, symlink validation, marketplace metadata validation, and diagnostic sorting into smaller validation modules.
 - `split-migration-legacy-parsers-by-artifact-family` - Declared: planned - extract legacy Markdown parsing for specs, proposals, designs, tasks, questions, roadmap files, and index files into dedicated parser modules with explicit interfaces.
 - `split-migration-builders-and-converters` - Declared: planned - extract strict artifact builders, roadmap conversion, spec-index conversion, and related helper logic from `src/migrate.ts` into focused converter modules.
 - `split-migration-reporting-and-run-orchestration` - Declared: planned - separate migration preflight, deferred-artifact handling, result sorting, manual-follow-up reporting, and write orchestration from content parsing logic.
@@ -50,5 +50,6 @@ Split oversized workflow-domain scripts into smaller modules so roadmap, skill v
 - Current hotspot evidence: `src/migrate.ts` is about 2034 lines, `src/roadmap.ts` about 1046 lines, and `src/skills.ts` about 984 lines.
 - Current test evidence: `test/run.ts` is about 5949 lines, so part of the decomposition safety story is to stop relying on one monolithic runner as the only integration surface.
 - This milestone follows milestone 07 so CLI dispatch concerns stay separate from deeper domain-logic decomposition.
+
 
 

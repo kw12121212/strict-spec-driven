@@ -36,6 +36,11 @@ mapping:
     - src/verify.ts
     - src/review.ts
     - src/skills.ts
+    - src/skills/model.ts
+    - src/skills/frontmatter.ts
+    - src/skills/content.ts
+    - src/skills/fs-checks.ts
+    - src/skills/diagnostics.ts
     - skills/strict-spec-ship/SKILL.md
     - templates/strict-spec-driven/scaffold/config.yaml
     - templates/strict-spec-driven/scaffold/changes/proposal.yaml
@@ -742,7 +747,9 @@ The system MUST emit a deterministic JSON object to stdout containing `valid`, `
 
 ### Requirement: cli-skill-packaging-validation-smoke-coverage
 The system MUST include automated checks that exercise strict skill packaging
-validation behavior for both passing and failing package states.
+validation behavior for both passing and failing package states, with validation
+logic sourced from focused modules under `src/skills/` rather than a single
+monolithic file.
 
 #### Scenario: packaging checks confirm valid strict package state
 - GIVEN strict skill packages satisfy metadata, command reference, and symlink
@@ -938,7 +945,8 @@ The system MUST allow `strict-spec-driven migrate` to rerun into an existing non
 ### Requirement: cli-domain-diagnostic-ordering-stability
 The system MUST preserve deterministic ordering for roadmap, skill-validation,
 and migration diagnostics or report collections even when their implementation
-shares helper logic across domains.
+is distributed across focused modules under `src/skills/` and shared helpers in
+`src/diagnostics.ts`.
 
 #### Scenario: roadmap diagnostics keep stable ordering across repeated runs
 - GIVEN strict roadmap artifacts produce multiple validation diagnostics
