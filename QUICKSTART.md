@@ -25,17 +25,11 @@ Clone this repository, then register the strict skill packages so Claude Code ca
 bash install.sh
 ```
 
-**Project-local install** (available only in the target project directory):
-```sh
-bash install.sh --project
-```
-
-Both commands use `npx skills add <repo-dir>` to register the skill packages in place. The source repository must remain at the registered path — the install does not copy files.
+The command uses `npx skills add <repo-dir>` to register the skill packages in place. The source repository must remain at the registered path — the install does not copy files.
 
 **Uninstall:**
 ```sh
-bash install.sh --uninstall           # global
-bash install.sh --uninstall --project # project-local
+bash install.sh --uninstall
 ```
 
 ### Verify the Install

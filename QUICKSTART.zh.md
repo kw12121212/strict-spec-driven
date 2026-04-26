@@ -25,17 +25,11 @@ node --version
 bash install.sh
 ```
 
-**项目本地安装**（仅在目标项目目录中可用）：
-```sh
-bash install.sh --project
-```
-
-两个命令都使用 `npx skills add <repo-dir>` 就地注册 Skill 包。源仓库必须保留在已注册的路径——安装不会复制文件。
+该命令使用 `npx skills add <repo-dir>` 就地注册 Skill 包。源仓库必须保留在已注册的路径——安装不会复制文件。
 
 **卸载：**
 ```sh
-bash install.sh --uninstall           # 全局
-bash install.sh --uninstall --project # 项目本地
+bash install.sh --uninstall
 ```
 
 ### 验证安装
