@@ -7,75 +7,72 @@ description: Strict YAML question list artifact.
 example_ref: ../examples/question-list.yaml
 coverage_examples:
   - ../examples/question-list.open.yaml
-additional_fields: false
-fields:
-  schema:
-    type: string
-    required: true
-    const: strict-spec-driven/question-list/v1
-  schema_version:
-    type: integer
-    required: true
-    const: 1
-  artifact_type:
-    type: string
-    required: true
-    const: question_list
-  schema_file:
-    type: string
-    required: true
-  change:
-    type: string
-    required: true
-    references: change_proposal.change.id
-  open:
-    type: sequence
-    required: true
-    items:
-      type: question
-  resolved:
-    type: sequence
-    required: true
-    items:
-      type: resolved_question
-unique_across:
-  - open[].id
-  - resolved[].id
-definitions:
-  question:
-    type: mapping
-    additional_fields: false
-    fields:
-      id:
-        type: string
-        required: true
-      question:
-        type: string
-        required: true
-      context:
-        type: string
-        required: true
-      status:
-        type: string
-        required: true
-        const: open
-  resolved_question:
-    type: mapping
-    additional_fields: false
-    fields:
-      id:
-        type: string
-        required: true
-      question:
-        type: string
-        required: true
-      context:
-        type: string
-        required: true
-      answer:
-        type: string
-        required: true
-      status:
-        type: string
-        required: true
-        const: resolved
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - change
+    - open
+    - resolved
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/question-list/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: question_list
+    schema_file:
+      type: string
+    change:
+      type: string
+    open:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - question
+          - context
+          - status
+        properties:
+          id:
+            type: string
+          question:
+            type: string
+          context:
+            type: string
+          status:
+            type: string
+            const: open
+    resolved:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - question
+          - context
+          - answer
+          - status
+        properties:
+          id:
+            type: string
+          question:
+            type: string
+          context:
+            type: string
+          answer:
+            type: string
+          status:
+            type: string
+            const: resolved

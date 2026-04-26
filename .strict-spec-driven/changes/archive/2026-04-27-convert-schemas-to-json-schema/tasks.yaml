@@ -1,0 +1,81 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: convert-schemas-to-json-schema
+sections:
+  - name: Implementation
+    tasks:
+      - id: rewrite-simple-schemas
+        text: >-
+          Rewrite 6 simple artifact schemas to JSON Schema: change-design, change-proposal,
+          planned-change-entry, roadmap-index, spec-index, question-list. Translate type:
+          mapping/sequence to type: object/array, fields: to properties:, field-level required to
+          top-level required array.
+        status: complete
+      - id: rewrite-main-spec-schema
+        text: >-
+          Rewrite main-spec.yaml to JSON Schema. This is the largest schema with nested
+          requirements, scenarios, steps, and mapping fields.
+        status: complete
+      - id: rewrite-task-list-schema
+        text: >-
+          Rewrite task-list.yaml to JSON Schema. Contains testing_gates references and complex
+          nested sections/tasks structure.
+        status: complete
+      - id: rewrite-delta-spec-schema
+        text: >-
+          Rewrite delta-spec.yaml to JSON Schema. Contains operations with ADDED/MODIFIED/REMOVED
+          and nested requirement definitions.
+        status: complete
+      - id: rewrite-roadmap-milestone-schema
+        text: >-
+          Rewrite roadmap-milestone.yaml to JSON Schema. Contains planned_changes sequence, optional
+          details field, dependencies, risks, notes.
+        status: complete
+      - id: update-validation-loadBundledSchema
+        text: >-
+          Update src/validation.ts loadBundledSchema to extract the json_schema key from wrapped
+          schema files instead of returning the whole file as a schema object.
+        status: complete
+      - id: remove-verify-try-catch
+        text: >-
+          Remove the try/catch around validateArtifactSchema in src/verify.ts so Ajv compilation
+          errors surface as real diagnostics.
+        status: complete
+      - id: update-tests-for-new-diagnostics
+        text: >-
+          Update any tests that create malformed artifacts and now receive new schema validation
+          diagnostics from the actually-working Ajv checks.
+        status: complete
+  - name: Testing
+    tasks:
+      - id: run-build
+        text: Verify TypeScript compilation succeeds with no errors.
+        status: complete
+        command: bun run build
+      - id: run-tests
+        text: Run the full test suite and confirm all tests pass.
+        status: complete
+        command: bun test/run.ts
+      - id: verify-against-self
+        text: >-
+          Run verify-spec-mappings and verify against an active change to confirm JSON Schema
+          validation is actually running.
+        status: complete
+        command: node dist/strict-spec-cli.js verify convert-schemas-to-json-schema
+  - name: Verification
+    tasks:
+      - id: verify-ajv-compiles-all-schemas
+        text: >-
+          Confirm that Ajv successfully compiles every schema file without errors by checking that
+          verify produces schema diagnostics for intentionally malformed artifacts.
+        status: complete
+      - id: verify-no-custom-dialect-remains
+        text: >-
+          Grep all schema files for custom dialect keywords (type: mapping, type: sequence, fields:)
+          and confirm none remain in the json_schema body.
+        status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

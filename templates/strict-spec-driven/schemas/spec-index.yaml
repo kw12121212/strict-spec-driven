@@ -5,39 +5,41 @@ artifact_type: spec_index
 artifact_name: spec-index
 description: Strict YAML spec index artifact.
 example_ref: ../examples/spec-index.yaml
-additional_fields: false
-fields:
-  schema:
-    type: string
-    required: true
-    const: strict-spec-driven/spec-index/v1
-  schema_version:
-    type: integer
-    required: true
-    const: 1
-  artifact_type:
-    type: string
-    required: true
-    const: spec_index
-  schema_file:
-    type: string
-    required: true
-  specs:
-    type: sequence
-    required: true
-    unique_by: id
-    items:
-      type: mapping
-      additional_fields: false
-      fields:
-        id:
-          type: string
-          required: true
-          references: main_spec.spec.id
-        title:
-          type: string
-          required: true
-        path:
-          type: string
-          required: true
-          path: repo-relative
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - specs
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/spec-index/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: spec_index
+    schema_file:
+      type: string
+    specs:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - title
+          - path
+        properties:
+          id:
+            type: string
+          title:
+            type: string
+          path:
+            type: string

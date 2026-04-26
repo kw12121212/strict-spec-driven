@@ -5,102 +5,104 @@ artifact_type: main_spec
 artifact_name: main-spec
 description: Strict YAML main spec artifact.
 example_ref: ../examples/main-spec.yaml
-additional_fields: false
-fields:
-  schema:
-    type: string
-    required: true
-    const: strict-spec-driven/main-spec/v1
-  schema_version:
-    type: integer
-    required: true
-    const: 1
-  artifact_type:
-    type: string
-    required: true
-    const: main_spec
-  schema_file:
-    type: string
-    required: true
-  spec:
-    type: mapping
-    required: true
-    additional_fields: false
-    fields:
-      id:
-        type: string
-        required: true
-        identifier: spec
-      title:
-        type: string
-        required: true
-  mapping:
-    type: mapping
-    required: true
-    additional_fields: false
-    fields:
-      implementation:
-        type: sequence
-        required: true
-        items:
-          type: string
-          path: repo-relative
-      tests:
-        type: sequence
-        required: true
-        items:
-          type: string
-          path: repo-relative
-  requirements:
-    type: sequence
-    required: true
-    unique_by: id
-    items:
-      type: mapping
-      additional_fields: false
-      fields:
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - spec
+    - mapping
+    - requirements
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/main-spec/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: main_spec
+    schema_file:
+      type: string
+    spec:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
         id:
           type: string
-          required: true
-          identifier: requirement
-        strength:
+        title:
           type: string
-          required: true
-          enum:
-            - MUST
-            - SHOULD
-            - MAY
-        statement:
-          type: string
-          required: true
-        scenarios:
-          type: sequence
-          required: true
-          unique_by: id
+    mapping:
+      type: object
+      additionalProperties: false
+      required:
+        - implementation
+        - tests
+      properties:
+        implementation:
+          type: array
           items:
-            type: mapping
-            additional_fields: false
-            fields:
-              id:
-                type: string
-                required: true
-                identifier: scenario
-              steps:
-                type: sequence
-                required: true
-                min_items: 1
-                items:
-                  type: mapping
-                  additional_fields: false
-                  fields:
-                    kind:
-                      type: string
-                      required: true
-                      enum:
-                        - GIVEN
-                        - WHEN
-                        - THEN
-                        - AND
-                    text:
-                      type: string
-                      required: true
+            type: string
+        tests:
+          type: array
+          items:
+            type: string
+    requirements:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - strength
+          - statement
+          - scenarios
+        properties:
+          id:
+            type: string
+          strength:
+            type: string
+            enum:
+              - MUST
+              - SHOULD
+              - MAY
+          statement:
+            type: string
+          scenarios:
+            type: array
+            items:
+              type: object
+              additionalProperties: false
+              required:
+                - id
+                - steps
+              properties:
+                id:
+                  type: string
+                steps:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required:
+                      - kind
+                      - text
+                    properties:
+                      kind:
+                        type: string
+                        enum:
+                          - GIVEN
+                          - WHEN
+                          - THEN
+                          - AND
+                      text:
+                        type: string

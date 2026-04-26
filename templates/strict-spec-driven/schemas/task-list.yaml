@@ -5,81 +5,77 @@ artifact_type: task_list
 artifact_name: task-list
 description: Strict YAML task list artifact.
 example_ref: ../examples/task-list.yaml
-additional_fields: false
-fields:
-  schema:
-    type: string
-    required: true
-    const: strict-spec-driven/task-list/v1
-  schema_version:
-    type: integer
-    required: true
-    const: 1
-  artifact_type:
-    type: string
-    required: true
-    const: task_list
-  schema_file:
-    type: string
-    required: true
-  change:
-    type: string
-    required: true
-    references: change_proposal.change.id
-  sections:
-    type: sequence
-    required: true
-    unique_by: name
-    required_names:
-      - Implementation
-      - Testing
-      - Verification
-    items:
-      type: mapping
-      additional_fields: false
-      fields:
-        name:
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - change
+    - sections
+    - testing_gates
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/task-list/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: task_list
+    schema_file:
+      type: string
+    change:
+      type: string
+    sections:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - name
+          - tasks
+        properties:
+          name:
+            type: string
+            enum:
+              - Implementation
+              - Testing
+              - Verification
+          tasks:
+            type: array
+            minItems: 1
+            items:
+              type: object
+              additionalProperties: false
+              required:
+                - id
+                - text
+                - status
+              properties:
+                id:
+                  type: string
+                text:
+                  type: string
+                status:
+                  type: string
+                  enum:
+                    - pending
+                    - complete
+                command:
+                  type: string
+    testing_gates:
+      type: object
+      additionalProperties: false
+      required:
+        - validation_task
+        - unit_test_task
+      properties:
+        validation_task:
           type: string
-          required: true
-          enum:
-            - Implementation
-            - Testing
-            - Verification
-        tasks:
-          type: sequence
-          required: true
-          min_items: 1
-          unique_by: id
-          items:
-            type: mapping
-            additional_fields: false
-            fields:
-              id:
-                type: string
-                required: true
-              text:
-                type: string
-                required: true
-              status:
-                type: string
-                required: true
-                enum:
-                  - pending
-                  - complete
-              command:
-                type: string
-                required_when:
-                  section: Testing
-  testing_gates:
-    type: mapping
-    required: true
-    additional_fields: false
-    fields:
-      validation_task:
-        type: string
-        required: true
-        references: sections[name=Testing].tasks.id
-      unit_test_task:
-        type: string
-        required: true
-        references: sections[name=Testing].tasks.id
+        unit_test_task:
+          type: string

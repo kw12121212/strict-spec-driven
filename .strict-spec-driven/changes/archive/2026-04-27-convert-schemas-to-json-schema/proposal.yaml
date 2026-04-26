@@ -1,0 +1,42 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: convert-schemas-to-json-schema
+  status: proposed
+summary:
+  what:
+    - Rewrite all 10 artifact schema files under templates/strict-spec-driven/schemas/ from the custom dialect to standard JSON Schema (draft-07) so Ajv can compile and validate them directly.
+    - Remove the try/catch silent failure in src/verify.ts that swallows Ajv compilation errors.
+    - Update src/validation.ts loadBundledSchema to extract the JSON Schema body from the wrapped file format.
+    - Preserve the registry.yaml lookup mechanism so loadBundledSchemaByArtifactType still works.
+    - Keep post-schema validation passes (duplicate ID checks, reference checks) as separate passes since JSON Schema cannot express those constraints natively.
+  why:
+    - "The current schema files use a custom dialect (type: mapping, type: sequence, fields:, field-level required:) that is not valid JSON Schema."
+    - Ajv silently fails to compile these schemas and the try/catch in verify.ts masks the failure, making schema validation completely inert.
+    - The verify command should actually catch invalid artifacts instead of silently skipping schema checks.
+scope:
+  in:
+    - templates/strict-spec-driven/schemas/change-design.yaml — rewrite to JSON Schema
+    - templates/strict-spec-driven/schemas/change-proposal.yaml — rewrite to JSON Schema
+    - templates/strict-spec-driven/schemas/delta-spec.yaml — rewrite to JSON Schema
+    - templates/strict-spec-driven/schemas/main-spec.yaml — rewrite to JSON Schema
+    - templates/strict-spec-driven/schemas/planned-change-entry.yaml — rewrite to JSON Schema
+    - templates/strict-spec-driven/schemas/question-list.yaml — rewrite to JSON Schema
+    - templates/strict-spec-driven/schemas/roadmap-index.yaml — rewrite to JSON Schema
+    - templates/strict-spec-driven/schemas/roadmap-milestone.yaml — rewrite to JSON Schema
+    - templates/strict-spec-driven/schemas/spec-index.yaml — rewrite to JSON Schema
+    - templates/strict-spec-driven/schemas/task-list.yaml — rewrite to JSON Schema
+    - src/verify.ts — remove try/catch around validateArtifactSchema so Ajv failures surface as real diagnostics
+    - src/validation.ts — update loadBundledSchema to extract the JSON Schema body from wrapped schema files
+  out:
+    - registry.yaml and schema-registry.yaml — lookup indexes, not validation schemas; keep as-is
+    - templates/strict-spec-driven/examples/* — example files remain unchanged
+    - Post-schema validation passes (duplicateIdChecks, referenceChecks) — stay as separate code passes
+    - The migration command and its legacy Markdown parsing
+unchanged_behavior:
+  - verify still reports validity, diagnostics, and summary counts in the same JSON shape.
+  - loadBundledSchemaByArtifactType still resolves schemas through the registry.
+  - Duplicate ID and reference validation checks continue to run after schema checks.
+  - All other CLI commands remain unchanged.

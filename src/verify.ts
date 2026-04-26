@@ -108,14 +108,9 @@ function validateArtifactSchema(
     });
   }
 
-  try {
-    const schema = loadBundledSchemaByArtifactType(artifactType);
-    const result = validateArtifact(schema, artifact, artifactPath);
-    diagnostics.push(...collectDiagnostics(result.diagnostics));
-  } catch {
-    // Bundled YAML schemas use custom types that aren't valid JSON Schema;
-    // structural checks above cover the critical validation gaps.
-  }
+  const schema = loadBundledSchemaByArtifactType(artifactType);
+  const result = validateArtifact(schema, artifact, artifactPath);
+  diagnostics.push(...collectDiagnostics(result.diagnostics));
 
   return diagnostics;
 }

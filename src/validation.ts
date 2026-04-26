@@ -246,8 +246,11 @@ export function getBundledSchemaPath(schemaFile: string): string {
 }
 
 export function loadBundledSchema<T extends object = Record<string, unknown>>(schemaFile: string): T {
-  const schema = parseYamlFile<unknown>(getBundledSchemaPath(schemaFile));
-  return asObject(schema, `Schema file ${schemaFile}`) as T;
+  const raw = parseYamlFile<Record<string, unknown>>(getBundledSchemaPath(schemaFile));
+  if ("json_schema" in raw && raw.json_schema && typeof raw.json_schema === "object") {
+    return raw.json_schema as T;
+  }
+  return asObject(raw, `Schema file ${schemaFile}`) as T;
 }
 
 export function loadBundledSchemaRegistry(): SchemaRegistry {

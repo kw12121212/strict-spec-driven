@@ -7,90 +7,6 @@ description: Strict YAML delta spec artifact.
 example_ref: ../examples/delta-spec.yaml
 coverage_examples:
   - ../examples/delta-spec.operations.yaml
-additional_fields: false
-fields:
-  schema:
-    type: string
-    required: true
-    const: strict-spec-driven/delta-spec/v1
-  schema_version:
-    type: integer
-    required: true
-    const: 1
-  artifact_type:
-    type: string
-    required: true
-    const: delta_spec
-  schema_file:
-    type: string
-    required: true
-  target_spec:
-    type: string
-    required: true
-    references: main_spec.spec.id
-  mapping:
-    type: mapping
-    required: true
-    additional_fields: false
-    fields:
-      implementation:
-        type: sequence
-        required: true
-        items:
-          type: string
-          path: repo-relative
-      tests:
-        type: sequence
-        required: true
-        items:
-          type: string
-          path: repo-relative
-  operations:
-    type: mapping
-    required: true
-    additional_fields: false
-    fields:
-      ADDED:
-        type: sequence
-        required: true
-        unique_by: requirement.id
-        items:
-          type: mapping
-          additional_fields: false
-          fields:
-            requirement:
-              type: requirement
-              required: true
-      MODIFIED:
-        type: sequence
-        required: true
-        unique_by: target_requirement
-        items:
-          type: mapping
-          additional_fields: false
-          fields:
-            target_requirement:
-              type: string
-              required: true
-              references: target_spec.requirements.id
-            replacement:
-              type: requirement
-              required: true
-      REMOVED:
-        type: sequence
-        required: true
-        unique_by: target_requirement
-        items:
-          type: mapping
-          additional_fields: false
-          fields:
-            target_requirement:
-              type: string
-              required: true
-              references: target_spec.requirements.id
-            reason:
-              type: string
-              required: true
 merge_rules:
   exclusive_active_target: |
     A requirement ID that appears as a MODIFIED or REMOVED target in one active change
@@ -103,26 +19,112 @@ merge_rules:
     If a REMOVED entry targets a requirement ID that does not exist in the main spec at
     archive time, the entry is silently skipped and recorded as a skipped removal in the
     archive merge report.
-definitions:
-  requirement:
-    type: mapping
-    additional_fields: false
-    fields:
-      id:
-        type: string
-        required: true
-      strength:
-        type: string
-        required: true
-        enum:
-          - MUST
-          - SHOULD
-          - MAY
-      statement:
-        type: string
-        required: true
-      scenarios:
-        type: sequence
-        required: true
-        items:
-          type: mapping
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  definitions:
+    requirement:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - strength
+        - statement
+        - scenarios
+      properties:
+        id:
+          type: string
+        strength:
+          type: string
+          enum:
+            - MUST
+            - SHOULD
+            - MAY
+        statement:
+          type: string
+        scenarios:
+          type: array
+          items:
+            type: object
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - target_spec
+    - mapping
+    - operations
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/delta-spec/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: delta_spec
+    schema_file:
+      type: string
+    target_spec:
+      type: string
+    mapping:
+      type: object
+      additionalProperties: false
+      required:
+        - implementation
+        - tests
+      properties:
+        implementation:
+          type: array
+          items:
+            type: string
+        tests:
+          type: array
+          items:
+            type: string
+    operations:
+      type: object
+      additionalProperties: false
+      required:
+        - ADDED
+        - MODIFIED
+        - REMOVED
+      properties:
+        ADDED:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - requirement
+            properties:
+              requirement:
+                "$ref": "#/definitions/requirement"
+        MODIFIED:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - target_requirement
+              - replacement
+            properties:
+              target_requirement:
+                type: string
+              replacement:
+                "$ref": "#/definitions/requirement"
+        REMOVED:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - target_requirement
+              - reason
+            properties:
+              target_requirement:
+                type: string
+              reason:
+                type: string

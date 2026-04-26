@@ -112,19 +112,23 @@ const validationModule = await loadDistModule<ValidationModule>("validation.js")
 const registrySchema = validationModule.loadBundledSchema<Record<string, unknown>>("registry.yaml");
 context.assert(registrySchema.artifact_type === "schema_registry", "loadBundledSchema reads bundled schema assets");
 
-const mainSpecSchema = validationModule.loadBundledSchemaByArtifactType("main_spec");
-context.assert(mainSpecSchema.artifact_type === "main_spec", "loadBundledSchemaByArtifactType resolves registry entries");
+const mainSpecSchema = validationModule.loadBundledSchemaByArtifactType("main_spec") as Record<string, unknown>;
+context.assert(
+  (mainSpecSchema.properties as Record<string, unknown>)?.artifact_type !== undefined,
+  "loadBundledSchemaByArtifactType resolves registry entries",
+);
 
-const bySchemaId = validationModule.loadBundledSchemaBySchemaId("strict-spec-driven/main-spec/v1");
-context.assert(bySchemaId.artifact_type === "main_spec", "loadBundledSchemaBySchemaId resolves schema IDs");
+const bySchemaId = validationModule.loadBundledSchemaBySchemaId("strict-spec-driven/main-spec/v1") as Record<string, unknown>;
+context.assert(
+  (bySchemaId.properties as Record<string, unknown>)?.artifact_type !== undefined,
+  "loadBundledSchemaBySchemaId resolves schema IDs",
+);
 
 const roadmapIndexSchema = validationModule.loadBundledSchemaByArtifactType("roadmap_index") as {
-  artifact_type: string;
-  fields: {
+  properties: {
     milestones: {
-      unique_by: string;
       items: {
-        fields: {
+        properties: {
           status: {
             enum: string[];
           };
@@ -133,17 +137,19 @@ const roadmapIndexSchema = validationModule.loadBundledSchemaByArtifactType("roa
     };
   };
 };
-context.assert(roadmapIndexSchema.artifact_type === "roadmap_index", "roadmap index schema resolves by artifact type");
 context.assert(
-  roadmapIndexSchema.fields.milestones.unique_by === "id",
-  "roadmap index schema keeps milestone uniqueness keyed by id",
+  (roadmapIndexSchema.properties as Record<string, unknown>)?.milestones !== undefined,
+  "roadmap index schema resolves by artifact type",
+);
+context.assert(
+  roadmapIndexSchema.properties.milestones.items.properties.status.enum.length === 4,
+  "roadmap index schema keeps milestone status enums with four values",
 );
 
 const roadmapMilestoneSchema = validationModule.loadBundledSchemaBySchemaId("strict-spec-driven/roadmap-milestone/v1") as {
-  artifact_type: string;
-  fields: {
+  properties: {
     milestone: {
-      fields: {
+      properties: {
         id: {
           type: string;
         };
@@ -159,24 +165,29 @@ const roadmapMilestoneSchema = validationModule.loadBundledSchemaBySchemaId("str
     };
   };
 };
-context.assert(roadmapMilestoneSchema.artifact_type === "roadmap_milestone", "roadmap milestone schema resolves by schema ID");
 context.assert(
-  roadmapMilestoneSchema.fields.milestone.fields.id.type === "string",
+  (roadmapMilestoneSchema.properties as Record<string, unknown>)?.milestone !== undefined,
+  "roadmap milestone schema resolves by schema ID",
+);
+context.assert(
+  roadmapMilestoneSchema.properties.milestone.properties.id.type === "string",
   "roadmap milestone schema keeps milestone ids as structured string fields",
 );
 context.assert(
-  roadmapMilestoneSchema.fields.planned_changes.items.type === "planned_change_entry",
-  "roadmap milestone schema keeps planned changes typed as planned change entries",
+  roadmapMilestoneSchema.properties.planned_changes.items.type === "object",
+  "roadmap milestone schema keeps planned changes typed as inline objects",
 );
 const plannedChangeSchema = validationModule.loadBundledSchemaByArtifactType("planned_change_entry") as {
-  artifact_type: string;
-  fields: {
+  properties: {
     status: {
       enum: string[];
     };
   };
 };
-context.assert(plannedChangeSchema.artifact_type === "planned_change_entry", "planned change schema resolves by artifact type");
+context.assert(
+  (plannedChangeSchema.properties as Record<string, unknown>)?.status !== undefined,
+  "planned change schema resolves by artifact type",
+);
 context.assert(
   roadmapIndexDeclaredOrder.length >= 2 &&
     roadmapIndexOrderingExample.milestones[0]?.id === roadmapIndexDeclaredOrder[0] &&
@@ -185,17 +196,17 @@ context.assert(
 );
 context.assert(
   roadmapIndexOrderingExample.milestones.every((milestone) =>
-    roadmapIndexSchema.fields.milestones.items.fields.status.enum.includes(milestone.status),
+    roadmapIndexSchema.properties.milestones.items.properties.status.enum.includes(milestone.status),
   ),
   "roadmap index coverage example statuses stay within roadmap schema enums",
 );
 context.assert(
-  roadmapMilestoneSchema.fields.status.enum.includes(roadmapMilestonePlanningExample.status),
+  roadmapMilestoneSchema.properties.status.enum.includes(roadmapMilestonePlanningExample.status),
   "roadmap milestone coverage example status stays within roadmap schema enums",
 );
 context.assert(
   roadmapMilestonePlanningExample.planned_changes.every((plannedChange) =>
-    plannedChangeSchema.fields.status.enum.includes(plannedChange.status),
+    plannedChangeSchema.properties.status.enum.includes(plannedChange.status),
   ),
   "roadmap milestone coverage example planned change statuses stay within planned change schema enums",
 );

@@ -5,64 +5,72 @@ artifact_type: change_design
 artifact_name: change-design
 description: Strict YAML change design artifact.
 example_ref: ../examples/change-design.yaml
-additional_fields: false
-fields:
-  schema:
-    type: string
-    required: true
-    const: strict-spec-driven/change-design/v1
-  schema_version:
-    type: integer
-    required: true
-    const: 1
-  artifact_type:
-    type: string
-    required: true
-    const: change_design
-  schema_file:
-    type: string
-    required: true
-  change:
-    type: string
-    required: true
-    references: change_proposal.change.id
-  approach:
-    type: sequence
-    required: true
-    min_items: 1
-    items:
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - change
+    - approach
+    - decisions
+    - alternatives
+  properties:
+    schema:
       type: string
-  decisions:
-    type: sequence
-    required: true
-    items:
-      type: mapping
-      additional_fields: false
-      fields:
-        id:
-          type: string
-          required: true
-        decision:
-          type: string
-          required: true
-        rationale:
-          type: string
-          required: true
-  alternatives:
-    type: sequence
-    required: true
-    items:
-      type: mapping
-      additional_fields: false
-      fields:
-        option:
-          type: string
-          required: true
-        reason:
-          type: string
-          required: true
-  risks:
-    type: sequence
-    required: false
-    items:
+      const: strict-spec-driven/change-design/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
       type: string
+      const: change_design
+    schema_file:
+      type: string
+    change:
+      type: string
+    approach:
+      type: array
+      minItems: 1
+      items:
+        type: string
+    decisions:
+      type: array
+      items:
+        oneOf:
+          - type: string
+          - type: object
+            additionalProperties: false
+            required:
+              - id
+              - decision
+              - rationale
+            properties:
+              id:
+                type: string
+              decision:
+                type: string
+              rationale:
+                type: string
+    alternatives:
+      type: array
+      items:
+        oneOf:
+          - type: string
+          - type: object
+            additionalProperties: false
+            required:
+              - option
+              - reason
+            properties:
+              option:
+                type: string
+              reason:
+                type: string
+    risks:
+      type: array
+      items:
+        type: string

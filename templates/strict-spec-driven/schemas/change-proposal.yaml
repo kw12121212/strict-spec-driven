@@ -5,84 +5,90 @@ artifact_type: change_proposal
 artifact_name: change-proposal
 description: Strict YAML change proposal artifact.
 example_ref: ../examples/change-proposal.yaml
-additional_fields: false
-fields:
-  schema:
-    type: string
-    required: true
-    const: strict-spec-driven/change-proposal/v1
-  schema_version:
-    type: integer
-    required: true
-    const: 1
-  artifact_type:
-    type: string
-    required: true
-    const: change_proposal
-  schema_file:
-    type: string
-    required: true
-  change:
-    type: mapping
-    required: true
-    additional_fields: false
-    fields:
-      id:
-        type: string
-        required: true
-        identifier: change
-      status:
-        type: string
-        required: true
-        enum:
-          - proposed
-          - active
-          - complete
-  summary:
-    type: mapping
-    required: true
-    additional_fields: false
-    fields:
-      what:
-        type: sequence
-        required: true
-        min_items: 1
-        items:
-          type: string
-      why:
-        type: sequence
-        required: true
-        min_items: 1
-        items:
-          type: string
-  scope:
-    type: mapping
-    required: true
-    additional_fields: false
-    fields:
-      in:
-        type: sequence
-        required: true
-        items:
-          type: string
-      out:
-        type: sequence
-        required: true
-        items:
-          type: string
-  unchanged_behavior:
-    type: sequence
-    required: true
-    items:
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - change
+    - summary
+    - scope
+    - unchanged_behavior
+  properties:
+    schema:
       type: string
-  roadmap:
-    type: mapping
-    required: false
-    additional_fields: false
-    fields:
-      milestone:
+      const: strict-spec-driven/change-proposal/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: change_proposal
+    schema_file:
+      type: string
+    change:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum:
+            - proposed
+            - active
+            - complete
+    summary:
+      type: object
+      additionalProperties: false
+      required:
+        - what
+        - why
+      properties:
+        what:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        why:
+          type: array
+          minItems: 1
+          items:
+            type: string
+    scope:
+      type: object
+      additionalProperties: false
+      required:
+        - in
+        - out
+      properties:
+        in:
+          type: array
+          items:
+            type: string
+        out:
+          type: array
+          items:
+            type: string
+    unchanged_behavior:
+      type: array
+      items:
         type: string
-        required: true
-      planned_change:
-        type: string
-        required: true
+    roadmap:
+      type: object
+      additionalProperties: false
+      required:
+        - milestone
+        - planned_change
+      properties:
+        milestone:
+          type: string
+        planned_change:
+          type: string

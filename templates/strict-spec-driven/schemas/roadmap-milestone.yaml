@@ -5,87 +5,126 @@ artifact_type: roadmap_milestone
 artifact_name: roadmap-milestone
 description: Strict YAML roadmap milestone artifact.
 example_ref: ../examples/roadmap-milestone.yaml
-additional_fields: false
-fields:
-  schema:
-    type: string
-    required: true
-    const: strict-spec-driven/roadmap-milestone/v1
-  schema_version:
-    type: integer
-    required: true
-    const: 1
-  artifact_type:
-    type: string
-    required: true
-    const: roadmap_milestone
-  schema_file:
-    type: string
-    required: true
-  milestone:
-    type: mapping
-    required: true
-    additional_fields: false
-    fields:
-      id:
-        type: string
-        required: true
-      title:
-        type: string
-        required: true
-  goal:
-    type: string
-    required: true
-  scope:
-    type: mapping
-    required: true
-    additional_fields: false
-    fields:
-      in:
-        type: sequence
-        required: true
-        items:
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - milestone
+    - goal
+    - scope
+    - done_criteria
+    - planned_changes
+    - dependencies
+    - risks
+    - status
+    - notes
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/roadmap-milestone/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: roadmap_milestone
+    schema_file:
+      type: string
+    milestone:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
           type: string
-      out:
-        type: sequence
-        required: true
-        items:
+        title:
           type: string
-  done_criteria:
-    type: sequence
-    required: true
-    items:
+    goal:
       type: string
-  planned_changes:
-    type: sequence
-    required: true
-    max_items: 10
-    unique_by: id
-    items:
-      type: planned_change_entry
-  dependencies:
-    type: sequence
-    required: true
-    items:
+    scope:
+      type: object
+      additionalProperties: false
+      required:
+        - in
+        - out
+      properties:
+        in:
+          type: array
+          items:
+            type: string
+        out:
+          type: array
+          items:
+            type: string
+    done_criteria:
+      type: array
+      items:
+        type: string
+    planned_changes:
+      type: array
+      maxItems: 10
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - schema
+          - schema_version
+          - artifact_type
+          - schema_file
+          - id
+          - status
+          - summary
+          - depends_on
+        properties:
+          schema:
+            type: string
+            const: strict-spec-driven/planned-change-entry/v1
+          schema_version:
+            type: integer
+            const: 1
+          artifact_type:
+            type: string
+            const: planned_change_entry
+          schema_file:
+            type: string
+          id:
+            type: string
+          status:
+            type: string
+            enum:
+              - planned
+              - complete
+          summary:
+            type: string
+          depends_on:
+            type: array
+            items:
+              type: string
+    dependencies:
+      type: array
+      items:
+        type: string
+    risks:
+      type: array
+      items:
+        type: string
+    status:
       type: string
-  risks:
-    type: sequence
-    required: true
-    items:
+      enum:
+        - proposed
+        - active
+        - blocked
+        - complete
+    notes:
+      type: array
+      items:
+        type: string
+    details:
       type: string
-  status:
-    type: string
-    required: true
-    enum:
-      - proposed
-      - active
-      - blocked
-      - complete
-  notes:
-    type: sequence
-    required: true
-    items:
-      type: string
-  details:
-    type: string
-    required: false

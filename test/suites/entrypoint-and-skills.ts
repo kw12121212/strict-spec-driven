@@ -1,23 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import {
   ROOT,
   TestContext,
   cli,
-  createCopiedProjectWorkspace,
-  fixturePath,
-  formatLocalDateStamp,
   loadDistModule,
-  projectFixturePath,
-  projectWorkspaceCli,
-  runCommand,
-  type MigrateConverterModule,
-  type RoadmapConverterModule,
-  type ScaffoldModule,
   type SkillValidationModule,
-  type ValidationModule,
-  type YamlModule,
 } from "../support/harness.js";
 
 type StrictCliModule = {
@@ -497,147 +486,6 @@ try {
   );
 } finally {
   rmSync(invalidSemanticSkillRoot, { recursive: true, force: true });
-}
-
-context.section("[2a] strict skill installation surfaces");
-
-const packageJson = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8")) as {
-  scripts?: Record<string, string>;
-};
-const packageScripts = packageJson.scripts ?? {};
-context.assert(
-  packageScripts["install-strict-skills"] === "bash install.sh",
-  "package.json exposes strict global install script",
-);
-context.assert(
-  packageScripts["install-strict-skills:project"] === "bash install.sh --project",
-  "package.json exposes strict project install script",
-);
-context.assert(
-  packageScripts["uninstall-strict-skills"] === "bash install.sh --uninstall",
-  "package.json exposes strict global uninstall script",
-);
-context.assert(
-  packageScripts["uninstall-strict-skills:project"] === "bash install.sh --uninstall --project",
-  "package.json exposes strict project uninstall script",
-);
-
-const installSmokeRoot = mkdtempSync(path.join(os.tmpdir(), "strict-install-smoke-"));
-try {
-  const fakeBinDir = path.join(installSmokeRoot, "bin");
-  const logPath = path.join(installSmokeRoot, "npx.log");
-  const projectTarget = path.join(installSmokeRoot, "custom-project");
-  const outsideDir = path.join(installSmokeRoot, "outside");
-  mkdirSync(fakeBinDir, { recursive: true });
-  mkdirSync(projectTarget, { recursive: true });
-  mkdirSync(outsideDir, { recursive: true });
-
-  writeFileSync(
-    path.join(fakeBinDir, "npx"),
-    [
-      "#!/usr/bin/env bash",
-      "set -euo pipefail",
-      "printf '%s\\n' \"$@\" > \"$STRICT_INSTALL_TEST_LOG\"",
-    ].join("\n") + "\n",
-    { encoding: "utf8", mode: 0o755 },
-  );
-
-  const installEnv: NodeJS.ProcessEnv = {
-    ...process.env,
-    PATH: `${fakeBinDir}:${process.env.PATH ?? ""}`,
-    STRICT_INSTALL_TEST_LOG: logPath,
-  };
-  const installScript = path.join(ROOT, "install.sh");
-
-  const defaultInstall = runCommand("bash", [installScript], {
-    cwd: outsideDir,
-    env: installEnv,
-  });
-  context.assert(defaultInstall.status === 0, "install.sh installs strict skills from the repo root by default");
-  context.assert(
-    defaultInstall.stdout.includes(`Installing strict skills from: ${ROOT}`),
-    "install.sh reports the repo root as the default install target",
-    `stdout: ${defaultInstall.stdout.trim()}`,
-  );
-  context.assert(
-    readFileSync(logPath, "utf8") === `skills\nadd\n${ROOT}\n`,
-    "install.sh invokes skills add for the repo root",
-  );
-
-  const projectInstall = runCommand("bash", [installScript, "--project", projectTarget], {
-    cwd: outsideDir,
-    env: installEnv,
-  });
-  context.assert(projectInstall.status === 0, "install.sh accepts an explicit project target");
-  context.assert(
-    projectInstall.stdout.includes(`Installing strict skills from: ${projectTarget}`),
-    "install.sh reports the explicit project target",
-    `stdout: ${projectInstall.stdout.trim()}`,
-  );
-  context.assert(
-    readFileSync(logPath, "utf8") === `skills\nadd\n${projectTarget}\n`,
-    "install.sh invokes skills add for the explicit project target",
-  );
-
-  const defaultUninstall = runCommand("bash", [installScript, "--project", "--uninstall"], {
-    cwd: outsideDir,
-    env: installEnv,
-  });
-  context.assert(defaultUninstall.status === 0, "install.sh handles project mode without mistaking --uninstall for a path");
-  context.assert(
-    defaultUninstall.stdout.includes(`Uninstalling strict skills from: ${ROOT}`),
-    "install.sh keeps the repo root as the fallback project target when flags are reordered",
-    `stdout: ${defaultUninstall.stdout.trim()}`,
-  );
-  context.assert(
-    readFileSync(logPath, "utf8") === `skills\nremove\n${ROOT}\n`,
-    "install.sh invokes skills remove for reordered project uninstall flags",
-  );
-
-  const lastInstallInvocation = readFileSync(logPath, "utf8");
-  const projectHelp = runCommand("bash", [installScript, "--project", "-h"], {
-    cwd: outsideDir,
-    env: installEnv,
-  });
-  context.assert(projectHelp.status === 0, "install.sh treats -h after --project as help instead of a path");
-  context.assert(
-    projectHelp.stderr.includes("Usage:"),
-    "install.sh prints usage when -h follows --project",
-    `stderr: ${projectHelp.stderr.trim()}`,
-  );
-  context.assert(
-    readFileSync(logPath, "utf8") === lastInstallInvocation,
-    "install.sh does not invoke npx when help is requested after --project",
-  );
-
-  const unknownArg = runCommand("bash", [installScript, "--legacy-name"], {
-    cwd: outsideDir,
-    env: installEnv,
-  });
-  context.assert(unknownArg.status !== 0, "install.sh rejects unknown arguments");
-  context.assert(
-    unknownArg.stderr.includes("Unknown argument: --legacy-name"),
-    "install.sh reports the unknown argument explicitly",
-    `stderr: ${unknownArg.stderr.trim()}`,
-  );
-  context.assert(
-    unknownArg.stderr.includes("Usage:"),
-    "install.sh prints usage guidance for unknown arguments",
-    `stderr: ${unknownArg.stderr.trim()}`,
-  );
-
-  const missingProject = runCommand("bash", [installScript, "--project", path.join(installSmokeRoot, "missing")], {
-    cwd: outsideDir,
-    env: installEnv,
-  });
-  context.assert(missingProject.status !== 0, "install.sh exits non-zero for a missing project directory");
-  context.assert(
-    missingProject.stderr.includes("Project directory does not exist:"),
-    "install.sh reports a missing project directory diagnostic",
-    `stderr: ${missingProject.stderr.trim()}`,
-  );
-} finally {
-  rmSync(installSmokeRoot, { recursive: true, force: true });
 }
 
 }

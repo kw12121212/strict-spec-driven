@@ -5,46 +5,49 @@ artifact_type: roadmap_index
 artifact_name: roadmap-index
 description: Strict YAML roadmap index artifact.
 example_ref: ../examples/roadmap-index.yaml
-additional_fields: false
-fields:
-  schema:
-    type: string
-    required: true
-    const: strict-spec-driven/roadmap-index/v1
-  schema_version:
-    type: integer
-    required: true
-    const: 1
-  artifact_type:
-    type: string
-    required: true
-    const: roadmap_index
-  schema_file:
-    type: string
-    required: true
-  milestones:
-    type: sequence
-    required: true
-    unique_by: id
-    items:
-      type: mapping
-      additional_fields: false
-      fields:
-        id:
-          type: string
-          required: true
-        title:
-          type: string
-          required: true
-        path:
-          type: string
-          required: true
-          path: repo-relative
-        status:
-          type: string
-          required: true
-          enum:
-            - proposed
-            - active
-            - blocked
-            - complete
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - milestones
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/roadmap-index/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: roadmap_index
+    schema_file:
+      type: string
+    milestones:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - title
+          - path
+          - status
+        properties:
+          id:
+            type: string
+          title:
+            type: string
+          path:
+            type: string
+          status:
+            type: string
+            enum:
+              - proposed
+              - active
+              - blocked
+              - complete

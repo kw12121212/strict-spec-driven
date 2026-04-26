@@ -5,39 +5,41 @@ artifact_type: planned_change_entry
 artifact_name: planned-change-entry
 description: Strict YAML planned change entry artifact.
 example_ref: ../examples/planned-change-entry.yaml
-additional_fields: false
-fields:
-  schema:
-    type: string
-    required: true
-    const: strict-spec-driven/planned-change-entry/v1
-  schema_version:
-    type: integer
-    required: true
-    const: 1
-  artifact_type:
-    type: string
-    required: true
-    const: planned_change_entry
-  schema_file:
-    type: string
-    required: true
-  id:
-    type: string
-    required: true
-    identifier: planned_change
-  status:
-    type: string
-    required: true
-    enum:
-      - planned
-      - complete
-  summary:
-    type: string
-    required: true
-  depends_on:
-    type: sequence
-    required: true
-    items:
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - id
+    - status
+    - summary
+    - depends_on
+  properties:
+    schema:
       type: string
-      references: planned_change_entry.id
+      const: strict-spec-driven/planned-change-entry/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: planned_change_entry
+    schema_file:
+      type: string
+    id:
+      type: string
+    status:
+      type: string
+      enum:
+        - planned
+        - complete
+    summary:
+      type: string
+    depends_on:
+      type: array
+      items:
+        type: string
