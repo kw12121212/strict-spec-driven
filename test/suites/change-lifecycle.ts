@@ -2012,123 +2012,192 @@ try {
 }
 
 // 15f: copied project workspace exercises modify, cancel, and verify-spec-mappings
-const copiedProjectLifecycleWorkspace = createCopiedProjectWorkspace("todo-app");
-try {
-  const changeName = "copied-workspace-lifecycle-change";
-  const copiedProjectPropose = projectWorkspaceCli(copiedProjectLifecycleWorkspace.workspaceRoot, ["propose", changeName]);
-  context.assert(
-    copiedProjectPropose.status === 0,
-    "copied project workspace propose creates an active strict change for lifecycle commands",
-    `stdout: ${copiedProjectPropose.stdout.trim()} stderr: ${copiedProjectPropose.stderr.trim()}`,
-  );
+function runCopiedProjectLifecycleScenario(): {
+  proposeStatus: number;
+  proposeStdout: string;
+  listStatus: number;
+  listStdout: string;
+  modifyStatus: number;
+  modifyStdout: string;
+  cancelStatus: number;
+  cancelStdout: string;
+  archiveLookupStatus: number;
+  archiveLookupStdout: string;
+  mappingsStatus: number;
+  mappingsStdout: string;
+} {
+  const copiedProjectLifecycleWorkspace = createCopiedProjectWorkspace("todo-app");
+  const { workspaceRoot } = copiedProjectLifecycleWorkspace;
+  try {
+    const changeName = "copied-workspace-lifecycle-change";
+    const copiedProjectPropose = projectWorkspaceCli(workspaceRoot, ["propose", changeName]);
+    const copiedProjectProposeStdout = copiedProjectPropose.stdout.trim();
+    context.assert(
+      copiedProjectPropose.status === 0,
+      "copied project workspace propose creates an active strict change for lifecycle commands",
+      `stdout: ${copiedProjectProposeStdout} stderr: ${copiedProjectPropose.stderr.trim()}`,
+    );
 
-  const copiedProjectList = projectWorkspaceCli(copiedProjectLifecycleWorkspace.workspaceRoot, ["list"]);
-  context.assert(
-    copiedProjectList.status === 0,
-    "copied project workspace list exits zero after propose",
-    `stdout: ${copiedProjectList.stdout.trim()} stderr: ${copiedProjectList.stderr.trim()}`,
-  );
-  context.assert(
-    copiedProjectList.stdout.includes(changeName),
-    "copied project workspace list reports the newly proposed change as an active entry",
-    `stdout: ${copiedProjectList.stdout.trim()}`,
-  );
+    const copiedProjectList = projectWorkspaceCli(workspaceRoot, ["list"]);
+    const copiedProjectListStdout = copiedProjectList.stdout.trim();
+    context.assert(
+      copiedProjectList.status === 0,
+      "copied project workspace list exits zero after propose",
+      `stdout: ${copiedProjectListStdout} stderr: ${copiedProjectList.stderr.trim()}`,
+    );
+    context.assert(
+      copiedProjectListStdout.includes(changeName),
+      "copied project workspace list reports the newly proposed change as an active entry",
+      `stdout: ${copiedProjectListStdout}`,
+    );
 
-  const copiedProjectModify = projectWorkspaceCli(copiedProjectLifecycleWorkspace.workspaceRoot, ["modify", changeName]);
-  context.assert(
-    copiedProjectModify.status === 0,
-    "copied project workspace modify exits zero for a proposed strict change",
-    `stdout: ${copiedProjectModify.stdout.trim()} stderr: ${copiedProjectModify.stderr.trim()}`,
-  );
-  context.assert(
-    copiedProjectModify.stdout.includes(`.strict-spec-driven/changes/${changeName}/proposal.yaml`),
-    "copied project workspace modify reports planning artifacts for the proposed change",
-    `stdout: ${copiedProjectModify.stdout.trim()}`,
-  );
-  context.assert(
-    copiedProjectModify.stdout.includes(`.strict-spec-driven/changes/${changeName}/specs/ (empty)`),
-    "copied project workspace modify reports an empty delta-spec directory for the proposed change",
-    `stdout: ${copiedProjectModify.stdout.trim()}`,
-  );
+    const copiedProjectModify = projectWorkspaceCli(workspaceRoot, ["modify", changeName]);
+    const copiedProjectModifyStdout = copiedProjectModify.stdout.trim();
+    context.assert(
+      copiedProjectModify.status === 0,
+      "copied project workspace modify exits zero for a proposed strict change",
+      `stdout: ${copiedProjectModifyStdout} stderr: ${copiedProjectModify.stderr.trim()}`,
+    );
+    context.assert(
+      copiedProjectModifyStdout.includes(`.strict-spec-driven/changes/${changeName}/proposal.yaml`),
+      "copied project workspace modify reports planning artifacts for the proposed change",
+      `stdout: ${copiedProjectModifyStdout}`,
+    );
+    context.assert(
+      copiedProjectModifyStdout.includes(`.strict-spec-driven/changes/${changeName}/specs/ (empty)`),
+      "copied project workspace modify reports an empty delta-spec directory for the proposed change",
+      `stdout: ${copiedProjectModifyStdout}`,
+    );
 
-  const copiedProjectCancel = projectWorkspaceCli(copiedProjectLifecycleWorkspace.workspaceRoot, ["cancel", changeName]);
-  context.assert(
-    copiedProjectCancel.status === 0,
-    "copied project workspace cancel exits zero for the proposed strict change",
-    `stdout: ${copiedProjectCancel.stdout.trim()} stderr: ${copiedProjectCancel.stderr.trim()}`,
-  );
-  context.assert(
-    !existsSync(path.join(copiedProjectLifecycleWorkspace.workspaceRoot, ".strict-spec-driven", "changes", changeName)),
-    "copied project workspace cancel removes the strict change directory from the temp workspace",
-  );
-  context.assert(
-    existsSync(path.join(copiedProjectLifecycleWorkspace.workspaceRoot, ".spec-driven", "changes", "add-due-dates", "proposal.md")),
-    "copied project workspace cancel preserves the committed bootstrap change artifacts",
-  );
+    const copiedProjectCancel = projectWorkspaceCli(workspaceRoot, ["cancel", changeName]);
+    const copiedProjectCancelStdout = copiedProjectCancel.stdout.trim();
+    context.assert(
+      copiedProjectCancel.status === 0,
+      "copied project workspace cancel exits zero for the proposed strict change",
+      `stdout: ${copiedProjectCancelStdout} stderr: ${copiedProjectCancel.stderr.trim()}`,
+    );
+    context.assert(
+      !existsSync(path.join(workspaceRoot, ".strict-spec-driven", "changes", changeName)),
+      "copied project workspace cancel removes the strict change directory from the temp workspace",
+    );
+    context.assert(
+      existsSync(path.join(workspaceRoot, ".spec-driven", "changes", "add-due-dates", "proposal.md")),
+      "copied project workspace cancel preserves the committed bootstrap change artifacts",
+    );
 
-  const archiveDirName = "2026-01-01-archived-fixture-change";
-  const archiveDirPath = path.join(
-    copiedProjectLifecycleWorkspace.workspaceRoot,
-    ".strict-spec-driven",
-    "changes",
-    "archive",
-    archiveDirName,
-  );
-  mkdirSync(archiveDirPath, { recursive: true });
-  writeFileSync(path.join(archiveDirPath, "proposal.yaml"), "schema: proposal\n", "utf8");
+    const archiveDirName = "2026-01-01-archived-fixture-change";
+    const archiveDirPath = path.join(
+      workspaceRoot,
+      ".strict-spec-driven",
+      "changes",
+      "archive",
+      archiveDirName,
+    );
+    mkdirSync(archiveDirPath, { recursive: true });
+    writeFileSync(path.join(archiveDirPath, "proposal.yaml"), "schema: proposal\n", "utf8");
 
-  const copiedProjectArchiveLookup = projectWorkspaceCli(copiedProjectLifecycleWorkspace.workspaceRoot, ["modify", archiveDirName]);
-  context.assert(
-    copiedProjectArchiveLookup.status === 0,
-    "copied project workspace modify exits zero for an exact archive directory name",
-    `stdout: ${copiedProjectArchiveLookup.stdout.trim()} stderr: ${copiedProjectArchiveLookup.stderr.trim()}`,
-  );
-  context.assert(
-    copiedProjectArchiveLookup.stdout.includes(`.strict-spec-driven/changes/archive/${archiveDirName}/proposal.yaml`),
-    "copied project workspace modify reports artifact paths for an archived change directory",
-    `stdout: ${copiedProjectArchiveLookup.stdout.trim()}`,
-  );
+    const copiedProjectArchiveLookup = projectWorkspaceCli(workspaceRoot, ["modify", archiveDirName]);
+    const copiedProjectArchiveLookupStdout = copiedProjectArchiveLookup.stdout.trim();
+    context.assert(
+      copiedProjectArchiveLookup.status === 0,
+      "copied project workspace modify exits zero for an exact archive directory name",
+      `stdout: ${copiedProjectArchiveLookupStdout} stderr: ${copiedProjectArchiveLookup.stderr.trim()}`,
+    );
+    context.assert(
+      copiedProjectArchiveLookupStdout.includes(`.strict-spec-driven/changes/archive/${archiveDirName}/proposal.yaml`),
+      "copied project workspace modify reports artifact paths for an archived change directory",
+      `stdout: ${copiedProjectArchiveLookupStdout}`,
+    );
 
-  const copiedProjectMappings = projectWorkspaceCli(copiedProjectLifecycleWorkspace.workspaceRoot, ["verify-spec-mappings"]);
-  context.assert(
-    copiedProjectMappings.status !== 0,
-    "copied project workspace verify-spec-mappings surfaces unmapped fixture implementation evidence",
-    `stdout: ${copiedProjectMappings.stdout.trim()} stderr: ${copiedProjectMappings.stderr.trim()}`,
-  );
-  const copiedProjectMappingsJson = JSON.parse(copiedProjectMappings.stdout.trim()) as {
-    valid: boolean;
-    diagnostics: ValidationDiagnostic[];
-    summary: { unmappedImplementationCount: number; unmappedTestCount: number };
-  };
-  context.assert(copiedProjectMappingsJson.valid === false, "copied project workspace verify-spec-mappings reports valid=false");
-  context.assert(
-    copiedProjectMappingsJson.diagnostics.some(
-      (diagnostic) => diagnostic.source === "unmapped_evidence" && diagnostic.artifactPath === "package.json",
-    ),
-    "copied project workspace verify-spec-mappings reports unmapped package.json evidence",
-  );
-  context.assert(
-    copiedProjectMappingsJson.diagnostics.some(
-      (diagnostic) => diagnostic.source === "unmapped_evidence" && diagnostic.artifactPath === "tsconfig.json",
-    ),
-    "copied project workspace verify-spec-mappings reports unmapped tsconfig.json evidence",
-  );
-  context.assert(
-    copiedProjectMappingsJson.summary.unmappedImplementationCount === 2
-      && copiedProjectMappingsJson.summary.unmappedTestCount === 0,
-    "copied project workspace verify-spec-mappings reports the expected unmapped evidence counts",
-  );
-  context.assert(
-    existsSync(path.join(projectFixturePath("todo-app"), ".spec-driven", "changes", "add-due-dates", "proposal.md")),
-    "committed fixture baseline remains unchanged after copied project lifecycle commands",
-  );
-} finally {
-  copiedProjectLifecycleWorkspace.cleanup();
+    const copiedProjectMappings = projectWorkspaceCli(workspaceRoot, ["verify-spec-mappings"]);
+    const copiedProjectMappingsStdout = copiedProjectMappings.stdout.trim();
+    context.assert(
+      copiedProjectMappings.status !== 0,
+      "copied project workspace verify-spec-mappings surfaces unmapped fixture implementation evidence",
+      `stdout: ${copiedProjectMappingsStdout} stderr: ${copiedProjectMappings.stderr.trim()}`,
+    );
+    const copiedProjectMappingsJson = JSON.parse(copiedProjectMappingsStdout) as {
+      valid: boolean;
+      diagnostics: ValidationDiagnostic[];
+      summary: { unmappedImplementationCount: number; unmappedTestCount: number };
+    };
+    context.assert(copiedProjectMappingsJson.valid === false, "copied project workspace verify-spec-mappings reports valid=false");
+    context.assert(
+      copiedProjectMappingsJson.diagnostics.some(
+        (diagnostic) => diagnostic.source === "unmapped_evidence" && diagnostic.artifactPath === "package.json",
+      ),
+      "copied project workspace verify-spec-mappings reports unmapped package.json evidence",
+    );
+    context.assert(
+      copiedProjectMappingsJson.diagnostics.some(
+        (diagnostic) => diagnostic.source === "unmapped_evidence" && diagnostic.artifactPath === "tsconfig.json",
+      ),
+      "copied project workspace verify-spec-mappings reports unmapped tsconfig.json evidence",
+    );
+    context.assert(
+      copiedProjectMappingsJson.summary.unmappedImplementationCount === 2
+        && copiedProjectMappingsJson.summary.unmappedTestCount === 0,
+      "copied project workspace verify-spec-mappings reports the expected unmapped evidence counts",
+    );
+    context.assert(
+      existsSync(path.join(projectFixturePath("todo-app"), ".spec-driven", "changes", "add-due-dates", "proposal.md")),
+      "committed fixture baseline remains unchanged after copied project lifecycle commands",
+    );
+
+    return {
+      proposeStatus: copiedProjectPropose.status,
+      proposeStdout: copiedProjectProposeStdout,
+      listStatus: copiedProjectList.status,
+      listStdout: copiedProjectListStdout,
+      modifyStatus: copiedProjectModify.status,
+      modifyStdout: copiedProjectModifyStdout,
+      cancelStatus: copiedProjectCancel.status,
+      cancelStdout: copiedProjectCancelStdout,
+      archiveLookupStatus: copiedProjectArchiveLookup.status,
+      archiveLookupStdout: copiedProjectArchiveLookupStdout,
+      mappingsStatus: copiedProjectMappings.status,
+      mappingsStdout: copiedProjectMappingsStdout,
+    };
+  } finally {
+    copiedProjectLifecycleWorkspace.cleanup();
+    context.assert(
+      !existsSync(workspaceRoot),
+      "copied project lifecycle workspace cleanup removes the temp workspace",
+    );
+  }
 }
 
+const copiedProjectLifecycleFirstRun = runCopiedProjectLifecycleScenario();
+const copiedProjectLifecycleSecondRun = runCopiedProjectLifecycleScenario();
 context.assert(
-  !existsSync(copiedProjectLifecycleWorkspace.workspaceRoot),
-  "copied project lifecycle workspace cleanup removes the temp workspace",
+  copiedProjectLifecycleFirstRun.proposeStatus === copiedProjectLifecycleSecondRun.proposeStatus
+    && copiedProjectLifecycleFirstRun.proposeStdout === copiedProjectLifecycleSecondRun.proposeStdout,
+  "copied project workspace propose output stays stable across repeated lifecycle flows",
+);
+context.assert(
+  copiedProjectLifecycleFirstRun.listStatus === copiedProjectLifecycleSecondRun.listStatus
+    && copiedProjectLifecycleFirstRun.listStdout === copiedProjectLifecycleSecondRun.listStdout,
+  "copied project workspace list output stays stable across repeated lifecycle flows",
+);
+context.assert(
+  copiedProjectLifecycleFirstRun.modifyStatus === copiedProjectLifecycleSecondRun.modifyStatus
+    && copiedProjectLifecycleFirstRun.modifyStdout === copiedProjectLifecycleSecondRun.modifyStdout,
+  "copied project workspace modify output stays stable across repeated lifecycle flows",
+);
+context.assert(
+  copiedProjectLifecycleFirstRun.cancelStatus === copiedProjectLifecycleSecondRun.cancelStatus
+    && copiedProjectLifecycleFirstRun.cancelStdout === copiedProjectLifecycleSecondRun.cancelStdout,
+  "copied project workspace cancel output stays stable across repeated lifecycle flows",
+);
+context.assert(
+  copiedProjectLifecycleFirstRun.archiveLookupStatus === copiedProjectLifecycleSecondRun.archiveLookupStatus
+    && copiedProjectLifecycleFirstRun.archiveLookupStdout === copiedProjectLifecycleSecondRun.archiveLookupStdout,
+  "copied project workspace archive lookup output stays stable across repeated lifecycle flows",
+);
+context.assert(
+  copiedProjectLifecycleFirstRun.mappingsStatus === copiedProjectLifecycleSecondRun.mappingsStatus
+    && copiedProjectLifecycleFirstRun.mappingsStdout === copiedProjectLifecycleSecondRun.mappingsStdout,
+  "copied project workspace verify-spec-mappings output stays stable across repeated lifecycle flows",
 );
 
 context.section("[16] review command");

@@ -9,5 +9,5 @@
 - [06-operations-and-documentation.md](milestones/06-operations-and-documentation.md) - 06 Operations And Documentation - complete
 - [07-cli-command-surface-decomposition.md](milestones/07-cli-command-surface-decomposition.md) - 07 CLI Command Surface Decomposition - complete
 - [08-workflow-domain-module-decomposition.md](milestones/08-workflow-domain-module-decomposition.md) - 08 Workflow Domain Module Decomposition - proposed
-- [09-repeatable-real-project-regression-tests.md](milestones/09-repeatable-real-project-regression-tests.md) - 09 Repeatable Real Project Regression Tests - proposed
+- [09-repeatable-real-project-regression-tests.md](milestones/09-repeatable-real-project-regression-tests.md) - 09 Repeatable Real Project Regression Tests - complete
 - [10-strict-roadmap-details-guidance.md](milestones/10-strict-roadmap-details-guidance.md) - 10 Strict Roadmap Details Guidance - proposed
