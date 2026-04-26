@@ -25,7 +25,7 @@ Split oversized workflow-domain scripts into smaller modules so roadmap, skill v
 - Automated coverage confirms roadmap status and sync, skill validation, and migration outputs remain observably stable after the split, including regression runs against the shared real todo project fixture from milestone 09.
 
 ## Planned Changes
-- `split-roadmap-load-validate-derive-sync` - Declared: planned - separate roadmap artifact loading, schema validation, semantic validation, status derivation, canonical milestone rebuilding, and sync writes into focused modules instead of one large file.
+- `split-roadmap-load-validate-derive-sync` - Declared: complete - separate roadmap artifact loading, schema validation, semantic validation, status derivation, canonical milestone rebuilding, and sync writes into focused modules instead of one large file.
 - `split-skill-packaging-parser-rules-and-fs-checks` - Declared: planned - separate frontmatter parsing, skill-content expectation checks, symlink validation, marketplace metadata validation, and diagnostic sorting into smaller validation modules.
 - `split-migration-legacy-parsers-by-artifact-family` - Declared: planned - extract legacy Markdown parsing for specs, proposals, designs, tasks, questions, roadmap files, and index files into dedicated parser modules with explicit interfaces.
 - `split-migration-builders-and-converters` - Declared: planned - extract strict artifact builders, roadmap conversion, spec-index conversion, and related helper logic from `src/migrate.ts` into focused converter modules.
@@ -50,3 +50,4 @@ Split oversized workflow-domain scripts into smaller modules so roadmap, skill v
 - Current hotspot evidence: `src/migrate.ts` is about 2034 lines, `src/roadmap.ts` about 1046 lines, and `src/skills.ts` about 984 lines.
 - Current test evidence: `test/run.ts` is about 5949 lines, so part of the decomposition safety story is to stop relying on one monolithic runner as the only integration surface.
 - This milestone follows milestone 07 so CLI dispatch concerns stay separate from deeper domain-logic decomposition.
+

@@ -21,6 +21,12 @@ mapping:
     - src/migrate.ts
     - src/strict-spec-cli.ts
     - src/roadmap.ts
+    - src/roadmap/model.ts
+    - src/roadmap/shared.ts
+    - src/roadmap/validate.ts
+    - src/roadmap/load.ts
+    - src/roadmap/status.ts
+    - src/roadmap/sync.ts
     - src/archive.ts
     - src/scaffold.ts
     - src/validation.ts
