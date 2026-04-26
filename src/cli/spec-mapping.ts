@@ -3,8 +3,8 @@ import path from "path";
 import { parseYamlDocument } from "../yaml.js";
 import { listFilesRecursive, normalizePathSeparators, normalizeRepoRelativePath } from "./fs.js";
 
-const LEGACY_SPECS_DIR = path.join(".spec-driven", "specs");
-const EXCLUDED_MAPPING_SPEC_BASENAMES = new Set(["INDEX.md", "README.md"]);
+const STRICT_SPECS_DIR = path.join(".strict-spec-driven", "specs");
+const EXCLUDED_MAPPING_SPEC_BASENAMES = new Set(["INDEX.yaml"]);
 
 type MappingField = "implementation" | "tests";
 
@@ -133,39 +133,11 @@ function parseSpecMapping(
   diagnostics: MappingAuditDiagnostic[],
 ): { implementation: string[]; tests: string[] } | null {
   const artifactPath = normalizeRepoRelativePath(rootDir, specPath);
-  const content = readFileSync(specPath, "utf8").replace(/\r\n?/g, "\n");
-  const lines = content.split("\n");
+  const content = readFileSync(specPath, "utf8");
 
-  if (lines[0] !== "---") {
-    diagnostics.push(
-      makeMappingDiagnostic(
-        "mapping_coverage",
-        artifactPath,
-        "$.mapping",
-        "spec is missing mapping frontmatter",
-        "frontmatter with mapping fields",
-      ),
-    );
-    return null;
-  }
-
-  const closingIndex = lines.findIndex((line, index) => index > 0 && line === "---");
-  if (closingIndex === -1) {
-    diagnostics.push(
-      makeMappingDiagnostic(
-        "mapping_coverage",
-        artifactPath,
-        "$.mapping",
-        "spec mapping frontmatter is unterminated",
-        "closing --- line",
-      ),
-    );
-    return null;
-  }
-
-  let frontmatter: unknown;
+  let doc: unknown;
   try {
-    frontmatter = parseYamlDocument<unknown>(lines.slice(1, closingIndex).join("\n"));
+    doc = parseYamlDocument<unknown>(content);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     diagnostics.push(
@@ -173,7 +145,7 @@ function parseSpecMapping(
         "mapping_coverage",
         artifactPath,
         "$.mapping",
-        "spec mapping frontmatter is not valid YAML",
+        "spec file is not valid YAML",
         "parseable YAML mapping",
         message,
       ),
@@ -181,27 +153,27 @@ function parseSpecMapping(
     return null;
   }
 
-  if (!frontmatter || typeof frontmatter !== "object" || Array.isArray(frontmatter)) {
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) {
     diagnostics.push(
       makeMappingDiagnostic(
         "mapping_coverage",
         artifactPath,
         "$.mapping",
-        "spec mapping frontmatter must be a YAML mapping",
+        "spec file must contain a YAML mapping",
         "YAML mapping",
       ),
     );
     return null;
   }
 
-  const mappingValue = (frontmatter as Record<string, unknown>).mapping;
+  const mappingValue = (doc as Record<string, unknown>).mapping;
   if (!mappingValue || typeof mappingValue !== "object" || Array.isArray(mappingValue)) {
     diagnostics.push(
       makeMappingDiagnostic(
         "mapping_coverage",
         artifactPath,
         "$.mapping",
-        "spec mapping frontmatter must define mapping.implementation and mapping.tests arrays",
+        "spec must define mapping.implementation and mapping.tests arrays",
         "mapping object",
       ),
     );
@@ -302,7 +274,7 @@ function sortMappingDiagnostics(diagnostics: MappingAuditDiagnostic[]): MappingA
 
 export function verifySpecMappings(rootDir: string): VerifySpecMappingsResult {
   const diagnostics: MappingAuditDiagnostic[] = [];
-  const specsDir = path.join(rootDir, LEGACY_SPECS_DIR);
+  const specsDir = path.join(rootDir, STRICT_SPECS_DIR);
 
   const mapped = {
     implementation: new Set<string>(),
@@ -313,10 +285,10 @@ export function verifySpecMappings(rootDir: string): VerifySpecMappingsResult {
     diagnostics.push(
       makeMappingDiagnostic(
         "mapping_input",
-        LEGACY_SPECS_DIR,
+        STRICT_SPECS_DIR,
         "$",
-        "spec mapping inputs are unavailable because .spec-driven/specs/ does not exist",
-        "existing .spec-driven/specs/ directory",
+        "spec mapping inputs are unavailable because .strict-spec-driven/specs/ does not exist",
+        "existing .strict-spec-driven/specs/ directory",
       ),
     );
   }
@@ -325,7 +297,7 @@ export function verifySpecMappings(rootDir: string): VerifySpecMappingsResult {
     diagnostics.length === 0
       ? listFilesRecursive(specsDir).filter((filePath) => {
           const basename = path.basename(filePath);
-          return basename.endsWith(".md") && !EXCLUDED_MAPPING_SPEC_BASENAMES.has(basename);
+          return basename.endsWith(".yaml") && !EXCLUDED_MAPPING_SPEC_BASENAMES.has(basename);
         })
       : [];
 
@@ -333,10 +305,10 @@ export function verifySpecMappings(rootDir: string): VerifySpecMappingsResult {
     diagnostics.push(
       makeMappingDiagnostic(
         "mapping_input",
-        LEGACY_SPECS_DIR,
+        STRICT_SPECS_DIR,
         "$",
         "spec mapping inputs are unavailable because no main spec files were found",
-        "at least one main spec markdown file",
+        "at least one main spec YAML file",
       ),
     );
   }

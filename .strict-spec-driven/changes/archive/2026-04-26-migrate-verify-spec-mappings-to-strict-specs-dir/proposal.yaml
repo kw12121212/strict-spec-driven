@@ -1,0 +1,33 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: migrate-verify-spec-mappings-to-strict-specs-dir
+  status: proposed
+summary:
+  what:
+    - Change verify-spec-mappings to read from .strict-spec-driven/specs/ (YAML) instead of .spec-driven/specs/ (Markdown).
+    - Replace Markdown frontmatter parsing with direct YAML parsing for the mapping field.
+    - Update error messages and directory-existence checks to reference .strict-spec-driven/specs/.
+    - Remove the LEGACY_SPECS_DIR constant and the Markdown-specific file extension and exclusion filters.
+  why:
+    - The legacy .spec-driven/ directory should be safe to delete after migration, but verify-spec-mappings still depends on it for spec mapping input.
+    - All spec content has already been migrated to strict YAML under .strict-spec-driven/specs/.
+    - Keeping a hard dependency on .spec-driven/ prevents clean removal of the legacy directory.
+scope:
+  in:
+    - src/cli/spec-mapping.ts — switch specs directory from .spec-driven/specs to .strict-spec-driven/specs
+    - src/cli/spec-mapping.ts — change file extension filter from .md to .yaml
+    - src/cli/spec-mapping.ts — replace Markdown frontmatter parsing with direct YAML document parsing for mapping fields
+    - src/cli/spec-mapping.ts — update diagnostic messages to reference .strict-spec-driven/specs/
+    - test/suites/operations.ts — update any verify-spec-mappings test fixtures that assume .spec-driven/specs/
+  out:
+    - Other CLI commands or modules that do not call verifySpecMappings
+    - Migration logic in src/migrate.ts
+    - The .spec-driven/ directory itself (deletion is a separate decision)
+unchanged_behavior:
+  - verify-spec-mappings still reports validity, diagnostics, and summary counts in the same JSON shape.
+  - Mapping coverage audits still check implementation and tests arrays from spec mapping fields.
+  - Unmapped evidence detection still scans src/ and test/ for candidate files.
+  - All other strict CLI commands remain unchanged.

@@ -29,6 +29,13 @@ mapping:
     - src/migrate/parsers/shared.ts
     - src/migrate/parsers/specs.ts
     - src/migrate/parsers/change-artifacts.ts
+    - src/migrate/converters/changes.ts
+    - src/migrate/converters/roadmap.ts
+    - src/migrate/converters/specs.ts
+    - src/migrate/preflight.ts
+    - src/migrate/reporting.ts
+    - src/migrate/shared.ts
+    - src/maintenance.ts
     - src/strict-spec-cli.ts
     - src/roadmap.ts
     - src/roadmap/model.ts
@@ -68,6 +75,9 @@ mapping:
     - test/suites/change-lifecycle.ts
     - test/suites/roadmap-and-migration.ts
     - test/suites/operations.ts
+    - test/fixtures/projects/todo-app/src/index.ts
+    - test/fixtures/projects/todo-app/src/todos.ts
+    - test/fixtures/projects/todo-app/test/todos.test.ts
 requirements:
   - id: cli-build-and-test-commands
     strength: MUST
@@ -797,12 +807,14 @@ requirements:
             text: diagnostics identify the failing skill or roadmap surface deterministically
   - id: cli-verify-spec-mappings-subcommand
     strength: MUST
-    statement: The system MUST provide a `verify-spec-mappings` subcommand for strict spec-mapping audits.
+    statement: >-
+      The system MUST provide a `verify-spec-mappings` subcommand for strict spec-mapping audits
+      against .strict-spec-driven/specs/.
     scenarios:
       - id: verify-spec-mappings-runs-from-repository-state
         steps:
           - kind: GIVEN
-            text: '`.spec-driven/specs/` contains one or more main spec files'
+            text: '`.strict-spec-driven/specs/` contains one or more main spec YAML files'
           - kind: WHEN
             text: '`strict-spec-driven verify-spec-mappings` is executed'
           - kind: THEN
@@ -812,7 +824,7 @@ requirements:
       - id: verify-spec-mappings-reports-missing-specs-directory
         steps:
           - kind: GIVEN
-            text: '`.spec-driven/specs/` does not exist'
+            text: '`.strict-spec-driven/specs/` does not exist'
           - kind: WHEN
             text: '`strict-spec-driven verify-spec-mappings` is executed'
           - kind: THEN
@@ -829,7 +841,7 @@ requirements:
         steps:
           - kind: GIVEN
             text: >-
-              each main spec has mapping frontmatter with non-empty implementation and test path
+              each main spec has a mapping field with non-empty implementation and test path
               collections
           - kind: WHEN
             text: '`strict-spec-driven verify-spec-mappings` is executed'
@@ -839,7 +851,7 @@ requirements:
         steps:
           - kind: GIVEN
             text: >-
-              a main spec omits mapping frontmatter or has an empty implementation or test mapping
+              a main spec omits the mapping field or has an empty implementation or test mapping
               collection
           - kind: WHEN
             text: '`strict-spec-driven verify-spec-mappings` is executed'

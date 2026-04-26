@@ -1,0 +1,68 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/spec-mapping.ts
+  tests:
+    - test/suites/change-lifecycle.ts
+operations:
+  ADDED: []
+  MODIFIED:
+    - target_requirement: cli-verify-spec-mappings-subcommand
+      replacement:
+        id: cli-verify-spec-mappings-subcommand
+        strength: MUST
+        statement: The system MUST provide a `verify-spec-mappings` subcommand for strict spec-mapping audits against .strict-spec-driven/specs/.
+        scenarios:
+          - id: verify-spec-mappings-runs-from-repository-state
+            steps:
+              - kind: GIVEN
+                text: '`.strict-spec-driven/specs/` contains one or more main spec YAML files'
+              - kind: WHEN
+                text: '`strict-spec-driven verify-spec-mappings` is executed'
+              - kind: THEN
+                text: the command runs mapping audits against available spec mapping fields
+              - kind: AND
+                text: command output is emitted as parseable JSON
+          - id: verify-spec-mappings-reports-missing-specs-directory
+            steps:
+              - kind: GIVEN
+                text: '`.strict-spec-driven/specs/` does not exist'
+              - kind: WHEN
+                text: '`strict-spec-driven verify-spec-mappings` is executed'
+              - kind: THEN
+                text: the command exits non-zero
+              - kind: AND
+                text: a diagnostic explains that spec mapping inputs are unavailable
+    - target_requirement: cli-verify-spec-mappings-audits-mapping-coverage
+      replacement:
+        id: cli-verify-spec-mappings-audits-mapping-coverage
+        strength: MUST
+        statement: >-
+          The system MUST audit mapping coverage across main spec mapping fields and report diagnostics
+          when mapping coverage is incomplete.
+        scenarios:
+          - id: mapped-implementation-and-tests-produce-no-coverage-diagnostics
+            steps:
+              - kind: GIVEN
+                text: >-
+                  each main spec has a mapping field with non-empty implementation and test path
+                  collections
+              - kind: WHEN
+                text: '`strict-spec-driven verify-spec-mappings` is executed'
+              - kind: THEN
+                text: mapping-coverage diagnostics are not emitted
+          - id: missing-mapping-coverage-produces-diagnostics
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a main spec omits the mapping field or has an empty implementation or test mapping
+                  collection
+              - kind: WHEN
+                text: '`strict-spec-driven verify-spec-mappings` is executed'
+              - kind: THEN
+                text: a diagnostic is emitted identifying the spec path and missing coverage
+  REMOVED: []

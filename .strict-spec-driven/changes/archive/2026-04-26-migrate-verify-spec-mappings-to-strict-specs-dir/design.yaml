@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: migrate-verify-spec-mappings-to-strict-specs-dir
+approach:
+  - Replace the LEGACY_SPECS_DIR constant with a STRICT_SPECS_DIR constant pointing at .strict-spec-driven/specs.
+  - Change the file extension filter in verifySpecMappings from .md to .yaml and update EXCLUDED_MAPPING_SPEC_BASENAMES to exclude INDEX.yaml instead of INDEX.md.
+  - Replace the Markdown frontmatter parsing in parseSpecMapping with direct YAML document parsing — strict YAML specs expose mapping as a top-level field, not embedded between --- delimiters.
+  - Update all diagnostic messages that reference .spec-driven/specs/ to reference .strict-spec-driven/specs/.
+decisions:
+  - Use the existing parseYamlDocument utility to parse the strict YAML spec file, then extract the .mapping field directly, instead of writing a new parser.
+  - Keep the same error-handling structure (mapping_input, mapping_coverage, unmapped_evidence sources) so downstream consumers see no output shape changes.
+  - Remove the README.md exclusion from EXCLUDED_MAPPING_SPEC_BASENAMES since strict specs use a README.md file that is not a spec artifact.
+alternatives:
+  - Keep reading from .spec-driven/specs/ as a fallback when .strict-spec-driven/specs/ is absent — rejected because it retains the legacy dependency this change is meant to remove.
+  - Support both directories simultaneously — rejected because it adds branching complexity for a transition that should be one-shot.
+risks:
+  - Repositories that have not yet run migrate will see verify-spec-mappings fail with a clear diagnostic instead of silently reading stale legacy specs. This is acceptable because the migration is a required one-time step.

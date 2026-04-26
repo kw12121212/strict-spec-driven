@@ -1856,7 +1856,7 @@ context.section("[15] verify-spec-mappings command");
 // 15a: verify-spec-mappings succeeds with complete mapping coverage and no unmapped evidence
 const verifyMappingsValidDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-mappings-valid-"));
 try {
-  mkdirSync(path.join(verifyMappingsValidDir, ".spec-driven", "specs", "cli"), { recursive: true });
+  mkdirSync(path.join(verifyMappingsValidDir, ".strict-spec-driven", "specs", "cli"), { recursive: true });
   mkdirSync(path.join(verifyMappingsValidDir, "src"), { recursive: true });
   mkdirSync(path.join(verifyMappingsValidDir, "test"), { recursive: true });
   writeFileSync(path.join(verifyMappingsValidDir, "src", "strict-spec-cli.ts"), "export {};\n", "utf8");
@@ -1864,9 +1864,8 @@ try {
   writeFileSync(path.join(verifyMappingsValidDir, "package.json"), "{\n  \"name\": \"tmp\"\n}\n", "utf8");
   writeFileSync(path.join(verifyMappingsValidDir, "tsconfig.json"), "{\n  \"compilerOptions\": {}\n}\n", "utf8");
   writeFileSync(
-    path.join(verifyMappingsValidDir, ".spec-driven", "specs", "cli", "foundation.md"),
+    path.join(verifyMappingsValidDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml"),
     [
-      "---",
       "mapping:",
       "  implementation:",
       "    - src/strict-spec-cli.ts",
@@ -1874,11 +1873,6 @@ try {
       "    - tsconfig.json",
       "  tests:",
       "    - test/run.ts",
-      "---",
-      "",
-      "# CLI Foundation",
-      "",
-      "### Requirement: sample",
     ].join("\n"),
     "utf8",
   );
@@ -1900,14 +1894,14 @@ try {
 const verifyMappingsMissingSpecsDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-mappings-missing-specs-"));
 try {
   const missingSpecsResult = cli(["verify-spec-mappings"], { cwd: verifyMappingsMissingSpecsDir });
-  context.assert(missingSpecsResult.status !== 0, "verify-spec-mappings exits non-zero when .spec-driven/specs is missing");
+  context.assert(missingSpecsResult.status !== 0, "verify-spec-mappings exits non-zero when .strict-spec-driven/specs is missing");
   const missingSpecsJson = JSON.parse(missingSpecsResult.stdout.trim());
   context.assert(missingSpecsJson.valid === false, "verify-spec-mappings missing-input output includes valid=false");
   context.assert(
     missingSpecsJson.diagnostics.some(
       (diagnostic: ValidationDiagnostic) =>
         diagnostic.source === "mapping_input" &&
-        diagnostic.message.includes(".spec-driven/specs"),
+        diagnostic.message.includes(".strict-spec-driven/specs"),
     ),
     "verify-spec-mappings reports mapping_input diagnostic when specs directory is missing",
   );
@@ -1918,7 +1912,7 @@ try {
 // 15c: verify-spec-mappings reports mapping coverage gaps and unmapped evidence
 const verifyMappingsInvalidDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-mappings-invalid-"));
 try {
-  mkdirSync(path.join(verifyMappingsInvalidDir, ".spec-driven", "specs", "cli"), { recursive: true });
+  mkdirSync(path.join(verifyMappingsInvalidDir, ".strict-spec-driven", "specs", "cli"), { recursive: true });
   mkdirSync(path.join(verifyMappingsInvalidDir, "src"), { recursive: true });
   mkdirSync(path.join(verifyMappingsInvalidDir, "test"), { recursive: true });
   writeFileSync(path.join(verifyMappingsInvalidDir, "src", "mapped.ts"), "export {};\n", "utf8");
@@ -1927,16 +1921,12 @@ try {
   writeFileSync(path.join(verifyMappingsInvalidDir, "package.json"), "{\n  \"name\": \"tmp\"\n}\n", "utf8");
   writeFileSync(path.join(verifyMappingsInvalidDir, "tsconfig.json"), "{\n  \"compilerOptions\": {}\n}\n", "utf8");
   writeFileSync(
-    path.join(verifyMappingsInvalidDir, ".spec-driven", "specs", "cli", "foundation.md"),
+    path.join(verifyMappingsInvalidDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml"),
     [
-      "---",
       "mapping:",
       "  implementation:",
       "    - src/mapped.ts",
       "  tests: []",
-      "---",
-      "",
-      "# CLI Foundation",
     ].join("\n"),
     "utf8",
   );
@@ -1968,7 +1958,7 @@ try {
 // 15d: verify-spec-mappings output is deterministic for the same repository state
 const verifyMappingsDeterministicDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-mappings-deterministic-"));
 try {
-  mkdirSync(path.join(verifyMappingsDeterministicDir, ".spec-driven", "specs", "contracts"), { recursive: true });
+  mkdirSync(path.join(verifyMappingsDeterministicDir, ".strict-spec-driven", "specs", "contracts"), { recursive: true });
   mkdirSync(path.join(verifyMappingsDeterministicDir, "src"), { recursive: true });
   mkdirSync(path.join(verifyMappingsDeterministicDir, "test"), { recursive: true });
   writeFileSync(path.join(verifyMappingsDeterministicDir, "src", "validation.ts"), "export {};\n", "utf8");
@@ -1976,9 +1966,8 @@ try {
   writeFileSync(path.join(verifyMappingsDeterministicDir, "package.json"), "{\n  \"name\": \"tmp\"\n}\n", "utf8");
   writeFileSync(path.join(verifyMappingsDeterministicDir, "tsconfig.json"), "{\n  \"compilerOptions\": {}\n}\n", "utf8");
   writeFileSync(
-    path.join(verifyMappingsDeterministicDir, ".spec-driven", "specs", "contracts", "yaml-artifacts.md"),
+    path.join(verifyMappingsDeterministicDir, ".strict-spec-driven", "specs", "contracts", "yaml-artifacts.yaml"),
     [
-      "---",
       "mapping:",
       "  implementation:",
       "    - src/validation.ts",
@@ -1986,9 +1975,6 @@ try {
       "    - tsconfig.json",
       "  tests:",
       "    - test/run.ts",
-      "---",
-      "",
-      "# Contract",
     ].join("\n"),
     "utf8",
   );
@@ -2124,20 +2110,14 @@ function runCopiedProjectLifecycleScenario(): {
     context.assert(copiedProjectMappingsJson.valid === false, "copied project workspace verify-spec-mappings reports valid=false");
     context.assert(
       copiedProjectMappingsJson.diagnostics.some(
-        (diagnostic) => diagnostic.source === "unmapped_evidence" && diagnostic.artifactPath === "package.json",
+        (diagnostic) => diagnostic.source === "mapping_input",
       ),
-      "copied project workspace verify-spec-mappings reports unmapped package.json evidence",
+      "copied project workspace verify-spec-mappings reports mapping_input diagnostic when .strict-spec-driven/specs/ is absent",
     );
     context.assert(
-      copiedProjectMappingsJson.diagnostics.some(
-        (diagnostic) => diagnostic.source === "unmapped_evidence" && diagnostic.artifactPath === "tsconfig.json",
-      ),
-      "copied project workspace verify-spec-mappings reports unmapped tsconfig.json evidence",
-    );
-    context.assert(
-      copiedProjectMappingsJson.summary.unmappedImplementationCount === 2
+      copiedProjectMappingsJson.summary.unmappedImplementationCount === 0
         && copiedProjectMappingsJson.summary.unmappedTestCount === 0,
-      "copied project workspace verify-spec-mappings reports the expected unmapped evidence counts",
+      "copied project workspace verify-spec-mappings skips evidence collection when specs dir is absent",
     );
     context.assert(
       existsSync(path.join(projectFixturePath("todo-app"), ".spec-driven", "changes", "add-due-dates", "proposal.md")),
