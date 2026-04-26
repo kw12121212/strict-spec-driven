@@ -1,0 +1,30 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: cover-strict-roadmap-details-with-regression
+  status: complete
+summary:
+  what:
+    - >-
+      Add regression coverage for strict roadmap milestones that use the optional `details` field so
+      the existing behavior is proven across roadmap validation, sync, and proposal-handoff flows.
+  why:
+    - >-
+      Milestone 10 already delivered the `details` field contract, CLI preservation,
+      proposal-handoff guidance, and migration behavior. The remaining planned change is to prove
+      those pieces hold together under the repository's regression surfaces. Without explicit
+      details-focused regression coverage, the roadmap workflow could silently drift: sync could
+      stop preserving `details`, skill guidance could stop referencing it, or the optional field
+      could start requiring placeholder data.
+scope:
+  in: []
+  out: []
+unchanged_behavior:
+  - '`details` remains an optional milestone field'
+  - '`roadmap-status` and `roadmap-sync` keep their existing command semantics'
+  - >-
+    The generic `propose` command remains milestone-agnostic; details-aware behavior stays in
+    roadmap skill guidance and regression expectations
+  - Planned change names remain the canonical proposal identities

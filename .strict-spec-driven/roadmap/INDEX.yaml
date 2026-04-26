@@ -27,3 +27,19 @@ milestones:
     title: 06 Operations And Documentation
     path: roadmap/milestones/06-operations-and-documentation.yaml
     status: complete
+  - id: 07-cli-command-surface-decomposition
+    title: 07 CLI Command Surface Decomposition
+    path: roadmap/milestones/07-cli-command-surface-decomposition.yaml
+    status: complete
+  - id: 08-workflow-domain-module-decomposition
+    title: 08 Workflow Domain Module Decomposition
+    path: roadmap/milestones/08-workflow-domain-module-decomposition.yaml
+    status: complete
+  - id: 09-repeatable-real-project-regression-tests
+    title: 09 Repeatable Real Project Regression Tests
+    path: roadmap/milestones/09-repeatable-real-project-regression-tests.yaml
+    status: complete
+  - id: 10-strict-roadmap-details-guidance
+    title: 10 Strict Roadmap Details Guidance
+    path: roadmap/milestones/10-strict-roadmap-details-guidance.yaml
+    status: complete

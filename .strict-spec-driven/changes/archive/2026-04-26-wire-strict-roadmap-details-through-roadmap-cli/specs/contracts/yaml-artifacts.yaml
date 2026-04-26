@@ -1,0 +1,44 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/roadmap/sync.ts
+    - src/converters/roadmap.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED: []
+  MODIFIED:
+    - target_requirement: yaml-roadmap-milestone-planning-model
+      replacement:
+        id: yaml-roadmap-milestone-planning-model
+        strength: MUST
+        statement: >-
+          The system MUST preserve the optional `details` field when building canonical milestone
+          artifacts during sync operations so that authored long-form planning guidance is not
+          silently discarded.
+        scenarios:
+          - id: sync-preserves-details-when-present
+            steps:
+              - kind: GIVEN
+                text: a strict roadmap milestone artifact includes a `details` field
+              - kind: WHEN
+                text: the roadmap sync operation builds the canonical milestone artifact
+              - kind: THEN
+                text: the output milestone artifact includes the same `details` content
+              - kind: AND
+                text: the `details` content is not modified or truncated
+          - id: sync-omits-details-when-absent
+            steps:
+              - kind: GIVEN
+                text: a strict roadmap milestone artifact omits the `details` field
+              - kind: WHEN
+                text: the roadmap sync operation builds the canonical milestone artifact
+              - kind: THEN
+                text: the output milestone artifact omits the `details` field
+              - kind: AND
+                text: no empty string or placeholder is emitted in its place
+  REMOVED: []

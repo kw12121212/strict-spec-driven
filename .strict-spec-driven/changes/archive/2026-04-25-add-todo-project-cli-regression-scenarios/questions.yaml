@@ -1,0 +1,19 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: add-todo-project-cli-regression-scenarios
+open: []
+resolved:
+  - id: >-
+      should-this-proposal-cover-only-the-explicitly-named-cli-scenarios-from-milestone-09-or-also-include-additional-cli-commands-now
+    question: >-
+      Should this proposal cover only the explicitly named CLI scenarios from milestone 09 or also
+      include additional CLI commands now?
+    context: >-
+      This sets the proposal boundary for the first project-fixture CLI regression slice and
+      determines how much milestone-09 scenario expansion is bundled into one change.
+    answer: >-
+      Cover only the explicitly named commands: `init`, `propose`, `list`, `modify`, `cancel`, and
+      `verify-spec-mappings`.
+    status: resolved

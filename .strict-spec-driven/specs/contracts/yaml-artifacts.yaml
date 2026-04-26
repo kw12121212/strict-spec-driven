@@ -8,6 +8,7 @@ spec:
 mapping:
   implementation:
     - package.json
+    - src/converters/roadmap.ts
     - src/migrate.ts
     - src/scaffold.ts
     - templates/strict-spec-driven/schemas/schema-registry.yaml
@@ -54,6 +55,7 @@ mapping:
     - RTK.md
   tests:
     - test/run.ts
+    - test/suites/roadmap-and-migration.ts
 requirements:
   - id: yaml-artifact-schema-coverage
     strength: MUST
@@ -659,7 +661,8 @@ requirements:
     strength: MUST
     statement: >-
       The system MUST represent roadmap milestone planning state through structured YAML fields for
-      goal, scope, done criteria, dependencies, risks, status, notes, and planned change entries.
+      goal, scope, done criteria, dependencies, risks, status, notes, planned change entries, and an
+      optional `details` field for long-form planning guidance.
     scenarios:
       - id: roadmap-milestone-exposes-planning-sections-as-fields
         steps:
@@ -689,6 +692,50 @@ requirements:
             text: the milestone status is inspected
           - kind: THEN
             text: the declared status is limited to `proposed`, `active`, `blocked`, or `complete`
+      - id: roadmap-milestone-exposes-details-as-optional-long-form-field
+        steps:
+          - kind: GIVEN
+            text: a strict roadmap milestone artifact is reviewed
+          - kind: WHEN
+            text: its `details` field is inspected
+          - kind: THEN
+            text: the details content is available as an optional string field
+          - kind: AND
+            text: the details content is freeform text suitable for YAML block scalar representation
+          - kind: AND
+            text: >-
+              the details field is clearly distinct from short `notes` entries and concrete
+              `planned_changes`
+      - id: milestones-without-details-remain-valid
+        steps:
+          - kind: GIVEN
+            text: a strict roadmap milestone artifact omits the `details` field
+          - kind: WHEN
+            text: the artifact is validated
+          - kind: THEN
+            text: no validation failure is emitted for the missing `details` field
+          - kind: AND
+            text: the milestone remains fully valid
+      - id: sync-preserves-details-when-present
+        steps:
+          - kind: GIVEN
+            text: a strict roadmap milestone artifact includes a `details` field
+          - kind: WHEN
+            text: the roadmap sync operation builds the canonical milestone artifact
+          - kind: THEN
+            text: the output milestone artifact includes the same `details` content
+          - kind: AND
+            text: the `details` content is not modified or truncated
+      - id: sync-omits-details-when-absent
+        steps:
+          - kind: GIVEN
+            text: a strict roadmap milestone artifact omits the `details` field
+          - kind: WHEN
+            text: the roadmap sync operation builds the canonical milestone artifact
+          - kind: THEN
+            text: the output milestone artifact omits the `details` field
+          - kind: AND
+            text: no empty string or placeholder is emitted in its place
   - id: yaml-planned-change-entry-dependency-model
     strength: MUST
     statement: >-
@@ -810,7 +857,8 @@ requirements:
     statement: >-
       The system MUST ensure roadmap recommendation and roadmap proposal-handoff behavior convert
       exactly one planned change into a normal strict change scaffold without duplicating
-      roadmap-only planning metadata inside the change artifacts.
+      roadmap-only planning metadata inside the change artifacts, and MUST read the owning
+      milestone's `details` field as targeted planning guidance when populating change artifacts.
     scenarios:
       - id: roadmap-recommendation-hands-off-one-planned-change-to-strict-propose
         steps:
@@ -834,6 +882,32 @@ requirements:
             text: the resulting change uses the planned change name as its change identity
           - kind: AND
             text: the roadmap artifact remains the canonical home of milestone-level planning metadata
+      - id: roadmap-proposal-handoff-consumes-milestone-details
+        steps:
+          - kind: GIVEN
+            text: a roadmap milestone includes a planned change and a `details` field
+          - kind: WHEN
+            text: the strict roadmap proposal handoff scaffolds a strict change
+          - kind: THEN
+            text: >-
+              the skill reads the milestone `details` field as context for populating the change
+              artifacts
+          - kind: AND
+            text: >-
+              the change artifacts reflect guidance extracted from `details` without copying the
+              full milestone plan
+      - id: roadmap-proposal-handoff-works-without-milestone-details
+        steps:
+          - kind: GIVEN
+            text: a roadmap milestone includes a planned change but omits the `details` field
+          - kind: WHEN
+            text: the strict roadmap proposal handoff scaffolds a strict change
+          - kind: THEN
+            text: >-
+              the change artifacts are populated using only the planned change entry and milestone
+              goal
+          - kind: AND
+            text: the absence of `details` does not cause a failure or placeholder content
   - id: yaml-task-testing-gates
     strength: MUST
     statement: >-
@@ -1394,7 +1468,8 @@ requirements:
     strength: MUST
     statement: >-
       The system MUST require migration behavior to preserve supported workflow relationships when
-      converting legacy `.spec-driven/` Markdown artifacts into strict YAML artifacts.
+      converting legacy `.spec-driven/` Markdown artifacts into strict YAML artifacts, including the
+      optional `details` field on roadmap milestones.
     scenarios:
       - id: migration-preserves-change-relationships
         steps:
@@ -1416,6 +1491,26 @@ requirements:
             text: planned change entries remain associated with their owning milestone
           - kind: AND
             text: archived or active change state can still be reconciled by change name
+      - id: migration-preserves-milestone-details
+        steps:
+          - kind: GIVEN
+            text: a legacy roadmap milestone Markdown artifact contains a `## Details` section
+          - kind: WHEN
+            text: migration converts the milestone to a strict YAML roadmap milestone artifact
+          - kind: THEN
+            text: the converted artifact includes the `details` field with the section content
+          - kind: AND
+            text: the `details` content matches the original Markdown section text
+      - id: migration-omits-details-when-absent-in-legacy-milestone
+        steps:
+          - kind: GIVEN
+            text: a legacy roadmap milestone Markdown artifact does not contain a `## Details` section
+          - kind: WHEN
+            text: migration converts the milestone to a strict YAML roadmap milestone artifact
+          - kind: THEN
+            text: the converted artifact omits the `details` field
+          - kind: AND
+            text: no empty string or placeholder is emitted in its place
   - id: yaml-migration-unsupported-shape-reporting
     strength: MUST
     statement: >-

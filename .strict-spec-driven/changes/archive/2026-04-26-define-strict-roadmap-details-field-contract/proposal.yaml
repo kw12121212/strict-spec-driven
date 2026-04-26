@@ -1,0 +1,30 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: define-strict-roadmap-details-field-contract
+  status: complete
+summary:
+  what:
+    - >-
+      Add a dedicated `details` field to the strict roadmap milestone schema, examples, templates,
+      and schema registry so milestone authors can capture long-form technical and design guidance
+      without overloading `notes` or `planned_changes`.
+  why:
+    - >-
+      Milestone `notes` is a short string array for brief remarks. `planned_changes` is a concrete
+      work list. There is no place for long-form planning guidance (design rationale, architectural
+      constraints, migration considerations) that roadmap-backed proposals should consume as
+      targeted context. Currently this content either gets stuffed into `notes` or lives outside the
+      milestone artifact entirely, making it invisible to the workflow.
+scope:
+  in: []
+  out: []
+unchanged_behavior:
+  - >-
+    Existing milestone validation, status derivation, and sync behavior must continue to work
+    unchanged when `details` is absent
+  - The `notes` field remains required and unchanged in semantics
+  - The `planned_changes` field remains required and unchanged in semantics
+  - Schema version stays at v1 (adding an optional field is a compatible change)

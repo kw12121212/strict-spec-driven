@@ -1,0 +1,46 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: extract-cli-change-discovery-and-status
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Create `src/cli/fs.ts` with `listDirectoryNames`, `listYamlFiles`, `listFilesRecursive`,
+          `normalizeRepoRelativePath`, and `normalizePathSeparators` extracted verbatim from
+          `src/strict-spec-cli.ts`
+        status: complete
+      - id: implementation-2
+        text: >-
+          Create `src/cli/changes.ts` with `getChangesDir`, `getArchiveDir`,
+          `readActiveChangeStatus`, `listActiveChanges`, `listArchivedChanges`, and
+          `findArchivedMatchesByBareName` extracted from `src/strict-spec-cli.ts`, importing shared
+          helpers from `src/cli/fs.ts`
+        status: complete
+      - id: implementation-3
+        text: >-
+          Remove the extracted function definitions from `src/strict-spec-cli.ts` and replace with
+          imports from `src/cli/changes.ts` and `src/cli/fs.ts`
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — typecheck and compile the extracted modules end-to-end
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: >-
+          Run `bun test/run.ts` — run unit tests to confirm list, modify, cancel, and ship command
+          behavior is unchanged after the extraction
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

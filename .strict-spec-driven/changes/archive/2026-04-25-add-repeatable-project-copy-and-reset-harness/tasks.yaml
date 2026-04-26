@@ -1,0 +1,47 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-repeatable-project-copy-and-reset-harness
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Add shared test helpers for creating a fresh copied todo-project workspace, running
+          commands in that workspace, and cleaning it up deterministically.
+        status: complete
+      - id: implementation-2
+        text: >-
+          Update project-level regression coverage to use the copied-workspace harness wherever
+          scenarios require mutable repository state.
+        status: complete
+      - id: implementation-3
+        text: >-
+          Add repeatability assertions that prove copied-workspace runs do not mutate the committed
+          fixture baseline and can be rerun cleanly.
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: >-
+          Run `bun run build` — build validation for the copied-fixture harness and related test
+          helpers.
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: >-
+          Run `bun test/run.ts` — unit tests for copied-fixture harness behavior and repeatable
+          project-level scenarios.
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: >-
+          Verify implementation matches proposal scope and preserves existing CLI and artifact
+          behavior.
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

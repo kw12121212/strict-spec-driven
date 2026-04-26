@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: proposal-split-migration-builders-and-converters
+  status: complete
+summary:
+  what:
+    - >-
+      Extract the five converter-coordinator functions (`convertLegacySpecArtifacts`,
+      `convertLegacyChangeArtifacts`, `convertLegacyRoadmapArtifacts`, `convertLegacySpecsIndex`,
+      `regenerateStrictSpecIndex`) and their supporting file-I/O, path, and deferred-artifact
+      helpers from `src/migrate.ts` into focused modules under `src/migrate/converters/` and
+      `src/migrate/shared.ts`.
+  why:
+    - >-
+      `src/migrate.ts` is still ~972 lines after parser extraction. About 350 lines are
+      builder/converter logic that iterates legacy files, calls parsers, writes strict YAML, and
+      tracks conversion results. Separating these coordinators into focused modules leaves
+      `src/migrate.ts` as a thin orchestration layer (preflight, converter dispatch, result sorting)
+      and makes the next split (reporting and orchestration) straightforward.
+scope:
+  in: []
+  out: []
+unchanged_behavior:
+  - Migration command output, report structure, and exit codes remain identical.
+  - Diagnostic ordering stays deterministic.
+  - No new public exports are added beyond what already exists.
+  - '`src/converters/roadmap.ts` (pure conversion logic) is not modified.'
+  - '`src/migrate/parsers/` modules are not modified.'

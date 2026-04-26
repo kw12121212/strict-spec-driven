@@ -1,0 +1,37 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: split-skill-packaging-parser-rules-and-fs-checks
+  status: complete
+summary:
+  what:
+    - >-
+      Extract the five distinct validation responsibilities concentrated in `src/skills.ts` (986
+      lines) into focused modules under `src/skills/`, leaving `src/skills.ts` as a thin
+      orchestrator that imports and delegates to those modules. The five extracted modules are:
+    - '`src/skills/model.ts` — shared types, constants, and the `makeDiagnostic` factory'
+    - '`src/skills/frontmatter.ts` — frontmatter field parsing and legacy reference validation'
+    - '`src/skills/content.ts` — skill-content expectation checks and command-section validation'
+    - '`src/skills/fs-checks.ts` — symlink validation and marketplace metadata validation'
+    - '`src/skills/diagnostics.ts` — diagnostic sorting and aggregation'
+  why:
+    - >-
+      `src/skills.ts` is the next monolithic domain file remaining after the roadmap split completed
+      in `split-roadmap-load-validate-derive-sync`. At 986 lines it mixes five unrelated validation
+      concerns in one file, making each independently hard to locate, reason about, or extend
+      without risk of unintended coupling. The decomposition pattern established for `src/roadmap/`
+      (model → shared → load → validate → status → sync) applies here and keeps the same external
+      behavior while reducing coordination burden.
+scope:
+  in: []
+  out: []
+unchanged_behavior:
+  - '`validate-skills` CLI output structure and exit codes must be byte-identical before and after'
+  - >-
+    Diagnostic ordering produced by skill validation must remain deterministic and match pre-split
+    ordering
+  - >-
+    All existing test scenarios in `test/suites/entrypoint-and-skills.ts` must continue to pass
+    without modification to their assertions

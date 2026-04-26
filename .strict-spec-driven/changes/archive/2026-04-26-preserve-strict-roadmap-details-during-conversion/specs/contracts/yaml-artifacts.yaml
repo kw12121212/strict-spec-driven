@@ -1,0 +1,45 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/converters/roadmap.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED: []
+  MODIFIED:
+    - target_requirement: yaml-migration-relationship-preservation
+      replacement:
+        id: yaml-migration-relationship-preservation
+        strength: MUST
+        statement: >-
+          The system MUST require migration behavior to preserve supported workflow relationships
+          when converting legacy `.spec-driven/` Markdown artifacts into strict YAML artifacts,
+          including the optional `details` field on roadmap milestones.
+        scenarios:
+          - id: migration-preserves-milestone-details
+            steps:
+              - kind: GIVEN
+                text: a legacy roadmap milestone Markdown artifact contains a `## Details` section
+              - kind: WHEN
+                text: migration converts the milestone to a strict YAML roadmap milestone artifact
+              - kind: THEN
+                text: the converted artifact includes the `details` field with the section content
+              - kind: AND
+                text: the `details` content matches the original Markdown section text
+          - id: migration-omits-details-when-absent-in-legacy-milestone
+            steps:
+              - kind: GIVEN
+                text: >-
+                  a legacy roadmap milestone Markdown artifact does not contain a `## Details`
+                  section
+              - kind: WHEN
+                text: migration converts the milestone to a strict YAML roadmap milestone artifact
+              - kind: THEN
+                text: the converted artifact omits the `details` field
+              - kind: AND
+                text: no empty string or placeholder is emitted in its place
+  REMOVED: []

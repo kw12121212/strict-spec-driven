@@ -1,0 +1,52 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-roadmap-propose/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED: []
+  MODIFIED:
+    - target_requirement: strict-roadmap-proposal-handoff-contract
+      replacement:
+        id: strict-roadmap-proposal-handoff-contract
+        strength: MUST
+        statement: >-
+          The system MUST ensure roadmap recommendation and roadmap proposal-handoff behavior
+          convert exactly one planned change into a normal strict change scaffold without
+          duplicating roadmap-only planning metadata inside the change artifacts, and MUST read the
+          owning milestone's `details` field as targeted planning guidance when populating change
+          artifacts.
+        scenarios:
+          - id: roadmap-proposal-handoff-consumes-milestone-details
+            steps:
+              - kind: GIVEN
+                text: a roadmap milestone includes a planned change and a `details` field
+              - kind: WHEN
+                text: the strict roadmap proposal handoff scaffolds a strict change
+              - kind: THEN
+                text: >-
+                  the skill reads the milestone `details` field as context for populating the change
+                  artifacts
+              - kind: AND
+                text: >-
+                  the change artifacts reflect guidance extracted from `details` without copying the
+                  full milestone plan
+          - id: roadmap-proposal-handoff-works-without-milestone-details
+            steps:
+              - kind: GIVEN
+                text: a roadmap milestone includes a planned change but omits the `details` field
+              - kind: WHEN
+                text: the strict roadmap proposal handoff scaffolds a strict change
+              - kind: THEN
+                text: >-
+                  the change artifacts are populated using only the planned change entry and
+                  milestone goal
+              - kind: AND
+                text: the absence of `details` does not cause a failure or placeholder content
+  REMOVED: []

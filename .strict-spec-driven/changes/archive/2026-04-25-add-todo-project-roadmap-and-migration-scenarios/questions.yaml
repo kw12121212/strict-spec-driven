@@ -1,0 +1,24 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: add-todo-project-roadmap-and-migration-scenarios
+open: []
+resolved:
+  - id: what-should-the-recommendation-optimize-for-when-choosing-the-next-roadmap-change
+    question: What should the recommendation optimize for when choosing the next roadmap change?
+    context: >-
+      This determines whether the next proposal should prioritize dependency order, impact, urgency,
+      or risk reduction.
+    answer: Optimize for dependency order.
+    status: resolved
+  - id: >-
+      should-the-proposal-be-scaffolded-for-add-todo-project-roadmap-and-migration-scenarios-from-milestone-09
+    question: >-
+      Should the proposal be scaffolded for `add-todo-project-roadmap-and-migration-scenarios` from
+      milestone 09?
+    context: >-
+      The roadmap recommendation flow requires explicit confirmation before creating proposal
+      artifacts.
+    answer: Yes.
+    status: resolved

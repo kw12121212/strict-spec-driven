@@ -1,0 +1,57 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/changes.ts
+    - src/cli/fs.ts
+    - src/strict-spec-cli.ts
+  tests:
+    - test/run.ts
+    - test/suites/operations.ts
+operations:
+  ADDED: []
+  MODIFIED:
+    - target_requirement: cli-list-reports-active-and-archived-strict-changes
+      replacement:
+        id: cli-list-reports-active-and-archived-strict-changes
+        strength: MUST
+        statement: >-
+          The system MUST provide a `list` subcommand that reports active and archived strict
+          changes from `.strict-spec-driven/changes/`.
+        scenarios:
+          - id: list-reports-active-changes
+            steps:
+              - kind: GIVEN
+                text: >-
+                  one or more active strict change directories exist under
+                  `.strict-spec-driven/changes/`
+              - kind: WHEN
+                text: '`strict-spec-driven list` is executed'
+              - kind: THEN
+                text: the command output includes active change names
+              - kind: AND
+                text: >-
+                  each active change includes a status summary derived from strict planning
+                  artifacts
+          - id: list-reports-archived-changes
+            steps:
+              - kind: GIVEN
+                text: >-
+                  one or more archived strict change directories exist under
+                  `.strict-spec-driven/changes/archive/`
+              - kind: WHEN
+                text: '`strict-spec-driven list` is executed'
+              - kind: THEN
+                text: the command output includes archived directory names
+          - id: list-handles-empty-state
+            steps:
+              - kind: GIVEN
+                text: no active and no archived strict changes exist
+              - kind: WHEN
+                text: '`strict-spec-driven list` is executed'
+              - kind: THEN
+                text: the command reports that no changes are present
+  REMOVED: []

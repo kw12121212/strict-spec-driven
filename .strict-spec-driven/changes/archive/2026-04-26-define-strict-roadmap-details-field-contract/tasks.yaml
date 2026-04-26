@@ -1,0 +1,47 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: define-strict-roadmap-details-field-contract
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Add optional `details` field definition to
+          `templates/strict-spec-driven/schemas/roadmap-milestone.yaml`
+        status: complete
+      - id: implementation-2
+        text: 'Add `details?: string` to `RoadmapMilestoneArtifact` type in `src/roadmap/model.ts`'
+        status: complete
+      - id: implementation-3
+        text: Add optional string validation for `details` in `src/roadmap/validate.ts`
+        status: complete
+      - id: implementation-4
+        text: >-
+          Update `templates/strict-spec-driven/examples/roadmap-milestone.yaml` to demonstrate
+          `details`
+        status: complete
+      - id: implementation-5
+        text: >-
+          Update `templates/strict-spec-driven/examples/roadmap-milestone.planning.yaml` to include
+          `details`
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — build to verify TypeScript compilation
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: Run `bun test/run.ts` — unit tests to verify validation and schema behavior
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

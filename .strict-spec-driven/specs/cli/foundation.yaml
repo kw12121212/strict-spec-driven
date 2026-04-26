@@ -10,10 +10,33 @@ mapping:
     - package.json
     - install.sh
     - tsconfig.json
+    - src/cli/argv.ts
+    - src/cli/changes.ts
+    - src/cli/cmd-change.ts
+    - src/cli/output.ts
+    - src/cli/cmd-migration.ts
+    - src/cli/cmd-operations.ts
+    - src/cli/cmd-roadmap.ts
+    - src/cli/cmd-scaffold.ts
+    - src/cli/entrypoint.ts
+    - src/cli/fs.ts
+    - src/cli/registry.ts
+    - src/cli/spec-mapping.ts
+    - src/cli/usage.ts
     - src/converters/roadmap.ts
+    - src/diagnostics.ts
     - src/migrate.ts
+    - src/migrate/parsers/shared.ts
+    - src/migrate/parsers/specs.ts
+    - src/migrate/parsers/change-artifacts.ts
     - src/strict-spec-cli.ts
     - src/roadmap.ts
+    - src/roadmap/model.ts
+    - src/roadmap/shared.ts
+    - src/roadmap/validate.ts
+    - src/roadmap/load.ts
+    - src/roadmap/status.ts
+    - src/roadmap/sync.ts
     - src/archive.ts
     - src/scaffold.ts
     - src/validation.ts
@@ -22,6 +45,11 @@ mapping:
     - src/verify.ts
     - src/review.ts
     - src/skills.ts
+    - src/skills/model.ts
+    - src/skills/frontmatter.ts
+    - src/skills/content.ts
+    - src/skills/fs-checks.ts
+    - src/skills/diagnostics.ts
     - skills/strict-spec-ship/SKILL.md
     - templates/strict-spec-driven/scaffold/config.yaml
     - templates/strict-spec-driven/scaffold/changes/proposal.yaml
@@ -34,6 +62,12 @@ mapping:
     - templates/strict-spec-driven/scaffold/changes/STATE.yaml
   tests:
     - test/run.ts
+    - test/support/harness.ts
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/change-lifecycle.ts
+    - test/suites/roadmap-and-migration.ts
+    - test/suites/operations.ts
 requirements:
   - id: cli-build-and-test-commands
     strength: MUST
@@ -719,18 +753,36 @@ requirements:
     strength: MUST
     statement: >-
       The system MUST include automated checks that exercise strict roadmap command behavior and
-      strict roadmap skill content for both aligned and failing states.
+      strict roadmap skill content for both aligned and failing states, including regression
+      coverage for milestones that use the optional `details` field across roadmap validation, sync,
+      and proposal-handoff flows.
     scenarios:
-      - id: automated-checks-accept-aligned-roadmap-workflow-surfaces
+      - id: automated-checks-accept-details-bearing-roadmap-workflow-surfaces
         steps:
           - kind: GIVEN
             text: >-
               strict roadmap commands and `strict-roadmap-*` skill packages are aligned with
               `.strict-spec-driven/roadmap/`
+          - kind: AND
+            text: a milestone includes a valid `details` field
           - kind: WHEN
             text: repository automated checks are executed
           - kind: THEN
             text: the roadmap workflow checks pass
+      - id: automated-checks-accept-milestones-without-details
+        steps:
+          - kind: GIVEN
+            text: >-
+              strict roadmap commands and `strict-roadmap-*` skill packages are aligned with
+              `.strict-spec-driven/roadmap/`
+          - kind: AND
+            text: a milestone omits the optional `details` field
+          - kind: WHEN
+            text: repository automated checks are executed
+          - kind: THEN
+            text: the roadmap workflow checks pass
+          - kind: AND
+            text: no placeholder or synthetic `details` value is required
       - id: automated-checks-reject-placeholder-or-stale-roadmap-surfaces
         steps:
           - kind: GIVEN
@@ -1226,7 +1278,8 @@ requirements:
     strength: MUST
     statement: >-
       The system MUST include automated checks that exercise strict skill packaging validation
-      behavior for both passing and failing package states.
+      behavior for both passing and failing package states, with validation logic sourced from
+      focused modules under `src/skills/` rather than a single monolithic file.
     scenarios:
       - id: packaging-checks-confirm-valid-strict-package-state
         steps:
@@ -1388,8 +1441,10 @@ requirements:
       The system MUST provide a `migrate` subcommand that reads legacy `.spec-driven/` workflow
       state and migrates supported bootstrap config, main specs, delta specs, active and archived
       change artifacts, roadmap index, roadmap milestones, and the specs index into strict YAML
-      output under `.strict-spec-driven/`, initializes any remaining required strict scaffold
-      assets, and reports only unsupported or ambiguous legacy artifacts as manual follow-up items.
+      output under `.strict-spec-driven/`, with legacy Markdown parsing for specs and change
+      artifacts sourced from focused modules under `src/migrate/parsers/`, initializes any remaining
+      required strict scaffold assets, and reports only unsupported or ambiguous legacy artifacts as
+      manual follow-up items.
     scenarios:
       - id: migrate-converts-legacy-specs-and-change-artifacts-into-strict-workflow-state
         steps:
@@ -1549,6 +1604,50 @@ requirements:
             text: the command exits zero
           - kind: AND
             text: the result matches the structured migration report from the initial successful run
+  - id: cli-domain-diagnostic-ordering-stability
+    strength: MUST
+    statement: >-
+      The system MUST preserve deterministic ordering for roadmap, skill-validation, and migration
+      diagnostics or report collections even when their implementation is distributed across focused
+      modules under `src/skills/`, `src/migrate/parsers/`, and shared helpers in
+      `src/diagnostics.ts`.
+    scenarios:
+      - id: roadmap-diagnostics-keep-stable-ordering-across-repeated-runs
+        steps:
+          - kind: GIVEN
+            text: strict roadmap artifacts produce multiple validation diagnostics
+          - kind: WHEN
+            text: >-
+              `strict-spec-driven roadmap-status` is executed repeatedly against the same repository
+              state
+          - kind: THEN
+            text: the diagnostics appear in the same order each time
+          - kind: AND
+            text: each diagnostic still identifies the invalid artifact and field context
+      - id: skill-validation-diagnostics-keep-stable-ordering-across-repeated-runs
+        steps:
+          - kind: GIVEN
+            text: strict skill packaging or content validation produces multiple diagnostics
+          - kind: WHEN
+            text: >-
+              `strict-spec-driven validate-skills` is executed repeatedly against the same
+              repository state
+          - kind: THEN
+            text: the diagnostics appear in the same order each time
+          - kind: AND
+            text: the JSON result keeps the same diagnostic field shape and summary counts
+      - id: migration-report-collections-keep-stable-ordering-across-repeated-runs
+        steps:
+          - kind: GIVEN
+            text: >-
+              bootstrap migration produces multiple warnings, errors, skipped entries, or manual
+              follow-up items
+          - kind: WHEN
+            text: '`strict-spec-driven migrate` is executed repeatedly against the same repository state'
+          - kind: THEN
+            text: each report collection keeps deterministic ordering across runs
+          - kind: AND
+            text: shared diagnostic helpers do not invent, drop, or reorder entries nondeterministically
   - id: cli-migrate-report-collections-are-always-arrays
     strength: MUST
     statement: >-
@@ -1754,3 +1853,30 @@ requirements:
             text: the ship skill content checks fail
           - kind: AND
             text: diagnostics identify the failing skill package deterministically
+  - id: cli-shared-output-helpers
+    strength: MUST
+    statement: >-
+      The system MUST provide a shared `src/cli/output.ts` module with typed helpers for writing
+      JSON, human-readable text, usage hints, and error messages to stdout and stderr so command
+      modules do not call `process.stdout.write` or `process.stderr.write` directly.
+    scenarios:
+      - id: json-output-is-written-through-shared-helper
+        steps:
+          - kind: GIVEN
+            text: a CLI command produces a structured result
+          - kind: WHEN
+            text: the command writes its result
+          - kind: THEN
+            text: the JSON is written via the shared `writeJson` helper
+          - kind: AND
+            text: the output format is identical to the pre-centralization behavior
+      - id: error-output-is-written-through-shared-helpers
+        steps:
+          - kind: GIVEN
+            text: a CLI command encounters a usage or runtime error
+          - kind: WHEN
+            text: the command writes its error or usage hint
+          - kind: THEN
+            text: the message is written via `writeUsage` or `writeError` as appropriate
+          - kind: AND
+            text: the stderr format is identical to the pre-centralization behavior

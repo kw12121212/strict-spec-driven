@@ -1,0 +1,41 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: cover-strict-roadmap-details-with-regression
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Extend `test/suites/roadmap-and-migration.ts` to cover `details`-aware roadmap validation,
+          sync, and proposal-handoff regression paths
+        status: complete
+      - id: implementation-2
+        text: >-
+          Add or refine roadmap fixtures and skill assertions so milestones with `details` are
+          preserved correctly and milestones without `details` stay valid without placeholders
+        status: complete
+      - id: implementation-3
+        text: >-
+          Update the `cli/foundation` delta spec to make details-focused roadmap regression coverage
+          explicit
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — build to verify TypeScript compilation
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: Run `bun test/run.ts` — run unit tests including roadmap and migration coverage
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

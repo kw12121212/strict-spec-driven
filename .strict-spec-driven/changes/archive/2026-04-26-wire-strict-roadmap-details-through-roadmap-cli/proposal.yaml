@@ -1,0 +1,36 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: wire-strict-roadmap-details-through-roadmap-cli
+  status: complete
+summary:
+  what:
+    - >-
+      Preserve the `details` field through strict roadmap sync, canonical artifact emission, and the
+      converter type so that milestone-level long-form planning guidance survives roadmap CLI
+      operations instead of being silently dropped.
+  why:
+    - >-
+      The previous change (`define-strict-roadmap-details-field-contract`) added `details` to the
+      model type, schema, and validation layer. However, `buildCanonicalMilestoneArtifact()` in
+      `sync.ts` does not copy `details` to its output, so every sync operation silently discards the
+      field. The converter type in `src/converters/roadmap.ts` also lacks `details`, which will
+      block future conversion work. Without this change, any `details` content authored in a
+      milestone file is lost the first time the roadmap syncs.
+scope:
+  in: []
+  out: []
+unchanged_behavior:
+  - >-
+    Milestones without `details` must continue to validate, sync, and emit canonical artifacts
+    exactly as before
+  - >-
+    Status derivation (`RoadmapMilestoneStatus`) does not carry `details` — it tracks derived state,
+    not artifact content
+  - >-
+    The migration converter output for legacy Markdown milestones still omits `details` (legacy
+    format has no `## Details` section; that belongs to the separate
+    `preserve-strict-roadmap-details-during-conversion` change)
+  - Schema version remains v1 (no breaking change)

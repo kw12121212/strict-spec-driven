@@ -1,0 +1,53 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: stabilize-cli-output-contracts
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Create `src/cli/output.ts` with `writeJson`, `writeOut`, `writeErr`, `writeUsage`, and
+          `writeError` helpers
+        status: complete
+      - id: implementation-2
+        text: Update `cmd-change.ts` to use output helpers from `src/cli/output.ts`
+        status: complete
+      - id: implementation-3
+        text: Update `cmd-migration.ts` to use output helpers from `src/cli/output.ts`
+        status: complete
+      - id: implementation-4
+        text: Update `cmd-operations.ts` to use output helpers from `src/cli/output.ts`
+        status: complete
+      - id: implementation-5
+        text: Update `cmd-roadmap.ts` to use output helpers from `src/cli/output.ts`
+        status: complete
+      - id: implementation-6
+        text: Update `cmd-scaffold.ts` to use output helpers from `src/cli/output.ts`
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — typecheck and validate compiled output
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: >-
+          Run `bun test/run.ts` — unit tests confirm no observable output change across all
+          subcommands
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+      - id: verification-2
+        text: >-
+          Verify no direct `process.stdout.write` or `process.stderr.write` calls remain in any
+          `cmd-*.ts` file
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

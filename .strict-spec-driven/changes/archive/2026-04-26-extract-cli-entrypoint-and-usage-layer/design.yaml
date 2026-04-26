@@ -1,0 +1,50 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: extract-cli-entrypoint-and-usage-layer
+approach:
+  - >-
+    Introduce focused CLI entry modules responsible only for normalizing argv, rendering usage text,
+    and converting top-level command results into final process exit behavior.
+  - >-
+    Keep the existing command table and command implementations behaviorally intact in this change,
+    moving only the entry-facing code needed to make the `run()` path and executable bootstrap in
+    `src/strict-spec-cli.ts` thin.
+  - >-
+    Extend current CLI regression coverage around no-arg invocation, unknown subcommands, and
+    successful dispatch so the refactor is proven against the existing command contract.
+decisions:
+  - id: >-
+      limit-this-change-to-entrypoint-concerns-instead-of-mixing-it-with-command-registry-or-dispatch-extraction
+    decision: >-
+      Limit this change to entrypoint concerns instead of mixing it with command registry or
+      dispatch extraction.
+    rationale: That keeps the first milestone-07 slice small and preserves the intended decomposition order.
+  - id: >-
+      treat-this-proposal-as-behavior-preserving-internal-modularization-so-the-delta-spec-directory-can-stay-empty-unless-implementation-uncovers-a-real-observable-cli-contract-change
+    decision: >-
+      Treat this proposal as behavior-preserving internal modularization, so the delta spec
+      directory can stay empty unless implementation uncovers a real observable CLI contract change.
+    rationale: >-
+      Treat this proposal as behavior-preserving internal modularization, so the delta spec
+      directory can stay empty unless implementation uncovers a real observable CLI contract change.
+  - id: >-
+      preserve-the-current-command-inventory-and-usage-text-behavior-as-the-source-of-truth-during-extraction-to-avoid-accidental-surface-drift-in-the-first-cli-split
+    decision: >-
+      Preserve the current command inventory and usage-text behavior as the source of truth during
+      extraction to avoid accidental surface drift in the first CLI split.
+    rationale: >-
+      Preserve the current command inventory and usage-text behavior as the source of truth during
+      extraction to avoid accidental surface drift in the first CLI split.
+alternatives:
+  - option: Start with `extract-cli-command-registry-and-dispatch`.
+    reason: >-
+      Rejected because registry extraction is cleaner after the entrypoint layer stops owning top-
+      level usage and exit handling.
+  - option: Finish `prove-todo-project-suite-repeatability` first.
+    reason: >-
+      Rejected for this recommendation because the optimization goal is dependency order, and
+      milestone 08 is directly downstream of milestone 07.
+  - option: Skip straight to `split-roadmap-load-validate-derive-sync`.
+    reason: Rejected because milestone 08 explicitly depends on milestone 07.

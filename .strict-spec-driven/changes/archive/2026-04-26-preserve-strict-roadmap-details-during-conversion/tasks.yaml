@@ -1,0 +1,37 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: preserve-strict-roadmap-details-during-conversion
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Add `## Details` section extraction to `convertRoadmapMilestone` in
+          `src/converters/roadmap.ts` using `parseSectionText`, conditionally including `details` in
+          the returned artifact when present and non-empty
+        status: complete
+      - id: implementation-2
+        text: >-
+          Add or update a test fixture Markdown milestone file under
+          `test/fixtures/roadmap/milestones/` that includes a `## Details` section
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — build validation
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: Run `bun test/run.ts` — unit tests covering details extraction (present, absent, empty)
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

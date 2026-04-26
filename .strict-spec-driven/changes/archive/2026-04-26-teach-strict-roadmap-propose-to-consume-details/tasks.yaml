@@ -1,0 +1,36 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: teach-strict-roadmap-propose-to-consume-details
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Update `skills/strict-roadmap-propose/SKILL.md` to add a step reading milestone `details`
+          and using it as context when filling change artifacts
+        status: complete
+      - id: implementation-2
+        text: >-
+          Update `skills/strict-roadmap-recommend/SKILL.md` to read milestone `details` as part of
+          recommendation context and proposal scaffolding
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — build to verify TypeScript compilation
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: Run `bun test/run.ts` — run unit tests including roadmap suite
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

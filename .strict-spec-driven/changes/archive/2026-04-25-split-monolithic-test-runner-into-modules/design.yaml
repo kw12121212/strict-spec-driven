@@ -1,0 +1,48 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: split-monolithic-test-runner-into-modules
+approach:
+  - >-
+    Identify the current logical sections inside `test/run.ts` and convert them into focused suite
+    modules rather than trying to redesign the test strategy at the same time.
+  - >-
+    Extract the helpers that are already acting as shared infrastructure — such as CLI invocation,
+    temporary workspace setup, fixture path resolution, pass/fail reporting, and repeated assertion
+    utilities — into reusable test-support modules.
+  - >-
+    Keep one thin runner entrypoint that preserves the current execution order and aggregates
+    pass/fail accounting so the outward test command stays stable while the internal structure
+    becomes easier to extend.
+decisions:
+  - id: land-runner-decomposition-before-adding-new-project-level-scenario-backlog
+    decision: Land runner decomposition before adding new project-level scenario backlog.
+    rationale: >-
+      This keeps scope bounded and reduces the chance that structure work gets mixed with new
+      behavior coverage in one proposal.
+  - id: >-
+      preserve-the-existing-test-command-and-execution-order-instead-of-introducing-a-new-runner-tool
+    decision: >-
+      Preserve the existing test command and execution order instead of introducing a new runner
+      tool.
+    rationale: >-
+      The roadmap item is about modularity and maintainability, not changing the repository's test
+      surface.
+  - id: treat-this-as-internal-regression-infrastructure-only
+    decision: Treat this as internal regression infrastructure only.
+    rationale: >-
+      Because the proposal reorganizes test code without changing observable product behavior, the
+      delta spec directory can stay empty unless implementation reveals a real external contract
+      change.
+alternatives:
+  - option: Add the CLI project-fixture scenarios first.
+    reason: >-
+      Rejected because that would push more coverage into the current monolithic runner before the
+      suite is easier to extend safely.
+  - option: Start milestone 07 CLI decomposition first.
+    reason: >-
+      Rejected because the acceptance gate for that work is still concentrated in one oversized test
+      script.
+  - option: Replace the current runner with a different test framework or command surface.
+    reason: Rejected because the roadmap item only calls for decomposition, not a testing stack migration.

@@ -1,0 +1,52 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: split-migration-legacy-parsers-by-artifact-family
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Extract `parseMarkdownItems` and shared low-level Markdown tokenization helpers from
+          `src/migrate.ts` into `src/migrate/parsers/shared.ts` with explicit exports
+        status: complete
+      - id: implementation-2
+        text: >-
+          Extract `parseLegacyMainSpec` and `parseLegacyDeltaSpec` from `src/migrate.ts` into
+          `src/migrate/parsers/specs.ts`, importing shared helpers from the new shared module
+        status: complete
+      - id: implementation-3
+        text: >-
+          Extract `parseLegacyProposal`, `parseLegacyDesign`, `parseLegacyTasks`, and
+          `parseLegacyQuestions` from `src/migrate.ts` into
+          `src/migrate/parsers/change-artifacts.ts`, importing shared helpers from the new shared
+          module
+        status: complete
+      - id: implementation-4
+        text: >-
+          Update `src/migrate.ts` to import from the new parser modules and re-export the
+          previously-exported parser functions so the public module surface is unchanged
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: >-
+          Run `bun run build` — build and typecheck the refactored migration parser modules
+          end-to-end
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: >-
+          Run `bun test/run.ts` — run unit tests covering migration conversion behavior after the
+          parser extraction
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify implementation matches proposal scope
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

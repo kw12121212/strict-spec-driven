@@ -1,0 +1,47 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: prove-todo-project-suite-repeatability
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Audit the existing copied todo-project CLI, roadmap, and migration scenarios to identify
+          which shared flows need explicit rerun assertions for milestone-09 repeatability proof.
+        status: complete
+      - id: implementation-2
+        text: >-
+          Add repeatability assertions in the copied-workspace suites so fresh reruns preserve the
+          committed fixture baseline and keep stable output ordering or diagnostics for the selected
+          real-project flows.
+        status: complete
+      - id: implementation-3
+        text: >-
+          Refine shared harness helpers or suite-local comparison utilities only where needed so
+          repeated copied-workspace assertions do not depend on temp-directory names.
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — build validation for repeatability assertions and helper updates.
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: >-
+          Run `bun test/run.ts` — unit tests for repeated copied-fixture CLI, roadmap, and migration
+          scenarios.
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: >-
+          Verify implementation matches proposal scope and leaves
+          `.spec-driven/changes/prove-todo-project-suite-repeatability/specs/` empty unless
+          implementation reveals an observable contract change.
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

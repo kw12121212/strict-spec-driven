@@ -186,9 +186,8 @@ notes:
     templates, schema files, examples, validation tests, or user documentation; spec-only changes
     are acceptable only when the planned work explicitly says it is a contract update.
   - >-
-    `.strict-spec-driven/roadmap/` is now the canonical roadmap location. Preserve
-    `.spec-driven/roadmap/` only as bootstrap migration history, not as an equivalent active
-    planning source.
+    The roadmap is currently stored under the bootstrap `.spec-driven/roadmap/` directory because
+    migration tooling does not exist yet; the target product directory is `.strict-spec-driven/`.
   - >-
     `SKILL.md` remains Markdown only as a packaging container; strict workflow artifacts generated
     or consumed by skills must be YAML.

@@ -1,0 +1,51 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+    - templates/strict-spec-driven/examples/roadmap-milestone.yaml
+    - templates/strict-spec-driven/examples/roadmap-milestone.planning.yaml
+    - src/roadmap/model.ts
+    - src/roadmap/validate.ts
+  tests:
+    - test/run.ts
+operations:
+  ADDED: []
+  MODIFIED:
+    - target_requirement: yaml-roadmap-milestone-planning-model
+      replacement:
+        id: yaml-roadmap-milestone-planning-model
+        strength: MUST
+        statement: >-
+          The system MUST represent roadmap milestone planning state through structured YAML fields
+          for goal, scope, done criteria, dependencies, risks, status, notes, planned change
+          entries, and an optional `details` field for long-form planning guidance.
+        scenarios:
+          - id: roadmap-milestone-exposes-details-as-optional-long-form-field
+            steps:
+              - kind: GIVEN
+                text: a strict roadmap milestone artifact is reviewed
+              - kind: WHEN
+                text: its `details` field is inspected
+              - kind: THEN
+                text: the details content is available as an optional string field
+              - kind: AND
+                text: the details content is freeform text suitable for YAML block scalar representation
+              - kind: AND
+                text: >-
+                  the details field is clearly distinct from short `notes` entries and concrete
+                  `planned_changes`
+          - id: milestones-without-details-remain-valid
+            steps:
+              - kind: GIVEN
+                text: a strict roadmap milestone artifact omits the `details` field
+              - kind: WHEN
+                text: the artifact is validated
+              - kind: THEN
+                text: no validation failure is emitted for the missing `details` field
+              - kind: AND
+                text: the milestone remains fully valid
+  REMOVED: []

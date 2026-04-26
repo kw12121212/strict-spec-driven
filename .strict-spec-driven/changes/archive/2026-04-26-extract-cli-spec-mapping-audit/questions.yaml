@@ -1,0 +1,12 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: extract-cli-spec-mapping-audit
+open: []
+resolved:
+  - id: where-should-the-extracted-spec-mapping-module-live
+    question: Where should the extracted spec-mapping module live?
+    context: Determines import paths and which namespace pattern to follow.
+    answer: '`src/cli/spec-mapping.ts` — matches the existing `src/cli/` extraction pattern.'
+    status: resolved

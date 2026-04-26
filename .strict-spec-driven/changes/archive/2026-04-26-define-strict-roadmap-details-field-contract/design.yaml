@@ -1,0 +1,48 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: define-strict-roadmap-details-field-contract
+approach:
+  - >-
+    Add `details` as an optional string field to the roadmap milestone schema alongside the existing
+    `notes` field. The field accepts freeform long-form text, typically written as a YAML block
+    scalar. This follows the existing pattern for optional fields in the schema dialect. ### Files
+    to modify
+  - >-
+    `templates/strict-spec-driven/schemas/roadmap-milestone.yaml` — add `details` as an optional
+    string field after `notes`
+  - '`src/roadmap/model.ts` — add `details?: string` to `RoadmapMilestoneArtifact`'
+  - '`src/roadmap/validate.ts` — add optional string validation for `details`'
+  - >-
+    `templates/strict-spec-driven/examples/roadmap-milestone.yaml` — add a `details` block
+    demonstrating usage
+  - >-
+    `templates/strict-spec-driven/examples/roadmap-milestone.planning.yaml` — add `details` to the
+    planning coverage example
+decisions:
+  - id: optional-field-not-required
+    decision: Existing milestones without `details` must remain valid.
+    rationale: This avoids a schema version bump and backward-compatibility noise.
+  - id: string-not-string-array
+    decision: Unlike `notes` which is a list of short remarks, `details` is a single block of prose.
+    rationale: 'A YAML block scalar (`details: |`) is the natural representation.'
+  - id: milestone-level-only
+    decision: '`details` belongs on the milestone, not on individual planned change entries.'
+    rationale: The planned change summary and the normal change proposal workflow handle per-change context.
+  - id: schema-version-stays-v1
+    decision: Adding an optional field is a compatible clarification under the existing versioning rules.
+    rationale: Adding an optional field is a compatible clarification under the existing versioning rules.
+alternatives:
+  - option: >-
+      **Structured `details` with subfields** — ruled out because the milestone explicitly says
+      "Turning details into a structured schema with fixed subfields" is out of scope.
+    reason: Freeform text is sufficient.
+  - option: >-
+      **String array like `notes`** — ruled out because long-form guidance is typically one coherent
+      block, not a list of fragments.
+    reason: A single string with YAML block scalar syntax is cleaner.
+  - option: '**Adding `details` to planned change entries**'
+    reason: >-
+      ruled out because the milestone scope says `details` is for milestone-level guidance, and
+      per-change detail belongs in the change proposal itself.

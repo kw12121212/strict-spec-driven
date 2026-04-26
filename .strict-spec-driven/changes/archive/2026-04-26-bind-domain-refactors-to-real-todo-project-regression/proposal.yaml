@@ -1,0 +1,30 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: bind-domain-refactors-to-real-todo-project-regression
+  status: complete
+summary:
+  what:
+    - >-
+      Add regression test coverage that exercises roadmap, skill-validation, and migration commands
+      against the shared todo-project fixture in a copied-project workspace, proving the domain
+      module decomposition from milestone 08 preserves observable behavior.
+  why:
+    - >-
+      Milestone 08 split `src/roadmap.ts`, `src/skills.ts`, and `src/migrate.ts` into focused
+      modules. The existing test suite covers each domain through isolated fixtures and some
+      copied-project scenarios (sections 17b and 18a), but does not yet exercise skill-validation or
+      the full post-migration lifecycle (verify, list, review, archive) against the real
+      todo-project fixture. This change closes that gap so the decomposition is validated against a
+      repeatable project context.
+scope:
+  in: []
+  out: []
+unchanged_behavior:
+  - >-
+    Roadmap, skill-validation, and migration command outputs and diagnostics must remain identical
+    to pre-decomposition behavior.
+  - The todo-project fixture under `test/fixtures/projects/todo-app/` must not be modified.
+  - Existing test sections (17b, 18a) must continue to pass.

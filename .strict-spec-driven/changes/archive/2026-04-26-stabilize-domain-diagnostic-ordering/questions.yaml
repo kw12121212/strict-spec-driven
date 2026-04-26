@@ -1,0 +1,16 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: stabilize-domain-diagnostic-ordering
+open: []
+resolved:
+  - id: where-should-the-shared-diagnostic-ordering-helper-live
+    question: Where should the shared diagnostic-ordering helper live?
+    context: >-
+      The proposal needs a concrete shared module boundary before it can define implementation scope
+      and spec mappings.
+    answer: >-
+      Create a new shared `src/diagnostics.ts` module rather than attaching the helper to a
+      roadmap-owned file or a broader new directory tree.
+    status: resolved

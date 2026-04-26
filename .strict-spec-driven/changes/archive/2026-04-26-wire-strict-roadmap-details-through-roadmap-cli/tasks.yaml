@@ -1,0 +1,40 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: wire-strict-roadmap-details-through-roadmap-cli
+sections:
+  - name: Implementation
+    tasks:
+      - id: implementation-1
+        text: >-
+          Add `details` propagation to `buildCanonicalMilestoneArtifact()` in `src/roadmap/sync.ts`
+          — copy `milestone.artifact.details` when present, omit when undefined
+        status: complete
+      - id: implementation-2
+        text: 'Add `details?: string` to `StrictRoadmapMilestoneArtifact` in `src/converters/roadmap.ts`'
+        status: complete
+  - name: Testing
+    tasks:
+      - id: testing-1
+        text: Run `bun run build` — build passes after type changes
+        status: complete
+        command: bun run build
+      - id: testing-2
+        text: Run `bun test/run.ts` — unit tests pass including new details sync tests
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verification-1
+        text: Verify `details` survives a sync round-trip when present in a milestone
+        status: complete
+      - id: verification-2
+        text: Verify sync output omits `details` when the source milestone has none
+        status: complete
+      - id: verification-3
+        text: Verify converter type includes `details` but converter output does not invent it
+        status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

@@ -1,0 +1,59 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/skills/model.ts
+    - skills/strict-roadmap-propose/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+  tests:
+    - test/suites/roadmap-and-migration.ts
+    - test/run.ts
+operations:
+  ADDED: []
+  MODIFIED:
+    - target_requirement: cli-roadmap-validation-and-skill-smoke-coverage
+      replacement:
+        id: cli-roadmap-validation-and-skill-smoke-coverage
+        strength: MUST
+        statement: >-
+          The system MUST include automated checks that exercise strict roadmap command behavior and
+          strict roadmap skill content for both aligned and failing states, including regression
+          coverage for milestones that use the optional `details` field across roadmap validation,
+          sync, and proposal-handoff flows.
+        scenarios:
+          - id: automated-checks-accept-details-bearing-roadmap-workflow-surfaces
+            steps:
+              - kind: GIVEN
+                text: >-
+                  strict roadmap commands and `strict-roadmap-*` skill packages are aligned with
+                  `.strict-spec-driven/roadmap/`
+              - kind: AND
+                text: a milestone includes a valid `details` field
+              - kind: WHEN
+                text: repository automated checks are executed
+              - kind: THEN
+                text: the roadmap workflow checks pass
+              - kind: AND
+                text: the checks verify that roadmap validation accepts the milestone artifact
+              - kind: AND
+                text: the checks verify that roadmap sync preserves the `details` content
+              - kind: AND
+                text: the checks verify that roadmap proposal-handoff guidance remains details-aware
+          - id: automated-checks-accept-milestones-without-details
+            steps:
+              - kind: GIVEN
+                text: >-
+                  strict roadmap commands and `strict-roadmap-*` skill packages are aligned with
+                  `.strict-spec-driven/roadmap/`
+              - kind: AND
+                text: a milestone omits the optional `details` field
+              - kind: WHEN
+                text: repository automated checks are executed
+              - kind: THEN
+                text: the roadmap workflow checks pass
+              - kind: AND
+                text: no placeholder or synthetic `details` value is required
+  REMOVED: []

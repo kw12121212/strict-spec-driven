@@ -1,0 +1,50 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/output.ts
+    - src/cli/cmd-change.ts
+    - src/cli/cmd-migration.ts
+    - src/cli/cmd-operations.ts
+    - src/cli/cmd-roadmap.ts
+    - src/cli/cmd-scaffold.ts
+  tests:
+    - test/suites/change-lifecycle.ts
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/operations.ts
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-shared-output-helpers
+        strength: MUST
+        statement: >-
+          The system MUST provide a shared `src/cli/output.ts` module with typed helpers for writing
+          JSON, human-readable text, usage hints, and error messages to stdout and stderr so command
+          modules do not call `process.stdout.write` or `process.stderr.write` directly.
+        scenarios:
+          - id: json-output-is-written-through-shared-helper
+            steps:
+              - kind: GIVEN
+                text: a CLI command produces a structured result
+              - kind: WHEN
+                text: the command writes its result
+              - kind: THEN
+                text: the JSON is written via the shared `writeJson` helper
+              - kind: AND
+                text: the output format is identical to the pre-centralization behavior
+          - id: error-output-is-written-through-shared-helpers
+            steps:
+              - kind: GIVEN
+                text: a CLI command encounters a usage or runtime error
+              - kind: WHEN
+                text: the command writes its error or usage hint
+              - kind: THEN
+                text: the message is written via `writeUsage` or `writeError` as appropriate
+              - kind: AND
+                text: the stderr format is identical to the pre-centralization behavior
+  MODIFIED: []
+  REMOVED: []

@@ -1,0 +1,66 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/diagnostics.ts
+    - src/roadmap/shared.ts
+    - src/skills.ts
+    - src/migrate.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    - requirement:
+        id: cli-domain-diagnostic-ordering-stability
+        strength: MUST
+        statement: >-
+          The system MUST preserve deterministic ordering for roadmap, skill-validation, and
+          migration diagnostics or report collections even when their implementation shares helper
+          logic across domains.
+        scenarios:
+          - id: roadmap-diagnostics-keep-stable-ordering-across-repeated-runs
+            steps:
+              - kind: GIVEN
+                text: strict roadmap artifacts produce multiple validation diagnostics
+              - kind: WHEN
+                text: >-
+                  `strict-spec-driven roadmap-status` is executed repeatedly against the same
+                  repository state
+              - kind: THEN
+                text: the diagnostics appear in the same order each time
+              - kind: AND
+                text: each diagnostic still identifies the invalid artifact and field context
+          - id: skill-validation-diagnostics-keep-stable-ordering-across-repeated-runs
+            steps:
+              - kind: GIVEN
+                text: strict skill packaging or content validation produces multiple diagnostics
+              - kind: WHEN
+                text: >-
+                  `strict-spec-driven validate-skills` is executed repeatedly against the same
+                  repository state
+              - kind: THEN
+                text: the diagnostics appear in the same order each time
+              - kind: AND
+                text: the JSON result keeps the same diagnostic field shape and summary counts
+          - id: migration-report-collections-keep-stable-ordering-across-repeated-runs
+            steps:
+              - kind: GIVEN
+                text: >-
+                  bootstrap migration produces multiple warnings, errors, skipped entries, or manual
+                  follow-up items
+              - kind: WHEN
+                text: >-
+                  `strict-spec-driven migrate` is executed repeatedly against the same repository
+                  state
+              - kind: THEN
+                text: each report collection keeps deterministic ordering across runs
+              - kind: AND
+                text: >-
+                  shared diagnostic helpers do not invent, drop, or reorder entries
+                  nondeterministically
+  MODIFIED: []
+  REMOVED: []
