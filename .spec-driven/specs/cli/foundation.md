@@ -6,9 +6,15 @@ mapping:
     - tsconfig.json
     - src/cli/argv.ts
     - src/cli/changes.ts
+    - src/cli/cmd-change.ts
+    - src/cli/cmd-migration.ts
+    - src/cli/cmd-operations.ts
+    - src/cli/cmd-roadmap.ts
+    - src/cli/cmd-scaffold.ts
     - src/cli/entrypoint.ts
     - src/cli/fs.ts
     - src/cli/registry.ts
+    - src/cli/spec-mapping.ts
     - src/cli/usage.ts
     - src/converters/roadmap.ts
     - src/migrate.ts
