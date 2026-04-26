@@ -31,7 +31,7 @@ Split oversized workflow-domain scripts into smaller modules so roadmap, skill v
 - `split-migration-builders-and-converters` - Declared: complete - extract strict artifact builders, roadmap conversion, spec-index conversion, and related helper logic from `src/migrate.ts` into focused converter modules.
 - `split-migration-reporting-and-run-orchestration` - Declared: complete - separate migration preflight, deferred-artifact handling, result sorting, manual-follow-up reporting, and write orchestration from content parsing logic.
 - `stabilize-domain-diagnostic-ordering` - Declared: complete - centralize deterministic ordering and normalization rules that roadmap, skill-validation, and migration modules must preserve during extraction.
-- `bind-domain-refactors-to-real-todo-project-regression` - Declared: planned - validate roadmap, skill-validation, and migration refactors against the shared copied todo project fixture so domain splits are checked in a repeatable project context.
+- `bind-domain-refactors-to-real-todo-project-regression` - Declared: complete - validate roadmap, skill-validation, and migration refactors against the shared copied todo project fixture so domain splits are checked in a repeatable project context.
 
 ## Dependencies
 - `07-cli-command-surface-decomposition` should establish clearer command-surface boundaries first so domain-module splits do not duplicate CLI orchestration concerns.
@@ -44,12 +44,14 @@ Split oversized workflow-domain scripts into smaller modules so roadmap, skill v
 - If the split is done only by file count instead of responsibility boundaries, the resulting modules may still be hard to extend safely.
 
 ## Status
-- Declared: proposed
+- Declared: complete
 
 ## Notes
 - Current hotspot evidence: `src/migrate.ts` is about 2034 lines, `src/roadmap.ts` about 1046 lines, and `src/skills.ts` about 984 lines.
 - Current test evidence: `test/run.ts` is about 5949 lines, so part of the decomposition safety story is to stop relying on one monolithic runner as the only integration surface.
 - This milestone follows milestone 07 so CLI dispatch concerns stay separate from deeper domain-logic decomposition.
+
+
 
 
 

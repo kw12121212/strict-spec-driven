@@ -2368,4 +2368,248 @@ context.assert(
   "parseLegacyQuestions preserves resolved answers",
 );
 
+context.section("[21] copied real project validate-skills regression");
+
+function runCopiedWorkspaceValidateSkillsScenario(): {
+  validateSkillsStatus: number;
+  validateSkillsStdout: string;
+  validateSkillsAfterMigrateStatus: number;
+  validateSkillsAfterMigrateStdout: string;
+} {
+  const workspace = createCopiedProjectWorkspace("todo-app");
+  const { workspaceRoot } = workspace;
+  try {
+    const validateSkillsBefore = projectWorkspaceCli(workspaceRoot, ["validate-skills"]);
+    const validateSkillsBeforeStdout = validateSkillsBefore.stdout.trim();
+    context.assert(
+      validateSkillsBefore.status !== 0,
+      "copied workspace validate-skills exits non-zero when no skills directory exists",
+      `stdout: ${validateSkillsBeforeStdout} stderr: ${validateSkillsBefore.stderr.trim()}`,
+    );
+    const validateSkillsBeforeJson = JSON.parse(validateSkillsBeforeStdout);
+    context.assert(
+      validateSkillsBeforeJson.valid === false
+        && validateSkillsBeforeJson.diagnostics.some(
+          (d: { code: string }) => d.code === "skills.directory.missing",
+        ),
+      "copied workspace validate-skills reports missing skills directory before migrate",
+    );
+
+    const migrateResult = projectWorkspaceCli(workspaceRoot, ["migrate"]);
+    context.assert(
+      migrateResult.status === 0,
+      "copied workspace validate-skills regression: migrate succeeds",
+      `stdout: ${migrateResult.stdout.trim()} stderr: ${migrateResult.stderr.trim()}`,
+    );
+
+    const validateSkillsAfter = projectWorkspaceCli(workspaceRoot, ["validate-skills"]);
+    const validateSkillsAfterStdout = validateSkillsAfter.stdout.trim();
+    context.assert(
+      validateSkillsAfter.status !== 0,
+      "copied workspace validate-skills exits non-zero after migrate (still no skills directory)",
+    );
+    const validateSkillsAfterJson = JSON.parse(validateSkillsAfterStdout);
+    context.assert(
+      validateSkillsAfterJson.valid === false
+        && validateSkillsAfterJson.summary.skillCount === 0,
+      "copied workspace validate-skills reports zero skills after migrate",
+    );
+    context.assert(
+      readFileSync(path.join(todoProjectRoot, ".spec-driven", "config.yaml"), "utf8")
+        === readFileSync(path.join(projectFixturePath("todo-app"), ".spec-driven", "config.yaml"), "utf8"),
+      "committed todo-project fixture stays unchanged during validate-skills regression",
+    );
+
+    return {
+      validateSkillsStatus: validateSkillsBefore.status,
+      validateSkillsStdout: validateSkillsBeforeStdout,
+      validateSkillsAfterMigrateStatus: validateSkillsAfter.status,
+      validateSkillsAfterMigrateStdout: validateSkillsAfterStdout,
+    };
+  } finally {
+    workspace.cleanup();
+    context.assert(
+      !existsSync(workspaceRoot),
+      "copied workspace cleanup removes validate-skills regression temp workspace",
+    );
+  }
+}
+
+const validateSkillsFirstRun = runCopiedWorkspaceValidateSkillsScenario();
+const validateSkillsSecondRun = runCopiedWorkspaceValidateSkillsScenario();
+context.assert(
+  validateSkillsFirstRun.validateSkillsStdout === validateSkillsSecondRun.validateSkillsStdout,
+  "copied workspace validate-skills output stays stable across repeated runs",
+);
+context.assert(
+  validateSkillsFirstRun.validateSkillsAfterMigrateStdout === validateSkillsSecondRun.validateSkillsAfterMigrateStdout,
+  "copied workspace validate-skills-after-migrate output stays stable across repeated runs",
+);
+
+context.section("[22] copied real project post-migration change lifecycle regression");
+
+function runCopiedWorkspaceLifecycleScenario(): {
+  verifyBeforeApplyStatus: number;
+  verifyBeforeApplyStdout: string;
+  listBeforeArchiveStdout: string;
+  reviewStdout: string;
+  archiveStatus: number;
+  archiveStdout: string;
+  listAfterArchiveStdout: string;
+} {
+  const workspace = createCopiedProjectWorkspace("todo-app");
+  const { workspaceRoot } = workspace;
+  try {
+    const baselineConfig = readFileSync(
+      path.join(todoProjectRoot, ".spec-driven", "config.yaml"),
+      "utf8",
+    );
+
+    const migrateResult = projectWorkspaceCli(workspaceRoot, ["migrate"]);
+    context.assert(
+      migrateResult.status === 0,
+      "copied workspace lifecycle regression: migrate succeeds",
+      `stdout: ${migrateResult.stdout.trim()} stderr: ${migrateResult.stderr.trim()}`,
+    );
+
+    const verifyBeforeApply = projectWorkspaceCli(workspaceRoot, ["verify", "add-due-dates"]);
+    const verifyBeforeApplyStdout = verifyBeforeApply.stdout.trim();
+    context.assert(
+      verifyBeforeApply.status !== 0,
+      "copied workspace verify exits non-zero before tasks are completed",
+      `stdout: ${verifyBeforeApplyStdout} stderr: ${verifyBeforeApply.stderr.trim()}`,
+    );
+    const verifyBeforeApplyJson = JSON.parse(verifyBeforeApplyStdout);
+    context.assert(
+      verifyBeforeApplyJson.valid === false
+        && verifyBeforeApplyJson.remainingPending > 0
+        && verifyBeforeApplyJson.completeTasks === 0,
+      "copied workspace verify reports pending tasks before any apply",
+      `remainingPending: ${verifyBeforeApplyJson.remainingPending} completeTasks: ${verifyBeforeApplyJson.completeTasks}`,
+    );
+
+    let applyResult = projectWorkspaceCli(workspaceRoot, ["apply", "add-due-dates"]);
+    while (applyResult.status === 0) {
+      applyResult = projectWorkspaceCli(workspaceRoot, ["apply", "add-due-dates"]);
+    }
+    context.assert(
+      applyResult.status !== 0,
+      "copied workspace apply exits non-zero after completing all tasks",
+    );
+
+    const verifyAfterApply = projectWorkspaceCli(workspaceRoot, ["verify", "add-due-dates"]);
+    const verifyAfterApplyStdout = verifyAfterApply.stdout.trim();
+    context.assert(
+      verifyAfterApply.status === 0,
+      "copied workspace verify exits zero after all tasks completed",
+      `stdout: ${verifyAfterApplyStdout} stderr: ${verifyAfterApply.stderr.trim()}`,
+    );
+    const verifyAfterApplyJson = JSON.parse(verifyAfterApplyStdout);
+    context.assert(
+      verifyAfterApplyJson.valid === true
+        && verifyAfterApplyJson.remainingPending === 0
+        && verifyAfterApplyJson.completeTasks > 0,
+      "copied workspace verify reports valid with no pending tasks after all apply invocations",
+    );
+
+    const listBeforeArchive = projectWorkspaceCli(workspaceRoot, ["list"]);
+    const listBeforeArchiveStdout = listBeforeArchive.stdout.trim();
+    context.assert(
+      listBeforeArchive.status === 0,
+      "copied workspace list exits zero before archive",
+    );
+    context.assert(
+      listBeforeArchiveStdout.includes("Active:")
+        && listBeforeArchiveStdout.includes("add-due-dates"),
+      "copied workspace list shows add-due-dates as active before archive",
+    );
+
+    const reviewResult = projectWorkspaceCli(workspaceRoot, ["review", "add-due-dates"]);
+    const reviewStdout = reviewResult.stdout.trim();
+    context.assert(
+      reviewResult.status === 0,
+      "copied workspace review exits zero for completable change",
+      `stdout: ${reviewStdout} stderr: ${reviewResult.stderr.trim()}`,
+    );
+    const reviewJson = JSON.parse(reviewStdout);
+    context.assert(
+      reviewJson.changeName === "add-due-dates"
+        && typeof reviewJson.findingCount === "number"
+        && Array.isArray(reviewJson.findings),
+      "copied workspace review reports structured findings for migrated change",
+    );
+
+    const archiveResult = projectWorkspaceCli(workspaceRoot, ["archive", "add-due-dates"]);
+    const archiveStdout = archiveResult.stdout.trim();
+    context.assert(
+      archiveResult.status === 0,
+      "copied workspace archive exits zero after tasks completed",
+      `stdout: ${archiveStdout} stderr: ${archiveResult.stderr.trim()}`,
+    );
+    const archiveJson = JSON.parse(archiveStdout);
+    context.assert(
+      archiveJson.valid === true
+        && archiveJson.archiveDestination.includes("add-due-dates"),
+      "copied workspace archive reports valid and includes archive destination path",
+    );
+
+    const listAfterArchive = projectWorkspaceCli(workspaceRoot, ["list"]);
+    const listAfterArchiveStdout = listAfterArchive.stdout.trim();
+    context.assert(
+      listAfterArchive.status === 0,
+      "copied workspace list exits zero after archive",
+    );
+    context.assert(
+      listAfterArchiveStdout.includes("Archived:")
+        && !listAfterArchiveStdout.includes("Active:"),
+      "copied workspace list shows archived change and no active changes after archive",
+    );
+
+    context.assert(
+      readFileSync(path.join(todoProjectRoot, ".spec-driven", "config.yaml"), "utf8") === baselineConfig
+        && !existsSync(path.join(todoProjectRoot, ".strict-spec-driven")),
+      "committed todo-project fixture stays unchanged during lifecycle regression",
+    );
+
+    return {
+      verifyBeforeApplyStatus: verifyBeforeApply.status,
+      verifyBeforeApplyStdout: verifyBeforeApplyStdout,
+      listBeforeArchiveStdout: listBeforeArchiveStdout,
+      reviewStdout: reviewStdout,
+      archiveStatus: archiveResult.status,
+      archiveStdout: archiveStdout,
+      listAfterArchiveStdout: listAfterArchiveStdout,
+    };
+  } finally {
+    workspace.cleanup();
+    context.assert(
+      !existsSync(workspaceRoot),
+      "copied workspace cleanup removes lifecycle regression temp workspace",
+    );
+  }
+}
+
+const lifecycleFirstRun = runCopiedWorkspaceLifecycleScenario();
+const lifecycleSecondRun = runCopiedWorkspaceLifecycleScenario();
+context.assert(
+  lifecycleFirstRun.verifyBeforeApplyStdout === lifecycleSecondRun.verifyBeforeApplyStdout,
+  "copied workspace verify-before-apply output stays stable across repeated lifecycle runs",
+);
+context.assert(
+  lifecycleFirstRun.listBeforeArchiveStdout === lifecycleSecondRun.listBeforeArchiveStdout,
+  "copied workspace list-before-archive output stays stable across repeated lifecycle runs",
+);
+context.assert(
+  lifecycleFirstRun.reviewStdout === lifecycleSecondRun.reviewStdout,
+  "copied workspace review output stays stable across repeated lifecycle runs",
+);
+context.assert(
+  lifecycleFirstRun.archiveStdout === lifecycleSecondRun.archiveStdout,
+  "copied workspace archive output stays stable across repeated lifecycle runs",
+);
+context.assert(
+  lifecycleFirstRun.listAfterArchiveStdout === lifecycleSecondRun.listAfterArchiveStdout,
+  "copied workspace list-after-archive output stays stable across repeated lifecycle runs",
+);
+
 }
