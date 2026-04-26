@@ -18,6 +18,7 @@ mapping:
     - src/cli/spec-mapping.ts
     - src/cli/usage.ts
     - src/converters/roadmap.ts
+    - src/diagnostics.ts
     - src/migrate.ts
     - src/strict-spec-cli.ts
     - src/roadmap.ts
@@ -933,6 +934,35 @@ The system MUST allow `strict-spec-driven migrate` to rerun into an existing non
 - WHEN the operator runs `strict-spec-driven migrate -f`
 - THEN the command exits zero
 - AND the result matches the structured migration report from the initial successful run
+
+### Requirement: cli-domain-diagnostic-ordering-stability
+The system MUST preserve deterministic ordering for roadmap, skill-validation,
+and migration diagnostics or report collections even when their implementation
+shares helper logic across domains.
+
+#### Scenario: roadmap diagnostics keep stable ordering across repeated runs
+- GIVEN strict roadmap artifacts produce multiple validation diagnostics
+- WHEN `strict-spec-driven roadmap-status` is executed repeatedly against the
+  same repository state
+- THEN the diagnostics appear in the same order each time
+- AND each diagnostic still identifies the invalid artifact and field context
+
+#### Scenario: skill validation diagnostics keep stable ordering across repeated runs
+- GIVEN strict skill packaging or content validation produces multiple
+  diagnostics
+- WHEN `strict-spec-driven validate-skills` is executed repeatedly against the
+  same repository state
+- THEN the diagnostics appear in the same order each time
+- AND the JSON result keeps the same diagnostic field shape and summary counts
+
+#### Scenario: migration report collections keep stable ordering across repeated runs
+- GIVEN bootstrap migration produces multiple warnings, errors, skipped entries,
+  or manual follow-up items
+- WHEN `strict-spec-driven migrate` is executed repeatedly against the same
+  repository state
+- THEN each report collection keeps deterministic ordering across runs
+- AND shared diagnostic helpers do not invent, drop, or reorder entries
+  nondeterministically
 
 ### Requirement: cli-migrate-report-collections-are-always-arrays
 The system MUST emit `converted`, `skipped`, `warnings`, `errors`, and `manualFollowUp` as top-level array fields in every migration report, including successful, partial, and blocked runs.

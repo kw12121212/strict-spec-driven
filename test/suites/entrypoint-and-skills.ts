@@ -179,6 +179,14 @@ try {
     JSON.stringify(invalidResultA) === JSON.stringify(invalidResultB),
     "strict skill package diagnostics are deterministic across runs",
   );
+
+  const invalidValidateSkillsCliA = cli(["validate-skills"], { cwd: invalidSkillsRoot });
+  const invalidValidateSkillsCliB = cli(["validate-skills"], { cwd: invalidSkillsRoot });
+  context.assert(invalidValidateSkillsCliA.status !== 0, "validate-skills CLI exits non-zero for invalid packaging state");
+  context.assert(
+    invalidValidateSkillsCliA.stdout.trim() === invalidValidateSkillsCliB.stdout.trim(),
+    "validate-skills CLI preserves diagnostic ordering across repeated invalid runs",
+  );
 } finally {
   rmSync(invalidSkillsRoot, { recursive: true, force: true });
 }

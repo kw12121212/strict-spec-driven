@@ -7,6 +7,7 @@ import {
   statSync,
 } from "node:fs";
 import path from "node:path";
+import { sortByDeterministicKey, toPosix } from "./diagnostics.js";
 import { parseYamlDocument } from "./yaml.js";
 
 export type SkillPackagingDiagnostic = {
@@ -250,10 +251,6 @@ const MIGRATION_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectatio
     requiredSnippets: [".spec-driven/", ".strict-spec-driven/"],
   },
 };
-
-function toPosix(value: string): string {
-  return value.split(path.sep).join("/");
-}
 
 function makeDiagnostic(
   code: string,
@@ -897,11 +894,16 @@ function validateMarketplaceMetadata(
 }
 
 function sortDiagnostics(diagnostics: SkillPackagingDiagnostic[]): SkillPackagingDiagnostic[] {
-  return diagnostics.sort((left, right) => {
-    const leftKey = [left.code, left.path, left.message, left.expected ?? "", left.actual ?? ""].join("|");
-    const rightKey = [right.code, right.path, right.message, right.expected ?? "", right.actual ?? ""].join("|");
-    return leftKey.localeCompare(rightKey);
-  });
+  return sortByDeterministicKey(
+    diagnostics,
+    (diagnostic) => [
+      diagnostic.code,
+      diagnostic.path,
+      diagnostic.message,
+      diagnostic.expected ?? "",
+      diagnostic.actual ?? "",
+    ],
+  );
 }
 
 export function validateStrictSkillPackaging(rootDir: string): SkillPackagingValidationResult {

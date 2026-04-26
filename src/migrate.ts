@@ -9,6 +9,7 @@ import {
 } from "fs";
 import path from "path";
 import { convertRoadmapIndex, convertRoadmapMilestone, convertSpecsIndex } from "./converters/roadmap.js";
+import { sortByDeterministicKey, toPosix } from "./diagnostics.js";
 import { getRequiredBundledScaffoldAssets, initializeStrictScaffold, loadBundledScaffoldYaml } from "./scaffold.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
@@ -262,10 +263,6 @@ type LegacyChangeDirectory = {
   directoryName: string;
   archived: boolean;
 };
-
-function toPosix(value: string): string {
-  return value.split(path.sep).join("/");
-}
 
 function toRepoRelativePath(rootDir: string, absolutePath: string): string {
   return toPosix(path.relative(rootDir, absolutePath));
@@ -1823,31 +1820,26 @@ function convertLegacySpecsIndex(
 }
 
 function sortMigrationResult(result: MigrationResult): MigrationResult {
-  result.converted.sort((left, right) => {
-    const leftKey = [left.targetPath, left.sourcePath ?? "", left.kind, left.note].join("|");
-    const rightKey = [right.targetPath, right.sourcePath ?? "", right.kind, right.note].join("|");
-    return leftKey.localeCompare(rightKey);
-  });
-  result.skipped.sort((left, right) => {
-    const leftKey = [left.sourcePath, left.kind, left.reason].join("|");
-    const rightKey = [right.sourcePath, right.kind, right.reason].join("|");
-    return leftKey.localeCompare(rightKey);
-  });
-  result.warnings.sort((left, right) => {
-    const leftKey = [left.code, left.sourcePath ?? "", left.targetPath ?? "", left.message].join("|");
-    const rightKey = [right.code, right.sourcePath ?? "", right.targetPath ?? "", right.message].join("|");
-    return leftKey.localeCompare(rightKey);
-  });
-  result.errors.sort((left, right) => {
-    const leftKey = [left.code, left.sourcePath ?? "", left.targetPath ?? "", left.message].join("|");
-    const rightKey = [right.code, right.sourcePath ?? "", right.targetPath ?? "", right.message].join("|");
-    return leftKey.localeCompare(rightKey);
-  });
-  result.manualFollowUp.sort((left, right) => {
-    const leftKey = [left.sourcePath, left.reason, left.recommendation].join("|");
-    const rightKey = [right.sourcePath, right.reason, right.recommendation].join("|");
-    return leftKey.localeCompare(rightKey);
-  });
+  sortByDeterministicKey(
+    result.converted,
+    (artifact) => [artifact.targetPath, artifact.sourcePath ?? "", artifact.kind, artifact.note],
+  );
+  sortByDeterministicKey(
+    result.skipped,
+    (artifact) => [artifact.sourcePath, artifact.kind, artifact.reason],
+  );
+  sortByDeterministicKey(
+    result.warnings,
+    (diagnostic) => [diagnostic.code, diagnostic.sourcePath ?? "", diagnostic.targetPath ?? "", diagnostic.message],
+  );
+  sortByDeterministicKey(
+    result.errors,
+    (diagnostic) => [diagnostic.code, diagnostic.sourcePath ?? "", diagnostic.targetPath ?? "", diagnostic.message],
+  );
+  sortByDeterministicKey(
+    result.manualFollowUp,
+    (entry) => [entry.sourcePath, entry.reason, entry.recommendation],
+  );
   return result;
 }
 

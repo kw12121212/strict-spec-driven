@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import path from "path";
+import { sortByDeterministicKey, toPosix } from "../diagnostics.js";
 import { parseYamlDocument } from "../yaml.js";
 import {
   DECLARED_PLANNED_CHANGE_STATUSES,
@@ -10,9 +11,7 @@ import {
   type RoadmapDiagnostic,
 } from "./model.js";
 
-export function toPosix(value: string): string {
-  return value.split(path.sep).join("/");
-}
+export { toPosix };
 
 export function normalizeRepoRelativePath(rootDir: string, absolutePath: string): string {
   return toPosix(path.relative(rootDir, absolutePath));
@@ -42,11 +41,17 @@ export function makeDiagnostic(
 }
 
 export function sortDiagnostics(diagnostics: RoadmapDiagnostic[]): RoadmapDiagnostic[] {
-  return diagnostics.sort((left, right) => {
-    const leftKey = [left.source, left.artifactPath, left.fieldPath, left.message, left.expected ?? "", left.actual ?? ""].join("|");
-    const rightKey = [right.source, right.artifactPath, right.fieldPath, right.message, right.expected ?? "", right.actual ?? ""].join("|");
-    return leftKey.localeCompare(rightKey);
-  });
+  return sortByDeterministicKey(
+    diagnostics,
+    (diagnostic) => [
+      diagnostic.source,
+      diagnostic.artifactPath,
+      diagnostic.fieldPath,
+      diagnostic.message,
+      diagnostic.expected ?? "",
+      diagnostic.actual ?? "",
+    ],
+  );
 }
 
 export function isRecord(value: unknown): value is Record<string, unknown> {

@@ -330,6 +330,12 @@ try {
     ),
     "roadmap-status diagnostics identify the invalid artifact path and field path",
   );
+  const invalidRoadmapStatusRepeat = cli(["roadmap-status"], { cwd: roadmapInvalidDir });
+  context.assert(
+    invalidRoadmapStatusRepeat.status === invalidRoadmapStatus.status
+      && invalidRoadmapStatusRepeat.stdout.trim() === invalidRoadmapStatus.stdout.trim(),
+    "roadmap-status preserves diagnostic ordering across repeated invalid runs",
+  );
 
   const invalidRoadmapSync = cli(["roadmap-sync"], { cwd: roadmapInvalidDir });
   context.assert(invalidRoadmapSync.status !== 0, "roadmap-sync exits non-zero when milestone artifacts are invalid");
@@ -1818,6 +1824,17 @@ try {
       && !existsSync(path.join(migratePartialDir, ".strict-spec-driven", "specs", "cli", "non-standard-heading.yaml"))
       && !existsSync(path.join(migratePartialDir, ".strict-spec-driven", "specs", "cli", "broken-frontmatter.yaml")),
     "partial migrate does not invent strict YAML output for deferred legacy spec files",
+  );
+
+  const partialForced = cli(["migrate", "--force"], { cwd: migratePartialDir });
+  context.assert(partialForced.status === 0, "partial migrate --force rerun exits zero after deferred output exists");
+  const partialForcedJson = JSON.parse(partialForced.stdout.trim());
+  context.assert(
+    JSON.stringify(partialForcedJson.skipped) === JSON.stringify(partialJson.skipped)
+      && JSON.stringify(partialForcedJson.warnings) === JSON.stringify(partialJson.warnings)
+      && JSON.stringify(partialForcedJson.errors) === JSON.stringify(partialJson.errors)
+      && JSON.stringify(partialForcedJson.manualFollowUp) === JSON.stringify(partialJson.manualFollowUp),
+    "partial migrate preserves skipped warning error and manual-follow-up ordering across forced reruns",
   );
 } finally {
   rmSync(migratePartialDir, { recursive: true, force: true });
