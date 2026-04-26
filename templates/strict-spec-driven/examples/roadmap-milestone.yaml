@@ -26,3 +26,7 @@ dependencies: []
 risks: []
 status: proposed
 notes: []
+details: |
+  This milestone captures long-form planning guidance such as design rationale,
+  architectural constraints, or migration considerations that roadmap-backed
+  proposals should consume as targeted context.

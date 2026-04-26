@@ -56,6 +56,7 @@ export type RoadmapMilestoneArtifact = {
   risks: string[];
   status: DeclaredRoadmapStatus;
   notes: string[];
+  details?: string;
 };
 
 export type RoadmapIndexArtifact = {

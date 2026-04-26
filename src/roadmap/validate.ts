@@ -274,6 +274,16 @@ export function validateMilestoneArtifact(
   const risks = validateStringArray(artifact, "risks", artifactPath, "$.risks", diagnostics);
   const notes = validateStringArray(artifact, "notes", artifactPath, "$.notes", diagnostics);
 
+  const details = "details" in artifact && artifact.details !== undefined
+    ? (() => {
+        if (typeof artifact.details !== "string") {
+          diagnostics.push(makeDiagnostic("schema", artifactPath, "$.details", "value must be a string", "string", typeof artifact.details));
+          return null;
+        }
+        return artifact.details;
+      })()
+    : undefined;
+
   const statusValue = artifact.status;
   if (!isDeclaredRoadmapStatus(statusValue)) {
     diagnostics.push(
@@ -441,5 +451,6 @@ export function validateMilestoneArtifact(
     risks,
     status: statusValue,
     notes,
+    details: details ?? undefined,
   };
 }

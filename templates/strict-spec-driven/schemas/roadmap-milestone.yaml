@@ -86,3 +86,6 @@ fields:
     required: true
     items:
       type: string
+  details:
+    type: string
+    required: false

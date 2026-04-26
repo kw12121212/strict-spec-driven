@@ -40,3 +40,7 @@ risks:
 status: active
 notes:
   - Roadmap skills should consume the same structured artifact contract as CLI validation.
+details: |
+  The roadmap workflow must enforce the same schema contract that CLI validation
+  checks, so that skill-driven proposal handoff and programmatic validation stay
+  consistent. Any divergence between skill behavior and CLI validation is a bug.
