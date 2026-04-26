@@ -2,6 +2,7 @@
 mapping:
   implementation:
     - package.json
+    - src/converters/roadmap.ts
     - src/migrate.ts
     - src/scaffold.ts
     - templates/strict-spec-driven/schemas/schema-registry.yaml
@@ -821,7 +822,7 @@ The system MUST define migration mapping rules from supported legacy `.spec-driv
 - AND each supported legacy role identifies a registry-controlled schema ID
 
 ### Requirement: yaml-migration-relationship-preservation
-The system MUST require migration behavior to preserve supported workflow relationships when converting legacy `.spec-driven/` Markdown artifacts into strict YAML artifacts.
+The system MUST require migration behavior to preserve supported workflow relationships when converting legacy `.spec-driven/` Markdown artifacts into strict YAML artifacts, including the optional `details` field on roadmap milestones.
 
 #### Scenario: migration preserves change relationships
 - GIVEN a legacy change contains proposal, design, task, question, and delta spec artifacts
@@ -834,6 +835,18 @@ The system MUST require migration behavior to preserve supported workflow relati
 - WHEN migration converts the roadmap to strict YAML
 - THEN planned change entries remain associated with their owning milestone
 - AND archived or active change state can still be reconciled by change name
+
+#### Scenario: migration preserves milestone details
+- GIVEN a legacy roadmap milestone Markdown artifact contains a `## Details` section
+- WHEN migration converts the milestone to a strict YAML roadmap milestone artifact
+- THEN the converted artifact includes the `details` field with the section content
+- AND the `details` content matches the original Markdown section text
+
+#### Scenario: migration omits details when absent in legacy milestone
+- GIVEN a legacy roadmap milestone Markdown artifact does not contain a `## Details` section
+- WHEN migration converts the milestone to a strict YAML roadmap milestone artifact
+- THEN the converted artifact omits the `details` field
+- AND no empty string or placeholder is emitted in its place
 
 ### Requirement: yaml-migration-unsupported-shape-reporting
 The system MUST require migration tooling to report unsupported legacy Markdown shapes through structured warnings and manual follow-up entries rather than silently dropping or guessing artifact semantics.

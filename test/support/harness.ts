@@ -110,6 +110,7 @@ export type RoadmapMilestoneArtifact = {
   risks: string[];
   status: string;
   notes: string[];
+  details?: string;
 };
 
 export type SpecsIndexArtifact = {

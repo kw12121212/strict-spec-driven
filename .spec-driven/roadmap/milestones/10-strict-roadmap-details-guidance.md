@@ -27,7 +27,7 @@ Extend the future `.strict-spec-driven` roadmap milestone format with a dedicate
 - `define-strict-roadmap-details-field-contract` - Declared: complete - add the strict roadmap milestone schema, example, template, and registry definitions for a dedicated freeform `details` field intended for long-form planning guidance.
 - `wire-strict-roadmap-details-through-roadmap-cli` - Declared: complete - update strict roadmap parsing, validation, status, and sync behavior so milestone `details` is preserved as canonical roadmap state.
 - `teach-strict-roadmap-propose-to-consume-details` - Declared: complete - update strict roadmap proposal handoff so milestone `details` informs proposal scaffolding without duplicating whole milestone plans into strict change artifacts.
-- `preserve-strict-roadmap-details-during-conversion` - Declared: planned - define how converters or migration helpers initialize or preserve `details` when older strict or imported roadmap artifacts do not already carry the field.
+- `preserve-strict-roadmap-details-during-conversion` - Declared: complete - define how converters or migration helpers initialize or preserve `details` when older strict or imported roadmap artifacts do not already carry the field.
 - `cover-strict-roadmap-details-with-regression` - Declared: planned - add fixture and end-to-end regression coverage proving `details` survives strict roadmap validation, sync, proposal handoff, and related workflows.
 
 ## Dependencies
@@ -47,6 +47,7 @@ Extend the future `.strict-spec-driven` roadmap milestone format with a dedicate
 - Current strict roadmap evidence: the schema, examples, templates, `src/roadmap.ts`, and `src/converters/roadmap.ts` model milestone context with `notes` but do not expose a separate long-form `details` field.
 - Current skill evidence: `skills/strict-roadmap-plan/SKILL.md` and `skills/strict-roadmap-propose/SKILL.md` describe roadmap planning and proposal handoff without a dedicated place for long technical or design guidance.
 - The intended strict representation is a freeform long-text field suitable for YAML block-scalar content so milestone authors can capture targeted design notes without inventing a rigid internal schema.
+
 
 
 

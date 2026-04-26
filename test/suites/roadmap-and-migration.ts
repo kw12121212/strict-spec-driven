@@ -2191,6 +2191,35 @@ if (validMilestoneResult.ok) {
     validMilestoneResult.artifact.notes.length > 0,
     "convertRoadmapMilestone captures notes entries",
   );
+  context.assert(
+    !("details" in validMilestoneResult.artifact),
+    "convertRoadmapMilestone omits details field when milestone has no Details section",
+  );
+}
+
+const detailsMilestoneContent = readFileSync(
+  path.join(ROADMAP_FIXTURE_ROOT, "milestones", "valid-milestone-with-details.md"),
+  "utf8",
+);
+const detailsMilestoneResult = roadmapConverterModule.convertRoadmapMilestone(
+  detailsMilestoneContent,
+  "valid-milestone-with-details.md",
+);
+context.assert(detailsMilestoneResult.ok === true, "convertRoadmapMilestone succeeds for milestone with Details section");
+if (detailsMilestoneResult.ok) {
+  context.assert(
+    typeof detailsMilestoneResult.artifact.details === "string"
+      && detailsMilestoneResult.artifact.details!.length > 0,
+    "convertRoadmapMilestone preserves details text from Details section",
+  );
+  context.assert(
+    detailsMilestoneResult.artifact.details!.includes("long-form planning guidance"),
+    "convertRoadmapMilestone details content matches source section text",
+  );
+  context.assert(
+    detailsMilestoneResult.artifact.notes.length > 0,
+    "convertRoadmapMilestone still captures notes when Details is present",
+  );
 }
 
 const malformedMilestoneContent = readFileSync(
