@@ -53,6 +53,7 @@ function writeRoadmapMilestoneArtifact(
     goal: string;
     status: string;
     plannedChanges: Array<{ id: string; status: string; summary: string; depends_on: string[] }>;
+    details?: string;
   },
 ): void {
   const milestonePath = path.join(rootDir, ".strict-spec-driven", "roadmap", "milestones", fileName);
@@ -88,6 +89,7 @@ function writeRoadmapMilestoneArtifact(
       risks: [],
       status: options.status,
       notes: [],
+      ...(options.details != null ? { details: options.details } : {}),
     }),
     "utf8",
   );
@@ -202,6 +204,71 @@ try {
   );
 } finally {
   rmSync(roadmapHappyDir, { recursive: true, force: true });
+}
+
+const roadmapDetailsPresentDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-details-present-"));
+try {
+  writeRoadmapMilestoneArtifact(roadmapDetailsPresentDir, "01-details.yaml", {
+    id: "01-details",
+    title: "Details Preservation",
+    goal: "Verify details survive sync.",
+    status: "active",
+    plannedChanges: [],
+    details: "This is long-form planning guidance that must survive sync.",
+  });
+
+  writeRoadmapIndexArtifact(roadmapDetailsPresentDir, [
+    {
+      id: "01-details",
+      title: "Details Preservation",
+      path: "roadmap/milestones/01-details.yaml",
+      status: "active",
+    },
+  ]);
+
+  const detailsSync = cli(["roadmap-sync"], { cwd: roadmapDetailsPresentDir });
+  context.assert(detailsSync.status === 0, "roadmap-sync exits zero for milestone with details");
+  const syncedDetailsMilestone = yamlModule.parseYamlFile<{
+    details?: string;
+  }>(path.join(roadmapDetailsPresentDir, ".strict-spec-driven", "roadmap", "milestones", "01-details.yaml"));
+  context.assert(
+    syncedDetailsMilestone.details === "This is long-form planning guidance that must survive sync.",
+    "roadmap-sync preserves details field when present in milestone",
+  );
+} finally {
+  rmSync(roadmapDetailsPresentDir, { recursive: true, force: true });
+}
+
+const roadmapDetailsAbsentDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-details-absent-"));
+try {
+  writeRoadmapMilestoneArtifact(roadmapDetailsAbsentDir, "01-no-details.yaml", {
+    id: "01-no-details",
+    title: "No Details",
+    goal: "Verify details is absent when omitted.",
+    status: "active",
+    plannedChanges: [],
+  });
+
+  writeRoadmapIndexArtifact(roadmapDetailsAbsentDir, [
+    {
+      id: "01-no-details",
+      title: "No Details",
+      path: "roadmap/milestones/01-no-details.yaml",
+      status: "active",
+    },
+  ]);
+
+  const noDetailsSync = cli(["roadmap-sync"], { cwd: roadmapDetailsAbsentDir });
+  context.assert(noDetailsSync.status === 0, "roadmap-sync exits zero for milestone without details");
+  const syncedNoDetailsMilestone = yamlModule.parseYamlFile<Record<string, unknown>>(
+    path.join(roadmapDetailsAbsentDir, ".strict-spec-driven", "roadmap", "milestones", "01-no-details.yaml"),
+  );
+  context.assert(
+    !("details" in syncedNoDetailsMilestone),
+    "roadmap-sync omits details field when source milestone has none",
+  );
+} finally {
+  rmSync(roadmapDetailsAbsentDir, { recursive: true, force: true });
 }
 
 const roadmapAmbiguousDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-ambiguous-"));

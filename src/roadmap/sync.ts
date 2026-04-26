@@ -55,6 +55,7 @@ export function buildCanonicalMilestoneArtifact(
     risks: [...milestone.artifact.risks],
     status: status.derivedStatus,
     notes: [...milestone.artifact.notes],
+    ...(milestone.artifact.details != null ? { details: milestone.artifact.details } : {}),
   };
 }
 

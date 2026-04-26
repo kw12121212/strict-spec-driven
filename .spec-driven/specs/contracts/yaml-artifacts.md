@@ -48,6 +48,7 @@ mapping:
     - RTK.md
   tests:
     - test/run.ts
+    - test/suites/roadmap-and-migration.ts
 ---
 
 # Strict YAML Artifact Schemas
@@ -401,6 +402,18 @@ The system MUST represent roadmap milestone planning state through structured YA
 - WHEN the artifact is validated
 - THEN no validation failure is emitted for the missing `details` field
 - AND the milestone remains fully valid
+
+#### Scenario: sync preserves details when present
+- GIVEN a strict roadmap milestone artifact includes a `details` field
+- WHEN the roadmap sync operation builds the canonical milestone artifact
+- THEN the output milestone artifact includes the same `details` content
+- AND the `details` content is not modified or truncated
+
+#### Scenario: sync omits details when absent
+- GIVEN a strict roadmap milestone artifact omits the `details` field
+- WHEN the roadmap sync operation builds the canonical milestone artifact
+- THEN the output milestone artifact omits the `details` field
+- AND no empty string or placeholder is emitted in its place
 
 ### Requirement: yaml-planned-change-entry-dependency-model
 The system MUST represent each planned change entry with a stable identifier,

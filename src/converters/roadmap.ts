@@ -48,6 +48,7 @@ export type StrictRoadmapMilestoneArtifact = {
   risks: string[];
   status: DeclaredRoadmapStatus;
   notes: string[];
+  details?: string;
 };
 
 export type StrictSpecsIndexArtifact = {
