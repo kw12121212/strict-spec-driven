@@ -313,6 +313,7 @@ export function convertRoadmapMilestone(
     const dependencies = parseMarkdownBulletList(sections.get("Dependencies") ?? "");
     const risks = parseMarkdownBulletList(sections.get("Risks") ?? "");
     const notes = parseMarkdownBulletList(sections.get("Notes") ?? "");
+    const detailsText = parseSectionText(sections.get("Details") ?? "");
 
     return {
       ok: true,
@@ -330,6 +331,7 @@ export function convertRoadmapMilestone(
         risks,
         status: declaredStatus,
         notes,
+        ...(detailsText ? { details: detailsText } : {}),
       },
     };
   } catch (error) {

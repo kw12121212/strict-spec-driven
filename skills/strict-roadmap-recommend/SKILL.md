@@ -36,6 +36,8 @@ proceeding, verify that strict workflow state already exists.
    - `.strict-spec-driven/specs/INDEX.yaml`
    - the strict YAML main specs the candidate change is likely to touch
    - the current `roadmap-status` output
+   - the owning milestone YAML file's `details` field, if present, as targeted
+     planning guidance for the recommended change
 
 2. **Choose the next candidate from existing planned changes** — recommend only a
    planned change that already exists under one milestone
@@ -55,7 +57,12 @@ proceeding, verify that strict workflow state already exists.
    ```
    Then fill the normal strict change artifacts under
    `.strict-spec-driven/changes/<change-name>/` without copying full
-   milestone-level planning metadata into the change.
+   milestone-level planning metadata into the change. If the owning milestone
+   has a `details` field, extract the portions relevant to the selected planned
+   change and use them as targeted planning guidance when populating the
+   change artifacts. Do not copy the full milestone plan — only extract
+   guidance relevant to this one planned change. If `details` is absent,
+   proceed normally.
 
 5. **Validate the proposed strict change** — run:
    ```bash

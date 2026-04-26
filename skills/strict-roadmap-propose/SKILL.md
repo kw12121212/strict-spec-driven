@@ -44,11 +44,18 @@ proceeding, verify that strict workflow state already exists.
    ```
    Use the planned change ID as the strict change name.
 
-4. **Fill the normal strict change artifacts** — populate `proposal.yaml`,
+4. **Read the owning milestone's `details` field** — after scaffolding, read
+   the owning milestone YAML file and check for a `details` field. If present,
+   extract the portions relevant to the selected planned change and use them as
+   targeted planning guidance when populating the change artifacts. Do not copy
+   the full milestone plan into change artifacts — only extract guidance
+   relevant to this one planned change. If `details` is absent, proceed normally.
+
+5. **Fill the normal strict change artifacts** — populate `proposal.yaml`,
    `design.yaml`, `tasks.yaml`, `questions.yaml`, and any strict YAML delta
    specs under `.strict-spec-driven/changes/<change-name>/specs/`.
 
-5. **Validate the result** — run:
+6. **Validate the result** — run:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
    ```
