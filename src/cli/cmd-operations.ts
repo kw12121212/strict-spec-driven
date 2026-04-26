@@ -5,6 +5,7 @@ import { validateStrictSkillPackaging } from "../skills.js";
 import { parseYamlDocument } from "../yaml.js";
 import { findArchivedMatchesByBareName, getArchiveDir } from "./changes.js";
 import { normalizeRepoRelativePath } from "./fs.js";
+import { writeErr, writeError, writeJson, writeUsage } from "./output.js";
 import { verifySpecMappings } from "./spec-mapping.js";
 
 export type ShipResult = {
@@ -17,7 +18,7 @@ export type ShipResult = {
 export function runShip(argv: string[]): number {
   const [target, ...extraArgs] = argv;
   if (!target || extraArgs.length > 0) {
-    process.stderr.write("Usage: strict-spec-driven ship <change-name>\n");
+    writeUsage("Usage: strict-spec-driven ship <change-name>\n");
     return 1;
   }
 
@@ -31,10 +32,8 @@ export function runShip(argv: string[]): number {
   } else {
     const bareMatches = findArchivedMatchesByBareName(rootDir, target);
     if (bareMatches.length > 1) {
-      process.stderr.write(
-        `Error: ambiguous archived change name '${target}'; matched: ${bareMatches.join(", ")}\n` +
-          `Specify the full archive directory name to disambiguate.\n`,
-      );
+      writeError(`ambiguous archived change name '${target}'; matched: ${bareMatches.join(", ")}`);
+      writeErr("Specify the full archive directory name to disambiguate.\n");
       return 1;
     }
     if (bareMatches.length === 1) {
@@ -43,7 +42,7 @@ export function runShip(argv: string[]): number {
   }
 
   if (!resolvedArchiveName) {
-    process.stderr.write(`Error: archived change '${target}' not found\n`);
+    writeError(`archived change '${target}' not found`);
     return 1;
   }
 
@@ -78,28 +77,28 @@ export function runShip(argv: string[]): number {
     roadmapSnapshot,
   };
 
-  process.stdout.write(JSON.stringify(result) + "\n");
+  writeJson(result);
   return 0;
 }
 
 export function runValidateSkills(argv: string[]): number {
   if (argv.length > 0) {
-    process.stderr.write("Usage: strict-spec-driven validate-skills\n");
+    writeUsage("Usage: strict-spec-driven validate-skills\n");
     return 1;
   }
 
   const result = validateStrictSkillPackaging(process.cwd());
-  process.stdout.write(`${JSON.stringify(result)}\n`);
+  writeJson(result);
   return result.valid ? 0 : 1;
 }
 
 export function runVerifySpecMappings(argv: string[]): number {
   if (argv.length > 0) {
-    process.stderr.write("Usage: strict-spec-driven verify-spec-mappings\n");
+    writeUsage("Usage: strict-spec-driven verify-spec-mappings\n");
     return 1;
   }
 
   const result = verifySpecMappings(process.cwd());
-  process.stdout.write(JSON.stringify(result) + "\n");
+  writeJson(result);
   return result.valid ? 0 : 1;
 }

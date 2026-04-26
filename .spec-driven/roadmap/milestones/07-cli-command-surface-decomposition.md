@@ -29,8 +29,8 @@ Reduce the size and coordination burden of the CLI entrypoint layer by splitting
 - `extract-cli-change-discovery-and-status` - Declared: complete - move change listing, archive matching, and active-status calculation into focused helper modules reused by CLI commands.
 - `extract-cli-spec-mapping-audit` - Declared: complete - move spec-mapping parsing, normalization, evidence collection, and diagnostic sorting into dedicated modules instead of keeping them inline in the entrypoint.
 - `extract-cli-command-handlers-by-domain` - Declared: complete - split init, propose, verify, review, roadmap, migrate, maintenance, ship, list, modify, and cancel handlers into smaller domain-oriented command modules while preserving outputs.
-- `stabilize-cli-output-contracts` - Declared: planned - centralize human-readable and JSON output shaping so command text and machine-readable structures stay stable while modules move.
-- `bind-cli-refactors-to-real-todo-project-regression` - Declared: planned - run command-surface scenarios against the shared copied todo project fixture on every test run so CLI decomposition is validated in a repeatable project context.
+- `stabilize-cli-output-contracts` - Declared: complete - centralize human-readable and JSON output shaping so command text and machine-readable structures stay stable while modules move.
+- `bind-cli-refactors-to-real-todo-project-regression` - Declared: complete - run command-surface scenarios against the shared copied todo project fixture on every test run so CLI decomposition is validated in a repeatable project context.
 
 ## Dependencies
 - `03-core-strict-workflow` and `06-operations-and-documentation` must remain the behavioral baseline for command outputs and operational surfaces while the entrypoint is decomposed.
@@ -43,12 +43,15 @@ Reduce the size and coordination burden of the CLI entrypoint layer by splitting
 - A superficial file split without cleaner ownership could spread the same complexity across more files instead of reducing it.
 
 ## Status
-- Declared: proposed
+- Declared: complete
 
 ## Notes
 - Current hotspot evidence: `src/strict-spec-cli.ts` is about 1093 lines and mixes entrypoint setup, command handlers, shared filesystem utilities, and spec-mapping audit logic in one file.
 - Current test evidence: `test/run.ts` is about 5949 lines and today relies mostly on temporary-directory and single-fixture assertions, so command-surface decomposition needs a stronger shared project-level regression layer.
 - This milestone intentionally focuses on the CLI command surface first so later domain-specific decompositions can happen behind clearer entry boundaries.
+
+
+
 
 
 

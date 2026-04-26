@@ -2022,6 +2022,18 @@ try {
     `stdout: ${copiedProjectPropose.stdout.trim()} stderr: ${copiedProjectPropose.stderr.trim()}`,
   );
 
+  const copiedProjectList = projectWorkspaceCli(copiedProjectLifecycleWorkspace.workspaceRoot, ["list"]);
+  context.assert(
+    copiedProjectList.status === 0,
+    "copied project workspace list exits zero after propose",
+    `stdout: ${copiedProjectList.stdout.trim()} stderr: ${copiedProjectList.stderr.trim()}`,
+  );
+  context.assert(
+    copiedProjectList.stdout.includes(changeName),
+    "copied project workspace list reports the newly proposed change as an active entry",
+    `stdout: ${copiedProjectList.stdout.trim()}`,
+  );
+
   const copiedProjectModify = projectWorkspaceCli(copiedProjectLifecycleWorkspace.workspaceRoot, ["modify", changeName]);
   context.assert(
     copiedProjectModify.status === 0,
@@ -2052,6 +2064,29 @@ try {
   context.assert(
     existsSync(path.join(copiedProjectLifecycleWorkspace.workspaceRoot, ".spec-driven", "changes", "add-due-dates", "proposal.md")),
     "copied project workspace cancel preserves the committed bootstrap change artifacts",
+  );
+
+  const archiveDirName = "2026-01-01-archived-fixture-change";
+  const archiveDirPath = path.join(
+    copiedProjectLifecycleWorkspace.workspaceRoot,
+    ".strict-spec-driven",
+    "changes",
+    "archive",
+    archiveDirName,
+  );
+  mkdirSync(archiveDirPath, { recursive: true });
+  writeFileSync(path.join(archiveDirPath, "proposal.yaml"), "schema: proposal\n", "utf8");
+
+  const copiedProjectArchiveLookup = projectWorkspaceCli(copiedProjectLifecycleWorkspace.workspaceRoot, ["modify", archiveDirName]);
+  context.assert(
+    copiedProjectArchiveLookup.status === 0,
+    "copied project workspace modify exits zero for an exact archive directory name",
+    `stdout: ${copiedProjectArchiveLookup.stdout.trim()} stderr: ${copiedProjectArchiveLookup.stderr.trim()}`,
+  );
+  context.assert(
+    copiedProjectArchiveLookup.stdout.includes(`.strict-spec-driven/changes/archive/${archiveDirName}/proposal.yaml`),
+    "copied project workspace modify reports artifact paths for an archived change directory",
+    `stdout: ${copiedProjectArchiveLookup.stdout.trim()}`,
   );
 
   const copiedProjectMappings = projectWorkspaceCli(copiedProjectLifecycleWorkspace.workspaceRoot, ["verify-spec-mappings"]);

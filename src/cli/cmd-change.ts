@@ -13,35 +13,36 @@ import {
   listArchivedChanges,
 } from "./changes.js";
 import { listYamlFiles, normalizeRepoRelativePath } from "./fs.js";
+import { writeError, writeJson, writeOut, writeUsage } from "./output.js";
 
 export function printChangeArtifacts(rootDir: string, name: string, changeDir: string): void {
-  process.stdout.write(`Artifacts for '${name}':\n`);
+  writeOut(`Artifacts for '${name}':\n`);
 
   for (const artifact of ["proposal.yaml", "design.yaml", "tasks.yaml", "questions.yaml"]) {
     const artifactPath = path.join(changeDir, artifact);
     const displayPath = normalizeRepoRelativePath(rootDir, artifactPath);
-    process.stdout.write(`  ${displayPath}${existsSync(artifactPath) ? "" : " (missing)"}\n`);
+    writeOut(`  ${displayPath}${existsSync(artifactPath) ? "" : " (missing)"}\n`);
   }
 
   const specsDir = path.join(changeDir, "specs");
   const specFiles = listYamlFiles(specsDir);
   if (specFiles.length === 0) {
-    process.stdout.write(`  ${normalizeRepoRelativePath(rootDir, specsDir)}/ (empty)\n`);
+    writeOut(`  ${normalizeRepoRelativePath(rootDir, specsDir)}/ (empty)\n`);
     return;
   }
   for (const specFile of specFiles) {
-    process.stdout.write(`  ${normalizeRepoRelativePath(rootDir, specFile)}\n`);
+    writeOut(`  ${normalizeRepoRelativePath(rootDir, specFile)}\n`);
   }
 }
 
 export function runApply(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
   if (!changeName || extraArgs.length > 0) {
-    process.stderr.write("Usage: strict-spec-driven apply <change-name>\n");
+    writeUsage("Usage: strict-spec-driven apply <change-name>\n");
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(changeName)) {
-    process.stderr.write("Error: change name must be kebab-case (lowercase letters, numbers, and hyphens)\n");
+    writeError("change name must be kebab-case (lowercase letters, numbers, and hyphens)");
     return 1;
   }
 
@@ -49,11 +50,11 @@ export function runApply(argv: string[]): number {
     const tasksYaml = readChangeTasks(process.cwd(), changeName);
     const { result, updatedYaml } = applyTask(tasksYaml);
     writeChangeTasks(process.cwd(), changeName, updatedYaml);
-    process.stdout.write(JSON.stringify(result) + "\n");
+    writeJson(result);
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`Error: ${message}\n`);
+    writeError(message);
     return 1;
   }
 }
@@ -61,21 +62,21 @@ export function runApply(argv: string[]): number {
 export function runVerify(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
   if (!changeName || extraArgs.length > 0) {
-    process.stderr.write("Usage: strict-spec-driven verify <change-name>\n");
+    writeUsage("Usage: strict-spec-driven verify <change-name>\n");
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(changeName)) {
-    process.stderr.write("Error: change name must be kebab-case (lowercase letters, numbers, and hyphens)\n");
+    writeError("change name must be kebab-case (lowercase letters, numbers, and hyphens)");
     return 1;
   }
 
   try {
     const result = verifyChange(process.cwd(), changeName);
-    process.stdout.write(JSON.stringify(result) + "\n");
+    writeJson(result);
     return result.valid ? 0 : 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`Error: ${message}\n`);
+    writeError(message);
     return 1;
   }
 }
@@ -83,21 +84,21 @@ export function runVerify(argv: string[]): number {
 export function runReview(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
   if (!changeName || extraArgs.length > 0) {
-    process.stderr.write("Usage: strict-spec-driven review <change-name>\n");
+    writeUsage("Usage: strict-spec-driven review <change-name>\n");
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(changeName)) {
-    process.stderr.write("Error: change name must be kebab-case (lowercase letters, numbers, and hyphens)\n");
+    writeError("change name must be kebab-case (lowercase letters, numbers, and hyphens)");
     return 1;
   }
 
   try {
     const result = reviewChange(process.cwd(), changeName);
-    process.stdout.write(JSON.stringify(result) + "\n");
+    writeJson(result);
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`Error: ${message}\n`);
+    writeError(message);
     return 1;
   }
 }
@@ -105,56 +106,56 @@ export function runReview(argv: string[]): number {
 export function runArchive(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
   if (!changeName || extraArgs.length > 0) {
-    process.stderr.write("Usage: strict-spec-driven archive <change-name>\n");
+    writeUsage("Usage: strict-spec-driven archive <change-name>\n");
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(changeName)) {
-    process.stderr.write("Error: change name must be kebab-case (lowercase letters, numbers, and hyphens)\n");
+    writeError("change name must be kebab-case (lowercase letters, numbers, and hyphens)");
     return 1;
   }
 
   try {
     const result = archiveChange(process.cwd(), changeName);
-    process.stdout.write(JSON.stringify(result) + "\n");
+    writeJson(result);
     return result.valid ? 0 : 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    process.stderr.write(`Error: ${message}\n`);
+    writeError(message);
     return 1;
   }
 }
 
 export function runList(argv: string[]): number {
   if (argv.length > 0) {
-    process.stderr.write("Usage: strict-spec-driven list\n");
+    writeUsage("Usage: strict-spec-driven list\n");
     return 1;
   }
 
   const rootDir = process.cwd();
   const changesDir = getChangesDir(rootDir);
   if (!existsSync(changesDir) || !statSync(changesDir).isDirectory()) {
-    process.stdout.write("No .strict-spec-driven/changes/ directory found.\n");
+    writeOut("No .strict-spec-driven/changes/ directory found.\n");
     return 0;
   }
 
   const activeChanges = listActiveChanges(rootDir);
   if (activeChanges.length > 0) {
-    process.stdout.write("Active:\n");
+    writeOut("Active:\n");
     for (const activeChange of activeChanges) {
-      process.stdout.write(`  ${activeChange.name}    ${activeChange.status}\n`);
+      writeOut(`  ${activeChange.name}    ${activeChange.status}\n`);
     }
   }
 
   const archivedChanges = listArchivedChanges(rootDir);
   if (archivedChanges.length > 0) {
-    process.stdout.write("Archived:\n");
+    writeOut("Archived:\n");
     for (const archivedChange of archivedChanges) {
-      process.stdout.write(`  ${archivedChange}\n`);
+      writeOut(`  ${archivedChange}\n`);
     }
   }
 
   if (activeChanges.length === 0 && archivedChanges.length === 0) {
-    process.stdout.write("No changes.\n");
+    writeOut("No changes.\n");
   }
 
   return 0;
@@ -163,7 +164,7 @@ export function runList(argv: string[]): number {
 export function runModify(argv: string[]): number {
   const [target, ...extraArgs] = argv;
   if (extraArgs.length > 0) {
-    process.stderr.write("Usage: strict-spec-driven modify [change-name|archive-dir]\n");
+    writeUsage("Usage: strict-spec-driven modify [change-name|archive-dir]\n");
     return 1;
   }
 
@@ -171,13 +172,13 @@ export function runModify(argv: string[]): number {
   if (!target) {
     const activeChanges = listActiveChanges(rootDir);
     if (activeChanges.length === 0) {
-      process.stdout.write("No active changes.\n");
+      writeOut("No active changes.\n");
       return 0;
     }
 
-    process.stdout.write("Active changes:\n");
+    writeOut("Active changes:\n");
     for (const activeChange of activeChanges) {
-      process.stdout.write(`  ${activeChange.name}    ${activeChange.status}\n`);
+      writeOut(`  ${activeChange.name}    ${activeChange.status}\n`);
     }
     return 0;
   }
@@ -197,24 +198,24 @@ export function runModify(argv: string[]): number {
 
   const archivedBareMatches = findArchivedMatchesByBareName(rootDir, target);
   if (archivedBareMatches.length > 0) {
-    process.stderr.write(
-      `Error: archived targets require exact archive directory names (YYYY-MM-DD-<name>); matched: ${archivedBareMatches.join(", ")}\n`,
+    writeError(
+      `archived targets require exact archive directory names (YYYY-MM-DD-<name>); matched: ${archivedBareMatches.join(", ")}`,
     );
     return 1;
   }
 
-  process.stderr.write(`Error: change '${target}' not found\n`);
+  writeError(`change '${target}' not found`);
   return 1;
 }
 
 export function runCancel(argv: string[]): number {
   const [target, ...extraArgs] = argv;
   if (!target || extraArgs.length > 0) {
-    process.stderr.write("Usage: strict-spec-driven cancel <change-name>\n");
+    writeUsage("Usage: strict-spec-driven cancel <change-name>\n");
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(target)) {
-    process.stderr.write("Error: change name must be kebab-case (lowercase letters, numbers, and hyphens)\n");
+    writeError("change name must be kebab-case (lowercase letters, numbers, and hyphens)");
     return 1;
   }
 
@@ -222,27 +223,23 @@ export function runCancel(argv: string[]): number {
   const archiveRoot = getArchiveDir(rootDir);
   const archivedTargetDir = path.join(archiveRoot, target);
   if (existsSync(archivedTargetDir) && statSync(archivedTargetDir).isDirectory()) {
-    process.stderr.write(
-      `Error: cancel is limited to active changes; archived target '${target}' cannot be cancelled\n`,
-    );
+    writeError(`cancel is limited to active changes; archived target '${target}' cannot be cancelled`);
     return 1;
   }
 
   const activeTargetDir = path.join(getChangesDir(rootDir), target);
   if (existsSync(activeTargetDir) && statSync(activeTargetDir).isDirectory()) {
     rmSync(activeTargetDir, { recursive: true, force: true });
-    process.stdout.write(`Cancelled: ${normalizeRepoRelativePath(rootDir, activeTargetDir)}\n`);
+    writeOut(`Cancelled: ${normalizeRepoRelativePath(rootDir, activeTargetDir)}\n`);
     return 0;
   }
 
   const archivedBareMatches = findArchivedMatchesByBareName(rootDir, target);
   if (archivedBareMatches.length > 0) {
-    process.stderr.write(
-      `Error: cancel is limited to active changes; '${target}' is archived as ${archivedBareMatches.join(", ")}\n`,
-    );
+    writeError(`cancel is limited to active changes; '${target}' is archived as ${archivedBareMatches.join(", ")}`);
     return 1;
   }
 
-  process.stderr.write(`Error: change '${target}' not found\n`);
+  writeError(`change '${target}' not found`);
   return 1;
 }
