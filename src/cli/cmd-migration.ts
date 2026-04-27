@@ -3,19 +3,13 @@ import { migrateLegacyWorkflow } from "../migrate.js";
 import { writeErr, writeError, writeJson, writeUsage } from "./output.js";
 
 export function runMigrate(argv: string[]): number {
-  let force = false;
-  for (const arg of argv) {
-    if (arg === "--force" || arg === "-f") {
-      force = true;
-      continue;
-    }
-    writeUsage("Usage: strict-spec-driven migrate [--force|-f]\n");
+  if (argv.length > 0) {
+    writeUsage("Usage: strict-spec-driven migrate\n");
     return 1;
   }
 
   try {
     const result = migrateLegacyWorkflow(process.cwd(), {
-      force,
       onProgress: (phase) => writeErr(`[migrate ${new Date().toISOString()}] ${phase}\n`),
     });
     writeJson(result);

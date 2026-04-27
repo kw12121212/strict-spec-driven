@@ -1,7 +1,6 @@
 import {
   existsSync,
   readdirSync,
-  rmSync,
   statSync,
   writeFileSync,
 } from "fs";
@@ -29,7 +28,7 @@ export type MigrationProgressCallback = (phase: string) => void;
 
 export function migrateLegacyWorkflow(
   rootDir: string,
-  options?: { force?: boolean; onProgress?: MigrationProgressCallback },
+  options?: { onProgress?: MigrationProgressCallback },
 ): MigrationResult {
   const legacyRootAbsolutePath = path.join(rootDir, LEGACY_WORKFLOW_DIR);
   const strictRootAbsolutePath = path.join(rootDir, STRICT_WORKFLOW_DIR);
@@ -67,19 +66,16 @@ export function migrateLegacyWorkflow(
       );
       return sortMigrationResult(result);
     }
-    if (readdirSync(strictRootAbsolutePath).length > 0 && !options?.force) {
+    if (readdirSync(strictRootAbsolutePath).length > 0) {
       result.errors.push(
         makeDiagnostic(
           "strict_target_conflict",
-          "Cannot migrate into a non-empty .strict-spec-driven directory without --force.",
+          "Cannot migrate into a non-empty .strict-spec-driven directory. You must manually delete it before running migration. Do NOT delete it automatically — ask the user to run: rm -rf .strict-spec-driven",
           undefined,
           STRICT_WORKFLOW_DIR,
         ),
       );
       return sortMigrationResult(result);
-    }
-    if (options?.force) {
-      rmSync(strictRootAbsolutePath, { recursive: true, force: true });
     }
   }
 

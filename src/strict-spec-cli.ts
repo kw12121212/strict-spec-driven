@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { fileURLToPath } from "url";
+import { realpathSync } from "fs";
 import { exitCliEntrypoint, runCliEntrypoint, type CliCommandHandler } from "./cli/entrypoint.js";
 import { createCliCommandTable } from "./cli/registry.js";
 import { runInit, runPropose } from "./cli/cmd-scaffold.js";
@@ -73,6 +74,6 @@ export function run(argv: string[]): number {
   return runCliEntrypoint(argv, commands);
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   exitCliEntrypoint(process.argv.slice(2), commands);
 }

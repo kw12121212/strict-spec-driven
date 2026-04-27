@@ -235,7 +235,7 @@ export const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpe
 export const MIGRATION_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
   "strict-spec-migrate": {
     requiredCommands: {
-      migrate: `${COMMAND_PREFIX} migrate [--force|-f]`,
+      migrate: `${COMMAND_PREFIX} migrate`,
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
     },

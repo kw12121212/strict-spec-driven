@@ -6505,6 +6505,7 @@ var require_dist = __commonJS((exports, module) => {
 
 // src/strict-spec-cli.ts
 import { fileURLToPath as fileURLToPath3 } from "url";
+import { realpathSync } from "fs";
 
 // src/cli/argv.ts
 var CHANGE_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -13356,7 +13357,6 @@ function runMaintenance(rootDir) {
 import {
   existsSync as existsSync21,
   readdirSync as readdirSync9,
-  rmSync as rmSync2,
   statSync as statSync16,
   writeFileSync as writeFileSync7
 } from "fs";
@@ -15026,12 +15026,9 @@ function migrateLegacyWorkflow(rootDir, options) {
       result.errors.push(makeDiagnostic2("strict_target_conflict", "Cannot migrate into .strict-spec-driven because a non-directory entry already exists at that path.", undefined, STRICT_WORKFLOW_DIR8));
       return sortMigrationResult(result);
     }
-    if (readdirSync9(strictRootAbsolutePath).length > 0 && !options?.force) {
-      result.errors.push(makeDiagnostic2("strict_target_conflict", "Cannot migrate into a non-empty .strict-spec-driven directory without --force.", undefined, STRICT_WORKFLOW_DIR8));
+    if (readdirSync9(strictRootAbsolutePath).length > 0) {
+      result.errors.push(makeDiagnostic2("strict_target_conflict", "Cannot migrate into a non-empty .strict-spec-driven directory. You must manually delete it before running migration. Do NOT delete it automatically — ask the user to run: rm -rf .strict-spec-driven", undefined, STRICT_WORKFLOW_DIR8));
       return sortMigrationResult(result);
-    }
-    if (options?.force) {
-      rmSync2(strictRootAbsolutePath, { recursive: true, force: true });
     }
   }
   const strictConfig = loadStrictConfigFromLegacy(rootDir, result.errors);
@@ -15079,19 +15076,13 @@ function migrateLegacyWorkflow(rootDir, options) {
 
 // src/cli/cmd-migration.ts
 function runMigrate(argv) {
-  let force = false;
-  for (const arg of argv) {
-    if (arg === "--force" || arg === "-f") {
-      force = true;
-      continue;
-    }
-    writeUsage(`Usage: strict-spec-driven migrate [--force|-f]
+  if (argv.length > 0) {
+    writeUsage(`Usage: strict-spec-driven migrate
 `);
     return 1;
   }
   try {
     const result = migrateLegacyWorkflow(process.cwd(), {
-      force,
       onProgress: (phase) => writeErr(`[migrate ${new Date().toISOString()}] ${phase}
 `)
     });
@@ -15317,7 +15308,7 @@ var PLANNING_STRICT_SKILL_EXPECTATIONS = {
 var MIGRATION_STRICT_SKILL_EXPECTATIONS = {
   "strict-spec-migrate": {
     requiredCommands: {
-      migrate: `${COMMAND_PREFIX} migrate [--force|-f]`,
+      migrate: `${COMMAND_PREFIX} migrate`,
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`
     },
@@ -15923,7 +15914,7 @@ var commands = createCliCommandTable({
 function run(argv) {
   return runCliEntrypoint(argv, commands);
 }
-if (process.argv[1] === fileURLToPath3(import.meta.url)) {
+if (realpathSync(process.argv[1]) === realpathSync(fileURLToPath3(import.meta.url))) {
   exitCliEntrypoint(process.argv.slice(2), commands);
 }
 export {
