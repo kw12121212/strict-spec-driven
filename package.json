@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "bun scripts/gen-templates-bundle.ts && tsc && rm -rf dist/templates dist/scripts && cp -r templates dist/templates && cp -r scripts dist/scripts",
+    "build": "bun scripts/gen-templates-bundle.ts && tsc && rm -rf dist/templates dist/scripts && cp -r templates dist/templates && cp -r scripts dist/scripts && bun build --bundle --target node --format esm --outfile dist/scripts/strict-spec-driven.js src/strict-spec-cli.ts",
     "bundle": "mkdir -p dist/scripts && bun build --bundle --target node --format esm --outfile dist/scripts/strict-spec-driven.js src/strict-spec-cli.ts",
-    "build:bundle": "bun run build && bun run bundle",
+    "build:bundle": "bun run build",
     "install-strict-skills": "bash install.sh",
     "install-strict-skills:project": "bash install.sh --project",
     "test": "bun test/run.ts",
