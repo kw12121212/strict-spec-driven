@@ -12,8 +12,7 @@ import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 
-type Requirement = {
-  id: string;
+type RequirementValue = {
   strength: string;
   statement: string;
   scenarios: Record<string, unknown[]>;
@@ -26,16 +25,16 @@ type MainSpecArtifact = {
     id: string;
     title: string;
   };
-  requirements: Record<string, Requirement>;
+  requirements: Record<string, RequirementValue>;
   [key: string]: unknown;
 };
 
 type DeltaSpecArtifact = {
   target_spec: string;
   operations?: {
-    ADDED?: Array<{ requirement: Requirement }>;
-    MODIFIED?: Array<{ target_requirement: string; replacement: Requirement }>;
-    REMOVED?: Array<{ target_requirement: string; reason: string }>;
+    ADDED?: Record<string, RequirementValue>;
+    MODIFIED?: Record<string, RequirementValue>;
+    REMOVED?: Record<string, { reason: string }>;
   };
 };
 
@@ -125,13 +124,6 @@ function writeYamlFile(filePath: string, value: unknown): void {
   writeFileSync(filePath, stringifyYamlDocument(value), "utf8");
 }
 
-function getRequirementId(requirement: Requirement, context: string): string {
-  if (typeof requirement.id !== "string" || requirement.id.length === 0) {
-    throw new Error(`${context} is missing requirement.id`);
-  }
-  return requirement.id;
-}
-
 function assertUniqueRequirementIds(requirements: Record<string, unknown>, specPath: string): void {
   // Mapping keys are inherently unique — no-op.
   void requirements;
@@ -180,25 +172,14 @@ function applyDeltaToMainSpec(
 
   const operations = deltaSpec.operations ?? {};
 
-  for (const entry of operations.ADDED ?? []) {
-    const requirement = entry.requirement;
-    const reqId = getRequirementId(requirement, `delta ADDED entry in '${specPath}'`);
-    mainSpec.requirements[reqId] = requirement;
+  for (const [reqId, value] of Object.entries(operations.ADDED ?? {})) {
+    mainSpec.requirements[reqId] = { ...value };
     report.added += 1;
   }
 
-  for (const entry of operations.MODIFIED ?? []) {
-    const targetRequirement = entry.target_requirement;
-    if (typeof targetRequirement !== "string" || targetRequirement.length === 0) {
-      throw new Error(`delta MODIFIED entry in '${specPath}' is missing target_requirement`);
-    }
-
-    const replacement = entry.replacement;
-    getRequirementId(replacement, `delta MODIFIED replacement in '${specPath}'`);
-
+  for (const [targetRequirement, replacement] of Object.entries(operations.MODIFIED ?? {})) {
     if (!(targetRequirement in mainSpec.requirements)) {
-      const replacementId = getRequirementId(replacement, `delta MODIFIED fallback in '${specPath}'`);
-      mainSpec.requirements[replacementId] = replacement;
+      mainSpec.requirements[targetRequirement] = { ...replacement };
       report.modifiedMissingTargetAsAdded.push(targetRequirement);
       continue;
     }
@@ -207,12 +188,7 @@ function applyDeltaToMainSpec(
     report.modified += 1;
   }
 
-  for (const entry of operations.REMOVED ?? []) {
-    const targetRequirement = entry.target_requirement;
-    if (typeof targetRequirement !== "string" || targetRequirement.length === 0) {
-      throw new Error(`delta REMOVED entry in '${specPath}' is missing target_requirement`);
-    }
-
+  for (const targetRequirement of Object.keys(operations.REMOVED ?? {})) {
     if (!(targetRequirement in mainSpec.requirements)) {
       report.removedMissingTargetSkipped.push(targetRequirement);
       continue;

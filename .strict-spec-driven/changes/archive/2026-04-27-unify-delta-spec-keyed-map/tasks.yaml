@@ -1,0 +1,67 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: unify-delta-spec-keyed-map
+sections:
+  Implementation:
+    rewrite-delta-spec-schema:
+      text: >-
+        Rewrite delta-spec JSON Schema operations as keyed maps. Remove definitions.requirement
+        (with id), add definitions.requirement_value (without id). ADDED and MODIFIED become object
+        with additionalProperties referencing requirement_value. REMOVED becomes object with
+        additionalProperties containing a reason string field.
+      status: complete
+    update-archive-ts:
+      text: >-
+        Update src/archive.ts — change DeltaSpecArtifact operations type from arrays to keyed maps.
+        Update applyDeltaToMainSpec to iterate Object.entries() on operations, using map keys as
+        requirement/target IDs.
+      status: complete
+    update-verify-ts:
+      text: >-
+        Update src/verify.ts — change checkExclusiveActiveTargets to iterate Object.keys() on
+        MODIFIED and REMOVED keyed maps instead of array entries with target_requirement.
+      status: complete
+    update-review-ts:
+      text: >-
+        Update src/review.ts — change DeltaSpecArtifact type to keyed maps. Update
+        collectRequirementQualityFindings to derive id from map key. Update
+        collectDeltaCoherenceFindings to count Object.keys() instead of array length.
+      status: complete
+    update-migrate-specs-ts:
+      text: >-
+        Update src/migrate/parsers/specs.ts — change StrictDeltaSpecArtifact type to keyed maps.
+        Update parseLegacyDeltaSpec to build Record<string, ...> output keyed by requirement ID.
+      status: complete
+    update-contracts-spec:
+      text: >-
+        Update delta-related requirement scenarios in
+        .strict-spec-driven/specs/contracts/yaml-artifacts.yaml (yaml-delta-operation-model,
+        yaml-delta-stable-matching, yaml-delta-removal-reason, yaml-delta-minimal-example,
+        yaml-delta-merge-conflict-rules) to describe keyed-map semantics.
+      status: complete
+    update-tests:
+      text: >-
+        Update test/suites/change-lifecycle.ts and test/suites/roadmap-and-migration.ts — convert
+        all delta-spec test fixtures and assertions from array format to keyed-map format.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify all delta-spec consumers (archive, verify, review, migrate) use keyed-map format
+        consistently. Verify no remaining references to target_requirement or entry.requirement.id
+        patterns in implementation code.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

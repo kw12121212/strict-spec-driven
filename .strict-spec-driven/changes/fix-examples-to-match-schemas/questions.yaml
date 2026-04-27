@@ -1,0 +1,12 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: fix-examples-to-match-schemas
+open: []
+resolved:
+  - id: confirmed-schema-structure
+    question: Are the JSON Schema contracts in schemas/ authoritative for the keyed-map format?
+    context: The examples must match the schemas, not the other way around.
+    answer: Yes, the schemas define the contract. The examples are stale and need to be brought into conformance.
+    status: resolved

@@ -1,0 +1,17 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: unify-delta-spec-keyed-map
+open: []
+resolved:
+  - id: backward-compat
+    question: Should the old array-based delta-spec format remain supported?
+    context: Delta-spec currently uses array format with id/target_requirement fields.
+    answer: No. User explicitly confirmed no backward compatibility needed — all consumers updated together.
+    status: resolved
+  - id: example-files
+    question: Should example files be updated to match the new keyed-map format?
+    context: templates/strict-spec-driven/examples/delta-spec.yaml and delta-spec.operations.yaml use the old array format.
+    answer: No. User explicitly requested examples not be touched in this change.
+    status: resolved

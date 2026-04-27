@@ -24,8 +24,7 @@ export type ReviewResult = {
   findingCount: number;
 };
 
-type Requirement = {
-  id?: unknown;
+type RequirementValue = {
   statement?: unknown;
   scenarios?: unknown;
 };
@@ -37,9 +36,9 @@ type DeltaSpecArtifact = {
     tests?: unknown;
   };
   operations?: {
-    ADDED?: Array<{ requirement?: Requirement }>;
-    MODIFIED?: Array<{ replacement?: Requirement }>;
-    REMOVED?: unknown[];
+    ADDED?: Record<string, RequirementValue>;
+    MODIFIED?: Record<string, RequirementValue>;
+    REMOVED?: Record<string, unknown>;
   };
 };
 
@@ -147,24 +146,19 @@ function collectRequirementQualityFindings(deltaSpecs: ParsedDeltaSpec[]): Revie
 
   for (const delta of deltaSpecs) {
     const operations = delta.artifact.operations ?? {};
-    const requirements: Requirement[] = [];
+    const entries: Array<{ id: string; value: RequirementValue }> = [];
 
-    for (const entry of operations.ADDED ?? []) {
-      if (entry?.requirement) {
-        requirements.push(entry.requirement);
-      }
+    for (const [id, value] of Object.entries(operations.ADDED ?? {})) {
+      entries.push({ id, value });
     }
-    for (const entry of operations.MODIFIED ?? []) {
-      if (entry?.replacement) {
-        requirements.push(entry.replacement);
-      }
+    for (const [id, value] of Object.entries(operations.MODIFIED ?? {})) {
+      entries.push({ id, value });
     }
 
-    for (const requirement of requirements) {
-      const id = typeof requirement.id === "string" && requirement.id.length > 0 ? requirement.id : "<missing-id>";
-      const statement = typeof requirement.statement === "string" ? requirement.statement.trim() : "";
-      const scenarios = requirement.scenarios && typeof requirement.scenarios === "object" && !Array.isArray(requirement.scenarios)
-        ? Object.keys(requirement.scenarios) : [];
+    for (const { id, value } of entries) {
+      const statement = typeof value.statement === "string" ? value.statement.trim() : "";
+      const scenarios = value.scenarios && typeof value.scenarios === "object" && !Array.isArray(value.scenarios)
+        ? Object.keys(value.scenarios) : [];
 
       if (statement.length < 20) {
         findings.push({
@@ -218,9 +212,9 @@ function collectDeltaCoherenceFindings(deltaSpecs: ParsedDeltaSpec[]): ReviewFin
 
   for (const delta of deltaSpecs) {
     const operations = delta.artifact.operations ?? {};
-    const added = Array.isArray(operations.ADDED) ? operations.ADDED.length : 0;
-    const modified = Array.isArray(operations.MODIFIED) ? operations.MODIFIED.length : 0;
-    const removed = Array.isArray(operations.REMOVED) ? operations.REMOVED.length : 0;
+    const added = operations.ADDED && typeof operations.ADDED === "object" ? Object.keys(operations.ADDED).length : 0;
+    const modified = operations.MODIFIED && typeof operations.MODIFIED === "object" ? Object.keys(operations.MODIFIED).length : 0;
+    const removed = operations.REMOVED && typeof operations.REMOVED === "object" ? Object.keys(operations.REMOVED).length : 0;
     const totalOperations = added + modified + removed;
 
     if (totalOperations === 0) {

@@ -1,0 +1,33 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: unify-delta-spec-keyed-map
+approach:
+  - Rewrite delta-spec JSON Schema so ADDED and MODIFIED operations are keyed maps where the key is the requirement ID and the value contains strength, statement, and scenarios (no id field). REMOVED operations become a keyed map where the key is the target requirement ID and the value contains reason.
+  - Extract a shared definitions.requirement_value definition (strength, statement, scenarios) used by both ADDED and MODIFIED entries. Remove the old definitions.requirement that included id.
+  - Update DeltaSpecArtifact types in archive.ts, verify.ts, review.ts, and migrate/parsers/specs.ts to use Record<string, ...> instead of Array<...>.
+  - Convert all iteration from array loops to Object.entries() keyed-map iteration, deriving the identifier from the map key instead of entry.requirement.id or entry.target_requirement.
+  - Update parseLegacyDeltaSpec to build keyed-map output instead of array output.
+  - Update affected requirement scenarios in contracts/yaml-artifacts.yaml to describe keyed-map semantics.
+  - Update test fixtures and assertions to match the new keyed-map format.
+decisions:
+  no-backward-compat:
+    decision: Drop the old array-based delta-spec format entirely; no v1/v2 schema coexistence.
+    rationale: User explicitly confirmed no backward compatibility needed. All consumers are in the same repository and will be updated together.
+  shared-requirement-value:
+    decision: ADDED and MODIFIED entries share the same value shape (strength, statement, scenarios) without an id field, referenced via a single definitions.requirement_value.
+    rationale: Eliminates the redundant id field. The key IS the identifier. ADDED and MODIFIED have identical value shapes, differing only in semantic meaning (new vs replacement).
+  removed-value-shape:
+    decision: REMOVED entries have value shape {reason} only, keyed by target requirement ID.
+    rationale: Only the reason is needed for removals — the key identifies the target.
+  examples-not-touched:
+    decision: Example files under templates/strict-spec-driven/examples/ are explicitly excluded from this change.
+    rationale: User requested examples not be updated. A follow-up change can sync examples later.
+alternatives:
+  - option: Keep array format but remove id field, using index-based matching.
+    reason: Rejected — keyed maps are the established pattern in this project (main-spec, roadmap, task-list v2).
+  - option: Add a schema v2 for delta-spec while keeping v1 support.
+    reason: Rejected — user explicitly said no backward compatibility concerns.
+risks:
+  - If any archived change under .strict-spec-driven/changes/archive/ contains delta specs in the old array format, those artifacts will no longer validate against the updated schema. This is acceptable since archived changes are historical and the schema registry entry for delta-spec/v1 will represent the new keyed-map shape.

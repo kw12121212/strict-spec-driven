@@ -1,0 +1,32 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: fix-examples-to-match-schemas
+sections:
+  Implementation:
+    fix-main-spec-example:
+      text: Rewrite templates/strict-spec-driven/examples/main-spec.yaml to use keyed-map requirements, keyed-map scenarios, and GIVEN/WHEN/THEN single-key steps.
+      status: pending
+    fix-delta-spec-example:
+      text: Rewrite templates/strict-spec-driven/examples/delta-spec.yaml to use empty objects for ADDED/MODIFIED/REMOVED operations.
+      status: pending
+    fix-delta-spec-operations-example:
+      text: Rewrite templates/strict-spec-driven/examples/delta-spec.operations.yaml to use keyed-map operations without wrapper objects.
+      status: pending
+  Testing:
+    run-build:
+      text: Verify the project still builds after example changes.
+      status: pending
+      command: bun run build
+    run-tests:
+      text: Run the full test suite to confirm example changes do not break existing tests.
+      status: pending
+      command: bun test/run.ts
+  Verification:
+    verify-examples-against-schemas:
+      text: Manually verify each corrected example file parses as valid YAML and conforms to its JSON Schema contract.
+      status: pending
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

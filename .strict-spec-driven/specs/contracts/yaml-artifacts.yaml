@@ -207,44 +207,50 @@ requirements:
     strength: MUST
     statement: >-
       The system MUST represent strict YAML delta specs with structured schema identity, target spec
-      identity, and explicit ADDED, MODIFIED, and REMOVED operation collections instead of Markdown
-      section headings.
+      identity, and explicit ADDED, MODIFIED, and REMOVED operation keyed-map collections where the
+      map key is the requirement identifier.
     scenarios:
       delta-operation-groups-are-structured:
         - GIVEN: a strict YAML delta spec is reviewed
         - WHEN: the requested spec changes are inspected
         - THEN: the schema identity is available as a structured field
         - AND: the target spec identity is available as a structured field
-        - AND: added requirements are available through a structured ADDED collection
-        - AND: modified requirements are available through a structured MODIFIED collection
-        - AND: removed requirements are available through a structured REMOVED collection
+        - AND: added requirements are available through a structured ADDED keyed map
+        - AND: modified requirements are available through a structured MODIFIED keyed map
+        - AND: removed requirements are available through a structured REMOVED keyed map
+      delta-operation-entries-use-keyed-map-identity:
+        - GIVEN: a strict YAML delta spec ADDED or MODIFIED operation is reviewed
+        - WHEN: the operation entry is inspected
+        - THEN: the entry key is the stable requirement identifier
+        - AND: no separate id field exists within the entry value
       empty-operation-groups-remain-explicit:
         - GIVEN: a strict YAML delta spec has no entries for one operation kind
         - WHEN: the operation groups are inspected
         - THEN: >-
-            the empty operation kind remains identifiable without relying on an omitted Markdown
-            heading
+            the empty operation kind remains identifiable as an empty keyed map without relying on
+            an omitted Markdown heading
   yaml-delta-stable-matching:
     strength: MUST
     statement: >-
       The system MUST require strict YAML delta modifications and removals to target existing
-      requirements by stable requirement identifier.
+      requirements by stable requirement identifier, using keyed-map keys as identifiers.
     scenarios:
       added-requirements-carry-stable-identifiers:
         - GIVEN: a strict YAML delta spec adds a requirement
         - WHEN: the added requirement is inspected
-        - THEN: >-
-            the added requirement includes the same stable requirement fields required by a main
-            spec requirement
+        - THEN: the keyed-map key is the stable requirement identifier
+        - AND: >-
+            the keyed-map value includes the same requirement fields required by a main spec
+            requirement except the id field
       modified-requirements-target-stable-identifiers:
         - GIVEN: a strict YAML delta spec modifies a requirement
         - WHEN: the modification target is inspected
-        - THEN: the target existing requirement is identified by stable requirement identifier
-        - AND: the replacement requirement data is available as structured fields
+        - THEN: the keyed-map key identifies the target existing requirement by stable identifier
+        - AND: the replacement requirement data is available as the keyed-map value
       removed-requirements-target-stable-identifiers:
         - GIVEN: a strict YAML delta spec removes a requirement
         - WHEN: the removal target is inspected
-        - THEN: the target existing requirement is identified by stable requirement identifier
+        - THEN: the keyed-map key identifies the target existing requirement by stable identifier
   yaml-delta-merge-conflict-rules:
     strength: MUST
     statement: >-
@@ -253,22 +259,22 @@ requirements:
     scenarios:
       exclusive-active-target-is-enforced-at-verify-time:
         - GIVEN: >-
-            two active changes each have a delta that targets the same requirement ID with MODIFIED
-            or REMOVED
+            two active changes each have a delta whose MODIFIED or REMOVED keyed map contains the
+            same requirement ID as a key
         - WHEN: verify is run against either active change
         - THEN: the duplicate active target is reported as a deterministic validation failure
         - AND: archive is blocked until the conflict is resolved
       modified-entry-with-missing-target-is-treated-as-added:
         - GIVEN: >-
-            a MODIFIED delta entry targets a requirement ID that does not exist in the main spec at
-            archive time
+            a MODIFIED delta keyed-map entry has a key that does not match any requirement ID in the
+            main spec at archive time
         - WHEN: archive merge is executed
         - THEN: the entry is treated as ADDED in the merge output
         - AND: the outcome is recorded in the archive merge report
       removed-entry-with-missing-target-is-skipped:
         - GIVEN: >-
-            a REMOVED delta entry targets a requirement ID that does not exist in the main spec at
-            archive time
+            a REMOVED delta keyed-map entry has a key that does not match any requirement ID in the
+            main spec at archive time
         - WHEN: archive merge is executed
         - THEN: the entry is silently skipped
         - AND: the skipped removal is recorded in the archive merge report
@@ -276,32 +282,38 @@ requirements:
     strength: MUST
     statement: >-
       The system MUST require each strict YAML removed requirement delta to include a structured
-      removal reason.
+      removal reason as the keyed-map value for the target requirement key.
     scenarios:
       removal-rationale-is-reviewable:
         - GIVEN: a strict YAML delta spec removes a requirement
         - WHEN: the removal entry is reviewed
-        - THEN: the reason for removal is available as a structured field
+        - THEN: the keyed-map key identifies the removed requirement
+        - AND: the keyed-map value contains a structured reason field
   yaml-delta-minimal-example:
     strength: MUST
     statement: >-
       The system MUST provide a minimal valid YAML delta spec example that includes schema identity,
-      target spec identity, and explicit ADDED, MODIFIED, and REMOVED operation collections.
+      target spec identity, and explicit ADDED, MODIFIED, and REMOVED operation keyed-map
+      collections.
     scenarios:
       delta-spec-example-is-complete-enough-to-validate:
         - GIVEN: the strict YAML delta spec contract is reviewed
         - WHEN: its minimal valid example is inspected
         - THEN: every required top-level delta spec field is present
-        - AND: each delta operation collection is represented as structured YAML data
-        - AND: modification and removal entries demonstrate stable requirement identifier matching
+        - AND: each delta operation collection is represented as a keyed map
+        - AND: modification and removal entries use keyed-map keys as requirement identifiers
       delta-spec-example-demonstrates-operation-payloads:
         - GIVEN: the strict YAML delta spec example is inspected
         - WHEN: ADDED, MODIFIED, and REMOVED entries are reviewed
-        - THEN: the added entry demonstrates the required main spec requirement fields
+        - THEN: >-
+            the added entry uses a keyed-map key as the requirement identifier and a value with
+            strength, statement, and scenarios
         - AND: >-
-            the modified entry demonstrates a target requirement identifier and replacement
-            requirement fields
-        - AND: the removed entry demonstrates a target requirement identifier and removal reason
+            the modified entry uses a keyed-map key as the target identifier and a value with
+            replacement requirement fields
+        - AND: >-
+            the removed entry uses a keyed-map key as the target identifier and a value with a
+            removal reason
   yaml-concrete-schema-file-coverage:
     id: yaml-concrete-schema-file-coverage
     strength: MUST

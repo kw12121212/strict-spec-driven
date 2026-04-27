@@ -7,7 +7,6 @@ import {
   parseRequirementStrength,
   toKebabCase,
   type ScenarioStepKind,
-  type StrictRequirement,
   type StrictScenarioStep,
   type StrictScenarios,
   type StrictRequirements,
@@ -30,6 +29,8 @@ export type StrictMainSpecArtifact = {
   requirements: StrictRequirements;
 };
 
+type RequirementValue = StrictRequirements[string];
+
 export type StrictDeltaSpecArtifact = {
   schema: "strict-spec-driven/delta-spec/v1";
   schema_version: 1;
@@ -38,9 +39,9 @@ export type StrictDeltaSpecArtifact = {
   target_spec: string;
   mapping: StrictSpecMapping;
   operations: {
-    ADDED: Array<{ requirement: StrictRequirement }>;
-    MODIFIED: Array<{ target_requirement: string; replacement: StrictRequirement }>;
-    REMOVED: Array<{ target_requirement: string; reason: string }>;
+    ADDED: Record<string, RequirementValue>;
+    MODIFIED: Record<string, RequirementValue>;
+    REMOVED: Record<string, { reason: string }>;
   };
 };
 
@@ -192,9 +193,9 @@ export function parseLegacyDeltaSpec(
   }
 
   const operations: StrictDeltaSpecArtifact["operations"] = {
-    ADDED: [],
-    MODIFIED: [],
-    REMOVED: [],
+    ADDED: {},
+    MODIFIED: {},
+    REMOVED: {},
   };
   let currentOperation: keyof StrictDeltaSpecArtifact["operations"] | null = null;
   let currentRequirementId: string | null = null;
@@ -227,37 +228,27 @@ export function parseLegacyDeltaSpec(
       if (statement.length === 0) {
         throw new Error(`ADDED requirement '${currentRequirementId}' in '${sourcePath}' is missing a statement`);
       }
-      operations.ADDED.push({
-        requirement: {
-          id: currentRequirementId,
-          strength: parseRequirementStrength(statement, `ADDED requirement '${currentRequirementId}' in '${sourcePath}'`),
-          statement,
-          scenarios: currentScenarios,
-        },
-      });
+      operations.ADDED[currentRequirementId] = {
+        strength: parseRequirementStrength(statement, `ADDED requirement '${currentRequirementId}' in '${sourcePath}'`),
+        statement,
+        scenarios: currentScenarios,
+      };
     } else if (currentOperation === "MODIFIED") {
       const statement = normalizeWhitespace(currentStatementLines.join(" "));
       if (statement.length === 0) {
         throw new Error(`MODIFIED requirement '${currentRequirementId}' in '${sourcePath}' is missing a replacement statement`);
       }
-      operations.MODIFIED.push({
-        target_requirement: currentRequirementId,
-        replacement: {
-          id: currentRequirementId,
-          strength: parseRequirementStrength(statement, `MODIFIED requirement '${currentRequirementId}' in '${sourcePath}'`),
-          statement,
-          scenarios: currentScenarios,
-        },
-      });
+      operations.MODIFIED[currentRequirementId] = {
+        strength: parseRequirementStrength(statement, `MODIFIED requirement '${currentRequirementId}' in '${sourcePath}'`),
+        statement,
+        scenarios: currentScenarios,
+      };
     } else {
       const reason = normalizeWhitespace(currentReasonLines.join(" "));
       if (reason.length === 0) {
         throw new Error(`REMOVED requirement '${currentRequirementId}' in '${sourcePath}' is missing a reason`);
       }
-      operations.REMOVED.push({
-        target_requirement: currentRequirementId,
-        reason,
-      });
+      operations.REMOVED[currentRequirementId] = { reason };
     }
 
     currentRequirementId = null;

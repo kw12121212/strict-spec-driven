@@ -1,0 +1,37 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: unify-delta-spec-keyed-map
+  status: proposed
+summary:
+  what:
+    - Convert delta-spec operations (ADDED, MODIFIED, REMOVED) from array-of-objects to keyed-map format, using requirement ID as the map key instead of embedding id/target_requirement as fields.
+    - Update delta-spec JSON Schema to reflect keyed-map operations with shared requirement-value definition (no id field).
+    - Update archive, verify, review, and migrate implementation code to consume and produce keyed-map delta operations.
+    - Update delta-related spec requirement scenarios in contracts/yaml-artifacts.yaml to describe keyed-map semantics.
+  why:
+    - Delta-spec currently uses array format with id/target_requirement fields, which is inconsistent with main-spec's keyed-map pattern.
+    - The keyed-map pattern eliminates redundant id fields, enforces uniqueness at the structure level, and is consistent with how main-spec, roadmap milestones, and task-list v2 already represent keyed collections.
+    - No backward compatibility needed — all consumers will be updated together.
+scope:
+  in:
+    - Rewrite delta-spec JSON Schema (templates/strict-spec-driven/schemas/delta-spec.yaml) operations as keyed maps
+    - Update src/archive.ts DeltaSpecArtifact type and applyDeltaToMainSpec logic
+    - Update src/verify.ts checkExclusiveActiveTargets logic
+    - Update src/review.ts DeltaSpecArtifact type, collectRequirementQualityFindings, and collectDeltaCoherenceFindings
+    - Update src/migrate/parsers/specs.ts StrictDeltaSpecArtifact type and parseLegacyDeltaSpec output
+    - Update delta-related requirement scenarios in .strict-spec-driven/specs/contracts/yaml-artifacts.yaml
+    - Update test suites to use keyed-map delta format
+  out:
+    - Example files (templates/strict-spec-driven/examples/) will NOT be updated in this change
+    - Main-spec schema and main-spec data format are unchanged
+    - Step format (GIVEN/WHEN/THEN/AND single-key) is unchanged
+unchanged_behavior:
+  - Main-spec schema, data, and keyed-map pattern remain unchanged
+  - Step format stays as GIVEN/WHEN/THEN/AND single-key objects
+  - Archive merge semantics (missing-target fallback rules) remain the same
+  - Exclusive active target enforcement semantics remain the same
+  - Review finding categories and advisory-only behavior remain unchanged
+  - Migration reads legacy Markdown and converts to strict YAML — only the output shape changes

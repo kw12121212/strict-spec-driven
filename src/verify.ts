@@ -23,14 +23,10 @@ type QuestionListArtifact = {
   open?: unknown[];
 };
 
-type DeltaSpecOperationEntry = {
-  target_requirement?: string;
-};
-
 type DeltaSpecArtifact = {
   operations?: {
-    MODIFIED?: DeltaSpecOperationEntry[];
-    REMOVED?: DeltaSpecOperationEntry[];
+    MODIFIED?: Record<string, unknown>;
+    REMOVED?: Record<string, unknown>;
   };
 };
 
@@ -250,10 +246,8 @@ function checkExclusiveActiveTargets(
           const ops = artifact.operations ?? {};
           for (const [opName, entries] of Object.entries(ops)) {
             if (opName !== "MODIFIED" && opName !== "REMOVED") continue;
-            if (!Array.isArray(entries)) continue;
-            for (const entry of entries) {
-              const target = entry.target_requirement;
-              if (!target) continue;
+            if (!entries || typeof entries !== "object" || Array.isArray(entries)) continue;
+            for (const target of Object.keys(entries)) {
               if (!targetMap.has(target)) targetMap.set(target, []);
               targetMap.get(target)!.push({
                 changeName: activeChange,

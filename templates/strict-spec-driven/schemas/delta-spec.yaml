@@ -32,17 +32,14 @@ json_schema:
       additionalProperties: false
       minProperties: 1
       maxProperties: 1
-    requirement:
+    requirement_value:
       type: object
       additionalProperties: false
       required:
-        - id
         - strength
         - statement
         - scenarios
       properties:
-        id:
-          type: string
         strength:
           type: string
           enum:
@@ -106,38 +103,20 @@ json_schema:
         - REMOVED
       properties:
         ADDED:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - requirement
-            properties:
-              requirement:
-                "$ref": "#/definitions/requirement"
+          type: object
+          additionalProperties:
+            "$ref": "#/definitions/requirement_value"
         MODIFIED:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - target_requirement
-              - replacement
-            properties:
-              target_requirement:
-                type: string
-              replacement:
-                "$ref": "#/definitions/requirement"
+          type: object
+          additionalProperties:
+            "$ref": "#/definitions/requirement_value"
         REMOVED:
-          type: array
-          items:
+          type: object
+          additionalProperties:
             type: object
             additionalProperties: false
             required:
-              - target_requirement
               - reason
             properties:
-              target_requirement:
-                type: string
               reason:
                 type: string

@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: fix-examples-to-match-schemas
+  status: proposed
+summary:
+  what:
+    - Fix main-spec example to use keyed-map requirements, keyed-map scenarios, and GIVEN/WHEN/THEN single-key step format.
+    - Fix delta-spec minimal example to use empty objects for ADDED/MODIFIED/REMOVED instead of empty arrays.
+    - Fix delta-spec operations coverage example to use keyed-map operations without requirement/target_requirement/replacement wrappers.
+  why:
+    - Three example files use stale array-based formats that violate their own JSON Schema contracts, making them fail schema validation.
+    - The main-spec schema requires requirements as a keyed map and scenarios as keyed maps, but the example still uses arrays with embedded id fields.
+    - The delta-spec schema requires operations (ADDED/MODIFIED/REMOVED) as keyed maps, but examples still use arrays and wrapper objects.
+    - Examples must be valid against their schemas per requirement yaml-schema-example-coverage.
+scope:
+  in:
+    - Rewrite templates/strict-spec-driven/examples/main-spec.yaml to conform to main-spec/v1 schema
+    - Rewrite templates/strict-spec-driven/examples/delta-spec.yaml to conform to delta-spec/v1 schema
+    - Rewrite templates/strict-spec-driven/examples/delta-spec.operations.yaml to conform to delta-spec/v1 schema
+  out:
+    - Schema files (templates/strict-spec-driven/schemas/) are not modified
+    - All other example files (change-proposal, change-design, task-list, question-list, spec-index, roadmap-index, roadmap-milestone, schema-registry) are already schema-conformant
+    - Implementation code, test suites, and skill packages are not modified
+unchanged_behavior:
+  - All schema contracts remain unchanged
+  - CLI validation, verify, archive, and review behavior remain unchanged
+  - Example files for artifact types other than main-spec and delta-spec are already correct
+  - Test suites that consume examples continue to pass

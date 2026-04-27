@@ -259,13 +259,12 @@ try {
     "  tests: []",
     "operations:",
     "  ADDED:",
-    "    - requirement:",
-    "        id: verify-req",
-    "        strength: MUST",
-    "        statement: The system MUST verify.",
-    "        scenarios: {}",
-    "  MODIFIED: []",
-    "  REMOVED: []",
+    "    verify-req:",
+    "      strength: MUST",
+    "      statement: The system MUST verify.",
+    "      scenarios: {}",
+    "  MODIFIED: {}",
+    "  REMOVED: {}",
   ].join("\n") + "\n", "utf8");
 
   const validResult = verifyModule.verifyChange(verifyValidDir, "valid-change");
@@ -745,15 +744,13 @@ try {
     "  implementation: []",
     "  tests: []",
     "operations:",
-    "  ADDED: []",
+    "  ADDED: {}",
     "  MODIFIED:",
-    "    - target_requirement: req-1",
-    "      replacement:",
-    "        id: req-1",
-    "        strength: MUST",
-    "        statement: Modified version",
-    "        scenarios: {}",
-    "  REMOVED: []",
+    "    req-1:",
+    "      strength: MUST",
+    "      statement: Modified version",
+    "      scenarios: {}",
+    "  REMOVED: {}",
   ].join("\n") + "\n", "utf8");
 
   // change-b: also MODIFIED req-1 (conflict)
@@ -841,15 +838,13 @@ try {
     "  implementation: []",
     "  tests: []",
     "operations:",
-    "  ADDED: []",
+    "  ADDED: {}",
     "  MODIFIED:",
-    "    - target_requirement: req-1",
-    "      replacement:",
-    "        id: req-1",
-    "        strength: MUST",
-    "        statement: Other modified version",
-    "        scenarios: {}",
-    "  REMOVED: []",
+    "    req-1:",
+    "      strength: MUST",
+    "      statement: Other modified version",
+    "      scenarios: {}",
+    "  REMOVED: {}",
   ].join("\n") + "\n", "utf8");
 
   const conflictResultA = verifyModule.verifyChange(verifyConflictDir, "change-a");
@@ -1161,12 +1156,9 @@ function writeDeltaSpecArtifact(
   fileName: string,
   targetSpec: string,
   operations: {
-    ADDED?: Array<{ requirement: { id: string; strength: string; statement: string; scenarios: Record<string, unknown[]> } }>;
-    MODIFIED?: Array<{
-      target_requirement: string;
-      replacement: { id: string; strength: string; statement: string; scenarios: Record<string, unknown[]> };
-    }>;
-    REMOVED?: Array<{ target_requirement: string; reason: string }>;
+    ADDED?: Record<string, { strength: string; statement: string; scenarios: Record<string, unknown[]> }>;
+    MODIFIED?: Record<string, { strength: string; statement: string; scenarios: Record<string, unknown[]> }>;
+    REMOVED?: Record<string, { reason: string }>;
   },
 ): void {
   const deltaPath = path.join(rootDir, ".strict-spec-driven", "changes", changeName, "specs", fileName);
@@ -1184,9 +1176,9 @@ function writeDeltaSpecArtifact(
         tests: [],
       },
       operations: {
-        ADDED: operations.ADDED ?? [],
-        MODIFIED: operations.MODIFIED ?? [],
-        REMOVED: operations.REMOVED ?? [],
+        ADDED: operations.ADDED ?? {},
+        MODIFIED: operations.MODIFIED ?? {},
+        REMOVED: operations.REMOVED ?? {},
       },
     }),
     "utf8",
@@ -1221,33 +1213,23 @@ try {
   );
   writeValidChangeArtifacts(archiveHappyDir, changeName);
   writeDeltaSpecArtifact(archiveHappyDir, changeName, "cli.yaml", "cli-foundation", {
-    ADDED: [
-      {
-        requirement: {
-          id: "req-added",
-          strength: "MUST",
-          statement: "Added requirement",
-          scenarios: {},
-        },
+    ADDED: {
+      "req-added": {
+        strength: "MUST",
+        statement: "Added requirement",
+        scenarios: {},
       },
-    ],
-    MODIFIED: [
-      {
-        target_requirement: "req-base",
-        replacement: {
-          id: "req-base",
-          strength: "MUST",
-          statement: "Updated requirement",
-          scenarios: {},
-        },
+    },
+    MODIFIED: {
+      "req-base": {
+        strength: "MUST",
+        statement: "Updated requirement",
+        scenarios: {},
       },
-    ],
-    REMOVED: [
-      {
-        target_requirement: "req-remove",
-        reason: "No longer needed",
-      },
-    ],
+    },
+    REMOVED: {
+      "req-remove": { reason: "No longer needed" },
+    },
   });
 
   const archiveResult = cli(["archive", changeName], { cwd: archiveHappyDir });
@@ -1324,9 +1306,9 @@ try {
   );
   writeValidChangeArtifacts(archiveBlockedDir, changeName, { implementationStatus: "pending" });
   writeDeltaSpecArtifact(archiveBlockedDir, changeName, "cli.yaml", "cli-foundation", {
-    ADDED: [],
-    MODIFIED: [],
-    REMOVED: [],
+    ADDED: {},
+    MODIFIED: {},
+    REMOVED: {},
   });
 
   const blockedResult = cli(["archive", changeName], { cwd: archiveBlockedDir });
@@ -1357,19 +1339,15 @@ try {
   );
   writeValidChangeArtifacts(archiveModifiedFallbackDir, changeName);
   writeDeltaSpecArtifact(archiveModifiedFallbackDir, changeName, "cli.yaml", "cli-foundation", {
-    ADDED: [],
-    MODIFIED: [
-      {
-        target_requirement: "req-missing",
-        replacement: {
-          id: "req-fallback",
-          strength: "MUST",
-          statement: "Fallback added requirement",
-          scenarios: {},
-        },
+    ADDED: {},
+    MODIFIED: {
+      "req-missing": {
+        strength: "MUST",
+        statement: "Fallback added requirement",
+        scenarios: {},
       },
-    ],
-    REMOVED: [],
+    },
+    REMOVED: {},
   });
 
   const fallbackResult = cli(["archive", changeName], { cwd: archiveModifiedFallbackDir });
@@ -1390,7 +1368,7 @@ try {
     path.join(archiveModifiedFallbackDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml"),
   );
   context.assert(
-    "req-fallback" in mergedFallbackSpec.requirements,
+    "req-missing" in mergedFallbackSpec.requirements,
     "archive treats missing MODIFIED target replacement as ADDED requirement",
   );
 } finally {
@@ -1410,14 +1388,11 @@ try {
   );
   writeValidChangeArtifacts(archiveRemovedSkipDir, changeName);
   writeDeltaSpecArtifact(archiveRemovedSkipDir, changeName, "cli.yaml", "cli-foundation", {
-    ADDED: [],
-    MODIFIED: [],
-    REMOVED: [
-      {
-        target_requirement: "req-ghost",
-        reason: "No longer exists",
-      },
-    ],
+    ADDED: {},
+    MODIFIED: {},
+    REMOVED: {
+      "req-ghost": { reason: "No longer exists" },
+    },
   });
 
   const removedSkipResult = cli(["archive", changeName], { cwd: archiveRemovedSkipDir });
@@ -1469,9 +1444,9 @@ try {
   );
   writeValidChangeArtifacts(archiveCollisionDir, changeName);
   writeDeltaSpecArtifact(archiveCollisionDir, changeName, "cli.yaml", "cli-foundation", {
-    ADDED: [],
-    MODIFIED: [],
-    REMOVED: [],
+    ADDED: {},
+    MODIFIED: {},
+    REMOVED: {},
   });
 
   const collisionResult = cli(["archive", changeName], { cwd: archiveCollisionDir });
@@ -1584,9 +1559,9 @@ function writeArchivedChangeArtifacts(rootDir: string, archiveDirName: string): 
         tests: [],
       },
       operations: {
-        ADDED: [],
-        MODIFIED: [],
-        REMOVED: [],
+        ADDED: {},
+        MODIFIED: {},
+        REMOVED: {},
       },
     }),
     "utf8",
@@ -1669,9 +1644,9 @@ try {
   const changeName = "modify-artifacts";
   writeValidChangeArtifacts(modifyActiveDir, changeName);
   writeDeltaSpecArtifact(modifyActiveDir, changeName, "cli/list-modify.yaml", "cli-foundation", {
-    ADDED: [],
-    MODIFIED: [],
-    REMOVED: [],
+    ADDED: {},
+    MODIFIED: {},
+    REMOVED: {},
   });
 
   const modifyActiveResult = cli(["modify", changeName], { cwd: modifyActiveDir });
@@ -2249,18 +2224,15 @@ try {
         tests: ["test/run.ts"],
       },
       operations: {
-        ADDED: [
-          {
-            requirement: {
-              id: "review-happy-req",
-              strength: "MUST",
-              statement: "The system MUST emit structured review findings output for changes.",
-              scenarios: { "review-output": [{ GIVEN: "a review is run" }, { THEN: "structured findings are emitted" }] },
-            },
+        ADDED: {
+          "review-happy-req": {
+            strength: "MUST",
+            statement: "The system MUST emit structured review findings output for changes.",
+            scenarios: { "review-output": [{ GIVEN: "a review is run" }, { THEN: "structured findings are emitted" }] },
           },
-        ],
-        MODIFIED: [],
-        REMOVED: [],
+        },
+        MODIFIED: {},
+        REMOVED: {},
       },
     }),
     "utf8",
@@ -2425,18 +2397,15 @@ try {
         tests: [],
       },
       operations: {
-        ADDED: [
-          {
-            requirement: {
-              id: "review-findings-req",
-              strength: "MUST",
-              statement: "Short text",
-              scenarios: {},
-            },
+        ADDED: {
+          "review-findings-req": {
+            strength: "MUST",
+            statement: "Short text",
+            scenarios: {},
           },
-        ],
-        MODIFIED: [],
-        REMOVED: [],
+        },
+        MODIFIED: {},
+        REMOVED: {},
       },
     }),
     "utf8",

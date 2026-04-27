@@ -1,0 +1,24 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: fix-examples-to-match-schemas
+approach:
+  - Rewrite each of the three non-conformant example files in place to match the keyed-map format already defined by their JSON Schema contracts.
+  - For main-spec, convert requirements from array-of-objects to keyed map, convert scenarios from array-of-objects to keyed map, and convert steps from kind/text pairs to GIVEN/WHEN/THEN single-key objects.
+  - For delta-spec minimal, replace empty arrays with empty objects for all three operation groups.
+  - For delta-spec operations coverage, convert ADDED entries from array-with-wrapper to keyed map keyed by requirement ID, convert MODIFIED entries from array-with-wrapper to keyed map keyed by target requirement ID with the replacement fields inlined, and convert REMOVED entries from array-with-wrapper to keyed map keyed by target requirement ID.
+decisions:
+  keep-example-ids-stable:
+    decision: Preserve the same example requirement, scenario, and operation identifiers in the corrected format so downstream references stay consistent.
+    rationale: Changing identifiers would break schema-registry primary_example references and any test fixtures that reference example content by ID.
+  use-given-when-then-then-and-step-pattern:
+    decision: Demonstrate GIVEN, WHEN, THEN, and AND step kinds in the main-spec example to show the full step vocabulary.
+    rationale: The yaml-main-spec-minimal-example requirement states the example must demonstrate valid GIVEN, WHEN, THEN, and optional AND step kinds.
+  keep-delta-minimal-example-truly-minimal:
+    decision: The primary delta-spec example uses empty objects for all operations, showing only the required structure without populated entries.
+    rationale: The coverage example (delta-spec.operations.yaml) already demonstrates populated operations; the primary example should remain minimal per yaml-minimal-and-coverage-example-separation.
+alternatives:
+  - option: Delete the three stale examples and regenerate from scratch.
+    reason: Rejected because preserving example identifiers and narrative intent is safer than regeneration and avoids breaking references.
+risks: []

@@ -1718,9 +1718,9 @@ try {
     target_spec: string;
     mapping: { implementation: string[]; tests: string[] };
     operations: {
-      ADDED: Array<{ requirement: { id: string } }>;
-      MODIFIED: Array<{ target_requirement: string; replacement: { statement: string } }>;
-      REMOVED: Array<{ target_requirement: string; reason: string }>;
+      ADDED: Record<string, { strength: string; statement: string; scenarios: Record<string, unknown[]> }>;
+      MODIFIED: Record<string, { strength: string; statement: string; scenarios: Record<string, unknown[]> }>;
+      REMOVED: Record<string, { reason: string }>;
     };
   }>(path.join(migrateHappyDir, ".strict-spec-driven", "changes", "demo-change", "specs", "cli", "foundation.yaml"));
   context.assert(
@@ -1735,16 +1735,16 @@ try {
     "migrate preserves legacy delta spec mappings",
   );
   context.assert(
-    migratedActiveDelta.operations.ADDED[0]?.requirement.id === "delta-added",
-    "migrate preserves ADDED delta requirement identity",
+    "delta-added" in migratedActiveDelta.operations.ADDED,
+    "migrate preserves ADDED delta requirement identity as keyed-map entry",
   );
   context.assert(
-    migratedActiveDelta.operations.MODIFIED[0]?.target_requirement === "cli-example",
-    "migrate preserves MODIFIED delta target requirement identity",
+    "cli-example" in migratedActiveDelta.operations.MODIFIED,
+    "migrate preserves MODIFIED delta target requirement identity as keyed-map key",
   );
   context.assert(
-    migratedActiveDelta.operations.REMOVED[0]?.reason === "The legacy requirement was retired.",
-    "migrate preserves REMOVED delta reason text",
+    migratedActiveDelta.operations.REMOVED["legacy-removed"]?.reason === "The legacy requirement was retired.",
+    "migrate preserves REMOVED delta reason text as keyed-map value",
   );
 
   const migratedArchivedProposal = yamlModule.parseYamlFile<{
