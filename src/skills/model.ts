@@ -31,7 +31,7 @@ export type SkillFrontmatter = {
 
 export const REQUIRED_METADATA_FIELDS = ["skill_id", "author", "type", "version"] as const;
 export const EXPECTED_SCRIPT_SYMLINK = "../../dist/scripts";
-export const EXPECTED_TEMPLATE_SYMLINK = "../../dist/templates";
+export const EXPECTED_TEMPLATE_SYMLINK = "../../templates";
 export const COMMAND_PREFIX = "node {{SKILL_DIR}}/scripts/strict-spec-driven.js";
 export const GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
 
