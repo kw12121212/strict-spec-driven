@@ -38,38 +38,40 @@ json_schema:
       items:
         type: string
     decisions:
-      type: array
-      items:
-        oneOf:
-          - type: string
-          - type: object
-            additionalProperties: false
-            required:
-              - id
-              - decision
-              - rationale
-            properties:
-              id:
-                type: string
-              decision:
-                type: string
-              rationale:
-                type: string
+      type: object
+      description: "Map of design decisions keyed by short kebab-case identifier (max 60 chars). Each value has a decision (what was decided) and a rationale (why it was decided this way — must provide independent justification, not restate the decision)."
+      propertyNames:
+        type: string
+        maxLength: 60
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - decision
+          - rationale
+        properties:
+          decision:
+            type: string
+            description: "What was decided. A concise statement of the chosen approach or constraint."
+          rationale:
+            type: string
+            description: "Why this decision was made. Must provide independent justification beyond restating the decision text — explain the reasoning, tradeoff, or constraint that motivates the choice."
     alternatives:
       type: array
+      description: "Alternative approaches that were considered and rejected."
       items:
-        oneOf:
-          - type: string
-          - type: object
-            additionalProperties: false
-            required:
-              - option
-              - reason
-            properties:
-              option:
-                type: string
-              reason:
-                type: string
+        type: object
+        additionalProperties: false
+        required:
+          - option
+          - reason
+        properties:
+          option:
+            type: string
+            description: "The alternative approach that was considered."
+          reason:
+            type: string
+            description: "Why this alternative was rejected. Must explain the specific disadvantage or constraint that ruled it out, not merely restate what the option is."
     risks:
       type: array
       items:

@@ -4,36 +4,16 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: port-review-to-yaml
 approach:
-  - >-
-    Add a `review` subcommand to `src/strict-spec-cli.ts` backed by a new `src/review.ts` module.
-    The module reads all strict YAML change artifacts from `.strict-spec-driven/changes/<name>/`,
-    runs the existing `verify` logic internally to collect diagnostics as evidence, then applies a
-    set of code-quality checks that produce structured findings. Findings differ from verify
-    diagnostics: they are advisory observations (e.g. a requirement has no scenarios, a delta
-    targets a spec with no mapping coverage) rather than lifecycle gates. Review always exits zero
-    unless the change directory is missing or artifacts are unparseable. The subcommand emits a
-    single JSON object to stdout with `valid`, `changeName`, `findings` (array of `{category,
-    message, path?}`), and `findingCount`.
+- 'Add a `review` subcommand to `src/strict-spec-cli.ts` backed by a new `src/review.ts` module. The module reads all strict YAML change artifacts from `.strict-spec-driven/changes/<name>/`, runs the existing
+  `verify` logic internally to collect diagnostics as evidence, then applies a set of code-quality checks that produce structured findings. Findings differ from verify diagnostics: they are advisory observations
+  (e.g. a requirement has no scenarios, a delta targets a spec with no mapping coverage) rather than lifecycle gates. Review always exits zero unless the change directory is missing or artifacts are unparseable.
+  The subcommand emits a single JSON object to stdout with `valid`, `changeName`, `findings` (array of `{category, message, path?}`), and `findingCount`.'
 decisions:
-  - id: >-
-      review-does-not-re-implement-verify-gates-it-calls-the-shared-verify-utilities-to-obtain-diagnostic-state-as-an-input-then-adds-its-own-finding-layer
-    decision: >-
-      **Review does not re-implement verify gates.** It calls the shared verify utilities to obtain
-      diagnostic state as an input, then adds its own finding layer.
-    rationale: >-
-      This avoids drift between the two commands and ensures any schema violation is visible via
-      verify without review silently skipping it. **Exit zero on findings, non-zero only on input
-      errors.** This keeps review usable as an advisory step after archive or by agent skills
-      without blocking on subjective quality observations. **Finding categories are fixed strings**
-      (`requirement-quality`, `mapping-coverage`, `delta-coherence`, `proposal-clarity`) to keep
-      output machine-readable and parseable by future skill instructions without requiring a schema
-      change.
+  review-does-not-re-implement-verify-gates-it-calls-the:
+    decision: '**Review does not re-implement verify gates.** It calls the shared verify utilities to obtain diagnostic state as an input, then adds its own finding layer.'
+    rationale: This avoids drift between the two commands and ensures any schema violation is visible via verify without review silently skipping it. **Exit zero on findings, non-zero only on input errors.**
+      This keeps review usable as an advisory step after archive or by agent skills without blocking on subjective quality observations. **Finding categories are fixed strings** (`requirement-quality`,
+      `mapping-coverage`, `delta-coherence`, `proposal-clarity`) to keep output machine-readable and parseable by future skill instructions without requiring a schema change.
 alternatives:
-  - option: >-
-      **Merge review into verify as a `--review` flag.** Rejected: verify is a lifecycle gate with
-      strict exit-code semantics; mixing advisory findings would break scripts that key on its exit
-      code.
-    reason: >-
-      **Read verification evidence from a saved verify output file.** Rejected: adds filesystem
-      coupling with no benefit; calling verify internally is cheaper and keeps the module
-      self-contained.
+- option: '**Merge review into verify as a `--review` flag.** Rejected: verify is a lifecycle gate with strict exit-code semantics; mixing advisory findings would break scripts that key on its exit code.'
+  reason: '**Read verification evidence from a saved verify output file.** Rejected: adds filesystem coupling with no benefit; calling verify internally is cheaper and keeps the module self-contained.'

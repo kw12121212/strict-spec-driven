@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: compact-design-artifact
+  status: proposed
+summary:
+  what:
+    - Convert the `decisions` field in design.yaml from an array of objects with `id` keys to a map keyed by decision id, eliminating the redundant `id:` field.
+    - Add schema descriptions and example guidance to prevent `rationale` from duplicating `decision` text and `reason` from duplicating `option` text.
+    - Enforce a maximum decision id length (≤60 characters) in the schema.
+  why:
+    - 57% of existing decisions (127/221) have `decision == rationale` — pure duplication that wastes tokens.
+    - Decision ids average 100+ characters; many are full sentences rather than identifiers.
+    - The array-of-objects-with-id pattern adds structural overhead compared to a keyed map.
+scope:
+  in:
+    - JSON Schema for change-design artifact (decisions map shape, id length constraint, field descriptions)
+    - Scaffold template and example file for design.yaml
+    - TypeScript type definition for StrictChangeDesignArtifact
+    - Migration parser that produces the new decisions map shape
+    - All 66 archived design.yaml files
+  out:
+    - Alternatives field structure (stays as array; `reason` stays required but gets better description)
+    - Other artifact types (proposal, tasks, questions, etc.)
+    - CLI validation logic beyond schema validation
+unchanged_behavior:
+  - The verify, review, and archive commands continue to read and validate design.yaml via JSON Schema; only the schema shape changes.
+  - Migration from legacy Markdown continues to produce valid design.yaml output; only the internal structure changes.
+  - All existing skill prompts reference `decisions` and `alternatives` by field name; those references remain valid.

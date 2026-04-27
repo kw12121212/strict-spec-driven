@@ -4,66 +4,32 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: port-verify-to-yaml
 approach:
-  - >-
-    Create `src/verify.ts` with a `verifyChange()` function that orchestrates all verification
-    checks for a named active change directory.
-  - >-
-    The verify function reads each artifact file (proposal.yaml, design.yaml, tasks.yaml,
-    questions.yaml, and any delta specs under specs/), validates them against their registered
-    schemas, and collects diagnostics from each check into a single result.
-  - >-
-    Structural checks run in order: **Schema validation**: each artifact validated against its
-    registry-looked-up schema using `validateArtifact()` **Task completion**: all tasks across all
-    sections must have `status: complete` **Open questions**: `questions.yaml` `open` list must be
-    empty **Testing gates**: `tasks.yaml` `testing_gates.validation_task` and
-    `testing_gates.unit_test_task` must reference existing task IDs within the Testing section
-    **Delta spec validation**: each `.yaml` file under the change `specs/` directory validated
-    against the delta-spec schema **Exclusive active target**: for each active change's delta specs,
-    collect MODIFIED and REMOVED `target_requirement` values and reject overlaps across different
-    active changes
-  - >-
-    Output is a deterministic JSON object with `valid` (boolean), `diagnostics` (array),
-    `changeName`, `totalTasks`, `completeTasks`, `remainingPending`, and `openQuestionCount`.
-  - >-
-    Register `verify` as a CLI subcommand in `strict-spec-cli.ts` following the same pattern as
-    `apply`.
+- Create `src/verify.ts` with a `verifyChange()` function that orchestrates all verification checks for a named active change directory.
+- The verify function reads each artifact file (proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and any delta specs under specs/), validates them against their registered schemas, and collects diagnostics
+  from each check into a single result.
+- 'Structural checks run in order: **Schema validation**: each artifact validated against its registry-looked-up schema using `validateArtifact()` **Task completion**: all tasks across all sections must
+  have `status: complete` **Open questions**: `questions.yaml` `open` list must be empty **Testing gates**: `tasks.yaml` `testing_gates.validation_task` and `testing_gates.unit_test_task` must reference
+  existing task IDs within the Testing section **Delta spec validation**: each `.yaml` file under the change `specs/` directory validated against the delta-spec schema **Exclusive active target**: for each
+  active change''s delta specs, collect MODIFIED and REMOVED `target_requirement` values and reject overlaps across different active changes'
+- Output is a deterministic JSON object with `valid` (boolean), `diagnostics` (array), `changeName`, `totalTasks`, `completeTasks`, `remainingPending`, and `openQuestionCount`.
+- Register `verify` as a CLI subcommand in `strict-spec-cli.ts` following the same pattern as `apply`.
 decisions:
-  - id: reuse-validation-ts-primitives
-    decision: >-
-      `validateArtifact()` with `DuplicateIdRule` and `ReferenceCheckRule` already handles schema,
-      duplicate-ID, and reference checks.
+  reuse-validation-ts-primitives:
+    decision: '`validateArtifact()` with `DuplicateIdRule` and `ReferenceCheckRule` already handles schema, duplicate-ID, and reference checks.'
     rationale: The verify orchestrator calls these rather than reimplementing validation.
-  - id: all-diagnostics-in-one-pass
-    decision: >-
-      verify collects all diagnostics rather than stopping at the first failure, so the user can fix
-      multiple issues in one iteration.
-    rationale: >-
-      verify collects all diagnostics rather than stopping at the first failure, so the user can fix
-      multiple issues in one iteration.
-  - id: testing-gates-check-task-existence-not-execution
-    decision: >-
-      verify validates that the referenced task IDs exist in the Testing section; it does not run
-      the commands.
-    rationale: >-
-      verify validates that the referenced task IDs exist in the Testing section; it does not run
-      the commands.
-  - id: exclusive-active-target-scans-all-active-changes
-    decision: >-
-      to enforce the constraint that a requirement ID is not MODIFIED or REMOVED in multiple active
-      changes simultaneously, verify scans the sibling change directories.
-    rationale: >-
-      to enforce the constraint that a requirement ID is not MODIFIED or REMOVED in multiple active
-      changes simultaneously, verify scans the sibling change directories.
+  all-diagnostics-in-one-pass:
+    decision: verify collects all diagnostics rather than stopping at the first failure, so the user can fix multiple issues in one iteration.
+    rationale: verify collects all diagnostics rather than stopping at the first failure, so the user can fix multiple issues in one iteration.
+  testing-gates-check-task-existence-not-execution:
+    decision: verify validates that the referenced task IDs exist in the Testing section; it does not run the commands.
+    rationale: verify validates that the referenced task IDs exist in the Testing section; it does not run the commands.
+  exclusive-active-target-scans-all-active-changes:
+    decision: to enforce the constraint that a requirement ID is not MODIFIED or REMOVED in multiple active changes simultaneously, verify scans the sibling change directories.
+    rationale: to enforce the constraint that a requirement ID is not MODIFIED or REMOVED in multiple active changes simultaneously, verify scans the sibling change directories.
 alternatives:
-  - option: Stop-on-first-failure
-    reason: >-
-      rejected because the reference workflow reports all issues at once, which is more productive
-      for the user.
-  - option: Run test commands during verify
-    reason: >-
-      rejected because verify is a static analysis gate, not an execution environment. Running
-      commands would conflate verify with CI behavior.
-  - option: Separate verify into multiple subcommands
-    reason: >-
-      rejected because the reference project has a single `verify` that runs all checks. Splitting
-      would add complexity without benefit.
+- option: Stop-on-first-failure
+  reason: rejected because the reference workflow reports all issues at once, which is more productive for the user.
+- option: Run test commands during verify
+  reason: rejected because verify is a static analysis gate, not an execution environment. Running commands would conflate verify with CI behavior.
+- option: Separate verify into multiple subcommands
+  reason: rejected because the reference project has a single `verify` that runs all checks. Splitting would add complexity without benefit.

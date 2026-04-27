@@ -4,58 +4,31 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: proposal-split-migration-builders-and-converters
 approach:
-  - >-
-    Create three new files under `src/migrate/converters/` mirroring the artifact families already
-    parsed under `src/migrate/parsers/`, plus one shared helper module:
-  - >-
-    **`src/migrate/shared.ts`** — file-system utilities, path helpers, diagnostic factories, and
-    deferred-artifact recording used by all converter modules and the remaining orchestrator in
-    `src/migrate.ts`.
-  - >-
-    **`src/migrate/converters/specs.ts`** — `convertLegacySpecArtifacts` and
-    `regenerateStrictSpecIndex`.
-  - '**`src/migrate/converters/changes.ts`** — `convertLegacyChangeArtifacts`.'
-  - >-
-    **`src/migrate/converters/roadmap.ts`** — `convertLegacyRoadmapArtifacts` and
-    `convertLegacySpecsIndex`. `src/migrate.ts` keeps type definitions, constants, config
-    normalization helpers, `loadStrictConfigFromLegacy`, `sortMigrationResult`,
-    `getReportedStrictScaffoldAssets`, `describeDeferredLegacyArtifact`, and the exported
-    `migrateLegacyWorkflow` orchestrator. The config normalization helpers
-    (`normalizeLegacyConfigText`, `normalizeLegacyConfigValue`) and the
-    `LEGACY_CONFIG_TEXT_REPLACEMENTS` constant also stay in `src/migrate.ts` since they are only
-    used by `loadStrictConfigFromLegacy`.
+- 'Create three new files under `src/migrate/converters/` mirroring the artifact families already parsed under `src/migrate/parsers/`, plus one shared helper module:'
+- '**`src/migrate/shared.ts`** — file-system utilities, path helpers, diagnostic factories, and deferred-artifact recording used by all converter modules and the remaining orchestrator in `src/migrate.ts`.'
+- '**`src/migrate/converters/specs.ts`** — `convertLegacySpecArtifacts` and `regenerateStrictSpecIndex`.'
+- '**`src/migrate/converters/changes.ts`** — `convertLegacyChangeArtifacts`.'
+- '**`src/migrate/converters/roadmap.ts`** — `convertLegacyRoadmapArtifacts` and `convertLegacySpecsIndex`. `src/migrate.ts` keeps type definitions, constants, config normalization helpers, `loadStrictConfigFromLegacy`,
+  `sortMigrationResult`, `getReportedStrictScaffoldAssets`, `describeDeferredLegacyArtifact`, and the exported `migrateLegacyWorkflow` orchestrator. The config normalization helpers (`normalizeLegacyConfigText`,
+  `normalizeLegacyConfigValue`) and the `LEGACY_CONFIG_TEXT_REPLACEMENTS` constant also stay in `src/migrate.ts` since they are only used by `loadStrictConfigFromLegacy`.'
 decisions:
-  - id: shared-helpers-go-to-src-migrate-shared-ts-not-src-migrate-converters-shared-ts
+  shared-helpers-go-to-src-migrate-shared-ts-not-src-migrate:
     decision: '**Shared helpers go to `src/migrate/shared.ts`**, not `src/migrate/converters/shared.ts`.'
-    rationale: >-
-      These helpers (file I/O, path manipulation, diagnostic creation) are also used by the
-      orchestrator in `src/migrate.ts`, so they sit one level up.
-  - id: >-
-      converter-modules-import-from-src-converters-roadmap-ts-and-src-migrate-parsers-exactly-as-src-migrate-ts-does-today
-    decision: >-
-      **Converter modules import from `src/converters/roadmap.ts`** and `src/migrate/parsers/`
-      exactly as `src/migrate.ts` does today.
+    rationale: These helpers (file I/O, path manipulation, diagnostic creation) are also used by the orchestrator in `src/migrate.ts`, so they sit one level up.
+  converter-modules-import-from-src-converters-roadmap-ts-and:
+    decision: '**Converter modules import from `src/converters/roadmap.ts`** and `src/migrate/parsers/` exactly as `src/migrate.ts` does today.'
     rationale: No new coupling.
-  - id: type-definitions-remain-in-src-migrate-ts-and-are-imported-by-the-converter-modules
+  type-definitions-remain-in-src-migrate-ts-and-are-imported:
     decision: '**Type definitions remain in `src/migrate.ts`** and are imported by the converter modules.'
     rationale: This avoids a types-only barrel file and keeps the change focused on code movement.
-  - id: >-
-      recorddeferredartifact-and-makeconversionfailure-move-to-src-migrate-shared-ts-because-they-are-used-by-converter-coordinators-during-conversion-not-just-by-the-final-orchestration-step
-    decision: >-
-      **`recordDeferredArtifact` and `makeConversionFailure` move to `src/migrate/shared.ts`**
-      because they are used by converter coordinators during conversion, not just by the final
-      orchestration step.
-    rationale: >-
-      **`recordDeferredArtifact` and `makeConversionFailure` move to `src/migrate/shared.ts`**
-      because they are used by converter coordinators during conversion, not just by the final
-      orchestration step.
+  recorddeferredartifact-and-makeconversionfailure-move-to-src:
+    decision: '**`recordDeferredArtifact` and `makeConversionFailure` move to `src/migrate/shared.ts`** because they are used by converter coordinators during conversion, not just by the final orchestration
+      step.'
+    rationale: '**`recordDeferredArtifact` and `makeConversionFailure` move to `src/migrate/shared.ts`** because they are used by converter coordinators during conversion, not just by the final orchestration
+      step.'
 alternatives:
-  - option: '**Move all helpers into each converter module**'
-    reason: >-
-      rejected because `readYamlFile`, `writeYamlFile`, `makeDiagnostic`, and `listFilesRecursive`
-      are genuinely shared across all converters and the orchestrator.
-  - option: >-
-      **Merge `src/converters/roadmap.ts` into `src/migrate/converters/roadmap.ts`** — rejected
-      because `src/converters/roadmap.ts` contains pure Markdown-to-YAML conversion logic that is
-      independent of file I/O and result tracking.
-    reason: The converter coordinators in `src/migrate/converters/roadmap.ts` call into it.
+- option: '**Move all helpers into each converter module**'
+  reason: rejected because `readYamlFile`, `writeYamlFile`, `makeDiagnostic`, and `listFilesRecursive` are genuinely shared across all converters and the orchestrator.
+- option: '**Merge `src/converters/roadmap.ts` into `src/migrate/converters/roadmap.ts`** — rejected because `src/converters/roadmap.ts` contains pure Markdown-to-YAML conversion logic that is independent
+    of file I/O and result tracking.'
+  reason: The converter coordinators in `src/migrate/converters/roadmap.ts` call into it.

@@ -1,0 +1,36 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: compact-design-artifact
+approach:
+  - "Rewrite the JSON Schema for decisions from array-of-objects to object-with-additionalProperties, where each key is the decision id and each value is an object with decision and rationale."
+  - "Add description annotations on decision, rationale, option, and reason fields explaining the semantic distinction — rationale must provide independent justification beyond restating the decision; reason must explain why the alternative was rejected."
+  - "Add maxLength:60 constraint on decision id keys via propertyNames in the JSON Schema."
+  - "Update the scaffold template and example file to use the new map shape with non-duplicated rationale/reason."
+  - "Update the TypeScript type for decisions to use a Record keyed by id with decision and rationale values."
+  - "Update the migration parser parseLegacyDesign to emit the map shape and truncate ids to 60 chars."
+  - "Migrate all 66 archived design.yaml files to the new format, shortening ids and fixing string-type alternatives."
+decisions:
+  decisions-as-map:
+    decision: "Use a YAML map keyed by decision id instead of an array of objects with an id field."
+    rationale: "Eliminates the redundant id nesting and makes the YAML more compact while preserving stable identifiers as map keys."
+  rationale-stays-required:
+    decision: "Keep rationale as a required field in the schema, not optional."
+    rationale: "The field is semantically important; the fix is better descriptions and examples that guide AI away from duplication, not removing the constraint."
+  reason-stays-required:
+    decision: "Keep reason as a required field in the alternatives schema, not optional."
+    rationale: "Same rationale as rationale — semantic value is preserved by guidance, not by making the field optional."
+  id-max-60:
+    decision: "Enforce a maximum of 60 characters for decision id keys via propertyNames maxLength."
+    rationale: "Current ids are often full sentences (up to 230 chars); a 60-char limit forces concise identifiers while still allowing descriptive kebab-case names."
+  alternatives-stay-array:
+    decision: "Keep alternatives as an array of option/reason objects, not a map."
+    rationale: "Alternatives have no natural stable identifier and are typically few in number (3-4 per change), so the array overhead is negligible."
+alternatives:
+  - option: "Make rationale and reason optional instead of adding description guidance."
+    reason: "Rejected because the fields carry semantic weight — optional would lead to many empty rationales, defeating the purpose of structured decisions."
+  - option: "Convert alternatives to a map keyed by a generated id."
+    reason: "Rejected because alternatives lack natural stable identifiers and the array form is already compact at typical counts (3-4 items)."
+risks:
+  - "All 66 archived design.yaml files must be migrated; a scripted conversion handles the mechanical transformation but manual review is needed for shortened ids."

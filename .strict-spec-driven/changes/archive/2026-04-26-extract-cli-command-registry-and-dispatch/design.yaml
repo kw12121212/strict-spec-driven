@@ -4,48 +4,23 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: extract-cli-command-registry-and-dispatch
 approach:
-  - >-
-    Introduce focused CLI registry modules that own subcommand registration and expose the command
-    table consumed by the existing entrypoint helpers.
-  - >-
-    Keep the current command implementations behaviorally intact, moving only the registration and
-    command-table assembly responsibilities needed to make `src/strict-spec-cli.ts` thinner.
-  - >-
-    Extend current CLI regression coverage around usage rendering and successful subcommand dispatch
-    so the extracted registry layer is proven against the existing command contract.
+- Introduce focused CLI registry modules that own subcommand registration and expose the command table consumed by the existing entrypoint helpers.
+- Keep the current command implementations behaviorally intact, moving only the registration and command-table assembly responsibilities needed to make `src/strict-spec-cli.ts` thinner.
+- Extend current CLI regression coverage around usage rendering and successful subcommand dispatch so the extracted registry layer is proven against the existing command contract.
 decisions:
-  - id: >-
-      limit-this-change-to-command-registration-and-command-table-ownership-instead-of-mixing-it-with-handler-by-domain-extraction
-    decision: >-
-      Limit this change to command registration and command-table ownership instead of mixing it
-      with handler-by-domain extraction.
+  limit-this-change-to-command-registration-and-command-table:
+    decision: Limit this change to command registration and command-table ownership instead of mixing it with handler-by-domain extraction.
     rationale: That preserves milestone 07's intended decomposition order.
-  - id: >-
-      preserve-current-registration-order-as-an-explicit-requirement-because-usage-rendering-is-based-on-the-command-table-s-key-order-today
-    decision: >-
-      Preserve current registration order as an explicit requirement because usage rendering is
-      based on the command table's key order today.
-    rationale: >-
-      Preserve current registration order as an explicit requirement because usage rendering is
-      based on the command table's key order today.
-  - id: >-
-      treat-this-proposal-as-behavior-preserving-internal-modularization-so-the-delta-spec-directory-can-stay-empty-unless-implementation-uncovers-a-real-observable-cli-contract-change
-    decision: >-
-      Treat this proposal as behavior-preserving internal modularization, so the delta spec
-      directory can stay empty unless implementation uncovers a real observable CLI contract change.
-    rationale: >-
-      Treat this proposal as behavior-preserving internal modularization, so the delta spec
-      directory can stay empty unless implementation uncovers a real observable CLI contract change.
+  preserve-current-registration-order-as-an-explicit:
+    decision: Preserve current registration order as an explicit requirement because usage rendering is based on the command table's key order today.
+    rationale: Preserve current registration order as an explicit requirement because usage rendering is based on the command table's key order today.
+  treat-this-proposal-as-behavior-preserving-internal:
+    decision: Treat this proposal as behavior-preserving internal modularization, so the delta spec directory can stay empty unless implementation uncovers a real observable CLI contract change.
+    rationale: Treat this proposal as behavior-preserving internal modularization, so the delta spec directory can stay empty unless implementation uncovers a real observable CLI contract change.
 alternatives:
-  - option: Start with `extract-cli-change-discovery-and-status`.
-    reason: >-
-      Rejected because helper extraction still leaves the monolithic script owning the core command
-      table and dispatch wiring.
-  - option: Jump directly to `extract-cli-command-handlers-by-domain`.
-    reason: >-
-      Rejected because registry extraction is the cleaner intermediate seam before moving handler
-      implementations into domain modules.
-  - option: Finish `prove-todo-project-suite-repeatability` first.
-    reason: >-
-      Rejected for this recommendation because the chosen optimization goal is dependency order and
-      architectural sequencing within milestone 07.
+- option: Start with `extract-cli-change-discovery-and-status`.
+  reason: Rejected because helper extraction still leaves the monolithic script owning the core command table and dispatch wiring.
+- option: Jump directly to `extract-cli-command-handlers-by-domain`.
+  reason: Rejected because registry extraction is the cleaner intermediate seam before moving handler implementations into domain modules.
+- option: Finish `prove-todo-project-suite-repeatability` first.
+  reason: Rejected for this recommendation because the chosen optimization goal is dependency order and architectural sequencing within milestone 07.

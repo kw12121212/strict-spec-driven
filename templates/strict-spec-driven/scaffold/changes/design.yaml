@@ -5,6 +5,9 @@ schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: {{change_name}}
 approach:
   - Describe the implementation approach.
-decisions: []
+decisions:
+  sample-decision:
+    decision: Describe what was decided.
+    rationale: Explain the independent reasoning, tradeoff, or constraint behind this decision.
 alternatives: []
 risks: []

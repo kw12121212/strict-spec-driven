@@ -4,61 +4,26 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: cover-strict-roadmap-details-with-regression
 approach:
-  - >-
-    Concentrate the work in the existing roadmap regression surfaces instead of introducing a new
-    suite. `test/suites/roadmap-and-migration.ts` already covers roadmap status, sync, migration,
-    and details preservation behavior, so the change should extend that suite with the remaining
-    details-focused assertions. The proposal should keep using the current details fixture and
-    temporary workspace helpers where possible. New fixture content should only be added if an
-    existing artifact cannot express the missing regression case cleanly. The spec delta stays
-    focused on `cli/foundation.md`, where automated roadmap coverage expectations already live. The
-    product behavior around `details` already exists in the main specs; this proposal makes the
-    regression obligation explicit rather than redefining the feature.
+- Concentrate the work in the existing roadmap regression surfaces instead of introducing a new suite. `test/suites/roadmap-and-migration.ts` already covers roadmap status, sync, migration, and details
+  preservation behavior, so the change should extend that suite with the remaining details-focused assertions. The proposal should keep using the current details fixture and temporary workspace helpers
+  where possible. New fixture content should only be added if an existing artifact cannot express the missing regression case cleanly. The spec delta stays focused on `cli/foundation.md`, where automated
+  roadmap coverage expectations already live. The product behavior around `details` already exists in the main specs; this proposal makes the regression obligation explicit rather than redefining the feature.
 decisions:
-  - id: >-
-      extend-the-existing-roadmap-suite-the-details-behavior-already-spans-roadmap-sync-migration-and-skill-validation-in-test-suites-roadmap-and-migration-ts-so-keeping-new-assertions-there-avoids-duplicating-harness-setup
-    decision: >-
-      **Extend the existing roadmap suite.** The details behavior already spans roadmap sync,
-      migration, and skill validation in `test/suites/roadmap-and-migration.ts`, so keeping new
-      assertions there avoids duplicating harness setup.
-    rationale: >-
-      **Extend the existing roadmap suite.** The details behavior already spans roadmap sync,
-      migration, and skill validation in `test/suites/roadmap-and-migration.ts`, so keeping new
-      assertions there avoids duplicating harness setup.
-  - id: >-
-      treat-this-as-coverage-not-a-feature-expansion-the-change-should-prove-the-current-details-behavior-instead-of-widening-the-roadmap-contract-or-moving-logic-into-generic-cli-scaffolding
-    decision: >-
-      **Treat this as coverage, not a feature expansion.** The change should prove the current
-      `details` behavior instead of widening the roadmap contract or moving logic into generic CLI
-      scaffolding.
-    rationale: >-
-      **Treat this as coverage, not a feature expansion.** The change should prove the current
-      `details` behavior instead of widening the roadmap contract or moving logic into generic CLI
-      scaffolding.
-  - id: >-
-      keep-the-spec-delta-narrow-only-the-roadmap-coverage-requirement-in-cli-foundation-md-needs-to-change-because-the-core-details-behavior-is-already-specified-elsewhere
-    decision: >-
-      **Keep the spec delta narrow.** Only the roadmap coverage requirement in `cli/foundation.md`
-      needs to change because the core `details` behavior is already specified elsewhere.
-    rationale: >-
-      **Keep the spec delta narrow.** Only the roadmap coverage requirement in `cli/foundation.md`
-      needs to change because the core `details` behavior is already specified elsewhere.
+  extend-the-existing-roadmap-suite-the-details-behavior:
+    decision: '**Extend the existing roadmap suite.** The details behavior already spans roadmap sync, migration, and skill validation in `test/suites/roadmap-and-migration.ts`, so keeping new assertions
+      there avoids duplicating harness setup.'
+    rationale: '**Extend the existing roadmap suite.** The details behavior already spans roadmap sync, migration, and skill validation in `test/suites/roadmap-and-migration.ts`, so keeping new assertions
+      there avoids duplicating harness setup.'
+  treat-this-as-coverage-not-a-feature-expansion-the-change:
+    decision: '**Treat this as coverage, not a feature expansion.** The change should prove the current `details` behavior instead of widening the roadmap contract or moving logic into generic CLI scaffolding.'
+    rationale: '**Treat this as coverage, not a feature expansion.** The change should prove the current `details` behavior instead of widening the roadmap contract or moving logic into generic CLI scaffolding.'
+  keep-the-spec-delta-narrow-only-the-roadmap-coverage:
+    decision: '**Keep the spec delta narrow.** Only the roadmap coverage requirement in `cli/foundation.md` needs to change because the core `details` behavior is already specified elsewhere.'
+    rationale: '**Keep the spec delta narrow.** Only the roadmap coverage requirement in `cli/foundation.md` needs to change because the core `details` behavior is already specified elsewhere.'
 alternatives:
-  - option: >-
-      **Create a new standalone details regression suite.** Rejected because it would duplicate
-      existing roadmap test harness and make roadmap regressions harder to follow.
-    reason: >-
-      **Create a new standalone details regression suite.** Rejected because it would duplicate
-      existing roadmap test harness and make roadmap regressions harder to follow.
-  - option: >-
-      **Modify the roadmap contract specs again.** Rejected because the contract and
-      proposal-handoff behavior for `details` are already described in the main specs.
-    reason: >-
-      **Modify the roadmap contract specs again.** Rejected because the contract and
-      proposal-handoff behavior for `details` are already described in the main specs.
-  - option: >-
-      **Add runtime CLI behavior as part of the coverage change.** Rejected because this milestone
-      item is about proving existing behavior, not broadening the command surface.
-    reason: >-
-      **Add runtime CLI behavior as part of the coverage change.** Rejected because this milestone
-      item is about proving existing behavior, not broadening the command surface.
+- option: '**Create a new standalone details regression suite.** Rejected because it would duplicate existing roadmap test harness and make roadmap regressions harder to follow.'
+  reason: '**Create a new standalone details regression suite.** Rejected because it would duplicate existing roadmap test harness and make roadmap regressions harder to follow.'
+- option: '**Modify the roadmap contract specs again.** Rejected because the contract and proposal-handoff behavior for `details` are already described in the main specs.'
+  reason: '**Modify the roadmap contract specs again.** Rejected because the contract and proposal-handoff behavior for `details` are already described in the main specs.'
+- option: '**Add runtime CLI behavior as part of the coverage change.** Rejected because this milestone item is about proving existing behavior, not broadening the command surface.'
+  reason: '**Add runtime CLI behavior as part of the coverage change.** Rejected because this milestone item is about proving existing behavior, not broadening the command surface.'

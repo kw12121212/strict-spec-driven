@@ -4,57 +4,28 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: port-strict-skill-packaging-and-validation
 approach:
-  - 'Implement the packaging baseline in four passes:'
-  - >-
-    Define strict skill package inventory and naming establish strict skill directories and metadata
-    for `strict-spec-*` and `strict-roadmap-*` remove or reject legacy installer-facing names in
-    strict contexts
-  - >-
-    Wire packaging assumptions used by installed skills enforce repository-relative `scripts` and
-    `templates` symlink targets that resolve to `dist` bundles keep bundled script and template path
-    assumptions explicit and testable
-  - >-
-    Add deterministic validation coverage validate required frontmatter metadata fields validate
-    referenced commands and command sections validate stale legacy names and stale `.spec-driven/`
-    references where strict naming is required validate symlink integrity and bundled target
-    expectations
-  - >-
-    Add tests or smoke checks for packaging validity and failure diagnostics passing case: strict
-    packages with valid metadata and symlinks failing cases: stale names, missing command
-    references, broken symlinks
+- 'Implement the packaging baseline in four passes:'
+- Define strict skill package inventory and naming establish strict skill directories and metadata for `strict-spec-*` and `strict-roadmap-*` remove or reject legacy installer-facing names in strict contexts
+- Wire packaging assumptions used by installed skills enforce repository-relative `scripts` and `templates` symlink targets that resolve to `dist` bundles keep bundled script and template path assumptions
+  explicit and testable
+- Add deterministic validation coverage validate required frontmatter metadata fields validate referenced commands and command sections validate stale legacy names and stale `.spec-driven/` references where
+  strict naming is required validate symlink integrity and bundled target expectations
+- 'Add tests or smoke checks for packaging validity and failure diagnostics passing case: strict packages with valid metadata and symlinks failing cases: stale names, missing command references, broken
+  symlinks'
 decisions:
-  - id: >-
-      sequence-packaging-and-validation-before-broad-skill-content-rewrites-to-avoid-spreading-inconsistent-naming-and-metadata-across-many-skill-files
-    decision: >-
-      Sequence packaging and validation before broad skill-content rewrites to avoid spreading
-      inconsistent naming and metadata across many skill files.
-    rationale: >-
-      Sequence packaging and validation before broad skill-content rewrites to avoid spreading
-      inconsistent naming and metadata across many skill files.
-  - id: >-
-      keep-validation-deterministic-and-file-path-specific-so-skill-packaging-issues-are-actionable-during-ci-or-local-checks
-    decision: >-
-      Keep validation deterministic and file-path specific so skill packaging issues are actionable
-      during CI or local checks.
-    rationale: >-
-      Keep validation deterministic and file-path specific so skill packaging issues are actionable
-      during CI or local checks.
-  - id: >-
-      treat-legacy-name-rejection-as-a-packaging-guardrail-in-strict-contexts-instead-of-relying-on-manual-reviewer-discipline
-    decision: >-
-      Treat legacy-name rejection as a packaging guardrail in strict contexts, instead of relying on
-      manual reviewer discipline.
-    rationale: >-
-      Treat legacy-name rejection as a packaging guardrail in strict contexts, instead of relying on
-      manual reviewer discipline.
+  sequence-packaging-and-validation-before-broad-skill-content:
+    decision: Sequence packaging and validation before broad skill-content rewrites to avoid spreading inconsistent naming and metadata across many skill files.
+    rationale: Sequence packaging and validation before broad skill-content rewrites to avoid spreading inconsistent naming and metadata across many skill files.
+  keep-validation-deterministic-and-file-path-specific-so:
+    decision: Keep validation deterministic and file-path specific so skill packaging issues are actionable during CI or local checks.
+    rationale: Keep validation deterministic and file-path specific so skill packaging issues are actionable during CI or local checks.
+  treat-legacy-name-rejection-as-a-packaging-guardrail-in:
+    decision: Treat legacy-name rejection as a packaging guardrail in strict contexts, instead of relying on manual reviewer discipline.
+    rationale: Treat legacy-name rejection as a packaging guardrail in strict contexts, instead of relying on manual reviewer discipline.
 alternatives:
-  - option: Update all strict skill prompts first, then harden packaging later.
-    reason: >-
-      Rejected because it increases rework risk if metadata or naming constraints change after broad
-      prompt edits.
-  - option: Enforce only naming rules and defer symlink checks.
-    reason: Rejected because skills may appear installed but fail at runtime if bundled links are invalid.
-  - option: Keep legacy alias names for convenience.
-    reason: >-
-      Rejected because milestone 04 explicitly requires strict-family naming separation outside
-      migration compatibility contexts.
+- option: Update all strict skill prompts first, then harden packaging later.
+  reason: Rejected because it increases rework risk if metadata or naming constraints change after broad prompt edits.
+- option: Enforce only naming rules and defer symlink checks.
+  reason: Rejected because skills may appear installed but fail at runtime if bundled links are invalid.
+- option: Keep legacy alias names for convenience.
+  reason: Rejected because milestone 04 explicitly requires strict-family naming separation outside migration compatibility contexts.

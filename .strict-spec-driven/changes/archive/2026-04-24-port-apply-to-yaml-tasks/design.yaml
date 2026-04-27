@@ -4,49 +4,27 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: port-apply-to-yaml-tasks
 approach:
-  - >-
-    Add a `runApply` function in `strict-spec-cli.ts` following the same pattern as `runInit` and
-    `runPropose`. The function accepts the change name as a CLI argument, resolves the change
-    directory under `.strict-spec-driven/changes/`, reads and parses `tasks.yaml`, finds the first
-    task with `status: pending` across all sections, sets it to `complete`, writes the file back,
-    and prints a JSON status object to stdout. A dedicated `applyTask` function in a new
-    `src/apply.ts` module handles the core logic: locating the next pending task, updating it, and
-    producing the status result. This keeps the CLI handler thin and the apply logic testable
-    independently.
+- 'Add a `runApply` function in `strict-spec-cli.ts` following the same pattern as `runInit` and `runPropose`. The function accepts the change name as a CLI argument, resolves the change directory under
+  `.strict-spec-driven/changes/`, reads and parses `tasks.yaml`, finds the first task with `status: pending` across all sections, sets it to `complete`, writes the file back, and prints a JSON status object
+  to stdout. A dedicated `applyTask` function in a new `src/apply.ts` module handles the core logic: locating the next pending task, updating it, and producing the status result. This keeps the CLI handler
+  thin and the apply logic testable independently.'
 decisions:
-  - id: one-task-at-a-time
+  one-task-at-a-time:
     decision: '`apply` completes exactly the first pending task per invocation.'
-    rationale: >-
-      This matches the reference workflow semantics and forces incremental progress rather than bulk
-      completion.
-  - id: json-status-output
-    decision: >-
-      The command emits a structured JSON object to stdout so downstream tooling and skills can
-      parse task state without scraping human-readable text.
+    rationale: This matches the reference workflow semantics and forces incremental progress rather than bulk completion.
+  json-status-output:
+    decision: The command emits a structured JSON object to stdout so downstream tooling and skills can parse task state without scraping human-readable text.
     rationale: Human-readable summary goes to stderr.
-  - id: dedicated-module
-    decision: >-
-      Core apply logic lives in `src/apply.ts`, separate from CLI wiring, so unit tests can call it
-      directly without spawning a subprocess.
-    rationale: >-
-      Core apply logic lives in `src/apply.ts`, separate from CLI wiring, so unit tests can call it
-      directly without spawning a subprocess.
-  - id: file-level-round-trip
-    decision: >-
-      Read the full `tasks.yaml`, modify only the target task's `status` field, write the whole file
-      back.
+  dedicated-module:
+    decision: Core apply logic lives in `src/apply.ts`, separate from CLI wiring, so unit tests can call it directly without spawning a subprocess.
+    rationale: Core apply logic lives in `src/apply.ts`, separate from CLI wiring, so unit tests can call it directly without spawning a subprocess.
+  file-level-round-trip:
+    decision: Read the full `tasks.yaml`, modify only the target task's `status` field, write the whole file back.
     rationale: This preserves comments, ordering, and any future fields added by other commands.
 alternatives:
-  - option: Accept task ID argument
-    reason: >-
-      Could allow `apply <name> <task-id>` to complete a specific task. Rejected for now —
-      one-task-at-a-time is simpler and matches the reference workflow. Can be added later if
-      needed.
-  - option: Interactive mode
-    reason: >-
-      Could prompt the user to select which task to complete. Rejected — adds complexity and doesn't
-      match the non-interactive CLI design of the existing commands.
-  - option: Batch mode
-    reason: >-
-      Could complete all pending tasks at once. Rejected — undermines the incremental progress model
-      and would bypass the verify gate that `port-verify-to-yaml` will enforce.
+- option: Accept task ID argument
+  reason: Could allow `apply <name> <task-id>` to complete a specific task. Rejected for now — one-task-at-a-time is simpler and matches the reference workflow. Can be added later if needed.
+- option: Interactive mode
+  reason: Could prompt the user to select which task to complete. Rejected — adds complexity and doesn't match the non-interactive CLI design of the existing commands.
+- option: Batch mode
+  reason: Could complete all pending tasks at once. Rejected — undermines the incremental progress model and would bypass the verify gate that `port-verify-to-yaml` will enforce.

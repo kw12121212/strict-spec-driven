@@ -4,75 +4,34 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: split-migration-legacy-parsers-by-artifact-family
 approach:
-  - >-
-    Split legacy Markdown parsers by artifact family under `src/migrate/parsers/` while keeping
-    `src/migrate.ts` as the stable public orchestration surface that exports `runMigration` and
-    re-exports the currently-exported parser functions. Planned module boundaries:
-  - >-
-    **`src/migrate/parsers/shared.ts`** — `parseMarkdownItems` and other low-level Markdown
-    tokenization helpers (heading extraction, section splitting, list parsing) that are used by
-    multiple artifact families
-  - '**`src/migrate/parsers/specs.ts`** — `parseLegacyMainSpec` and `parseLegacyDeltaSpec`'
-  - >-
-    **`src/migrate/parsers/change-artifacts.ts`** — `parseLegacyProposal`, `parseLegacyDesign`,
-    `parseLegacyTasks`, and `parseLegacyQuestions` Roadmap and index parsing is more tightly coupled
-    with converter logic in `convertLegacyRoadmapArtifacts` and `convertLegacySpecsIndex`. Those
-    boundaries are better resolved in the next planned split
-    (`split-migration-builders-and-converters`) when the converter layer is extracted. They are
-    explicitly out of scope here. The extraction should be mostly mechanical: move existing
-    functions with minimal semantic change, then have `src/migrate.ts` import and re-export them.
-    The goal is clearer ownership and stable interfaces, not new migration behavior.
+- 'Split legacy Markdown parsers by artifact family under `src/migrate/parsers/` while keeping `src/migrate.ts` as the stable public orchestration surface that exports `runMigration` and re-exports the
+  currently-exported parser functions. Planned module boundaries:'
+- '**`src/migrate/parsers/shared.ts`** — `parseMarkdownItems` and other low-level Markdown tokenization helpers (heading extraction, section splitting, list parsing) that are used by multiple artifact families'
+- '**`src/migrate/parsers/specs.ts`** — `parseLegacyMainSpec` and `parseLegacyDeltaSpec`'
+- '**`src/migrate/parsers/change-artifacts.ts`** — `parseLegacyProposal`, `parseLegacyDesign`, `parseLegacyTasks`, and `parseLegacyQuestions` Roadmap and index parsing is more tightly coupled with converter
+  logic in `convertLegacyRoadmapArtifacts` and `convertLegacySpecsIndex`. Those boundaries are better resolved in the next planned split (`split-migration-builders-and-converters`) when the converter layer
+  is extracted. They are explicitly out of scope here. The extraction should be mostly mechanical: move existing functions with minimal semantic change, then have `src/migrate.ts` import and re-export them.
+  The goal is clearer ownership and stable interfaces, not new migration behavior.'
 decisions:
-  - id: >-
-      keep-src-migrate-ts-as-the-public-facade-external-callers-import-parselegacyproposal-and-related-functions-from-src-migrate-ts
-    decision: >-
-      **Keep `src/migrate.ts` as the public facade.** External callers import `parseLegacyProposal`
-      and related functions from `src/migrate.ts`.
-    rationale: >-
-      Keeping those re-exports avoids coupling this refactor to an import-surface churn across the
-      codebase.
-  - id: >-
-      split-by-artifact-family-not-by-file-size-each-family-specs-change-artifacts-has-a-single-parser-module
-    decision: >-
-      **Split by artifact family, not by file size.** Each family (specs, change artifacts) has a
-      single parser module.
-    rationale: >-
-      This is granular enough to give each family a clear owner without producing too many tiny
-      files.
-  - id: >-
-      extract-shared-parsing-primitives-into-shared-ts-first-parsemarkdownitems-and-heading-helpers-are-used-by-multiple-families
-    decision: >-
-      **Extract shared parsing primitives into `shared.ts` first.** `parseMarkdownItems` and heading
-      helpers are used by multiple families.
-    rationale: >-
-      Moving them to a shared module prevents duplication between `specs.ts` and
-      `change-artifacts.ts`.
-  - id: >-
-      leave-roadmap-and-index-parsing-for-the-next-split-the-boundary-between-legacy-parsing-and-conversion-is-blurrier-for-roadmap-index-artifacts
-    decision: >-
-      **Leave roadmap and index parsing for the next split.** The boundary between legacy parsing
-      and conversion is blurrier for roadmap/index artifacts.
-    rationale: >-
-      Forcing that split here would require anticipating the converter module interfaces
-      prematurely.
-  - id: >-
-      treat-this-as-behavior-preserving-work-any-observable-migration-output-change-discovered-during-extraction-must-be-flagged-explicitly-rather-than-being-silently-absorbed
-    decision: >-
-      **Treat this as behavior-preserving work.** Any observable migration output change discovered
-      during extraction must be flagged explicitly rather than being silently absorbed.
-    rationale: >-
-      **Treat this as behavior-preserving work.** Any observable migration output change discovered
-      during extraction must be flagged explicitly rather than being silently absorbed.
+  keep-src-migrate-ts-as-the-public-facade-external-callers:
+    decision: '**Keep `src/migrate.ts` as the public facade.** External callers import `parseLegacyProposal` and related functions from `src/migrate.ts`.'
+    rationale: Keeping those re-exports avoids coupling this refactor to an import-surface churn across the codebase.
+  split-by-artifact-family-not-by-file-size-each-family-specs:
+    decision: '**Split by artifact family, not by file size.** Each family (specs, change artifacts) has a single parser module.'
+    rationale: This is granular enough to give each family a clear owner without producing too many tiny files.
+  extract-shared-parsing-primitives-into-shared-ts-first:
+    decision: '**Extract shared parsing primitives into `shared.ts` first.** `parseMarkdownItems` and heading helpers are used by multiple families.'
+    rationale: Moving them to a shared module prevents duplication between `specs.ts` and `change-artifacts.ts`.
+  leave-roadmap-and-index-parsing-for-the-next-split-the:
+    decision: '**Leave roadmap and index parsing for the next split.** The boundary between legacy parsing and conversion is blurrier for roadmap/index artifacts.'
+    rationale: Forcing that split here would require anticipating the converter module interfaces prematurely.
+  treat-this-as-behavior-preserving-work-any-observable:
+    decision: '**Treat this as behavior-preserving work.** Any observable migration output change discovered during extraction must be flagged explicitly rather than being silently absorbed.'
+    rationale: '**Treat this as behavior-preserving work.** Any observable migration output change discovered during extraction must be flagged explicitly rather than being silently absorbed.'
 alternatives:
-  - option: '**One file per parser function (8 separate modules).** Rejected'
-    reason: >-
-      too granular; would create import overhead without clearer responsibility boundaries than
-      per-family grouping.
-  - option: '**Include roadmap and index parsers in this split.** Rejected'
-    reason: >-
-      those parsers are entangled with converter logic and their extraction is cleanest when the
-      converters are also being extracted in the next split.
-  - option: '**Extract all three migration splits at once.** Rejected'
-    reason: >-
-      incremental splits are easier to verify against migration regression output and match the
-      pattern established by the roadmap and skills decompositions.
+- option: '**One file per parser function (8 separate modules).** Rejected'
+  reason: too granular; would create import overhead without clearer responsibility boundaries than per-family grouping.
+- option: '**Include roadmap and index parsers in this split.** Rejected'
+  reason: those parsers are entangled with converter logic and their extraction is cleanest when the converters are also being extracted in the next split.
+- option: '**Extract all three migration splits at once.** Rejected'
+  reason: incremental splits are easier to verify against migration regression output and match the pattern established by the roadmap and skills decompositions.

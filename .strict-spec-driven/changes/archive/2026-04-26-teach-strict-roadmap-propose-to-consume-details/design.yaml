@@ -4,52 +4,28 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: teach-strict-roadmap-propose-to-consume-details
 approach:
-  - >-
-    The change is primarily a skill-prompt update. The `details` field is already available in the
-    loaded milestone artifact (`LoadedMilestone.artifact.details`). The skill prompts need a new
-    step instructing the agent to read that field and incorporate relevant portions into the
-    proposal, design, and task artifacts. Both `strict-roadmap-propose/SKILL.md` and
-    `strict-roadmap-recommend/SKILL.md` will be updated to:
-  - Explicitly read the milestone YAML file for the owning milestone (not just `roadmap-status`)
-  - Extract the `details` field if present
-  - >-
-    Use `details` as targeted context when filling change artifacts — for example, using technical
-    guidance from `details` to inform the design approach, key decisions, or task breakdown
-  - >-
-    Not copy `details` verbatim into change artifacts — only extract the portions relevant to the
-    selected planned change The delta spec will add a MODIFIED requirement to
-    `strict-roadmap-proposal-handoff-contract` describing that the proposal handoff reads milestone
-    `details` as guidance input.
+- 'The change is primarily a skill-prompt update. The `details` field is already available in the loaded milestone artifact (`LoadedMilestone.artifact.details`). The skill prompts need a new step instructing
+  the agent to read that field and incorporate relevant portions into the proposal, design, and task artifacts. Both `strict-roadmap-propose/SKILL.md` and `strict-roadmap-recommend/SKILL.md` will be updated
+  to:'
+- Explicitly read the milestone YAML file for the owning milestone (not just `roadmap-status`)
+- Extract the `details` field if present
+- Use `details` as targeted context when filling change artifacts — for example, using technical guidance from `details` to inform the design approach, key decisions, or task breakdown
+- Not copy `details` verbatim into change artifacts — only extract the portions relevant to the selected planned change The delta spec will add a MODIFIED requirement to `strict-roadmap-proposal-handoff-contract`
+  describing that the proposal handoff reads milestone `details` as guidance input.
 decisions:
-  - id: >-
-      skill-prompts-not-cli-commands-the-strict-spec-driven-propose-cli-command-creates-generic-scaffolds
-    decision: >-
-      **Skill prompts, not CLI commands.** The `strict-spec-driven propose` CLI command creates
-      generic scaffolds.
-    rationale: >-
-      Reading and consuming milestone `details` is an agent judgment task that belongs in the skill
-      prompt, not in the deterministic scaffold command.
-  - id: >-
-      details-informs-does-not-replace-the-agent-uses-details-as-context-for-better-artifact-authoring-but-the-change-artifacts-still-describe-scope-for-exactly-one-planned-change
-    decision: >-
-      **Details informs, does not replace.** The agent uses `details` as context for better artifact
-      authoring, but the change artifacts still describe scope for exactly one planned change.
+  skill-prompts-not-cli-commands-the-strict-spec-driven:
+    decision: '**Skill prompts, not CLI commands.** The `strict-spec-driven propose` CLI command creates generic scaffolds.'
+    rationale: Reading and consuming milestone `details` is an agent judgment task that belongs in the skill prompt, not in the deterministic scaffold command.
+  details-informs-does-not-replace-the-agent-uses-details-as:
+    decision: '**Details informs, does not replace.** The agent uses `details` as context for better artifact authoring, but the change artifacts still describe scope for exactly one planned change.'
     rationale: Whole-milestone prose does not get copied.
-  - id: optional-and-graceful-milestones-without-details-must-still-work-identically
+  optional-and-graceful-milestones-without-details-must-still:
     decision: '**Optional and graceful.** Milestones without `details` must still work identically.'
     rationale: The skill steps read the field conditionally.
 alternatives:
-  - option: >-
-      **CLI command reads and pre-fills details.** Rejected because the scaffold command is
-      intentionally generic and deterministic.
-    reason: Injecting milestone-specific prose would couple it to roadmap state.
-  - option: >-
-      **Separate `roadmap-details` CLI command.** Rejected because `details` is already part of the
-      loaded milestone artifact.
-    reason: Adding a separate command would be redundant.
-  - option: >-
-      **Auto-copy details into design.yaml.** Rejected because the agent should extract only
-      relevant portions, not dump the entire field verbatim.
-    reason: >-
-      **Auto-copy details into design.yaml.** Rejected because the agent should extract only
-      relevant portions, not dump the entire field verbatim.
+- option: '**CLI command reads and pre-fills details.** Rejected because the scaffold command is intentionally generic and deterministic.'
+  reason: Injecting milestone-specific prose would couple it to roadmap state.
+- option: '**Separate `roadmap-details` CLI command.** Rejected because `details` is already part of the loaded milestone artifact.'
+  reason: Adding a separate command would be redundant.
+- option: '**Auto-copy details into design.yaml.** Rejected because the agent should extract only relevant portions, not dump the entire field verbatim.'
+  reason: '**Auto-copy details into design.yaml.** Rejected because the agent should extract only relevant portions, not dump the entire field verbatim.'

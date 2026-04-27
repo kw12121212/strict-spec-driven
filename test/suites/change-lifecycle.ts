@@ -206,7 +206,7 @@ try {
     "change: valid-change",
     "approach:",
     "  - Test approach",
-    "decisions: []",
+    "decisions: {}",
     "alternatives: []",
   ].join("\n") + "\n", "utf8");
 
@@ -326,7 +326,7 @@ try {
     "change: incomplete",
     "approach:",
     "  - Test",
-    "decisions: []",
+    "decisions: {}",
     "alternatives: []",
   ].join("\n") + "\n", "utf8");
 
@@ -422,7 +422,7 @@ try {
     "change: open-qs",
     "approach:",
     "  - Test",
-    "decisions: []",
+    "decisions: {}",
     "alternatives: []",
   ].join("\n") + "\n", "utf8");
 
@@ -520,7 +520,7 @@ try {
     "change: bad-gates",
     "approach:",
     "  - Test",
-    "decisions: []",
+    "decisions: {}",
     "alternatives: []",
   ].join("\n") + "\n", "utf8");
 
@@ -614,7 +614,7 @@ try {
     "change: bad-delta",
     "approach:",
     "  - Test",
-    "decisions: []",
+    "decisions: {}",
     "alternatives: []",
   ].join("\n") + "\n", "utf8");
 
@@ -708,7 +708,7 @@ try {
     "change: change-a",
     "approach:",
     "  - Test",
-    "decisions: []",
+    "decisions: {}",
     "alternatives: []",
   ].join("\n") + "\n", "utf8");
 
@@ -807,7 +807,7 @@ try {
     "change: change-b",
     "approach:",
     "  - Test",
-    "decisions: []",
+    "decisions: {}",
     "alternatives: []",
   ].join("\n") + "\n", "utf8");
 
@@ -969,7 +969,7 @@ try {
     "change: dist-verify-test",
     "approach:",
     "  - Test",
-    "decisions: []",
+    "decisions: {}",
     "alternatives: []",
   ].join("\n") + "\n", "utf8");
 
@@ -1108,7 +1108,7 @@ function writeValidChangeArtifacts(
       schema_file: "test",
       change: changeName,
       approach: ["Archive test design"],
-      decisions: [],
+      decisions: {},
       alternatives: [],
     }),
     "utf8",
@@ -1569,7 +1569,7 @@ function writeArchivedChangeArtifacts(rootDir: string, archiveDirName: string): 
       schema_file: "test",
       change: archivedChangeName,
       approach: ["Archived design"],
-      decisions: [],
+      decisions: {},
       alternatives: [],
     }),
     "utf8",
@@ -2230,7 +2230,7 @@ try {
       schema_file: "test",
       change: changeName,
       approach: ["Run verify and derive advisory findings"],
-      decisions: [],
+      decisions: {},
       alternatives: [],
     }),
     "utf8",
@@ -2411,7 +2411,7 @@ try {
       schema_file: "test",
       change: changeName,
       approach: ["Test"],
-      decisions: [],
+      decisions: {},
       alternatives: [],
     }),
     "utf8",

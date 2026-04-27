@@ -4,53 +4,26 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: add-strict-spec-migrate-skill
 approach:
-  - 'Implement the change in three passes:'
-  - >-
-    Define the migration skill contract in delta specs add migration skill command and guidance
-    requirements under `contracts/yaml-artifacts.md` add automated validation coverage requirements
-    under `cli/foundation.md`
-  - >-
-    Add the strict migration skill package create `skills/strict-spec-migrate/SKILL.md` wire
-    concrete command mappings around the existing strict CLI surfaces needed for migration and
-    post-migration validation keep report review and manual follow-up decisions in prompt guidance
-    instead of inventing new CLI behavior
-  - >-
-    Extend deterministic validation and test coverage teach `src/skills.ts` to treat the migration
-    skill as a required validated strict skill surface update `test/run.ts` to cover passing and
-    failing migration skill content states
+- 'Implement the change in three passes:'
+- Define the migration skill contract in delta specs add migration skill command and guidance requirements under `contracts/yaml-artifacts.md` add automated validation coverage requirements under `cli/foundation.md`
+- Add the strict migration skill package create `skills/strict-spec-migrate/SKILL.md` wire concrete command mappings around the existing strict CLI surfaces needed for migration and post-migration validation
+  keep report review and manual follow-up decisions in prompt guidance instead of inventing new CLI behavior
+- Extend deterministic validation and test coverage teach `src/skills.ts` to treat the migration skill as a required validated strict skill surface update `test/run.ts` to cover passing and failing migration
+  skill content states
 decisions:
-  - id: >-
-      model-migration-as-its-own-strict-skill-surface-instead-of-folding-it-into-the-general-planning-skill-group-because-the-roadmap-calls-it-out-as-a-distinct-operator-workflow
-    decision: >-
-      Model migration as its own strict skill surface instead of folding it into the general
-      planning skill group, because the roadmap calls it out as a distinct operator workflow.
-    rationale: >-
-      Model migration as its own strict skill surface instead of folding it into the general
-      planning skill group, because the roadmap calls it out as a distinct operator workflow.
-  - id: >-
-      reuse-existing-strict-cli-commands-for-migration-execution-and-validation-rather-than-inventing-a-migration-only-validation-command
-    decision: >-
-      Reuse existing strict CLI commands for migration execution and validation rather than
-      inventing a migration-only validation command.
-    rationale: >-
-      Reuse existing strict CLI commands for migration execution and validation rather than
-      inventing a migration-only validation command.
-  - id: >-
-      keep-manual-follow-up-triage-in-prompt-guidance-while-the-cli-remains-the-source-of-deterministic-report-data-and-schema-validation
-    decision: >-
-      Keep manual follow-up triage in prompt guidance while the CLI remains the source of
-      deterministic report data and schema validation.
-    rationale: >-
-      Keep manual follow-up triage in prompt guidance while the CLI remains the source of
-      deterministic report data and schema validation.
+  model-migration-as-its-own-strict-skill-surface-instead-of:
+    decision: Model migration as its own strict skill surface instead of folding it into the general planning skill group, because the roadmap calls it out as a distinct operator workflow.
+    rationale: Model migration as its own strict skill surface instead of folding it into the general planning skill group, because the roadmap calls it out as a distinct operator workflow.
+  reuse-existing-strict-cli-commands-for-migration-execution:
+    decision: Reuse existing strict CLI commands for migration execution and validation rather than inventing a migration-only validation command.
+    rationale: Reuse existing strict CLI commands for migration execution and validation rather than inventing a migration-only validation command.
+  keep-manual-follow-up-triage-in-prompt-guidance-while-the:
+    decision: Keep manual follow-up triage in prompt guidance while the CLI remains the source of deterministic report data and schema validation.
+    rationale: Keep manual follow-up triage in prompt guidance while the CLI remains the source of deterministic report data and schema validation.
 alternatives:
-  - option: Start milestone 06 maintenance, ship, packaging, or documentation work first.
-    reason: Rejected because the roadmap explicitly places those items after the migration milestone.
-  - option: Treat migration guidance as README-only documentation instead of a skill package.
-    reason: >-
-      Rejected because the milestone requires a reusable migration skill, not prose-only
-      documentation.
-  - option: Add `strict-spec-migrate` without validation coverage.
-    reason: >-
-      Rejected because the repository already treats strict skills as validated product surface, and
-      an unchecked migration skill would regress that standard.
+- option: Start milestone 06 maintenance, ship, packaging, or documentation work first.
+  reason: Rejected because the roadmap explicitly places those items after the migration milestone.
+- option: Treat migration guidance as README-only documentation instead of a skill package.
+  reason: Rejected because the milestone requires a reusable migration skill, not prose-only documentation.
+- option: Add `strict-spec-migrate` without validation coverage.
+  reason: Rejected because the repository already treats strict skills as validated product surface, and an unchecked migration skill would regress that standard.

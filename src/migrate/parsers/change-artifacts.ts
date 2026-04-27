@@ -15,6 +15,23 @@ const CHANGE_DESIGN_SCHEMA_FILE = "templates/strict-spec-driven/schemas/change-d
 const TASK_LIST_SCHEMA_FILE = "templates/strict-spec-driven/schemas/task-list.yaml";
 const QUESTION_LIST_SCHEMA_FILE = "templates/strict-spec-driven/schemas/question-list.yaml";
 
+const MAX_DECISION_ID_LENGTH = 60;
+
+function truncateId(id: string, maxLen: number): string {
+  if (id.length <= maxLen) return id;
+  const words = id.split("-");
+  let result = words[0];
+  for (let i = 1; i < words.length; i++) {
+    const candidate = `${result}-${words[i]}`;
+    if (candidate.length <= maxLen) {
+      result = candidate;
+    } else {
+      break;
+    }
+  }
+  return result.length > 0 ? result : id.slice(0, maxLen).replace(/-+$/, "");
+}
+
 export type StrictChangeProposalArtifact = {
   schema: "strict-spec-driven/change-proposal/v1";
   schema_version: 1;
@@ -42,8 +59,7 @@ export type StrictChangeDesignArtifact = {
   schema_file: string;
   change: string;
   approach: string[];
-  decisions: Array<{
-    id: string;
+  decisions: Record<string, {
     decision: string;
     rationale: string;
   }>;
@@ -158,17 +174,20 @@ export function parseLegacyDesign(
   }
 
   const usedDecisionIds = new Set<string>();
-  const decisions = decisionItems.map((item) => {
+  const decisions: Record<string, { decision: string; rationale: string }> = {};
+  for (const item of decisionItems) {
     const boldMatch = item.match(/^\*\*(.+?)\*\*:\s*(.+)$/);
     const decisionText = boldMatch ? boldMatch[2] : item;
     const { first, rest } = splitFirstSentence(decisionText);
     const idSource = boldMatch ? boldMatch[1] : first;
-    return {
-      id: makeUniqueId(toKebabCase(idSource), usedDecisionIds),
+    const rawId = toKebabCase(idSource);
+    const truncatedId = rawId.length > MAX_DECISION_ID_LENGTH ? truncateId(rawId, MAX_DECISION_ID_LENGTH) : rawId;
+    const id = makeUniqueId(truncatedId, usedDecisionIds);
+    decisions[id] = {
       decision: first,
       rationale: rest.length > 0 ? rest : normalizeWhitespace(decisionText),
     };
-  });
+  }
 
   const alternatives = alternativeItems.map((item) => {
     const boldMatch = item.match(/^\*\*(.+?)\*\*:\s*(.+)$/);

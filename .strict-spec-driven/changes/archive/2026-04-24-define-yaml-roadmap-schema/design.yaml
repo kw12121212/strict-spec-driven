@@ -4,73 +4,39 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: define-yaml-roadmap-schema
 approach:
-  - >-
-    Extend the existing YAML artifact contract rather than inventing a new spec category. The delta
-    spec will add roadmap-specific requirements under `contracts/yaml-artifacts.md`, because roadmap
-    indexes, milestones, and planned change entries are already part of the shared strict YAML
-    artifact family. The implementation work this proposal points toward should stay focused on the
-    existing template and validation surfaces that already exist in the repository:
-  - roadmap schema files under `templates/strict-spec-driven/schemas/`
-  - roadmap example files under `templates/strict-spec-driven/examples/`
-  - the schema registry and scaffold roadmap index template
-  - >-
-    `test/run.ts` coverage that loads, bundles, and checks those assets That keeps the change on the
-    roadmap-schema branch: define the data contract first, then let `port-strict-roadmap-workflow`
-    build command and skill behavior on top of the finalized artifact model.
+- 'Extend the existing YAML artifact contract rather than inventing a new spec category. The delta spec will add roadmap-specific requirements under `contracts/yaml-artifacts.md`, because roadmap indexes,
+  milestones, and planned change entries are already part of the shared strict YAML artifact family. The implementation work this proposal points toward should stay focused on the existing template and
+  validation surfaces that already exist in the repository:'
+- roadmap schema files under `templates/strict-spec-driven/schemas/`
+- roadmap example files under `templates/strict-spec-driven/examples/`
+- the schema registry and scaffold roadmap index template
+- '`test/run.ts` coverage that loads, bundles, and checks those assets That keeps the change on the roadmap-schema branch: define the data contract first, then let `port-strict-roadmap-workflow` build command
+  and skill behavior on top of the finalized artifact model.'
 decisions:
-  - id: >-
-      keep-roadmap-schema-work-in-contracts-yaml-artifacts-md-instead-of-creating-a-new-standalone-roadmap-spec-file-because-this-change-is-refining-artifact-structure-not-defining-command-behavior
-    decision: >-
-      Keep roadmap schema work in `contracts/yaml-artifacts.md` instead of creating a new standalone
-      roadmap spec file, because this change is refining artifact structure, not defining command
+  keep-roadmap-schema-work-in-contracts-yaml-artifacts-md:
+    decision: Keep roadmap schema work in `contracts/yaml-artifacts.md` instead of creating a new standalone roadmap spec file, because this change is refining artifact structure, not defining command behavior.
+    rationale: Keep roadmap schema work in `contracts/yaml-artifacts.md` instead of creating a new standalone roadmap spec file, because this change is refining artifact structure, not defining command
       behavior.
-    rationale: >-
-      Keep roadmap schema work in `contracts/yaml-artifacts.md` instead of creating a new standalone
-      roadmap spec file, because this change is refining artifact structure, not defining command
-      behavior.
-  - id: treat-roadmap-index-ordering-as-part-of-the-artifact-contract
+  treat-roadmap-index-ordering-as-part-of-the-artifact:
     decision: Treat roadmap index ordering as part of the artifact contract.
-    rationale: >-
-      Later roadmap status, sync, and recommendation flows need milestone order to be recoverable
-      from YAML data itself.
-  - id: >-
-      treat-milestone-scope-criteria-dependencies-risks-notes-and-planned-changes-as-first-class-structured-fields-rather-than-prose-conventions-so-validators-and-migration-tooling-can-inspect-them-deterministically
-    decision: >-
-      Treat milestone scope, criteria, dependencies, risks, notes, and planned changes as
-      first-class structured fields rather than prose conventions so validators and migration
-      tooling can inspect them deterministically.
-    rationale: >-
-      Treat milestone scope, criteria, dependencies, risks, notes, and planned changes as
-      first-class structured fields rather than prose conventions so validators and migration
-      tooling can inspect them deterministically.
-  - id: >-
-      keep-planned-change-entries-limited-to-declared-roadmap-planning-data-planned-complete-summary-and-dependency-references-and-leave-active-or-archived-workflow-state-derivation-to-later-roadmap-command-behavior
-    decision: >-
-      Keep planned change entries limited to declared roadmap planning data (`planned`/`complete`,
-      summary, and dependency references) and leave active or archived workflow state derivation to
+    rationale: Later roadmap status, sync, and recommendation flows need milestone order to be recoverable from YAML data itself.
+  treat-milestone-scope-criteria-dependencies-risks-notes-and:
+    decision: Treat milestone scope, criteria, dependencies, risks, notes, and planned changes as first-class structured fields rather than prose conventions so validators and migration tooling can inspect
+      them deterministically.
+    rationale: Treat milestone scope, criteria, dependencies, risks, notes, and planned changes as first-class structured fields rather than prose conventions so validators and migration tooling can inspect
+      them deterministically.
+  keep-planned-change-entries-limited-to-declared-roadmap:
+    decision: Keep planned change entries limited to declared roadmap planning data (`planned`/`complete`, summary, and dependency references) and leave active or archived workflow state derivation to later
+      roadmap command behavior.
+    rationale: Keep planned change entries limited to declared roadmap planning data (`planned`/`complete`, summary, and dependency references) and leave active or archived workflow state derivation to
       later roadmap command behavior.
-    rationale: >-
-      Keep planned change entries limited to declared roadmap planning data (`planned`/`complete`,
-      summary, and dependency references) and leave active or archived workflow state derivation to
-      later roadmap command behavior.
-  - id: >-
-      use-the-existing-template-registry-scaffold-and-test-surfaces-as-the-target-implementation-area-instead-of-inventing-new-artifact-locations
-    decision: >-
-      Use the existing template, registry, scaffold, and test surfaces as the target implementation
-      area instead of inventing new artifact locations.
-    rationale: >-
-      Use the existing template, registry, scaffold, and test surfaces as the target implementation
-      area instead of inventing new artifact locations.
+  use-the-existing-template-registry-scaffold-and-test:
+    decision: Use the existing template, registry, scaffold, and test surfaces as the target implementation area instead of inventing new artifact locations.
+    rationale: Use the existing template, registry, scaffold, and test surfaces as the target implementation area instead of inventing new artifact locations.
 alternatives:
-  - option: Start with `port-strict-roadmap-workflow`
-    reason: >-
-      rejected because roadmap commands and skill rewrites should not own the artifact contract they
-      depend on.
-  - option: Start with `update-planning-and-spec-content-skills-for-yaml`
-    reason: >-
-      rejected as the next recommendation because it improves a parallel skill branch, but it does
-      not unblock the roadmap CLI and proposal-handoff path that later milestones depend on.
-  - option: Treat the existing roadmap schema/example files as sufficient without a new proposal
-    reason: >-
-      rejected because milestone 04 still needs an explicit spec-backed contract and validation
-      target before roadmap behavior expands.
+- option: Start with `port-strict-roadmap-workflow`
+  reason: rejected because roadmap commands and skill rewrites should not own the artifact contract they depend on.
+- option: Start with `update-planning-and-spec-content-skills-for-yaml`
+  reason: rejected as the next recommendation because it improves a parallel skill branch, but it does not unblock the roadmap CLI and proposal-handoff path that later milestones depend on.
+- option: Treat the existing roadmap schema/example files as sufficient without a new proposal
+  reason: rejected because milestone 04 still needs an explicit spec-backed contract and validation target before roadmap behavior expands.

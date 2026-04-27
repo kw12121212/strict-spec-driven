@@ -4,34 +4,21 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: preserve-strict-roadmap-details-during-conversion
 approach:
-  - >-
-    Extend the existing `convertRoadmapMilestone` function in `src/converters/roadmap.ts` to extract
-    a `## Details` section using the same `parseSectionText` helper already used for the `Goal`
-    field. Conditionally spread `details` into the returned artifact object only when the extracted
-    text is non-empty. This follows the established pattern for optional text fields in the
-    converter and requires no changes to the migration pipeline itself —
-    `convertLegacyRoadmapArtifacts` in `src/migrate/converters/roadmap.ts` already passes the
-    converter output directly to `writeYamlFile`.
+- Extend the existing `convertRoadmapMilestone` function in `src/converters/roadmap.ts` to extract a `## Details` section using the same `parseSectionText` helper already used for the `Goal` field. Conditionally
+  spread `details` into the returned artifact object only when the extracted text is non-empty. This follows the established pattern for optional text fields in the converter and requires no changes to
+  the migration pipeline itself — `convertLegacyRoadmapArtifacts` in `src/migrate/converters/roadmap.ts` already passes the converter output directly to `writeYamlFile`.
 decisions:
-  - id: use-parsesectiontext-rather-than-parsemarkdownbulletlist
+  use-parsesectiontext-rather-than-parsemarkdownbulletlist:
     decision: '`details` is freeform long-form text (like `Goal`), not a bullet list.'
-    rationale: >-
-      The `parseSectionText` helper strips the heading and returns the raw paragraph content, which
-      matches the intended YAML block-scalar representation.
-  - id: omit-details-from-the-artifact-when-absent
-    decision: >-
-      The schema marks `details` as optional, and the runtime sync logic already handles absence by
-      not emitting a placeholder.
+    rationale: The `parseSectionText` helper strips the heading and returns the raw paragraph content, which matches the intended YAML block-scalar representation.
+  omit-details-from-the-artifact-when-absent:
+    decision: The schema marks `details` as optional, and the runtime sync logic already handles absence by not emitting a placeholder.
     rationale: The converter must follow the same convention — no empty string, no null, just no field.
-  - id: no-migration-pipeline-changes-needed
+  no-migration-pipeline-changes-needed:
     decision: The migration converter module calls `convertRoadmapMilestone` and writes the result verbatim.
     rationale: Fixing the converter fixes migration automatically.
 alternatives:
-  - option: Post-migration manual follow-up
-    reason: >-
-      Could defer `details` preservation to a manual step, but this contradicts the goal of
-      deterministic conversion and would add noise to migration reports.
-  - option: Structured sub-fields for details
-    reason: >-
-      Out of scope — milestone 10 explicitly excludes turning `details` into a structured schema
-      with fixed subfields. The field remains freeform text.
+- option: Post-migration manual follow-up
+  reason: Could defer `details` preservation to a manual step, but this contradicts the goal of deterministic conversion and would add noise to migration reports.
+- option: Structured sub-fields for details
+  reason: Out of scope — milestone 10 explicitly excludes turning `details` into a structured schema with fixed subfields. The field remains freeform text.

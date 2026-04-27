@@ -4,45 +4,25 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: extract-cli-spec-mapping-audit
 approach:
-  - >-
-    Create `src/cli/spec-mapping.ts` by moving the audit types, constants, and all six functions
-    verbatim from `src/strict-spec-cli.ts`. The new module imports `parseYamlDocument` from
-    `../yaml.js` and `listFilesRecursive`, `normalizeRepoRelativePath`, `normalizePathSeparators`
-    from `./fs.js` — both already used by the inline code. Export `verifySpecMappings`,
-    `VerifySpecMappingsResult`, and `MappingAuditDiagnostic` from the module. In
-    `strict-spec-cli.ts`, delete the moved definitions and add a single import of
-    `verifySpecMappings` from `./cli/spec-mapping.js`. No test files need to change; the existing
-    section 15 CLI-invocation tests in `test/suites/change-lifecycle.ts` will cover the extraction
-    automatically.
+- Create `src/cli/spec-mapping.ts` by moving the audit types, constants, and all six functions verbatim from `src/strict-spec-cli.ts`. The new module imports `parseYamlDocument` from `../yaml.js` and `listFilesRecursive`,
+  `normalizeRepoRelativePath`, `normalizePathSeparators` from `./fs.js` — both already used by the inline code. Export `verifySpecMappings`, `VerifySpecMappingsResult`, and `MappingAuditDiagnostic` from
+  the module. In `strict-spec-cli.ts`, delete the moved definitions and add a single import of `verifySpecMappings` from `./cli/spec-mapping.js`. No test files need to change; the existing section 15 CLI-invocation
+  tests in `test/suites/change-lifecycle.ts` will cover the extraction automatically.
 decisions:
-  - id: place-in-src-cli
-    decision: >-
-      Matches the extraction pattern already established by `argv.ts`, `changes.ts`, `fs.ts`,
-      `registry.ts`, and `usage.ts`.
-    rationale: >-
-      The spec-mapping audit is a CLI-layer concern that serves the `verify-spec-mappings`
-      subcommand.
-  - id: keep-internal-helpers-unexported
-    decision: >-
-      Only `verifySpecMappings`, `VerifySpecMappingsResult`, and `MappingAuditDiagnostic` need to be
-      public.
-    rationale: >-
-      `makeMappingDiagnostic`, `normalizeMappedPath`, `parseSpecMapping`,
-      `collectEvidenceCandidates`, and `sortMappingDiagnostics` remain module-private.
-  - id: keep-runverifyspecmappings-in-the-entrypoint
+  place-in-src-cli:
+    decision: Matches the extraction pattern already established by `argv.ts`, `changes.ts`, `fs.ts`, `registry.ts`, and `usage.ts`.
+    rationale: The spec-mapping audit is a CLI-layer concern that serves the `verify-spec-mappings` subcommand.
+  keep-internal-helpers-unexported:
+    decision: Only `verifySpecMappings`, `VerifySpecMappingsResult`, and `MappingAuditDiagnostic` need to be public.
+    rationale: '`makeMappingDiagnostic`, `normalizeMappedPath`, `parseSpecMapping`, `collectEvidenceCandidates`, and `sortMappingDiagnostics` remain module-private.'
+  keep-runverifyspecmappings-in-the-entrypoint:
     decision: The handler is CLI dispatch glue — it owns the argv validation, stdout write, and exit code.
     rationale: Moving it would pre-empt the domain handler split in `extract-cli-command-handlers-by-domain`.
-  - id: no-new-tests
+  no-new-tests:
     decision: The extraction is behavior-preserving by construction.
-    rationale: >-
-      The existing section 15 tests exercise the full command surface and will detect any
-      regression.
+    rationale: The existing section 15 tests exercise the full command surface and will detect any regression.
 alternatives:
-  - option: '`src/spec-mapping/` directory'
-    reason: >-
-      Deferred. The six functions and three types are cohesive enough for a single file. A
-      multi-file namespace can be introduced later if the module grows.
-  - option: Exporting all helpers
-    reason: >-
-      Rejected. Exporting internal helpers as public API creates coupling; only the top-level result
-      type and the entry function are needed by callers.
+- option: '`src/spec-mapping/` directory'
+  reason: Deferred. The six functions and three types are cohesive enough for a single file. A multi-file namespace can be introduced later if the module grows.
+- option: Exporting all helpers
+  reason: Rejected. Exporting internal helpers as public API creates coupling; only the top-level result type and the entry function are needed by callers.

@@ -4,52 +4,29 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: materialize-concrete-yaml-schema-files
 approach:
-  - >-
-    Create a small repository-native schema dialect expressed as YAML documents. Each schema file
-    will identify the artifact family, schema version, required and optional fields, enum values,
-    relationship fields, stable identifiers, uniqueness scopes, supported top-level shape, and its
-    minimal example path. Create one minimal valid example YAML document per required artifact
-    family. The examples intentionally use minimal data, but they must remain parseable and show the
-    core structured fields expected by the corresponding schema.
+- Create a small repository-native schema dialect expressed as YAML documents. Each schema file will identify the artifact family, schema version, required and optional fields, enum values, relationship
+  fields, stable identifiers, uniqueness scopes, supported top-level shape, and its minimal example path. Create one minimal valid example YAML document per required artifact family. The examples intentionally
+  use minimal data, but they must remain parseable and show the core structured fields expected by the corresponding schema.
 decisions:
-  - id: >-
-      use-strict-spec-driven-schemas-and-strict-spec-driven-examples-because-strict-spec-driven-is-already-the-target-strict-workflow-directory
-    decision: >-
-      Use `.strict-spec-driven/schemas/` and `.strict-spec-driven/examples/` because
-      `.strict-spec-driven/` is already the target strict workflow directory.
-    rationale: >-
-      Use `.strict-spec-driven/schemas/` and `.strict-spec-driven/examples/` because
-      `.strict-spec-driven/` is already the target strict workflow directory.
-  - id: use-one-schema-file-per-artifact-family-to-make-coverage-easy-to-audit
+  use-strict-spec-driven-schemas-and-strict-spec-driven:
+    decision: Use `.strict-spec-driven/schemas/` and `.strict-spec-driven/examples/` because `.strict-spec-driven/` is already the target strict workflow directory.
+    rationale: Use `.strict-spec-driven/schemas/` and `.strict-spec-driven/examples/` because `.strict-spec-driven/` is already the target strict workflow directory.
+  use-one-schema-file-per-artifact-family-to-make-coverage:
     decision: Use one schema file per artifact family to make coverage easy to audit.
     rationale: Use one schema file per artifact family to make coverage easy to audit.
-  - id: >-
-      keep-the-schema-dialect-simple-and-self-describing-rather-than-choosing-json-schema-or-another-validator-format-before-the-cli-foundation-exists
-    decision: >-
-      Keep the schema dialect simple and self-describing rather than choosing JSON Schema or another
-      validator format before the CLI foundation exists.
-    rationale: >-
-      Keep the schema dialect simple and self-describing rather than choosing JSON Schema or another
-      validator format before the CLI foundation exists.
-  - id: >-
-      put-schema-example-association-in-both-the-schema-files-and-example-files-so-humans-and-future-scripts-can-traverse-either-direction
-    decision: >-
-      Put schema/example association in both the schema files and example files so humans and future
-      scripts can traverse either direction.
-    rationale: >-
-      Put schema/example association in both the schema files and example files so humans and future
-      scripts can traverse either direction.
-  - id: add-a-spec-delta-documenting-the-chosen-file-organization-as-an-observable-contract
+  keep-the-schema-dialect-simple-and-self-describing-rather:
+    decision: Keep the schema dialect simple and self-describing rather than choosing JSON Schema or another validator format before the CLI foundation exists.
+    rationale: Keep the schema dialect simple and self-describing rather than choosing JSON Schema or another validator format before the CLI foundation exists.
+  put-schema-example-association-in-both-the-schema-files-and:
+    decision: Put schema/example association in both the schema files and example files so humans and future scripts can traverse either direction.
+    rationale: Put schema/example association in both the schema files and example files so humans and future scripts can traverse either direction.
+  add-a-spec-delta-documenting-the-chosen-file-organization-as:
     decision: Add a spec delta documenting the chosen file organization as an observable contract.
     rationale: Add a spec delta documenting the chosen file organization as an observable contract.
 alternatives:
-  - option: Only update prose requirements again
-    reason: rejected because the defect is that no concrete files were created.
-  - option: Store schemas under `.spec-driven/`
-    reason: >-
-      rejected because that directory is bootstrap/legacy state, while `.strict-spec-driven/` is the
-      target product workflow directory.
-  - option: Create a single combined schema file
-    reason: >-
-      rejected because the contract says every artifact family should have an identifiable concrete
-      schema file.
+- option: Only update prose requirements again
+  reason: rejected because the defect is that no concrete files were created.
+- option: Store schemas under `.spec-driven/`
+  reason: rejected because that directory is bootstrap/legacy state, while `.strict-spec-driven/` is the target product workflow directory.
+- option: Create a single combined schema file
+  reason: rejected because the contract says every artifact family should have an identifiable concrete schema file.

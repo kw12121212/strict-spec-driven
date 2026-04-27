@@ -2478,7 +2478,7 @@ context.assert(
   "parseLegacyDesign preserves change id and ordered approach items",
 );
 context.assert(
-  designArtifact.decisions[0]?.id === "keep-reruns-deterministic",
+  "keep-reruns-deterministic" in designArtifact.decisions,
   "parseLegacyDesign derives deterministic decision identifiers from bold labels",
 );
 context.assert(

@@ -4,46 +4,24 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: prove-todo-project-suite-repeatability
 approach:
-  - >-
-    Reuse the existing copied-workspace harness and extend the real-project test suites with
-    explicit rerun coverage instead of inventing a second regression path.
-  - >-
-    Identify the copied todo-project flows that already act as milestone-level acceptance coverage,
-    then execute those flows across fresh workspace copies and compare their stable outputs,
-    ordering, and baseline-preservation behavior.
-  - >-
-    Add small shared helpers only where repeated-flow assertions need consistent comparison rules,
-    especially when temp workspace roots differ between runs.
+- Reuse the existing copied-workspace harness and extend the real-project test suites with explicit rerun coverage instead of inventing a second regression path.
+- Identify the copied todo-project flows that already act as milestone-level acceptance coverage, then execute those flows across fresh workspace copies and compare their stable outputs, ordering, and baseline-preservation
+  behavior.
+- Add small shared helpers only where repeated-flow assertions need consistent comparison rules, especially when temp workspace roots differ between runs.
 decisions:
-  - id: keep-this-change-focused-on-regression-proof-not-product-behavior
+  keep-this-change-focused-on-regression-proof-not-product:
     decision: Keep this change focused on regression proof, not product behavior.
-    rationale: >-
-      The planned change is a testing gate for later milestones, so the proposal should stay in test
-      and helper surfaces unless the repository proves an observable contract change is required.
-  - id: >-
-      prove-repeatability-at-the-real-project-scenario-level-not-only-with-synthetic-temp-dir-fixtures
-    decision: >-
-      Prove repeatability at the real-project scenario level, not only with synthetic temp-dir
-      fixtures.
-    rationale: >-
-      Milestones 08 and 10 depend on the copied todo-project harness specifically, so that is the
-      right acceptance boundary.
-  - id: >-
-      compare-deterministic-fields-and-ordering-rather-than-raw-temp-directory-strings-where-workspace-specific-paths-would-otherwise-make-equivalent-runs-look-different
-    decision: >-
-      Compare deterministic fields and ordering rather than raw temp-directory strings where
-      workspace-specific paths would otherwise make equivalent runs look different.
-    rationale: >-
-      Compare deterministic fields and ordering rather than raw temp-directory strings where
-      workspace-specific paths would otherwise make equivalent runs look different.
+    rationale: The planned change is a testing gate for later milestones, so the proposal should stay in test and helper surfaces unless the repository proves an observable contract change is required.
+  prove-repeatability-at-the-real-project-scenario-level-not:
+    decision: Prove repeatability at the real-project scenario level, not only with synthetic temp-dir fixtures.
+    rationale: Milestones 08 and 10 depend on the copied todo-project harness specifically, so that is the right acceptance boundary.
+  compare-deterministic-fields-and-ordering-rather-than-raw:
+    decision: Compare deterministic fields and ordering rather than raw temp-directory strings where workspace-specific paths would otherwise make equivalent runs look different.
+    rationale: Compare deterministic fields and ordering rather than raw temp-directory strings where workspace-specific paths would otherwise make equivalent runs look different.
 alternatives:
-  - option: Treat the existing scattered copied-workspace assertions as sufficient.
-    reason: >-
-      That leaves the roadmap item incomplete because the suite still lacks a clear repeatability
-      gate for the shared real-project flows.
-  - option: >-
-      Add more isolated unit-style fixtures instead of strengthening the copied todo-project
-      scenarios.
-    reason: That would not prove the acceptance harness that later refactors depend on.
-  - option: Start milestone 08 decomposition first and fill in repeatability proof later.
-    reason: That would increase refactor risk before the shared regression gate is fully established.
+- option: Treat the existing scattered copied-workspace assertions as sufficient.
+  reason: That leaves the roadmap item incomplete because the suite still lacks a clear repeatability gate for the shared real-project flows.
+- option: Add more isolated unit-style fixtures instead of strengthening the copied todo-project scenarios.
+  reason: That would not prove the acceptance harness that later refactors depend on.
+- option: Start milestone 08 decomposition first and fill in repeatability proof later.
+  reason: That would increase refactor risk before the shared regression gate is fully established.

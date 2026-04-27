@@ -4,46 +4,23 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: add-todo-project-cli-regression-scenarios
 approach:
-  - >-
-    Extend the existing modular test suites with copied-workspace scenarios that execute the
-    selected CLI commands against `test/fixtures/projects/todo-app/` through
-    `createCopiedProjectWorkspace()` and `projectWorkspaceCli()`.
-  - >-
-    Keep the new assertions command-focused: verify exit status, output shape, and on-disk artifact
-    effects in the temp workspace, then separately assert that the committed fixture baseline was
-    not mutated.
-  - >-
-    Reuse or lightly extend shared test helpers only when multiple scenarios need the same
-    copied-workspace assertion pattern, keeping this change focused on scenario coverage rather than
-    another runner refactor.
+- Extend the existing modular test suites with copied-workspace scenarios that execute the selected CLI commands against `test/fixtures/projects/todo-app/` through `createCopiedProjectWorkspace()` and `projectWorkspaceCli()`.
+- 'Keep the new assertions command-focused: verify exit status, output shape, and on-disk artifact effects in the temp workspace, then separately assert that the committed fixture baseline was not mutated.'
+- Reuse or lightly extend shared test helpers only when multiple scenarios need the same copied-workspace assertion pattern, keeping this change focused on scenario coverage rather than another runner refactor.
 decisions:
-  - id: limit-the-proposal-to-the-explicitly-named-cli-commands-from-milestone-09
+  limit-the-proposal-to-the-explicitly-named-cli-commands-from:
     decision: Limit the proposal to the explicitly named CLI commands from milestone 09.
-    rationale: >-
-      This was confirmed during recommendation and keeps the change aligned with the
-      dependency-order goal of unblocking milestone 07 first.
-  - id: treat-the-change-as-regression-coverage-only
+    rationale: This was confirmed during recommendation and keeps the change aligned with the dependency-order goal of unblocking milestone 07 first.
+  treat-the-change-as-regression-coverage-only:
     decision: Treat the change as regression coverage only.
-    rationale: >-
-      Because it is intended to prove existing observable behavior in a real project workspace, the
-      delta spec directory can stay empty unless implementation reveals a user-visible contract
-      change.
-  - id: >-
-      build-on-the-current-fixture-copy-reset-harness-and-modular-suites-instead-of-introducing-a-separate-project-test-framework
-    decision: >-
-      Build on the current fixture, copy/reset harness, and modular suites instead of introducing a
-      separate project-test framework.
-    rationale: >-
-      The prerequisites for this slice are already present, so the remaining work should stay close
-      to the existing test architecture.
+    rationale: Because it is intended to prove existing observable behavior in a real project workspace, the delta spec directory can stay empty unless implementation reveals a user-visible contract change.
+  build-on-the-current-fixture-copy-reset-harness-and-modular:
+    decision: Build on the current fixture, copy/reset harness, and modular suites instead of introducing a separate project-test framework.
+    rationale: The prerequisites for this slice are already present, so the remaining work should stay close to the existing test architecture.
 alternatives:
-  - option: Include additional CLI commands in the same proposal.
-    reason: >-
-      This would blur the first-slice boundary and make the dependency-unblocking step larger than
-      necessary.
-  - option: Start milestone 07 command-surface extraction before these scenarios exist.
-    reason: That would weaken the acceptance gate for behavior-preserving refactors.
-  - option: Prioritize roadmap and migration fixture scenarios first.
-    reason: >-
-      Those are important, but they align more directly with milestone 08 than the CLI-focused
-      decomposition work that comes next.
+- option: Include additional CLI commands in the same proposal.
+  reason: This would blur the first-slice boundary and make the dependency-unblocking step larger than necessary.
+- option: Start milestone 07 command-surface extraction before these scenarios exist.
+  reason: That would weaken the acceptance gate for behavior-preserving refactors.
+- option: Prioritize roadmap and migration fixture scenarios first.
+  reason: Those are important, but they align more directly with milestone 08 than the CLI-focused decomposition work that comes next.

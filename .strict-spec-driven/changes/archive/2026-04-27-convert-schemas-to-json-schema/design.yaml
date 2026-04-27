@@ -4,19 +4,36 @@ artifact_type: change_design
 schema_file: templates/strict-spec-driven/schemas/change-design.yaml
 change: convert-schemas-to-json-schema
 approach:
-  - Keep the existing YAML file structure for each schema file but wrap the JSON Schema body under a json_schema top-level key so registry lookup and metadata (schema, schema_id, artifact_type) remain accessible to non-Ajv code.
-  - "Translate each custom dialect schema field-by-field to standard JSON Schema draft-07: type: mapping becomes type: object with properties, type: sequence becomes type: array, field-level required: true collects into a top-level required array, additional_fields: false becomes additionalProperties: false."
-  - Update loadBundledSchema in src/validation.ts to read the json_schema key from the file and return that to Ajv, while the existing loadBundledSchemaByArtifactType continues to resolve by artifact_type from registry.yaml.
-  - Remove the try/catch in src/verify.ts validateArtifactSchema so Ajv compilation failures surface as actionable diagnostics instead of being silently swallowed.
-  - Preserve duplicate ID and reference checks as separate post-schema validation passes since JSON Schema cannot express unique_by, references, required_when, and required_names constraints.
+- Keep the existing YAML file structure for each schema file but wrap the JSON Schema body under a json_schema top-level key so registry lookup and metadata (schema, schema_id, artifact_type) remain accessible
+  to non-Ajv code.
+- 'Translate each custom dialect schema field-by-field to standard JSON Schema draft-07: type: mapping becomes type: object with properties, type: sequence becomes type: array, field-level required: true
+  collects into a top-level required array, additional_fields: false becomes additionalProperties: false.'
+- Update loadBundledSchema in src/validation.ts to read the json_schema key from the file and return that to Ajv, while the existing loadBundledSchemaByArtifactType continues to resolve by artifact_type
+  from registry.yaml.
+- Remove the try/catch in src/verify.ts validateArtifactSchema so Ajv compilation failures surface as actionable diagnostics instead of being silently swallowed.
+- Preserve duplicate ID and reference checks as separate post-schema validation passes since JSON Schema cannot express unique_by, references, required_when, and required_names constraints.
 decisions:
-  - Wrap JSON Schema under json_schema key inside the existing YAML files rather than creating separate .json files, keeping a single source of truth per artifact type and preserving the registry metadata fields.
-  - "Use JSON Schema draft-07 since Ajv supports it fully and the constraints used (type, properties, required, additionalProperties, enum, const, items, minItems, maxItems) are all draft-07 compatible."
-  - Omit custom constraints (unique_by, identifier, path, references, required_when, required_names, unique_across, merge_rules) from the JSON Schema body — these are enforced by the existing code-level validation passes in validation.ts.
+  wrap-json-schema-under-json-schema-key-inside-the-existing:
+    decision: Wrap JSON Schema under json_schema key inside the existing YAML files rather than creating separate .json files, keeping a single source of truth per artifact type and preserving the registry
+      metadata fields.
+    rationale: Wrap JSON Schema under json_schema key inside the existing YAML files rather than creating separate .json files, keeping a single source of truth per artifact type and preserving the registry
+      metadata fields.
+  use-json-schema-draft-07-since-ajv-supports-it-fully-and-the:
+    decision: Use JSON Schema draft-07 since Ajv supports it fully and the constraints used (type, properties, required, additionalProperties, enum, const, items, minItems, maxItems) are all draft-07 compatible.
+    rationale: Use JSON Schema draft-07 since Ajv supports it fully and the constraints used (type, properties, required, additionalProperties, enum, const, items, minItems, maxItems) are all draft-07 compatible.
+  omit-custom-constraints-unique-by-identifier-path-references:
+    decision: Omit custom constraints (unique_by, identifier, path, references, required_when, required_names, unique_across, merge_rules) from the JSON Schema body — these are enforced by the existing
+      code-level validation passes in validation.ts.
+    rationale: Omit custom constraints (unique_by, identifier, path, references, required_when, required_names, unique_across, merge_rules) from the JSON Schema body — these are enforced by the existing
+      code-level validation passes in validation.ts.
 alternatives:
-  - Create separate .json schema files alongside the YAML files — rejected because it doubles the files to maintain and risks divergence between the two representations.
-  - Write a custom dialect compiler that translates the existing YAML schemas to JSON Schema at build time — rejected because it adds compilation complexity for a one-time format change.
-  - Drop YAML schema files entirely and embed JSON Schema as TypeScript objects — rejected because YAML files are human-readable, version-controllable, and referenced by the registry mechanism.
+- option: Create separate .json schema files alongside the YAML files
+  reason: rejected because it doubles the files to maintain and risks divergence between the two representations.
+- option: Write a custom dialect compiler that translates the existing YAML schemas to JSON Schema at build time
+  reason: rejected because it adds compilation complexity for a one-time format change.
+- option: Drop YAML schema files entirely and embed JSON Schema as TypeScript objects
+  reason: rejected because YAML files are human-readable, version-controllable, and referenced by the registry mechanism.
 risks:
-  - The JSON Schema translations might be slightly more permissive than the original custom dialect for edge cases like nested conditional requirements (required_when). Mitigated by keeping code-level validation passes that catch these.
-  - Removing the try/catch may cause existing tests that produce malformed artifacts to surface new diagnostics. This is the desired behavior — those tests should be updated to expect schema diagnostics.
+- The JSON Schema translations might be slightly more permissive than the original custom dialect for edge cases like nested conditional requirements (required_when). Mitigated by keeping code-level validation
+  passes that catch these.
+- Removing the try/catch may cause existing tests that produce malformed artifacts to surface new diagnostics. This is the desired behavior — those tests should be updated to expect schema diagnostics.
