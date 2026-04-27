@@ -46,6 +46,7 @@ mapping:
     - src/roadmap/sync.ts
     - src/archive.ts
     - src/scaffold.ts
+    - src/embedded-templates.ts
     - src/validation.ts
     - src/yaml.ts
     - src/apply.ts
@@ -64,7 +65,6 @@ mapping:
     - templates/strict-spec-driven/scaffold/changes/tasks.yaml
     - templates/strict-spec-driven/scaffold/changes/questions.yaml
     - templates/strict-spec-driven/scaffold/specs/INDEX.yaml
-    - templates/strict-spec-driven/scaffold/specs/README.md
     - templates/strict-spec-driven/scaffold/roadmap/INDEX.yaml
     - templates/strict-spec-driven/scaffold/changes/STATE.yaml
   tests:
@@ -137,8 +137,8 @@ requirements:
         - GIVEN: the strict CLI bundled templates are inspected
         - WHEN: scaffold template assets are enumerated
         - THEN: >-
-            template assets exist for strict config, specs index, roadmap index, empty changes
-            state, and seed README guidance
+            template assets exist for strict config, specs index, roadmap index, and empty changes
+            state
       scaffold-templates-remain-separate-from-contract-schemas-and-examples:
         - GIVEN: strict template directories are inspected
         - WHEN: scaffold template assets are compared to schema and example assets
@@ -156,8 +156,19 @@ requirements:
         - WHEN: '`strict-spec-driven init` is executed'
         - THEN: '`.strict-spec-driven/` is created'
         - AND: >-
-            strict config, specs index, roadmap index, changes state, and seed README guidance
-            artifacts are created from bundled templates
+            strict config, specs index, roadmap index, and changes state artifacts are created from
+            bundled templates
+  init-scaffold-output-is-yaml-only:
+    strength: MUST
+    statement: >-
+      The system MUST scaffold only YAML files under `.strict-spec-driven/` during init so that the
+      initialized workflow state directory contains no Markdown files.
+    scenarios:
+      init-creates-no-markdown-in-workflow-dir:
+        - GIVEN: the init command runs for the first time in a repository
+        - WHEN: the created files under `.strict-spec-driven/` are listed
+        - THEN: every created file is a YAML file
+        - AND: no Markdown files are created under `.strict-spec-driven/`
   cli-init-is-idempotent-and-non-clobbering:
     strength: MUST
     statement: >-
@@ -179,11 +190,11 @@ requirements:
         - GIVEN: a repository contains `.spec-driven/`
         - WHEN: '`strict-spec-driven init` is executed'
         - THEN: >-
-            the command emits one warning indicating `.spec-driven/` is bootstrap or legacy
-            workflow state
+            the command emits one warning indicating `.spec-driven/` is bootstrap or legacy workflow
+            state
         - AND: >-
-            strict scaffold initialization continues without failing solely due to that
-            directory's presence
+            strict scaffold initialization continues without failing solely due to that directory's
+            presence
   cli-propose-creates-strict-change-scaffold:
     strength: MUST
     statement: >-
@@ -437,9 +448,7 @@ requirements:
         - WHEN: '`strict-spec-driven verify <name>` is executed'
         - THEN: no delta-spec diagnostics are emitted
       malformed-delta-spec-produces-diagnostics:
-        - GIVEN: >-
-            a strict change has a delta spec file under `specs/` that violates the delta-spec
-            schema
+        - GIVEN: a strict change has a delta spec file under `specs/` that violates the delta-spec schema
         - WHEN: '`strict-spec-driven verify <name>` is executed'
         - THEN: a diagnostic is emitted identifying the delta spec path and violation
   cli-verify-enforces-exclusive-active-targets:
@@ -602,14 +611,14 @@ requirements:
     scenarios:
       fully-mapped-repository-evidence-produces-no-unmapped-diagnostics:
         - GIVEN: >-
-            relevant implementation and test files are each referenced by at least one spec
-            mapping entry
+            relevant implementation and test files are each referenced by at least one spec mapping
+            entry
         - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
         - THEN: unmapped-evidence diagnostics are not emitted
       unmapped-evidence-produces-diagnostics:
         - GIVEN: >-
-            at least one relevant implementation or test file is not referenced by any spec
-            mapping entry
+            at least one relevant implementation or test file is not referenced by any spec mapping
+            entry
         - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
         - THEN: a diagnostic is emitted identifying each unmapped file path
   cli-verify-spec-mappings-emits-deterministic-json-output:
@@ -674,13 +683,11 @@ requirements:
     scenarios:
       archive-applies-added-and-modified-operations:
         - GIVEN: >-
-            a strict change includes delta specs with ADDED and MODIFIED entries targeting
-            existing strict main specs
+            a strict change includes delta specs with ADDED and MODIFIED entries targeting existing
+            strict main specs
         - WHEN: '`strict-spec-driven archive <name>` is executed'
         - THEN: ADDED requirements are appended to the target specs
-        - AND: >-
-            MODIFIED requirements replace the targeted requirements by stable requirement
-            identifier
+        - AND: MODIFIED requirements replace the targeted requirements by stable requirement identifier
       archive-applies-removed-operations:
         - GIVEN: >-
             a strict change includes delta specs with REMOVED entries targeting existing
@@ -753,9 +760,7 @@ requirements:
       from `.strict-spec-driven/changes/`.
     scenarios:
       list-reports-active-changes:
-        - GIVEN: >-
-            one or more active strict change directories exist under
-            `.strict-spec-driven/changes/`
+        - GIVEN: one or more active strict change directories exist under `.strict-spec-driven/changes/`
         - WHEN: '`strict-spec-driven list` is executed'
         - THEN: the command output includes active change names
         - AND: each active change includes a status summary derived from strict planning artifacts
@@ -783,8 +788,8 @@ requirements:
         - GIVEN: '`.strict-spec-driven/changes/<name>/` exists'
         - WHEN: '`strict-spec-driven modify <name>` is executed'
         - THEN: >-
-            the command output lists `proposal.yaml`, `design.yaml`, `tasks.yaml`,
-            `questions.yaml`, and the `specs/` delta spec paths for that change
+            the command output lists `proposal.yaml`, `design.yaml`, `tasks.yaml`, `questions.yaml`,
+            and the `specs/` delta spec paths for that change
       modify-reports-archived-change-artifacts-by-exact-directory-name:
         - GIVEN: '`.strict-spec-driven/changes/archive/<archive-dir>/` exists'
         - WHEN: >-
@@ -1018,9 +1023,7 @@ requirements:
       migrate-converts-specs-index:
         - GIVEN: a legacy `specs/INDEX.md` exists under `.spec-driven/`
         - WHEN: '`strict-spec-driven migrate` is executed'
-        - THEN: >-
-            the specs index is written as a strict YAML artifact under
-            `.strict-spec-driven/specs/`
+        - THEN: the specs index is written as a strict YAML artifact under `.strict-spec-driven/specs/`
         - AND: the converted artifact appears in the migration report as a converted entry
       unsupported-roadmap-markdown-shape-becomes-manual-follow-up:
         - GIVEN: >-
@@ -1056,12 +1059,12 @@ requirements:
     scenarios:
       migrate-report-distinguishes-converted-core-workflow-artifacts-from-deferred-artifacts:
         - GIVEN: >-
-            `strict-spec-driven migrate` converts supported core workflow artifacts while roadmap
-            or project-state converters are still pending
+            `strict-spec-driven migrate` converts supported core workflow artifacts while roadmap or
+            project-state converters are still pending
         - WHEN: the migration result is inspected
         - THEN: >-
-            converted spec and change artifacts appear in converted entries with their strict
-            target paths
+            converted spec and change artifacts appear in converted entries with their strict target
+            paths
         - AND: >-
             unsupported roadmap or project-state artifacts remain identifiable through skipped
             entries or manual follow-up items with source references
@@ -1104,8 +1107,8 @@ requirements:
       skill-validation-diagnostics-keep-stable-ordering-across-repeated-runs:
         - GIVEN: strict skill packaging or content validation produces multiple diagnostics
         - WHEN: >-
-            `strict-spec-driven validate-skills` is executed repeatedly against the same
-            repository state
+            `strict-spec-driven validate-skills` is executed repeatedly against the same repository
+            state
         - THEN: the diagnostics appear in the same order each time
         - AND: the JSON result keeps the same diagnostic field shape and summary counts
       migration-report-collections-keep-stable-ordering-across-repeated-runs:
@@ -1128,9 +1131,7 @@ requirements:
         - THEN: '`warnings` is present as an array'
         - AND: '`manualFollowUp` is present as an array'
       partial-migration-keeps-deferred-collections-explicit:
-        - GIVEN: >-
-            a migration run converts supported artifacts while deferring ambiguous legacy spec
-            files
+        - GIVEN: a migration run converts supported artifacts while deferring ambiguous legacy spec files
         - WHEN: the migration report is inspected
         - THEN: '`skipped` is present as an array'
         - AND: '`warnings` is present as an array'
@@ -1152,15 +1153,13 @@ requirements:
     scenarios:
       self-host-cutover-migrates-repository-workflow-state:
         - GIVEN: >-
-            a repository contains bootstrap specs, roadmap artifacts, and archived or active
-            changes under `.spec-driven/`
+            a repository contains bootstrap specs, roadmap artifacts, and archived or active changes
+            under `.spec-driven/`
         - WHEN: '`strict-spec-driven migrate` is executed for the repository cutover'
-        - THEN: >-
-            the command writes corresponding strict YAML workflow state under
-            `.strict-spec-driven/`
+        - THEN: the command writes corresponding strict YAML workflow state under `.strict-spec-driven/`
         - AND: >-
-            the migrated output preserves the identities and relationships needed by strict
-            workflow commands
+            the migrated output preserves the identities and relationships needed by strict workflow
+            commands
         - AND: the source `.spec-driven/` artifacts remain unchanged
       self-host-cutover-normalizes-blank-legacy-mappings:
         - GIVEN: >-

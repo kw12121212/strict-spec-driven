@@ -1986,16 +1986,6 @@ try {
     "partial migrate does not invent strict YAML output for deferred legacy spec files",
   );
 
-  const partialForced = cli(["migrate", "--force"], { cwd: migratePartialDir });
-  context.assert(partialForced.status === 0, "partial migrate --force rerun exits zero after deferred output exists");
-  const partialForcedJson = JSON.parse(partialForced.stdout.trim());
-  context.assert(
-    JSON.stringify(partialForcedJson.skipped) === JSON.stringify(partialJson.skipped)
-      && JSON.stringify(partialForcedJson.warnings) === JSON.stringify(partialJson.warnings)
-      && JSON.stringify(partialForcedJson.errors) === JSON.stringify(partialJson.errors)
-      && JSON.stringify(partialForcedJson.manualFollowUp) === JSON.stringify(partialJson.manualFollowUp),
-    "partial migrate preserves skipped warning error and manual-follow-up ordering across forced reruns",
-  );
 } finally {
   rmSync(migratePartialDir, { recursive: true, force: true });
 }
@@ -2085,94 +2075,12 @@ try {
   assertMigrationReportArrays(firstJson, "first migrate rerun check");
 
   const blockedRerun = cli(["migrate"], { cwd: migrateForceDir });
-  context.assert(blockedRerun.status !== 0, "migrate rerun without --force exits non-zero after initial migration");
+  context.assert(blockedRerun.status !== 0, "migrate rerun exits non-zero after initial migration");
   const blockedRerunJson = JSON.parse(blockedRerun.stdout.trim());
   assertMigrationReportArrays(blockedRerunJson, "blocked rerun");
   context.assert(
     blockedRerunJson.errors.some((diagnostic: { code: string }) => diagnostic.code === "strict_target_conflict"),
-    "migrate rerun without --force preserves overwrite protection",
-  );
-
-  const forcedRerun = cli(["migrate", "--force"], { cwd: migrateForceDir });
-  context.assert(forcedRerun.status === 0, "migrate --force exits zero for idempotent rerun");
-  const forcedRerunJson = JSON.parse(forcedRerun.stdout.trim());
-  assertMigrationReportArrays(forcedRerunJson, "forced rerun");
-  context.assert(
-    forcedRerun.stdout.trim() === first.stdout.trim(),
-    "migrate --force rerun preserves identical JSON output",
-  );
-
-  const shortForcedRerun = cli(["migrate", "-f"], { cwd: migrateForceDir });
-  context.assert(shortForcedRerun.status === 0, "migrate -f exits zero for idempotent rerun");
-  context.assert(
-    shortForcedRerun.stdout.trim() === first.stdout.trim(),
-    "migrate -f rerun preserves identical JSON output",
-  );
-
-  mkdirSync(path.join(migrateForceDir, ".strict-spec-driven", "changes", "stale-active-change"), { recursive: true });
-
-  const legacyBackfillDir = path.join(
-    migrateForceDir,
-    ".spec-driven",
-    "changes",
-    "archive",
-    "2026-04-03-backfilled-change",
-  );
-  mkdirSync(path.join(legacyBackfillDir, "specs", "cli"), { recursive: true });
-  const legacyArchivedSourceDir = path.join(
-    migrateForceDir,
-    ".spec-driven",
-    "changes",
-    "archive",
-    "2026-04-01-done-change",
-  );
-  for (const relativePath of [
-    "proposal.md",
-    "design.md",
-    "tasks.md",
-    "questions.md",
-    path.join("specs", "cli", "foundation.md"),
-  ]) {
-    const sourceContent = readFileSync(path.join(legacyArchivedSourceDir, relativePath), "utf8");
-    writeFileSync(
-      path.join(legacyBackfillDir, relativePath),
-      sourceContent
-        .replace(/done-change/g, "backfilled-change")
-        .replace(/Done Change/g, "Backfilled Change")
-        .replace(/Archived Example/g, "Backfilled Change"),
-      "utf8",
-    );
-  }
-
-  const backfillForcedRerun = cli(["migrate", "--force"], { cwd: migrateForceDir });
-  context.assert(backfillForcedRerun.status === 0, "migrate --force exits zero after legacy history changes");
-  const backfillForcedRerunJson = JSON.parse(backfillForcedRerun.stdout.trim());
-  assertMigrationReportArrays(backfillForcedRerunJson, "forced backfill rerun");
-  context.assert(
-    !existsSync(path.join(migrateForceDir, ".strict-spec-driven", "changes", "stale-active-change")),
-    "migrate --force removes stale strict-only active change directories before rebuilding strict state",
-  );
-  context.assert(
-    existsSync(
-      path.join(
-        migrateForceDir,
-        ".strict-spec-driven",
-        "changes",
-        "archive",
-        "2026-04-03-backfilled-change",
-        "proposal.yaml",
-      ),
-    ),
-    "migrate --force backfills newly added legacy archived changes into strict archive history",
-  );
-  context.assert(
-    backfillForcedRerunJson.converted.some(
-      (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
-        artifact.kind === "change_proposal"
-        && artifact.sourcePath === ".spec-driven/changes/archive/2026-04-03-backfilled-change/proposal.md"
-        && artifact.targetPath === ".strict-spec-driven/changes/archive/2026-04-03-backfilled-change/proposal.yaml",
-    ),
-    "migrate --force reports backfilled archived change proposal output",
+    "migrate rerun preserves overwrite protection",
   );
 } finally {
   rmSync(migrateForceDir, { recursive: true, force: true });

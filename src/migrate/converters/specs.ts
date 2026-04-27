@@ -101,7 +101,7 @@ export function convertLegacySpecArtifacts(
   const legacySpecFiles = listFilesRecursive(legacySpecsRoot)
     .map((absolutePath) => toRepoRelativePath(rootDir, absolutePath))
     .filter((repoRelativePath) => repoRelativePath.endsWith(".md"))
-    .filter((repoRelativePath) => path.basename(repoRelativePath) !== "INDEX.md" && path.basename(repoRelativePath) !== "README.md")
+    .filter((repoRelativePath) => path.basename(repoRelativePath) !== "INDEX.md")
     .sort((left, right) => left.localeCompare(right));
 
   for (const legacySpecFile of legacySpecFiles) {

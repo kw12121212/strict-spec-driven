@@ -56,13 +56,6 @@ export function describeDeferredLegacyArtifact(repoRelativePath: string): Deferr
       recommendation: "Implement roadmap and project-state migration converters before attempting to migrate specs index state.",
     };
   }
-  if (repoRelativePath === `${LEGACY_WORKFLOW_DIR}/specs/README.md`) {
-    return {
-      kind: "legacy_markdown_artifact",
-      reason: "Legacy specs README guidance does not have a dedicated strict YAML migration target in the current migrate command.",
-      recommendation: "Decide whether this documentation should stay as Markdown guidance or move under a dedicated migration/documentation path before treating the migration as complete.",
-    };
-  }
   if (repoRelativePath.startsWith(`${LEGACY_WORKFLOW_DIR}/changes/`)) {
     return {
       kind: "legacy_markdown_artifact",

@@ -22,7 +22,6 @@ const REQUIRED_SCAFFOLD_ASSETS = [
   "specs/INDEX.yaml",
   "roadmap/INDEX.yaml",
   "changes/STATE.yaml",
-  "specs/README.md",
 ] as const;
 const REQUIRED_CHANGE_TEMPLATE_ASSETS = [
   "changes/proposal.yaml",

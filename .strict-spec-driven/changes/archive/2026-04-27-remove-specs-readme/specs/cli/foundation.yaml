@@ -1,0 +1,56 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/scaffold.ts
+    - src/embedded-templates.ts
+    - src/migrate/converters/specs.ts
+    - src/migrate/reporting.ts
+    - templates/strict-spec-driven/scaffold/specs/INDEX.yaml
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    init-scaffold-output-is-yaml-only:
+      strength: MUST
+      statement: >-
+        The system MUST scaffold only YAML files under `.strict-spec-driven/` during init so that
+        the initialized workflow state directory contains no Markdown files.
+      scenarios:
+        init-creates-no-markdown-in-workflow-dir:
+          - GIVEN: the init command runs for the first time in a repository
+          - WHEN: the created files under `.strict-spec-driven/` are listed
+          - THEN: every created file is a YAML file
+          - AND: no Markdown files are created under `.strict-spec-driven/`
+  MODIFIED:
+    cli-strict-scaffold-template-assets:
+      strength: MUST
+      statement: >-
+        The system MUST provide bundled strict scaffold template assets that can seed initial
+        `.strict-spec-driven/` project state for init and fixture-driven tests.
+      scenarios:
+        required-scaffold-template-asset-families-are-present:
+          - GIVEN: the strict CLI bundled templates are inspected
+          - WHEN: scaffold template assets are enumerated
+          - THEN: template assets exist for strict config, specs index, roadmap index, and empty changes state
+        scaffold-templates-remain-separate-from-contract-schemas-and-examples:
+          - GIVEN: strict template directories are inspected
+          - WHEN: scaffold template assets are compared to schema and example assets
+          - THEN: scaffold assets are stored as a distinct template bundle
+          - AND: schema and example files remain dedicated to validation contracts and examples
+    cli-init-creates-strict-workflow-scaffold:
+      strength: MUST
+      statement: >-
+        The system MUST provide an `init` subcommand that creates strict workflow state under
+        `.strict-spec-driven/` using bundled scaffold template assets.
+      scenarios:
+        init-creates-missing-strict-scaffold-artifacts:
+          - GIVEN: a repository with bundled strict scaffold template assets
+          - AND: '`.strict-spec-driven/` does not yet exist'
+          - WHEN: '`strict-spec-driven init` is executed'
+          - THEN: '`.strict-spec-driven/` is created'
+          - AND: strict config, specs index, roadmap index, and changes state artifacts are created from bundled templates
+  REMOVED: {}

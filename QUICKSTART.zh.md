@@ -62,7 +62,6 @@ node /path/to/strict-spec-driven/dist/strict-spec-cli.js init
 - `.strict-spec-driven/specs/INDEX.yaml` — 规范索引
 - `.strict-spec-driven/roadmap/INDEX.yaml` — 路线图索引
 - `.strict-spec-driven/changes/` — 活跃和已归档变更目录
-- `.strict-spec-driven/specs/README.md` — 规范编写者指南
 
 如果已存在 `.spec-driven/` 引导目录，`init` 会发出警告并继续。使用 `/strict-spec-migrate` 将引导制品转换为严格 YAML。
 

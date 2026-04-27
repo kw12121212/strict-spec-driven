@@ -1,0 +1,43 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: remove-specs-readme
+  status: proposed
+summary:
+  what:
+    - Remove specs/README.md from the scaffold so .strict-spec-driven/ contains only YAML files.
+    - Delete the live .strict-spec-driven/specs/README.md from this repository.
+    - Delete the physical template file templates/strict-spec-driven/scaffold/specs/README.md.
+    - Remove "specs/README.md" from REQUIRED_SCAFFOLD_ASSETS in src/scaffold.ts.
+    - Remove the embedded template entry for specs/README.md from src/embedded-templates.ts.
+    - Remove the specs/README.md special-case handler and filter from src/migrate/converters/specs.ts.
+    - Remove any corresponding README reporting text from src/migrate/reporting.ts.
+    - Update the live CLI foundation spec and Quickstart docs so they no longer advertise scaffolded README guidance.
+    - Remove obsolete migrate `--force` CLI assertions from the migration test suite so tests match the current command surface.
+  why:
+    - .strict-spec-driven/ is a YAML-first workflow; a Markdown file inside specs/ is inconsistent with its own design principle.
+    - The README content (spec format example, conventions) duplicates what is already expressed in the YAML schema files and the INDEX.yaml template sample entry.
+scope:
+  in:
+    - Delete .strict-spec-driven/specs/README.md (live project file).
+    - Delete templates/strict-spec-driven/scaffold/specs/README.md (physical template).
+    - Remove "specs/README.md" from REQUIRED_SCAFFOLD_ASSETS list in src/scaffold.ts.
+    - Remove the "strict-spec-driven/scaffold/specs/README.md" key and its value from src/embedded-templates.ts.
+    - Remove the if-block handling specs/README.md in src/migrate/converters/specs.ts (lines ~59-64).
+    - Remove the README.md exclusion filter in src/migrate/converters/specs.ts (line ~104).
+    - Remove any README-specific reporting in src/migrate/reporting.ts.
+    - Update .strict-spec-driven/specs/cli/foundation.yaml mappings and init/scaffold requirement wording for the README-free scaffold.
+    - Update QUICKSTART.md and QUICKSTART.zh.md to remove the deleted scaffolded README from init output lists.
+    - Remove stale `migrate --force` and `migrate -f` CLI rerun assertions from test/suites/roadmap-and-migration.ts.
+  out:
+    - No replacement documentation file of any kind.
+    - No changes to INDEX.yaml content or schema files.
+    - No changes to other scaffold assets.
+    - No changes to skills bundled JS files directly (they are compiled from src/).
+unchanged_behavior:
+  - init command still creates specs/INDEX.yaml.
+  - All other scaffold assets are created unchanged.
+  - migrate command continues to handle all other legacy artifacts.
+  - Spec YAML format and schema files are unchanged.

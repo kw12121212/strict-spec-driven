@@ -1,0 +1,66 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: remove-specs-readme
+sections:
+  Implementation:
+    delete-live-readme:
+      text: Delete .strict-spec-driven/specs/README.md from this repository.
+      status: complete
+    delete-template-readme:
+      text: Delete templates/strict-spec-driven/scaffold/specs/README.md.
+      status: complete
+    remove-scaffold-asset:
+      text: Remove "specs/README.md" from REQUIRED_SCAFFOLD_ASSETS in src/scaffold.ts.
+      status: complete
+    remove-embedded-template:
+      text: >-
+        Remove the "strict-spec-driven/scaffold/specs/README.md" key and its template string from
+        src/embedded-templates.ts.
+      status: complete
+    remove-migrate-handler:
+      text: >-
+        Remove the if-block that returns legacy_markdown_artifact for specs/README.md in
+        src/migrate/converters/specs.ts.
+      status: complete
+    remove-migrate-filter:
+      text: >-
+        Remove the README.md exclusion filter (path.basename !== "README.md") in
+        src/migrate/converters/specs.ts if it only guards the specs README.
+      status: complete
+    remove-migrate-reporting:
+      text: Remove README-specific reporting text from src/migrate/reporting.ts if present.
+      status: complete
+    align-live-specs-and-docs:
+      text: >-
+        Align the live CLI foundation spec, delta spec operations, and Quickstart docs with the
+        README-free scaffold behavior.
+      status: complete
+    remove-stale-migrate-force-tests:
+      text: Remove obsolete `migrate --force` CLI rerun assertions from the migration test suite.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-no-readme-files:
+      text: >-
+        Confirm no README.md files remain under .strict-spec-driven/ or
+        templates/strict-spec-driven/scaffold/.
+      status: complete
+    verify-no-readme-code-refs:
+      text: Confirm no remaining references to specs/README.md in src/ (grep check).
+      status: complete
+    verify-scope:
+      text: Verify implementation matches proposal scope — no unintended deletions or additions.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

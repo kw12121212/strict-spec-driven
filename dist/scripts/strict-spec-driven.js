@@ -6998,47 +6998,6 @@ specs:
     title: Sample Spec Title
     path: .strict-spec-driven/specs/sample-area.yaml
 `,
-  "strict-spec-driven/scaffold/specs/README.md": `# Strict Specs
-
-Current-state YAML specifications for the project.
-
-## Format
-
-\`\`\`yaml
-schema: strict-spec-driven/main-spec/v1
-schema_version: 1
-artifact_type: main_spec
-schema_file: ../schemas/main-spec.yaml
-spec:
-  id: example-spec
-  title: Example Spec
-mapping:
-  implementation:
-    - src/example.ts
-  tests:
-    - test/example.test.ts
-requirements:
-  - id: req-example
-    strength: MUST
-    statement: The system MUST provide an observable behavior.
-    scenarios:
-      - id: scenario-example
-        title: success
-        steps:
-          - kind: GIVEN
-            text: a valid precondition
-          - kind: WHEN
-            text: an action is performed
-          - kind: THEN
-            text: the expected behavior is observed
-\`\`\`
-
-## Conventions
-
-- Use stable IDs for specs, requirements, and scenarios.
-- Keep mappings in structured fields, not requirement prose.
-- Keep each spec focused on one observable behavior area.
-`,
   "strict-spec-driven/schemas/change-design.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
 schema_id: strict-spec-driven/change-design/v1
@@ -10884,8 +10843,7 @@ var REQUIRED_SCAFFOLD_ASSETS = [
   "config.yaml",
   "specs/INDEX.yaml",
   "roadmap/INDEX.yaml",
-  "changes/STATE.yaml",
-  "specs/README.md"
+  "changes/STATE.yaml"
 ];
 var REQUIRED_CHANGE_TEMPLATE_ASSETS = [
   "changes/proposal.yaml",
@@ -14851,7 +14809,7 @@ function convertLegacySpecArtifacts(rootDir, result, handledLegacyFiles) {
     return false;
   }
   let convertedAny = false;
-  const legacySpecFiles = listFilesRecursive2(legacySpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => repoRelativePath.endsWith(".md")).filter((repoRelativePath) => path20.basename(repoRelativePath) !== "INDEX.md" && path20.basename(repoRelativePath) !== "README.md").sort((left, right) => left.localeCompare(right));
+  const legacySpecFiles = listFilesRecursive2(legacySpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => repoRelativePath.endsWith(".md")).filter((repoRelativePath) => path20.basename(repoRelativePath) !== "INDEX.md").sort((left, right) => left.localeCompare(right));
   for (const legacySpecFile of legacySpecFiles) {
     handledLegacyFiles.add(legacySpecFile);
     try {
@@ -14883,13 +14841,6 @@ function describeDeferredLegacyArtifact(repoRelativePath) {
       kind: "legacy_markdown_artifact",
       reason: "Legacy specs index content is a project-state artifact that still requires a dedicated strict YAML converter.",
       recommendation: "Implement roadmap and project-state migration converters before attempting to migrate specs index state."
-    };
-  }
-  if (repoRelativePath === `${LEGACY_WORKFLOW_DIR2}/specs/README.md`) {
-    return {
-      kind: "legacy_markdown_artifact",
-      reason: "Legacy specs README guidance does not have a dedicated strict YAML migration target in the current migrate command.",
-      recommendation: "Decide whether this documentation should stay as Markdown guidance or move under a dedicated migration/documentation path before treating the migration as complete."
     };
   }
   if (repoRelativePath.startsWith(`${LEGACY_WORKFLOW_DIR2}/changes/`)) {

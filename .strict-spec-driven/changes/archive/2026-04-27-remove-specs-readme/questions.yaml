@@ -1,0 +1,17 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: remove-specs-readme
+open: []
+resolved:
+  - id: replace-content
+    question: Should the README content (spec format example, conventions) be preserved somewhere?
+    context: The README contains a full YAML spec example and three convention bullets.
+    answer: No — the YAML schema files and INDEX.yaml sample entry already cover this. Discard.
+    status: resolved
+  - id: migrate-filter-scope
+    question: Does the README.md filter in migrate/converters/specs.ts guard only the specs README or other Markdown files too?
+    context: Line 104 filters basename !== "README.md" — could be broader than just specs/README.md.
+    answer: Inspect during implementation; remove only if it solely protects the specs README. If it guards other files, narrow the condition or leave it.
+    status: resolved

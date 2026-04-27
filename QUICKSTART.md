@@ -62,7 +62,6 @@ This creates:
 - `.strict-spec-driven/specs/INDEX.yaml` — spec index
 - `.strict-spec-driven/roadmap/INDEX.yaml` — roadmap index
 - `.strict-spec-driven/changes/` — active and archived changes directory
-- `.strict-spec-driven/specs/README.md` — guidance for spec authors
 
 If a `.spec-driven/` bootstrap directory already exists, `init` emits a warning and continues. Use `/strict-spec-migrate` to convert bootstrap artifacts to strict YAML.
 

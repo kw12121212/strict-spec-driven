@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import {
@@ -19,6 +19,26 @@ import {
   type ValidationModule,
   type YamlModule,
 } from "../support/harness.js";
+
+function listFilesRecursive(rootDir: string): string[] {
+  const files: string[] = [];
+
+  function walk(currentDir: string): void {
+    for (const entry of readdirSync(currentDir, { withFileTypes: true })) {
+      const entryPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        walk(entryPath);
+        continue;
+      }
+      if (entry.isFile()) {
+        files.push(entryPath);
+      }
+    }
+  }
+
+  walk(rootDir);
+  return files;
+}
 
 export async function runFoundationAndFixtureSuite(context: TestContext): Promise<void> {
 context.section("[2] yaml utilities");
@@ -271,10 +291,10 @@ context.assert(
   JSON.stringify(firstAssetList) === JSON.stringify(secondAssetList),
   "required scaffold asset manifest is deterministic",
 );
-context.assert(firstAssetList.length === 5, "required scaffold asset manifest includes five assets");
+context.assert(firstAssetList.length === 4, "required scaffold asset manifest includes four assets");
 context.assert(
-  firstAssetList.every((asset) => asset.endsWith(".yaml") || asset.endsWith(".md")),
-  "required scaffold asset manifest contains expected file types",
+  firstAssetList.every((asset) => asset.endsWith(".yaml")),
+  "required scaffold asset manifest contains only YAML files",
 );
 
 for (const relativeAssetPath of firstAssetList) {
@@ -305,9 +325,6 @@ context.assert(typeof scaffoldRoadmapIndex.milestones === "object" && scaffoldRo
 const scaffoldChangeState = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("changes/STATE.yaml");
 context.assert(scaffoldChangeState.artifact_type === "change_state_index", "scaffold changes state template is loadable YAML");
 
-const scaffoldReadme = scaffoldModule.readBundledScaffoldTemplate("specs/README.md");
-context.assert(scaffoldReadme.includes("# Strict Specs"), "scaffold README guidance is readable text");
-
 context.section("[5] init command");
 
 const initTempDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-driven-init-"));
@@ -328,7 +345,6 @@ try {
     "specs/INDEX.yaml",
     "roadmap/INDEX.yaml",
     "changes/STATE.yaml",
-    "specs/README.md",
   ];
   for (const artifactPath of requiredArtifacts) {
     context.assert(
@@ -336,20 +352,19 @@ try {
       `init creates scaffold artifact (${artifactPath})`,
     );
   }
+  context.assert(
+    listFilesRecursive(strictRoot).every((filePath) => filePath.endsWith(".yaml")),
+    "init creates only YAML files under .strict-spec-driven",
+  );
 
   const configPath = path.join(strictRoot, "config.yaml");
   writeFileSync(configPath, "custom: keep-me\n", "utf8");
-  unlinkSync(path.join(strictRoot, "specs", "README.md"));
 
   const initSecond = cli(["init"], { cwd: initTempDir });
   context.assert(initSecond.status === 0, "init rerun exits zero", `got exit code ${initSecond.status}`);
   context.assert(
     readFileSync(configPath, "utf8") === "custom: keep-me\n",
     "init rerun preserves existing strict artifacts (non-clobber)",
-  );
-  context.assert(
-    existsSync(path.join(strictRoot, "specs", "README.md")),
-    "init rerun creates missing scaffold artifacts without overwriting existing files",
   );
 } finally {
   rmSync(initTempDir, { recursive: true, force: true });
@@ -903,9 +918,13 @@ try {
   context.assert(distOnlyInit.status === 0, "init succeeds from dist-only temp directory", `got exit code ${distOnlyInit.status}`);
   const strictRoot = path.join(distOnlyDir, ".strict-spec-driven");
   context.assert(existsSync(strictRoot), "init from dist creates .strict-spec-driven directory");
-  for (const artifact of ["config.yaml", "specs/INDEX.yaml", "roadmap/INDEX.yaml", "changes/STATE.yaml", "specs/README.md"]) {
+  for (const artifact of ["config.yaml", "specs/INDEX.yaml", "roadmap/INDEX.yaml", "changes/STATE.yaml"]) {
     context.assert(existsSync(path.join(strictRoot, artifact)), `init from dist creates artifact (${artifact})`);
   }
+  context.assert(
+    listFilesRecursive(strictRoot).every((filePath) => filePath.endsWith(".yaml")),
+    "init from dist creates only YAML files under .strict-spec-driven",
+  );
 } finally {
   rmSync(distOnlyDir, { recursive: true, force: true });
 }
