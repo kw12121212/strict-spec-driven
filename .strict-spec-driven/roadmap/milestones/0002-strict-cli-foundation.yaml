@@ -48,7 +48,7 @@ planned_changes:
     depends_on: []
   create-strict-template-assets:
     status: complete
-    summary: add bundled template YAML files for config, specs index, roadmap index, empty changes state, and seed README guidance used by init and fixture tests.
+    summary: add bundled template YAML files for config, specs index, roadmap index, and empty changes state used by init and fixture tests.
     details: "Migration from v1: add technical and design context for this planned change."
     depends_on: []
   implement-strict-init:
@@ -85,4 +85,3 @@ notes:
   - Reference tests reset fixture state and run against compiled `dist/` output; strict tests should keep that pattern once TypeScript sources exist.
   - "**Spec-to-test traceability**: M01 produced dozens of requirements and scenarios in `.spec-driven/specs/contracts/yaml-artifacts.md`, but none of them are verified by machines yet. The real risk is that detailed specs create a false sense of correctness — specs are for humans, tests are for machines. M02 must close this gap. Every requirement from M01 should have a corresponding test case: positive tests that load valid examples and confirm they pass validation, and negative tests that construct artifacts with missing fields, invalid enums, duplicate IDs, or illegal paths and confirm they produce deterministic validation failures. When M02 is complete, `npm test` should prove that M01's requirements are enforced, not just documented. The `add-yaml-fixtures-and-tests` planned change is the primary vehicle for this; it should trace its test cases back to M01 requirement identifiers rather than testing only ad hoc scenarios."
   - "**Template bundling rationale**: the reference project inlines all scaffold content into a single compiled JS file, which means its skills have zero external file dependencies. The strict project chose external YAML template files for readability and schema reuse, but this creates a distribution gap: `npx skills add <dir>` copies the entire skill directory, so templates must be visible inside each skill directory. Copying `templates/` into `dist/templates/` at build time, creating `scripts -> ../../dist/scripts` and `templates -> ../../dist/templates` symlinks in each skill directory, and resolving paths relative to `import.meta.url` keeps the readable external-file approach while making both `npx skills add` and direct skill directory usage work correctly."
-

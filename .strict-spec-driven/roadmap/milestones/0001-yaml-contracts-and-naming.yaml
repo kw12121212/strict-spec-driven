@@ -92,5 +92,4 @@ notes:
   - Planned changes in this roadmap must name concrete deliverables such as scripts, skills, templates, schema files, examples, validation tests, or user documentation; spec-only changes are acceptable only when the planned work explicitly says it is a contract update.
   - The roadmap is currently stored under the bootstrap `.spec-driven/roadmap/` directory because migration tooling does not exist yet; the target product directory is `.strict-spec-driven/`.
   - "`SKILL.md` remains Markdown only as a packaging container; strict workflow artifacts generated or consumed by skills must be YAML."
-  - Reference artifacts to compare include `template/config.yaml`, `template/specs/README.md`, change artifact templates created by `propose`, roadmap milestone sections validated by `verify-roadmap`, and spec mapping frontmatter validated by `verify-spec-mappings`.
-
+  - Reference artifacts to compare include `template/config.yaml`, `template/specs/INDEX.yaml`, change artifact templates created by `propose`, roadmap milestone sections validated by `verify-roadmap`, and spec mapping frontmatter validated by `verify-spec-mappings`.

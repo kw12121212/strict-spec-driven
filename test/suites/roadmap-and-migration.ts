@@ -1011,7 +1011,6 @@ function writeLegacyMigrationFixture(rootDir: string, configContent?: string): v
     ].join("\n") + "\n",
     "utf8",
   );
-  writeFileSync(path.join(rootDir, ".spec-driven", "specs", "README.md"), "# Specs\n", "utf8");
   writeFileSync(
     path.join(rootDir, ".spec-driven", "specs", "cli", "foundation.md"),
     [
@@ -1564,12 +1563,6 @@ try {
         artifact.kind === "spec_index" && artifact.sourcePath === ".spec-driven/specs/INDEX.md",
     ),
     "migrate converts legacy specs index into strict spec_index artifact",
-  );
-  context.assert(
-    migrateHappyJson.skipped.some(
-      (artifact: { sourcePath: string }) => artifact.sourcePath === ".spec-driven/specs/README.md",
-    ),
-    "migrate keeps legacy specs README as deferred follow-up",
   );
   context.assert(
     migrateHappyJson.converted.some(
