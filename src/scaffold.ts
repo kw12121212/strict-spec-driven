@@ -21,7 +21,6 @@ const REQUIRED_SCAFFOLD_ASSETS = [
   "config.yaml",
   "specs/INDEX.yaml",
   "roadmap/INDEX.yaml",
-  "changes/STATE.yaml",
 ] as const;
 const REQUIRED_CHANGE_TEMPLATE_ASSETS = [
   "changes/proposal.yaml",

@@ -279,12 +279,6 @@ testing_gates:
   validation_task: validate-example
   unit_test_task: unit-test-example
 `,
-  "strict-spec-driven/scaffold/changes/STATE.yaml": `schema: strict-spec-driven/change-state-index/v1
-schema_version: 1
-artifact_type: change_state_index
-active: []
-archive: []
-`,
   "strict-spec-driven/scaffold/changes/design.yaml": `schema: strict-spec-driven/change-design/v1
 schema_version: 1
 artifact_type: change_design

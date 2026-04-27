@@ -322,9 +322,6 @@ const scaffoldRoadmapIndex = scaffoldModule.loadBundledScaffoldYaml<Record<strin
 context.assert(scaffoldRoadmapIndex.artifact_type === "roadmap_index", "scaffold roadmap index template is loadable YAML");
 context.assert(typeof scaffoldRoadmapIndex.milestones === "object" && scaffoldRoadmapIndex.milestones !== null && !Array.isArray(scaffoldRoadmapIndex.milestones), "scaffold roadmap index template includes milestone sequence field");
 
-const scaffoldChangeState = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("changes/STATE.yaml");
-context.assert(scaffoldChangeState.artifact_type === "change_state_index", "scaffold changes state template is loadable YAML");
-
 context.section("[5] init command");
 
 const initTempDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-driven-init-"));
@@ -344,7 +341,6 @@ try {
     "config.yaml",
     "specs/INDEX.yaml",
     "roadmap/INDEX.yaml",
-    "changes/STATE.yaml",
   ];
   for (const artifactPath of requiredArtifacts) {
     context.assert(
@@ -918,7 +914,7 @@ try {
   context.assert(distOnlyInit.status === 0, "init succeeds from dist-only temp directory", `got exit code ${distOnlyInit.status}`);
   const strictRoot = path.join(distOnlyDir, ".strict-spec-driven");
   context.assert(existsSync(strictRoot), "init from dist creates .strict-spec-driven directory");
-  for (const artifact of ["config.yaml", "specs/INDEX.yaml", "roadmap/INDEX.yaml", "changes/STATE.yaml"]) {
+  for (const artifact of ["config.yaml", "specs/INDEX.yaml", "roadmap/INDEX.yaml"]) {
     context.assert(existsSync(path.join(strictRoot, artifact)), `init from dist creates artifact (${artifact})`);
   }
   context.assert(
