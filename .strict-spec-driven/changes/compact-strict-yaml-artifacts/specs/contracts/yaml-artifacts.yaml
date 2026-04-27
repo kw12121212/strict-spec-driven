@@ -1,0 +1,250 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/validation.ts
+    - src/scaffold.ts
+    - src/verify.ts
+    - src/archive.ts
+    - src/review.ts
+    - src/roadmap/validate.ts
+    - src/roadmap/sync.ts
+    - src/converters/roadmap.ts
+    - src/migrate/converters/specs.ts
+    - src/migrate/converters/changes.ts
+    - templates/strict-spec-driven/schemas/change-proposal.yaml
+    - templates/strict-spec-driven/schemas/change-design.yaml
+    - templates/strict-spec-driven/schemas/task-list.yaml
+    - templates/strict-spec-driven/schemas/question-list.yaml
+    - templates/strict-spec-driven/schemas/main-spec.yaml
+    - templates/strict-spec-driven/schemas/delta-spec.yaml
+    - templates/strict-spec-driven/schemas/spec-index.yaml
+    - templates/strict-spec-driven/schemas/roadmap-index.yaml
+    - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+    - templates/strict-spec-driven/schemas/planned-change-entry.yaml
+    - templates/strict-spec-driven/schemas/schema-registry.yaml
+    - templates/strict-spec-driven/schemas/registry.yaml
+    - templates/strict-spec-driven/examples/main-spec.yaml
+    - templates/strict-spec-driven/examples/delta-spec.yaml
+    - templates/strict-spec-driven/examples/change-proposal.yaml
+    - templates/strict-spec-driven/examples/change-design.yaml
+    - templates/strict-spec-driven/examples/task-list.yaml
+    - templates/strict-spec-driven/examples/question-list.yaml
+    - templates/strict-spec-driven/examples/spec-index.yaml
+    - templates/strict-spec-driven/examples/roadmap-index.yaml
+  tests:
+    - test/run.ts
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/change-lifecycle.ts
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    - requirement:
+        id: yaml-compact-artifact-envelope
+        strength: MUST
+        statement: >-
+          The system MUST allow strict YAML artifact instances to omit redundant top-level schema
+          envelope fields when artifact role, schema selection, and artifact family are already
+          determinable from registry data, file organization, or command context.
+        scenarios:
+          - id: compact-artifact-instances-prioritize-domain-fields
+            steps:
+              - kind: GIVEN
+                text: a compact strict YAML artifact instance is reviewed
+              - kind: WHEN
+                text: its top-level fields are inspected
+              - kind: THEN
+                text: stable domain fields remain present as structured YAML data
+              - kind: AND
+                text: repeated schema envelope fields are not required in the instance document
+          - id: artifact-role-still-determines-contract
+            steps:
+              - kind: GIVEN
+                text: strict tooling needs to validate or generate a compact artifact instance
+              - kind: WHEN
+                text: the artifact role and registry metadata are inspected
+              - kind: THEN
+                text: the applicable artifact contract is resolvable without duplicated per-file headers
+  MODIFIED:
+    - target_requirement: yaml-main-spec-file-model
+      replacement:
+        id: yaml-main-spec-file-model
+        strength: MUST
+        statement: >-
+          The system MUST define compact strict YAML main spec files as YAML documents with stable
+          spec identity, human-readable title, file-level mappings, and requirement collections
+          without repeating top-level schema envelope fields that are derivable from artifact role.
+        scenarios:
+          - id: main-spec-top-level-fields-are-structured
+            steps:
+              - kind: GIVEN
+                text: a compact strict YAML main spec file is reviewed
+              - kind: WHEN
+                text: its top-level data is inspected
+              - kind: THEN
+                text: the stable spec identifier is available as a structured field
+              - kind: AND
+                text: the human-readable title is available as a structured field
+              - kind: AND
+                text: implementation and test mappings are available as structured file-level fields
+              - kind: AND
+                text: requirements are available as a structured collection
+              - kind: AND
+                text: redundant schema envelope fields are not required in the main spec document
+    - target_requirement: yaml-main-spec-minimal-example
+      replacement:
+        id: yaml-main-spec-minimal-example
+        strength: MUST
+        statement: >-
+          The system MUST provide a minimal valid compact YAML main spec example that includes
+          stable spec identity, title, mapping fields, one requirement, one scenario, and ordered
+          scenario steps without repeated schema envelope fields.
+        scenarios:
+          - id: main-spec-example-is-complete-enough-to-validate
+            steps:
+              - kind: GIVEN
+                text: the compact strict YAML main spec contract is reviewed
+              - kind: WHEN
+                text: its minimal valid example is inspected
+              - kind: THEN
+                text: every required top-level main spec field is present
+              - kind: AND
+                text: every required requirement field is present
+              - kind: AND
+                text: every required scenario field is present
+              - kind: AND
+                text: redundant schema envelope fields are absent from the example
+          - id: main-spec-example-demonstrates-enum-and-mapping-values
+            steps:
+              - kind: GIVEN
+                text: the compact strict YAML main spec example is inspected
+              - kind: WHEN
+                text: requirement strength, scenario step kinds, and mapping fields are reviewed
+              - kind: THEN
+                text: the example demonstrates a valid MUST, SHOULD, or MAY requirement strength
+              - kind: AND
+                text: the example demonstrates valid GIVEN, WHEN, THEN, and optional AND step kinds
+              - kind: AND
+                text: implementation and test mappings are demonstrated as repo-relative path collections
+    - target_requirement: yaml-delta-operation-model
+      replacement:
+        id: yaml-delta-operation-model
+        strength: MUST
+        statement: >-
+          The system MUST represent compact strict YAML delta specs with target spec identity and
+          explicit ADDED, MODIFIED, and REMOVED operation collections instead of Markdown section
+          headings or repeated schema envelope fields.
+        scenarios:
+          - id: delta-operation-groups-are-structured
+            steps:
+              - kind: GIVEN
+                text: a compact strict YAML delta spec is reviewed
+              - kind: WHEN
+                text: the requested spec changes are inspected
+              - kind: THEN
+                text: the target spec identity is available as a structured field
+              - kind: AND
+                text: added requirements are available through a structured ADDED collection
+              - kind: AND
+                text: modified requirements are available through a structured MODIFIED collection
+              - kind: AND
+                text: removed requirements are available through a structured REMOVED collection
+              - kind: AND
+                text: redundant schema envelope fields are not required in the delta document
+          - id: empty-operation-groups-remain-explicit
+            steps:
+              - kind: GIVEN
+                text: a compact strict YAML delta spec has no entries for one operation kind
+              - kind: WHEN
+                text: the operation groups are inspected
+              - kind: THEN
+                text: the empty operation kind remains identifiable without relying on an omitted heading
+    - target_requirement: yaml-concrete-schema-file-contract
+      replacement:
+        id: yaml-concrete-schema-file-contract
+        strength: MUST
+        statement: >-
+          The system MUST require concrete YAML schema files to define required fields, optional
+          fields, enum values, relationship fields, stable identifier fields, uniqueness scopes,
+          supported top-level shapes, and any implicit compact-envelope rules as structured YAML
+          data.
+        scenarios:
+          - id: schema-file-contract-is-structured
+            steps:
+              - kind: GIVEN
+                text: a compact strict YAML schema file is inspected
+              - kind: WHEN
+                text: its validation contract is reviewed
+              - kind: THEN
+                text: required fields are available as structured data
+              - kind: AND
+                text: optional fields are available as structured data
+              - kind: AND
+                text: enum values are available as structured data
+              - kind: AND
+                text: relationship fields are available as structured data
+              - kind: AND
+                text: stable identifier and uniqueness rules are available as structured data
+              - kind: AND
+                text: supported top-level shapes and omitted-envelope rules are available as structured data
+    - target_requirement: yaml-example-schema-association
+      replacement:
+        id: yaml-example-schema-association
+        strength: MUST
+        statement: >-
+          The system MUST make each minimal valid YAML example file associated with the concrete
+          schema it demonstrates through registry data, schema metadata, or repository-defined file
+          organization even when the example omits repeated schema envelope fields.
+        scenarios:
+          - id: examples-identify-their-schema-target
+            steps:
+              - kind: GIVEN
+                text: a minimal valid YAML example file is inspected
+              - kind: WHEN
+                text: its schema association is reviewed
+              - kind: THEN
+                text: the target schema or schema ID is identifiable through structured data or repository-defined organization
+    - target_requirement: yaml-schema-dialect-is-machine-readable
+      replacement:
+        id: yaml-schema-dialect-is-machine-readable
+        strength: MUST
+        statement: >-
+          The system MUST represent concrete schema validation rules and compact artifact
+          normalization rules through machine-readable nested fields rather than prose-only shape
+          descriptions.
+        scenarios:
+          - id: nested-fields-are-inspectable
+            steps:
+              - kind: GIVEN
+                text: a compact strict YAML schema file is reviewed
+              - kind: WHEN
+                text: a nested artifact field is checked
+              - kind: THEN
+                text: the field type is available through structured YAML data
+              - kind: AND
+                text: required status is available through structured YAML data
+              - kind: AND
+                text: enum, item, uniqueness, reference, and compact-envelope rules are available through structured YAML data where they apply
+    - target_requirement: yaml-artifact-schema-identity-consistency
+      replacement:
+        id: yaml-artifact-schema-identity-consistency
+        strength: MUST
+        statement: >-
+          The system MUST make every strict YAML artifact example resolvable to the schema ID it
+          demonstrates through registry-linked metadata or repository-defined artifact-role mapping
+          rather than requiring embedded repeated identity fields in the example itself.
+        scenarios:
+          - id: examples-match-schema-identity
+            steps:
+              - kind: GIVEN
+                text: a concrete schema file and its primary example are reviewed
+              - kind: WHEN
+                text: schema identity matching is evaluated
+              - kind: THEN
+                text: the example resolves to the schema ID of the reviewed schema file
+              - kind: AND
+                text: the association does not depend on duplicated example-level envelope fields
+  REMOVED: []

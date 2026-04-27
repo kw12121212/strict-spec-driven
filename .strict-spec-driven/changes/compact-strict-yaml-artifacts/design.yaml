@@ -1,0 +1,49 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: compact-strict-yaml-artifacts
+approach:
+  - >-
+    Define compact v2 artifact envelopes that keep only behavior-bearing fields in instance YAML
+    and remove repeated top-level identity fields when artifact role and schema selection are
+    already determined by file location or command context.
+  - >-
+    Replace the remaining verbose `json_schema`-heavy bundled schema files with one compact,
+    declarative schema dialect that still exposes required fields, enums, relationships,
+    uniqueness, and reference rules as structured YAML data.
+  - >-
+    Teach strict validation utilities and command-specific loaders to resolve schemas by artifact
+    role, registry data, and artifact path instead of relying on `artifact_type` and `schema_file`
+    fields embedded in every document.
+  - >-
+    Rewrite bundled templates/examples and the repository's self-hosted `.strict-spec-driven/`
+    artifacts in one coordinated migration so shipped assets, checked-in workflow state, and tests
+    all target the same compact contract.
+decisions:
+  - id: direct-v2-cutover
+    decision: Switch directly to compact v2 artifacts and do not preserve v1 readers.
+    rationale: The user explicitly chose a direct cutover, and dual-shape support would keep parser and validator complexity high.
+  - id: remove-redundant-envelopes
+    decision: Remove repeated instance-level envelope fields such as schema version, artifact type, and schema path when they are derivable from artifact role.
+    rationale: Those fields dominate template noise without contributing domain behavior once schema selection is role-based.
+  - id: unify-schema-dialect
+    decision: Converge bundled schema files on one compact declarative dialect instead of maintaining both embedded JSON Schema and custom field-dialect styles.
+    rationale: A single compact schema dialect lowers maintenance cost and makes contract reviews easier.
+alternatives:
+  - option: Keep the existing v1 artifact envelopes and shorten examples only.
+    reason: This would leave real workflow state and CLI-emitted artifacts verbose, so it does not solve the core duplication problem.
+  - option: Support v1 and v2 readers concurrently.
+    reason: This improves migration safety but was explicitly rejected and would add long-lived complexity to validation and command flows.
+  - option: Use very short aliases or single-letter field names.
+    reason: This would reduce bytes further but would materially harm readability and long-term maintenance.
+risks:
+  - >-
+    Rewriting self-hosted specs, roadmap files, active changes, and archived changes expands the
+    migration surface and can leave the repository in a mixed state if any command path is missed.
+  - >-
+    Validation, archive, review, roadmap, and migration logic currently assume instance artifacts
+    contain `artifact_type` and `schema_file`, so partial implementation will fail deterministically.
+  - >-
+    If schema compaction goes too far, relationship and uniqueness rules may become harder to audit
+    unless the new dialect preserves them as explicit structured fields.

@@ -1,0 +1,41 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: compact-strict-yaml-artifacts
+sections:
+  - name: Implementation
+    tasks:
+      - id: define-compact-v2-contracts
+        text: Define the compact v2 artifact contract in bundled schemas, examples, and delta specs.
+        status: pending
+      - id: update-role-based-schema-resolution
+        text: Update validation and command loaders to resolve compact artifact schemas by artifact role and path instead of repeated instance headers.
+        status: pending
+      - id: rewrite-bundled-templates-and-examples
+        text: Rewrite scaffold templates, bundled examples, and bundled schema files to the compact v2 layout.
+        status: pending
+      - id: rewrite-self-hosted-strict-yaml
+        text: Rewrite checked-in `.strict-spec-driven/` specs, roadmap files, active changes, and archived changes to the compact v2 layout.
+        status: pending
+  - name: Testing
+    tasks:
+      - id: run-build
+        text: Run build validation.
+        status: pending
+        command: bun run build
+      - id: run-tests
+        text: Run unit tests.
+        status: pending
+        command: bun test/run.ts
+      - id: inspect-compact-yaml-fixtures
+        text: Inspect generated and checked-in strict YAML artifacts to confirm removed v1 envelope fields are absent.
+        status: pending
+  - name: Verification
+    tasks:
+      - id: verify-compact-contract-scope
+        text: Verify the implementation updates templates, schemas, CLI behavior, and checked-in strict YAML consistently with the compact v2 scope.
+        status: pending
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

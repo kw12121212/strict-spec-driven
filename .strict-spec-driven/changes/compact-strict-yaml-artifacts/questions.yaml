@@ -1,0 +1,15 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: compact-strict-yaml-artifacts
+open: []
+resolved:
+  - id: compatibility-strategy
+    question: Should compact strict YAML keep v1 readers alongside the new v2 artifact shapes?
+    context: >-
+      The change touches templates, bundled schemas, validators, and checked-in
+      `.strict-spec-driven/` artifacts, so compatibility strategy determines parser and migration
+      complexity.
+    answer: Switch directly to compact v2 shapes and do not preserve v1 readers.
+    status: resolved
