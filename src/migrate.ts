@@ -121,7 +121,7 @@ export function migrateLegacyWorkflow(
   convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles);
   convertLegacySpecsIndex(rootDir, result, handledLegacyFiles);
 
-  const unhandled = legacyFiles.filter((f) => !handledLegacyFiles.has(f));
+  const unhandled = legacyFiles.filter((f) => !handledLegacyFiles.has(f) && path.basename(f) !== "README.md");
   if (unhandled.length > 0) {
     options?.onProgress?.(`deferring: ${unhandled.length} unhandled files`);
   }

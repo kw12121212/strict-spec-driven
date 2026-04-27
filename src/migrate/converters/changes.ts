@@ -139,6 +139,7 @@ export function convertLegacyChangeArtifacts(
     if (existsSync(legacyDeltaSpecsRoot) && statSync(legacyDeltaSpecsRoot).isDirectory()) {
       const deltaSpecFiles = listFilesRecursive(legacyDeltaSpecsRoot)
         .map((absolutePath) => toRepoRelativePath(rootDir, absolutePath))
+        .filter((repoRelativePath) => path.basename(repoRelativePath) !== "README.md")
         .filter((repoRelativePath) => repoRelativePath.endsWith(".md"))
         .sort((left, right) => left.localeCompare(right));
 
