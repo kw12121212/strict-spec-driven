@@ -6859,12 +6859,6 @@ testing_gates:
   validation_task: validate-example
   unit_test_task: unit-test-example
 `,
-  "strict-spec-driven/scaffold/changes/STATE.yaml": `schema: strict-spec-driven/change-state-index/v1
-schema_version: 1
-artifact_type: change_state_index
-active: []
-archive: []
-`,
   "strict-spec-driven/scaffold/changes/design.yaml": `schema: strict-spec-driven/change-design/v1
 schema_version: 1
 artifact_type: change_design
@@ -10842,8 +10836,7 @@ function scaffoldTemplateKey(relativePath) {
 var REQUIRED_SCAFFOLD_ASSETS = [
   "config.yaml",
   "specs/INDEX.yaml",
-  "roadmap/INDEX.yaml",
-  "changes/STATE.yaml"
+  "roadmap/INDEX.yaml"
 ];
 var REQUIRED_CHANGE_TEMPLATE_ASSETS = [
   "changes/proposal.yaml",
@@ -14326,7 +14319,7 @@ function convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles) {
     }
     const legacyDeltaSpecsRoot = path18.join(changeDirectory.legacyDirectoryPath, "specs");
     if (existsSync17(legacyDeltaSpecsRoot) && statSync12(legacyDeltaSpecsRoot).isDirectory()) {
-      const deltaSpecFiles = listFilesRecursive2(legacyDeltaSpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
+      const deltaSpecFiles = listFilesRecursive2(legacyDeltaSpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path18.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
       for (const legacyDeltaSpecPath of deltaSpecFiles) {
         handledLegacyFiles.add(legacyDeltaSpecPath);
         try {
@@ -14689,7 +14682,7 @@ function convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles) {
   if (!existsSync18(legacyMilestonesRoot) || !statSync13(legacyMilestonesRoot).isDirectory()) {
     return;
   }
-  const milestoneFiles = listFilesRecursive2(legacyMilestonesRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
+  const milestoneFiles = listFilesRecursive2(legacyMilestonesRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path19.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
   for (const legacyMilestoneFile of milestoneFiles) {
     handledLegacyFiles.add(legacyMilestoneFile);
     try {
@@ -14809,7 +14802,7 @@ function convertLegacySpecArtifacts(rootDir, result, handledLegacyFiles) {
     return false;
   }
   let convertedAny = false;
-  const legacySpecFiles = listFilesRecursive2(legacySpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => repoRelativePath.endsWith(".md")).filter((repoRelativePath) => path20.basename(repoRelativePath) !== "INDEX.md").sort((left, right) => left.localeCompare(right));
+  const legacySpecFiles = listFilesRecursive2(legacySpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => repoRelativePath.endsWith(".md")).filter((repoRelativePath) => path20.basename(repoRelativePath) !== "INDEX.md").filter((repoRelativePath) => path20.basename(repoRelativePath) !== "README.md").sort((left, right) => left.localeCompare(right));
   for (const legacySpecFile of legacySpecFiles) {
     handledLegacyFiles.add(legacySpecFile);
     try {
@@ -15012,7 +15005,7 @@ function migrateLegacyWorkflow(rootDir, options) {
   options?.onProgress?.("converting: roadmap");
   convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles);
   convertLegacySpecsIndex(rootDir, result, handledLegacyFiles);
-  const unhandled = legacyFiles.filter((f) => !handledLegacyFiles.has(f));
+  const unhandled = legacyFiles.filter((f) => !handledLegacyFiles.has(f) && path22.basename(f) !== "README.md");
   if (unhandled.length > 0) {
     options?.onProgress?.(`deferring: ${unhandled.length} unhandled files`);
   }
