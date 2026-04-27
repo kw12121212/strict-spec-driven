@@ -9,15 +9,12 @@ mapping:
   implementation: []
   tests: []
 requirements:
-  - id: example-requirement
+  example-requirement:
     strength: MUST
     statement: The system MUST expose one observable behavior.
     scenarios:
-      - id: success
-        steps:
-          - kind: GIVEN
-            text: an example precondition
-          - kind: WHEN
-            text: the example action occurs
-          - kind: THEN
-            text: the observable result is available
+      success:
+        - GIVEN: an example precondition
+        - WHEN: the example action occurs
+        - AND: additional context is available
+        - THEN: the observable result is available

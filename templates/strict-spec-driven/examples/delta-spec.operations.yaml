@@ -8,26 +8,19 @@ mapping:
   tests: []
 operations:
   ADDED:
-    - requirement:
-        id: added-requirement
-        strength: MUST
-        statement: The system MUST expose an added observable behavior.
-        scenarios:
-          - id: added-success
-            steps:
-              - kind: GIVEN
-                text: an added precondition
-              - kind: WHEN
-                text: the added action occurs
-              - kind: THEN
-                text: the added result is available
+    added-requirement:
+      strength: MUST
+      statement: The system MUST expose an added observable behavior.
+      scenarios:
+        added-success:
+          - GIVEN: an added precondition
+          - WHEN: the added action occurs
+          - THEN: the added result is available
   MODIFIED:
-    - target_requirement: existing-requirement
-      replacement:
-        id: existing-requirement
-        strength: MUST
-        statement: The system MUST expose the modified observable behavior.
-        scenarios: []
+    existing-requirement:
+      strength: MUST
+      statement: The system MUST expose the modified observable behavior.
+      scenarios: {}
   REMOVED:
-    - target_requirement: removed-requirement
+    removed-requirement:
       reason: The behavior is superseded by the replacement requirement.
