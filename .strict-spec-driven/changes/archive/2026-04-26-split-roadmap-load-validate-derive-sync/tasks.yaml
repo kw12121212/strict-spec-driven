@@ -1,44 +1,41 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: split-roadmap-load-validate-derive-sync
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Extract roadmap-owned constants, path helpers, deterministic diagnostics, and file
-          discovery helpers from `src/roadmap.ts` into focused support modules under `src/roadmap/`
-        status: complete
-      - id: implementation-2
-        text: >-
-          Extract roadmap artifact validation and load orchestration into dedicated modules that
-          `getRoadmapStatus` and `syncRoadmap` consume without changing current validation semantics
-        status: complete
-      - id: implementation-3
-        text: >-
-          Extract change-state derivation, milestone ordering, canonical artifact rebuilding, and
-          sync write behavior into dedicated modules, leaving `src/roadmap.ts` as a thin
-          orchestration surface
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: Run `bun run build` — build and typecheck the refactored roadmap modules end-to-end
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: >-
-          Run `bun test/run.ts` — run unit tests covering roadmap status and roadmap sync behavior
-          after the extraction
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: Verify implementation matches proposal scope
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Extract roadmap-owned constants, path helpers, deterministic diagnostics, and file discovery
+        helpers from `src/roadmap.ts` into focused support modules under `src/roadmap/`
+      status: complete
+    implementation-2:
+      text: >-
+        Extract roadmap artifact validation and load orchestration into dedicated modules that
+        `getRoadmapStatus` and `syncRoadmap` consume without changing current validation semantics
+      status: complete
+    implementation-3:
+      text: >-
+        Extract change-state derivation, milestone ordering, canonical artifact rebuilding, and sync
+        write behavior into dedicated modules, leaving `src/roadmap.ts` as a thin orchestration
+        surface
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run build` — build and typecheck the refactored roadmap modules end-to-end
+      status: complete
+      command: bun run build
+    testing-2:
+      text: >-
+        Run `bun test/run.ts` — run unit tests covering roadmap status and roadmap sync behavior
+        after the extraction
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: Verify implementation matches proposal scope
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

@@ -1,49 +1,46 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: bind-domain-refactors-to-real-todo-project-regression
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Add copied-project regression scenarios for validate-skills against the migrated
-          todo-project workspace
-        status: complete
-      - id: implementation-2
-        text: >-
-          Add copied-project regression scenarios for post-migration change lifecycle commands
-          (verify, list, review) against the migrated todo-project workspace
-        status: complete
-      - id: implementation-3
-        text: >-
-          Add copied-project regression scenarios for archive against the migrated todo-project
-          workspace with completed tasks
-        status: complete
-      - id: implementation-4
-        text: >-
-          Add repeated-run assertions confirming diagnostic ordering and report determinism across
-          all new scenarios
-        status: complete
-      - id: implementation-5
-        text: Assert committed todo-project fixture baseline is unchanged after all new scenarios
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: Run `bun run build` — build to compile TypeScript sources
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: Run `bun test/run.ts` — unit tests and regression tests
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: Verify implementation matches proposal scope
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Add copied-project regression scenarios for validate-skills against the migrated
+        todo-project workspace
+      status: complete
+    implementation-2:
+      text: >-
+        Add copied-project regression scenarios for post-migration change lifecycle commands
+        (verify, list, review) against the migrated todo-project workspace
+      status: complete
+    implementation-3:
+      text: >-
+        Add copied-project regression scenarios for archive against the migrated todo-project
+        workspace with completed tasks
+      status: complete
+    implementation-4:
+      text: >-
+        Add repeated-run assertions confirming diagnostic ordering and report determinism across all
+        new scenarios
+      status: complete
+    implementation-5:
+      text: Assert committed todo-project fixture baseline is unchanged after all new scenarios
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run build` — build to compile TypeScript sources
+      status: complete
+      command: bun run build
+    testing-2:
+      text: Run `bun test/run.ts` — unit tests and regression tests
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: Verify implementation matches proposal scope
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

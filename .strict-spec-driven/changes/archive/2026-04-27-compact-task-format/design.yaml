@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: compact-task-format
+approach:
+  - Define task-list/v2 schema with sections as a keyed map (key = section name) and tasks as a keyed map (key = task id).
+  - Add a v1-to-v2 converter function in src/converters/ that transforms array sections into keyed sections and removes the id field from each task.
+  - Update verify.ts to detect v2 shape (sections is a mapping, not a sequence) and validate accordingly.
+  - Run the converter over all archived tasks.yaml files in a batch migration step.
+decisions:
+  keyed-maps-for-sections-and-tasks:
+    decision: Both sections and tasks use keyed maps instead of arrays.
+    rationale: Maximum compression and consistency with main spec requirement pattern. Section names are fixed (Implementation, Testing, Verification) so they work naturally as keys.
+  schema-version-bump:
+    decision: Bump to task-list/v2 rather than treating as compatible within v1.
+    rationale: The artifact shape changes fundamentally (array to map). Existing validators that expect arrays would break silently if treated as compatible.
+  v1-remains-parseable:
+    decision: The v1 schema and v1 artifacts remain loadable during migration and validation supports both v1 and v2.
+    rationale: The 71 archived files need a migration path. Supporting both during the transition avoids a big-bang cutover.
+alternatives:
+  - option: Only convert tasks to keyed maps, keep sections as arrays.
+    reason: Rejected because sections have fixed names that also benefit from the keyed-map treatment, and consistency with tasks is cleaner.
+  - option: Inline sections entirely so top-level keys are section names containing task maps directly.
+    reason: Rejected because testing_gates and other top-level fields need to coexist alongside sections in the artifact.
+risks:
+  - Seventy-one archived tasks.yaml files must all migrate correctly. A batch converter with a dry-run mode mitigates this.
+  - Skills that generate tasks.yaml scaffolding must be updated in lockstep. Missing one would produce v1 output into a v2 world.

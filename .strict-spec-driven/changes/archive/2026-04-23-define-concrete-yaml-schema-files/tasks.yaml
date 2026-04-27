@@ -1,52 +1,49 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: define-concrete-yaml-schema-files
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Add delta spec requirements for concrete YAML schema files covering all required artifact
-          families
-        status: complete
-      - id: implementation-2
-        text: >-
-          Add delta spec requirements for minimal valid YAML example files associated with those
-          schema files
-        status: complete
-      - id: implementation-3
-        text: >-
-          Review the contract against the `yaml-contracts-and-naming` milestone and the existing
-          strict YAML artifact schema requirements
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: >-
-          Run validation command `find . -maxdepth 2 -type f -name 'package.json' -o -name
-          'pnpm-lock.yaml' -o -name 'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o
-          -name 'tsconfig.json'` to confirm no lint or validation runner exists for this spec-only
-          change
-        status: complete
-        command: >-
-          find . -maxdepth 2 -type f -name 'package.json' -o -name 'pnpm-lock.yaml' -o -name
-          'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o -name 'tsconfig.json'
-      - id: testing-2
-        text: >-
-          Run unit test command `find . -maxdepth 2 -type f -name 'package.json' -o -name
-          'pnpm-lock.yaml' -o -name 'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o
-          -name 'tsconfig.json'` to confirm no unit test runner exists for this spec-only change
-        status: complete
-        command: >-
-          find . -maxdepth 2 -type f -name 'package.json' -o -name 'pnpm-lock.yaml' -o -name
-          'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o -name 'tsconfig.json'
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: Verify proposal artifacts match the roadmap item and remain planning-only
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Add delta spec requirements for concrete YAML schema files covering all required artifact
+        families
+      status: complete
+    implementation-2:
+      text: >-
+        Add delta spec requirements for minimal valid YAML example files associated with those
+        schema files
+      status: complete
+    implementation-3:
+      text: >-
+        Review the contract against the `yaml-contracts-and-naming` milestone and the existing
+        strict YAML artifact schema requirements
+      status: complete
+  Testing:
+    testing-1:
+      text: >-
+        Run validation command `find . -maxdepth 2 -type f -name 'package.json' -o -name
+        'pnpm-lock.yaml' -o -name 'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o
+        -name 'tsconfig.json'` to confirm no lint or validation runner exists for this spec-only
+        change
+      status: complete
+      command: >-
+        find . -maxdepth 2 -type f -name 'package.json' -o -name 'pnpm-lock.yaml' -o -name
+        'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o -name 'tsconfig.json'
+    testing-2:
+      text: >-
+        Run unit test command `find . -maxdepth 2 -type f -name 'package.json' -o -name
+        'pnpm-lock.yaml' -o -name 'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o
+        -name 'tsconfig.json'` to confirm no unit test runner exists for this spec-only change
+      status: complete
+      command: >-
+        find . -maxdepth 2 -type f -name 'package.json' -o -name 'pnpm-lock.yaml' -o -name
+        'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o -name 'tsconfig.json'
+  Verification:
+    verification-1:
+      text: Verify proposal artifacts match the roadmap item and remain planning-only
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

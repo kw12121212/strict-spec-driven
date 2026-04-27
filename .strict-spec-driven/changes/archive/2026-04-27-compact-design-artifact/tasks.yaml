@@ -1,66 +1,63 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: compact-design-artifact
 sections:
-  - name: Implementation
-    tasks:
-      - id: update-json-schema
-        text: >-
-          Rewrite change-design.yaml JSON Schema — decisions as map with propertyNames maxLength 60,
-          add description annotations on decision/rationale/option/reason.
-        status: complete
-      - id: update-ts-type
-        text: >-
-          Update StrictChangeDesignArtifact type in src/migrate/parsers/change-artifacts.ts to use
-          Record for decisions.
-        status: complete
-      - id: update-migration-parser
-        text: >-
-          Update parseLegacyDesign in src/migrate/parsers/change-artifacts.ts to emit map-shaped
-          decisions.
-        status: complete
-      - id: update-scaffold-template
-        text: >-
-          Update templates/strict-spec-driven/scaffold/changes/design.yaml to use map-shaped
-          decisions.
-        status: complete
-      - id: update-example
-        text: >-
-          Update templates/strict-spec-driven/examples/change-design.yaml to demonstrate map-shaped
-          decisions with distinct rationale.
-        status: complete
-      - id: migrate-archived-files
-        text: >-
-          Write and run a script to migrate all 66 archived design.yaml files to the new map format,
-          shortening ids to ≤60 chars and deduplicating rationale.
-        status: complete
-      - id: update-skill-docs
-        text: >-
-          Update SKILL.md references in strict-spec-propose, strict-spec-brainstorm,
-          strict-spec-modify that describe design.yaml field structure.
-        status: complete
-  - name: Testing
-    tasks:
-      - id: run-build
-        text: Run build validation.
-        status: complete
-        command: bun run build
-      - id: run-tests
-        text: Run unit tests.
-        status: complete
-        command: bun test/run.ts
-      - id: verify-archived-files
-        text: Run verify against a sample of migrated archived changes to confirm schema compliance.
-        status: complete
-  - name: Verification
-    tasks:
-      - id: verify-scope
-        text: >-
-          Verify implementation matches proposal scope — decisions are map-shaped, rationale/reason
-          remain required with distinct content, ids ≤60 chars.
-        status: complete
+  Implementation:
+    update-json-schema:
+      text: >-
+        Rewrite change-design.yaml JSON Schema — decisions as map with propertyNames maxLength 60,
+        add description annotations on decision/rationale/option/reason.
+      status: complete
+    update-ts-type:
+      text: >-
+        Update StrictChangeDesignArtifact type in src/migrate/parsers/change-artifacts.ts to use
+        Record for decisions.
+      status: complete
+    update-migration-parser:
+      text: >-
+        Update parseLegacyDesign in src/migrate/parsers/change-artifacts.ts to emit map-shaped
+        decisions.
+      status: complete
+    update-scaffold-template:
+      text: >-
+        Update templates/strict-spec-driven/scaffold/changes/design.yaml to use map-shaped
+        decisions.
+      status: complete
+    update-example:
+      text: >-
+        Update templates/strict-spec-driven/examples/change-design.yaml to demonstrate map-shaped
+        decisions with distinct rationale.
+      status: complete
+    migrate-archived-files:
+      text: >-
+        Write and run a script to migrate all 66 archived design.yaml files to the new map format,
+        shortening ids to ≤60 chars and deduplicating rationale.
+      status: complete
+    update-skill-docs:
+      text: >-
+        Update SKILL.md references in strict-spec-propose, strict-spec-brainstorm,
+        strict-spec-modify that describe design.yaml field structure.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+    verify-archived-files:
+      text: Run verify against a sample of migrated archived changes to confirm schema compliance.
+      status: complete
+  Verification:
+    verify-scope:
+      text: >-
+        Verify implementation matches proposal scope — decisions are map-shaped, rationale/reason
+        remain required with distinct content, ids ≤60 chars.
+      status: complete
 testing_gates:
   validation_task: run-build
   unit_test_task: run-tests

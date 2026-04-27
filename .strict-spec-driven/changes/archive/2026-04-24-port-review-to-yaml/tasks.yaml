@@ -1,41 +1,38 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: port-review-to-yaml
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Create `src/review.ts` with artifact reading, internal verify call, finding generation,
-          and JSON output logic
-        status: complete
-      - id: implementation-2
-        text: Register the `review` subcommand in `src/strict-spec-cli.ts` routing table
-        status: complete
-      - id: implementation-3
-        text: >-
-          Ensure review exits non-zero with a clear error when the change directory does not exist
-          or artifacts are unparseable
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: Run `bun run build` — typecheck and compile review module with zero errors
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: >-
-          Run `bun test/run.ts` — unit tests covering review happy path, missing change,
-          all-findings-empty, and at least one finding-generating case
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: Verify implementation matches proposal scope
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Create `src/review.ts` with artifact reading, internal verify call, finding generation, and
+        JSON output logic
+      status: complete
+    implementation-2:
+      text: Register the `review` subcommand in `src/strict-spec-cli.ts` routing table
+      status: complete
+    implementation-3:
+      text: >-
+        Ensure review exits non-zero with a clear error when the change directory does not exist or
+        artifacts are unparseable
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run build` — typecheck and compile review module with zero errors
+      status: complete
+      command: bun run build
+    testing-2:
+      text: >-
+        Run `bun test/run.ts` — unit tests covering review happy path, missing change,
+        all-findings-empty, and at least one finding-generating case
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: Verify implementation matches proposal scope
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

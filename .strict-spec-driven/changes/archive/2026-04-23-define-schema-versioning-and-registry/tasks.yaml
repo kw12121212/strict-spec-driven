@@ -1,69 +1,66 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: define-schema-versioning-and-registry
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Add schema registry, schema versioning, artifact type, and compatibility requirements to
-          the strict YAML artifact contract
-        status: complete
-      - id: implementation-2
-        text: >-
-          Add migration compatibility requirements for supported legacy `.spec-driven/` Markdown
-          artifact roles and strict YAML output artifact types
-        status: complete
-      - id: implementation-3
-        text: >-
-          Define unsupported-shape warning and manual follow-up reporting behavior for migration
-          tooling
-        status: complete
-      - id: implementation-4
-        text: >-
-          Align concrete schema files and examples with the registry/versioning contract where
-          required
-        status: complete
-      - id: implementation-5
-        text: >-
-          Verify the combined scope covers both roadmap planned items:
-          `define-schema-versioning-and-registry` and `define-migration-compatibility-contract`
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: >-
-          Run validation command `python3 -c "import glob, yaml; [yaml.safe_load(open(path,
-          encoding='utf-8')) for path in glob.glob('.strict-spec-driven/schemas/*.yaml') +
-          glob.glob('.strict-spec-driven/examples/*.yaml')]; print('yaml ok')"` to parse all strict
-          schema and example YAML files
-        status: complete
-        command: >-
-          python3 -c "import glob, yaml; [yaml.safe_load(open(path, encoding='utf-8')) for path in
-          glob.glob('.strict-spec-driven/schemas/*.yaml') +
-          glob.glob('.strict-spec-driven/examples/*.yaml')]; print('yaml ok')"
-      - id: testing-2
-        text: >-
-          Run unit test command `find . -maxdepth 2 -type f -name 'package.json' -o -name
-          'pnpm-lock.yaml' -o -name 'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o
-          -name 'tsconfig.json'` to confirm no package-level unit test runner exists before the CLI
-          foundation change
-        status: complete
-        command: >-
-          find . -maxdepth 2 -type f -name 'package.json' -o -name 'pnpm-lock.yaml' -o -name
-          'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o -name 'tsconfig.json'
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: Verify implementation matches proposal scope
-        status: complete
-      - id: verification-2
-        text: >-
-          Verify migration compatibility requirements remain contract-only and do not implement the
-          migration command
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Add schema registry, schema versioning, artifact type, and compatibility requirements to the
+        strict YAML artifact contract
+      status: complete
+    implementation-2:
+      text: >-
+        Add migration compatibility requirements for supported legacy `.spec-driven/` Markdown
+        artifact roles and strict YAML output artifact types
+      status: complete
+    implementation-3:
+      text: >-
+        Define unsupported-shape warning and manual follow-up reporting behavior for migration
+        tooling
+      status: complete
+    implementation-4:
+      text: >-
+        Align concrete schema files and examples with the registry/versioning contract where
+        required
+      status: complete
+    implementation-5:
+      text: >-
+        Verify the combined scope covers both roadmap planned items:
+        `define-schema-versioning-and-registry` and `define-migration-compatibility-contract`
+      status: complete
+  Testing:
+    testing-1:
+      text: >-
+        Run validation command `python3 -c "import glob, yaml; [yaml.safe_load(open(path,
+        encoding='utf-8')) for path in glob.glob('.strict-spec-driven/schemas/*.yaml') +
+        glob.glob('.strict-spec-driven/examples/*.yaml')]; print('yaml ok')"` to parse all strict
+        schema and example YAML files
+      status: complete
+      command: >-
+        python3 -c "import glob, yaml; [yaml.safe_load(open(path, encoding='utf-8')) for path in
+        glob.glob('.strict-spec-driven/schemas/*.yaml') +
+        glob.glob('.strict-spec-driven/examples/*.yaml')]; print('yaml ok')"
+    testing-2:
+      text: >-
+        Run unit test command `find . -maxdepth 2 -type f -name 'package.json' -o -name
+        'pnpm-lock.yaml' -o -name 'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o
+        -name 'tsconfig.json'` to confirm no package-level unit test runner exists before the CLI
+        foundation change
+      status: complete
+      command: >-
+        find . -maxdepth 2 -type f -name 'package.json' -o -name 'pnpm-lock.yaml' -o -name
+        'package-lock.json' -o -name 'yarn.lock' -o -name 'deno.json' -o -name 'tsconfig.json'
+  Verification:
+    verification-1:
+      text: Verify implementation matches proposal scope
+      status: complete
+    verification-2:
+      text: >-
+        Verify migration compatibility requirements remain contract-only and do not implement the
+        migration command
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

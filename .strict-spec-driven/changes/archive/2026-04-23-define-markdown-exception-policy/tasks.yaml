@@ -1,43 +1,40 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: define-markdown-exception-policy
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: Add Markdown exception policy requirements to the YAML artifact contract delta
-        status: complete
-      - id: implementation-2
-        text: >-
-          Review the policy against `README.md`, `RTK.md`, and milestone
-          `01-yaml-contracts-and-naming`
-        status: complete
-      - id: implementation-3
-        text: Confirm the policy does not define migration mappings or implementation behavior
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: >-
-          Run `node /home/code/.agents/skills/roadmap-recommend/scripts/spec-driven.js verify
-          define-markdown-exception-policy` — validation task for proposal artifacts
-        status: complete
-        command: >-
-          node /home/code/.agents/skills/roadmap-recommend/scripts/spec-driven.js verify
-          define-markdown-exception-policy
-      - id: testing-2
-        text: >-
-          Run `node --test` — unit tests command for this contract-only proposal until the
-          repository defines a package test script
-        status: complete
-        command: node --test
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: Verify implementation matches proposal scope
-        status: complete
+  Implementation:
+    implementation-1:
+      text: Add Markdown exception policy requirements to the YAML artifact contract delta
+      status: complete
+    implementation-2:
+      text: >-
+        Review the policy against `README.md`, `RTK.md`, and milestone
+        `01-yaml-contracts-and-naming`
+      status: complete
+    implementation-3:
+      text: Confirm the policy does not define migration mappings or implementation behavior
+      status: complete
+  Testing:
+    testing-1:
+      text: >-
+        Run `node /home/code/.agents/skills/roadmap-recommend/scripts/spec-driven.js verify
+        define-markdown-exception-policy` — validation task for proposal artifacts
+      status: complete
+      command: >-
+        node /home/code/.agents/skills/roadmap-recommend/scripts/spec-driven.js verify
+        define-markdown-exception-policy
+    testing-2:
+      text: >-
+        Run `node --test` — unit tests command for this contract-only proposal until the repository
+        defines a package test script
+      status: complete
+      command: node --test
+  Verification:
+    verification-1:
+      text: Verify implementation matches proposal scope
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

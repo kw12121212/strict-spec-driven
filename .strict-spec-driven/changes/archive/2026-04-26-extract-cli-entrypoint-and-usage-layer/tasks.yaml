@@ -1,48 +1,45 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: extract-cli-entrypoint-and-usage-layer
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Extract argv normalization, usage rendering, and top-level exit handling from
-          `src/strict-spec-cli.ts` into focused CLI entry modules while keeping the current command
-          table intact.
-        status: complete
-      - id: implementation-2
-        text: >-
-          Reduce the `run()` path and executable bootstrap in `src/strict-spec-cli.ts` to a thin
-          delegation layer without changing command names, usage text, or exit-code behavior.
-        status: complete
-      - id: implementation-3
-        text: >-
-          Add or update CLI regression coverage for no-arg invocation, unknown subcommands, and
-          successful command dispatch through the extracted entry layer.
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: >-
-          Run `bun run build` — build validation for the extracted CLI entry modules and thin
-          entrypoint wiring.
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: >-
-          Run `bun test/run.ts` — unit tests covering no-arg usage, unknown subcommands, and
-          preserved command dispatch behavior.
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: >-
-          Verify implementation matches proposal scope and does not absorb later registry, handler,
-          or workflow-domain refactors.
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Extract argv normalization, usage rendering, and top-level exit handling from
+        `src/strict-spec-cli.ts` into focused CLI entry modules while keeping the current command
+        table intact.
+      status: complete
+    implementation-2:
+      text: >-
+        Reduce the `run()` path and executable bootstrap in `src/strict-spec-cli.ts` to a thin
+        delegation layer without changing command names, usage text, or exit-code behavior.
+      status: complete
+    implementation-3:
+      text: >-
+        Add or update CLI regression coverage for no-arg invocation, unknown subcommands, and
+        successful command dispatch through the extracted entry layer.
+      status: complete
+  Testing:
+    testing-1:
+      text: >-
+        Run `bun run build` — build validation for the extracted CLI entry modules and thin
+        entrypoint wiring.
+      status: complete
+      command: bun run build
+    testing-2:
+      text: >-
+        Run `bun test/run.ts` — unit tests covering no-arg usage, unknown subcommands, and preserved
+        command dispatch behavior.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: >-
+        Verify implementation matches proposal scope and does not absorb later registry, handler, or
+        workflow-domain refactors.
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

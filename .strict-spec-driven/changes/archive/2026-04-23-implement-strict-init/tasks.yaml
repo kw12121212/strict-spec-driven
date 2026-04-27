@@ -1,43 +1,40 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: implement-strict-init
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Add `init` command wiring in the CLI router and implement strict scaffold creation under
-          `.strict-spec-driven/` from bundled template assets.
-        status: complete
-      - id: implementation-2
-        text: >-
-          Implement idempotent non-clobber behavior so rerunning `init` preserves existing strict
-          workflow artifacts.
-        status: complete
-      - id: implementation-3
-        text: >-
-          Add warning behavior for `.spec-driven/` coexistence while allowing strict scaffold
-          generation to continue.
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: Run `bun run build` — build validation for init command and scaffold integration changes
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: >-
-          Run `bun test/run.ts` — unit tests covering strict init scaffold generation, idempotency,
-          and coexistence warning behavior
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: Verify implementation matches proposal scope
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Add `init` command wiring in the CLI router and implement strict scaffold creation under
+        `.strict-spec-driven/` from bundled template assets.
+      status: complete
+    implementation-2:
+      text: >-
+        Implement idempotent non-clobber behavior so rerunning `init` preserves existing strict
+        workflow artifacts.
+      status: complete
+    implementation-3:
+      text: >-
+        Add warning behavior for `.spec-driven/` coexistence while allowing strict scaffold
+        generation to continue.
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run build` — build validation for init command and scaffold integration changes
+      status: complete
+      command: bun run build
+    testing-2:
+      text: >-
+        Run `bun test/run.ts` — unit tests covering strict init scaffold generation, idempotency,
+        and coexistence warning behavior
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: Verify implementation matches proposal scope
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

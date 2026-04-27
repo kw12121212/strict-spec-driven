@@ -9,20 +9,10 @@ import {
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 
-type Task = {
-  id: string;
-  text: string;
-  status: string;
-  command?: string;
-};
-
-type Section = {
-  name: string;
-  tasks: Task[];
-};
+type TaskMap = Record<string, { text: string; status: string; command?: string }>;
 
 type TaskListArtifact = {
-  sections: Section[];
+  sections: Record<string, TaskMap>;
   testing_gates?: {
     validation_task?: string;
     unit_test_task?: string;
@@ -123,8 +113,8 @@ function checkTaskCompletion(
   let completeTasks = 0;
   const diagnostics: VerifyDiagnostic[] = [];
 
-  for (const section of artifact.sections ?? []) {
-    for (const task of section.tasks ?? []) {
+  for (const [sectionName, taskMap] of Object.entries(artifact.sections ?? {})) {
+    for (const [taskId, task] of Object.entries(taskMap ?? {})) {
       totalTasks += 1;
       if (task.status === "complete") {
         completeTasks += 1;
@@ -132,8 +122,8 @@ function checkTaskCompletion(
         diagnostics.push({
           source: "task_completion",
           artifactPath,
-          fieldPath: `$.sections[?].tasks[?].id=${task.id}`,
-          message: `task '${task.id}' has status '${task.status}', expected 'complete'`,
+          fieldPath: `$.sections.${sectionName}.${taskId}`,
+          message: `task '${taskId}' has status '${task.status}', expected 'complete'`,
           expected: "complete",
           actual: task.status,
         });
@@ -173,12 +163,8 @@ function checkTestingGates(
   const gates = artifact.testing_gates;
   if (!gates) return diagnostics;
 
-  const testingSection = (artifact.sections ?? []).find(
-    (s) => s.name === "Testing",
-  );
-  const testingTaskIds = new Set(
-    (testingSection?.tasks ?? []).map((t) => t.id),
-  );
+  const testingMap = artifact.sections?.["Testing"];
+  const testingTaskIds = new Set(testingMap ? Object.keys(testingMap) : []);
 
   const gateRefs: [string, string | undefined][] = [
     ["validation_task", gates.validation_task],

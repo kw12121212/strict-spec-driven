@@ -1,41 +1,38 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: ship-strict-installation-and-packaging
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Add strict install and uninstall entrypoints for shared/global and project-local usage on
-          top of the repository installer.
-        status: complete
-      - id: implementation-2
-        text: >-
-          Harden installer behavior so strict package names and targets do not silently fall back to
-          legacy-name assumptions.
-        status: complete
-      - id: implementation-3
-        text: >-
-          Add or extend smoke coverage for install, uninstall, packaged skill layout, and symlink
-          resolution diagnostics.
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: Run `bun run validate-skills` — validation command for strict packaging surfaces.
-        status: complete
-        command: bun run validate-skills
-      - id: testing-2
-        text: Run `bun test/run.ts` — unit tests for install, uninstall, and packaging smoke coverage.
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: Verify implementation matches proposal
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Add strict install and uninstall entrypoints for shared/global and project-local usage on
+        top of the repository installer.
+      status: complete
+    implementation-2:
+      text: >-
+        Harden installer behavior so strict package names and targets do not silently fall back to
+        legacy-name assumptions.
+      status: complete
+    implementation-3:
+      text: >-
+        Add or extend smoke coverage for install, uninstall, packaged skill layout, and symlink
+        resolution diagnostics.
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run validate-skills` — validation command for strict packaging surfaces.
+      status: complete
+      command: bun run validate-skills
+    testing-2:
+      text: Run `bun test/run.ts` — unit tests for install, uninstall, and packaging smoke coverage.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: Verify implementation matches proposal
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

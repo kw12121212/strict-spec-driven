@@ -61,11 +61,28 @@ entries:
     schema_file: task-list.yaml
     primary_example: ../examples/task-list.yaml
     compatibility:
-      status: current
+      status: superseded
       introduced_in: 1
       supersedes: []
+      superseded_by: strict-spec-driven/task-list/v2
       compatible_with: []
-      notes: []
+      notes:
+        - Superseded by v2 keyed-map format.
+  - schema_id: strict-spec-driven/task-list/v2
+    schema_version: 2
+    artifact_type: task_list
+    artifact_name: task-list
+    schema_file: task-list.yaml
+    primary_example: ../examples/task-list.yaml
+    compatibility:
+      status: current
+      introduced_in: 2
+      supersedes:
+        - strict-spec-driven/task-list/v1
+      compatible_with:
+        - strict-spec-driven/task-list/v1
+      notes:
+        - Sections and tasks use keyed maps instead of arrays.
   - schema_id: strict-spec-driven/question-list/v1
     schema_version: 1
     artifact_type: question_list

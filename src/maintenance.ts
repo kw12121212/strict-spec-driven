@@ -75,32 +75,30 @@ function buildProposalYaml(changeName: string, findings: MaintenanceFinding[]): 
 }
 
 function buildTasksYaml(changeName: string, findings: MaintenanceFinding[]): object {
-  const implementationTasks = findings.map((f, i) => ({
-    id: `finding-${i + 1}`,
-    text: `[${f.check}] ${f.description}`,
-    status: "pending",
-  }));
+  const implementationTasks: Record<string, { text: string; status: string }> = {};
+  for (const [i, f] of findings.entries()) {
+    implementationTasks[`finding-${i + 1}`] = {
+      text: `[${f.check}] ${f.description}`,
+      status: "pending",
+    };
+  }
 
   return {
-    schema: "strict-spec-driven/task-list/v1",
-    schema_version: 1,
+    schema: "strict-spec-driven/task-list/v2",
+    schema_version: 2,
     artifact_type: "task_list",
     schema_file: "templates/strict-spec-driven/schemas/task-list.yaml",
     change: changeName,
-    sections: [
-      { name: "Implementation", tasks: implementationTasks },
-      {
-        name: "Testing",
-        tasks: [
-          { id: "run-build", text: "Run build validation.", status: "pending", command: "bun run build" },
-          { id: "run-tests", text: "Run unit tests.", status: "pending", command: "bun test/run.ts" },
-        ],
+    sections: {
+      Implementation: implementationTasks,
+      Testing: {
+        "run-build": { text: "Run build validation.", status: "pending", command: "bun run build" },
+        "run-tests": { text: "Run unit tests.", status: "pending", command: "bun test/run.ts" },
       },
-      {
-        name: "Verification",
-        tasks: [{ id: "verify-scope", text: "Verify maintenance scope matches findings.", status: "pending" }],
+      Verification: {
+        "verify-scope": { text: "Verify maintenance scope matches findings.", status: "pending" },
       },
-    ],
+    },
     testing_gates: {
       validation_task: "run-build",
       unit_test_task: "run-tests",

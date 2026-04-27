@@ -1,29 +1,26 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: ../schemas/task-list.yaml
 change: example-change
 sections:
-  - name: Implementation
-    tasks:
-      - id: implement-example
-        text: Implement the example behavior.
-        status: pending
-  - name: Testing
-    tasks:
-      - id: validate-example
-        text: Run validation for the example behavior.
-        status: pending
-        command: npm run build
-      - id: unit-test-example
-        text: Run unit tests for the example behavior.
-        status: pending
-        command: npm test
-  - name: Verification
-    tasks:
-      - id: verify-example
-        text: Verify implementation matches proposal scope.
-        status: pending
+  Implementation:
+    implement-example:
+      text: Implement the example behavior.
+      status: pending
+  Testing:
+    validate-example:
+      text: Run validation for the example behavior.
+      status: pending
+      command: npm run build
+    unit-test-example:
+      text: Run unit tests for the example behavior.
+      status: pending
+      command: npm test
+  Verification:
+    verify-example:
+      text: Verify implementation matches proposal scope.
+      status: pending
 testing_gates:
   validation_task: validate-example
   unit_test_task: unit-test-example

@@ -1,57 +1,54 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: proposal-split-migration-builders-and-converters
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Create `src/migrate/shared.ts` with extracted helpers: `toRepoRelativePath`,
-          `listFilesRecursive`, `makeDiagnostic`, `readYamlFile`, `writeYamlFile`,
-          `replaceMarkdownExtension`, `buildStrictMarkdownTargetPath`,
-          `listLegacyChangeDirectories`, `recordDeferredArtifact`, `makeConversionFailure`
-        status: complete
-      - id: implementation-2
-        text: >-
-          Create `src/migrate/converters/specs.ts` with `convertLegacySpecArtifacts` and
-          `regenerateStrictSpecIndex`
-        status: complete
-      - id: implementation-3
-        text: Create `src/migrate/converters/changes.ts` with `convertLegacyChangeArtifacts`
-        status: complete
-      - id: implementation-4
-        text: >-
-          Create `src/migrate/converters/roadmap.ts` with `convertLegacyRoadmapArtifacts` and
-          `convertLegacySpecsIndex`
-        status: complete
-      - id: implementation-5
-        text: >-
-          Rewrite `src/migrate.ts` to import from the new modules and keep only orchestration,
-          types, and config normalization
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: Run `bun run build` — validate TypeScript compilation succeeds
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: Run `bun test/run.ts` — unit tests confirm migration behavior is preserved
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: Verify `src/migrate.ts` is reduced to orchestration, types, and config normalization only
-        status: complete
-      - id: verification-2
-        text: Verify all migration test suites pass without modification
-        status: complete
-      - id: verification-3
-        text: Verify no new public exports were introduced
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Create `src/migrate/shared.ts` with extracted helpers: `toRepoRelativePath`,
+        `listFilesRecursive`, `makeDiagnostic`, `readYamlFile`, `writeYamlFile`,
+        `replaceMarkdownExtension`, `buildStrictMarkdownTargetPath`, `listLegacyChangeDirectories`,
+        `recordDeferredArtifact`, `makeConversionFailure`
+      status: complete
+    implementation-2:
+      text: >-
+        Create `src/migrate/converters/specs.ts` with `convertLegacySpecArtifacts` and
+        `regenerateStrictSpecIndex`
+      status: complete
+    implementation-3:
+      text: Create `src/migrate/converters/changes.ts` with `convertLegacyChangeArtifacts`
+      status: complete
+    implementation-4:
+      text: >-
+        Create `src/migrate/converters/roadmap.ts` with `convertLegacyRoadmapArtifacts` and
+        `convertLegacySpecsIndex`
+      status: complete
+    implementation-5:
+      text: >-
+        Rewrite `src/migrate.ts` to import from the new modules and keep only orchestration, types,
+        and config normalization
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run build` — validate TypeScript compilation succeeds
+      status: complete
+      command: bun run build
+    testing-2:
+      text: Run `bun test/run.ts` — unit tests confirm migration behavior is preserved
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: Verify `src/migrate.ts` is reduced to orchestration, types, and config normalization only
+      status: complete
+    verification-2:
+      text: Verify all migration test suites pass without modification
+      status: complete
+    verification-3:
+      text: Verify no new public exports were introduced
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

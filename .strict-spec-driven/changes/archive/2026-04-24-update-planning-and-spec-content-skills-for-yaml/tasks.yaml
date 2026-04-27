@@ -1,53 +1,50 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: update-planning-and-spec-content-skills-for-yaml
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Rewrite `strict-spec-brainstorm` and `strict-spec-simple-task` so they use explicit strict
-          CLI command mappings and `.strict-spec-driven/` YAML workflow guidance.
-        status: complete
-      - id: implementation-2
-        text: >-
-          Rewrite `strict-spec-spec-edit`, `strict-spec-sync-specs`, and
-          `strict-spec-resync-code-mapping` to describe strict YAML spec editing and mapping-repair
-          behavior.
-        status: complete
-      - id: implementation-3
-        text: >-
-          Extend `src/skills.ts` with validation expectations for the planning skill family and keep
-          `strict-spec-spec-content` out of the strict package surface.
-        status: complete
-      - id: implementation-4
-        text: >-
-          Update or add automated checks in `test/run.ts` for passing and failing strict
-          planning-skill content states.
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: >-
-          Run `bun run validate-skills` — validation coverage for strict planning skill command
-          references and packaging expectations.
-        status: complete
-        command: bun run validate-skills
-      - id: testing-2
-        text: >-
-          Run `bun test/run.ts` — unit tests for strict planning skill content and validation
-          behavior.
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: >-
-          Verify implementation matches proposal scope and does not add a separate
-          `strict-spec-spec-content` package.
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Rewrite `strict-spec-brainstorm` and `strict-spec-simple-task` so they use explicit strict
+        CLI command mappings and `.strict-spec-driven/` YAML workflow guidance.
+      status: complete
+    implementation-2:
+      text: >-
+        Rewrite `strict-spec-spec-edit`, `strict-spec-sync-specs`, and
+        `strict-spec-resync-code-mapping` to describe strict YAML spec editing and mapping-repair
+        behavior.
+      status: complete
+    implementation-3:
+      text: >-
+        Extend `src/skills.ts` with validation expectations for the planning skill family and keep
+        `strict-spec-spec-content` out of the strict package surface.
+      status: complete
+    implementation-4:
+      text: >-
+        Update or add automated checks in `test/run.ts` for passing and failing strict
+        planning-skill content states.
+      status: complete
+  Testing:
+    testing-1:
+      text: >-
+        Run `bun run validate-skills` — validation coverage for strict planning skill command
+        references and packaging expectations.
+      status: complete
+      command: bun run validate-skills
+    testing-2:
+      text: >-
+        Run `bun test/run.ts` — unit tests for strict planning skill content and validation
+        behavior.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: >-
+        Verify implementation matches proposal scope and does not add a separate
+        `strict-spec-spec-content` package.
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

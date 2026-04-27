@@ -1,47 +1,44 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: split-monolithic-test-runner-into-modules
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Extract shared test-support helpers from `test/run.ts` for command execution, fixture
-          access, copied-workspace setup, and result reporting.
-        status: complete
-      - id: implementation-2
-        text: >-
-          Split the current monolithic runner coverage into smaller domain-oriented test modules
-          while preserving the existing scenario order and assertions.
-        status: complete
-      - id: implementation-3
-        text: >-
-          Reduce `test/run.ts` to a thin orchestration entrypoint that imports and runs the modular
-          suites without changing the repository test command surface.
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: >-
-          Run `bun run build` — build validation for the modularized test runner and supporting test
-          modules.
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: >-
-          Run `bun test/run.ts` — unit tests covering the split runner, shared helpers, and
-          preserved suite behavior.
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: >-
-          Verify implementation matches proposal scope and does not absorb the later CLI or
-          roadmap/migration scenario additions planned elsewhere in milestone 09.
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Extract shared test-support helpers from `test/run.ts` for command execution, fixture
+        access, copied-workspace setup, and result reporting.
+      status: complete
+    implementation-2:
+      text: >-
+        Split the current monolithic runner coverage into smaller domain-oriented test modules while
+        preserving the existing scenario order and assertions.
+      status: complete
+    implementation-3:
+      text: >-
+        Reduce `test/run.ts` to a thin orchestration entrypoint that imports and runs the modular
+        suites without changing the repository test command surface.
+      status: complete
+  Testing:
+    testing-1:
+      text: >-
+        Run `bun run build` — build validation for the modularized test runner and supporting test
+        modules.
+      status: complete
+      command: bun run build
+    testing-2:
+      text: >-
+        Run `bun test/run.ts` — unit tests covering the split runner, shared helpers, and preserved
+        suite behavior.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: >-
+        Verify implementation matches proposal scope and does not absorb the later CLI or
+        roadmap/migration scenario additions planned elsewhere in milestone 09.
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

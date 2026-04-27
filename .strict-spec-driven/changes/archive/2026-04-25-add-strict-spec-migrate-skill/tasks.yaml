@@ -1,41 +1,38 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: add-strict-spec-migrate-skill
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Add roadmap-backed proposal deltas for the strict migration skill contract and validation
-          coverage.
-        status: complete
-      - id: implementation-2
-        text: >-
-          Create `skills/strict-spec-migrate/SKILL.md` with concrete `migrate`, `roadmap-status`,
-          and `verify-spec-mappings` command mappings plus migration guidance.
-        status: complete
-      - id: implementation-3
-        text: >-
-          Extend strict skill validation and tests so migration skill content is checked for
-          required commands and `.strict-spec-driven/` guidance.
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: Run `bun run build` — build validation after migration skill and validator updates.
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: Run `bun test/run.ts` — unit tests for migration skill packaging and content validation.
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: Verify implementation matches proposal scope
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Add roadmap-backed proposal deltas for the strict migration skill contract and validation
+        coverage.
+      status: complete
+    implementation-2:
+      text: >-
+        Create `skills/strict-spec-migrate/SKILL.md` with concrete `migrate`, `roadmap-status`, and
+        `verify-spec-mappings` command mappings plus migration guidance.
+      status: complete
+    implementation-3:
+      text: >-
+        Extend strict skill validation and tests so migration skill content is checked for required
+        commands and `.strict-spec-driven/` guidance.
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run build` — build validation after migration skill and validator updates.
+      status: complete
+      command: bun run build
+    testing-2:
+      text: Run `bun test/run.ts` — unit tests for migration skill packaging and content validation.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: Verify implementation matches proposal scope
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

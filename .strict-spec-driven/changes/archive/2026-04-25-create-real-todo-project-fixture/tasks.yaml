@@ -1,45 +1,42 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: create-real-todo-project-fixture
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Add one committed todo-project fixture under `test/fixtures/projects/` with realistic
-          repository metadata, source files, and strict workflow artifacts.
-        status: complete
-      - id: implementation-2
-        text: >-
-          Seed the fixture with enough baseline project state to support future CLI, roadmap, and
-          migration scenarios without needing per-test fixture assembly.
-        status: complete
-      - id: implementation-3
-        text: >-
-          Keep the fixture intentionally compact and document or encode only the baseline structure
-          needed for follow-on regression work in milestone 09.
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: >-
-          Run `bun run build` — build validation for the fixture-backed repository state and any
-          supporting test wiring.
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: Run `bun test/run.ts` — unit tests covering the committed todo-project fixture baseline.
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: >-
-          Verify implementation matches proposal scope and does not absorb copy/reset harness or
-          scenario-suite work from later planned changes.
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Add one committed todo-project fixture under `test/fixtures/projects/` with realistic
+        repository metadata, source files, and strict workflow artifacts.
+      status: complete
+    implementation-2:
+      text: >-
+        Seed the fixture with enough baseline project state to support future CLI, roadmap, and
+        migration scenarios without needing per-test fixture assembly.
+      status: complete
+    implementation-3:
+      text: >-
+        Keep the fixture intentionally compact and document or encode only the baseline structure
+        needed for follow-on regression work in milestone 09.
+      status: complete
+  Testing:
+    testing-1:
+      text: >-
+        Run `bun run build` — build validation for the fixture-backed repository state and any
+        supporting test wiring.
+      status: complete
+      command: bun run build
+    testing-2:
+      text: Run `bun test/run.ts` — unit tests covering the committed todo-project fixture baseline.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: >-
+        Verify implementation matches proposal scope and does not absorb copy/reset harness or
+        scenario-suite work from later planned changes.
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

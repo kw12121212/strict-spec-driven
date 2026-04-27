@@ -1,59 +1,56 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: convert-roadmap-and-project-state-to-yaml
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Create `src/converters/roadmap.ts` with `convertRoadmapIndex`, `convertRoadmapMilestone`,
-          and `convertSpecsIndex` pure converter functions
-        status: complete
-      - id: implementation-2
-        text: >-
-          Add roadmap index conversion to `migrate.ts`: replace the `describeDeferredLegacyArtifact`
-          roadmap-index branch with a call to `convertRoadmapIndex`, writing converted entries and
-          manual follow-up items
-        status: complete
-      - id: implementation-3
-        text: >-
-          Add roadmap milestone conversion to `migrate.ts`: replace the roadmap milestones deferral
-          branch with calls to `convertRoadmapMilestone` for each `roadmap/milestones/*.md` file
-        status: complete
-      - id: implementation-4
-        text: >-
-          Add specs index conversion to `migrate.ts`: replace the `specs/INDEX.md` deferral branch
-          with a call to `convertSpecsIndex`
-        status: complete
-      - id: implementation-5
-        text: >-
-          Add fixture files under `test/fixtures/` covering minimal valid roadmap index, minimal
-          valid milestone, malformed milestone (missing status), unsupported Markdown shape, and
-          minimal valid specs index
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: Run `bun run build` — compile TypeScript and confirm zero errors
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: >-
-          Run `bun test/run.ts` — unit tests covering successful roadmap index conversion,
-          successful milestone conversion with all planning sections, planned change entry field
-          mapping, status enum mapping, malformed/unsupported shape producing manual follow-up,
-          specs index conversion, and idempotent-safe behavior when strict target exists
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: >-
-          Verify implementation matches proposal scope: roadmap and specs-index converters added, no
-          other migration paths changed
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Create `src/converters/roadmap.ts` with `convertRoadmapIndex`, `convertRoadmapMilestone`,
+        and `convertSpecsIndex` pure converter functions
+      status: complete
+    implementation-2:
+      text: >-
+        Add roadmap index conversion to `migrate.ts`: replace the `describeDeferredLegacyArtifact`
+        roadmap-index branch with a call to `convertRoadmapIndex`, writing converted entries and
+        manual follow-up items
+      status: complete
+    implementation-3:
+      text: >-
+        Add roadmap milestone conversion to `migrate.ts`: replace the roadmap milestones deferral
+        branch with calls to `convertRoadmapMilestone` for each `roadmap/milestones/*.md` file
+      status: complete
+    implementation-4:
+      text: >-
+        Add specs index conversion to `migrate.ts`: replace the `specs/INDEX.md` deferral branch
+        with a call to `convertSpecsIndex`
+      status: complete
+    implementation-5:
+      text: >-
+        Add fixture files under `test/fixtures/` covering minimal valid roadmap index, minimal valid
+        milestone, malformed milestone (missing status), unsupported Markdown shape, and minimal
+        valid specs index
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run build` — compile TypeScript and confirm zero errors
+      status: complete
+      command: bun run build
+    testing-2:
+      text: >-
+        Run `bun test/run.ts` — unit tests covering successful roadmap index conversion, successful
+        milestone conversion with all planning sections, planned change entry field mapping, status
+        enum mapping, malformed/unsupported shape producing manual follow-up, specs index
+        conversion, and idempotent-safe behavior when strict target exists
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: >-
+        Verify implementation matches proposal scope: roadmap and specs-index converters added, no
+        other migration paths changed
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

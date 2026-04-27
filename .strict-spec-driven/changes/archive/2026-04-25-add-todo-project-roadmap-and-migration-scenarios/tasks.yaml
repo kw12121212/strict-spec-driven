@@ -1,49 +1,46 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: add-todo-project-roadmap-and-migration-scenarios
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Add copied-workspace regression scenarios for `roadmap-status` and `roadmap-sync` in
-          `test/suites/roadmap-and-migration.ts`, asserting ordered output, planned-change state,
-          and any rewritten roadmap artifacts against the copied todo-project workspace.
-        status: complete
-      - id: implementation-2
-        text: >-
-          Add copied-workspace regression scenarios for `migrate`, asserting structured report
-          output and resulting `.strict-spec-driven/` artifacts from the copied todo-project
-          workspace while preserving source `.spec-driven/` inputs.
-        status: complete
-      - id: implementation-3
-        text: >-
-          Refine shared harness helpers or suite-local assertion utilities only where needed to keep
-          roadmap and migration project-fixture scenarios deterministic and baseline-safe.
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: >-
-          Run `bun run build` — build validation for roadmap and migration copied-workspace
-          regression coverage.
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: >-
-          Run `bun test/run.ts` — unit tests for roadmap and migration copied-workspace scenarios
-          and existing suites.
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: >-
-          Verify implementation matches proposal scope, covers only the remaining milestone-09
-          roadmap and migration scenarios, and preserves the committed fixture baseline.
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Add copied-workspace regression scenarios for `roadmap-status` and `roadmap-sync` in
+        `test/suites/roadmap-and-migration.ts`, asserting ordered output, planned-change state, and
+        any rewritten roadmap artifacts against the copied todo-project workspace.
+      status: complete
+    implementation-2:
+      text: >-
+        Add copied-workspace regression scenarios for `migrate`, asserting structured report output
+        and resulting `.strict-spec-driven/` artifacts from the copied todo-project workspace while
+        preserving source `.spec-driven/` inputs.
+      status: complete
+    implementation-3:
+      text: >-
+        Refine shared harness helpers or suite-local assertion utilities only where needed to keep
+        roadmap and migration project-fixture scenarios deterministic and baseline-safe.
+      status: complete
+  Testing:
+    testing-1:
+      text: >-
+        Run `bun run build` — build validation for roadmap and migration copied-workspace regression
+        coverage.
+      status: complete
+      command: bun run build
+    testing-2:
+      text: >-
+        Run `bun test/run.ts` — unit tests for roadmap and migration copied-workspace scenarios and
+        existing suites.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: >-
+        Verify implementation matches proposal scope, covers only the remaining milestone-09 roadmap
+        and migration scenarios, and preserves the committed fixture baseline.
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

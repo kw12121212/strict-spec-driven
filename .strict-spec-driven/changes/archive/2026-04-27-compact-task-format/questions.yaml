@@ -1,0 +1,17 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: compact-task-format
+open: []
+resolved:
+  - id: section-format
+    question: Should sections also become keyed maps, or only tasks?
+    context: Design choice about how far to take the keyed-map conversion.
+    answer: Both sections and tasks become keyed maps for maximum consistency and compression.
+    status: resolved
+  - id: schema-version
+    question: Should this be a schema version bump or stay at v1?
+    context: Determines migration strategy and backward compatibility requirements.
+    answer: Bump to task-list/v2 since the artifact shape changes fundamentally.
+    status: resolved

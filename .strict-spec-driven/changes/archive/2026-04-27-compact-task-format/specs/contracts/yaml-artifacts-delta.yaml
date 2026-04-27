@@ -1,0 +1,68 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation: []
+  tests: []
+operations:
+  ADDED:
+    - requirement:
+        id: yaml-task-list-v2-keyed-map-model
+        strength: MUST
+        statement: >-
+          The system MUST represent strict YAML task-list v2 artifacts with
+          sections as a keyed map (section name as key) and tasks as a keyed map
+          (task id as key), eliminating the need for separate `name` and `id`
+          fields.
+        scenarios:
+          sections-are-keyed-by-name:
+            - GIVEN: a strict YAML task-list v2 artifact is reviewed
+            - WHEN: the sections field is inspected
+            - THEN: sections is a mapping keyed by section name
+            - AND: each key is one of Implementation, Testing, or Verification
+            - AND: no separate `name` field exists within the section value
+          tasks-are-keyed-by-id:
+            - GIVEN: a strict YAML task-list v2 section is reviewed
+            - WHEN: the tasks within that section are inspected
+            - THEN: tasks is a mapping keyed by task identifier
+            - AND: each task value exposes text, status, and optional command fields
+            - AND: no separate `id` field exists within the task value
+          keyed-map-enforces-uniqueness:
+            - GIVEN: a strict YAML task-list v2 artifact is parsed
+            - WHEN: duplicate section names or task identifiers exist
+            - THEN: the duplicate is reported as a deterministic validation failure
+    - requirement:
+        id: yaml-task-list-v2-is-the-only-supported-shape
+        strength: MUST
+        statement: >-
+          The system MUST use task-list/v2 as the only supported task-list
+          artifact shape, with no v1 backward compatibility.
+        scenarios:
+          v1-artifacts-are-not-accepted:
+            - GIVEN: a strict YAML task-list v1 artifact is presented
+            - WHEN: validation or tooling loads the artifact
+            - THEN: the artifact is reported as a validation failure
+  MODIFIED:
+    - target_requirement: yaml-task-testing-gates
+      replacement:
+        id: yaml-task-testing-gates
+        strength: MUST
+        statement: >-
+          The system MUST represent validation and unit test task gates in
+          task-list artifacts through structured fields, referencing task keys
+          that exist within the Testing section.
+        scenarios:
+          testing-gates-are-machine-readable:
+            - GIVEN: a strict YAML task-list artifact is reviewed
+            - WHEN: testing gates are inspected
+            - THEN: the validation task reference is available as structured YAML data
+            - AND: the unit test task reference is available as structured YAML data
+            - AND: testing tasks expose explicit runnable command fields
+          testing-gates-reference-existing-task-keys:
+            - GIVEN: a strict YAML task-list artifact with testing_gates is validated
+            - WHEN: each gate reference is checked
+            - THEN: the referenced task key exists within the Testing section
+            - AND: the referenced task exposes a command field
+  REMOVED: []

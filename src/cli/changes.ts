@@ -6,11 +6,7 @@ import { listDirectoryNames } from "./fs.js";
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 
 type TaskListArtifact = {
-  sections?: Array<{
-    tasks?: Array<{
-      status?: string;
-    }>;
-  }>;
+  sections?: Record<string, Record<string, { status?: string }>>;
 };
 
 type QuestionListArtifact = {
@@ -51,8 +47,8 @@ export function readActiveChangeStatus(rootDir: string, changeName: string): str
     let total = 0;
     let complete = 0;
 
-    for (const section of tasksArtifact.sections ?? []) {
-      for (const task of section.tasks ?? []) {
+    for (const taskMap of Object.values(tasksArtifact.sections ?? {})) {
+      for (const task of Object.values(taskMap ?? {})) {
         total += 1;
         if (task.status === "complete") {
           complete += 1;

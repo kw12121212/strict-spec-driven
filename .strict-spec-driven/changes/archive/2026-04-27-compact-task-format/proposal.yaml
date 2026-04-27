@@ -1,0 +1,36 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: compact-task-format
+  status: proposed
+summary:
+  what:
+    - Convert tasks.yaml sections and tasks from array-of-objects to keyed maps, bumping the schema to task-list/v2.
+  why:
+    - Keyed maps eliminate the redundant `id` and `name` fields, saving ~10 tokens per task and ~5 tokens per section.
+    - YAML key uniqueness enforces task-id and section-name uniqueness structurally instead of requiring custom validation.
+    - The pattern is already established in main spec requirements (id-as-key) and should be consistent across artifact families.
+scope:
+  in:
+    - Update the task-list schema file to v2 with keyed-map shape for sections and tasks.
+    - Update the task-list example file to v2.
+    - Update the task-list scaffold template to v2.
+    - Add a v2 entry to the schema registry, marking v1 as superseded.
+    - Update validation code in src/verify.ts to handle v2 task-list shape.
+    - Update maintenance code in src/maintenance.ts to emit v2 shape.
+    - Update migration code in src/migrate/parsers/change-artifacts.ts to emit v2 shape.
+    - Add a v1-to-v2 converter in src/converters/ for migrating archived tasks.yaml files.
+    - Update all skill SKILL.md files that reference the task-list format or write tasks.yaml.
+    - Add a delta spec requirement for the v2 shape to contracts/yaml-artifacts.yaml.
+    - Migrate all 71 archived tasks.yaml files to v2.
+  out:
+    - Changing other artifact families (proposal, design, questions, etc.) to keyed-map format.
+    - Changing delta spec or main spec format.
+unchanged_behavior:
+  - The three fixed section names (Implementation, Testing, Verification) remain the same.
+  - Task fields (text, status, command) remain the same.
+  - testing_gates structure and references remain the same.
+  - Change lifecycle semantics remain the same.
+  - V1 task-list artifacts remain parseable during migration.

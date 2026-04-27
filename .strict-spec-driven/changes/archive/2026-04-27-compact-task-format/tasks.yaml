@@ -1,0 +1,58 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: compact-task-format
+sections:
+  Implementation:
+    update-schema:
+      text: >-
+        Update templates/strict-spec-driven/schemas/task-list.yaml to v2 with sections as a keyed
+        map and tasks as a keyed map. Add v2 entry to schema-registry.yaml.
+      status: complete
+    update-example-and-scaffold:
+      text: Update the task-list example file and scaffold template to use the v2 keyed-map shape.
+      status: complete
+    update-validation-code:
+      text: >-
+        Update src/verify.ts to handle both v1 and v2 task-list shapes. Detect v2 by checking
+        whether sections is a mapping rather than a sequence.
+      status: complete
+    add-v1-to-v2-converter:
+      text: >-
+        Add a converter function in src/converters/ that transforms v1 task-list artifacts (array
+        sections with id-bearing tasks) into v2 shape (keyed sections with keyed tasks).
+      status: complete
+    update-migration-code:
+      text: >-
+        Update src/migrate/parsers/change-artifacts.ts and src/maintenance.ts to emit v2 task-list
+        shape instead of v1.
+      status: complete
+    update-skills:
+      text: >-
+        Update all SKILL.md files that reference task-list format or write tasks.yaml to describe
+        the v2 keyed-map shape.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-token-savings:
+      text: >-
+        Verify that a representative v2 tasks.yaml is shorter in token count than the equivalent v1
+        format.
+      status: complete
+    verify-archive-migration:
+      text: >-
+        Verify that the v1-to-v2 converter correctly transforms at least 3 archived tasks.yaml files
+        without data loss.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

@@ -2,22 +2,6 @@ import { existsSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
-type Task = {
-  id: string;
-  text: string;
-  status: string;
-  command?: string;
-};
-
-type Section = {
-  name: string;
-  tasks: Task[];
-};
-
-type TaskListArtifact = {
-  sections: Section[];
-};
-
 export type ApplyResult = {
   sectionName: string;
   taskId: string;
@@ -26,40 +10,45 @@ export type ApplyResult = {
   remainingPending: number;
 };
 
-export function applyTask(tasksYamlContent: string): { result: ApplyResult; updatedYaml: string } {
-  const artifact = parseYamlDocument<TaskListArtifact>(tasksYamlContent);
-  let totalTasks = 0;
-  let targetSection: Section | undefined;
-  let targetTask: Task | undefined;
+type TaskMap = Record<string, { text: string; status: string; command?: string }>;
 
-  for (const section of artifact.sections) {
-    for (const task of section.tasks) {
+export function applyTask(tasksYamlContent: string): { result: ApplyResult; updatedYaml: string } {
+  const artifact = parseYamlDocument<{ sections: Record<string, TaskMap> }>(tasksYamlContent);
+  let totalTasks = 0;
+  let targetSectionName = "";
+  let targetTaskId = "";
+  let targetTaskText = "";
+
+  for (const [sectionName, taskMap] of Object.entries(artifact.sections)) {
+    for (const [taskId, task] of Object.entries(taskMap)) {
       totalTasks += 1;
-      if (!targetTask && task.status === "pending") {
-        targetSection = section;
-        targetTask = task;
+      if (!targetTaskId && task.status === "pending") {
+        targetSectionName = sectionName;
+        targetTaskId = taskId;
+        targetTaskText = task.text;
+        task.status = "complete";
       }
     }
   }
 
-  if (!targetTask || !targetSection) {
+  if (!targetTaskId) {
     throw new Error("no pending tasks remain");
   }
 
-  targetTask.status = "complete";
-
-  const remainingPending = totalTasks - artifact.sections.reduce(
-    (count, section) => count + section.tasks.filter((t) => t.status === "complete").length,
-    0,
-  );
+  let complete = 0;
+  for (const taskMap of Object.values(artifact.sections)) {
+    for (const task of Object.values(taskMap)) {
+      if (task.status === "complete") complete++;
+    }
+  }
 
   return {
     result: {
-      sectionName: targetSection.name,
-      taskId: targetTask.id,
-      taskText: targetTask.text,
+      sectionName: targetSectionName,
+      taskId: targetTaskId,
+      taskText: targetTaskText,
       totalTasks,
-      remainingPending,
+      remainingPending: totalTasks - complete,
     },
     updatedYaml: stringifyYamlDocument(artifact),
   };

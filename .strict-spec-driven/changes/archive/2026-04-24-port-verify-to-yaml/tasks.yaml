@@ -1,62 +1,59 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: port-verify-to-yaml
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Create `src/verify.ts` with `verifyChange()` that reads and schema-validates all change
-          artifacts (proposal, design, tasks, questions) against registered schemas
-        status: complete
-      - id: implementation-2
-        text: >-
-          Add task completion check (all tasks must be `status: complete`) and open questions check
-          (`open` list must be empty)
-        status: complete
-      - id: implementation-3
-        text: >-
-          Add testing gates validation that resolves `validation_task` and `unit_test_task`
-          references against the Testing section task IDs
-        status: complete
-      - id: implementation-4
-        text: >-
-          Add delta spec validation for all `.yaml` files under the change `specs/` directory
-          against the delta-spec schema
-        status: complete
-      - id: implementation-5
-        text: >-
-          Add exclusive active target enforcement that scans sibling active changes for overlapping
-          MODIFIED/REMOVED target_requirement values
-        status: complete
-      - id: implementation-6
-        text: >-
-          Register `verify` subcommand in `strict-spec-cli.ts` with change name argument, JSON
-          output, and non-zero exit on invalid state
-        status: complete
-      - id: implementation-7
-        text: Export new verify functions from `strict-spec-cli.ts` for test access
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: Run `bun run build` — build validation
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: >-
-          Run `bun test/run.ts` — unit tests covering valid change, incomplete tasks, open
-          questions, invalid testing gates, malformed delta specs, exclusive target conflicts, and
-          missing change errors
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: Verify implementation matches proposal scope
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Create `src/verify.ts` with `verifyChange()` that reads and schema-validates all change
+        artifacts (proposal, design, tasks, questions) against registered schemas
+      status: complete
+    implementation-2:
+      text: >-
+        Add task completion check (all tasks must be `status: complete`) and open questions check
+        (`open` list must be empty)
+      status: complete
+    implementation-3:
+      text: >-
+        Add testing gates validation that resolves `validation_task` and `unit_test_task` references
+        against the Testing section task IDs
+      status: complete
+    implementation-4:
+      text: >-
+        Add delta spec validation for all `.yaml` files under the change `specs/` directory against
+        the delta-spec schema
+      status: complete
+    implementation-5:
+      text: >-
+        Add exclusive active target enforcement that scans sibling active changes for overlapping
+        MODIFIED/REMOVED target_requirement values
+      status: complete
+    implementation-6:
+      text: >-
+        Register `verify` subcommand in `strict-spec-cli.ts` with change name argument, JSON output,
+        and non-zero exit on invalid state
+      status: complete
+    implementation-7:
+      text: Export new verify functions from `strict-spec-cli.ts` for test access
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run build` — build validation
+      status: complete
+      command: bun run build
+    testing-2:
+      text: >-
+        Run `bun test/run.ts` — unit tests covering valid change, incomplete tasks, open questions,
+        invalid testing gates, malformed delta specs, exclusive target conflicts, and missing change
+        errors
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: Verify implementation matches proposal scope
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

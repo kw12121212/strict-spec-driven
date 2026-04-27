@@ -1,46 +1,43 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: extract-cli-command-registry-and-dispatch
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Extract command inventory and subcommand registration from `src/strict-spec-cli.ts` into
-          focused CLI router or registry modules while preserving the current subcommand-to-handler
-          bindings and registration order.
-        status: complete
-      - id: implementation-2
-        text: >-
-          Update `src/strict-spec-cli.ts` and the CLI entry wiring to consume the extracted command
-          table without changing usage behavior, dispatch results, or exit codes.
-        status: complete
-      - id: implementation-3
-        text: >-
-          Add or update CLI regression coverage for no-arg invocation, unknown subcommands, command
-          listing order, and representative dispatched subcommands after registry extraction.
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: Run `bun run build` — build validation for the extracted CLI registry and dispatch wiring.
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: >-
-          Run `bun test/run.ts` — unit tests covering preserved usage text, registration order, and
-          subcommand dispatch behavior.
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: >-
-          Verify implementation matches proposal scope and does not absorb later helper extraction,
-          handler-by-domain refactors, or milestone 08 domain decomposition work.
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Extract command inventory and subcommand registration from `src/strict-spec-cli.ts` into
+        focused CLI router or registry modules while preserving the current subcommand-to-handler
+        bindings and registration order.
+      status: complete
+    implementation-2:
+      text: >-
+        Update `src/strict-spec-cli.ts` and the CLI entry wiring to consume the extracted command
+        table without changing usage behavior, dispatch results, or exit codes.
+      status: complete
+    implementation-3:
+      text: >-
+        Add or update CLI regression coverage for no-arg invocation, unknown subcommands, command
+        listing order, and representative dispatched subcommands after registry extraction.
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run build` — build validation for the extracted CLI registry and dispatch wiring.
+      status: complete
+      command: bun run build
+    testing-2:
+      text: >-
+        Run `bun test/run.ts` — unit tests covering preserved usage text, registration order, and
+        subcommand dispatch behavior.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: >-
+        Verify implementation matches proposal scope and does not absorb later helper extraction,
+        handler-by-domain refactors, or milestone 08 domain decomposition work.
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

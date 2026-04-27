@@ -1,56 +1,53 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: port-archive-to-yaml-merge
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Create archive lifecycle logic to load change artifacts, enforce pre-archive gates, and
-          collect delta specs for merge
-        status: complete
-      - id: implementation-2
-        text: >-
-          Implement deterministic YAML delta merge into main strict specs, including missing-target
-          fallback/skip rules and merge reporting
-        status: complete
-      - id: implementation-3
-        text: Regenerate strict specs index artifacts from merged spec state
-        status: complete
-      - id: implementation-4
-        text: >-
-          Move completed active changes into
-          `.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` with collision-safe behavior
-        status: complete
-      - id: implementation-5
-        text: >-
-          Register `archive` subcommand in `src/strict-spec-cli.ts` and emit deterministic JSON
-          result output
-        status: complete
-      - id: implementation-6
-        text: >-
-          Add/extend automated tests for archive happy path, invalid preconditions, and merge edge
-          cases
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: Run `bun run build` — build validation for archive command and merge utilities
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: >-
-          Run `bun test/run.ts` — unit tests for archive merge behavior, archive move behavior, and
-          failure diagnostics
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: Verify implementation matches proposal scope
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Create archive lifecycle logic to load change artifacts, enforce pre-archive gates, and
+        collect delta specs for merge
+      status: complete
+    implementation-2:
+      text: >-
+        Implement deterministic YAML delta merge into main strict specs, including missing-target
+        fallback/skip rules and merge reporting
+      status: complete
+    implementation-3:
+      text: Regenerate strict specs index artifacts from merged spec state
+      status: complete
+    implementation-4:
+      text: >-
+        Move completed active changes into
+        `.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` with collision-safe behavior
+      status: complete
+    implementation-5:
+      text: >-
+        Register `archive` subcommand in `src/strict-spec-cli.ts` and emit deterministic JSON result
+        output
+      status: complete
+    implementation-6:
+      text: >-
+        Add/extend automated tests for archive happy path, invalid preconditions, and merge edge
+        cases
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run build` — build validation for archive command and merge utilities
+      status: complete
+      command: bun run build
+    testing-2:
+      text: >-
+        Run `bun test/run.ts` — unit tests for archive merge behavior, archive move behavior, and
+        failure diagnostics
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: Verify implementation matches proposal scope
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

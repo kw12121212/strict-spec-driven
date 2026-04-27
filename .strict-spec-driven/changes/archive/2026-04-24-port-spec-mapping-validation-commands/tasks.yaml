@@ -1,37 +1,34 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: port-spec-mapping-validation-commands
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: Add `verify-spec-mappings` command routing and usage handling in `src/strict-spec-cli.ts`.
-        status: complete
-      - id: implementation-2
-        text: >-
-          Implement mapping coverage and unmapped evidence audit logic using existing spec parsing
-          helpers.
-        status: complete
-      - id: implementation-3
-        text: Add deterministic JSON output and diagnostics for audit results.
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: Run `bun run build` build validation after command and audit logic changes.
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: Run `bun test/run.ts` unit tests for mapping coverage and unmapped evidence diagnostics.
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: Verify implementation matches proposal scope
-        status: complete
+  Implementation:
+    implementation-1:
+      text: Add `verify-spec-mappings` command routing and usage handling in `src/strict-spec-cli.ts`.
+      status: complete
+    implementation-2:
+      text: >-
+        Implement mapping coverage and unmapped evidence audit logic using existing spec parsing
+        helpers.
+      status: complete
+    implementation-3:
+      text: Add deterministic JSON output and diagnostics for audit results.
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run build` build validation after command and audit logic changes.
+      status: complete
+      command: bun run build
+    testing-2:
+      text: Run `bun test/run.ts` unit tests for mapping coverage and unmapped evidence diagnostics.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: Verify implementation matches proposal scope
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

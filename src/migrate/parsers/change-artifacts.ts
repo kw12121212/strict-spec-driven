@@ -70,23 +70,13 @@ export type StrictChangeDesignArtifact = {
   risks?: string[];
 };
 
-export type StrictTaskListTask = {
-  id: string;
-  text: string;
-  status: "pending" | "complete";
-  command?: string;
-};
-
 export type StrictTaskListArtifact = {
-  schema: "strict-spec-driven/task-list/v1";
-  schema_version: 1;
+  schema: "strict-spec-driven/task-list/v2";
+  schema_version: 2;
   artifact_type: "task_list";
   schema_file: string;
   change: string;
-  sections: Array<{
-    name: "Implementation" | "Testing" | "Verification";
-    tasks: StrictTaskListTask[];
-  }>;
+  sections: Record<string, Record<string, { text: string; status: string; command?: string }>>;
   testing_gates: {
     validation_task: string;
     unit_test_task: string;
@@ -219,11 +209,13 @@ export function parseLegacyTasks(
 ): StrictTaskListArtifact {
   const sections = extractMarkdownSections(content.replace(/\r\n/g, "\n"));
 
+  type ParsedTask = { id: string; text: string; status: string; command?: string };
+
   function parseTaskSection(
     sectionName: "Implementation" | "Testing" | "Verification",
-  ): StrictTaskListTask[] {
+  ): ParsedTask[] {
     const sectionText = sections.get(sectionName) ?? "";
-    const tasks: StrictTaskListTask[] = [];
+    const tasks: ParsedTask[] = [];
     let currentText = "";
     let currentStatus: "pending" | "complete" | null = null;
     let index = 0;
@@ -237,7 +229,7 @@ export function parseLegacyTasks(
         throw new Error(`${sectionName} task in '${sourcePath}' is missing text`);
       }
       index += 1;
-      const task: StrictTaskListTask = {
+      const task: ParsedTask = {
         id: `${toKebabCase(sectionName)}-${index}`,
         text,
         status: currentStatus,
@@ -288,26 +280,26 @@ export function parseLegacyTasks(
     throw new Error(`tasks '${sourcePath}' must contain at least two Testing tasks for validation and unit test gates`);
   }
 
+  function toTaskMap(tasks: ParsedTask[]): Record<string, { text: string; status: string; command?: string }> {
+    const map: Record<string, { text: string; status: string; command?: string }> = {};
+    for (const t of tasks) {
+      const { id, ...rest } = t;
+      map[id] = rest;
+    }
+    return map;
+  }
+
   return {
-    schema: "strict-spec-driven/task-list/v1",
-    schema_version: 1,
+    schema: "strict-spec-driven/task-list/v2",
+    schema_version: 2,
     artifact_type: "task_list",
     schema_file: TASK_LIST_SCHEMA_FILE,
     change: changeId,
-    sections: [
-      {
-        name: "Implementation",
-        tasks: implementationTasks,
-      },
-      {
-        name: "Testing",
-        tasks: testingTasks,
-      },
-      {
-        name: "Verification",
-        tasks: verificationTasks,
-      },
-    ],
+    sections: {
+      Implementation: toTaskMap(implementationTasks),
+      Testing: toTaskMap(testingTasks),
+      Verification: toTaskMap(verificationTasks),
+    },
     testing_gates: {
       validation_task: testingTasks[0].id,
       unit_test_task: testingTasks[1].id,

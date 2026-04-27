@@ -1,47 +1,42 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: convert-core-workflow-artifacts-to-yaml
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Implement legacy main-spec and delta-spec converters for requirement, scenario, operation,
-          and mapping structures in `strict-spec-driven migrate`
-        status: complete
-      - id: implementation-2
-        text: >-
-          Implement active and archived change-artifact converters for proposal, design, tasks, and
-          questions YAML outputs while preserving status and archive-date behavior
-        status: complete
-      - id: implementation-3
-        text: >-
-          Extend migration fixtures and report handling so converted core workflow artifacts are
-          emitted as converted outputs and unsupported roadmap/project-state artifacts remain
-          deferred
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: Run `bun run build` — build validation for core-workflow migration converter integration
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: >-
-          Run `bun test/run.ts` — unit tests covering legacy spec, delta, active change, and
-          archived change migration behavior
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: >-
-          Verify implementation matches the milestone-05 scope without absorbing
-          roadmap/project-state conversion, the migrate skill, self-hosting, or milestone-06
-          operations work
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Implement legacy main-spec and delta-spec converters for requirement, scenario, operation,
+        and mapping structures in `strict-spec-driven migrate`
+      status: complete
+    implementation-2:
+      text: >-
+        Implement active and archived change-artifact converters for proposal, design, tasks, and
+        questions YAML outputs while preserving status and archive-date behavior
+      status: complete
+    implementation-3:
+      text: >-
+        Extend migration fixtures and report handling so converted core workflow artifacts are
+        emitted as converted outputs and unsupported roadmap/project-state artifacts remain deferred
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run build` — build validation for core-workflow migration converter integration
+      status: complete
+      command: bun run build
+    testing-2:
+      text: >-
+        Run `bun test/run.ts` — unit tests covering legacy spec, delta, active change, and archived
+        change migration behavior
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: >-
+        Verify implementation matches the milestone-05 scope without absorbing roadmap/project-state
+        conversion, the migrate skill, self-hosting, or milestone-06 operations work
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

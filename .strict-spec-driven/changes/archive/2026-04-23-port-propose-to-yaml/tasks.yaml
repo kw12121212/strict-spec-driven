@@ -1,50 +1,47 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: port-propose-to-yaml
 sections:
-  - name: Implementation
-    tasks:
-      - id: implementation-1
-        text: >-
-          Rename the CLI entry source filename from `src/index.ts` to `src/strict-spec-cli.ts` and
-          update related source references.
-        status: complete
-      - id: implementation-2
-        text: >-
-          Add strict CLI `propose` routing and name-validation behavior for
-          `.strict-spec-driven/changes/<name>/` scaffolding.
-        status: complete
-      - id: implementation-3
-        text: >-
-          Implement YAML artifact template seeding for `proposal.yaml`, `design.yaml`, `tasks.yaml`,
-          and `questions.yaml` plus `specs/` initialization.
-        status: complete
-      - id: implementation-4
-        text: >-
-          Add deterministic propose output, duplicate-change protection tests, and
-          entrypoint-reference coverage.
-        status: complete
-  - name: Testing
-    tasks:
-      - id: testing-1
-        text: >-
-          Run `bun run build` — build validation for strict propose command and template scaffolding
-          integration
-        status: complete
-        command: bun run build
-      - id: testing-2
-        text: >-
-          Run `bun test/run.ts` — unit tests covering strict propose creation, name validation, and
-          duplicate-change rejection
-        status: complete
-        command: bun test/run.ts
-  - name: Verification
-    tasks:
-      - id: verification-1
-        text: Verify implementation matches proposal scope
-        status: complete
+  Implementation:
+    implementation-1:
+      text: >-
+        Rename the CLI entry source filename from `src/index.ts` to `src/strict-spec-cli.ts` and
+        update related source references.
+      status: complete
+    implementation-2:
+      text: >-
+        Add strict CLI `propose` routing and name-validation behavior for
+        `.strict-spec-driven/changes/<name>/` scaffolding.
+      status: complete
+    implementation-3:
+      text: >-
+        Implement YAML artifact template seeding for `proposal.yaml`, `design.yaml`, `tasks.yaml`,
+        and `questions.yaml` plus `specs/` initialization.
+      status: complete
+    implementation-4:
+      text: >-
+        Add deterministic propose output, duplicate-change protection tests, and
+        entrypoint-reference coverage.
+      status: complete
+  Testing:
+    testing-1:
+      text: >-
+        Run `bun run build` — build validation for strict propose command and template scaffolding
+        integration
+      status: complete
+      command: bun run build
+    testing-2:
+      text: >-
+        Run `bun test/run.ts` — unit tests covering strict propose creation, name validation, and
+        duplicate-change rejection
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: Verify implementation matches proposal scope
+      status: complete
 testing_gates:
   validation_task: testing-1
   unit_test_task: testing-2

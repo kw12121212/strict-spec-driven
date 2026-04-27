@@ -1,57 +1,54 @@
-schema: strict-spec-driven/task-list/v1
-schema_version: 1
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
 artifact_type: task_list
 schema_file: templates/strict-spec-driven/schemas/task-list.yaml
 change: migrate-verify-spec-mappings-to-strict-specs-dir
 sections:
-  - name: Implementation
-    tasks:
-      - id: update-specs-dir-constant
-        text: >-
-          Replace LEGACY_SPECS_DIR with STRICT_SPECS_DIR pointing at .strict-spec-driven/specs, and
-          update EXCLUDED_MAPPING_SPEC_BASENAMES to exclude INDEX.yaml instead of INDEX.md.
-        status: complete
-      - id: replace-markdown-parsing-with-yaml-parsing
-        text: >-
-          Rewrite parseSpecMapping to parse strict YAML directly using parseYamlDocument and extract
-          the top-level mapping field, removing all Markdown frontmatter extraction logic.
-        status: complete
-      - id: update-diagnostic-messages
-        text: >-
-          Update all diagnostic strings in verifySpecMappings that reference .spec-driven/specs/ to
-          reference .strict-spec-driven/specs/ and change "markdown file" references to "YAML file".
-        status: complete
-      - id: update-test-fixtures
-        text: >-
-          Update any test cases in test/suites/operations.ts that set up verify-spec-mappings
-          fixtures using .spec-driven/specs/ to use .strict-spec-driven/specs/ instead.
-        status: complete
-  - name: Testing
-    tasks:
-      - id: run-build
-        text: Verify TypeScript compilation succeeds with no errors.
-        status: complete
-        command: bun run build
-      - id: run-tests
-        text: Run the full test suite and confirm all tests pass.
-        status: complete
-        command: bun test/run.ts
-      - id: verify-spec-mappings-against-self
-        text: >-
-          Run verify-spec-mappings against the repository and confirm valid:true with zero unmapped
-          files.
-        status: complete
-        command: node dist/strict-spec-cli.js verify-spec-mappings
-  - name: Verification
-    tasks:
-      - id: verify-no-legacy-dependency-remains
-        text: >-
-          Grep src/cli/spec-mapping.ts for any remaining references to .spec-driven or
-          LEGACY_SPECS_DIR and confirm none exist.
-        status: complete
-      - id: verify-spec-delta-covers-impacted-requirements
-        text: Confirm the delta spec under specs/ correctly reflects the modified requirement text.
-        status: complete
+  Implementation:
+    update-specs-dir-constant:
+      text: >-
+        Replace LEGACY_SPECS_DIR with STRICT_SPECS_DIR pointing at .strict-spec-driven/specs, and
+        update EXCLUDED_MAPPING_SPEC_BASENAMES to exclude INDEX.yaml instead of INDEX.md.
+      status: complete
+    replace-markdown-parsing-with-yaml-parsing:
+      text: >-
+        Rewrite parseSpecMapping to parse strict YAML directly using parseYamlDocument and extract
+        the top-level mapping field, removing all Markdown frontmatter extraction logic.
+      status: complete
+    update-diagnostic-messages:
+      text: >-
+        Update all diagnostic strings in verifySpecMappings that reference .spec-driven/specs/ to
+        reference .strict-spec-driven/specs/ and change "markdown file" references to "YAML file".
+      status: complete
+    update-test-fixtures:
+      text: >-
+        Update any test cases in test/suites/operations.ts that set up verify-spec-mappings fixtures
+        using .spec-driven/specs/ to use .strict-spec-driven/specs/ instead.
+      status: complete
+  Testing:
+    run-build:
+      text: Verify TypeScript compilation succeeds with no errors.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run the full test suite and confirm all tests pass.
+      status: complete
+      command: bun test/run.ts
+    verify-spec-mappings-against-self:
+      text: >-
+        Run verify-spec-mappings against the repository and confirm valid:true with zero unmapped
+        files.
+      status: complete
+      command: node dist/strict-spec-cli.js verify-spec-mappings
+  Verification:
+    verify-no-legacy-dependency-remains:
+      text: >-
+        Grep src/cli/spec-mapping.ts for any remaining references to .spec-driven or
+        LEGACY_SPECS_DIR and confirm none exist.
+      status: complete
+    verify-spec-delta-covers-impacted-requirements:
+      text: Confirm the delta spec under specs/ correctly reflects the modified requirement text.
+      status: complete
 testing_gates:
   validation_task: run-build
   unit_test_task: run-tests

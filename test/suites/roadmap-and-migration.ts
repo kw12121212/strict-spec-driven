@@ -1677,19 +1677,19 @@ try {
   );
 
   const migratedActiveTasks = yamlModule.parseYamlFile<{
-    sections: Array<{ name: string; tasks: Array<{ status: string; command?: string }> }>;
+    sections: Record<string, Record<string, { status: string; command?: string }>>;
     testing_gates: { validation_task: string; unit_test_task: string };
   }>(path.join(migrateHappyDir, ".strict-spec-driven", "changes", "demo-change", "tasks.yaml"));
   context.assert(
-    migratedActiveTasks.sections.find((section) => section.name === "Implementation")?.tasks[0]?.status === "pending",
+    migratedActiveTasks.sections["Implementation"]?.["implementation-1"]?.status === "pending",
     "migrate preserves pending active implementation task state",
   );
   context.assert(
-    migratedActiveTasks.sections.find((section) => section.name === "Testing")?.tasks[0]?.command === "bun run build",
+    migratedActiveTasks.sections["Testing"]?.["testing-1"]?.command === "bun run build",
     "migrate preserves explicit build command in migrated testing tasks",
   );
   context.assert(
-    migratedActiveTasks.sections.find((section) => section.name === "Testing")?.tasks[1]?.command === "bun test/run.ts",
+    migratedActiveTasks.sections["Testing"]?.["testing-2"]?.command === "bun test/run.ts",
     "migrate preserves explicit unit test command in migrated testing tasks",
   );
   context.assert(
@@ -1760,7 +1760,7 @@ try {
   );
 
   const migratedArchivedTasks = yamlModule.parseYamlFile<{
-    sections: Array<{ name: string; tasks: Array<{ status: string }> }>;
+    sections: Record<string, Record<string, { status: string }>>;
   }>(path.join(
     migrateHappyDir,
     ".strict-spec-driven",
@@ -1770,7 +1770,7 @@ try {
     "tasks.yaml",
   ));
   context.assert(
-    migratedArchivedTasks.sections.find((section) => section.name === "Implementation")?.tasks[0]?.status === "complete",
+    Object.values(migratedArchivedTasks.sections["Implementation"] ?? {})[0]?.status === "complete",
     "migrate preserves completed archived task state",
   );
 
@@ -2508,12 +2508,12 @@ const tasksArtifact = migrateConverterModule.parseLegacyTasks(
 );
 context.assert(
   tasksArtifact.change === "example-change"
-    && tasksArtifact.sections.find((section) => section.name === "Implementation")?.tasks[0]?.status === "pending",
+    && Object.values(tasksArtifact.sections["Implementation"] ?? {})[0]?.status === "pending",
   "parseLegacyTasks preserves change id and implementation task status",
 );
 context.assert(
-  tasksArtifact.sections.find((section) => section.name === "Testing")?.tasks[0]?.command === "bun run build"
-    && tasksArtifact.sections.find((section) => section.name === "Testing")?.tasks[1]?.command === "bun test/run.ts",
+  tasksArtifact.sections["Testing"]?.["testing-1"]?.command === "bun run build"
+    && tasksArtifact.sections["Testing"]?.["testing-2"]?.command === "bun test/run.ts",
   "parseLegacyTasks extracts backticked testing commands",
 );
 context.assert(
