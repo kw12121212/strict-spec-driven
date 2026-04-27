@@ -1,6 +1,6 @@
 import { runMaintenance } from "../maintenance.js";
 import { migrateLegacyWorkflow } from "../migrate.js";
-import { writeError, writeJson, writeUsage } from "./output.js";
+import { writeErr, writeError, writeJson, writeUsage } from "./output.js";
 
 export function runMigrate(argv: string[]): number {
   let force = false;
@@ -14,7 +14,10 @@ export function runMigrate(argv: string[]): number {
   }
 
   try {
-    const result = migrateLegacyWorkflow(process.cwd(), { force });
+    const result = migrateLegacyWorkflow(process.cwd(), {
+      force,
+      onProgress: (phase) => writeErr(`[migrate ${new Date().toISOString()}] ${phase}\n`),
+    });
     writeJson(result);
     return result.valid ? 0 : 1;
   } catch (error) {

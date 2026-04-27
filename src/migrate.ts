@@ -25,7 +25,12 @@ import { LEGACY_CONFIG_PATH, STRICT_CONFIG_PATH, getReportedStrictScaffoldAssets
 export { parseLegacyDesign, parseLegacyProposal, parseLegacyQuestions, parseLegacyTasks } from "./migrate/parsers/change-artifacts.js";
 export type { MigrationConvertedArtifact, MigrationSkippedArtifact, MigrationDiagnostic, MigrationManualFollowUp, MigrationResult } from "./migrate/reporting.js";
 
-export function migrateLegacyWorkflow(rootDir: string, options?: { force?: boolean }): MigrationResult {
+export type MigrationProgressCallback = (phase: string) => void;
+
+export function migrateLegacyWorkflow(
+  rootDir: string,
+  options?: { force?: boolean; onProgress?: MigrationProgressCallback },
+): MigrationResult {
   const legacyRootAbsolutePath = path.join(rootDir, LEGACY_WORKFLOW_DIR);
   const strictRootAbsolutePath = path.join(rootDir, STRICT_WORKFLOW_DIR);
   const result: MigrationResult = {
@@ -87,6 +92,8 @@ export function migrateLegacyWorkflow(rootDir: string, options?: { force?: boole
     .map((absolutePath) => toRepoRelativePath(rootDir, absolutePath))
     .sort((left, right) => left.localeCompare(right));
 
+  options?.onProgress?.(`scanning: found ${legacyFiles.length} legacy files`);
+
   initializeStrictScaffold(rootDir);
   const strictConfigAbsolutePath = path.join(rootDir, STRICT_CONFIG_PATH);
   writeFileSync(strictConfigAbsolutePath, stringifyYamlDocument(strictConfig), "utf8");
@@ -108,15 +115,21 @@ export function migrateLegacyWorkflow(rootDir: string, options?: { force?: boole
     });
   }
 
+  options?.onProgress?.("converting: specs");
   convertLegacySpecArtifacts(rootDir, result, handledLegacyFiles);
+
+  options?.onProgress?.("converting: changes");
   convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles);
+
+  options?.onProgress?.("converting: roadmap");
   convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles);
   convertLegacySpecsIndex(rootDir, result, handledLegacyFiles);
 
-  for (const legacyFile of legacyFiles) {
-    if (handledLegacyFiles.has(legacyFile)) {
-      continue;
-    }
+  const unhandled = legacyFiles.filter((f) => !handledLegacyFiles.has(f));
+  if (unhandled.length > 0) {
+    options?.onProgress?.(`deferring: ${unhandled.length} unhandled files`);
+  }
+  for (const legacyFile of unhandled) {
     const deferredArtifact = describeDeferredLegacyArtifact(legacyFile);
     recordDeferredArtifact(
       result,
@@ -127,6 +140,10 @@ export function migrateLegacyWorkflow(rootDir: string, options?: { force?: boole
       "converter_unavailable",
     );
   }
+
+  options?.onProgress?.(
+    `done: ${result.converted.length} converted, ${result.skipped.length} skipped, ${result.warnings.length} warnings, ${result.errors.length} errors`,
+  );
 
   result.valid = true;
   return sortMigrationResult(result);
