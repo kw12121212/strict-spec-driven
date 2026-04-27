@@ -114,11 +114,27 @@ entries:
     schema_file: roadmap-index.yaml
     primary_example: ../examples/roadmap-index.yaml
     compatibility:
-      status: current
+      status: superseded
       introduced_in: 1
       supersedes: []
+      superseded_by: strict-spec-driven/roadmap-index/v2
       compatible_with: []
-      notes: []
+      notes:
+        - Superseded by v2 keyed milestone map format.
+  - schema_id: strict-spec-driven/roadmap-index/v2
+    schema_version: 2
+    artifact_type: roadmap_index
+    artifact_name: roadmap-index
+    schema_file: roadmap-index.yaml
+    primary_example: ../examples/roadmap-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 2
+      supersedes:
+        - strict-spec-driven/roadmap-index/v1
+      compatible_with: []
+      notes:
+        - Milestones use keyed map with 4-digit-prefixed IDs instead of array.
   - schema_id: strict-spec-driven/roadmap-milestone/v1
     schema_version: 1
     artifact_type: roadmap_milestone
@@ -126,23 +142,29 @@ entries:
     schema_file: roadmap-milestone.yaml
     primary_example: ../examples/roadmap-milestone.yaml
     compatibility:
-      status: current
+      status: superseded
       introduced_in: 1
       supersedes: []
+      superseded_by: strict-spec-driven/roadmap-milestone/v2
       compatible_with: []
-      notes: []
-  - schema_id: strict-spec-driven/planned-change-entry/v1
-    schema_version: 1
-    artifact_type: planned_change_entry
-    artifact_name: planned-change-entry
-    schema_file: planned-change-entry.yaml
-    primary_example: ../examples/planned-change-entry.yaml
+      notes:
+        - Superseded by v2 keyed identity and keyed planned changes format.
+  - schema_id: strict-spec-driven/roadmap-milestone/v2
+    schema_version: 2
+    artifact_type: roadmap_milestone
+    artifact_name: roadmap-milestone
+    schema_file: roadmap-milestone.yaml
+    primary_example: ../examples/roadmap-milestone.yaml
     compatibility:
       status: current
-      introduced_in: 1
-      supersedes: []
+      introduced_in: 2
+      supersedes:
+        - strict-spec-driven/roadmap-milestone/v1
       compatible_with: []
-      notes: []
+      notes:
+        - Milestone identity is a keyed map with 4-digit-prefixed key.
+        - Planned changes use keyed map with required details field.
+        - Planned-change-entry no longer exists as independent artifact type.
   - schema_id: strict-spec-driven/schema-registry/v1
     schema_version: 1
     artifact_type: schema_registry
@@ -182,13 +204,10 @@ migration:
       schema_id: strict-spec-driven/spec-index/v1
     - legacy_role: roadmap_index_markdown
       artifact_type: roadmap_index
-      schema_id: strict-spec-driven/roadmap-index/v1
+      schema_id: strict-spec-driven/roadmap-index/v2
     - legacy_role: roadmap_milestone_markdown
       artifact_type: roadmap_milestone
-      schema_id: strict-spec-driven/roadmap-milestone/v1
-    - legacy_role: planned_change_entry_markdown
-      artifact_type: planned_change_entry
-      schema_id: strict-spec-driven/planned-change-entry/v1
+      schema_id: strict-spec-driven/roadmap-milestone/v2
   unsupported_shape_reporting:
     warning_fields:
       - source_path

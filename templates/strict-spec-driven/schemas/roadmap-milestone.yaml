@@ -1,9 +1,9 @@
 schema: strict-spec-driven/schema/v1
 schema_version: 1
-schema_id: strict-spec-driven/roadmap-milestone/v1
+schema_id: strict-spec-driven/roadmap-milestone/v2
 artifact_type: roadmap_milestone
 artifact_name: roadmap-milestone
-description: Strict YAML roadmap milestone artifact.
+description: Strict YAML roadmap milestone artifact (v2 — keyed milestone identity, keyed planned changes with required details).
 example_ref: ../examples/roadmap-milestone.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
@@ -26,10 +26,10 @@ json_schema:
   properties:
     schema:
       type: string
-      const: strict-spec-driven/roadmap-milestone/v1
+      const: strict-spec-driven/roadmap-milestone/v2
     schema_version:
       type: integer
-      const: 1
+      const: 2
     artifact_type:
       type: string
       const: roadmap_milestone
@@ -38,14 +38,17 @@ json_schema:
     milestone:
       type: object
       additionalProperties: false
-      required:
-        - id
-        - title
-      properties:
-        id:
-          type: string
-        title:
-          type: string
+      minProperties: 1
+      maxProperties: 1
+      patternProperties:
+        "^\\d{4}-":
+          type: object
+          additionalProperties: false
+          required:
+            - title
+          properties:
+            title:
+              type: string
     goal:
       type: string
     scope:
@@ -68,45 +71,32 @@ json_schema:
       items:
         type: string
     planned_changes:
-      type: array
-      maxItems: 10
-      items:
-        type: object
-        additionalProperties: false
-        required:
-          - schema
-          - schema_version
-          - artifact_type
-          - schema_file
-          - id
-          - status
-          - summary
-          - depends_on
-        properties:
-          schema:
-            type: string
-            const: strict-spec-driven/planned-change-entry/v1
-          schema_version:
-            type: integer
-            const: 1
-          artifact_type:
-            type: string
-            const: planned_change_entry
-          schema_file:
-            type: string
-          id:
-            type: string
-          status:
-            type: string
-            enum:
-              - planned
-              - complete
-          summary:
-            type: string
-          depends_on:
-            type: array
-            items:
+      type: object
+      additionalProperties: false
+      patternProperties:
+        "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
+          type: object
+          additionalProperties: false
+          required:
+            - status
+            - summary
+            - details
+            - depends_on
+          properties:
+            status:
               type: string
+              enum:
+                - planned
+                - complete
+            summary:
+              type: string
+            details:
+              type: string
+              minLength: 1
+            depends_on:
+              type: array
+              items:
+                type: string
     dependencies:
       type: array
       items:

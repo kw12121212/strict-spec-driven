@@ -100,7 +100,8 @@ export function convertLegacyRoadmapArtifacts(
       const strictMilestonePath = toPosix(
         legacyMilestoneFile
           .replace(`${LEGACY_ROADMAP_DIR}/`, `${STRICT_ROADMAP_DIR}/`)
-          .replace(/\.md$/i, ".yaml"),
+          .replace(/\.md$/i, ".yaml")
+          .replace(/milestones\/\d+-/, (match) => match.replace(/\d+/, (digits) => digits.padStart(4, "0"))),
       );
       writeYamlFile(buildStrictMarkdownTargetPath(rootDir, strictMilestonePath), conversionResult.artifact);
       result.converted.push({

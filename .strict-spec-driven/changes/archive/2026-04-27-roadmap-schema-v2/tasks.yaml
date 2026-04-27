@@ -1,0 +1,71 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: roadmap-schema-v2
+sections:
+  Implementation:
+    update-roadmap-milestone-schema:
+      text: >-
+        Update roadmap-milestone.yaml schema to v2 — keyed milestone identity, keyed planned_changes
+        with required details, 4-digit ID pattern.
+      status: complete
+    update-roadmap-index-schema:
+      text: Update roadmap-index.yaml schema to v2 — keyed milestones map with 4-digit ID pattern.
+      status: complete
+    delete-planned-change-entry-schema:
+      text: Delete planned-change-entry.yaml schema file and planned-change-entry.yaml example file.
+      status: complete
+    update-registry:
+      text: >-
+        Update registry.yaml — add roadmap-milestone/v2 and roadmap-index/v2 entries, mark v1
+        entries as superseded, remove planned-change-entry entry.
+      status: complete
+    update-examples:
+      text: >-
+        Update all roadmap examples to v2 shapes (roadmap-milestone.yaml,
+        roadmap-milestone.planning.yaml, roadmap-index.yaml, roadmap-index.ordering.yaml). Delete
+        planned-change-entry example.
+      status: complete
+    update-spec-requirements:
+      text: >-
+        Update yaml-artifacts.yaml spec requirements — rewrite roadmap-milestone, roadmap-index,
+        planned-change-entry, example coverage, and migration requirements for v2 shapes.
+      status: complete
+    update-validation:
+      text: >-
+        Update validation.ts to validate v2 roadmap-milestone and roadmap-index shapes, enforce
+        4-digit ID patterns, and reject v1 roadmap shapes.
+      status: complete
+    update-converters:
+      text: Update converters/roadmap.ts to generate v2 roadmap artifacts.
+      status: complete
+    update-scaffold:
+      text: Update scaffold.ts to produce v2 roadmap scaffold artifacts.
+      status: complete
+    update-migration:
+      text: >-
+        Update migrate.ts to remove planned-change-entry role mapping and produce v2 roadmap
+        artifacts.
+      status: complete
+    update-skills:
+      text: Audit and update skill prompts that reference planned-change-entry or v1 roadmap shapes.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify all roadmap examples parse as valid v2 artifacts and all planned-change-entry
+        references are removed from codebase.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

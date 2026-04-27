@@ -1,5 +1,4 @@
 import {
-  PLANNED_CHANGE_SCHEMA_ID,
   ROADMAP_INDEX_SCHEMA_ID,
   ROADMAP_MILESTONE_SCHEMA_ID,
   type PlannedChangeEntry,
@@ -17,6 +16,8 @@ import {
   isRepoRelativePath,
   makeDiagnostic,
 } from "./shared.js";
+
+const MILESTONE_ID_PATTERN = /^\d{4}-/;
 
 function validateString(
   parent: Record<string, unknown>,
@@ -71,6 +72,11 @@ function validateStringArray(
   return result;
 }
 
+function extractKeyedMapKey(obj: Record<string, unknown>): string | null {
+  const keys = Object.keys(obj);
+  return keys.length === 1 ? keys[0] : null;
+}
+
 export function validateRoadmapIndexArtifact(
   artifact: unknown,
   artifactPath: string,
@@ -86,8 +92,8 @@ export function validateRoadmapIndexArtifact(
       makeDiagnostic("schema", artifactPath, "$.schema", "schema mismatch", ROADMAP_INDEX_SCHEMA_ID, String(artifact.schema)),
     );
   }
-  if (artifact.schema_version !== 1) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema_version", "schema_version mismatch", "1", String(artifact.schema_version)));
+  if (artifact.schema_version !== 2) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema_version", "schema_version mismatch", "2", String(artifact.schema_version)));
   }
   if (artifact.artifact_type !== "roadmap_index") {
     diagnostics.push(
@@ -97,30 +103,43 @@ export function validateRoadmapIndexArtifact(
 
   const schemaFile = validateString(artifact, "schema_file", artifactPath, "$.schema_file", diagnostics);
   const rawMilestones = artifact.milestones;
-  if (!Array.isArray(rawMilestones)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.milestones", "milestones must be a sequence", "sequence", String(rawMilestones)));
+  if (!isRecord(rawMilestones)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.milestones", "milestones must be a keyed mapping", "keyed mapping", String(rawMilestones)));
     return null;
   }
 
   const milestones: RoadmapIndexEntry[] = [];
   const seenIds = new Set<string>();
-  for (const [index, entry] of rawMilestones.entries()) {
-    if (!isRecord(entry)) {
+  for (const [key, value] of Object.entries(rawMilestones)) {
+    if (!MILESTONE_ID_PATTERN.test(key)) {
       diagnostics.push(
-        makeDiagnostic("schema", artifactPath, `$.milestones[${index}]`, "milestone entry must be a mapping", "mapping", typeof entry),
+        makeDiagnostic("schema", artifactPath, `$.milestones.${key}`, "milestone key must start with 4 digits followed by a hyphen", "NNNN- prefix", key),
       );
       continue;
     }
-    const id = validateString(entry, "id", artifactPath, `$.milestones[${index}].id`, diagnostics);
-    const title = validateString(entry, "title", artifactPath, `$.milestones[${index}].title`, diagnostics);
-    const milestonePath = validateString(entry, "path", artifactPath, `$.milestones[${index}].path`, diagnostics);
-    const statusValue = entry.status;
+    if (!isRecord(value)) {
+      diagnostics.push(
+        makeDiagnostic("schema", artifactPath, `$.milestones.${key}`, "milestone entry must be a mapping", "mapping", typeof value),
+      );
+      continue;
+    }
+    if (seenIds.has(key)) {
+      diagnostics.push(
+        makeDiagnostic("schema", artifactPath, `$.milestones.${key}`, "duplicate milestone id", "unique milestone id", key),
+      );
+      continue;
+    }
+    seenIds.add(key);
+
+    const title = validateString(value, "title", artifactPath, `$.milestones.${key}.title`, diagnostics);
+    const milestonePath = validateString(value, "path", artifactPath, `$.milestones.${key}.path`, diagnostics);
+    const statusValue = value.status;
     if (!isDeclaredRoadmapStatus(statusValue)) {
       diagnostics.push(
         makeDiagnostic(
           "schema",
           artifactPath,
-          `$.milestones[${index}].status`,
+          `$.milestones.${key}.status`,
           "unsupported milestone status",
           "proposed, active, blocked, complete",
           String(statusValue),
@@ -132,25 +151,18 @@ export function validateRoadmapIndexArtifact(
         makeDiagnostic(
           "schema",
           artifactPath,
-          `$.milestones[${index}].path`,
+          `$.milestones.${key}.path`,
           "milestone path must be repo-relative",
           "repo-relative path",
           milestonePath,
         ),
       );
     }
-    if (!id || !title || !milestonePath || !isDeclaredRoadmapStatus(statusValue)) {
+    if (!title || !milestonePath || !isDeclaredRoadmapStatus(statusValue)) {
       continue;
     }
-    if (seenIds.has(id)) {
-      diagnostics.push(
-        makeDiagnostic("schema", artifactPath, `$.milestones[${index}].id`, "duplicate milestone id", "unique milestone id", id),
-      );
-      continue;
-    }
-    seenIds.add(id);
     milestones.push({
-      id,
+      id: key,
       title,
       path: milestonePath,
       status: statusValue,
@@ -163,7 +175,7 @@ export function validateRoadmapIndexArtifact(
 
   return {
     schema: ROADMAP_INDEX_SCHEMA_ID,
-    schema_version: 1,
+    schema_version: 2,
     artifact_type: "roadmap_index",
     schema_file: schemaFile,
     milestones,
@@ -171,42 +183,21 @@ export function validateRoadmapIndexArtifact(
 }
 
 function validatePlannedChangeEntry(
-  entry: unknown,
+  value: unknown,
+  changeKey: string,
   artifactPath: string,
   fieldPath: string,
   diagnostics: RoadmapDiagnostic[],
 ): PlannedChangeEntry | null {
-  if (!isRecord(entry)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "planned change entry must be a mapping", "mapping", typeof entry));
+  if (!isRecord(value)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "planned change entry must be a mapping", "mapping", typeof value));
     return null;
   }
 
-  if (entry.schema !== PLANNED_CHANGE_SCHEMA_ID) {
-    diagnostics.push(
-      makeDiagnostic("schema", artifactPath, `${fieldPath}.schema`, "schema mismatch", PLANNED_CHANGE_SCHEMA_ID, String(entry.schema)),
-    );
-  }
-  if (entry.schema_version !== 1) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.schema_version`, "schema_version mismatch", "1", String(entry.schema_version)));
-  }
-  if (entry.artifact_type !== "planned_change_entry") {
-    diagnostics.push(
-      makeDiagnostic(
-        "schema",
-        artifactPath,
-        `${fieldPath}.artifact_type`,
-        "artifact_type mismatch",
-        "planned_change_entry",
-        String(entry.artifact_type),
-      ),
-    );
-  }
-
-  const schemaFile = validateString(entry, "schema_file", artifactPath, `${fieldPath}.schema_file`, diagnostics);
-  const id = validateString(entry, "id", artifactPath, `${fieldPath}.id`, diagnostics);
-  const summary = validateString(entry, "summary", artifactPath, `${fieldPath}.summary`, diagnostics);
-  const dependsOn = validateStringArray(entry, "depends_on", artifactPath, `${fieldPath}.depends_on`, diagnostics);
-  const statusValue = entry.status;
+  const summary = validateString(value, "summary", artifactPath, `${fieldPath}.summary`, diagnostics);
+  const details = validateString(value, "details", artifactPath, `${fieldPath}.details`, diagnostics);
+  const dependsOn = validateStringArray(value, "depends_on", artifactPath, `${fieldPath}.depends_on`, diagnostics);
+  const statusValue = value.status;
   if (!isDeclaredPlannedChangeStatus(statusValue)) {
     diagnostics.push(
       makeDiagnostic(
@@ -220,18 +211,14 @@ function validatePlannedChangeEntry(
     );
   }
 
-  if (!schemaFile || !id || !summary || !dependsOn || !isDeclaredPlannedChangeStatus(statusValue)) {
+  if (!summary || !details || !dependsOn || !isDeclaredPlannedChangeStatus(statusValue)) {
     return null;
   }
 
   return {
-    schema: PLANNED_CHANGE_SCHEMA_ID,
-    schema_version: 1,
-    artifact_type: "planned_change_entry",
-    schema_file: schemaFile,
-    id,
     status: statusValue,
     summary,
+    details,
     depends_on: dependsOn,
   };
 }
@@ -251,8 +238,8 @@ export function validateMilestoneArtifact(
       makeDiagnostic("schema", artifactPath, "$.schema", "schema mismatch", ROADMAP_MILESTONE_SCHEMA_ID, String(artifact.schema)),
     );
   }
-  if (artifact.schema_version !== 1) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema_version", "schema_version mismatch", "1", String(artifact.schema_version)));
+  if (artifact.schema_version !== 2) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema_version", "schema_version mismatch", "2", String(artifact.schema_version)));
   }
   if (artifact.artifact_type !== "roadmap_milestone") {
     diagnostics.push(
@@ -301,15 +288,26 @@ export function validateMilestoneArtifact(
   const rawMilestone = artifact.milestone;
   let milestone: MilestoneIdentity | null = null;
   if (!isRecord(rawMilestone)) {
-    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.milestone", "milestone must be a mapping", "mapping", typeof rawMilestone));
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.milestone", "milestone must be a keyed mapping", "keyed mapping", typeof rawMilestone));
   } else {
-    const milestoneId = validateString(rawMilestone, "id", artifactPath, "$.milestone.id", diagnostics);
-    const milestoneTitle = validateString(rawMilestone, "title", artifactPath, "$.milestone.title", diagnostics);
-    if (milestoneId && milestoneTitle) {
-      milestone = {
-        id: milestoneId,
-        title: milestoneTitle,
-      };
+    const milestoneKey = extractKeyedMapKey(rawMilestone);
+    if (!milestoneKey) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, "$.milestone", "milestone must contain exactly one keyed entry", "single keyed entry", `${Object.keys(rawMilestone).length} keys`));
+    } else if (!MILESTONE_ID_PATTERN.test(milestoneKey)) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestone.${milestoneKey}`, "milestone key must start with 4 digits followed by a hyphen", "NNNN- prefix", milestoneKey));
+    } else {
+      const milestoneValue = rawMilestone[milestoneKey];
+      if (!isRecord(milestoneValue)) {
+        diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestone.${milestoneKey}`, "milestone value must be a mapping", "mapping", typeof milestoneValue));
+      } else {
+        const milestoneTitle = validateString(milestoneValue, "title", artifactPath, `$.milestone.${milestoneKey}.title`, diagnostics);
+        if (milestoneTitle) {
+          milestone = {
+            id: milestoneKey,
+            title: milestoneTitle,
+          };
+        }
+      }
     }
   }
 
@@ -326,50 +324,47 @@ export function validateMilestoneArtifact(
   }
 
   const rawPlannedChanges = artifact.planned_changes;
-  if (!Array.isArray(rawPlannedChanges)) {
+  if (!isRecord(rawPlannedChanges)) {
     diagnostics.push(
-      makeDiagnostic("schema", artifactPath, "$.planned_changes", "planned_changes must be a sequence", "sequence", String(rawPlannedChanges)),
+      makeDiagnostic("schema", artifactPath, "$.planned_changes", "planned_changes must be a keyed mapping", "keyed mapping", String(rawPlannedChanges)),
     );
     return null;
   }
-  if (rawPlannedChanges.length > 10) {
-    diagnostics.push(
-      makeDiagnostic("schema", artifactPath, "$.planned_changes", "planned_changes exceeds max_items", "10 or fewer items", String(rawPlannedChanges.length)),
-    );
-  }
 
-  const plannedChanges: PlannedChangeEntry[] = [];
+  const plannedChanges: Record<string, PlannedChangeEntry> = {};
   const seenIds = new Set<string>();
-  for (const [index, entry] of rawPlannedChanges.entries()) {
-    const parsed = validatePlannedChangeEntry(entry, artifactPath, `$.planned_changes[${index}]`, diagnostics);
-    if (!parsed) continue;
-    if (seenIds.has(parsed.id)) {
+  for (const [changeKey, changeValue] of Object.entries(rawPlannedChanges)) {
+    if (seenIds.has(changeKey)) {
       diagnostics.push(
         makeDiagnostic(
           "schema",
           artifactPath,
-          `$.planned_changes[${index}].id`,
+          `$.planned_changes.${changeKey}`,
           "duplicate planned change id",
           "unique planned change id",
-          parsed.id,
+          changeKey,
         ),
       );
       continue;
     }
-    seenIds.add(parsed.id);
-    plannedChanges.push(parsed);
+    seenIds.add(changeKey);
+
+    const parsed = validatePlannedChangeEntry(changeValue, changeKey, artifactPath, `$.planned_changes.${changeKey}`, diagnostics);
+    if (parsed) {
+      plannedChanges[changeKey] = parsed;
+    }
   }
 
-  const plannedChangeIds = new Set(plannedChanges.map((entry) => entry.id));
-  const plannedChangeIndexById = new Map(plannedChanges.map((entry, index) => [entry.id, index]));
-  for (const [index, entry] of plannedChanges.entries()) {
+  const plannedChangeIds = new Set(Object.keys(plannedChanges));
+  const plannedChangeKeys = Object.keys(plannedChanges);
+  for (const [changeKey, entry] of Object.entries(plannedChanges)) {
     for (const [dependsOnIndex, dependsOn] of entry.depends_on.entries()) {
-      if (dependsOn === entry.id) {
+      if (dependsOn === changeKey) {
         diagnostics.push(
           makeDiagnostic(
             "semantic",
             artifactPath,
-            `$.planned_changes[${index}].depends_on[${dependsOnIndex}]`,
+            `$.planned_changes.${changeKey}.depends_on[${dependsOnIndex}]`,
             "planned change cannot depend on itself",
             "different planned change id",
             dependsOn,
@@ -382,9 +377,9 @@ export function validateMilestoneArtifact(
           makeDiagnostic(
             "reference",
             artifactPath,
-            `$.planned_changes[${index}].depends_on[${dependsOnIndex}]`,
+            `$.planned_changes.${changeKey}.depends_on[${dependsOnIndex}]`,
             "planned change dependency is missing from this milestone",
-            "$.planned_changes[*].id",
+            "$.planned_changes keys",
             dependsOn,
           ),
         );
@@ -403,12 +398,11 @@ export function validateMilestoneArtifact(
       const cycleKey = cycle.join("->");
       if (reportedCycles.has(cycleKey)) return;
       reportedCycles.add(cycleKey);
-      const index = plannedChangeIndexById.get(id);
       diagnostics.push(
         makeDiagnostic(
           "semantic",
           artifactPath,
-          typeof index === "number" ? `$.planned_changes[${index}].depends_on` : "$.planned_changes",
+          `$.planned_changes.${id}.depends_on`,
           "planned change dependencies must be acyclic",
           "acyclic dependency graph",
           cycle.join(" -> "),
@@ -418,8 +412,7 @@ export function validateMilestoneArtifact(
     }
     if (visited.has(id)) return;
     visiting.add(id);
-    const entryIndex = plannedChangeIndexById.get(id);
-    const entry = typeof entryIndex === "number" ? plannedChanges[entryIndex] : null;
+    const entry = plannedChanges[id];
     for (const dependsOn of entry?.depends_on ?? []) {
       if (plannedChangeIds.has(dependsOn) && dependsOn !== id) {
         visit(dependsOn, [...trail, id]);
@@ -429,8 +422,8 @@ export function validateMilestoneArtifact(
     visited.add(id);
   }
 
-  for (const entry of plannedChanges) {
-    visit(entry.id, []);
+  for (const changeKey of plannedChangeKeys) {
+    visit(changeKey, []);
   }
 
   if (!schemaFile || !milestone || !goal || !scope || !doneCriteria || !dependencies || !risks || !notes || !isDeclaredRoadmapStatus(statusValue)) {
@@ -439,7 +432,7 @@ export function validateMilestoneArtifact(
 
   return {
     schema: ROADMAP_MILESTONE_SCHEMA_ID,
-    schema_version: 1,
+    schema_version: 2,
     artifact_type: "roadmap_milestone",
     schema_file: schemaFile,
     milestone,

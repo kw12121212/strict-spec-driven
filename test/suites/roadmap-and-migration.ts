@@ -31,14 +31,18 @@ function writeRoadmapIndexArtifact(
 ): void {
   const indexPath = path.join(rootDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
   mkdirSync(path.dirname(indexPath), { recursive: true });
+  const milestonesMap: Record<string, { title: string; path: string; status: string }> = {};
+  for (const m of milestones) {
+    milestonesMap[m.id] = { title: m.title, path: m.path, status: m.status };
+  }
   writeFileSync(
     indexPath,
     yamlModule.stringifyYamlDocument({
-      schema: "strict-spec-driven/roadmap-index/v1",
-      schema_version: 1,
+      schema: "strict-spec-driven/roadmap-index/v2",
+      schema_version: 2,
       artifact_type: "roadmap_index",
       schema_file: "../schemas/roadmap-index.yaml",
-      milestones,
+      milestones: milestonesMap,
     }),
     "utf8",
   );
@@ -58,33 +62,27 @@ function writeRoadmapMilestoneArtifact(
 ): void {
   const milestonePath = path.join(rootDir, ".strict-spec-driven", "roadmap", "milestones", fileName);
   mkdirSync(path.dirname(milestonePath), { recursive: true });
+  const milestoneKeyed: Record<string, { title: string }> = {};
+  milestoneKeyed[options.id] = { title: options.title };
+  const plannedChangesMap: Record<string, { status: string; summary: string; details: string; depends_on: string[] }> = {};
+  for (const pc of options.plannedChanges) {
+    plannedChangesMap[pc.id] = { status: pc.status, summary: pc.summary, details: "Test details for " + pc.id, depends_on: pc.depends_on };
+  }
   writeFileSync(
     milestonePath,
     yamlModule.stringifyYamlDocument({
-      schema: "strict-spec-driven/roadmap-milestone/v1",
-      schema_version: 1,
+      schema: "strict-spec-driven/roadmap-milestone/v2",
+      schema_version: 2,
       artifact_type: "roadmap_milestone",
       schema_file: "../schemas/roadmap-milestone.yaml",
-      milestone: {
-        id: options.id,
-        title: options.title,
-      },
+      milestone: milestoneKeyed,
       goal: options.goal,
       scope: {
         in: ["Strict roadmap workflow behavior."],
         out: ["Unrelated behavior."],
       },
       done_criteria: ["The roadmap workflow is implemented and verified."],
-      planned_changes: options.plannedChanges.map((plannedChange) => ({
-        schema: "strict-spec-driven/planned-change-entry/v1",
-        schema_version: 1,
-        artifact_type: "planned_change_entry",
-        schema_file: "../schemas/planned-change-entry.yaml",
-        id: plannedChange.id,
-        status: plannedChange.status,
-        summary: plannedChange.summary,
-        depends_on: plannedChange.depends_on,
-      })),
+      planned_changes: plannedChangesMap,
       dependencies: [],
       risks: [],
       status: options.status,
@@ -103,8 +101,8 @@ try {
     { recursive: true },
   );
 
-  writeRoadmapMilestoneArtifact(roadmapHappyDir, "01-roadmap.yaml", {
-    id: "01-roadmap",
+  writeRoadmapMilestoneArtifact(roadmapHappyDir, "0001-roadmap.yaml", {
+    id: "0001-roadmap",
     title: "Roadmap Workflow",
     goal: "Keep strict roadmap state aligned with change state.",
     status: "blocked",
@@ -126,9 +124,9 @@ try {
 
   writeRoadmapIndexArtifact(roadmapHappyDir, [
     {
-      id: "01-roadmap",
+      id: "0001-roadmap",
       title: "Roadmap Workflow",
-      path: "roadmap/milestones/01-roadmap.yaml",
+      path: "roadmap/milestones/0001-roadmap.yaml",
       status: "blocked",
     },
   ]);
@@ -139,7 +137,7 @@ try {
   context.assert(roadmapStatusBeforeJson.valid === true, "roadmap-status reports valid=true for structurally valid roadmap");
   context.assert(roadmapStatusBeforeJson.milestones.length === 1, "roadmap-status reports one milestone");
   context.assert(
-    roadmapStatusBeforeJson.milestones[0].path === "roadmap/milestones/01-roadmap.yaml",
+    roadmapStatusBeforeJson.milestones[0].path === "roadmap/milestones/0001-roadmap.yaml",
     "roadmap-status reports milestone path in roadmap order",
   );
   context.assert(
@@ -168,7 +166,7 @@ try {
   context.assert(roadmapSyncJson.valid === true, "roadmap-sync reports valid=true after reconciliation");
   context.assert(
     roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/INDEX.yaml")
-      && roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/01-roadmap.yaml"),
+      && roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/0001-roadmap.yaml"),
     "roadmap-sync reports updated index and milestone files",
     `updatedFiles: ${JSON.stringify(roadmapSyncJson.updatedFiles)}`,
   );
@@ -176,11 +174,11 @@ try {
   const syncedMilestone = yamlModule.parseYamlFile<{
     status: string;
     planned_changes: Array<{ id: string; status: string }>;
-  }>(path.join(roadmapHappyDir, ".strict-spec-driven", "roadmap", "milestones", "01-roadmap.yaml"));
+  }>(path.join(roadmapHappyDir, ".strict-spec-driven", "roadmap", "milestones", "0001-roadmap.yaml"));
   context.assert(syncedMilestone.status === "active", "roadmap-sync rewrites milestone status to derived status");
   context.assert(
-    syncedMilestone.planned_changes[0]?.status === "planned"
-      && syncedMilestone.planned_changes[1]?.status === "complete",
+    syncedMilestone.planned_changes["active-change"]?.status === "planned"
+      && syncedMilestone.planned_changes["archived-change"]?.status === "complete",
     "roadmap-sync rewrites planned change declared statuses from workflow state",
   );
 
@@ -188,9 +186,9 @@ try {
     milestones: Array<{ id: string; title: string; path: string; status: string }>;
   }>(path.join(roadmapHappyDir, ".strict-spec-driven", "roadmap", "INDEX.yaml"));
   context.assert(
-    syncedIndex.milestones.length === 1
-      && syncedIndex.milestones[0]?.status === "active"
-      && syncedIndex.milestones[0]?.path === "roadmap/milestones/01-roadmap.yaml",
+    Object.keys(syncedIndex.milestones).length === 1
+      && syncedIndex.milestones["0001-roadmap"]?.status === "active"
+      && syncedIndex.milestones["0001-roadmap"]?.path === "roadmap/milestones/0001-roadmap.yaml",
     "roadmap-sync regenerates canonical roadmap index entries from milestone state",
   );
 
@@ -208,8 +206,8 @@ try {
 
 const roadmapDetailsPresentDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-details-present-"));
 try {
-  writeRoadmapMilestoneArtifact(roadmapDetailsPresentDir, "01-details.yaml", {
-    id: "01-details",
+  writeRoadmapMilestoneArtifact(roadmapDetailsPresentDir, "0001-details.yaml", {
+    id: "0001-details",
     title: "Details Preservation",
     goal: "Verify details survive sync.",
     status: "active",
@@ -219,9 +217,9 @@ try {
 
   writeRoadmapIndexArtifact(roadmapDetailsPresentDir, [
     {
-      id: "01-details",
+      id: "0001-details",
       title: "Details Preservation",
-      path: "roadmap/milestones/01-details.yaml",
+      path: "roadmap/milestones/0001-details.yaml",
       status: "active",
     },
   ]);
@@ -235,7 +233,7 @@ try {
   context.assert(detailsSync.status === 0, "roadmap-sync exits zero for milestone with details");
   const syncedDetailsMilestone = yamlModule.parseYamlFile<{
     details?: string;
-  }>(path.join(roadmapDetailsPresentDir, ".strict-spec-driven", "roadmap", "milestones", "01-details.yaml"));
+  }>(path.join(roadmapDetailsPresentDir, ".strict-spec-driven", "roadmap", "milestones", "0001-details.yaml"));
   context.assert(
     syncedDetailsMilestone.details === "This is long-form planning guidance that must survive sync.",
     "roadmap-sync preserves details field when present in milestone",
@@ -246,8 +244,8 @@ try {
 
 const roadmapDetailsAbsentDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-details-absent-"));
 try {
-  writeRoadmapMilestoneArtifact(roadmapDetailsAbsentDir, "01-no-details.yaml", {
-    id: "01-no-details",
+  writeRoadmapMilestoneArtifact(roadmapDetailsAbsentDir, "0001-no-details.yaml", {
+    id: "0001-no-details",
     title: "No Details",
     goal: "Verify details is absent when omitted.",
     status: "active",
@@ -256,9 +254,9 @@ try {
 
   writeRoadmapIndexArtifact(roadmapDetailsAbsentDir, [
     {
-      id: "01-no-details",
+      id: "0001-no-details",
       title: "No Details",
-      path: "roadmap/milestones/01-no-details.yaml",
+      path: "roadmap/milestones/0001-no-details.yaml",
       status: "active",
     },
   ]);
@@ -271,7 +269,7 @@ try {
   const noDetailsSync = cli(["roadmap-sync"], { cwd: roadmapDetailsAbsentDir });
   context.assert(noDetailsSync.status === 0, "roadmap-sync exits zero for milestone without details");
   const syncedNoDetailsMilestone = yamlModule.parseYamlFile<Record<string, unknown>>(
-    path.join(roadmapDetailsAbsentDir, ".strict-spec-driven", "roadmap", "milestones", "01-no-details.yaml"),
+    path.join(roadmapDetailsAbsentDir, ".strict-spec-driven", "roadmap", "milestones", "0001-no-details.yaml"),
   );
   context.assert(
     !("details" in syncedNoDetailsMilestone),
@@ -289,8 +287,8 @@ try {
     { recursive: true },
   );
 
-  writeRoadmapMilestoneArtifact(roadmapAmbiguousDir, "01-ambiguous.yaml", {
-    id: "01-ambiguous",
+  writeRoadmapMilestoneArtifact(roadmapAmbiguousDir, "0001-ambiguous.yaml", {
+    id: "0001-ambiguous",
     title: "Ambiguous Roadmap Workflow",
     goal: "Surface duplicate active and archived change ids as ambiguity.",
     status: "complete",
@@ -306,9 +304,9 @@ try {
 
   writeRoadmapIndexArtifact(roadmapAmbiguousDir, [
     {
-      id: "01-ambiguous",
+      id: "0001-ambiguous",
       title: "Ambiguous Roadmap Workflow",
-      path: "roadmap/milestones/01-ambiguous.yaml",
+      path: "roadmap/milestones/0001-ambiguous.yaml",
       status: "complete",
     },
   ]);
@@ -341,10 +339,10 @@ try {
   const syncedAmbiguousMilestone = yamlModule.parseYamlFile<{
     status: string;
     planned_changes: Array<{ id: string; status: string }>;
-  }>(path.join(roadmapAmbiguousDir, ".strict-spec-driven", "roadmap", "milestones", "01-ambiguous.yaml"));
+  }>(path.join(roadmapAmbiguousDir, ".strict-spec-driven", "roadmap", "milestones", "0001-ambiguous.yaml"));
   context.assert(syncedAmbiguousMilestone.status === "active", "roadmap-sync rewrites ambiguous milestone status to active");
   context.assert(
-    syncedAmbiguousMilestone.planned_changes[0]?.status === "planned",
+    syncedAmbiguousMilestone.planned_changes["shared-change"]?.status === "planned",
     "roadmap-sync rewrites ambiguous planned change status to planned instead of complete",
   );
 } finally {
@@ -355,9 +353,9 @@ const roadmapInvalidDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadma
 try {
   writeRoadmapIndexArtifact(roadmapInvalidDir, [
     {
-      id: "01-invalid",
+      id: "0001-invalid",
       title: "Invalid Milestone",
-      path: "roadmap/milestones/01-invalid.yaml",
+      path: "roadmap/milestones/0001-invalid.yaml",
       status: "proposed",
     },
   ]);
@@ -367,19 +365,20 @@ try {
     ".strict-spec-driven",
     "roadmap",
     "milestones",
-    "01-invalid.yaml",
+    "0001-invalid.yaml",
   );
   mkdirSync(path.dirname(invalidMilestonePath), { recursive: true });
   writeFileSync(
     invalidMilestonePath,
     yamlModule.stringifyYamlDocument({
-      schema: "strict-spec-driven/roadmap-milestone/v1",
-      schema_version: 1,
+      schema: "strict-spec-driven/roadmap-milestone/v2",
+      schema_version: 2,
       artifact_type: "roadmap_milestone",
       schema_file: "../schemas/roadmap-milestone.yaml",
       milestone: {
-        id: "01-invalid",
-        title: "Invalid Milestone",
+        "0001-invalid": {
+          title: "Invalid Milestone",
+        },
       },
       goal: "Broken milestone artifact",
       scope: {
@@ -402,8 +401,8 @@ try {
   context.assert(
     invalidRoadmapJson.diagnostics.some(
       (diagnostic: { artifactPath: string; fieldPath: string }) =>
-        diagnostic.artifactPath === ".strict-spec-driven/roadmap/milestones/01-invalid.yaml"
-        && diagnostic.fieldPath === "$.planned_changes",
+        diagnostic.artifactPath === ".strict-spec-driven/roadmap/milestones/0001-invalid.yaml"
+        && diagnostic.fieldPath.includes("planned_changes"),
     ),
     "roadmap-status diagnostics identify the invalid artifact path and field path",
   );
@@ -711,15 +710,15 @@ const roadmapCycleDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-
 try {
   writeRoadmapIndexArtifact(roadmapCycleDir, [
     {
-      id: "01-cycle",
+      id: "0001-cycle",
       title: "Cycle Milestone",
-      path: "roadmap/milestones/01-cycle.yaml",
+      path: "roadmap/milestones/0001-cycle.yaml",
       status: "proposed",
     },
   ]);
 
-  writeRoadmapMilestoneArtifact(roadmapCycleDir, "01-cycle.yaml", {
-    id: "01-cycle",
+  writeRoadmapMilestoneArtifact(roadmapCycleDir, "0001-cycle.yaml", {
+    id: "0001-cycle",
     title: "Cycle Milestone",
     goal: "Detect invalid dependency cycles.",
     status: "proposed",
@@ -835,7 +834,7 @@ function runCopiedWorkspaceRoadmapFlowScenario(): {
       "copied workspace roadmap-status reports one valid migrated milestone",
     );
     context.assert(
-      copiedRoadmapStatusAfterJson.milestones[0].path === "roadmap/milestones/01-core-todo-workflows.yaml"
+      copiedRoadmapStatusAfterJson.milestones[0].path === "roadmap/milestones/0001-core-todo-workflows.yaml"
         && copiedRoadmapStatusAfterJson.milestones[0].declaredStatus === "proposed"
         && copiedRoadmapStatusAfterJson.milestones[0].derivedStatus === "active",
       "copied workspace roadmap-status preserves migrated milestone path and reports active derived state",
@@ -864,7 +863,7 @@ function runCopiedWorkspaceRoadmapFlowScenario(): {
     const copiedRoadmapSyncJson = JSON.parse(copiedRoadmapSyncStdout);
     context.assert(copiedRoadmapSyncJson.valid === true, "copied workspace roadmap-sync reports valid=true");
     context.assert(
-      copiedRoadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/01-core-todo-workflows.yaml")
+      copiedRoadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/0001-core-todo-workflows.yaml")
         && copiedRoadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/INDEX.yaml"),
       "copied workspace roadmap-sync reports migrated roadmap index and milestone rewrites",
       `updatedFiles: ${JSON.stringify(copiedRoadmapSyncJson.updatedFiles)}`,
@@ -876,33 +875,36 @@ function runCopiedWorkspaceRoadmapFlowScenario(): {
       ".strict-spec-driven",
       "roadmap",
       "milestones",
-      "01-core-todo-workflows.yaml",
+      "0001-core-todo-workflows.yaml",
     );
     const copiedSyncedRoadmapIndexText = readFileSync(copiedSyncedRoadmapIndexPath, "utf8");
     const copiedSyncedRoadmapMilestoneText = readFileSync(copiedSyncedRoadmapMilestonePath, "utf8");
     const copiedSyncedRoadmapIndex = yamlModule.parseYamlFile<{
-      milestones: Array<{ id: string; path: string; status: string }>;
+      milestones: Record<string, { title: string; path: string; status: string }>;
     }>(copiedSyncedRoadmapIndexPath);
+    const syncedIndexEntries = Object.entries(copiedSyncedRoadmapIndex.milestones);
     context.assert(
-      copiedSyncedRoadmapIndex.milestones.length === 1
-        && copiedSyncedRoadmapIndex.milestones[0]?.id === "01-core-todo-workflows"
-        && copiedSyncedRoadmapIndex.milestones[0]?.path === "roadmap/milestones/01-core-todo-workflows.yaml"
-        && copiedSyncedRoadmapIndex.milestones[0]?.status === "active",
+      syncedIndexEntries.length === 1
+        && syncedIndexEntries[0]?.[0] === "0001-core-todo-workflows"
+        && syncedIndexEntries[0]?.[1].path === "roadmap/milestones/0001-core-todo-workflows.yaml"
+        && syncedIndexEntries[0]?.[1].status === "active",
       "copied workspace roadmap-sync rewrites migrated roadmap index status to the derived active value",
     );
     const copiedSyncedRoadmapMilestone = yamlModule.parseYamlFile<{
       status: string;
-      planned_changes: Array<{ id: string; status: string }>;
+      planned_changes: Record<string, { status: string; summary: string; details: string; depends_on: string[] }>;
     }>(copiedSyncedRoadmapMilestonePath);
     context.assert(
       copiedSyncedRoadmapMilestone.status === "active",
       "copied workspace roadmap-sync rewrites the migrated milestone declared status to active",
     );
+    const syncedChangeEntries = Object.entries(copiedSyncedRoadmapMilestone.planned_changes);
     context.assert(
-      copiedSyncedRoadmapMilestone.planned_changes[0]?.id === "add-due-dates"
-        && copiedSyncedRoadmapMilestone.planned_changes[0]?.status === "planned"
-        && copiedSyncedRoadmapMilestone.planned_changes[1]?.id === "add-tag-filtering"
-        && copiedSyncedRoadmapMilestone.planned_changes[1]?.status === "planned",
+      syncedChangeEntries.length === 2
+        && syncedChangeEntries[0]?.[0] === "add-due-dates"
+        && syncedChangeEntries[0]?.[1].status === "planned"
+        && syncedChangeEntries[1]?.[0] === "add-tag-filtering"
+        && syncedChangeEntries[1]?.[1].status === "planned",
       "copied workspace roadmap-sync preserves planned change identities while keeping unresolved fixture changes planned",
     );
     context.assert(
@@ -1373,7 +1375,7 @@ function runCopiedWorkspaceMigrateFlowScenario(): {
         (artifact: { sourcePath?: string; targetPath: string; kind: string }) =>
           artifact.kind === "roadmap_milestone"
           && artifact.sourcePath === ".spec-driven/roadmap/milestones/01-core-todo-workflows.md"
-          && artifact.targetPath === ".strict-spec-driven/roadmap/milestones/01-core-todo-workflows.yaml",
+          && artifact.targetPath === ".strict-spec-driven/roadmap/milestones/0001-core-todo-workflows.yaml",
       ),
       "copied workspace migrate reports converted roadmap milestone output",
     );
@@ -1405,7 +1407,7 @@ function runCopiedWorkspaceMigrateFlowScenario(): {
       ".strict-spec-driven",
       "roadmap",
       "milestones",
-      "01-core-todo-workflows.yaml",
+      "0001-core-todo-workflows.yaml",
     );
     context.assert(
       existsSync(copiedStrictConfigPath)
@@ -1416,19 +1418,21 @@ function runCopiedWorkspaceMigrateFlowScenario(): {
     );
 
     const copiedMigratedRoadmapMilestone = yamlModule.parseYamlFile<{
-      milestone: { id: string; title: string };
-      planned_changes: Array<{ id: string; status: string }>;
+      milestone: Record<string, { title: string }>;
+      planned_changes: Record<string, { status: string; summary: string; details: string; depends_on: string[] }>;
       status: string;
     }>(copiedStrictRoadmapMilestonePath);
+    const migratedMilestoneKeys = Object.keys(copiedMigratedRoadmapMilestone.milestone);
     context.assert(
-      copiedMigratedRoadmapMilestone.milestone.id === "01-core-todo-workflows"
-        && copiedMigratedRoadmapMilestone.milestone.title === "01 Core Todo Workflows",
+      migratedMilestoneKeys.length === 1
+        && migratedMilestoneKeys[0] === "0001-core-todo-workflows"
+        && copiedMigratedRoadmapMilestone.milestone["0001-core-todo-workflows"]?.title === "01 Core Todo Workflows",
       "copied workspace migrate preserves roadmap milestone identity in strict output",
     );
+    const migratedChangeKeys = Object.keys(copiedMigratedRoadmapMilestone.planned_changes);
     context.assert(
-      copiedMigratedRoadmapMilestone.planned_changes.length === 2
-        && copiedMigratedRoadmapMilestone.planned_changes[0]?.id === "add-due-dates"
-        && copiedMigratedRoadmapMilestone.planned_changes[0]?.status === "planned",
+      migratedChangeKeys.length === 2
+        && copiedMigratedRoadmapMilestone.planned_changes["add-due-dates"]?.status === "planned",
       "copied workspace migrate preserves planned change entries from the todo-project roadmap",
     );
     context.assert(
@@ -1841,40 +1845,43 @@ try {
   const migratedRoadmapIndex = yamlModule.parseYamlFile<{
     schema: string;
     artifact_type: string;
-    milestones: Array<{ id: string; title: string; path: string; status: string }>;
+    milestones: Record<string, { title: string; path: string; status: string }>;
   }>(path.join(migrateHappyDir, ".strict-spec-driven", "roadmap", "INDEX.yaml"));
   context.assert(
-    migratedRoadmapIndex.schema === "strict-spec-driven/roadmap-index/v1"
+    migratedRoadmapIndex.schema === "strict-spec-driven/roadmap-index/v2"
       && migratedRoadmapIndex.artifact_type === "roadmap_index",
     "migrate writes strict YAML roadmap index output",
   );
+  const migratedIndexEntries = Object.entries(migratedRoadmapIndex.milestones);
   context.assert(
-    migratedRoadmapIndex.milestones.length === 1
-      && migratedRoadmapIndex.milestones[0]?.id === "01-demo"
-      && migratedRoadmapIndex.milestones[0]?.status === "active"
-      && migratedRoadmapIndex.milestones[0]?.path === "roadmap/milestones/01-demo.yaml",
+    migratedIndexEntries.length === 1
+      && migratedIndexEntries[0]?.[0] === "0001-demo"
+      && migratedIndexEntries[0]?.[1].status === "active"
+      && migratedIndexEntries[0]?.[1].path === "roadmap/milestones/0001-demo.yaml",
     "migrate preserves roadmap index milestone identity and status",
   );
 
   const migratedRoadmapMilestone = yamlModule.parseYamlFile<{
     schema: string;
     artifact_type: string;
-    milestone: { id: string; title: string };
+    milestone: Record<string, { title: string }>;
     goal: string;
     scope: { in: string[]; out: string[] };
     done_criteria: string[];
-    planned_changes: Array<{ id: string; status: string; summary: string }>;
+    planned_changes: Record<string, { status: string; summary: string; details: string; depends_on: string[] }>;
     status: string;
     notes: string[];
-  }>(path.join(migrateHappyDir, ".strict-spec-driven", "roadmap", "milestones", "01-demo.yaml"));
+  }>(path.join(migrateHappyDir, ".strict-spec-driven", "roadmap", "milestones", "0001-demo.yaml"));
   context.assert(
-    migratedRoadmapMilestone.schema === "strict-spec-driven/roadmap-milestone/v1"
+    migratedRoadmapMilestone.schema === "strict-spec-driven/roadmap-milestone/v2"
       && migratedRoadmapMilestone.artifact_type === "roadmap_milestone",
     "migrate writes strict YAML roadmap milestone output",
   );
+  const migratedMilestoneKeys = Object.keys(migratedRoadmapMilestone.milestone);
   context.assert(
-    migratedRoadmapMilestone.milestone.id === "01-demo"
-      && migratedRoadmapMilestone.milestone.title === "01 Demo Milestone",
+    migratedMilestoneKeys.length === 1
+      && migratedMilestoneKeys[0] === "0001-demo"
+      && migratedRoadmapMilestone.milestone["0001-demo"]?.title === "01 Demo Milestone",
     "migrate derives roadmap milestone identity from filename and heading",
   );
   context.assert(
@@ -1886,9 +1893,8 @@ try {
     "migrate preserves roadmap milestone scope sections",
   );
   context.assert(
-    migratedRoadmapMilestone.planned_changes.length === 1
-      && migratedRoadmapMilestone.planned_changes[0]?.id === "demo-change"
-      && migratedRoadmapMilestone.planned_changes[0]?.status === "complete",
+    Object.keys(migratedRoadmapMilestone.planned_changes).length === 1
+      && migratedRoadmapMilestone.planned_changes["demo-change"]?.status === "complete",
     "migrate preserves planned change entry fields including status",
   );
   context.assert(migratedRoadmapMilestone.status === "active", "migrate preserves roadmap milestone declared status");
@@ -2183,28 +2189,27 @@ const validIndexResult = roadmapConverterModule.convertRoadmapIndex(validIndexCo
 context.assert(validIndexResult.ok === true, "convertRoadmapIndex succeeds for valid index with milestones");
 if (validIndexResult.ok) {
   context.assert(
-    validIndexResult.artifact.schema === "strict-spec-driven/roadmap-index/v1"
+    validIndexResult.artifact.schema === "strict-spec-driven/roadmap-index/v2"
       && validIndexResult.artifact.artifact_type === "roadmap_index",
     "convertRoadmapIndex output has correct schema and artifact_type",
   );
+  const indexKeys = Object.keys(validIndexResult.artifact.milestones);
   context.assert(
-    validIndexResult.artifact.milestones.length === 2,
+    indexKeys.length === 2,
     "convertRoadmapIndex parses two milestone entries from valid index",
-    `got ${validIndexResult.artifact.milestones.length}`,
+    `got ${indexKeys.length}`,
   );
   context.assert(
-    validIndexResult.artifact.milestones[0]?.id === "01-first-milestone"
-      && validIndexResult.artifact.milestones[0]?.status === "complete",
+    validIndexResult.artifact.milestones["0001-first-milestone"]?.status === "complete",
     "convertRoadmapIndex preserves milestone id and status from link and text",
   );
   context.assert(
-    validIndexResult.artifact.milestones[0]?.path === "roadmap/milestones/01-first-milestone.yaml",
+    validIndexResult.artifact.milestones["0001-first-milestone"]?.path === "roadmap/milestones/0001-first-milestone.yaml",
     "convertRoadmapIndex derives strict YAML milestone path from href",
-    `got ${validIndexResult.artifact.milestones[0]?.path}`,
+    `got ${validIndexResult.artifact.milestones["0001-first-milestone"]?.path}`,
   );
   context.assert(
-    validIndexResult.artifact.milestones[1]?.id === "02-second-milestone"
-      && validIndexResult.artifact.milestones[1]?.status === "proposed",
+    validIndexResult.artifact.milestones["0002-second-milestone"]?.status === "proposed",
     "convertRoadmapIndex maps proposed status for second milestone",
   );
 }
@@ -2214,7 +2219,7 @@ const emptyIndexResult = roadmapConverterModule.convertRoadmapIndex(emptyIndexCo
 context.assert(emptyIndexResult.ok === true, "convertRoadmapIndex succeeds for index with no milestones section");
 if (emptyIndexResult.ok) {
   context.assert(
-    emptyIndexResult.artifact.milestones.length === 0,
+    Object.keys(emptyIndexResult.artifact.milestones).length === 0,
     "convertRoadmapIndex returns empty milestones array for index with no ## Milestones section",
   );
 }
@@ -2230,13 +2235,15 @@ const validMilestoneResult = roadmapConverterModule.convertRoadmapMilestone(
 context.assert(validMilestoneResult.ok === true, "convertRoadmapMilestone succeeds for valid milestone with all sections");
 if (validMilestoneResult.ok) {
   context.assert(
-    validMilestoneResult.artifact.schema === "strict-spec-driven/roadmap-milestone/v1"
+    validMilestoneResult.artifact.schema === "strict-spec-driven/roadmap-milestone/v2"
       && validMilestoneResult.artifact.artifact_type === "roadmap_milestone",
     "convertRoadmapMilestone output has correct schema and artifact_type",
   );
+  const validMilestoneKeys = Object.keys(validMilestoneResult.artifact.milestone);
   context.assert(
-    validMilestoneResult.artifact.milestone.id === "valid-milestone"
-      && validMilestoneResult.artifact.milestone.title === "01 First Milestone",
+    validMilestoneKeys.length === 1
+      && validMilestoneKeys[0] === "valid-milestone"
+      && validMilestoneResult.artifact.milestone["valid-milestone"]?.title === "01 First Milestone",
     "convertRoadmapMilestone derives milestone id from filename and title from heading",
   );
   context.assert(
@@ -2251,23 +2258,22 @@ if (validMilestoneResult.ok) {
     validMilestoneResult.artifact.done_criteria.length > 0,
     "convertRoadmapMilestone captures done criteria",
   );
+  const validMilestoneChangeKeys = Object.keys(validMilestoneResult.artifact.planned_changes);
   context.assert(
-    validMilestoneResult.artifact.planned_changes.length === 2,
+    validMilestoneChangeKeys.length === 2,
     "convertRoadmapMilestone parses all planned change entries",
-    `got ${validMilestoneResult.artifact.planned_changes.length}`,
+    `got ${validMilestoneChangeKeys.length}`,
   );
   context.assert(
-    validMilestoneResult.artifact.planned_changes[0]?.id === "define-schemas"
-      && validMilestoneResult.artifact.planned_changes[0]?.status === "complete",
+    validMilestoneResult.artifact.planned_changes["define-schemas"]?.status === "complete",
     "convertRoadmapMilestone maps planned change id and complete status",
   );
   context.assert(
-    validMilestoneResult.artifact.planned_changes[1]?.id === "implement-cli"
-      && validMilestoneResult.artifact.planned_changes[1]?.status === "planned",
+    validMilestoneResult.artifact.planned_changes["implement-cli"]?.status === "planned",
     "convertRoadmapMilestone maps planned change id and planned status for non-complete entry",
   );
   context.assert(
-    validMilestoneResult.artifact.planned_changes[0]?.depends_on.length === 0,
+    validMilestoneResult.artifact.planned_changes["define-schemas"]?.depends_on.length === 0,
     "convertRoadmapMilestone defaults planned change depends_on to empty array",
   );
   context.assert(
@@ -2386,7 +2392,7 @@ try {
     "roadmap migration writes strict roadmap index YAML",
   );
   context.assert(
-    existsSync(path.join(idempotentMigrateDir, ".strict-spec-driven", "roadmap", "milestones", "01-demo.yaml")),
+    existsSync(path.join(idempotentMigrateDir, ".strict-spec-driven", "roadmap", "milestones", "0001-demo.yaml")),
     "roadmap migration writes strict roadmap milestone YAML",
   );
 } finally {

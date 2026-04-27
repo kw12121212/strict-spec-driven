@@ -1,0 +1,27 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: roadmap-schema-v2
+open: []
+resolved:
+  - id: milestone-id-scope
+    question: Should the 4-digit prefix constraint apply to both milestone.id and milestone.title?
+    context: The current schema has both id and title as separate fields.
+    answer: Only the id. Title remains freeform human-readable text.
+    status: resolved
+  - id: details-required-scope
+    question: Should details be required on milestone-level or on each planned change entry?
+    context: The milestone already has an optional details field at the top level.
+    answer: Required on each planned change entry within planned_changes, not on the milestone itself.
+    status: resolved
+  - id: planned-change-entry-fate
+    question: Should planned-change-entry be deprecated or fully deleted?
+    context: It exists as an independent artifact type with its own schema, example, and registry entry.
+    answer: Fully deleted — schema file, example file, and registry entry removed.
+    status: resolved
+  - id: v1-compat
+    question: Should v1 roadmap artifacts remain acceptable?
+    context: Breaking change affects roadmap-milestone and roadmap-index schemas.
+    answer: No. v1 is dropped entirely, no backward compatibility.
+    status: resolved

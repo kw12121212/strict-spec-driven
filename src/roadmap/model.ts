@@ -5,9 +5,8 @@ export const ROADMAP_MILESTONES_DIR = `${ROADMAP_DIR}/milestones`;
 
 export const DECLARED_ROADMAP_STATUSES = ["proposed", "active", "blocked", "complete"] as const;
 export const DECLARED_PLANNED_CHANGE_STATUSES = ["planned", "complete"] as const;
-export const ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v1";
-export const ROADMAP_MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v1";
-export const PLANNED_CHANGE_SCHEMA_ID = "strict-spec-driven/planned-change-entry/v1";
+export const ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v2";
+export const ROADMAP_MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v2";
 
 export type DeclaredRoadmapStatus = (typeof DECLARED_ROADMAP_STATUSES)[number];
 export type DeclaredPlannedChangeStatus = (typeof DECLARED_PLANNED_CHANGE_STATUSES)[number];
@@ -22,13 +21,9 @@ export type RoadmapIndexEntry = {
 };
 
 export type PlannedChangeEntry = {
-  schema: string;
-  schema_version: 1;
-  artifact_type: "planned_change_entry";
-  schema_file: string;
-  id: string;
   status: DeclaredPlannedChangeStatus;
   summary: string;
+  details: string;
   depends_on: string[];
 };
 
@@ -44,14 +39,14 @@ export type MilestoneScope = {
 
 export type RoadmapMilestoneArtifact = {
   schema: string;
-  schema_version: 1;
+  schema_version: 2;
   artifact_type: "roadmap_milestone";
   schema_file: string;
   milestone: MilestoneIdentity;
   goal: string;
   scope: MilestoneScope;
   done_criteria: string[];
-  planned_changes: PlannedChangeEntry[];
+  planned_changes: Record<string, PlannedChangeEntry>;
   dependencies: string[];
   risks: string[];
   status: DeclaredRoadmapStatus;
@@ -61,7 +56,7 @@ export type RoadmapMilestoneArtifact = {
 
 export type RoadmapIndexArtifact = {
   schema: string;
-  schema_version: 1;
+  schema_version: 2;
   artifact_type: "roadmap_index";
   schema_file: string;
   milestones: RoadmapIndexEntry[];

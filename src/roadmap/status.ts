@@ -61,8 +61,8 @@ export function buildMilestoneStatus(
   milestone: LoadedMilestone,
   changeStates: ChangeStateIndex,
 ): RoadmapMilestoneStatus {
-  const plannedChanges = milestone.artifact.planned_changes.map((entry) => {
-    const state = derivePlannedChangeState(changeStates, entry.id);
+  const plannedChanges = Object.entries(milestone.artifact.planned_changes).map(([id, entry]) => {
+    const state = derivePlannedChangeState(changeStates, id);
     const derivedStatus = derivePlannedChangeDeclaredStatus(state);
     const mismatches: string[] = [];
     if (state === "ambiguous") {
@@ -73,7 +73,7 @@ export function buildMilestoneStatus(
     }
 
     return {
-      id: entry.id,
+      id,
       summary: entry.summary,
       declaredStatus: entry.status,
       derivedStatus,
@@ -112,7 +112,7 @@ export function orderMilestoneStatuses(
   const diagnostics = roadmap.diagnostics;
 
   if (roadmap.indexArtifact) {
-    for (const [index, entry] of roadmap.indexArtifact.milestones.entries()) {
+    for (const entry of roadmap.indexArtifact.milestones) {
       const normalizedPath = toPosix(entry.path);
       const status = statuses.get(normalizedPath);
       const absolutePath = resolveStrictWorkflowPath(rootDir, normalizedPath);
@@ -121,7 +121,7 @@ export function orderMilestoneStatuses(
           makeDiagnostic(
             "reference",
             roadmapIndexPath,
-            `$.milestones[${index}].path`,
+            `$.milestones.${entry.id}.path`,
             "roadmap index entry references a missing milestone file",
             "existing roadmap milestone file",
             normalizedPath,
@@ -136,7 +136,7 @@ export function orderMilestoneStatuses(
           makeDiagnostic(
             "semantic",
             roadmapIndexPath,
-            `$.milestones[${index}].id`,
+            `$.milestones.${entry.id}.id`,
             "roadmap index milestone id must match the milestone artifact",
             status.id,
             entry.id,
@@ -148,7 +148,7 @@ export function orderMilestoneStatuses(
           makeDiagnostic(
             "semantic",
             roadmapIndexPath,
-            `$.milestones[${index}].title`,
+            `$.milestones.${entry.id}.title`,
             "roadmap index milestone title must match the milestone artifact",
             status.title,
             entry.title,
@@ -160,7 +160,7 @@ export function orderMilestoneStatuses(
           makeDiagnostic(
             "semantic",
             roadmapIndexPath,
-            `$.milestones[${index}].status`,
+            `$.milestones.${entry.id}.status`,
             "roadmap index milestone status must match the milestone declared status",
             status.declaredStatus,
             entry.status,

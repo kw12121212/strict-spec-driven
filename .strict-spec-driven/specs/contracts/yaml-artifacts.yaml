@@ -16,13 +16,10 @@ mapping:
     - templates/strict-spec-driven/schemas/registry.yaml
     - templates/strict-spec-driven/schemas/roadmap-index.yaml
     - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
-    - templates/strict-spec-driven/schemas/planned-change-entry.yaml
     - templates/strict-spec-driven/examples/schema-registry.yaml
     - templates/strict-spec-driven/examples/roadmap-index.yaml
-    - templates/strict-spec-driven/examples/roadmap-index.ordering.yaml
     - templates/strict-spec-driven/examples/roadmap-milestone.yaml
     - templates/strict-spec-driven/examples/roadmap-milestone.planning.yaml
-    - templates/strict-spec-driven/examples/planned-change-entry.yaml
     - src/validation.ts
     - src/yaml.ts
     - install.sh
@@ -59,11 +56,12 @@ mapping:
     - test/suites/roadmap-and-migration.ts
 requirements:
   yaml-artifact-schema-coverage:
+    id: yaml-artifact-schema-coverage
     strength: MUST
     statement: >-
       The system MUST define strict YAML schemas for main specs, delta specs, change proposals,
-      change designs, task lists, question lists, spec indexes, roadmap indexes, roadmap milestones,
-      and planned change entries.
+      change designs, task lists, question lists, spec indexes, roadmap indexes, and roadmap
+      milestones.
     scenarios:
       required-artifact-families-are-covered:
         - GIVEN: the strict workflow artifact contract is reviewed
@@ -305,11 +303,12 @@ requirements:
             requirement fields
         - AND: the removed entry demonstrates a target requirement identifier and removal reason
   yaml-concrete-schema-file-coverage:
+    id: yaml-concrete-schema-file-coverage
     strength: MUST
     statement: >-
       The system MUST provide concrete YAML schema files for main specs, delta specs, change
-      proposals, change designs, task lists, question lists, spec indexes, roadmap indexes, roadmap
-      milestones, and planned change entries.
+      proposals, change designs, task lists, question lists, spec indexes, roadmap indexes, and
+      roadmap milestones.
     scenarios:
       schema-files-cover-every-required-artifact-family:
         - GIVEN: the strict workflow schema files are reviewed
@@ -343,11 +342,12 @@ requirements:
         - AND: stable identifier and uniqueness rules are available as structured data
         - AND: supported top-level shapes are available as structured data
   yaml-concrete-example-file-coverage:
+    id: yaml-concrete-example-file-coverage
     strength: MUST
     statement: >-
       The system MUST provide minimal valid YAML example files for main specs, delta specs, change
-      proposals, change designs, task lists, question lists, spec indexes, roadmap indexes, roadmap
-      milestones, and planned change entries.
+      proposals, change designs, task lists, question lists, spec indexes, roadmap indexes, and
+      roadmap milestones.
     scenarios:
       example-files-cover-every-required-artifact-family:
         - GIVEN: the strict workflow example files are reviewed
@@ -444,102 +444,124 @@ requirements:
         - THEN: the primary example avoids optional operations and blocking workflow state
         - AND: richer coverage examples are identified separately when needed
   yaml-roadmap-index-ordering-contract:
+    id: yaml-roadmap-index-ordering-contract
     strength: MUST
     statement: >-
-      The system MUST represent roadmap index milestone ordering through structured YAML sequence
-      data rather than relying on Markdown list formatting or filename sorting alone.
+      The system MUST represent roadmap index milestone ordering through a keyed YAML map where each
+      key is a 4-digit numeric-prefixed milestone ID and each value exposes structured title, path,
+      and status fields, preserving milestone order through YAML map key sequence.
     scenarios:
-      roadmap-index-preserves-milestone-order:
+      roadmap-index-uses-keyed-milestone-map:
         - GIVEN: a strict roadmap index artifact is reviewed
-        - WHEN: the `milestones` field is inspected
-        - THEN: milestone entries appear in an ordered YAML sequence
-        - AND: each entry exposes structured `id`, `title`, `path`, and `status` fields
-        - AND: milestone order remains recoverable from the artifact data alone
+        - WHEN: the milestones field is inspected
+        - THEN: milestones is a keyed map rather than an array
+        - AND: each key matches the pattern for 4-digit numeric prefix
+        - AND: each value exposes structured title, path, and status fields
+        - AND: no separate id field exists within the entry value
+      roadmap-index-milestone-order-is-recoverable:
+        - GIVEN: a strict roadmap index artifact is loaded by a YAML parser that preserves map key order
+        - WHEN: the milestones keys are iterated
+        - THEN: milestone order remains recoverable from the key sequence
   yaml-roadmap-milestone-planning-model:
+    id: yaml-roadmap-milestone-planning-model
     strength: MUST
     statement: >-
-      The system MUST represent roadmap milestone planning state through structured YAML fields for
-      goal, scope, done criteria, dependencies, risks, status, notes, planned change entries, and an
-      optional `details` field for long-form planning guidance.
+      The system MUST represent roadmap milestone planning state through a keyed map where the key
+      is a 4-digit numeric-prefixed milestone ID, with structured YAML fields for goal, scope, done
+      criteria, dependencies, risks, status, notes, a keyed planned_changes map where each entry
+      requires status, summary, details, and depends_on fields, and an optional top-level details
+      field for long-form planning guidance.
     scenarios:
-      roadmap-milestone-exposes-planning-sections-as-fields:
+      roadmap-milestone-uses-keyed-identity:
         - GIVEN: a strict roadmap milestone artifact is reviewed
-        - WHEN: its planning content is inspected
-        - THEN: the milestone goal is available as structured YAML data
-        - AND: in-scope and out-of-scope items are available through structured YAML fields
-        - AND: >-
-            done criteria, dependencies, risks, and notes are available through structured YAML
-            fields
-        - AND: the milestone status is available as a structured YAML field rather than a prose heading
-        - AND: planned changes are available as structured YAML entries owned by the milestone
+        - WHEN: its milestone field is inspected
+        - THEN: the milestone field is a single-entry keyed map
+        - AND: the key matches the pattern for 4-digit numeric prefix
+        - AND: the value exposes a title field
+        - AND: no separate id field exists within the value
+      roadmap-milestone-planned-changes-are-keyed:
+        - GIVEN: a strict roadmap milestone artifact is reviewed
+        - WHEN: its planned_changes field is inspected
+        - THEN: planned_changes is a keyed map
+        - AND: each key is a stable change identifier
+        - AND: each value exposes status, summary, details, and depends_on fields
+        - AND: no separate id field exists within the entry value
+      planned-change-details-are-required:
+        - GIVEN: a strict roadmap milestone artifact is validated
+        - WHEN: a planned change entry is inspected
+        - THEN: the entry includes a details field
+        - AND: the details field contains technical and design context as a non-empty string
+        - AND: the absence of details is reported as a validation failure
+      milestone-id-uses-four-digit-prefix:
+        - GIVEN: a strict roadmap milestone artifact is validated
+        - WHEN: the milestone keyed map key is checked
+        - THEN: the key matches the pattern of exactly four digits followed by a hyphen
+        - AND: keys not matching this pattern are reported as validation failures
       milestone-declared-status-uses-roadmap-enums:
         - GIVEN: a strict roadmap milestone artifact is validated
         - WHEN: the milestone status is inspected
-        - THEN: the declared status is limited to `proposed`, `active`, `blocked`, or `complete`
+        - THEN: the declared status is limited to proposed, active, blocked, or complete
       roadmap-milestone-exposes-details-as-optional-long-form-field:
         - GIVEN: a strict roadmap milestone artifact is reviewed
-        - WHEN: its `details` field is inspected
+        - WHEN: its details field is inspected
         - THEN: the details content is available as an optional string field
         - AND: the details content is freeform text suitable for YAML block scalar representation
-        - AND: >-
-            the details field is clearly distinct from short `notes` entries and concrete
-            `planned_changes`
       milestones-without-details-remain-valid:
-        - GIVEN: a strict roadmap milestone artifact omits the `details` field
+        - GIVEN: a strict roadmap milestone artifact omits the details field
         - WHEN: the artifact is validated
-        - THEN: no validation failure is emitted for the missing `details` field
-        - AND: the milestone remains fully valid
+        - THEN: no validation failure is emitted for the missing details field
       sync-preserves-details-when-present:
-        - GIVEN: a strict roadmap milestone artifact includes a `details` field
+        - GIVEN: a strict roadmap milestone artifact includes a details field
         - WHEN: the roadmap sync operation builds the canonical milestone artifact
-        - THEN: the output milestone artifact includes the same `details` content
-        - AND: the `details` content is not modified or truncated
+        - THEN: the output milestone artifact includes the same details content
       sync-omits-details-when-absent:
-        - GIVEN: a strict roadmap milestone artifact omits the `details` field
+        - GIVEN: a strict roadmap milestone artifact omits the details field
         - WHEN: the roadmap sync operation builds the canonical milestone artifact
-        - THEN: the output milestone artifact omits the `details` field
-        - AND: no empty string or placeholder is emitted in its place
+        - THEN: the output milestone artifact omits the details field
   yaml-planned-change-entry-dependency-model:
+    id: yaml-planned-change-entry-dependency-model
     strength: MUST
     statement: >-
-      The system MUST represent each planned change entry with a stable identifier, declared status,
-      summary, and structured dependency references.
+      The system MUST represent planned change entries as keyed map entries within the parent
+      roadmap milestone planned_changes field, with each entry exposing status, summary, details,
+      and depends_on fields keyed by stable change identifier. Planned change entries do not exist
+      as independent artifacts.
     scenarios:
-      planned-change-entries-expose-roadmap-planning-fields:
-        - GIVEN: a strict planned change entry is reviewed
-        - WHEN: its fields are inspected
-        - THEN: the entry exposes structured `id`, `status`, `summary`, and `depends_on` fields
-        - AND: the entry status is limited to `planned` or `complete`
-        - AND: >-
-            dependency references are expressed as structured planned change identifiers instead of
-            prose-only notes
+      planned-change-entries-are-milestone-owned-keyed-entries:
+        - GIVEN: a strict roadmap milestone artifact is reviewed
+        - WHEN: its planned_changes field is inspected
+        - THEN: each entry is a keyed map entry owned by the milestone
+        - AND: the entry exposes structured status, summary, details, and depends_on fields
+        - AND: no independent schema identity fields exist on the entry
+      planned-change-entry-status-uses-enums:
+        - GIVEN: a planned change entry is validated
+        - WHEN: the entry status is inspected
+        - THEN: the status is limited to planned or complete
+      planned-change-dependencies-reference-sibling-keys:
+        - GIVEN: a planned change entry includes depends_on references
+        - WHEN: the references are validated
+        - THEN: each reference matches a sibling key within the same planned_changes map
   yaml-roadmap-example-contract-coverage:
+    id: yaml-roadmap-example-contract-coverage
     strength: MUST
     statement: >-
-      The system MUST provide roadmap example artifacts that demonstrate the roadmap schema contract
-      fields needed for validation and review while keeping the primary minimal examples minimal.
+      The system MUST provide roadmap example artifacts that demonstrate the roadmap v2 schema
+      contract fields needed for validation and review while keeping the primary minimal examples
+      minimal.
     scenarios:
       primary-roadmap-examples-remain-minimal:
         - GIVEN: the primary strict roadmap examples are reviewed
         - WHEN: minimal example content is inspected
-        - THEN: the primary roadmap index example remains a minimal valid artifact
-        - AND: the primary roadmap milestone example remains a minimal valid artifact
-        - AND: richer workflow-state coverage is kept in separate roadmap example files
-      roadmap-coverage-examples-demonstrate-milestone-ordering-fields:
-        - GIVEN: the strict roadmap index coverage example is reviewed
-        - WHEN: its milestone entries are inspected
-        - THEN: >-
-            the coverage example demonstrates ordered milestone entries with structured `id`,
-            `title`, `path`, and `status` fields
-      roadmap-coverage-example-demonstrates-planning-fields:
-        - GIVEN: the strict roadmap milestone coverage example is reviewed
-        - WHEN: its roadmap-specific fields are inspected
-        - THEN: >-
-            the coverage example demonstrates structured scope, done criteria, dependencies, risks,
-            status, notes, and planned change entry fields
-        - AND: >-
-            the planned change entry example remains aligned with the milestone coverage example's
-            dependency and status model
+        - THEN: the primary roadmap index example remains a minimal valid v2 artifact
+        - AND: the primary roadmap milestone example remains a minimal valid v2 artifact
+      roadmap-examples-demonstrate-keyed-milestone-identity:
+        - GIVEN: roadmap examples are reviewed
+        - WHEN: milestone identity is inspected
+        - THEN: the milestone uses a keyed map with a 4-digit-prefixed key
+      roadmap-examples-demonstrate-keyed-planned-changes-with-details:
+        - GIVEN: roadmap milestone examples are reviewed
+        - WHEN: planned changes are inspected
+        - THEN: entries use a keyed map with required details fields
   strict-roadmap-skill-command-contract:
     strength: MUST
     statement: >-
@@ -580,14 +602,15 @@ requirements:
             the prompt guidance remains focused on recommendation, planning judgment, editing, and
             user checkpoints
   strict-roadmap-proposal-handoff-contract:
+    id: strict-roadmap-proposal-handoff-contract
     strength: MUST
     statement: >-
       The system MUST ensure roadmap recommendation and roadmap proposal-handoff behavior convert
       exactly one planned change into a normal strict change scaffold without duplicating
       roadmap-only planning metadata inside the change artifacts, and MUST read the owning
-      milestone's `details` field as targeted planning guidance when populating change artifacts.
+      milestone's details field as targeted planning guidance when populating change artifacts.
     scenarios:
-      roadmap-recommendation-hands-off-one-planned-change-to-strict-propose:
+      roadmap-recommendation-hands-off-one-planned-change:
         - GIVEN: a roadmap milestone includes a planned change entry
         - WHEN: the strict roadmap recommendation flow is accepted and the proposal handoff runs
         - THEN: a normal strict change scaffold is created for that planned change
@@ -595,26 +618,24 @@ requirements:
             the change artifacts describe proposal scope for that one change rather than copying the
             full milestone plan
       roadmap-proposal-handoff-preserves-canonical-planned-change-identity:
-        - GIVEN: a planned change already exists as a single roadmap item under one milestone
+        - GIVEN: a planned change already exists as a keyed entry under one milestone
         - WHEN: the roadmap proposal handoff creates the strict change scaffold
-        - THEN: the resulting change uses the planned change name as its change identity
+        - THEN: the resulting change uses the planned change key as its change identity
         - AND: the roadmap artifact remains the canonical home of milestone-level planning metadata
       roadmap-proposal-handoff-consumes-milestone-details:
-        - GIVEN: a roadmap milestone includes a planned change and a `details` field
+        - GIVEN: a roadmap milestone includes a planned change and a details field
         - WHEN: the strict roadmap proposal handoff scaffolds a strict change
-        - THEN: >-
-            the skill reads the milestone `details` field as context for populating the change
-            artifacts
+        - THEN: the skill reads the milestone details field as context for populating change artifacts
         - AND: >-
-            the change artifacts reflect guidance extracted from `details` without copying the full
+            the change artifacts reflect guidance extracted from details without copying the full
             milestone plan
       roadmap-proposal-handoff-works-without-milestone-details:
-        - GIVEN: a roadmap milestone includes a planned change but omits the `details` field
+        - GIVEN: a roadmap milestone includes a planned change but omits the details field
         - WHEN: the strict roadmap proposal handoff scaffolds a strict change
         - THEN: >-
             the change artifacts are populated using only the planned change entry and milestone
             goal
-        - AND: the absence of `details` does not cause a failure or placeholder content
+        - AND: the absence of details does not cause a failure or placeholder content
   yaml-task-testing-gates:
     id: yaml-task-testing-gates
     strength: MUST
@@ -723,27 +744,21 @@ requirements:
             repository documentation is not treated as strict workflow state unless a later schema
             explicitly classifies it that way
   workflow-artifacts-use-yaml:
+    id: workflow-artifacts-use-yaml
     strength: MUST
     statement: >-
       The system MUST require generated or consumed strict workflow artifacts to use YAML formats
       rather than Markdown formats.
     scenarios:
       strict-workflow-state-is-yaml:
-        - GIVEN: strict workflow artifacts under `.strict-spec-driven/` are reviewed
+        - GIVEN: strict workflow artifacts under .strict-spec-driven/ are reviewed
         - WHEN: >-
-            specs, delta specs, proposals, designs, tasks, questions, indexes, roadmap indexes,
-            roadmap milestones, and planned change entries are checked
+            specs, delta specs, proposals, designs, tasks, questions, indexes, roadmap indexes, and
+            roadmap milestones are checked
         - THEN: each artifact family is required to use YAML structure
         - AND: >-
             Markdown headings, list formatting, or frontmatter are not accepted as the authoritative
             structure for those artifact families
-      strict-generated-filenames-are-yaml:
-        - GIVEN: a strict workflow command or skill generates workflow artifacts
-        - WHEN: artifact filenames are selected
-        - THEN: >-
-            generated proposal, design, task, question, spec, delta, index, roadmap, and milestone
-            artifacts use YAML filenames
-        - AND: legacy Markdown artifact filenames are not generated as strict workflow targets
   bootstrap-markdown-is-legacy-input:
     strength: MUST
     statement: >-
@@ -971,23 +986,24 @@ requirements:
         - THEN: the values can be matched to registry-controlled values
         - AND: unsupported artifact type names can be reported as deterministic validation failures
   yaml-migration-artifact-role-mapping:
+    id: yaml-migration-artifact-role-mapping
     strength: MUST
     statement: >-
-      The system MUST define migration mapping rules from supported legacy `.spec-driven/` Markdown
-      artifact roles to strict `.strict-spec-driven/` YAML artifact types.
+      The system MUST define migration mapping rules from supported legacy .spec-driven/ Markdown
+      artifact roles to strict .strict-spec-driven/ YAML artifact types.
     scenarios:
       supported-legacy-artifact-roles-map-to-strict-artifact-types:
-        - GIVEN: migration tooling reads a supported legacy `.spec-driven/` Markdown artifact
+        - GIVEN: migration tooling reads a supported legacy .spec-driven/ Markdown artifact
         - WHEN: the artifact role is identified
         - THEN: >-
             the corresponding strict YAML artifact type is determined from the migration
             compatibility contract
         - AND: the generated artifact uses a registry-controlled schema ID and artifact type
       core-legacy-artifact-roles-are-supported:
-        - GIVEN: migration tooling reads supported legacy `.spec-driven/` Markdown workflow state
+        - GIVEN: migration tooling reads supported legacy .spec-driven/ Markdown workflow state
         - WHEN: >-
             main specs, delta specs, proposals, designs, tasks, questions, spec indexes, roadmap
-            indexes, roadmap milestones, or planned change entries are identified by role
+            indexes, or roadmap milestones are identified by role
         - THEN: >-
             each supported role maps to the corresponding strict YAML artifact type defined by the
             registry
@@ -998,11 +1014,12 @@ requirements:
         - AND: each supported legacy role identifies a registry-controlled strict artifact type
         - AND: each supported legacy role identifies a registry-controlled schema ID
   yaml-migration-relationship-preservation:
+    id: yaml-migration-relationship-preservation
     strength: MUST
     statement: >-
       The system MUST require migration behavior to preserve supported workflow relationships when
-      converting legacy `.spec-driven/` Markdown artifacts into strict YAML artifacts, including the
-      optional `details` field on roadmap milestones.
+      converting legacy .spec-driven/ Markdown artifacts into strict YAML artifacts, including the
+      optional details field on roadmap milestones.
     scenarios:
       migration-preserves-change-relationships:
         - GIVEN: a legacy change contains proposal, design, task, question, and delta spec artifacts
@@ -1012,18 +1029,18 @@ requirements:
       migration-preserves-roadmap-relationships:
         - GIVEN: a legacy roadmap milestone contains planned change entries
         - WHEN: migration converts the roadmap to strict YAML
-        - THEN: planned change entries remain associated with their owning milestone
+        - THEN: >-
+            planned change entries remain associated with their owning milestone as keyed map
+            entries
         - AND: archived or active change state can still be reconciled by change name
       migration-preserves-milestone-details:
-        - GIVEN: a legacy roadmap milestone Markdown artifact contains a `## Details` section
+        - GIVEN: a legacy roadmap milestone Markdown artifact contains a Details section
         - WHEN: migration converts the milestone to a strict YAML roadmap milestone artifact
-        - THEN: the converted artifact includes the `details` field with the section content
-        - AND: the `details` content matches the original Markdown section text
+        - THEN: the converted artifact includes the details field with the section content
       migration-omits-details-when-absent-in-legacy-milestone:
-        - GIVEN: a legacy roadmap milestone Markdown artifact does not contain a `## Details` section
+        - GIVEN: a legacy roadmap milestone Markdown artifact does not contain a Details section
         - WHEN: migration converts the milestone to a strict YAML roadmap milestone artifact
-        - THEN: the converted artifact omits the `details` field
-        - AND: no empty string or placeholder is emitted in its place
+        - THEN: the converted artifact omits the details field
   yaml-migration-unsupported-shape-reporting:
     strength: MUST
     statement: >-

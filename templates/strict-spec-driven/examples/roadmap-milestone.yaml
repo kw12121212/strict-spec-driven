@@ -1,10 +1,10 @@
-schema: strict-spec-driven/roadmap-milestone/v1
-schema_version: 1
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
 artifact_type: roadmap_milestone
 schema_file: ../schemas/roadmap-milestone.yaml
 milestone:
-  id: example-milestone
-  title: Example Milestone
+  0001-example-milestone:
+    title: Example Milestone
 goal: Define one milestone goal.
 scope:
   in:
@@ -14,19 +14,14 @@ scope:
 done_criteria:
   - The planned behavior is implemented and verified.
 planned_changes:
-  - schema: strict-spec-driven/planned-change-entry/v1
-    schema_version: 1
-    artifact_type: planned_change_entry
-    schema_file: ../schemas/planned-change-entry.yaml
-    id: example-change
+  example-change:
     status: planned
     summary: Add one planned strict workflow behavior.
+    details: |
+      Technical and design context for this planned change,
+      including approach considerations and key constraints.
     depends_on: []
 dependencies: []
 risks: []
 status: proposed
 notes: []
-details: |
-  This milestone captures long-form planning guidance such as design rationale,
-  architectural constraints, or migration considerations that roadmap-backed
-  proposals should consume as targeted context.

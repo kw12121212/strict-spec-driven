@@ -1,0 +1,42 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: roadmap-schema-v2
+approach:
+  - Introduce roadmap-milestone/v2 and roadmap-index/v2 schemas alongside v1 in the registry, marking v1 as superseded.
+  - Remove the planned-change-entry registry entry and delete its schema and example files.
+  - In roadmap-milestone/v2, replace the milestone object {id, title} with a single-keyed map where the key is the 4-digit-prefixed milestone ID.
+  - In roadmap-milestone/v2, replace the planned_changes array with a keyed map keyed by change ID, requiring status, summary, details, and depends_on fields.
+  - In roadmap-index/v2, replace the milestones array with a keyed map keyed by milestone ID, requiring title, path, and status fields.
+  - Update the JSON Schema definitions to enforce the ^\d{4}- pattern on milestone and change ID keys via patternProperties.
+  - Update validation.ts to validate v2 roadmap shapes and reject v1 shapes.
+  - Update converters/roadmap.ts to generate v2 artifacts.
+  - Update migrate.ts to handle the removed planned-change-entry role mapping.
+  - Update all skill prompts that reference planned-change-entry or v1 roadmap shapes.
+decisions:
+  keyed-map-for-identity:
+    decision: Milestone ID and planned change ID become YAML map keys instead of inline id fields.
+    rationale: Consistent with task-list/v2 keyed-map pattern. Eliminates duplicate key storage and lets YAML uniqueness enforce identifier constraints.
+  four-digit-prefix:
+    decision: Milestone IDs must match the pattern ^\d{4}- (exactly four digits followed by a hyphen).
+    rationale: Supports up to 9999 milestones with stable lexicographic ordering. User requirement.
+  required-details-on-changes:
+    decision: Each planned change entry within a milestone must include a details field containing technical and design context.
+    rationale: Ensures roadmap-backed proposal handoff has sufficient context without falling back to separate planning documents. User requirement.
+  delete-planned-change-entry:
+    decision: Remove planned-change-entry as an independent artifact type entirely — schema file, example file, and registry entry are deleted.
+    rationale: The planned-change-entry was only ever consumed inline within milestones. Making it independent added maintenance cost without providing standalone value. User requirement.
+  no-v1-compat:
+    decision: No backward compatibility with v1 roadmap schemas. v1 artifacts are not accepted after this change.
+    rationale: User explicitly confirmed v1 can be dropped. Simplifies validation and avoids dual-schema maintenance.
+alternatives:
+  - option: Keep planned-change-entry as an optional standalone artifact while also allowing inline entries in milestones.
+    reason: Rejected — adds complexity without clear value. User explicitly wants to eliminate it.
+  - option: Use 2-digit prefix instead of 4-digit.
+    reason: Rejected — user explicitly requires 4-digit.
+  - option: Make details optional on planned changes.
+    reason: Rejected — user explicitly requires details to be mandatory.
+risks:
+  - Any existing roadmap artifacts in the wild will need manual recreation in v2 format. Mitigated by the fact that the project is self-hosted and the user controls all roadmap state.
+  - Skill prompts that reference planned-change-entry or v1 shapes may break silently if not all references are updated. Mitigated by grep-based audit during implementation.

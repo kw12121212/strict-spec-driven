@@ -1,0 +1,38 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: roadmap-schema-v2
+  status: proposed
+summary:
+  what:
+    - Require milestone IDs to use 4-digit numeric prefixes and represent milestone identity as a keyed map.
+    - Convert planned_changes from an array of inline full-schema entries to a keyed map keyed by change ID, with a required details field.
+    - Remove planned-change-entry as an independent artifact type, merging its identity into the parent milestone.
+    - Convert roadmap-index milestones from an array to a keyed map keyed by milestone ID.
+  why:
+    - Keyed maps eliminate redundant id fields and enforce uniqueness structurally, consistent with the v2 task-list pattern.
+    - 4-digit prefixes allow up to 9999 milestones without renumbering and sort lexicographically.
+    - Required details on planned changes ensures each change carries enough technical and design context for proposal handoff.
+    - Removing the independent planned-change-entry artifact type reduces maintenance surface and artifact count.
+scope:
+  in:
+    - Update roadmap-milestone schema to v2 with keyed milestone identity, keyed planned_changes, required details on each change entry, and 4-digit ID pattern validation.
+    - Update roadmap-index schema to v2 with keyed milestones map and 4-digit ID pattern validation.
+    - Delete planned-change-entry schema file, example file, and registry entry.
+    - Update all roadmap examples to reflect v2 shapes.
+    - Update yaml-artifacts.yaml spec requirements for roadmap-milestone, roadmap-index, planned-change-entry, example coverage, and migration.
+    - Update validation logic to enforce v2 shapes and 4-digit ID patterns.
+    - Update roadmap converter, scaffold, and migration code to produce v2 artifacts.
+    - Update affected skill prompts that reference planned-change-entry or v1 roadmap shapes.
+  out:
+    - Changes to non-roadmap artifact schemas (main-spec, delta-spec, change proposals, designs, task-lists, question-lists, spec-index).
+    - Changes to the schema registry metadata structure itself.
+    - v1 backward compatibility or migration from v1 roadmap artifacts.
+unchanged_behavior:
+  - Core strict workflow lifecycle (propose, apply, verify, review, archive, ship, cancel) remains unchanged.
+  - Main spec and delta spec schemas remain unchanged.
+  - Task-list v2 keyed-map model remains unchanged.
+  - Question-list schema remains unchanged.
+  - Spec-index schema remains unchanged.

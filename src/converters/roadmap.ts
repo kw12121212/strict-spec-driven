@@ -1,6 +1,5 @@
 const ROADMAP_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/roadmap-index.yaml";
 const ROADMAP_MILESTONE_SCHEMA_FILE = "templates/strict-spec-driven/schemas/roadmap-milestone.yaml";
-const PLANNED_CHANGE_SCHEMA_FILE = "templates/strict-spec-driven/schemas/planned-change-entry.yaml";
 const SPEC_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/spec-index.yaml";
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 
@@ -9,41 +8,36 @@ type DeclaredRoadmapStatus = (typeof DECLARED_ROADMAP_STATUSES)[number];
 type DeclaredPlannedChangeStatus = "planned" | "complete";
 
 type StrictRoadmapIndexEntry = {
-  id: string;
   title: string;
   path: string;
   status: DeclaredRoadmapStatus;
 };
 
 export type StrictRoadmapIndexArtifact = {
-  schema: "strict-spec-driven/roadmap-index/v1";
-  schema_version: 1;
+  schema: "strict-spec-driven/roadmap-index/v2";
+  schema_version: 2;
   artifact_type: "roadmap_index";
   schema_file: string;
-  milestones: StrictRoadmapIndexEntry[];
+  milestones: Record<string, StrictRoadmapIndexEntry>;
 };
 
 type StrictPlannedChangeEntry = {
-  schema: "strict-spec-driven/planned-change-entry/v1";
-  schema_version: 1;
-  artifact_type: "planned_change_entry";
-  schema_file: string;
-  id: string;
   status: DeclaredPlannedChangeStatus;
   summary: string;
+  details: string;
   depends_on: string[];
 };
 
 export type StrictRoadmapMilestoneArtifact = {
-  schema: "strict-spec-driven/roadmap-milestone/v1";
-  schema_version: 1;
+  schema: "strict-spec-driven/roadmap-milestone/v2";
+  schema_version: 2;
   artifact_type: "roadmap_milestone";
   schema_file: string;
-  milestone: { id: string; title: string };
+  milestone: Record<string, { title: string }>;
   goal: string;
   scope: { in: string[]; out: string[] };
   done_criteria: string[];
-  planned_changes: StrictPlannedChangeEntry[];
+  planned_changes: Record<string, StrictPlannedChangeEntry>;
   dependencies: string[];
   risks: string[];
   status: DeclaredRoadmapStatus;
@@ -160,31 +154,26 @@ function normalizeDeclaredRoadmapStatus(raw: string): DeclaredRoadmapStatus {
   return "proposed";
 }
 
-function parsePlannedChangeEntries(sectionText: string): StrictPlannedChangeEntry[] {
-  const entries: StrictPlannedChangeEntry[] = [];
+function parsePlannedChangeEntries(sectionText: string): Record<string, StrictPlannedChangeEntry> {
+  const entries: Record<string, StrictPlannedChangeEntry> = {};
 
   for (const rawLine of sectionText.split("\n")) {
     const trimmed = rawLine.trim();
     if (!trimmed || trimmed.startsWith("<!--")) {
       continue;
     }
-    // Format: - `id` - Declared: status - summary text
     const match = trimmed.match(/^- `([^`]+)` - Declared: (\w+) - (.+)$/);
     if (!match) {
       continue;
     }
     const [, id, rawStatus, summary] = match;
-    const declaredStatus = rawStatus === "complete" ? "complete" : "planned";
-    entries.push({
-      schema: "strict-spec-driven/planned-change-entry/v1",
-      schema_version: 1,
-      artifact_type: "planned_change_entry",
-      schema_file: PLANNED_CHANGE_SCHEMA_FILE,
-      id: id.trim(),
-      status: declaredStatus as DeclaredPlannedChangeStatus,
+    const declaredStatus: DeclaredPlannedChangeStatus = rawStatus === "complete" ? "complete" : "planned";
+    entries[id.trim()] = {
+      status: declaredStatus,
       summary: normalizeWhitespace(summary),
+      details: "Migration placeholder: add technical and design context for this planned change.",
       depends_on: [],
-    });
+    };
   }
 
   return entries;
@@ -201,39 +190,45 @@ function parseDeclaredStatusFromSection(sectionText: string): DeclaredRoadmapSta
   return null;
 }
 
+function toFourDigitId(id: string): string {
+  const match = id.match(/^(\d+)-/);
+  if (!match) return id;
+  const digits = match[1].padStart(4, "0");
+  return `${digits}${id.slice(match[1].length)}`;
+}
+
 export function convertRoadmapIndex(markdown: string): ConversionResult<StrictRoadmapIndexArtifact> {
   try {
     const sections = extractMarkdownSections(markdown);
     const milestonesText = sections.get("Milestones") ?? "";
-    const milestones: StrictRoadmapIndexEntry[] = [];
+    const milestones: Record<string, StrictRoadmapIndexEntry> = {};
 
     for (const rawLine of milestonesText.split("\n")) {
       const trimmed = rawLine.trim();
       if (!trimmed || trimmed.startsWith("<!--")) {
         continue;
       }
-      // Format: - [filename.md](milestones/filename.md) - Title - status
       const match = trimmed.match(/^- \[([^\]]+)\]\(([^)]+)\) - (.+) - (\w+)$/);
       if (!match) {
         continue;
       }
       const [, linkText, href, title, rawStatus] = match;
-      const id = linkText.trim().replace(/\.md$/i, "");
-      const strictPath = `roadmap/${href.trim().replace(/\.md$/i, ".yaml")}`;
+      const rawId = linkText.trim().replace(/\.md$/i, "");
+      const id = toFourDigitId(rawId);
+      const strictPath = `roadmap/${href.trim().replace(/\.md$/i, ".yaml")}`.replace(/milestones\/\d+-/, (match) => match.replace(/\d+/, (digits) => digits.padStart(4, "0")));
       const status = normalizeDeclaredRoadmapStatus(rawStatus);
-      milestones.push({
-        id,
+      milestones[id] = {
         title: normalizeWhitespace(title),
         path: strictPath,
         status,
-      });
+      };
     }
 
     return {
       ok: true,
       artifact: {
-        schema: "strict-spec-driven/roadmap-index/v1",
-        schema_version: 1,
+        schema: "strict-spec-driven/roadmap-index/v2",
+        schema_version: 2,
         artifact_type: "roadmap_index",
         schema_file: ROADMAP_INDEX_SCHEMA_FILE,
         milestones,
@@ -255,7 +250,8 @@ export function convertRoadmapMilestone(
   filename: string,
 ): ConversionResult<StrictRoadmapMilestoneArtifact> {
   try {
-    const id = filename.replace(/\.md$/i, "");
+    const rawId = filename.replace(/\.md$/i, "");
+    const id = toFourDigitId(rawId);
     const title = extractMarkdownHeading(markdown);
     if (!title) {
       return {
@@ -315,14 +311,17 @@ export function convertRoadmapMilestone(
     const notes = parseMarkdownBulletList(sections.get("Notes") ?? "");
     const detailsText = parseSectionText(sections.get("Details") ?? "");
 
+    const milestoneKeyed: Record<string, { title: string }> = {};
+    milestoneKeyed[id] = { title };
+
     return {
       ok: true,
       artifact: {
-        schema: "strict-spec-driven/roadmap-milestone/v1",
-        schema_version: 1,
+        schema: "strict-spec-driven/roadmap-milestone/v2",
+        schema_version: 2,
         artifact_type: "roadmap_milestone",
         schema_file: ROADMAP_MILESTONE_SCHEMA_FILE,
-        milestone: { id, title },
+        milestone: milestoneKeyed,
         goal,
         scope: { in: scopeIn, out: scopeOut },
         done_criteria: doneCriteria,
@@ -354,7 +353,6 @@ export function convertSpecsIndex(markdown: string): ConversionResult<StrictSpec
       if (!trimmed || trimmed.startsWith("<!--") || trimmed.startsWith("#")) {
         continue;
       }
-      // Format: - [path/to/file.md](path/to/file.md) - Title
       const match = trimmed.match(/^- \[([^\]]+)\]\(([^)]+)\) - (.+)$/);
       if (!match) {
         continue;
