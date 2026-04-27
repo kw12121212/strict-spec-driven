@@ -1,0 +1,77 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: compact-spec-format
+sections:
+  - name: Implementation
+    tasks:
+      - id: update-main-spec-schema
+        text: >-
+          Update main-spec schema: requirements and scenarios to mapping,
+          steps to single-key format.
+        status: complete
+      - id: update-delta-spec-schema
+        text: >-
+          Update delta-spec schema requirement definition: scenarios as mapping,
+          steps as single-key objects.
+        status: complete
+      - id: update-type-definitions
+        text: >-
+          Update StrictRequirement/StrictScenario/StrictScenarioStep types in
+          src/migrate/parsers/shared.ts to use new mapping format.
+        status: complete
+      - id: update-migrate-parser
+        text: >-
+          Update src/migrate/parsers/specs.ts to output requirements and
+          scenarios as mappings, steps as single-key objects.
+        status: complete
+      - id: update-archive
+        text: >-
+          Update src/archive.ts: requirements is now a mapping with key-based
+          add/replace/delete instead of array operations.
+        status: complete
+      - id: update-review
+        text: >-
+          Update src/review.ts: iterate requirements and scenarios via
+          Object.entries/values instead of array methods.
+        status: complete
+      - id: update-validation-helpers
+        text: >-
+          Update src/validation.ts duplicateIdChecks for mapping-based
+          collections.
+        status: complete
+      - id: update-tests
+        text: >-
+          Update test files to use mapping-based requirements/scenarios and
+          new step format.
+        status: complete
+      - id: reformat-spec-files
+        text: >-
+          Reformat existing spec files to the new compact format.
+        status: complete
+  - name: Testing
+    tasks:
+      - id: run-build
+        text: Verify TypeScript compilation succeeds with no errors.
+        status: complete
+        command: bun run build
+      - id: run-tests
+        text: Run the full test suite and confirm all tests pass.
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verify-token-savings
+        text: >-
+          Measure byte count of spec files before and after to confirm
+          reduction.
+        status: complete
+      - id: verify-compact-format-roundtrips
+        text: >-
+          Verify that archive operations still work correctly with mapping-based
+          requirements via the test suite.
+        status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

@@ -7,6 +7,17 @@ description: Strict YAML main spec artifact.
 example_ref: ../examples/main-spec.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
+  definitions:
+    step:
+      type: object
+      properties:
+        GIVEN: { type: string }
+        WHEN: { type: string }
+        THEN: { type: string }
+        AND: { type: string }
+      additionalProperties: false
+      minProperties: 1
+      maxProperties: 1
   type: object
   additionalProperties: false
   required:
@@ -56,18 +67,15 @@ json_schema:
           items:
             type: string
     requirements:
-      type: array
-      items:
+      type: object
+      additionalProperties:
         type: object
         additionalProperties: false
         required:
-          - id
           - strength
           - statement
           - scenarios
         properties:
-          id:
-            type: string
           strength:
             type: string
             enum:
@@ -77,32 +85,9 @@ json_schema:
           statement:
             type: string
           scenarios:
-            type: array
-            items:
-              type: object
-              additionalProperties: false
-              required:
-                - id
-                - steps
-              properties:
-                id:
-                  type: string
-                steps:
-                  type: array
-                  minItems: 1
-                  items:
-                    type: object
-                    additionalProperties: false
-                    required:
-                      - kind
-                      - text
-                    properties:
-                      kind:
-                        type: string
-                        enum:
-                          - GIVEN
-                          - WHEN
-                          - THEN
-                          - AND
-                      text:
-                        type: string
+            type: object
+            additionalProperties:
+              type: array
+              items:
+                "$ref": "#/definitions/step"
+              minItems: 1

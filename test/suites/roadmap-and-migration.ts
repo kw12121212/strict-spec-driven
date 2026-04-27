@@ -1642,12 +1642,12 @@ try {
     `got ${JSON.stringify(migratedMainSpec.mapping)}`,
   );
   context.assert(
-    JSON.stringify(migratedMainSpec.requirements.find((requirement) => requirement.id === "cli-example")?.scenarios.map((scenario) => scenario.id))
+    JSON.stringify(Object.keys(migratedMainSpec.requirements["cli-example"]?.scenarios ?? {}))
       === JSON.stringify(["first-scenario", "second-scenario"]),
     "migrate derives deterministic scenario identifiers for migrated main specs",
   );
   context.assert(
-    migratedMainSpec.requirements.find((requirement) => requirement.id === "cli-example")?.scenarios[0]?.steps[0]?.kind === "GIVEN",
+    "GIVEN" in (Object.values(migratedMainSpec.requirements["cli-example"]?.scenarios ?? {})[0]?.[0] ?? {}),
     "migrate preserves scenario step ordering for migrated main specs",
   );
 

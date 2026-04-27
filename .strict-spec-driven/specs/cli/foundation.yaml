@@ -79,406 +79,274 @@ mapping:
     - test/fixtures/projects/todo-app/src/todos.ts
     - test/fixtures/projects/todo-app/test/todos.test.ts
 requirements:
-  - id: cli-build-and-test-commands
+  cli-build-and-test-commands:
     strength: MUST
     statement: >-
       The system MUST provide `build` and `test` package scripts that compile TypeScript sources to
       `dist/` and run the test suite using bun.
     scenarios:
-      - id: build-compiles-without-errors
-        steps:
-          - kind: GIVEN
-            text: the TypeScript sources under `src/` are syntactically valid
-          - kind: WHEN
-            text: '`bun run build` is executed'
-          - kind: THEN
-            text: the TypeScript compiler produces compiled output under `dist/` with zero errors
-      - id: test-suite-is-executable
-        steps:
-          - kind: GIVEN
-            text: the `dist/` output exists
-          - kind: WHEN
-            text: '`bun test/run.ts` is executed'
-          - kind: THEN
-            text: the test suite runs and reports pass or fail status
-  - id: cli-unknown-subcommand-rejection
+      build-compiles-without-errors:
+        - GIVEN: the TypeScript sources under `src/` are syntactically valid
+        - WHEN: '`bun run build` is executed'
+        - THEN: the TypeScript compiler produces compiled output under `dist/` with zero errors
+      test-suite-is-executable:
+        - GIVEN: the `dist/` output exists
+        - WHEN: '`bun test/run.ts` is executed'
+        - THEN: the test suite runs and reports pass or fail status
+  cli-unknown-subcommand-rejection:
     strength: MUST
     statement: >-
       The system MUST exit non-zero and write a usage hint to stderr when invoked with an unknown
       subcommand or no arguments.
     scenarios:
-      - id: unknown-subcommand-exits-non-zero
-        steps:
-          - kind: GIVEN
-            text: the `strict-spec-driven` CLI is invoked with an unrecognized subcommand
-          - kind: WHEN
-            text: the command router processes the argument
-          - kind: THEN
-            text: the process exits with a non-zero exit code
-          - kind: AND
-            text: a usage hint is written to stderr
-      - id: no-arg-invocation-exits-non-zero
-        steps:
-          - kind: GIVEN
-            text: the `strict-spec-driven` CLI is invoked with no arguments
-          - kind: WHEN
-            text: the command router processes the argument
-          - kind: THEN
-            text: the process exits with a non-zero exit code
-          - kind: AND
-            text: a usage hint is written to stderr
-  - id: cli-shared-yaml-validation-layer
+      unknown-subcommand-exits-non-zero:
+        - GIVEN: the `strict-spec-driven` CLI is invoked with an unrecognized subcommand
+        - WHEN: the command router processes the argument
+        - THEN: the process exits with a non-zero exit code
+        - AND: a usage hint is written to stderr
+      no-arg-invocation-exits-non-zero:
+        - GIVEN: the `strict-spec-driven` CLI is invoked with no arguments
+        - WHEN: the command router processes the argument
+        - THEN: the process exits with a non-zero exit code
+        - AND: a usage hint is written to stderr
+  cli-shared-yaml-validation-layer:
     strength: MUST
     statement: >-
       The system MUST provide shared strict-CLI validation utilities for YAML parse/stringify,
       schema compilation, bundled schema loading, and deterministic diagnostics so multiple commands
       can validate artifacts through one consistent pipeline.
     scenarios:
-      - id: bundled-schemas-are-loadable-for-command-validation
-        steps:
-          - kind: GIVEN
-            text: a strict CLI command needs to validate an artifact
-          - kind: WHEN
-            text: it requests a schema through the shared validation utilities
-          - kind: THEN
-            text: >-
-              the schema is loaded from bundled strict schema assets under
-              `templates/strict-spec-driven/schemas/`
-      - id: validation-diagnostics-are-deterministic
-        steps:
-          - kind: GIVEN
-            text: the same invalid artifact is validated multiple times against the same schema
-          - kind: WHEN
-            text: diagnostics are emitted by the shared validation utilities
-          - kind: THEN
-            text: diagnostic entries are stable in structure and ordering
-          - kind: AND
-            text: each diagnostic includes artifact path and field-path context
-  - id: cli-strict-scaffold-template-assets
+      bundled-schemas-are-loadable-for-command-validation:
+        - GIVEN: a strict CLI command needs to validate an artifact
+        - WHEN: it requests a schema through the shared validation utilities
+        - THEN: >-
+            the schema is loaded from bundled strict schema assets under
+            `templates/strict-spec-driven/schemas/`
+      validation-diagnostics-are-deterministic:
+        - GIVEN: the same invalid artifact is validated multiple times against the same schema
+        - WHEN: diagnostics are emitted by the shared validation utilities
+        - THEN: diagnostic entries are stable in structure and ordering
+        - AND: each diagnostic includes artifact path and field-path context
+  cli-strict-scaffold-template-assets:
     strength: MUST
     statement: >-
       The system MUST provide bundled strict scaffold template assets that can seed initial
       `.strict-spec-driven/` project state for init and fixture-driven tests.
     scenarios:
-      - id: required-scaffold-template-asset-families-are-present
-        steps:
-          - kind: GIVEN
-            text: the strict CLI bundled templates are inspected
-          - kind: WHEN
-            text: scaffold template assets are enumerated
-          - kind: THEN
-            text: >-
-              template assets exist for strict config, specs index, roadmap index, empty changes
-              state, and seed README guidance
-      - id: scaffold-templates-remain-separate-from-contract-schemas-and-examples
-        steps:
-          - kind: GIVEN
-            text: strict template directories are inspected
-          - kind: WHEN
-            text: scaffold template assets are compared to schema and example assets
-          - kind: THEN
-            text: scaffold assets are stored as a distinct template bundle
-          - kind: AND
-            text: schema and example files remain dedicated to validation contracts and examples
-  - id: cli-init-creates-strict-workflow-scaffold
+      required-scaffold-template-asset-families-are-present:
+        - GIVEN: the strict CLI bundled templates are inspected
+        - WHEN: scaffold template assets are enumerated
+        - THEN: >-
+            template assets exist for strict config, specs index, roadmap index, empty changes
+            state, and seed README guidance
+      scaffold-templates-remain-separate-from-contract-schemas-and-examples:
+        - GIVEN: strict template directories are inspected
+        - WHEN: scaffold template assets are compared to schema and example assets
+        - THEN: scaffold assets are stored as a distinct template bundle
+        - AND: schema and example files remain dedicated to validation contracts and examples
+  cli-init-creates-strict-workflow-scaffold:
     strength: MUST
     statement: >-
       The system MUST provide an `init` subcommand that creates strict workflow state under
       `.strict-spec-driven/` using bundled scaffold template assets.
     scenarios:
-      - id: init-creates-missing-strict-scaffold-artifacts
-        steps:
-          - kind: GIVEN
-            text: a repository with bundled strict scaffold template assets
-          - kind: AND
-            text: '`.strict-spec-driven/` does not yet exist'
-          - kind: WHEN
-            text: '`strict-spec-driven init` is executed'
-          - kind: THEN
-            text: '`.strict-spec-driven/` is created'
-          - kind: AND
-            text: >-
-              strict config, specs index, roadmap index, changes state, and seed README guidance
-              artifacts are created from bundled templates
-  - id: cli-init-is-idempotent-and-non-clobbering
+      init-creates-missing-strict-scaffold-artifacts:
+        - GIVEN: a repository with bundled strict scaffold template assets
+        - AND: '`.strict-spec-driven/` does not yet exist'
+        - WHEN: '`strict-spec-driven init` is executed'
+        - THEN: '`.strict-spec-driven/` is created'
+        - AND: >-
+            strict config, specs index, roadmap index, changes state, and seed README guidance
+            artifacts are created from bundled templates
+  cli-init-is-idempotent-and-non-clobbering:
     strength: MUST
     statement: >-
       The system MUST make `init` idempotent and MUST NOT overwrite existing strict workflow
       artifacts.
     scenarios:
-      - id: existing-strict-artifacts-are-preserved-on-rerun
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/` already exists with user-authored artifact content'
-          - kind: WHEN
-            text: '`strict-spec-driven init` is executed again'
-          - kind: THEN
-            text: existing strict workflow artifacts are left unchanged
-          - kind: AND
-            text: only missing required scaffold artifacts are created
-  - id: cli-init-handles-bootstrap-coexistence
+      existing-strict-artifacts-are-preserved-on-rerun:
+        - GIVEN: '`.strict-spec-driven/` already exists with user-authored artifact content'
+        - WHEN: '`strict-spec-driven init` is executed again'
+        - THEN: existing strict workflow artifacts are left unchanged
+        - AND: only missing required scaffold artifacts are created
+  cli-init-handles-bootstrap-coexistence:
     strength: MUST
     statement: >-
       The system MUST allow strict scaffold initialization to proceed when a legacy `.spec-driven/`
       directory is present and MUST emit a warning about coexistence.
     scenarios:
-      - id: init-warns-and-continues-when-bootstrap-directory-exists
-        steps:
-          - kind: GIVEN
-            text: a repository contains `.spec-driven/`
-          - kind: WHEN
-            text: '`strict-spec-driven init` is executed'
-          - kind: THEN
-            text: >-
-              the command emits one warning indicating `.spec-driven/` is bootstrap or legacy
-              workflow state
-          - kind: AND
-            text: >-
-              strict scaffold initialization continues without failing solely due to that
-              directory's presence
-  - id: cli-propose-creates-strict-change-scaffold
+      init-warns-and-continues-when-bootstrap-directory-exists:
+        - GIVEN: a repository contains `.spec-driven/`
+        - WHEN: '`strict-spec-driven init` is executed'
+        - THEN: >-
+            the command emits one warning indicating `.spec-driven/` is bootstrap or legacy
+            workflow state
+        - AND: >-
+            strict scaffold initialization continues without failing solely due to that
+            directory's presence
+  cli-propose-creates-strict-change-scaffold:
     strength: MUST
     statement: >-
       The system MUST provide a `propose` subcommand that creates strict change planning artifacts
       under `.strict-spec-driven/changes/<name>/`.
     scenarios:
-      - id: propose-scaffolds-strict-yaml-artifacts
-        steps:
-          - kind: GIVEN
-            text: a valid kebab-case change name that does not already exist
-          - kind: WHEN
-            text: '`strict-spec-driven propose <name>` is executed'
-          - kind: THEN
-            text: the change directory is created under `.strict-spec-driven/changes/`
-          - kind: AND
-            text: >-
-              `proposal.yaml`, `design.yaml`, `tasks.yaml`, and `questions.yaml` are created from
-              strict templates
-          - kind: AND
-            text: a `specs/` directory is created for delta specs
-  - id: cli-propose-validates-change-name-and-collision
+      propose-scaffolds-strict-yaml-artifacts:
+        - GIVEN: a valid kebab-case change name that does not already exist
+        - WHEN: '`strict-spec-driven propose <name>` is executed'
+        - THEN: the change directory is created under `.strict-spec-driven/changes/`
+        - AND: >-
+            `proposal.yaml`, `design.yaml`, `tasks.yaml`, and `questions.yaml` are created from
+            strict templates
+        - AND: a `specs/` directory is created for delta specs
+  cli-propose-validates-change-name-and-collision:
     strength: MUST
     statement: >-
       The system MUST reject invalid strict change names and existing strict change collisions
       before writing scaffold files.
     scenarios:
-      - id: propose-rejects-invalid-name
-        steps:
-          - kind: GIVEN
-            text: a requested change name that is not kebab-case
-          - kind: WHEN
-            text: '`strict-spec-driven propose <name>` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: no strict change directory is created
-      - id: propose-rejects-duplicate-change
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/<name>/` already exists'
-          - kind: WHEN
-            text: '`strict-spec-driven propose <name>` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: existing change artifacts are left unchanged
-  - id: cli-propose-reports-created-artifacts
+      propose-rejects-invalid-name:
+        - GIVEN: a requested change name that is not kebab-case
+        - WHEN: '`strict-spec-driven propose <name>` is executed'
+        - THEN: the command exits non-zero
+        - AND: no strict change directory is created
+      propose-rejects-duplicate-change:
+        - GIVEN: '`.strict-spec-driven/changes/<name>/` already exists'
+        - WHEN: '`strict-spec-driven propose <name>` is executed'
+        - THEN: the command exits non-zero
+        - AND: existing change artifacts are left unchanged
+  cli-propose-reports-created-artifacts:
     strength: MUST
     statement: >-
       The system MUST emit deterministic output listing the strict change artifacts created by
       `propose`.
     scenarios:
-      - id: propose-output-includes-artifact-paths
-        steps:
-          - kind: GIVEN
-            text: '`strict-spec-driven propose <name>` completes successfully'
-          - kind: WHEN
-            text: command output is reviewed
-          - kind: THEN
-            text: output identifies the created strict change directory
-          - kind: AND
-            text: output lists the created planning artifact paths for follow-up editing
-  - id: cli-build-bundles-templates
+      propose-output-includes-artifact-paths:
+        - GIVEN: '`strict-spec-driven propose <name>` completes successfully'
+        - WHEN: command output is reviewed
+        - THEN: output identifies the created strict change directory
+        - AND: output lists the created planning artifact paths for follow-up editing
+  cli-build-bundles-templates:
     strength: MUST
     statement: >-
       The system MUST copy the `templates/` directory into `dist/templates/` as part of the build
       step so compiled scripts can resolve scaffold and schema assets without depending on the
       source tree.
     scenarios:
-      - id: templates-appear-in-dist-after-build
-        steps:
-          - kind: GIVEN
-            text: the TypeScript sources compile successfully
-          - kind: WHEN
-            text: '`bun run build` completes'
-          - kind: THEN
-            text: >-
-              `dist/templates/strict-spec-driven/scaffold/` contains all required scaffold template
-              assets
-          - kind: AND
-            text: '`dist/templates/strict-spec-driven/schemas/` contains all schema and registry assets'
-  - id: cli-template-resolution-from-dist
+      templates-appear-in-dist-after-build:
+        - GIVEN: the TypeScript sources compile successfully
+        - WHEN: '`bun run build` completes'
+        - THEN: >-
+            `dist/templates/strict-spec-driven/scaffold/` contains all required scaffold template
+            assets
+        - AND: '`dist/templates/strict-spec-driven/schemas/` contains all schema and registry assets'
+  cli-template-resolution-from-dist:
     strength: MUST
     statement: >-
       The system MUST resolve bundled template directories relative to `import.meta.url` so that
       compiled scripts in `dist/` find templates under `dist/templates/` without depending on the
       source tree.
     scenarios:
-      - id: compiled-scripts-find-scaffold-templates
-        steps:
-          - kind: GIVEN
-            text: '`dist/` contains compiled JS and `dist/templates/` contains copied template assets'
-          - kind: WHEN
-            text: a compiled script resolves a scaffold template path
-          - kind: THEN
-            text: the template is found under `dist/templates/strict-spec-driven/scaffold/`
-      - id: compiled-scripts-find-schema-assets
-        steps:
-          - kind: GIVEN
-            text: '`dist/` contains compiled JS and `dist/templates/` contains copied template assets'
-          - kind: WHEN
-            text: a compiled script resolves a schema path
-          - kind: THEN
-            text: the schema is found under `dist/templates/strict-spec-driven/schemas/`
-  - id: cli-template-resolution-fallback
+      compiled-scripts-find-scaffold-templates:
+        - GIVEN: '`dist/` contains compiled JS and `dist/templates/` contains copied template assets'
+        - WHEN: a compiled script resolves a scaffold template path
+        - THEN: the template is found under `dist/templates/strict-spec-driven/scaffold/`
+      compiled-scripts-find-schema-assets:
+        - GIVEN: '`dist/` contains compiled JS and `dist/templates/` contains copied template assets'
+        - WHEN: a compiled script resolves a schema path
+        - THEN: the schema is found under `dist/templates/strict-spec-driven/schemas/`
+  cli-template-resolution-fallback:
     strength: MUST
     statement: >-
       The system MUST fall back to `../templates/` relative to the module file when
       `dist/templates/` does not exist, so template resolution works during development before the
       copy step runs.
     scenarios:
-      - id: source-tree-fallback-when-dist-templates-missing
-        steps:
-          - kind: GIVEN
-            text: '`dist/templates/` does not exist'
-          - kind: WHEN
-            text: a script resolves a bundled template path
-          - kind: THEN
-            text: >-
-              the template is found under `../templates/strict-spec-driven/` relative to the module
-              file
-  - id: cli-init-works-from-dist-only
+      source-tree-fallback-when-dist-templates-missing:
+        - GIVEN: '`dist/templates/` does not exist'
+        - WHEN: a script resolves a bundled template path
+        - THEN: >-
+            the template is found under `../templates/strict-spec-driven/` relative to the module
+            file
+  cli-init-works-from-dist-only:
     strength: MUST
     statement: >-
       The system MUST allow `strict-spec-driven init` to create scaffold files correctly when run
       from the compiled `dist/` output without the source tree present.
     scenarios:
-      - id: init-succeeds-from-dist-only-environment
-        steps:
-          - kind: GIVEN
-            text: only the `dist/` directory exists with compiled JS and bundled templates
-          - kind: WHEN
-            text: '`strict-spec-driven init` is executed'
-          - kind: THEN
-            text: it creates `.strict-spec-driven/` with all required scaffold artifacts
-  - id: cli-propose-works-from-dist-only
+      init-succeeds-from-dist-only-environment:
+        - GIVEN: only the `dist/` directory exists with compiled JS and bundled templates
+        - WHEN: '`strict-spec-driven init` is executed'
+        - THEN: it creates `.strict-spec-driven/` with all required scaffold artifacts
+  cli-propose-works-from-dist-only:
     strength: MUST
     statement: >-
       The system MUST allow `strict-spec-driven propose` to create change scaffolds correctly when
       run from the compiled `dist/` output without the source tree present.
     scenarios:
-      - id: propose-succeeds-from-dist-only-environment
-        steps:
-          - kind: GIVEN
-            text: only the `dist/` directory exists with compiled JS and bundled templates
-          - kind: WHEN
-            text: '`strict-spec-driven propose <name>` is executed'
-          - kind: THEN
-            text: it creates the change directory with all planning artifacts
-  - id: cli-apply-reads-tasks-yaml
+      propose-succeeds-from-dist-only-environment:
+        - GIVEN: only the `dist/` directory exists with compiled JS and bundled templates
+        - WHEN: '`strict-spec-driven propose <name>` is executed'
+        - THEN: it creates the change directory with all planning artifacts
+  cli-apply-reads-tasks-yaml:
     strength: MUST
     statement: >-
       The system MUST provide an `apply` subcommand that reads `tasks.yaml` from a named active
       strict change directory under `.strict-spec-driven/changes/<name>/`.
     scenarios:
-      - id: apply-locates-tasks-for-an-existing-change
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/<name>/tasks.yaml` exists with at least one pending task'
-          - kind: WHEN
-            text: '`strict-spec-driven apply <name>` is executed'
-          - kind: THEN
-            text: the command reads and parses the tasks artifact from the change directory
-      - id: apply-rejects-missing-change
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/<name>/` does not exist'
-          - kind: WHEN
-            text: '`strict-spec-driven apply <name>` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: an error message is written to stderr indicating the change was not found
-  - id: cli-apply-completes-next-pending-task
+      apply-locates-tasks-for-an-existing-change:
+        - GIVEN: '`.strict-spec-driven/changes/<name>/tasks.yaml` exists with at least one pending task'
+        - WHEN: '`strict-spec-driven apply <name>` is executed'
+        - THEN: the command reads and parses the tasks artifact from the change directory
+      apply-rejects-missing-change:
+        - GIVEN: '`.strict-spec-driven/changes/<name>/` does not exist'
+        - WHEN: '`strict-spec-driven apply <name>` is executed'
+        - THEN: the command exits non-zero
+        - AND: an error message is written to stderr indicating the change was not found
+  cli-apply-completes-next-pending-task:
     strength: MUST
     statement: >-
       The system MUST complete exactly one pending task per `apply` invocation by locating the first
       task with `status: pending` across all task sections, setting its status to `complete`, and
       writing the updated `tasks.yaml` back to disk.
     scenarios:
-      - id: apply-completes-first-pending-task
-        steps:
-          - kind: GIVEN
-            text: a strict change has `tasks.yaml` with multiple pending tasks across sections
-          - kind: WHEN
-            text: '`strict-spec-driven apply <name>` is executed'
-          - kind: THEN
-            text: 'the first task with `status: pending` across sections is set to `complete`'
-          - kind: AND
-            text: the updated `tasks.yaml` is written back to the change directory
-          - kind: AND
-            text: no other task statuses are modified
-      - id: apply-preserves-tasks-yaml-structure
-        steps:
-          - kind: GIVEN
-            text: a strict change has `tasks.yaml` with sections, task fields, and testing gates
-          - kind: WHEN
-            text: '`strict-spec-driven apply <name>` is executed'
-          - kind: THEN
-            text: >-
-              the `tasks.yaml` sections, task identifiers, task text, commands, and testing gates
-              remain unchanged
-          - kind: AND
-            text: only the target task `status` field is modified
-  - id: cli-apply-rejects-all-complete
+      apply-completes-first-pending-task:
+        - GIVEN: a strict change has `tasks.yaml` with multiple pending tasks across sections
+        - WHEN: '`strict-spec-driven apply <name>` is executed'
+        - THEN: 'the first task with `status: pending` across sections is set to `complete`'
+        - AND: the updated `tasks.yaml` is written back to the change directory
+        - AND: no other task statuses are modified
+      apply-preserves-tasks-yaml-structure:
+        - GIVEN: a strict change has `tasks.yaml` with sections, task fields, and testing gates
+        - WHEN: '`strict-spec-driven apply <name>` is executed'
+        - THEN: >-
+            the `tasks.yaml` sections, task identifiers, task text, commands, and testing gates
+            remain unchanged
+        - AND: only the target task `status` field is modified
+  cli-apply-rejects-all-complete:
     strength: MUST
     statement: The system MUST exit non-zero when no pending tasks remain in the change.
     scenarios:
-      - id: apply-rejects-when-all-tasks-complete
-        steps:
-          - kind: GIVEN
-            text: 'a strict change has `tasks.yaml` with all tasks having `status: complete`'
-          - kind: WHEN
-            text: '`strict-spec-driven apply <name>` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: an error message is written to stderr indicating no pending tasks remain
-  - id: cli-apply-emits-task-status-json
+      apply-rejects-when-all-tasks-complete:
+        - GIVEN: 'a strict change has `tasks.yaml` with all tasks having `status: complete`'
+        - WHEN: '`strict-spec-driven apply <name>` is executed'
+        - THEN: the command exits non-zero
+        - AND: an error message is written to stderr indicating no pending tasks remain
+  cli-apply-emits-task-status-json:
     strength: MUST
     statement: >-
       The system MUST emit a deterministic JSON object to stdout describing the completed task and
       remaining task summary.
     scenarios:
-      - id: apply-output-is-parseable-json
-        steps:
-          - kind: GIVEN
-            text: '`strict-spec-driven apply <name>` completes a task successfully'
-          - kind: WHEN
-            text: command stdout is parsed as JSON
-          - kind: THEN
-            text: the JSON includes the completed task section name, task id, and task text
-          - kind: AND
-            text: the JSON includes the total task count and remaining pending count
-      - id: apply-status-output-is-deterministic
-        steps:
-          - kind: GIVEN
-            text: the same change tasks state is applied twice in sequence
-          - kind: WHEN
-            text: each JSON output is compared
-          - kind: THEN
-            text: each output reflects only the task completed in that invocation
-  - id: cli-verify-reads-active-change-artifacts
+      apply-output-is-parseable-json:
+        - GIVEN: '`strict-spec-driven apply <name>` completes a task successfully'
+        - WHEN: command stdout is parsed as JSON
+        - THEN: the JSON includes the completed task section name, task id, and task text
+        - AND: the JSON includes the total task count and remaining pending count
+      apply-status-output-is-deterministic:
+        - GIVEN: the same change tasks state is applied twice in sequence
+        - WHEN: each JSON output is compared
+        - THEN: each output reflects only the task completed in that invocation
+  cli-verify-reads-active-change-artifacts:
     strength: MUST
     statement: >-
       The system MUST provide a `verify` subcommand that reads all planning artifacts
@@ -486,280 +354,183 @@ requirements:
       `specs/` from a named active strict change directory under
       `.strict-spec-driven/changes/<name>/`.
     scenarios:
-      - id: verify-locates-artifacts-for-an-existing-change
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/<name>/` exists with planning artifacts'
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: the command reads and parses each planning artifact from the change directory
-      - id: verify-rejects-missing-change
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/<name>/` does not exist'
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: an error message is written to stderr indicating the change was not found
-  - id: cli-verify-validates-artifacts-against-schemas
+      verify-locates-artifacts-for-an-existing-change:
+        - GIVEN: '`.strict-spec-driven/changes/<name>/` exists with planning artifacts'
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: the command reads and parses each planning artifact from the change directory
+      verify-rejects-missing-change:
+        - GIVEN: '`.strict-spec-driven/changes/<name>/` does not exist'
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: the command exits non-zero
+        - AND: an error message is written to stderr indicating the change was not found
+  cli-verify-validates-artifacts-against-schemas:
     strength: MUST
     statement: >-
       The system MUST validate each change planning artifact against its registered strict YAML
       schema and include any schema violations in the verification diagnostics.
     scenarios:
-      - id: valid-artifacts-produce-no-schema-diagnostics
-        steps:
-          - kind: GIVEN
-            text: a strict change has valid proposal.yaml, design.yaml, tasks.yaml, and questions.yaml
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: no schema validation diagnostics are emitted for those artifacts
-      - id: invalid-artifact-produces-schema-diagnostics
-        steps:
-          - kind: GIVEN
-            text: a strict change has a tasks.yaml missing a required field
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: a schema validation diagnostic is emitted identifying the artifact path and field path
-  - id: cli-verify-checks-task-completion
+      valid-artifacts-produce-no-schema-diagnostics:
+        - GIVEN: a strict change has valid proposal.yaml, design.yaml, tasks.yaml, and questions.yaml
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: no schema validation diagnostics are emitted for those artifacts
+      invalid-artifact-produces-schema-diagnostics:
+        - GIVEN: a strict change has a tasks.yaml missing a required field
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: a schema validation diagnostic is emitted identifying the artifact path and field path
+  cli-verify-checks-task-completion:
     strength: MUST
     statement: >-
       The system MUST report a verification diagnostic when any task in the change has a status
       other than `complete`.
     scenarios:
-      - id: all-tasks-complete-produces-no-task-diagnostics
-        steps:
-          - kind: GIVEN
-            text: 'a strict change has tasks.yaml with all tasks having `status: complete`'
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: no task-completion diagnostics are emitted
-      - id: pending-task-produces-diagnostic
-        steps:
-          - kind: GIVEN
-            text: 'a strict change has tasks.yaml with at least one task having `status: pending`'
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: a diagnostic is emitted identifying the incomplete task
-  - id: cli-verify-checks-open-questions
+      all-tasks-complete-produce-no-task-diagnostics:
+        - GIVEN: 'a strict change has tasks.yaml with all tasks having `status: complete`'
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: no task-completion diagnostics are emitted
+      pending-task-produces-diagnostic:
+        - GIVEN: 'a strict change has tasks.yaml with at least one task having `status: pending`'
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: a diagnostic is emitted identifying the incomplete task
+  cli-verify-checks-open-questions:
     strength: MUST
     statement: >-
       The system MUST report a verification diagnostic when the questions artifact contains any open
       questions.
     scenarios:
-      - id: no-open-questions-produces-no-question-diagnostics
-        steps:
-          - kind: GIVEN
-            text: a strict change has questions.yaml with an empty `open` list
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: no open-question diagnostics are emitted
-      - id: open-questions-produce-diagnostics
-        steps:
-          - kind: GIVEN
-            text: a strict change has questions.yaml with at least one entry in the `open` list
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: a diagnostic is emitted for each open question
-  - id: cli-verify-validates-testing-gates
+      no-open-questions-produce-no-question-diagnostics:
+        - GIVEN: a strict change has questions.yaml with an empty `open` list
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: no open-question diagnostics are emitted
+      open-questions-produce-diagnostics:
+        - GIVEN: a strict change has questions.yaml with at least one entry in the `open` list
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: a diagnostic is emitted for each open question
+  cli-verify-validates-testing-gates:
     strength: MUST
     statement: >-
       The system MUST validate that `tasks.yaml` testing gates reference existing task IDs within
       the Testing section and report a diagnostic when a referenced task ID is missing or outside
       the Testing section.
     scenarios:
-      - id: valid-testing-gates-produce-no-diagnostics
-        steps:
-          - kind: GIVEN
-            text: >-
-              a strict change has tasks.yaml where `testing_gates.validation_task` and
-              `testing_gates.unit_test_task` reference existing task IDs in the Testing section
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: no testing-gate diagnostics are emitted
-      - id: missing-testing-gate-target-produces-diagnostic
-        steps:
-          - kind: GIVEN
-            text: >-
-              a strict change has tasks.yaml where `testing_gates.validation_task` references a task
-              ID that does not exist in the Testing section
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: a diagnostic is emitted identifying the invalid testing gate reference
-  - id: cli-verify-validates-delta-specs
+      valid-testing-gates-produce-no-diagnostics:
+        - GIVEN: >-
+            a strict change has tasks.yaml where `testing_gates.validation_task` and
+            `testing_gates.unit_test_task` reference existing task IDs in the Testing section
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: no testing-gate diagnostics are emitted
+      missing-testing-gate-target-produces-diagnostic:
+        - GIVEN: >-
+            a strict change has tasks.yaml where `testing_gates.validation_task` references a task
+            ID that does not exist in the Testing section
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: a diagnostic is emitted identifying the invalid testing gate reference
+  cli-verify-validates-delta-specs:
     strength: MUST
     statement: >-
       The system MUST validate each YAML file under the change `specs/` directory against the
       registered delta-spec schema and include any violations in the verification diagnostics.
     scenarios:
-      - id: valid-delta-specs-produce-no-diagnostics
-        steps:
-          - kind: GIVEN
-            text: >-
-              a strict change has delta spec files under `specs/` that conform to the delta-spec
-              schema
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: no delta-spec diagnostics are emitted
-      - id: malformed-delta-spec-produces-diagnostics
-        steps:
-          - kind: GIVEN
-            text: >-
-              a strict change has a delta spec file under `specs/` that violates the delta-spec
-              schema
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: a diagnostic is emitted identifying the delta spec path and violation
-  - id: cli-verify-enforces-exclusive-active-targets
+      valid-delta-specs-produce-no-diagnostics:
+        - GIVEN: >-
+            a strict change has delta spec files under `specs/` that conform to the delta-spec
+            schema
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: no delta-spec diagnostics are emitted
+      malformed-delta-spec-produces-diagnostics:
+        - GIVEN: >-
+            a strict change has a delta spec file under `specs/` that violates the delta-spec
+            schema
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: a diagnostic is emitted identifying the delta spec path and violation
+  cli-verify-enforces-exclusive-active-targets:
     strength: MUST
     statement: >-
       The system MUST report a verification diagnostic when two or more active changes have delta
       specs that target the same requirement ID with MODIFIED or REMOVED operations.
     scenarios:
-      - id: no-target-overlap-produces-no-conflict-diagnostics
-        steps:
-          - kind: GIVEN
-            text: >-
-              active changes have delta specs with disjoint MODIFIED and REMOVED target_requirement
-              values
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: no exclusive-active-target diagnostics are emitted
-      - id: overlapping-targets-produce-conflict-diagnostics
-        steps:
-          - kind: GIVEN
-            text: >-
-              two active changes each have a delta spec with a MODIFIED entry targeting the same
-              requirement ID
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: >-
-              a diagnostic is emitted identifying the conflicting requirement ID and the competing
-              change names
-  - id: cli-verify-emits-deterministic-json-output
+      no-target-overlap-produces-no-conflict-diagnostics:
+        - GIVEN: >-
+            active changes have delta specs with disjoint MODIFIED and REMOVED target_requirement
+            values
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: no exclusive-active-target diagnostics are emitted
+      overlapping-targets-produce-conflict-diagnostics:
+        - GIVEN: >-
+            two active changes each have a delta spec with a MODIFIED entry targeting the same
+            requirement ID
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: >-
+            a diagnostic is emitted identifying the conflicting requirement ID and the competing
+            change names
+  cli-verify-emits-deterministic-json-output:
     strength: MUST
     statement: >-
       The system MUST emit a deterministic JSON object to stdout containing `valid`, `diagnostics`,
       `changeName`, `totalTasks`, `completeTasks`, `remainingPending`, and `openQuestionCount`.
     scenarios:
-      - id: verify-output-is-parseable-json
-        steps:
-          - kind: GIVEN
-            text: '`strict-spec-driven verify <name>` completes'
-          - kind: WHEN
-            text: command stdout is parsed as JSON
-          - kind: THEN
-            text: the JSON includes `valid` as a boolean
-          - kind: AND
-            text: the JSON includes `diagnostics` as an array
-          - kind: AND
-            text: >-
-              the JSON includes `changeName`, `totalTasks`, `completeTasks`, `remainingPending`, and
-              `openQuestionCount`
-      - id: verify-exits-non-zero-when-invalid
-        steps:
-          - kind: GIVEN
-            text: a strict change has verification diagnostics
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: the command exits with a non-zero exit code
-      - id: verify-exits-zero-when-valid
-        steps:
-          - kind: GIVEN
-            text: a strict change has no verification diagnostics
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed'
-          - kind: THEN
-            text: the command exits with exit code zero
-  - id: cli-verify-works-from-dist-only
+      verify-output-is-parseable-json:
+        - GIVEN: '`strict-spec-driven verify <name>` completes'
+        - WHEN: command stdout is parsed as JSON
+        - THEN: the JSON includes `valid` as a boolean
+        - AND: the JSON includes `diagnostics` as an array
+        - AND: >-
+            the JSON includes `changeName`, `totalTasks`, `completeTasks`, `remainingPending`, and
+            `openQuestionCount`
+      verify-exits-non-zero-when-invalid:
+        - GIVEN: a strict change has verification diagnostics
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: the command exits with a non-zero exit code
+      verify-exits-zero-when-valid:
+        - GIVEN: a strict change has no verification diagnostics
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: the command exits with exit code zero
+  cli-verify-works-from-dist-only:
     strength: MUST
     statement: >-
       The system MUST allow `strict-spec-driven verify` to validate change artifacts correctly when
       run from the compiled `dist/` output without the source tree present.
     scenarios:
-      - id: verify-succeeds-from-dist-only-environment
-        steps:
-          - kind: GIVEN
-            text: only the `dist/` directory exists with compiled JS and bundled templates
-          - kind: WHEN
-            text: '`strict-spec-driven verify <name>` is executed against an active change'
-          - kind: THEN
-            text: it validates the change and emits correct diagnostics
-  - id: cli-roadmap-status-reports-strict-roadmap-state
+      verify-succeeds-from-dist-only-environment:
+        - GIVEN: only the `dist/` directory exists with compiled JS and bundled templates
+        - WHEN: '`strict-spec-driven verify <name>` is executed against an active change'
+        - THEN: it validates the change and emits correct diagnostics
+  cli-roadmap-status-reports-strict-roadmap-state:
     strength: MUST
     statement: >-
       The system MUST provide a `roadmap-status` subcommand that validates
       `.strict-spec-driven/roadmap/` artifacts and reports milestone and planned change state using
       strict roadmap declared-status rules and derived completion semantics.
     scenarios:
-      - id: roadmap-status-reports-ordered-milestone-state
-        steps:
-          - kind: GIVEN
-            text: a valid strict roadmap exists under `.strict-spec-driven/roadmap/`
-          - kind: WHEN
-            text: '`strict-spec-driven roadmap-status` is executed'
-          - kind: THEN
-            text: the output includes milestone entries in roadmap order
-          - kind: AND
-            text: each milestone reports its declared status and derived status
-          - kind: AND
-            text: each planned change reports its declared roadmap status and workflow-backed state
-      - id: roadmap-status-rejects-invalid-roadmap-artifacts
-        steps:
-          - kind: GIVEN
-            text: a strict roadmap artifact violates the roadmap contract
-          - kind: WHEN
-            text: '`strict-spec-driven roadmap-status` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: the diagnostics identify the invalid artifact and field context
-  - id: cli-roadmap-sync-reconciles-strict-roadmap-state
+      roadmap-status-reports-ordered-milestone-state:
+        - GIVEN: a valid strict roadmap exists under `.strict-spec-driven/roadmap/`
+        - WHEN: '`strict-spec-driven roadmap-status` is executed'
+        - THEN: the output includes milestone entries in roadmap order
+        - AND: each milestone reports its declared status and derived status
+        - AND: each planned change reports its declared roadmap status and workflow-backed state
+      roadmap-status-rejects-invalid-roadmap-artifacts:
+        - GIVEN: a strict roadmap artifact violates the roadmap contract
+        - WHEN: '`strict-spec-driven roadmap-status` is executed'
+        - THEN: the command exits non-zero
+        - AND: the diagnostics identify the invalid artifact and field context
+  cli-roadmap-sync-reconciles-strict-roadmap-state:
     strength: MUST
     statement: >-
       The system MUST provide a `roadmap-sync` subcommand that regenerates or repairs strict roadmap
       index state and reconciles milestone and planned change completion against active and archived
       strict changes without inventing new roadmap items.
     scenarios:
-      - id: roadmap-sync-regenerates-canonical-roadmap-index-state
-        steps:
-          - kind: GIVEN
-            text: strict roadmap milestone files exist under `.strict-spec-driven/roadmap/milestones/`
-          - kind: WHEN
-            text: '`strict-spec-driven roadmap-sync` is executed'
-          - kind: THEN
-            text: the roadmap index reflects the canonical milestone ordering and file paths
-          - kind: AND
-            text: milestone entries keep their declared status values within the strict roadmap enums
-      - id: roadmap-sync-reconciles-planned-change-completion-from-workflow-state
-        steps:
-          - kind: GIVEN
-            text: a roadmap planned change has moved into archived strict change state
-          - kind: WHEN
-            text: '`strict-spec-driven roadmap-sync` is executed'
-          - kind: THEN
-            text: the planned change is reconciled as complete in roadmap state
-          - kind: AND
-            text: no duplicate planned change entry is created
-          - kind: AND
-            text: unrelated milestone notes and scope content remain unchanged
-  - id: cli-roadmap-validation-and-skill-smoke-coverage
+      roadmap-sync-regenerates-canonical-roadmap-index-state:
+        - GIVEN: strict roadmap milestone files exist under `.strict-spec-driven/roadmap/milestones/`
+        - WHEN: '`strict-spec-driven roadmap-sync` is executed'
+        - THEN: the roadmap index reflects the canonical milestone ordering and file paths
+        - AND: milestone entries keep their declared status values within the strict roadmap enums
+      roadmap-sync-reconciles-planned-change-completion-from-workflow-state:
+        - GIVEN: a roadmap planned change has moved into archived strict change state
+        - WHEN: '`strict-spec-driven roadmap-sync` is executed'
+        - THEN: the planned change is reconciled as complete in roadmap state
+        - AND: no duplicate planned change entry is created
+        - AND: unrelated milestone notes and scope content remain unchanged
+  cli-roadmap-validation-and-skill-smoke-coverage:
     strength: MUST
     statement: >-
       The system MUST include automated checks that exercise strict roadmap command behavior and
@@ -767,687 +538,442 @@ requirements:
       coverage for milestones that use the optional `details` field across roadmap validation, sync,
       and proposal-handoff flows.
     scenarios:
-      - id: automated-checks-accept-details-bearing-roadmap-workflow-surfaces
-        steps:
-          - kind: GIVEN
-            text: >-
-              strict roadmap commands and `strict-roadmap-*` skill packages are aligned with
-              `.strict-spec-driven/roadmap/`
-          - kind: AND
-            text: a milestone includes a valid `details` field
-          - kind: WHEN
-            text: repository automated checks are executed
-          - kind: THEN
-            text: the roadmap workflow checks pass
-      - id: automated-checks-accept-milestones-without-details
-        steps:
-          - kind: GIVEN
-            text: >-
-              strict roadmap commands and `strict-roadmap-*` skill packages are aligned with
-              `.strict-spec-driven/roadmap/`
-          - kind: AND
-            text: a milestone omits the optional `details` field
-          - kind: WHEN
-            text: repository automated checks are executed
-          - kind: THEN
-            text: the roadmap workflow checks pass
-          - kind: AND
-            text: no placeholder or synthetic `details` value is required
-      - id: automated-checks-reject-placeholder-or-stale-roadmap-surfaces
-        steps:
-          - kind: GIVEN
-            text: >-
-              a strict roadmap skill keeps a generic placeholder command block or a roadmap command
-              ignores strict roadmap status rules
-          - kind: WHEN
-            text: repository automated checks are executed
-          - kind: THEN
-            text: the roadmap workflow checks fail
-          - kind: AND
-            text: diagnostics identify the failing skill or roadmap surface deterministically
-  - id: cli-verify-spec-mappings-subcommand
+      automated-checks-accept-details-bearing-roadmap-workflow-surfaces:
+        - GIVEN: >-
+            strict roadmap commands and `strict-roadmap-*` skill packages are aligned with
+            `.strict-spec-driven/roadmap/`
+        - AND: a milestone includes a valid `details` field
+        - WHEN: repository automated checks are executed
+        - THEN: the roadmap workflow checks pass
+      automated-checks-accept-milestones-without-details:
+        - GIVEN: >-
+            strict roadmap commands and `strict-roadmap-*` skill packages are aligned with
+            `.strict-spec-driven/roadmap/`
+        - AND: a milestone omits the optional `details` field
+        - WHEN: repository automated checks are executed
+        - THEN: the roadmap workflow checks pass
+        - AND: no placeholder or synthetic `details` value is required
+      automated-checks-reject-placeholder-or-stale-roadmap-surfaces:
+        - GIVEN: >-
+            a strict roadmap skill keeps a generic placeholder command block or a roadmap command
+            ignores strict roadmap status rules
+        - WHEN: repository automated checks are executed
+        - THEN: the roadmap workflow checks fail
+        - AND: diagnostics identify the failing skill or roadmap surface deterministically
+  cli-verify-spec-mappings-subcommand:
     strength: MUST
     statement: >-
       The system MUST provide a `verify-spec-mappings` subcommand for strict spec-mapping audits
       against .strict-spec-driven/specs/.
     scenarios:
-      - id: verify-spec-mappings-runs-from-repository-state
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/specs/` contains one or more main spec YAML files'
-          - kind: WHEN
-            text: '`strict-spec-driven verify-spec-mappings` is executed'
-          - kind: THEN
-            text: the command runs mapping audits against available spec mapping fields
-          - kind: AND
-            text: command output is emitted as parseable JSON
-      - id: verify-spec-mappings-reports-missing-specs-directory
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/specs/` does not exist'
-          - kind: WHEN
-            text: '`strict-spec-driven verify-spec-mappings` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: a diagnostic explains that spec mapping inputs are unavailable
-  - id: cli-verify-spec-mappings-audits-mapping-coverage
+      verify-spec-mappings-runs-from-repository-state:
+        - GIVEN: '`.strict-spec-driven/specs/` contains one or more main spec YAML files'
+        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
+        - THEN: the command runs mapping audits against available spec mapping fields
+        - AND: command output is emitted as parseable JSON
+      verify-spec-mappings-reports-missing-specs-directory:
+        - GIVEN: '`.strict-spec-driven/specs/` does not exist'
+        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
+        - THEN: the command exits non-zero
+        - AND: a diagnostic explains that spec mapping inputs are unavailable
+  cli-verify-spec-mappings-audits-mapping-coverage:
     strength: MUST
     statement: >-
       The system MUST audit mapping coverage across main spec mapping fields and report diagnostics
       when mapping coverage is incomplete.
     scenarios:
-      - id: mapped-implementation-and-tests-produce-no-coverage-diagnostics
-        steps:
-          - kind: GIVEN
-            text: >-
-              each main spec has a mapping field with non-empty implementation and test path
-              collections
-          - kind: WHEN
-            text: '`strict-spec-driven verify-spec-mappings` is executed'
-          - kind: THEN
-            text: mapping-coverage diagnostics are not emitted
-      - id: missing-mapping-coverage-produces-diagnostics
-        steps:
-          - kind: GIVEN
-            text: >-
-              a main spec omits the mapping field or has an empty implementation or test mapping
-              collection
-          - kind: WHEN
-            text: '`strict-spec-driven verify-spec-mappings` is executed'
-          - kind: THEN
-            text: a diagnostic is emitted identifying the spec path and missing coverage
-  - id: cli-verify-spec-mappings-audits-unmapped-evidence
+      mapped-implementation-and-tests-produce-no-coverage-diagnostics:
+        - GIVEN: >-
+            each main spec has a mapping field with non-empty implementation and test path
+            collections
+        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
+        - THEN: mapping-coverage diagnostics are not emitted
+      missing-mapping-coverage-produces-diagnostics:
+        - GIVEN: >-
+            a main spec omits the mapping field or has an empty implementation or test mapping
+            collection
+        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
+        - THEN: a diagnostic is emitted identifying the spec path and missing coverage
+  cli-verify-spec-mappings-audits-unmapped-evidence:
     strength: MUST
     statement: >-
       The system MUST audit unmapped repository evidence by reporting implementation or test files
       that are not referenced by any spec mapping entry.
     scenarios:
-      - id: fully-mapped-repository-evidence-produces-no-unmapped-diagnostics
-        steps:
-          - kind: GIVEN
-            text: >-
-              relevant implementation and test files are each referenced by at least one spec
-              mapping entry
-          - kind: WHEN
-            text: '`strict-spec-driven verify-spec-mappings` is executed'
-          - kind: THEN
-            text: unmapped-evidence diagnostics are not emitted
-      - id: unmapped-evidence-produces-diagnostics
-        steps:
-          - kind: GIVEN
-            text: >-
-              at least one relevant implementation or test file is not referenced by any spec
-              mapping entry
-          - kind: WHEN
-            text: '`strict-spec-driven verify-spec-mappings` is executed'
-          - kind: THEN
-            text: a diagnostic is emitted identifying each unmapped file path
-  - id: cli-verify-spec-mappings-emits-deterministic-json-output
+      fully-mapped-repository-evidence-produces-no-unmapped-diagnostics:
+        - GIVEN: >-
+            relevant implementation and test files are each referenced by at least one spec
+            mapping entry
+        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
+        - THEN: unmapped-evidence diagnostics are not emitted
+      unmapped-evidence-produces-diagnostics:
+        - GIVEN: >-
+            at least one relevant implementation or test file is not referenced by any spec
+            mapping entry
+        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
+        - THEN: a diagnostic is emitted identifying each unmapped file path
+  cli-verify-spec-mappings-emits-deterministic-json-output:
     strength: MUST
     statement: >-
       The system MUST emit deterministic JSON output for mapping audit results, including validity,
       diagnostics, and mapping summary counts.
     scenarios:
-      - id: output-is-parseable-json
-        steps:
-          - kind: GIVEN
-            text: '`strict-spec-driven verify-spec-mappings` completes'
-          - kind: WHEN
-            text: command stdout is parsed as JSON
-          - kind: THEN
-            text: the JSON includes `valid` as a boolean
-          - kind: AND
-            text: the JSON includes `diagnostics` as an array
-          - kind: AND
-            text: the JSON includes summary counts for mapped and unmapped evidence
-      - id: exit-status-reflects-diagnostic-validity
-        steps:
-          - kind: GIVEN
-            text: mapping diagnostics are present
-          - kind: WHEN
-            text: '`strict-spec-driven verify-spec-mappings` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-      - id: successful-audit-exits-zero
-        steps:
-          - kind: GIVEN
-            text: no mapping diagnostics are present
-          - kind: WHEN
-            text: '`strict-spec-driven verify-spec-mappings` is executed'
-          - kind: THEN
-            text: the command exits with exit code zero
-  - id: cli-archive-reads-active-change-artifacts
+      output-is-parseable-json:
+        - GIVEN: '`strict-spec-driven verify-spec-mappings` completes'
+        - WHEN: command stdout is parsed as JSON
+        - THEN: the JSON includes `valid` as a boolean
+        - AND: the JSON includes `diagnostics` as an array
+        - AND: the JSON includes summary counts for mapped and unmapped evidence
+      exit-status-reflects-diagnostic-validity:
+        - GIVEN: mapping diagnostics are present
+        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
+        - THEN: the command exits non-zero
+      successful-audit-exits-zero:
+        - GIVEN: no mapping diagnostics are present
+        - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
+        - THEN: the command exits with exit code zero
+  cli-archive-reads-active-change-artifacts:
     strength: MUST
     statement: >-
       The system MUST provide an `archive` subcommand that reads planning artifacts and delta specs
       from a named active strict change directory under `.strict-spec-driven/changes/<name>/`.
     scenarios:
-      - id: archive-locates-artifacts-for-an-existing-change
-        steps:
-          - kind: GIVEN
-            text: >-
-              `.strict-spec-driven/changes/<name>/` exists with proposal, design, tasks, questions,
-              and delta spec files
-          - kind: WHEN
-            text: '`strict-spec-driven archive <name>` is executed'
-          - kind: THEN
-            text: the command reads the change artifacts needed for archive processing
-      - id: archive-rejects-missing-change
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/<name>/` does not exist'
-          - kind: WHEN
-            text: '`strict-spec-driven archive <name>` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: an error message is written to stderr indicating the change was not found
-  - id: cli-archive-requires-verified-change-state
+      archive-locates-artifacts-for-an-existing-change:
+        - GIVEN: >-
+            `.strict-spec-driven/changes/<name>/` exists with proposal, design, tasks, questions,
+            and delta spec files
+        - WHEN: '`strict-spec-driven archive <name>` is executed'
+        - THEN: the command reads the change artifacts needed for archive processing
+      archive-rejects-missing-change:
+        - GIVEN: '`.strict-spec-driven/changes/<name>/` does not exist'
+        - WHEN: '`strict-spec-driven archive <name>` is executed'
+        - THEN: the command exits non-zero
+        - AND: an error message is written to stderr indicating the change was not found
+  cli-archive-requires-verified-change-state:
     strength: MUST
     statement: >-
       The system MUST block archive when the named active change has incomplete tasks, open
       questions, or validation diagnostics.
     scenarios:
-      - id: archive-rejects-incomplete-or-unresolved-change-state
-        steps:
-          - kind: GIVEN
-            text: a strict change has at least one pending task or at least one open question
-          - kind: WHEN
-            text: '`strict-spec-driven archive <name>` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: the change remains in the active changes directory
-      - id: archive-rejects-schema-invalid-change-artifacts
-        steps:
-          - kind: GIVEN
-            text: a strict change contains an artifact that fails strict schema validation
-          - kind: WHEN
-            text: '`strict-spec-driven archive <name>` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: the archive move is not performed
-  - id: cli-archive-merges-delta-specs-into-main-specs
+      archive-rejects-incomplete-or-unresolved-change-state:
+        - GIVEN: a strict change has at least one pending task or at least one open question
+        - WHEN: '`strict-spec-driven archive <name>` is executed'
+        - THEN: the command exits non-zero
+        - AND: the change remains in the active changes directory
+      archive-rejects-schema-invalid-change-artifacts:
+        - GIVEN: a strict change contains an artifact that fails strict schema validation
+        - WHEN: '`strict-spec-driven archive <name>` is executed'
+        - THEN: the command exits non-zero
+        - AND: the archive move is not performed
+  cli-archive-merges-delta-specs-into-main-specs:
     strength: MUST
     statement: >-
       The system MUST merge delta specs from the archived change into their corresponding main
       strict specs using stable requirement identifiers and explicit ADDED, MODIFIED, and REMOVED
       operations.
     scenarios:
-      - id: archive-applies-added-and-modified-operations
-        steps:
-          - kind: GIVEN
-            text: >-
-              a strict change includes delta specs with ADDED and MODIFIED entries targeting
-              existing strict main specs
-          - kind: WHEN
-            text: '`strict-spec-driven archive <name>` is executed'
-          - kind: THEN
-            text: ADDED requirements are appended to the target specs
-          - kind: AND
-            text: >-
-              MODIFIED requirements replace the targeted requirements by stable requirement
-              identifier
-      - id: archive-applies-removed-operations
-        steps:
-          - kind: GIVEN
-            text: >-
-              a strict change includes delta specs with REMOVED entries targeting existing
-              requirements
-          - kind: WHEN
-            text: '`strict-spec-driven archive <name>` is executed'
-          - kind: THEN
-            text: targeted requirements are removed from the target main specs
-  - id: cli-archive-applies-missing-target-merge-rules
+      archive-applies-added-and-modified-operations:
+        - GIVEN: >-
+            a strict change includes delta specs with ADDED and MODIFIED entries targeting
+            existing strict main specs
+        - WHEN: '`strict-spec-driven archive <name>` is executed'
+        - THEN: ADDED requirements are appended to the target specs
+        - AND: >-
+            MODIFIED requirements replace the targeted requirements by stable requirement
+            identifier
+      archive-applies-removed-operations:
+        - GIVEN: >-
+            a strict change includes delta specs with REMOVED entries targeting existing
+            requirements
+        - WHEN: '`strict-spec-driven archive <name>` is executed'
+        - THEN: targeted requirements are removed from the target main specs
+  cli-archive-applies-missing-target-merge-rules:
     strength: MUST
     statement: The system MUST apply deterministic missing-target merge rules during archive processing.
     scenarios:
-      - id: missing-modified-target-is-treated-as-added
-        steps:
-          - kind: GIVEN
-            text: >-
-              a delta MODIFIED entry targets a requirement ID missing from the target main spec at
-              archive time
-          - kind: WHEN
-            text: '`strict-spec-driven archive <name>` is executed'
-          - kind: THEN
-            text: the replacement requirement is merged as an added requirement
-          - kind: AND
-            text: the fallback outcome is recorded in the archive merge report
-      - id: missing-removed-target-is-skipped
-        steps:
-          - kind: GIVEN
-            text: >-
-              a delta REMOVED entry targets a requirement ID missing from the target main spec at
-              archive time
-          - kind: WHEN
-            text: '`strict-spec-driven archive <name>` is executed'
-          - kind: THEN
-            text: the removal is skipped
-          - kind: AND
-            text: the skipped removal is recorded in the archive merge report
-  - id: cli-archive-moves-change-to-date-prefixed-archive
+      missing-modified-target-is-treated-as-added:
+        - GIVEN: >-
+            a delta MODIFIED entry targets a requirement ID missing from the target main spec at
+            archive time
+        - WHEN: '`strict-spec-driven archive <name>` is executed'
+        - THEN: the replacement requirement is merged as an added requirement
+        - AND: the fallback outcome is recorded in the archive merge report
+      missing-removed-target-is-skipped:
+        - GIVEN: >-
+            a delta REMOVED entry targets a requirement ID missing from the target main spec at
+            archive time
+        - WHEN: '`strict-spec-driven archive <name>` is executed'
+        - THEN: the removal is skipped
+        - AND: the skipped removal is recorded in the archive merge report
+  cli-archive-moves-change-to-date-prefixed-archive:
     strength: MUST
     statement: >-
       The system MUST move a successfully archived change from the active changes directory to
       `.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` using local date naming.
     scenarios:
-      - id: successful-archive-move-uses-date-prefixed-destination
-        steps:
-          - kind: GIVEN
-            text: '`strict-spec-driven archive <name>` completes merge successfully'
-          - kind: WHEN
-            text: archive move behavior is evaluated
-          - kind: THEN
-            text: the active change directory is removed from `.strict-spec-driven/changes/`
-          - kind: AND
-            text: the change is present at `.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/`
-      - id: archive-destination-collisions-use-deterministic-suffixes
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` already exists'
-          - kind: WHEN
-            text: '`strict-spec-driven archive <name>` completes merge successfully'
-          - kind: THEN
-            text: the archived change uses the next available destination suffix
-          - kind: AND
-            text: the existing archive directory is preserved
-  - id: cli-archive-regenerates-spec-index-after-merge
+      successful-archive-move-uses-date-prefixed-destination:
+        - GIVEN: '`strict-spec-driven archive <name>` completes merge successfully'
+        - WHEN: archive move behavior is evaluated
+        - THEN: the active change directory is removed from `.strict-spec-driven/changes/`
+        - AND: the change is present at `.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/`
+      archive-destination-collisions-use-deterministic-suffixes:
+        - GIVEN: '`.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` already exists'
+        - WHEN: '`strict-spec-driven archive <name>` completes merge successfully'
+        - THEN: the archived change uses the next available destination suffix
+        - AND: the existing archive directory is preserved
+  cli-archive-regenerates-spec-index-after-merge:
     strength: MUST
     statement: >-
       The system MUST regenerate strict specs index artifacts after archive merge writes updated
       main strict specs.
     scenarios:
-      - id: specs-index-reflects-merged-spec-state
-        steps:
-          - kind: GIVEN
-            text: archive merges one or more delta specs into main strict specs
-          - kind: WHEN
-            text: '`strict-spec-driven archive <name>` completes'
-          - kind: THEN
-            text: the strict specs index is regenerated from the resulting spec state
-          - kind: AND
-            text: index entries remain aligned with the available main strict spec files
-  - id: cli-archive-emits-deterministic-json-output
+      specs-index-reflects-merged-spec-state:
+        - GIVEN: archive merges one or more delta specs into main strict specs
+        - WHEN: '`strict-spec-driven archive <name>` completes'
+        - THEN: the strict specs index is regenerated from the resulting spec state
+        - AND: index entries remain aligned with the available main strict spec files
+  cli-archive-emits-deterministic-json-output:
     strength: MUST
     statement: >-
       The system MUST emit deterministic JSON to stdout describing archive validity, merge outcomes,
       and archive destination details.
     scenarios:
-      - id: archive-output-is-parseable-json
-        steps:
-          - kind: GIVEN
-            text: '`strict-spec-driven archive <name>` completes'
-          - kind: WHEN
-            text: command stdout is parsed as JSON
-          - kind: THEN
-            text: the output includes archive validity state
-          - kind: AND
-            text: >-
-              the output includes merged, skipped, and conflict/fallback outcome summaries when
-              present
-          - kind: AND
-            text: the output includes the archive destination path
-  - id: cli-list-reports-active-and-archived-strict-changes
+      archive-output-is-parseable-json:
+        - GIVEN: '`strict-spec-driven archive <name>` completes'
+        - WHEN: command stdout is parsed as JSON
+        - THEN: the output includes archive validity state
+        - AND: >-
+            the output includes merged, skipped, and conflict/fallback outcome summaries when
+            present
+        - AND: the output includes the archive destination path
+  cli-list-reports-active-and-archived-strict-changes:
     strength: MUST
     statement: >-
       The system MUST provide a `list` subcommand that reports active and archived strict changes
       from `.strict-spec-driven/changes/`.
     scenarios:
-      - id: list-reports-active-changes
-        steps:
-          - kind: GIVEN
-            text: >-
-              one or more active strict change directories exist under
-              `.strict-spec-driven/changes/`
-          - kind: WHEN
-            text: '`strict-spec-driven list` is executed'
-          - kind: THEN
-            text: the command output includes active change names
-          - kind: AND
-            text: each active change includes a status summary derived from strict planning artifacts
-      - id: list-reports-archived-changes
-        steps:
-          - kind: GIVEN
-            text: >-
-              one or more archived strict change directories exist under
-              `.strict-spec-driven/changes/archive/`
-          - kind: WHEN
-            text: '`strict-spec-driven list` is executed'
-          - kind: THEN
-            text: the command output includes archived directory names
-      - id: list-handles-empty-state
-        steps:
-          - kind: GIVEN
-            text: no active and no archived strict changes exist
-          - kind: WHEN
-            text: '`strict-spec-driven list` is executed'
-          - kind: THEN
-            text: the command reports that no changes are present
-  - id: cli-modify-reports-strict-artifact-paths
+      list-reports-active-changes:
+        - GIVEN: >-
+            one or more active strict change directories exist under
+            `.strict-spec-driven/changes/`
+        - WHEN: '`strict-spec-driven list` is executed'
+        - THEN: the command output includes active change names
+        - AND: each active change includes a status summary derived from strict planning artifacts
+      list-reports-archived-changes:
+        - GIVEN: >-
+            one or more archived strict change directories exist under
+            `.strict-spec-driven/changes/archive/`
+        - WHEN: '`strict-spec-driven list` is executed'
+        - THEN: the command output includes archived directory names
+      list-handles-empty-state:
+        - GIVEN: no active and no archived strict changes exist
+        - WHEN: '`strict-spec-driven list` is executed'
+        - THEN: the command reports that no changes are present
+  cli-modify-reports-strict-artifact-paths:
     strength: MUST
     statement: >-
       The system MUST provide a `modify` subcommand that reports editable strict artifact paths for
       the selected change.
     scenarios:
-      - id: modify-with-no-argument-lists-active-changes
-        steps:
-          - kind: GIVEN
-            text: one or more active strict changes exist
-          - kind: WHEN
-            text: '`strict-spec-driven modify` is executed without a change target'
-          - kind: THEN
-            text: the command lists active changes with status summaries
-      - id: modify-reports-active-change-artifacts
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/<name>/` exists'
-          - kind: WHEN
-            text: '`strict-spec-driven modify <name>` is executed'
-          - kind: THEN
-            text: >-
-              the command output lists `proposal.yaml`, `design.yaml`, `tasks.yaml`,
-              `questions.yaml`, and the `specs/` delta spec paths for that change
-      - id: modify-reports-archived-change-artifacts-by-exact-directory-name
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/archive/<archive-dir>/` exists'
-          - kind: WHEN
-            text: >-
-              `strict-spec-driven modify <archive-dir>` is executed with the exact archive directory
-              name
-          - kind: THEN
-            text: >-
-              the command output lists the strict planning artifact and delta spec paths for the
-              archived change
-      - id: modify-rejects-archived-bare-name-ambiguity
-        steps:
-          - kind: GIVEN
-            text: archived changes exist whose directories use `YYYY-MM-DD-<name>`
-          - kind: WHEN
-            text: '`strict-spec-driven modify <name>` is executed without the date prefix'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: the error explains that archived targets require exact archive directory names
-  - id: cli-cancel-removes-active-strict-changes-only
+      modify-with-no-argument-lists-active-changes:
+        - GIVEN: one or more active strict changes exist
+        - WHEN: '`strict-spec-driven modify` is executed without a change target'
+        - THEN: the command lists active changes with status summaries
+      modify-reports-active-change-artifacts:
+        - GIVEN: '`.strict-spec-driven/changes/<name>/` exists'
+        - WHEN: '`strict-spec-driven modify <name>` is executed'
+        - THEN: >-
+            the command output lists `proposal.yaml`, `design.yaml`, `tasks.yaml`,
+            `questions.yaml`, and the `specs/` delta spec paths for that change
+      modify-reports-archived-change-artifacts-by-exact-directory-name:
+        - GIVEN: '`.strict-spec-driven/changes/archive/<archive-dir>/` exists'
+        - WHEN: >-
+            `strict-spec-driven modify <archive-dir>` is executed with the exact archive directory
+            name
+        - THEN: >-
+            the command output lists the strict planning artifact and delta spec paths for the
+            archived change
+      modify-rejects-archived-bare-name-ambiguity:
+        - GIVEN: archived changes exist whose directories use `YYYY-MM-DD-<name>`
+        - WHEN: '`strict-spec-driven modify <name>` is executed without the date prefix'
+        - THEN: the command exits non-zero
+        - AND: the error explains that archived targets require exact archive directory names
+  cli-cancel-removes-active-strict-changes-only:
     strength: MUST
     statement: >-
       The system MUST provide a `cancel` subcommand that removes active strict changes and rejects
       archived change targets.
     scenarios:
-      - id: cancel-removes-an-active-change
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/<name>/` exists'
-          - kind: WHEN
-            text: '`strict-spec-driven cancel <name>` is executed'
-          - kind: THEN
-            text: the active change directory is removed
-          - kind: AND
-            text: command output confirms cancellation
-      - id: cancel-rejects-archived-target
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/archive/<archive-dir>/` exists'
-          - kind: WHEN
-            text: '`strict-spec-driven cancel <archive-dir>` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: the archived directory remains unchanged
-          - kind: AND
-            text: the error explains that cancel is limited to active changes
-  - id: cli-review-reads-active-change-artifacts
+      cancel-removes-an-active-change:
+        - GIVEN: '`.strict-spec-driven/changes/<name>/` exists'
+        - WHEN: '`strict-spec-driven cancel <name>` is executed'
+        - THEN: the active change directory is removed
+        - AND: command output confirms cancellation
+      cancel-rejects-archived-target:
+        - GIVEN: '`.strict-spec-driven/changes/archive/<archive-dir>/` exists'
+        - WHEN: '`strict-spec-driven cancel <archive-dir>` is executed'
+        - THEN: the command exits non-zero
+        - AND: the archived directory remains unchanged
+        - AND: the error explains that cancel is limited to active changes
+  cli-review-reads-active-change-artifacts:
     strength: MUST
     statement: >-
       The system MUST provide a `review` subcommand that reads all strict YAML change artifacts
       (proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and any delta spec files under
       `specs/`) from a named active change directory under `.strict-spec-driven/changes/<name>/`.
     scenarios:
-      - id: review-locates-artifacts-for-an-existing-change
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/<name>/` exists with planning artifacts'
-          - kind: WHEN
-            text: '`strict-spec-driven review <name>` is executed'
-          - kind: THEN
-            text: the command reads and parses each planning artifact from the change directory
-      - id: review-rejects-missing-change
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/<name>/` does not exist'
-          - kind: WHEN
-            text: '`strict-spec-driven review <name>` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: an error message is written to stderr indicating the change was not found
-  - id: cli-review-reports-code-quality-findings
+      review-locates-artifacts-for-an-existing-change:
+        - GIVEN: '`.strict-spec-driven/changes/<name>/` exists with planning artifacts'
+        - WHEN: '`strict-spec-driven review <name>` is executed'
+        - THEN: the command reads and parses each planning artifact from the change directory
+      review-rejects-missing-change:
+        - GIVEN: '`.strict-spec-driven/changes/<name>/` does not exist'
+        - WHEN: '`strict-spec-driven review <name>` is executed'
+        - THEN: the command exits non-zero
+        - AND: an error message is written to stderr indicating the change was not found
+  cli-review-reports-code-quality-findings:
     strength: MUST
     statement: >-
       The system MUST report advisory code-quality findings across `requirement-quality`,
       `mapping-coverage`, `delta-coherence`, and `proposal-clarity` categories without duplicating
       or replacing verify lifecycle gates.
     scenarios:
-      - id: review-findings-are-advisory-only
-        steps:
-          - kind: GIVEN
-            text: a strict change has verify diagnostics
-          - kind: WHEN
-            text: '`strict-spec-driven review <name>` is executed'
-          - kind: THEN
-            text: review finding output is separate from verify diagnostic output
-          - kind: AND
-            text: verify lifecycle gates are not re-evaluated as review findings
-      - id: review-reports-findings-in-structured-categories
-        steps:
-          - kind: GIVEN
-            text: a strict change has reviewable artifacts
-          - kind: WHEN
-            text: '`strict-spec-driven review <name>` is executed'
-          - kind: THEN
-            text: each finding includes a fixed category string, message, and optional path
-  - id: cli-review-emits-deterministic-json-output
+      review-findings-are-advisory-only:
+        - GIVEN: a strict change has verify diagnostics
+        - WHEN: '`strict-spec-driven review <name>` is executed'
+        - THEN: review finding output is separate from verify diagnostic output
+        - AND: verify lifecycle gates are not re-evaluated as review findings
+      review-reports-findings-in-structured-categories:
+        - GIVEN: a strict change has reviewable artifacts
+        - WHEN: '`strict-spec-driven review <name>` is executed'
+        - THEN: each finding includes a fixed category string, message, and optional path
+  cli-review-emits-deterministic-json-output:
     strength: MUST
     statement: >-
       The system MUST emit a deterministic JSON object to stdout containing `valid`, `changeName`,
       `findings`, and `findingCount`.
     scenarios:
-      - id: review-output-is-parseable-json
-        steps:
-          - kind: GIVEN
-            text: '`strict-spec-driven review <name>` completes'
-          - kind: WHEN
-            text: command stdout is parsed as JSON
-          - kind: THEN
-            text: the JSON includes `valid` as a boolean
-          - kind: AND
-            text: the JSON includes `changeName` as a string
-          - kind: AND
-            text: the JSON includes `findings` as an array
-          - kind: AND
-            text: the JSON includes `findingCount` as a number
-      - id: review-exits-zero-when-findings-are-advisory
-        steps:
-          - kind: GIVEN
-            text: a strict change has code-quality findings but no input errors
-          - kind: WHEN
-            text: '`strict-spec-driven review <name>` is executed'
-          - kind: THEN
-            text: the command exits with exit code zero
-      - id: review-exits-non-zero-on-input-error
-        steps:
-          - kind: GIVEN
-            text: the named change directory does not exist or an artifact is unparseable
-          - kind: WHEN
-            text: '`strict-spec-driven review <name>` is executed'
-          - kind: THEN
-            text: the command exits with a non-zero exit code
-  - id: cli-skill-packaging-validation-smoke-coverage
+      review-output-is-parseable-json:
+        - GIVEN: '`strict-spec-driven review <name>` completes'
+        - WHEN: command stdout is parsed as JSON
+        - THEN: the JSON includes `valid` as a boolean
+        - AND: the JSON includes `changeName` as a string
+        - AND: the JSON includes `findings` as an array
+        - AND: the JSON includes `findingCount` as a number
+      review-exits-zero-when-findings-are-advisory:
+        - GIVEN: a strict change has code-quality findings but no input errors
+        - WHEN: '`strict-spec-driven review <name>` is executed'
+        - THEN: the command exits with exit code zero
+      review-exits-non-zero-on-input-error:
+        - GIVEN: the named change directory does not exist or an artifact is unparseable
+        - WHEN: '`strict-spec-driven review <name>` is executed'
+        - THEN: the command exits with a non-zero exit code
+  cli-skill-packaging-validation-smoke-coverage:
     strength: MUST
     statement: >-
       The system MUST include automated checks that exercise strict skill packaging validation
       behavior for both passing and failing package states, with validation logic sourced from
       focused modules under `src/skills/` rather than a single monolithic file.
     scenarios:
-      - id: packaging-checks-confirm-valid-strict-package-state
-        steps:
-          - kind: GIVEN
-            text: strict skill packages satisfy metadata, command reference, and symlink assumptions
-          - kind: WHEN
-            text: repository automated checks are executed
-          - kind: THEN
-            text: strict skill packaging checks pass
-      - id: packaging-checks-report-deterministic-diagnostics-for-invalid-state
-        steps:
-          - kind: GIVEN
-            text: >-
-              a strict skill package has stale naming, missing required metadata, or broken symlink
-              assumptions
-          - kind: WHEN
-            text: repository automated checks are executed
-          - kind: THEN
-            text: strict skill packaging checks fail
-          - kind: AND
-            text: diagnostics remain machine-readable and path-specific
-      - id: validate-skills-command-emits-machine-readable-results
-        steps:
-          - kind: GIVEN
-            text: strict skill packaging validation is executed through CLI
-          - kind: WHEN
-            text: '`strict-spec-driven validate-skills` runs'
-          - kind: THEN
-            text: command output is parseable JSON
-          - kind: AND
-            text: output includes validity, deterministic diagnostics, and summary counts
-  - id: cli-installation-and-packaging-smoke-coverage
+      packaging-checks-confirm-valid-strict-package-state:
+        - GIVEN: strict skill packages satisfy metadata, command reference, and symlink assumptions
+        - WHEN: repository automated checks are executed
+        - THEN: strict skill packaging checks pass
+      packaging-checks-report-deterministic-diagnostics-for-invalid-state:
+        - GIVEN: >-
+            a strict skill package has stale naming, missing required metadata, or broken symlink
+            assumptions
+        - WHEN: repository automated checks are executed
+        - THEN: strict skill packaging checks fail
+        - AND: diagnostics remain machine-readable and path-specific
+      validate-skills-command-emits-machine-readable-results:
+        - GIVEN: strict skill packaging validation is executed through CLI
+        - WHEN: '`strict-spec-driven validate-skills` runs'
+        - THEN: command output is parseable JSON
+        - AND: output includes validity, deterministic diagnostics, and summary counts
+  cli-installation-and-packaging-smoke-coverage:
     strength: MUST
     statement: >-
       The system MUST include automated checks that exercise strict skill installation and
       uninstallation surfaces together with packaged skill layout expectations.
     scenarios:
-      - id: install-smoke-checks-confirm-packaged-strict-skills-remain-usable
-        steps:
-          - kind: GIVEN
-            text: strict skill packages expose the expected bundled `scripts` and `templates` symlinks
-          - kind: WHEN
-            text: repository automated install smoke checks are executed
-          - kind: THEN
-            text: install registration succeeds for the selected scope
-          - kind: AND
-            text: >-
-              the packaged strict skills keep resolving bundled scripts and templates through the
-              registered source-repository layout
-      - id: uninstall-smoke-checks-remove-strict-registration-cleanly
-        steps:
-          - kind: GIVEN
-            text: strict skills were registered through the repository install surface
-          - kind: WHEN
-            text: repository automated uninstall smoke checks are executed
-          - kind: THEN
-            text: the registered strict skills are removed for the selected scope
-          - kind: AND
-            text: the smoke checks do not require manual cleanup of copied package files
-      - id: install-smoke-checks-report-deterministic-diagnostics-for-invalid-package-state
-        steps:
-          - kind: GIVEN
-            text: >-
-              a strict skill package has broken bundled symlinks or stale legacy install naming
-              assumptions
-          - kind: WHEN
-            text: repository automated install or packaging smoke checks are executed
-          - kind: THEN
-            text: the checks fail
-          - kind: AND
-            text: diagnostics remain machine-readable and path-specific
-  - id: cli-core-skill-content-validation-smoke-coverage
+      install-smoke-checks-confirm-packaged-strict-skills-remain-usable:
+        - GIVEN: strict skill packages expose the expected bundled `scripts` and `templates` symlinks
+        - WHEN: repository automated install smoke checks are executed
+        - THEN: install registration succeeds for the selected scope
+        - AND: >-
+            the packaged strict skills keep resolving bundled scripts and templates through the
+            registered source-repository layout
+      uninstall-smoke-checks-remove-strict-registration-cleanly:
+        - GIVEN: strict skills were registered through the repository install surface
+        - WHEN: repository automated uninstall smoke checks are executed
+        - THEN: the registered strict skills are removed for the selected scope
+        - AND: the smoke checks do not require manual cleanup of copied package files
+      install-smoke-checks-report-deterministic-diagnostics-for-invalid-package-state:
+        - GIVEN: >-
+            a strict skill package has broken bundled symlinks or stale legacy install naming
+            assumptions
+        - WHEN: repository automated install or packaging smoke checks are executed
+        - THEN: the checks fail
+        - AND: diagnostics remain machine-readable and path-specific
+  cli-core-skill-content-validation-smoke-coverage:
     strength: MUST
     statement: >-
       The system MUST include automated checks that exercise strict core lifecycle skill content for
       both passing and failing states, not only package-shape validation.
     scenarios:
-      - id: automated-checks-accept-aligned-core-skill-content
-        steps:
-          - kind: GIVEN
-            text: >-
-              the strict core lifecycle skills contain explicit strict command mappings and
-              `.strict-spec-driven/` workflow guidance
-          - kind: WHEN
-            text: repository automated checks are executed
-          - kind: THEN
-            text: the core skill content checks pass
-      - id: automated-checks-reject-placeholder-core-skill-content
-        steps:
-          - kind: GIVEN
-            text: >-
-              a strict core lifecycle skill keeps a generic placeholder command block or omits
-              required strict workflow guidance
-          - kind: WHEN
-            text: repository automated checks are executed
-          - kind: THEN
-            text: the core skill content checks fail
-          - kind: AND
-            text: diagnostics identify the failing skill package deterministically
-  - id: cli-planning-skill-content-validation-smoke-coverage
+      automated-checks-accept-aligned-core-skill-content:
+        - GIVEN: >-
+            the strict core lifecycle skills contain explicit strict command mappings and
+            `.strict-spec-driven/` workflow guidance
+        - WHEN: repository automated checks are executed
+        - THEN: the core skill content checks pass
+      automated-checks-reject-placeholder-core-skill-content:
+        - GIVEN: >-
+            a strict core lifecycle skill keeps a generic placeholder command block or omits
+            required strict workflow guidance
+        - WHEN: repository automated checks are executed
+        - THEN: the core skill content checks fail
+        - AND: diagnostics identify the failing skill package deterministically
+  cli-planning-skill-content-validation-smoke-coverage:
     strength: MUST
     statement: >-
       The system MUST include automated checks that exercise strict planning and documentation skill
       content for both passing and failing states, not only package-shape validation.
     scenarios:
-      - id: automated-checks-accept-aligned-planning-skill-content
-        steps:
-          - kind: GIVEN
-            text: >-
-              the strict planning and documentation skills contain explicit strict command mappings
-              and `.strict-spec-driven/` workflow guidance
-          - kind: WHEN
-            text: repository automated checks are executed
-          - kind: THEN
-            text: the planning skill content checks pass
-      - id: automated-checks-reject-placeholder-planning-skill-content
-        steps:
-          - kind: GIVEN
-            text: >-
-              a strict planning or documentation skill keeps a generic placeholder command block or
-              omits required strict workflow guidance
-          - kind: WHEN
-            text: repository automated checks are executed
-          - kind: THEN
-            text: the planning skill content checks fail
-          - kind: AND
-            text: diagnostics identify the failing skill package deterministically
-  - id: cli-migration-skill-content-validation-smoke-coverage
+      automated-checks-accept-aligned-planning-skill-content:
+        - GIVEN: >-
+            the strict planning and documentation skills contain explicit strict command mappings
+            and `.strict-spec-driven/` workflow guidance
+        - WHEN: repository automated checks are executed
+        - THEN: the planning skill content checks pass
+      automated-checks-reject-placeholder-planning-skill-content:
+        - GIVEN: >-
+            a strict planning or documentation skill keeps a generic placeholder command block or
+            omits required strict workflow guidance
+        - WHEN: repository automated checks are executed
+        - THEN: the planning skill content checks fail
+        - AND: diagnostics identify the failing skill package deterministically
+  cli-migration-skill-content-validation-smoke-coverage:
     strength: MUST
     statement: >-
       The system MUST include automated checks that exercise strict migration skill content for both
       passing and failing states, not only generic package-shape validation.
     scenarios:
-      - id: automated-checks-accept-aligned-migration-skill-content
-        steps:
-          - kind: GIVEN
-            text: >-
-              the strict migration skill contains explicit strict command mappings and
-              `.strict-spec-driven/` migration guidance
-          - kind: WHEN
-            text: repository automated checks are executed
-          - kind: THEN
-            text: the migration skill content checks pass
-      - id: automated-checks-reject-placeholder-migration-skill-content
-        steps:
-          - kind: GIVEN
-            text: >-
-              the strict migration skill keeps a generic placeholder command block or omits required
-              migration guidance
-          - kind: WHEN
-            text: repository automated checks are executed
-          - kind: THEN
-            text: the migration skill content checks fail
-          - kind: AND
-            text: diagnostics identify the failing skill package deterministically
-  - id: cli-migrate-converts-bootstrap-workflow-state
+      automated-checks-accept-aligned-migration-skill-content:
+        - GIVEN: >-
+            the strict migration skill contains explicit strict command mappings and
+            `.strict-spec-driven/` migration guidance
+        - WHEN: repository automated checks are executed
+        - THEN: the migration skill content checks pass
+      automated-checks-reject-placeholder-migration-skill-content:
+        - GIVEN: >-
+            the strict migration skill keeps a generic placeholder command block or omits required
+            migration guidance
+        - WHEN: repository automated checks are executed
+        - THEN: the migration skill content checks fail
+        - AND: diagnostics identify the failing skill package deterministically
+  cli-migrate-converts-bootstrap-workflow-state:
     strength: MUST
     statement: >-
       The system MUST provide a `migrate` subcommand that reads legacy `.spec-driven/` workflow
@@ -1458,165 +984,109 @@ requirements:
       required strict scaffold assets, and reports only unsupported or ambiguous legacy artifacts as
       manual follow-up items.
     scenarios:
-      - id: migrate-converts-legacy-specs-and-change-artifacts-into-strict-workflow-state
-        steps:
-          - kind: GIVEN
-            text: >-
-              legacy main specs, delta specs, and active or archived changes exist under
-              `.spec-driven/`
-          - kind: AND
-            text: no unsafe strict target conflict blocks execution
-          - kind: WHEN
-            text: '`strict-spec-driven migrate` is executed'
-          - kind: THEN
-            text: the command writes strict YAML spec and change artifacts under `.strict-spec-driven/`
-          - kind: AND
-            text: the command updates the strict spec index to reference the migrated main spec outputs
-          - kind: AND
-            text: >-
-              the migrated artifacts preserve the stable identifiers, mappings, task state, question
-              state, and archive-date behavior required by the strict workflow
-          - kind: AND
-            text: the source `.spec-driven/` artifacts remain unchanged
-  - id: cli-migrate-converts-roadmap-and-project-state
+      migrate-converts-legacy-specs-and-change-artifacts-into-strict-workflow-state:
+        - GIVEN: >-
+            legacy main specs, delta specs, and active or archived changes exist under
+            `.spec-driven/`
+        - AND: no unsafe strict target conflict blocks execution
+        - WHEN: '`strict-spec-driven migrate` is executed'
+        - THEN: the command writes strict YAML spec and change artifacts under `.strict-spec-driven/`
+        - AND: the command updates the strict spec index to reference the migrated main spec outputs
+        - AND: >-
+            the migrated artifacts preserve the stable identifiers, mappings, task state, question
+            state, and archive-date behavior required by the strict workflow
+        - AND: the source `.spec-driven/` artifacts remain unchanged
+  cli-migrate-converts-roadmap-and-project-state:
     strength: MUST
     statement: >-
       The system MUST convert legacy `.spec-driven/roadmap/` Markdown artifacts and the legacy specs
       index into strict YAML equivalents during a `migrate` run, writing results under
       `.strict-spec-driven/roadmap/` and the strict specs index path.
     scenarios:
-      - id: migrate-converts-roadmap-index-and-milestones
-        steps:
-          - kind: GIVEN
-            text: >-
-              legacy `roadmap/INDEX.md` and one or more `roadmap/milestones/*.md` files exist under
-              `.spec-driven/`
-          - kind: WHEN
-            text: '`strict-spec-driven migrate` is executed'
-          - kind: THEN
-            text: >-
-              the roadmap index is written as a strict YAML artifact under
-              `.strict-spec-driven/roadmap/`
-          - kind: AND
-            text: >-
-              each milestone file is converted to a strict YAML milestone artifact preserving goal,
-              scope, done criteria, dependencies, risks, notes, status, and planned change entries
-          - kind: AND
-            text: the converted artifacts appear in the migration report as converted entries
-      - id: migrate-converts-specs-index
-        steps:
-          - kind: GIVEN
-            text: a legacy `specs/INDEX.md` exists under `.spec-driven/`
-          - kind: WHEN
-            text: '`strict-spec-driven migrate` is executed'
-          - kind: THEN
-            text: >-
-              the specs index is written as a strict YAML artifact under
-              `.strict-spec-driven/specs/`
-          - kind: AND
-            text: the converted artifact appears in the migration report as a converted entry
-      - id: unsupported-roadmap-markdown-shape-becomes-manual-follow-up
-        steps:
-          - kind: GIVEN
-            text: >-
-              a legacy roadmap artifact has a Markdown structure that cannot be deterministically
-              mapped to strict YAML fields
-          - kind: WHEN
-            text: '`strict-spec-driven migrate` is executed'
-          - kind: THEN
-            text: the artifact appears in the migration report as a manual follow-up item
-          - kind: AND
-            text: no strict YAML output is invented for that artifact
-  - id: cli-migrate-enforces-preflight-and-overwrite-protection
+      migrate-converts-roadmap-index-and-milestones:
+        - GIVEN: >-
+            legacy `roadmap/INDEX.md` and one or more `roadmap/milestones/*.md` files exist under
+            `.spec-driven/`
+        - WHEN: '`strict-spec-driven migrate` is executed'
+        - THEN: >-
+            the roadmap index is written as a strict YAML artifact under
+            `.strict-spec-driven/roadmap/`
+        - AND: >-
+            each milestone file is converted to a strict YAML milestone artifact preserving goal,
+            scope, done criteria, dependencies, risks, notes, status, and planned change entries
+        - AND: the converted artifacts appear in the migration report as converted entries
+      migrate-converts-specs-index:
+        - GIVEN: a legacy `specs/INDEX.md` exists under `.spec-driven/`
+        - WHEN: '`strict-spec-driven migrate` is executed'
+        - THEN: >-
+            the specs index is written as a strict YAML artifact under
+            `.strict-spec-driven/specs/`
+        - AND: the converted artifact appears in the migration report as a converted entry
+      unsupported-roadmap-markdown-shape-becomes-manual-follow-up:
+        - GIVEN: >-
+            a legacy roadmap artifact has a Markdown structure that cannot be deterministically
+            mapped to strict YAML fields
+        - WHEN: '`strict-spec-driven migrate` is executed'
+        - THEN: the artifact appears in the migration report as a manual follow-up item
+        - AND: no strict YAML output is invented for that artifact
+  cli-migrate-enforces-preflight-and-overwrite-protection:
     strength: MUST
     statement: >-
       The system MUST reject migration runs that cannot proceed safely and report the blocking
       preflight or overwrite-protection reason deterministically.
     scenarios:
-      - id: migrate-rejects-unsafe-strict-target-overwrite
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/` already contains conflicting workflow state'
-          - kind: AND
-            text: no explicit safe rerun policy allows overwriting that state
-          - kind: WHEN
-            text: '`strict-spec-driven migrate` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: the result identifies the overwrite-protection conflict
-          - kind: AND
-            text: existing strict target files are left unchanged
-      - id: migrate-rejects-missing-legacy-source-state
-        steps:
-          - kind: GIVEN
-            text: supported legacy workflow artifacts are not present under `.spec-driven/`
-          - kind: WHEN
-            text: '`strict-spec-driven migrate` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: the result identifies the missing bootstrap source state
-  - id: cli-migrate-emits-structured-report-output
+      migrate-rejects-unsafe-strict-target-overwrite:
+        - GIVEN: '`.strict-spec-driven/` already contains conflicting workflow state'
+        - AND: no explicit safe rerun policy allows overwriting that state
+        - WHEN: '`strict-spec-driven migrate` is executed'
+        - THEN: the command exits non-zero
+        - AND: the result identifies the overwrite-protection conflict
+        - AND: existing strict target files are left unchanged
+      migrate-rejects-missing-legacy-source-state:
+        - GIVEN: supported legacy workflow artifacts are not present under `.spec-driven/`
+        - WHEN: '`strict-spec-driven migrate` is executed'
+        - THEN: the command exits non-zero
+        - AND: the result identifies the missing bootstrap source state
+  cli-migrate-emits-structured-report-output:
     strength: MUST
     statement: >-
       The system MUST emit a structured migration report for each migration run so the operator can
       review converted core workflow artifacts, remaining deferred artifacts, failures, warnings,
       and manual follow-up items.
     scenarios:
-      - id: migrate-report-distinguishes-converted-core-workflow-artifacts-from-deferred-artifacts
-        steps:
-          - kind: GIVEN
-            text: >-
-              `strict-spec-driven migrate` converts supported core workflow artifacts while roadmap
-              or project-state converters are still pending
-          - kind: WHEN
-            text: the migration result is inspected
-          - kind: THEN
-            text: >-
-              converted spec and change artifacts appear in converted entries with their strict
-              target paths
-          - kind: AND
-            text: >-
-              unsupported roadmap or project-state artifacts remain identifiable through skipped
-              entries or manual follow-up items with source references
-  - id: cli-migrate-force-rerun
+      migrate-report-distinguishes-converted-core-workflow-artifacts-from-deferred-artifacts:
+        - GIVEN: >-
+            `strict-spec-driven migrate` converts supported core workflow artifacts while roadmap
+            or project-state converters are still pending
+        - WHEN: the migration result is inspected
+        - THEN: >-
+            converted spec and change artifacts appear in converted entries with their strict
+            target paths
+        - AND: >-
+            unsupported roadmap or project-state artifacts remain identifiable through skipped
+            entries or manual follow-up items with source references
+  cli-migrate-force-rerun:
     strength: MUST
     statement: >-
       The system MUST allow `strict-spec-driven migrate` to rerun into an existing non-empty
       `.strict-spec-driven/` directory only when the operator explicitly passes `--force` or `-f`.
     scenarios:
-      - id: rerun-without-force-stays-blocked
-        steps:
-          - kind: GIVEN
-            text: '`strict-spec-driven migrate` already populated `.strict-spec-driven/`'
-          - kind: WHEN
-            text: the operator runs `strict-spec-driven migrate` again without `--force`
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: the result identifies the strict target conflict
-      - id: rerun-with-force-reuses-the-same-structured-output
-        steps:
-          - kind: GIVEN
-            text: '`strict-spec-driven migrate` already populated `.strict-spec-driven/`'
-          - kind: WHEN
-            text: the operator runs `strict-spec-driven migrate --force`
-          - kind: THEN
-            text: the command exits zero
-          - kind: AND
-            text: the result matches the structured migration report from the initial successful run
-      - id: short-force-flag-reruns-migration
-        steps:
-          - kind: GIVEN
-            text: '`strict-spec-driven migrate` already populated `.strict-spec-driven/`'
-          - kind: WHEN
-            text: the operator runs `strict-spec-driven migrate -f`
-          - kind: THEN
-            text: the command exits zero
-          - kind: AND
-            text: the result matches the structured migration report from the initial successful run
-  - id: cli-domain-diagnostic-ordering-stability
+      rerun-without-force-stays-blocked:
+        - GIVEN: '`strict-spec-driven migrate` already populated `.strict-spec-driven/`'
+        - WHEN: the operator runs `strict-spec-driven migrate` again without `--force`
+        - THEN: the command exits non-zero
+        - AND: the result identifies the strict target conflict
+      rerun-with-force-reuses-the-same-structured-output:
+        - GIVEN: '`strict-spec-driven migrate` already populated `.strict-spec-driven/`'
+        - WHEN: the operator runs `strict-spec-driven migrate --force`
+        - THEN: the command exits zero
+        - AND: the result matches the structured migration report from the initial successful run
+      short-force-flag-reruns-migration:
+        - GIVEN: '`strict-spec-driven migrate` already populated `.strict-spec-driven/`'
+        - WHEN: the operator runs `strict-spec-driven migrate -f`
+        - THEN: the command exits zero
+        - AND: the result matches the structured migration report from the initial successful run
+  cli-domain-diagnostic-ordering-stability:
     strength: MUST
     statement: >-
       The system MUST preserve deterministic ordering for roadmap, skill-validation, and migration
@@ -1624,271 +1094,173 @@ requirements:
       modules under `src/skills/`, `src/migrate/parsers/`, and shared helpers in
       `src/diagnostics.ts`.
     scenarios:
-      - id: roadmap-diagnostics-keep-stable-ordering-across-repeated-runs
-        steps:
-          - kind: GIVEN
-            text: strict roadmap artifacts produce multiple validation diagnostics
-          - kind: WHEN
-            text: >-
-              `strict-spec-driven roadmap-status` is executed repeatedly against the same repository
-              state
-          - kind: THEN
-            text: the diagnostics appear in the same order each time
-          - kind: AND
-            text: each diagnostic still identifies the invalid artifact and field context
-      - id: skill-validation-diagnostics-keep-stable-ordering-across-repeated-runs
-        steps:
-          - kind: GIVEN
-            text: strict skill packaging or content validation produces multiple diagnostics
-          - kind: WHEN
-            text: >-
-              `strict-spec-driven validate-skills` is executed repeatedly against the same
-              repository state
-          - kind: THEN
-            text: the diagnostics appear in the same order each time
-          - kind: AND
-            text: the JSON result keeps the same diagnostic field shape and summary counts
-      - id: migration-report-collections-keep-stable-ordering-across-repeated-runs
-        steps:
-          - kind: GIVEN
-            text: >-
-              bootstrap migration produces multiple warnings, errors, skipped entries, or manual
-              follow-up items
-          - kind: WHEN
-            text: '`strict-spec-driven migrate` is executed repeatedly against the same repository state'
-          - kind: THEN
-            text: each report collection keeps deterministic ordering across runs
-          - kind: AND
-            text: shared diagnostic helpers do not invent, drop, or reorder entries nondeterministically
-  - id: cli-migrate-report-collections-are-always-arrays
+      roadmap-diagnostics-keep-stable-ordering-across-repeated-runs:
+        - GIVEN: strict roadmap artifacts produce multiple validation diagnostics
+        - WHEN: >-
+            `strict-spec-driven roadmap-status` is executed repeatedly against the same repository
+            state
+        - THEN: the diagnostics appear in the same order each time
+        - AND: each diagnostic still identifies the invalid artifact and field context
+      skill-validation-diagnostics-keep-stable-ordering-across-repeated-runs:
+        - GIVEN: strict skill packaging or content validation produces multiple diagnostics
+        - WHEN: >-
+            `strict-spec-driven validate-skills` is executed repeatedly against the same
+            repository state
+        - THEN: the diagnostics appear in the same order each time
+        - AND: the JSON result keeps the same diagnostic field shape and summary counts
+      migration-report-collections-keep-stable-ordering-across-repeated-runs:
+        - GIVEN: >-
+            bootstrap migration produces multiple warnings, errors, skipped entries, or manual
+            follow-up items
+        - WHEN: '`strict-spec-driven migrate` is executed repeatedly against the same repository state'
+        - THEN: each report collection keeps deterministic ordering across runs
+        - AND: shared diagnostic helpers do not invent, drop, or reorder entries nondeterministically
+  cli-migrate-report-collections-are-always-arrays:
     strength: MUST
     statement: >-
       The system MUST emit `converted`, `skipped`, `warnings`, `errors`, and `manualFollowUp` as
       top-level array fields in every migration report, including successful, partial, and blocked
       runs.
     scenarios:
-      - id: successful-migration-keeps-warning-collections-explicit
-        steps:
-          - kind: GIVEN
-            text: a migration run converts all supported artifacts without deferred legacy spec files
-          - kind: WHEN
-            text: the migration report is inspected
-          - kind: THEN
-            text: '`warnings` is present as an array'
-          - kind: AND
-            text: '`manualFollowUp` is present as an array'
-      - id: partial-migration-keeps-deferred-collections-explicit
-        steps:
-          - kind: GIVEN
-            text: >-
-              a migration run converts supported artifacts while deferring ambiguous legacy spec
-              files
-          - kind: WHEN
-            text: the migration report is inspected
-          - kind: THEN
-            text: '`skipped` is present as an array'
-          - kind: AND
-            text: '`warnings` is present as an array'
-          - kind: AND
-            text: '`manualFollowUp` is present as an array'
-      - id: blocked-migration-keeps-report-collections-explicit
-        steps:
-          - kind: GIVEN
-            text: a migration run is blocked before conversion completes
-          - kind: WHEN
-            text: the migration report is inspected
-          - kind: THEN
-            text: '`converted` is present as an array'
-          - kind: AND
-            text: '`skipped` is present as an array'
-          - kind: AND
-            text: '`warnings` is present as an array'
-          - kind: AND
-            text: '`errors` is present as an array'
-          - kind: AND
-            text: '`manualFollowUp` is present as an array'
-  - id: cli-migrate-supports-repository-self-hosting
+      successful-migration-keeps-warning-collections-explicit:
+        - GIVEN: a migration run converts all supported artifacts without deferred legacy spec files
+        - WHEN: the migration report is inspected
+        - THEN: '`warnings` is present as an array'
+        - AND: '`manualFollowUp` is present as an array'
+      partial-migration-keeps-deferred-collections-explicit:
+        - GIVEN: >-
+            a migration run converts supported artifacts while deferring ambiguous legacy spec
+            files
+        - WHEN: the migration report is inspected
+        - THEN: '`skipped` is present as an array'
+        - AND: '`warnings` is present as an array'
+        - AND: '`manualFollowUp` is present as an array'
+      blocked-migration-keeps-report-collections-explicit:
+        - GIVEN: a migration run is blocked before conversion completes
+        - WHEN: the migration report is inspected
+        - THEN: '`converted` is present as an array'
+        - AND: '`skipped` is present as an array'
+        - AND: '`warnings` is present as an array'
+        - AND: '`errors` is present as an array'
+        - AND: '`manualFollowUp` is present as an array'
+  cli-migrate-supports-repository-self-hosting:
     strength: MUST
     statement: >-
       The system MUST allow a repository's actual bootstrap `.spec-driven/` workflow state to be
       migrated into `.strict-spec-driven/` output that is usable as the repository's active strict
       workflow state without rewriting the preserved bootstrap source artifacts.
     scenarios:
-      - id: self-host-cutover-migrates-repository-workflow-state
-        steps:
-          - kind: GIVEN
-            text: >-
-              a repository contains bootstrap specs, roadmap artifacts, and archived or active
-              changes under `.spec-driven/`
-          - kind: WHEN
-            text: '`strict-spec-driven migrate` is executed for the repository cutover'
-          - kind: THEN
-            text: >-
-              the command writes corresponding strict YAML workflow state under
-              `.strict-spec-driven/`
-          - kind: AND
-            text: >-
-              the migrated output preserves the identities and relationships needed by strict
-              workflow commands
-          - kind: AND
-            text: the source `.spec-driven/` artifacts remain unchanged
-      - id: self-host-cutover-normalizes-blank-legacy-mappings
-        steps:
-          - kind: GIVEN
-            text: >-
-              a legacy archived delta leaves `mapping.implementation` or `mapping.tests` blank in
-              Markdown frontmatter
-          - kind: WHEN
-            text: '`strict-spec-driven migrate` is executed for the repository cutover'
-          - kind: THEN
-            text: >-
-              the migrated strict delta keeps those mapping fields as empty structured path
-              collections
-          - kind: AND
-            text: the change is not deferred only because the legacy mapping fields were blank
-      - id: roadmap-status-accepts-migrated-roadmap-index-paths
-        steps:
-          - kind: GIVEN
-            text: >-
-              `strict-spec-driven migrate` has produced strict roadmap state for the repository
-              cutover
-          - kind: WHEN
-            text: '`strict-spec-driven roadmap-status` reads the migrated strict roadmap'
-          - kind: THEN
-            text: migrated milestone paths resolve without reference diagnostics
-          - kind: AND
-            text: roadmap status validation succeeds against the migrated roadmap index
-  - id: cli-ship-reads-archived-change
+      self-host-cutover-migrates-repository-workflow-state:
+        - GIVEN: >-
+            a repository contains bootstrap specs, roadmap artifacts, and archived or active
+            changes under `.spec-driven/`
+        - WHEN: '`strict-spec-driven migrate` is executed for the repository cutover'
+        - THEN: >-
+            the command writes corresponding strict YAML workflow state under
+            `.strict-spec-driven/`
+        - AND: >-
+            the migrated output preserves the identities and relationships needed by strict
+            workflow commands
+        - AND: the source `.spec-driven/` artifacts remain unchanged
+      self-host-cutover-normalizes-blank-legacy-mappings:
+        - GIVEN: >-
+            a legacy archived delta leaves `mapping.implementation` or `mapping.tests` blank in
+            Markdown frontmatter
+        - WHEN: '`strict-spec-driven migrate` is executed for the repository cutover'
+        - THEN: >-
+            the migrated strict delta keeps those mapping fields as empty structured path
+            collections
+        - AND: the change is not deferred only because the legacy mapping fields were blank
+      roadmap-status-accepts-migrated-roadmap-index-paths:
+        - GIVEN: >-
+            `strict-spec-driven migrate` has produced strict roadmap state for the repository
+            cutover
+        - WHEN: '`strict-spec-driven roadmap-status` reads the migrated strict roadmap'
+        - THEN: migrated milestone paths resolve without reference diagnostics
+        - AND: roadmap status validation succeeds against the migrated roadmap index
+  cli-ship-reads-archived-change:
     strength: MUST
     statement: >-
       The system MUST provide a `ship` subcommand that resolves a named archived change under
       `.strict-spec-driven/changes/archive/` and reads its proposal summary, supporting both exact
       archive directory names and bare change names expanded via date-prefix matching.
     scenarios:
-      - id: ship-resolves-exact-archive-directory-name
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` exists'
-          - kind: WHEN
-            text: '`strict-spec-driven ship <YYYY-MM-DD>-<name>` is executed'
-          - kind: THEN
-            text: the command reads the archived change artifacts from that directory
-      - id: ship-expands-bare-name-to-date-prefixed-archive-directory
-        steps:
-          - kind: GIVEN
-            text: '`.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` exists'
-          - kind: WHEN
-            text: '`strict-spec-driven ship <name>` is executed with the bare change name'
-          - kind: THEN
-            text: >-
-              the command resolves the archived directory by date-prefix expansion and reads its
-              artifacts
-      - id: ship-reports-ambiguity-when-multiple-date-prefixed-matches-exist
-        steps:
-          - kind: GIVEN
-            text: >-
-              multiple archive directories matching `*-<name>` exist under
-              `.strict-spec-driven/changes/archive/`
-          - kind: WHEN
-            text: '`strict-spec-driven ship <name>` is executed with the bare name'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: >-
-              the error message lists the matching archive directories and asks the operator to
-              specify the full archive directory name
-      - id: ship-rejects-missing-archived-change
-        steps:
-          - kind: GIVEN
-            text: no matching archived directory exists for the given name
-          - kind: WHEN
-            text: '`strict-spec-driven ship <name>` is executed'
-          - kind: THEN
-            text: the command exits non-zero
-          - kind: AND
-            text: an error message is written to stderr indicating the archived change was not found
-  - id: cli-ship-emits-deterministic-json-output
+      ship-resolves-exact-archive-directory-name:
+        - GIVEN: '`.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` exists'
+        - WHEN: '`strict-spec-driven ship <YYYY-MM-DD>-<name>` is executed'
+        - THEN: the command reads the archived change artifacts from that directory
+      ship-expands-bare-name-to-date-prefixed-archive-directory:
+        - GIVEN: '`.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` exists'
+        - WHEN: '`strict-spec-driven ship <name>` is executed with the bare change name'
+        - THEN: >-
+            the command resolves the archived directory by date-prefix expansion and reads its
+            artifacts
+      ship-reports-ambiguity-when-multiple-date-prefixed-matches-exist:
+        - GIVEN: >-
+            multiple archive directories matching `*-<name>` exist under
+            `.strict-spec-driven/changes/archive/`
+        - WHEN: '`strict-spec-driven ship <name>` is executed with the bare name'
+        - THEN: the command exits non-zero
+        - AND: >-
+            the error message lists the matching archive directories and asks the operator to
+            specify the full archive directory name
+      ship-rejects-missing-archived-change:
+        - GIVEN: no matching archived directory exists for the given name
+        - WHEN: '`strict-spec-driven ship <name>` is executed'
+        - THEN: the command exits non-zero
+        - AND: an error message is written to stderr indicating the archived change was not found
+  cli-ship-emits-deterministic-json-output:
     strength: MUST
     statement: >-
       The system MUST emit a deterministic JSON object to stdout from the `ship` subcommand
       containing `changeName`, `archivePath`, `proposalSummary`, and `roadmapSnapshot`.
     scenarios:
-      - id: ship-output-is-parseable-json
-        steps:
-          - kind: GIVEN
-            text: '`strict-spec-driven ship <name>` resolves a valid archived change'
-          - kind: WHEN
-            text: command stdout is parsed as JSON
-          - kind: THEN
-            text: the JSON includes `changeName` as a string
-          - kind: AND
-            text: the JSON includes `archivePath` as the resolved archive directory path
-          - kind: AND
-            text: the JSON includes `proposalSummary` derived from the archived `proposal.yaml`
-          - kind: AND
-            text: >-
-              the JSON includes `roadmapSnapshot` reflecting current roadmap milestone and planned
-              change state
-      - id: ship-exits-zero-for-a-valid-archived-change
-        steps:
-          - kind: GIVEN
-            text: a named archived change exists and its artifacts are readable
-          - kind: WHEN
-            text: '`strict-spec-driven ship <name>` is executed'
-          - kind: THEN
-            text: the command exits with exit code zero
-  - id: cli-ship-skill-content-validation-smoke-coverage
+      ship-output-is-parseable-json:
+        - GIVEN: '`strict-spec-driven ship <name>` resolves a valid archived change'
+        - WHEN: command stdout is parsed as JSON
+        - THEN: the JSON includes `changeName` as a string
+        - AND: the JSON includes `archivePath` as the resolved archive directory path
+        - AND: the JSON includes `proposalSummary` derived from the archived `proposal.yaml`
+        - AND: >-
+            the JSON includes `roadmapSnapshot` reflecting current roadmap milestone and planned
+            change state
+      ship-exits-zero-for-a-valid-archived-change:
+        - GIVEN: a named archived change exists and its artifacts are readable
+        - WHEN: '`strict-spec-driven ship <name>` is executed'
+        - THEN: the command exits with exit code zero
+  cli-ship-skill-content-validation-smoke-coverage:
     strength: MUST
     statement: >-
       The system MUST include automated checks that exercise strict ship skill content for both
       passing and failing states, not only package-shape validation.
     scenarios:
-      - id: automated-checks-accept-aligned-ship-skill-content
-        steps:
-          - kind: GIVEN
-            text: >-
-              `strict-spec-ship/SKILL.md` contains an explicit `ship` command reference and
-              `.strict-spec-driven/` workflow guidance
-          - kind: WHEN
-            text: repository automated checks are executed
-          - kind: THEN
-            text: the ship skill content checks pass
-      - id: automated-checks-reject-placeholder-ship-skill-content
-        steps:
-          - kind: GIVEN
-            text: >-
-              `strict-spec-ship/SKILL.md` retains a generic placeholder command block or omits
-              `.strict-spec-driven/` workflow guidance
-          - kind: WHEN
-            text: repository automated checks are executed
-          - kind: THEN
-            text: the ship skill content checks fail
-          - kind: AND
-            text: diagnostics identify the failing skill package deterministically
-  - id: cli-shared-output-helpers
+      automated-checks-accept-aligned-ship-skill-content:
+        - GIVEN: >-
+            `strict-spec-ship/SKILL.md` contains an explicit `ship` command reference and
+            `.strict-spec-driven/` workflow guidance
+        - WHEN: repository automated checks are executed
+        - THEN: the ship skill content checks pass
+      automated-checks-reject-placeholder-ship-skill-content:
+        - GIVEN: >-
+            `strict-spec-ship/SKILL.md` retains a generic placeholder command block or omits
+            `.strict-spec-driven/` workflow guidance
+        - WHEN: repository automated checks are executed
+        - THEN: the ship skill content checks fail
+        - AND: diagnostics identify the failing skill package deterministically
+  cli-shared-output-helpers:
     strength: MUST
     statement: >-
       The system MUST provide a shared `src/cli/output.ts` module with typed helpers for writing
       JSON, human-readable text, usage hints, and error messages to stdout and stderr so command
       modules do not call `process.stdout.write` or `process.stderr.write` directly.
     scenarios:
-      - id: json-output-is-written-through-shared-helper
-        steps:
-          - kind: GIVEN
-            text: a CLI command produces a structured result
-          - kind: WHEN
-            text: the command writes its result
-          - kind: THEN
-            text: the JSON is written via the shared `writeJson` helper
-          - kind: AND
-            text: the output format is identical to the pre-centralization behavior
-      - id: error-output-is-written-through-shared-helpers
-        steps:
-          - kind: GIVEN
-            text: a CLI command encounters a usage or runtime error
-          - kind: WHEN
-            text: the command writes its error or usage hint
-          - kind: THEN
-            text: the message is written via `writeUsage` or `writeError` as appropriate
-          - kind: AND
-            text: the stderr format is identical to the pre-centralization behavior
+      json-output-is-written-through-shared-helper:
+        - GIVEN: a CLI command produces a structured result
+        - WHEN: the command writes its result
+        - THEN: the JSON is written via the shared `writeJson` helper
+        - AND: the output format is identical to the pre-centralization behavior
+      error-output-is-written-through-shared-helpers:
+        - GIVEN: a CLI command encounters a usage or runtime error
+        - WHEN: the command writes its error or usage hint
+        - THEN: the message is written via `writeUsage` or `writeError` as appropriate
+        - AND: the stderr format is identical to the pre-centralization behavior

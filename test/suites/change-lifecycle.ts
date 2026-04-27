@@ -267,7 +267,7 @@ try {
     "        id: verify-req",
     "        strength: MUST",
     "        statement: The system MUST verify.",
-    "        scenarios: []",
+    "        scenarios: {}",
     "  MODIFIED: []",
     "  REMOVED: []",
   ].join("\n") + "\n", "utf8");
@@ -771,7 +771,7 @@ try {
     "        id: req-1",
     "        strength: MUST",
     "        statement: Modified version",
-    "        scenarios: []",
+    "        scenarios: {}",
     "  REMOVED: []",
   ].join("\n") + "\n", "utf8");
 
@@ -870,7 +870,7 @@ try {
     "        id: req-1",
     "        strength: MUST",
     "        statement: Other modified version",
-    "        scenarios: []",
+    "        scenarios: {}",
     "  REMOVED: []",
   ].join("\n") + "\n", "utf8");
 
@@ -1057,12 +1057,11 @@ function writeMainSpecArtifact(
         implementation: [],
         tests: [],
       },
-      requirements: requirements.map((requirement) => ({
-        id: requirement.id,
+      requirements: Object.fromEntries(requirements.map((requirement) => [requirement.id, {
         strength: "MUST",
         statement: requirement.statement,
-        scenarios: [],
-      })),
+        scenarios: {},
+      }])),
     }),
     "utf8",
   );
@@ -1200,10 +1199,10 @@ function writeDeltaSpecArtifact(
   fileName: string,
   targetSpec: string,
   operations: {
-    ADDED?: Array<{ requirement: { id: string; strength: string; statement: string; scenarios: unknown[] } }>;
+    ADDED?: Array<{ requirement: { id: string; strength: string; statement: string; scenarios: Record<string, unknown[]> } }>;
     MODIFIED?: Array<{
       target_requirement: string;
-      replacement: { id: string; strength: string; statement: string; scenarios: unknown[] };
+      replacement: { id: string; strength: string; statement: string; scenarios: Record<string, unknown[]> };
     }>;
     REMOVED?: Array<{ target_requirement: string; reason: string }>;
   },
@@ -1266,7 +1265,7 @@ try {
           id: "req-added",
           strength: "MUST",
           statement: "Added requirement",
-          scenarios: [],
+          scenarios: {},
         },
       },
     ],
@@ -1277,7 +1276,7 @@ try {
           id: "req-base",
           strength: "MUST",
           statement: "Updated requirement",
-          scenarios: [],
+          scenarios: {},
         },
       },
     ],
@@ -1321,17 +1320,17 @@ try {
     "archive moves the change into archive destination",
   );
 
-  const mergedMainSpec = yamlModule.parseYamlFile<{ requirements: Array<{ id: string; statement: string }> }>(
+  const mergedMainSpec = yamlModule.parseYamlFile<{ requirements: Record<string, { statement: string }> }>(
     path.join(archiveHappyDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml"),
   );
-  const mergedIds = mergedMainSpec.requirements.map((requirement) => requirement.id);
+  const mergedIds = Object.keys(mergedMainSpec.requirements);
   context.assert(
     JSON.stringify(mergedIds) === JSON.stringify(["req-base", "req-added"]),
     "archive merge applies MODIFIED, ADDED, and REMOVED operations to main spec",
     `got ${JSON.stringify(mergedIds)}`,
   );
   context.assert(
-    mergedMainSpec.requirements.find((requirement) => requirement.id === "req-base")?.statement === "Updated requirement",
+    mergedMainSpec.requirements["req-base"]?.statement === "Updated requirement",
     "archive MODIFIED operation replaces requirement by stable identifier",
   );
 
@@ -1404,7 +1403,7 @@ try {
           id: "req-fallback",
           strength: "MUST",
           statement: "Fallback added requirement",
-          scenarios: [],
+          scenarios: {},
         },
       },
     ],
@@ -1425,11 +1424,11 @@ try {
     "archive merged-spec report includes missing MODIFIED target identifier",
   );
 
-  const mergedFallbackSpec = yamlModule.parseYamlFile<{ requirements: Array<{ id: string }> }>(
+  const mergedFallbackSpec = yamlModule.parseYamlFile<{ requirements: Record<string, unknown> }>(
     path.join(archiveModifiedFallbackDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml"),
   );
   context.assert(
-    mergedFallbackSpec.requirements.some((requirement) => requirement.id === "req-fallback"),
+    "req-fallback" in mergedFallbackSpec.requirements,
     "archive treats missing MODIFIED target replacement as ADDED requirement",
   );
 } finally {
@@ -1473,11 +1472,11 @@ try {
     "archive merged-spec report includes skipped REMOVED target identifier",
   );
 
-  const mergedRemovedSkipSpec = yamlModule.parseYamlFile<{ requirements: Array<{ id: string }> }>(
+  const mergedRemovedSkipSpec = yamlModule.parseYamlFile<{ requirements: Record<string, unknown> }>(
     path.join(archiveRemovedSkipDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml"),
   );
   context.assert(
-    JSON.stringify(mergedRemovedSkipSpec.requirements.map((requirement) => requirement.id)) ===
+    JSON.stringify(Object.keys(mergedRemovedSkipSpec.requirements)) ===
       JSON.stringify(["req-existing"]),
     "archive keeps existing requirements unchanged when REMOVED target is missing",
   );
@@ -2303,7 +2302,7 @@ try {
               id: "review-happy-req",
               strength: "MUST",
               statement: "The system MUST emit structured review findings output for changes.",
-              scenarios: [{ name: "review output", steps: [] }],
+              scenarios: { "review-output": [{ GIVEN: "a review is run" }, { THEN: "structured findings are emitted" }] },
             },
           },
         ],
@@ -2484,7 +2483,7 @@ try {
               id: "review-findings-req",
               strength: "MUST",
               statement: "Short text",
-              scenarios: [],
+              scenarios: {},
             },
           },
         ],

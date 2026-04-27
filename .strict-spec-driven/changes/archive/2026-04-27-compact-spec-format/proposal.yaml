@@ -1,0 +1,35 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: compact-spec-format
+  status: proposed
+summary:
+  what:
+    - Change main-spec and delta-spec schemas so that requirements and scenarios use id-as-key mappings instead of arrays with separate id fields.
+    - "Change step format from kind+text object pairs to single-key GIVEN/WHEN/THEN/AND: string entries."
+    - Update all code that reads requirements, scenarios, and steps to handle the new mapping-based format.
+    - Reformat the two existing spec files (cli/foundation.yaml, contracts/yaml-artifacts.yaml) to the new format.
+  why:
+    - The current format wastes ~50% of spec tokens on structural boilerplate (kind/text pairs, separate id fields, array markers).
+    - 79% of spec bytes are in scenario steps, mostly redundant GIVEN/WHEN preamble lines.
+    - Using id-as-key gives natural uniqueness enforcement via YAML key semantics, eliminating the need for separate unique_by checks.
+scope:
+  in:
+    - templates/strict-spec-driven/schemas/main-spec.yaml — requirements as mapping, scenarios as mapping, steps as single-key objects
+    - templates/strict-spec-driven/schemas/delta-spec.yaml — requirement definition uses same step format
+    - src/validation.ts — update duplicateIdChecks for mapping-based collections
+    - src/verify.ts — update if scenario/requirement iteration assumes arrays
+    - src/archive.ts — update if merge logic iterates requirements as arrays
+    - src/spec-mapping.ts — update if spec traversal assumes array format
+    - .strict-spec-driven/specs/cli/foundation.yaml — reformat to new spec format
+    - .strict-spec-driven/specs/contracts/yaml-artifacts.yaml — reformat to new spec format
+  out:
+    - Other CLI commands that do not read requirement/scenario structure
+    - Test fixtures in test/fixtures/ — remain unchanged
+    - Schema registry and non-spec schemas
+unchanged_behavior:
+  - verify still reports validity, diagnostics, and summary counts in the same JSON shape.
+  - Duplicate ID and reference validation checks continue to run after schema checks.
+  - All other CLI commands remain unchanged.

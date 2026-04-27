@@ -9,21 +9,21 @@ export type StrictSpecMapping = {
   tests: string[];
 };
 
-export type StrictScenarioStep = {
-  kind: ScenarioStepKind;
-  text: string;
-};
+export type StrictScenarioStep = Partial<Record<ScenarioStepKind, string>> & Record<string, string>;
 
-export type StrictScenario = {
-  id: string;
-  steps: StrictScenarioStep[];
-};
+export type StrictScenarios = Record<string, StrictScenarioStep[]>;
+
+export type StrictRequirements = Record<string, {
+  strength: RequirementStrength;
+  statement: string;
+  scenarios: StrictScenarios;
+}>;
 
 export type StrictRequirement = {
   id: string;
   strength: RequirementStrength;
   statement: string;
-  scenarios: StrictScenario[];
+  scenarios: StrictScenarios;
 };
 
 export function isRecord(value: unknown): value is Record<string, unknown> {

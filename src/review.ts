@@ -163,7 +163,8 @@ function collectRequirementQualityFindings(deltaSpecs: ParsedDeltaSpec[]): Revie
     for (const requirement of requirements) {
       const id = typeof requirement.id === "string" && requirement.id.length > 0 ? requirement.id : "<missing-id>";
       const statement = typeof requirement.statement === "string" ? requirement.statement.trim() : "";
-      const scenarios = Array.isArray(requirement.scenarios) ? requirement.scenarios : [];
+      const scenarios = requirement.scenarios && typeof requirement.scenarios === "object" && !Array.isArray(requirement.scenarios)
+        ? Object.keys(requirement.scenarios) : [];
 
       if (statement.length < 20) {
         findings.push({

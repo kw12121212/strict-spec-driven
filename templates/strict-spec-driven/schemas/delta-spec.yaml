@@ -22,6 +22,16 @@ merge_rules:
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   definitions:
+    step:
+      type: object
+      properties:
+        GIVEN: { type: string }
+        WHEN: { type: string }
+        THEN: { type: string }
+        AND: { type: string }
+      additionalProperties: false
+      minProperties: 1
+      maxProperties: 1
     requirement:
       type: object
       additionalProperties: false
@@ -42,9 +52,12 @@ json_schema:
         statement:
           type: string
         scenarios:
-          type: array
-          items:
-            type: object
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              "$ref": "#/definitions/step"
+            minItems: 1
   type: object
   additionalProperties: false
   required:

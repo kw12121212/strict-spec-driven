@@ -16,7 +16,7 @@ type Requirement = {
   id: string;
   strength: string;
   statement: string;
-  scenarios: unknown[];
+  scenarios: Record<string, unknown[]>;
   [key: string]: unknown;
 };
 
@@ -26,7 +26,7 @@ type MainSpecArtifact = {
     id: string;
     title: string;
   };
-  requirements: Requirement[];
+  requirements: Record<string, Requirement>;
   [key: string]: unknown;
 };
 
@@ -132,15 +132,10 @@ function getRequirementId(requirement: Requirement, context: string): string {
   return requirement.id;
 }
 
-function assertUniqueRequirementIds(requirements: Requirement[], specPath: string): void {
-  const seen = new Set<string>();
-  for (const requirement of requirements) {
-    const requirementId = getRequirementId(requirement, `${specPath} requirement`);
-    if (seen.has(requirementId)) {
-      throw new Error(`duplicate requirement id '${requirementId}' in ${specPath}`);
-    }
-    seen.add(requirementId);
-  }
+function assertUniqueRequirementIds(requirements: Record<string, unknown>, specPath: string): void {
+  // Mapping keys are inherently unique — no-op.
+  void requirements;
+  void specPath;
 }
 
 function collectMainSpecPathsById(rootDir: string): Map<string, string> {
@@ -179,7 +174,7 @@ function applyDeltaToMainSpec(
   report: ArchiveMergedSpecResult,
   specPath: string,
 ): void {
-  if (!Array.isArray(mainSpec.requirements)) {
+  if (!mainSpec.requirements || typeof mainSpec.requirements !== "object" || Array.isArray(mainSpec.requirements)) {
     throw new Error(`main spec '${specPath}' is missing requirements`);
   }
 
@@ -187,8 +182,8 @@ function applyDeltaToMainSpec(
 
   for (const entry of operations.ADDED ?? []) {
     const requirement = entry.requirement;
-    getRequirementId(requirement, `delta ADDED entry in '${specPath}'`);
-    mainSpec.requirements.push(requirement);
+    const reqId = getRequirementId(requirement, `delta ADDED entry in '${specPath}'`);
+    mainSpec.requirements[reqId] = requirement;
     report.added += 1;
   }
 
@@ -201,14 +196,14 @@ function applyDeltaToMainSpec(
     const replacement = entry.replacement;
     getRequirementId(replacement, `delta MODIFIED replacement in '${specPath}'`);
 
-    const index = mainSpec.requirements.findIndex((requirement) => requirement.id === targetRequirement);
-    if (index === -1) {
-      mainSpec.requirements.push(replacement);
+    if (!(targetRequirement in mainSpec.requirements)) {
+      const replacementId = getRequirementId(replacement, `delta MODIFIED fallback in '${specPath}'`);
+      mainSpec.requirements[replacementId] = replacement;
       report.modifiedMissingTargetAsAdded.push(targetRequirement);
       continue;
     }
 
-    mainSpec.requirements[index] = replacement;
+    mainSpec.requirements[targetRequirement] = { ...replacement };
     report.modified += 1;
   }
 
@@ -218,13 +213,12 @@ function applyDeltaToMainSpec(
       throw new Error(`delta REMOVED entry in '${specPath}' is missing target_requirement`);
     }
 
-    const index = mainSpec.requirements.findIndex((requirement) => requirement.id === targetRequirement);
-    if (index === -1) {
+    if (!(targetRequirement in mainSpec.requirements)) {
       report.removedMissingTargetSkipped.push(targetRequirement);
       continue;
     }
 
-    mainSpec.requirements.splice(index, 1);
+    delete mainSpec.requirements[targetRequirement];
     report.removed += 1;
   }
 

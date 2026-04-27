@@ -8,8 +8,9 @@ import {
   toKebabCase,
   type ScenarioStepKind,
   type StrictRequirement,
-  type StrictScenario,
   type StrictScenarioStep,
+  type StrictScenarios,
+  type StrictRequirements,
   type StrictSpecMapping,
 } from "./shared.js";
 
@@ -26,7 +27,7 @@ export type StrictMainSpecArtifact = {
     title: string;
   };
   mapping: StrictSpecMapping;
-  requirements: StrictRequirement[];
+  requirements: StrictRequirements;
 };
 
 export type StrictDeltaSpecArtifact = {
@@ -47,6 +48,10 @@ function buildSpecIdFromRelativePath(relativeSpecPath: string): string {
   return toKebabCase(relativeSpecPath.replace(/\.md$/i, "").replace(/\//g, "-"));
 }
 
+function buildStep(kind: ScenarioStepKind, text: string): StrictScenarioStep {
+  return { [kind]: text } as StrictScenarioStep;
+}
+
 export function parseLegacyMainSpec(
   sourcePath: string,
   content: string,
@@ -58,11 +63,11 @@ export function parseLegacyMainSpec(
     throw new Error(`main spec '${sourcePath}' is missing a top-level '# <title>' heading`);
   }
 
-  const requirements: StrictRequirement[] = [];
+  const requirements: StrictRequirements = {};
   const requirementIds = new Set<string>();
   let currentRequirementId: string | null = null;
   let currentStatementLines: string[] = [];
-  let currentScenarios: StrictScenario[] = [];
+  let currentScenarios: StrictScenarios = {};
   let currentScenarioTitle: string | null = null;
   let currentScenarioSteps: StrictScenarioStep[] = [];
   let currentScenarioIds = new Set<string>();
@@ -74,10 +79,8 @@ export function parseLegacyMainSpec(
     if (currentScenarioSteps.length === 0) {
       throw new Error(`scenario '${currentScenarioTitle}' in '${sourcePath}' is missing steps`);
     }
-    currentScenarios.push({
-      id: makeUniqueId(toKebabCase(currentScenarioTitle), currentScenarioIds),
-      steps: currentScenarioSteps,
-    });
+    const id = makeUniqueId(toKebabCase(currentScenarioTitle), currentScenarioIds);
+    currentScenarios[id] = currentScenarioSteps;
     currentScenarioTitle = null;
     currentScenarioSteps = [];
   }
@@ -91,15 +94,15 @@ export function parseLegacyMainSpec(
     if (statement.length === 0) {
       throw new Error(`requirement '${currentRequirementId}' in '${sourcePath}' is missing a statement`);
     }
-    requirements.push({
-      id: makeUniqueId(currentRequirementId, requirementIds),
+    const id = makeUniqueId(currentRequirementId, requirementIds);
+    requirements[id] = {
       strength: parseRequirementStrength(statement, `requirement '${currentRequirementId}' in '${sourcePath}'`),
       statement,
       scenarios: currentScenarios,
-    });
+    };
     currentRequirementId = null;
     currentStatementLines = [];
-    currentScenarios = [];
+    currentScenarios = {};
     currentScenarioIds = new Set<string>();
   }
 
@@ -131,10 +134,10 @@ export function parseLegacyMainSpec(
       if (!currentScenarioTitle) {
         throw new Error(`step '${trimmed}' in '${sourcePath}' appears outside a scenario`);
       }
-      currentScenarioSteps.push({
-        kind: stepMatch[1] as ScenarioStepKind,
-        text: normalizeWhitespace(stepMatch[2]),
-      });
+      currentScenarioSteps.push(buildStep(
+        stepMatch[1] as ScenarioStepKind,
+        normalizeWhitespace(stepMatch[2]),
+      ));
       continue;
     }
 
@@ -144,7 +147,8 @@ export function parseLegacyMainSpec(
 
     if (currentScenarioTitle && currentScenarioSteps.length > 0) {
       const lastStep = currentScenarioSteps[currentScenarioSteps.length - 1];
-      lastStep.text = normalizeWhitespace(`${lastStep.text} ${trimmed}`);
+      const kind = Object.keys(lastStep)[0] as ScenarioStepKind;
+      lastStep[kind] = normalizeWhitespace(`${lastStep[kind]} ${trimmed}`);
       continue;
     }
 
@@ -157,7 +161,7 @@ export function parseLegacyMainSpec(
 
   flushRequirement();
 
-  if (requirements.length === 0) {
+  if (Object.keys(requirements).length === 0) {
     throw new Error(`main spec '${sourcePath}' does not contain any requirements`);
   }
 
@@ -200,19 +204,14 @@ export function parseLegacyDeltaSpec(
   let currentStatementLines: string[] = [];
   let currentPreviousLines: string[] = [];
   let currentReasonLines: string[] = [];
-  let currentScenarios: StrictScenario[] = [];
+  let currentScenarios: StrictScenarios = {};
 
   function flushScenario(): void {
-    if (!currentScenarioTitle) {
+    if (!currentScenarioTitle || currentScenarioSteps.length === 0) {
       return;
     }
-    if (currentScenarioSteps.length === 0) {
-      throw new Error(`scenario '${currentScenarioTitle}' in '${sourcePath}' is missing steps`);
-    }
-    currentScenarios.push({
-      id: makeUniqueId(toKebabCase(currentScenarioTitle), currentScenarioIds),
-      steps: currentScenarioSteps,
-    });
+    const id = makeUniqueId(toKebabCase(currentScenarioTitle), currentScenarioIds);
+    currentScenarios[id] = currentScenarioSteps;
     currentScenarioTitle = null;
     currentScenarioSteps = [];
   }
@@ -268,7 +267,7 @@ export function parseLegacyDeltaSpec(
     currentStatementLines = [];
     currentPreviousLines = [];
     currentReasonLines = [];
-    currentScenarios = [];
+    currentScenarios = {};
   }
 
   for (const rawLine of body.split("\n")) {
@@ -309,10 +308,10 @@ export function parseLegacyDeltaSpec(
       if (!currentScenarioTitle) {
         throw new Error(`step '${trimmed}' in '${sourcePath}' appears outside a scenario`);
       }
-      currentScenarioSteps.push({
-        kind: stepMatch[1] as ScenarioStepKind,
-        text: normalizeWhitespace(stepMatch[2]),
-      });
+      currentScenarioSteps.push(buildStep(
+        stepMatch[1] as ScenarioStepKind,
+        normalizeWhitespace(stepMatch[2]),
+      ));
       continue;
     }
 
@@ -322,7 +321,8 @@ export function parseLegacyDeltaSpec(
 
     if (currentScenarioTitle && currentScenarioSteps.length > 0) {
       const lastStep = currentScenarioSteps[currentScenarioSteps.length - 1];
-      lastStep.text = normalizeWhitespace(`${lastStep.text} ${trimmed}`);
+      const kind = Object.keys(lastStep)[0] as ScenarioStepKind;
+      lastStep[kind] = normalizeWhitespace(`${lastStep[kind]} ${trimmed}`);
       continue;
     }
 
