@@ -56,7 +56,6 @@ mapping:
     - test/suites/roadmap-and-migration.ts
 requirements:
   yaml-artifact-schema-coverage:
-    id: yaml-artifact-schema-coverage
     strength: MUST
     statement: >-
       The system MUST define strict YAML schemas for main specs, delta specs, change proposals,
@@ -315,7 +314,6 @@ requirements:
             the removed entry uses a keyed-map key as the target identifier and a value with a
             removal reason
   yaml-concrete-schema-file-coverage:
-    id: yaml-concrete-schema-file-coverage
     strength: MUST
     statement: >-
       The system MUST provide concrete YAML schema files for main specs, delta specs, change
@@ -354,7 +352,6 @@ requirements:
         - AND: stable identifier and uniqueness rules are available as structured data
         - AND: supported top-level shapes are available as structured data
   yaml-concrete-example-file-coverage:
-    id: yaml-concrete-example-file-coverage
     strength: MUST
     statement: >-
       The system MUST provide minimal valid YAML example files for main specs, delta specs, change
@@ -456,7 +453,6 @@ requirements:
         - THEN: the primary example avoids optional operations and blocking workflow state
         - AND: richer coverage examples are identified separately when needed
   yaml-roadmap-index-ordering-contract:
-    id: yaml-roadmap-index-ordering-contract
     strength: MUST
     statement: >-
       The system MUST represent roadmap index milestone ordering through a keyed YAML map where each
@@ -475,7 +471,6 @@ requirements:
         - WHEN: the milestones keys are iterated
         - THEN: milestone order remains recoverable from the key sequence
   yaml-roadmap-milestone-planning-model:
-    id: yaml-roadmap-milestone-planning-model
     strength: MUST
     statement: >-
       The system MUST represent roadmap milestone planning state through a keyed map where the key
@@ -531,7 +526,6 @@ requirements:
         - WHEN: the roadmap sync operation builds the canonical milestone artifact
         - THEN: the output milestone artifact omits the details field
   yaml-planned-change-entry-dependency-model:
-    id: yaml-planned-change-entry-dependency-model
     strength: MUST
     statement: >-
       The system MUST represent planned change entries as keyed map entries within the parent
@@ -554,7 +548,6 @@ requirements:
         - WHEN: the references are validated
         - THEN: each reference matches a sibling key within the same planned_changes map
   yaml-roadmap-example-contract-coverage:
-    id: yaml-roadmap-example-contract-coverage
     strength: MUST
     statement: >-
       The system MUST provide roadmap example artifacts that demonstrate the roadmap v2 schema
@@ -614,7 +607,6 @@ requirements:
             the prompt guidance remains focused on recommendation, planning judgment, editing, and
             user checkpoints
   strict-roadmap-proposal-handoff-contract:
-    id: strict-roadmap-proposal-handoff-contract
     strength: MUST
     statement: >-
       The system MUST ensure roadmap recommendation and roadmap proposal-handoff behavior convert
@@ -649,7 +641,6 @@ requirements:
             goal
         - AND: the absence of details does not cause a failure or placeholder content
   yaml-task-testing-gates:
-    id: yaml-task-testing-gates
     strength: MUST
     statement: >-
       The system MUST represent validation and unit test task gates in task-list artifacts through
@@ -756,7 +747,6 @@ requirements:
             repository documentation is not treated as strict workflow state unless a later schema
             explicitly classifies it that way
   workflow-artifacts-use-yaml:
-    id: workflow-artifacts-use-yaml
     strength: MUST
     statement: >-
       The system MUST require generated or consumed strict workflow artifacts to use YAML formats
@@ -998,7 +988,6 @@ requirements:
         - THEN: the values can be matched to registry-controlled values
         - AND: unsupported artifact type names can be reported as deterministic validation failures
   yaml-migration-artifact-role-mapping:
-    id: yaml-migration-artifact-role-mapping
     strength: MUST
     statement: >-
       The system MUST define migration mapping rules from supported legacy .spec-driven/ Markdown
@@ -1026,7 +1015,6 @@ requirements:
         - AND: each supported legacy role identifies a registry-controlled strict artifact type
         - AND: each supported legacy role identifies a registry-controlled schema ID
   yaml-migration-relationship-preservation:
-    id: yaml-migration-relationship-preservation
     strength: MUST
     statement: >-
       The system MUST require migration behavior to preserve supported workflow relationships when
@@ -1354,7 +1342,6 @@ requirements:
             before execution
         - AND: the skill does not automate `git push` without operator review
   yaml-task-list-v2-keyed-map-model:
-    id: yaml-task-list-v2-keyed-map-model
     strength: MUST
     statement: >-
       The system MUST represent strict YAML task-list v2 artifacts with sections as a keyed map
@@ -1378,7 +1365,6 @@ requirements:
         - WHEN: duplicate section names or task identifiers exist
         - THEN: the duplicate is reported as a deterministic validation failure
   yaml-task-list-v2-is-the-only-supported-shape:
-    id: yaml-task-list-v2-is-the-only-supported-shape
     strength: MUST
     statement: >-
       The system MUST use task-list/v2 as the only supported task-list artifact shape, with no v1

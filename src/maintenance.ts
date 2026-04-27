@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync } from "fs";
+import { existsSync, readdirSync, statSync, writeFileSync } from "fs";
 import path from "path";
 import { parseYamlFile, stringifyYamlDocument } from "./yaml.js";
 import { initializeStrictChangeScaffold } from "./scaffold.js";
@@ -6,6 +6,7 @@ import { syncRoadmap } from "./roadmap.js";
 import type { RoadmapSyncResult } from "./roadmap.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
+const FORBIDDEN_SPEC_SUBDIRS = new Set([".strict-spec-driven", "changes", "archive"]);
 
 type CheckConfig = {
   type: string;
@@ -52,6 +53,22 @@ function runRoadmapSyncCheck(rootDir: string): MaintenanceFinding[] {
     check: "roadmap-sync-check",
     description: `Synced roadmap file: ${file}`,
   }));
+}
+
+function runSpecsDirectoryStructureCheck(rootDir: string): MaintenanceFinding[] {
+  const specsDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "specs");
+  if (!existsSync(specsDir) || !statSync(specsDir).isDirectory()) return [];
+
+  const findings: MaintenanceFinding[] = [];
+  for (const entry of readdirSync(specsDir, { withFileTypes: true })) {
+    if (entry.isDirectory() && FORBIDDEN_SPEC_SUBDIRS.has(entry.name)) {
+      findings.push({
+        check: "specs-directory-structure-check",
+        description: `Remove misplaced .strict-spec-driven/specs/${entry.name}/ directory; workflow state directories belong under .strict-spec-driven/ directly`,
+      });
+    }
+  }
+  return findings;
 }
 
 function buildProposalYaml(changeName: string, findings: MaintenanceFinding[]): object {
@@ -130,6 +147,10 @@ export function runMaintenance(rootDir: string): MaintenanceResult {
   for (const check of maintenanceCfg.checks) {
     if (check.type === "roadmap-sync-check") {
       findings.push(...runRoadmapSyncCheck(rootDir));
+      checksRun++;
+    }
+    if (check.type === "specs-directory-structure-check") {
+      findings.push(...runSpecsDirectoryStructureCheck(rootDir));
       checksRun++;
     }
   }

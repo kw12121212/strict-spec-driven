@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import path from "path";
 import { parseYamlDocument } from "./yaml.js";
 import {
@@ -8,6 +8,7 @@ import {
 } from "./validation.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
+const FORBIDDEN_SPEC_SUBDIRS = new Set([".strict-spec-driven", "changes", "archive"]);
 
 type TaskMap = Record<string, { text: string; status: string; command?: string }>;
 
@@ -299,6 +300,22 @@ export function verifyChange(
   let totalTasks = 0;
   let completeTasks = 0;
   let openQuestionCount = 0;
+
+  const specsRoot = path.join(rootDir, STRICT_WORKFLOW_DIR, "specs");
+  if (existsSync(specsRoot) && statSync(specsRoot).isDirectory()) {
+    for (const entry of readdirSync(specsRoot, { withFileTypes: true })) {
+      if (entry.isDirectory() && FORBIDDEN_SPEC_SUBDIRS.has(entry.name)) {
+        allDiagnostics.push({
+          source: "directory_structure",
+          artifactPath: `.strict-spec-driven/specs/${entry.name}`,
+          fieldPath: "$",
+          message: `.strict-spec-driven/specs/ must not contain a '${entry.name}' subdirectory; workflow state directories belong under .strict-spec-driven/ directly`,
+          expected: `no '${entry.name}' subdirectory under .strict-spec-driven/specs/`,
+          actual: `found .strict-spec-driven/specs/${entry.name}/`,
+        });
+      }
+    }
+  }
 
   const artifactConfigs: [string, string][] = [
     ["change_proposal", "proposal.yaml"],

@@ -1,9 +1,11 @@
-import { existsSync, readFileSync, statSync } from "fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import path from "path";
 import { parseYamlDocument } from "../yaml.js";
 import { listFilesRecursive, normalizePathSeparators, normalizeRepoRelativePath } from "./fs.js";
 
 const STRICT_SPECS_DIR = path.join(".strict-spec-driven", "specs");
+
+const FORBIDDEN_SPEC_SUBDIRS = new Set([".strict-spec-driven", "changes", "archive"]);
 const EXCLUDED_MAPPING_SPEC_BASENAMES = new Set(["INDEX.yaml"]);
 
 type MappingField = "implementation" | "tests";
@@ -291,6 +293,23 @@ export function verifySpecMappings(rootDir: string): VerifySpecMappingsResult {
         "existing .strict-spec-driven/specs/ directory",
       ),
     );
+  }
+
+  if (diagnostics.length === 0) {
+    for (const entry of readdirSync(specsDir, { withFileTypes: true })) {
+      if (entry.isDirectory() && FORBIDDEN_SPEC_SUBDIRS.has(entry.name)) {
+        diagnostics.push(
+          makeMappingDiagnostic(
+            "mapping_input",
+            path.join(STRICT_SPECS_DIR, entry.name),
+            "$",
+            `.strict-spec-driven/specs/ must not contain a '${entry.name}' subdirectory; workflow state directories belong under .strict-spec-driven/ directly`,
+            `no '${entry.name}' subdirectory under .strict-spec-driven/specs/`,
+            `found .strict-spec-driven/specs/${entry.name}/`,
+          ),
+        );
+      }
+    }
   }
 
   const specFiles =
