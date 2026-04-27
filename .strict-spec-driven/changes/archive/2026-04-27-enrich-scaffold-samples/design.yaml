@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: enrich-scaffold-samples
+approach:
+  - For each scaffold template with empty array fields, add one sample entry demonstrating the expected shape using placeholder names and descriptive text.
+  - Use the same pattern already established by design.yaml's sample-decision entry.
+  - Add inline # comments to clarify that sample entries should be replaced with real content.
+decisions:
+  use-inline-entries-not-comments-only:
+    decision: Use actual sample entries (not just # comments) to demonstrate field shapes.
+    rationale: AI agents read and replace entries more reliably than parsing comment-only hints. The existing sample-decision pattern in design.yaml proves this works.
+  minimal-sample-count:
+    decision: Add exactly one sample per previously-empty array field.
+    rationale: More than one sample would bloat the template and risk confusion. One well-structured sample is enough to convey the shape.
+alternatives:
+  - option: Use only # comments for guidance, keeping arrays empty.
+    reason: Rejected because AI agents that read-write YAML files handle concrete entries more reliably than free-form comments.
+  - option: Add sample content to all fields including already-filled ones.
+    reason: Rejected because tasks.yaml and config.yaml already have sufficient content.
+risks:
+  - AI agents might keep sample entries instead of replacing them — mitigated by clear sample-* naming and # comments.

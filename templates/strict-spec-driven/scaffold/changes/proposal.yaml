@@ -7,11 +7,16 @@ change:
   status: proposed
 summary:
   what:
-    - Describe the observable workflow behavior to implement.
+    # Replace the sample entry below with real observable behavior descriptions.
+    - Add [observable workflow behavior] for [target artifact family].
   why:
-    - Explain why this behavior is needed.
+    # Replace the sample entry below with the real motivation.
+    - The behavior is needed to support [workflow scenario or user need].
 scope:
-  in: []
-  out: []
+  in:
+    # Replace sample entries with real scope items.
+    - Add [specific behavior] to [target artifact].
+  out:
+    - Implement unrelated workflow behavior.
 unchanged_behavior:
   - Existing strict workflow behavior remains unchanged unless explicitly listed in scope.

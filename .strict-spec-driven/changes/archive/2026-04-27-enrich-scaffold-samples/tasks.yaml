@@ -1,0 +1,43 @@
+schema: strict-spec-driven/task-list/v1
+schema_version: 1
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: enrich-scaffold-samples
+sections:
+  - name: Implementation
+    tasks:
+      - id: enrich-proposal-scaffold
+        text: >-
+          Add sample entries to proposal.yaml scaffold (scope.in, scope.out, summary.what,
+          summary.why).
+        status: complete
+      - id: enrich-design-scaffold
+        text: Add sample entries to design.yaml scaffold (alternatives, risks).
+        status: complete
+      - id: enrich-questions-scaffold
+        text: Add sample entries to questions.yaml scaffold (open, resolved).
+        status: complete
+      - id: enrich-roadmap-index-scaffold
+        text: Add sample entry to roadmap/INDEX.yaml scaffold (milestones).
+        status: complete
+      - id: enrich-spec-index-scaffold
+        text: Add sample entry to specs/INDEX.yaml scaffold (specs).
+        status: complete
+  - name: Testing
+    tasks:
+      - id: run-build
+        text: Run build validation.
+        status: complete
+        command: bun run build
+      - id: run-tests
+        text: Run unit tests.
+        status: complete
+        command: bun test/run.ts
+  - name: Verification
+    tasks:
+      - id: verify-scope
+        text: Verify implementation matches proposal scope.
+        status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

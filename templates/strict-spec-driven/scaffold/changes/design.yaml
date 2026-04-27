@@ -9,5 +9,10 @@ decisions:
   sample-decision:
     decision: Describe what was decided.
     rationale: Explain the independent reasoning, tradeoff, or constraint behind this decision.
-alternatives: []
-risks: []
+alternatives:
+  # Replace the sample entry below with real alternatives considered.
+  - option: [Alternative approach description].
+    reason: [Why it was accepted or rejected].
+risks:
+  # Replace the sample entry below with real risks, or remove if none.
+  - [Risk description and mitigation].

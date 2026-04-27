@@ -2,4 +2,9 @@ schema: strict-spec-driven/roadmap-index/v1
 schema_version: 1
 artifact_type: roadmap_index
 schema_file: ../schemas/roadmap-index.yaml
-milestones: []
+milestones:
+  # Replace the sample entry below with real milestones, or remove if unused.
+  - id: sample-milestone
+    title: Sample Milestone Title
+    path: .strict-spec-driven/roadmap/milestones/sample-milestone.yaml
+    status: proposed
