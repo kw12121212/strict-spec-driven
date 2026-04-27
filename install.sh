@@ -35,6 +35,8 @@ if $UNINSTALL; then
   echo "Uninstalling strict skills from: $SCRIPT_DIR"
   npx skills remove -g
 else
+  echo "Building strict-spec-driven bundle..."
+  cd "$SCRIPT_DIR" && bun run build:bundle
   echo "Installing strict skills from: $SCRIPT_DIR"
   npx skills add "$SCRIPT_DIR" -g
 fi

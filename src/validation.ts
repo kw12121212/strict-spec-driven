@@ -1,9 +1,10 @@
 import AjvModule, { type ErrorObject, type ValidateFunction } from "ajv";
 import addFormatsModule from "ajv-formats";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { parseYamlFile } from "./yaml.js";
+import { readEmbeddedTemplate } from "./embedded-templates.js";
+import { parseYamlDocument } from "./yaml.js";
 
 export type ValidatorLike = {
   compile(schema: object): ValidateFunction;
@@ -57,6 +58,16 @@ function getBundledDir(...segments: string[]): string {
 }
 
 const BUNDLED_SCHEMA_DIR = getBundledDir("strict-spec-driven", "schemas");
+
+function schemaTemplateKey(schemaFile: string): string {
+  return `strict-spec-driven/schemas/${schemaFile}`;
+}
+
+function readBundledSchemaContent(schemaFile: string): string {
+  const embedded = readEmbeddedTemplate(schemaTemplateKey(schemaFile));
+  if (embedded !== undefined) return embedded;
+  return readFileSync(getBundledSchemaPath(schemaFile), "utf8");
+}
 
 function resolveAjvConstructor(): new (options: Record<string, unknown>) => ValidatorLike {
   const value = AjvModule as unknown as {
@@ -246,7 +257,7 @@ export function getBundledSchemaPath(schemaFile: string): string {
 }
 
 export function loadBundledSchema<T extends object = Record<string, unknown>>(schemaFile: string): T {
-  const raw = parseYamlFile<Record<string, unknown>>(getBundledSchemaPath(schemaFile));
+  const raw = parseYamlDocument<Record<string, unknown>>(readBundledSchemaContent(schemaFile));
   if ("json_schema" in raw && raw.json_schema && typeof raw.json_schema === "object") {
     return raw.json_schema as T;
   }

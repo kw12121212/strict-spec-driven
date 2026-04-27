@@ -1,7 +1,8 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { parseYamlFile } from "./yaml.js";
+import { hasEmbeddedTemplate, readEmbeddedTemplate } from "./embedded-templates.js";
+import { parseYamlDocument } from "./yaml.js";
 
 function getBundledDir(...segments: string[]): string {
   const thisDir = path.dirname(fileURLToPath(import.meta.url));
@@ -11,6 +12,10 @@ function getBundledDir(...segments: string[]): string {
 }
 
 const BUNDLED_SCAFFOLD_DIR = getBundledDir("strict-spec-driven", "scaffold");
+
+function scaffoldTemplateKey(relativePath: string): string {
+  return `strict-spec-driven/scaffold/${relativePath}`;
+}
 
 const REQUIRED_SCAFFOLD_ASSETS = [
   "config.yaml",
@@ -70,11 +75,13 @@ export function getBundledScaffoldPath(relativePath: string): string {
 }
 
 export function readBundledScaffoldTemplate(relativePath: string): string {
+  const embedded = readEmbeddedTemplate(scaffoldTemplateKey(relativePath));
+  if (embedded !== undefined) return embedded;
   return readFileSync(getBundledScaffoldPath(relativePath), "utf8");
 }
 
 export function loadBundledScaffoldYaml<T>(relativePath: string): T {
-  return parseYamlFile<T>(getBundledScaffoldPath(relativePath));
+  return parseYamlDocument<T>(readBundledScaffoldTemplate(relativePath));
 }
 
 export function getRequiredBundledScaffoldAssets(): string[] {
@@ -82,7 +89,10 @@ export function getRequiredBundledScaffoldAssets(): string[] {
 }
 
 export function findMissingRequiredScaffoldAssets(): string[] {
-  return getRequiredBundledScaffoldAssets().filter((relativePath) => !existsSync(getBundledScaffoldPath(relativePath)));
+  return getRequiredBundledScaffoldAssets().filter(
+    (relativePath) =>
+      !hasEmbeddedTemplate(scaffoldTemplateKey(relativePath)) && !existsSync(getBundledScaffoldPath(relativePath)),
+  );
 }
 
 export function getRequiredBundledChangeTemplateAssets(): string[] {
@@ -90,7 +100,10 @@ export function getRequiredBundledChangeTemplateAssets(): string[] {
 }
 
 export function findMissingRequiredChangeTemplateAssets(): string[] {
-  return getRequiredBundledChangeTemplateAssets().filter((relativePath) => !existsSync(getBundledScaffoldPath(relativePath)));
+  return getRequiredBundledChangeTemplateAssets().filter(
+    (relativePath) =>
+      !hasEmbeddedTemplate(scaffoldTemplateKey(relativePath)) && !existsSync(getBundledScaffoldPath(relativePath)),
+  );
 }
 
 export function initializeStrictChangeScaffold(rootDir: string, changeName: string): StrictChangeScaffoldResult {
@@ -141,7 +154,12 @@ export function initializeStrictScaffold(rootDir: string): StrictInitResult {
       continue;
     }
     mkdirSync(path.dirname(targetPath), { recursive: true });
-    copyFileSync(getBundledScaffoldPath(assetPath), targetPath);
+    const embedded = readEmbeddedTemplate(scaffoldTemplateKey(assetPath));
+    if (embedded !== undefined) {
+      writeFileSync(targetPath, embedded, "utf8");
+    } else {
+      copyFileSync(getBundledScaffoldPath(assetPath), targetPath);
+    }
     created.push(assetPath);
   }
 

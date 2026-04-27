@@ -1,8 +1,11 @@
 # Dependencies
 node_modules/
 
-# Build output
-dist/
+# Build output (keep the pre-built bundle for distribution)
+dist/*
+!dist/scripts/
+dist/scripts/*
+!dist/scripts/strict-spec-driven.js
 
 # Environment
 .env
