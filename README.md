@@ -2,17 +2,7 @@
 
 English | [中文](README.zh.md)
 
-`strict-spec-driven` is a YAML-first variant of `../auto-spec-driven`. It preserves the spec-driven workflow semantics and Agent Skills integration while converting all workflow artifacts — specs, changes, roadmap, tasks, questions — from Markdown-centric conventions into strict YAML schemas enforced by deterministic scripts.
-
-## Relationship to auto-spec-driven
-
-This project uses `../auto-spec-driven` as a reference for workflow semantics:
-
-- Preserves the core spec-driven lifecycle (propose → apply → verify → review → archive)
-- Preserves Agent Skills as the AI operator interface
-- Preserves the CLI responsibility boundary: scripts handle file system operations and validation, AI handles content and judgment
-- Converts Markdown workflow artifacts into strict YAML schemas
-- Allows scripts to diverge from the reference where YAML schema enforcement requires it
+`strict-spec-driven` is a YAML-first spec-driven development workflow. It provides the spec-driven lifecycle (propose → apply → verify → review → archive) with Agent Skills integration, converting all workflow artifacts — specs, changes, roadmap, tasks, questions — into strict YAML schemas enforced by deterministic scripts.
 
 `SKILL.md` files remain Markdown because that is the Agent Skills packaging format requirement. What changes is the artifact format those skills generate and consume.
 

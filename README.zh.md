@@ -2,17 +2,7 @@
 
 [English](README.md) | 中文
 
-`strict-spec-driven` 是 `../auto-spec-driven` 的 YAML 优先变体。它保留了规范驱动工作流的语义和 Agent Skills 集成，同时将所有工作流制品——规范、变更、路线图、任务、问题——从以 Markdown 为中心的约定转换为由确定性脚本强制执行的严格 YAML 模式。
-
-## 与 auto-spec-driven 的关系
-
-本项目以 `../auto-spec-driven` 作为工作流语义的参考：
-
-- 保留核心规范驱动生命周期（提议 → 执行 → 验证 → 审查 → 归档）
-- 保留 Agent Skills 作为 AI 操作接口
-- 保留 CLI 职责边界：脚本处理文件系统操作和验证，AI 处理内容和判断
-- 将 Markdown 工作流制品转换为严格 YAML 模式
-- 允许脚本在 YAML 模式强制执行需要时与参考实现有所不同
+`strict-spec-driven` 是一个 YAML 优先的规范驱动开发工作流。它提供规范驱动生命周期（提议 → 执行 → 验证 → 审查 → 归档）和 Agent Skills 集成，将所有工作流制品——规范、变更、路线图、任务、问题——转换为严格 YAML 模式，由确定性脚本强制执行。
 
 `SKILL.md` 文件保留为 Markdown，因为这是 Agent Skills 打包格式的要求。变化的是这些 Skills 生成和消费的制品格式。
 

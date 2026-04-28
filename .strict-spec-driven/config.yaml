@@ -2,14 +2,11 @@ schema: strict-spec-driven/config/v1
 schema_version: 1
 artifact_type: workflow_config
 context: |
-  strict-spec-driven is a YAML-first variant of ../auto-spec-driven.
-  It keeps the existing Agent Skills workflow concept intact, but converts the
-  spec-driven artifacts and related documentation formats from Markdown-centric
-  conventions into strict YAML schemas.
-  Scripts may diverge from the reference project where needed to create,
-  validate, parse, and enforce those YAML schemas deterministically.
-  The project should use the reference repository for workflow semantics while
-  treating YAML schema enforcement as the primary product constraint.
+  strict-spec-driven is a YAML-first spec-driven development workflow.
+  It keeps the existing Agent Skills workflow concept intact, converting all
+  spec-driven artifacts and related documentation formats into strict YAML schemas.
+  Scripts create, validate, parse, and enforce those YAML schemas deterministically.
+  YAML schema enforcement is the primary product constraint.
   Tech stack: Bun (runtime and package manager), TypeScript (strict, ESM,
   NodeNext), compiled from src/ to dist/ via tsc. Tests run with
   `bun test/run.ts` against compiled dist/ output. Build command: bun run build.

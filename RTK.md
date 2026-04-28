@@ -4,26 +4,10 @@ Instructions for AI agents working in this repository.
 
 ## What This Repo Is
 
-`strict-spec-driven` is a YAML-first adaptation of `../auto-spec-driven`.
-The reference project defines the workflow semantics, skill set, and CLI behavior
-for spec-driven development. This project keeps the skills conceptually
-unchanged, while converting specs and related workflow documents to strict YAML
-formats that scripts can validate and enforce.
-
-## Reference Project
-
-Use `../auto-spec-driven` as the behavioral baseline before designing or editing
-features here. Preserve workflow intent unless the YAML schema requirement
-requires a deliberate change.
-
-Important reference areas:
-
-- `../auto-spec-driven/skills/` for skill prompts and workflow expectations
-- `../auto-spec-driven/scripts/spec-driven.ts` for CLI behavior
-- `../auto-spec-driven/template/` for generated project scaffold
-- `../auto-spec-driven/test/` for expected workflow behavior
-- `../auto-spec-driven/AGENTS.md` for reference build, test, and repo
-  conventions
+`strict-spec-driven` is a YAML-first spec-driven development workflow.
+It provides the spec-driven lifecycle, skill set, and CLI behavior
+for spec-driven development. Specs and related workflow documents are
+strict YAML formats that scripts can validate and enforce.
 
 ## Product Constraint
 
