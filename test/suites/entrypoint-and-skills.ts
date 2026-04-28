@@ -484,6 +484,15 @@ try {
     ),
     "misleading auto empty-spec-impact claim reports forbidden snippet diagnostic",
   );
+  context.assert(
+    invalidSemanticResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.required_snippet.missing"
+        && diagnostic.path === "skills/strict-spec-auto/SKILL.md"
+        && diagnostic.expected === "/strict-spec-ship <change-name>",
+    ),
+    "auto skill missing optional ship handoff reports required snippet diagnostic",
+  );
 } finally {
   rmSync(invalidSemanticSkillRoot, { recursive: true, force: true });
 }

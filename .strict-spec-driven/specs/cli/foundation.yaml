@@ -66,7 +66,6 @@ mapping:
     - templates/strict-spec-driven/scaffold/changes/questions.yaml
     - templates/strict-spec-driven/scaffold/specs/INDEX.yaml
     - templates/strict-spec-driven/scaffold/roadmap/INDEX.yaml
-    - templates/strict-spec-driven/scaffold/changes/STATE.yaml
   tests:
     - test/run.ts
     - test/support/harness.ts
@@ -933,6 +932,9 @@ requirements:
             `.strict-spec-driven/` workflow guidance
         - WHEN: repository automated checks are executed
         - THEN: the core skill content checks pass
+        - AND: >-
+            `strict-spec-auto` includes an advisory `/strict-spec-ship <change-name>` handoff
+            recommendation
       automated-checks-reject-placeholder-core-skill-content:
         - GIVEN: >-
             a strict core lifecycle skill keeps a generic placeholder command block or omits

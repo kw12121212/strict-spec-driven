@@ -1215,6 +1215,13 @@ requirements:
         - AND: >-
             the prompt guidance remains focused on planning, editing, review, and user decision
             checkpoints
+      auto-skill-hands-off-optional-ship-recommendation:
+        - GIVEN: the `strict-spec-auto/SKILL.md` workflow reaches its final archive summary
+        - WHEN: the post-archive guidance is presented
+        - THEN: >-
+            the skill recommends `/strict-spec-ship <change-name>` as an optional next step for a
+            focused git commit
+        - AND: the recommendation is advisory rather than required to complete `strict-spec-auto`
   strict-planning-skill-command-contract:
     strength: MUST
     statement: >-

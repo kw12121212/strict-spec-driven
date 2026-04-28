@@ -15134,7 +15134,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       archive: `${COMMAND_PREFIX} archive <change-name>`
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/"],
+    requiredSnippets: [".strict-spec-driven/", "/strict-spec-ship <change-name>"],
     forbiddenSnippets: [
       "empty-spec-impact decisions block progress",
       "empty-spec-impact decision has been explicitly confirmed"

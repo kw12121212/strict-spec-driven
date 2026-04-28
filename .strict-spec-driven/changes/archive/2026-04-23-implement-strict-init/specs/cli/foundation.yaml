@@ -10,7 +10,6 @@ mapping:
     - templates/strict-spec-driven/scaffold/config.yaml
     - templates/strict-spec-driven/scaffold/specs/INDEX.yaml
     - templates/strict-spec-driven/scaffold/roadmap/INDEX.yaml
-    - templates/strict-spec-driven/scaffold/changes/STATE.yaml
     - templates/strict-spec-driven/scaffold/specs/README.md
   tests:
     - test/run.ts

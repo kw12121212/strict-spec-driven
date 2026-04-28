@@ -88,8 +88,9 @@ proceeding, verify that strict workflow state already exists.
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>
    ```
-   Then summarize the result. An empty `specs/` directory is allowed and should
-   not block archive.
+   Then summarize the result and recommend `/strict-spec-ship <change-name>` as
+   an optional next step for creating a focused git commit. An empty `specs/`
+   directory is allowed and should not block archive.
 
 ## Rules
 
@@ -99,4 +100,6 @@ proceeding, verify that strict workflow state already exists.
 - Open questions require a problem explanation, impact analysis, recommendation,
   and explicit human answer before continuing
 - Keep mappings in structured YAML fields
+- The final `/strict-spec-ship <change-name>` recommendation is advisory and
+  must not be treated as required to complete `strict-spec-auto`
 - Do not commit or push automatically
