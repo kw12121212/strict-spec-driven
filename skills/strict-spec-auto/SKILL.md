@@ -40,7 +40,11 @@ proceeding, verify that strict workflow state already exists.
    request is open-ended or cross-repository, stop and suggest
    `strict-spec-brainstorm`.
 
-3. **Propose the change** — scaffold with `propose`, then fill:
+3. **Propose or resume the change** — if the strict change does not exist yet,
+   scaffold with `propose`. If a prior workflow step such as
+   `/strict-roadmap-recommend` or `/strict-roadmap-propose` already created the
+   change directory, reuse the existing scaffold instead of running `propose`
+   again. Then fill:
    - `proposal.yaml`
    - `design.yaml`
    - `tasks.yaml`
@@ -48,7 +52,8 @@ proceeding, verify that strict workflow state already exists.
    - strict YAML delta specs under `changes/<name>/specs/`
    If you use `verify` at proposal time, treat pending-task diagnostics as
    expected until implementation is complete. If `questions.yaml.open` is not
-   empty, stop for explicit user resolution before implementation.
+   empty, surface each open question, collect explicit user answers there, and
+   stop before implementation until those entries are moved to `resolved`.
 
 4. **Implement tasks in order** — read code, implement the next pending task, and
    preserve every `unchanged_behavior` item from `proposal.yaml`.

@@ -85,14 +85,23 @@ This creates `.strict-spec-driven/changes/my-first-change/` with:
 - `proposal.yaml` — what and why
 - `design.yaml` — approach and key decisions
 - `tasks.yaml` — implementation and testing tasks
-- `questions.yaml` — open questions to resolve before implementation
+- `questions.yaml` — open questions to be surfaced and resolved by
+  `/strict-spec-auto` or `/strict-spec-apply` before implementation
 - `specs/` — delta spec files for observable behavior changes
 
 Edit these files to describe the change before moving to the apply step.
 
 ### 2. Implement the tasks
 
-Work through each pending task in `tasks.yaml`. The `/strict-spec-apply` skill guides you through tasks one at a time:
+Work through each pending task in `tasks.yaml`. `/strict-spec-auto` is the
+default next step for running the full lifecycle, and `/strict-spec-apply`
+guides you through tasks one at a time when you want manual control:
+
+```
+/strict-spec-auto
+```
+
+Or:
 
 ```
 /strict-spec-apply my-first-change

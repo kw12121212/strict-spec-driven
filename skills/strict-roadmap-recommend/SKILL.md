@@ -1,6 +1,6 @@
 ---
 name: strict-roadmap-recommend
-description: Recommend the next strict roadmap-backed change, then scaffold it as a normal strict change after explicit confirmation.
+description: Recommend the next strict roadmap-backed change, then scaffold it as a normal strict change without extra user interaction.
 metadata:
   skill_id: strict_roadmap_recommend
   author: strict-spec-driven
@@ -9,7 +9,8 @@ metadata:
 ---
 
 You are helping the user choose the next strict roadmap-backed change and turn
-the accepted recommendation into a normal strict change.
+that recommendation into a normal strict change without pausing for human
+confirmation during the recommend step.
 
 ## This Skill's Commands
 
@@ -49,9 +50,10 @@ proceeding, verify that strict workflow state already exists.
    - why it is the best next step
    - which strict specs are likely to change
    - any open questions that would need to go into the strict change proposal
-   Then ask for explicit confirmation before creating the change scaffold.
+   Do not stop for human confirmation here — use the checkpoint only to explain
+   the recommendation before creating the scaffold.
 
-4. **Scaffold only after confirmation** — run:
+4. **Scaffold the recommended change immediately** — run:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
    ```
@@ -68,13 +70,23 @@ proceeding, verify that strict workflow state already exists.
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
    ```
-   Fix safe proposal-shape issues, record real ambiguity in `questions.yaml`, and
-   stop if unresolved questions still need a human answer.
+   Fix safe proposal-shape issues and record real ambiguity in
+   `questions.yaml`. Do not stop for human question resolution during
+   `strict-roadmap-recommend`; leave those questions for `strict-spec-auto` or
+   `strict-spec-apply` to surface before implementation.
+
+6. **Hand off to implementation workflow** — explicitly recommend
+   `/strict-spec-auto` as the primary next step for carrying the recommended
+   change through the rest of the strict lifecycle. If `questions.yaml.open` is
+   non-empty, make clear that `/strict-spec-auto` will surface those questions
+   before implementation. Mention `/strict-spec-apply` as the manual fallback
+   path when the user wants task-by-task control; it should also gate on open
+   questions before coding.
 
 ## Rules
 
 - Recommend only work that already exists under `.strict-spec-driven/roadmap/`
 - Keep `.strict-spec-driven/roadmap/` as the canonical home of milestone-level
   planning metadata
-- Do not scaffold until the user explicitly confirms the recommendation
 - Convert exactly one planned change into one normal strict change scaffold
+- Do not pause for user confirmation during the recommend step

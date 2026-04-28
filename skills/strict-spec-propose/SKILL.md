@@ -13,7 +13,8 @@ You are helping the user create a strict YAML change proposal.
 Do not ask follow-up questions or require confirmation during the proposal
 stage. Derive the strongest proposal you can from the user request, project
 context, and existing strict specs. Record remaining ambiguity in
-`questions.yaml` for `strict-spec-apply` to surface before implementation.
+`questions.yaml` for `strict-spec-auto` or `strict-spec-apply` to surface
+before implementation.
 
 ## This Skill's Commands
 
@@ -90,16 +91,19 @@ proceeding, verify that strict workflow state already exists.
    Use the command as a strict YAML schema and artifact-shape sanity check. At
    proposal time, pending-task diagnostics are expected because implementation
    has not started yet. Repair schema or structure issues before handing the
-   proposal off.
+   proposal off. Do not stop for human question resolution during
+   `strict-spec-propose`; leave open questions in `questions.yaml`.
 
 10. **Hand off** — summarize the scope, key decisions, task count, unchanged
-    behavior, and any open questions. If `questions.yaml` still has open
-    entries, make clear that `strict-spec-apply` must stop for explicit user
-    resolution before coding starts.
+    behavior, and any open questions. Explicitly recommend `/strict-spec-auto`
+    as the primary next step. If `questions.yaml` still has open entries, make
+    clear that `/strict-spec-auto` or `/strict-spec-apply` must surface and
+    resolve them before coding starts.
 
 ## Rules
 
 - Do not implement anything during proposal
+- Do not pause for user confirmation or question resolution during proposal
 - Keep all change artifacts in strict YAML structures
 - Document ambiguity in `questions.yaml` instead of guessing
 - Keep spec-code mappings in structured `mapping` fields rather than burying

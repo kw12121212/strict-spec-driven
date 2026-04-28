@@ -97,7 +97,9 @@ notes: []
 
 ### `/strict-roadmap-recommend`
 
-读取路线图状态并推荐下一个最佳计划变更。考虑依赖顺序、里程碑进度和规划优先级。确认后将推荐的变更搭建成标准严格变更，放在 `.strict-spec-driven/changes/` 下。
+读取路线图状态并推荐下一个最佳计划变更。考虑依赖顺序、里程碑进度和规划优先级。随后直接将推荐的变更搭建成标准严格变更，放在 `.strict-spec-driven/changes/` 下，不在 recommend 阶段额外停下来等待用户确认。
+
+脚手架验证通过后，默认的下一步应是 `/strict-spec-auto`，让这个推荐变更继续跑完后续严格生命周期；只有在用户明确想手动控制时，才回到手动命令序列。如果 recommendation 过程中产生了开放问题，`strict-roadmap-recommend` 只负责把它们写进 `questions.yaml`，真正向用户确认答案应由 `/strict-spec-auto` 或 `/strict-spec-apply` 在实现前完成。
 
 适合在开始新的工作会话时使用，获取下一步该做什么的指导。
 

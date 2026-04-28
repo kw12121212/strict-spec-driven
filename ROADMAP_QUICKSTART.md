@@ -91,7 +91,9 @@ Let the workflow recommend the best next planned change based on dependencies an
 /strict-roadmap-recommend
 ```
 
-The skill analyzes your roadmap, picks the best candidate, and after your confirmation scaffolds it as a normal strict change under `.strict-spec-driven/changes/`.
+The skill analyzes your roadmap, picks the best candidate, and scaffolds it as
+a normal strict change under `.strict-spec-driven/changes/` without stopping
+for extra confirmation during the recommend step.
 
 If you already know which planned change to work on:
 
@@ -129,7 +131,7 @@ This marks the corresponding planned change as `complete` and updates the milest
 
 ```
 /strict-roadmap-recommend          ← what should I do next?
-  ↓ (confirms)
+  ↓
 /strict-spec-auto                  ← implement end to end
   ↓
 /strict-roadmap-sync               ← update roadmap state

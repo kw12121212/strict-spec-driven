@@ -15060,7 +15060,7 @@ import path24 from "node:path";
 // src/skills/model.ts
 var REQUIRED_METADATA_FIELDS = ["skill_id", "author", "type", "version"];
 var EXPECTED_SCRIPT_SYMLINK = "../../dist/scripts";
-var EXPECTED_TEMPLATE_SYMLINK = "../../dist/templates";
+var EXPECTED_TEMPLATE_SYMLINK = "../../templates";
 var COMMAND_PREFIX = "node {{SKILL_DIR}}/scripts/strict-spec-driven.js";
 var GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
 var ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
@@ -15078,7 +15078,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       verify: `${COMMAND_PREFIX} verify <change-name>`
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/"],
+    requiredSnippets: [".strict-spec-driven/", "/strict-spec-auto"],
     forbiddenSnippets: [
       "Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/."
     ]
@@ -15189,7 +15189,7 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
       verify: `${COMMAND_PREFIX} verify <change-name>`
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/roadmap/", ROADMAP_DETAILS_GUIDANCE_SNIPPET]
+    requiredSnippets: [".strict-spec-driven/roadmap/", ROADMAP_DETAILS_GUIDANCE_SNIPPET, "/strict-spec-auto"]
   },
   "strict-roadmap-propose": {
     requiredCommands: {

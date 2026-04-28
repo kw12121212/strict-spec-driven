@@ -108,7 +108,14 @@ Use these Claude Code slash commands to work with the roadmap:
 
 ### `/strict-roadmap-recommend`
 
-Reads roadmap state and recommends the best next planned change to work on. Considers dependency order, milestone progress, and planning priority. After your confirmation, scaffolds the recommended change as a normal strict change under `.strict-spec-driven/changes/`.
+Reads roadmap state and recommends the best next planned change to work on. Considers dependency order, milestone progress, and planning priority. It then scaffolds the recommended change as a normal strict change under `.strict-spec-driven/changes/` without stopping for extra user confirmation.
+
+After the scaffold validates, the default next step is `/strict-spec-auto` so
+the recommended change continues through the rest of the strict lifecycle
+without switching back to the manual command sequence unless the user wants
+manual control. If the recommendation generated open questions, `strict-roadmap-recommend`
+should record them in `questions.yaml`, and `/strict-spec-auto` or
+`/strict-spec-apply` should surface them before implementation.
 
 Use this when starting a new work session and you want guidance on what to do next.
 

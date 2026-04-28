@@ -58,7 +58,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/"],
+    requiredSnippets: [".strict-spec-driven/", "/strict-spec-auto"],
     forbiddenSnippets: [
       "Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/.",
     ],
@@ -170,7 +170,7 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/roadmap/", ROADMAP_DETAILS_GUIDANCE_SNIPPET],
+    requiredSnippets: [".strict-spec-driven/roadmap/", ROADMAP_DETAILS_GUIDANCE_SNIPPET, "/strict-spec-auto"],
   },
   "strict-roadmap-propose": {
     requiredCommands: {

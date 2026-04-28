@@ -85,14 +85,23 @@ node dist/strict-spec-cli.js propose my-first-change
 - `proposal.yaml` — 是什么以及为什么
 - `design.yaml` — 方案和关键决策
 - `tasks.yaml` — 实现和测试任务
-- `questions.yaml` — 实现前需要解决的开放性问题
+- `questions.yaml` — 由 `/strict-spec-auto` 或 `/strict-spec-apply`
+  在实现前显式提出并解决的开放性问题
 - `specs/` — 可观测行为变化的增量规范文件
 
 在进入执行步骤之前，编辑这些文件以描述变更内容。
 
 ### 2. 实现任务
 
-逐一处理 `tasks.yaml` 中的每个待处理任务。`/strict-spec-apply` Skill 每次引导你完成一个任务：
+逐一处理 `tasks.yaml` 中的每个待处理任务。默认下一步是
+`/strict-spec-auto` 跑完整生命周期；如果你想手动控制，再使用
+`/strict-spec-apply` 逐个任务推进：
+
+```
+/strict-spec-auto
+```
+
+或者：
 
 ```
 /strict-spec-apply my-first-change

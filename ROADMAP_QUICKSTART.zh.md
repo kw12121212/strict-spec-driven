@@ -91,7 +91,7 @@ node dist/strict-spec-cli.js roadmap-status
 /strict-roadmap-recommend
 ```
 
-该 Skill 会分析你的路线图，选择最佳候选，确认后将其搭建成标准严格变更，放在 `.strict-spec-driven/changes/` 下。
+该 Skill 会分析你的路线图，选择最佳候选，并直接将其搭建成标准严格变更，放在 `.strict-spec-driven/changes/` 下；recommend 阶段不会额外停下来等待确认。
 
 如果你已经知道要处理哪个计划变更：
 
@@ -129,7 +129,7 @@ node dist/strict-spec-cli.js roadmap-status
 
 ```
 /strict-roadmap-recommend          ← 接下来该做什么？
-  ↓（确认）
+  ↓
 /strict-spec-auto                  ← 端到端执行
   ↓
 /strict-roadmap-sync               ← 更新路线图状态
