@@ -43,9 +43,14 @@ proceeding, verify that strict workflow state already exists.
    - every relevant strict YAML main spec
 
 3. **Gate on open questions** — inspect `questions.yaml`.
-   - if `open` contains entries, present each unresolved question and stop
+   - if `open` contains entries, do not infer answers or continue
+     automatically
+   - for each unresolved question, explain the missing decision or information,
+     the impact on scope, implementation, testing, or spec behavior, and the
+     recommended answer or options with tradeoffs
+   - stop and wait for an explicit human reply
    - only continue once every entry is moved to `resolved` with an explicit
-     answer
+     answer and removed from `open`
 
 4. **Implement tasks in order** — work through the pending tasks in
    `tasks.yaml.sections` from top to bottom.
@@ -84,4 +89,6 @@ proceeding, verify that strict workflow state already exists.
 - Complete tasks in order unless a clear dependency requires otherwise
 - Mark each task complete immediately after implementing it
 - Never run `apply` just to inspect status
+- Open questions require a problem explanation, impact analysis, recommendation,
+  and explicit human answer before continuing
 - Keep implementation and test mappings in structured YAML fields, not prose

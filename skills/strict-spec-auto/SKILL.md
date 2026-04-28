@@ -52,8 +52,13 @@ proceeding, verify that strict workflow state already exists.
    - strict YAML delta specs under `changes/<name>/specs/`
    If you use `verify` at proposal time, treat pending-task diagnostics as
    expected until implementation is complete. If `questions.yaml.open` is not
-   empty, surface each open question, collect explicit user answers there, and
-   stop before implementation until those entries are moved to `resolved`.
+   empty, do not infer answers or continue automatically. For each open
+   question, explain:
+   - the unresolved decision or missing information
+   - the impact on scope, implementation, testing, or spec behavior
+   - the recommended answer or options, with the tradeoff for each
+   Then stop and wait for an explicit human reply. Record the answers in
+   `questions.yaml.resolved` and remove them from `open` before implementation.
 
 4. **Implement tasks in order** — read code, implement the next pending task, and
    preserve every `unchanged_behavior` item from `proposal.yaml`.
@@ -91,5 +96,7 @@ proceeding, verify that strict workflow state already exists.
 - The context reset is mandatory
 - The complexity check is mandatory
 - The workflow is automatic except when open questions block progress
+- Open questions require a problem explanation, impact analysis, recommendation,
+  and explicit human answer before continuing
 - Keep mappings in structured YAML fields
 - Do not commit or push automatically
