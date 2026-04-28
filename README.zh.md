@@ -2,6 +2,8 @@
 
 [English](README.md) | 中文
 
+**文档：** [快速入门](QUICKSTART.zh.md) · [路线图快速入门](ROADMAP_QUICKSTART.zh.md) · [路线图指南](ROADMAP_GUIDE.zh.md) · [RTK](RTK.md)
+
 `strict-spec-driven` 是一个 YAML 优先的规范驱动开发工作流。它提供规范驱动生命周期（提议 → 执行 → 验证 → 审查 → 归档）和 Agent Skills 集成，将所有工作流制品——规范、变更、路线图、任务、问题——转换为严格 YAML 模式，由确定性脚本强制执行。
 
 `SKILL.md` 文件保留为 Markdown，因为这是 Agent Skills 打包格式的要求。变化的是这些 Skills 生成和消费的制品格式。

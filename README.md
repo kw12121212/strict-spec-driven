@@ -2,6 +2,8 @@
 
 English | [中文](README.zh.md)
 
+**Documentation:** [Quick Start](QUICKSTART.md) · [Roadmap Quick Start](ROADMAP_QUICKSTART.md) · [Roadmap Guide](ROADMAP_GUIDE.md) · [RTK](RTK.md)
+
 `strict-spec-driven` is a YAML-first spec-driven development workflow. It provides the spec-driven lifecycle (propose → apply → verify → review → archive) with Agent Skills integration, converting all workflow artifacts — specs, changes, roadmap, tasks, questions — into strict YAML schemas enforced by deterministic scripts.
 
 `SKILL.md` files remain Markdown because that is the Agent Skills packaging format requirement. What changes is the artifact format those skills generate and consume.
