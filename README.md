@@ -40,7 +40,7 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 | `review <name>` | Advisory code-quality review of a change |
 | `archive <name>` | Merge delta specs and move change to archive |
 | `ship <name>` | Read archived change summary for git commit handoff |
-| `migrate [--force\|-f]` | Convert `.spec-driven/` bootstrap state to `.strict-spec-driven/` |
+| `migrate` | Convert `.spec-driven/` bootstrap state to `.strict-spec-driven/` |
 | `list` | Report active and archived changes |
 | `modify [<name>]` | List editable artifact paths for a change |
 | `cancel <name>` | Remove an active change (archived changes are protected) |

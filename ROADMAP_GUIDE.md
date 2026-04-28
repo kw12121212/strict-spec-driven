@@ -1,5 +1,7 @@
 # Roadmap Guide: strict-spec-driven
 
+English | [中文](ROADMAP_GUIDE.zh.md)
+
 **Quick start:** [English](ROADMAP_QUICKSTART.md) | [中文](ROADMAP_QUICKSTART.zh.md)
 
 This guide covers the contributor-facing roadmap workflow: milestone structure, planned change entries, roadmap skill commands, and how to add or complete a planned change.

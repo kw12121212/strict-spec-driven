@@ -17,7 +17,7 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-migrate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js migrate [--force|-f]
+migrate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js migrate
 roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
 verify-spec-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings
 ```
@@ -28,8 +28,7 @@ The legacy `.spec-driven/` directory must exist at the project root as migration
 input.
 
 Treat `.strict-spec-driven/` as the strict YAML target state. Do not overwrite
-an existing target unless the operator explicitly confirms a safe rerun path
-that uses `--force` or `-f`.
+an existing target without explicit operator confirmation.
 
 ## Steps
 
@@ -39,16 +38,13 @@ that uses `--force` or `-f`.
    `.strict-spec-driven/`.
 
 2. **Check for overwrite risk** — determine whether `.strict-spec-driven/`
-   already contains state that would make a rerun unsafe, and do not treat
-   `--force` as the default. Only recommend `--force` or `-f` when the operator
-   explicitly intends to replace existing strict output.
+   already contains state that would make a rerun unsafe. Warn the operator
+   before proceeding if the target directory is not empty.
 
 3. **Run migration with the strict CLI** — execute:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js migrate
    ```
-   Use `--force` or `-f` only when the operator has explicitly chosen a safe
-   rerun.
 
 4. **Review the structured migration report** — inspect converted entries,
    skipped entries, warnings, errors, and `manualFollowUp` items before

@@ -40,7 +40,7 @@
 | `review <name>` | 对变更进行建议性代码质量审查 |
 | `archive <name>` | 合并增量规范并将变更移入归档 |
 | `ship <name>` | 读取已归档变更摘要以进行 git 提交交接 |
-| `migrate [--force\|-f]` | 将 `.spec-driven/` 引导状态转换为 `.strict-spec-driven/` |
+| `migrate` | 将 `.spec-driven/` 引导状态转换为 `.strict-spec-driven/` |
 | `list` | 报告活跃和已归档的变更 |
 | `modify [<name>]` | 列出变更的可编辑制品路径 |
 | `cancel <name>` | 删除活跃变更（已归档变更受保护） |
