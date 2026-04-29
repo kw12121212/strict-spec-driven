@@ -1,0 +1,35 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: scripted-propose-generation
+approach:
+  - Keep the current scaffold command as the first step in the workflow.
+  - Add artifact-level generation commands that accept a change name and an input JSON file, validate the input shape, render one YAML artifact deterministically, write it to the existing change directory, then validate the written artifact.
+  - Prefer full replacement of one artifact per command for the first implementation because merge semantics are harder to explain and easier to apply inconsistently.
+  - Generate delta specs per target spec path or target spec id so large behavioral changes can be built through repeated focused calls.
+  - Update proposal-related skills to call the CLI generation commands with structured input payloads and reserve direct YAML editing for manual repair or unsupported edge cases.
+decisions:
+  scaffold-remains-separate:
+    decision: Keep `propose <change-name>` as scaffold creation and add separate artifact population commands.
+    rationale: The existing command is already documented and tested as a non-clobbering scaffold step; preserving it avoids breaking current users while enabling safer scripted population.
+  artifact-by-artifact-generation:
+    decision: Generate proposal artifacts one at a time instead of accepting one large all-artifacts payload.
+    rationale: Smaller inputs make AI parameter generation less brittle and let validation diagnostics point to the exact artifact that failed.
+  json-file-input:
+    decision: Accept complex generation parameters through JSON input files.
+    rationale: File-based JSON avoids shell escaping hazards and can be validated before any YAML artifact is written.
+  full-artifact-replacement-first:
+    decision: Use whole-artifact replacement for generated planning artifacts in the initial design.
+    rationale: Replacement has clear behavior and deterministic output, while partial merge behavior would need separate conflict and deletion semantics.
+alternatives:
+  - option: Continue letting AI agents edit YAML artifacts directly.
+    reason: This preserves flexibility but fails the main goal of moving schema-sensitive formatting, defaults, and deterministic writes into scripts.
+  - option: Add one `propose --input all.json` command that writes every artifact.
+    reason: A single large payload would reduce command count but would make error isolation, partial reuse, and roadmap handoff harder.
+  - option: Store the generation input as a new workflow artifact inside each change.
+    reason: The first implementation only needs deterministic generated outputs; retaining transient input would add lifecycle and archive semantics that are not yet necessary.
+risks:
+  - Command naming may become noisy if every artifact gets a top-level subcommand; keep commands grouped under the change/proposal workflow and document examples.
+  - Intermediate changes may be temporarily incomplete after only some artifacts are generated; rely on final verify diagnostics and avoid treating intermediate state as complete.
+  - Replacement commands can discard manual edits if used carelessly; require explicit command behavior and test that accidental scaffold creation or unrelated changes are not overwritten.

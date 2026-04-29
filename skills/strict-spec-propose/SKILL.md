@@ -23,6 +23,7 @@ before running anything. Do not guess.
 
 ```yaml
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
+generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|tasks|questions|delta-spec> <input-json>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
 
@@ -64,8 +65,11 @@ proceeding, verify that strict workflow state already exists.
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
    ```
 
-4. **Fill `proposal.yaml`** — populate structured YAML fields, not Markdown
-   prose:
+4. **Generate `proposal.yaml`** — write a compact JSON input file, then run:
+   ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> proposal <input-json>
+   ```
+   Populate:
    - `summary.what`
    - `summary.why`
    - `scope.in`
@@ -73,15 +77,23 @@ proceeding, verify that strict workflow state already exists.
    - `unchanged_behavior`
    Keep the content observable and concrete.
 
-5. **Fill `design.yaml`** — populate:
+5. **Generate `design.yaml`** — write a compact JSON input file, then run:
+   ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> design <input-json>
+   ```
+   Populate:
    - `approach`
    - `decisions`
    - `alternatives`
    - `risks`
 
-6. **Populate strict YAML delta specs** — create files under
-   `.strict-spec-driven/changes/<name>/specs/` that mirror the target main spec
-   paths.
+6. **Generate strict YAML delta specs** — write compact JSON input files, then
+   run this command for each target spec:
+   ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec <input-json>
+   ```
+   The generated files under `.strict-spec-driven/changes/<name>/specs/` should
+   mirror the target main spec paths.
    - use strict YAML delta artifacts with `target_spec`, `mapping`, and
      `operations`
    - populate `operations.ADDED`, `operations.MODIFIED`, and `operations.REMOVED`
@@ -91,16 +103,25 @@ proceeding, verify that strict workflow state already exists.
    - if the change has no observable spec impact, leave the `specs/` directory
      empty rather than inventing a prose-only file
 
-7. **Fill `tasks.yaml`** — create concrete task sections for `Implementation`,
-   `Testing`, and `Verification`.
+7. **Generate `tasks.yaml`** — write a compact JSON input file, then run:
+   ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> tasks <input-json>
+   ```
+   Create concrete task sections for
+   `Implementation`, `Testing`, and `Verification`.
    - every task needs `id`, `text`, and `status`
    - testing tasks should include runnable `command` fields
    - `testing_gates.validation_task` and `testing_gates.unit_test_task` must
      point at the corresponding Testing task IDs
 
-8. **Fill `questions.yaml`** — record open questions as structured entries under
-   `open` using fields such as `id`, `question`, `context`, and `status: open`.
-   If everything is clear, leave `open: []`.
+8. **Generate `questions.yaml`** — write a compact JSON input file, then run:
+   ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions <input-json>
+   ```
+   Record open questions as
+   structured entries under `open` using fields such as `id`, `question`, and
+   `context`; the script writes the status. If everything is clear, leave
+   `open: []`.
 
 9. **Validate artifact structure** — run:
    ```bash

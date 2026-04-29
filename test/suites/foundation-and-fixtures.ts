@@ -473,6 +473,211 @@ try {
   rmSync(proposeTempDir, { recursive: true, force: true });
 }
 
+context.section("[6b] generate command");
+
+const generateTempDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-driven-generate-"));
+try {
+  const changeName = "scripted-change";
+  const generatePropose = cli(["propose", changeName], { cwd: generateTempDir });
+  context.assert(generatePropose.status === 0, "generate setup creates strict change scaffold", `got exit code ${generatePropose.status}`);
+  const changeDir = path.join(generateTempDir, ".strict-spec-driven", "changes", changeName);
+  const proposalPath = path.join(changeDir, "proposal.yaml");
+  const originalDesign = readFileSync(path.join(changeDir, "design.yaml"), "utf8");
+
+  const proposalInputPath = path.join(generateTempDir, "proposal.json");
+  writeFileSync(
+    proposalInputPath,
+    JSON.stringify({
+      summary: {
+        what: ["Generate proposal artifacts from JSON input."],
+        why: ["Scripted generation keeps YAML formatting deterministic."],
+      },
+      scope: {
+        in: ["Populate one planning artifact from one input file."],
+        out: ["Replace the scaffold creation command."],
+      },
+      unchanged_behavior: ["Existing propose scaffolding remains unchanged."],
+    }),
+    "utf8",
+  );
+
+  const generatedProposal = cli(["generate", changeName, "proposal", proposalInputPath], { cwd: generateTempDir });
+  context.assert(generatedProposal.status === 0, "generate writes proposal artifact from JSON", `stderr: ${generatedProposal.stderr.trim()}`);
+  const generatedProposalJson = JSON.parse(generatedProposal.stdout.trim());
+  context.assert(
+    generatedProposalJson.artifactPath === `.strict-spec-driven/changes/${changeName}/proposal.yaml`,
+    "generate reports the written proposal artifact path",
+  );
+  context.assert(generatedProposalJson.replaced === true, "generate reports replacement when scaffold artifact exists");
+
+  const parsedGeneratedProposal = yamlModule.parseYamlDocument<{
+    change: { id: string };
+    summary: { what: string[] };
+  }>(readFileSync(proposalPath, "utf8"));
+  context.assert(parsedGeneratedProposal.change.id === changeName, "generated proposal preserves change identity");
+  context.assert(
+    parsedGeneratedProposal.summary.what[0] === "Generate proposal artifacts from JSON input.",
+    "generated proposal includes structured input content",
+  );
+  context.assert(
+    readFileSync(path.join(changeDir, "design.yaml"), "utf8") === originalDesign,
+    "generate proposal leaves unrelated planning artifacts unchanged",
+  );
+
+  const beforeInvalidProposal = readFileSync(proposalPath, "utf8");
+  const invalidJsonPath = path.join(generateTempDir, "invalid.json");
+  writeFileSync(invalidJsonPath, "{", "utf8");
+  const invalidJsonGenerate = cli(["generate", changeName, "proposal", invalidJsonPath], { cwd: generateTempDir });
+  context.assert(invalidJsonGenerate.status !== 0, "generate rejects invalid JSON input", `got exit code ${invalidJsonGenerate.status}`);
+  context.assert(
+    invalidJsonGenerate.stderr.includes("could not be parsed"),
+    "generate invalid JSON failure is deterministic",
+    `stderr: ${invalidJsonGenerate.stderr.trim()}`,
+  );
+  context.assert(readFileSync(proposalPath, "utf8") === beforeInvalidProposal, "generate invalid JSON does not rewrite artifact");
+
+  const invalidProposalInputPath = path.join(generateTempDir, "invalid-proposal.json");
+  writeFileSync(
+    invalidProposalInputPath,
+    JSON.stringify({
+      status: "not-a-status",
+      summary: {
+        what: ["Invalid proposal status should fail."],
+        why: ["Output validation must run before writes."],
+      },
+      scope: { in: [], out: [] },
+      unchanged_behavior: [],
+    }),
+    "utf8",
+  );
+  const invalidProposalGenerate = cli(["generate", changeName, "proposal", invalidProposalInputPath], { cwd: generateTempDir });
+  context.assert(invalidProposalGenerate.status !== 0, "generate rejects schema-invalid artifact input");
+  context.assert(
+    invalidProposalGenerate.stderr.includes("input JSON") && invalidProposalGenerate.stderr.includes("$.status"),
+    "generate reports the invalid JSON input field before write",
+    `stderr: ${invalidProposalGenerate.stderr.trim()}`,
+  );
+  context.assert(
+    invalidProposalGenerate.stderr.includes("generated field $.change.status"),
+    "generate reports the generated artifact field for schema-invalid input",
+    `stderr: ${invalidProposalGenerate.stderr.trim()}`,
+  );
+  context.assert(
+    readFileSync(proposalPath, "utf8") === beforeInvalidProposal,
+    "generate schema-invalid artifact input does not rewrite artifact",
+  );
+
+  const designInputPath = path.join(generateTempDir, "design.json");
+  writeFileSync(
+    designInputPath,
+    JSON.stringify({
+      approach: ["Render strict artifacts through structured CLI generation."],
+      decisions: {
+        "artifact-scoped-generation": {
+          decision: "Generate one artifact per CLI invocation.",
+          rationale: "Small inputs produce clearer validation failures and avoid monolithic payload coupling.",
+        },
+      },
+      alternatives: [
+        {
+          option: "Keep direct YAML editing as the primary path.",
+          reason: "Direct edits leave schema-sensitive formatting in agent-authored text.",
+        },
+      ],
+      risks: ["Replacement commands can discard manual edits when used intentionally."],
+    }),
+    "utf8",
+  );
+  context.assert(
+    cli(["generate", changeName, "design", designInputPath], { cwd: generateTempDir }).status === 0,
+    "generate writes design artifact",
+  );
+
+  const tasksInputPath = path.join(generateTempDir, "tasks.json");
+  writeFileSync(
+    tasksInputPath,
+    JSON.stringify({
+      sections: {
+        Implementation: {
+          "implement-generator": { text: "Implement generator.", status: "complete" },
+        },
+        Testing: {
+          "run-build": { text: "Run build.", status: "complete", command: "bun run build" },
+          "run-tests": { text: "Run tests.", status: "complete", command: "bun test/run.ts" },
+        },
+        Verification: {
+          "verify-change": { text: "Verify change.", status: "complete" },
+        },
+      },
+      testing_gates: {
+        validation_task: "run-build",
+        unit_test_task: "run-tests",
+      },
+    }),
+    "utf8",
+  );
+  context.assert(
+    cli(["generate", changeName, "tasks", tasksInputPath], { cwd: generateTempDir }).status === 0,
+    "generate writes task artifact",
+  );
+
+  const questionsInputPath = path.join(generateTempDir, "questions.json");
+  writeFileSync(questionsInputPath, JSON.stringify({ open: [], resolved: [] }), "utf8");
+  context.assert(
+    cli(["generate", changeName, "questions", questionsInputPath], { cwd: generateTempDir }).status === 0,
+    "generate writes questions artifact",
+  );
+
+  const deltaInputPath = path.join(generateTempDir, "delta.json");
+  writeFileSync(
+    deltaInputPath,
+    JSON.stringify({
+      target_spec: "cli-foundation",
+      spec_path: "cli/foundation.yaml",
+      mapping: {
+        implementation: ["src/propose-generation.ts", "src/cli/cmd-generation.ts"],
+        tests: ["test/suites/foundation-and-fixtures.ts"],
+      },
+      operations: {
+        ADDED: {
+          "generated-artifact-test-requirement": {
+            strength: "MUST",
+            statement: "The system MUST generate one delta artifact from structured input.",
+            scenarios: {
+              "delta-artifact-is-generated": [
+                { GIVEN: "a strict change scaffold exists" },
+                { WHEN: "the delta generation command runs" },
+                { THEN: "one delta spec is written" },
+              ],
+            },
+          },
+        },
+        MODIFIED: {},
+        REMOVED: {},
+      },
+    }),
+    "utf8",
+  );
+  const generatedDelta = cli(["generate", changeName, "delta-spec", deltaInputPath], { cwd: generateTempDir });
+  context.assert(generatedDelta.status === 0, "generate writes target-scoped delta spec", `stderr: ${generatedDelta.stderr.trim()}`);
+  context.assert(
+    existsSync(path.join(changeDir, "specs", "cli", "foundation.yaml")),
+    "generate writes delta spec under requested target path",
+  );
+
+  const invalidArtifact = cli(["generate", changeName, "unknown", proposalInputPath], { cwd: generateTempDir });
+  context.assert(invalidArtifact.status !== 0, "generate rejects unsupported artifact selector");
+  context.assert(
+    invalidArtifact.stderr.includes("artifact must be one of"),
+    "generate unsupported artifact failure names allowed artifacts",
+  );
+
+  const verifyGenerated = cli(["verify", changeName], { cwd: generateTempDir });
+  context.assert(verifyGenerated.status === 0, "generated complete change passes verify", `stderr: ${verifyGenerated.stderr.trim()} stdout: ${verifyGenerated.stdout.trim()}`);
+} finally {
+  rmSync(generateTempDir, { recursive: true, force: true });
+}
+
 context.section("[7] fixture-driven validation matrix");
 
 const fixtureSchema = {

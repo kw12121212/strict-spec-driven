@@ -19,6 +19,7 @@ before running anything. Do not guess.
 ```yaml
 roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
+generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|tasks|questions|delta-spec> <input-json>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
 
@@ -51,9 +52,13 @@ proceeding, verify that strict workflow state already exists.
    the full milestone plan into change artifacts — only extract guidance
    relevant to this one planned change. If `details` is absent, proceed normally.
 
-5. **Fill the normal strict change artifacts** — populate `proposal.yaml`,
-   `design.yaml`, `tasks.yaml`, `questions.yaml`, and any strict YAML delta
-   specs under `.strict-spec-driven/changes/<change-name>/specs/`.
+5. **Generate the normal strict change artifacts** — write compact JSON input
+   files and run the artifact-specific commands:
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> proposal <input-json>`
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> design <input-json>`
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> tasks <input-json>`
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions <input-json>`
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec <input-json>` for each target spec under `.strict-spec-driven/changes/<change-name>/specs/`
 
 6. **Validate the result** — run:
    ```bash

@@ -56,6 +56,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
   "strict-spec-propose": {
     requiredCommands: {
       propose: `${COMMAND_PREFIX} propose <change-name>`,
+      generate: `${COMMAND_PREFIX} generate <change-name> <proposal|design|tasks|questions|delta-spec> <input-json>`,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
@@ -108,6 +109,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
   "strict-spec-auto": {
     requiredCommands: {
       propose: `${COMMAND_PREFIX} propose <change-name>`,
+      generate: `${COMMAND_PREFIX} generate <change-name> <proposal|design|tasks|questions|delta-spec> <input-json>`,
       apply: `${COMMAND_PREFIX} apply <change-name>`,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
       review: `${COMMAND_PREFIX} review <change-name>`,
@@ -168,6 +170,7 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
     requiredCommands: {
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       propose: `${COMMAND_PREFIX} propose <change-name>`,
+      generate: `${COMMAND_PREFIX} generate <change-name> <proposal|design|tasks|questions|delta-spec> <input-json>`,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
@@ -177,6 +180,7 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
     requiredCommands: {
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       propose: `${COMMAND_PREFIX} propose <change-name>`,
+      generate: `${COMMAND_PREFIX} generate <change-name> <proposal|design|tasks|questions|delta-spec> <input-json>`,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
@@ -196,6 +200,7 @@ export const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpe
   "strict-spec-brainstorm": {
     requiredCommands: {
       propose: `${COMMAND_PREFIX} propose <change-name>`,
+      generate: `${COMMAND_PREFIX} generate <change-name> <proposal|design|tasks|questions|delta-spec> <input-json>`,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],

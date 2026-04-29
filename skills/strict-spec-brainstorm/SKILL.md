@@ -18,6 +18,7 @@ before running anything. Do not guess.
 
 ```yaml
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
+generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|tasks|questions|delta-spec> <input-json>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
 
@@ -68,16 +69,13 @@ proceeding, verify that strict workflow state already exists.
    This creates `.strict-spec-driven/changes/<name>/` with strict planning
    artifacts and an empty `specs/` directory for strict YAML delta files.
 
-7. **Fill the proposal artifacts** — after scaffolding:
-   - write `proposal.yaml` using structured fields such as `summary`, `scope`,
-     and `unchanged_behavior`
-   - write `design.yaml` using structured fields such as `approach`,
-     `decisions`, `alternatives`, and `risks`
-   - populate strict YAML delta specs under `changes/<name>/specs/` so they
-     mirror the target strict main spec paths
-   - write `tasks.yaml` with concrete Implementation, Testing, and Verification
-     tasks
-   - write `questions.yaml`, recording unresolved points under `open`
+7. **Generate the proposal artifacts** — after scaffolding, write compact JSON
+   input files and run one command per artifact:
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> proposal <input-json>` for `proposal.yaml` fields such as `summary`, `scope`, and `unchanged_behavior`
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> design <input-json>` for `approach`, `decisions`, `alternatives`, and `risks`
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec <input-json>` once per target strict main spec path
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> tasks <input-json>` for concrete Implementation, Testing, and Verification tasks
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions <input-json>` for unresolved points under `open`
 
 8. **Validate artifact structure** — run:
    ```bash

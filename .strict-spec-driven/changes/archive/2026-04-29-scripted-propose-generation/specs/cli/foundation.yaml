@@ -1,0 +1,76 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/cmd-scaffold.ts
+    - src/cli/cmd-generation.ts
+    - src/cli/cmd-change.ts
+    - src/cli/usage.ts
+    - src/scaffold.ts
+    - src/propose-generation.ts
+    - src/yaml.ts
+    - src/validation.ts
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-roadmap-propose/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+  tests:
+    - test/run.ts
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/change-lifecycle.ts
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/operations.ts
+operations:
+  ADDED:
+    cli-propose-populates-artifacts-from-structured-input:
+      strength: MUST
+      statement: >-
+        The system MUST provide CLI behavior that populates an existing strict change planning
+        artifact from a structured input file without requiring an AI agent to write the YAML
+        artifact directly.
+      scenarios:
+        proposal-artifact-is-generated-from-input:
+          - GIVEN: a strict change scaffold already exists
+          - AND: a valid structured input file describes one supported planning artifact
+          - WHEN: the corresponding artifact generation command is executed for that change
+          - THEN: the target planning artifact is written under the existing change directory
+          - AND: the written artifact validates against its strict YAML artifact schema
+    cli-propose-generation-is-artifact-scoped:
+      strength: MUST
+      statement: >-
+        The system MUST expose scripted proposal population as artifact-level operations so proposal,
+        design, tasks, questions, and individual delta specs can be generated through separate CLI
+        invocations.
+      scenarios:
+        artifacts-can-be-generated-one-at-a-time:
+          - GIVEN: a strict change scaffold exists
+          - WHEN: a user or agent generates only one planning artifact from structured input
+          - THEN: the command writes only that target artifact
+          - AND: unrelated planning artifacts in the same change are left unchanged
+    cli-propose-generation-uses-json-file-input:
+      strength: SHOULD
+      statement: >-
+        The system SHOULD accept file-based JSON input for scripted proposal population commands so
+        complex parameters do not depend on shell quoting.
+      scenarios:
+        json-input-file-is-accepted:
+          - GIVEN: a supported artifact generation command requires complex structured parameters
+          - WHEN: the command is invoked with a JSON input file path
+          - THEN: the command parses the file as structured data
+          - AND: invalid JSON is reported as a deterministic command failure before writing the artifact
+    cli-propose-generation-preserves-scaffold-behavior:
+      strength: MUST
+      statement: >-
+        The system MUST preserve the existing `propose <change-name>` scaffold behavior while adding
+        scripted artifact population as a follow-up workflow step.
+      scenarios:
+        existing-propose-command-still-scaffolds:
+          - GIVEN: a valid kebab-case change name that does not already exist
+          - WHEN: '`strict-spec-driven propose <name>` is executed without a generation input'
+          - THEN: the command creates the standard strict change scaffold
+          - AND: no artifact-specific population input is required
+  MODIFIED: {}
+  REMOVED: {}

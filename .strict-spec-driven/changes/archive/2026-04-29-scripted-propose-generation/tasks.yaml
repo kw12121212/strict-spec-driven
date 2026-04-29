@@ -1,0 +1,54 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: scripted-propose-generation
+sections:
+  Implementation:
+    define-input-model:
+      text: >-
+        Define structured JSON input models for proposal, design, tasks, questions, and per-spec
+        delta generation.
+      status: complete
+    add-cli-generation-commands:
+      text: >-
+        Add artifact-level CLI commands that populate one strict change artifact at a time from
+        validated input files.
+      status: complete
+    render-yaml-deterministically:
+      text: >-
+        Route generated artifact writes through the existing structured YAML utilities and schema
+        validation layer.
+      status: complete
+    update-skills:
+      text: >-
+        Update proposal-related strict skills to use scaffold creation plus artifact-level
+        generation commands instead of direct YAML authoring.
+      status: complete
+  Testing:
+    add-generation-tests:
+      text: >-
+        Add tests for successful artifact generation, invalid input rejection, duplicate or
+        replacement behavior, and final verify diagnostics.
+      status: complete
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+    verify-change:
+      text: Run strict change verification.
+      status: complete
+      command: >-
+        node /home/wx766/.agents/skills/strict-spec-brainstorm/scripts/strict-spec-driven.js verify
+        scripted-propose-generation
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

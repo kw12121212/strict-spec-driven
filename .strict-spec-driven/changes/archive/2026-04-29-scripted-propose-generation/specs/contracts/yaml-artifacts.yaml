@@ -1,0 +1,63 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/change-proposal.yaml
+    - templates/strict-spec-driven/schemas/change-design.yaml
+    - templates/strict-spec-driven/schemas/task-list.yaml
+    - templates/strict-spec-driven/schemas/question-list.yaml
+    - templates/strict-spec-driven/schemas/delta-spec.yaml
+    - templates/strict-spec-driven/schemas/schema-registry.yaml
+    - src/validation.ts
+    - src/yaml.ts
+    - src/propose-generation.ts
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-roadmap-propose/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+  tests:
+    - test/run.ts
+    - test/suites/change-lifecycle.ts
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    yaml-scripted-propose-input-contract:
+      strength: MUST
+      statement: >-
+        The system MUST define a structured input contract for scripted proposal population so each
+        supported generated artifact can be validated before strict YAML is written.
+      scenarios:
+        generation-input-is-validated-before-writing:
+          - GIVEN: a scripted proposal population command receives input for one supported artifact
+          - WHEN: the command processes the input
+          - THEN: the input is validated against the expected structured contract for that artifact
+          - AND: validation failures are reported before the target YAML artifact is written
+    yaml-scripted-propose-output-contract:
+      strength: MUST
+      statement: >-
+        The system MUST ensure scripted proposal population writes strict YAML artifacts that conform
+        to the existing artifact schemas for proposals, designs, task lists, question lists, and
+        delta specs.
+      scenarios:
+        generated-artifact-conforms-to-existing-schema:
+          - GIVEN: a scripted proposal population command successfully writes an artifact
+          - WHEN: the generated artifact is validated
+          - THEN: the artifact conforms to its existing strict YAML artifact schema
+          - AND: the command does not introduce an alternate generated-artifact schema for the output
+    yaml-scripted-propose-delta-targeting:
+      strength: MUST
+      statement: >-
+        The system MUST generate delta specs as target-spec-scoped artifacts so repeated scripted
+        calls can populate separate delta spec files without combining unrelated spec changes.
+      scenarios:
+        one-delta-generation-targets-one-spec:
+          - GIVEN: structured input describes delta operations for one target spec
+          - WHEN: the delta generation command is executed
+          - THEN: exactly one delta spec file for that target spec is written
+          - AND: delta files for other target specs remain unchanged
+  MODIFIED: {}
+  REMOVED: {}

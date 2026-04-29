@@ -1,0 +1,33 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: scripted-propose-generation
+  status: proposed
+summary:
+  what:
+    - Add script-driven commands that populate strict change proposal artifacts one artifact at a time from structured input.
+    - Keep `propose <change-name>` as the scaffold creation step, then allow follow-up commands to generate or replace `proposal.yaml`, `design.yaml`, `tasks.yaml`, `questions.yaml`, and individual delta specs.
+    - Let AI agents provide compact JSON input payloads while the CLI owns YAML parsing, formatting, validation, filesystem writes, and deterministic diagnostics.
+  why:
+    - AI-authored YAML is prone to schema drift, inconsistent ordering, and partial-format mistakes; script-owned generation makes proposal artifacts deterministic.
+    - Artifact-by-artifact generation lowers input complexity compared with one large proposal payload and makes validation failures easier to locate.
+    - The approach matches the repository constraint that scripts handle structured artifact mechanics while AI supplies judgment and parameters.
+scope:
+  in:
+    - Add a CLI-supported way to populate each strict change planning artifact from validated structured input after a change scaffold exists.
+    - Support JSON input files for complex artifact parameters so shell quoting does not become part of the workflow contract.
+    - Define deterministic write behavior, validation behavior, and diagnostics for artifact-level generation commands.
+    - Update strict workflow skills so proposal creation uses scaffold creation plus artifact-level generation commands instead of direct YAML editing.
+    - Add focused tests covering successful generation, invalid input rejection, non-clobber or explicit replacement behavior, and final verify behavior.
+  out:
+    - Replacing the existing `propose <change-name>` scaffold command.
+    - Implementing a single monolithic payload that generates every proposal artifact in one command.
+    - Changing archive, apply, review, cancel, list, or roadmap sync behavior beyond any proposal-handoff command reuse needed for this flow.
+    - Changing the schemas of existing generated strict workflow artifacts unless required to describe the new input contract.
+unchanged_behavior:
+  - "Existing `propose <change-name>` behavior continues to create an empty strict change scaffold from templates."
+  - Generated planning artifacts remain strict YAML and continue to validate against their current artifact schemas.
+  - "`verify <change-name>` remains the final cross-artifact validation step for a proposed change."
+  - Existing active and archived changes are not rewritten by the new generation commands.

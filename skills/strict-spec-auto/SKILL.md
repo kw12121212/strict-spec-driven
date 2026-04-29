@@ -17,6 +17,7 @@ before running anything. Do not guess.
 
 ```yaml
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
+generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|tasks|questions|delta-spec> <input-json>
 apply: node {{SKILL_DIR}}/scripts/strict-spec-driven.js apply <change-name>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 review: node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>
@@ -63,12 +64,13 @@ proceeding, verify that strict workflow state already exists.
    scaffold with `propose`. If a prior workflow step such as
    `/strict-roadmap-recommend` or `/strict-roadmap-propose` already created the
    change directory, reuse the existing scaffold instead of running `propose`
-   again. Then fill:
-   - `proposal.yaml`
-   - `design.yaml`
-   - `tasks.yaml`
-   - `questions.yaml`
-   - strict YAML delta specs under `changes/<name>/specs/`
+   again. Then write compact JSON input files and run the artifact-specific
+   commands to populate:
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> proposal <input-json>` for `proposal.yaml`
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> design <input-json>` for `design.yaml`
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> tasks <input-json>` for `tasks.yaml`
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions <input-json>` for `questions.yaml`
+   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec <input-json>` for each strict YAML delta spec under `changes/<name>/specs/`
    If you use `verify` at proposal time, treat pending-task diagnostics as
    expected until implementation is complete. If `questions.yaml.open` is not
    empty, do not infer answers or continue automatically. For each open

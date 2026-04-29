@@ -23,6 +23,7 @@ context.section("[1] entrypoint smoke test");
 const expectedCommandOrder = [
   "init",
   "propose",
+  "generate",
   "apply",
   "verify",
   "review",

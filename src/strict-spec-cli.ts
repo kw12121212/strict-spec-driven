@@ -4,6 +4,7 @@ import { realpathSync } from "fs";
 import { exitCliEntrypoint, runCliEntrypoint, type CliCommandHandler } from "./cli/entrypoint.js";
 import { createCliCommandTable } from "./cli/registry.js";
 import { runInit, runPropose } from "./cli/cmd-scaffold.js";
+import { runGenerate } from "./cli/cmd-generation.js";
 import { runApply, runVerify, runReview, runArchive, runList, runModify, runCancel } from "./cli/cmd-change.js";
 import { runRoadmapStatus, runRoadmapSync } from "./cli/cmd-roadmap.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
@@ -28,6 +29,7 @@ import { archiveChange } from "./archive.js";
 import { getRoadmapStatus, syncRoadmap } from "./roadmap.js";
 import { migrateLegacyWorkflow } from "./migrate.js";
 import { runMaintenance } from "./maintenance.js";
+import { generateChangeArtifact } from "./propose-generation.js";
 
 export type CommandHandler = CliCommandHandler;
 export { parseYamlDocument, stringifyYamlDocument };
@@ -50,10 +52,12 @@ export { archiveChange };
 export { getRoadmapStatus, syncRoadmap };
 export { migrateLegacyWorkflow };
 export { runMaintenance };
+export { generateChangeArtifact };
 
 export const commands = createCliCommandTable({
   init: () => runInit(),
   propose: (argv) => runPropose(argv),
+  generate: (argv) => runGenerate(argv),
   apply: (argv) => runApply(argv),
   verify: (argv) => runVerify(argv),
   review: (argv) => runReview(argv),
