@@ -6575,7 +6575,7 @@ function createCliCommandTable(registry) {
 }
 
 // src/scaffold.ts
-import { copyFileSync, existsSync, mkdirSync, readFileSync as readFileSync2, statSync, writeFileSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync as readFileSync2, readdirSync, statSync, writeFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -10767,6 +10767,18 @@ function normalizeRelativeScaffoldPath(relativePath) {
 function toRepoRelativePath(rootDir, absolutePath) {
   return path.relative(rootDir, absolutePath).split(path.sep).join("/");
 }
+function directoryTreeContainsFiles(directoryPath) {
+  for (const entry of readdirSync(directoryPath, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      if (directoryTreeContainsFiles(path.join(directoryPath, entry.name))) {
+        return true;
+      }
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
 function getBundledScaffoldPath(relativePath) {
   const normalized = normalizeRelativeScaffoldPath(relativePath);
   const resolved = path.resolve(BUNDLED_SCAFFOLD_DIR, normalized);
@@ -10802,7 +10814,12 @@ function initializeStrictChangeScaffold(rootDir, changeName) {
   const changeDir = path.join(strictChangesRootDir, changeName);
   const repoRelativeChangeDir = toRepoRelativePath(rootDir, changeDir);
   if (existsSync(changeDir)) {
-    throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
+    if (!statSync(changeDir).isDirectory()) {
+      throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
+    }
+    if (directoryTreeContainsFiles(changeDir)) {
+      throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
+    }
   }
   mkdirSync(changeDir, { recursive: true });
   const planningArtifacts = [];
@@ -11259,16 +11276,6 @@ function asOptionalStringArray(value, fieldPath) {
     return;
   return asStringArray(value, fieldPath);
 }
-function parseJsonInput(inputFile) {
-  let parsed;
-  try {
-    parsed = JSON.parse(readFileSync4(inputFile, "utf8"));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`input JSON '${inputFile}' could not be parsed: ${message}`);
-  }
-  return asRecord(parsed, "$");
-}
 function validateGeneratedArtifact(artifactType, artifact, artifactPath) {
   const schema2 = loadBundledSchemaByArtifactType(artifactType);
   const result = validateArtifact(schema2, artifact, artifactPath);
@@ -11618,11 +11625,6 @@ function writeGeneratedArtifact(rootDir, changeName, artifact, input, inputLabel
 function generateChangeArtifactFromInput(rootDir, changeName, artifact, input) {
   return writeGeneratedArtifact(rootDir, changeName, artifact, input, "command input");
 }
-function generateChangeArtifact(rootDir, changeName, artifact, inputFile) {
-  const inputPath = path3.resolve(rootDir, inputFile);
-  const input = parseJsonInput(inputPath);
-  return writeGeneratedArtifact(rootDir, changeName, artifact, input, `input JSON '${inputPath}'`);
-}
 
 // src/cli/cmd-generation.ts
 var STRICT_WORKFLOW_DIR3 = ".strict-spec-driven";
@@ -11630,12 +11632,11 @@ var BOOLEAN_FLAGS = new Set(["reset"]);
 function usage() {
   return [
     "Usage:",
-    "  strict-spec-driven generate <change-name> <proposal|design|tasks|questions|delta-spec> <input-json>",
     "  strict-spec-driven generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
     "  strict-spec-driven generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
-    "  strict-spec-driven generate <change-name> tasks [--reset] --section <Implementation|Testing|Verification> --task <id> --text <text> [--status <pending|complete>] [--command <cmd>]",
-    "  strict-spec-driven generate <change-name> questions [--reset] (--open <id>|--resolved <id>) --question <text> --context <text> [--answer <text>]",
-    "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--reset] --operation <ADDED|MODIFIED|REMOVED> --requirement <id> ..."
+    "  strict-spec-driven generate <change-name> tasks [--reset] [--validation-task <id>] [--unit-test-task <id>] [--task <id> --section <Implementation|Testing|Verification> --text <text> [--status <pending|complete>] [--command <cmd>]]...",
+    "  strict-spec-driven generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)]...",
+    "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]..."
   ].join(`
 `) + `
 `;
@@ -11685,13 +11686,6 @@ function optionalOne(flags, name) {
     throw new Error(`--${name} may only be supplied once`);
   }
   return all[0];
-}
-function requiredOne(flags, name) {
-  const value = optionalOne(flags, name);
-  if (!value) {
-    throw new Error(`missing required argument --${name}`);
-  }
-  return value;
 }
 function hasFlag(flags, name) {
   return values(flags, name).length > 0;
@@ -11845,47 +11839,150 @@ function existingTasksInput(rootDir, changeName, reset) {
     testing_gates: isRecord2(artifact?.testing_gates) ? artifact.testing_gates : { validation_task: "", unit_test_task: "" }
   };
 }
-function buildTasksInput(rootDir, changeName, flags) {
-  ensureAllowedFlags(flags, [
-    "reset",
-    "section",
-    "task",
-    "text",
-    "status",
-    "command",
-    "validation-task",
-    "unit-test-task"
-  ]);
-  const input = existingTasksInput(rootDir, changeName, hasFlag(flags, "reset"));
+function parseTaskCommandInput(argv, rootDir) {
+  const input = { reset: false, tasks: [] };
+  let currentTask;
+  let pendingSection;
+  function readValue(name, index) {
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith("--")) {
+      throw new Error(`missing value for --${name}`);
+    }
+    return resolveStringValue(value, rootDir);
+  }
+  function setTaskField(field, value, flagName) {
+    if (!currentTask) {
+      if (field === "section") {
+        pendingSection = value;
+        return;
+      }
+      throw new Error("missing required argument --task");
+    }
+    if (currentTask[field] !== undefined) {
+      throw new Error(`--${flagName} may only be supplied once per task`);
+    }
+    currentTask[field] = value;
+  }
+  for (let index = 0;index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token?.startsWith("--") || token.length === 2) {
+      throw new Error(`expected named argument, got '${token ?? ""}'`);
+    }
+    const name = token.slice(2);
+    if (name === "reset") {
+      input.reset = true;
+      continue;
+    }
+    if (name === "task") {
+      const id = readValue(name, index);
+      currentTask = { id };
+      if (pendingSection) {
+        currentTask.section = pendingSection;
+        pendingSection = undefined;
+      }
+      input.tasks.push(currentTask);
+      index += 1;
+      continue;
+    }
+    if (name === "validation-task") {
+      if (input.validationTask !== undefined)
+        throw new Error("--validation-task may only be supplied once");
+      input.validationTask = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "unit-test-task") {
+      if (input.unitTestTask !== undefined)
+        throw new Error("--unit-test-task may only be supplied once");
+      input.unitTestTask = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "section" || name === "text" || name === "status" || name === "command") {
+      setTaskField(name, readValue(name, index), name);
+      index += 1;
+      continue;
+    }
+    throw new Error(`unsupported argument(s): --${name}`);
+  }
+  if (pendingSection) {
+    throw new Error("missing required argument --task");
+  }
+  return input;
+}
+function buildTasksInputFromArgs(rootDir, changeName, argv) {
+  const commandInput = parseTaskCommandInput(argv, rootDir);
+  const input = existingTasksInput(rootDir, changeName, commandInput.reset);
   const sections = isRecord2(input.sections) ? input.sections : {};
-  const taskId = optionalOne(flags, "task");
-  if (taskId) {
-    const section = requiredOne(flags, "section");
-    if (!["Implementation", "Testing", "Verification"].includes(section)) {
+  for (const taskGroup of commandInput.tasks) {
+    if (!taskGroup.section)
+      throw new Error(`missing required argument --section for task '${taskGroup.id}'`);
+    if (!["Implementation", "Testing", "Verification"].includes(taskGroup.section)) {
       throw new Error("--section must be one of: Implementation, Testing, Verification");
     }
-    const sectionMap = isRecord2(sections[section]) ? sections[section] : {};
+    if (!taskGroup.text)
+      throw new Error(`missing required argument --text for task '${taskGroup.id}'`);
+    const sectionMap = isRecord2(sections[taskGroup.section]) ? sections[taskGroup.section] : {};
     const task = {
-      text: requiredOne(flags, "text"),
-      status: optionalOne(flags, "status") ?? "pending"
+      text: taskGroup.text,
+      status: taskGroup.status ?? "pending"
     };
-    const command = optionalOne(flags, "command");
-    if (command)
-      task.command = command;
-    upsertKeyedItem(sectionMap, taskId, task, "task");
-    sections[section] = sectionMap;
-  } else if (hasFlag(flags, "section") || hasFlag(flags, "text") || hasFlag(flags, "status") || hasFlag(flags, "command")) {
-    throw new Error("missing required argument --task");
+    if (taskGroup.command)
+      task.command = taskGroup.command;
+    upsertKeyedItem(sectionMap, taskGroup.id, task, "task");
+    sections[taskGroup.section] = sectionMap;
   }
   input.sections = sections;
   const testingGates = isRecord2(input.testing_gates) ? input.testing_gates : {};
-  const validationTask = optionalOne(flags, "validation-task");
-  const unitTestTask = optionalOne(flags, "unit-test-task");
-  if (validationTask)
-    testingGates.validation_task = validationTask;
-  if (unitTestTask)
-    testingGates.unit_test_task = unitTestTask;
+  if (commandInput.validationTask)
+    testingGates.validation_task = commandInput.validationTask;
+  if (commandInput.unitTestTask)
+    testingGates.unit_test_task = commandInput.unitTestTask;
   input.testing_gates = testingGates;
+  return input;
+}
+function parseQuestionCommandInput(argv, rootDir) {
+  const input = { reset: false, items: [] };
+  let currentItem;
+  function readValue(name, index) {
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith("--")) {
+      throw new Error(`missing value for --${name}`);
+    }
+    return resolveStringValue(value, rootDir);
+  }
+  function setField(field, value, flagName) {
+    if (!currentItem) {
+      throw new Error("missing required argument --open or --resolved");
+    }
+    if (currentItem[field] !== undefined) {
+      throw new Error(`--${flagName} may only be supplied once per question`);
+    }
+    currentItem[field] = value;
+  }
+  for (let index = 0;index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token?.startsWith("--") || token.length === 2) {
+      throw new Error(`expected named argument, got '${token ?? ""}'`);
+    }
+    const name = token.slice(2);
+    if (name === "reset") {
+      input.reset = true;
+      continue;
+    }
+    if (name === "open" || name === "resolved") {
+      currentItem = { kind: name, id: readValue(name, index) };
+      input.items.push(currentItem);
+      index += 1;
+      continue;
+    }
+    if (name === "question" || name === "context" || name === "answer") {
+      setField(name, readValue(name, index), name);
+      index += 1;
+      continue;
+    }
+    throw new Error(`unsupported argument(s): --${name}`);
+  }
   return input;
 }
 function existingQuestionsInput(rootDir, changeName, reset) {
@@ -11898,29 +11995,38 @@ function existingQuestionsInput(rootDir, changeName, reset) {
     resolved: Array.isArray(artifact?.resolved) ? artifact.resolved : []
   };
 }
-function buildQuestionsInput(rootDir, changeName, flags) {
-  ensureAllowedFlags(flags, ["reset", "open", "resolved", "question", "context", "answer"]);
-  const openId = optionalOne(flags, "open");
-  const resolvedId = optionalOne(flags, "resolved");
-  if (openId && resolvedId) {
-    throw new Error("--open and --resolved cannot be supplied together");
+function buildQuestionsInputFromArgs(rootDir, changeName, argv) {
+  const commandInput = parseQuestionCommandInput(argv, rootDir);
+  const input = existingQuestionsInput(rootDir, changeName, commandInput.reset);
+  let open = Array.isArray(input.open) ? input.open : [];
+  let resolved = Array.isArray(input.resolved) ? input.resolved : [];
+  for (const item of commandInput.items) {
+    if (!item.question)
+      throw new Error(`missing required argument --question for question '${item.id}'`);
+    if (!item.context)
+      throw new Error(`missing required argument --context for question '${item.id}'`);
+    if (item.kind === "open") {
+      if (item.answer !== undefined) {
+        throw new Error(`--answer is only valid with --resolved for question '${item.id}'`);
+      }
+      open = upsertListItem(open, {
+        id: item.id,
+        question: item.question,
+        context: item.context
+      }, item.id, "open question");
+      continue;
+    }
+    if (!item.answer)
+      throw new Error(`missing required argument --answer for resolved question '${item.id}'`);
+    resolved = upsertListItem(resolved, {
+      id: item.id,
+      question: item.question,
+      context: item.context,
+      answer: item.answer
+    }, item.id, "resolved question");
   }
-  const input = existingQuestionsInput(rootDir, changeName, hasFlag(flags, "reset"));
-  if (openId) {
-    input.open = upsertListItem(Array.isArray(input.open) ? input.open : [], {
-      id: openId,
-      question: requiredOne(flags, "question"),
-      context: requiredOne(flags, "context")
-    }, openId, "open question");
-  }
-  if (resolvedId) {
-    input.resolved = upsertListItem(Array.isArray(input.resolved) ? input.resolved : [], {
-      id: resolvedId,
-      question: requiredOne(flags, "question"),
-      context: requiredOne(flags, "context"),
-      answer: requiredOne(flags, "answer")
-    }, resolvedId, "resolved question");
-  }
+  input.open = open;
+  input.resolved = resolved;
   return input;
 }
 function normalizeDeltaSpecRelativePath2(relativePath) {
@@ -11969,86 +12075,212 @@ function emptyDeltaInput(targetSpec, specPath) {
     operations: { ADDED: {}, MODIFIED: {}, REMOVED: {} }
   };
 }
-function buildScenario(flags) {
-  const scenarioId = optionalOne(flags, "scenario");
-  if (!scenarioId)
-    return {};
-  const steps = [];
-  for (const given of values(flags, "given"))
-    steps.push({ GIVEN: given });
-  for (const when of values(flags, "when"))
-    steps.push({ WHEN: when });
-  for (const then of values(flags, "then"))
-    steps.push({ THEN: then });
-  for (const and of values(flags, "and"))
-    steps.push({ AND: and });
-  if (steps.length === 0) {
-    throw new Error("--scenario requires at least one --given, --when, --then, or --and");
+function parseDeltaCommandInput(argv, rootDir) {
+  const input = {
+    reset: false,
+    implementation: [],
+    tests: [],
+    requirements: []
+  };
+  let currentOperation;
+  let hasPendingOperation = false;
+  let currentRequirement;
+  let currentScenario;
+  function readValue(name, index) {
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith("--")) {
+      throw new Error(`missing value for --${name}`);
+    }
+    return resolveStringValue(value, rootDir);
   }
-  return { [scenarioId]: steps };
+  function ensureRequirement(flagName) {
+    if (!currentRequirement) {
+      throw new Error(`missing required argument --requirement before --${flagName}`);
+    }
+    return currentRequirement;
+  }
+  function finalizeScenario() {
+    if (!currentScenario)
+      return;
+    if (currentScenario.steps.length === 0) {
+      throw new Error(`--scenario '${currentScenario.id}' requires at least one --given, --when, --then, or --and`);
+    }
+    ensureRequirement("scenario").scenarios.push(currentScenario);
+    currentScenario = undefined;
+  }
+  function finalizeRequirement() {
+    if (!currentRequirement)
+      return;
+    finalizeScenario();
+    input.requirements.push(currentRequirement);
+    currentRequirement = undefined;
+  }
+  for (let index = 0;index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token?.startsWith("--") || token.length === 2) {
+      throw new Error(`expected named argument, got '${token ?? ""}'`);
+    }
+    const name = token.slice(2);
+    if (name === "reset") {
+      input.reset = true;
+      continue;
+    }
+    if (name === "target-spec") {
+      if (input.targetSpec !== undefined)
+        throw new Error("--target-spec may only be supplied once");
+      input.targetSpec = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "spec-path") {
+      if (input.specPath !== undefined)
+        throw new Error("--spec-path may only be supplied once");
+      input.specPath = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "implementation") {
+      input.implementation.push(readValue(name, index));
+      index += 1;
+      continue;
+    }
+    if (name === "test") {
+      input.tests.push(readValue(name, index));
+      index += 1;
+      continue;
+    }
+    if (name === "operation") {
+      finalizeRequirement();
+      currentOperation = readValue(name, index);
+      hasPendingOperation = true;
+      index += 1;
+      continue;
+    }
+    if (name === "requirement") {
+      finalizeRequirement();
+      if (!currentOperation) {
+        throw new Error("missing required argument --operation before --requirement");
+      }
+      currentRequirement = {
+        operation: currentOperation,
+        id: readValue(name, index),
+        scenarios: []
+      };
+      hasPendingOperation = false;
+      index += 1;
+      continue;
+    }
+    if (name === "strength" || name === "statement" || name === "reason") {
+      const requirement = ensureRequirement(name);
+      if (requirement[name] !== undefined) {
+        throw new Error(`--${name} may only be supplied once per requirement`);
+      }
+      requirement[name] = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "scenario") {
+      const requirement = ensureRequirement(name);
+      finalizeScenario();
+      currentScenario = {
+        id: readValue(name, index),
+        steps: []
+      };
+      if (requirement.operation === "REMOVED") {
+        throw new Error(`--scenario is not valid for removed requirement '${requirement.id}'`);
+      }
+      index += 1;
+      continue;
+    }
+    if (name === "given" || name === "when" || name === "then" || name === "and") {
+      if (!currentScenario) {
+        throw new Error(`missing required argument --scenario before --${name}`);
+      }
+      currentScenario.steps.push({ [name.toUpperCase()]: readValue(name, index) });
+      index += 1;
+      continue;
+    }
+    throw new Error(`unsupported argument(s): --${name}`);
+  }
+  finalizeRequirement();
+  if (hasPendingOperation) {
+    throw new Error("missing required argument --requirement");
+  }
+  return input;
 }
-function buildDeltaInput(rootDir, changeName, flags) {
-  ensureAllowedFlags(flags, [
-    "reset",
-    "target-spec",
-    "spec-path",
-    "implementation",
-    "test",
-    "operation",
-    "requirement",
-    "strength",
-    "statement",
-    "scenario",
-    "given",
-    "when",
-    "then",
-    "and",
-    "reason"
-  ]);
-  const targetSpec = requiredOne(flags, "target-spec");
-  const specPath = optionalOne(flags, "spec-path");
-  const input = existingDeltaInput(rootDir, changeName, targetSpec, specPath, hasFlag(flags, "reset"));
+function buildDeltaInputFromArgs(rootDir, changeName, argv) {
+  const commandInput = parseDeltaCommandInput(argv, rootDir);
+  const targetSpec = commandInput.targetSpec;
+  if (!targetSpec) {
+    throw new Error("missing required argument --target-spec");
+  }
+  const input = existingDeltaInput(rootDir, changeName, targetSpec, commandInput.specPath, commandInput.reset);
   const mapping = isRecord2(input.mapping) ? input.mapping : {};
   mapping.implementation = uniqueStrings([
     ...Array.isArray(mapping.implementation) ? mapping.implementation : [],
-    ...values(flags, "implementation")
+    ...commandInput.implementation
   ]);
   mapping.tests = uniqueStrings([
     ...Array.isArray(mapping.tests) ? mapping.tests : [],
-    ...values(flags, "test")
+    ...commandInput.tests
   ]);
   input.mapping = mapping;
-  const operation = optionalOne(flags, "operation");
-  if (!operation)
-    return input;
-  if (!["ADDED", "MODIFIED", "REMOVED"].includes(operation)) {
-    throw new Error("--operation must be one of: ADDED, MODIFIED, REMOVED");
-  }
-  const requirementId = requiredOne(flags, "requirement");
   const operations = isRecord2(input.operations) ? input.operations : {};
-  const operationMap = isRecord2(operations[operation]) ? operations[operation] : {};
-  const item = operation === "REMOVED" ? { reason: requiredOne(flags, "reason") } : {
-    strength: requiredOne(flags, "strength"),
-    statement: requiredOne(flags, "statement"),
-    scenarios: buildScenario(flags)
-  };
-  upsertKeyedItem(operationMap, requirementId, item, "delta requirement");
-  operations[operation] = operationMap;
+  for (const requirement of commandInput.requirements) {
+    if (!["ADDED", "MODIFIED", "REMOVED"].includes(requirement.operation)) {
+      throw new Error("--operation must be one of: ADDED, MODIFIED, REMOVED");
+    }
+    const operationMap = isRecord2(operations[requirement.operation]) ? operations[requirement.operation] : {};
+    if (requirement.operation === "REMOVED") {
+      if (!requirement.reason)
+        throw new Error(`missing required argument --reason for removed requirement '${requirement.id}'`);
+      if (requirement.strength || requirement.statement || requirement.scenarios.length > 0) {
+        throw new Error(`removed requirement '${requirement.id}' only supports --reason`);
+      }
+      upsertKeyedItem(operationMap, requirement.id, { reason: requirement.reason }, "delta requirement");
+      operations[requirement.operation] = operationMap;
+      continue;
+    }
+    if (!requirement.strength)
+      throw new Error(`missing required argument --strength for requirement '${requirement.id}'`);
+    if (!requirement.statement)
+      throw new Error(`missing required argument --statement for requirement '${requirement.id}'`);
+    if (requirement.reason) {
+      throw new Error(`--reason is only valid with removed requirement '${requirement.id}'`);
+    }
+    const scenarios = {};
+    for (const scenario of requirement.scenarios) {
+      const existingScenario = scenarios[scenario.id];
+      if (existingScenario === undefined) {
+        scenarios[scenario.id] = scenario.steps;
+        continue;
+      }
+      if (!deepEqual(existingScenario, scenario.steps)) {
+        throw new Error(`duplicate scenario '${scenario.id}' has conflicting content`);
+      }
+    }
+    upsertKeyedItem(operationMap, requirement.id, {
+      strength: requirement.strength,
+      statement: requirement.statement,
+      scenarios
+    }, "delta requirement");
+    operations[requirement.operation] = operationMap;
+  }
   input.operations = operations;
   return input;
 }
-function buildInputFromFlags(rootDir, changeName, artifact, flags) {
+function buildInputFromNamedArgs(rootDir, changeName, artifact, argv) {
   switch (artifact) {
     case "proposal":
-      return buildProposalInput(flags);
+      return buildProposalInput(parseFlagMap(argv, rootDir));
     case "design":
-      return buildDesignInput(rootDir, changeName, flags);
+      return buildDesignInput(rootDir, changeName, parseFlagMap(argv, rootDir));
     case "tasks":
-      return buildTasksInput(rootDir, changeName, flags);
+      return buildTasksInputFromArgs(rootDir, changeName, argv);
     case "questions":
-      return buildQuestionsInput(rootDir, changeName, flags);
+      return buildQuestionsInputFromArgs(rootDir, changeName, argv);
     case "delta-spec":
-      return buildDeltaInput(rootDir, changeName, flags);
+      return buildDeltaInputFromArgs(rootDir, changeName, argv);
   }
 }
 function runGenerate(argv) {
@@ -12067,15 +12299,11 @@ function runGenerate(argv) {
   }
   try {
     if (!firstInputArg.startsWith("--")) {
-      if (extraArgs.length > 0) {
-        writeUsage(usage());
-        return 1;
-      }
-      writeJson(generateChangeArtifact(process.cwd(), changeName, artifact, firstInputArg));
-      return 0;
+      writeUsage(usage());
+      return 1;
     }
-    const flags = parseFlagMap([firstInputArg, ...extraArgs], process.cwd());
-    const input = buildInputFromFlags(process.cwd(), changeName, artifact, flags);
+    const namedArgs = [firstInputArg, ...extraArgs];
+    const input = buildInputFromNamedArgs(process.cwd(), changeName, artifact, namedArgs);
     const result = generateChangeArtifactFromInput(process.cwd(), changeName, artifact, input);
     writeJson(result);
     return 0;
@@ -12147,7 +12375,7 @@ function writeChangeTasks(rootDir, changeName, content) {
 import {
   existsSync as existsSync12,
   mkdirSync as mkdirSync3,
-  readdirSync as readdirSync4,
+  readdirSync as readdirSync5,
   readFileSync as readFileSync11,
   renameSync,
   writeFileSync as writeFileSync5
@@ -12169,7 +12397,7 @@ var ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v2";
 var ROADMAP_MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v2";
 
 // src/roadmap/shared.ts
-import { existsSync as existsSync6, readdirSync, statSync as statSync3 } from "fs";
+import { existsSync as existsSync6, readdirSync as readdirSync2, statSync as statSync3 } from "fs";
 import path7 from "path";
 
 // src/diagnostics.ts
@@ -12226,7 +12454,7 @@ function listYamlFiles(directoryPath) {
   }
   const files = [];
   function walk(currentPath) {
-    const entries = readdirSync(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    const entries = readdirSync2(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
       const fullPath = path7.join(currentPath, entry.name);
       if (entry.isDirectory()) {
@@ -12593,7 +12821,7 @@ function loadRoadmap(rootDir) {
 }
 
 // src/roadmap/status.ts
-import { existsSync as existsSync8, readdirSync as readdirSync2, statSync as statSync5 } from "fs";
+import { existsSync as existsSync8, readdirSync as readdirSync3, statSync as statSync5 } from "fs";
 import path9 from "path";
 function getChangeStateIndex(rootDir) {
   const changesDir = path9.join(rootDir, STRICT_WORKFLOW_DIR4, "changes");
@@ -12602,14 +12830,14 @@ function getChangeStateIndex(rootDir) {
   if (!existsSync8(changesDir) || !statSync5(changesDir).isDirectory()) {
     return { active, archived };
   }
-  for (const entry of readdirSync2(changesDir, { withFileTypes: true })) {
+  for (const entry of readdirSync3(changesDir, { withFileTypes: true })) {
     if (!entry.isDirectory() || entry.name === "archive")
       continue;
     active.add(entry.name);
   }
   const archiveDir = path9.join(changesDir, "archive");
   if (existsSync8(archiveDir) && statSync5(archiveDir).isDirectory()) {
-    for (const entry of readdirSync2(archiveDir, { withFileTypes: true })) {
+    for (const entry of readdirSync3(archiveDir, { withFileTypes: true })) {
       if (!entry.isDirectory())
         continue;
       const match = entry.name.match(/^\d{4}-\d{2}-\d{2}-(.+)$/);
@@ -12863,7 +13091,7 @@ function syncRoadmap(rootDir) {
 }
 
 // src/verify.ts
-import { existsSync as existsSync11, readdirSync as readdirSync3, readFileSync as readFileSync10, statSync as statSync7 } from "fs";
+import { existsSync as existsSync11, readdirSync as readdirSync4, readFileSync as readFileSync10, statSync as statSync7 } from "fs";
 import path12 from "path";
 var STRICT_WORKFLOW_DIR5 = ".strict-spec-driven";
 var FORBIDDEN_SPEC_SUBDIRS = new Set([".strict-spec-driven", "changes", "archive"]);
@@ -12989,7 +13217,7 @@ function validateDeltaSpecs(changeDir, artifactPathPrefix) {
     return [];
   const diagnostics = [];
   function scanDir(dir) {
-    for (const entry of readdirSync3(dir, { withFileTypes: true })) {
+    for (const entry of readdirSync4(dir, { withFileTypes: true })) {
       const fullPath = path12.join(dir, entry.name);
       if (entry.isDirectory()) {
         scanDir(fullPath);
@@ -13017,10 +13245,10 @@ function checkExclusiveActiveTargets(rootDir, changeName) {
     return [];
   const diagnostics = [];
   const targetMap = new Map;
-  const activeDirs = readdirSync3(changesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+  const activeDirs = readdirSync4(changesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
   for (const activeChange of activeDirs) {
     let scanDir = function(dir) {
-      for (const entry of readdirSync3(dir, { withFileTypes: true })) {
+      for (const entry of readdirSync4(dir, { withFileTypes: true })) {
         const fullPath = path12.join(dir, entry.name);
         if (entry.isDirectory()) {
           scanDir(fullPath);
@@ -13089,7 +13317,7 @@ function verifyChange(rootDir, changeName) {
   let openQuestionCount = 0;
   const specsRoot = path12.join(rootDir, STRICT_WORKFLOW_DIR5, "specs");
   if (existsSync11(specsRoot) && statSync7(specsRoot).isDirectory()) {
-    for (const entry of readdirSync3(specsRoot, { withFileTypes: true })) {
+    for (const entry of readdirSync4(specsRoot, { withFileTypes: true })) {
       if (entry.isDirectory() && FORBIDDEN_SPEC_SUBDIRS.has(entry.name)) {
         allDiagnostics.push({
           source: "directory_structure",
@@ -13186,7 +13414,7 @@ function listYamlFiles2(directoryPath) {
   }
   const files = [];
   function walk(currentPath) {
-    const entries = readdirSync4(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    const entries = readdirSync5(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
       const fullPath = path13.join(currentPath, entry.name);
       if (entry.isDirectory()) {
@@ -13426,7 +13654,7 @@ function archiveChange(rootDir, changeName) {
 }
 
 // src/review.ts
-import { existsSync as existsSync13, readdirSync as readdirSync5, readFileSync as readFileSync12, statSync as statSync8 } from "fs";
+import { existsSync as existsSync13, readdirSync as readdirSync6, readFileSync as readFileSync12, statSync as statSync8 } from "fs";
 import path14 from "path";
 var STRICT_WORKFLOW_DIR7 = ".strict-spec-driven";
 function normalizeRepoRelativePath4(rootDir, absolutePath) {
@@ -13444,7 +13672,7 @@ function listYamlFiles3(directoryPath) {
   }
   const files = [];
   function walk(currentPath) {
-    const entries = readdirSync5(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    const entries = readdirSync6(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
       const fullPath = path14.join(currentPath, entry.name);
       if (entry.isDirectory()) {
@@ -13650,7 +13878,7 @@ import { existsSync as existsSync15, readFileSync as readFileSync13 } from "fs";
 import path16 from "path";
 
 // src/cli/fs.ts
-import { existsSync as existsSync14, readdirSync as readdirSync6, statSync as statSync9 } from "fs";
+import { existsSync as existsSync14, readdirSync as readdirSync7, statSync as statSync9 } from "fs";
 import path15 from "path";
 function normalizeRepoRelativePath5(rootDir, absolutePath) {
   return path15.relative(rootDir, absolutePath).split(path15.sep).join("/");
@@ -13662,7 +13890,7 @@ function listDirectoryNames(directoryPath) {
   if (!existsSync14(directoryPath) || !statSync9(directoryPath).isDirectory()) {
     return [];
   }
-  return readdirSync6(directoryPath, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
+  return readdirSync7(directoryPath, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
 }
 function listYamlFiles4(directoryPath) {
   if (!existsSync14(directoryPath) || !statSync9(directoryPath).isDirectory()) {
@@ -13670,7 +13898,7 @@ function listYamlFiles4(directoryPath) {
   }
   const files = [];
   function walk(currentPath) {
-    const entries = readdirSync6(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    const entries = readdirSync7(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
       const fullPath = path15.join(currentPath, entry.name);
       if (entry.isDirectory()) {
@@ -13691,7 +13919,7 @@ function listFilesRecursive(directoryPath) {
   }
   const files = [];
   function walk(currentPath) {
-    const entries = readdirSync6(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    const entries = readdirSync7(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
       const fullPath = path15.join(currentPath, entry.name);
       if (entry.isDirectory()) {
@@ -14012,7 +14240,7 @@ function runRoadmapSync(argv) {
 }
 
 // src/maintenance.ts
-import { existsSync as existsSync17, readdirSync as readdirSync7, statSync as statSync11, writeFileSync as writeFileSync6 } from "fs";
+import { existsSync as existsSync17, readdirSync as readdirSync8, statSync as statSync11, writeFileSync as writeFileSync6 } from "fs";
 import path18 from "path";
 var STRICT_WORKFLOW_DIR9 = ".strict-spec-driven";
 var FORBIDDEN_SPEC_SUBDIRS2 = new Set([".strict-spec-driven", "changes", "archive"]);
@@ -14043,7 +14271,7 @@ function runSpecsDirectoryStructureCheck(rootDir) {
   if (!existsSync17(specsDir) || !statSync11(specsDir).isDirectory())
     return [];
   const findings = [];
-  for (const entry of readdirSync7(specsDir, { withFileTypes: true })) {
+  for (const entry of readdirSync8(specsDir, { withFileTypes: true })) {
     if (entry.isDirectory() && FORBIDDEN_SPEC_SUBDIRS2.has(entry.name)) {
       findings.push({
         check: "specs-directory-structure-check",
@@ -14144,7 +14372,7 @@ function runMaintenance(rootDir) {
 // src/migrate.ts
 import {
   existsSync as existsSync23,
-  readdirSync as readdirSync9,
+  readdirSync as readdirSync10,
   statSync as statSync17,
   writeFileSync as writeFileSync8
 } from "fs";
@@ -14973,7 +15201,7 @@ function parseLegacyDeltaSpec(sourcePath, content) {
 import {
   existsSync as existsSync18,
   mkdirSync as mkdirSync4,
-  readdirSync as readdirSync8,
+  readdirSync as readdirSync9,
   readFileSync as readFileSync14,
   statSync as statSync12,
   writeFileSync as writeFileSync7
@@ -14990,7 +15218,7 @@ function listFilesRecursive2(directoryPath) {
   }
   const files = [];
   function walk(currentPath) {
-    const entries = readdirSync8(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    const entries = readdirSync9(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
       const fullPath = path19.join(currentPath, entry.name);
       if (entry.isDirectory()) {
@@ -15027,7 +15255,7 @@ function listLegacyChangeDirectories(rootDir) {
     return [];
   }
   const directories = [];
-  const changeEntries = readdirSync8(changesRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+  const changeEntries = readdirSync9(changesRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of changeEntries) {
     if (!entry.isDirectory()) {
       continue;
@@ -15037,7 +15265,7 @@ function listLegacyChangeDirectories(rootDir) {
       if (!existsSync18(archiveRoot) || !statSync12(archiveRoot).isDirectory()) {
         continue;
       }
-      const archiveEntries = readdirSync8(archiveRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+      const archiveEntries = readdirSync9(archiveRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
       for (const archiveEntry of archiveEntries) {
         if (!archiveEntry.isDirectory()) {
           continue;
@@ -15807,7 +16035,7 @@ function migrateLegacyWorkflow(rootDir, options) {
       result.errors.push(makeDiagnostic2("strict_target_conflict", "Cannot migrate into .strict-spec-driven because a non-directory entry already exists at that path.", undefined, STRICT_WORKFLOW_DIR10));
       return sortMigrationResult(result);
     }
-    if (readdirSync9(strictRootAbsolutePath).length > 0) {
+    if (readdirSync10(strictRootAbsolutePath).length > 0) {
       result.errors.push(makeDiagnostic2("strict_target_conflict", "Cannot migrate into a non-empty .strict-spec-driven directory. You must manually delete it before running migration. Do NOT delete it automatically — ask the user to run: rm -rf .strict-spec-driven", undefined, STRICT_WORKFLOW_DIR10));
       return sortMigrationResult(result);
     }
@@ -15891,7 +16119,7 @@ import { existsSync as existsSync27, readFileSync as readFileSync22, statSync as
 import path28 from "path";
 
 // src/skills.ts
-import { existsSync as existsSync25, readdirSync as readdirSync10, readFileSync as readFileSync20, statSync as statSync19 } from "node:fs";
+import { existsSync as existsSync25, readdirSync as readdirSync11, readFileSync as readFileSync20, statSync as statSync19 } from "node:fs";
 import path26 from "node:path";
 
 // src/skills/model.ts
@@ -16397,7 +16625,7 @@ function validateStrictSkillPackaging(rootDir) {
       }
     };
   }
-  const skillNames = readdirSync10(skillsRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
+  const skillNames = readdirSync11(skillsRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
   for (const skillName of skillNames) {
     const skillDir = path26.join(skillsRoot, skillName);
     const skillPath = path26.join("skills", skillName, "SKILL.md");
@@ -16433,7 +16661,7 @@ function validateStrictSkillPackaging(rootDir) {
 }
 
 // src/cli/spec-mapping.ts
-import { existsSync as existsSync26, readdirSync as readdirSync11, readFileSync as readFileSync21, statSync as statSync20 } from "fs";
+import { existsSync as existsSync26, readdirSync as readdirSync12, readFileSync as readFileSync21, statSync as statSync20 } from "fs";
 import path27 from "path";
 var STRICT_SPECS_DIR = path27.join(".strict-spec-driven", "specs");
 var FORBIDDEN_SPEC_SUBDIRS3 = new Set([".strict-spec-driven", "changes", "archive"]);
@@ -16563,7 +16791,7 @@ function verifySpecMappings(rootDir) {
     diagnostics.push(makeMappingDiagnostic("mapping_input", STRICT_SPECS_DIR, "$", "spec mapping inputs are unavailable because .strict-spec-driven/specs/ does not exist", "existing .strict-spec-driven/specs/ directory"));
   }
   if (diagnostics.length === 0) {
-    for (const entry of readdirSync11(specsDir, { withFileTypes: true })) {
+    for (const entry of readdirSync12(specsDir, { withFileTypes: true })) {
       if (entry.isDirectory() && FORBIDDEN_SPEC_SUBDIRS3.has(entry.name)) {
         diagnostics.push(makeMappingDiagnostic("mapping_input", path27.join(STRICT_SPECS_DIR, entry.name), "$", `.strict-spec-driven/specs/ must not contain a '${entry.name}' subdirectory; workflow state directories belong under .strict-spec-driven/ directly`, `no '${entry.name}' subdirectory under .strict-spec-driven/specs/`, `found .strict-spec-driven/specs/${entry.name}/`));
       }
@@ -16738,7 +16966,6 @@ export {
   getRequiredBundledScaffoldAssets,
   getRequiredBundledChangeTemplateAssets,
   getBundledScaffoldPath,
-  generateChangeArtifact,
   findMissingRequiredScaffoldAssets,
   findMissingRequiredChangeTemplateAssets,
   createSchemaValidator,

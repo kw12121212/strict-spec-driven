@@ -1,0 +1,30 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: strengthen-command-generation-guidance
+sections:
+  Implementation:
+    strengthen-command-generation-contract:
+      text: >-
+        Strengthen skill guidance and CLI named-argument generation behavior for full-artifact
+        strict change generation.
+      status: complete
+  Testing:
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+  Verification:
+    verify-command-language:
+      text: >-
+        Verify proposal-related skills use mandatory direct CLI generation language and no
+        preferred-path JSON payload language.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

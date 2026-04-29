@@ -1,0 +1,50 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: strengthen-command-generation-guidance
+approach:
+  - >-
+    Make proposal-related skills use explicit MUST and MUST NOT wording for direct strict CLI
+    artifact generation.
+  - >-
+    Document one full-artifact named-argument invocation for tasks, questions, and each target delta
+    spec so agents can provide facts while CLI code owns YAML shape.
+  - >-
+    Extend named-argument generation parsing to accept repeated grouped task, question, mapping,
+    scenario, and requirement arguments in one command.
+  - >-
+    Keep JSON input as compatibility-only behavior and preserve duplicate-change protection while
+    allowing empty pre-created change directories.
+decisions:
+  mandatory-command-language:
+    decision: Use MUST and MUST NOT language in proposal-generating skills instead of softer guidance.
+    rationale: >-
+      The target behavior is agent compliance, so the instructions need to remove ambiguity around
+      hand-written YAML and preferred-path JSON payload files.
+  full-artifact-command-shape:
+    decision: Prefer one CLI invocation per generated artifact, or per target spec for delta specs.
+    rationale: >-
+      A full-artifact command lets agents supply structured facts while avoiding intermediate YAML
+      or JSON document construction.
+  empty-directory-propose-reuse:
+    decision: Allow propose to reuse an existing change directory only when its tree contains no files.
+    rationale: >-
+      Some workflows create the specs directory before proposing; reusing file-empty trees avoids a
+      false duplicate failure while still protecting existing artifacts.
+alternatives:
+  - option: Leave the current command examples as-is.
+    reason: >-
+      Rejected because examples alone do not clearly prohibit hand-written YAML or JSON payload
+      workarounds.
+  - option: Require many incremental commands for repeated task, question, and delta entries.
+    reason: >-
+      Rejected because it conflicts with the preferred full-document command shape and makes
+      generated command sequences harder to audit.
+risks:
+  - >-
+    Overly broad wording could block legitimate direct spec edits in other skills; constrain the
+    rule to proposal/change artifact generation workflows.
+  - >-
+    Grouped argument parsing must keep deterministic failures for missing or conflicting keyed
+    content before writing YAML.

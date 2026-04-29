@@ -72,17 +72,6 @@ function asOptionalStringArray(value: unknown, fieldPath: string): string[] | un
   return asStringArray(value, fieldPath);
 }
 
-function parseJsonInput(inputFile: string): GenerationInputRecord {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(readFileSync(inputFile, "utf8"));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`input JSON '${inputFile}' could not be parsed: ${message}`);
-  }
-  return asRecord(parsed, "$");
-}
-
 function validateGeneratedArtifact(artifactType: string, artifact: unknown, artifactPath: string): ValidationDiagnostic[] {
   const schema = loadBundledSchemaByArtifactType(artifactType);
   const result = validateArtifact(schema, artifact, artifactPath);
@@ -499,15 +488,4 @@ export function generateChangeArtifactFromInput(
   input: GenerationInputRecord,
 ): GenerateChangeArtifactResult {
   return writeGeneratedArtifact(rootDir, changeName, artifact, input, "command input");
-}
-
-export function generateChangeArtifact(
-  rootDir: string,
-  changeName: string,
-  artifact: GeneratableArtifact,
-  inputFile: string,
-): GenerateChangeArtifactResult {
-  const inputPath = path.resolve(rootDir, inputFile);
-  const input = parseJsonInput(inputPath);
-  return writeGeneratedArtifact(rootDir, changeName, artifact, input, `input JSON '${inputPath}'`);
 }

@@ -29,7 +29,6 @@ import { archiveChange } from "./archive.js";
 import { getRoadmapStatus, syncRoadmap } from "./roadmap.js";
 import { migrateLegacyWorkflow } from "./migrate.js";
 import { runMaintenance } from "./maintenance.js";
-import { generateChangeArtifact } from "./propose-generation.js";
 
 export type CommandHandler = CliCommandHandler;
 export { parseYamlDocument, stringifyYamlDocument };
@@ -52,7 +51,6 @@ export { archiveChange };
 export { getRoadmapStatus, syncRoadmap };
 export { migrateLegacyWorkflow };
 export { runMaintenance };
-export { generateChangeArtifact };
 
 export const commands = createCliCommandTable({
   init: () => runInit(),

@@ -469,6 +469,22 @@ try {
     readFileSync(path.join(changeDir, "proposal.yaml"), "utf8") === proposalArtifact,
     "propose duplicate-change failure preserves existing artifacts",
   );
+
+  const emptyDirChangeName = "empty-existing-dir";
+  const emptyDirChangePath = path.join(proposeTempDir, ".strict-spec-driven", "changes", emptyDirChangeName);
+  mkdirSync(path.join(emptyDirChangePath, "nested", "still-empty"), { recursive: true });
+  const emptyDirPropose = cli(["propose", emptyDirChangeName], { cwd: proposeTempDir });
+  context.assert(emptyDirPropose.status === 0, "propose reuses an existing empty change directory tree", `stderr: ${emptyDirPropose.stderr.trim()}`);
+  for (const artifact of expectedArtifacts) {
+    context.assert(
+      existsSync(path.join(emptyDirChangePath, artifact)),
+      `propose writes planning artifact into reusable empty directory (${artifact})`,
+    );
+  }
+  context.assert(
+    existsSync(path.join(emptyDirChangePath, "nested", "still-empty")),
+    "propose preserves pre-existing empty subdirectories when reusing the change directory",
+  );
 } finally {
   rmSync(proposeTempDir, { recursive: true, force: true });
 }
@@ -484,25 +500,32 @@ try {
   const proposalPath = path.join(changeDir, "proposal.yaml");
   const originalDesign = readFileSync(path.join(changeDir, "design.yaml"), "utf8");
 
-  const proposalInputPath = path.join(generateTempDir, "proposal.json");
-  writeFileSync(
-    proposalInputPath,
-    JSON.stringify({
-      summary: {
-        what: ["Generate proposal artifacts from JSON input."],
-        why: ["Scripted generation keeps YAML formatting deterministic."],
-      },
-      scope: {
-        in: ["Populate one planning artifact from one input file."],
-        out: ["Replace the scaffold creation command."],
-      },
-      unchanged_behavior: ["Existing propose scaffolding remains unchanged."],
-    }),
-    "utf8",
+  const scaffoldProposal = readFileSync(proposalPath, "utf8");
+  const nonFlagGenerate = cli(["generate", changeName, "proposal", "proposal.json"], { cwd: generateTempDir });
+  context.assert(nonFlagGenerate.status !== 0, "generate rejects positional JSON input");
+  context.assert(
+    nonFlagGenerate.stderr.includes("Usage:") && !nonFlagGenerate.stderr.includes("<input-json>"),
+    "generate positional input failure prints named-argument usage only",
+    `stderr: ${nonFlagGenerate.stderr.trim()}`,
   );
+  context.assert(readFileSync(proposalPath, "utf8") === scaffoldProposal, "generate positional input does not rewrite artifact");
 
-  const generatedProposal = cli(["generate", changeName, "proposal", proposalInputPath], { cwd: generateTempDir });
-  context.assert(generatedProposal.status === 0, "generate writes proposal artifact from JSON", `stderr: ${generatedProposal.stderr.trim()}`);
+  const generatedProposal = cli([
+    "generate",
+    changeName,
+    "proposal",
+    "--what",
+    "Generate proposal artifacts from named arguments.",
+    "--why",
+    "Scripted generation keeps YAML formatting deterministic.",
+    "--in",
+    "Populate one planning artifact from named CLI arguments.",
+    "--out",
+    "Replace the scaffold creation command.",
+    "--unchanged",
+    "Existing propose scaffolding remains unchanged.",
+  ], { cwd: generateTempDir });
+  context.assert(generatedProposal.status === 0, "generate writes proposal artifact from named arguments", `stderr: ${generatedProposal.stderr.trim()}`);
   const generatedProposalJson = JSON.parse(generatedProposal.stdout.trim());
   context.assert(
     generatedProposalJson.artifactPath === `.strict-spec-driven/changes/${changeName}/proposal.yaml`,
@@ -516,7 +539,7 @@ try {
   }>(readFileSync(proposalPath, "utf8"));
   context.assert(parsedGeneratedProposal.change.id === changeName, "generated proposal preserves change identity");
   context.assert(
-    parsedGeneratedProposal.summary.what[0] === "Generate proposal artifacts from JSON input.",
+    parsedGeneratedProposal.summary.what[0] === "Generate proposal artifacts from named arguments.",
     "generated proposal includes structured input content",
   );
   context.assert(
@@ -525,147 +548,135 @@ try {
   );
 
   const beforeInvalidProposal = readFileSync(proposalPath, "utf8");
-  const invalidJsonPath = path.join(generateTempDir, "invalid.json");
-  writeFileSync(invalidJsonPath, "{", "utf8");
-  const invalidJsonGenerate = cli(["generate", changeName, "proposal", invalidJsonPath], { cwd: generateTempDir });
-  context.assert(invalidJsonGenerate.status !== 0, "generate rejects invalid JSON input", `got exit code ${invalidJsonGenerate.status}`);
+  const invalidProposalGenerate = cli(["generate", changeName, "proposal", "--what", "Missing why should fail."], { cwd: generateTempDir });
+  context.assert(invalidProposalGenerate.status !== 0, "generate rejects incomplete named proposal input");
   context.assert(
-    invalidJsonGenerate.stderr.includes("could not be parsed"),
-    "generate invalid JSON failure is deterministic",
-    `stderr: ${invalidJsonGenerate.stderr.trim()}`,
-  );
-  context.assert(readFileSync(proposalPath, "utf8") === beforeInvalidProposal, "generate invalid JSON does not rewrite artifact");
-
-  const invalidProposalInputPath = path.join(generateTempDir, "invalid-proposal.json");
-  writeFileSync(
-    invalidProposalInputPath,
-    JSON.stringify({
-      status: "not-a-status",
-      summary: {
-        what: ["Invalid proposal status should fail."],
-        why: ["Output validation must run before writes."],
-      },
-      scope: { in: [], out: [] },
-      unchanged_behavior: [],
-    }),
-    "utf8",
-  );
-  const invalidProposalGenerate = cli(["generate", changeName, "proposal", invalidProposalInputPath], { cwd: generateTempDir });
-  context.assert(invalidProposalGenerate.status !== 0, "generate rejects schema-invalid artifact input");
-  context.assert(
-    invalidProposalGenerate.stderr.includes("input JSON") && invalidProposalGenerate.stderr.includes("$.status"),
-    "generate reports the invalid JSON input field before write",
-    `stderr: ${invalidProposalGenerate.stderr.trim()}`,
-  );
-  context.assert(
-    invalidProposalGenerate.stderr.includes("generated field $.change.status"),
-    "generate reports the generated artifact field for schema-invalid input",
+    invalidProposalGenerate.stderr.includes("missing required argument --why"),
+    "generate reports the missing named argument before write",
     `stderr: ${invalidProposalGenerate.stderr.trim()}`,
   );
   context.assert(
     readFileSync(proposalPath, "utf8") === beforeInvalidProposal,
-    "generate schema-invalid artifact input does not rewrite artifact",
+    "generate incomplete named input does not rewrite artifact",
   );
 
-  const designInputPath = path.join(generateTempDir, "design.json");
-  writeFileSync(
-    designInputPath,
-    JSON.stringify({
-      approach: ["Render strict artifacts through structured CLI generation."],
-      decisions: {
-        "artifact-scoped-generation": {
-          decision: "Generate one artifact per CLI invocation.",
-          rationale: "Small inputs produce clearer validation failures and avoid monolithic payload coupling.",
-        },
-      },
-      alternatives: [
-        {
-          option: "Keep direct YAML editing as the primary path.",
-          reason: "Direct edits leave schema-sensitive formatting in agent-authored text.",
-        },
-      ],
-      risks: ["Replacement commands can discard manual edits when used intentionally."],
-    }),
-    "utf8",
-  );
   context.assert(
-    cli(["generate", changeName, "design", designInputPath], { cwd: generateTempDir }).status === 0,
+    cli([
+      "generate",
+      changeName,
+      "design",
+      "--reset",
+      "--approach",
+      "Render strict artifacts through structured CLI generation.",
+      "--decision",
+      "artifact-scoped-generation",
+      "--decision-text",
+      "Generate one artifact per CLI invocation.",
+      "--rationale",
+      "Small inputs produce clearer validation failures and avoid monolithic payload coupling.",
+      "--alternative",
+      "Keep direct YAML editing as the primary path.",
+      "--reason",
+      "Direct edits leave schema-sensitive formatting in agent-authored text.",
+      "--risk",
+      "Replacement commands can discard manual edits when used intentionally.",
+    ], { cwd: generateTempDir }).status === 0,
     "generate writes design artifact",
   );
 
-  const tasksInputPath = path.join(generateTempDir, "tasks.json");
-  writeFileSync(
-    tasksInputPath,
-    JSON.stringify({
-      sections: {
-        Implementation: {
-          "implement-generator": { text: "Implement generator.", status: "complete" },
-        },
-        Testing: {
-          "run-build": { text: "Run build.", status: "complete", command: "bun run build" },
-          "run-tests": { text: "Run tests.", status: "complete", command: "bun test/run.ts" },
-        },
-        Verification: {
-          "verify-change": { text: "Verify change.", status: "complete" },
-        },
-      },
-      testing_gates: {
-        validation_task: "run-build",
-        unit_test_task: "run-tests",
-      },
-    }),
-    "utf8",
-  );
   context.assert(
-    cli(["generate", changeName, "tasks", tasksInputPath], { cwd: generateTempDir }).status === 0,
+    cli([
+      "generate",
+      changeName,
+      "tasks",
+      "--reset",
+      "--validation-task",
+      "run-build",
+      "--unit-test-task",
+      "run-tests",
+      "--task",
+      "implement-generator",
+      "--section",
+      "Implementation",
+      "--text",
+      "Implement generator.",
+      "--status",
+      "complete",
+      "--task",
+      "run-build",
+      "--section",
+      "Testing",
+      "--text",
+      "Run build.",
+      "--status",
+      "complete",
+      "--command",
+      "bun run build",
+      "--task",
+      "run-tests",
+      "--section",
+      "Testing",
+      "--text",
+      "Run tests.",
+      "--status",
+      "complete",
+      "--command",
+      "bun test/run.ts",
+      "--task",
+      "verify-change",
+      "--section",
+      "Verification",
+      "--text",
+      "Verify change.",
+      "--status",
+      "complete",
+    ], { cwd: generateTempDir }).status === 0,
     "generate writes task artifact",
   );
 
-  const questionsInputPath = path.join(generateTempDir, "questions.json");
-  writeFileSync(questionsInputPath, JSON.stringify({ open: [], resolved: [] }), "utf8");
   context.assert(
-    cli(["generate", changeName, "questions", questionsInputPath], { cwd: generateTempDir }).status === 0,
+    cli(["generate", changeName, "questions", "--reset"], { cwd: generateTempDir }).status === 0,
     "generate writes questions artifact",
   );
 
-  const deltaInputPath = path.join(generateTempDir, "delta.json");
-  writeFileSync(
-    deltaInputPath,
-    JSON.stringify({
-      target_spec: "cli-foundation",
-      spec_path: "cli/foundation.yaml",
-      mapping: {
-        implementation: ["src/propose-generation.ts", "src/cli/cmd-generation.ts"],
-        tests: ["test/suites/foundation-and-fixtures.ts"],
-      },
-      operations: {
-        ADDED: {
-          "generated-artifact-test-requirement": {
-            strength: "MUST",
-            statement: "The system MUST generate one delta artifact from structured input.",
-            scenarios: {
-              "delta-artifact-is-generated": [
-                { GIVEN: "a strict change scaffold exists" },
-                { WHEN: "the delta generation command runs" },
-                { THEN: "one delta spec is written" },
-              ],
-            },
-          },
-        },
-        MODIFIED: {},
-        REMOVED: {},
-      },
-    }),
-    "utf8",
-  );
-  const generatedDelta = cli(["generate", changeName, "delta-spec", deltaInputPath], { cwd: generateTempDir });
+  const generatedDelta = cli([
+    "generate",
+    changeName,
+    "delta-spec",
+    "--target-spec",
+    "cli-foundation",
+    "--spec-path",
+    "cli/foundation.yaml",
+    "--implementation",
+    "src/propose-generation.ts",
+    "--implementation",
+    "src/cli/cmd-generation.ts",
+    "--test",
+    "test/suites/foundation-and-fixtures.ts",
+    "--operation",
+    "ADDED",
+    "--requirement",
+    "generated-artifact-test-requirement",
+    "--strength",
+    "MUST",
+    "--statement",
+    "The system MUST generate one delta artifact from structured named arguments.",
+    "--scenario",
+    "delta-artifact-is-generated",
+    "--given",
+    "a strict change scaffold exists",
+    "--when",
+    "the delta generation command runs",
+    "--then",
+    "one delta spec is written",
+  ], { cwd: generateTempDir });
   context.assert(generatedDelta.status === 0, "generate writes target-scoped delta spec", `stderr: ${generatedDelta.stderr.trim()}`);
   context.assert(
     existsSync(path.join(changeDir, "specs", "cli", "foundation.yaml")),
     "generate writes delta spec under requested target path",
   );
 
-  const invalidArtifact = cli(["generate", changeName, "unknown", proposalInputPath], { cwd: generateTempDir });
+  const invalidArtifact = cli(["generate", changeName, "unknown", "--what", "Invalid artifact."], { cwd: generateTempDir });
   context.assert(invalidArtifact.status !== 0, "generate rejects unsupported artifact selector");
   context.assert(
     invalidArtifact.stderr.includes("artifact must be one of"),
@@ -694,7 +705,7 @@ try {
     "--in",
     "Add parameterized generation.",
     "--out",
-    "Remove legacy JSON compatibility.",
+    "Add alternate payload-file generation.",
     "--unchanged",
     "Existing scaffolding remains available.",
   ], { cwd: generateTempDir });
@@ -763,74 +774,80 @@ try {
     `stderr: ${conflictingDesign.stderr.trim()}`,
   );
 
-  const directTaskCommands = [
-    [
-      "generate",
-      directChangeName,
-      "tasks",
-      "--reset",
-      "--section",
-      "Implementation",
-      "--task",
-      "implement-argument-generation",
-      "--text",
-      "Implement argument-driven generation.",
-      "--status",
-      "complete",
-      "--validation-task",
-      "run-build",
-      "--unit-test-task",
-      "run-tests",
-    ],
-    [
-      "generate",
-      directChangeName,
-      "tasks",
-      "--section",
-      "Testing",
-      "--task",
-      "run-build",
-      "--text",
-      "Run build.",
-      "--status",
-      "complete",
-      "--command",
-      "bun run build",
-    ],
-    [
-      "generate",
-      directChangeName,
-      "tasks",
-      "--section",
-      "Testing",
-      "--task",
-      "run-tests",
-      "--text",
-      "Run tests.",
-      "--status",
-      "complete",
-      "--command",
-      "bun test/run.ts",
-    ],
-    [
-      "generate",
-      directChangeName,
-      "tasks",
-      "--section",
-      "Verification",
-      "--task",
-      "verify-change",
-      "--text",
-      "Verify the change.",
-      "--status",
-      "complete",
-    ],
-  ];
-  for (const taskCommand of directTaskCommands) {
-    const taskResult = cli(taskCommand, { cwd: generateTempDir });
-    context.assert(taskResult.status === 0, "generate writes task artifact incrementally from named arguments", `stderr: ${taskResult.stderr.trim()}`);
-  }
-  const repeatedTask = cli(directTaskCommands[1] as string[], { cwd: generateTempDir });
+  const directTasks = cli([
+    "generate",
+    directChangeName,
+    "tasks",
+    "--reset",
+    "--validation-task",
+    "run-build",
+    "--unit-test-task",
+    "run-tests",
+    "--task",
+    "implement-argument-generation",
+    "--section",
+    "Implementation",
+    "--text",
+    "Implement argument-driven generation.",
+    "--status",
+    "complete",
+    "--task",
+    "run-build",
+    "--section",
+    "Testing",
+    "--text",
+    "Run build.",
+    "--status",
+    "complete",
+    "--command",
+    "bun run build",
+    "--task",
+    "run-tests",
+    "--section",
+    "Testing",
+    "--text",
+    "Run tests.",
+    "--status",
+    "complete",
+    "--command",
+    "bun test/run.ts",
+    "--task",
+    "verify-change",
+    "--section",
+    "Verification",
+    "--text",
+    "Verify the change.",
+    "--status",
+    "complete",
+  ], { cwd: generateTempDir });
+  context.assert(directTasks.status === 0, "generate writes full task artifact from one named-argument command", `stderr: ${directTasks.stderr.trim()}`);
+  const directTasksArtifact = yamlModule.parseYamlDocument<{
+    sections: {
+      Implementation: Record<string, unknown>;
+      Testing: Record<string, unknown>;
+      Verification: Record<string, unknown>;
+    };
+  }>(readFileSync(path.join(directChangeDir, "tasks.yaml"), "utf8"));
+  context.assert(
+    Object.keys(directTasksArtifact.sections.Testing).length === 2,
+    "generate writes all testing tasks in one task command",
+  );
+
+  const repeatedTask = cli([
+    "generate",
+    directChangeName,
+    "tasks",
+    "--task",
+    "run-build",
+    "--section",
+    "Testing",
+    "--text",
+    "Run build.",
+    "--status",
+    "complete",
+    "--command",
+    "bun run build",
+  ], { cwd: generateTempDir });
   context.assert(repeatedTask.status === 0, "generate accepts repeated equivalent keyed task content", `stderr: ${repeatedTask.stderr.trim()}`);
   const conflictingTask = cli([
     "generate",
@@ -854,6 +871,35 @@ try {
     `stderr: ${conflictingTask.stderr.trim()}`,
   );
 
+  const directQuestions = cli([
+    "generate",
+    directChangeName,
+    "questions",
+    "--reset",
+    "--open",
+    "open-cli-contract",
+    "--question",
+    "Should the CLI accept grouped question arguments?",
+    "--context",
+    "Single-command generation needs multiple question entries in one invocation.",
+    "--resolved",
+    "resolved-cli-contract",
+    "--question",
+    "Can one command generate the full questions artifact?",
+    "--context",
+    "The named-argument parser now supports multiple question groups.",
+    "--answer",
+    "Yes. One invocation can now populate both open and resolved questions.",
+  ], { cwd: generateTempDir });
+  context.assert(directQuestions.status === 0, "generate writes full questions artifact from one named-argument command", `stderr: ${directQuestions.stderr.trim()}`);
+  const directQuestionsArtifact = yamlModule.parseYamlDocument<{
+    open: Array<{ id: string }>;
+    resolved: Array<{ id: string }>;
+  }>(readFileSync(path.join(directChangeDir, "questions.yaml"), "utf8"));
+  context.assert(
+    directQuestionsArtifact.open.length === 1 && directQuestionsArtifact.resolved.length === 1,
+    "generate writes open and resolved questions in one command",
+  );
   const resetQuestions = cli(["generate", directChangeName, "questions", "--reset"], { cwd: generateTempDir });
   context.assert(resetQuestions.status === 0, "generate resets questions artifact from named arguments", `stderr: ${resetQuestions.stderr.trim()}`);
 
@@ -870,6 +916,8 @@ try {
     "src/propose-generation.ts",
     "--implementation",
     "src/propose-generation.ts",
+    "--implementation",
+    "src/cli/cmd-generation.ts",
     "--test",
     "test/suites/foundation-and-fixtures.ts",
     "--operation",
@@ -888,8 +936,38 @@ try {
     "the argument-driven generation command runs",
     "--then",
     "the target artifact is written",
+    "--scenario",
+    "argument-driven-command-populates-questions",
+    "--given",
+    "one command includes multiple question groups",
+    "--when",
+    "the questions generation command runs",
+    "--then",
+    "the full questions artifact is written",
+    "--operation",
+    "MODIFIED",
+    "--requirement",
+    "single-command-task-generation",
+    "--strength",
+    "MUST",
+    "--statement",
+    "The CLI MUST generate the full tasks artifact from one command.",
+    "--scenario",
+    "argument-driven-command-populates-tasks",
+    "--given",
+    "one command includes multiple task groups",
+    "--when",
+    "the tasks generation command runs",
+    "--then",
+    "the full tasks artifact is written",
+    "--operation",
+    "REMOVED",
+    "--requirement",
+    "incremental-only-generation",
+    "--reason",
+    "Single-command generation makes repeated per-block invocations unnecessary.",
   ], { cwd: generateTempDir });
-  context.assert(directDelta.status === 0, "generate writes delta artifact from named arguments", `stderr: ${directDelta.stderr.trim()}`);
+  context.assert(directDelta.status === 0, "generate writes full delta artifact from one named-argument command", `stderr: ${directDelta.stderr.trim()}`);
   const repeatedDelta = cli([
     "generate",
     directChangeName,
@@ -914,14 +992,33 @@ try {
     "the argument-driven generation command runs",
     "--then",
     "the target artifact is written",
+    "--scenario",
+    "argument-driven-command-populates-questions",
+    "--given",
+    "one command includes multiple question groups",
+    "--when",
+    "the questions generation command runs",
+    "--then",
+    "the full questions artifact is written",
   ], { cwd: generateTempDir });
   context.assert(repeatedDelta.status === 0, "generate accepts repeated equivalent keyed delta content", `stderr: ${repeatedDelta.stderr.trim()}`);
   const parsedDirectDelta = yamlModule.parseYamlDocument<{
     mapping: { implementation: string[] };
+    operations: {
+      ADDED: Record<string, unknown>;
+      MODIFIED: Record<string, unknown>;
+      REMOVED: Record<string, unknown>;
+    };
   }>(readFileSync(path.join(directChangeDir, "specs", "cli", "foundation.yaml"), "utf8"));
   context.assert(
-    parsedDirectDelta.mapping.implementation.length === 1,
+    parsedDirectDelta.mapping.implementation.length === 2,
     "generate de-duplicates repeated delta mapping paths",
+  );
+  context.assert(
+    Object.keys(parsedDirectDelta.operations.ADDED).length === 1
+      && Object.keys(parsedDirectDelta.operations.MODIFIED).length === 1
+      && Object.keys(parsedDirectDelta.operations.REMOVED).length === 1,
+    "generate writes mixed delta requirement operations in one command",
   );
 
   const missingArgument = cli(["generate", directChangeName, "proposal", "--what", "Missing why."], { cwd: generateTempDir });

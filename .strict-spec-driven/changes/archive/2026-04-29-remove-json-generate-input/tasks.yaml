@@ -1,0 +1,30 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: remove-json-generate-input
+sections:
+  Implementation:
+    remove-json-generate-input:
+      text: >-
+        Remove JSON generate input compatibility and update specs, skills, and tests for
+        named-argument-only generation.
+      status: complete
+  Testing:
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+  Verification:
+    verify-no-json-generate-input:
+      text: >-
+        Verify generate usage, skills, specs, and tests no longer advertise JSON payload input
+        compatibility.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

@@ -1,0 +1,90 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/propose-generation.ts
+    - src/cli/cmd-generation.ts
+    - src/strict-spec-cli.ts
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    cli-propose-generation-uses-named-arguments:
+      strength: MUST
+      statement: >-
+        The system MUST provide proposal population commands that accept artifact content only
+        through named CLI arguments, including repeated grouped task, question, mapping, scenario,
+        and requirement arguments in a single invocation for artifacts that contain keyed
+        collections.
+      scenarios:
+        proposal-flags-populate-proposal-artifact:
+          - GIVEN: a strict change scaffold already exists
+          - AND: >-
+              an agent supplies proposal summary, scope, and unchanged behavior through named CLI
+              flags
+          - WHEN: the proposal population command is executed
+          - THEN: the target proposal.yaml is written under the change directory
+          - AND: the written artifact validates against the strict change proposal schema
+        repeatable-flags-populate-lists:
+          - GIVEN: an artifact field accepts multiple values
+          - WHEN: the corresponding named flag is repeated in one command invocation
+          - THEN: the generated strict YAML artifact preserves each supplied value in order
+        grouped-named-arguments-populate-full-artifacts:
+          - GIVEN: a strict change scaffold already exists
+          - AND: >-
+              an agent supplies multiple task, question, mapping, scenario, or delta requirement
+              groups through named CLI flags in one command
+          - WHEN: the artifact population command is executed
+          - THEN: the target strict YAML artifact includes all supplied grouped entries
+          - AND: repeated equivalent keyed content remains idempotent
+        positional-json-input-is-rejected:
+          - GIVEN: a strict change scaffold already exists
+          - WHEN: >-
+              the generation command receives a positional input file argument instead of named CLI
+              arguments
+          - THEN: the command exits non-zero with usage output
+          - AND: the usage output does not advertise an input-json form
+          - AND: the target artifact remains unchanged
+    cli-propose-generation-uses-direct-invocations:
+      strength: MUST
+      statement: >-
+        The system MUST support direct agent-generated CLI invocations with named arguments as the
+        only orchestration form for strict proposal population.
+      scenarios:
+        generated-cli-invocations-populate-change:
+          - GIVEN: a strict change scaffold exists
+          - AND: >-
+              an agent produces one or more strict CLI proposal population commands with named
+              arguments
+          - WHEN: those commands are executed from the repository root
+          - THEN: the requested strict change artifacts are populated
+          - AND: no command constructs or consumes an AI-authored JSON payload file
+    cli-propose-generation-reports-argument-errors:
+      strength: MUST
+      statement: >-
+        The system MUST report invalid, incomplete, or positional proposal population arguments as
+        deterministic CLI failures before writing target YAML artifacts.
+      scenarios:
+        missing-required-flag-fails-before-write:
+          - GIVEN: a strict change scaffold exists
+          - AND: a proposal population command omits a required named argument
+          - WHEN: the command is executed
+          - THEN: the command exits non-zero
+          - AND: stderr identifies the missing argument name
+          - AND: the existing target artifact is left unchanged
+        positional-input-fails-before-write:
+          - GIVEN: a strict change scaffold exists
+          - AND: a proposal population command supplies a positional file argument
+          - WHEN: the command is executed
+          - THEN: the command exits non-zero
+          - AND: stderr prints named-argument usage
+          - AND: the existing target artifact is left unchanged
+  REMOVED:
+    cli-propose-generation-uses-json-file-input:
+      reason: >-
+        File-based JSON input is no longer a supported compatibility path for strict proposal
+        population.

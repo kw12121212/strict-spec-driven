@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: remove-json-generate-input
+approach:
+  - >-
+    Remove the positional JSON file branch from the generate command so artifact population requires
+    named CLI arguments.
+  - >-
+    Delete JSON input parsing from proposal generation and adjust tests from successful JSON writes
+    to deterministic rejection of non-flag generate input.
+  - >-
+    Update specs and skills so compatibility-only JSON payload wording is removed from the preferred
+    workflow contract.
+decisions:
+  named-args-only-generation:
+    decision: Make named CLI arguments the only supported input form for strict change artifact generation.
+    rationale: >-
+      The repository is YAML-first and the agent workflow already relies on direct generated CLI
+      commands, so preserving JSON payload compatibility adds surface area without product value.
+alternatives:
+  - option: Keep JSON input as a compatibility path.
+    reason: Rejected because the user explicitly stated JSON parameters do not need compatibility.
+risks:
+  - >-
+    Removing the positional input path changes behavior for callers that still use JSON payload
+    files; tests should assert deterministic rejection with usage output.

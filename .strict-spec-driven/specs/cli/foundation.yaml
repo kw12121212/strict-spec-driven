@@ -1292,38 +1292,36 @@ requirements:
         - WHEN: a user or agent generates only one planning artifact from explicit command input
         - THEN: the command writes only that target artifact
         - AND: unrelated planning artifacts in the same change are left unchanged
-  cli-propose-generation-uses-json-file-input:
-    strength: MAY
-    statement: >-
-      The system MAY keep file-based JSON input for proposal population as a compatibility path, but
-      JSON payload files MUST NOT be the preferred agent workflow for generating strict change
-      artifacts.
-    scenarios:
-      json-input-file-remains-compatible-when-supported:
-        - GIVEN: a supported artifact generation command is invoked through a legacy JSON input path
-        - WHEN: the command processes the JSON input file
-        - THEN: >-
-            the command either preserves the existing validated behavior or reports that the legacy
-            path is unsupported
-        - AND: >-
-            the documented preferred path remains named CLI arguments suitable for direct CLI
-            invocation
   cli-propose-generation-preserves-scaffold-behavior:
     strength: MUST
     statement: >-
-      The system MUST preserve the existing `propose <change-name>` scaffold behavior while adding
-      scripted artifact population as a follow-up workflow step.
+      The system MUST preserve the existing propose scaffold behavior while adding scripted artifact
+      population as a follow-up workflow step and may reuse an existing change directory tree only
+      when that tree contains no files.
     scenarios:
       existing-propose-command-still-scaffolds:
         - GIVEN: a valid kebab-case change name that does not already exist
-        - WHEN: '`strict-spec-driven propose <name>` is executed without a generation input'
+        - WHEN: strict-spec-driven propose is executed without a generation input
         - THEN: the command creates the standard strict change scaffold
         - AND: no artifact-specific population input is required
+      empty-change-directory-can-be-scaffolded:
+        - GIVEN: >-
+            a valid kebab-case change name whose change directory already exists with only empty
+            subdirectories
+        - WHEN: strict-spec-driven propose is executed for that name
+        - THEN: the command writes the standard strict change scaffold into that directory
+        - AND: pre-existing empty subdirectories remain in place
+      populated-change-directory-still-fails:
+        - GIVEN: a valid kebab-case change name whose change directory already contains a file
+        - WHEN: strict-spec-driven propose is executed for that name
+        - THEN: the command exits non-zero with an existing-change collision
+        - AND: existing artifacts remain unchanged
   cli-propose-generation-uses-named-arguments:
     strength: MUST
     statement: >-
-      The system MUST provide proposal population commands that accept artifact content through
-      named CLI arguments instead of requiring a JSON payload file for the preferred agent workflow.
+      The system MUST provide proposal population commands that accept artifact content only through
+      named CLI arguments, including repeated grouped task, question, mapping, scenario, and
+      requirement arguments in a single invocation for artifacts that contain keyed collections.
     scenarios:
       proposal-flags-populate-proposal-artifact:
         - GIVEN: a strict change scaffold already exists
@@ -1331,17 +1329,33 @@ requirements:
             an agent supplies proposal summary, scope, and unchanged behavior through named CLI
             flags
         - WHEN: the proposal population command is executed
-        - THEN: the target `proposal.yaml` is written under the change directory
+        - THEN: the target proposal.yaml is written under the change directory
         - AND: the written artifact validates against the strict change proposal schema
       repeatable-flags-populate-lists:
         - GIVEN: an artifact field accepts multiple values
         - WHEN: the corresponding named flag is repeated in one command invocation
         - THEN: the generated strict YAML artifact preserves each supplied value in order
+      grouped-named-arguments-populate-full-artifacts:
+        - GIVEN: a strict change scaffold already exists
+        - AND: >-
+            an agent supplies multiple task, question, mapping, scenario, or delta requirement
+            groups through named CLI flags in one command
+        - WHEN: the artifact population command is executed
+        - THEN: the target strict YAML artifact includes all supplied grouped entries
+        - AND: repeated equivalent keyed content remains idempotent
+      positional-json-input-is-rejected:
+        - GIVEN: a strict change scaffold already exists
+        - WHEN: >-
+            the generation command receives a positional input file argument instead of named CLI
+            arguments
+        - THEN: the command exits non-zero with usage output
+        - AND: the usage output does not advertise an input-json form
+        - AND: the target artifact remains unchanged
   cli-propose-generation-uses-direct-invocations:
     strength: MUST
     statement: >-
-      The system MUST support direct agent-generated CLI invocations as the preferred orchestration
-      form for strict proposal population.
+      The system MUST support direct agent-generated CLI invocations with named arguments as the
+      only orchestration form for strict proposal population.
     scenarios:
       generated-cli-invocations-populate-change:
         - GIVEN: a strict change scaffold exists
@@ -1350,11 +1364,11 @@ requirements:
             arguments
         - WHEN: those commands are executed from the repository root
         - THEN: the requested strict change artifacts are populated
-        - AND: no command in the preferred path requires an AI-authored JSON payload file
+        - AND: no command constructs or consumes an AI-authored JSON payload file
   cli-propose-generation-reports-argument-errors:
     strength: MUST
     statement: >-
-      The system MUST report invalid or incomplete named proposal population arguments as
+      The system MUST report invalid, incomplete, or positional proposal population arguments as
       deterministic CLI failures before writing target YAML artifacts.
     scenarios:
       missing-required-flag-fails-before-write:
@@ -1363,6 +1377,13 @@ requirements:
         - WHEN: the command is executed
         - THEN: the command exits non-zero
         - AND: stderr identifies the missing argument name
+        - AND: the existing target artifact is left unchanged
+      positional-input-fails-before-write:
+        - GIVEN: a strict change scaffold exists
+        - AND: a proposal population command supplies a positional file argument
+        - WHEN: the command is executed
+        - THEN: the command exits non-zero
+        - AND: stderr prints named-argument usage
         - AND: the existing target artifact is left unchanged
   cli-propose-generation-prevents-duplicates:
     strength: MUST

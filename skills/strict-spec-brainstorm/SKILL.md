@@ -70,15 +70,16 @@ proceeding, verify that strict workflow state already exists.
    artifacts and an empty `specs/` directory for strict YAML delta files.
 
 7. **Generate the proposal artifacts** — after scaffolding, including
-   `proposal.yaml`, run direct
-   parameterized CLI invocations:
-   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."`
-   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
-   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement "..."` once per target strict main spec path and requirement
-   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> tasks --reset --section Implementation --task <task-id> --text "..." --status pending --validation-task <testing-task-id> --unit-test-task <testing-task-id>`
-   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions --reset` plus `--open` entries for unresolved points
-   Multiple invocations are acceptable; repeated equivalent commands must not
-   duplicate generated YAML content.
+   `proposal.yaml`, run direct parameterized CLI invocations. These commands
+   MUST be generated and executed directly. Do not hand-author strict change
+   YAML artifacts or create JSON payload files.
+    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."`
+    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
+    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` once per target strict main spec path
+    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> tasks --reset --validation-task <testing-task-id> --unit-test-task <testing-task-id> --task <implementation-task-id> --section Implementation --text "..." --status pending --task <testing-task-id> --section Testing --text "..." --status pending --command "npm test" --task <verification-task-id> --section Verification --text "..." --status pending`
+    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions --reset --open <question-id> --question "..." --context "..."` plus any needed `--resolved` entries
+    Prefer one invocation per artifact (or per target spec for delta specs) so
+    the generated YAML matches the full document shape immediately.
 
 8. **Validate artifact structure** — run:
    ```bash

@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: remove-json-generate-input
+  status: proposed
+summary:
+  what:
+    - Remove file-based JSON input from strict change artifact generation.
+  why:
+    - >-
+      The strict workflow should keep agents on direct named CLI arguments and no longer maintain a
+      legacy JSON payload entry point.
+scope:
+  in:
+    - Remove the generate <input-json> CLI path and related JSON parsing behavior.
+    - Update tests and usage output to treat non-flag generate input as invalid usage.
+    - >-
+      Update strict specs to require named CLI arguments as the only proposal population input
+      contract.
+    - Remove compatibility-only JSON wording from proposal-generating skills.
+  out:
+    - Change YAML artifact schemas.
+    - Remove JSON parsing used outside proposal generation if any remains.
+unchanged_behavior:
+  - Strict workflow artifacts remain YAML files produced and validated by CLI code.
+  - >-
+    Named-argument generation for proposals, designs, tasks, questions, and delta specs remains
+    supported.
+  - Existing archived changes remain unchanged.

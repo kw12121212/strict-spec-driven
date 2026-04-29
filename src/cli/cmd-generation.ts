@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from "fs";
 import path from "path";
 import {
-  generateChangeArtifact,
   generateChangeArtifactFromInput,
   type GeneratableArtifact,
   type GenerationInputRecord,
@@ -19,12 +18,11 @@ type FlagMap = Record<string, string[]>;
 function usage(): string {
   return [
     "Usage:",
-    "  strict-spec-driven generate <change-name> <proposal|design|tasks|questions|delta-spec> <input-json>",
     "  strict-spec-driven generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
     "  strict-spec-driven generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
-    "  strict-spec-driven generate <change-name> tasks [--reset] --section <Implementation|Testing|Verification> --task <id> --text <text> [--status <pending|complete>] [--command <cmd>]",
-    "  strict-spec-driven generate <change-name> questions [--reset] (--open <id>|--resolved <id>) --question <text> --context <text> [--answer <text>]",
-    "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--reset] --operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...",
+    "  strict-spec-driven generate <change-name> tasks [--reset] [--validation-task <id>] [--unit-test-task <id>] [--task <id> --section <Implementation|Testing|Verification> --text <text> [--status <pending|complete>] [--command <cmd>]]...",
+    "  strict-spec-driven generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)]...",
+    "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
   ].join("\n") + "\n";
 }
 
@@ -310,6 +308,194 @@ function buildTasksInput(rootDir: string, changeName: string, flags: FlagMap): G
   return input;
 }
 
+type TaskGroup = {
+  id: string;
+  section?: string;
+  text?: string;
+  status?: string;
+  command?: string;
+};
+
+type TaskCommandInput = {
+  reset: boolean;
+  validationTask?: string;
+  unitTestTask?: string;
+  tasks: TaskGroup[];
+};
+
+function parseTaskCommandInput(argv: string[], rootDir: string): TaskCommandInput {
+  const input: TaskCommandInput = { reset: false, tasks: [] };
+  let currentTask: TaskGroup | undefined;
+  let pendingSection: string | undefined;
+
+  function readValue(name: string, index: number): string {
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith("--")) {
+      throw new Error(`missing value for --${name}`);
+    }
+    return resolveStringValue(value, rootDir);
+  }
+
+  function setTaskField(field: "section" | "text" | "status" | "command", value: string, flagName: string): void {
+    if (!currentTask) {
+      if (field === "section") {
+        pendingSection = value;
+        return;
+      }
+      throw new Error("missing required argument --task");
+    }
+    if (currentTask[field] !== undefined) {
+      throw new Error(`--${flagName} may only be supplied once per task`);
+    }
+    currentTask[field] = value;
+  }
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token?.startsWith("--") || token.length === 2) {
+      throw new Error(`expected named argument, got '${token ?? ""}'`);
+    }
+
+    const name = token.slice(2);
+    if (name === "reset") {
+      input.reset = true;
+      continue;
+    }
+    if (name === "task") {
+      const id = readValue(name, index);
+      currentTask = { id };
+      if (pendingSection) {
+        currentTask.section = pendingSection;
+        pendingSection = undefined;
+      }
+      input.tasks.push(currentTask);
+      index += 1;
+      continue;
+    }
+    if (name === "validation-task") {
+      if (input.validationTask !== undefined) throw new Error("--validation-task may only be supplied once");
+      input.validationTask = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "unit-test-task") {
+      if (input.unitTestTask !== undefined) throw new Error("--unit-test-task may only be supplied once");
+      input.unitTestTask = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "section" || name === "text" || name === "status" || name === "command") {
+      setTaskField(name, readValue(name, index), name);
+      index += 1;
+      continue;
+    }
+
+    throw new Error(`unsupported argument(s): --${name}`);
+  }
+
+  if (pendingSection) {
+    throw new Error("missing required argument --task");
+  }
+  return input;
+}
+
+function buildTasksInputFromArgs(rootDir: string, changeName: string, argv: string[]): GenerationInputRecord {
+  const commandInput = parseTaskCommandInput(argv, rootDir);
+  const input = existingTasksInput(rootDir, changeName, commandInput.reset);
+  const sections = isRecord(input.sections) ? input.sections : {};
+
+  for (const taskGroup of commandInput.tasks) {
+    if (!taskGroup.section) throw new Error(`missing required argument --section for task '${taskGroup.id}'`);
+    if (!["Implementation", "Testing", "Verification"].includes(taskGroup.section)) {
+      throw new Error("--section must be one of: Implementation, Testing, Verification");
+    }
+    if (!taskGroup.text) throw new Error(`missing required argument --text for task '${taskGroup.id}'`);
+
+    const sectionMap = isRecord(sections[taskGroup.section])
+      ? sections[taskGroup.section] as GenerationInputRecord
+      : {};
+    const task: GenerationInputRecord = {
+      text: taskGroup.text,
+      status: taskGroup.status ?? "pending",
+    };
+    if (taskGroup.command) task.command = taskGroup.command;
+    upsertKeyedItem(sectionMap, taskGroup.id, task, "task");
+    sections[taskGroup.section] = sectionMap;
+  }
+  input.sections = sections;
+
+  const testingGates = isRecord(input.testing_gates) ? input.testing_gates : {};
+  if (commandInput.validationTask) testingGates.validation_task = commandInput.validationTask;
+  if (commandInput.unitTestTask) testingGates.unit_test_task = commandInput.unitTestTask;
+  input.testing_gates = testingGates;
+
+  return input;
+}
+
+type QuestionGroup = {
+  kind: "open" | "resolved";
+  id: string;
+  question?: string;
+  context?: string;
+  answer?: string;
+};
+
+type QuestionCommandInput = {
+  reset: boolean;
+  items: QuestionGroup[];
+};
+
+function parseQuestionCommandInput(argv: string[], rootDir: string): QuestionCommandInput {
+  const input: QuestionCommandInput = { reset: false, items: [] };
+  let currentItem: QuestionGroup | undefined;
+
+  function readValue(name: string, index: number): string {
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith("--")) {
+      throw new Error(`missing value for --${name}`);
+    }
+    return resolveStringValue(value, rootDir);
+  }
+
+  function setField(field: "question" | "context" | "answer", value: string, flagName: string): void {
+    if (!currentItem) {
+      throw new Error("missing required argument --open or --resolved");
+    }
+    if (currentItem[field] !== undefined) {
+      throw new Error(`--${flagName} may only be supplied once per question`);
+    }
+    currentItem[field] = value;
+  }
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token?.startsWith("--") || token.length === 2) {
+      throw new Error(`expected named argument, got '${token ?? ""}'`);
+    }
+
+    const name = token.slice(2);
+    if (name === "reset") {
+      input.reset = true;
+      continue;
+    }
+    if (name === "open" || name === "resolved") {
+      currentItem = { kind: name, id: readValue(name, index) };
+      input.items.push(currentItem);
+      index += 1;
+      continue;
+    }
+    if (name === "question" || name === "context" || name === "answer") {
+      setField(name, readValue(name, index), name);
+      index += 1;
+      continue;
+    }
+
+    throw new Error(`unsupported argument(s): --${name}`);
+  }
+
+  return input;
+}
+
 function existingQuestionsInput(rootDir: string, changeName: string, reset: boolean): GenerationInputRecord {
   if (reset) {
     return { open: [], resolved: [] };
@@ -324,31 +510,39 @@ function existingQuestionsInput(rootDir: string, changeName: string, reset: bool
   };
 }
 
-function buildQuestionsInput(rootDir: string, changeName: string, flags: FlagMap): GenerationInputRecord {
-  ensureAllowedFlags(flags, ["reset", "open", "resolved", "question", "context", "answer"]);
+function buildQuestionsInputFromArgs(rootDir: string, changeName: string, argv: string[]): GenerationInputRecord {
+  const commandInput = parseQuestionCommandInput(argv, rootDir);
+  const input = existingQuestionsInput(rootDir, changeName, commandInput.reset);
+  let open = Array.isArray(input.open) ? input.open as GenerationInputRecord[] : [];
+  let resolved = Array.isArray(input.resolved) ? input.resolved as GenerationInputRecord[] : [];
 
-  const openId = optionalOne(flags, "open");
-  const resolvedId = optionalOne(flags, "resolved");
-  if (openId && resolvedId) {
-    throw new Error("--open and --resolved cannot be supplied together");
+  for (const item of commandInput.items) {
+    if (!item.question) throw new Error(`missing required argument --question for question '${item.id}'`);
+    if (!item.context) throw new Error(`missing required argument --context for question '${item.id}'`);
+
+    if (item.kind === "open") {
+      if (item.answer !== undefined) {
+        throw new Error(`--answer is only valid with --resolved for question '${item.id}'`);
+      }
+      open = upsertListItem(open, {
+        id: item.id,
+        question: item.question,
+        context: item.context,
+      }, item.id, "open question");
+      continue;
+    }
+
+    if (!item.answer) throw new Error(`missing required argument --answer for resolved question '${item.id}'`);
+    resolved = upsertListItem(resolved, {
+      id: item.id,
+      question: item.question,
+      context: item.context,
+      answer: item.answer,
+    }, item.id, "resolved question");
   }
 
-  const input = existingQuestionsInput(rootDir, changeName, hasFlag(flags, "reset"));
-  if (openId) {
-    input.open = upsertListItem(Array.isArray(input.open) ? input.open as GenerationInputRecord[] : [], {
-      id: openId,
-      question: requiredOne(flags, "question"),
-      context: requiredOne(flags, "context"),
-    }, openId, "open question");
-  }
-  if (resolvedId) {
-    input.resolved = upsertListItem(Array.isArray(input.resolved) ? input.resolved as GenerationInputRecord[] : [], {
-      id: resolvedId,
-      question: requiredOne(flags, "question"),
-      context: requiredOne(flags, "context"),
-      answer: requiredOne(flags, "answer"),
-    }, resolvedId, "resolved question");
-  }
+  input.open = open;
+  input.resolved = resolved;
   return input;
 }
 
@@ -408,92 +602,258 @@ function emptyDeltaInput(targetSpec: string, specPath: string): GenerationInputR
   };
 }
 
-function buildScenario(flags: FlagMap): GenerationInputRecord {
-  const scenarioId = optionalOne(flags, "scenario");
-  if (!scenarioId) return {};
+type DeltaScenarioGroup = {
+  id: string;
+  steps: GenerationInputRecord[];
+};
 
-  const steps: GenerationInputRecord[] = [];
-  for (const given of values(flags, "given")) steps.push({ GIVEN: given });
-  for (const when of values(flags, "when")) steps.push({ WHEN: when });
-  for (const then of values(flags, "then")) steps.push({ THEN: then });
-  for (const and of values(flags, "and")) steps.push({ AND: and });
-  if (steps.length === 0) {
-    throw new Error("--scenario requires at least one --given, --when, --then, or --and");
+type DeltaRequirementGroup = {
+  operation: string;
+  id: string;
+  strength?: string;
+  statement?: string;
+  reason?: string;
+  scenarios: DeltaScenarioGroup[];
+};
+
+type DeltaCommandInput = {
+  reset: boolean;
+  targetSpec?: string;
+  specPath?: string;
+  implementation: string[];
+  tests: string[];
+  requirements: DeltaRequirementGroup[];
+};
+
+function parseDeltaCommandInput(argv: string[], rootDir: string): DeltaCommandInput {
+  const input: DeltaCommandInput = {
+    reset: false,
+    implementation: [],
+    tests: [],
+    requirements: [],
+  };
+  let currentOperation: string | undefined;
+  let hasPendingOperation = false;
+  let currentRequirement:
+    | {
+      operation: string;
+      id: string;
+      strength?: string;
+      statement?: string;
+      reason?: string;
+      scenarios: DeltaScenarioGroup[];
+    }
+    | undefined;
+  let currentScenario: DeltaScenarioGroup | undefined;
+
+  function readValue(name: string, index: number): string {
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith("--")) {
+      throw new Error(`missing value for --${name}`);
+    }
+    return resolveStringValue(value, rootDir);
   }
-  return { [scenarioId]: steps };
+
+  function ensureRequirement(flagName: string): NonNullable<typeof currentRequirement> {
+    if (!currentRequirement) {
+      throw new Error(`missing required argument --requirement before --${flagName}`);
+    }
+    return currentRequirement;
+  }
+
+  function finalizeScenario(): void {
+    if (!currentScenario) return;
+    if (currentScenario.steps.length === 0) {
+      throw new Error(`--scenario '${currentScenario.id}' requires at least one --given, --when, --then, or --and`);
+    }
+    ensureRequirement("scenario").scenarios.push(currentScenario);
+    currentScenario = undefined;
+  }
+
+  function finalizeRequirement(): void {
+    if (!currentRequirement) return;
+    finalizeScenario();
+    input.requirements.push(currentRequirement);
+    currentRequirement = undefined;
+  }
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token?.startsWith("--") || token.length === 2) {
+      throw new Error(`expected named argument, got '${token ?? ""}'`);
+    }
+
+    const name = token.slice(2);
+    if (name === "reset") {
+      input.reset = true;
+      continue;
+    }
+    if (name === "target-spec") {
+      if (input.targetSpec !== undefined) throw new Error("--target-spec may only be supplied once");
+      input.targetSpec = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "spec-path") {
+      if (input.specPath !== undefined) throw new Error("--spec-path may only be supplied once");
+      input.specPath = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "implementation") {
+      input.implementation.push(readValue(name, index));
+      index += 1;
+      continue;
+    }
+    if (name === "test") {
+      input.tests.push(readValue(name, index));
+      index += 1;
+      continue;
+    }
+    if (name === "operation") {
+      finalizeRequirement();
+      currentOperation = readValue(name, index);
+      hasPendingOperation = true;
+      index += 1;
+      continue;
+    }
+    if (name === "requirement") {
+      finalizeRequirement();
+      if (!currentOperation) {
+        throw new Error("missing required argument --operation before --requirement");
+      }
+      currentRequirement = {
+        operation: currentOperation,
+        id: readValue(name, index),
+        scenarios: [],
+      };
+      hasPendingOperation = false;
+      index += 1;
+      continue;
+    }
+    if (name === "strength" || name === "statement" || name === "reason") {
+      const requirement = ensureRequirement(name);
+      if (requirement[name] !== undefined) {
+        throw new Error(`--${name} may only be supplied once per requirement`);
+      }
+      requirement[name] = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "scenario") {
+      const requirement = ensureRequirement(name);
+      finalizeScenario();
+      currentScenario = {
+        id: readValue(name, index),
+        steps: [],
+      };
+      if (requirement.operation === "REMOVED") {
+        throw new Error(`--scenario is not valid for removed requirement '${requirement.id}'`);
+      }
+      index += 1;
+      continue;
+    }
+    if (name === "given" || name === "when" || name === "then" || name === "and") {
+      if (!currentScenario) {
+        throw new Error(`missing required argument --scenario before --${name}`);
+      }
+      currentScenario.steps.push({ [name.toUpperCase()]: readValue(name, index) });
+      index += 1;
+      continue;
+    }
+
+    throw new Error(`unsupported argument(s): --${name}`);
+  }
+
+  finalizeRequirement();
+  if (hasPendingOperation) {
+    throw new Error("missing required argument --requirement");
+  }
+  return input;
 }
 
-function buildDeltaInput(rootDir: string, changeName: string, flags: FlagMap): GenerationInputRecord {
-  ensureAllowedFlags(flags, [
-    "reset",
-    "target-spec",
-    "spec-path",
-    "implementation",
-    "test",
-    "operation",
-    "requirement",
-    "strength",
-    "statement",
-    "scenario",
-    "given",
-    "when",
-    "then",
-    "and",
-    "reason",
-  ]);
-
-  const targetSpec = requiredOne(flags, "target-spec");
-  const specPath = optionalOne(flags, "spec-path");
-  const input = existingDeltaInput(rootDir, changeName, targetSpec, specPath, hasFlag(flags, "reset"));
+function buildDeltaInputFromArgs(rootDir: string, changeName: string, argv: string[]): GenerationInputRecord {
+  const commandInput = parseDeltaCommandInput(argv, rootDir);
+  const targetSpec = commandInput.targetSpec;
+  if (!targetSpec) {
+    throw new Error("missing required argument --target-spec");
+  }
+  const input = existingDeltaInput(rootDir, changeName, targetSpec, commandInput.specPath, commandInput.reset);
   const mapping = isRecord(input.mapping) ? input.mapping : {};
   mapping.implementation = uniqueStrings([
     ...(Array.isArray(mapping.implementation) ? mapping.implementation as string[] : []),
-    ...values(flags, "implementation"),
+    ...commandInput.implementation,
   ]);
   mapping.tests = uniqueStrings([
     ...(Array.isArray(mapping.tests) ? mapping.tests as string[] : []),
-    ...values(flags, "test"),
+    ...commandInput.tests,
   ]);
   input.mapping = mapping;
 
-  const operation = optionalOne(flags, "operation");
-  if (!operation) return input;
-  if (!["ADDED", "MODIFIED", "REMOVED"].includes(operation)) {
-    throw new Error("--operation must be one of: ADDED, MODIFIED, REMOVED");
-  }
-  const requirementId = requiredOne(flags, "requirement");
   const operations = isRecord(input.operations) ? input.operations : {};
-  const operationMap = isRecord(operations[operation]) ? operations[operation] as GenerationInputRecord : {};
-  const item = operation === "REMOVED"
-    ? { reason: requiredOne(flags, "reason") }
-    : {
-        strength: requiredOne(flags, "strength"),
-        statement: requiredOne(flags, "statement"),
-        scenarios: buildScenario(flags),
-      };
-  upsertKeyedItem(operationMap, requirementId, item, "delta requirement");
-  operations[operation] = operationMap;
+  for (const requirement of commandInput.requirements) {
+    if (!["ADDED", "MODIFIED", "REMOVED"].includes(requirement.operation)) {
+      throw new Error("--operation must be one of: ADDED, MODIFIED, REMOVED");
+    }
+    const operationMap = isRecord(operations[requirement.operation])
+      ? operations[requirement.operation] as GenerationInputRecord
+      : {};
+
+    if (requirement.operation === "REMOVED") {
+      if (!requirement.reason) throw new Error(`missing required argument --reason for removed requirement '${requirement.id}'`);
+      if (requirement.strength || requirement.statement || requirement.scenarios.length > 0) {
+        throw new Error(`removed requirement '${requirement.id}' only supports --reason`);
+      }
+      upsertKeyedItem(operationMap, requirement.id, { reason: requirement.reason }, "delta requirement");
+      operations[requirement.operation] = operationMap;
+      continue;
+    }
+
+    if (!requirement.strength) throw new Error(`missing required argument --strength for requirement '${requirement.id}'`);
+    if (!requirement.statement) throw new Error(`missing required argument --statement for requirement '${requirement.id}'`);
+    if (requirement.reason) {
+      throw new Error(`--reason is only valid with removed requirement '${requirement.id}'`);
+    }
+
+    const scenarios: GenerationInputRecord = {};
+    for (const scenario of requirement.scenarios) {
+      const existingScenario = scenarios[scenario.id];
+      if (existingScenario === undefined) {
+        scenarios[scenario.id] = scenario.steps;
+        continue;
+      }
+      if (!deepEqual(existingScenario, scenario.steps)) {
+        throw new Error(`duplicate scenario '${scenario.id}' has conflicting content`);
+      }
+    }
+    upsertKeyedItem(operationMap, requirement.id, {
+      strength: requirement.strength,
+      statement: requirement.statement,
+      scenarios,
+    }, "delta requirement");
+    operations[requirement.operation] = operationMap;
+  }
   input.operations = operations;
   return input;
 }
 
-function buildInputFromFlags(
+function buildInputFromNamedArgs(
   rootDir: string,
   changeName: string,
   artifact: GeneratableArtifact,
-  flags: FlagMap,
+  argv: string[],
 ): GenerationInputRecord {
   switch (artifact) {
     case "proposal":
-      return buildProposalInput(flags);
+      return buildProposalInput(parseFlagMap(argv, rootDir));
     case "design":
-      return buildDesignInput(rootDir, changeName, flags);
+      return buildDesignInput(rootDir, changeName, parseFlagMap(argv, rootDir));
     case "tasks":
-      return buildTasksInput(rootDir, changeName, flags);
+      return buildTasksInputFromArgs(rootDir, changeName, argv);
     case "questions":
-      return buildQuestionsInput(rootDir, changeName, flags);
+      return buildQuestionsInputFromArgs(rootDir, changeName, argv);
     case "delta-spec":
-      return buildDeltaInput(rootDir, changeName, flags);
+      return buildDeltaInputFromArgs(rootDir, changeName, argv);
   }
 }
 
@@ -514,16 +874,12 @@ export function runGenerate(argv: string[]): number {
 
   try {
     if (!firstInputArg.startsWith("--")) {
-      if (extraArgs.length > 0) {
-        writeUsage(usage());
-        return 1;
-      }
-      writeJson(generateChangeArtifact(process.cwd(), changeName, artifact, firstInputArg));
-      return 0;
+      writeUsage(usage());
+      return 1;
     }
 
-    const flags = parseFlagMap([firstInputArg, ...extraArgs], process.cwd());
-    const input = buildInputFromFlags(process.cwd(), changeName, artifact, flags);
+    const namedArgs = [firstInputArg, ...extraArgs];
+    const input = buildInputFromNamedArgs(process.cwd(), changeName, artifact, namedArgs);
     const result = generateChangeArtifactFromInput(process.cwd(), changeName, artifact, input);
     writeJson(result);
     return 0;

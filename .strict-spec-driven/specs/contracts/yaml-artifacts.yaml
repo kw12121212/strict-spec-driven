@@ -1420,18 +1420,20 @@ requirements:
   skill-proposal-generation-uses-parameterized-cli:
     strength: MUST
     statement: >-
-      The system MUST guide proposal-generating skills to create and execute parameterized strict
-      CLI commands directly when populating strict change artifacts.
+      The system MUST guide proposal-generating skills to create strict change artifacts by
+      generating and executing parameterized strict CLI commands directly; those skills MUST NOT
+      instruct agents to hand-author change YAML artifacts or JSON payload files, and SHOULD show
+      one full-artifact invocation per artifact or per target delta spec when the CLI supports
+      grouped named arguments.
     scenarios:
-      proposal-skill-uses-parameterized-commands:
+      proposal-skill-requires-cli-generation:
         - GIVEN: a strict proposal skill needs to populate change artifacts
-        - WHEN: the skill instructions describe the preferred command workflow
+        - WHEN: the skill instructions describe the artifact generation workflow
         - THEN: >-
-            the instructions tell agents to generate direct CLI invocations using named strict CLI
+            the instructions require agents to generate and run strict CLI invocations with named
             arguments
-        - AND: >-
-            the instructions do not require agents to author JSON payload files for the preferred
-            path
+        - AND: the instructions prohibit hand-authored change YAML artifacts and JSON payload files
+        - AND: the examples prefer full-artifact commands for tasks, questions, and delta specs
   skill-commands-do-not-own-artifact-shape:
     strength: MUST
     statement: >-
@@ -1443,4 +1445,4 @@ requirements:
         - WHEN: the generated commands are reviewed
         - THEN: each command invokes strict CLI behavior with named parameters
         - AND: the commands do not construct strict YAML artifacts directly
-        - AND: the commands do not construct JSON payload files for the preferred path
+        - AND: the commands do not construct JSON payload files

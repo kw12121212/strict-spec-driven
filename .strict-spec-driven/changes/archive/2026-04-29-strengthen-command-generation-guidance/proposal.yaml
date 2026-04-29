@@ -1,0 +1,38 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: strengthen-command-generation-guidance
+  status: proposed
+summary:
+  what:
+    - >-
+      Strengthen proposal-generation guidance so agents generate strict change artifacts through
+      direct strict CLI commands.
+    - >-
+      Support the documented full-artifact named-argument command shape for tasks, questions, and
+      delta specs.
+  why:
+    - >-
+      The previous wording and CLI shape still left room for agents to hand-author YAML or
+      preferred-path JSON payload files, or to build artifacts through many partial commands.
+scope:
+  in:
+    - Update proposal-generating skill instructions with mandatory direct CLI generation language.
+    - >-
+      Update named-argument generation behavior so one command can populate complete task, question,
+      and delta spec artifacts.
+    - >-
+      Allow propose to reuse an existing empty change directory tree created before scaffold
+      generation.
+    - Update strict specs and tests for the strengthened command-generation contract.
+  out:
+    - Remove legacy JSON compatibility.
+    - Change unrelated lifecycle commands or archive behavior.
+unchanged_behavior:
+  - Strict workflow artifacts remain YAML files produced and validated by CLI code.
+  - Existing lifecycle commands and archived changes remain unchanged.
+  - >-
+    Legacy JSON generation input remains available as a compatibility path, not the preferred agent
+    workflow.

@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { hasEmbeddedTemplate, readEmbeddedTemplate } from "./embedded-templates.js";
@@ -62,6 +62,19 @@ function toRepoRelativePath(rootDir: string, absolutePath: string): string {
   return path.relative(rootDir, absolutePath).split(path.sep).join("/");
 }
 
+function directoryTreeContainsFiles(directoryPath: string): boolean {
+  for (const entry of readdirSync(directoryPath, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      if (directoryTreeContainsFiles(path.join(directoryPath, entry.name))) {
+        return true;
+      }
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
+
 export function getBundledScaffoldPath(relativePath: string): string {
   const normalized = normalizeRelativeScaffoldPath(relativePath);
   const resolved = path.resolve(BUNDLED_SCAFFOLD_DIR, normalized);
@@ -109,7 +122,12 @@ export function initializeStrictChangeScaffold(rootDir: string, changeName: stri
   const changeDir = path.join(strictChangesRootDir, changeName);
   const repoRelativeChangeDir = toRepoRelativePath(rootDir, changeDir);
   if (existsSync(changeDir)) {
-    throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
+    if (!statSync(changeDir).isDirectory()) {
+      throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
+    }
+    if (directoryTreeContainsFiles(changeDir)) {
+      throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
+    }
   }
 
   mkdirSync(changeDir, { recursive: true });
