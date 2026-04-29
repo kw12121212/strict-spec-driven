@@ -10,6 +10,7 @@ export function formatCliUsage(commands: CommandTable): string {
   if (commandNames.length > 0) {
     usage += `Commands: ${commandNames.join(", ")}\n`;
   }
+  usage += "Run 'strict-spec-driven <command> --help' for command usage.\n";
   return usage;
 }
 

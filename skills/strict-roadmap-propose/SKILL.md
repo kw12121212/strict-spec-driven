@@ -19,7 +19,7 @@ before running anything. Do not guess.
 ```yaml
 roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
-generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|tasks|questions|delta-spec> --<named-args>
+generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec> --<named-args>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
 
@@ -52,16 +52,16 @@ proceeding, verify that strict workflow state already exists.
    the full milestone plan into change artifacts — only extract guidance
    relevant to this one planned change. If `details` is absent, proceed normally.
 
-5. **Generate the normal strict change artifacts** — run direct parameterized
-   CLI invocations:
-   These commands MUST be generated and executed directly. Do not hand-author
-   strict change YAML artifacts or create JSON payload files.
+5. **Populate the normal strict change artifacts step by step** — generate
+   supported artifacts with direct parameterized CLI invocations, edit
+   scaffolded `tasks.yaml` directly, and do not create JSON payload files.
    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..." --milestone <milestone-id> --planned-change <planned-change-id>`
    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
-   - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> tasks --reset --validation-task <testing-task-id> --unit-test-task <testing-task-id> --task <implementation-task-id> --section Implementation --text "..." --status pending --task <testing-task-id> --section Testing --text "..." --status pending --command "npm test" --task <verification-task-id> --section Verification --text "..." --status pending`
+   - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema
    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` for each target spec under `.strict-spec-driven/changes/<change-name>/specs/`
-   Prefer one invocation per artifact (or per target spec for delta specs).
+   Prefer one invocation per supported generated artifact (or per target spec
+   for delta specs).
 
 6. **Validate the result** — run:
    ```bash

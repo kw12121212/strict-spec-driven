@@ -1,7 +1,12 @@
 import { getRoadmapStatus, syncRoadmap } from "../roadmap.js";
-import { writeJson, writeUsage } from "./output.js";
+import { isHelpRequest } from "./argv.js";
+import { writeHelp, writeJson, writeUsage } from "./output.js";
 
 export function runRoadmapStatus(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-driven roadmap-status\n");
+    return 0;
+  }
   if (argv.length > 0) {
     writeUsage("Usage: strict-spec-driven roadmap-status\n");
     return 1;
@@ -13,6 +18,10 @@ export function runRoadmapStatus(argv: string[]): number {
 }
 
 export function runRoadmapSync(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-driven roadmap-sync\n");
+    return 0;
+  }
   if (argv.length > 0) {
     writeUsage("Usage: strict-spec-driven roadmap-sync\n");
     return 1;

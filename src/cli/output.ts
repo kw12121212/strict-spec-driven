@@ -14,6 +14,10 @@ export function writeUsage(usage: string): void {
   process.stderr.write(usage);
 }
 
+export function writeHelp(usage: string): void {
+  process.stdout.write(usage);
+}
+
 export function writeError(message: string): void {
   process.stderr.write(`Error: ${message}\n`);
 }

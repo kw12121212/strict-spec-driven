@@ -5,7 +5,7 @@ import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 
-export const GENERATABLE_ARTIFACTS = ["proposal", "design", "tasks", "questions", "delta-spec"] as const;
+export const GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "delta-spec"] as const;
 export type GeneratableArtifact = (typeof GENERATABLE_ARTIFACTS)[number];
 
 export type GenerationInputRecord = Record<string, unknown>;
@@ -90,7 +90,6 @@ function mapGeneratedFieldToInputField(artifact: GeneratableArtifact, fieldPath:
   const directPrefixes: Record<GeneratableArtifact, string[]> = {
     proposal: ["$.summary", "$.scope", "$.unchanged_behavior", "$.roadmap"],
     design: ["$.approach", "$.decisions", "$.alternatives", "$.risks"],
-    tasks: ["$.sections", "$.testing_gates"],
     questions: ["$.open", "$.resolved"],
     "delta-spec": ["$.target_spec", "$.mapping", "$.operations"],
   };
@@ -105,7 +104,7 @@ function mapGeneratedFieldToInputField(artifact: GeneratableArtifact, fieldPath:
     if (fieldPath === "$.change.status") return "$.status";
     if (fieldPath === "$.change.id") return "<change-name>";
   }
-  if (artifact === "design" || artifact === "tasks" || artifact === "questions") {
+  if (artifact === "design" || artifact === "questions") {
     if (fieldPath === "$.change") return "<change-name>";
   }
   if (artifact === "questions") {
@@ -227,56 +226,6 @@ function buildDesignArtifact(changeName: string, input: GenerationInputRecord): 
     decisions,
     alternatives,
     risks: asOptionalStringArray(input.risks, "$.risks") ?? [],
-  };
-}
-
-function normalizeTaskMap(value: unknown, fieldPath: string): GenerationInputRecord {
-  const input = asRecord(value, fieldPath);
-  const output: GenerationInputRecord = {};
-  for (const [taskId, task] of Object.entries(input)) {
-    const taskRecord = asRecord(task, `${fieldPath}.${taskId}`);
-    const normalizedTask: GenerationInputRecord = {
-      text: asString(taskRecord.text, `${fieldPath}.${taskId}.text`),
-      status: asOptionalString(taskRecord.status, `${fieldPath}.${taskId}.status`) ?? "pending",
-    };
-    const command = asOptionalString(taskRecord.command, `${fieldPath}.${taskId}.command`);
-    if (command) {
-      normalizedTask.command = command;
-    }
-    output[taskId] = normalizedTask;
-  }
-  return output;
-}
-
-function buildTasksArtifact(changeName: string, input: GenerationInputRecord): unknown {
-  const sections = asRecord(input.sections, "$.sections");
-  const testingGates = asRecord(input.testing_gates, "$.testing_gates");
-  const artifactSections: GenerationInputRecord = {};
-  const supportedSections = new Set(["Implementation", "Testing", "Verification"]);
-
-  for (const sectionName of Object.keys(sections)) {
-    if (!supportedSections.has(sectionName)) {
-      throw new Error("input field '$.sections' may only contain Implementation, Testing, and Verification");
-    }
-  }
-
-  for (const sectionName of supportedSections) {
-    if (sections[sectionName] !== undefined) {
-      artifactSections[sectionName] = normalizeTaskMap(sections[sectionName], `$.sections.${sectionName}`);
-    }
-  }
-
-  return {
-    schema: "strict-spec-driven/task-list/v2",
-    schema_version: 2,
-    artifact_type: "task_list",
-    schema_file: "templates/strict-spec-driven/schemas/task-list.yaml",
-    change: changeName,
-    sections: artifactSections,
-    testing_gates: {
-      validation_task: asString(testingGates.validation_task, "$.testing_gates.validation_task"),
-      unit_test_task: asString(testingGates.unit_test_task, "$.testing_gates.unit_test_task"),
-    },
   };
 }
 
@@ -417,12 +366,6 @@ function buildTarget(
         artifact: buildDesignArtifact(changeName, input),
         artifactType: "change_design",
         absolutePath: path.join(changeDir, "design.yaml"),
-      };
-    case "tasks":
-      return {
-        artifact: buildTasksArtifact(changeName, input),
-        artifactType: "task_list",
-        absolutePath: path.join(changeDir, "tasks.yaml"),
       };
     case "questions":
       return {

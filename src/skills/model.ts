@@ -36,7 +36,7 @@ export const EXPECTED_TEMPLATE_SYMLINK = "../../templates";
 export const COMMAND_PREFIX = "node {{SKILL_DIR}}/scripts/strict-spec-driven.js";
 export const GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
 export const GENERATE_NAMED_ARGS_COMMAND =
-  `${COMMAND_PREFIX} generate <change-name> <proposal|design|tasks|questions|delta-spec> --<named-args>`;
+  `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec> --<named-args>`;
 
 export type SkillContentExpectation = {
   requiredCommands: Record<string, string>;

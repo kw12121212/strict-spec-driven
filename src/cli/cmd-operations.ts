@@ -3,9 +3,10 @@ import path from "path";
 import { getRoadmapStatus } from "../roadmap.js";
 import { validateStrictSkillPackaging } from "../skills.js";
 import { parseYamlDocument } from "../yaml.js";
+import { isHelpRequest } from "./argv.js";
 import { findArchivedMatchesByBareName, getArchiveDir } from "./changes.js";
 import { normalizeRepoRelativePath } from "./fs.js";
-import { writeErr, writeError, writeJson, writeUsage } from "./output.js";
+import { writeErr, writeError, writeHelp, writeJson, writeUsage } from "./output.js";
 import { verifySpecMappings } from "./spec-mapping.js";
 
 export type ShipResult = {
@@ -17,6 +18,10 @@ export type ShipResult = {
 
 export function runShip(argv: string[]): number {
   const [target, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-driven ship <change-name>\n");
+    return 0;
+  }
   if (!target || extraArgs.length > 0) {
     writeUsage("Usage: strict-spec-driven ship <change-name>\n");
     return 1;
@@ -82,6 +87,10 @@ export function runShip(argv: string[]): number {
 }
 
 export function runValidateSkills(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-driven validate-skills\n");
+    return 0;
+  }
   if (argv.length > 0) {
     writeUsage("Usage: strict-spec-driven validate-skills\n");
     return 1;
@@ -93,6 +102,10 @@ export function runValidateSkills(argv: string[]): number {
 }
 
 export function runVerifySpecMappings(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-driven verify-spec-mappings\n");
+    return 0;
+  }
   if (argv.length > 0) {
     writeUsage("Usage: strict-spec-driven verify-spec-mappings\n");
     return 1;

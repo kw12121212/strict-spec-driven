@@ -1284,12 +1284,13 @@ requirements:
     strength: MUST
     statement: >-
       The system MUST expose proposal population as artifact-level operations so proposal, design,
-      tasks, questions, and individual delta specs can be generated through separate CLI
-      invocations.
+      questions, and individual delta specs can be generated through separate CLI invocations.
     scenarios:
       artifacts-can-be-generated-one-at-a-time:
         - GIVEN: a strict change scaffold exists
-        - WHEN: a user or agent generates only one planning artifact from explicit command input
+        - WHEN: >-
+            a user or agent generates only one supported planning artifact from explicit command
+            input
         - THEN: the command writes only that target artifact
         - AND: unrelated planning artifacts in the same change are left unchanged
   cli-propose-generation-preserves-scaffold-behavior:
@@ -1319,38 +1320,15 @@ requirements:
   cli-propose-generation-uses-named-arguments:
     strength: MUST
     statement: >-
-      The system MUST provide proposal population commands that accept artifact content only through
-      named CLI arguments, including repeated grouped task, question, mapping, scenario, and
+      The system MUST provide proposal population commands that accept supported artifact content
+      only through named CLI arguments, including repeated grouped question, mapping, scenario, and
       requirement arguments in a single invocation for artifacts that contain keyed collections.
     scenarios:
-      proposal-flags-populate-proposal-artifact:
-        - GIVEN: a strict change scaffold already exists
-        - AND: >-
-            an agent supplies proposal summary, scope, and unchanged behavior through named CLI
-            flags
-        - WHEN: the proposal population command is executed
-        - THEN: the target proposal.yaml is written under the change directory
-        - AND: the written artifact validates against the strict change proposal schema
-      repeatable-flags-populate-lists:
-        - GIVEN: an artifact field accepts multiple values
-        - WHEN: the corresponding named flag is repeated in one command invocation
-        - THEN: the generated strict YAML artifact preserves each supplied value in order
-      grouped-named-arguments-populate-full-artifacts:
-        - GIVEN: a strict change scaffold already exists
-        - AND: >-
-            an agent supplies multiple task, question, mapping, scenario, or delta requirement
-            groups through named CLI flags in one command
-        - WHEN: the artifact population command is executed
-        - THEN: the target strict YAML artifact includes all supplied grouped entries
-        - AND: repeated equivalent keyed content remains idempotent
-      positional-json-input-is-rejected:
-        - GIVEN: a strict change scaffold already exists
-        - WHEN: >-
-            the generation command receives a positional input file argument instead of named CLI
-            arguments
-        - THEN: the command exits non-zero with usage output
-        - AND: the usage output does not advertise an input-json form
-        - AND: the target artifact remains unchanged
+      named-argument-generation-does-not-use-payload-files:
+        - GIVEN: a strict change scaffold exists
+        - WHEN: an agent populates supported generated artifacts
+        - THEN: the generated CLI commands use named arguments directly
+        - AND: no JSON payload file is required
   cli-propose-generation-uses-direct-invocations:
     strength: MUST
     statement: >-
@@ -1408,3 +1386,33 @@ requirements:
         - WHEN: a later population command targets the same identifier with conflicting content
         - THEN: the command exits non-zero before writing the artifact
         - AND: stderr identifies the duplicate identifier conflict
+  cli-propose-tasks-yaml-remains-scaffold-authored:
+    strength: MUST
+    statement: >-
+      The system MUST keep tasks.yaml as a scaffolded change artifact that agents edit directly
+      according to the task-list schema rather than exposing tasks as a generate command artifact.
+    scenarios:
+      tasks-artifact-is-not-generated-by-command:
+        - GIVEN: a strict change scaffold exists
+        - WHEN: the generate command is invoked with the tasks artifact selector
+        - THEN: the command exits non-zero
+        - AND: the scaffolded tasks.yaml remains unchanged
+  cli-subcommands-support-help:
+    strength: MUST
+    statement: >-
+      The system MUST support exact `--help` and `-h` help requests for the root CLI and every
+      registered subcommand, printing usage to stdout and exiting zero without performing the
+      command's normal mutation or validation behavior.
+    scenarios:
+      root-help-lists-commands:
+        - GIVEN: the strict CLI is available
+        - WHEN: the root CLI is invoked with `--help`
+        - THEN: the command exits zero
+        - AND: stdout lists the registered commands in canonical order
+        - AND: stderr is empty
+      subcommand-help-shows-usage:
+        - GIVEN: a registered strict CLI subcommand exists
+        - WHEN: that subcommand is invoked with `--help`
+        - THEN: the command exits zero
+        - AND: stdout contains the subcommand usage
+        - AND: stderr is empty

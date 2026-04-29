@@ -1,0 +1,36 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: remove-task-generate-command
+  status: proposed
+summary:
+  what:
+    - Remove command-line generation for tasks.yaml.
+    - Add per-command CLI help for discoverable generated command arguments.
+  why:
+    - >-
+      Task artifacts require many task-specific arguments and are clearer when AI edits the
+      scaffolded YAML directly.
+scope:
+  in:
+    - Remove the tasks artifact selector from the generate command contract.
+    - >-
+      Update strict skills to instruct AI agents to fill tasks.yaml from the scaffold according to
+      the task-list schema.
+    - >-
+      Update tests and specs so proposal/design/questions/delta generation remains CLI-driven while
+      tasks.yaml is scaffold-edited.
+    - Add `--help` support for every strict CLI subcommand so agents can discover usage directly.
+    - >-
+      Update strict skills to spell out the artifact population sequence step by step: propose
+      scaffold, generate proposal, generate design, edit tasks.yaml, generate questions, then
+      generate delta specs.
+  out:
+    - Remove task-list validation, apply, or archive behavior.
+    - Reintroduce JSON or payload-file task generation.
+unchanged_behavior:
+  - The propose command still scaffolds tasks.yaml for every change.
+  - The apply, verify, review, and archive commands continue to consume tasks.yaml.
+  - Invalid and incomplete subcommand invocations still exit non-zero and print usage to stderr.

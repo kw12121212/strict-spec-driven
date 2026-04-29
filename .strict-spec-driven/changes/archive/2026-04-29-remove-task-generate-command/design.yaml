@@ -1,0 +1,47 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: remove-task-generate-command
+approach:
+  - >-
+    Keep propose scaffolding responsible for creating an initial tasks.yaml, but remove tasks from
+    the generate command's supported artifact selectors.
+  - >-
+    Update strict skills so agents directly edit the scaffolded tasks.yaml according to the
+    task-list schema while continuing to use generate for proposal, design, questions, and delta
+    specs.
+  - >-
+    Adjust tests and specs to assert that generate rejects the tasks artifact and that the workflow
+    no longer advertises a tasks generation command.
+  - >-
+    Add exact `--help` handling at the root command and within each subcommand so help requests exit
+    zero and print usage to stdout, while invalid argument usage keeps exiting non-zero with stderr
+    usage.
+  - >-
+    Revise skill instructions to enumerate each proposal step in execution order: scaffold with
+    `propose`, populate proposal/design/questions/delta specs with `generate`, and edit the
+    scaffolded `tasks.yaml` directly according to the task-list schema.
+decisions:
+  tasks-yaml-ai-authored:
+    decision: Treat tasks.yaml as an AI-authored scaffold artifact instead of a command-generated artifact.
+    rationale: >-
+      The task artifact needs many repeated task fields, so direct schema-guided YAML editing is
+      simpler and more maintainable than an oversized CLI surface.
+  command-help-is-explicit:
+    decision: Implement help as exact `--help` or `-h` requests for every command.
+    rationale: >-
+      Agents need a reliable, non-mutating way to discover command arguments without triggering
+      command validation or filesystem changes.
+alternatives:
+  - option: Keep the grouped generate tasks command.
+    reason: >-
+      It preserves full CLI generation but produces commands that are too long for normal AI
+      workflow use.
+risks:
+  - >-
+    Agents can produce invalid tasks.yaml if skill guidance is too vague, so skills must point to
+    the scaffold and task-list schema requirements.
+  - >-
+    Help text can drift from command validation unless tests cover the registered command set and
+    key generate selectors.

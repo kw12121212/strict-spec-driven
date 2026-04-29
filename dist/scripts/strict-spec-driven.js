@@ -6513,6 +6513,31 @@ function normalizeCliInvocation(argv) {
   const [subcommand, ...subcommandArgs] = argv;
   return { subcommand, subcommandArgs };
 }
+function isHelpRequest(argv) {
+  return argv.length === 1 && (argv[0] === "--help" || argv[0] === "-h");
+}
+
+// src/cli/output.ts
+function writeJson(result) {
+  process.stdout.write(JSON.stringify(result) + `
+`);
+}
+function writeOut(text) {
+  process.stdout.write(text);
+}
+function writeErr(text) {
+  process.stderr.write(text);
+}
+function writeUsage(usage) {
+  process.stderr.write(usage);
+}
+function writeHelp(usage) {
+  process.stdout.write(usage);
+}
+function writeError(message) {
+  process.stderr.write(`Error: ${message}
+`);
+}
 
 // src/cli/usage.ts
 function getRegisteredCommandNames(commands) {
@@ -6526,6 +6551,8 @@ function formatCliUsage(commands) {
     usage += `Commands: ${commandNames.join(", ")}
 `;
   }
+  usage += `Run 'strict-spec-driven <command> --help' for command usage.
+`;
   return usage;
 }
 function writeCliUsage(commands) {
@@ -6535,6 +6562,10 @@ function writeCliUsage(commands) {
 // src/cli/entrypoint.ts
 function runCliEntrypoint(argv, commands) {
   const { subcommand, subcommandArgs } = normalizeCliInvocation(argv);
+  if (isHelpRequest(argv)) {
+    writeOut(formatCliUsage(commands));
+    return 0;
+  }
   if (!subcommand || !(subcommand in commands)) {
     writeCliUsage(commands);
     return 1;
@@ -10871,27 +10902,18 @@ function initializeStrictScaffold(rootDir) {
   };
 }
 
-// src/cli/output.ts
-function writeJson(result) {
-  process.stdout.write(JSON.stringify(result) + `
-`);
-}
-function writeOut(text) {
-  process.stdout.write(text);
-}
-function writeErr(text) {
-  process.stderr.write(text);
-}
-function writeUsage(usage) {
-  process.stderr.write(usage);
-}
-function writeError(message) {
-  process.stderr.write(`Error: ${message}
-`);
-}
-
 // src/cli/cmd-scaffold.ts
-function runInit() {
+function runInit(argv = []) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven init
+`);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(`Usage: strict-spec-driven init
+`);
+    return 1;
+  }
   const missingAssets = findMissingRequiredScaffoldAssets();
   if (missingAssets.length > 0) {
     writeError("missing bundled scaffold assets required by init:");
@@ -10916,6 +10938,11 @@ function runInit() {
 }
 function runPropose(argv) {
   const [changeName, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven propose <change-name>
+`);
+    return 0;
+  }
   if (!changeName || extraArgs.length > 0) {
     writeUsage(`Usage: strict-spec-driven propose <change-name>
 `);
@@ -11233,7 +11260,7 @@ function validateArtifact(schema2, artifact, artifactPath, options = {}) {
 
 // src/propose-generation.ts
 var STRICT_WORKFLOW_DIR2 = ".strict-spec-driven";
-var GENERATABLE_ARTIFACTS = ["proposal", "design", "tasks", "questions", "delta-spec"];
+var GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "delta-spec"];
 function normalizeRepoRelativePath(rootDir, absolutePath) {
   return path3.relative(rootDir, absolutePath).split(path3.sep).join("/");
 }
@@ -11290,7 +11317,6 @@ function mapGeneratedFieldToInputField(artifact, fieldPath) {
   const directPrefixes = {
     proposal: ["$.summary", "$.scope", "$.unchanged_behavior", "$.roadmap"],
     design: ["$.approach", "$.decisions", "$.alternatives", "$.risks"],
-    tasks: ["$.sections", "$.testing_gates"],
     questions: ["$.open", "$.resolved"],
     "delta-spec": ["$.target_spec", "$.mapping", "$.operations"]
   };
@@ -11305,7 +11331,7 @@ function mapGeneratedFieldToInputField(artifact, fieldPath) {
     if (fieldPath === "$.change.id")
       return "<change-name>";
   }
-  if (artifact === "design" || artifact === "tasks" || artifact === "questions") {
+  if (artifact === "design" || artifact === "questions") {
     if (fieldPath === "$.change")
       return "<change-name>";
   }
@@ -11411,51 +11437,6 @@ function buildDesignArtifact(changeName, input) {
     decisions,
     alternatives,
     risks: asOptionalStringArray(input.risks, "$.risks") ?? []
-  };
-}
-function normalizeTaskMap(value, fieldPath) {
-  const input = asRecord(value, fieldPath);
-  const output = {};
-  for (const [taskId, task] of Object.entries(input)) {
-    const taskRecord = asRecord(task, `${fieldPath}.${taskId}`);
-    const normalizedTask = {
-      text: asString(taskRecord.text, `${fieldPath}.${taskId}.text`),
-      status: asOptionalString(taskRecord.status, `${fieldPath}.${taskId}.status`) ?? "pending"
-    };
-    const command = asOptionalString(taskRecord.command, `${fieldPath}.${taskId}.command`);
-    if (command) {
-      normalizedTask.command = command;
-    }
-    output[taskId] = normalizedTask;
-  }
-  return output;
-}
-function buildTasksArtifact(changeName, input) {
-  const sections = asRecord(input.sections, "$.sections");
-  const testingGates = asRecord(input.testing_gates, "$.testing_gates");
-  const artifactSections = {};
-  const supportedSections = new Set(["Implementation", "Testing", "Verification"]);
-  for (const sectionName of Object.keys(sections)) {
-    if (!supportedSections.has(sectionName)) {
-      throw new Error("input field '$.sections' may only contain Implementation, Testing, and Verification");
-    }
-  }
-  for (const sectionName of supportedSections) {
-    if (sections[sectionName] !== undefined) {
-      artifactSections[sectionName] = normalizeTaskMap(sections[sectionName], `$.sections.${sectionName}`);
-    }
-  }
-  return {
-    schema: "strict-spec-driven/task-list/v2",
-    schema_version: 2,
-    artifact_type: "task_list",
-    schema_file: "templates/strict-spec-driven/schemas/task-list.yaml",
-    change: changeName,
-    sections: artifactSections,
-    testing_gates: {
-      validation_task: asString(testingGates.validation_task, "$.testing_gates.validation_task"),
-      unit_test_task: asString(testingGates.unit_test_task, "$.testing_gates.unit_test_task")
-    }
   };
 }
 function normalizeOpenQuestion(question, index) {
@@ -11572,12 +11553,6 @@ function buildTarget(rootDir, changeDir, changeName, artifact, input) {
         artifactType: "change_design",
         absolutePath: path3.join(changeDir, "design.yaml")
       };
-    case "tasks":
-      return {
-        artifact: buildTasksArtifact(changeName, input),
-        artifactType: "task_list",
-        absolutePath: path3.join(changeDir, "tasks.yaml")
-      };
     case "questions":
       return {
         artifact: buildQuestionsArtifact(changeName, input),
@@ -11631,10 +11606,11 @@ var STRICT_WORKFLOW_DIR3 = ".strict-spec-driven";
 var BOOLEAN_FLAGS = new Set(["reset"]);
 function usage() {
   return [
-    "Usage:",
+    "Usage: strict-spec-driven generate <change-name> <proposal|design|questions|delta-spec> --<named-args>",
+    "",
+    "Examples:",
     "  strict-spec-driven generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
     "  strict-spec-driven generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
-    "  strict-spec-driven generate <change-name> tasks [--reset] [--validation-task <id>] [--unit-test-task <id>] [--task <id> --section <Implementation|Testing|Verification> --text <text> [--status <pending|complete>] [--command <cmd>]]...",
     "  strict-spec-driven generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)]...",
     "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]..."
   ].join(`
@@ -11827,118 +11803,6 @@ function buildDesignInput(rootDir, changeName, flags) {
     }
   }
   input.alternatives = alternatives;
-  return input;
-}
-function existingTasksInput(rootDir, changeName, reset) {
-  if (reset) {
-    return { sections: {}, testing_gates: { validation_task: "", unit_test_task: "" } };
-  }
-  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/changes/${changeName}/tasks.yaml`);
-  return {
-    sections: isRecord2(artifact?.sections) ? artifact.sections : {},
-    testing_gates: isRecord2(artifact?.testing_gates) ? artifact.testing_gates : { validation_task: "", unit_test_task: "" }
-  };
-}
-function parseTaskCommandInput(argv, rootDir) {
-  const input = { reset: false, tasks: [] };
-  let currentTask;
-  let pendingSection;
-  function readValue(name, index) {
-    const value = argv[index + 1];
-    if (value === undefined || value.startsWith("--")) {
-      throw new Error(`missing value for --${name}`);
-    }
-    return resolveStringValue(value, rootDir);
-  }
-  function setTaskField(field, value, flagName) {
-    if (!currentTask) {
-      if (field === "section") {
-        pendingSection = value;
-        return;
-      }
-      throw new Error("missing required argument --task");
-    }
-    if (currentTask[field] !== undefined) {
-      throw new Error(`--${flagName} may only be supplied once per task`);
-    }
-    currentTask[field] = value;
-  }
-  for (let index = 0;index < argv.length; index += 1) {
-    const token = argv[index];
-    if (!token?.startsWith("--") || token.length === 2) {
-      throw new Error(`expected named argument, got '${token ?? ""}'`);
-    }
-    const name = token.slice(2);
-    if (name === "reset") {
-      input.reset = true;
-      continue;
-    }
-    if (name === "task") {
-      const id = readValue(name, index);
-      currentTask = { id };
-      if (pendingSection) {
-        currentTask.section = pendingSection;
-        pendingSection = undefined;
-      }
-      input.tasks.push(currentTask);
-      index += 1;
-      continue;
-    }
-    if (name === "validation-task") {
-      if (input.validationTask !== undefined)
-        throw new Error("--validation-task may only be supplied once");
-      input.validationTask = readValue(name, index);
-      index += 1;
-      continue;
-    }
-    if (name === "unit-test-task") {
-      if (input.unitTestTask !== undefined)
-        throw new Error("--unit-test-task may only be supplied once");
-      input.unitTestTask = readValue(name, index);
-      index += 1;
-      continue;
-    }
-    if (name === "section" || name === "text" || name === "status" || name === "command") {
-      setTaskField(name, readValue(name, index), name);
-      index += 1;
-      continue;
-    }
-    throw new Error(`unsupported argument(s): --${name}`);
-  }
-  if (pendingSection) {
-    throw new Error("missing required argument --task");
-  }
-  return input;
-}
-function buildTasksInputFromArgs(rootDir, changeName, argv) {
-  const commandInput = parseTaskCommandInput(argv, rootDir);
-  const input = existingTasksInput(rootDir, changeName, commandInput.reset);
-  const sections = isRecord2(input.sections) ? input.sections : {};
-  for (const taskGroup of commandInput.tasks) {
-    if (!taskGroup.section)
-      throw new Error(`missing required argument --section for task '${taskGroup.id}'`);
-    if (!["Implementation", "Testing", "Verification"].includes(taskGroup.section)) {
-      throw new Error("--section must be one of: Implementation, Testing, Verification");
-    }
-    if (!taskGroup.text)
-      throw new Error(`missing required argument --text for task '${taskGroup.id}'`);
-    const sectionMap = isRecord2(sections[taskGroup.section]) ? sections[taskGroup.section] : {};
-    const task = {
-      text: taskGroup.text,
-      status: taskGroup.status ?? "pending"
-    };
-    if (taskGroup.command)
-      task.command = taskGroup.command;
-    upsertKeyedItem(sectionMap, taskGroup.id, task, "task");
-    sections[taskGroup.section] = sectionMap;
-  }
-  input.sections = sections;
-  const testingGates = isRecord2(input.testing_gates) ? input.testing_gates : {};
-  if (commandInput.validationTask)
-    testingGates.validation_task = commandInput.validationTask;
-  if (commandInput.unitTestTask)
-    testingGates.unit_test_task = commandInput.unitTestTask;
-  input.testing_gates = testingGates;
   return input;
 }
 function parseQuestionCommandInput(argv, rootDir) {
@@ -12275,8 +12139,6 @@ function buildInputFromNamedArgs(rootDir, changeName, artifact, argv) {
       return buildProposalInput(parseFlagMap(argv, rootDir));
     case "design":
       return buildDesignInput(rootDir, changeName, parseFlagMap(argv, rootDir));
-    case "tasks":
-      return buildTasksInputFromArgs(rootDir, changeName, argv);
     case "questions":
       return buildQuestionsInputFromArgs(rootDir, changeName, argv);
     case "delta-spec":
@@ -12285,6 +12147,10 @@ function buildInputFromNamedArgs(rootDir, changeName, artifact, argv) {
 }
 function runGenerate(argv) {
   const [changeName, artifact, firstInputArg, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(usage());
+    return 0;
+  }
   if (!changeName || !artifact || !firstInputArg) {
     writeUsage(usage());
     return 1;
@@ -12294,7 +12160,7 @@ function runGenerate(argv) {
     return 1;
   }
   if (!isGeneratableArtifact(artifact)) {
-    writeError("artifact must be one of: proposal, design, tasks, questions, delta-spec");
+    writeError("artifact must be one of: proposal, design, questions, delta-spec");
     return 1;
   }
   try {
@@ -14020,6 +13886,11 @@ function printChangeArtifacts(rootDir, name, changeDir) {
 }
 function runApply(argv) {
   const [changeName, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven apply <change-name>
+`);
+    return 0;
+  }
   if (!changeName || extraArgs.length > 0) {
     writeUsage(`Usage: strict-spec-driven apply <change-name>
 `);
@@ -14043,6 +13914,11 @@ function runApply(argv) {
 }
 function runVerify(argv) {
   const [changeName, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven verify <change-name>
+`);
+    return 0;
+  }
   if (!changeName || extraArgs.length > 0) {
     writeUsage(`Usage: strict-spec-driven verify <change-name>
 `);
@@ -14064,6 +13940,11 @@ function runVerify(argv) {
 }
 function runReview(argv) {
   const [changeName, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven review <change-name>
+`);
+    return 0;
+  }
   if (!changeName || extraArgs.length > 0) {
     writeUsage(`Usage: strict-spec-driven review <change-name>
 `);
@@ -14085,6 +13966,11 @@ function runReview(argv) {
 }
 function runArchive(argv) {
   const [changeName, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven archive <change-name>
+`);
+    return 0;
+  }
   if (!changeName || extraArgs.length > 0) {
     writeUsage(`Usage: strict-spec-driven archive <change-name>
 `);
@@ -14105,6 +13991,11 @@ function runArchive(argv) {
   }
 }
 function runList(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven list
+`);
+    return 0;
+  }
   if (argv.length > 0) {
     writeUsage(`Usage: strict-spec-driven list
 `);
@@ -14143,6 +14034,11 @@ function runList(argv) {
 }
 function runModify(argv) {
   const [target, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven modify [change-name|archive-dir]
+`);
+    return 0;
+  }
   if (extraArgs.length > 0) {
     writeUsage(`Usage: strict-spec-driven modify [change-name|archive-dir]
 `);
@@ -14185,6 +14081,11 @@ function runModify(argv) {
 }
 function runCancel(argv) {
   const [target, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven cancel <change-name>
+`);
+    return 0;
+  }
   if (!target || extraArgs.length > 0) {
     writeUsage(`Usage: strict-spec-driven cancel <change-name>
 `);
@@ -14219,6 +14120,11 @@ function runCancel(argv) {
 
 // src/cli/cmd-roadmap.ts
 function runRoadmapStatus(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven roadmap-status
+`);
+    return 0;
+  }
   if (argv.length > 0) {
     writeUsage(`Usage: strict-spec-driven roadmap-status
 `);
@@ -14229,6 +14135,11 @@ function runRoadmapStatus(argv) {
   return result.valid ? 0 : 1;
 }
 function runRoadmapSync(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven roadmap-sync
+`);
+    return 0;
+  }
   if (argv.length > 0) {
     writeUsage(`Usage: strict-spec-driven roadmap-sync
 `);
@@ -16085,6 +15996,11 @@ function migrateLegacyWorkflow(rootDir, options) {
 
 // src/cli/cmd-migration.ts
 function runMigrate(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven migrate
+`);
+    return 0;
+  }
   if (argv.length > 0) {
     writeUsage(`Usage: strict-spec-driven migrate
 `);
@@ -16104,6 +16020,11 @@ function runMigrate(argv) {
   }
 }
 function runMaintenanceCommand(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven maintenance
+`);
+    return 0;
+  }
   if (argv.length > 0) {
     writeUsage(`Usage: strict-spec-driven maintenance
 `);
@@ -16128,7 +16049,7 @@ var EXPECTED_SCRIPT_SYMLINK = "../../dist/scripts";
 var EXPECTED_TEMPLATE_SYMLINK = "../../templates";
 var COMMAND_PREFIX = "node {{SKILL_DIR}}/scripts/strict-spec-driven.js";
 var GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
-var GENERATE_NAMED_ARGS_COMMAND = `${COMMAND_PREFIX} generate <change-name> <proposal|design|tasks|questions|delta-spec> --<named-args>`;
+var GENERATE_NAMED_ARGS_COMMAND = `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec> --<named-args>`;
 var ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 var CORE_STRICT_SKILL_EXPECTATIONS = {
   "strict-spec-init": {
@@ -16845,6 +16766,11 @@ function verifySpecMappings(rootDir) {
 // src/cli/cmd-operations.ts
 function runShip(argv) {
   const [target, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven ship <change-name>
+`);
+    return 0;
+  }
   if (!target || extraArgs.length > 0) {
     writeUsage(`Usage: strict-spec-driven ship <change-name>
 `);
@@ -16901,6 +16827,11 @@ function runShip(argv) {
   return 0;
 }
 function runValidateSkills(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven validate-skills
+`);
+    return 0;
+  }
   if (argv.length > 0) {
     writeUsage(`Usage: strict-spec-driven validate-skills
 `);
@@ -16911,6 +16842,11 @@ function runValidateSkills(argv) {
   return result.valid ? 0 : 1;
 }
 function runVerifySpecMappings(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven verify-spec-mappings
+`);
+    return 0;
+  }
   if (argv.length > 0) {
     writeUsage(`Usage: strict-spec-driven verify-spec-mappings
 `);
@@ -16923,7 +16859,7 @@ function runVerifySpecMappings(argv) {
 
 // src/strict-spec-cli.ts
 var commands = createCliCommandTable({
-  init: () => runInit(),
+  init: (argv) => runInit(argv),
   propose: (argv) => runPropose(argv),
   generate: (argv) => runGenerate(argv),
   apply: (argv) => runApply(argv),

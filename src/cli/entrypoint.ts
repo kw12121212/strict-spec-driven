@@ -1,11 +1,16 @@
-import { normalizeCliInvocation } from "./argv.js";
-import { writeCliUsage } from "./usage.js";
+import { isHelpRequest, normalizeCliInvocation } from "./argv.js";
+import { writeOut } from "./output.js";
+import { formatCliUsage, writeCliUsage } from "./usage.js";
 
 export type CliCommandHandler = (argv: string[]) => number | void;
 export type CliCommandTable = Record<string, CliCommandHandler>;
 
 export function runCliEntrypoint(argv: string[], commands: CliCommandTable): number {
   const { subcommand, subcommandArgs } = normalizeCliInvocation(argv);
+  if (isHelpRequest(argv)) {
+    writeOut(formatCliUsage(commands));
+    return 0;
+  }
   if (!subcommand || !(subcommand in commands)) {
     writeCliUsage(commands);
     return 1;

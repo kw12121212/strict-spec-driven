@@ -1420,29 +1420,34 @@ requirements:
   skill-proposal-generation-uses-parameterized-cli:
     strength: MUST
     statement: >-
-      The system MUST guide proposal-generating skills to create strict change artifacts by
-      generating and executing parameterized strict CLI commands directly; those skills MUST NOT
-      instruct agents to hand-author change YAML artifacts or JSON payload files, and SHOULD show
-      one full-artifact invocation per artifact or per target delta spec when the CLI supports
-      grouped named arguments.
+      The system MUST guide proposal-generating skills to create generated strict change artifacts
+      by executing parameterized strict CLI commands directly, while guiding agents to edit
+      scaffolded tasks.yaml directly according to the task-list schema; those skills MUST NOT
+      instruct agents to create JSON payload files, and SHOULD show one full-artifact invocation for
+      supported generated artifacts or per target delta spec.
     scenarios:
       proposal-skill-requires-cli-generation:
         - GIVEN: a strict proposal skill needs to populate change artifacts
         - WHEN: the skill instructions describe the artifact generation workflow
         - THEN: >-
             the instructions require agents to generate and run strict CLI invocations with named
-            arguments
-        - AND: the instructions prohibit hand-authored change YAML artifacts and JSON payload files
-        - AND: the examples prefer full-artifact commands for tasks, questions, and delta specs
+            arguments for supported generated artifacts
+        - AND: the instructions direct agents to edit the scaffolded tasks.yaml directly
+        - AND: >-
+            the instructions describe the ordered workflow steps from `propose` through each
+            artifact population step
+        - AND: the instructions prohibit JSON payload files
   skill-commands-do-not-own-artifact-shape:
     strength: MUST
     statement: >-
       The system MUST preserve the boundary that skills and generated CLI invocations provide key
-      facts while CLI code owns strict artifact shape, defaults, YAML writing, and validation.
+      facts while CLI code owns strict artifact shape, defaults, YAML writing, and validation for
+      supported generated artifacts, with tasks.yaml remaining governed by its scaffold and schema.
     scenarios:
       command-does-not-construct-yaml-or-json:
         - GIVEN: a proposal skill instructs an agent to generate CLI invocations
         - WHEN: the generated commands are reviewed
-        - THEN: each command invokes strict CLI behavior with named parameters
-        - AND: the commands do not construct strict YAML artifacts directly
+        - THEN: >-
+            each command invokes strict CLI behavior with named parameters for supported generated
+            artifacts
         - AND: the commands do not construct JSON payload files

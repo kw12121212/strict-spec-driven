@@ -4,10 +4,19 @@ import {
   initializeStrictChangeScaffold,
   initializeStrictScaffold,
 } from "../scaffold.js";
-import { CHANGE_NAME_PATTERN } from "./argv.js";
-import { writeErr, writeError, writeOut, writeUsage } from "./output.js";
+import { CHANGE_NAME_PATTERN, isHelpRequest } from "./argv.js";
+import { writeErr, writeError, writeHelp, writeOut, writeUsage } from "./output.js";
 
-export function runInit(): number {
+export function runInit(argv: string[] = []): number {
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-driven init\n");
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage("Usage: strict-spec-driven init\n");
+    return 1;
+  }
+
   const missingAssets = findMissingRequiredScaffoldAssets();
   if (missingAssets.length > 0) {
     writeError("missing bundled scaffold assets required by init:");
@@ -30,6 +39,10 @@ export function runInit(): number {
 
 export function runPropose(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-driven propose <change-name>\n");
+    return 0;
+  }
   if (!changeName || extraArgs.length > 0) {
     writeUsage("Usage: strict-spec-driven propose <change-name>\n");
     return 1;

@@ -500,6 +500,42 @@ try {
   const proposalPath = path.join(changeDir, "proposal.yaml");
   const originalDesign = readFileSync(path.join(changeDir, "design.yaml"), "utf8");
 
+  function writeCompleteTasksArtifact(targetChangeDir: string, targetChangeName: string): void {
+    writeFileSync(
+      path.join(targetChangeDir, "tasks.yaml"),
+      [
+        "schema: strict-spec-driven/task-list/v2",
+        "schema_version: 2",
+        "artifact_type: task_list",
+        "schema_file: templates/strict-spec-driven/schemas/task-list.yaml",
+        `change: ${targetChangeName}`,
+        "sections:",
+        "  Implementation:",
+        "    implement-generator:",
+        "      text: Implement generator.",
+        "      status: complete",
+        "  Testing:",
+        "    run-build:",
+        "      text: Run build.",
+        "      status: complete",
+        "      command: bun run build",
+        "    run-tests:",
+        "      text: Run tests.",
+        "      status: complete",
+        "      command: bun test/run.ts",
+        "  Verification:",
+        "    verify-change:",
+        "      text: Verify change.",
+        "      status: complete",
+        "testing_gates:",
+        "  validation_task: run-build",
+        "  unit_test_task: run-tests",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+  }
+
   const scaffoldProposal = readFileSync(proposalPath, "utf8");
   const nonFlagGenerate = cli(["generate", changeName, "proposal", "proposal.json"], { cwd: generateTempDir });
   context.assert(nonFlagGenerate.status !== 0, "generate rejects positional JSON input");
@@ -584,55 +620,20 @@ try {
     "generate writes design artifact",
   );
 
+  const scaffoldTasks = readFileSync(path.join(changeDir, "tasks.yaml"), "utf8");
+  const rejectedTasksGenerate = cli(["generate", changeName, "tasks", "--reset"], { cwd: generateTempDir });
+  context.assert(rejectedTasksGenerate.status !== 0, "generate rejects tasks artifact selector");
   context.assert(
-    cli([
-      "generate",
-      changeName,
-      "tasks",
-      "--reset",
-      "--validation-task",
-      "run-build",
-      "--unit-test-task",
-      "run-tests",
-      "--task",
-      "implement-generator",
-      "--section",
-      "Implementation",
-      "--text",
-      "Implement generator.",
-      "--status",
-      "complete",
-      "--task",
-      "run-build",
-      "--section",
-      "Testing",
-      "--text",
-      "Run build.",
-      "--status",
-      "complete",
-      "--command",
-      "bun run build",
-      "--task",
-      "run-tests",
-      "--section",
-      "Testing",
-      "--text",
-      "Run tests.",
-      "--status",
-      "complete",
-      "--command",
-      "bun test/run.ts",
-      "--task",
-      "verify-change",
-      "--section",
-      "Verification",
-      "--text",
-      "Verify change.",
-      "--status",
-      "complete",
-    ], { cwd: generateTempDir }).status === 0,
-    "generate writes task artifact",
+    rejectedTasksGenerate.stderr.includes("artifact must be one of")
+      && !rejectedTasksGenerate.stderr.includes("tasks, questions"),
+    "generate unsupported artifact list omits tasks",
+    `stderr: ${rejectedTasksGenerate.stderr.trim()}`,
   );
+  context.assert(
+    readFileSync(path.join(changeDir, "tasks.yaml"), "utf8") === scaffoldTasks,
+    "generate tasks rejection leaves scaffolded tasks artifact unchanged",
+  );
+  writeCompleteTasksArtifact(changeDir, changeName);
 
   context.assert(
     cli(["generate", changeName, "questions", "--reset"], { cwd: generateTempDir }).status === 0,
@@ -774,102 +775,7 @@ try {
     `stderr: ${conflictingDesign.stderr.trim()}`,
   );
 
-  const directTasks = cli([
-    "generate",
-    directChangeName,
-    "tasks",
-    "--reset",
-    "--validation-task",
-    "run-build",
-    "--unit-test-task",
-    "run-tests",
-    "--task",
-    "implement-argument-generation",
-    "--section",
-    "Implementation",
-    "--text",
-    "Implement argument-driven generation.",
-    "--status",
-    "complete",
-    "--task",
-    "run-build",
-    "--section",
-    "Testing",
-    "--text",
-    "Run build.",
-    "--status",
-    "complete",
-    "--command",
-    "bun run build",
-    "--task",
-    "run-tests",
-    "--section",
-    "Testing",
-    "--text",
-    "Run tests.",
-    "--status",
-    "complete",
-    "--command",
-    "bun test/run.ts",
-    "--task",
-    "verify-change",
-    "--section",
-    "Verification",
-    "--text",
-    "Verify the change.",
-    "--status",
-    "complete",
-  ], { cwd: generateTempDir });
-  context.assert(directTasks.status === 0, "generate writes full task artifact from one named-argument command", `stderr: ${directTasks.stderr.trim()}`);
-  const directTasksArtifact = yamlModule.parseYamlDocument<{
-    sections: {
-      Implementation: Record<string, unknown>;
-      Testing: Record<string, unknown>;
-      Verification: Record<string, unknown>;
-    };
-  }>(readFileSync(path.join(directChangeDir, "tasks.yaml"), "utf8"));
-  context.assert(
-    Object.keys(directTasksArtifact.sections.Testing).length === 2,
-    "generate writes all testing tasks in one task command",
-  );
-
-  const repeatedTask = cli([
-    "generate",
-    directChangeName,
-    "tasks",
-    "--task",
-    "run-build",
-    "--section",
-    "Testing",
-    "--text",
-    "Run build.",
-    "--status",
-    "complete",
-    "--command",
-    "bun run build",
-  ], { cwd: generateTempDir });
-  context.assert(repeatedTask.status === 0, "generate accepts repeated equivalent keyed task content", `stderr: ${repeatedTask.stderr.trim()}`);
-  const conflictingTask = cli([
-    "generate",
-    directChangeName,
-    "tasks",
-    "--section",
-    "Testing",
-    "--task",
-    "run-build",
-    "--text",
-    "Conflicting task text.",
-    "--status",
-    "complete",
-    "--command",
-    "bun run build",
-  ], { cwd: generateTempDir });
-  context.assert(conflictingTask.status !== 0, "generate rejects conflicting duplicate keyed task content");
-  context.assert(
-    conflictingTask.stderr.includes("duplicate task 'run-build'"),
-    "generate duplicate keyed conflict names the conflicting task",
-    `stderr: ${conflictingTask.stderr.trim()}`,
-  );
+  writeCompleteTasksArtifact(directChangeDir, directChangeName);
 
   const directQuestions = cli([
     "generate",
@@ -947,19 +853,19 @@ try {
     "--operation",
     "MODIFIED",
     "--requirement",
-    "single-command-task-generation",
+    "single-command-question-generation",
     "--strength",
     "MUST",
     "--statement",
-    "The CLI MUST generate the full tasks artifact from one command.",
+    "The CLI MUST generate the full questions artifact from one command.",
     "--scenario",
-    "argument-driven-command-populates-tasks",
+    "argument-driven-command-populates-questions",
     "--given",
-    "one command includes multiple task groups",
+    "one command includes multiple question groups",
     "--when",
-    "the tasks generation command runs",
+    "the questions generation command runs",
     "--then",
-    "the full tasks artifact is written",
+    "the full questions artifact is written",
     "--operation",
     "REMOVED",
     "--requirement",

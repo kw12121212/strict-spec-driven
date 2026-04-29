@@ -1,0 +1,82 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/argv.ts
+    - src/cli/entrypoint.ts
+    - src/cli/output.ts
+    - src/cli/usage.ts
+    - src/cli/cmd-scaffold.ts
+    - src/propose-generation.ts
+    - src/cli/cmd-generation.ts
+    - src/cli/cmd-change.ts
+    - src/cli/cmd-roadmap.ts
+    - src/cli/cmd-migration.ts
+    - src/cli/cmd-operations.ts
+    - src/strict-spec-cli.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    cli-propose-tasks-yaml-remains-scaffold-authored:
+      strength: MUST
+      statement: >-
+        The system MUST keep tasks.yaml as a scaffolded change artifact that agents edit directly
+        according to the task-list schema rather than exposing tasks as a generate command artifact.
+      scenarios:
+        tasks-artifact-is-not-generated-by-command:
+          - GIVEN: a strict change scaffold exists
+          - WHEN: the generate command is invoked with the tasks artifact selector
+          - THEN: the command exits non-zero
+          - AND: the scaffolded tasks.yaml remains unchanged
+    cli-subcommands-support-help:
+      strength: MUST
+      statement: >-
+        The system MUST support exact `--help` and `-h` help requests for the root CLI and every
+        registered subcommand, printing usage to stdout and exiting zero without performing the
+        command's normal mutation or validation behavior.
+      scenarios:
+        root-help-lists-commands:
+          - GIVEN: the strict CLI is available
+          - WHEN: the root CLI is invoked with `--help`
+          - THEN: the command exits zero
+          - AND: stdout lists the registered commands in canonical order
+          - AND: stderr is empty
+        subcommand-help-shows-usage:
+          - GIVEN: a registered strict CLI subcommand exists
+          - WHEN: that subcommand is invoked with `--help`
+          - THEN: the command exits zero
+          - AND: stdout contains the subcommand usage
+          - AND: stderr is empty
+  MODIFIED:
+    cli-propose-generation-is-artifact-scoped:
+      strength: MUST
+      statement: >-
+        The system MUST expose proposal population as artifact-level operations so proposal, design,
+        questions, and individual delta specs can be generated through separate CLI invocations.
+      scenarios:
+        artifacts-can-be-generated-one-at-a-time:
+          - GIVEN: a strict change scaffold exists
+          - WHEN: >-
+              a user or agent generates only one supported planning artifact from explicit command
+              input
+          - THEN: the command writes only that target artifact
+          - AND: unrelated planning artifacts in the same change are left unchanged
+    cli-propose-generation-uses-named-arguments:
+      strength: MUST
+      statement: >-
+        The system MUST provide proposal population commands that accept supported artifact content
+        only through named CLI arguments, including repeated grouped question, mapping, scenario,
+        and requirement arguments in a single invocation for artifacts that contain keyed
+        collections.
+      scenarios:
+        named-argument-generation-does-not-use-payload-files:
+          - GIVEN: a strict change scaffold exists
+          - WHEN: an agent populates supported generated artifacts
+          - THEN: the generated CLI commands use named arguments directly
+          - AND: no JSON payload file is required
+  REMOVED: {}

@@ -23,7 +23,7 @@ before running anything. Do not guess.
 
 ```yaml
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
-generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|tasks|questions|delta-spec> --<named-args>
+generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec> --<named-args>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
 
@@ -64,9 +64,9 @@ proceeding, verify that strict workflow state already exists.
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
    ```
-   After scaffolding, artifact population MUST happen through generated strict
-   CLI commands. Do not hand-author strict change YAML artifacts or create
-   JSON payload files.
+   After scaffolding, generate supported artifacts in the exact ordered steps
+   below and edit the scaffolded `tasks.yaml` directly. Do not create JSON
+   payload files.
 
 4. **Generate `proposal.yaml`** — run a direct CLI invocation with named
    arguments:
@@ -92,7 +92,26 @@ proceeding, verify that strict workflow state already exists.
    - `alternatives`
    - `risks`
 
-6. **Generate strict YAML delta specs** — run one direct CLI invocation per
+6. **Edit `tasks.yaml` directly** — update the scaffolded
+   `.strict-spec-driven/changes/<change-name>/tasks.yaml` according to the
+   task-list schema. Keep concrete task sections for `Implementation`,
+   `Testing`, and `Verification`.
+   - every task needs `text` and `status`
+   - testing tasks should include runnable `command` fields
+   - `testing_gates.validation_task` and `testing_gates.unit_test_task` must
+     point at the corresponding Testing task IDs
+   - keep YAML valid and structured; do not use Markdown prose inside the file
+
+7. **Generate `questions.yaml`** — run one direct CLI invocation for the full
+   artifact. Use `--reset` when intentionally replacing scaffold content:
+    ```bash
+    node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions --reset --open <question-id> --question "..." --context "..." --resolved <question-id> --question "..." --context "..." --answer "..."
+    ```
+   Record open questions as structured entries under `open` using fields such
+   as `id`, `question`, and `context`; the script writes the status. If
+   everything is clear, leave `open: []`.
+
+8. **Generate strict YAML delta specs** — run one direct CLI invocation per
    target spec and include all mapping paths and requirement operations needed
    for that target in the same command:
     ```bash
@@ -108,28 +127,6 @@ proceeding, verify that strict workflow state already exists.
      `strength`, `statement`, `scenarios`, and ordered `steps`
    - if the change has no observable spec impact, leave the `specs/` directory
      empty rather than inventing a prose-only file
-
-7. **Generate `tasks.yaml`** — run one direct CLI invocation for the full
-   artifact:
-    ```bash
-    node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> tasks --reset --validation-task <testing-task-id> --unit-test-task <testing-task-id> --task <implementation-task-id> --section Implementation --text "..." --status pending --task <testing-task-id> --section Testing --text "..." --status pending --command "npm test" --task <verification-task-id> --section Verification --text "..." --status pending
-    ```
-   Create concrete task sections for
-   `Implementation`, `Testing`, and `Verification`.
-   - every task needs `id`, `text`, and `status`
-   - testing tasks should include runnable `command` fields
-   - `testing_gates.validation_task` and `testing_gates.unit_test_task` must
-     point at the corresponding Testing task IDs
-
-8. **Generate `questions.yaml`** — run one direct CLI invocation for the full
-   artifact. Use `--reset` when intentionally replacing scaffold content:
-    ```bash
-    node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions --reset --open <question-id> --question "..." --context "..." --resolved <question-id> --question "..." --context "..." --answer "..."
-    ```
-   Record open questions as
-   structured entries under `open` using fields such as `id`, `question`, and
-   `context`; the script writes the status. If everything is clear, leave
-   `open: []`.
 
 9. **Validate artifact structure** — run:
    ```bash

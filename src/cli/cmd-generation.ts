@@ -7,8 +7,8 @@ import {
   isGeneratableArtifact,
 } from "../propose-generation.js";
 import { parseYamlDocument } from "../yaml.js";
-import { CHANGE_NAME_PATTERN } from "./argv.js";
-import { writeError, writeJson, writeUsage } from "./output.js";
+import { CHANGE_NAME_PATTERN, isHelpRequest } from "./argv.js";
+import { writeError, writeHelp, writeJson, writeUsage } from "./output.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const BOOLEAN_FLAGS = new Set(["reset"]);
@@ -17,10 +17,11 @@ type FlagMap = Record<string, string[]>;
 
 function usage(): string {
   return [
-    "Usage:",
+    "Usage: strict-spec-driven generate <change-name> <proposal|design|questions|delta-spec> --<named-args>",
+    "",
+    "Examples:",
     "  strict-spec-driven generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
     "  strict-spec-driven generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
-    "  strict-spec-driven generate <change-name> tasks [--reset] [--validation-task <id>] [--unit-test-task <id>] [--task <id> --section <Implementation|Testing|Verification> --text <text> [--status <pending|complete>] [--command <cmd>]]...",
     "  strict-spec-driven generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)]...",
     "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
   ].join("\n") + "\n";
@@ -246,188 +247,6 @@ function buildDesignInput(rootDir: string, changeName: string, flags: FlagMap): 
     }
   }
   input.alternatives = alternatives;
-
-  return input;
-}
-
-function existingTasksInput(rootDir: string, changeName: string, reset: boolean): GenerationInputRecord {
-  if (reset) {
-    return { sections: {}, testing_gates: { validation_task: "", unit_test_task: "" } };
-  }
-  const artifact = readYamlIfExists<GenerationInputRecord>(
-    rootDir,
-    `${STRICT_WORKFLOW_DIR}/changes/${changeName}/tasks.yaml`,
-  );
-  return {
-    sections: isRecord(artifact?.sections) ? artifact.sections : {},
-    testing_gates: isRecord(artifact?.testing_gates) ? artifact.testing_gates : { validation_task: "", unit_test_task: "" },
-  };
-}
-
-function buildTasksInput(rootDir: string, changeName: string, flags: FlagMap): GenerationInputRecord {
-  ensureAllowedFlags(flags, [
-    "reset",
-    "section",
-    "task",
-    "text",
-    "status",
-    "command",
-    "validation-task",
-    "unit-test-task",
-  ]);
-
-  const input = existingTasksInput(rootDir, changeName, hasFlag(flags, "reset"));
-  const sections = isRecord(input.sections) ? input.sections : {};
-  const taskId = optionalOne(flags, "task");
-  if (taskId) {
-    const section = requiredOne(flags, "section");
-    if (!["Implementation", "Testing", "Verification"].includes(section)) {
-      throw new Error("--section must be one of: Implementation, Testing, Verification");
-    }
-    const sectionMap = isRecord(sections[section]) ? sections[section] as GenerationInputRecord : {};
-    const task: GenerationInputRecord = {
-      text: requiredOne(flags, "text"),
-      status: optionalOne(flags, "status") ?? "pending",
-    };
-    const command = optionalOne(flags, "command");
-    if (command) task.command = command;
-    upsertKeyedItem(sectionMap, taskId, task, "task");
-    sections[section] = sectionMap;
-  } else if (hasFlag(flags, "section") || hasFlag(flags, "text") || hasFlag(flags, "status") || hasFlag(flags, "command")) {
-    throw new Error("missing required argument --task");
-  }
-  input.sections = sections;
-
-  const testingGates = isRecord(input.testing_gates) ? input.testing_gates : {};
-  const validationTask = optionalOne(flags, "validation-task");
-  const unitTestTask = optionalOne(flags, "unit-test-task");
-  if (validationTask) testingGates.validation_task = validationTask;
-  if (unitTestTask) testingGates.unit_test_task = unitTestTask;
-  input.testing_gates = testingGates;
-
-  return input;
-}
-
-type TaskGroup = {
-  id: string;
-  section?: string;
-  text?: string;
-  status?: string;
-  command?: string;
-};
-
-type TaskCommandInput = {
-  reset: boolean;
-  validationTask?: string;
-  unitTestTask?: string;
-  tasks: TaskGroup[];
-};
-
-function parseTaskCommandInput(argv: string[], rootDir: string): TaskCommandInput {
-  const input: TaskCommandInput = { reset: false, tasks: [] };
-  let currentTask: TaskGroup | undefined;
-  let pendingSection: string | undefined;
-
-  function readValue(name: string, index: number): string {
-    const value = argv[index + 1];
-    if (value === undefined || value.startsWith("--")) {
-      throw new Error(`missing value for --${name}`);
-    }
-    return resolveStringValue(value, rootDir);
-  }
-
-  function setTaskField(field: "section" | "text" | "status" | "command", value: string, flagName: string): void {
-    if (!currentTask) {
-      if (field === "section") {
-        pendingSection = value;
-        return;
-      }
-      throw new Error("missing required argument --task");
-    }
-    if (currentTask[field] !== undefined) {
-      throw new Error(`--${flagName} may only be supplied once per task`);
-    }
-    currentTask[field] = value;
-  }
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
-    if (!token?.startsWith("--") || token.length === 2) {
-      throw new Error(`expected named argument, got '${token ?? ""}'`);
-    }
-
-    const name = token.slice(2);
-    if (name === "reset") {
-      input.reset = true;
-      continue;
-    }
-    if (name === "task") {
-      const id = readValue(name, index);
-      currentTask = { id };
-      if (pendingSection) {
-        currentTask.section = pendingSection;
-        pendingSection = undefined;
-      }
-      input.tasks.push(currentTask);
-      index += 1;
-      continue;
-    }
-    if (name === "validation-task") {
-      if (input.validationTask !== undefined) throw new Error("--validation-task may only be supplied once");
-      input.validationTask = readValue(name, index);
-      index += 1;
-      continue;
-    }
-    if (name === "unit-test-task") {
-      if (input.unitTestTask !== undefined) throw new Error("--unit-test-task may only be supplied once");
-      input.unitTestTask = readValue(name, index);
-      index += 1;
-      continue;
-    }
-    if (name === "section" || name === "text" || name === "status" || name === "command") {
-      setTaskField(name, readValue(name, index), name);
-      index += 1;
-      continue;
-    }
-
-    throw new Error(`unsupported argument(s): --${name}`);
-  }
-
-  if (pendingSection) {
-    throw new Error("missing required argument --task");
-  }
-  return input;
-}
-
-function buildTasksInputFromArgs(rootDir: string, changeName: string, argv: string[]): GenerationInputRecord {
-  const commandInput = parseTaskCommandInput(argv, rootDir);
-  const input = existingTasksInput(rootDir, changeName, commandInput.reset);
-  const sections = isRecord(input.sections) ? input.sections : {};
-
-  for (const taskGroup of commandInput.tasks) {
-    if (!taskGroup.section) throw new Error(`missing required argument --section for task '${taskGroup.id}'`);
-    if (!["Implementation", "Testing", "Verification"].includes(taskGroup.section)) {
-      throw new Error("--section must be one of: Implementation, Testing, Verification");
-    }
-    if (!taskGroup.text) throw new Error(`missing required argument --text for task '${taskGroup.id}'`);
-
-    const sectionMap = isRecord(sections[taskGroup.section])
-      ? sections[taskGroup.section] as GenerationInputRecord
-      : {};
-    const task: GenerationInputRecord = {
-      text: taskGroup.text,
-      status: taskGroup.status ?? "pending",
-    };
-    if (taskGroup.command) task.command = taskGroup.command;
-    upsertKeyedItem(sectionMap, taskGroup.id, task, "task");
-    sections[taskGroup.section] = sectionMap;
-  }
-  input.sections = sections;
-
-  const testingGates = isRecord(input.testing_gates) ? input.testing_gates : {};
-  if (commandInput.validationTask) testingGates.validation_task = commandInput.validationTask;
-  if (commandInput.unitTestTask) testingGates.unit_test_task = commandInput.unitTestTask;
-  input.testing_gates = testingGates;
 
   return input;
 }
@@ -848,8 +667,6 @@ function buildInputFromNamedArgs(
       return buildProposalInput(parseFlagMap(argv, rootDir));
     case "design":
       return buildDesignInput(rootDir, changeName, parseFlagMap(argv, rootDir));
-    case "tasks":
-      return buildTasksInputFromArgs(rootDir, changeName, argv);
     case "questions":
       return buildQuestionsInputFromArgs(rootDir, changeName, argv);
     case "delta-spec":
@@ -859,6 +676,10 @@ function buildInputFromNamedArgs(
 
 export function runGenerate(argv: string[]): number {
   const [changeName, artifact, firstInputArg, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(usage());
+    return 0;
+  }
   if (!changeName || !artifact || !firstInputArg) {
     writeUsage(usage());
     return 1;
@@ -868,7 +689,7 @@ export function runGenerate(argv: string[]): number {
     return 1;
   }
   if (!isGeneratableArtifact(artifact)) {
-    writeError("artifact must be one of: proposal, design, tasks, questions, delta-spec");
+    writeError("artifact must be one of: proposal, design, questions, delta-spec");
     return 1;
   }
 

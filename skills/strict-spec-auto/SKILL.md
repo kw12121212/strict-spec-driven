@@ -17,7 +17,7 @@ before running anything. Do not guess.
 
 ```yaml
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
-generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|tasks|questions|delta-spec> --<named-args>
+generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec> --<named-args>
 apply: node {{SKILL_DIR}}/scripts/strict-spec-driven.js apply <change-name>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 review: node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>
@@ -65,17 +65,17 @@ proceeding, verify that strict workflow state already exists.
    `/strict-roadmap-recommend` or `/strict-roadmap-propose` already created the
    change directory, reuse the existing scaffold instead of running `propose`
    again. If the target change directory already exists but only contains empty
-   subdirectories, `propose` may safely reuse it. Then run direct
-   parameterized CLI invocations to populate artifacts. These commands MUST be
-   generated and executed directly. Do not hand-author strict change YAML
-   artifacts or create JSON payload files.
+   subdirectories, `propose` may safely reuse it. Then populate artifacts in
+   this exact order. Generate supported artifacts with direct CLI invocations,
+   edit scaffolded `tasks.yaml` directly, and do not create JSON payload files.
     - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."`
     - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
-    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> tasks --reset --validation-task <testing-task-id> --unit-test-task <testing-task-id> --task <implementation-task-id> --section Implementation --text "..." --status pending --task <testing-task-id> --section Testing --text "..." --status pending --command "npm test" --task <verification-task-id> --section Verification --text "..." --status pending`
+    - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema
     - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
     - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."`
-    Prefer one invocation per artifact (or per target spec for delta specs) so
-    the full document is generated at once.
+    Prefer one invocation per supported generated artifact (or per target spec
+    for delta specs). Keep `tasks.yaml` structured with Implementation,
+    Testing, and Verification sections plus valid testing gates.
    If you use `verify` at proposal time, treat pending-task diagnostics as
    expected until implementation is complete. If `questions.yaml.open` is not
    empty, do not infer answers or continue automatically. For each open

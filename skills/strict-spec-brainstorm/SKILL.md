@@ -18,7 +18,7 @@ before running anything. Do not guess.
 
 ```yaml
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
-generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|tasks|questions|delta-spec> --<named-args>
+generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec> --<named-args>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
 
@@ -69,17 +69,18 @@ proceeding, verify that strict workflow state already exists.
    This creates `.strict-spec-driven/changes/<name>/` with strict planning
    artifacts and an empty `specs/` directory for strict YAML delta files.
 
-7. **Generate the proposal artifacts** — after scaffolding, including
-   `proposal.yaml`, run direct parameterized CLI invocations. These commands
-   MUST be generated and executed directly. Do not hand-author strict change
-   YAML artifacts or create JSON payload files.
+7. **Populate `proposal.yaml` and related artifacts step by step** — after
+   scaffolding, follow this exact order. Generate supported artifacts with
+   direct parameterized CLI invocations, edit scaffolded `tasks.yaml` directly,
+   and do not create JSON payload files.
     - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."`
     - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
-    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` once per target strict main spec path
-    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> tasks --reset --validation-task <testing-task-id> --unit-test-task <testing-task-id> --task <implementation-task-id> --section Implementation --text "..." --status pending --task <testing-task-id> --section Testing --text "..." --status pending --command "npm test" --task <verification-task-id> --section Verification --text "..." --status pending`
+    - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema
     - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions --reset --open <question-id> --question "..." --context "..."` plus any needed `--resolved` entries
-    Prefer one invocation per artifact (or per target spec for delta specs) so
-    the generated YAML matches the full document shape immediately.
+    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` once per target strict main spec path
+    Prefer one invocation per supported generated artifact (or per target spec
+    for delta specs) so generated YAML matches the full document shape
+    immediately.
 
 8. **Validate artifact structure** — run:
    ```bash

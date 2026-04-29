@@ -67,6 +67,26 @@ context.assert(
   `stderr: ${unknownCmd.stderr.trim()}`,
 );
 
+const rootHelp = cli(["--help"]);
+context.assert(rootHelp.status === 0, "root help exits zero", `got exit code ${rootHelp.status}`);
+context.assert(
+  rootHelp.stdout.includes("Usage:") && rootHelp.stdout.includes(expectedCommandUsage),
+  "root help prints usage and canonical command listing to stdout",
+  `stdout: ${rootHelp.stdout.trim()}`,
+);
+context.assert(rootHelp.stderr.length === 0, "root help keeps stderr empty", `stderr: ${rootHelp.stderr.trim()}`);
+
+for (const commandName of expectedCommandOrder) {
+  const commandHelp = cli([commandName, "--help"], { cwd: ROOT });
+  context.assert(commandHelp.status === 0, `${commandName} --help exits zero`, `stderr: ${commandHelp.stderr.trim()}`);
+  context.assert(
+    commandHelp.stdout.includes(`Usage: strict-spec-driven ${commandName}`),
+    `${commandName} --help prints command usage to stdout`,
+    `stdout: ${commandHelp.stdout.trim()}`,
+  );
+  context.assert(commandHelp.stderr.length === 0, `${commandName} --help keeps stderr empty`, `stderr: ${commandHelp.stderr.trim()}`);
+}
+
 const validateSkillsDispatch = cli(["validate-skills"], { cwd: ROOT });
 context.assert(
   validateSkillsDispatch.status === 0,

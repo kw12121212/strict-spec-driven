@@ -53,7 +53,7 @@ export { migrateLegacyWorkflow };
 export { runMaintenance };
 
 export const commands = createCliCommandTable({
-  init: () => runInit(),
+  init: (argv) => runInit(argv),
   propose: (argv) => runPropose(argv),
   generate: (argv) => runGenerate(argv),
   apply: (argv) => runApply(argv),

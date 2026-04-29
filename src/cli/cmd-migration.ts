@@ -1,8 +1,13 @@
 import { runMaintenance } from "../maintenance.js";
 import { migrateLegacyWorkflow } from "../migrate.js";
-import { writeErr, writeError, writeJson, writeUsage } from "./output.js";
+import { isHelpRequest } from "./argv.js";
+import { writeErr, writeError, writeHelp, writeJson, writeUsage } from "./output.js";
 
 export function runMigrate(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-driven migrate\n");
+    return 0;
+  }
   if (argv.length > 0) {
     writeUsage("Usage: strict-spec-driven migrate\n");
     return 1;
@@ -22,6 +27,10 @@ export function runMigrate(argv: string[]): number {
 }
 
 export function runMaintenanceCommand(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-driven maintenance\n");
+    return 0;
+  }
   if (argv.length > 0) {
     writeUsage("Usage: strict-spec-driven maintenance\n");
     return 1;
