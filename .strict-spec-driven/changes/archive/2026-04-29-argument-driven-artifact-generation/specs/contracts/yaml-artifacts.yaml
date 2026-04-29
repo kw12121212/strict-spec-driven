@@ -1,0 +1,58 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-roadmap-propose/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+    - README.md
+    - QUICKSTART.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    skill-proposal-generation-uses-parameterized-cli:
+      strength: MUST
+      statement: >-
+        The system MUST guide proposal-generating skills to create and execute
+        parameterized strict CLI commands directly when populating strict change
+        artifacts.
+      scenarios:
+        proposal-skill-uses-parameterized-commands:
+          - GIVEN: a strict proposal skill needs to populate change artifacts
+          - WHEN: the skill instructions describe the preferred command workflow
+          - THEN: the instructions tell agents to generate direct CLI invocations using named strict CLI arguments
+          - AND: the instructions do not require agents to author JSON payload files for the preferred path
+    skill-commands-do-not-own-artifact-shape:
+      strength: MUST
+      statement: >-
+        The system MUST preserve the boundary that skills and generated CLI
+        invocations provide key facts while CLI code owns strict artifact
+        shape, defaults, YAML writing, and validation.
+      scenarios:
+        command-does-not-construct-yaml-or-json:
+          - GIVEN: a proposal skill instructs an agent to generate CLI invocations
+          - WHEN: the generated commands are reviewed
+          - THEN: each command invokes strict CLI behavior with named parameters
+          - AND: the commands do not construct strict YAML artifacts directly
+          - AND: the commands do not construct JSON payload files for the preferred path
+  MODIFIED:
+    yaml-scripted-propose-input-contract:
+      strength: MUST
+      statement: >-
+        The system MUST define a structured command-input contract for
+        proposal population so each supported generated artifact can be
+        validated before strict YAML is written.
+      scenarios:
+        generation-input-is-validated-before-writing:
+          - GIVEN: a proposal population command receives named arguments for one supported artifact
+          - WHEN: the command processes the input
+          - THEN: the input is validated against the expected structured command contract for that artifact
+          - AND: validation failures are reported before the target YAML artifact is written
+  REMOVED: {}

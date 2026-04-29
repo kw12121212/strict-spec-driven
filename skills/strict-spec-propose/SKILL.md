@@ -23,7 +23,7 @@ before running anything. Do not guess.
 
 ```yaml
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
-generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|tasks|questions|delta-spec> <input-json>
+generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|tasks|questions|delta-spec> --<named-args>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
 
@@ -65,9 +65,10 @@ proceeding, verify that strict workflow state already exists.
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
    ```
 
-4. **Generate `proposal.yaml`** — write a compact JSON input file, then run:
+4. **Generate `proposal.yaml`** — run a direct CLI invocation with named
+   arguments:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> proposal <input-json>
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."
    ```
    Populate:
    - `summary.what`
@@ -77,9 +78,10 @@ proceeding, verify that strict workflow state already exists.
    - `unchanged_behavior`
    Keep the content observable and concrete.
 
-5. **Generate `design.yaml`** — write a compact JSON input file, then run:
+5. **Generate `design.yaml`** — run one or more direct CLI invocations with
+   named arguments:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> design <input-json>
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."
    ```
    Populate:
    - `approach`
@@ -87,10 +89,10 @@ proceeding, verify that strict workflow state already exists.
    - `alternatives`
    - `risks`
 
-6. **Generate strict YAML delta specs** — write compact JSON input files, then
-   run this command for each target spec:
+6. **Generate strict YAML delta specs** — run direct CLI invocations for each
+   target spec and requirement:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec <input-json>
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec --target-spec <spec-id> --operation ADDED --requirement <requirement-id> --strength MUST --statement "..."
    ```
    The generated files under `.strict-spec-driven/changes/<name>/specs/` should
    mirror the target main spec paths.
@@ -103,9 +105,10 @@ proceeding, verify that strict workflow state already exists.
    - if the change has no observable spec impact, leave the `specs/` directory
      empty rather than inventing a prose-only file
 
-7. **Generate `tasks.yaml`** — write a compact JSON input file, then run:
+7. **Generate `tasks.yaml`** — run one direct CLI invocation per task. Use
+   `--reset` on the first task command for the artifact:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> tasks <input-json>
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> tasks --reset --section Implementation --task <task-id> --text "..." --status pending --validation-task <testing-task-id> --unit-test-task <testing-task-id>
    ```
    Create concrete task sections for
    `Implementation`, `Testing`, and `Verification`.
@@ -114,9 +117,11 @@ proceeding, verify that strict workflow state already exists.
    - `testing_gates.validation_task` and `testing_gates.unit_test_task` must
      point at the corresponding Testing task IDs
 
-8. **Generate `questions.yaml`** — write a compact JSON input file, then run:
+8. **Generate `questions.yaml`** — run direct CLI invocations for open or
+   resolved questions. Use `--reset` when intentionally replacing scaffold
+   content:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions <input-json>
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions --reset
    ```
    Record open questions as
    structured entries under `open` using fields such as `id`, `question`, and

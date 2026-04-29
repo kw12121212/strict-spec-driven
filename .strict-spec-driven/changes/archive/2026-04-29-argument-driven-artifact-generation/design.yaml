@@ -1,0 +1,82 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: argument-driven-artifact-generation
+approach:
+  - >-
+    Introduce artifact-specific command handlers that translate named CLI
+    arguments into the same internal artifact builders currently used for
+    proposal population.
+  - >-
+    Design the command surface so an agent can emit direct CLI invocations with
+    repeated flags such as `--what`, `--why`, `--in`, `--out`, `--approach`,
+    `--implementation`, and `--test`.
+  - >-
+    Preserve deterministic writes by validating the generated artifact against
+    the registered strict YAML schema before replacing any existing artifact.
+  - >-
+    Make generated artifact population idempotent by de-duplicating scalar list
+    entries by exact normalized value and upserting keyed collections by stable
+    identifiers.
+  - >-
+    Update strict proposal skills to emit and execute these parameterized CLI
+    invocations directly.
+decisions:
+  cli-invocations-as-orchestration:
+    decision: >-
+      Treat AI-authored CLI invocations as the orchestration layer over typed
+      CLI commands, not as a place to encode YAML or JSON structures.
+    rationale: >-
+      This gives agents a simple command-generation format while keeping
+      artifact structure, defaults, validation, and filesystem behavior in the
+      CLI.
+  artifact-specific-command-surface:
+    decision: >-
+      Add artifact-specific subcommands instead of one generic command that
+      accepts arbitrary key paths or serialized payloads.
+    rationale: >-
+      Explicit subcommands and flag names make the CLI contract discoverable
+      and reduce the need for agents to infer nested artifact schemas.
+  json-as-compatibility-path:
+    decision: >-
+      Keep any existing JSON-based generation path only as a compatibility
+      option unless a later change removes it.
+    rationale: >-
+      The user need is to improve the preferred agent workflow without forcing a
+      breaking migration for existing tests or operators in the same change.
+  duplicate-prevention-in-cli:
+    decision: >-
+      Put duplicate prevention in CLI artifact population logic rather than in
+      skill prompts.
+    rationale: >-
+      Agents may retry commands or emit overlapping command sequences; CLI-level
+      de-duplication makes repeated execution safe and keeps generated YAML
+      stable.
+alternatives:
+  - option: Keep compact JSON input files as the primary generation mechanism.
+    reason: >-
+      Rejected because agents still need to infer the JSON object shape, which
+      leaves the original failure mode mostly intact.
+  - option: Let agents edit strict YAML artifacts directly.
+    reason: >-
+      Rejected because it moves indentation, quoting, schema defaults, and
+      artifact-shape correctness back into generated text.
+  - option: Accept YAML snippets through stdin.
+    reason: >-
+      Rejected for the preferred path because it still requires agents to encode
+      schema-shaped documents rather than supplying key facts.
+risks:
+  - >-
+    Command quoting can still fail for long prose; mitigate by supporting
+    repeated flags and `@file` string values for large text without changing the
+    payload into JSON.
+  - >-
+    The command surface can become too large; mitigate by implementing focused
+    artifact commands for common proposal operations rather than arbitrary YAML
+    mutation.
+  - >-
+    De-duplication can accidentally hide conflicting edits; mitigate by treating
+    identical entries as no-ops and reporting conflicts when a keyed item is
+    re-supplied with different content unless the command explicitly supports
+    replacement.

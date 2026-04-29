@@ -8,7 +8,7 @@ const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 export const GENERATABLE_ARTIFACTS = ["proposal", "design", "tasks", "questions", "delta-spec"] as const;
 export type GeneratableArtifact = (typeof GENERATABLE_ARTIFACTS)[number];
 
-type JsonRecord = Record<string, unknown>;
+export type GenerationInputRecord = Record<string, unknown>;
 
 type GeneratedTarget = {
   artifact: unknown;
@@ -29,18 +29,18 @@ function normalizeRepoRelativePath(rootDir: string, absolutePath: string): strin
   return path.relative(rootDir, absolutePath).split(path.sep).join("/");
 }
 
-function isRecord(value: unknown): value is JsonRecord {
+function isRecord(value: unknown): value is GenerationInputRecord {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
-function asRecord(value: unknown, fieldPath: string): JsonRecord {
+function asRecord(value: unknown, fieldPath: string): GenerationInputRecord {
   if (!isRecord(value)) {
     throw new Error(`input field '${fieldPath}' must be an object`);
   }
   return value;
 }
 
-function asOptionalRecord(value: unknown, fieldPath: string): JsonRecord | undefined {
+function asOptionalRecord(value: unknown, fieldPath: string): GenerationInputRecord | undefined {
   if (value === undefined) return undefined;
   return asRecord(value, fieldPath);
 }
@@ -72,7 +72,7 @@ function asOptionalStringArray(value: unknown, fieldPath: string): string[] | un
   return asStringArray(value, fieldPath);
 }
 
-function parseJsonInput(inputFile: string): JsonRecord {
+function parseJsonInput(inputFile: string): GenerationInputRecord {
   let parsed: unknown;
   try {
     parsed = JSON.parse(readFileSync(inputFile, "utf8"));
@@ -141,9 +141,9 @@ function mapGeneratedFieldToInputField(artifact: GeneratableArtifact, fieldPath:
   return fieldPath;
 }
 
-function formatInputDiagnostics(
+function formatGenerationDiagnostics(
   artifact: GeneratableArtifact,
-  inputFile: string,
+  inputLabel: string,
   diagnostics: ValidationDiagnostic[],
 ): string {
   const lines = diagnostics.map((diagnostic) => {
@@ -158,7 +158,7 @@ function formatInputDiagnostics(
   });
 
   return [
-    `input JSON '${inputFile}' is invalid for ${artifact}; fix these field(s):`,
+    `${inputLabel} is invalid for ${artifact}; fix these field(s):`,
     ...lines,
   ].join("\n");
 }
@@ -171,11 +171,11 @@ function ensureExistingChangeDir(rootDir: string, changeName: string): string {
   return changeDir;
 }
 
-function buildProposalArtifact(changeName: string, input: JsonRecord): unknown {
+function buildProposalArtifact(changeName: string, input: GenerationInputRecord): unknown {
   const summary = asRecord(input.summary, "$.summary");
   const scope = asRecord(input.scope, "$.scope");
   const status = asOptionalString(input.status, "$.status") ?? "proposed";
-  const artifact: JsonRecord = {
+  const artifact: GenerationInputRecord = {
     schema: "strict-spec-driven/change-proposal/v1",
     schema_version: 1,
     artifact_type: "change_proposal",
@@ -206,7 +206,7 @@ function buildProposalArtifact(changeName: string, input: JsonRecord): unknown {
   return artifact;
 }
 
-function buildDesignArtifact(changeName: string, input: JsonRecord): unknown {
+function buildDesignArtifact(changeName: string, input: GenerationInputRecord): unknown {
   const decisions = asRecord(input.decisions, "$.decisions");
   for (const [decisionId, decision] of Object.entries(decisions)) {
     const decisionRecord = asRecord(decision, `$.decisions.${decisionId}`);
@@ -241,12 +241,12 @@ function buildDesignArtifact(changeName: string, input: JsonRecord): unknown {
   };
 }
 
-function normalizeTaskMap(value: unknown, fieldPath: string): JsonRecord {
+function normalizeTaskMap(value: unknown, fieldPath: string): GenerationInputRecord {
   const input = asRecord(value, fieldPath);
-  const output: JsonRecord = {};
+  const output: GenerationInputRecord = {};
   for (const [taskId, task] of Object.entries(input)) {
     const taskRecord = asRecord(task, `${fieldPath}.${taskId}`);
-    const normalizedTask: JsonRecord = {
+    const normalizedTask: GenerationInputRecord = {
       text: asString(taskRecord.text, `${fieldPath}.${taskId}.text`),
       status: asOptionalString(taskRecord.status, `${fieldPath}.${taskId}.status`) ?? "pending",
     };
@@ -259,10 +259,10 @@ function normalizeTaskMap(value: unknown, fieldPath: string): JsonRecord {
   return output;
 }
 
-function buildTasksArtifact(changeName: string, input: JsonRecord): unknown {
+function buildTasksArtifact(changeName: string, input: GenerationInputRecord): unknown {
   const sections = asRecord(input.sections, "$.sections");
   const testingGates = asRecord(input.testing_gates, "$.testing_gates");
-  const artifactSections: JsonRecord = {};
+  const artifactSections: GenerationInputRecord = {};
   const supportedSections = new Set(["Implementation", "Testing", "Verification"]);
 
   for (const sectionName of Object.keys(sections)) {
@@ -291,7 +291,7 @@ function buildTasksArtifact(changeName: string, input: JsonRecord): unknown {
   };
 }
 
-function normalizeOpenQuestion(question: unknown, index: number): JsonRecord {
+function normalizeOpenQuestion(question: unknown, index: number): GenerationInputRecord {
   const record = asRecord(question, `$.open[${index}]`);
   return {
     id: asString(record.id, `$.open[${index}].id`),
@@ -301,7 +301,7 @@ function normalizeOpenQuestion(question: unknown, index: number): JsonRecord {
   };
 }
 
-function normalizeResolvedQuestion(question: unknown, index: number): JsonRecord {
+function normalizeResolvedQuestion(question: unknown, index: number): GenerationInputRecord {
   const record = asRecord(question, `$.resolved[${index}]`);
   return {
     id: asString(record.id, `$.resolved[${index}].id`),
@@ -312,7 +312,7 @@ function normalizeResolvedQuestion(question: unknown, index: number): JsonRecord
   };
 }
 
-function buildQuestionsArtifact(changeName: string, input: JsonRecord): unknown {
+function buildQuestionsArtifact(changeName: string, input: GenerationInputRecord): unknown {
   const open = input.open ?? [];
   const resolved = input.resolved ?? [];
   if (!Array.isArray(open)) {
@@ -365,7 +365,7 @@ function readSpecIndexPathForTarget(rootDir: string, targetSpec: string): string
   return typeof match?.path === "string" ? match.path : undefined;
 }
 
-function resolveDeltaSpecRelativePath(rootDir: string, targetSpec: string, input: JsonRecord): string {
+function resolveDeltaSpecRelativePath(rootDir: string, targetSpec: string, input: GenerationInputRecord): string {
   const explicitPath = asOptionalString(input.spec_path, "$.spec_path");
   if (explicitPath) {
     return normalizeDeltaSpecRelativePath(explicitPath);
@@ -382,7 +382,7 @@ function resolveDeltaSpecRelativePath(rootDir: string, targetSpec: string, input
   return `${targetSpec}.yaml`;
 }
 
-function buildDeltaSpecArtifact(rootDir: string, input: JsonRecord): { artifact: unknown; relativePath: string } {
+function buildDeltaSpecArtifact(rootDir: string, input: GenerationInputRecord): { artifact: unknown; relativePath: string } {
   const targetSpec = asString(input.target_spec, "$.target_spec");
   const mapping = asRecord(input.mapping, "$.mapping");
   const operations = asRecord(input.operations ?? {}, "$.operations");
@@ -409,7 +409,13 @@ function buildDeltaSpecArtifact(rootDir: string, input: JsonRecord): { artifact:
   };
 }
 
-function buildTarget(rootDir: string, changeDir: string, changeName: string, artifact: GeneratableArtifact, input: JsonRecord): GeneratedTarget {
+function buildTarget(
+  rootDir: string,
+  changeDir: string,
+  changeName: string,
+  artifact: GeneratableArtifact,
+  input: GenerationInputRecord,
+): GeneratedTarget {
   switch (artifact) {
     case "proposal":
       return {
@@ -450,21 +456,20 @@ export function isGeneratableArtifact(value: string): value is GeneratableArtifa
   return (GENERATABLE_ARTIFACTS as readonly string[]).includes(value);
 }
 
-export function generateChangeArtifact(
+function writeGeneratedArtifact(
   rootDir: string,
   changeName: string,
   artifact: GeneratableArtifact,
-  inputFile: string,
+  input: GenerationInputRecord,
+  inputLabel: string,
 ): GenerateChangeArtifactResult {
   const changeDir = ensureExistingChangeDir(rootDir, changeName);
-  const inputPath = path.resolve(rootDir, inputFile);
-  const input = parseJsonInput(inputPath);
   const target = buildTarget(rootDir, changeDir, changeName, artifact, input);
   const artifactPath = normalizeRepoRelativePath(rootDir, target.absolutePath);
 
   const preWriteDiagnostics = validateGeneratedArtifact(target.artifactType, target.artifact, artifactPath);
   if (preWriteDiagnostics.length > 0) {
-    throw new Error(formatInputDiagnostics(artifact, inputPath, preWriteDiagnostics));
+    throw new Error(formatGenerationDiagnostics(artifact, inputLabel, preWriteDiagnostics));
   }
 
   const replaced = existsSync(target.absolutePath);
@@ -485,4 +490,24 @@ export function generateChangeArtifact(
     valid: true,
     diagnostics,
   };
+}
+
+export function generateChangeArtifactFromInput(
+  rootDir: string,
+  changeName: string,
+  artifact: GeneratableArtifact,
+  input: GenerationInputRecord,
+): GenerateChangeArtifactResult {
+  return writeGeneratedArtifact(rootDir, changeName, artifact, input, "command input");
+}
+
+export function generateChangeArtifact(
+  rootDir: string,
+  changeName: string,
+  artifact: GeneratableArtifact,
+  inputFile: string,
+): GenerateChangeArtifactResult {
+  const inputPath = path.resolve(rootDir, inputFile);
+  const input = parseJsonInput(inputPath);
+  return writeGeneratedArtifact(rootDir, changeName, artifact, input, `input JSON '${inputPath}'`);
 }

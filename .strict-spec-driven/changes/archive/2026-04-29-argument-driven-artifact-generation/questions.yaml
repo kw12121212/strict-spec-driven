@@ -1,0 +1,18 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: argument-driven-artifact-generation
+open: []
+resolved:
+  - id: direct-cli-preferred-interface
+    question: >-
+      Should AI agents directly generate CLI invocations as the preferred way
+      to populate strict artifacts?
+    context: >-
+      The user clarified that agents should generate the CLI commands to run
+      directly, and multiple invocations are acceptable.
+    answer: >-
+      Yes. The preferred path is direct parameterized CLI invocations, with CLI
+      code owning YAML construction and validation.
+    status: resolved

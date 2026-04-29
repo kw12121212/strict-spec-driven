@@ -1,0 +1,125 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/argv.ts
+    - src/cli/cmd-generation.ts
+    - src/cli/registry.ts
+    - src/propose-generation.ts
+    - src/strict-spec-cli.ts
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-roadmap-propose/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-propose-generation-uses-named-arguments:
+      strength: MUST
+      statement: >-
+        The system MUST provide proposal population commands that accept
+        artifact content through named CLI arguments instead of requiring a JSON
+        payload file for the preferred agent workflow.
+      scenarios:
+        proposal-flags-populate-proposal-artifact:
+          - GIVEN: a strict change scaffold already exists
+          - AND: an agent supplies proposal summary, scope, and unchanged behavior through named CLI flags
+          - WHEN: the proposal population command is executed
+          - THEN: the target `proposal.yaml` is written under the change directory
+          - AND: the written artifact validates against the strict change proposal schema
+        repeatable-flags-populate-lists:
+          - GIVEN: an artifact field accepts multiple values
+          - WHEN: the corresponding named flag is repeated in one command invocation
+          - THEN: the generated strict YAML artifact preserves each supplied value in order
+    cli-propose-generation-uses-direct-invocations:
+      strength: MUST
+      statement: >-
+        The system MUST support direct agent-generated CLI invocations as the
+        preferred orchestration form for strict proposal population.
+      scenarios:
+        generated-cli-invocations-populate-change:
+          - GIVEN: a strict change scaffold exists
+          - AND: an agent produces one or more strict CLI proposal population commands with named arguments
+          - WHEN: those commands are executed from the repository root
+          - THEN: the requested strict change artifacts are populated
+          - AND: no command in the preferred path requires an AI-authored JSON payload file
+    cli-propose-generation-reports-argument-errors:
+      strength: MUST
+      statement: >-
+        The system MUST report invalid or incomplete named proposal population
+        arguments as deterministic CLI failures before writing target YAML
+        artifacts.
+      scenarios:
+        missing-required-flag-fails-before-write:
+          - GIVEN: a strict change scaffold exists
+          - AND: a proposal population command omits a required named argument
+          - WHEN: the command is executed
+          - THEN: the command exits non-zero
+          - AND: stderr identifies the missing argument name
+          - AND: the existing target artifact is left unchanged
+    cli-propose-generation-prevents-duplicates:
+      strength: MUST
+      statement: >-
+        The system MUST prevent duplicate YAML content when equivalent proposal
+        population commands are executed more than once.
+      scenarios:
+        repeated-list-values-are-deduplicated:
+          - GIVEN: a strict change artifact already contains a generated list entry
+          - WHEN: the same population command supplies the same list entry again
+          - THEN: the resulting YAML artifact contains that list entry only once
+          - AND: the original list order is preserved
+        keyed-items-are-upserted-by-identifier:
+          - GIVEN: a generated artifact contains a keyed item such as a task, question, decision, or requirement
+          - WHEN: a later population command targets the same item identifier with equivalent content
+          - THEN: the resulting YAML artifact contains one item for that identifier
+          - AND: no duplicate keyed entry is written
+        conflicting-keyed-items-fail-before-write:
+          - GIVEN: a generated artifact contains a keyed item
+          - WHEN: a later population command targets the same identifier with conflicting content
+          - THEN: the command exits non-zero before writing the artifact
+          - AND: stderr identifies the duplicate identifier conflict
+  MODIFIED:
+    cli-propose-populates-artifacts-from-structured-input:
+      strength: MUST
+      statement: >-
+        The system MUST provide CLI behavior that populates existing strict
+        change planning artifacts from explicit structured command input without
+        requiring an AI agent to write the YAML artifact directly.
+      scenarios:
+        proposal-artifact-is-generated-from-command-input:
+          - GIVEN: a strict change scaffold already exists
+          - AND: valid command input describes one supported planning artifact
+          - WHEN: the corresponding artifact population command is executed for that change
+          - THEN: the target planning artifact is written under the existing change directory
+          - AND: the written artifact validates against its strict YAML artifact schema
+    cli-propose-generation-is-artifact-scoped:
+      strength: MUST
+      statement: >-
+        The system MUST expose proposal population as artifact-level
+        operations so proposal, design, tasks, questions, and individual delta
+        specs can be generated through separate CLI invocations.
+      scenarios:
+        artifacts-can-be-generated-one-at-a-time:
+          - GIVEN: a strict change scaffold exists
+          - WHEN: a user or agent generates only one planning artifact from explicit command input
+          - THEN: the command writes only that target artifact
+          - AND: unrelated planning artifacts in the same change are left unchanged
+    cli-propose-generation-uses-json-file-input:
+      strength: MAY
+      statement: >-
+        The system MAY keep file-based JSON input for proposal population as a
+        compatibility path, but JSON payload files MUST NOT be the preferred
+        agent workflow for generating strict change artifacts.
+      scenarios:
+        json-input-file-remains-compatible-when-supported:
+          - GIVEN: a supported artifact generation command is invoked through a legacy JSON input path
+          - WHEN: the command processes the JSON input file
+          - THEN: the command either preserves the existing validated behavior or reports that the legacy path is unsupported
+          - AND: the documented preferred path remains named CLI arguments suitable for direct CLI invocation
+  REMOVED: {}

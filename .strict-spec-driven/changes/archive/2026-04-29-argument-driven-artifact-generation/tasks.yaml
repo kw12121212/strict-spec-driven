@@ -1,0 +1,54 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: argument-driven-artifact-generation
+sections:
+  Implementation:
+    add-argument-generation-cli:
+      text: >-
+        Add artifact-specific CLI commands that populate proposal, design, tasks, questions, and
+        delta specs from named arguments.
+      status: complete
+    support-command-friendly-input:
+      text: >-
+        Support repeatable flags and `@file` string values so generated CLI invocations can pass
+        lists and long prose without JSON payloads.
+      status: complete
+    add-deduplication-behavior:
+      text: >-
+        Add CLI-level duplicate prevention so repeated equivalent commands do not duplicate
+        generated YAML content.
+      status: complete
+    update-strict-skills:
+      text: >-
+        Update proposal-related strict skills to generate and run parameterized CLI commands
+        directly.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+    add-cli-generation-tests:
+      text: >-
+        Add tests for argument-driven artifact generation, invalid flag diagnostics, repeated flags,
+        duplicate prevention, and legacy JSON compatibility behavior.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+    verify-no-preferred-json-payload:
+      text: >-
+        Verify the proposal skills no longer describe JSON payload generation as the preferred
+        strict proposal population path.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

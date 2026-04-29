@@ -1,0 +1,52 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: argument-driven-artifact-generation
+  status: proposed
+summary:
+  what:
+    - >-
+      Add argument-driven CLI commands that let agents populate strict change
+      artifacts from named command parameters instead of JSON payload files.
+    - >-
+      Update strict proposal skills so agents directly generate and execute the
+      needed parameterized CLI commands, even when that requires multiple
+      invocations.
+  why:
+    - >-
+      JSON input files still require agents to infer an intermediate object
+      shape, so they do not fully remove schema-shape guessing from the workflow.
+    - >-
+      Direct CLI invocations are a better agent interface when each command
+      carries explicit flags and leaves YAML construction, defaults, and
+      validation inside deterministic CLI code.
+scope:
+  in:
+    - >-
+      Add artifact-specific proposal population commands with named repeatable
+      flags for proposal, design, task, question, and delta-spec content.
+    - >-
+      Support agent-authored command sequences as the preferred orchestration
+      form for proposal population.
+    - >-
+      Update strict proposal-related skills and tests to use the parameterized
+      command surface rather than compact JSON input files.
+    - >-
+      Keep validation and final YAML writing in CLI code, including schema
+      checks before target artifacts are overwritten.
+    - >-
+      Add duplicate-prevention behavior so repeated equivalent CLI invocations
+      do not create duplicate list entries, tasks, questions, decisions, or
+      delta requirements in generated YAML.
+  out:
+    - Remove the existing scaffold-only `propose <change-name>` behavior.
+    - Require agents to write YAML artifacts directly.
+    - Require agents to generate JSON payload files for the preferred workflow.
+    - Add a general-purpose YAML editing language to the CLI.
+unchanged_behavior:
+  - Existing strict workflow lifecycle commands remain available unless explicitly listed in scope.
+  - Strict workflow target artifacts remain YAML files validated against the existing schemas.
+  - CLI commands that emit machine-readable status continue to use deterministic JSON stdout.
+  - Re-running safe proposal population commands remains allowed during agent workflows.

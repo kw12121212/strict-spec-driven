@@ -674,6 +674,266 @@ try {
 
   const verifyGenerated = cli(["verify", changeName], { cwd: generateTempDir });
   context.assert(verifyGenerated.status === 0, "generated complete change passes verify", `stderr: ${verifyGenerated.stderr.trim()} stdout: ${verifyGenerated.stdout.trim()}`);
+
+  const directChangeName = "argument-driven-change";
+  const directPropose = cli(["propose", directChangeName], { cwd: generateTempDir });
+  context.assert(directPropose.status === 0, "argument-driven generate setup creates strict change scaffold", `stderr: ${directPropose.stderr.trim()}`);
+  const directChangeDir = path.join(generateTempDir, ".strict-spec-driven", "changes", directChangeName);
+  const directProposalPath = path.join(directChangeDir, "proposal.yaml");
+
+  const directProposal = cli([
+    "generate",
+    directChangeName,
+    "proposal",
+    "--what",
+    "Populate artifacts from named arguments.",
+    "--what",
+    "Populate artifacts from named arguments.",
+    "--why",
+    "Named arguments avoid intermediate payload guessing.",
+    "--in",
+    "Add parameterized generation.",
+    "--out",
+    "Remove legacy JSON compatibility.",
+    "--unchanged",
+    "Existing scaffolding remains available.",
+  ], { cwd: generateTempDir });
+  context.assert(directProposal.status === 0, "generate writes proposal artifact from named arguments", `stderr: ${directProposal.stderr.trim()}`);
+  const directProposalArtifact = yamlModule.parseYamlDocument<{
+    summary: { what: string[] };
+  }>(readFileSync(directProposalPath, "utf8"));
+  context.assert(
+    directProposalArtifact.summary.what.length === 1,
+    "generate de-duplicates repeated proposal list values",
+  );
+
+  const longStatementPath = path.join(generateTempDir, "long-statement.txt");
+  writeFileSync(longStatementPath, "The system MUST accept long prose from @file arguments.", "utf8");
+
+  const directDesign = cli([
+    "generate",
+    directChangeName,
+    "design",
+    "--reset",
+    "--approach",
+    "Use named CLI arguments.",
+    "--approach",
+    "Use named CLI arguments.",
+    "--decision",
+    "argument-driven-generation",
+    "--decision-text",
+    "Generate strict artifacts from named arguments.",
+    "--rationale",
+    "Named arguments expose the CLI contract directly.",
+    "--alternative",
+    "Keep JSON as primary input.",
+    "--reason",
+    "Agents still need to infer the payload shape.",
+  ], { cwd: generateTempDir });
+  context.assert(directDesign.status === 0, "generate writes design artifact from named arguments", `stderr: ${directDesign.stderr.trim()}`);
+
+  const repeatedDesign = cli([
+    "generate",
+    directChangeName,
+    "design",
+    "--decision",
+    "argument-driven-generation",
+    "--decision-text",
+    "Generate strict artifacts from named arguments.",
+    "--rationale",
+    "Named arguments expose the CLI contract directly.",
+  ], { cwd: generateTempDir });
+  context.assert(repeatedDesign.status === 0, "generate accepts repeated equivalent keyed design content", `stderr: ${repeatedDesign.stderr.trim()}`);
+
+  const conflictingDesign = cli([
+    "generate",
+    directChangeName,
+    "design",
+    "--decision",
+    "argument-driven-generation",
+    "--decision-text",
+    "Conflicting decision text.",
+    "--rationale",
+    "Named arguments expose the CLI contract directly.",
+  ], { cwd: generateTempDir });
+  context.assert(conflictingDesign.status !== 0, "generate rejects conflicting duplicate keyed design content");
+  context.assert(
+    conflictingDesign.stderr.includes("duplicate decision 'argument-driven-generation'"),
+    "generate duplicate keyed conflict names the conflicting decision",
+    `stderr: ${conflictingDesign.stderr.trim()}`,
+  );
+
+  const directTaskCommands = [
+    [
+      "generate",
+      directChangeName,
+      "tasks",
+      "--reset",
+      "--section",
+      "Implementation",
+      "--task",
+      "implement-argument-generation",
+      "--text",
+      "Implement argument-driven generation.",
+      "--status",
+      "complete",
+      "--validation-task",
+      "run-build",
+      "--unit-test-task",
+      "run-tests",
+    ],
+    [
+      "generate",
+      directChangeName,
+      "tasks",
+      "--section",
+      "Testing",
+      "--task",
+      "run-build",
+      "--text",
+      "Run build.",
+      "--status",
+      "complete",
+      "--command",
+      "bun run build",
+    ],
+    [
+      "generate",
+      directChangeName,
+      "tasks",
+      "--section",
+      "Testing",
+      "--task",
+      "run-tests",
+      "--text",
+      "Run tests.",
+      "--status",
+      "complete",
+      "--command",
+      "bun test/run.ts",
+    ],
+    [
+      "generate",
+      directChangeName,
+      "tasks",
+      "--section",
+      "Verification",
+      "--task",
+      "verify-change",
+      "--text",
+      "Verify the change.",
+      "--status",
+      "complete",
+    ],
+  ];
+  for (const taskCommand of directTaskCommands) {
+    const taskResult = cli(taskCommand, { cwd: generateTempDir });
+    context.assert(taskResult.status === 0, "generate writes task artifact incrementally from named arguments", `stderr: ${taskResult.stderr.trim()}`);
+  }
+  const repeatedTask = cli(directTaskCommands[1] as string[], { cwd: generateTempDir });
+  context.assert(repeatedTask.status === 0, "generate accepts repeated equivalent keyed task content", `stderr: ${repeatedTask.stderr.trim()}`);
+  const conflictingTask = cli([
+    "generate",
+    directChangeName,
+    "tasks",
+    "--section",
+    "Testing",
+    "--task",
+    "run-build",
+    "--text",
+    "Conflicting task text.",
+    "--status",
+    "complete",
+    "--command",
+    "bun run build",
+  ], { cwd: generateTempDir });
+  context.assert(conflictingTask.status !== 0, "generate rejects conflicting duplicate keyed task content");
+  context.assert(
+    conflictingTask.stderr.includes("duplicate task 'run-build'"),
+    "generate duplicate keyed conflict names the conflicting task",
+    `stderr: ${conflictingTask.stderr.trim()}`,
+  );
+
+  const resetQuestions = cli(["generate", directChangeName, "questions", "--reset"], { cwd: generateTempDir });
+  context.assert(resetQuestions.status === 0, "generate resets questions artifact from named arguments", `stderr: ${resetQuestions.stderr.trim()}`);
+
+  const directDelta = cli([
+    "generate",
+    directChangeName,
+    "delta-spec",
+    "--reset",
+    "--target-spec",
+    "cli-foundation",
+    "--spec-path",
+    "cli/foundation.yaml",
+    "--implementation",
+    "src/propose-generation.ts",
+    "--implementation",
+    "src/propose-generation.ts",
+    "--test",
+    "test/suites/foundation-and-fixtures.ts",
+    "--operation",
+    "ADDED",
+    "--requirement",
+    "argument-driven-test-requirement",
+    "--strength",
+    "MUST",
+    "--statement",
+    `@${longStatementPath}`,
+    "--scenario",
+    "argument-driven-command-populates-artifact",
+    "--given",
+    "a strict change scaffold exists",
+    "--when",
+    "the argument-driven generation command runs",
+    "--then",
+    "the target artifact is written",
+  ], { cwd: generateTempDir });
+  context.assert(directDelta.status === 0, "generate writes delta artifact from named arguments", `stderr: ${directDelta.stderr.trim()}`);
+  const repeatedDelta = cli([
+    "generate",
+    directChangeName,
+    "delta-spec",
+    "--target-spec",
+    "cli-foundation",
+    "--spec-path",
+    "cli/foundation.yaml",
+    "--operation",
+    "ADDED",
+    "--requirement",
+    "argument-driven-test-requirement",
+    "--strength",
+    "MUST",
+    "--statement",
+    `@${longStatementPath}`,
+    "--scenario",
+    "argument-driven-command-populates-artifact",
+    "--given",
+    "a strict change scaffold exists",
+    "--when",
+    "the argument-driven generation command runs",
+    "--then",
+    "the target artifact is written",
+  ], { cwd: generateTempDir });
+  context.assert(repeatedDelta.status === 0, "generate accepts repeated equivalent keyed delta content", `stderr: ${repeatedDelta.stderr.trim()}`);
+  const parsedDirectDelta = yamlModule.parseYamlDocument<{
+    mapping: { implementation: string[] };
+  }>(readFileSync(path.join(directChangeDir, "specs", "cli", "foundation.yaml"), "utf8"));
+  context.assert(
+    parsedDirectDelta.mapping.implementation.length === 1,
+    "generate de-duplicates repeated delta mapping paths",
+  );
+
+  const missingArgument = cli(["generate", directChangeName, "proposal", "--what", "Missing why."], { cwd: generateTempDir });
+  context.assert(missingArgument.status !== 0, "generate rejects missing required named arguments");
+  context.assert(
+    missingArgument.stderr.includes("--why"),
+    "generate missing argument failure names the missing flag",
+    `stderr: ${missingArgument.stderr.trim()}`,
+  );
+
+  const verifyDirectGenerated = cli(["verify", directChangeName], { cwd: generateTempDir });
+  context.assert(verifyDirectGenerated.status === 0, "argument-driven generated complete change passes verify", `stderr: ${verifyDirectGenerated.stderr.trim()} stdout: ${verifyDirectGenerated.stdout.trim()}`);
 } finally {
   rmSync(generateTempDir, { recursive: true, force: true });
 }
