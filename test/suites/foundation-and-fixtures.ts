@@ -52,10 +52,53 @@ context.assert(yamlString.includes("alpha: beta"), "stringifyYamlDocument serial
 
 const tempDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-driven-"));
 const yamlPath = path.join(tempDir, "sample.yaml");
+const malformedYamlPath = path.join(tempDir, "special-char.yaml");
 writeFileSync(yamlPath, "value: 42\n", "utf8");
+writeFileSync(malformedYamlPath, "root:\n\tchild: value\n", "utf8");
 try {
   const parsedFile = yamlModule.parseYamlFile<{ value: number }>(yamlPath);
   context.assert(parsedFile.value === 42, "parseYamlFile loads YAML from disk");
+
+  let yamlErrorDetails:
+    | {
+      errorType: string;
+      source?: string;
+      reason?: string;
+      line?: number;
+      column?: number;
+      snippet?: string;
+      offendingCharacter?: string;
+    }
+    | null = null;
+  try {
+    yamlModule.parseYamlFile(malformedYamlPath);
+  } catch (error) {
+    yamlErrorDetails = yamlModule.getYamlParseDetails(error);
+  }
+  context.assert(Boolean(yamlErrorDetails), "parseYamlFile exposes structured YAML parse details");
+  context.assert(
+    yamlErrorDetails?.source === malformedYamlPath,
+    "structured YAML parse details preserve source file path",
+    `source: ${yamlErrorDetails?.source ?? "missing"}`,
+  );
+  context.assert(
+    yamlErrorDetails?.line === 2 && yamlErrorDetails.column === 1,
+    "structured YAML parse details include 1-based line and column",
+    `line: ${yamlErrorDetails?.line ?? "missing"} column: ${yamlErrorDetails?.column ?? "missing"}`,
+  );
+  context.assert(
+    yamlErrorDetails?.offendingCharacter?.includes("tab") === true,
+    "structured YAML parse details identify offending special characters",
+    `offending character: ${yamlErrorDetails?.offendingCharacter ?? "missing"}`,
+  );
+  context.assert(
+    Boolean(yamlErrorDetails?.snippet?.includes("child")),
+    "structured YAML parse details include a source snippet",
+  );
+  context.assert(
+    yamlModule.formatYamlParseSummary(yamlErrorDetails).includes("offending character"),
+    "formatted YAML parse summaries call out the offending character",
+  );
 } finally {
   rmSync(tempDir, { recursive: true, force: true });
 }
@@ -504,14 +547,31 @@ context.assert(
 );
 
 let malformedRejected = false;
+let malformedFixtureDetails:
+  | {
+    errorType: string;
+    source?: string;
+    reason?: string;
+    line?: number;
+    column?: number;
+    snippet?: string;
+    offendingCharacter?: string;
+  }
+  | null = null;
 try {
   yamlModule.parseYamlFile(fixturePath("schema-check.invalid.malformed.yaml"));
-} catch {
+} catch (error) {
   malformedRejected = true;
+  malformedFixtureDetails = yamlModule.getYamlParseDetails(error);
 }
 context.assert(
   malformedRejected,
   "[M01:deterministic-schema-validation] fixture malformed-yaml case is rejected during parsing",
+);
+context.assert(
+  malformedFixtureDetails?.line === 6,
+  "[M01:deterministic-schema-validation] malformed fixture reports the failing line number",
+  `line: ${malformedFixtureDetails?.line ?? "missing"}`,
 );
 
 const validReferenceFixture = yamlModule.parseYamlFile<Record<string, unknown>>(fixturePath("reference-check.valid.yaml"));

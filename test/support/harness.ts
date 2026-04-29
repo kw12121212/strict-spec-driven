@@ -13,6 +13,16 @@ const VALIDATION_FIXTURE_ROOT = path.join(ROOT, "test", "fixtures", "validation"
 const PROJECT_FIXTURE_ROOT = path.join(ROOT, "test", "fixtures", "projects");
 
 export type YamlModule = {
+  getYamlParseDetails(error: unknown): {
+    errorType: string;
+    source?: string;
+    reason?: string;
+    line?: number;
+    column?: number;
+    snippet?: string;
+    offendingCharacter?: string;
+  } | null;
+  formatYamlParseSummary(input: unknown): string;
   parseYamlDocument<T>(input: string): T;
   stringifyYamlDocument(value: unknown): string;
   parseYamlFile<T>(path: string): T;
@@ -25,6 +35,12 @@ export type ValidationDiagnostic = {
   message: string;
   expected?: string;
   actual?: string;
+  errorType?: string;
+  reason?: string;
+  line?: number;
+  column?: number;
+  snippet?: string;
+  offendingCharacter?: string;
 };
 
 export type ValidationModule = {
@@ -77,7 +93,19 @@ export type ScaffoldModule = {
 export type SkillValidationModule = {
   validateStrictSkillPackaging(rootDir: string): {
     valid: boolean;
-    diagnostics: Array<{ code: string; path: string; message: string; expected?: string; actual?: string }>;
+    diagnostics: Array<{
+      code: string;
+      path: string;
+      message: string;
+      expected?: string;
+      actual?: string;
+      errorType?: string;
+      reason?: string;
+      line?: number;
+      column?: number;
+      snippet?: string;
+      offendingCharacter?: string;
+    }>;
     summary: {
       skillCount: number;
       marketplaceCount: number;

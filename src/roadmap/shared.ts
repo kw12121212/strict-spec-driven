@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import path from "path";
 import { sortByDeterministicKey, toPosix } from "../diagnostics.js";
-import { parseYamlDocument } from "../yaml.js";
+import { parseYamlFile } from "../yaml.js";
 import {
   DECLARED_PLANNED_CHANGE_STATUSES,
   DECLARED_ROADMAP_STATUSES,
@@ -98,5 +98,5 @@ export function isDeclaredPlannedChangeStatus(value: unknown): value is Declared
 }
 
 export function readYamlFile(filePath: string): unknown {
-  return parseYamlDocument<unknown>(readFileSync(filePath, "utf8"));
+  return parseYamlFile<unknown>(filePath);
 }

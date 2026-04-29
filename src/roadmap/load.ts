@@ -17,6 +17,7 @@ import {
   toPosix,
 } from "./shared.js";
 import { validateMilestoneArtifact, validateRoadmapIndexArtifact } from "./validate.js";
+import { formatYamlParseSummary, getYamlDiagnosticDetails, getYamlParseDetails } from "../yaml.js";
 
 export function loadRoadmap(rootDir: string): LoadedRoadmap {
   const warnings: string[] = [];
@@ -37,15 +38,20 @@ export function loadRoadmap(rootDir: string): LoadedRoadmap {
     try {
       indexArtifact = validateRoadmapIndexArtifact(readYamlFile(indexPath), ROADMAP_INDEX_PATH, diagnostics);
     } catch (error) {
+      const yamlDetails = getYamlParseDetails(error);
+      const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
       diagnostics.push(
-        makeDiagnostic(
-          "schema",
-          ROADMAP_INDEX_PATH,
-          "$",
-          "failed to parse roadmap index YAML",
-          "parseable YAML mapping",
-          error instanceof Error ? error.message : String(error),
-        ),
+        {
+          ...makeDiagnostic(
+            "schema",
+            ROADMAP_INDEX_PATH,
+            "$",
+            "failed to parse roadmap index YAML",
+            "parseable YAML mapping",
+            yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error),
+          ),
+          ...yamlDiagnosticDetails,
+        },
       );
     }
   } else {
@@ -77,15 +83,20 @@ export function loadRoadmap(rootDir: string): LoadedRoadmap {
         artifact,
       });
     } catch (error) {
+      const yamlDetails = getYamlParseDetails(error);
+      const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
       diagnostics.push(
-        makeDiagnostic(
-          "schema",
-          artifactPath,
-          "$",
-          "failed to parse roadmap milestone YAML",
-          "parseable YAML mapping",
-          error instanceof Error ? error.message : String(error),
-        ),
+        {
+          ...makeDiagnostic(
+            "schema",
+            artifactPath,
+            "$",
+            "failed to parse roadmap milestone YAML",
+            "parseable YAML mapping",
+            yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error),
+          ),
+          ...yamlDiagnosticDetails,
+        },
       );
     }
   }

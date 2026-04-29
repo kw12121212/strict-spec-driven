@@ -1,4 +1,4 @@
-import { parseYamlDocument } from "../yaml.js";
+import { formatYamlParseSummary, getYamlDiagnosticDetails, getYamlParseDetails, parseYamlDocument } from "../yaml.js";
 import {
   COMMAND_PREFIX,
   CORE_STRICT_SKILL_EXPECTATIONS,
@@ -212,16 +212,21 @@ export function validateCommandSection(
 
   let commands: unknown;
   try {
-    commands = parseYamlDocument<unknown>(yamlBlock);
+    commands = parseYamlDocument<unknown>(yamlBlock, { source: skillPath });
   } catch (error) {
+    const yamlDetails = getYamlParseDetails(error);
+    const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
     diagnostics.push(
-      makeDiagnostic(
-        "skill.commands_section.parse_error",
-        skillPath,
-        "command mapping block is not valid YAML",
-        "parseable YAML mapping",
-        error instanceof Error ? error.message : String(error),
-      ),
+      {
+        ...makeDiagnostic(
+          "skill.commands_section.parse_error",
+          skillPath,
+          "command mapping block is not valid YAML",
+          "parseable YAML mapping",
+          yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error),
+        ),
+        ...yamlDiagnosticDetails,
+      },
     );
     return;
   }

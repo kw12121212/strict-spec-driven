@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import path from "path";
-import { parseYamlDocument } from "../yaml.js";
+import { formatYamlParseSummary, getYamlDiagnosticDetails, getYamlParseDetails, parseYamlDocument, type YamlDiagnosticDetails } from "../yaml.js";
 import { listFilesRecursive, normalizePathSeparators, normalizeRepoRelativePath } from "./fs.js";
 
 const STRICT_SPECS_DIR = path.join(".strict-spec-driven", "specs");
@@ -17,7 +17,7 @@ export type MappingAuditDiagnostic = {
   message: string;
   expected?: string;
   actual?: string;
-};
+} & YamlDiagnosticDetails;
 
 export type VerifySpecMappingsResult = {
   valid: boolean;
@@ -139,18 +139,22 @@ function parseSpecMapping(
 
   let doc: unknown;
   try {
-    doc = parseYamlDocument<unknown>(content);
+    doc = parseYamlDocument<unknown>(content, { source: artifactPath });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    const yamlDetails = getYamlParseDetails(error);
+    const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
     diagnostics.push(
-      makeMappingDiagnostic(
-        "mapping_coverage",
-        artifactPath,
-        "$.mapping",
-        "spec file is not valid YAML",
-        "parseable YAML mapping",
-        message,
-      ),
+      {
+        ...makeMappingDiagnostic(
+          "mapping_coverage",
+          artifactPath,
+          "$.mapping",
+          "spec file is not valid YAML",
+          "parseable YAML mapping",
+          yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error),
+        ),
+        ...yamlDiagnosticDetails,
+      },
     );
     return null;
   }

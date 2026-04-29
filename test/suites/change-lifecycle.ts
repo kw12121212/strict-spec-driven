@@ -162,7 +162,20 @@ context.section("[12] verify command");
 const verifyModule = await loadDistModule<{
   verifyChange(rootDir: string, changeName: string): {
     valid: boolean;
-    diagnostics: Array<{ source: string; artifactPath: string; fieldPath: string; message: string; expected?: string; actual?: string }>;
+    diagnostics: Array<{
+      source: string;
+      artifactPath: string;
+      fieldPath: string;
+      message: string;
+      expected?: string;
+      actual?: string;
+      errorType?: string;
+      reason?: string;
+      line?: number;
+      column?: number;
+      snippet?: string;
+      offendingCharacter?: string;
+    }>;
     changeName: string;
     totalTasks: number;
     completeTasks: number;
@@ -654,6 +667,110 @@ try {
   );
 } finally {
   rmSync(verifyDeltaDir, { recursive: true, force: true });
+}
+
+// 12ea: malformed delta spec parse details
+const verifyMalformedYamlDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-malformed-yaml-"));
+try {
+  const vChangeDir = path.join(verifyMalformedYamlDir, ".strict-spec-driven", "changes", "bad-yaml");
+  mkdirSync(vChangeDir, { recursive: true });
+  mkdirSync(path.join(vChangeDir, "specs"), { recursive: true });
+
+  writeFileSync(path.join(vChangeDir, "proposal.yaml"), [
+    "schema: strict-spec-driven/change-proposal/v1",
+    "schema_version: 1",
+    "artifact_type: change_proposal",
+    "schema_file: test",
+    "change:",
+    "  id: bad-yaml",
+    "  status: proposed",
+    "summary:",
+    "  what:",
+    "    - Test",
+    "  why:",
+    "    - Test",
+    "scope:",
+    "  in: []",
+    "  out: []",
+    "unchanged_behavior: []",
+  ].join("\n") + "\n", "utf8");
+
+  writeFileSync(path.join(vChangeDir, "design.yaml"), [
+    "schema: strict-spec-driven/change-design/v1",
+    "schema_version: 1",
+    "artifact_type: change_design",
+    "schema_file: test",
+    "change: bad-yaml",
+    "approach:",
+    "  - Test",
+    "decisions: {}",
+    "alternatives: []",
+  ].join("\n") + "\n", "utf8");
+
+  writeFileSync(path.join(vChangeDir, "tasks.yaml"), [
+    "schema: strict-spec-driven/task-list/v2",
+    "schema_version: 2",
+    "artifact_type: task_list",
+    "schema_file: test",
+    "change: bad-yaml",
+    "sections:",
+    "  Implementation:",
+    "    impl-1:",
+    "      text: Do work",
+    "      status: complete",
+    "  Testing:",
+    "    test-build:",
+    "      text: Build",
+    "      status: complete",
+    "      command: bun run build",
+    "    test-unit:",
+    "      text: Unit tests",
+    "      status: complete",
+    "      command: bun test/run.ts",
+    "  Verification:",
+    "    verify-1:",
+    "      text: Verify",
+    "      status: complete",
+    "testing_gates:",
+    "  validation_task: test-build",
+    "  unit_test_task: test-unit",
+  ].join("\n") + "\n", "utf8");
+
+  writeFileSync(path.join(vChangeDir, "questions.yaml"), [
+    "schema: strict-spec-driven/question-list/v1",
+    "schema_version: 1",
+    "artifact_type: question_list",
+    "schema_file: test",
+    "change: bad-yaml",
+    "open: []",
+    "resolved: []",
+  ].join("\n") + "\n", "utf8");
+
+  writeFileSync(path.join(vChangeDir, "specs", "bad.yaml"), "operations:\n\tMODIFIED:\n", "utf8");
+
+  const malformedYamlResult = verifyModule.verifyChange(verifyMalformedYamlDir, "bad-yaml");
+  const malformedYamlDiagnostic = malformedYamlResult.diagnostics.find(
+    (diagnostic) => diagnostic.source === "yaml_parse" && diagnostic.artifactPath.endsWith("specs/bad.yaml"),
+  );
+  context.assert(!malformedYamlResult.valid, "malformed YAML parse error causes verification failure");
+  context.assert(Boolean(malformedYamlDiagnostic), "verify reports malformed YAML as a structured diagnostic");
+  context.assert(
+    malformedYamlDiagnostic?.line === 2 && malformedYamlDiagnostic.column === 1,
+    "verify malformed YAML diagnostic includes line and column",
+    `line: ${malformedYamlDiagnostic?.line ?? "missing"} column: ${malformedYamlDiagnostic?.column ?? "missing"}`,
+  );
+  context.assert(
+    malformedYamlDiagnostic?.offendingCharacter?.includes("tab") === true,
+    "verify malformed YAML diagnostic identifies the offending special character",
+    `offending character: ${malformedYamlDiagnostic?.offendingCharacter ?? "missing"}`,
+  );
+  context.assert(
+    malformedYamlDiagnostic?.actual?.includes("offending character") === true,
+    "verify malformed YAML diagnostic summary includes the parse cause",
+    `actual: ${malformedYamlDiagnostic?.actual ?? "missing"}`,
+  );
+} finally {
+  rmSync(verifyMalformedYamlDir, { recursive: true, force: true });
 }
 
 // 12f: exclusive target conflicts

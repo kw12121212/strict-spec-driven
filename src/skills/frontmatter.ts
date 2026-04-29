@@ -1,4 +1,4 @@
-import { parseYamlDocument } from "../yaml.js";
+import { formatYamlParseSummary, getYamlDiagnosticDetails, getYamlParseDetails, parseYamlDocument } from "../yaml.js";
 import {
   makeDiagnostic,
   REQUIRED_METADATA_FIELDS,
@@ -38,7 +38,7 @@ export function parseFrontmatter(
 
   const rawFrontmatter = lines.slice(1, closeIndex).join("\n");
   try {
-    const parsed = parseYamlDocument<unknown>(rawFrontmatter);
+    const parsed = parseYamlDocument<unknown>(rawFrontmatter, { source: skillPath });
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       diagnostics.push(
         makeDiagnostic(
@@ -53,14 +53,19 @@ export function parseFrontmatter(
     }
     return parsed as SkillFrontmatter;
   } catch (error) {
+    const yamlDetails = getYamlParseDetails(error);
+    const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
     diagnostics.push(
-      makeDiagnostic(
-        "skill.frontmatter.parse_error",
-        skillPath,
-        "SKILL.md frontmatter is not valid YAML",
-        "parseable YAML mapping",
-        error instanceof Error ? error.message : String(error),
-      ),
+      {
+        ...makeDiagnostic(
+          "skill.frontmatter.parse_error",
+          skillPath,
+          "SKILL.md frontmatter is not valid YAML",
+          "parseable YAML mapping",
+          yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error),
+        ),
+        ...yamlDiagnosticDetails,
+      },
     );
     return null;
   }

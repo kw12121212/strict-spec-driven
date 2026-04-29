@@ -10527,19 +10527,203 @@ function renamed(from, to) {
 var load = loader.load;
 var loadAll = loader.loadAll;
 var dump = dumper.dump;
+var YAMLException = exception;
 var safeLoad = renamed("safeLoad", "load");
 var safeLoadAll = renamed("safeLoadAll", "loadAll");
 var safeDump = renamed("safeDump", "dump");
 
 // src/yaml.ts
-function parseYamlDocument(input) {
-  return load(input);
+function describeCodePoint(codePoint) {
+  return `U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`;
+}
+function escapeCharacterForDisplay(value) {
+  switch (value) {
+    case "\\":
+      return "\\\\";
+    case "'":
+      return "\\'";
+    case "\x00":
+      return "\\0";
+    case "\b":
+      return "\\b";
+    case "\t":
+      return "\\t";
+    case `
+`:
+      return "\\n";
+    case "\v":
+      return "\\v";
+    case "\f":
+      return "\\f";
+    case "\r":
+      return "\\r";
+    default:
+      return value;
+  }
+}
+function describeCharacterLabel(value) {
+  switch (value) {
+    case "\x00":
+      return "null byte";
+    case "\b":
+      return "backspace";
+    case "\t":
+      return "tab";
+    case `
+`:
+      return "newline";
+    case "\v":
+      return "vertical tab";
+    case "\f":
+      return "form feed";
+    case "\r":
+      return "carriage return";
+    case " ":
+      return "space";
+    default:
+      return null;
+  }
+}
+function describeOffendingCharacter(mark) {
+  if (!mark || typeof mark.position !== "number" || mark.position < 0 || mark.position >= mark.buffer.length) {
+    return;
+  }
+  const character = mark.buffer.slice(mark.position, mark.position + 1);
+  if (!character) {
+    return;
+  }
+  const codePoint = character.codePointAt(0);
+  if (codePoint === undefined) {
+    return;
+  }
+  const label = describeCharacterLabel(character);
+  const display = escapeCharacterForDisplay(character);
+  return label ? `'${display}' (${label}, ${describeCodePoint(codePoint)})` : `'${display}' (${describeCodePoint(codePoint)})`;
+}
+function buildYamlParseDetails(error, source) {
+  return {
+    errorType: error.name || "YAMLException",
+    reason: typeof error.reason === "string" ? error.reason : undefined,
+    line: typeof error.mark?.line === "number" ? error.mark.line + 1 : undefined,
+    column: typeof error.mark?.column === "number" ? error.mark.column + 1 : undefined,
+    snippet: typeof error.mark?.snippet === "string" && error.mark.snippet.trim().length > 0 ? error.mark.snippet : undefined,
+    offendingCharacter: describeOffendingCharacter(error.mark),
+    source
+  };
+}
+function formatLocation(details) {
+  if (typeof details.line !== "number") {
+    return;
+  }
+  if (typeof details.column !== "number") {
+    return `line ${details.line}`;
+  }
+  return `line ${details.line}, column ${details.column}`;
+}
+function formatYamlParseSummary(input) {
+  const details = isYamlParseDetails(input) ? input : getYamlParseDetails(input);
+  if (!details) {
+    return input instanceof Error ? input.message : String(input);
+  }
+  const parts = [];
+  if (details.reason) {
+    parts.push(details.reason);
+  } else {
+    parts.push("failed to parse YAML");
+  }
+  const location = formatLocation(details);
+  if (location) {
+    parts.push(location);
+  }
+  if (details.offendingCharacter) {
+    parts.push(`offending character ${details.offendingCharacter}`);
+  }
+  return parts.join("; ");
+}
+function formatYamlParseMessage(details) {
+  const summary = formatYamlParseSummary(details);
+  if (details.source) {
+    return `${details.source}: ${summary}`;
+  }
+  return summary;
+}
+function isYamlParseDetails(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const candidate = value;
+  return typeof candidate.errorType === "string";
+}
+
+class YamlParseError extends Error {
+  errorType;
+  reason;
+  line;
+  column;
+  snippet;
+  offendingCharacter;
+  source;
+  constructor(details) {
+    super(formatYamlParseMessage(details));
+    this.name = "YamlParseError";
+    this.errorType = details.errorType;
+    this.reason = details.reason;
+    this.line = details.line;
+    this.column = details.column;
+    this.snippet = details.snippet;
+    this.offendingCharacter = details.offendingCharacter;
+    this.source = details.source;
+  }
+}
+function getYamlParseDetails(error) {
+  if (error instanceof YamlParseError) {
+    return {
+      errorType: error.errorType,
+      reason: error.reason,
+      line: error.line,
+      column: error.column,
+      snippet: error.snippet,
+      offendingCharacter: error.offendingCharacter,
+      source: error.source
+    };
+  }
+  if (error instanceof YAMLException) {
+    return buildYamlParseDetails(error);
+  }
+  return null;
+}
+function getYamlDiagnosticDetails(error) {
+  const details = getYamlParseDetails(error);
+  if (!details) {
+    return null;
+  }
+  return {
+    errorType: details.errorType,
+    reason: details.reason,
+    line: details.line,
+    column: details.column,
+    snippet: details.snippet,
+    offendingCharacter: details.offendingCharacter
+  };
+}
+function parseYamlDocument(input, options) {
+  try {
+    return load(input);
+  } catch (error) {
+    if (error instanceof YamlParseError) {
+      throw error;
+    }
+    if (error instanceof YAMLException) {
+      throw new YamlParseError(buildYamlParseDetails(error, options?.source));
+    }
+    throw error;
+  }
 }
 function stringifyYamlDocument(value) {
   return dump(value, { lineWidth: 100 });
 }
 function parseYamlFile(path) {
-  return parseYamlDocument(readFileSync(path, "utf8"));
+  return parseYamlDocument(readFileSync(path, "utf8"), { source: path });
 }
 
 // src/scaffold.ts
@@ -10835,7 +11019,7 @@ var ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v2";
 var ROADMAP_MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v2";
 
 // src/roadmap/shared.ts
-import { existsSync as existsSync3, readdirSync, readFileSync as readFileSync4, statSync as statSync2 } from "fs";
+import { existsSync as existsSync3, readdirSync, statSync as statSync2 } from "fs";
 import path4 from "path";
 
 // src/diagnostics.ts
@@ -10920,7 +11104,7 @@ function isDeclaredPlannedChangeStatus(value) {
   return typeof value === "string" && DECLARED_PLANNED_CHANGE_STATUSES.includes(value);
 }
 function readYamlFile(filePath) {
-  return parseYamlDocument(readFileSync4(filePath, "utf8"));
+  return parseYamlFile(filePath);
 }
 
 // src/roadmap/load.ts
@@ -11209,7 +11393,12 @@ function loadRoadmap(rootDir) {
     try {
       indexArtifact = validateRoadmapIndexArtifact(readYamlFile(indexPath), ROADMAP_INDEX_PATH, diagnostics);
     } catch (error) {
-      diagnostics.push(makeDiagnostic("schema", ROADMAP_INDEX_PATH, "$", "failed to parse roadmap index YAML", "parseable YAML mapping", error instanceof Error ? error.message : String(error)));
+      const yamlDetails = getYamlParseDetails(error);
+      const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
+      diagnostics.push({
+        ...makeDiagnostic("schema", ROADMAP_INDEX_PATH, "$", "failed to parse roadmap index YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
+        ...yamlDiagnosticDetails
+      });
     }
   } else {
     diagnostics.push(makeDiagnostic("schema", ROADMAP_INDEX_PATH, "$", "roadmap index is missing", ROADMAP_INDEX_PATH, "missing"));
@@ -11237,7 +11426,12 @@ function loadRoadmap(rootDir) {
         artifact
       });
     } catch (error) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, "$", "failed to parse roadmap milestone YAML", "parseable YAML mapping", error instanceof Error ? error.message : String(error)));
+      const yamlDetails = getYamlParseDetails(error);
+      const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
+      diagnostics.push({
+        ...makeDiagnostic("schema", artifactPath, "$", "failed to parse roadmap milestone YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
+        ...yamlDiagnosticDetails
+      });
     }
   }
   return {
@@ -11804,6 +11998,19 @@ function collectDiagnostics(results) {
     actual: d.actual
   }));
 }
+function makeYamlParseDiagnostic(artifactPath, message, error) {
+  const yamlDetails = getYamlParseDetails(error);
+  const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
+  return {
+    source: "yaml_parse",
+    artifactPath,
+    fieldPath: "$",
+    message,
+    expected: "parseable YAML mapping",
+    actual: yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error),
+    ...yamlDiagnosticDetails
+  };
+}
 function validateArtifactSchema(artifactType, artifact, artifactPath) {
   const diagnostics = [];
   const record = artifact;
@@ -11908,10 +12115,16 @@ function validateDeltaSpecs(changeDir, artifactPathPrefix) {
       if (entry.isDirectory()) {
         scanDir(fullPath);
       } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
-        const relativePath = path10.relative(changeDir, fullPath);
+        const relativePath = path10.relative(specsDir, fullPath).split(path10.sep).join("/");
         const content = readFileSync8(fullPath, "utf8");
-        const artifact = parseYamlDocument(content);
         const artifactPath = `${artifactPathPrefix}/${relativePath}`;
+        let artifact;
+        try {
+          artifact = parseYamlDocument(content, { source: artifactPath });
+        } catch (error) {
+          diagnostics.push(makeYamlParseDiagnostic(artifactPath, "delta spec is not valid YAML", error));
+          continue;
+        }
         diagnostics.push(...validateArtifactSchema("delta_spec", artifact, artifactPath));
       }
     }
@@ -11933,8 +12146,17 @@ function checkExclusiveActiveTargets(rootDir, changeName) {
         if (entry.isDirectory()) {
           scanDir(fullPath);
         } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
+          const artifactPath = path10.relative(rootDir, fullPath).split(path10.sep).join("/");
           const content = readFileSync8(fullPath, "utf8");
-          const artifact = parseYamlDocument(content);
+          let artifact;
+          try {
+            artifact = parseYamlDocument(content, { source: artifactPath });
+          } catch (error) {
+            if (activeChange !== changeName) {
+              diagnostics.push(makeYamlParseDiagnostic(artifactPath, "delta spec is not valid YAML", error));
+            }
+            continue;
+          }
           const ops = artifact.operations ?? {};
           for (const [opName, entries] of Object.entries(ops)) {
             if (opName !== "MODIFIED" && opName !== "REMOVED")
@@ -12020,7 +12242,13 @@ function verifyChange(rootDir, changeName) {
       continue;
     }
     const content = readFileSync8(filePath, "utf8");
-    const artifact = parseYamlDocument(content);
+    let artifact;
+    try {
+      artifact = parseYamlDocument(content, { source: artifactPath });
+    } catch (error) {
+      allDiagnostics.push(makeYamlParseDiagnostic(artifactPath, `artifact '${fileName}' is not valid YAML`, error));
+      continue;
+    }
     allDiagnostics.push(...validateArtifactSchema(artifactType, artifact, artifactPath));
     if (artifactType === "task_list") {
       const taskArtifact = artifact;
@@ -15053,9 +15281,14 @@ function validateCommandSection(skillName, content, skillPath, diagnostics) {
   }
   let commands;
   try {
-    commands = parseYamlDocument(yamlBlock);
+    commands = parseYamlDocument(yamlBlock, { source: skillPath });
   } catch (error) {
-    diagnostics.push(makeDiagnostic3("skill.commands_section.parse_error", skillPath, "command mapping block is not valid YAML", "parseable YAML mapping", error instanceof Error ? error.message : String(error)));
+    const yamlDetails = getYamlParseDetails(error);
+    const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
+    diagnostics.push({
+      ...makeDiagnostic3("skill.commands_section.parse_error", skillPath, "command mapping block is not valid YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
+      ...yamlDiagnosticDetails
+    });
     return;
   }
   if (!commands || typeof commands !== "object" || Array.isArray(commands)) {
@@ -15192,14 +15425,19 @@ function parseFrontmatter(content, skillPath, diagnostics) {
   const rawFrontmatter = lines.slice(1, closeIndex).join(`
 `);
   try {
-    const parsed = parseYamlDocument(rawFrontmatter);
+    const parsed = parseYamlDocument(rawFrontmatter, { source: skillPath });
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       diagnostics.push(makeDiagnostic3("skill.frontmatter.invalid_shape", skillPath, "SKILL.md frontmatter must parse to a YAML mapping", "mapping", typeof parsed));
       return null;
     }
     return parsed;
   } catch (error) {
-    diagnostics.push(makeDiagnostic3("skill.frontmatter.parse_error", skillPath, "SKILL.md frontmatter is not valid YAML", "parseable YAML mapping", error instanceof Error ? error.message : String(error)));
+    const yamlDetails = getYamlParseDetails(error);
+    const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
+    diagnostics.push({
+      ...makeDiagnostic3("skill.frontmatter.parse_error", skillPath, "SKILL.md frontmatter is not valid YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
+      ...yamlDiagnosticDetails
+    });
     return null;
   }
 }
@@ -15350,10 +15588,14 @@ function parseSpecMapping(rootDir, specPath, diagnostics) {
   const content = readFileSync19(specPath, "utf8");
   let doc;
   try {
-    doc = parseYamlDocument(content);
+    doc = parseYamlDocument(content, { source: artifactPath });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    diagnostics.push(makeMappingDiagnostic("mapping_coverage", artifactPath, "$.mapping", "spec file is not valid YAML", "parseable YAML mapping", message));
+    const yamlDetails = getYamlParseDetails(error);
+    const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
+    diagnostics.push({
+      ...makeMappingDiagnostic("mapping_coverage", artifactPath, "$.mapping", "spec file is not valid YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
+      ...yamlDiagnosticDetails
+    });
     return null;
   }
   if (!doc || typeof doc !== "object" || Array.isArray(doc)) {

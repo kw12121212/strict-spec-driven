@@ -1,3 +1,5 @@
+import type { YamlDiagnosticDetails } from "../yaml.js";
+
 export const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 export const ROADMAP_DIR = `${STRICT_WORKFLOW_DIR}/roadmap`;
 export const ROADMAP_INDEX_PATH = `${ROADMAP_DIR}/INDEX.yaml`;
@@ -86,7 +88,7 @@ export type RoadmapDiagnostic = {
   message: string;
   expected?: string;
   actual?: string;
-};
+} & YamlDiagnosticDetails;
 
 export type RoadmapPlannedChangeStatus = {
   id: string;

@@ -1,3 +1,4 @@
+import type { YamlDiagnosticDetails } from "../yaml.js";
 import { toPosix } from "../diagnostics.js";
 
 export type SkillPackagingDiagnostic = {
@@ -6,7 +7,7 @@ export type SkillPackagingDiagnostic = {
   message: string;
   expected?: string;
   actual?: string;
-};
+} & YamlDiagnosticDetails;
 
 export type SkillPackagingValidationResult = {
   valid: boolean;

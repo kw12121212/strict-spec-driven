@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "fs";
 import path from "path";
-import { parseYamlDocument } from "./yaml.js";
+import { formatYamlParseSummary, getYamlDiagnosticDetails, getYamlParseDetails, parseYamlDocument, type YamlDiagnosticDetails } from "./yaml.js";
 import {
   loadBundledSchemaByArtifactType,
   validateArtifact,
@@ -38,7 +38,7 @@ export type VerifyDiagnostic = {
   message: string;
   expected?: string;
   actual?: string;
-};
+} & YamlDiagnosticDetails;
 
 export type VerifyResult = {
   valid: boolean;
@@ -61,6 +61,24 @@ function collectDiagnostics(
     expected: d.expected,
     actual: d.actual,
   }));
+}
+
+function makeYamlParseDiagnostic(
+  artifactPath: string,
+  message: string,
+  error: unknown,
+): VerifyDiagnostic {
+  const yamlDetails = getYamlParseDetails(error);
+  const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
+  return {
+    source: "yaml_parse",
+    artifactPath,
+    fieldPath: "$",
+    message,
+    expected: "parseable YAML mapping",
+    actual: yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error),
+    ...yamlDiagnosticDetails,
+  };
 }
 
 function validateArtifactSchema(
@@ -199,10 +217,16 @@ function validateDeltaSpecs(
       if (entry.isDirectory()) {
         scanDir(fullPath);
       } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
-        const relativePath = path.relative(changeDir, fullPath);
+        const relativePath = path.relative(specsDir, fullPath).split(path.sep).join("/");
         const content = readFileSync(fullPath, "utf8");
-        const artifact = parseYamlDocument<unknown>(content);
         const artifactPath = `${artifactPathPrefix}/${relativePath}`;
+        let artifact: unknown;
+        try {
+          artifact = parseYamlDocument<unknown>(content, { source: artifactPath });
+        } catch (error) {
+          diagnostics.push(makeYamlParseDiagnostic(artifactPath, "delta spec is not valid YAML", error));
+          continue;
+        }
         diagnostics.push(
           ...validateArtifactSchema("delta_spec", artifact, artifactPath),
         );
@@ -242,8 +266,17 @@ function checkExclusiveActiveTargets(
         if (entry.isDirectory()) {
           scanDir(fullPath);
         } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
+          const artifactPath = path.relative(rootDir, fullPath).split(path.sep).join("/");
           const content = readFileSync(fullPath, "utf8");
-          const artifact = parseYamlDocument<DeltaSpecArtifact>(content);
+          let artifact: DeltaSpecArtifact;
+          try {
+            artifact = parseYamlDocument<DeltaSpecArtifact>(content, { source: artifactPath });
+          } catch (error) {
+            if (activeChange !== changeName) {
+              diagnostics.push(makeYamlParseDiagnostic(artifactPath, "delta spec is not valid YAML", error));
+            }
+            continue;
+          }
           const ops = artifact.operations ?? {};
           for (const [opName, entries] of Object.entries(ops)) {
             if (opName !== "MODIFIED" && opName !== "REMOVED") continue;
@@ -338,7 +371,13 @@ export function verifyChange(
     }
 
     const content = readFileSync(filePath, "utf8");
-    const artifact = parseYamlDocument<unknown>(content);
+    let artifact: unknown;
+    try {
+      artifact = parseYamlDocument<unknown>(content, { source: artifactPath });
+    } catch (error) {
+      allDiagnostics.push(makeYamlParseDiagnostic(artifactPath, `artifact '${fileName}' is not valid YAML`, error));
+      continue;
+    }
     allDiagnostics.push(
       ...validateArtifactSchema(artifactType, artifact, artifactPath),
     );

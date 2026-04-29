@@ -180,6 +180,78 @@ try {
   rmSync(invalidSkillsRoot, { recursive: true, force: true });
 }
 
+const malformedSkillsRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-validation-malformed-"));
+try {
+  const malformedSkillDir = path.join(malformedSkillsRoot, "skills", "strict-spec-malformed");
+  mkdirSync(path.join(malformedSkillsRoot, "dist", "scripts"), { recursive: true });
+  mkdirSync(path.join(malformedSkillsRoot, "dist", "templates"), { recursive: true });
+  mkdirSync(malformedSkillDir, { recursive: true });
+
+  symlinkSync("../../dist/scripts", path.join(malformedSkillDir, "scripts"));
+  symlinkSync("../../dist/templates", path.join(malformedSkillDir, "templates"));
+
+  writeFileSync(
+    path.join(malformedSkillDir, "SKILL.md"),
+    [
+      "---",
+      "name: strict-spec-malformed",
+      "\tdescription: malformed frontmatter",
+      "metadata:",
+      "  skill_id: strict_spec_malformed",
+      "  author: strict-spec-driven",
+      "  type: agent_skill",
+      "  version: 1.0.0",
+      "---",
+      "",
+      "# strict-spec-malformed",
+      "",
+      "## This Skill's Commands",
+      "",
+      "```yaml",
+      "demo: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify demo",
+      "```",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(malformedSkillsRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [{ name: "strict-spec-malformed", family: "strict-spec" }],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const malformedResult = skillValidationModule.validateStrictSkillPackaging(malformedSkillsRoot);
+  const malformedDiagnostic = malformedResult.diagnostics.find(
+    (diagnostic) => diagnostic.code === "skill.frontmatter.parse_error",
+  );
+  context.assert(!malformedResult.valid, "validate-skills fails for malformed YAML frontmatter");
+  context.assert(Boolean(malformedDiagnostic), "validate-skills surfaces malformed frontmatter parse diagnostics");
+  context.assert(
+    malformedDiagnostic?.line === 2 && malformedDiagnostic.column === 1,
+    "validate-skills malformed YAML diagnostics include line and column",
+    `line: ${malformedDiagnostic?.line ?? "missing"} column: ${malformedDiagnostic?.column ?? "missing"}`,
+  );
+  context.assert(
+    malformedDiagnostic?.offendingCharacter?.includes("tab") === true,
+    "validate-skills malformed YAML diagnostics identify the offending special character",
+    `offending character: ${malformedDiagnostic?.offendingCharacter ?? "missing"}`,
+  );
+  context.assert(
+    Boolean(malformedDiagnostic?.snippet?.includes("description")),
+    "validate-skills malformed YAML diagnostics include a YAML snippet",
+  );
+} finally {
+  rmSync(malformedSkillsRoot, { recursive: true, force: true });
+}
+
 const invalidCoreSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-core-skill-validation-invalid-"));
 try {
   const invalidCoreSkillDir = path.join(invalidCoreSkillRoot, "skills", "strict-spec-init");
