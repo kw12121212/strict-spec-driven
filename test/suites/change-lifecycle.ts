@@ -1185,6 +1185,85 @@ function writeDeltaSpecArtifact(
   );
 }
 
+function writeRoadmapIndexArtifact(
+  rootDir: string,
+  milestones: Array<{ id: string; title: string; path: string; status: string }>,
+): void {
+  const indexPath = path.join(rootDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
+  mkdirSync(path.dirname(indexPath), { recursive: true });
+  const milestonesMap: Record<string, { title: string; path: string; status: string }> = {};
+  for (const milestone of milestones) {
+    milestonesMap[milestone.id] = {
+      title: milestone.title,
+      path: milestone.path,
+      status: milestone.status,
+    };
+  }
+
+  writeFileSync(
+    indexPath,
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/roadmap-index/v2",
+      schema_version: 2,
+      artifact_type: "roadmap_index",
+      schema_file: "../schemas/roadmap-index.yaml",
+      milestones: milestonesMap,
+    }),
+    "utf8",
+  );
+}
+
+function writeRoadmapMilestoneArtifact(
+  rootDir: string,
+  fileName: string,
+  options: {
+    id: string;
+    title: string;
+    goal: string;
+    status: string;
+    plannedChanges: Array<{ id: string; status: string; summary: string; depends_on: string[] }>;
+  },
+): void {
+  const milestonePath = path.join(rootDir, ".strict-spec-driven", "roadmap", "milestones", fileName);
+  mkdirSync(path.dirname(milestonePath), { recursive: true });
+
+  const milestoneKeyed: Record<string, { title: string }> = {
+    [options.id]: { title: options.title },
+  };
+  const plannedChangesMap: Record<string, { status: string; summary: string; details: string; depends_on: string[] }> = {};
+  for (const plannedChange of options.plannedChanges) {
+    plannedChangesMap[plannedChange.id] = {
+      status: plannedChange.status,
+      summary: plannedChange.summary,
+      details: `Test details for ${plannedChange.id}`,
+      depends_on: plannedChange.depends_on,
+    };
+  }
+
+  writeFileSync(
+    milestonePath,
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/roadmap-milestone/v2",
+      schema_version: 2,
+      artifact_type: "roadmap_milestone",
+      schema_file: "../schemas/roadmap-milestone.yaml",
+      milestone: milestoneKeyed,
+      goal: options.goal,
+      scope: {
+        in: ["Archive lifecycle behavior."],
+        out: ["Unrelated behavior."],
+      },
+      done_criteria: ["The roadmap milestone stays aligned with archived change state."],
+      planned_changes: plannedChangesMap,
+      dependencies: [],
+      risks: [],
+      status: options.status,
+      notes: [],
+    }),
+    "utf8",
+  );
+}
+
 // 13a: happy path archive merge + move + index regeneration
 const archiveHappyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-happy-"));
 try {
@@ -1236,6 +1315,7 @@ try {
   context.assert(archiveResult.status === 0, "archive exits zero for a valid complete change", `got ${archiveResult.status}`);
   const archiveJson = JSON.parse(archiveResult.stdout.trim());
   context.assert(archiveJson.valid === true, "archive output marks valid=true");
+  context.assert(archiveJson.roadmapSync === null, "archive reports roadmapSync as null when no roadmap exists");
   context.assert(archiveJson.mergeSummary.specsUpdated === 1, "archive merge summary reports one updated spec");
   context.assert(archiveJson.mergeSummary.added === 1, "archive merge summary reports ADDED count");
   context.assert(archiveJson.mergeSummary.modified === 1, "archive merge summary reports MODIFIED count");
@@ -1463,6 +1543,81 @@ try {
   );
 } finally {
   rmSync(archiveCollisionDir, { recursive: true, force: true });
+}
+
+// 13f: archive syncs roadmap milestone state after a linked change is archived
+const archiveRoadmapDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-roadmap-"));
+try {
+  const changeName = "archive-roadmap";
+  writeMainSpecArtifact(
+    archiveRoadmapDir,
+    "cli/foundation.yaml",
+    "cli-foundation",
+    "CLI Foundation",
+    [{ id: "req-existing", statement: "Existing requirement" }],
+  );
+  writeValidChangeArtifacts(archiveRoadmapDir, changeName);
+  writeDeltaSpecArtifact(archiveRoadmapDir, changeName, "cli.yaml", "cli-foundation", {
+    ADDED: {},
+    MODIFIED: {},
+    REMOVED: {},
+  });
+  writeRoadmapMilestoneArtifact(archiveRoadmapDir, "0001-archive-roadmap.yaml", {
+    id: "0001-archive-roadmap",
+    title: "Archive Roadmap Sync",
+    goal: "Mark the milestone complete when its final change is archived.",
+    status: "active",
+    plannedChanges: [
+      {
+        id: changeName,
+        status: "planned",
+        summary: "Archive the linked change.",
+        depends_on: [],
+      },
+    ],
+  });
+  writeRoadmapIndexArtifact(archiveRoadmapDir, [
+    {
+      id: "0001-archive-roadmap",
+      title: "Archive Roadmap Sync",
+      path: "roadmap/milestones/0001-archive-roadmap.yaml",
+      status: "active",
+    },
+  ]);
+
+  const archiveRoadmapResult = cli(["archive", changeName], { cwd: archiveRoadmapDir });
+  context.assert(archiveRoadmapResult.status === 0, "archive exits zero when linked roadmap milestone is reconciled");
+  const archiveRoadmapJson = JSON.parse(archiveRoadmapResult.stdout.trim());
+  context.assert(
+    archiveRoadmapJson.roadmapSync?.valid === true,
+    "archive reports successful roadmap sync when roadmap artifacts are present",
+  );
+  context.assert(
+    archiveRoadmapJson.roadmapSync.updatedFiles.includes(".strict-spec-driven/roadmap/INDEX.yaml")
+      && archiveRoadmapJson.roadmapSync.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/0001-archive-roadmap.yaml"),
+    "archive reports the roadmap files updated during archive-triggered roadmap sync",
+    `updatedFiles: ${JSON.stringify(archiveRoadmapJson.roadmapSync?.updatedFiles)}`,
+  );
+
+  const syncedMilestone = yamlModule.parseYamlFile<{
+    status: string;
+    planned_changes: Record<string, { status: string }>;
+  }>(path.join(archiveRoadmapDir, ".strict-spec-driven", "roadmap", "milestones", "0001-archive-roadmap.yaml"));
+  context.assert(syncedMilestone.status === "complete", "archive marks the linked roadmap milestone complete once all planned changes are archived");
+  context.assert(
+    syncedMilestone.planned_changes[changeName]?.status === "complete",
+    "archive marks the linked roadmap planned change complete after archive",
+  );
+
+  const syncedIndex = yamlModule.parseYamlFile<{
+    milestones: Record<string, { status: string }>;
+  }>(path.join(archiveRoadmapDir, ".strict-spec-driven", "roadmap", "INDEX.yaml"));
+  context.assert(
+    syncedIndex.milestones["0001-archive-roadmap"]?.status === "complete",
+    "archive rewrites the roadmap index milestone status after syncing roadmap state",
+  );
+} finally {
+  rmSync(archiveRoadmapDir, { recursive: true, force: true });
 }
 
 context.section("[14] list/modify/cancel commands");

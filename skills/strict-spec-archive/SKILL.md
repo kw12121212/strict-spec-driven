@@ -1,6 +1,6 @@
 ---
 name: strict-spec-archive
-description: Archive a completed strict YAML change. Uses the strict archive command to merge delta specs into main specs, regenerate the spec index, and move the change into archive.
+description: Archive a completed strict YAML change. Uses the strict archive command to merge delta specs into main specs, regenerate the spec index, reconcile roadmap status when present, and move the change into archive.
 metadata:
   skill_id: strict_spec_archive
   author: strict-spec-driven
@@ -27,6 +27,7 @@ archive: node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>
 **Handled by CLI scripts**
 - merge strict YAML delta specs into main specs during archive
 - regenerate `.strict-spec-driven/specs/INDEX.yaml`
+- reconcile `.strict-spec-driven/roadmap/` milestone and index status when archive changes roadmap-derived completion state
 - move the change directory into `.strict-spec-driven/changes/archive/`
 
 **Handled by the AI**
@@ -63,8 +64,9 @@ proceeding, verify that strict workflow state already exists.
    ```
 
 5. **Confirm the result** — summarize:
-   - the archive destination
-   - the strict main specs that were updated
+    - the archive destination
+    - the strict main specs that were updated
+    - any roadmap files the archive command reconciled
 
 ## Rules
 

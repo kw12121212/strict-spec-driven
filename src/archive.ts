@@ -7,6 +7,8 @@ import {
   writeFileSync,
 } from "fs";
 import path from "path";
+import { syncRoadmap, type RoadmapSyncResult } from "./roadmap.js";
+import { ROADMAP_DIR } from "./roadmap/model.js";
 import { verifyChange } from "./verify.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
@@ -70,6 +72,7 @@ export type ArchiveResult = {
     removedMissingTargetSkipped: number;
   };
   mergedSpecs: ArchiveMergedSpecResult[];
+  roadmapSync: RoadmapSyncResult | null;
 };
 
 function normalizeRepoRelativePath(rootDir: string, absolutePath: string): string {
@@ -279,6 +282,15 @@ function regenerateSpecIndex(rootDir: string): void {
   writeYamlFile(indexPath, indexArtifact);
 }
 
+function syncRoadmapAfterArchive(rootDir: string): RoadmapSyncResult | null {
+  const roadmapDir = path.join(rootDir, ROADMAP_DIR);
+  if (!existsSync(roadmapDir)) {
+    return null;
+  }
+
+  return syncRoadmap(rootDir);
+}
+
 export function archiveChange(rootDir: string, changeName: string): ArchiveResult {
   const changeDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "changes", changeName);
   if (!existsSync(changeDir)) {
@@ -353,6 +365,7 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
 
   const archiveDestination = buildArchiveDestination(rootDir, changeName);
   renameSync(changeDir, archiveDestination);
+  const roadmapSync = syncRoadmapAfterArchive(rootDir);
 
   const mergedSpecs = Array.from(mergeReports.values()).sort((left, right) => {
     const bySpecPath = left.specPath.localeCompare(right.specPath);
@@ -388,5 +401,6 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
     archiveDestination: normalizeRepoRelativePath(rootDir, archiveDestination),
     mergeSummary,
     mergedSpecs,
+    roadmapSync,
   };
 }
