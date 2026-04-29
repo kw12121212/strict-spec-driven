@@ -4,7 +4,7 @@ schema_id: strict-spec-driven/spec-index/v1
 artifact_type: spec_index
 artifact_name: spec-index
 description: Strict YAML spec index artifact.
-example_ref: ../examples/spec-index.yaml
+example_ref: ../../../examples/strict-spec-driven/spec-index.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object

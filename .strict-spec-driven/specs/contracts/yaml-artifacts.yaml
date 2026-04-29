@@ -16,10 +16,10 @@ mapping:
     - templates/strict-spec-driven/schemas/registry.yaml
     - templates/strict-spec-driven/schemas/roadmap-index.yaml
     - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
-    - templates/strict-spec-driven/examples/schema-registry.yaml
-    - templates/strict-spec-driven/examples/roadmap-index.yaml
-    - templates/strict-spec-driven/examples/roadmap-milestone.yaml
-    - templates/strict-spec-driven/examples/roadmap-milestone.planning.yaml
+    - examples/strict-spec-driven/schema-registry.yaml
+    - examples/strict-spec-driven/roadmap-index.yaml
+    - examples/strict-spec-driven/roadmap-milestone.yaml
+    - examples/strict-spec-driven/roadmap-milestone.planning.yaml
     - src/validation.ts
     - src/yaml.ts
     - install.sh
@@ -393,14 +393,14 @@ requirements:
     strength: MUST
     statement: >-
       The system MUST store repository-bundled strict workflow schema files under
-      `templates/strict-spec-driven/schemas/` and minimal valid example files under
-      `templates/strict-spec-driven/examples/`, separate from `.strict-spec-driven/` workflow state.
+      `templates/strict-spec-driven/schemas/` and repository reference minimal valid example files
+      under `examples/strict-spec-driven/`, separate from `.strict-spec-driven/` workflow state.
     scenarios:
       schema-and-example-directories-are-discoverable:
         - GIVEN: the strict workflow repository files are reviewed
         - WHEN: concrete schema and example locations are checked
         - THEN: schema files are available under `templates/strict-spec-driven/schemas/`
-        - AND: minimal valid example files are available under `templates/strict-spec-driven/examples/`
+        - AND: minimal valid example files are available under `examples/strict-spec-driven/`
         - AND: '`.strict-spec-driven/` is not used to store repository-bundled schema or example assets'
   strict-schema-example-file-naming:
     strength: MUST

@@ -62,7 +62,7 @@ try {
 
 const roadmapIndexExample = yamlModule.parseYamlFile<{
   milestones: Record<string, { title: string; path: string; status: string }>;
-}>(path.join(ROOT, "templates", "strict-spec-driven", "examples", "roadmap-index.yaml"));
+}>(path.join(ROOT, "examples", "strict-spec-driven", "roadmap-index.yaml"));
 const roadmapIndexEntries = Object.entries(roadmapIndexExample.milestones);
 context.assert(
   roadmapIndexEntries.length >= 1 &&
@@ -80,7 +80,7 @@ const roadmapMilestoneExample = yamlModule.parseYamlFile<{
   risks: string[];
   notes: string[];
   planned_changes: Record<string, { depends_on: string[] }>;
-}>(path.join(ROOT, "templates", "strict-spec-driven", "examples", "roadmap-milestone.yaml"));
+}>(path.join(ROOT, "examples", "strict-spec-driven", "roadmap-milestone.yaml"));
 context.assert(roadmapMilestoneExample.dependencies.length === 0, "primary roadmap milestone example keeps dependencies minimal");
 context.assert(roadmapMilestoneExample.risks.length === 0, "primary roadmap milestone example keeps risks minimal");
 context.assert(roadmapMilestoneExample.notes.length === 0, "primary roadmap milestone example keeps notes minimal");
@@ -99,7 +99,7 @@ const roadmapMilestonePlanningExample = yamlModule.parseYamlFile<{
   risks: string[];
   notes: string[];
   planned_changes: Record<string, { status: string; depends_on: string[] }>;
-}>(path.join(ROOT, "templates", "strict-spec-driven", "examples", "roadmap-milestone.planning.yaml"));
+}>(path.join(ROOT, "examples", "strict-spec-driven", "roadmap-milestone.planning.yaml"));
 context.assert(roadmapMilestonePlanningExample.dependencies.length >= 1, "roadmap milestone coverage example includes milestone dependencies");
 context.assert(roadmapMilestonePlanningExample.risks.length >= 1, "roadmap milestone coverage example includes milestone risks");
 context.assert(roadmapMilestonePlanningExample.notes.length >= 1, "roadmap milestone coverage example includes milestone notes");
@@ -856,6 +856,7 @@ context.section("[8] bundled template assets in dist");
 const distTemplatesRoot = path.join(ROOT, "dist", "templates", "strict-spec-driven");
 const distScaffoldDir = path.join(distTemplatesRoot, "scaffold");
 const distSchemasDir = path.join(distTemplatesRoot, "schemas");
+const distExamplesDir = path.join(distTemplatesRoot, "examples");
 
 context.assert(existsSync(distScaffoldDir), "dist/templates/strict-spec-driven/scaffold exists after build");
 context.assert(existsSync(distSchemasDir), "dist/templates/strict-spec-driven/schemas exists after build");
@@ -887,24 +888,7 @@ for (const schemaFile of distSchemaFiles) {
   context.assert(statSync(distSchemaPath).isFile(), `dist schema file is a file (${schemaFile})`);
 }
 
-const distExampleFiles = [
-  "roadmap-index.yaml",
-  "roadmap-milestone.yaml",
-  "roadmap-milestone.planning.yaml",
-];
-for (const exampleFile of distExampleFiles) {
-  const distExamplePath = path.join(ROOT, "dist", "templates", "strict-spec-driven", "examples", exampleFile);
-  context.assert(existsSync(distExamplePath), `dist example file exists (${exampleFile})`);
-  context.assert(statSync(distExamplePath).isFile(), `dist example file is a file (${exampleFile})`);
-}
-
-const distRoadmapIndexExample = yamlModule.parseYamlFile<{ milestones: Record<string, unknown> }>(
-  path.join(ROOT, "dist", "templates", "strict-spec-driven", "examples", "roadmap-index.yaml"),
-);
-context.assert(
-  Object.keys(distRoadmapIndexExample.milestones).length >= 1,
-  "dist roadmap index example includes milestone entries",
-);
+context.assert(!existsSync(distExamplesDir), "dist/templates/strict-spec-driven/examples is not bundled after build");
 
 context.section("[9] init from dist-only environment");
 

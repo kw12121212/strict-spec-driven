@@ -1,7 +1,7 @@
 schema: strict-spec-driven/schema-registry/v1
 schema_version: 1
 artifact_type: schema_registry
-schema_file: ../schemas/schema-registry.yaml
+schema_file: ../../templates/strict-spec-driven/schemas/schema-registry.yaml
 registry:
   id: example-schema-registry
   status: current
@@ -10,7 +10,7 @@ entries:
     schema_version: 1
     artifact_type: main_spec
     artifact_name: main-spec
-    schema_file: ../schemas/main-spec.yaml
+    schema_file: ../../templates/strict-spec-driven/schemas/main-spec.yaml
     primary_example: main-spec.yaml
     compatibility:
       status: current

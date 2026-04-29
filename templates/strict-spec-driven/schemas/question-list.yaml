@@ -4,9 +4,9 @@ schema_id: strict-spec-driven/question-list/v1
 artifact_type: question_list
 artifact_name: question-list
 description: Strict YAML question list artifact.
-example_ref: ../examples/question-list.yaml
+example_ref: ../../../examples/strict-spec-driven/question-list.yaml
 coverage_examples:
-  - ../examples/question-list.open.yaml
+  - ../../../examples/strict-spec-driven/question-list.open.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object

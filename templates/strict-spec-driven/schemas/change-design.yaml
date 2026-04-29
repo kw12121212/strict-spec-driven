@@ -4,7 +4,7 @@ schema_id: strict-spec-driven/change-design/v1
 artifact_type: change_design
 artifact_name: change-design
 description: Strict YAML change design artifact.
-example_ref: ../examples/change-design.yaml
+example_ref: ../../../examples/strict-spec-driven/change-design.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object

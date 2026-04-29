@@ -4,7 +4,7 @@ schema_id: strict-spec-driven/change-proposal/v1
 artifact_type: change_proposal
 artifact_name: change-proposal
 description: Strict YAML change proposal artifact.
-example_ref: ../examples/change-proposal.yaml
+example_ref: ../../../examples/strict-spec-driven/change-proposal.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object

@@ -4,7 +4,7 @@ schema_id: strict-spec-driven/roadmap-index/v2
 artifact_type: roadmap_index
 artifact_name: roadmap-index
 description: Strict YAML roadmap index artifact (v2 — keyed milestone map).
-example_ref: ../examples/roadmap-index.yaml
+example_ref: ../../../examples/strict-spec-driven/roadmap-index.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object

@@ -21,9 +21,11 @@ bootstrap or migration input and should not be treated as an equivalent active
 target.
 
 `.strict-spec-driven/` is reserved for generated or migrated workflow state.
-Repository-bundled schema and example assets live under
+Repository-bundled schema and scaffold assets live under
 `templates/strict-spec-driven/` so validators, generators, and init tooling can
-consume them without treating them as active project artifacts.
+consume them without treating them as active project artifacts. Minimal valid
+examples live under `examples/strict-spec-driven/` as repository reference
+assets and are not part of skill template packaging.
 
 Skills may remain Markdown `SKILL.md` files because they are part of the Agent
 Skills packaging format. Skill behavior should be updated only when required to

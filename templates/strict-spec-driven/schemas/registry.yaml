@@ -11,7 +11,7 @@ entries:
     artifact_type: main_spec
     artifact_name: main-spec
     schema_file: main-spec.yaml
-    primary_example: ../examples/main-spec.yaml
+    primary_example: ../../../examples/strict-spec-driven/main-spec.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -23,7 +23,7 @@ entries:
     artifact_type: delta_spec
     artifact_name: delta-spec
     schema_file: delta-spec.yaml
-    primary_example: ../examples/delta-spec.yaml
+    primary_example: ../../../examples/strict-spec-driven/delta-spec.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -35,7 +35,7 @@ entries:
     artifact_type: change_proposal
     artifact_name: change-proposal
     schema_file: change-proposal.yaml
-    primary_example: ../examples/change-proposal.yaml
+    primary_example: ../../../examples/strict-spec-driven/change-proposal.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -47,7 +47,7 @@ entries:
     artifact_type: change_design
     artifact_name: change-design
     schema_file: change-design.yaml
-    primary_example: ../examples/change-design.yaml
+    primary_example: ../../../examples/strict-spec-driven/change-design.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -59,7 +59,7 @@ entries:
     artifact_type: task_list
     artifact_name: task-list
     schema_file: task-list.yaml
-    primary_example: ../examples/task-list.yaml
+    primary_example: ../../../examples/strict-spec-driven/task-list.yaml
     compatibility:
       status: superseded
       introduced_in: 1
@@ -73,7 +73,7 @@ entries:
     artifact_type: task_list
     artifact_name: task-list
     schema_file: task-list.yaml
-    primary_example: ../examples/task-list.yaml
+    primary_example: ../../../examples/strict-spec-driven/task-list.yaml
     compatibility:
       status: current
       introduced_in: 2
@@ -88,7 +88,7 @@ entries:
     artifact_type: question_list
     artifact_name: question-list
     schema_file: question-list.yaml
-    primary_example: ../examples/question-list.yaml
+    primary_example: ../../../examples/strict-spec-driven/question-list.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -100,7 +100,7 @@ entries:
     artifact_type: spec_index
     artifact_name: spec-index
     schema_file: spec-index.yaml
-    primary_example: ../examples/spec-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/spec-index.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -112,7 +112,7 @@ entries:
     artifact_type: roadmap_index
     artifact_name: roadmap-index
     schema_file: roadmap-index.yaml
-    primary_example: ../examples/roadmap-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/roadmap-index.yaml
     compatibility:
       status: superseded
       introduced_in: 1
@@ -126,7 +126,7 @@ entries:
     artifact_type: roadmap_index
     artifact_name: roadmap-index
     schema_file: roadmap-index.yaml
-    primary_example: ../examples/roadmap-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/roadmap-index.yaml
     compatibility:
       status: current
       introduced_in: 2
@@ -140,7 +140,7 @@ entries:
     artifact_type: roadmap_milestone
     artifact_name: roadmap-milestone
     schema_file: roadmap-milestone.yaml
-    primary_example: ../examples/roadmap-milestone.yaml
+    primary_example: ../../../examples/strict-spec-driven/roadmap-milestone.yaml
     compatibility:
       status: superseded
       introduced_in: 1
@@ -154,7 +154,7 @@ entries:
     artifact_type: roadmap_milestone
     artifact_name: roadmap-milestone
     schema_file: roadmap-milestone.yaml
-    primary_example: ../examples/roadmap-milestone.yaml
+    primary_example: ../../../examples/strict-spec-driven/roadmap-milestone.yaml
     compatibility:
       status: current
       introduced_in: 2
@@ -170,7 +170,7 @@ entries:
     artifact_type: schema_registry
     artifact_name: schema-registry
     schema_file: schema-registry.yaml
-    primary_example: ../examples/schema-registry.yaml
+    primary_example: ../../../examples/strict-spec-driven/schema-registry.yaml
     compatibility:
       status: current
       introduced_in: 1

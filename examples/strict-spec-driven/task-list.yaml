@@ -1,7 +1,7 @@
 schema: strict-spec-driven/task-list/v2
 schema_version: 2
 artifact_type: task_list
-schema_file: ../schemas/task-list.yaml
+schema_file: ../../templates/strict-spec-driven/schemas/task-list.yaml
 change: example-change
 sections:
   Implementation:

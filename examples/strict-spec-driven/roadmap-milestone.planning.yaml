@@ -1,7 +1,7 @@
 schema: strict-spec-driven/roadmap-milestone/v2
 schema_version: 2
 artifact_type: roadmap_milestone
-schema_file: ../schemas/roadmap-milestone.yaml
+schema_file: ../../templates/strict-spec-driven/schemas/roadmap-milestone.yaml
 milestone:
   0002-roadmap-workflow:
     title: Roadmap Workflow

@@ -19,7 +19,7 @@ English | [中文](README.zh.md)
 | `.strict-spec-driven/specs/` | Strict YAML main spec files |
 | `.spec-driven/` | Bootstrap and legacy workflow input only |
 | `templates/strict-spec-driven/schemas/` | Bundled strict YAML schema files |
-| `templates/strict-spec-driven/examples/` | Bundled minimal valid YAML examples |
+| `examples/strict-spec-driven/` | Repository reference minimal valid YAML examples |
 | `templates/strict-spec-driven/scaffold/` | Scaffold templates used by `init` and `propose` |
 | `skills/` | Strict skill packages (`strict-spec-*` and `strict-roadmap-*`) |
 | `src/` | TypeScript CLI source |
@@ -90,7 +90,7 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 
 ## Schema and Example Assets
 
-Bundled strict YAML schema files live under `templates/strict-spec-driven/schemas/`. Bundled minimal valid examples live under `templates/strict-spec-driven/examples/`. These are separate from `.strict-spec-driven/` workflow state — they are shared reference assets used by validators, generators, and tests.
+Bundled strict YAML schema files live under `templates/strict-spec-driven/schemas/`. Minimal valid examples live under `examples/strict-spec-driven/` as repository reference assets. These are separate from `.strict-spec-driven/` workflow state and are not bundled into the skill `templates` symlink.
 
 The schema registry at `templates/strict-spec-driven/schemas/schema-registry.yaml` indexes all supported strict artifact families.
 

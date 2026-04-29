@@ -19,7 +19,7 @@
 | `.strict-spec-driven/specs/` | 严格 YAML 主规范文件 |
 | `.spec-driven/` | 仅用于引导和迁移输入 |
 | `templates/strict-spec-driven/schemas/` | 捆绑的严格 YAML 模式文件 |
-| `templates/strict-spec-driven/examples/` | 捆绑的最小有效 YAML 示例 |
+| `examples/strict-spec-driven/` | 仓库参考用的最小有效 YAML 示例 |
 | `templates/strict-spec-driven/scaffold/` | `init` 和 `propose` 使用的脚手架模板 |
 | `skills/` | 严格 Skill 包（`strict-spec-*` 和 `strict-roadmap-*`） |
 | `src/` | TypeScript CLI 源码 |
@@ -90,7 +90,7 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 
 ## 模式和示例资源
 
-捆绑的严格 YAML 模式文件位于 `templates/strict-spec-driven/schemas/`。捆绑的最小有效示例位于 `templates/strict-spec-driven/examples/`。这些与 `.strict-spec-driven/` 工作流状态分离——它们是验证器、生成器和测试使用的共享参考资源。
+捆绑的严格 YAML 模式文件位于 `templates/strict-spec-driven/schemas/`。最小有效示例作为仓库参考资源位于 `examples/strict-spec-driven/`。这些与 `.strict-spec-driven/` 工作流状态分离，也不会被打包进 Skill 的 `templates` 符号链接。
 
 `templates/strict-spec-driven/schemas/schema-registry.yaml` 中的模式注册表索引了所有支持的严格制品族。
 

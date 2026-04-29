@@ -4,9 +4,9 @@ schema_id: strict-spec-driven/delta-spec/v1
 artifact_type: delta_spec
 artifact_name: delta-spec
 description: Strict YAML delta spec artifact.
-example_ref: ../examples/delta-spec.yaml
+example_ref: ../../../examples/strict-spec-driven/delta-spec.yaml
 coverage_examples:
-  - ../examples/delta-spec.operations.yaml
+  - ../../../examples/strict-spec-driven/delta-spec.operations.yaml
 merge_rules:
   exclusive_active_target: |
     A requirement ID that appears as a MODIFIED or REMOVED target in one active change

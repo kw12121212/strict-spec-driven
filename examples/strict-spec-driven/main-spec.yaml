@@ -1,7 +1,7 @@
 schema: strict-spec-driven/main-spec/v1
 schema_version: 1
 artifact_type: main_spec
-schema_file: ../schemas/main-spec.yaml
+schema_file: ../../templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: example-spec
   title: Example Spec

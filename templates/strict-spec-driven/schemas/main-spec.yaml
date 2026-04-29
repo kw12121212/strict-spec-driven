@@ -4,7 +4,7 @@ schema_id: strict-spec-driven/main-spec/v1
 artifact_type: main_spec
 artifact_name: main-spec
 description: Strict YAML main spec artifact.
-example_ref: ../examples/main-spec.yaml
+example_ref: ../../../examples/strict-spec-driven/main-spec.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   definitions:

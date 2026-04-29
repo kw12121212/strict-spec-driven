@@ -4,7 +4,7 @@ schema_id: strict-spec-driven/task-list/v2
 artifact_type: task_list
 artifact_name: task-list
 description: Strict YAML task list artifact (v2 keyed-map format).
-example_ref: ../examples/task-list.yaml
+example_ref: ../../../examples/strict-spec-driven/task-list.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object

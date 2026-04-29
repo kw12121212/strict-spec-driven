@@ -4,7 +4,7 @@ schema_id: strict-spec-driven/schema-registry/v1
 artifact_type: schema_registry
 artifact_name: schema-registry
 description: Strict YAML schema registry artifact.
-example_ref: ../examples/schema-registry.yaml
+example_ref: ../../../examples/strict-spec-driven/schema-registry.yaml
 additional_fields: false
 fields:
   schema:

@@ -6580,285 +6580,6 @@ import { fileURLToPath } from "url";
 
 // src/embedded-templates.ts
 var EMBEDDED_TEMPLATES = {
-  "strict-spec-driven/examples/change-design.yaml": `schema: strict-spec-driven/change-design/v1
-schema_version: 1
-artifact_type: change_design
-schema_file: ../schemas/change-design.yaml
-change: example-change
-approach:
-  - Update the relevant workflow artifact.
-decisions:
-  use-structured-yaml:
-    decision: Represent workflow meaning with structured YAML fields.
-    rationale: Structured fields can be parsed deterministically, unlike prose headings.
-alternatives:
-  - option: Keep prose-only Markdown conventions.
-    reason: Rejected because strict validation needs structured data, not implicit heading semantics.
-risks: []
-`,
-  "strict-spec-driven/examples/change-proposal.yaml": `schema: strict-spec-driven/change-proposal/v1
-schema_version: 1
-artifact_type: change_proposal
-schema_file: ../schemas/change-proposal.yaml
-change:
-  id: example-change
-  status: proposed
-summary:
-  what:
-    - Add one observable workflow behavior.
-  why:
-    - The behavior is needed by the strict workflow.
-scope:
-  in:
-    - Add the specified behavior.
-  out:
-    - Implement unrelated workflow behavior.
-unchanged_behavior:
-  - Existing workflow semantics remain unchanged.
-roadmap:
-  milestone: example-milestone
-  planned_change: example-change
-`,
-  "strict-spec-driven/examples/delta-spec.operations.yaml": `schema: strict-spec-driven/delta-spec/v1
-schema_version: 1
-artifact_type: delta_spec
-schema_file: ../schemas/delta-spec.yaml
-target_spec: example-spec
-mapping:
-  implementation: []
-  tests: []
-operations:
-  ADDED:
-    added-requirement:
-      strength: MUST
-      statement: The system MUST expose an added observable behavior.
-      scenarios:
-        added-success:
-          - GIVEN: an added precondition
-          - WHEN: the added action occurs
-          - THEN: the added result is available
-  MODIFIED:
-    existing-requirement:
-      strength: MUST
-      statement: The system MUST expose the modified observable behavior.
-      scenarios: {}
-  REMOVED:
-    removed-requirement:
-      reason: The behavior is superseded by the replacement requirement.
-`,
-  "strict-spec-driven/examples/delta-spec.yaml": `schema: strict-spec-driven/delta-spec/v1
-schema_version: 1
-artifact_type: delta_spec
-schema_file: ../schemas/delta-spec.yaml
-target_spec: example-spec
-mapping:
-  implementation: []
-  tests: []
-operations:
-  ADDED: {}
-  MODIFIED: {}
-  REMOVED: {}
-`,
-  "strict-spec-driven/examples/main-spec.yaml": `schema: strict-spec-driven/main-spec/v1
-schema_version: 1
-artifact_type: main_spec
-schema_file: ../schemas/main-spec.yaml
-spec:
-  id: example-spec
-  title: Example Spec
-mapping:
-  implementation: []
-  tests: []
-requirements:
-  example-requirement:
-    strength: MUST
-    statement: The system MUST expose one observable behavior.
-    scenarios:
-      success:
-        - GIVEN: an example precondition
-        - WHEN: the example action occurs
-        - AND: additional context is available
-        - THEN: the observable result is available
-`,
-  "strict-spec-driven/examples/question-list.open.yaml": `schema: strict-spec-driven/question-list/v1
-schema_version: 1
-artifact_type: question_list
-schema_file: ../schemas/question-list.yaml
-change: example-change
-open:
-  - id: choose-example
-    question: Which valid option should be used?
-    context: The answer determines the implementation choice.
-    status: open
-resolved:
-  - id: confirmed-example
-    question: Is the example valid?
-    context: The answer confirms the contract.
-    answer: Yes.
-    status: resolved
-`,
-  "strict-spec-driven/examples/question-list.yaml": `schema: strict-spec-driven/question-list/v1
-schema_version: 1
-artifact_type: question_list
-schema_file: ../schemas/question-list.yaml
-change: example-change
-open: []
-resolved: []
-`,
-  "strict-spec-driven/examples/roadmap-index.yaml": `schema: strict-spec-driven/roadmap-index/v2
-schema_version: 2
-artifact_type: roadmap_index
-schema_file: ../schemas/roadmap-index.yaml
-milestones:
-  0001-example-milestone:
-    title: Example Milestone
-    path: roadmap/milestones/0001-example-milestone.yaml
-    status: proposed
-`,
-  "strict-spec-driven/examples/roadmap-milestone.planning.yaml": `schema: strict-spec-driven/roadmap-milestone/v2
-schema_version: 2
-artifact_type: roadmap_milestone
-schema_file: ../schemas/roadmap-milestone.yaml
-milestone:
-  0002-roadmap-workflow:
-    title: Roadmap Workflow
-goal: Define strict roadmap workflow behavior.
-scope:
-  in:
-    - Strict roadmap validation and recommendation behavior.
-    - Structured roadmap proposal handoff behavior.
-  out:
-    - Migration of legacy Markdown roadmap artifacts.
-done_criteria:
-  - The roadmap contract is implemented and verified.
-  - Roadmap validation can inspect milestone and planned change structure.
-planned_changes:
-  add-validation:
-    status: planned
-    summary: Add roadmap validation behavior.
-    details: |
-      Implement validation logic that checks milestone structure,
-      planned change integrity, and dependency acyclicity.
-    depends_on: []
-  add-handoff:
-    status: planned
-    summary: Add roadmap proposal handoff behavior.
-    details: |
-      Design the handoff mechanism that converts a planned change
-      into a strict change proposal with appropriate context.
-    depends_on:
-      - add-validation
-dependencies:
-  - 0001-foundation
-risks:
-  - Roadmap behavior could drift from the schema contract if validation is incomplete.
-status: active
-notes:
-  - Roadmap skills should consume the same structured artifact contract as CLI validation.
-details: |
-  The roadmap workflow must enforce the same schema contract that CLI validation
-  checks, so that skill-driven proposal handoff and programmatic validation stay
-  consistent. Any divergence between skill behavior and CLI validation is a bug.
-`,
-  "strict-spec-driven/examples/roadmap-milestone.yaml": `schema: strict-spec-driven/roadmap-milestone/v2
-schema_version: 2
-artifact_type: roadmap_milestone
-schema_file: ../schemas/roadmap-milestone.yaml
-milestone:
-  0001-example-milestone:
-    title: Example Milestone
-goal: Define one milestone goal.
-scope:
-  in:
-    - Planned strict workflow behavior.
-  out:
-    - Unrelated behavior.
-done_criteria:
-  - The planned behavior is implemented and verified.
-planned_changes:
-  example-change:
-    status: planned
-    summary: Add one planned strict workflow behavior.
-    details: |
-      Technical and design context for this planned change,
-      including approach considerations and key constraints.
-    depends_on: []
-dependencies: []
-risks: []
-status: proposed
-notes: []
-`,
-  "strict-spec-driven/examples/schema-registry.yaml": `schema: strict-spec-driven/schema-registry/v1
-schema_version: 1
-artifact_type: schema_registry
-schema_file: ../schemas/schema-registry.yaml
-registry:
-  id: example-schema-registry
-  status: current
-entries:
-  - schema_id: strict-spec-driven/main-spec/v1
-    schema_version: 1
-    artifact_type: main_spec
-    artifact_name: main-spec
-    schema_file: ../schemas/main-spec.yaml
-    primary_example: main-spec.yaml
-    compatibility:
-      status: current
-      introduced_in: 1
-      supersedes: []
-      compatible_with: []
-      notes: []
-migration:
-  legacy_root: .spec-driven
-  strict_root: .strict-spec-driven
-  role_mappings:
-    - legacy_role: main_spec_markdown
-      artifact_type: main_spec
-      schema_id: strict-spec-driven/main-spec/v1
-  unsupported_shape_reporting:
-    warning_fields:
-      - source_path
-      - legacy_role
-      - reason
-      - manual_follow_up
-    manual_follow_up_field: manual_follow_up
-`,
-  "strict-spec-driven/examples/spec-index.yaml": `schema: strict-spec-driven/spec-index/v1
-schema_version: 1
-artifact_type: spec_index
-schema_file: ../schemas/spec-index.yaml
-specs:
-  - id: example-spec
-    title: Example Spec
-    path: specs/example-spec.yaml
-`,
-  "strict-spec-driven/examples/task-list.yaml": `schema: strict-spec-driven/task-list/v2
-schema_version: 2
-artifact_type: task_list
-schema_file: ../schemas/task-list.yaml
-change: example-change
-sections:
-  Implementation:
-    implement-example:
-      text: Implement the example behavior.
-      status: pending
-  Testing:
-    validate-example:
-      text: Run validation for the example behavior.
-      status: pending
-      command: npm run build
-    unit-test-example:
-      text: Run unit tests for the example behavior.
-      status: pending
-      command: npm test
-  Verification:
-    verify-example:
-      text: Verify implementation matches proposal scope.
-      status: pending
-testing_gates:
-  validation_task: validate-example
-  unit_test_task: unit-test-example
-`,
   "strict-spec-driven/scaffold/changes/design.yaml": `schema: strict-spec-driven/change-design/v1
 schema_version: 1
 artifact_type: change_design
@@ -6998,7 +6719,7 @@ schema_id: strict-spec-driven/change-design/v1
 artifact_type: change_design
 artifact_name: change-design
 description: Strict YAML change design artifact.
-example_ref: ../examples/change-design.yaml
+example_ref: ../../../examples/strict-spec-driven/change-design.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object
@@ -7077,7 +6798,7 @@ schema_id: strict-spec-driven/change-proposal/v1
 artifact_type: change_proposal
 artifact_name: change-proposal
 description: Strict YAML change proposal artifact.
-example_ref: ../examples/change-proposal.yaml
+example_ref: ../../../examples/strict-spec-driven/change-proposal.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object
@@ -7172,9 +6893,9 @@ schema_id: strict-spec-driven/delta-spec/v1
 artifact_type: delta_spec
 artifact_name: delta-spec
 description: Strict YAML delta spec artifact.
-example_ref: ../examples/delta-spec.yaml
+example_ref: ../../../examples/strict-spec-driven/delta-spec.yaml
 coverage_examples:
-  - ../examples/delta-spec.operations.yaml
+  - ../../../examples/strict-spec-driven/delta-spec.operations.yaml
 merge_rules:
   exclusive_active_target: |
     A requirement ID that appears as a MODIFIED or REMOVED target in one active change
@@ -7295,7 +7016,7 @@ schema_id: strict-spec-driven/main-spec/v1
 artifact_type: main_spec
 artifact_name: main-spec
 description: Strict YAML main spec artifact.
-example_ref: ../examples/main-spec.yaml
+example_ref: ../../../examples/strict-spec-driven/main-spec.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   definitions:
@@ -7389,9 +7110,9 @@ schema_id: strict-spec-driven/question-list/v1
 artifact_type: question_list
 artifact_name: question-list
 description: Strict YAML question list artifact.
-example_ref: ../examples/question-list.yaml
+example_ref: ../../../examples/strict-spec-driven/question-list.yaml
 coverage_examples:
-  - ../examples/question-list.open.yaml
+  - ../../../examples/strict-spec-driven/question-list.open.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object
@@ -7475,7 +7196,7 @@ entries:
     artifact_type: main_spec
     artifact_name: main-spec
     schema_file: main-spec.yaml
-    primary_example: ../examples/main-spec.yaml
+    primary_example: ../../../examples/strict-spec-driven/main-spec.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -7487,7 +7208,7 @@ entries:
     artifact_type: delta_spec
     artifact_name: delta-spec
     schema_file: delta-spec.yaml
-    primary_example: ../examples/delta-spec.yaml
+    primary_example: ../../../examples/strict-spec-driven/delta-spec.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -7499,7 +7220,7 @@ entries:
     artifact_type: change_proposal
     artifact_name: change-proposal
     schema_file: change-proposal.yaml
-    primary_example: ../examples/change-proposal.yaml
+    primary_example: ../../../examples/strict-spec-driven/change-proposal.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -7511,7 +7232,7 @@ entries:
     artifact_type: change_design
     artifact_name: change-design
     schema_file: change-design.yaml
-    primary_example: ../examples/change-design.yaml
+    primary_example: ../../../examples/strict-spec-driven/change-design.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -7523,7 +7244,7 @@ entries:
     artifact_type: task_list
     artifact_name: task-list
     schema_file: task-list.yaml
-    primary_example: ../examples/task-list.yaml
+    primary_example: ../../../examples/strict-spec-driven/task-list.yaml
     compatibility:
       status: superseded
       introduced_in: 1
@@ -7537,7 +7258,7 @@ entries:
     artifact_type: task_list
     artifact_name: task-list
     schema_file: task-list.yaml
-    primary_example: ../examples/task-list.yaml
+    primary_example: ../../../examples/strict-spec-driven/task-list.yaml
     compatibility:
       status: current
       introduced_in: 2
@@ -7552,7 +7273,7 @@ entries:
     artifact_type: question_list
     artifact_name: question-list
     schema_file: question-list.yaml
-    primary_example: ../examples/question-list.yaml
+    primary_example: ../../../examples/strict-spec-driven/question-list.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -7564,7 +7285,7 @@ entries:
     artifact_type: spec_index
     artifact_name: spec-index
     schema_file: spec-index.yaml
-    primary_example: ../examples/spec-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/spec-index.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -7576,7 +7297,7 @@ entries:
     artifact_type: roadmap_index
     artifact_name: roadmap-index
     schema_file: roadmap-index.yaml
-    primary_example: ../examples/roadmap-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/roadmap-index.yaml
     compatibility:
       status: superseded
       introduced_in: 1
@@ -7590,7 +7311,7 @@ entries:
     artifact_type: roadmap_index
     artifact_name: roadmap-index
     schema_file: roadmap-index.yaml
-    primary_example: ../examples/roadmap-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/roadmap-index.yaml
     compatibility:
       status: current
       introduced_in: 2
@@ -7604,7 +7325,7 @@ entries:
     artifact_type: roadmap_milestone
     artifact_name: roadmap-milestone
     schema_file: roadmap-milestone.yaml
-    primary_example: ../examples/roadmap-milestone.yaml
+    primary_example: ../../../examples/strict-spec-driven/roadmap-milestone.yaml
     compatibility:
       status: superseded
       introduced_in: 1
@@ -7618,7 +7339,7 @@ entries:
     artifact_type: roadmap_milestone
     artifact_name: roadmap-milestone
     schema_file: roadmap-milestone.yaml
-    primary_example: ../examples/roadmap-milestone.yaml
+    primary_example: ../../../examples/strict-spec-driven/roadmap-milestone.yaml
     compatibility:
       status: current
       introduced_in: 2
@@ -7634,7 +7355,7 @@ entries:
     artifact_type: schema_registry
     artifact_name: schema-registry
     schema_file: schema-registry.yaml
-    primary_example: ../examples/schema-registry.yaml
+    primary_example: ../../../examples/strict-spec-driven/schema-registry.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -7686,7 +7407,7 @@ schema_id: strict-spec-driven/roadmap-index/v2
 artifact_type: roadmap_index
 artifact_name: roadmap-index
 description: Strict YAML roadmap index artifact (v2 — keyed milestone map).
-example_ref: ../examples/roadmap-index.yaml
+example_ref: ../../../examples/strict-spec-driven/roadmap-index.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object
@@ -7739,7 +7460,7 @@ schema_id: strict-spec-driven/roadmap-milestone/v2
 artifact_type: roadmap_milestone
 artifact_name: roadmap-milestone
 description: Strict YAML roadmap milestone artifact (v2 — keyed milestone identity, keyed planned changes with required details).
-example_ref: ../examples/roadmap-milestone.yaml
+example_ref: ../../../examples/strict-spec-driven/roadmap-milestone.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object
@@ -7860,7 +7581,7 @@ schema_id: strict-spec-driven/schema-registry/v1
 artifact_type: schema_registry
 artifact_name: schema-registry
 description: Strict YAML schema registry artifact.
-example_ref: ../examples/schema-registry.yaml
+example_ref: ../../../examples/strict-spec-driven/schema-registry.yaml
 additional_fields: false
 fields:
   schema:
@@ -8006,7 +7727,7 @@ schema_id: strict-spec-driven/spec-index/v1
 artifact_type: spec_index
 artifact_name: spec-index
 description: Strict YAML spec index artifact.
-example_ref: ../examples/spec-index.yaml
+example_ref: ../../../examples/strict-spec-driven/spec-index.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object
@@ -8052,7 +7773,7 @@ schema_id: strict-spec-driven/task-list/v2
 artifact_type: task_list
 artifact_name: task-list
 description: Strict YAML task list artifact (v2 keyed-map format).
-example_ref: ../examples/task-list.yaml
+example_ref: ../../../examples/strict-spec-driven/task-list.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object
