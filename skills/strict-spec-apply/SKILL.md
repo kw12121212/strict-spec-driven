@@ -26,6 +26,24 @@ verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 The `.strict-spec-driven/` directory must exist at the project root. Before
 proceeding, verify that strict workflow state already exists.
 
+## YAML Writing Rules
+
+- Preserve valid strict YAML structures when updating `tasks.yaml`,
+  `questions.yaml`, and delta specs. Do not replace structured fields with
+  Markdown prose.
+- Use block scalars only for free-text content. Prefer `>-` for wrapped prose
+  such as longer `question`, `context`, `answer`, and spec `statement` values.
+  Use `|` only when literal line breaks must be preserved as part of the value.
+- Quote short strings that may contain YAML-sensitive characters or ambiguous
+  scalar values, including `command` strings, URLs, paths, text containing `:`
+  or `#`, leading `-`, JSON-like fragments, boolean-like words, and timestamp-
+  like values.
+- Keep short structural fields as plain scalars unless quoting is needed for
+  correctness. Do not force IDs, enums, schema identifiers, artifact types,
+  task references, or similar fields into block scalars.
+- After editing YAML artifacts, self-check indentation, list nesting, quote
+  closure, and colon spacing before running the documented strict commands.
+
 ## Steps
 
 1. **Select the change** — run `modify` without an argument to list active
