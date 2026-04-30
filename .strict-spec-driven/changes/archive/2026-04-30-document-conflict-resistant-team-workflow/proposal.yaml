@@ -1,0 +1,48 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: document-conflict-resistant-team-workflow
+  status: proposed
+summary:
+  what:
+    - >-
+      Update repository roadmap documentation for the conflict-resistant team workflow so it teaches
+      the split-file planned-change model, the shared-index/low-churn milestone strategy, and
+      roadmap-sync recovery after merges or archive handoff.
+  why:
+    - >-
+      Milestone 0011 is otherwise complete, but the current roadmap docs still teach older
+      inline-planned-change guidance instead of the low-conflict team workflow that the roadmap
+      runtime now supports.
+scope:
+  in:
+    - >-
+      Revise roadmap-facing documentation to present standalone planned-change files as the default
+      collaboration surface and explain how milestone files and INDEX.yaml stay intentionally low
+      churn.
+    - >-
+      Add contributor guidance for conflict recovery: rerun roadmap-sync after merges, let archive
+      state derive completion, and treat external tracker references as optional context rather than
+      required source-of-truth metadata.
+    - >-
+      Refresh quickstart or overview docs where needed so contributors can discover the updated
+      team-roadmap workflow without relying on outdated inline-only examples.
+  out:
+    - Do not change roadmap CLI behavior, schemas, validation rules, or skill command semantics.
+    - >-
+      Do not introduce hosted locking, realtime collaboration, or required external tracker
+      integration.
+    - >-
+      Do not remove inline planned-change compatibility from the product; document the split-file
+      model as the preferred workflow while preserving compatibility notes.
+unchanged_behavior:
+  - >-
+    Standalone planned-change artifacts, roadmap-status, roadmap-sync, recommendation, and proposal
+    handoff behavior remain unchanged.
+  - Archived strict changes remain the authoritative source for completed implementation work.
+  - Optional owner, reviewer, blocked, label, and external-reference metadata remain advisory only.
+roadmap:
+  milestone: 0011-team-roadmap-collaboration
+  planned_change: document-conflict-resistant-team-workflow

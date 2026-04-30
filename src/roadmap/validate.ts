@@ -1,4 +1,5 @@
 import {
+  PLANNED_CHANGE_SCHEMA_ID,
   ROADMAP_INDEX_SCHEMA_ID,
   ROADMAP_MILESTONE_SCHEMA_ID,
   type PlannedChangeEntry,
@@ -8,6 +9,8 @@ import {
   type RoadmapMilestoneArtifact,
   type MilestoneIdentity,
   type MilestoneScope,
+  type PlannedChangeTeamMetadata,
+  type StandalonePlannedChangeArtifact,
 } from "./model.js";
 import {
   isDeclaredPlannedChangeStatus,
@@ -70,6 +73,28 @@ function validateStringArray(
   }
 
   return result;
+}
+
+function validateOptionalString(
+  parent: Record<string, unknown>,
+  key: string,
+  artifactPath: string,
+  fieldPath: string,
+  diagnostics: RoadmapDiagnostic[],
+): string | null | undefined {
+  if (!(key in parent) || parent[key] === undefined) return undefined;
+  return validateString(parent, key, artifactPath, fieldPath, diagnostics);
+}
+
+function validateOptionalStringArray(
+  parent: Record<string, unknown>,
+  key: string,
+  artifactPath: string,
+  fieldPath: string,
+  diagnostics: RoadmapDiagnostic[],
+): string[] | null | undefined {
+  if (!(key in parent) || parent[key] === undefined) return undefined;
+  return validateStringArray(parent, key, artifactPath, fieldPath, diagnostics);
 }
 
 function extractKeyedMapKey(obj: Record<string, unknown>): string | null {
@@ -220,6 +245,221 @@ function validatePlannedChangeEntry(
     summary,
     details,
     depends_on: dependsOn,
+  };
+}
+
+function validateBlockedMetadata(
+  value: unknown,
+  artifactPath: string,
+  fieldPath: string,
+  diagnostics: RoadmapDiagnostic[],
+): PlannedChangeTeamMetadata["blocked"] | null {
+  if (!isRecord(value)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "blocked must be a mapping", "mapping", typeof value));
+    return null;
+  }
+
+  let valid = true;
+  for (const key of Object.keys(value)) {
+    if (key !== "status" && key !== "reason") {
+      diagnostics.push(
+        makeDiagnostic("schema", artifactPath, `${fieldPath}.${key}`, "unsupported blocked metadata field", "status or reason", key),
+      );
+      valid = false;
+    }
+  }
+
+  if (typeof value.status !== "boolean") {
+    diagnostics.push(
+      makeDiagnostic("schema", artifactPath, `${fieldPath}.status`, "blocked status must be a boolean", "boolean", String(value.status)),
+    );
+    valid = false;
+  }
+
+  const reason = validateOptionalString(value, "reason", artifactPath, `${fieldPath}.reason`, diagnostics);
+  if (reason === null) valid = false;
+
+  if (!valid) return null;
+  return {
+    status: value.status as boolean,
+    ...(typeof reason === "string" ? { reason } : {}),
+  };
+}
+
+function validateExternalRefsMetadata(
+  value: unknown,
+  artifactPath: string,
+  fieldPath: string,
+  diagnostics: RoadmapDiagnostic[],
+): NonNullable<PlannedChangeTeamMetadata["external_refs"]> | null {
+  if (!Array.isArray(value)) {
+    diagnostics.push(
+      makeDiagnostic("schema", artifactPath, fieldPath, "external_refs must be a sequence", "external reference[]", String(value)),
+    );
+    return null;
+  }
+
+  const result: NonNullable<PlannedChangeTeamMetadata["external_refs"]> = [];
+  let valid = true;
+  for (const [index, entry] of value.entries()) {
+    const entryPath = `${fieldPath}[${index}]`;
+    if (!isRecord(entry)) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, entryPath, "external reference must be a mapping", "mapping", typeof entry));
+      valid = false;
+      continue;
+    }
+    for (const key of Object.keys(entry)) {
+      if (key !== "label" && key !== "target") {
+        diagnostics.push(
+          makeDiagnostic("schema", artifactPath, `${entryPath}.${key}`, "unsupported external reference field", "label or target", key),
+        );
+        valid = false;
+      }
+    }
+    const label = validateString(entry, "label", artifactPath, `${entryPath}.label`, diagnostics);
+    const target = validateString(entry, "target", artifactPath, `${entryPath}.target`, diagnostics);
+    if (!label || !target) {
+      valid = false;
+      continue;
+    }
+    result.push({ label, target });
+  }
+
+  return valid ? result : null;
+}
+
+function validateTeamMetadata(
+  value: unknown,
+  artifactPath: string,
+  diagnostics: RoadmapDiagnostic[],
+): PlannedChangeTeamMetadata | null {
+  if (!isRecord(value)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.team", "team must be a mapping", "mapping", typeof value));
+    return null;
+  }
+
+  let valid = true;
+  for (const key of Object.keys(value)) {
+    if (!["owner", "reviewers", "blocked", "labels", "external_refs"].includes(key)) {
+      diagnostics.push(
+        makeDiagnostic(
+          "schema",
+          artifactPath,
+          `$.team.${key}`,
+          "unsupported team metadata field",
+          "owner, reviewers, blocked, labels, or external_refs",
+          key,
+        ),
+      );
+      valid = false;
+    }
+  }
+
+  const owner = validateOptionalString(value, "owner", artifactPath, "$.team.owner", diagnostics);
+  const reviewers = validateOptionalStringArray(value, "reviewers", artifactPath, "$.team.reviewers", diagnostics);
+  const labels = validateOptionalStringArray(value, "labels", artifactPath, "$.team.labels", diagnostics);
+  const blocked = "blocked" in value && value.blocked !== undefined
+    ? validateBlockedMetadata(value.blocked, artifactPath, "$.team.blocked", diagnostics)
+    : undefined;
+  const externalRefs = "external_refs" in value && value.external_refs !== undefined
+    ? validateExternalRefsMetadata(value.external_refs, artifactPath, "$.team.external_refs", diagnostics)
+    : undefined;
+
+  if (owner === null || reviewers === null || labels === null || blocked === null || externalRefs === null) {
+    valid = false;
+  }
+  if (!valid) return null;
+
+  return {
+    ...(typeof owner === "string" ? { owner } : {}),
+    ...(Array.isArray(reviewers) ? { reviewers } : {}),
+    ...(blocked && typeof blocked.status === "boolean" ? { blocked } : {}),
+    ...(Array.isArray(labels) ? { labels } : {}),
+    ...(Array.isArray(externalRefs) ? { external_refs: externalRefs } : {}),
+  };
+}
+
+export function validateStandalonePlannedChangeArtifact(
+  artifact: unknown,
+  artifactPath: string,
+  diagnostics: RoadmapDiagnostic[],
+): StandalonePlannedChangeArtifact | null {
+  if (!isRecord(artifact)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$", "artifact must be a YAML mapping", "mapping", typeof artifact));
+    return null;
+  }
+
+  if (artifact.schema !== PLANNED_CHANGE_SCHEMA_ID) {
+    diagnostics.push(
+      makeDiagnostic("schema", artifactPath, "$.schema", "schema mismatch", PLANNED_CHANGE_SCHEMA_ID, String(artifact.schema)),
+    );
+  }
+  if (artifact.schema_version !== 1) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.schema_version", "schema_version mismatch", "1", String(artifact.schema_version)));
+  }
+  if (artifact.artifact_type !== "planned_change") {
+    diagnostics.push(
+      makeDiagnostic("schema", artifactPath, "$.artifact_type", "artifact_type mismatch", "planned_change", String(artifact.artifact_type)),
+    );
+  }
+
+  const schemaFile = validateString(artifact, "schema_file", artifactPath, "$.schema_file", diagnostics);
+  const summary = validateString(artifact, "summary", artifactPath, "$.summary", diagnostics);
+  const details = validateString(artifact, "details", artifactPath, "$.details", diagnostics);
+  const dependsOn = validateStringArray(artifact, "depends_on", artifactPath, "$.depends_on", diagnostics);
+  const statusValue = artifact.status;
+  if (!isDeclaredPlannedChangeStatus(statusValue)) {
+    diagnostics.push(
+      makeDiagnostic(
+        "schema",
+        artifactPath,
+        "$.status",
+        "unsupported planned change status",
+        "planned, complete",
+        String(statusValue),
+      ),
+    );
+  }
+
+  const rawPlannedChange = artifact.planned_change;
+  let plannedChange: StandalonePlannedChangeArtifact["planned_change"] | null = null;
+  if (!isRecord(rawPlannedChange)) {
+    diagnostics.push(
+      makeDiagnostic("schema", artifactPath, "$.planned_change", "planned_change must be a mapping", "mapping", typeof rawPlannedChange),
+    );
+  } else {
+    const id = validateString(rawPlannedChange, "id", artifactPath, "$.planned_change.id", diagnostics);
+    const milestone = validateString(rawPlannedChange, "milestone", artifactPath, "$.planned_change.milestone", diagnostics);
+    if (id && milestone) {
+      plannedChange = { id, milestone };
+    }
+  }
+
+  const extensions = artifact.extensions;
+  if (extensions !== undefined && !isRecord(extensions)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.extensions", "extensions must be a mapping", "mapping", typeof extensions));
+  }
+
+  const team = "team" in artifact && artifact.team !== undefined
+    ? validateTeamMetadata(artifact.team, artifactPath, diagnostics)
+    : undefined;
+
+  if (!schemaFile || !summary || !details || !dependsOn || !plannedChange || !isDeclaredPlannedChangeStatus(statusValue) || team === null) {
+    return null;
+  }
+
+  return {
+    schema: PLANNED_CHANGE_SCHEMA_ID,
+    schema_version: 1,
+    artifact_type: "planned_change",
+    schema_file: schemaFile,
+    planned_change: plannedChange,
+    status: statusValue,
+    summary,
+    details,
+    depends_on: dependsOn,
+    ...(team !== undefined ? { team } : {}),
+    ...(isRecord(extensions) ? { extensions } : {}),
   };
 }
 

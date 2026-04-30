@@ -1,0 +1,29 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: migrate-inline-planned-changes-to-files
+approach:
+  - >-
+    Add a deliberate roadmap conversion path that reuses the split-file roadmap model: load existing
+    inline planned changes, write equivalent standalone planned-change artifacts in deterministic
+    file order, preserve all review-critical metadata, and keep normal status/sync behavior
+    compatible during the transition.
+decisions:
+  explicit-conversion-surface:
+    decision: >-
+      Inline-to-standalone materialization should be triggered by an explicit command path or flag
+      rather than by ordinary roadmap-status or roadmap-sync behavior.
+    rationale: >-
+      The roadmap milestone guidance requires migration to be intentional and reviewable, and the
+      current split-file sync contract says ordinary sync must not move data between representations
+      implicitly.
+  preserve-inline-compatibility:
+    decision: >-
+      The conversion support should preserve inline planned-change compatibility until later roadmap
+      work removes or tightens that compatibility.
+    rationale: >-
+      Existing repositories may still have inline milestone planned changes, and later cross-file
+      validation and recommendation changes depend on a stable transition period.
+alternatives: []
+risks: []

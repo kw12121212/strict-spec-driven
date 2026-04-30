@@ -1,0 +1,54 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: update-roadmap-loader-status-and-sync-for-split-files
+sections:
+  Implementation:
+    inspect-roadmap-runtime:
+      text: Inspect the existing roadmap load, status, sync, and model modules before editing.
+      status: complete
+    load-standalone-planned-changes:
+      text: >-
+        Update roadmap loading to read standalone planned-change artifacts and attach them to their
+        owning milestones.
+      status: complete
+    preserve-inline-compatibility:
+      text: >-
+        Keep inline milestone planned_changes valid and normalize inline and standalone planned
+        changes into one derived model.
+      status: complete
+    update-status-and-sync:
+      text: >-
+        Update roadmap-status and roadmap-sync behavior to preserve deterministic ordering and
+        split-file planned-change state.
+      status: complete
+  Testing:
+    add-split-file-roadmap-tests:
+      text: >-
+        Add focused tests for split-file planned-change loading, inline compatibility, status
+        derivation, and sync output.
+      status: complete
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-strict-change:
+      text: Run strict verification for this change.
+      status: complete
+      command: >-
+        node scripts/strict-spec-driven.js verify
+        update-roadmap-loader-status-and-sync-for-split-files
+    verify-scope:
+      text: >-
+        Confirm migration, conflict validation, recommendation handoff, team metadata, and
+        documentation remain out of scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

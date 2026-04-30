@@ -46,6 +46,8 @@ export type SkillContentExpectation = {
 };
 
 const ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
+const ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
+const ROADMAP_ACTIVE_CONFLICT_SNIPPET = "active strict change conflicts";
 
 export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
   "strict-spec-init": {
@@ -176,7 +178,13 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/roadmap/", ROADMAP_DETAILS_GUIDANCE_SNIPPET, "/strict-spec-auto"],
+    requiredSnippets: [
+      ".strict-spec-driven/roadmap/",
+      ROADMAP_DETAILS_GUIDANCE_SNIPPET,
+      ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
+      ROADMAP_ACTIVE_CONFLICT_SNIPPET,
+      "/strict-spec-auto",
+    ],
   },
   "strict-roadmap-propose": {
     requiredCommands: {
@@ -186,7 +194,12 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/roadmap/", ROADMAP_DETAILS_GUIDANCE_SNIPPET],
+    requiredSnippets: [
+      ".strict-spec-driven/roadmap/",
+      ROADMAP_DETAILS_GUIDANCE_SNIPPET,
+      ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
+      ROADMAP_ACTIVE_CONFLICT_SNIPPET,
+    ],
   },
   "strict-roadmap-sync": {
     requiredCommands: {

@@ -66,12 +66,7 @@ scope:
     - 明确不在范围内的事项。
 done_criteria:
   - 标志里程碑完成的可验证结果。
-planned_changes:
-  example-change:
-    status: planned    # planned | complete
-    summary: >-
-      一句话描述此变更的内容。
-    depends_on: []     # 依赖的计划变更 ID 列表
+planned_changes: {}
 status: proposed       # proposed | active | blocked | complete
 dependencies: []
 risks: []
@@ -80,16 +75,21 @@ notes: []
 
 可选字段（`dependencies`、`risks`、`notes`）在不需要时可以省略或设为空数组。
 
-## 计划变更条目格式
+里程碑文件里的 `planned_changes` 应保持为空映射。只要里面仍有条目，CLI 就会把它当作待转换的旧格式。
 
-`planned_changes` 下的每个条目是嵌入里程碑中的严格 YAML 文档。必填字段：
+## 旧内联 `planned_changes`
 
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| `status` | 枚举 | `planned` 或 `complete` |
-| `summary` | 字符串 | 一句话描述变更内容 |
-| `depends_on` | 数组 | 此条目依赖的计划变更 ID（可为空） |
-| `details` | 字符串 | 可选，变更的技术和设计上下文 |
+非空的里程碑 `planned_changes` 映射会被视为旧路线图数据。
+
+`roadmap-status` 和普通的 `roadmap-sync` 检查到这种旧格式时会直接报错，并提示你先做物化转换。
+
+如果你想把旧的内联里程碑条目转换为独立 planned-change 文件，请运行：
+
+```sh
+node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
+```
+
+这个转换会在 `.strict-spec-driven/roadmap/planned-changes/` 下写入 planned-change 文件，从里程碑文件中移除已转换的内联条目，然后再基于新布局重新协调路线图状态。如果你是在已安装的 skill 包里运行，请使用 `skills/strict-roadmap-sync/SKILL.md` 中记录的准确命令形式。
 
 ## 路线图 Skill 命令
 
@@ -97,7 +97,7 @@ notes: []
 
 ### `/strict-roadmap-recommend`
 
-读取路线图状态并推荐下一个最佳计划变更。考虑依赖顺序、里程碑进度和规划优先级。随后直接将推荐的变更搭建成标准严格变更，放在 `.strict-spec-driven/changes/` 下，不在 recommend 阶段额外停下来等待用户确认。
+读取路线图状态，并从独立 planned-change 文件中推荐下一个最佳计划变更。考虑依赖顺序、里程碑进度和规划优先级。随后直接将推荐的变更搭建成标准严格变更，放在 `.strict-spec-driven/changes/` 下，不在 recommend 阶段额外停下来等待用户确认。
 
 脚手架验证通过后，默认的下一步应是 `/strict-spec-auto`，让这个推荐变更继续跑完后续严格生命周期；只有在用户明确想手动控制时，才回到手动命令序列。如果 recommendation 过程中产生了开放问题，`strict-roadmap-recommend` 只负责把它们写进 `questions.yaml`，真正向用户确认答案应由 `/strict-spec-auto` 或 `/strict-spec-apply` 在实现前完成。
 
@@ -125,7 +125,7 @@ notes: []
 
 ### `/strict-roadmap-sync`
 
-将路线图状态与工作流状态协调。当对应的严格变更已归档时，将计划变更标记为 `complete`。从当前里程碑文件重新生成 `INDEX.yaml`。
+将路线图状态与工作流状态协调。当对应的严格变更已归档时，将计划变更标记为 `complete`。从当前里程碑文件重新生成 `INDEX.yaml`。如果检测到旧的内联 `planned_changes`，需要改用 `node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes` 先完成转换。
 
 归档变更后运行此命令以保持路线图为最新状态：
 ```
@@ -134,23 +134,32 @@ notes: []
 
 也可以通过 CLI 运行：
 ```sh
-node dist/strict-spec-cli.js roadmap-sync
+node scripts/strict-spec-driven.js roadmap-sync
 ```
 
 ## 如何添加计划变更
 
-1. 打开 `.strict-spec-driven/roadmap/milestones/` 下的相关里程碑 YAML 文件。
-2. 在 `planned_changes` 映射中添加新条目，包含所有必填字段。
-3. 设置 `status: planned` 和 `depends_on: []`（或列出前置变更 ID）。
-4. 运行 `/strict-roadmap-sync` 验证并重新生成路线图索引。
+1. 打开 `.strict-spec-driven/roadmap/milestones/` 下的相关里程碑 YAML 文件，确认目标、范围和完成标准仍然适合这项工作。
+2. 在 `.strict-spec-driven/roadmap/planned-changes/` 下新建一个独立 planned-change YAML 文件。
+3. 填写 `planned_change.id`、`planned_change.milestone`、`status`、`summary`、`details` 和 `depends_on`。
+4. 如果有帮助，再添加可选的 `team` 协作元数据。
+5. 运行 `/strict-roadmap-sync` 验证并刷新路线图状态。
 
-示例条目：
+示例：
 ```yaml
-  my-new-change:
-    status: planned
-    summary: >-
-      一句话描述此变更要达成的目标。
-    depends_on: []
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: my-new-change
+  milestone: 0001-first-milestone
+status: planned
+summary: >-
+  一句话描述此变更要达成的目标。
+details: >-
+  解释这项工作自己的技术和规划上下文。
+depends_on: []
 ```
 
 ## 如何完成计划变更条目
@@ -159,14 +168,14 @@ node dist/strict-spec-cli.js roadmap-sync
 
 1. 使用 `/strict-spec-propose`、`/strict-spec-apply`、`/strict-spec-verify`、`/strict-spec-archive`（或 `/strict-spec-auto`）提议并实现变更。
 2. 归档后运行 `/strict-roadmap-sync` 将对应的计划变更条目标记为 `complete`。
-3. 运行 `node dist/strict-spec-cli.js roadmap-status` 确认里程碑状态正确。
+3. 运行 `node scripts/strict-spec-driven.js roadmap-status` 确认里程碑状态正确。
 
 不要手动将计划变更条目设为 `status: complete`——让 `roadmap-sync` 从归档状态中派生。
 
 ## 检查路线图状态
 
 ```sh
-node dist/strict-spec-cli.js roadmap-status
+node scripts/strict-spec-driven.js roadmap-status
 ```
 
 报告每个里程碑的声明状态和派生状态、每个计划变更的状态，以及路线图声明与工作流状态之间的任何不匹配。输出为 JSON。

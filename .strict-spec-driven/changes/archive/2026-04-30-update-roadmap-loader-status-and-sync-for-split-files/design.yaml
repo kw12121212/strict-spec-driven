@@ -1,0 +1,21 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: update-roadmap-loader-status-and-sync-for-split-files
+approach:
+  - >-
+    Extend the existing roadmap modules in place so loading produces one canonical in-memory
+    planned-change collection from inline milestone entries and standalone planned-change artifacts.
+    Preserve inline compatibility, prefer split-file artifacts where the new model is present, and
+    keep sync/status output deterministic without making the roadmap index own planned-change state.
+decisions:
+  split-file-loader-normalization:
+    decision: >-
+      Normalize inline and standalone planned changes into a shared roadmap status model before
+      status derivation and sync rewriting.
+    rationale: >-
+      A shared normalization point keeps roadmap-status and roadmap-sync behavior consistent while
+      avoiding separate code paths that could diverge during the compatibility window.
+alternatives: []
+risks: []

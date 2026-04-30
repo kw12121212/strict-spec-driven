@@ -1,0 +1,52 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: document-conflict-resistant-team-workflow
+sections:
+  Implementation:
+    inspect-current-roadmap-docs:
+      text: >-
+        Review the existing roadmap-facing docs and current split-file roadmap behavior so the
+        documentation updates reflect milestone 0011 guidance rather than the older inline-only
+        examples.
+      status: complete
+    update-roadmap-guide:
+      text: >-
+        Update `ROADMAP_GUIDE.md` to document standalone planned-change files as the preferred team
+        collaboration surface, keep milestone files and `INDEX.yaml` as deliberate low-churn shared
+        artifacts, explain rerunning `roadmap-sync` after merges or archive handoff, and describe
+        external tracker references as optional context.
+      status: complete
+    refresh-roadmap-onboarding-docs:
+      text: >-
+        Refresh `ROADMAP_QUICKSTART.md` and any supporting `README.md` roadmap references so
+        contributors discover the split-file team workflow by default while inline `planned_changes`
+        guidance remains framed as compatibility or migration context.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-doc-scope:
+      text: >-
+        Confirm the updated docs present the split-file team roadmap workflow as the default
+        recommendation and keep inline planned_changes, external trackers, and roadmap status edits
+        within their intended compatibility and boundary notes.
+      status: complete
+    verify-strict-change:
+      text: Verify the strict change artifacts remain valid before implementation handoff.
+      status: complete
+      command: node scripts/strict-spec-driven.js verify document-conflict-resistant-team-workflow
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

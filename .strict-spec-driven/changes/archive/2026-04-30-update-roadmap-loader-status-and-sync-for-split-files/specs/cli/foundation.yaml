@@ -1,0 +1,57 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/roadmap/model.ts
+    - src/roadmap/load.ts
+    - src/roadmap/status.ts
+    - src/roadmap/sync.ts
+    - src/roadmap/validate.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    cli-roadmap-loads-split-planned-change-files:
+      strength: MUST
+      statement: >-
+        The system MUST load roadmap planned-change state from standalone planned-change artifacts
+        as well as inline milestone planned_changes entries, associating every standalone planned
+        change with exactly one owning milestone and preserving deterministic roadmap order.
+      scenarios:
+        split-planned-change-files-load-with-owning-milestone:
+          - GIVEN: >-
+              a strict roadmap contains milestone metadata and a standalone planned-change artifact
+              that references one owning milestone
+          - WHEN: strict roadmap state is loaded for roadmap-status or roadmap-sync
+          - THEN: >-
+              the standalone planned change is reported under its owning milestone in deterministic
+              roadmap order
+          - AND: >-
+              existing inline milestone planned_changes entries remain valid during the
+              compatibility window
+    cli-roadmap-sync-preserves-split-planned-change-state:
+      strength: MUST
+      statement: >-
+        The system MUST make roadmap-status and roadmap-sync derive and rewrite planned-change
+        completion state consistently for inline and standalone planned-change representations
+        without adding duplicate planned-change entries or moving data between representations
+        implicitly.
+      scenarios:
+        sync-keeps-split-and-inline-state-deterministic:
+          - GIVEN: >-
+              a strict roadmap includes standalone planned-change files and inline milestone
+              planned_changes entries
+          - WHEN: >-
+              roadmap-status or roadmap-sync reconciles planned-change state against active and
+              archived strict changes
+          - THEN: >-
+              declared and derived planned-change statuses are computed consistently for both
+              representations
+          - AND: >-
+              sync output preserves deterministic ordering and does not create duplicate
+              planned-change entries
+  MODIFIED: {}
+  REMOVED: {}

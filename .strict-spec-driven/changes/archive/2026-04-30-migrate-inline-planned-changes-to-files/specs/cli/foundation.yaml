@@ -1,0 +1,38 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/cmd-roadmap.ts
+    - src/roadmap.ts
+    - src/roadmap/sync.ts
+    - src/roadmap/model.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    cli-roadmap-materializes-inline-planned-changes:
+      strength: MUST
+      statement: >-
+        The system MUST provide an explicit operator-selected roadmap conversion path that
+        materializes inline milestone planned_changes entries as standalone planned-change YAML
+        artifacts without losing planned-change identity, owning milestone, status, summary,
+        details, or dependency data.
+      scenarios:
+        inline-planned-changes-materialize-as-standalone-files:
+          - GIVEN: a strict roadmap milestone contains inline planned_changes entries
+          - WHEN: the explicit inline-to-standalone roadmap conversion path is executed
+          - THEN: standalone planned-change YAML artifacts are written for the converted planned changes
+          - AND: >-
+              each standalone artifact preserves the planned change id, owning milestone reference,
+              status, summary, details, and depends_on values
+        ordinary-sync-does-not-move-representation:
+          - GIVEN: a strict roadmap still contains inline planned_changes entries
+          - WHEN: >-
+              ordinary roadmap-status or roadmap-sync behavior runs without the explicit conversion
+              trigger
+          - THEN: planned changes are not silently moved between inline and standalone representations
+  MODIFIED: {}
+  REMOVED: {}

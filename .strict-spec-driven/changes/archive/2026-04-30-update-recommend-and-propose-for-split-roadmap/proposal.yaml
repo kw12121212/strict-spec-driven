@@ -1,0 +1,49 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: update-recommend-and-propose-for-split-roadmap
+  status: proposed
+summary:
+  what:
+    - >-
+      Update strict roadmap recommendation and roadmap-to-change proposal handoff so they can select
+      and scaffold work from standalone planned-change artifacts as the preferred split-file roadmap
+      source.
+  why:
+    - >-
+      Milestone 0011 has moved planned changes toward independent files to reduce Git conflicts, but
+      recommendation and handoff guidance still centers inline milestone entries. This change
+      carries split-file planned-change context into the normal strict change lifecycle.
+scope:
+  in:
+    - >-
+      Teach strict roadmap recommendation to consider standalone planned-change artifacts,
+      dependency readiness, and active strict change conflicts when choosing the next roadmap-backed
+      change.
+    - >-
+      Teach strict roadmap proposal handoff to locate one planned change from either the preferred
+      standalone source or compatible inline milestone data, then scaffold the strict change with
+      the planned-change identity and owning milestone reference.
+    - >-
+      Keep milestone details and planned-change details as roadmap-owned planning context,
+      extracting only targeted guidance needed for proposal, design, tasks, questions, and delta
+      specs.
+  out:
+    - >-
+      Adding team metadata fields such as owners, reviewers, labels, blocked state, or external
+      references.
+    - >-
+      Adding new hosted locking, realtime collaboration, or external tracker synchronization
+      behavior.
+    - Changing archive completion semantics or making roadmap YAML ownership fields hard locks.
+unchanged_behavior:
+  - Existing inline milestone planned_changes entries remain valid during the compatibility window.
+  - >-
+    Normal strict change scaffolds continue to use proposal.yaml, design.yaml, tasks.yaml,
+    questions.yaml, and delta spec files.
+  - The roadmap remains the canonical home of milestone-level planning metadata.
+roadmap:
+  milestone: 0011-team-roadmap-collaboration
+  planned_change: update-recommend-and-propose-for-split-roadmap

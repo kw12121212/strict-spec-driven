@@ -1,0 +1,49 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: update-recommend-and-propose-for-split-roadmap
+sections:
+  Implementation:
+    update-recommend-skill:
+      text: >-
+        Update strict-roadmap-recommend guidance to select roadmap-backed work from split
+        planned-change sources using dependency readiness and active-change conflict context.
+      status: complete
+    update-propose-skill:
+      text: >-
+        Update strict-roadmap-propose guidance to locate one planned change from standalone or
+        compatible inline roadmap state and scaffold the strict change with the owning milestone
+        reference.
+      status: complete
+    preserve-roadmap-canonical-context:
+      text: >-
+        Ensure both handoff paths keep full milestone and planned-change planning metadata in
+        roadmap artifacts while extracting only targeted guidance into change artifacts.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+    run-roadmap-skill-regression:
+      text: >-
+        Run roadmap and skill regression coverage for split planned-change recommendation and
+        proposal handoff behavior.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+    verify-strict-change:
+      text: Verify the strict change artifacts remain valid before archive.
+      status: complete
+      command: node scripts/strict-spec-driven.js verify update-recommend-and-propose-for-split-roadmap
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

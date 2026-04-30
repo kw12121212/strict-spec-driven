@@ -35,19 +35,33 @@ proceeding, verify that strict workflow state already exists.
    - `.strict-spec-driven/config.yaml`
    - `.strict-spec-driven/roadmap/INDEX.yaml`
    - the milestone YAML files relevant to the current strict roadmap phase
+   - standalone planned-change YAML artifacts under `.strict-spec-driven/roadmap/`
+     when present, treating them as the preferred split-file work item source
    - `.strict-spec-driven/specs/INDEX.yaml`
    - the strict YAML main specs the candidate change is likely to touch
    - the current `roadmap-status` output
    - the owning milestone YAML file's `details` field, if present, as targeted
      planning guidance for the recommended change
+   - the selected standalone planned-change artifact's `details` field, if the
+     planned change comes from a split-file artifact
 
 2. **Choose the next candidate from existing planned changes** — recommend only a
-   planned change that already exists under one milestone
-   in `.strict-spec-driven/roadmap/milestones/`.
+   planned change that already exists in the strict roadmap. Prefer standalone
+   planned-change artifacts as the split-file source of truth; keep inline
+   `planned_changes` entries under `.strict-spec-driven/roadmap/milestones/`
+   eligible during the compatibility window. Use `roadmap-status` output to
+   avoid selecting planned changes with unsatisfied cross-file dependencies,
+   invalid milestone references, duplicate identities, or active strict change
+   conflicts. These active strict change conflicts mean another active strict
+   change already claims the same planned-change identity. Choose a planned
+   change whose dependencies are complete and whose workflow state is missing,
+   not active or archived.
 
 3. **Present a checkpoint before scaffolding** — summarize:
    - the proposed change name
    - the milestone it comes from
+   - whether the roadmap source is a standalone planned-change artifact or an
+     inline milestone entry
    - why it is the best next step
    - which strict specs are likely to change
    - any open questions that would need to go into the strict change proposal
@@ -70,11 +84,14 @@ proceeding, verify that strict workflow state already exists.
    Prefer one invocation per supported generated artifact (or per target spec
    for delta specs).
    Do this without copying full milestone-level planning metadata into the
-   change. If the owning milestone has a `details` field, extract the portions
+   change. If the selected planned change is a standalone artifact, keep that
+   artifact as the canonical home for its status, summary, dependencies, and
+   details. If the owning milestone has a `details` field or the standalone
+   planned-change artifact has a `details` field, extract only the portions
    relevant to the selected planned change and use them as targeted planning
-   guidance when generating the change artifacts. Do not copy the full
-   milestone plan — only extract guidance relevant to this one planned change.
-   If `details` is absent, proceed normally.
+   guidance when generating the change artifacts. Do not copy the full milestone
+   plan or the full planned-change details — only extract guidance relevant to
+   this one planned change. If `details` is absent, proceed normally.
 
 5. **Validate the proposed strict change** — run:
    ```bash
@@ -97,6 +114,8 @@ proceeding, verify that strict workflow state already exists.
 
 - Recommend only work that already exists under `.strict-spec-driven/roadmap/`
 - Keep `.strict-spec-driven/roadmap/` as the canonical home of milestone-level
-  planning metadata
+  and planned-change planning metadata
+- Prefer standalone planned-change artifacts over inline milestone entries when
+  both roadmap representations are available
 - Convert exactly one planned change into one normal strict change scaffold
 - Do not pause for user confirmation during the recommend step

@@ -2,31 +2,29 @@
 
 English | [中文](ROADMAP_QUICKSTART.zh.md)
 
-A hands-on guide to go from zero to a working roadmap in under five minutes.
+A hands-on guide to go from zero to a working roadmap using the split-file, conflict-resistant team workflow.
 
 ## What the Roadmap Gives You
 
-The strict roadmap lets you plan work as **milestones** containing **planned changes**, then hand off each planned change into the normal strict change lifecycle. The CLI keeps declared and derived status in sync so you always know where things stand.
+The strict roadmap lets you plan work as milestones plus planned changes, then hand each planned change off into the normal strict change lifecycle. The recommended collaboration model keeps milestone files stable and puts everyday work items in standalone planned-change files.
 
 ## Step 1: Initialize
 
-If you haven't already, initialize the strict workflow in your project:
+If you have not already initialized strict workflow state in the project:
 
-```
+```text
 /strict-spec-init
 ```
 
 This creates `.strict-spec-driven/roadmap/` with an empty `INDEX.yaml`.
 
-## Step 2: Plan Your Roadmap
+## Step 2: Plan the Milestone
 
-Create the roadmap structure — milestones with goals, scope, and planned changes:
+Create or refine your milestone metadata:
 
-```
+```text
 /strict-roadmap-plan
 ```
-
-The skill will walk you through defining milestones. You can also edit the YAML files directly.
 
 Each milestone file lives under `.strict-spec-driven/roadmap/milestones/` and looks like this:
 
@@ -34,7 +32,7 @@ Each milestone file lives under `.strict-spec-driven/roadmap/milestones/` and lo
 schema: strict-spec-driven/roadmap-milestone/v2
 schema_version: 2
 artifact_type: roadmap_milestone
-schema_file: ../schemas/roadmap-milestone.yaml
+schema_file: ../../templates/strict-spec-driven/schemas/roadmap-milestone.yaml
 milestone:
   0001-user-auth:
     title: User Authentication
@@ -48,96 +46,129 @@ scope:
 done_criteria:
   - Users can log in and log out.
   - Sessions expire after 24 hours.
-planned_changes:
-  add-session-model:
-    status: planned
-    summary: Add session data model and storage.
-    depends_on: []
-  add-login-endpoint:
-    status: planned
-    summary: Add login API endpoint.
-    depends_on:
-      - add-session-model
+planned_changes: {}
 dependencies: []
 risks: []
 status: proposed
 notes: []
 ```
 
+Use the milestone file for durable roadmap context. Do not use it as the default place for every contributor to append new work items.
+
+## Step 3: Add a Planned Change File
+
+Create a standalone planned-change file under `.strict-spec-driven/roadmap/planned-changes/`:
+
+```yaml
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-session-model
+  milestone: 0001-user-auth
+status: planned
+summary: Add session data model and storage.
+details: >-
+  Keep this work item in its own file so one contributor can update it without
+  rewriting the milestone file.
+depends_on: []
+team:
+  owner: alice
+  reviewers:
+    - bob
+  blocked:
+    status: false
+```
+
 Key points:
-- Milestone IDs use a 4-digit numeric prefix (`0001-`, `0002-`, ...)
-- Planned changes use kebab-case IDs and form a dependency DAG within the milestone
-- Each planned change should map to roughly one strict change
 
-## Step 3: Check Roadmap State
+- milestone IDs use a 4-digit numeric prefix
+- planned-change IDs use kebab-case
+- each planned change should map to roughly one strict change
+- `team` metadata is optional and advisory only
 
-At any time, inspect the roadmap:
+Keep milestone `planned_changes` empty in normal roadmap work. Non-empty inline entries are treated as legacy data that must be materialized before `roadmap-status` and ordinary `roadmap-sync` will succeed.
+
+## Step 4: Check and Sync Roadmap State
+
+Inspect the roadmap at any time:
 
 ```sh
-node dist/strict-spec-cli.js roadmap-status
+node scripts/strict-spec-driven.js roadmap-status
 ```
 
-Or sync the index after editing milestone files:
+After editing milestone or planned-change files, sync the roadmap:
 
-```
+```text
 /strict-roadmap-sync
 ```
 
-## Step 4: Pick What to Work On Next
+If you merge branches or archive roadmap-backed work, run `roadmap-sync` again so derived status is reconciled from workflow state.
 
-Let the workflow recommend the best next planned change based on dependencies and milestone progress:
+## Step 5: Pick the Next Planned Change
 
-```
+Let the workflow recommend the best next change based on dependencies and current roadmap state:
+
+```text
 /strict-roadmap-recommend
 ```
 
-The skill analyzes your roadmap, picks the best candidate, and scaffolds it as
-a normal strict change under `.strict-spec-driven/changes/` without stopping
-for extra confirmation during the recommend step.
+If you already know which roadmap work item to start:
 
-If you already know which planned change to work on:
-
-```
+```text
 /strict-roadmap-propose add-session-model
 ```
 
-## Step 5: Implement as a Normal Strict Change
+Both commands scaffold a normal strict change under `.strict-spec-driven/changes/`.
 
-Once scaffolded, the planned change becomes a regular strict change. Run the standard lifecycle:
+## Step 6: Implement as a Normal Strict Change
 
+Once scaffolded, the planned change becomes a regular strict change:
+
+```text
+/strict-spec-auto
 ```
+
+Or use the manual flow:
+
+```text
 /strict-spec-apply add-session-model
 /strict-spec-verify add-session-model
 /strict-spec-archive add-session-model
 ```
 
-Or use the automated flow:
+## Step 7: Sync the Roadmap Again
 
-```
-/strict-spec-auto
-```
+After archive, refresh the roadmap:
 
-## Step 6: Sync the Roadmap
-
-After archiving a change, sync the roadmap to update planned change status:
-
-```
+```text
 /strict-roadmap-sync
 ```
 
-This marks the corresponding planned change as `complete` and updates the milestone's derived status.
+This updates derived planned-change and milestone state. Do not hand-edit roadmap completion status after implementation.
 
 ## Typical Workflow Loop
 
-```
+```text
 /strict-roadmap-recommend          ← what should I do next?
   ↓
 /strict-spec-auto                  ← implement end to end
   ↓
-/strict-roadmap-sync               ← update roadmap state
+/strict-roadmap-sync               ← reconcile roadmap after archive or merge
   ↓
-repeat until milestone is complete
+repeat until the milestone is complete
 ```
+
+## Legacy Inline Note
+
+If you still have inline milestone `planned_changes`, ordinary `roadmap-status` and `roadmap-sync` will stop with an error and tell you to materialize them. Convert them with:
+
+```sh
+node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
+```
+
+If you are running through an installed skill package, use the exact command form documented in `skills/strict-roadmap-sync/SKILL.md`.
 
 ## Commands Reference
 
@@ -149,4 +180,4 @@ repeat until milestone is complete
 | `/strict-roadmap-propose` | Directly scaffold a specific planned change |
 | `/strict-roadmap-sync` | Reconcile roadmap state with workflow |
 
-For the full reference including YAML schemas and field definitions, see [ROADMAP_GUIDE.md](ROADMAP_GUIDE.md).
+For the full reference, including field definitions and legacy materialization guidance, see [ROADMAP_GUIDE.md](ROADMAP_GUIDE.md).

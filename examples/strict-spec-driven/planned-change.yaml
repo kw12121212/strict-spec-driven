@@ -11,3 +11,14 @@ details: |
   Technical and design context for this planned change,
   including approach considerations and key constraints.
 depends_on: []
+team:
+  owner: alice
+  reviewers:
+    - bob
+  blocked:
+    status: false
+  labels:
+    - roadmap
+  external_refs:
+    - label: Tracking issue
+      target: https://example.com/issues/123

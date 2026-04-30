@@ -1,0 +1,49 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: update-roadmap-loader-status-and-sync-for-split-files
+  status: proposed
+summary:
+  what:
+    - >-
+      Update strict roadmap loading, status derivation, and sync rewriting so roadmap state can be
+      read from milestone metadata plus standalone planned-change files while preserving current
+      inline planned_changes compatibility.
+  why:
+    - >-
+      Milestone 0011 is moving roadmap work items into separate files to reduce Git merge conflicts.
+      The standalone planned-change artifact contract already exists, so the next dependency is
+      teaching the roadmap runtime to understand the preferred split-file layout before migration,
+      validation, recommendation, and team metadata build on it.
+scope:
+  in:
+    - >-
+      Load standalone planned-change artifacts from the roadmap directory and associate each one
+      with exactly one owning milestone.
+    - >-
+      Keep existing inline milestone planned_changes valid during the migration window and merge
+      them into the same derived roadmap status model.
+    - >-
+      Update roadmap-status and roadmap-sync behavior so derived planned-change state and
+      deterministic ordering are preserved across inline and standalone representations.
+  out:
+    - >-
+      Materializing existing inline planned changes into standalone files; that belongs to the later
+      migrate-inline-planned-changes-to-files roadmap item.
+    - >-
+      Adding cross-file duplicate, dependency, ownership, or active-change conflict diagnostics
+      beyond the loader and sync behavior needed for the split-file model.
+    - >-
+      Changing recommendation, proposal handoff, team metadata semantics, or documentation for the
+      team workflow.
+unchanged_behavior:
+  - The roadmap index remains a milestone index rather than a high-churn work-item registry.
+  - >-
+    Existing roadmap v2 milestone files with inline planned_changes remain valid until the migration
+    path intentionally converts them.
+  - The strict change archive remains the authoritative record for completed work.
+roadmap:
+  milestone: 0011-team-roadmap-collaboration
+  planned_change: update-roadmap-loader-status-and-sync-for-split-files

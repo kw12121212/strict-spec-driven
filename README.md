@@ -16,6 +16,7 @@ English | [中文](README.zh.md)
 | `.strict-spec-driven/changes/` | Active change directories |
 | `.strict-spec-driven/changes/archive/` | Archived changes |
 | `.strict-spec-driven/roadmap/` | Strict YAML roadmap artifacts |
+| `.strict-spec-driven/roadmap/planned-changes/` | Preferred standalone roadmap work-item files |
 | `.strict-spec-driven/specs/` | Strict YAML main spec files |
 | `.spec-driven/` | Bootstrap and legacy workflow input only |
 | `templates/strict-spec-driven/schemas/` | Bundled strict YAML schema files |
@@ -87,6 +88,8 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-roadmap-milestone` | Refine a roadmap milestone |
 | `/strict-roadmap-plan` | Create or restructure the roadmap |
 | `/strict-roadmap-sync` | Reconcile roadmap milestone and change state |
+
+The roadmap docs describe the preferred split-file collaboration model: keep milestone files and `INDEX.yaml` low churn, store day-to-day roadmap work in `.strict-spec-driven/roadmap/planned-changes/`, rerun `roadmap-sync` after merges or archive handoff, and treat external tracker references as optional context rather than required source of truth.
 
 ## Schema and Example Assets
 

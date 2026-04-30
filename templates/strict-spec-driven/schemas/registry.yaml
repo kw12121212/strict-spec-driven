@@ -163,7 +163,7 @@ entries:
       compatible_with: []
       notes:
         - Milestone identity is a keyed map with 4-digit-prefixed key.
-        - Planned changes use keyed map with required details field.
+        - Milestone files keep planned_changes empty in normal split-file roadmap usage; non-empty inline entries are legacy data for explicit materialization.
         - Planned-change-entry no longer exists as independent artifact type.
   - schema_id: strict-spec-driven/planned-change/v1
     schema_version: 1
@@ -177,7 +177,8 @@ entries:
       supersedes: []
       compatible_with: []
       notes:
-        - Standalone planned changes support the split-file roadmap layout while inline milestone planned changes remain valid during compatibility windows.
+        - Standalone planned changes are the normal roadmap work-item surface; materialize legacy inline milestone entries before running ordinary roadmap commands.
+        - Optional team metadata is advisory coordination data and is not a locking or permission mechanism.
   - schema_id: strict-spec-driven/schema-registry/v1
     schema_version: 1
     artifact_type: schema_registry

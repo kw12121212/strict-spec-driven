@@ -1,0 +1,48 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-cross-file-roadmap-conflict-validation
+  status: proposed
+summary:
+  what:
+    - >-
+      Add deterministic roadmap validation for split planned-change files so duplicate planned
+      change IDs, missing milestone references, cross-file dependency errors, ambiguous ownership
+      metadata, and conflicts with active strict changes are reported with stable diagnostics.
+  why:
+    - >-
+      Milestone 0011 has already introduced standalone planned-change artifacts plus split-file
+      loading, sync, and migration. The next dependency is making the low-conflict layout safe for
+      teams by surfacing cross-file coordination mistakes through the CLI before recommendation,
+      proposal handoff, and team metadata build on it.
+scope:
+  in:
+    - >-
+      Validate duplicate planned change identities across inline and standalone roadmap
+      representations.
+    - >-
+      Validate standalone planned-change milestone references and dependency references across
+      roadmap files.
+    - >-
+      Report ambiguous ownership or coordination metadata as deterministic diagnostics without
+      treating local YAML metadata as a distributed lock.
+    - >-
+      Report conflicts between planned changes and active strict changes where the same planned
+      change identity is already in progress.
+  out:
+    - >-
+      Changing recommendation or roadmap-to-change proposal handoff selection behavior; that belongs
+      to update-recommend-and-propose-for-split-roadmap.
+    - >-
+      Adding the final structured owner, reviewer, blocked-state, label, or external-reference
+      metadata contract.
+    - Requiring external trackers, hosted coordination services, or hard lock enforcement.
+unchanged_behavior:
+  - Roadmap index remains a milestone index rather than a high-churn work-item registry.
+  - Inline milestone planned_changes remain understandable during the compatibility window.
+  - Archived strict changes remain the authoritative completion record for roadmap planned changes.
+roadmap:
+  milestone: 0011-team-roadmap-collaboration
+  planned_change: add-cross-file-roadmap-conflict-validation

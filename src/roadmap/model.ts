@@ -9,6 +9,7 @@ export const DECLARED_ROADMAP_STATUSES = ["proposed", "active", "blocked", "comp
 export const DECLARED_PLANNED_CHANGE_STATUSES = ["planned", "complete"] as const;
 export const ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v2";
 export const ROADMAP_MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v2";
+export const PLANNED_CHANGE_SCHEMA_ID = "strict-spec-driven/planned-change/v1";
 
 export type DeclaredRoadmapStatus = (typeof DECLARED_ROADMAP_STATUSES)[number];
 export type DeclaredPlannedChangeStatus = (typeof DECLARED_PLANNED_CHANGE_STATUSES)[number];
@@ -56,6 +57,37 @@ export type RoadmapMilestoneArtifact = {
   details?: string;
 };
 
+export type PlannedChangeTeamMetadata = {
+  owner?: string;
+  reviewers?: string[];
+  blocked?: {
+    status: boolean;
+    reason?: string;
+  };
+  labels?: string[];
+  external_refs?: Array<{
+    label: string;
+    target: string;
+  }>;
+};
+
+export type StandalonePlannedChangeArtifact = {
+  schema: string;
+  schema_version: 1;
+  artifact_type: "planned_change";
+  schema_file: string;
+  planned_change: {
+    id: string;
+    milestone: string;
+  };
+  status: DeclaredPlannedChangeStatus;
+  summary: string;
+  details: string;
+  depends_on: string[];
+  team?: PlannedChangeTeamMetadata;
+  extensions?: Record<string, unknown>;
+};
+
 export type RoadmapIndexArtifact = {
   schema: string;
   schema_version: 2;
@@ -74,11 +106,22 @@ export type LoadedMilestone = {
   artifact: RoadmapMilestoneArtifact;
 };
 
+export type LoadedPlannedChange = {
+  absolutePath: string;
+  artifactPath: string;
+  file: string;
+  relativeRoadmapPath: string;
+  repoRelativePath: string;
+  raw: string;
+  artifact: StandalonePlannedChangeArtifact;
+};
+
 export type LoadedRoadmap = {
   warnings: string[];
   diagnostics: RoadmapDiagnostic[];
   indexArtifact: RoadmapIndexArtifact | null;
   milestones: LoadedMilestone[];
+  plannedChanges: LoadedPlannedChange[];
 };
 
 export type RoadmapDiagnostic = {

@@ -1,0 +1,37 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-split-roadmap-regression-coverage
+  status: proposed
+summary:
+  what:
+    - >-
+      Add focused regression coverage for split-file roadmap behavior, including standalone
+      planned-change loading, inline-to-standalone migration, cross-file validation, recommendation
+      and proposal handoff, team metadata, and shared index preservation.
+  why:
+    - >-
+      Milestone 0011 has already delivered the split planned-change contract, loader and sync
+      support, migration path, conflict validation, handoff behavior, and team metadata. The next
+      roadmap step is to prove those pieces together in realistic copied-project workflows so future
+      roadmap changes do not regress the low-conflict file layout.
+scope:
+  in:
+    - >-
+      Extend existing roadmap and copied-project regression coverage for standalone planned-change
+      files, inline planned-change migration, conflict diagnostics, recommendation/proposal handoff,
+      team metadata validation, and deterministic sync/index preservation.
+  out:
+    - >-
+      No new hosted collaboration service, lock semantics, account model, external tracker source of
+      truth, or broad roadmap feature behavior beyond regression coverage.
+unchanged_behavior:
+  - >-
+    Roadmap milestone files remain canonical for milestone-level planning; planned-change files
+    remain the focused work-item artifacts; existing inline planned_changes compatibility remains
+    intact during the supported migration window.
+roadmap:
+  milestone: 0011-team-roadmap-collaboration
+  planned_change: add-split-roadmap-regression-coverage

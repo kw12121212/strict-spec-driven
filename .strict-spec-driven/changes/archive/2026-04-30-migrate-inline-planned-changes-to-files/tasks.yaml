@@ -1,0 +1,39 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: migrate-inline-planned-changes-to-files
+sections:
+  Implementation:
+    resolve-command-surface:
+      text: Resolve the explicit operator-facing conversion trigger before coding.
+      status: complete
+    implement-roadmap-conversion:
+      text: Implement inline planned-change materialization through the selected explicit roadmap path.
+      status: complete
+    preserve-metadata-and-ordering:
+      text: >-
+        Preserve planned-change id, milestone ownership, status, summary, details, dependencies, and
+        deterministic file ordering during conversion.
+      status: complete
+  Testing:
+    add-roadmap-conversion-tests:
+      text: >-
+        Add roadmap tests for inline-to-standalone conversion, metadata preservation, and no
+        implicit movement during ordinary status or sync flows.
+      status: complete
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

@@ -19,6 +19,7 @@ before running anything. Do not guess.
 ```yaml
 roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
 roadmap-sync: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync
+roadmap-sync-materialize: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
 ```
 
 ## Prerequisites
@@ -45,6 +46,13 @@ proceeding, verify that strict workflow state already exists.
    ```
    Use this to regenerate canonical roadmap index state and reconcile milestone
    and planned change completion against active and archived strict changes.
+
+   If diagnostics report legacy inline milestone `planned_changes`, switch to:
+   ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
+   ```
+   This converts the inline entries into standalone planned-change files before
+   reconciliation.
 
 4. **Confirm the reconciled state** — rerun `roadmap-status` and report which
    files changed, which milestone statuses moved, and whether any diagnostics

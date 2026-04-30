@@ -3,7 +3,7 @@ schema_version: 1
 schema_id: strict-spec-driven/roadmap-milestone/v2
 artifact_type: roadmap_milestone
 artifact_name: roadmap-milestone
-description: Strict YAML roadmap milestone artifact (v2 — keyed milestone identity, keyed planned changes with required details).
+description: Strict YAML roadmap milestone artifact (v2 — keyed milestone identity plus reserved planned_changes mapping for explicit legacy materialization workflows).
 example_ref: ../../../examples/strict-spec-driven/roadmap-milestone.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"

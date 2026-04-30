@@ -1,0 +1,41 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-team-metadata-to-planned-change-files
+  status: proposed
+summary:
+  what:
+    - >-
+      Add structured advisory team metadata to standalone planned-change files, including owner,
+      reviewers, blocked state, labels, and external references.
+  why:
+    - >-
+      The split-file roadmap model is now in place, so team coordination metadata belongs on the
+      focused planned-change artifact rather than in shared milestone files or external-only process
+      notes.
+scope:
+  in:
+    - >-
+      Define the planned-change artifact contract and schema shape for optional structured team
+      metadata.
+    - >-
+      Update roadmap loading and validation behavior so valid team metadata is accepted and
+      ambiguous advisory ownership conflicts remain deterministic diagnostics.
+    - >-
+      Add or update examples and tests that cover owner, reviewers, blocked state, labels, and
+      external references on standalone planned-change files.
+  out:
+    - >-
+      Do not make local owner or reviewer metadata a hard lock, permission model, or hosted
+      collaboration feature.
+    - Do not require every planned change to include team metadata.
+    - Do not change the roadmap index into a work-item ownership registry.
+unchanged_behavior:
+  - Inline planned_changes compatibility remains available during the compatibility window.
+  - Archived strict changes remain the authoritative record of completed implementation work.
+  - Roadmap milestone details remain the canonical home for milestone-level planning context.
+roadmap:
+  milestone: 0011-team-roadmap-collaboration
+  planned_change: add-team-metadata-to-planned-change-files

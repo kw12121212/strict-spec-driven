@@ -1,0 +1,49 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-cross-file-roadmap-conflict-validation
+sections:
+  Implementation:
+    update-roadmap-conflict-validation:
+      text: >-
+        Add roadmap-domain validation for duplicate planned change IDs, missing milestone
+        references, dependency reference errors, advisory ownership ambiguity, and active strict
+        change conflicts across inline and standalone planned-change sources.
+      status: complete
+    wire-validation-to-roadmap-commands:
+      text: >-
+        Ensure roadmap-status and roadmap-sync surface the new deterministic diagnostics through the
+        existing strict CLI validation path.
+      status: complete
+    update-spec-mappings:
+      text: >-
+        Keep strict spec implementation and test mappings aligned with the roadmap validation files
+        changed by this proposal.
+      status: complete
+  Testing:
+    add-roadmap-conflict-tests:
+      text: >-
+        Add focused roadmap tests for duplicate split-file IDs, missing milestone references,
+        dependency errors, advisory ownership ambiguity, and active-change conflict diagnostics.
+      status: complete
+      command: bun test/run.ts
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+    verify-strict-change:
+      text: Verify the strict change artifacts before implementation handoff.
+      status: complete
+      command: node scripts/strict-spec-driven.js verify add-cross-file-roadmap-conflict-validation
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

@@ -1,11 +1,16 @@
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import {
+  PLANNED_CHANGE_SCHEMA_ID,
+  ROADMAP_DIR,
   ROADMAP_INDEX_SCHEMA_ID,
   ROADMAP_MILESTONE_SCHEMA_ID,
   type LoadedMilestone,
+  type LoadedPlannedChange,
+  type PlannedChangeEntry,
   type RoadmapMilestoneArtifact,
   type RoadmapMilestoneStatus,
+  type StandalonePlannedChangeArtifact,
 } from "./model.js";
 import { ensureTrailingNewline, normalizeRepoRelativePath, toPosix } from "./shared.js";
 
@@ -20,9 +25,11 @@ export function writeFileIfChanged(filePath: string, nextContent: string, update
 export function buildCanonicalMilestoneArtifact(
   milestone: LoadedMilestone,
   status: RoadmapMilestoneStatus,
+  options: { omitInlinePlannedChangeIds?: Set<string> } = {},
 ): RoadmapMilestoneArtifact {
   const plannedChanges: RoadmapMilestoneArtifact["planned_changes"] = {};
   for (const [id, entry] of Object.entries(milestone.artifact.planned_changes)) {
+    if (options.omitInlinePlannedChangeIds?.has(id)) continue;
     const plannedStatus = status.plannedChanges.find((candidate) => candidate.id === id);
     plannedChanges[id] = {
       status: plannedStatus?.derivedStatus ?? entry.status,
@@ -54,6 +61,67 @@ export function buildCanonicalMilestoneArtifact(
     notes: [...milestone.artifact.notes],
     ...(milestone.artifact.details != null ? { details: milestone.artifact.details } : {}),
   };
+}
+
+export function buildMaterializedPlannedChangeArtifact(
+  milestone: LoadedMilestone,
+  id: string,
+  entry: PlannedChangeEntry,
+  status: RoadmapMilestoneStatus,
+): StandalonePlannedChangeArtifact {
+  const plannedStatus = status.plannedChanges.find((candidate) => candidate.id === id);
+
+  return {
+    schema: PLANNED_CHANGE_SCHEMA_ID,
+    schema_version: 1,
+    artifact_type: "planned_change",
+    schema_file: "../../templates/strict-spec-driven/schemas/planned-change.yaml",
+    planned_change: {
+      id,
+      milestone: milestone.artifact.milestone.id,
+    },
+    status: plannedStatus?.derivedStatus ?? entry.status,
+    summary: entry.summary,
+    details: entry.details,
+    depends_on: [...entry.depends_on],
+  };
+}
+
+export function buildCanonicalPlannedChangeArtifact(
+  plannedChange: LoadedPlannedChange,
+  status: RoadmapMilestoneStatus,
+): StandalonePlannedChangeArtifact {
+  const plannedStatus = status.plannedChanges.find((candidate) => candidate.id === plannedChange.artifact.planned_change.id);
+
+  return {
+    schema: plannedChange.artifact.schema,
+    schema_version: 1,
+    artifact_type: "planned_change",
+    schema_file: plannedChange.artifact.schema_file,
+    planned_change: {
+      id: plannedChange.artifact.planned_change.id,
+      milestone: plannedChange.artifact.planned_change.milestone,
+    },
+    status: plannedStatus?.derivedStatus ?? plannedChange.artifact.status,
+    summary: plannedChange.artifact.summary,
+    details: plannedChange.artifact.details,
+    depends_on: [...plannedChange.artifact.depends_on],
+    ...(plannedChange.artifact.team != null ? { team: plannedChange.artifact.team } : {}),
+    ...(plannedChange.artifact.extensions != null ? { extensions: plannedChange.artifact.extensions } : {}),
+  };
+}
+
+export function materializedPlannedChangePath(rootDir: string, milestone: LoadedMilestone, plannedChangeId: string): string {
+  return path.join(
+    rootDir,
+    ROADMAP_DIR,
+    "planned-changes",
+    `${milestone.artifact.milestone.id}-${plannedChangeId}.yaml`,
+  );
+}
+
+export function ensurePlannedChangeDirectory(filePath: string): void {
+  mkdirSync(path.dirname(filePath), { recursive: true });
 }
 
 function extractMilestoneId(artifact: RoadmapMilestoneArtifact): string {

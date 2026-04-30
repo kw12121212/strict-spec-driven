@@ -1,0 +1,30 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/planned-change.yaml
+    - examples/strict-spec-driven/planned-change.yaml
+    - templates/strict-spec-driven/schemas/registry.yaml
+    - src/embedded-templates.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    yaml-planned-change-team-metadata-contract:
+      strength: MUST
+      statement: >-
+        The system MUST define optional structured team metadata for standalone planned-change
+        artifacts, including advisory owner, reviewers, blocked state, labels, and external
+        references without making those fields required.
+      scenarios:
+        planned-change-team-metadata-fields-are-structured:
+          - GIVEN: a standalone planned-change artifact is reviewed
+          - WHEN: its optional team metadata is inspected
+          - THEN: >-
+              owner, reviewers, blocked state, labels, and external references are represented as
+              structured fields when present
+  MODIFIED: {}
+  REMOVED: {}

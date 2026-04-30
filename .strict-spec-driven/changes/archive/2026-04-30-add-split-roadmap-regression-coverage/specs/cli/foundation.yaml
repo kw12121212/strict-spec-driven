@@ -1,0 +1,39 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/roadmap/load.ts
+    - src/roadmap/status.ts
+    - src/roadmap/sync.ts
+    - src/roadmap/validate.ts
+    - src/cli/cmd-roadmap.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+    - test/support/harness.ts
+operations:
+  ADDED:
+    cli-split-roadmap-regression-coverage:
+      strength: MUST
+      statement: >-
+        The system MUST include copied-project regression coverage for split-file roadmap workflows,
+        covering standalone planned-change loading, inline planned-change materialization,
+        cross-file validation, recommendation and proposal handoff, team metadata validation, and
+        shared roadmap index preservation.
+      scenarios:
+        copied-project-split-roadmap-regressions-cover-team-workflow:
+          - GIVEN: >-
+              a copied project fixture contains strict roadmap milestone metadata, standalone
+              planned-change artifacts, and inline planned_changes entries where compatibility or
+              migration behavior is required
+          - WHEN: >-
+              the repository roadmap regression tests execute roadmap status, sync, materialization,
+              validation, recommendation, and proposal-handoff flows
+          - THEN: >-
+              the tests verify deterministic CLI behavior, preserved planned-change metadata, stable
+              shared index output, accepted valid team metadata, rejected invalid cross-file state,
+              and exactly-one eligible planned-change handoff
+  MODIFIED: {}
+  REMOVED: {}

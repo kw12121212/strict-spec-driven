@@ -93,6 +93,44 @@ function writeRoadmapMilestoneArtifact(
   );
 }
 
+function writeStandalonePlannedChangeArtifact(
+  rootDir: string,
+  relativePath: string,
+  options: {
+    id: string;
+    milestone: string;
+    status: string;
+    summary: string;
+    details: string;
+    depends_on: string[];
+    team?: Record<string, unknown>;
+    extensions?: Record<string, unknown>;
+  },
+): void {
+  const plannedChangePath = path.join(rootDir, ".strict-spec-driven", "roadmap", relativePath);
+  mkdirSync(path.dirname(plannedChangePath), { recursive: true });
+  writeFileSync(
+    plannedChangePath,
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/planned-change/v1",
+      schema_version: 1,
+      artifact_type: "planned_change",
+      schema_file: "../../templates/strict-spec-driven/schemas/planned-change.yaml",
+      planned_change: {
+        id: options.id,
+        milestone: options.milestone,
+      },
+      status: options.status,
+      summary: options.summary,
+      details: options.details,
+      depends_on: options.depends_on,
+      ...(options.team != null ? { team: options.team } : {}),
+      ...(options.extensions != null ? { extensions: options.extensions } : {}),
+    }),
+    "utf8",
+  );
+}
+
 const roadmapHappyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-happy-"));
 try {
   mkdirSync(path.join(roadmapHappyDir, ".strict-spec-driven", "changes", "active-change"), { recursive: true });
@@ -106,20 +144,23 @@ try {
     title: "Roadmap Workflow",
     goal: "Keep strict roadmap state aligned with change state.",
     status: "blocked",
-    plannedChanges: [
-      {
-        id: "active-change",
-        status: "planned",
-        summary: "Active work remains in progress.",
-        depends_on: [],
-      },
-      {
-        id: "archived-change",
-        status: "planned",
-        summary: "Archived work should reconcile to complete.",
-        depends_on: ["active-change"],
-      },
-    ],
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapHappyDir, "planned-changes/0001-active-change.yaml", {
+    id: "active-change",
+    milestone: "0001-roadmap",
+    status: "planned",
+    summary: "Active work remains in progress.",
+    details: "Standalone details for active-change.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapHappyDir, "planned-changes/0002-archived-change.yaml", {
+    id: "archived-change",
+    milestone: "0001-roadmap",
+    status: "planned",
+    summary: "Archived work should reconcile to complete.",
+    details: "Standalone details for archived-change.",
+    depends_on: ["active-change"],
   });
 
   writeRoadmapIndexArtifact(roadmapHappyDir, [
@@ -166,20 +207,20 @@ try {
   context.assert(roadmapSyncJson.valid === true, "roadmap-sync reports valid=true after reconciliation");
   context.assert(
     roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/INDEX.yaml")
-      && roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/0001-roadmap.yaml"),
-    "roadmap-sync reports updated index and milestone files",
+      && roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/0001-roadmap.yaml")
+      && roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/planned-changes/0002-archived-change.yaml"),
+    "roadmap-sync reports updated index, milestone, and standalone planned-change files",
     `updatedFiles: ${JSON.stringify(roadmapSyncJson.updatedFiles)}`,
   );
 
   const syncedMilestone = yamlModule.parseYamlFile<{
     status: string;
-    planned_changes: Array<{ id: string; status: string }>;
+    planned_changes: Record<string, { status: string }>;
   }>(path.join(roadmapHappyDir, ".strict-spec-driven", "roadmap", "milestones", "0001-roadmap.yaml"));
   context.assert(syncedMilestone.status === "active", "roadmap-sync rewrites milestone status to derived status");
   context.assert(
-    syncedMilestone.planned_changes["active-change"]?.status === "planned"
-      && syncedMilestone.planned_changes["archived-change"]?.status === "complete",
-    "roadmap-sync rewrites planned change declared statuses from workflow state",
+    Object.keys(syncedMilestone.planned_changes).length === 0,
+    "roadmap-sync keeps milestone planned_changes empty for standalone-only roadmaps",
   );
 
   const syncedIndex = yamlModule.parseYamlFile<{
@@ -202,6 +243,389 @@ try {
   );
 } finally {
   rmSync(roadmapHappyDir, { recursive: true, force: true });
+}
+
+const roadmapSplitFilesDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-split-files-"));
+try {
+  mkdirSync(path.join(roadmapSplitFilesDir, ".strict-spec-driven", "changes", "inline-active"), { recursive: true });
+  mkdirSync(path.join(roadmapSplitFilesDir, ".strict-spec-driven", "changes", "split-active"), { recursive: true });
+  mkdirSync(
+    path.join(roadmapSplitFilesDir, ".strict-spec-driven", "changes", "archive", `${formatLocalDateStamp()}-split-archived`),
+    { recursive: true },
+  );
+
+  writeRoadmapMilestoneArtifact(roadmapSplitFilesDir, "0001-split.yaml", {
+    id: "0001-split",
+    title: "Split Roadmap",
+    goal: "Load inline and standalone planned changes together.",
+    status: "proposed",
+    plannedChanges: [
+      {
+        id: "inline-active",
+        status: "planned",
+        summary: "Inline planned change remains compatible.",
+        depends_on: [],
+      },
+    ],
+  });
+
+  writeStandalonePlannedChangeArtifact(roadmapSplitFilesDir, "planned-changes/0001-split-active.yaml", {
+    id: "split-active",
+    milestone: "0001-split",
+    status: "planned",
+    summary: "Standalone active change.",
+    details: "Standalone details for split-active.",
+    depends_on: [],
+    team: {
+      owner: "alice",
+      reviewers: ["bob", "carol"],
+      blocked: {
+        status: false,
+      },
+      labels: ["roadmap", "team"],
+      external_refs: [
+        {
+          label: "Tracking issue",
+          target: "https://example.com/issues/123",
+        },
+      ],
+    },
+  });
+  writeStandalonePlannedChangeArtifact(roadmapSplitFilesDir, "planned-changes/0002-split-archived.yaml", {
+    id: "split-archived",
+    milestone: "0001-split",
+    status: "planned",
+    summary: "Standalone archived change.",
+    details: "Standalone details for split-archived.",
+    depends_on: ["split-active"],
+  });
+
+  writeRoadmapIndexArtifact(roadmapSplitFilesDir, [
+    {
+      id: "0001-split",
+      title: "Split Roadmap",
+      path: "roadmap/milestones/0001-split.yaml",
+      status: "proposed",
+    },
+  ]);
+
+  const splitStatus = cli(["roadmap-status"], { cwd: roadmapSplitFilesDir });
+  context.assert(splitStatus.status !== 0, "roadmap-status rejects legacy inline milestone planned changes by default");
+  const splitStatusJson = JSON.parse(splitStatus.stdout.trim());
+  context.assert(
+    splitStatusJson.valid === false
+      && splitStatusJson.diagnostics.some(
+        (diagnostic: { fieldPath: string; message: string }) =>
+          diagnostic.fieldPath === "$.planned_changes"
+          && diagnostic.message.includes("roadmap-sync --materialize-planned-changes"),
+      ),
+    "roadmap-status reports an explicit materialization command for legacy inline roadmap data",
+  );
+
+  const splitSync = cli(["roadmap-sync"], { cwd: roadmapSplitFilesDir });
+  context.assert(splitSync.status !== 0, "roadmap-sync rejects legacy inline milestone planned changes without explicit materialization");
+  const splitSyncJson = JSON.parse(splitSync.stdout.trim());
+  context.assert(
+    splitSyncJson.valid === false
+      && splitSyncJson.updatedFiles.length === 0
+      && splitSyncJson.diagnostics.some(
+        (diagnostic: { fieldPath: string; message: string }) =>
+          diagnostic.fieldPath === "$.planned_changes"
+          && diagnostic.message.includes("roadmap-sync --materialize-planned-changes"),
+      ),
+    "roadmap-sync blocks rewrites and surfaces the materialization command when inline planned changes remain",
+  );
+
+  const syncedStandaloneArchived = yamlModule.parseYamlFile<{
+    status: string;
+    planned_change: { id: string; milestone: string };
+  }>(path.join(roadmapSplitFilesDir, ".strict-spec-driven", "roadmap", "planned-changes", "0002-split-archived.yaml"));
+  context.assert(
+    syncedStandaloneArchived.status === "planned"
+      && syncedStandaloneArchived.planned_change.id === "split-archived"
+      && syncedStandaloneArchived.planned_change.milestone === "0001-split",
+    "roadmap-sync leaves standalone planned-change files unchanged when inline legacy data blocks reconciliation",
+  );
+
+  const syncedStandaloneActive = yamlModule.parseYamlFile<{
+    team: {
+      owner: string;
+      reviewers: string[];
+      blocked: { status: boolean };
+      labels: string[];
+      external_refs: Array<{ label: string; target: string }>;
+    };
+  }>(path.join(roadmapSplitFilesDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-split-active.yaml"));
+  context.assert(
+    syncedStandaloneActive.team.owner === "alice"
+      && syncedStandaloneActive.team.reviewers.join(",") === "bob,carol"
+      && syncedStandaloneActive.team.blocked.status === false
+      && syncedStandaloneActive.team.labels.join(",") === "roadmap,team"
+      && syncedStandaloneActive.team.external_refs[0]?.label === "Tracking issue"
+      && syncedStandaloneActive.team.external_refs[0]?.target === "https://example.com/issues/123",
+    "roadmap-sync preserves standalone planned-change owner, reviewers, blocked state, labels, and external references while blocked by inline legacy data",
+  );
+
+  const splitMaterialize = cli(["roadmap-sync", "--materialize-planned-changes"], { cwd: roadmapSplitFilesDir });
+  context.assert(splitMaterialize.status === 0, "roadmap-sync materializes inline planned changes when the explicit flag is provided");
+  const splitMaterializeJson = JSON.parse(splitMaterialize.stdout.trim());
+  context.assert(splitMaterializeJson.valid === true, "roadmap-sync materialization reports valid=true");
+  context.assert(
+    splitMaterializeJson.updatedFiles.includes(".strict-spec-driven/roadmap/planned-changes/0001-split-inline-active.yaml")
+      && splitMaterializeJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/0001-split.yaml"),
+    "roadmap-sync materialization reports the created planned-change file and rewritten milestone file",
+    `updatedFiles: ${JSON.stringify(splitMaterializeJson.updatedFiles)}`,
+  );
+
+  const materializedMilestone = yamlModule.parseYamlFile<{
+    status: string;
+    planned_changes: Record<string, { status: string }>;
+  }>(path.join(roadmapSplitFilesDir, ".strict-spec-driven", "roadmap", "milestones", "0001-split.yaml"));
+  context.assert(
+    materializedMilestone.status === "active" && Object.keys(materializedMilestone.planned_changes).length === 0,
+    "roadmap-sync materialization removes converted inline planned changes from the milestone file and reconciles milestone status",
+  );
+
+  const materializedInline = yamlModule.parseYamlFile<{
+    status: string;
+    summary: string;
+    details: string;
+    depends_on: string[];
+    planned_change: { id: string; milestone: string };
+  }>(path.join(roadmapSplitFilesDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-split-inline-active.yaml"));
+  context.assert(
+    materializedInline.planned_change.id === "inline-active"
+      && materializedInline.planned_change.milestone === "0001-split"
+      && materializedInline.status === "planned"
+      && materializedInline.summary === "Inline planned change remains compatible."
+      && materializedInline.details === "Test details for inline-active"
+      && materializedInline.depends_on.length === 0,
+    "roadmap-sync materialization preserves inline planned-change identity, owner, status, summary, details, and dependencies",
+  );
+
+  const splitStatusAfterMaterialize = cli(["roadmap-status"], { cwd: roadmapSplitFilesDir });
+  context.assert(splitStatusAfterMaterialize.status === 0, "roadmap-status accepts the roadmap after explicit materialization");
+  const splitStatusAfterMaterializeJson = JSON.parse(splitStatusAfterMaterialize.stdout.trim());
+  const splitPlannedChangeIds = splitStatusAfterMaterializeJson.milestones[0].plannedChanges.map((entry: { id: string }) => entry.id);
+  context.assert(
+    splitPlannedChangeIds.join(",") === "inline-active,split-active,split-archived",
+    "roadmap-status reports materialized and standalone planned changes together after conversion",
+    `got ${splitPlannedChangeIds.join(",")}`,
+  );
+  context.assert(
+    splitStatusAfterMaterializeJson.milestones[0].plannedChanges[0].state === "active"
+      && splitStatusAfterMaterializeJson.milestones[0].plannedChanges[1].state === "active"
+      && splitStatusAfterMaterializeJson.milestones[0].plannedChanges[2].state === "archived",
+    "roadmap-status derives planned-change state after explicit materialization",
+  );
+} finally {
+  rmSync(roadmapSplitFilesDir, { recursive: true, force: true });
+}
+
+const roadmapInvalidTeamMetadataDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-invalid-team-metadata-"));
+try {
+  writeRoadmapMilestoneArtifact(roadmapInvalidTeamMetadataDir, "0001-team.yaml", {
+    id: "0001-team",
+    title: "Team Metadata",
+    goal: "Reject malformed team metadata.",
+    status: "proposed",
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapInvalidTeamMetadataDir, "planned-changes/0001-invalid-team.yaml", {
+    id: "invalid-team",
+    milestone: "0001-team",
+    status: "planned",
+    summary: "Standalone entry with malformed team metadata.",
+    details: "Invalid team metadata details.",
+    depends_on: [],
+    team: {
+      owner: "",
+      reviewers: ["bob", ""],
+      blocked: {
+        status: "yes",
+      },
+      labels: [""],
+      external_refs: [
+        {
+          label: "Tracker",
+        },
+      ],
+    },
+  });
+
+  writeRoadmapIndexArtifact(roadmapInvalidTeamMetadataDir, [
+    {
+      id: "0001-team",
+      title: "Team Metadata",
+      path: "roadmap/milestones/0001-team.yaml",
+      status: "proposed",
+    },
+  ]);
+
+  const invalidTeamStatus = cli(["roadmap-status"], { cwd: roadmapInvalidTeamMetadataDir });
+  context.assert(invalidTeamStatus.status !== 0, "roadmap-status exits non-zero for malformed planned-change team metadata");
+  const invalidTeamJson = JSON.parse(invalidTeamStatus.stdout.trim());
+  const invalidTeamDiagnostics = invalidTeamJson.diagnostics.map(
+    (diagnostic: { fieldPath: string; message: string }) => `${diagnostic.fieldPath}: ${diagnostic.message}`,
+  );
+  context.assert(
+    invalidTeamDiagnostics.some((message: string) => message.includes("$.team.owner"))
+      && invalidTeamDiagnostics.some((message: string) => message.includes("$.team.reviewers[1]"))
+      && invalidTeamDiagnostics.some((message: string) => message.includes("$.team.blocked.status"))
+      && invalidTeamDiagnostics.some((message: string) => message.includes("$.team.labels[0]"))
+      && invalidTeamDiagnostics.some((message: string) => message.includes("$.team.external_refs[0].target")),
+    "roadmap-status reports deterministic field paths for malformed planned-change team metadata",
+    `diagnostics: ${JSON.stringify(invalidTeamDiagnostics)}`,
+  );
+
+  const invalidTeamStatusRepeat = cli(["roadmap-status"], { cwd: roadmapInvalidTeamMetadataDir });
+  context.assert(
+    invalidTeamStatusRepeat.status === invalidTeamStatus.status
+      && invalidTeamStatusRepeat.stdout.trim() === invalidTeamStatus.stdout.trim(),
+    "roadmap-status preserves malformed team metadata diagnostic ordering across repeated runs",
+  );
+} finally {
+  rmSync(roadmapInvalidTeamMetadataDir, { recursive: true, force: true });
+}
+
+const roadmapCrossFileConflictDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-cross-file-conflict-"));
+try {
+  mkdirSync(path.join(roadmapCrossFileConflictDir, ".strict-spec-driven", "changes", "shared-active"), { recursive: true });
+
+  writeRoadmapMilestoneArtifact(roadmapCrossFileConflictDir, "0001-conflict.yaml", {
+    id: "0001-conflict",
+    title: "Cross File Conflict",
+    goal: "Reject invalid split-file roadmap coordination state.",
+    status: "proposed",
+    plannedChanges: [],
+  });
+
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0001-duplicate-work.yaml", {
+    id: "duplicate-work",
+    milestone: "0001-conflict",
+    status: "planned",
+    summary: "Standalone entry with a duplicate standalone identity.",
+    details: "Duplicate identity details.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0001b-duplicate-work.yaml", {
+    id: "duplicate-work",
+    milestone: "0001-conflict",
+    status: "planned",
+    summary: "Second standalone entry with the same identity.",
+    details: "Second duplicate identity details.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0002-orphan-work.yaml", {
+    id: "orphan-work",
+    milestone: "9999-missing",
+    status: "planned",
+    summary: "Standalone entry with a missing milestone.",
+    details: "Missing milestone details.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0003-missing-dependency.yaml", {
+    id: "missing-dependency-work",
+    milestone: "0001-conflict",
+    status: "planned",
+    summary: "Standalone entry with a missing dependency.",
+    details: "Missing dependency details.",
+    depends_on: ["not-present"],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0004-ambiguous-owner.yaml", {
+    id: "ambiguous-owner-work",
+    milestone: "0001-conflict",
+    status: "planned",
+    summary: "Standalone entry with ambiguous owner extension data.",
+    details: "Ambiguous owner details.",
+    depends_on: [],
+    extensions: {
+      owner: "alice",
+      owners: ["alice", "bob"],
+    },
+  });
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0005-shared-active.yaml", {
+    id: "shared-active",
+    milestone: "0001-conflict",
+    status: "planned",
+    summary: "Standalone entry that conflicts with active work.",
+    details: "Active conflict details.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0005b-shared-active.yaml", {
+    id: "shared-active",
+    milestone: "0001-conflict",
+    status: "planned",
+    summary: "Second standalone entry that conflicts with active work.",
+    details: "Second active conflict details.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0006-cycle-a.yaml", {
+    id: "cycle-a",
+    milestone: "0001-conflict",
+    status: "planned",
+    summary: "First standalone side of a cross-file cycle.",
+    details: "Cycle-a details.",
+    depends_on: ["cycle-b"],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0006-cycle-b.yaml", {
+    id: "cycle-b",
+    milestone: "0001-conflict",
+    status: "planned",
+    summary: "Standalone side of a cross-file cycle.",
+    details: "Cycle details.",
+    depends_on: ["cycle-a"],
+  });
+
+  writeRoadmapIndexArtifact(roadmapCrossFileConflictDir, [
+    {
+      id: "0001-conflict",
+      title: "Cross File Conflict",
+      path: "roadmap/milestones/0001-conflict.yaml",
+      status: "proposed",
+    },
+  ]);
+
+  const crossFileConflictStatus = cli(["roadmap-status"], { cwd: roadmapCrossFileConflictDir });
+  context.assert(crossFileConflictStatus.status !== 0, "roadmap-status exits non-zero for cross-file roadmap conflicts");
+  const crossFileConflictJson = JSON.parse(crossFileConflictStatus.stdout.trim());
+  const crossFileMessages = crossFileConflictJson.diagnostics.map((diagnostic: { message: string }) => diagnostic.message);
+  context.assert(
+    crossFileMessages.some((message: string) => message.includes("duplicate planned change id across roadmap planned-change sources")),
+    "roadmap-status reports duplicate planned change identities across standalone sources",
+  );
+  context.assert(
+    crossFileMessages.some((message: string) => message.includes("missing milestone")),
+    "roadmap-status reports standalone planned changes with missing milestone references",
+  );
+  context.assert(
+    crossFileMessages.some((message: string) => message.includes("dependency is missing from roadmap planned-change sources")),
+    "roadmap-status reports cross-file dependency reference errors",
+  );
+  context.assert(
+    crossFileMessages.some((message: string) => message.includes("ownership metadata is ambiguous")),
+    "roadmap-status reports ambiguous advisory ownership metadata",
+  );
+  context.assert(
+    crossFileMessages.some((message: string) => message.includes("conflicts with active strict change state")),
+    "roadmap-status reports duplicate planned change identities that conflict with active strict changes",
+  );
+  context.assert(
+    crossFileMessages.some((message: string) => message.includes("acyclic across roadmap planned-change sources")),
+    "roadmap-status reports dependency cycles that span standalone planned-change sources",
+  );
+
+  const crossFileConflictStatusRepeat = cli(["roadmap-status"], { cwd: roadmapCrossFileConflictDir });
+  context.assert(
+    crossFileConflictStatusRepeat.status === crossFileConflictStatus.status
+      && crossFileConflictStatusRepeat.stdout.trim() === crossFileConflictStatus.stdout.trim(),
+    "roadmap-status preserves cross-file conflict diagnostic ordering across repeated runs",
+  );
+
+  const crossFileConflictSync = cli(["roadmap-sync"], { cwd: roadmapCrossFileConflictDir });
+  context.assert(crossFileConflictSync.status !== 0, "roadmap-sync exits non-zero for cross-file roadmap conflicts");
+} finally {
+  rmSync(roadmapCrossFileConflictDir, { recursive: true, force: true });
 }
 
 const roadmapDetailsPresentDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-details-present-"));
@@ -292,14 +716,15 @@ try {
     title: "Ambiguous Roadmap Workflow",
     goal: "Surface duplicate active and archived change ids as ambiguity.",
     status: "complete",
-    plannedChanges: [
-      {
-        id: "shared-change",
-        status: "complete",
-        summary: "This change was archived but a duplicate active copy remains.",
-        depends_on: [],
-      },
-    ],
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapAmbiguousDir, "planned-changes/0001-shared-change.yaml", {
+    id: "shared-change",
+    milestone: "0001-ambiguous",
+    status: "complete",
+    summary: "This change was archived but a duplicate active copy remains.",
+    details: "Standalone ambiguous change details.",
+    depends_on: [],
   });
 
   writeRoadmapIndexArtifact(roadmapAmbiguousDir, [
@@ -338,12 +763,19 @@ try {
   context.assert(ambiguousRoadmapSync.status === 0, "roadmap-sync exits zero for reconcilable ambiguous roadmap state");
   const syncedAmbiguousMilestone = yamlModule.parseYamlFile<{
     status: string;
-    planned_changes: Array<{ id: string; status: string }>;
+    planned_changes: Record<string, { status: string }>;
   }>(path.join(roadmapAmbiguousDir, ".strict-spec-driven", "roadmap", "milestones", "0001-ambiguous.yaml"));
   context.assert(syncedAmbiguousMilestone.status === "active", "roadmap-sync rewrites ambiguous milestone status to active");
   context.assert(
-    syncedAmbiguousMilestone.planned_changes["shared-change"]?.status === "planned",
-    "roadmap-sync rewrites ambiguous planned change status to planned instead of complete",
+    Object.keys(syncedAmbiguousMilestone.planned_changes).length === 0,
+    "roadmap-sync keeps milestone planned_changes empty for standalone ambiguous roadmap entries",
+  );
+  const syncedAmbiguousStandalone = yamlModule.parseYamlFile<{
+    status: string;
+  }>(path.join(roadmapAmbiguousDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-shared-change.yaml"));
+  context.assert(
+    syncedAmbiguousStandalone.status === "planned",
+    "roadmap-sync rewrites ambiguous standalone planned change status to planned instead of complete",
   );
 } finally {
   rmSync(roadmapAmbiguousDir, { recursive: true, force: true });
@@ -562,6 +994,24 @@ try {
     ),
     "roadmap skill validation requires details guidance for proposal handoff",
   );
+  context.assert(
+    invalidRoadmapDetailsSkillResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.required_snippet.missing"
+        && diagnostic.path === "skills/strict-roadmap-propose/SKILL.md"
+        && diagnostic.expected === "standalone planned-change",
+    ),
+    "roadmap skill validation requires split planned-change handoff guidance",
+  );
+  context.assert(
+    invalidRoadmapDetailsSkillResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.required_snippet.missing"
+        && diagnostic.path === "skills/strict-roadmap-propose/SKILL.md"
+        && diagnostic.expected === "active strict change conflicts",
+    ),
+    "roadmap skill validation requires active conflict handoff guidance",
+  );
 } finally {
   rmSync(invalidRoadmapDetailsSkillRoot, { recursive: true, force: true });
 }
@@ -722,20 +1172,23 @@ try {
     title: "Cycle Milestone",
     goal: "Detect invalid dependency cycles.",
     status: "proposed",
-    plannedChanges: [
-      {
-        id: "change-a",
-        status: "planned",
-        summary: "First change",
-        depends_on: ["change-b"],
-      },
-      {
-        id: "change-b",
-        status: "planned",
-        summary: "Second change",
-        depends_on: ["change-a"],
-      },
-    ],
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapCycleDir, "planned-changes/0001-change-a.yaml", {
+    id: "change-a",
+    milestone: "0001-cycle",
+    status: "planned",
+    summary: "First change",
+    details: "Cycle test details for change-a.",
+    depends_on: ["change-b"],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapCycleDir, "planned-changes/0002-change-b.yaml", {
+    id: "change-b",
+    milestone: "0001-cycle",
+    status: "planned",
+    summary: "Second change",
+    details: "Cycle test details for change-b.",
+    depends_on: ["change-a"],
   });
 
   const cycleStatus = cli(["roadmap-status"], { cwd: roadmapCycleDir });
@@ -824,49 +1277,57 @@ function runCopiedWorkspaceRoadmapFlowScenario(): {
     const copiedRoadmapStatusAfter = projectWorkspaceCli(workspaceRoot, ["roadmap-status"]);
     const copiedRoadmapStatusAfterStdout = copiedRoadmapStatusAfter.stdout.trim();
     context.assert(
-      copiedRoadmapStatusAfter.status === 0,
-      "copied workspace roadmap-status accepts migrated strict roadmap state",
+      copiedRoadmapStatusAfter.status !== 0,
+      "copied workspace roadmap-status rejects migrated strict roadmap state until inline planned changes are materialized",
       `stdout: ${copiedRoadmapStatusAfterStdout} stderr: ${copiedRoadmapStatusAfter.stderr.trim()}`,
     );
     const copiedRoadmapStatusAfterJson = JSON.parse(copiedRoadmapStatusAfterStdout);
     context.assert(
-      copiedRoadmapStatusAfterJson.valid === true && copiedRoadmapStatusAfterJson.milestones.length === 1,
-      "copied workspace roadmap-status reports one valid migrated milestone",
-    );
-    context.assert(
-      copiedRoadmapStatusAfterJson.milestones[0].path === "roadmap/milestones/0001-core-todo-workflows.yaml"
-        && copiedRoadmapStatusAfterJson.milestones[0].declaredStatus === "proposed"
-        && copiedRoadmapStatusAfterJson.milestones[0].derivedStatus === "active",
-      "copied workspace roadmap-status preserves migrated milestone path and reports active derived state",
-    );
-    context.assert(
-      copiedRoadmapStatusAfterJson.milestones[0].plannedChanges.length === 2
-        && copiedRoadmapStatusAfterJson.milestones[0].plannedChanges[0]?.id === "add-due-dates"
-        && copiedRoadmapStatusAfterJson.milestones[0].plannedChanges[0]?.state === "active"
-        && copiedRoadmapStatusAfterJson.milestones[0].plannedChanges[1]?.id === "add-tag-filtering"
-        && copiedRoadmapStatusAfterJson.milestones[0].plannedChanges[1]?.state === "missing",
-      "copied workspace roadmap-status derives active and missing planned change states from migrated fixture history",
-    );
-    context.assert(
-      copiedRoadmapStatusAfterJson.milestones[0].mismatches.length === 1
-        && copiedRoadmapStatusAfterJson.milestones[0].mismatches[0].includes("declared status 'proposed'"),
-      "copied workspace roadmap-status reports the migrated declared-versus-derived milestone mismatch before sync",
+      copiedRoadmapStatusAfterJson.valid === false
+        && copiedRoadmapStatusAfterJson.diagnostics.some(
+          (diagnostic: { fieldPath: string; message: string }) =>
+            diagnostic.fieldPath === "$.planned_changes"
+            && diagnostic.message.includes("roadmap-sync --materialize-planned-changes"),
+        ),
+      "copied workspace roadmap-status tells the operator to materialize migrated inline roadmap data",
     );
 
     const copiedRoadmapSync = projectWorkspaceCli(workspaceRoot, ["roadmap-sync"]);
     const copiedRoadmapSyncStdout = copiedRoadmapSync.stdout.trim();
     context.assert(
-      copiedRoadmapSync.status === 0,
-      "copied workspace roadmap-sync exits zero after migrate creates reconcilable strict roadmap state",
+      copiedRoadmapSync.status !== 0,
+      "copied workspace roadmap-sync rejects migrated inline roadmap data without explicit materialization",
       `stdout: ${copiedRoadmapSyncStdout} stderr: ${copiedRoadmapSync.stderr.trim()}`,
     );
     const copiedRoadmapSyncJson = JSON.parse(copiedRoadmapSyncStdout);
-    context.assert(copiedRoadmapSyncJson.valid === true, "copied workspace roadmap-sync reports valid=true");
     context.assert(
-      copiedRoadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/0001-core-todo-workflows.yaml")
-        && copiedRoadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/INDEX.yaml"),
-      "copied workspace roadmap-sync reports migrated roadmap index and milestone rewrites",
+      copiedRoadmapSyncJson.valid === false
+        && copiedRoadmapSyncJson.updatedFiles.length === 0
+        && copiedRoadmapSyncJson.diagnostics.some(
+          (diagnostic: { fieldPath: string; message: string }) =>
+            diagnostic.fieldPath === "$.planned_changes"
+            && diagnostic.message.includes("roadmap-sync --materialize-planned-changes"),
+        ),
+      "copied workspace roadmap-sync blocks rewrites and surfaces the explicit materialization command",
       `updatedFiles: ${JSON.stringify(copiedRoadmapSyncJson.updatedFiles)}`,
+    );
+
+    const copiedRoadmapMaterialize = projectWorkspaceCli(workspaceRoot, ["roadmap-sync", "--materialize-planned-changes"]);
+    const copiedRoadmapMaterializeStdout = copiedRoadmapMaterialize.stdout.trim();
+    context.assert(
+      copiedRoadmapMaterialize.status === 0,
+      "copied workspace roadmap-sync materializes migrated inline roadmap data when explicitly requested",
+      `stdout: ${copiedRoadmapMaterializeStdout} stderr: ${copiedRoadmapMaterialize.stderr.trim()}`,
+    );
+    const copiedRoadmapMaterializeJson = JSON.parse(copiedRoadmapMaterializeStdout);
+    context.assert(
+      copiedRoadmapMaterializeJson.valid === true
+        && copiedRoadmapMaterializeJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/0001-core-todo-workflows.yaml")
+        && copiedRoadmapMaterializeJson.updatedFiles.includes(".strict-spec-driven/roadmap/INDEX.yaml")
+        && copiedRoadmapMaterializeJson.updatedFiles.includes(".strict-spec-driven/roadmap/planned-changes/0001-core-todo-workflows-add-due-dates.yaml")
+        && copiedRoadmapMaterializeJson.updatedFiles.includes(".strict-spec-driven/roadmap/planned-changes/0001-core-todo-workflows-add-tag-filtering.yaml"),
+      "copied workspace roadmap-sync materializes migrated roadmap items into standalone files and rewrites canonical artifacts",
+      `updatedFiles: ${JSON.stringify(copiedRoadmapMaterializeJson.updatedFiles)}`,
     );
 
     const copiedSyncedRoadmapIndexPath = path.join(workspaceRoot, ".strict-spec-driven", "roadmap", "INDEX.yaml");
@@ -888,7 +1349,7 @@ function runCopiedWorkspaceRoadmapFlowScenario(): {
         && syncedIndexEntries[0]?.[0] === "0001-core-todo-workflows"
         && syncedIndexEntries[0]?.[1].path === "roadmap/milestones/0001-core-todo-workflows.yaml"
         && syncedIndexEntries[0]?.[1].status === "active",
-      "copied workspace roadmap-sync rewrites migrated roadmap index status to the derived active value",
+      "copied workspace roadmap-sync materialization rewrites migrated roadmap index status to the derived active value",
     );
     const copiedSyncedRoadmapMilestone = yamlModule.parseYamlFile<{
       status: string;
@@ -896,16 +1357,42 @@ function runCopiedWorkspaceRoadmapFlowScenario(): {
     }>(copiedSyncedRoadmapMilestonePath);
     context.assert(
       copiedSyncedRoadmapMilestone.status === "active",
-      "copied workspace roadmap-sync rewrites the migrated milestone declared status to active",
+      "copied workspace roadmap-sync materialization rewrites the migrated milestone declared status to active",
     );
     const syncedChangeEntries = Object.entries(copiedSyncedRoadmapMilestone.planned_changes);
     context.assert(
-      syncedChangeEntries.length === 2
-        && syncedChangeEntries[0]?.[0] === "add-due-dates"
-        && syncedChangeEntries[0]?.[1].status === "planned"
-        && syncedChangeEntries[1]?.[0] === "add-tag-filtering"
-        && syncedChangeEntries[1]?.[1].status === "planned",
-      "copied workspace roadmap-sync preserves planned change identities while keeping unresolved fixture changes planned",
+      syncedChangeEntries.length === 0,
+      "copied workspace roadmap-sync materialization clears migrated inline planned changes from the milestone file",
+    );
+    const copiedRoadmapStatusMaterialized = projectWorkspaceCli(workspaceRoot, ["roadmap-status"]);
+    const copiedRoadmapStatusMaterializedStdout = copiedRoadmapStatusMaterialized.stdout.trim();
+    context.assert(
+      copiedRoadmapStatusMaterialized.status === 0,
+      "copied workspace roadmap-status accepts migrated roadmap state after explicit materialization",
+      `stdout: ${copiedRoadmapStatusMaterializedStdout} stderr: ${copiedRoadmapStatusMaterialized.stderr.trim()}`,
+    );
+    const copiedRoadmapStatusMaterializedJson = JSON.parse(copiedRoadmapStatusMaterializedStdout);
+    context.assert(
+      copiedRoadmapStatusMaterializedJson.valid === true && copiedRoadmapStatusMaterializedJson.milestones.length === 1,
+      "copied workspace roadmap-status reports one valid migrated milestone after explicit materialization",
+    );
+    context.assert(
+      copiedRoadmapStatusMaterializedJson.milestones[0].path === "roadmap/milestones/0001-core-todo-workflows.yaml"
+        && copiedRoadmapStatusMaterializedJson.milestones[0].declaredStatus === "active"
+        && copiedRoadmapStatusMaterializedJson.milestones[0].derivedStatus === "active",
+      "copied workspace roadmap-status preserves migrated milestone path and reports active state after materialization",
+    );
+    context.assert(
+      copiedRoadmapStatusMaterializedJson.milestones[0].plannedChanges.length === 2
+        && copiedRoadmapStatusMaterializedJson.milestones[0].plannedChanges[0]?.id === "add-due-dates"
+        && copiedRoadmapStatusMaterializedJson.milestones[0].plannedChanges[0]?.state === "active"
+        && copiedRoadmapStatusMaterializedJson.milestones[0].plannedChanges[1]?.id === "add-tag-filtering"
+        && copiedRoadmapStatusMaterializedJson.milestones[0].plannedChanges[1]?.state === "missing",
+      "copied workspace roadmap-status derives active and missing planned change states from the materialized migrated fixture history",
+    );
+    context.assert(
+      copiedRoadmapStatusMaterializedJson.milestones[0].mismatches.length === 0,
+      "copied workspace roadmap-status clears the milestone mismatch after explicit materialization",
     );
     context.assert(
       readFileSync(path.join(workspaceRoot, ".spec-driven", "roadmap", "INDEX.md"), "utf8") === copiedRoadmapIndexBefore
@@ -927,10 +1414,10 @@ function runCopiedWorkspaceRoadmapFlowScenario(): {
       statusBeforeStdout: copiedRoadmapStatusBeforeStdout,
       migrateStatus: copiedMigrateForRoadmap.status,
       migrateStdout: copiedMigrateForRoadmapStdout,
-      statusAfterStatus: copiedRoadmapStatusAfter.status,
-      statusAfterStdout: copiedRoadmapStatusAfterStdout,
-      syncStatus: copiedRoadmapSync.status,
-      syncStdout: copiedRoadmapSyncStdout,
+      statusAfterStatus: copiedRoadmapStatusMaterialized.status,
+      statusAfterStdout: copiedRoadmapStatusMaterializedStdout,
+      syncStatus: copiedRoadmapMaterialize.status,
+      syncStdout: copiedRoadmapMaterializeStdout,
       syncedIndexText: copiedSyncedRoadmapIndexText,
       syncedMilestoneText: copiedSyncedRoadmapMilestoneText,
     };
@@ -972,6 +1459,461 @@ context.assert(
 context.assert(
   copiedWorkspaceRoadmapFirstRun.syncedMilestoneText === copiedWorkspaceRoadmapSecondRun.syncedMilestoneText,
   "copied workspace roadmap-sync rewrites the same canonical milestone artifact across repeated copied-fixture runs",
+);
+
+context.section("[17c] copied real project split roadmap regression");
+
+type CopiedSplitRoadmapWorkspace = {
+  workspaceRoot: string;
+  cleanup: () => void;
+  milestonePath: string;
+  splitActivePath: string;
+  splitArchivedPath: string;
+  inlineMaterializedPath: string;
+  handoffChangeName: string;
+};
+
+function createCopiedSplitRoadmapWorkspace(): CopiedSplitRoadmapWorkspace {
+  const workspace = createCopiedProjectWorkspace("todo-app");
+  const { workspaceRoot } = workspace;
+  const migrateResult = projectWorkspaceCli(workspaceRoot, ["migrate"]);
+  context.assert(
+    migrateResult.status === 0,
+    "copied split roadmap regression: migrate succeeds before split-file setup",
+    `stdout: ${migrateResult.stdout.trim()} stderr: ${migrateResult.stderr.trim()}`,
+  );
+
+  const strictRoadmapRoot = path.join(workspaceRoot, ".strict-spec-driven", "roadmap");
+  const milestonePath = path.join(strictRoadmapRoot, "milestones", "0001-core-todo-workflows.yaml");
+  writeStandalonePlannedChangeArtifact(workspaceRoot, "planned-changes/0001-split-active.yaml", {
+    id: "split-active",
+    milestone: "0001-core-todo-workflows",
+    status: "planned",
+    summary: "Exercise active standalone planned-change regression coverage.",
+    details: "Standalone copied-project details for split-active.",
+    depends_on: [],
+    team: {
+      owner: "todo-owner",
+      reviewers: ["todo-reviewer"],
+      blocked: {
+        status: false,
+      },
+      labels: ["copied-project", "roadmap"],
+      external_refs: [
+        {
+          label: "Tracker",
+          target: "https://example.com/todo/split-active",
+        },
+      ],
+    },
+  });
+  writeStandalonePlannedChangeArtifact(workspaceRoot, "planned-changes/0002-split-archived.yaml", {
+    id: "split-archived",
+    milestone: "0001-core-todo-workflows",
+    status: "planned",
+    summary: "Exercise archived standalone planned-change regression coverage.",
+    details: "Standalone copied-project details for split-archived.",
+    depends_on: ["split-active"],
+  });
+
+  mkdirSync(path.join(workspaceRoot, ".strict-spec-driven", "changes", "split-active"), { recursive: true });
+  mkdirSync(
+    path.join(workspaceRoot, ".strict-spec-driven", "changes", "archive", `${formatLocalDateStamp()}-split-archived`),
+    { recursive: true },
+  );
+
+  return {
+    workspaceRoot,
+    cleanup: workspace.cleanup,
+    milestonePath,
+    splitActivePath: path.join(strictRoadmapRoot, "planned-changes", "0001-split-active.yaml"),
+    splitArchivedPath: path.join(strictRoadmapRoot, "planned-changes", "0002-split-archived.yaml"),
+    inlineMaterializedPath: path.join(strictRoadmapRoot, "planned-changes", "0001-core-todo-workflows-add-tag-filtering.yaml"),
+    handoffChangeName: "copied-project-handoff",
+  };
+}
+
+function runCopiedSplitRoadmapCliScenario(): {
+  statusStdout: string;
+  syncStdout: string;
+  materializeStdout: string;
+  invalidStatusStdout: string;
+  syncedIndexText: string;
+  materializedIndexText: string;
+} {
+  const workspace = createCopiedSplitRoadmapWorkspace();
+  const {
+    workspaceRoot,
+    cleanup,
+    milestonePath,
+    splitActivePath,
+    splitArchivedPath,
+    inlineMaterializedPath,
+  } = workspace;
+  try {
+    const splitStatus = projectWorkspaceCli(workspaceRoot, ["roadmap-status"]);
+    const splitStatusStdout = splitStatus.stdout.trim();
+    context.assert(
+      splitStatus.status !== 0,
+      "copied project split roadmap-status rejects legacy inline milestone data until explicit materialization",
+      `stdout: ${splitStatusStdout} stderr: ${splitStatus.stderr.trim()}`,
+    );
+    const splitStatusJson = JSON.parse(splitStatusStdout);
+    context.assert(
+      splitStatusJson.valid === false
+        && splitStatusJson.diagnostics.some(
+          (diagnostic: { fieldPath: string; message: string }) =>
+            diagnostic.fieldPath === "$.planned_changes"
+            && diagnostic.message.includes("roadmap-sync --materialize-planned-changes"),
+        ),
+      "copied project split roadmap-status reports the explicit materialization command for inline roadmap data",
+    );
+
+    const splitSync = projectWorkspaceCli(workspaceRoot, ["roadmap-sync"]);
+    const splitSyncStdout = splitSync.stdout.trim();
+    context.assert(
+      splitSync.status !== 0,
+      "copied project split roadmap-sync rejects inline milestone data without explicit materialization",
+      `stdout: ${splitSyncStdout} stderr: ${splitSync.stderr.trim()}`,
+    );
+    const splitSyncJson = JSON.parse(splitSyncStdout);
+    context.assert(
+      splitSyncJson.valid === false
+        && splitSyncJson.updatedFiles.length === 0
+        && splitSyncJson.diagnostics.some(
+          (diagnostic: { fieldPath: string; message: string }) =>
+            diagnostic.fieldPath === "$.planned_changes"
+            && diagnostic.message.includes("roadmap-sync --materialize-planned-changes"),
+        ),
+      "copied project split roadmap-sync blocks rewrites and surfaces the materialization command",
+      `updatedFiles: ${JSON.stringify(splitSyncJson.updatedFiles)}`,
+    );
+
+    const syncedIndexPath = path.join(workspaceRoot, ".strict-spec-driven", "roadmap", "INDEX.yaml");
+    const syncedIndexText = readFileSync(syncedIndexPath, "utf8");
+    const syncedIndex = yamlModule.parseYamlFile<{
+      milestones: Record<string, { title: string; path: string; status: string }>;
+    }>(syncedIndexPath);
+    context.assert(
+      Object.keys(syncedIndex.milestones).join(",") === "0001-core-todo-workflows"
+        && syncedIndex.milestones["0001-core-todo-workflows"]?.path === "roadmap/milestones/0001-core-todo-workflows.yaml"
+        && syncedIndex.milestones["0001-core-todo-workflows"]?.status === "active",
+      "copied project split roadmap-sync keeps the shared index as a milestone-only index",
+    );
+
+    const syncedMilestone = yamlModule.parseYamlFile<{
+      status: string;
+      planned_changes: Record<string, { status: string }>;
+    }>(milestonePath);
+    context.assert(
+      syncedMilestone.status === "proposed"
+        && Object.keys(syncedMilestone.planned_changes).join(",") === "add-due-dates,add-tag-filtering",
+      "copied project split roadmap-sync leaves the milestone file unchanged while inline legacy data blocks reconciliation",
+    );
+
+    const syncedArchived = yamlModule.parseYamlFile<{
+      status: string;
+      planned_change: { id: string; milestone: string };
+    }>(splitArchivedPath);
+    context.assert(
+      syncedArchived.status === "planned"
+        && syncedArchived.planned_change.id === "split-archived"
+        && syncedArchived.planned_change.milestone === "0001-core-todo-workflows",
+      "copied project split roadmap-sync leaves standalone planned-change status unchanged while inline legacy data blocks reconciliation",
+    );
+
+    const syncedTeam = yamlModule.parseYamlFile<{
+      team: {
+        owner: string;
+        reviewers: string[];
+        blocked: { status: boolean };
+        labels: string[];
+        external_refs: Array<{ label: string; target: string }>;
+      };
+    }>(splitActivePath);
+    context.assert(
+      syncedTeam.team.owner === "todo-owner"
+        && syncedTeam.team.reviewers.join(",") === "todo-reviewer"
+        && syncedTeam.team.blocked.status === false
+        && syncedTeam.team.labels.join(",") === "copied-project,roadmap"
+        && syncedTeam.team.external_refs[0]?.target === "https://example.com/todo/split-active",
+      "copied project split roadmap-sync preserves standalone team metadata",
+    );
+
+    const materialize = projectWorkspaceCli(workspaceRoot, ["roadmap-sync", "--materialize-planned-changes"]);
+    const materializeStdout = materialize.stdout.trim();
+    context.assert(
+      materialize.status === 0,
+      "copied project split roadmap-sync materializes inline planned changes with explicit flag",
+      `stdout: ${materializeStdout} stderr: ${materialize.stderr.trim()}`,
+    );
+    const materializeJson = JSON.parse(materializeStdout);
+    context.assert(
+      materializeJson.updatedFiles.includes(".strict-spec-driven/roadmap/planned-changes/0001-core-todo-workflows-add-due-dates.yaml")
+        && materializeJson.updatedFiles.includes(".strict-spec-driven/roadmap/planned-changes/0001-core-todo-workflows-add-tag-filtering.yaml")
+        && materializeJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/0001-core-todo-workflows.yaml"),
+      "copied project split roadmap-sync reports materialized planned-change files and rewritten milestone",
+      `updatedFiles: ${JSON.stringify(materializeJson.updatedFiles)}`,
+    );
+
+    const materializedMilestone = yamlModule.parseYamlFile<{
+      status: string;
+      planned_changes: Record<string, unknown>;
+    }>(milestonePath);
+    context.assert(
+      materializedMilestone.status === "active" && Object.keys(materializedMilestone.planned_changes).length === 0,
+      "copied project split roadmap materialization removes converted inline planned changes from the milestone and reconciles milestone status",
+    );
+    const materializedInline = yamlModule.parseYamlFile<{
+      status: string;
+      summary: string;
+      details: string;
+      depends_on: string[];
+      planned_change: { id: string; milestone: string };
+    }>(inlineMaterializedPath);
+    context.assert(
+      materializedInline.planned_change.id === "add-tag-filtering"
+        && materializedInline.planned_change.milestone === "0001-core-todo-workflows"
+        && materializedInline.status === "planned"
+        && materializedInline.summary.includes("filtered by one or more tags")
+        && materializedInline.details.length > 0
+        && materializedInline.depends_on.length === 0,
+      "copied project split roadmap materialization preserves inline planned-change metadata",
+    );
+
+    const materializedIndexText = readFileSync(syncedIndexPath, "utf8");
+    const materializedIndex = yamlModule.parseYamlFile<{
+      milestones: Record<string, { title: string; path: string; status: string }>;
+    }>(syncedIndexPath);
+    context.assert(
+      Object.keys(materializedIndex.milestones).join(",") === "0001-core-todo-workflows"
+        && !("planned_changes" in materializedIndex),
+      "copied project split roadmap materialization keeps planned-change files out of the shared index",
+    );
+
+    const materializedStatus = projectWorkspaceCli(workspaceRoot, ["roadmap-status"]);
+    const materializedStatusStdout = materializedStatus.stdout.trim();
+    context.assert(
+      materializedStatus.status === 0,
+      "copied project split roadmap-status accepts the roadmap after explicit materialization",
+      `stdout: ${materializedStatusStdout} stderr: ${materializedStatus.stderr.trim()}`,
+    );
+    const materializedStatusJson = JSON.parse(materializedStatusStdout);
+    const splitIds = materializedStatusJson.milestones[0].plannedChanges.map((entry: { id: string }) => entry.id);
+    context.assert(
+      splitIds.join(",") === "add-due-dates,add-tag-filtering,split-active,split-archived",
+      "copied project split roadmap-status preserves deterministic ordering after explicit materialization",
+      `got ${splitIds.join(",")}`,
+    );
+    context.assert(
+      materializedStatusJson.milestones[0].plannedChanges[0]?.state === "active"
+        && materializedStatusJson.milestones[0].plannedChanges[1]?.state === "missing"
+        && materializedStatusJson.milestones[0].plannedChanges[2]?.state === "active"
+        && materializedStatusJson.milestones[0].plannedChanges[3]?.state === "archived",
+      "copied project split roadmap-status derives materialized and standalone planned-change states after conversion",
+    );
+
+    writeStandalonePlannedChangeArtifact(workspaceRoot, "planned-changes/9999-duplicate-split-active.yaml", {
+      id: "split-active",
+      milestone: "0001-core-todo-workflows",
+      status: "planned",
+      summary: "Duplicate copied-project planned change.",
+      details: "Duplicate copied-project split active details.",
+      depends_on: [],
+    });
+    const invalidStatus = projectWorkspaceCli(workspaceRoot, ["roadmap-status"]);
+    const invalidStatusStdout = invalidStatus.stdout.trim();
+    context.assert(
+      invalidStatus.status !== 0,
+      "copied project split roadmap-status rejects duplicate standalone active planned-change conflict",
+      `stdout: ${invalidStatusStdout} stderr: ${invalidStatus.stderr.trim()}`,
+    );
+    const invalidStatusJson = JSON.parse(invalidStatusStdout);
+    const invalidMessages = invalidStatusJson.diagnostics.map((diagnostic: { message: string }) => diagnostic.message);
+    context.assert(
+      invalidMessages.some((message: string) => message.includes("duplicate planned change id across roadmap planned-change sources"))
+        && invalidMessages.some((message: string) => message.includes("conflicts with active strict change state")),
+      "copied project split roadmap-status reports duplicate identity and active conflict diagnostics",
+    );
+
+    return {
+      statusStdout: materializedStatusStdout,
+      syncStdout: splitSyncStdout,
+      materializeStdout,
+      invalidStatusStdout,
+      syncedIndexText,
+      materializedIndexText,
+    };
+  } finally {
+    cleanup();
+    context.assert(!existsSync(workspaceRoot), "copied project split roadmap cleanup removes temp workspace");
+  }
+}
+
+const copiedSplitRoadmapFirstRun = runCopiedSplitRoadmapCliScenario();
+const copiedSplitRoadmapSecondRun = runCopiedSplitRoadmapCliScenario();
+context.assert(
+  copiedSplitRoadmapFirstRun.statusStdout === copiedSplitRoadmapSecondRun.statusStdout,
+  "copied project split roadmap-status output stays deterministic across repeated copied-fixture runs",
+);
+context.assert(
+  copiedSplitRoadmapFirstRun.syncStdout === copiedSplitRoadmapSecondRun.syncStdout,
+  "copied project split roadmap-sync output stays deterministic across repeated copied-fixture runs",
+);
+context.assert(
+  copiedSplitRoadmapFirstRun.materializeStdout === copiedSplitRoadmapSecondRun.materializeStdout,
+  "copied project split roadmap materialization output stays deterministic across repeated copied-fixture runs",
+);
+context.assert(
+  copiedSplitRoadmapFirstRun.invalidStatusStdout === copiedSplitRoadmapSecondRun.invalidStatusStdout,
+  "copied project split roadmap conflict diagnostics stay deterministic across repeated copied-fixture runs",
+);
+context.assert(
+  copiedSplitRoadmapFirstRun.syncedIndexText === copiedSplitRoadmapSecondRun.syncedIndexText
+    && copiedSplitRoadmapFirstRun.materializedIndexText === copiedSplitRoadmapSecondRun.materializedIndexText,
+  "copied project split roadmap shared index output stays deterministic across repeated copied-fixture runs",
+);
+
+function runCopiedSplitRoadmapHandoffScenario(): {
+  statusBeforeHandoffStdout: string;
+  generatedProposalText: string;
+  statusAfterHandoffStdout: string;
+} {
+  const workspace = createCopiedSplitRoadmapWorkspace();
+  const { workspaceRoot, cleanup, handoffChangeName } = workspace;
+  try {
+    const materialize = projectWorkspaceCli(workspaceRoot, ["roadmap-sync", "--materialize-planned-changes"]);
+    context.assert(
+      materialize.status === 0,
+      "copied project handoff materializes legacy inline roadmap data before standalone handoff coverage",
+      `stdout: ${materialize.stdout.trim()} stderr: ${materialize.stderr.trim()}`,
+    );
+    writeStandalonePlannedChangeArtifact(workspaceRoot, "planned-changes/0003-copied-project-handoff.yaml", {
+      id: handoffChangeName,
+      milestone: "0001-core-todo-workflows",
+      status: "planned",
+      summary: "Exercise copied-project roadmap proposal handoff.",
+      details: "Use standalone copied-project planned-change details as targeted handoff context.",
+      depends_on: ["split-archived"],
+      team: {
+        owner: "handoff-owner",
+        reviewers: ["handoff-reviewer"],
+        blocked: {
+          status: false,
+        },
+        labels: ["handoff"],
+      },
+    });
+
+    const statusBeforeHandoff = projectWorkspaceCli(workspaceRoot, ["roadmap-status"]);
+    const statusBeforeHandoffStdout = statusBeforeHandoff.stdout.trim();
+    context.assert(
+      statusBeforeHandoff.status === 0,
+      "copied project handoff roadmap-status accepts eligible standalone planned change before scaffolding",
+      `stdout: ${statusBeforeHandoffStdout} stderr: ${statusBeforeHandoff.stderr.trim()}`,
+    );
+    const statusBeforeHandoffJson = JSON.parse(statusBeforeHandoffStdout);
+    const beforePlannedChanges = statusBeforeHandoffJson.milestones[0].plannedChanges as Array<{
+      id: string;
+      state: string;
+      derivedStatus: string;
+    }>;
+    const handoffBefore = beforePlannedChanges.find((entry) => entry.id === handoffChangeName);
+    const archivedDependencyBefore = beforePlannedChanges.find((entry) => entry.id === "split-archived");
+    context.assert(
+      handoffBefore?.state === "missing"
+        && handoffBefore.derivedStatus === "planned"
+        && archivedDependencyBefore?.state === "archived"
+        && archivedDependencyBefore.derivedStatus === "complete",
+      "copied project handoff candidate is missing while its standalone dependency is archived",
+    );
+
+    const proposeHandoff = projectWorkspaceCli(workspaceRoot, ["propose", handoffChangeName]);
+    context.assert(
+      proposeHandoff.status === 0,
+      "copied project handoff scaffolds a normal strict change with the planned-change identity",
+      `stdout: ${proposeHandoff.stdout.trim()} stderr: ${proposeHandoff.stderr.trim()}`,
+    );
+    const generateHandoffProposal = projectWorkspaceCli(workspaceRoot, [
+      "generate",
+      handoffChangeName,
+      "proposal",
+      "--what",
+      "Exercise copied-project roadmap proposal handoff.",
+      "--why",
+      "The split-file roadmap workflow needs regression coverage that standalone planned-change context can enter the normal strict change lifecycle.",
+      "--in",
+      "Generate a normal strict proposal from one eligible standalone planned change.",
+      "--out",
+      "No extra roadmap source-of-truth behavior.",
+      "--unchanged",
+      "The roadmap planned-change artifact remains the canonical home for planned-change details and team metadata.",
+      "--milestone",
+      "0001-core-todo-workflows",
+      "--planned-change",
+      handoffChangeName,
+    ]);
+    context.assert(
+      generateHandoffProposal.status === 0,
+      "copied project handoff populates proposal with roadmap milestone and planned-change references",
+      `stdout: ${generateHandoffProposal.stdout.trim()} stderr: ${generateHandoffProposal.stderr.trim()}`,
+    );
+
+    const generatedProposalPath = path.join(workspaceRoot, ".strict-spec-driven", "changes", handoffChangeName, "proposal.yaml");
+    const generatedProposalText = readFileSync(generatedProposalPath, "utf8");
+    const generatedProposal = yamlModule.parseYamlFile<{
+      change: { id: string };
+      roadmap: { milestone: string; planned_change: string };
+      unchanged_behavior: string[];
+    }>(generatedProposalPath);
+    context.assert(
+      generatedProposal.change.id === handoffChangeName
+        && generatedProposal.roadmap.milestone === "0001-core-todo-workflows"
+        && generatedProposal.roadmap.planned_change === handoffChangeName
+        && generatedProposal.unchanged_behavior[0]?.includes("canonical home"),
+      "copied project handoff proposal preserves planned-change identity and roadmap reference without copying full roadmap metadata",
+    );
+
+    const statusAfterHandoff = projectWorkspaceCli(workspaceRoot, ["roadmap-status"]);
+    const statusAfterHandoffStdout = statusAfterHandoff.stdout.trim();
+    context.assert(
+      statusAfterHandoff.status === 0,
+      "copied project handoff roadmap-status remains valid after scaffolded active strict change",
+      `stdout: ${statusAfterHandoffStdout} stderr: ${statusAfterHandoff.stderr.trim()}`,
+    );
+    const statusAfterHandoffJson = JSON.parse(statusAfterHandoffStdout);
+    const handoffAfter = statusAfterHandoffJson.milestones[0].plannedChanges.find(
+      (entry: { id: string }) => entry.id === handoffChangeName,
+    );
+    context.assert(
+      handoffAfter?.state === "active" && handoffAfter.derivedStatus === "planned",
+      "copied project handoff roadmap-status exposes the active strict change claim after scaffolding",
+    );
+
+    return {
+      statusBeforeHandoffStdout,
+      generatedProposalText,
+      statusAfterHandoffStdout,
+    };
+  } finally {
+    cleanup();
+    context.assert(!existsSync(workspaceRoot), "copied project handoff cleanup removes temp workspace");
+  }
+}
+
+const copiedSplitHandoffFirstRun = runCopiedSplitRoadmapHandoffScenario();
+const copiedSplitHandoffSecondRun = runCopiedSplitRoadmapHandoffScenario();
+context.assert(
+  copiedSplitHandoffFirstRun.statusBeforeHandoffStdout === copiedSplitHandoffSecondRun.statusBeforeHandoffStdout,
+  "copied project handoff roadmap-status before scaffolding stays deterministic across repeated copied-fixture runs",
+);
+context.assert(
+  copiedSplitHandoffFirstRun.generatedProposalText === copiedSplitHandoffSecondRun.generatedProposalText,
+  "copied project handoff generated proposal stays deterministic across repeated copied-fixture runs",
+);
+context.assert(
+  copiedSplitHandoffFirstRun.statusAfterHandoffStdout === copiedSplitHandoffSecondRun.statusAfterHandoffStdout,
+  "copied project handoff roadmap-status after scaffolding stays deterministic across repeated copied-fixture runs",
 );
 
 context.section("[18] migrate command");
@@ -1893,9 +2835,19 @@ try {
   context.assert(migratedRoadmapMilestone.status === "active", "migrate preserves roadmap milestone declared status");
   context.assert(migratedRoadmapMilestone.notes.length === 1, "migrate preserves roadmap milestone notes");
   const migratedRoadmapStatus = cli(["roadmap-status"], { cwd: migrateHappyDir });
-  context.assert(migratedRoadmapStatus.status === 0, "roadmap-status accepts migrated roadmap state");
+  context.assert(migratedRoadmapStatus.status !== 0, "roadmap-status rejects migrated inline roadmap state until explicit materialization");
   const migratedRoadmapStatusJson = JSON.parse(migratedRoadmapStatus.stdout.trim());
-  context.assert(migratedRoadmapStatusJson.valid === true, "roadmap-status reports valid=true for migrated roadmap state");
+  context.assert(
+    migratedRoadmapStatusJson.valid === false
+      && migratedRoadmapStatusJson.diagnostics.some(
+        (diagnostic: { fieldPath: string; message: string }) =>
+          diagnostic.fieldPath === "$.planned_changes"
+          && diagnostic.message.includes("roadmap-sync --materialize-planned-changes"),
+      ),
+    "roadmap-status reports the explicit materialization command for migrated inline roadmap state",
+  );
+  const materializedMigratedRoadmap = cli(["roadmap-sync", "--materialize-planned-changes"], { cwd: migrateHappyDir });
+  context.assert(materializedMigratedRoadmap.status === 0, "roadmap-sync materializes migrated roadmap inline planned changes");
 } finally {
   rmSync(migrateHappyDir, { recursive: true, force: true });
 }

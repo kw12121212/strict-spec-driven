@@ -1,0 +1,49 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-split-roadmap-regression-coverage
+sections:
+  Implementation:
+    extend-roadmap-regression-fixtures:
+      text: >-
+        Add or refine roadmap fixtures and copied-project setup that exercise standalone
+        planned-change files, inline planned_changes compatibility, and explicit
+        inline-to-standalone materialization without losing planned-change metadata.
+      status: complete
+    cover-split-roadmap-cli-behavior:
+      text: >-
+        Extend roadmap regression tests for split-file loading, deterministic sync and status
+        derivation, shared index preservation, cross-file validation diagnostics, and team metadata
+        validation.
+      status: complete
+    cover-recommendation-and-handoff:
+      text: >-
+        Add regression coverage proving roadmap recommendation and proposal handoff can select one
+        eligible standalone planned change using dependency readiness and active-change conflicts.
+      status: complete
+    update-spec-delta:
+      text: >-
+        Keep the cli-foundation delta spec aligned with the regression coverage obligation for the
+        split-file roadmap workflow.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-strict-change:
+      text: Run strict change verification for this proposal.
+      status: complete
+      command: node scripts/strict-spec-driven.js verify add-split-roadmap-regression-coverage
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

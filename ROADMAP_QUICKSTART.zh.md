@@ -48,16 +48,7 @@ scope:
 done_criteria:
   - 用户可以登录和登出。
   - 会话在 24 小时后过期。
-planned_changes:
-  add-session-model:
-    status: planned
-    summary: 添加会话数据模型和存储。
-    depends_on: []
-  add-login-endpoint:
-    status: planned
-    summary: 添加登录 API 端点。
-    depends_on:
-      - add-session-model
+planned_changes: {}
 dependencies: []
 risks: []
 status: proposed
@@ -66,15 +57,33 @@ notes: []
 
 关键点：
 - 里程碑 ID 使用 4 位数字前缀（`0001-`、`0002-`、...）
-- 计划变更使用 kebab-case ID，在里程碑内形成依赖 DAG
+- 计划变更使用 kebab-case ID
 - 每个计划变更大致对应一个严格变更
+- 里程碑文件里的 `planned_changes` 默认保持为空；日常工作项放到独立 planned-change 文件里
+
+在 `.strict-spec-driven/roadmap/planned-changes/` 下为每个计划变更新建单独文件，例如：
+
+```yaml
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-session-model
+  milestone: 0001-user-auth
+status: planned
+summary: 添加会话数据模型和存储。
+details: >-
+  把这项工作放在独立文件里，避免多人反复修改同一个里程碑文件。
+depends_on: []
+```
 
 ## 第 3 步：查看路线图状态
 
 随时可以检查路线图状态：
 
 ```sh
-node dist/strict-spec-cli.js roadmap-status
+node scripts/strict-spec-driven.js roadmap-status
 ```
 
 编辑里程碑文件后，同步索引：
@@ -136,6 +145,18 @@ node dist/strict-spec-cli.js roadmap-status
   ↓
 重复直到里程碑完成
 ```
+
+## 兼容性说明
+
+如果你当前的里程碑文件里仍然使用内联 `planned_changes`，`roadmap-status` 和普通的 `roadmap-sync` 会直接报错，并提示你先做转换。
+
+如果你想主动把内联条目转换为独立 planned-change 文件，请运行：
+
+```sh
+node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
+```
+
+如果你是在已安装的 skill 包里运行，请使用 `skills/strict-roadmap-sync/SKILL.md` 中记录的准确命令形式。
 
 ## 命令参考
 

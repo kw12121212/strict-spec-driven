@@ -32,8 +32,14 @@ proceeding, verify that strict workflow state already exists.
 
 1. **Locate the planned change in the strict roadmap** — inspect
    `.strict-spec-driven/roadmap/INDEX.yaml`, the relevant milestone YAML file,
-   and the current `roadmap-status` output so the change name and owning
-   milestone are unambiguous.
+   any standalone planned-change YAML artifact under `.strict-spec-driven/roadmap/`,
+   and the current `roadmap-status` output so the change name, owning
+   milestone, and roadmap source are unambiguous. Prefer standalone
+   planned-change artifacts as the split-file work item source; keep inline
+   milestone `planned_changes` entries eligible during the compatibility
+   window. Do not scaffold a planned change whose `roadmap-status` context shows
+   unsatisfied dependencies, duplicate identities, missing milestone references,
+   or active strict change conflicts.
 
 2. **Read strict proposal context** — read `.strict-spec-driven/config.yaml`,
    `.strict-spec-driven/specs/INDEX.yaml`, and the strict YAML main specs the
@@ -45,12 +51,16 @@ proceeding, verify that strict workflow state already exists.
    ```
    Use the planned change ID as the strict change name.
 
-4. **Read the owning milestone's `details` field** — after scaffolding, read
-   the owning milestone YAML file and check for a `details` field. If present,
+4. **Read targeted roadmap guidance** — after scaffolding, read the owning
+   milestone YAML file and check for a `details` field. If the selected planned
+   change comes from a standalone planned-change artifact, also read that
+   artifact's `details` field. Keep the roadmap files as the canonical home for
+   milestone-level and planned-change planning metadata. If details are present,
    extract the portions relevant to the selected planned change and use them as
    targeted planning guidance when populating the change artifacts. Do not copy
-   the full milestone plan into change artifacts — only extract guidance
-   relevant to this one planned change. If `details` is absent, proceed normally.
+   the full milestone plan or the full planned-change details into change
+   artifacts — only extract guidance relevant to this one planned change. If
+   `details` is absent, proceed normally.
 
 5. **Populate the normal strict change artifacts step by step** — generate
    supported artifacts with direct parameterized CLI invocations, edit
@@ -73,5 +83,7 @@ proceeding, verify that strict workflow state already exists.
 ## Rules
 
 - Keep the roadmap source of truth in `.strict-spec-driven/roadmap/`
+- Prefer standalone planned-change artifacts over inline milestone entries when
+  both roadmap representations are available
 - Use the roadmap planned change ID as the strict change identity
 - Do not duplicate whole milestone plans inside the change artifacts

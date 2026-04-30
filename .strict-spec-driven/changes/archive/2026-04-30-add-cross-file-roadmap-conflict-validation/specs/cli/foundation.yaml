@@ -1,0 +1,30 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/roadmap.ts
+    - src/roadmap/status.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    cli-roadmap-cross-file-conflict-validation:
+      strength: MUST
+      statement: >-
+        The system MUST make roadmap-status reject invalid split-file roadmap state with
+        deterministic diagnostics for duplicate planned change identities, missing milestone
+        references, invalid cross-file dependency references, ambiguous advisory ownership metadata,
+        and conflicts with active strict changes for the same planned change identity.
+      scenarios:
+        roadmap-status-rejects-cross-file-conflicts:
+          - GIVEN: a strict roadmap contains milestone metadata plus standalone planned-change files
+          - WHEN: strict-spec-driven roadmap-status is executed
+          - THEN: >-
+              the command exits non-zero for duplicate planned change identities, missing milestone
+              references, invalid dependency references, ambiguous advisory ownership metadata, or
+              active strict change conflicts
+  MODIFIED: {}
+  REMOVED: {}

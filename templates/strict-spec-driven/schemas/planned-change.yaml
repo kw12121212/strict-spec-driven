@@ -59,6 +59,49 @@ json_schema:
       type: array
       items:
         type: string
+    team:
+      type: object
+      additionalProperties: false
+      properties:
+        owner:
+          type: string
+          minLength: 1
+        reviewers:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        blocked:
+          type: object
+          additionalProperties: false
+          required:
+            - status
+          properties:
+            status:
+              type: boolean
+            reason:
+              type: string
+              minLength: 1
+        labels:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        external_refs:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - label
+              - target
+            properties:
+              label:
+                type: string
+                minLength: 1
+              target:
+                type: string
+                minLength: 1
     extensions:
       type: object
       additionalProperties: true

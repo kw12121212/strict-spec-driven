@@ -10,8 +10,23 @@ import {
 } from "./roadmap/model.js";
 import { ensureTrailingNewline, makeDiagnostic, sortDiagnostics } from "./roadmap/shared.js";
 import { loadRoadmap } from "./roadmap/load.js";
-import { buildMilestoneStatus, getChangeStateIndex, orderMilestoneStatuses } from "./roadmap/status.js";
-import { buildCanonicalMilestoneArtifact, buildRoadmapIndexArtifact, writeFileIfChanged } from "./roadmap/sync.js";
+import {
+  appendRoadmapCrossFileDiagnostics,
+  buildMilestoneStatus,
+  getChangeStateIndex,
+  getMergedPlannedChangesForMilestone,
+  getStandalonePlannedChangesForMilestone,
+  orderMilestoneStatuses,
+} from "./roadmap/status.js";
+import {
+  buildCanonicalMilestoneArtifact,
+  buildCanonicalPlannedChangeArtifact,
+  buildMaterializedPlannedChangeArtifact,
+  buildRoadmapIndexArtifact,
+  ensurePlannedChangeDirectory,
+  materializedPlannedChangePath,
+  writeFileIfChanged,
+} from "./roadmap/sync.js";
 
 export type {
   RoadmapDiagnostic,
@@ -21,13 +36,20 @@ export type {
   RoadmapSyncResult,
 } from "./roadmap/model.js";
 
+export type RoadmapSyncOptions = {
+  materializePlannedChanges?: boolean;
+};
+
 export function getRoadmapStatus(rootDir: string): RoadmapStatusResult {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
   const statusMap = new Map<string, RoadmapMilestoneStatus>();
   for (const milestone of roadmap.milestones) {
     const milestonePath = `roadmap/milestones/${milestone.relativeMilestonePath}`;
-    statusMap.set(milestonePath, buildMilestoneStatus(milestone, changeStates));
+    const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
+    const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
+    statusMap.set(milestonePath, buildMilestoneStatus(milestone, changeStates, plannedChangeEntries));
   }
 
   const milestones = orderMilestoneStatuses(rootDir, roadmap, statusMap, ROADMAP_INDEX_PATH);
@@ -41,8 +63,12 @@ export function getRoadmapStatus(rootDir: string): RoadmapStatusResult {
   };
 }
 
-export function syncRoadmap(rootDir: string): RoadmapSyncResult {
-  const roadmap = loadRoadmap(rootDir);
+export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): RoadmapSyncResult {
+  const roadmap = loadRoadmap(rootDir, {
+    allowInlinePlannedChanges: options.materializePlannedChanges === true,
+  });
+  const changeStates = getChangeStateIndex(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
   const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH);
   if (blockingDiagnostics.length > 0) {
     return {
@@ -67,15 +93,38 @@ export function syncRoadmap(rootDir: string): RoadmapSyncResult {
     };
   }
 
-  const changeStates = getChangeStateIndex(rootDir);
   const updatedFiles: string[] = [];
 
   for (const milestone of roadmap.milestones) {
-    const status = buildMilestoneStatus(milestone, changeStates);
-    const nextArtifact = buildCanonicalMilestoneArtifact(milestone, status);
+    const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
+    const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
+    const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
+    const materializedInlineIds = options.materializePlannedChanges
+      ? new Set(Object.keys(milestone.artifact.planned_changes))
+      : undefined;
+
+    if (options.materializePlannedChanges) {
+      for (const [id, entry] of Object.entries(milestone.artifact.planned_changes)) {
+        const plannedChangePath = materializedPlannedChangePath(rootDir, milestone, id);
+        ensurePlannedChangeDirectory(plannedChangePath);
+        const plannedChangeArtifact = buildMaterializedPlannedChangeArtifact(milestone, id, entry, status);
+        writeFileIfChanged(plannedChangePath, stringifyYamlDocument(plannedChangeArtifact), updatedFiles, rootDir);
+      }
+    }
+
+    const nextArtifact = buildCanonicalMilestoneArtifact(milestone, status, {
+      omitInlinePlannedChangeIds: materializedInlineIds,
+    });
     writeFileIfChanged(milestone.absolutePath, stringifyYamlDocument(nextArtifact), updatedFiles, rootDir);
     milestone.artifact = nextArtifact;
     milestone.raw = ensureTrailingNewline(stringifyYamlDocument(nextArtifact));
+
+    for (const plannedChange of standalonePlannedChanges) {
+      const nextPlannedChangeArtifact = buildCanonicalPlannedChangeArtifact(plannedChange, status);
+      writeFileIfChanged(plannedChange.absolutePath, stringifyYamlDocument(nextPlannedChangeArtifact), updatedFiles, rootDir);
+      plannedChange.artifact = nextPlannedChangeArtifact;
+      plannedChange.raw = ensureTrailingNewline(stringifyYamlDocument(nextPlannedChangeArtifact));
+    }
   }
 
   const indexPath = path.join(rootDir, ROADMAP_INDEX_PATH);

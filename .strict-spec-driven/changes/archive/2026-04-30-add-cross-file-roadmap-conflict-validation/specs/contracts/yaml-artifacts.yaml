@@ -1,0 +1,32 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/roadmap.ts
+    - src/roadmap/status.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    yaml-roadmap-cross-file-conflict-model:
+      strength: MUST
+      statement: >-
+        The system MUST define roadmap planned-change validation semantics across inline milestone
+        entries and standalone planned-change artifacts for unique planned change identities,
+        existing owning milestone references, valid dependency references, advisory ownership
+        ambiguity, and active strict change conflicts.
+      scenarios:
+        roadmap-planned-change-conflicts-are-defined:
+          - GIVEN: >-
+              strict roadmap planned change data is represented across inline milestone entries and
+              standalone planned-change artifacts
+          - WHEN: the roadmap validation contract is reviewed
+          - THEN: >-
+              duplicate planned change identities, missing milestone references, invalid dependency
+              references, ambiguous advisory ownership metadata, and active strict change conflicts
+              are identifiable as deterministic validation conditions
+  MODIFIED: {}
+  REMOVED: {}

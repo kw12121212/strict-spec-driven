@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-cross-file-roadmap-conflict-validation
+approach:
+  - >-
+    Extend the roadmap validation path that is already used by roadmap-status and roadmap-sync so it
+    evaluates the combined roadmap model from milestone inline entries and standalone planned-change
+    files. Keep diagnostics deterministic by sorting by artifact path, planned change id, and
+    dependency id, and distinguish coordination warnings from hard validation failures where
+    ownership-style metadata is only advisory.
+decisions:
+  cross-file-validation-in-roadmap-domain:
+    decision: >-
+      Place duplicate identity, missing milestone reference, dependency reference, active-change
+      conflict, and advisory ownership ambiguity checks in the roadmap domain validation layer that
+      operates on the loaded split-file roadmap model.
+    rationale: >-
+      The loader already normalizes inline and standalone planned changes into one roadmap model,
+      and roadmap-status is the CLI surface expected to reject invalid roadmap artifacts. Keeping
+      the checks in the roadmap domain avoids duplicating rules in recommendation or sync and
+      preserves the milestone-level decision that local YAML fields are coordination signals rather
+      than locks.
+alternatives: []
+risks: []

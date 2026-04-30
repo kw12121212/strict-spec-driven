@@ -15,22 +15,7 @@ scope:
 done_criteria:
   - The roadmap contract is implemented and verified.
   - Roadmap validation can inspect milestone and planned change structure.
-planned_changes:
-  add-validation:
-    status: planned
-    summary: Add roadmap validation behavior.
-    details: |
-      Implement validation logic that checks milestone structure,
-      planned change integrity, and dependency acyclicity.
-    depends_on: []
-  add-handoff:
-    status: planned
-    summary: Add roadmap proposal handoff behavior.
-    details: |
-      Design the handoff mechanism that converts a planned change
-      into a strict change proposal with appropriate context.
-    depends_on:
-      - add-validation
+planned_changes: {}
 dependencies:
   - 0001-foundation
 risks:

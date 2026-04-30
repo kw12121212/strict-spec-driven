@@ -1,0 +1,19 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: migrate-inline-planned-changes-to-files
+open: []
+resolved:
+  - id: command-surface
+    question: >-
+      Should inline planned-change materialization be exposed as a new roadmap subcommand or as an
+      explicit roadmap-sync flag?
+    context: >-
+      Milestone guidance requires explicit, reviewable conversion and ordinary roadmap-sync
+      currently preserves representation without implicit movement. Implementation needs a concrete
+      operator-facing trigger before coding.
+    answer: >-
+      Expose materialization as an explicit roadmap-sync flag:
+      `strict-spec-driven roadmap-sync --materialize-planned-changes`.
+    status: resolved

@@ -1,0 +1,31 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-roadmap-recommend/SKILL.md
+    - skills/strict-roadmap-propose/SKILL.md
+    - src/skills/model.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    strict-roadmap-skill-split-planned-change-handoff:
+      strength: MUST
+      statement: >-
+        The system MUST ensure strict roadmap recommend and propose skill guidance describes
+        split-file planned-change handoff: read standalone planned-change artifacts when present,
+        preserve inline compatibility, keep roadmap artifacts canonical for planning metadata, and
+        copy only targeted guidance into strict change artifacts.
+      scenarios:
+        roadmap-skills-describe-split-file-handoff:
+          - GIVEN: strict roadmap skill guidance is reviewed for recommendation or proposal handoff
+          - WHEN: the guidance describes how to choose and scaffold roadmap-backed work
+          - THEN: >-
+              it identifies standalone planned-change artifacts as supported split-file sources
+              while preserving inline compatibility and canonical roadmap ownership of planning
+              metadata
+  MODIFIED: {}
+  REMOVED: {}

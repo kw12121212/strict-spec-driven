@@ -1,0 +1,37 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: document-conflict-resistant-team-workflow
+approach:
+  - >-
+    Update the roadmap documentation set to describe the split-file collaboration model that
+    milestone 0011 implemented: standalone planned-change files are the normal work-item surface,
+    milestone files and INDEX.yaml change deliberately, roadmap-sync is the recovery and
+    reconciliation step after merges and archive events, and external tracker references are
+    optional supporting context. Keep the change documentation-focused and avoid re-specifying
+    runtime behavior that already exists in code and earlier roadmap-backed changes.
+decisions:
+  split-file-roadmap-is-the-default-documented-team-workflow:
+    decision: >-
+      Document standalone planned-change files as the default team collaboration surface, with
+      milestone files and INDEX.yaml positioned as lower-churn shared context.
+    rationale: >-
+      This follows the milestone guidance to reduce Git conflicts through artifact granularity
+      instead of coordination rules or locks.
+  roadmap-sync-is-the-documented-recovery-step:
+    decision: >-
+      Teach contributors to rerun roadmap-sync after merges and after archiving changes so derived
+      roadmap state stays canonical.
+    rationale: >-
+      The roadmap index and planned-change completion are derived artifacts, so recovery guidance
+      should emphasize reconciliation rather than hand-editing status.
+  external-trackers-remain-optional-context:
+    decision: >-
+      Describe external tracker references as optional supporting metadata rather than a required
+      planning source of truth.
+    rationale: >-
+      The milestone explicitly rejects making GitHub Issues, Jira, or similar systems the required
+      roadmap authority.
+alternatives: []
+risks: []

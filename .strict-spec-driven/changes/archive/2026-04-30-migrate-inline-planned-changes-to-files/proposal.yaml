@@ -1,0 +1,42 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: migrate-inline-planned-changes-to-files
+  status: proposed
+summary:
+  what:
+    - >-
+      Add explicit roadmap conversion support that materializes inline milestone planned_changes
+      entries into standalone planned-change YAML files under the roadmap directory.
+    - >-
+      Preserve each converted planned change's id, owning milestone, status, summary, details, and
+      dependencies while keeping conversion reviewable.
+  why:
+    - >-
+      Milestone 0011 is reducing roadmap merge conflicts by moving high-churn planned changes into
+      independent files after split-file loading and sync support already exists.
+scope:
+  in:
+    - >-
+      Add intentional conversion behavior for inline planned changes to standalone planned-change
+      files.
+    - >-
+      Keep roadmap-sync/status compatibility with inline and standalone planned-change
+      representations during the migration window.
+    - >-
+      Update focused roadmap migration/sync tests for metadata preservation and deterministic
+      output.
+  out:
+    - Add team owner, reviewer, blocked-state, label, or external-reference metadata.
+    - Add cross-file conflict validation beyond behavior needed to keep conversion deterministic.
+    - Make external trackers or hosted coordination services required.
+unchanged_behavior:
+  - Existing inline milestone planned_changes entries remain valid during the compatibility window.
+  - >-
+    roadmap-status and ordinary roadmap-sync continue to avoid implicit data movement between inline
+    and standalone representations unless the explicit conversion path is selected.
+roadmap:
+  milestone: 0011-team-roadmap-collaboration
+  planned_change: migrate-inline-planned-changes-to-files

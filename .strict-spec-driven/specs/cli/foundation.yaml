@@ -1416,3 +1416,123 @@ requirements:
         - THEN: the command exits zero
         - AND: stdout contains the subcommand usage
         - AND: stderr is empty
+  cli-roadmap-loads-split-planned-change-files:
+    strength: MUST
+    statement: >-
+      The system MUST load roadmap planned-change state from standalone planned-change artifacts as
+      well as inline milestone planned_changes entries, associating every standalone planned change
+      with exactly one owning milestone and preserving deterministic roadmap order.
+    scenarios:
+      split-planned-change-files-load-with-owning-milestone:
+        - GIVEN: >-
+            a strict roadmap contains milestone metadata and a standalone planned-change artifact
+            that references one owning milestone
+        - WHEN: strict roadmap state is loaded for roadmap-status or roadmap-sync
+        - THEN: >-
+            the standalone planned change is reported under its owning milestone in deterministic
+            roadmap order
+        - AND: >-
+            existing inline milestone planned_changes entries remain valid during the compatibility
+            window
+  cli-roadmap-sync-preserves-split-planned-change-state:
+    strength: MUST
+    statement: >-
+      The system MUST make roadmap-status and roadmap-sync derive and rewrite planned-change
+      completion state consistently for inline and standalone planned-change representations without
+      adding duplicate planned-change entries or moving data between representations implicitly.
+    scenarios:
+      sync-keeps-split-and-inline-state-deterministic:
+        - GIVEN: >-
+            a strict roadmap includes standalone planned-change files and inline milestone
+            planned_changes entries
+        - WHEN: >-
+            roadmap-status or roadmap-sync reconciles planned-change state against active and
+            archived strict changes
+        - THEN: >-
+            declared and derived planned-change statuses are computed consistently for both
+            representations
+        - AND: >-
+            sync output preserves deterministic ordering and does not create duplicate
+            planned-change entries
+  cli-roadmap-materializes-inline-planned-changes:
+    strength: MUST
+    statement: >-
+      The system MUST provide an explicit operator-selected roadmap conversion path that
+      materializes inline milestone planned_changes entries as standalone planned-change YAML
+      artifacts without losing planned-change identity, owning milestone, status, summary, details,
+      or dependency data.
+    scenarios:
+      inline-planned-changes-materialize-as-standalone-files:
+        - GIVEN: a strict roadmap milestone contains inline planned_changes entries
+        - WHEN: the explicit inline-to-standalone roadmap conversion path is executed
+        - THEN: standalone planned-change YAML artifacts are written for the converted planned changes
+        - AND: >-
+            each standalone artifact preserves the planned change id, owning milestone reference,
+            status, summary, details, and depends_on values
+      ordinary-sync-does-not-move-representation:
+        - GIVEN: a strict roadmap still contains inline planned_changes entries
+        - WHEN: >-
+            ordinary roadmap-status or roadmap-sync behavior runs without the explicit conversion
+            trigger
+        - THEN: planned changes are not silently moved between inline and standalone representations
+  cli-roadmap-cross-file-conflict-validation:
+    strength: MUST
+    statement: >-
+      The system MUST make roadmap-status reject invalid split-file roadmap state with deterministic
+      diagnostics for duplicate planned change identities, missing milestone references, invalid
+      cross-file dependency references, ambiguous advisory ownership metadata, and conflicts with
+      active strict changes for the same planned change identity.
+    scenarios:
+      roadmap-status-rejects-cross-file-conflicts:
+        - GIVEN: a strict roadmap contains milestone metadata plus standalone planned-change files
+        - WHEN: strict-spec-driven roadmap-status is executed
+        - THEN: >-
+            the command exits non-zero for duplicate planned change identities, missing milestone
+            references, invalid dependency references, ambiguous advisory ownership metadata, or
+            active strict change conflicts
+  cli-roadmap-handoff-uses-split-planned-change-sources:
+    strength: MUST
+    statement: >-
+      The system MUST make roadmap recommendation and roadmap-to-change proposal handoff treat
+      standalone planned-change artifacts as eligible roadmap-backed work sources, using dependency
+      readiness and active strict change conflicts when selecting or scaffolding exactly one planned
+      change.
+    scenarios:
+      split-planned-change-is-selected-for-handoff:
+        - GIVEN: >-
+            a strict roadmap contains milestone metadata and standalone planned-change artifacts
+            with complete dependencies
+        - WHEN: strict roadmap recommendation or proposal handoff evaluates roadmap-backed work
+        - THEN: >-
+            one eligible standalone planned change can be selected and scaffolded as a normal strict
+            change with its planned-change identity and owning milestone reference
+  cli-roadmap-team-metadata-validation:
+    strength: MUST
+    statement: >-
+      The system MUST accept valid optional team metadata on standalone planned-change files and
+      reject malformed team metadata through deterministic roadmap validation diagnostics.
+    scenarios:
+      roadmap-status-validates-planned-change-team-metadata:
+        - GIVEN: a strict roadmap contains standalone planned-change files with optional team metadata
+        - WHEN: strict-spec-driven roadmap-status is executed
+        - THEN: valid owner, reviewer, blocked-state, label, and external-reference metadata is accepted
+  cli-split-roadmap-regression-coverage:
+    strength: MUST
+    statement: >-
+      The system MUST include copied-project regression coverage for split-file roadmap workflows,
+      covering standalone planned-change loading, inline planned-change materialization, cross-file
+      validation, recommendation and proposal handoff, team metadata validation, and shared roadmap
+      index preservation.
+    scenarios:
+      copied-project-split-roadmap-regressions-cover-team-workflow:
+        - GIVEN: >-
+            a copied project fixture contains strict roadmap milestone metadata, standalone
+            planned-change artifacts, and inline planned_changes entries where compatibility or
+            migration behavior is required
+        - WHEN: >-
+            the repository roadmap regression tests execute roadmap status, sync, materialization,
+            validation, recommendation, and proposal-handoff flows
+        - THEN: >-
+            the tests verify deterministic CLI behavior, preserved planned-change metadata, stable
+            shared index output, accepted valid team metadata, rejected invalid cross-file state,
+            and exactly-one eligible planned-change handoff

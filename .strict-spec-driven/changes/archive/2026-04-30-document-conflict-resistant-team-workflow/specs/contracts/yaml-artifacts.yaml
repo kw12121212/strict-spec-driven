@@ -1,0 +1,51 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - README.md
+    - ROADMAP_GUIDE.md
+    - ROADMAP_QUICKSTART.md
+  tests:
+    - test/run.ts
+operations:
+  ADDED:
+    roadmap-guidance-documents-conflict-resistant-team-workflow:
+      strength: MUST
+      statement: >-
+        The system MUST document a conflict-resistant team roadmap workflow that presents standalone
+        planned-change files as the preferred collaboration surface, keeps milestone files and
+        INDEX.yaml as deliberate low-churn coordination artifacts, and treats inline planned_changes
+        only as compatibility or migration context.
+      scenarios:
+        roadmap-guidance-prefers-split-file-collaboration:
+          - GIVEN: a self-hosted repository's roadmap guidance is reviewed
+          - WHEN: its recommended team collaboration workflow is inspected
+          - THEN: standalone planned-change files are presented as the default work-item surface
+          - AND: milestone files and INDEX.yaml are described as lower-churn shared roadmap context
+          - AND: >-
+              inline milestone planned_changes are described only as compatibility or migration
+              context
+    roadmap-guidance-explains-merge-recovery-and-optional-external-tracker-context:
+      strength: MUST
+      statement: >-
+        The system MUST document team-roadmap recovery guidance that tells contributors to rerun
+        roadmap-sync after merges or archive handoff and describes external tracker references as
+        optional context rather than the required roadmap source of truth.
+      scenarios:
+        roadmap-guidance-covers-merge-recovery-and-external-tracker-boundaries:
+          - GIVEN: the conflict-resistant team roadmap guidance is reviewed
+          - WHEN: its merge recovery and coordination guidance is inspected
+          - THEN: >-
+              contributors are told to rerun roadmap-sync after merges or after archiving
+              roadmap-backed work
+          - AND: >-
+              planned-change completion remains derived from strict workflow state rather than
+              hand-edited roadmap status
+          - AND: >-
+              external tracker references are described as optional supporting metadata rather than
+              required authority
+  MODIFIED: {}
+  REMOVED: {}

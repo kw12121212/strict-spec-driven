@@ -1,0 +1,47 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-team-metadata-to-planned-change-files
+sections:
+  Implementation:
+    update-planned-change-contract:
+      text: >-
+        Update the planned-change schema, examples, and schema registry coverage for optional
+        structured team metadata.
+      status: complete
+    update-roadmap-validation:
+      text: >-
+        Update roadmap loading and validation behavior to accept valid team metadata and report
+        malformed or ambiguous advisory ownership metadata deterministically.
+      status: complete
+    update-spec-mappings:
+      text: >-
+        Keep strict spec mappings aligned with the implementation and test files touched by the
+        change.
+      status: complete
+  Testing:
+    add-team-metadata-tests:
+      text: >-
+        Add focused roadmap tests covering valid owner, reviewers, blocked state, labels, external
+        references, and malformed team metadata.
+      status: complete
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-strict-change:
+      text: Run strict change verification for this proposal.
+      status: complete
+      command: node scripts/strict-spec-driven.js verify add-team-metadata-to-planned-change-files
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

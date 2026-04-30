@@ -585,6 +585,49 @@ json_schema:
       type: array
       items:
         type: string
+    team:
+      type: object
+      additionalProperties: false
+      properties:
+        owner:
+          type: string
+          minLength: 1
+        reviewers:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        blocked:
+          type: object
+          additionalProperties: false
+          required:
+            - status
+          properties:
+            status:
+              type: boolean
+            reason:
+              type: string
+              minLength: 1
+        labels:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        external_refs:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - label
+              - target
+            properties:
+              label:
+                type: string
+                minLength: 1
+              target:
+                type: string
+                minLength: 1
     extensions:
       type: object
       additionalProperties: true
@@ -833,7 +876,7 @@ entries:
       compatible_with: []
       notes:
         - Milestone identity is a keyed map with 4-digit-prefixed key.
-        - Planned changes use keyed map with required details field.
+        - Milestone files keep planned_changes empty in normal split-file roadmap usage; non-empty inline entries are legacy data for explicit materialization.
         - Planned-change-entry no longer exists as independent artifact type.
   - schema_id: strict-spec-driven/planned-change/v1
     schema_version: 1
@@ -847,7 +890,8 @@ entries:
       supersedes: []
       compatible_with: []
       notes:
-        - Standalone planned changes support the split-file roadmap layout while inline milestone planned changes remain valid during compatibility windows.
+        - Standalone planned changes are the normal roadmap work-item surface; materialize legacy inline milestone entries before running ordinary roadmap commands.
+        - Optional team metadata is advisory coordination data and is not a locking or permission mechanism.
   - schema_id: strict-spec-driven/schema-registry/v1
     schema_version: 1
     artifact_type: schema_registry
@@ -957,7 +1001,7 @@ schema_version: 1
 schema_id: strict-spec-driven/roadmap-milestone/v2
 artifact_type: roadmap_milestone
 artifact_name: roadmap-milestone
-description: Strict YAML roadmap milestone artifact (v2 — keyed milestone identity, keyed planned changes with required details).
+description: Strict YAML roadmap milestone artifact (v2 — keyed milestone identity plus reserved planned_changes mapping for explicit legacy materialization workflows).
 example_ref: ../../../examples/strict-spec-driven/roadmap-milestone.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"

@@ -58,7 +58,7 @@ planned_changes:
       normally edit separate files instead of appending to the same milestone YAML map.
     depends_on: []
   update-roadmap-loader-status-and-sync-for-split-files:
-    status: planned
+    status: complete
     summary: >-
       update roadmap loading, status derivation, and sync rewriting to read milestone metadata plus
       standalone planned-change files and to preserve deterministic ordering.
@@ -68,7 +68,7 @@ planned_changes:
     depends_on:
       - define-standalone-planned-change-artifact
   migrate-inline-planned-changes-to-files:
-    status: planned
+    status: complete
     summary: >-
       add migration and sync support that can materialize existing inline milestone planned changes
       as standalone planned-change files without losing status, details, or dependency data.
@@ -78,7 +78,7 @@ planned_changes:
     depends_on:
       - update-roadmap-loader-status-and-sync-for-split-files
   add-cross-file-roadmap-conflict-validation:
-    status: planned
+    status: complete
     summary: >-
       add deterministic validation for duplicate planned change IDs, missing milestone references,
       cross-file dependency errors, ambiguous ownership, and conflicts with active strict changes.
@@ -88,7 +88,7 @@ planned_changes:
     depends_on:
       - update-roadmap-loader-status-and-sync-for-split-files
   update-recommend-and-propose-for-split-roadmap:
-    status: planned
+    status: complete
     summary: >-
       update roadmap recommendation and roadmap-to-change proposal handoff so they select and
       scaffold work from standalone planned-change artifacts.
@@ -98,7 +98,7 @@ planned_changes:
     depends_on:
       - add-cross-file-roadmap-conflict-validation
   add-team-metadata-to-planned-change-files:
-    status: planned
+    status: complete
     summary: >-
       add structured owner, reviewers, blocked state, labels, and external references to standalone
       planned-change files after the split-file model is in place.
@@ -108,7 +108,7 @@ planned_changes:
     depends_on:
       - update-recommend-and-propose-for-split-roadmap
   add-split-roadmap-regression-coverage:
-    status: planned
+    status: complete
     summary: >-
       add fixtures and copied-project regression scenarios for split-file loading, migration from
       inline planned changes, cross-file validation, recommendation, proposal handoff, and shared
@@ -120,7 +120,7 @@ planned_changes:
       - migrate-inline-planned-changes-to-files
       - add-team-metadata-to-planned-change-files
   document-conflict-resistant-team-workflow:
-    status: planned
+    status: complete
     summary: >-
       document the recommended team workflow for editing planned-change files, keeping the shared
       index simple, rerunning roadmap-sync after merges, and using optional external tracker
@@ -154,7 +154,7 @@ risks:
   - >-
     Owner and reviewer fields could be mistaken for hard locks even though Git branches can still
     diverge.
-status: proposed
+status: complete
 notes:
   - >-
     Accepted direction: solve team roadmap merge conflicts primarily through file layout and

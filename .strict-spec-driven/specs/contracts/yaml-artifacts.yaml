@@ -1489,3 +1489,82 @@ requirements:
         - THEN: >-
             the example parses successfully and matches the schema identity and artifact type
             declared by the schema
+  yaml-roadmap-cross-file-conflict-model:
+    strength: MUST
+    statement: >-
+      The system MUST define roadmap planned-change validation semantics across inline milestone
+      entries and standalone planned-change artifacts for unique planned change identities, existing
+      owning milestone references, valid dependency references, advisory ownership ambiguity, and
+      active strict change conflicts.
+    scenarios:
+      roadmap-planned-change-conflicts-are-defined:
+        - GIVEN: >-
+            strict roadmap planned change data is represented across inline milestone entries and
+            standalone planned-change artifacts
+        - WHEN: the roadmap validation contract is reviewed
+        - THEN: >-
+            duplicate planned change identities, missing milestone references, invalid dependency
+            references, ambiguous advisory ownership metadata, and active strict change conflicts
+            are identifiable as deterministic validation conditions
+  strict-roadmap-skill-split-planned-change-handoff:
+    strength: MUST
+    statement: >-
+      The system MUST ensure strict roadmap recommend and propose skill guidance describes
+      split-file planned-change handoff: read standalone planned-change artifacts when present,
+      preserve inline compatibility, keep roadmap artifacts canonical for planning metadata, and
+      copy only targeted guidance into strict change artifacts.
+    scenarios:
+      roadmap-skills-describe-split-file-handoff:
+        - GIVEN: strict roadmap skill guidance is reviewed for recommendation or proposal handoff
+        - WHEN: the guidance describes how to choose and scaffold roadmap-backed work
+        - THEN: >-
+            it identifies standalone planned-change artifacts as supported split-file sources while
+            preserving inline compatibility and canonical roadmap ownership of planning metadata
+  yaml-planned-change-team-metadata-contract:
+    strength: MUST
+    statement: >-
+      The system MUST define optional structured team metadata for standalone planned-change
+      artifacts, including advisory owner, reviewers, blocked state, labels, and external references
+      without making those fields required.
+    scenarios:
+      planned-change-team-metadata-fields-are-structured:
+        - GIVEN: a standalone planned-change artifact is reviewed
+        - WHEN: its optional team metadata is inspected
+        - THEN: >-
+            owner, reviewers, blocked state, labels, and external references are represented as
+            structured fields when present
+  roadmap-guidance-documents-conflict-resistant-team-workflow:
+    strength: MUST
+    statement: >-
+      The system MUST document a conflict-resistant team roadmap workflow that presents standalone
+      planned-change files as the preferred collaboration surface, keeps milestone files and
+      INDEX.yaml as deliberate low-churn coordination artifacts, and treats inline planned_changes
+      only as compatibility or migration context.
+    scenarios:
+      roadmap-guidance-prefers-split-file-collaboration:
+        - GIVEN: a self-hosted repository's roadmap guidance is reviewed
+        - WHEN: its recommended team collaboration workflow is inspected
+        - THEN: standalone planned-change files are presented as the default work-item surface
+        - AND: milestone files and INDEX.yaml are described as lower-churn shared roadmap context
+        - AND: >-
+            inline milestone planned_changes are described only as compatibility or migration
+            context
+  roadmap-guidance-explains-merge-recovery-and-optional-external-tracker-context:
+    strength: MUST
+    statement: >-
+      The system MUST document team-roadmap recovery guidance that tells contributors to rerun
+      roadmap-sync after merges or archive handoff and describes external tracker references as
+      optional context rather than the required roadmap source of truth.
+    scenarios:
+      roadmap-guidance-covers-merge-recovery-and-external-tracker-boundaries:
+        - GIVEN: the conflict-resistant team roadmap guidance is reviewed
+        - WHEN: its merge recovery and coordination guidance is inspected
+        - THEN: >-
+            contributors are told to rerun roadmap-sync after merges or after archiving
+            roadmap-backed work
+        - AND: >-
+            planned-change completion remains derived from strict workflow state rather than
+            hand-edited roadmap status
+        - AND: >-
+            external tracker references are described as optional supporting metadata rather than
+            required authority

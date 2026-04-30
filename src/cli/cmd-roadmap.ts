@@ -19,15 +19,16 @@ export function runRoadmapStatus(argv: string[]): number {
 
 export function runRoadmapSync(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven roadmap-sync\n");
+    writeHelp("Usage: strict-spec-driven roadmap-sync [--materialize-planned-changes]\n");
     return 0;
   }
-  if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven roadmap-sync\n");
+  const materializePlannedChanges = argv.length === 1 && argv[0] === "--materialize-planned-changes";
+  if (argv.length > 0 && !materializePlannedChanges) {
+    writeUsage("Usage: strict-spec-driven roadmap-sync [--materialize-planned-changes]\n");
     return 1;
   }
 
-  const result = syncRoadmap(process.cwd());
+  const result = syncRoadmap(process.cwd(), { materializePlannedChanges });
   writeJson(result);
   return result.valid ? 0 : 1;
 }

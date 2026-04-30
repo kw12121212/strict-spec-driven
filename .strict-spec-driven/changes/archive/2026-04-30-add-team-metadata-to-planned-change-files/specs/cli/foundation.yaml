@@ -1,0 +1,30 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/roadmap/model.ts
+    - src/roadmap/load.ts
+    - src/roadmap/validate.ts
+    - src/roadmap/status.ts
+    - src/roadmap/sync.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    cli-roadmap-team-metadata-validation:
+      strength: MUST
+      statement: >-
+        The system MUST accept valid optional team metadata on standalone planned-change files and
+        reject malformed team metadata through deterministic roadmap validation diagnostics.
+      scenarios:
+        roadmap-status-validates-planned-change-team-metadata:
+          - GIVEN: a strict roadmap contains standalone planned-change files with optional team metadata
+          - WHEN: strict-spec-driven roadmap-status is executed
+          - THEN: >-
+              valid owner, reviewer, blocked-state, label, and external-reference metadata is
+              accepted
+  MODIFIED: {}
+  REMOVED: {}
