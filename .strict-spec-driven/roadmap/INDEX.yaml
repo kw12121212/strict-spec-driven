@@ -43,3 +43,7 @@ milestones:
     title: 10 Strict Roadmap Details Guidance
     path: roadmap/milestones/0010-strict-roadmap-details-guidance.yaml
     status: complete
+  0011-team-roadmap-collaboration:
+    title: 11 Conflict Resistant Team Roadmap
+    path: roadmap/milestones/0011-team-roadmap-collaboration.yaml
+    status: proposed

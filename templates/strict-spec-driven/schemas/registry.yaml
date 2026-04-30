@@ -165,6 +165,19 @@ entries:
         - Milestone identity is a keyed map with 4-digit-prefixed key.
         - Planned changes use keyed map with required details field.
         - Planned-change-entry no longer exists as independent artifact type.
+  - schema_id: strict-spec-driven/planned-change/v1
+    schema_version: 1
+    artifact_type: planned_change
+    artifact_name: planned-change
+    schema_file: planned-change.yaml
+    primary_example: ../../../examples/strict-spec-driven/planned-change.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Standalone planned changes support the split-file roadmap layout while inline milestone planned changes remain valid during compatibility windows.
   - schema_id: strict-spec-driven/schema-registry/v1
     schema_version: 1
     artifact_type: schema_registry

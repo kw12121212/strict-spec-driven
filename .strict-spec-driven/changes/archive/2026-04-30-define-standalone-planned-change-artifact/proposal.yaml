@@ -1,0 +1,52 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: define-standalone-planned-change-artifact
+  status: proposed
+summary:
+  what:
+    - >-
+      Define a standalone planned-change YAML artifact contract under .strict-spec-driven/roadmap/
+      so each roadmap work item can live in its own file with stable identity, owning milestone
+      reference, declared status, summary, details, dependencies, and future team metadata extension
+      points.
+  why:
+    - >-
+      Milestone 0011 starts by reducing roadmap merge conflicts through artifact granularity. The
+      current roadmap v2 model stores planned changes inline inside milestone files, which makes
+      milestone files a conflict hotspot when multiple people plan or claim work. A standalone
+      artifact contract must land first so loader, sync, migration, validation, recommendation, and
+      documentation work have a stable YAML shape to target.
+scope:
+  in:
+    - >-
+      Add strict spec requirements for standalone planned-change artifacts, including schema
+      identity, stable planned change id, exactly one owning milestone reference, status, summary,
+      details, dependencies, and optional extension space for later team metadata.
+    - >-
+      Add or update concrete schema, registry, and example assets for the standalone planned-change
+      artifact family under the existing strict YAML artifact locations.
+    - >-
+      Keep the split-file design compatible with current inline milestone planned_changes during
+      this contract step by defining the standalone artifact without removing the existing roadmap
+      milestone contract.
+  out:
+    - >-
+      Implementing roadmap loader, status, sync, migration, recommendation, or proposal-handoff
+      behavior for split planned-change files.
+    - >-
+      Adding final owner, reviewer, blocked-state, label, or external-reference team metadata
+      semantics beyond extension points.
+    - Moving existing inline planned changes into standalone files.
+unchanged_behavior:
+  - >-
+    Roadmap milestone files and the roadmap index remain valid in their current v2 inline
+    planned_changes form until later migration and loader changes land.
+  - >-
+    The strict change archive remains the authoritative record of completed work, and local YAML
+    metadata is not treated as a distributed lock.
+roadmap:
+  milestone: 0011-team-roadmap-collaboration
+  planned_change: define-standalone-planned-change-artifact

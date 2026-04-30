@@ -1,0 +1,38 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: define-standalone-planned-change-artifact
+approach:
+  - >-
+    Extend the existing YAML artifact contract before changing roadmap behavior. The standalone
+    planned-change artifact should become a registered strict workflow artifact with a concrete
+    schema and minimal example, while the current roadmap milestone v2 inline planned_changes field
+    remains valid until later migration and loader work. The contract should make file-level planned
+    change identity explicit and should point each planned change at exactly one owning milestone,
+    because the milestone remains the planning grouping while the planned-change file becomes the
+    low-conflict work-item surface.
+decisions:
+  one-planned-change-per-file:
+    decision: >-
+      Define the preferred conflict-resistant layout as one standalone planned-change artifact per
+      roadmap work item rather than a shared aggregate planned-change map.
+    rationale: >-
+      Milestone 0011 accepted artifact granularity as the low-conflict mechanism: separate
+      contributors can usually edit separate planned-change files while milestone metadata changes
+      rarely.
+  preserve-inline-compatibility:
+    decision: Keep existing roadmap milestone v2 inline planned_changes valid during this contract change.
+    rationale: >-
+      The loader, sync, and migration updates are later planned changes, so the first contract step
+      should avoid making current strict roadmap state invalid before conversion behavior exists.
+  defer-team-field-semantics:
+    decision: >-
+      Reserve optional extension points for team metadata without defining final owner, reviewers,
+      blocked state, labels, or external reference semantics in this change.
+    rationale: >-
+      The milestone orders team metadata after recommendation/proposal support for the split-file
+      model, so this change should leave space for those fields without preempting their dedicated
+      design.
+alternatives: []
+risks: []

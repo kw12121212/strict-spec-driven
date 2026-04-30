@@ -1,0 +1,79 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/embedded-templates.ts
+    - templates/strict-spec-driven/schemas/planned-change.yaml
+    - templates/strict-spec-driven/schemas/registry.yaml
+    - examples/strict-spec-driven/planned-change.yaml
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    yaml-standalone-planned-change-artifact-contract:
+      strength: MUST
+      statement: >-
+        The system MUST define a standalone planned-change YAML artifact family with schema
+        identity, artifact type, stable planned change id, exactly one owning milestone reference,
+        declared status, summary, details, dependency references, and optional extension points for
+        future team metadata.
+      scenarios:
+        standalone-planned-change-artifact-fields-are-structured:
+          - GIVEN: a standalone planned-change artifact is reviewed
+          - WHEN: its top-level data is inspected
+          - THEN: schema identity and artifact type are available as structured fields
+          - THEN: >-
+              the planned change id and owning milestone reference are available as structured
+              fields
+          - THEN: status, summary, details, and dependency references are available as structured fields
+        standalone-planned-change-artifact-has-extension-space:
+          - GIVEN: future team metadata needs to be attached to a roadmap work item
+          - WHEN: the standalone planned-change artifact contract is reviewed
+          - THEN: >-
+              the contract provides optional extension space without making owner, reviewer, blocked
+              state, labels, or external references required in this change
+    yaml-standalone-planned-change-schema-assets:
+      strength: MUST
+      statement: >-
+        The system MUST provide concrete schema, schema registry, and minimal valid example assets
+        for the standalone planned-change artifact family alongside the existing strict workflow
+        schema and example assets.
+      scenarios:
+        standalone-planned-change-schema-assets-are-discoverable:
+          - GIVEN: strict workflow schema assets are reviewed
+          - WHEN: the standalone planned-change artifact family is checked
+          - THEN: >-
+              a concrete planned-change schema file is available under
+              templates/strict-spec-driven/schemas/
+          - THEN: the schema registry lists the planned-change schema with a primary example
+          - THEN: a minimal valid planned-change example is available under examples/strict-spec-driven/
+        standalone-planned-change-assets-validate:
+          - GIVEN: the standalone planned-change schema and primary example are loaded
+          - WHEN: validation is run through the shared strict YAML validation layer
+          - THEN: >-
+              the example parses successfully and matches the schema identity and artifact type
+              declared by the schema
+  MODIFIED:
+    yaml-planned-change-entry-dependency-model:
+      strength: MUST
+      statement: >-
+        The system MUST represent roadmap planned changes as stable planned-change identities that
+        remain valid as inline milestone planned_changes entries during compatibility windows and
+        can also be represented as standalone planned-change YAML artifacts under the roadmap
+        directory, with each representation exposing status, summary, details, dependency
+        references, and exactly one owning milestone relationship.
+      scenarios:
+        planned-change-identity-supports-inline-and-standalone-forms:
+          - GIVEN: strict roadmap planned change data is reviewed
+          - WHEN: >-
+              planned changes are represented by either inline milestone entries or standalone
+              planned-change artifacts
+          - THEN: each planned change has a stable planned change identifier
+          - THEN: >-
+              each planned change exposes structured status, summary, details, and dependency
+              references
+          - THEN: each standalone planned-change artifact identifies exactly one owning milestone
+  REMOVED: {}

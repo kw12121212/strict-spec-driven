@@ -1,0 +1,178 @@
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+milestone:
+  0011-team-roadmap-collaboration:
+    title: 11 Conflict Resistant Team Roadmap
+goal: >-
+  Redesign strict roadmap storage so multiple people can plan and claim work with fewer Git merge
+  conflicts by keeping the shared roadmap index simple, keeping milestone files mostly stable, and
+  moving planned changes into independent YAML files.
+scope:
+  in:
+    - >-
+      Define a low-conflict roadmap layout where milestone files hold durable milestone metadata and
+      each planned change lives in its own YAML artifact under the roadmap directory.
+    - >-
+      Preserve compatibility with current inline `planned_changes` milestone files during migration
+      and sync.
+    - >-
+      Add validation that detects duplicate planned change IDs, malformed milestone references,
+      dependency problems across planned-change files, and active work conflicts.
+    - >-
+      Add team metadata such as owner, reviewers, blocked state, and external references on planned
+      change files after the split-file contract is stable.
+  out:
+    - >-
+      Building a hosted locking service, realtime collaboration UI, or account and permission model
+      for the first team roadmap milestone.
+    - Making GitHub Issues, Linear, Jira, or any external tracker the required source of truth.
+    - Treating local YAML owner fields as hard locks that can prevent divergent Git branches.
+    - Replacing the strict change archive as the authoritative record of completed work.
+done_criteria:
+  - >-
+    The roadmap contract defines a standalone planned-change artifact shape that references exactly
+    one owning milestone.
+  - >-
+    Roadmap loading, status, sync, recommendation, and proposal handoff work with standalone planned
+    change files while preserving existing inline milestone compatibility where required.
+  - >-
+    Roadmap sync preserves the shared roadmap index and, where appropriate, canonical planned-change
+    projections without requiring users to hand-edit aggregate planned-change maps.
+  - >-
+    Validation reports cross-file dependency errors, duplicate planned change identities, missing
+    milestone references, and conflicts with active strict changes deterministically.
+  - >-
+    Documentation explains the Git-native team workflow and gives clear conflict recovery guidance:
+    keep planned changes file-scoped, keep milestone edits deliberate, and rerun sync after merges.
+planned_changes:
+  define-standalone-planned-change-artifact:
+    status: complete
+    summary: >-
+      add a standalone planned-change YAML artifact contract under the roadmap directory with stable
+      id, owning milestone reference, status, summary, details, dependencies, and optional team
+      metadata extension points.
+    details: >-
+      The core design choice is file granularity: one planned change per file so separate people
+      normally edit separate files instead of appending to the same milestone YAML map.
+    depends_on: []
+  update-roadmap-loader-status-and-sync-for-split-files:
+    status: planned
+    summary: >-
+      update roadmap loading, status derivation, and sync rewriting to read milestone metadata plus
+      standalone planned-change files and to preserve deterministic ordering.
+    details: >-
+      The loader should treat the split-file model as the preferred layout while keeping existing
+      inline milestone planned changes valid during the migration window.
+    depends_on:
+      - define-standalone-planned-change-artifact
+  migrate-inline-planned-changes-to-files:
+    status: planned
+    summary: >-
+      add migration and sync support that can materialize existing inline milestone planned changes
+      as standalone planned-change files without losing status, details, or dependency data.
+    details: >-
+      Migration should be explicit and reviewable. It should avoid silent data movement unless the
+      command or skill is intentionally converting a roadmap to the low-conflict layout.
+    depends_on:
+      - update-roadmap-loader-status-and-sync-for-split-files
+  add-cross-file-roadmap-conflict-validation:
+    status: planned
+    summary: >-
+      add deterministic validation for duplicate planned change IDs, missing milestone references,
+      cross-file dependency errors, ambiguous ownership, and conflicts with active strict changes.
+    details: >-
+      This replaces fragile social coordination with CLI-visible diagnostics. It should report
+      coordination risks without pretending that local YAML metadata is a distributed lock.
+    depends_on:
+      - update-roadmap-loader-status-and-sync-for-split-files
+  update-recommend-and-propose-for-split-roadmap:
+    status: planned
+    summary: >-
+      update roadmap recommendation and roadmap-to-change proposal handoff so they select and
+      scaffold work from standalone planned-change artifacts.
+    details: >-
+      Recommendation should use cross-file dependency readiness and active change conflicts, then
+      carry the selected planned-change context into the normal strict change lifecycle.
+    depends_on:
+      - add-cross-file-roadmap-conflict-validation
+  add-team-metadata-to-planned-change-files:
+    status: planned
+    summary: >-
+      add structured owner, reviewers, blocked state, labels, and external references to standalone
+      planned-change files after the split-file model is in place.
+    details: >-
+      Team fields belong on the planned-change file because that is the artifact most likely to have
+      a single working owner and a focused review surface.
+    depends_on:
+      - update-recommend-and-propose-for-split-roadmap
+  add-split-roadmap-regression-coverage:
+    status: planned
+    summary: >-
+      add fixtures and copied-project regression scenarios for split-file loading, migration from
+      inline planned changes, cross-file validation, recommendation, proposal handoff, and shared
+      index preservation.
+    details: >-
+      The tests should include realistic merge-friendly workflows and assert that sync does not drop
+      planned-change metadata or reorder artifacts unpredictably.
+    depends_on:
+      - migrate-inline-planned-changes-to-files
+      - add-team-metadata-to-planned-change-files
+  document-conflict-resistant-team-workflow:
+    status: planned
+    summary: >-
+      document the recommended team workflow for editing planned-change files, keeping the shared
+      index simple, rerunning roadmap-sync after merges, and using optional external tracker
+      references.
+    details: >-
+      Documentation should clearly compare this approach with process-only rules, external tracker
+      source of truth, and hosted collaboration so teams know why the split-file model is the
+      default recommendation.
+    depends_on:
+      - add-split-roadmap-regression-coverage
+dependencies:
+  - >-
+    Existing roadmap v2 milestone files and inline planned changes must remain understandable until
+    a migration path is available.
+  - >-
+    Current strict change active and archive state remains the source used to derive planned change
+    progress and conflict diagnostics.
+  - >-
+    Roadmap details support from milestone 0010 remains available for long milestone-level planning
+    context, while standalone planned-change files carry executable planning and team metadata.
+risks:
+  - >-
+    Splitting planned changes into many files can increase directory noise if naming and index
+    organization rules are not simple.
+  - >-
+    Backward compatibility with inline planned changes can make loader behavior ambiguous unless the
+    preferred layout and migration rules are explicit.
+  - >-
+    Shared indexes can still appear in Git conflicts, so the design should avoid making the index a
+    high-churn work item registry.
+  - >-
+    Owner and reviewer fields could be mistaken for hard locks even though Git branches can still
+    diverge.
+status: proposed
+notes:
+  - >-
+    Accepted direction: solve team roadmap merge conflicts primarily through file layout and
+    independent planned-change files, not through locks, index ownership changes, or external
+    services.
+  - >-
+    The desired target layout is milestone metadata files plus standalone planned-change files under
+    `.strict-spec-driven/roadmap/`, with `INDEX.yaml` remaining a shared milestone index.
+details: >-
+  Compared options: process-only rules are cheap but leave milestone files as conflict hot spots.
+  Changing roadmap index ownership is unnecessary for the expected team workflow because teams
+  rarely modify the milestone index concurrently. External issue trackers provide mature
+  collaboration but introduce authentication, provider coupling, sync failures, and weaker
+  local-first guarantees. Hosted realtime collaboration is powerful but much larger than the current
+  YAML-first CLI product.
+
+  The accepted approach is to reduce conflict probability through artifact granularity. Milestone
+  files should change rarely. Each planned change should have its own file, so most contributors
+  edit only the work item they own. The shared roadmap index remains a simple milestone list rather
+  than becoming the work-item coordination surface. Team fields come after the split because owner
+  and reviewer metadata is most useful when attached to a file with a narrow review surface.

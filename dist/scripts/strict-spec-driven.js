@@ -7136,6 +7136,71 @@ json_schema:
                 "$ref": "#/definitions/step"
               minItems: 1
 `,
+  "strict-spec-driven/schemas/planned-change.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/planned-change/v1
+artifact_type: planned_change
+artifact_name: planned-change
+description: Strict YAML standalone roadmap planned-change artifact.
+example_ref: ../../../examples/strict-spec-driven/planned-change.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - planned_change
+    - status
+    - summary
+    - details
+    - depends_on
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/planned-change/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: planned_change
+    schema_file:
+      type: string
+    planned_change:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - milestone
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        milestone:
+          type: string
+          pattern: "^\\\\d{4}-"
+    status:
+      type: string
+      enum:
+        - planned
+        - complete
+    summary:
+      type: string
+      minLength: 1
+    details:
+      type: string
+      minLength: 1
+    depends_on:
+      type: array
+      items:
+        type: string
+    extensions:
+      type: object
+      additionalProperties: true
+`,
   "strict-spec-driven/schemas/question-list.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
 schema_id: strict-spec-driven/question-list/v1
@@ -7382,6 +7447,19 @@ entries:
         - Milestone identity is a keyed map with 4-digit-prefixed key.
         - Planned changes use keyed map with required details field.
         - Planned-change-entry no longer exists as independent artifact type.
+  - schema_id: strict-spec-driven/planned-change/v1
+    schema_version: 1
+    artifact_type: planned_change
+    artifact_name: planned-change
+    schema_file: planned-change.yaml
+    primary_example: ../../../examples/strict-spec-driven/planned-change.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Standalone planned changes support the split-file roadmap layout while inline milestone planned changes remain valid during compatibility windows.
   - schema_id: strict-spec-driven/schema-registry/v1
     schema_version: 1
     artifact_type: schema_registry

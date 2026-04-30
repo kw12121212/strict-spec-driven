@@ -1,0 +1,40 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: define-standalone-planned-change-artifact
+sections:
+  Implementation:
+    implementation-1:
+      text: >-
+        Add delta spec requirements for standalone planned-change artifacts, including identity,
+        owning milestone reference, status, summary, details, dependencies, and extension points.
+      status: complete
+    implementation-2:
+      text: >-
+        Add or update schema, schema registry, and minimal example assets for the standalone
+        planned-change artifact family while preserving existing roadmap milestone v2 validity.
+      status: complete
+    implementation-3:
+      text: >-
+        Add focused validation coverage that proves the standalone planned-change schema and example
+        are parseable, registered, and aligned with strict artifact naming conventions.
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run build` for TypeScript and bundled template validation.
+      status: complete
+      command: bun run build
+    testing-2:
+      text: Run `bun test/run.ts` for schema, registry, example, and roadmap contract coverage.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: >-
+        Verify the change stays contract-focused and does not implement split-file loading, sync,
+        migration, recommendation, proposal handoff, or final team metadata semantics.
+      status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-2

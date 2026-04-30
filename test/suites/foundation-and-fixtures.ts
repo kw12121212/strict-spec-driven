@@ -134,6 +134,22 @@ context.assert(
   "primary roadmap milestone example keeps planned change dependencies minimal",
 );
 
+const plannedChangeExample = yamlModule.parseYamlFile<{
+  schema: string;
+  artifact_type: string;
+  planned_change: { id: string; milestone: string };
+  status: string;
+  summary: string;
+  details: string;
+  depends_on: string[];
+}>(path.join(ROOT, "examples", "strict-spec-driven", "planned-change.yaml"));
+context.assert(
+  plannedChangeExample.planned_change.id.length > 0
+    && plannedChangeExample.planned_change.milestone.startsWith("0001-")
+    && plannedChangeExample.depends_on.length === 0,
+  "primary planned change example exposes standalone identity and owning milestone fields",
+);
+
 context.section("[3] validation layer utilities");
 
 const roadmapMilestonePlanningExample = yamlModule.parseYamlFile<{
@@ -229,6 +245,40 @@ context.assert(
 context.assert(
   roadmapMilestonePlanningExample.dependencies.length >= 1,
   "roadmap milestone coverage example keeps milestone dependency fields populated",
+);
+
+const plannedChangeSchema = validationModule.loadBundledSchemaByArtifactType("planned_change") as Record<string, unknown>;
+const plannedChangeSchemaProps = plannedChangeSchema.properties as Record<string, unknown>;
+context.assert(
+  (plannedChangeSchemaProps.planned_change as Record<string, unknown>)?.properties !== undefined,
+  "planned change schema resolves by artifact type",
+);
+context.assert(
+  ((plannedChangeSchemaProps.status as Record<string, unknown>).enum as string[]).includes(plannedChangeExample.status),
+  "planned change example status stays within planned change schema enums",
+);
+context.assert(
+  (plannedChangeSchemaProps.extensions as Record<string, unknown>)?.additionalProperties === true,
+  "planned change schema exposes optional extension space",
+);
+const plannedChangeValidation = validationModule.validateArtifact(
+  plannedChangeSchema,
+  plannedChangeExample,
+  "examples/strict-spec-driven/planned-change.yaml",
+);
+context.assert(plannedChangeValidation.valid, "planned change example validates against planned change schema");
+const bundledRegistry = validationModule.loadBundledSchema<Record<string, unknown>>("registry.yaml") as {
+  entries: Array<{ schema_id: string; artifact_type: string; schema_file: string; primary_example: string }>;
+};
+context.assert(
+  bundledRegistry.entries.some(
+    (entry) =>
+      entry.schema_id === "strict-spec-driven/planned-change/v1"
+      && entry.artifact_type === "planned_change"
+      && entry.schema_file === "planned-change.yaml"
+      && entry.primary_example.endsWith("/planned-change.yaml"),
+  ),
+  "schema registry includes standalone planned change schema and primary example",
 );
 
 const testJsonSchema = {
@@ -1409,6 +1459,7 @@ const distSchemaFiles = [
   "question-list.yaml",
   "roadmap-index.yaml",
   "roadmap-milestone.yaml",
+  "planned-change.yaml",
 ];
 for (const schemaFile of distSchemaFiles) {
   const distSchemaPath = path.join(distSchemasDir, schemaFile);
