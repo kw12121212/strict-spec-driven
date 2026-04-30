@@ -25,6 +25,16 @@ roadmap-sync: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync
 The `.strict-spec-driven/` directory must exist at the project root. Before
 proceeding, verify that strict workflow state already exists.
 
+## Roadmap Linking Rules
+
+- Milestone ownership for standalone work items is defined by
+  `planned_change.milestone`.
+- Do not expect milestone files to list standalone planned-change file paths.
+- Use `roadmap-status` output to locate planned-change source files; each
+  `plannedChanges[]` entry reports its `path`.
+- Treat filenames as helpful conventions only. `planned_change.id` and
+  `planned_change.milestone` are the source of truth.
+
 ## Steps
 
 1. **Load milestone context** — read `.strict-spec-driven/config.yaml`,
@@ -37,12 +47,14 @@ proceeding, verify that strict workflow state already exists.
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
    ```
    Use the milestone's declared status, derived status, planned change state,
-   and any diagnostics to understand what needs refinement.
+   planned-change paths, and any diagnostics to understand what needs
+   refinement.
 
 3. **Edit only the target milestone** — refine its `goal`, `scope`,
-   `done_criteria`, `planned_changes`, `dependencies`, `risks`, `status`, and
-   `notes` fields without moving unrelated work across milestones unless the
-   user explicitly asks for that boundary change.
+   `done_criteria`, `dependencies`, `risks`, `status`, `notes`, and `details`
+   fields without moving unrelated work across milestones unless the user
+   explicitly asks for that boundary change. Keep `planned_changes: {}` in the
+   milestone unless you are performing an explicit legacy materialization step.
 
 4. **Resync the roadmap** — run:
    ```bash
@@ -53,7 +65,8 @@ proceeding, verify that strict workflow state already exists.
    consistent with active and archived strict changes.
 
 5. **Report the milestone result** — summarize the milestone goal, planned
-   changes, status, and any follow-up work or conflicts.
+   changes, status, the relevant planned-change file paths, and any follow-up
+   work or conflicts.
 
 ## Rules
 

@@ -1,0 +1,16 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: bundle-templates-with-dist
+  milestone: 0002-strict-cli-foundation
+status: complete
+summary: >-
+  update the build step to copy `templates/` into `dist/templates/` alongside compiled JS, change
+  template resolution in scripts to use `import.meta.url` relative paths instead of `PROJECT_ROOT`,
+  and add tests verifying compiled scripts can locate all required scaffold and change-template
+  assets from the dist output without relying on the source tree. Skill-directory symlinks are
+  deferred to M04.
+details: 'Migration from v1: add technical and design context for this planned change.'
+depends_on: []

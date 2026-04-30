@@ -57,42 +57,7 @@ done_criteria:
   - >-
     Automated coverage proves strict roadmap fixtures, sync behavior, proposal handoff, and any
     needed conversion paths preserve `details` predictably.
-planned_changes:
-  define-strict-roadmap-details-field-contract:
-    status: complete
-    summary: >-
-      add the strict roadmap milestone schema, example, template, and registry definitions for a
-      dedicated freeform `details` field intended for long-form planning guidance.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  wire-strict-roadmap-details-through-roadmap-cli:
-    status: complete
-    summary: >-
-      update strict roadmap parsing, validation, status, and sync behavior so milestone `details` is
-      preserved as canonical roadmap state.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  teach-strict-roadmap-propose-to-consume-details:
-    status: complete
-    summary: >-
-      update strict roadmap proposal handoff so milestone `details` informs proposal scaffolding
-      without duplicating whole milestone plans into strict change artifacts.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  preserve-strict-roadmap-details-during-conversion:
-    status: complete
-    summary: >-
-      define how converters or migration helpers initialize or preserve `details` when older strict
-      or imported roadmap artifacts do not already carry the field.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  cover-strict-roadmap-details-with-regression:
-    status: complete
-    summary: >-
-      add fixture and end-to-end regression coverage proving `details` survives strict roadmap
-      validation, sync, proposal handoff, and related workflows.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
+planned_changes: {}
 dependencies:
   - >-
     The strict roadmap behavior delivered in milestones `04-strict-workflow-skills-and-roadmap` and

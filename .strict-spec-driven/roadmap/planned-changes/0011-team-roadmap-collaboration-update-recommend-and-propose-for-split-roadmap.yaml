@@ -1,0 +1,16 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: update-recommend-and-propose-for-split-roadmap
+  milestone: 0011-team-roadmap-collaboration
+status: complete
+summary: >-
+  update roadmap recommendation and roadmap-to-change proposal handoff so they select and scaffold
+  work from standalone planned-change artifacts.
+details: >-
+  Recommendation should use cross-file dependency readiness and active change conflicts, then carry
+  the selected planned-change context into the normal strict change lifecycle.
+depends_on:
+  - add-cross-file-roadmap-conflict-validation

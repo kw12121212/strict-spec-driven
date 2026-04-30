@@ -196,6 +196,12 @@ try {
     "roadmap-status derives archived planned changes as complete",
   );
   context.assert(
+    roadmapStatusBeforeJson.milestones[0].plannedChanges[0].source === "standalone"
+      && roadmapStatusBeforeJson.milestones[0].plannedChanges[0].path === "roadmap/planned-changes/0001-active-change.yaml"
+      && roadmapStatusBeforeJson.milestones[0].plannedChanges[1].path === "roadmap/planned-changes/0002-archived-change.yaml",
+    "roadmap-status reports standalone planned-change source and path",
+  );
+  context.assert(
     roadmapStatusBeforeJson.milestones[0].mismatches.length === 1
       && roadmapStatusBeforeJson.milestones[0].plannedChanges[1].mismatches.length === 1,
     "roadmap-status reports mismatch details without failing structural validation",
@@ -417,6 +423,12 @@ try {
       && splitStatusAfterMaterializeJson.milestones[0].plannedChanges[1].state === "active"
       && splitStatusAfterMaterializeJson.milestones[0].plannedChanges[2].state === "archived",
     "roadmap-status derives planned-change state after explicit materialization",
+  );
+  context.assert(
+    splitStatusAfterMaterializeJson.milestones[0].plannedChanges[0].source === "standalone"
+      && splitStatusAfterMaterializeJson.milestones[0].plannedChanges[0].path === "roadmap/planned-changes/0001-split-inline-active.yaml"
+      && splitStatusAfterMaterializeJson.milestones[0].plannedChanges[1].path === "roadmap/planned-changes/0001-split-active.yaml",
+    "roadmap-status reports planned-change file paths after explicit materialization",
   );
 } finally {
   rmSync(roadmapSplitFilesDir, { recursive: true, force: true });
@@ -1391,6 +1403,11 @@ function runCopiedWorkspaceRoadmapFlowScenario(): {
       "copied workspace roadmap-status derives active and missing planned change states from the materialized migrated fixture history",
     );
     context.assert(
+      copiedRoadmapStatusMaterializedJson.milestones[0].plannedChanges[0]?.path === "roadmap/planned-changes/0001-core-todo-workflows-add-due-dates.yaml"
+        && copiedRoadmapStatusMaterializedJson.milestones[0].plannedChanges[1]?.path === "roadmap/planned-changes/0001-core-todo-workflows-add-tag-filtering.yaml",
+      "copied workspace roadmap-status reports materialized planned-change paths",
+    );
+    context.assert(
       copiedRoadmapStatusMaterializedJson.milestones[0].mismatches.length === 0,
       "copied workspace roadmap-status clears the milestone mismatch after explicit materialization",
     );
@@ -1711,6 +1728,11 @@ function runCopiedSplitRoadmapCliScenario(): {
         && materializedStatusJson.milestones[0].plannedChanges[2]?.state === "active"
         && materializedStatusJson.milestones[0].plannedChanges[3]?.state === "archived",
       "copied project split roadmap-status derives materialized and standalone planned-change states after conversion",
+    );
+    context.assert(
+      materializedStatusJson.milestones[0].plannedChanges[0]?.path === "roadmap/planned-changes/0001-core-todo-workflows-add-due-dates.yaml"
+        && materializedStatusJson.milestones[0].plannedChanges[2]?.path === "roadmap/planned-changes/0001-split-active.yaml",
+      "copied project split roadmap-status reports planned-change paths after conversion",
     );
 
     writeStandalonePlannedChangeArtifact(workspaceRoot, "planned-changes/9999-duplicate-split-active.yaml", {

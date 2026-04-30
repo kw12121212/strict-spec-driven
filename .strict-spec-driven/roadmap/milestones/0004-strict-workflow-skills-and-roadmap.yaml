@@ -60,48 +60,7 @@ done_criteria:
   - >-
     Skill and roadmap behavior are covered by automated validation and smoke tests rather than
     prompt text alone.
-planned_changes:
-  port-strict-skill-packaging-and-validation:
-    status: complete
-    summary: >-
-      create strict spec and strict roadmap skill directories and `SKILL.md` metadata, remove legacy
-      install names, update installer scripts and marketplace metadata, enforce `scripts ->
-      ../../dist/scripts` and `templates -> ../../dist/templates` symlink behavior, and port
-      validation for frontmatter, command references, stale legacy names, bundled script
-      assumptions, and broken symlinks.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  update-core-spec-skills-for-yaml:
-    status: complete
-    summary: >-
-      update init, propose, apply, verify, review, archive, auto, modify, and cancel skill
-      instructions to use `.strict-spec-driven/` and YAML change artifacts.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  update-planning-and-spec-content-skills-for-yaml:
-    status: complete
-    summary: >-
-      update brainstorm, simple-task, spec-content, spec-edit, sync-specs, and mapping repair skills
-      to edit strict YAML specs and deltas through structured fields.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  define-yaml-roadmap-schema:
-    status: complete
-    summary: >-
-      finalize concrete YAML roadmap index and milestone schemas plus examples covering ordering,
-      status, scope, criteria, dependencies, risks, notes, and planned change entries.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  port-strict-roadmap-workflow:
-    status: complete
-    summary: >-
-      implement roadmap validation, status, index regeneration, sync, and archive reconciliation
-      commands for `.strict-spec-driven/roadmap/`, add recommendation and roadmap-to-change proposal
-      handoff without duplicating planning metadata, and rewrite roadmap plan, milestone, recommend,
-      propose, and sync skills for YAML roadmap artifacts, strict command names, numbered milestone
-      files, and single-line planned change entries.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
+planned_changes: {}
 dependencies:
   - >-
     `03-core-strict-workflow` should define the command behavior that strict skills and roadmap

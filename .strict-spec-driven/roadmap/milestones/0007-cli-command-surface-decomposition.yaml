@@ -52,56 +52,7 @@ done_criteria:
     The shared real todo project regression suite from milestone 09 exercises command-surface
     scenarios against a freshly copied project fixture so CLI decomposition is validated in a
     repeatable end-to-end environment.
-planned_changes:
-  extract-cli-entrypoint-and-usage-layer:
-    status: complete
-    summary: >-
-      move argv normalization, usage rendering, and top-level error or exit handling out of
-      `src/strict-spec-cli.ts` into focused CLI entry modules.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  extract-cli-command-registry-and-dispatch:
-    status: complete
-    summary: >-
-      move command registration and dispatch into dedicated router modules so the entrypoint no
-      longer owns the full command table directly.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  extract-cli-change-discovery-and-status:
-    status: complete
-    summary: >-
-      move change listing, archive matching, and active-status calculation into focused helper
-      modules reused by CLI commands.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  extract-cli-spec-mapping-audit:
-    status: complete
-    summary: >-
-      move spec-mapping parsing, normalization, evidence collection, and diagnostic sorting into
-      dedicated modules instead of keeping them inline in the entrypoint.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  extract-cli-command-handlers-by-domain:
-    status: complete
-    summary: >-
-      split init, propose, verify, review, roadmap, migrate, maintenance, ship, list, modify, and
-      cancel handlers into smaller domain-oriented command modules while preserving outputs.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  stabilize-cli-output-contracts:
-    status: complete
-    summary: >-
-      centralize human-readable and JSON output shaping so command text and machine-readable
-      structures stay stable while modules move.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  bind-cli-refactors-to-real-todo-project-regression:
-    status: complete
-    summary: >-
-      run command-surface scenarios against the shared copied todo project fixture on every test run
-      so CLI decomposition is validated in a repeatable project context.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
+planned_changes: {}
 dependencies:
   - >-
     `03-core-strict-workflow` and `06-operations-and-documentation` must remain the behavioral

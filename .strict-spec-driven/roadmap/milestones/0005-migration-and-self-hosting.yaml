@@ -65,56 +65,7 @@ done_criteria:
   - >-
     Repository guidance clearly states the strict workflow preference and the chosen retirement or
     preservation policy for bootstrap `.spec-driven/`.
-planned_changes:
-  implement-spec-to-strict-migrate-command:
-    status: complete
-    summary: >-
-      implement a `migrate` subcommand that reads `.spec-driven/`, writes `.strict-spec-driven/`,
-      performs preflight checks, enforces overwrite protection, and emits a structured migration
-      report.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  add-strict-spec-migrate-skill:
-    status: complete
-    summary: >-
-      create a strict migration skill package that runs preflight checks, invokes migration, reviews
-      reports, validates generated YAML, and guides manual follow-up.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  convert-core-workflow-artifacts-to-yaml:
-    status: complete
-    summary: >-
-      implement conversion modules and fixtures for main specs, delta specs, requirement scenarios,
-      operation sections, mapping frontmatter, and active and archived proposal, design, tasks, and
-      questions artifacts so strict YAML spec and change directories preserve status, stable
-      identifiers, and archive dates.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  convert-roadmap-and-project-state-to-yaml:
-    status: complete
-    summary: >-
-      implement conversion modules and validation tests for roadmap indexes, milestone files,
-      statuses, dependencies, risks, notes, planned change entries, config, specs indexes, roadmap
-      indexes, and generated scaffold metadata into strict YAML project state files.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  add-migration-tests-and-reporting:
-    status: complete
-    summary: >-
-      add automated tests and report snapshots for successful migrations, ambiguous migrations,
-      malformed Markdown, archive directories, roadmap status derivation, idempotent reruns, and
-      actionable migration reports.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  self-host-repo-on-strict-workflow:
-    status: complete
-    summary: >-
-      run the migration against this repository's bootstrap roadmap, specs, config, active changes,
-      and archived changes, validate and fix the resulting strict state for schema, reference,
-      roadmap, and semantic issues, then update repository guidance to prefer strict workflow names
-      and document whether bootstrap `.spec-driven/` is preserved, archived, or removed.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
+planned_changes: {}
 dependencies:
   - >-
     `03-core-strict-workflow` must support the full propose through archive lifecycle before the

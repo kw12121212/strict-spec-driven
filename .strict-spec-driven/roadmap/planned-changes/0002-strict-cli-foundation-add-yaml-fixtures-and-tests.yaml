@@ -1,0 +1,17 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-yaml-fixtures-and-tests
+  milestone: 0002-strict-cli-foundation
+status: complete
+summary: >-
+  add test fixtures and automated tests for valid scaffold generation, invalid YAML diagnostics,
+  enum validation, reference validation, duplicate IDs, unsupported shapes, and idempotent init.
+  Test cases must trace back to M01 requirement identifiers in `yaml-artifacts.md` so that every M01
+  scenario has a corresponding pass/fail signal. Positive tests confirm valid examples pass
+  validation; negative tests confirm invalid artifacts produce deterministic failures with
+  actionable diagnostics.
+details: 'Migration from v1: add technical and design context for this planned change.'
+depends_on: []

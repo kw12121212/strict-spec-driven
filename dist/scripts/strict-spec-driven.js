@@ -13214,7 +13214,8 @@ function getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges
     merged.set(id, {
       id,
       entry,
-      source: "inline"
+      source: "inline",
+      path: toPosix(path9.join("roadmap", "milestones", milestone.relativeMilestonePath))
     });
   }
   for (const plannedChange of standalonePlannedChanges) {
@@ -13222,6 +13223,7 @@ function getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges
     merged.set(id, {
       id,
       source: "standalone",
+      path: toPosix(path9.join("roadmap", plannedChange.relativeRoadmapPath)),
       loadedPlannedChange: plannedChange,
       entry: {
         status: plannedChange.artifact.status,
@@ -13234,7 +13236,7 @@ function getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges
   return Array.from(merged.values());
 }
 function buildMilestoneStatus(milestone, changeStates, plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, [])) {
-  const plannedChanges = plannedChangeEntries.map(({ id, entry }) => {
+  const plannedChanges = plannedChangeEntries.map(({ id, entry, source, path: plannedChangePath }) => {
     const state = derivePlannedChangeState(changeStates, id);
     const derivedStatus2 = derivePlannedChangeDeclaredStatus(state);
     const mismatches2 = [];
@@ -13246,6 +13248,8 @@ function buildMilestoneStatus(milestone, changeStates, plannedChangeEntries = ge
     }
     return {
       id,
+      source,
+      path: plannedChangePath,
       summary: entry.summary,
       declaredStatus: entry.status,
       derivedStatus: derivedStatus2,

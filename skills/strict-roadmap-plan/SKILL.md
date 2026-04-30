@@ -26,6 +26,15 @@ roadmap-sync: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync
 The `.strict-spec-driven/` directory must exist at the project root. Before
 proceeding, verify that strict workflow state already exists or initialize it.
 
+## Roadmap Linking Rules
+
+- Milestone ownership is defined by `planned_change.milestone`.
+- Do not expect milestone files to list standalone planned-change file paths.
+- Use `roadmap-status` output to locate planned-change source files; each
+  `plannedChanges[]` entry reports its `path`.
+- Treat filenames as helpful conventions only. `planned_change.id` and
+  `planned_change.milestone` are the source of truth.
+
 ## Steps
 
 1. **Read strict project context** — inspect `.strict-spec-driven/config.yaml`,
@@ -37,14 +46,18 @@ proceeding, verify that strict workflow state already exists or initialize it.
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
    ```
    Use the returned milestone order, diagnostics, and derived status summaries
-   as the basis for any roadmap edits under `.strict-spec-driven/roadmap/`.
+   as the basis for any roadmap edits under `.strict-spec-driven/roadmap/`. Use
+   the returned `plannedChanges[].path` values when you need to inspect or move
+   existing standalone roadmap items.
 
 3. **Create or revise roadmap YAML artifacts** — update:
-   - `.strict-spec-driven/roadmap/INDEX.yaml`
-   - `.strict-spec-driven/roadmap/milestones/*.yaml`
-   Keep milestone planning in structured YAML fields such as `goal`, `scope`,
-   `done_criteria`, `planned_changes`, `dependencies`, `risks`, `status`, and
-   `notes`.
+    - `.strict-spec-driven/roadmap/INDEX.yaml`
+    - `.strict-spec-driven/roadmap/milestones/*.yaml`
+    - `.strict-spec-driven/roadmap/planned-changes/*.yaml`
+    Keep milestone planning in structured YAML fields such as `goal`, `scope`,
+    `done_criteria`, `dependencies`, `risks`, `status`, and `notes`. Keep
+    standalone work items in `planned-changes/*.yaml`, and keep milestone
+    `planned_changes` empty unless you are explicitly materializing legacy data.
 
 4. **Normalize roadmap state** — run:
    ```bash

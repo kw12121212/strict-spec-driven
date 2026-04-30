@@ -1,0 +1,13 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: extract-cli-entrypoint-and-usage-layer
+  milestone: 0007-cli-command-surface-decomposition
+status: complete
+summary: >-
+  move argv normalization, usage rendering, and top-level error or exit handling out of
+  `src/strict-spec-cli.ts` into focused CLI entry modules.
+details: 'Migration from v1: add technical and design context for this planned change.'
+depends_on: []

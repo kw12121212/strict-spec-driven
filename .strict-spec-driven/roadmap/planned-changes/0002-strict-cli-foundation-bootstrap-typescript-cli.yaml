@@ -1,0 +1,14 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: bootstrap-typescript-cli
+  milestone: 0002-strict-cli-foundation
+status: complete
+summary: >-
+  add `package.json`, `tsconfig.json`, TypeScript source entrypoint, strict ESM command router,
+  compiled `dist/` output, and repeatable `npm run build` plus `npm test` runner based on reference
+  conventions.
+details: 'Migration from v1: add technical and design context for this planned change.'
+depends_on: []

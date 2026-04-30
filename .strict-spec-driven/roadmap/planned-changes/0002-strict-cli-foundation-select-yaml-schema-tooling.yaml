@@ -1,0 +1,13 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: select-yaml-schema-tooling
+  milestone: 0002-strict-cli-foundation
+status: complete
+summary: >-
+  pin `js-yaml` and `ajv` with `ajv-formats` in `package.json`, document the dependency policy, and
+  wire both into the TypeScript build and test scripts.
+details: 'Migration from v1: add technical and design context for this planned change.'
+depends_on: []

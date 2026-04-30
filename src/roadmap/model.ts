@@ -135,6 +135,8 @@ export type RoadmapDiagnostic = {
 
 export type RoadmapPlannedChangeStatus = {
   id: string;
+  source: "inline" | "standalone";
+  path: string;
   summary: string;
   declaredStatus: DeclaredPlannedChangeStatus;
   derivedStatus: DeclaredPlannedChangeStatus;

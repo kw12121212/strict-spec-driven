@@ -28,18 +28,28 @@ verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 The `.strict-spec-driven/` directory must exist at the project root. Before
 proceeding, verify that strict workflow state already exists.
 
+## Roadmap Linking Rules
+
+- Milestone ownership is defined by `planned_change.milestone`.
+- Do not expect milestone files to list standalone planned-change file paths.
+- Use `roadmap-status` output to locate planned-change source files; each
+  `plannedChanges[]` entry reports its `path`.
+- Treat filenames as helpful conventions only. `planned_change.id` and
+  `planned_change.milestone` are the source of truth.
+- If `roadmap-status` reports legacy inline milestone `planned_changes`, stop
+  and materialize them before proposing work.
+
 ## Steps
 
 1. **Locate the planned change in the strict roadmap** — inspect
    `.strict-spec-driven/roadmap/INDEX.yaml`, the relevant milestone YAML file,
-   any standalone planned-change YAML artifact under `.strict-spec-driven/roadmap/`,
-   and the current `roadmap-status` output so the change name, owning
-   milestone, and roadmap source are unambiguous. Prefer standalone
-   planned-change artifacts as the split-file work item source; keep inline
-   milestone `planned_changes` entries eligible during the compatibility
-   window. Do not scaffold a planned change whose `roadmap-status` context shows
-   unsatisfied dependencies, duplicate identities, missing milestone references,
-   or active strict change conflicts.
+   the standalone planned-change YAML artifact under
+   `.strict-spec-driven/roadmap/planned-changes/`, and the current
+   `roadmap-status` output so the change name, owning milestone, and exact
+   roadmap file path are unambiguous. Use the `plannedChanges[].path` entry from
+   `roadmap-status` to open the source file. Do not scaffold a planned change
+   whose `roadmap-status` context shows unsatisfied dependencies, duplicate
+   identities, missing milestone references, or active strict change conflicts.
 
 2. **Read strict proposal context** — read `.strict-spec-driven/config.yaml`,
    `.strict-spec-driven/specs/INDEX.yaml`, and the strict YAML main specs the
@@ -83,7 +93,7 @@ proceeding, verify that strict workflow state already exists.
 ## Rules
 
 - Keep the roadmap source of truth in `.strict-spec-driven/roadmap/`
-- Prefer standalone planned-change artifacts over inline milestone entries when
-  both roadmap representations are available
+- Use the standalone planned-change artifact path from `roadmap-status` when
+  reading or quoting roadmap work
 - Use the roadmap planned change ID as the strict change identity
 - Do not duplicate whole milestone plans inside the change artifacts

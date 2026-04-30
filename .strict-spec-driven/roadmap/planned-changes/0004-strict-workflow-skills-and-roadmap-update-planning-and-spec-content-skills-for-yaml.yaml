@@ -1,0 +1,13 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: update-planning-and-spec-content-skills-for-yaml
+  milestone: 0004-strict-workflow-skills-and-roadmap
+status: complete
+summary: >-
+  update brainstorm, simple-task, spec-content, spec-edit, sync-specs, and mapping repair skills to
+  edit strict YAML specs and deltas through structured fields.
+details: 'Migration from v1: add technical and design context for this planned change.'
+depends_on: []

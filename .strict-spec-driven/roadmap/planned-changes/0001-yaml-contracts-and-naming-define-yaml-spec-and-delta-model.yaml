@@ -1,0 +1,13 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: define-yaml-spec-and-delta-model
+  milestone: 0001-yaml-contracts-and-naming
+status: complete
+summary: >-
+  translate RFC 2119 requirements, scenarios, mappings, and ADDED/MODIFIED/REMOVED deltas into
+  structured YAML fields with stable requirement and scenario identifiers.
+details: 'Migration from v1: add technical and design context for this planned change.'
+depends_on: []

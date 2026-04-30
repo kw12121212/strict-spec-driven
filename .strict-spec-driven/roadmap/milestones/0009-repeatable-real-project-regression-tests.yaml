@@ -55,49 +55,7 @@ done_criteria:
   - >-
     Milestones 07 and 08 can use this suite as the shared acceptance gate for command-surface and
     domain-module refactors.
-planned_changes:
-  create-real-todo-project-fixture:
-    status: complete
-    summary: >-
-      add a committed todo project fixture under `test/fixtures/projects/` with realistic source
-      files, repository metadata, and workflow artifacts that exercise the strict CLI meaningfully.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  add-repeatable-project-copy-and-reset-harness:
-    status: complete
-    summary: >-
-      add shared test helpers that copy the committed todo project fixture into a temporary
-      workspace, run commands there, and clean up afterward so tests are repeatable.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  split-monolithic-test-runner-into-modules:
-    status: complete
-    summary: >-
-      decompose `test/run.ts` into smaller suites and helpers for CLI, roadmap, migration,
-      validation, and project-fixture scenarios.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  add-todo-project-cli-regression-scenarios:
-    status: complete
-    summary: >-
-      cover init, propose, list, modify, cancel, verify-spec-mappings, and other command-surface
-      behavior against the copied todo project fixture.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  add-todo-project-roadmap-and-migration-scenarios:
-    status: complete
-    summary: >-
-      cover roadmap-status, roadmap-sync, migrate, and related artifact assertions against the
-      copied todo project fixture and its expected outputs.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  prove-todo-project-suite-repeatability:
-    status: complete
-    summary: >-
-      add explicit checks that the same copied-fixture scenarios can run repeatedly without baseline
-      drift and with deterministic diagnostics or output ordering.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
+planned_changes: {}
 dependencies:
   - >-
     Milestones 07 and 08 define the refactor scopes whose safety this suite must guard, but this

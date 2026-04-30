@@ -1,0 +1,16 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-team-metadata-to-planned-change-files
+  milestone: 0011-team-roadmap-collaboration
+status: complete
+summary: >-
+  add structured owner, reviewers, blocked state, labels, and external references to standalone
+  planned-change files after the split-file model is in place.
+details: >-
+  Team fields belong on the planned-change file because that is the artifact most likely to have a
+  single working owner and a focused review surface.
+depends_on:
+  - update-recommend-and-propose-for-split-roadmap

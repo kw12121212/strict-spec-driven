@@ -1,0 +1,13 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: port-ship-workflow-to-strict
+  milestone: 0006-operations-and-documentation
+status: complete
+summary: >-
+  implement strict ship behavior that verifies archived changes, inspects roadmap status, creates a
+  focused git commit, and documents the push handoff.
+details: 'Migration from v1: add technical and design context for this planned change.'
+depends_on: []

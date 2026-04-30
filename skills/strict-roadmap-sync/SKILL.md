@@ -27,6 +27,15 @@ roadmap-sync-materialize: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadm
 The `.strict-spec-driven/` directory must exist at the project root. Before
 proceeding, verify that strict workflow state already exists.
 
+## Roadmap Linking Rules
+
+- Milestone ownership is defined by `planned_change.milestone`.
+- Do not expect milestone files to list standalone planned-change file paths.
+- Use `roadmap-status` output to locate planned-change source files; each
+  `plannedChanges[]` entry reports its `path`.
+- Treat filenames as helpful conventions only. `planned_change.id` and
+  `planned_change.milestone` are the source of truth.
+
 ## Steps
 
 1. **Inspect current roadmap state** — run:
@@ -34,7 +43,8 @@ proceeding, verify that strict workflow state already exists.
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
    ```
    Read diagnostics, milestone ordering, declared statuses, derived statuses,
-   and planned change state under `.strict-spec-driven/roadmap/`.
+   planned change state, and planned-change file `path` values under
+   `.strict-spec-driven/roadmap/`.
 
 2. **Fix or surface blocking roadmap shape issues** — if strict roadmap YAML is
    malformed, repair safe issues first. Stop and ask the user if the roadmap

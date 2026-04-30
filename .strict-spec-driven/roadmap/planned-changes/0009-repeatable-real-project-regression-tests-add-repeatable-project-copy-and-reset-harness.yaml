@@ -1,0 +1,13 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-repeatable-project-copy-and-reset-harness
+  milestone: 0009-repeatable-real-project-regression-tests
+status: complete
+summary: >-
+  add shared test helpers that copy the committed todo project fixture into a temporary workspace,
+  run commands there, and clean up afterward so tests are repeatable.
+details: 'Migration from v1: add technical and design context for this planned change.'
+depends_on: []

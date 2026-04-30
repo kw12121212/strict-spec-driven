@@ -1,0 +1,15 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: self-host-repo-on-strict-workflow
+  milestone: 0005-migration-and-self-hosting
+status: complete
+summary: >-
+  run the migration against this repository's bootstrap roadmap, specs, config, active changes, and
+  archived changes, validate and fix the resulting strict state for schema, reference, roadmap, and
+  semantic issues, then update repository guidance to prefer strict workflow names and document
+  whether bootstrap `.spec-driven/` is preserved, archived, or removed.
+details: 'Migration from v1: add technical and design context for this planned change.'
+depends_on: []

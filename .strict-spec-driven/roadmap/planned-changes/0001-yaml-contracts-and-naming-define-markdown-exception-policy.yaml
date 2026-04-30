@@ -1,0 +1,13 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: define-markdown-exception-policy
+  milestone: 0001-yaml-contracts-and-naming
+status: complete
+summary: >-
+  update specs and contributor docs to list allowed Markdown files such as `SKILL.md`, `README.md`,
+  `AGENTS.md`, and `RTK.md`, while requiring generated or consumed workflow artifacts to be YAML.
+details: 'Migration from v1: add technical and design context for this planned change.'
+depends_on: []

@@ -1,0 +1,13 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: preserve-strict-roadmap-details-during-conversion
+  milestone: 0010-strict-roadmap-details-guidance
+status: complete
+summary: >-
+  define how converters or migration helpers initialize or preserve `details` when older strict or
+  imported roadmap artifacts do not already carry the field.
+details: 'Migration from v1: add technical and design context for this planned change.'
+depends_on: []

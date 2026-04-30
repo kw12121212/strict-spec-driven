@@ -1,0 +1,13 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: split-migration-reporting-and-run-orchestration
+  milestone: 0008-workflow-domain-module-decomposition
+status: complete
+summary: >-
+  separate migration preflight, deferred-artifact handling, result sorting, manual-follow-up
+  reporting, and write orchestration from content parsing logic.
+details: 'Migration from v1: add technical and design context for this planned change.'
+depends_on: []

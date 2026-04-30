@@ -255,4 +255,4 @@ Do not hand-edit roadmap completion state after implementation. Let the strict w
 node scripts/strict-spec-driven.js roadmap-status
 ```
 
-The command reports each milestone's declared and derived status, each planned change's workflow state, and any mismatches or cross-file validation problems.
+The command reports each milestone's declared and derived status, each planned change's source file path and workflow state, and any mismatches or cross-file validation problems.

@@ -1,0 +1,16 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: define-standalone-planned-change-artifact
+  milestone: 0011-team-roadmap-collaboration
+status: complete
+summary: >-
+  add a standalone planned-change YAML artifact contract under the roadmap directory with stable id,
+  owning milestone reference, status, summary, details, dependencies, and optional team metadata
+  extension points.
+details: >-
+  The core design choice is file granularity: one planned change per file so separate people
+  normally edit separate files instead of appending to the same milestone YAML map.
+depends_on: []

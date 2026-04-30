@@ -29,14 +29,25 @@ verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 The `.strict-spec-driven/` directory must exist at the project root. Before
 proceeding, verify that strict workflow state already exists.
 
+## Roadmap Linking Rules
+
+- Milestone ownership is defined by `planned_change.milestone`.
+- Do not expect milestone files to list standalone planned-change file paths.
+- Use `roadmap-status` output to locate planned-change source files; each
+  `plannedChanges[]` entry reports its `path`.
+- Treat filenames as helpful conventions only. `planned_change.id` and
+  `planned_change.milestone` are the source of truth.
+- If `roadmap-status` reports legacy inline milestone `planned_changes`, stop
+  and materialize them before recommending work.
+
 ## Steps
 
 1. **Read roadmap context first** — read:
    - `.strict-spec-driven/config.yaml`
    - `.strict-spec-driven/roadmap/INDEX.yaml`
    - the milestone YAML files relevant to the current strict roadmap phase
-   - standalone planned-change YAML artifacts under `.strict-spec-driven/roadmap/`
-     when present, treating them as the preferred split-file work item source
+   - standalone planned-change YAML artifacts under
+     `.strict-spec-driven/roadmap/planned-changes/`
    - `.strict-spec-driven/specs/INDEX.yaml`
    - the strict YAML main specs the candidate change is likely to touch
    - the current `roadmap-status` output
@@ -46,22 +57,20 @@ proceeding, verify that strict workflow state already exists.
      planned change comes from a split-file artifact
 
 2. **Choose the next candidate from existing planned changes** — recommend only a
-   planned change that already exists in the strict roadmap. Prefer standalone
-   planned-change artifacts as the split-file source of truth; keep inline
-   `planned_changes` entries under `.strict-spec-driven/roadmap/milestones/`
-   eligible during the compatibility window. Use `roadmap-status` output to
-   avoid selecting planned changes with unsatisfied cross-file dependencies,
-   invalid milestone references, duplicate identities, or active strict change
-   conflicts. These active strict change conflicts mean another active strict
-   change already claims the same planned-change identity. Choose a planned
-   change whose dependencies are complete and whose workflow state is missing,
-   not active or archived.
+   planned change that already exists as a standalone planned-change artifact in
+   the strict roadmap. Use `roadmap-status` output to avoid selecting planned
+   changes with unsatisfied cross-file dependencies, invalid milestone
+   references, duplicate identities, or active strict change conflicts. These
+   active strict change conflicts mean another active strict change already
+   claims the same planned-change identity. Choose a planned change whose
+   dependencies are complete and whose workflow state is missing, not active or
+   archived. Use the reported `plannedChanges[].path` to open the exact source
+   file you are recommending from.
 
 3. **Present a checkpoint before scaffolding** — summarize:
    - the proposed change name
    - the milestone it comes from
-   - whether the roadmap source is a standalone planned-change artifact or an
-     inline milestone entry
+   - the standalone planned-change file path from `roadmap-status`
    - why it is the best next step
    - which strict specs are likely to change
    - any open questions that would need to go into the strict change proposal
@@ -91,7 +100,7 @@ proceeding, verify that strict workflow state already exists.
    relevant to the selected planned change and use them as targeted planning
    guidance when generating the change artifacts. Do not copy the full milestone
    plan or the full planned-change details — only extract guidance relevant to
-   this one planned change. If `details` is absent, proceed normally.
+    this one planned change. If `details` is absent, proceed normally.
 
 5. **Validate the proposed strict change** — run:
    ```bash
@@ -115,7 +124,7 @@ proceeding, verify that strict workflow state already exists.
 - Recommend only work that already exists under `.strict-spec-driven/roadmap/`
 - Keep `.strict-spec-driven/roadmap/` as the canonical home of milestone-level
   and planned-change planning metadata
-- Prefer standalone planned-change artifacts over inline milestone entries when
-  both roadmap representations are available
+- Use the standalone planned-change artifact path from `roadmap-status` when
+  opening or quoting roadmap work
 - Convert exactly one planned change into one normal strict change scaffold
 - Do not pause for user confirmation during the recommend step

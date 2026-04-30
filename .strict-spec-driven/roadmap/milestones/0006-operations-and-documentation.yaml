@@ -53,37 +53,7 @@ done_criteria:
   - >-
     Documentation examples use strict command names and YAML filenames only outside explicit legacy
     or migration sections.
-planned_changes:
-  port-maintenance-workflow-to-yaml:
-    status: complete
-    summary: >-
-      implement strict `run-maintenance` behavior, maintenance config YAML, generated maintenance
-      change artifacts, archive flow, and tests.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  port-ship-workflow-to-strict:
-    status: complete
-    summary: >-
-      implement strict ship behavior that verifies archived changes, inspects roadmap status,
-      creates a focused git commit, and documents the push handoff.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  ship-strict-installation-and-packaging:
-    status: complete
-    summary: >-
-      add install and uninstall scripts for global and project-local strict skill installation with
-      legacy-name safeguards and working relative symlink expectations, plus install, uninstall, and
-      packaged skill smoke tests covering bundled scripts, bundled templates, symlink resolution,
-      and failure diagnostics.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
-  write-strict-user-documentation:
-    status: complete
-    summary: >-
-      add README, QUICKSTART, ROADMAP_GUIDE, and Chinese equivalents that explain strict setup,
-      commands, artifacts, schema and example files, and migration boundaries.
-    details: 'Migration from v1: add technical and design context for this planned change.'
-    depends_on: []
+planned_changes: {}
 dependencies:
   - >-
     `03-core-strict-workflow` must expose active and archived strict changes for maintenance and
