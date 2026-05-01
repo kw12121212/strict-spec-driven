@@ -1,0 +1,42 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: harden-delta-archive-merge
+  status: proposed
+summary:
+  what:
+    - >-
+      Define deterministic archive behavior when a delta ADDED requirement uses an identifier that
+      already exists in the target main spec.
+    - >-
+      Block or report duplicate requirement-target collisions before archive can silently overwrite
+      main spec content.
+  why:
+    - >-
+      The current structured merge can replace existing main-spec requirements through an ADDED
+      keyed-map collision, which makes archive outcomes less reviewable.
+    - >-
+      Strict YAML merge behavior should be predictable from stable identifiers and should not depend
+      on operator inspection of generated YAML.
+scope:
+  in:
+    - Update strict specs for delta merge conflict behavior and CLI archive behavior.
+    - >-
+      Add validation and archive handling for ADDED requirement identifiers that already exist in
+      the target main spec.
+    - >-
+      Add regression coverage for ADDED collisions, preserved existing merge behavior, and
+      deterministic diagnostics or reports.
+  out:
+    - Do not redesign the delta spec file format or replace keyed-map operations.
+    - >-
+      Do not change roadmap archive synchronization, archive directory naming, or unrelated CLI
+      commands.
+unchanged_behavior:
+  - Existing ADDED entries with new identifiers continue to merge as additions.
+  - >-
+    Existing MODIFIED missing-target fallback and REMOVED missing-target skip behavior remain
+    unchanged.
+  - Archive still requires a fully verified change before moving it to the archive directory.

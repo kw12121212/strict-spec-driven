@@ -1,0 +1,43 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: harden-delta-archive-merge
+approach:
+  - >-
+    Treat ADDED requirement identifiers that already exist in the target main spec as merge
+    conflicts instead of silent overwrites.
+  - >-
+    Validate active delta specs against target main specs before archive so the operator receives
+    deterministic diagnostics while the change is still active.
+  - >-
+    Keep archive merge output focused on successful merges and existing missing-target fallback
+    reports; collision diagnostics should block archive before writes occur.
+decisions:
+  added-collision-is-invalid:
+    decision: >-
+      A delta ADDED entry whose key already exists in the target main spec is invalid and must block
+      archive.
+    rationale: >-
+      ADDED communicates creation of a new requirement; replacing an existing requirement is already
+      represented by MODIFIED, so overwrite semantics would hide author intent.
+  verify-before-write:
+    decision: >-
+      The collision check belongs in verification and archive must continue to rely on verification
+      before mutating main specs.
+    rationale: >-
+      The existing archive flow already treats verify as the gate for incomplete tasks, open
+      questions, schema diagnostics, and active target conflicts.
+alternatives:
+  - option: Allow ADDED collisions to behave like MODIFIED.
+    reason: >-
+      Rejected because it makes two operation names produce the same observable replacement and
+      weakens reviewability.
+  - option: Keep silent overwrite behavior and document it.
+    reason: >-
+      Rejected because deterministic behavior should surface risky authoring mistakes before main
+      specs are rewritten.
+risks:
+  - >-
+    Existing changes that accidentally use ADDED for an existing requirement will fail verification
+    and need to switch to MODIFIED before archive.

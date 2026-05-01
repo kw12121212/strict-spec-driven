@@ -1581,3 +1581,24 @@ requirements:
         - WHEN: an agent reads the rules before editing strict YAML
         - THEN: the rules mention schema-show as the supported way to inspect unclear artifact fields
         - THEN: the rules state that installed skills do not carry a templates directory
+  cli-archive-rejects-added-requirement-collisions:
+    strength: MUST
+    statement: >-
+      The system MUST block archive when a strict delta spec ADDED operation would overwrite an
+      existing requirement in the target main spec.
+    scenarios:
+      added-collision-blocks-archive-before-main-spec-write:
+        - GIVEN: >-
+            a complete strict change contains a delta spec whose ADDED keyed map includes a
+            requirement id already present in the target main spec
+        - WHEN: '`strict-spec-driven archive <name>` is executed'
+        - THEN: the command exits non-zero before rewriting the target main spec
+        - AND: the active change remains in the active changes directory
+        - AND: the error output identifies the duplicate ADDED requirement id and target spec
+      verify-reports-added-collision:
+        - GIVEN: >-
+            a strict change contains a delta spec whose ADDED keyed map includes a requirement id
+            already present in the target main spec
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: verification reports a deterministic validation diagnostic for the ADDED collision
+        - AND: the diagnostic identifies the delta spec path, target spec, and requirement id

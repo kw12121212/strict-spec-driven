@@ -1,0 +1,16 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: harden-delta-archive-merge
+open: []
+resolved:
+  - id: added-collision-policy
+    question: >-
+      Should an ADDED delta entry whose requirement id already exists in the target main spec be
+      treated as invalid rather than converted to MODIFIED or silently overwritten?
+    context: The brainstorm identified silent ADDED overwrite as the merge behavior that needs hardening.
+    answer: >-
+      Yes. The confirmed change should make this a deterministic validation/archive blocker and keep
+      replacement behavior under MODIFIED.
+    status: resolved

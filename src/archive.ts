@@ -9,7 +9,7 @@ import {
 import path from "path";
 import { syncRoadmap, type RoadmapSyncResult } from "./roadmap.js";
 import { ROADMAP_DIR } from "./roadmap/model.js";
-import { verifyChange } from "./verify.js";
+import { verifyChange, type VerifyDiagnostic, type VerifyResult } from "./verify.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
@@ -133,6 +133,19 @@ function assertUniqueRequirementIds(requirements: Record<string, unknown>, specP
   void specPath;
 }
 
+function formatVerifyDiagnostic(diagnostic: VerifyDiagnostic): string {
+  return `${diagnostic.source} ${diagnostic.artifactPath} ${diagnostic.fieldPath}: ${diagnostic.message}`;
+}
+
+function formatVerificationFailure(result: VerifyResult): string {
+  const diagnosticSummary = result.diagnostics
+    .slice(0, 5)
+    .map(formatVerifyDiagnostic)
+    .join("; ");
+  const suffix = diagnosticSummary.length > 0 ? `: ${diagnosticSummary}` : "";
+  return `change '${result.changeName}' failed verification (${result.diagnostics.length} diagnostic(s))${suffix}`;
+}
+
 function collectMainSpecPathsById(rootDir: string): Map<string, string> {
   const specsRoot = path.join(rootDir, STRICT_WORKFLOW_DIR, "specs");
   const byId = new Map<string, string>();
@@ -176,6 +189,12 @@ function applyDeltaToMainSpec(
   const operations = deltaSpec.operations ?? {};
 
   for (const [reqId, value] of Object.entries(operations.ADDED ?? {})) {
+    if (reqId in mainSpec.requirements) {
+      throw new Error(
+        `ADDED requirement '${reqId}' already exists in target main spec '${deltaSpec.target_spec}'`,
+      );
+    }
+
     mainSpec.requirements[reqId] = { ...value };
     report.added += 1;
   }
@@ -299,7 +318,7 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
 
   const verifyResult = verifyChange(rootDir, changeName);
   if (!verifyResult.valid) {
-    throw new Error(`change '${changeName}' failed verification (${verifyResult.diagnostics.length} diagnostic(s))`);
+    throw new Error(formatVerificationFailure(verifyResult));
   }
 
   const requiredArtifacts = ["proposal.yaml", "design.yaml", "tasks.yaml", "questions.yaml"];

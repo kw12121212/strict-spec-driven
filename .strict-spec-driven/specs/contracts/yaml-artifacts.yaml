@@ -1564,3 +1564,21 @@ requirements:
         - AND: >-
             external tracker references are described as optional supporting metadata rather than
             required authority
+  yaml-delta-added-collision-rules:
+    strength: MUST
+    statement: >-
+      The system MUST define deterministic merge conflict behavior for strict YAML delta ADDED
+      entries whose keyed-map requirement identifier already exists in the target main spec at
+      archive time.
+    scenarios:
+      added-entry-targeting-existing-requirement-is-a-conflict:
+        - GIVEN: >-
+            a strict YAML delta spec contains an ADDED entry keyed by a requirement identifier that
+            already exists in the target main spec
+        - WHEN: the delta merge rules are applied during validation or archive processing
+        - THEN: >-
+            the ADDED entry is treated as a merge conflict instead of overwriting the existing
+            main-spec requirement
+        - AND: >-
+            the conflict outcome is reported through deterministic diagnostics or archive failure
+            output

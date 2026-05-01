@@ -6937,6 +6937,10 @@ merge_rules:
     A requirement ID that appears as a MODIFIED or REMOVED target in one active change
     MUST NOT appear as a MODIFIED or REMOVED target in any other active change.
     Verify must enforce this constraint and report it as a deterministic validation failure.
+  added_existing_target: |
+    A requirement ID that appears as an ADDED entry MUST NOT already exist in the target
+    main spec at archive time. Verify must enforce this constraint and report it as a
+    deterministic validation failure before archive can rewrite main specs.
   modified_missing_target: |
     If a MODIFIED entry targets a requirement ID that does not exist in the main spec at
     archive time, the entry is treated as ADDED and recorded in the archive merge report.
@@ -13683,6 +13687,111 @@ function validateDeltaSpecs(changeDir, artifactPathPrefix) {
   scanDir(specsDir);
   return diagnostics;
 }
+function listYamlFiles2(directoryPath) {
+  if (!existsSync11(directoryPath)) {
+    return [];
+  }
+  const files = [];
+  function walk(currentPath) {
+    const entries = readdirSync4(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      const fullPath = path12.join(currentPath, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+        continue;
+      }
+      if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
+        files.push(fullPath);
+      }
+    }
+  }
+  walk(directoryPath);
+  return files;
+}
+function buildMainSpecRequirementIndex(rootDir) {
+  const specsRoot = path12.join(rootDir, STRICT_WORKFLOW_DIR5, "specs");
+  const diagnostics = [];
+  const specsById = new Map;
+  for (const specPath of listYamlFiles2(specsRoot)) {
+    if (path12.basename(specPath) === "INDEX.yaml") {
+      continue;
+    }
+    const artifactPath = path12.relative(rootDir, specPath).split(path12.sep).join("/");
+    const content = readFileSync10(specPath, "utf8");
+    let artifact;
+    try {
+      artifact = parseYamlDocument(content, { source: artifactPath });
+    } catch (error) {
+      diagnostics.push(makeYamlParseDiagnostic(artifactPath, "main spec is not valid YAML", error));
+      continue;
+    }
+    if (!artifact || typeof artifact !== "object" || Array.isArray(artifact)) {
+      continue;
+    }
+    const record = artifact;
+    if (record.artifact_type !== "main_spec") {
+      continue;
+    }
+    const spec = record.spec;
+    if (!spec || typeof spec !== "object" || Array.isArray(spec)) {
+      continue;
+    }
+    const specId = spec.id;
+    if (typeof specId !== "string" || specId.length === 0) {
+      continue;
+    }
+    const requirements = record.requirements;
+    if (!requirements || typeof requirements !== "object" || Array.isArray(requirements)) {
+      continue;
+    }
+    specsById.set(specId, {
+      artifactPath,
+      requirementIds: new Set(Object.keys(requirements))
+    });
+  }
+  return { diagnostics, specsById };
+}
+function checkAddedRequirementCollisions(rootDir, changeDir) {
+  const diagnostics = [];
+  const { diagnostics: mainSpecDiagnostics, specsById } = buildMainSpecRequirementIndex(rootDir);
+  diagnostics.push(...mainSpecDiagnostics);
+  const specsDir = path12.join(changeDir, "specs");
+  for (const deltaSpecPath of listYamlFiles2(specsDir)) {
+    const artifactPath = path12.relative(rootDir, deltaSpecPath).split(path12.sep).join("/");
+    const content = readFileSync10(deltaSpecPath, "utf8");
+    let artifact;
+    try {
+      artifact = parseYamlDocument(content, { source: artifactPath });
+    } catch {
+      continue;
+    }
+    if (typeof artifact.target_spec !== "string" || artifact.target_spec.length === 0) {
+      continue;
+    }
+    const targetSpec = specsById.get(artifact.target_spec);
+    if (!targetSpec) {
+      continue;
+    }
+    const added = artifact.operations?.ADDED;
+    if (!added || typeof added !== "object" || Array.isArray(added)) {
+      continue;
+    }
+    for (const requirementId of Object.keys(added).sort()) {
+      if (!targetSpec.requirementIds.has(requirementId)) {
+        continue;
+      }
+      diagnostics.push({
+        source: "added_requirement_collision",
+        artifactPath,
+        fieldPath: `$.operations.ADDED.${requirementId}`,
+        message: `ADDED requirement '${requirementId}' already exists in target main spec '${artifact.target_spec}'`,
+        expected: "ADDED requirement id absent from target main spec",
+        actual: `existing requirement '${requirementId}' in ${targetSpec.artifactPath}`
+      });
+    }
+  }
+  return diagnostics;
+}
 function checkExclusiveActiveTargets(rootDir, changeName) {
   const changesDir = path12.join(rootDir, STRICT_WORKFLOW_DIR5, "changes");
   if (!existsSync11(changesDir))
@@ -13818,6 +13927,7 @@ function verifyChange(rootDir, changeName) {
   }
   const specsPrefix = `.strict-spec-driven/changes/${changeName}/specs`;
   allDiagnostics.push(...validateDeltaSpecs(changeDir, specsPrefix));
+  allDiagnostics.push(...checkAddedRequirementCollisions(rootDir, changeDir));
   allDiagnostics.push(...checkExclusiveActiveTargets(rootDir, changeName));
   allDiagnostics.sort((a, b) => {
     const aKey = [a.source, a.artifactPath, a.fieldPath, a.message].join("|");
@@ -13852,7 +13962,7 @@ function asObject2(value, description) {
   }
   return value;
 }
-function listYamlFiles2(directoryPath) {
+function listYamlFiles3(directoryPath) {
   if (!existsSync12(directoryPath)) {
     return [];
   }
@@ -13881,10 +13991,18 @@ function writeYamlFile(filePath, value) {
   writeFileSync5(filePath, stringifyYamlDocument(value), "utf8");
 }
 function assertUniqueRequirementIds(requirements, specPath) {}
+function formatVerifyDiagnostic(diagnostic) {
+  return `${diagnostic.source} ${diagnostic.artifactPath} ${diagnostic.fieldPath}: ${diagnostic.message}`;
+}
+function formatVerificationFailure(result) {
+  const diagnosticSummary = result.diagnostics.slice(0, 5).map(formatVerifyDiagnostic).join("; ");
+  const suffix = diagnosticSummary.length > 0 ? `: ${diagnosticSummary}` : "";
+  return `change '${result.changeName}' failed verification (${result.diagnostics.length} diagnostic(s))${suffix}`;
+}
 function collectMainSpecPathsById(rootDir) {
   const specsRoot = path13.join(rootDir, STRICT_WORKFLOW_DIR6, "specs");
   const byId = new Map;
-  for (const specPath of listYamlFiles2(specsRoot)) {
+  for (const specPath of listYamlFiles3(specsRoot)) {
     if (path13.basename(specPath) === "INDEX.yaml") {
       continue;
     }
@@ -13911,6 +14029,9 @@ function applyDeltaToMainSpec(mainSpec, deltaSpec, report, specPath) {
   }
   const operations = deltaSpec.operations ?? {};
   for (const [reqId, value] of Object.entries(operations.ADDED ?? {})) {
+    if (reqId in mainSpec.requirements) {
+      throw new Error(`ADDED requirement '${reqId}' already exists in target main spec '${deltaSpec.target_spec}'`);
+    }
     mainSpec.requirements[reqId] = { ...value };
     report.added += 1;
   }
@@ -13949,7 +14070,7 @@ function buildArchiveDestination(rootDir, changeName) {
 function regenerateSpecIndex(rootDir) {
   const specsRoot = path13.join(rootDir, STRICT_WORKFLOW_DIR6, "specs");
   const indexPath = path13.join(specsRoot, "INDEX.yaml");
-  const specs = listYamlFiles2(specsRoot).filter((filePath) => path13.basename(filePath) !== "INDEX.yaml").map((filePath) => {
+  const specs = listYamlFiles3(specsRoot).filter((filePath) => path13.basename(filePath) !== "INDEX.yaml").map((filePath) => {
     const parsed = readYamlFile2(filePath);
     const artifact = asObject2(parsed, `spec '${filePath}'`);
     if (artifact.artifact_type !== "main_spec") {
@@ -14010,7 +14131,7 @@ function archiveChange(rootDir, changeName) {
   }
   const verifyResult = verifyChange(rootDir, changeName);
   if (!verifyResult.valid) {
-    throw new Error(`change '${changeName}' failed verification (${verifyResult.diagnostics.length} diagnostic(s))`);
+    throw new Error(formatVerificationFailure(verifyResult));
   }
   const requiredArtifacts = ["proposal.yaml", "design.yaml", "tasks.yaml", "questions.yaml"];
   for (const artifactName of requiredArtifacts) {
@@ -14022,7 +14143,7 @@ function archiveChange(rootDir, changeName) {
   }
   const mainSpecPathsById = collectMainSpecPathsById(rootDir);
   const deltaSpecsDir = path13.join(changeDir, "specs");
-  const deltaSpecPaths = listYamlFiles2(deltaSpecsDir);
+  const deltaSpecPaths = listYamlFiles3(deltaSpecsDir);
   const mainSpecCache = new Map;
   const mergeReports = new Map;
   for (const deltaSpecPath of deltaSpecPaths) {
@@ -14110,7 +14231,7 @@ function toObject(value) {
   }
   return value;
 }
-function listYamlFiles3(directoryPath) {
+function listYamlFiles4(directoryPath) {
   if (!existsSync13(directoryPath) || !statSync8(directoryPath).isDirectory()) {
     return [];
   }
@@ -14160,7 +14281,7 @@ function readChangeArtifacts(rootDir, changeName) {
   }
   const specsDir = path14.join(changeDir, "specs");
   const deltaSpecs = [];
-  for (const deltaPath of listYamlFiles3(specsDir)) {
+  for (const deltaPath of listYamlFiles4(specsDir)) {
     try {
       deltaSpecs.push({
         path: normalizeRepoRelativePath4(rootDir, deltaPath),
@@ -14336,7 +14457,7 @@ function listDirectoryNames(directoryPath) {
   }
   return readdirSync7(directoryPath, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
 }
-function listYamlFiles4(directoryPath) {
+function listYamlFiles5(directoryPath) {
   if (!existsSync14(directoryPath) || !statSync9(directoryPath).isDirectory()) {
     return [];
   }
@@ -14451,7 +14572,7 @@ function printChangeArtifacts(rootDir, name, changeDir) {
 `);
   }
   const specsDir = path17.join(changeDir, "specs");
-  const specFiles = listYamlFiles4(specsDir);
+  const specFiles = listYamlFiles5(specsDir);
   if (specFiles.length === 0) {
     writeOut(`  ${normalizeRepoRelativePath5(rootDir, specsDir)}/ (empty)
 `);

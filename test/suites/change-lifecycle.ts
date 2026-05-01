@@ -1523,7 +1523,69 @@ try {
   rmSync(archiveBlockedDir, { recursive: true, force: true });
 }
 
-// 13c: MODIFIED missing target falls back to ADDED
+// 13c: ADDED collisions with existing main-spec requirements block archive before writes
+const archiveAddedCollisionDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-added-collision-"));
+try {
+  const changeName = "archive-added-collision";
+  writeMainSpecArtifact(
+    archiveAddedCollisionDir,
+    "cli/foundation.yaml",
+    "cli-foundation",
+    "CLI Foundation",
+    [{ id: "req-existing", statement: "Existing requirement" }],
+  );
+  writeValidChangeArtifacts(archiveAddedCollisionDir, changeName);
+  writeDeltaSpecArtifact(archiveAddedCollisionDir, changeName, "cli.yaml", "cli-foundation", {
+    ADDED: {
+      "req-existing": {
+        strength: "MUST",
+        statement: "Conflicting added requirement",
+        scenarios: {},
+      },
+    },
+    MODIFIED: {},
+    REMOVED: {},
+  });
+
+  const verifyCollision = verifyModule.verifyChange(archiveAddedCollisionDir, changeName);
+  context.assert(!verifyCollision.valid, "verify rejects ADDED collisions with target main specs");
+  context.assert(
+    verifyCollision.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.source === "added_requirement_collision" &&
+        diagnostic.artifactPath.endsWith("specs/cli.yaml") &&
+        diagnostic.message.includes("req-existing") &&
+        diagnostic.message.includes("cli-foundation"),
+    ),
+    "verify ADDED collision diagnostic names the delta path, requirement ID, and target spec",
+  );
+
+  const beforeArchiveSpec = readFileSync(
+    path.join(archiveAddedCollisionDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml"),
+    "utf8",
+  );
+  const collisionArchive = cli(["archive", changeName], { cwd: archiveAddedCollisionDir });
+  context.assert(collisionArchive.status !== 0, "archive exits non-zero for ADDED collision");
+  context.assert(
+    collisionArchive.stderr.includes("added_requirement_collision") &&
+      collisionArchive.stderr.includes("req-existing") &&
+      collisionArchive.stderr.includes("cli-foundation"),
+    "archive ADDED collision failure reports the diagnostic source, requirement ID, and target spec",
+    `stderr: ${collisionArchive.stderr.trim()}`,
+  );
+  context.assert(
+    existsSync(path.join(archiveAddedCollisionDir, ".strict-spec-driven", "changes", changeName)),
+    "archive ADDED collision keeps change in active directory",
+  );
+  context.assert(
+    readFileSync(path.join(archiveAddedCollisionDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml"), "utf8") === beforeArchiveSpec,
+    "archive ADDED collision does not rewrite the target main spec",
+  );
+} finally {
+  rmSync(archiveAddedCollisionDir, { recursive: true, force: true });
+}
+
+// 13d: MODIFIED missing target falls back to ADDED
 const archiveModifiedFallbackDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-modfallback-"));
 try {
   const changeName = "archive-mod-fallback";
@@ -1572,7 +1634,7 @@ try {
   rmSync(archiveModifiedFallbackDir, { recursive: true, force: true });
 }
 
-// 13d: REMOVED missing target is skipped
+// 13e: REMOVED missing target is skipped
 const archiveRemovedSkipDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-remskip-"));
 try {
   const changeName = "archive-remove-skip";
@@ -1618,7 +1680,7 @@ try {
   rmSync(archiveRemovedSkipDir, { recursive: true, force: true });
 }
 
-// 13e: archive destination collision handling
+// 13f: archive destination collision handling
 const archiveCollisionDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-collision-"));
 try {
   const changeName = "archive-collision";
@@ -1662,7 +1724,7 @@ try {
   rmSync(archiveCollisionDir, { recursive: true, force: true });
 }
 
-// 13f: archive syncs roadmap milestone state after a linked change is archived
+// 13g: archive syncs roadmap milestone state after a linked change is archived
 const archiveRoadmapDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-roadmap-"));
 try {
   const changeName = "archive-roadmap";

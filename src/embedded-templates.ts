@@ -321,6 +321,10 @@ merge_rules:
     A requirement ID that appears as a MODIFIED or REMOVED target in one active change
     MUST NOT appear as a MODIFIED or REMOVED target in any other active change.
     Verify must enforce this constraint and report it as a deterministic validation failure.
+  added_existing_target: |
+    A requirement ID that appears as an ADDED entry MUST NOT already exist in the target
+    main spec at archive time. Verify must enforce this constraint and report it as a
+    deterministic validation failure before archive can rewrite main specs.
   modified_missing_target: |
     If a MODIFIED entry targets a requirement ID that does not exist in the main spec at
     archive time, the entry is treated as ADDED and recorded in the archive merge report.

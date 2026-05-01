@@ -25,10 +25,17 @@ type QuestionListArtifact = {
 };
 
 type DeltaSpecArtifact = {
+  target_spec?: unknown;
   operations?: {
+    ADDED?: Record<string, unknown>;
     MODIFIED?: Record<string, unknown>;
     REMOVED?: Record<string, unknown>;
   };
+};
+
+type MainSpecRequirementIndex = {
+  artifactPath: string;
+  requirementIds: Set<string>;
 };
 
 export type VerifyDiagnostic = {
@@ -238,6 +245,139 @@ function validateDeltaSpecs(
   return diagnostics;
 }
 
+function listYamlFiles(directoryPath: string): string[] {
+  if (!existsSync(directoryPath)) {
+    return [];
+  }
+
+  const files: string[] = [];
+
+  function walk(currentPath: string): void {
+    const entries = readdirSync(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      const fullPath = path.join(currentPath, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+        continue;
+      }
+      if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
+        files.push(fullPath);
+      }
+    }
+  }
+
+  walk(directoryPath);
+  return files;
+}
+
+function buildMainSpecRequirementIndex(rootDir: string): {
+  diagnostics: VerifyDiagnostic[];
+  specsById: Map<string, MainSpecRequirementIndex>;
+} {
+  const specsRoot = path.join(rootDir, STRICT_WORKFLOW_DIR, "specs");
+  const diagnostics: VerifyDiagnostic[] = [];
+  const specsById = new Map<string, MainSpecRequirementIndex>();
+
+  for (const specPath of listYamlFiles(specsRoot)) {
+    if (path.basename(specPath) === "INDEX.yaml") {
+      continue;
+    }
+
+    const artifactPath = path.relative(rootDir, specPath).split(path.sep).join("/");
+    const content = readFileSync(specPath, "utf8");
+    let artifact: unknown;
+    try {
+      artifact = parseYamlDocument<unknown>(content, { source: artifactPath });
+    } catch (error) {
+      diagnostics.push(makeYamlParseDiagnostic(artifactPath, "main spec is not valid YAML", error));
+      continue;
+    }
+
+    if (!artifact || typeof artifact !== "object" || Array.isArray(artifact)) {
+      continue;
+    }
+
+    const record = artifact as Record<string, unknown>;
+    if (record.artifact_type !== "main_spec") {
+      continue;
+    }
+
+    const spec = record.spec;
+    if (!spec || typeof spec !== "object" || Array.isArray(spec)) {
+      continue;
+    }
+
+    const specId = (spec as Record<string, unknown>).id;
+    if (typeof specId !== "string" || specId.length === 0) {
+      continue;
+    }
+
+    const requirements = record.requirements;
+    if (!requirements || typeof requirements !== "object" || Array.isArray(requirements)) {
+      continue;
+    }
+
+    specsById.set(specId, {
+      artifactPath,
+      requirementIds: new Set(Object.keys(requirements)),
+    });
+  }
+
+  return { diagnostics, specsById };
+}
+
+function checkAddedRequirementCollisions(
+  rootDir: string,
+  changeDir: string,
+): VerifyDiagnostic[] {
+  const diagnostics: VerifyDiagnostic[] = [];
+  const { diagnostics: mainSpecDiagnostics, specsById } = buildMainSpecRequirementIndex(rootDir);
+  diagnostics.push(...mainSpecDiagnostics);
+
+  const specsDir = path.join(changeDir, "specs");
+  for (const deltaSpecPath of listYamlFiles(specsDir)) {
+    const artifactPath = path.relative(rootDir, deltaSpecPath).split(path.sep).join("/");
+    const content = readFileSync(deltaSpecPath, "utf8");
+    let artifact: DeltaSpecArtifact;
+    try {
+      artifact = parseYamlDocument<DeltaSpecArtifact>(content, { source: artifactPath });
+    } catch {
+      continue;
+    }
+
+    if (typeof artifact.target_spec !== "string" || artifact.target_spec.length === 0) {
+      continue;
+    }
+
+    const targetSpec = specsById.get(artifact.target_spec);
+    if (!targetSpec) {
+      continue;
+    }
+
+    const added = artifact.operations?.ADDED;
+    if (!added || typeof added !== "object" || Array.isArray(added)) {
+      continue;
+    }
+
+    for (const requirementId of Object.keys(added).sort()) {
+      if (!targetSpec.requirementIds.has(requirementId)) {
+        continue;
+      }
+
+      diagnostics.push({
+        source: "added_requirement_collision",
+        artifactPath,
+        fieldPath: `$.operations.ADDED.${requirementId}`,
+        message: `ADDED requirement '${requirementId}' already exists in target main spec '${artifact.target_spec}'`,
+        expected: "ADDED requirement id absent from target main spec",
+        actual: `existing requirement '${requirementId}' in ${targetSpec.artifactPath}`,
+      });
+    }
+  }
+
+  return diagnostics;
+}
+
 function checkExclusiveActiveTargets(
   rootDir: string,
   changeName: string,
@@ -402,6 +542,7 @@ export function verifyChange(
 
   const specsPrefix = `.strict-spec-driven/changes/${changeName}/specs`;
   allDiagnostics.push(...validateDeltaSpecs(changeDir, specsPrefix));
+  allDiagnostics.push(...checkAddedRequirementCollisions(rootDir, changeDir));
 
   allDiagnostics.push(...checkExclusiveActiveTargets(rootDir, changeName));
 
