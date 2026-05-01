@@ -41,6 +41,10 @@ export function hasEmbeddedTemplate(key: string): boolean {
   return key in EMBEDDED_TEMPLATES;
 }
 
+export function getEmbeddedTemplateKeys(): string[] {
+  return Object.keys(EMBEDDED_TEMPLATES).sort();
+}
+
 export function readEmbeddedTemplate(key: string): string | undefined {
   return EMBEDDED_TEMPLATES[key];
 }

@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: expose-embedded-template-assets
+approach:
+  - >-
+    Add a small read-only template inspection command module that reuses the existing embedded
+    template map.
+  - >-
+    Route schema-list/schema-show/template-list/template-show through the CLI registry and usage
+    layer.
+  - >-
+    Change skill packaging validation to require scripts symlinks but tolerate missing templates
+    symlinks so skills rely on CLI inspection instead of direct template files.
+decisions:
+  embedded-template-query-cli:
+    decision: >-
+      Expose embedded templates through deterministic CLI output instead of keeping templates
+      mounted in every skill directory.
+    rationale: >-
+      The CLI is already the runtime owner of bundled schema and scaffold assets, so read-only CLI
+      inspection keeps one source of truth while preserving agent visibility into artifact
+      contracts.
+  templates-symlink-optional:
+    decision: Do not require a templates symlink for valid skill packaging.
+    rationale: >-
+      Per-skill templates links can be expanded by installers and duplicate shared assets; requiring
+      only the scripts link keeps command execution available while avoiding repeated template
+      packaging.
+alternatives: []
+risks: []

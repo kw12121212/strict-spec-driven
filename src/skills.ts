@@ -6,7 +6,6 @@ import { validateRequiredSymlink, validateMarketplaceMetadata } from "./skills/f
 import { parseFrontmatter, validateFrontmatterFields, validateLegacyReferences } from "./skills/frontmatter.js";
 import {
   EXPECTED_SCRIPT_SYMLINK,
-  EXPECTED_TEMPLATE_SYMLINK,
   makeDiagnostic,
   type SkillPackagingDiagnostic,
   type SkillPackagingValidationResult,
@@ -77,7 +76,6 @@ export function validateStrictSkillPackaging(rootDir: string): SkillPackagingVal
     validateLegacyReferences(skillName, content, skillPath, diagnostics);
     validateCommandSection(skillName, content, skillPath, diagnostics);
     validateRequiredSymlink(skillDir, skillName, "scripts", EXPECTED_SCRIPT_SYMLINK, diagnostics);
-    validateRequiredSymlink(skillDir, skillName, "templates", EXPECTED_TEMPLATE_SYMLINK, diagnostics);
   }
 
   const marketplaceCount = validateMarketplaceMetadata(rootDir, skillNames, diagnostics);

@@ -19,6 +19,7 @@ mapping:
     - src/cli/cmd-operations.ts
     - src/cli/cmd-roadmap.ts
     - src/cli/cmd-scaffold.ts
+    - src/cli/cmd-templates.ts
     - src/cli/entrypoint.ts
     - src/cli/fs.ts
     - src/cli/registry.ts
@@ -1536,3 +1537,47 @@ requirements:
             the tests verify deterministic CLI behavior, preserved planned-change metadata, stable
             shared index output, accepted valid team metadata, rejected invalid cross-file state,
             and exactly-one eligible planned-change handoff
+  cli-embedded-template-inspection:
+    strength: MUST
+    statement: >-
+      The system MUST provide read-only CLI commands that list bundled template asset keys and print
+      a selected embedded schema or scaffold template asset so agents can inspect artifact contracts
+      without per-skill template directories.
+    scenarios:
+      embedded-template-listing-is-deterministic:
+        - GIVEN: the strict CLI has embedded template assets available
+        - WHEN: a template listing command is executed
+        - THEN: the command exits zero and emits deterministic asset keys
+      embedded-template-show-prints-selected-asset:
+        - GIVEN: the strict CLI has an embedded schema or scaffold asset matching a requested key
+        - WHEN: a template show command is executed for that key
+        - THEN: the command exits zero and writes the selected asset content
+  cli-skills-templates-symlink-optional:
+    strength: MUST
+    statement: >-
+      The system MUST validate strict skill packaging without requiring every skill directory to
+      include a templates symlink, while continuing to require executable script access for
+      documented skill commands.
+    scenarios:
+      skills-without-template-symlink-validate:
+        - GIVEN: >-
+            a strict skill package includes valid skill metadata, SKILL.md content, and the required
+            scripts symlink
+        - WHEN: skill packaging validation runs
+        - THEN: the package is not rejected solely because a templates symlink is absent
+      script-symlink-remains-required:
+        - GIVEN: a strict skill package is missing the scripts symlink required by documented commands
+        - WHEN: skill packaging validation runs
+        - THEN: the missing scripts symlink remains a validation failure
+  cli-skill-yaml-rules-schema-lookup-reminder:
+    strength: SHOULD
+    statement: >-
+      Core strict skills that directly create or edit strict change YAML SHOULD remind agents in
+      their YAML Writing Rules to use the embedded schema lookup CLI when artifact fields are
+      unclear, because installed skills do not carry per-skill templates directories.
+    scenarios:
+      yaml-rules-mention-schema-lookup:
+        - GIVEN: a core strict skill includes a YAML Writing Rules section
+        - WHEN: an agent reads the rules before editing strict YAML
+        - THEN: the rules mention schema-show as the supported way to inspect unclear artifact fields
+        - THEN: the rules state that installed skills do not carry a templates directory

@@ -49,8 +49,12 @@
 | `maintenance` | 运行已配置的仓库维护检查 |
 | `roadmap-status` | 验证并报告严格路线图状态 |
 | `roadmap-sync` | 协调并重新生成严格路线图索引 |
-| `validate-skills` | 验证严格 Skill 打包元数据和符号链接 |
 | `verify-spec-mappings` | 审计规范实现和测试映射覆盖率 |
+| `validate-skills` | 验证严格 Skill 打包元数据和命令脚本符号链接 |
+| `schema-list` | 列出捆绑的严格 schema 资源键 |
+| `schema-show <name>` | 输出一个捆绑的严格 schema 资源 |
+| `template-list` | 列出捆绑的模板和 schema 资源键 |
+| `template-show <key>` | 输出一个捆绑的模板或 schema 资源 |
 
 ### Skills：`strict-spec-*` 和 `strict-roadmap-*`
 
@@ -90,9 +94,17 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 
 ## 模式和示例资源
 
-捆绑的严格 YAML 模式文件位于 `templates/strict-spec-driven/schemas/`。最小有效示例作为仓库参考资源位于 `examples/strict-spec-driven/`。这些与 `.strict-spec-driven/` 工作流状态分离，也不会被打包进 Skill 的 `templates` 符号链接。
+捆绑的严格 YAML 模式文件位于 `templates/strict-spec-driven/schemas/`。最小有效示例作为仓库参考资源位于 `examples/strict-spec-driven/`。这些与 `.strict-spec-driven/` 工作流状态分离。
 
 `templates/strict-spec-driven/schemas/schema-registry.yaml` 中的模式注册表索引了所有支持的严格制品族。
+
+CLI 也会内置捆绑的 schema 和脚手架资源，因此已安装的 Skills 不需要每个目录都带一个 `templates` 符号链接。Agent 可以通过以下命令查看内置契约：
+
+```sh
+node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-list
+node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show change-proposal
+node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/changes/proposal.yaml
+```
 
 ## 迁移边界
 
@@ -124,7 +136,7 @@ bun test/run.ts
 ```sh
 bun run validate-skills
 ```
-验证所有严格 Skill 包的元数据、命令引用和符号链接布局。
+验证所有严格 Skill 包的元数据、命令引用和必需的命令脚本访问。
 
 **约定：**
 - 使用结构化 YAML 解析器——核心制品数据绝不使用临时字符串处理。

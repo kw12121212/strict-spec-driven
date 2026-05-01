@@ -29,6 +29,10 @@ const expectedCommandOrder = [
   "review",
   "verify-spec-mappings",
   "validate-skills",
+  "schema-list",
+  "schema-show",
+  "template-list",
+  "template-show",
   "migrate",
   "roadmap-status",
   "roadmap-sync",
@@ -99,6 +103,30 @@ context.assert(
   "known subcommand preserves JSON stdout through the entrypoint",
 );
 
+const schemaList = cli(["schema-list"], { cwd: ROOT });
+context.assert(schemaList.status === 0, "schema-list exits zero", `stderr: ${schemaList.stderr.trim()}`);
+context.assert(
+  schemaList.stdout.includes("strict-spec-driven/schemas/change-proposal.yaml"),
+  "schema-list includes bundled schema asset keys",
+  `stdout: ${schemaList.stdout.trim()}`,
+);
+
+const schemaShow = cli(["schema-show", "change-proposal"], { cwd: ROOT });
+context.assert(schemaShow.status === 0, "schema-show exits zero for schema name", `stderr: ${schemaShow.stderr.trim()}`);
+context.assert(
+  schemaShow.stdout.includes("schema_id: strict-spec-driven/change-proposal/v1"),
+  "schema-show prints embedded schema content",
+  `stdout: ${schemaShow.stdout.trim()}`,
+);
+
+const templateShow = cli(["template-show", "scaffold/changes/proposal.yaml"], { cwd: ROOT });
+context.assert(templateShow.status === 0, "template-show exits zero for scaffold key", `stderr: ${templateShow.stderr.trim()}`);
+context.assert(
+  templateShow.stdout.includes("change:\n  id: {{change_name}}"),
+  "template-show prints embedded scaffold content",
+  `stdout: ${templateShow.stdout.trim()}`,
+);
+
 const strictCliModule = await loadDistModule<StrictCliModule>("strict-spec-cli.js");
 context.assert(
   JSON.stringify(Object.keys(strictCliModule.commands)) === JSON.stringify(expectedCommandOrder),
@@ -126,6 +154,65 @@ const validateSkillsCli = validateSkillsDispatch;
 context.assert(validateSkillsCli.status === 0, "validate-skills CLI exits zero for valid strict skill packaging");
 const validateSkillsJson = validateSkillsDispatchJson;
 context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits valid=true JSON");
+
+const noTemplateSymlinkRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-no-template-symlink-"));
+try {
+  const noTemplateSkillDir = path.join(noTemplateSymlinkRoot, "skills", "strict-spec-demo");
+  mkdirSync(path.join(noTemplateSymlinkRoot, "dist", "scripts"), { recursive: true });
+  mkdirSync(noTemplateSkillDir, { recursive: true });
+  symlinkSync("../../dist/scripts", path.join(noTemplateSkillDir, "scripts"));
+
+  writeFileSync(
+    path.join(noTemplateSkillDir, "SKILL.md"),
+    [
+      "---",
+      "name: strict-spec-demo",
+      "description: demo",
+      "metadata:",
+      "  skill_id: strict_spec_demo",
+      "  author: strict-spec-driven",
+      "  type: agent_skill",
+      "  version: 1.0.0",
+      "---",
+      "",
+      "# strict-spec-demo",
+      "",
+      "## This Skill's Commands",
+      "",
+      "```yaml",
+      "demo: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify demo",
+      "```",
+      "",
+      "## Notes",
+      "",
+      "Use strict workflow artifacts under .strict-spec-driven/.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(noTemplateSymlinkRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [{ name: "strict-spec-demo", family: "strict-spec" }],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const noTemplateResult = skillValidationModule.validateStrictSkillPackaging(noTemplateSymlinkRoot);
+  context.assert(
+    noTemplateResult.valid,
+    "strict skill package validation permits missing templates symlink",
+    JSON.stringify(noTemplateResult.diagnostics),
+  );
+} finally {
+  rmSync(noTemplateSymlinkRoot, { recursive: true, force: true });
+}
 
 const invalidSkillsRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-validation-invalid-"));
 try {

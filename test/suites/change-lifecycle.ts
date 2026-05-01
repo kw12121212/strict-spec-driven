@@ -1684,15 +1684,27 @@ try {
     title: "Archive Roadmap Sync",
     goal: "Mark the milestone complete when its final change is archived.",
     status: "active",
-    plannedChanges: [
-      {
-        id: changeName,
-        status: "planned",
-        summary: "Archive the linked change.",
-        depends_on: [],
-      },
-    ],
+    plannedChanges: [],
   });
+  mkdirSync(path.join(archiveRoadmapDir, ".strict-spec-driven", "roadmap", "planned-changes"), { recursive: true });
+  writeFileSync(
+    path.join(archiveRoadmapDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-archive-roadmap-archive-roadmap.yaml"),
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/planned-change/v1",
+      schema_version: 1,
+      artifact_type: "planned_change",
+      schema_file: "../../templates/strict-spec-driven/schemas/planned-change.yaml",
+      planned_change: {
+        id: changeName,
+        milestone: "0001-archive-roadmap",
+      },
+      status: "planned",
+      summary: "Archive the linked change.",
+      details: "Test details for archive-roadmap.",
+      depends_on: [],
+    }),
+    "utf8",
+  );
   writeRoadmapIndexArtifact(archiveRoadmapDir, [
     {
       id: "0001-archive-roadmap",
@@ -1711,18 +1723,21 @@ try {
   );
   context.assert(
     archiveRoadmapJson.roadmapSync.updatedFiles.includes(".strict-spec-driven/roadmap/INDEX.yaml")
-      && archiveRoadmapJson.roadmapSync.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/0001-archive-roadmap.yaml"),
+      && archiveRoadmapJson.roadmapSync.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/0001-archive-roadmap.yaml")
+      && archiveRoadmapJson.roadmapSync.updatedFiles.includes(".strict-spec-driven/roadmap/planned-changes/0001-archive-roadmap-archive-roadmap.yaml"),
     "archive reports the roadmap files updated during archive-triggered roadmap sync",
     `updatedFiles: ${JSON.stringify(archiveRoadmapJson.roadmapSync?.updatedFiles)}`,
   );
 
   const syncedMilestone = yamlModule.parseYamlFile<{
     status: string;
-    planned_changes: Record<string, { status: string }>;
   }>(path.join(archiveRoadmapDir, ".strict-spec-driven", "roadmap", "milestones", "0001-archive-roadmap.yaml"));
   context.assert(syncedMilestone.status === "complete", "archive marks the linked roadmap milestone complete once all planned changes are archived");
+  const syncedPlannedChange = yamlModule.parseYamlFile<{
+    status: string;
+  }>(path.join(archiveRoadmapDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-archive-roadmap-archive-roadmap.yaml"));
   context.assert(
-    syncedMilestone.planned_changes[changeName]?.status === "complete",
+    syncedPlannedChange.status === "complete",
     "archive marks the linked roadmap planned change complete after archive",
   );
 

@@ -50,8 +50,12 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 | `maintenance` | Run configured repository maintenance checks |
 | `roadmap-status` | Validate and report strict roadmap state |
 | `roadmap-sync` | Reconcile and regenerate strict roadmap index |
-| `validate-skills` | Validate strict skill packaging metadata and symlinks |
 | `verify-spec-mappings` | Audit spec implementation and test mapping coverage |
+| `validate-skills` | Validate strict skill packaging metadata and command symlinks |
+| `schema-list` | List bundled strict schema asset keys |
+| `schema-show <name>` | Print a bundled strict schema asset |
+| `template-list` | List bundled template and schema asset keys |
+| `template-show <key>` | Print a bundled template or schema asset |
 
 ### Skills: `strict-spec-*` and `strict-roadmap-*`
 
@@ -93,9 +97,17 @@ The roadmap docs describe the preferred split-file collaboration model: keep mil
 
 ## Schema and Example Assets
 
-Bundled strict YAML schema files live under `templates/strict-spec-driven/schemas/`. Minimal valid examples live under `examples/strict-spec-driven/` as repository reference assets. These are separate from `.strict-spec-driven/` workflow state and are not bundled into the skill `templates` symlink.
+Bundled strict YAML schema files live under `templates/strict-spec-driven/schemas/`. Minimal valid examples live under `examples/strict-spec-driven/` as repository reference assets. These are separate from `.strict-spec-driven/` workflow state.
 
 The schema registry at `templates/strict-spec-driven/schemas/schema-registry.yaml` indexes all supported strict artifact families.
+
+The CLI also embeds bundled schema and scaffold assets so installed skills do not need a per-skill `templates` symlink. Agents can inspect embedded contracts with:
+
+```sh
+node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-list
+node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show change-proposal
+node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/changes/proposal.yaml
+```
 
 ## Migration Boundaries
 
@@ -127,7 +139,7 @@ Runs the test suite against compiled `dist/` output.
 ```sh
 bun run validate-skills
 ```
-Validates all strict skill packages for metadata, command references, and symlink layout.
+Validates all strict skill packages for metadata, command references, and required command script access.
 
 **Conventions:**
 - Use a structured YAML parser — never ad-hoc string processing for core artifact data.

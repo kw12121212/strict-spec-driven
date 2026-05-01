@@ -34,6 +34,8 @@ proceeding, verify that strict workflow state already exists.
 
 - Keep strict artifacts in valid YAML structures at every stage. Do not replace
   structured fields with Markdown prose.
+- If artifact fields are unclear, use `node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show <schema-name>`;
+  installed skills do not carry a `templates` directory.
 - Use block scalars only for free-text content. Prefer `>-` for wrapped prose
   such as longer `summary`, `approach`, `decision`, `rationale`, `question`,
   `context`, `answer`, and spec `statement` values. Use `|` only when literal

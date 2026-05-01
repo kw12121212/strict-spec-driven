@@ -414,7 +414,7 @@ try {
   const splitStatusAfterMaterializeJson = JSON.parse(splitStatusAfterMaterialize.stdout.trim());
   const splitPlannedChangeIds = splitStatusAfterMaterializeJson.milestones[0].plannedChanges.map((entry: { id: string }) => entry.id);
   context.assert(
-    splitPlannedChangeIds.join(",") === "inline-active,split-active,split-archived",
+    splitPlannedChangeIds.join(",") === "split-active,inline-active,split-archived",
     "roadmap-status reports materialized and standalone planned changes together after conversion",
     `got ${splitPlannedChangeIds.join(",")}`,
   );
@@ -426,8 +426,8 @@ try {
   );
   context.assert(
     splitStatusAfterMaterializeJson.milestones[0].plannedChanges[0].source === "standalone"
-      && splitStatusAfterMaterializeJson.milestones[0].plannedChanges[0].path === "roadmap/planned-changes/0001-split-inline-active.yaml"
-      && splitStatusAfterMaterializeJson.milestones[0].plannedChanges[1].path === "roadmap/planned-changes/0001-split-active.yaml",
+      && splitStatusAfterMaterializeJson.milestones[0].plannedChanges[0].path === "roadmap/planned-changes/0001-split-active.yaml"
+      && splitStatusAfterMaterializeJson.milestones[0].plannedChanges[1].path === "roadmap/planned-changes/0001-split-inline-active.yaml",
     "roadmap-status reports planned-change file paths after explicit materialization",
   );
 } finally {
@@ -1614,7 +1614,7 @@ function runCopiedSplitRoadmapCliScenario(): {
     context.assert(
       Object.keys(syncedIndex.milestones).join(",") === "0001-core-todo-workflows"
         && syncedIndex.milestones["0001-core-todo-workflows"]?.path === "roadmap/milestones/0001-core-todo-workflows.yaml"
-        && syncedIndex.milestones["0001-core-todo-workflows"]?.status === "active",
+        && syncedIndex.milestones["0001-core-todo-workflows"]?.status === "proposed",
       "copied project split roadmap-sync keeps the shared index as a milestone-only index",
     );
 

@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-skill-schema-lookup-guidance
+  status: proposed
+summary:
+  what:
+    - Add a lightweight schema lookup reminder to YAML Writing Rules in core YAML-editing skills.
+  why:
+    - >-
+      Installed skills no longer carry templates symlinks, so agents need a concise reminder of the
+      supported CLI path when artifact fields are unclear.
+scope:
+  in:
+    - Add one YAML Writing Rules bullet to strict-spec propose, apply, modify, and auto skills.
+  out:
+    - Change skill command blocks.
+    - Require schema lookup commands in skill packaging validation.
+    - Reintroduce per-skill templates symlinks.
+unchanged_behavior:
+  - Existing skill workflow steps, command semantics, and validation expectations remain unchanged.

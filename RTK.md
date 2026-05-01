@@ -25,7 +25,10 @@ Repository-bundled schema and scaffold assets live under
 `templates/strict-spec-driven/` so validators, generators, and init tooling can
 consume them without treating them as active project artifacts. Minimal valid
 examples live under `examples/strict-spec-driven/` as repository reference
-assets and are not part of skill template packaging.
+assets and are not part of skill template packaging. Installed skills should
+inspect bundled schemas and scaffold templates through the strict CLI's
+`schema-list`, `schema-show`, `template-list`, and `template-show` commands
+rather than through per-skill `templates` symlinks.
 
 Skills may remain Markdown `SKILL.md` files because they are part of the Agent
 Skills packaging format. Skill behavior should be updated only when required to

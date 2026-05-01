@@ -1,0 +1,31 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - examples/strict-spec-driven/roadmap-milestone.yaml
+    - examples/strict-spec-driven/roadmap-milestone.planning.yaml
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    yaml-roadmap-example-contract-coverage:
+      strength: MUST
+      statement: >-
+        The system MUST provide roadmap example artifacts that demonstrate the roadmap v2 schema
+        through both minimal inline planned change data and richer coverage examples with planned
+        change dependencies.
+      scenarios:
+        roadmap-primary-example-includes-minimal-inline-planned-change:
+          - GIVEN: the primary roadmap milestone example is inspected
+          - WHEN: its planned_changes field is reviewed
+          - THEN: it contains one inline planned change with no dependencies
+        roadmap-planning-example-includes-dependent-planned-changes:
+          - GIVEN: the roadmap planning coverage example is inspected
+          - WHEN: its planned_changes field is reviewed
+          - THEN: it contains multiple inline planned changes
+          - THEN: at least one planned change depends on an earlier planned change
+  REMOVED: {}

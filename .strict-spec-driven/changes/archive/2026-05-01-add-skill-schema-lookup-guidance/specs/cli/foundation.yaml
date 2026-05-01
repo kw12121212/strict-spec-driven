@@ -1,0 +1,29 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-apply/SKILL.md
+    - skills/strict-spec-modify/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-skill-yaml-rules-schema-lookup-reminder:
+      strength: SHOULD
+      statement: >-
+        Core strict skills that directly create or edit strict change YAML SHOULD remind agents in
+        their YAML Writing Rules to use the embedded schema lookup CLI when artifact fields are
+        unclear, because installed skills do not carry per-skill templates directories.
+      scenarios:
+        yaml-rules-mention-schema-lookup:
+          - GIVEN: a core strict skill includes a YAML Writing Rules section
+          - WHEN: an agent reads the rules before editing strict YAML
+          - THEN: the rules mention schema-show as the supported way to inspect unclear artifact fields
+          - THEN: the rules state that installed skills do not carry a templates directory
+  MODIFIED: {}
+  REMOVED: {}

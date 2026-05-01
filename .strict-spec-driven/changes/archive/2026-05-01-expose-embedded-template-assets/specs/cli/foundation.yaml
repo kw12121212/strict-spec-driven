@@ -1,0 +1,58 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/embedded-templates.ts
+    - src/cli/cmd-templates.ts
+    - src/cli/registry.ts
+    - src/cli/usage.ts
+    - src/strict-spec-cli.ts
+    - src/skills.ts
+    - src/skills/model.ts
+    - src/skills/fs-checks.ts
+    - README.md
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-verify/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/operations.ts
+operations:
+  ADDED:
+    cli-embedded-template-inspection:
+      strength: MUST
+      statement: >-
+        The system MUST provide read-only CLI commands that list bundled template asset keys and
+        print a selected embedded schema or scaffold template asset so agents can inspect artifact
+        contracts without per-skill template directories.
+      scenarios:
+        embedded-template-listing-is-deterministic:
+          - GIVEN: the strict CLI has embedded template assets available
+          - WHEN: a template listing command is executed
+          - THEN: the command exits zero and emits deterministic asset keys
+        embedded-template-show-prints-selected-asset:
+          - GIVEN: the strict CLI has an embedded schema or scaffold asset matching a requested key
+          - WHEN: a template show command is executed for that key
+          - THEN: the command exits zero and writes the selected asset content
+    cli-skills-templates-symlink-optional:
+      strength: MUST
+      statement: >-
+        The system MUST validate strict skill packaging without requiring every skill directory to
+        include a templates symlink, while continuing to require executable script access for
+        documented skill commands.
+      scenarios:
+        skills-without-template-symlink-validate:
+          - GIVEN: >-
+              a strict skill package includes valid skill metadata, SKILL.md content, and the
+              required scripts symlink
+          - WHEN: skill packaging validation runs
+          - THEN: the package is not rejected solely because a templates symlink is absent
+        script-symlink-remains-required:
+          - GIVEN: a strict skill package is missing the scripts symlink required by documented commands
+          - WHEN: skill packaging validation runs
+          - THEN: the missing scripts symlink remains a validation failure
+  MODIFIED: {}
+  REMOVED: {}

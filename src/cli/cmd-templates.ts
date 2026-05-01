@@ -1,0 +1,87 @@
+import { getEmbeddedTemplateKeys, readEmbeddedTemplate } from "../embedded-templates.js";
+import { isHelpRequest } from "./argv.js";
+import { writeError, writeHelp, writeOut, writeUsage } from "./output.js";
+
+function normalizeTemplateKey(key: string): string {
+  return key.startsWith("strict-spec-driven/") ? key : `strict-spec-driven/${key}`;
+}
+
+function normalizeSchemaKey(name: string): string {
+  if (name.startsWith("strict-spec-driven/schemas/")) return name;
+  if (name.startsWith("schemas/")) return `strict-spec-driven/${name}`;
+  return `strict-spec-driven/schemas/${name.endsWith(".yaml") ? name : `${name}.yaml`}`;
+}
+
+function listKeys(prefix: string): number {
+  const keys = getEmbeddedTemplateKeys().filter((key) => key.startsWith(prefix));
+  writeOut(keys.join("\n") + (keys.length > 0 ? "\n" : ""));
+  return 0;
+}
+
+function showKey(key: string, usage: string): number {
+  const content = readEmbeddedTemplate(key);
+  if (content === undefined) {
+    writeError(`embedded template asset '${key}' not found`);
+    writeUsage(usage);
+    return 1;
+  }
+
+  writeOut(content);
+  return 0;
+}
+
+export function runTemplateList(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-driven template-list\n");
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage("Usage: strict-spec-driven template-list\n");
+    return 1;
+  }
+
+  return listKeys("strict-spec-driven/");
+}
+
+export function runTemplateShow(argv: string[]): number {
+  const [key, ...extraArgs] = argv;
+  const usage = "Usage: strict-spec-driven template-show <template-key>\n";
+  if (isHelpRequest(argv)) {
+    writeHelp(usage);
+    return 0;
+  }
+  if (!key || extraArgs.length > 0) {
+    writeUsage(usage);
+    return 1;
+  }
+
+  return showKey(normalizeTemplateKey(key), usage);
+}
+
+export function runSchemaList(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-driven schema-list\n");
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage("Usage: strict-spec-driven schema-list\n");
+    return 1;
+  }
+
+  return listKeys("strict-spec-driven/schemas/");
+}
+
+export function runSchemaShow(argv: string[]): number {
+  const [name, ...extraArgs] = argv;
+  const usage = "Usage: strict-spec-driven schema-show <schema-name|schema-key>\n";
+  if (isHelpRequest(argv)) {
+    writeHelp(usage);
+    return 0;
+  }
+  if (!name || extraArgs.length > 0) {
+    writeUsage(usage);
+    return 1;
+  }
+
+  return showKey(normalizeSchemaKey(name), usage);
+}

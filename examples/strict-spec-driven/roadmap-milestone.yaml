@@ -13,7 +13,12 @@ scope:
     - Unrelated behavior.
 done_criteria:
   - The planned behavior is implemented and verified.
-planned_changes: {}
+planned_changes:
+  example-change:
+    status: planned
+    summary: Add the planned strict workflow behavior.
+    details: This inline entry demonstrates the legacy-compatible planned change shape.
+    depends_on: []
 dependencies: []
 risks: []
 status: proposed

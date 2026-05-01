@@ -6587,6 +6587,10 @@ var COMMAND_REGISTRATION_ORDER = [
   "review",
   "verify-spec-mappings",
   "validate-skills",
+  "schema-list",
+  "schema-show",
+  "template-list",
+  "template-show",
   "migrate",
   "roadmap-status",
   "roadmap-sync",
@@ -8030,6 +8034,9 @@ json_schema:
 };
 function hasEmbeddedTemplate(key) {
   return key in EMBEDDED_TEMPLATES;
+}
+function getEmbeddedTemplateKeys() {
+  return Object.keys(EMBEDDED_TEMPLATES).sort();
 }
 function readEmbeddedTemplate(key) {
   return EMBEDDED_TEMPLATES[key];
@@ -16618,7 +16625,6 @@ import path26 from "node:path";
 // src/skills/model.ts
 var REQUIRED_METADATA_FIELDS = ["skill_id", "author", "type", "version"];
 var EXPECTED_SCRIPT_SYMLINK = "../../dist/scripts";
-var EXPECTED_TEMPLATE_SYMLINK = "../../templates";
 var COMMAND_PREFIX = "node {{SKILL_DIR}}/scripts/strict-spec-driven.js";
 var GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
 var GENERATE_NAMED_ARGS_COMMAND = `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec> --<named-args>`;
@@ -17151,7 +17157,6 @@ function validateStrictSkillPackaging(rootDir) {
     validateLegacyReferences(skillName, content, skillPath, diagnostics);
     validateCommandSection(skillName, content, skillPath, diagnostics);
     validateRequiredSymlink(skillDir, skillName, "scripts", EXPECTED_SCRIPT_SYMLINK, diagnostics);
-    validateRequiredSymlink(skillDir, skillName, "templates", EXPECTED_TEMPLATE_SYMLINK, diagnostics);
   }
   const marketplaceCount = validateMarketplaceMetadata(rootDir, skillNames, diagnostics);
   const sorted = sortDiagnostics2(diagnostics);
@@ -17442,6 +17447,89 @@ function runVerifySpecMappings(argv) {
   return result.valid ? 0 : 1;
 }
 
+// src/cli/cmd-templates.ts
+function normalizeTemplateKey(key) {
+  return key.startsWith("strict-spec-driven/") ? key : `strict-spec-driven/${key}`;
+}
+function normalizeSchemaKey(name) {
+  if (name.startsWith("strict-spec-driven/schemas/"))
+    return name;
+  if (name.startsWith("schemas/"))
+    return `strict-spec-driven/${name}`;
+  return `strict-spec-driven/schemas/${name.endsWith(".yaml") ? name : `${name}.yaml`}`;
+}
+function listKeys(prefix) {
+  const keys = getEmbeddedTemplateKeys().filter((key) => key.startsWith(prefix));
+  writeOut(keys.join(`
+`) + (keys.length > 0 ? `
+` : ""));
+  return 0;
+}
+function showKey(key, usage2) {
+  const content = readEmbeddedTemplate(key);
+  if (content === undefined) {
+    writeError(`embedded template asset '${key}' not found`);
+    writeUsage(usage2);
+    return 1;
+  }
+  writeOut(content);
+  return 0;
+}
+function runTemplateList(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven template-list
+`);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(`Usage: strict-spec-driven template-list
+`);
+    return 1;
+  }
+  return listKeys("strict-spec-driven/");
+}
+function runTemplateShow(argv) {
+  const [key, ...extraArgs] = argv;
+  const usage2 = `Usage: strict-spec-driven template-show <template-key>
+`;
+  if (isHelpRequest(argv)) {
+    writeHelp(usage2);
+    return 0;
+  }
+  if (!key || extraArgs.length > 0) {
+    writeUsage(usage2);
+    return 1;
+  }
+  return showKey(normalizeTemplateKey(key), usage2);
+}
+function runSchemaList(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven schema-list
+`);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(`Usage: strict-spec-driven schema-list
+`);
+    return 1;
+  }
+  return listKeys("strict-spec-driven/schemas/");
+}
+function runSchemaShow(argv) {
+  const [name, ...extraArgs] = argv;
+  const usage2 = `Usage: strict-spec-driven schema-show <schema-name|schema-key>
+`;
+  if (isHelpRequest(argv)) {
+    writeHelp(usage2);
+    return 0;
+  }
+  if (!name || extraArgs.length > 0) {
+    writeUsage(usage2);
+    return 1;
+  }
+  return showKey(normalizeSchemaKey(name), usage2);
+}
+
 // src/strict-spec-cli.ts
 var commands = createCliCommandTable({
   init: (argv) => runInit(argv),
@@ -17452,6 +17540,10 @@ var commands = createCliCommandTable({
   review: (argv) => runReview(argv),
   "verify-spec-mappings": (argv) => runVerifySpecMappings(argv),
   "validate-skills": (argv) => runValidateSkills(argv),
+  "schema-list": (argv) => runSchemaList(argv),
+  "schema-show": (argv) => runSchemaShow(argv),
+  "template-list": (argv) => runTemplateList(argv),
+  "template-show": (argv) => runTemplateShow(argv),
   migrate: (argv) => runMigrate(argv),
   "roadmap-status": (argv) => runRoadmapStatus(argv),
   "roadmap-sync": (argv) => runRoadmapSync(argv),

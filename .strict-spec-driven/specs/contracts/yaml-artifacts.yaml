@@ -548,22 +548,18 @@ requirements:
     strength: MUST
     statement: >-
       The system MUST provide roadmap example artifacts that demonstrate the roadmap v2 schema
-      contract fields needed for validation and review while keeping the primary minimal examples
-      minimal.
+      through both minimal inline planned change data and richer coverage examples with planned
+      change dependencies.
     scenarios:
-      primary-roadmap-examples-remain-minimal:
-        - GIVEN: the primary strict roadmap examples are reviewed
-        - WHEN: minimal example content is inspected
-        - THEN: the primary roadmap index example remains a minimal valid v2 artifact
-        - AND: the primary roadmap milestone example remains a minimal valid v2 artifact
-      roadmap-examples-demonstrate-keyed-milestone-identity:
-        - GIVEN: roadmap examples are reviewed
-        - WHEN: milestone identity is inspected
-        - THEN: the milestone uses a keyed map with a 4-digit-prefixed key
-      roadmap-examples-demonstrate-keyed-planned-changes-with-details:
-        - GIVEN: roadmap milestone examples are reviewed
-        - WHEN: planned changes are inspected
-        - THEN: entries use a keyed map with required details fields
+      roadmap-primary-example-includes-minimal-inline-planned-change:
+        - GIVEN: the primary roadmap milestone example is inspected
+        - WHEN: its planned_changes field is reviewed
+        - THEN: it contains one inline planned change with no dependencies
+      roadmap-planning-example-includes-dependent-planned-changes:
+        - GIVEN: the roadmap planning coverage example is inspected
+        - WHEN: its planned_changes field is reviewed
+        - THEN: it contains multiple inline planned changes
+        - THEN: at least one planned change depends on an earlier planned change
   strict-roadmap-skill-command-contract:
     strength: MUST
     statement: >-
