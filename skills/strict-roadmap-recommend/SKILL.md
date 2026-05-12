@@ -111,13 +111,13 @@ proceeding, verify that strict workflow state already exists.
    `strict-roadmap-recommend`; leave those questions for `strict-spec-auto` or
    `strict-spec-apply` to surface before implementation.
 
-6. **Hand off to implementation workflow** — explicitly recommend
-   `/strict-spec-auto` as the primary next step for carrying the recommended
-   change through the rest of the strict lifecycle. If `questions.yaml.open` is
-   non-empty, make clear that `/strict-spec-auto` will surface those questions
-   before implementation. Mention `/strict-spec-apply` as the manual fallback
-   path when the user wants task-by-task control; it should also gate on open
-   questions before coding.
+6. **Automatically continue with implementation** — immediately invoke the
+   `strict-spec-auto` skill to carry the recommended change through the rest of
+   the strict lifecycle (review, apply, verify, archive). If
+   `questions.yaml.open` is non-empty, `strict-spec-auto` will surface those
+   questions before implementation begins. Do not offer a choice or ask the
+   user which workflow to use — invoke the `strict-spec-auto` skill via the
+   Skill tool (do not run it as a bash command or raw slash command).
 
 ## Rules
 
