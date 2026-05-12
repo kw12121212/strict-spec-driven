@@ -1,0 +1,29 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: apply-auto-gitignore
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a post-task-completion step to the strict-spec-apply skill that automatically detects
+      non-source artifacts generated during task implementation and adds them to .gitignore
+  why:
+    - >-
+      When tasks produce build output, cache files, dependency directories, or other non-source
+      artifacts, these should not be accidentally committed to git. Currently the apply skill has no
+      guidance for gitignore hygiene.
+scope:
+  in:
+    - skills/strict-spec-apply/SKILL.md
+  out:
+    - >-
+      The apply skill will include a new step that, after all tasks are complete and before
+      suggesting strict-spec-verify, scans for common non-source artifact patterns and adds matching
+      entries to .gitignore automatically
+unchanged_behavior:
+  - >-
+    All existing steps 1-8 remain unchanged. The final strict-spec-verify suggestion is preserved.
+    The strict CLI apply command logic is not modified.

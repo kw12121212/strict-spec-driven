@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: apply-auto-gitignore
+approach:
+  - >-
+    Insert a new numbered step 9 between the current step 9 (finish cleanly) and the suggestion of
+    strict-spec-verify. The new step instructs the agent to check for non-source artifacts (build
+    output, dependency directories, cache, logs, temp files) produced during task implementation and
+    add matching entries to .gitignore automatically. The old step 9 becomes step 10, keeping its
+    strict-spec-verify suggestion.
+decisions:
+  gitignore-scope:
+    decision: >-
+      Cover all standard non-source artifact categories: build output (dist/, build/, out/),
+      dependency directories (node_modules/, vendor/), cache (.cache/, .tmp/), logs (*.log), and
+      generated files. Do not attempt to cover project-specific patterns that would require domain
+      knowledge.
+    rationale: >-
+      A broad but standard set of patterns covers the most common cases without requiring
+      project-specific configuration. The agent can also detect newly created untracked files via
+      git status and judge whether they are source code or generated artifacts.
+alternatives: []
+risks: []

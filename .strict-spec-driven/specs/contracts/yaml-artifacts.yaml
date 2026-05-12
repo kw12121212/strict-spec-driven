@@ -1189,32 +1189,16 @@ requirements:
   strict-core-skill-guidance-contract:
     strength: MUST
     statement: >-
-      The system MUST ensure strict core lifecycle skill packages describe `.strict-spec-driven/`
-      YAML workflow artifacts and preserve the split where scripts handle deterministic mechanics
-      while skill prompts handle planning and judgment.
+      The system MUST ensure the strict-spec-apply skill includes a post-task-completion step that
+      automatically detects non-source artifacts generated during task implementation and adds
+      matching entries to .gitignore before suggesting strict-spec-verify.
     scenarios:
-      core-skills-reference-strict-workflow-artifacts:
-        - GIVEN: a strict core lifecycle `SKILL.md` file is reviewed
-        - WHEN: its prerequisites and workflow instructions are inspected
+      apply-skill-auto-gitignore:
+        - GIVEN: the strict-spec-apply skill workflow has completed all tasks
+        - WHEN: the post-task-completion step is reached
         - THEN: >-
-            the skill describes `.strict-spec-driven/` YAML workflow artifacts rather than legacy or
-            generic workflow state
-      core-skills-preserve-prompt-vs-script-responsibilities:
-        - GIVEN: a strict core lifecycle skill prompt is reviewed
-        - WHEN: its workflow guidance is inspected
-        - THEN: >-
-            deterministic parsing, validation, scaffolding, and merge behavior remain delegated to
-            the strict CLI commands
-        - AND: >-
-            the prompt guidance remains focused on planning, editing, review, and user decision
-            checkpoints
-      auto-skill-hands-off-optional-ship-recommendation:
-        - GIVEN: the `strict-spec-auto/SKILL.md` workflow reaches its final archive summary
-        - WHEN: the post-archive guidance is presented
-        - THEN: >-
-            the skill recommends `/strict-spec-ship <change-name>` as an optional next step for a
-            focused git commit
-        - AND: the recommendation is advisory rather than required to complete `strict-spec-auto`
+            the agent checks for non-source artifacts using git status and adds matching entries to
+            .gitignore before suggesting strict-spec-verify
   strict-planning-skill-command-contract:
     strength: MUST
     statement: >-

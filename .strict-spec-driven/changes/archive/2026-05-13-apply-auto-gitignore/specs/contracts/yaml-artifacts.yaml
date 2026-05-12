@@ -1,0 +1,26 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-spec-apply/SKILL.md
+  tests: []
+operations:
+  ADDED: {}
+  MODIFIED:
+    strict-core-skill-guidance-contract:
+      strength: MUST
+      statement: >-
+        The system MUST ensure the strict-spec-apply skill includes a post-task-completion step that
+        automatically detects non-source artifacts generated during task implementation and adds
+        matching entries to .gitignore before suggesting strict-spec-verify.
+      scenarios:
+        apply-skill-auto-gitignore:
+          - GIVEN: the strict-spec-apply skill workflow has completed all tasks
+          - WHEN: the post-task-completion step is reached
+          - THEN: >-
+              the agent checks for non-source artifacts using git status and adds matching entries
+              to .gitignore before suggesting strict-spec-verify
+  REMOVED: {}

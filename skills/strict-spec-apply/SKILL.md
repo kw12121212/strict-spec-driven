@@ -99,9 +99,19 @@ proceeding, verify that strict workflow state already exists.
    sync with the implementation and test files that were changed or directly
    relied on.
 
-9. **Finish cleanly** — once all tasks are complete, read `tasks.yaml` again to
-   confirm there are no remaining `status: pending` entries, then suggest
-   `strict-spec-verify`.
+9. **Gitignore hygiene** — once all tasks are complete, check for non-source
+   artifacts that should not be committed:
+   - run `git status --short` to find newly created untracked files
+   - identify non-source artifacts such as build output (`dist/`, `build/`,
+     `out/`), dependency directories (`node_modules/`, `vendor/`), cache
+     directories (`.cache/`, `.tmp/`), log files (`*.log`), and other
+     generated files
+   - add matching entries to `.gitignore` automatically
+   - do not ignore source code, configuration, or files that are part of the
+     deliberate project output
+
+10. **Finish cleanly** — read `tasks.yaml` again to confirm there are no
+    remaining `status: pending` entries, then suggest `strict-spec-verify`.
 
 ## Rules
 

@@ -110,17 +110,28 @@ proceeding, verify that strict workflow state already exists.
 6. **Run testing commands from `tasks.yaml`** — complete every Testing task by
    actually running its `command` before marking it complete.
 
-7. **Verify the finished change** — run:
+7. **Gitignore hygiene** — once all tasks (including Testing) are complete, check
+   for non-source artifacts that should not be committed:
+   - run `git status --short` to find newly created untracked files
+   - identify non-source artifacts such as build output (`dist/`, `build/`,
+     `out/`), dependency directories (`node_modules/`, `vendor/`), cache
+     directories (`.cache/`, `.tmp/`), log files (`*.log`), and other
+     generated files
+   - add matching entries to `.gitignore` automatically
+   - do not ignore source code, configuration, or files that are part of the
+     deliberate project output
+
+8. **Verify the finished change** — run:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings
    ```
    Fix safe blockers automatically, then rerun verification.
 
-8. **Review code quality** — run `review`, then read every changed implementation
+9. **Review code quality** — run `review`, then read every changed implementation
    and test file yourself. Fix MUST FIX issues automatically when safe.
 
-9. **Archive cleanly** — if the change verifies and reviews cleanly, run:
+10. **Archive cleanly** — if the change verifies and reviews cleanly, run:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>
    ```

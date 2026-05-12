@@ -1,0 +1,32 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: apply-auto-gitignore
+sections:
+  Implementation:
+    add-gitignore-step-to-apply-skill:
+      text: >-
+        Edit skills/strict-spec-apply/SKILL.md: insert a new step 9 between the current step 9 and
+        the strict-spec-verify suggestion. The new step instructs the agent to run `git status
+        --short` to find newly created untracked files, identify non-source artifacts (build output,
+        dependency directories, cache, logs, temp files, generated files), and add matching entries
+        to .gitignore automatically. Renumber the old step 9 (finish cleanly) and its
+        strict-spec-verify suggestion to step 10.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests
