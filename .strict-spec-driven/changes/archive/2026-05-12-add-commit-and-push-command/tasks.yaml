@@ -1,0 +1,36 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-commit-and-push-command
+sections:
+  Implementation:
+    add-runCommitAndPush:
+      text: >-
+        Add runCommitAndPush function to src/cli/cmd-operations.ts that finds the latest archived
+        change, runs git add ., git commit, and git push.
+      status: complete
+    register-command:
+      text: Register commit-and-push subcommand in the CLI command table in src/strict-spec-cli.ts.
+      status: complete
+    add-delta-spec:
+      text: >-
+        Create delta spec targeting cli-foundation with ADDED requirement for commit-and-push
+        command behavior.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

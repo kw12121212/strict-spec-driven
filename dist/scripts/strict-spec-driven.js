@@ -6598,6 +6598,7 @@ var COMMAND_REGISTRATION_ORDER = [
   "roadmap-sync",
   "maintenance",
   "ship",
+  "commit-and-push",
   "archive",
   "list",
   "modify",
@@ -16960,6 +16961,7 @@ function runMaintenanceCommand(argv) {
 
 // src/cli/cmd-operations.ts
 import { existsSync as existsSync28, readFileSync as readFileSync23, statSync as statSync21 } from "fs";
+import { execSync } from "child_process";
 import path29 from "path";
 
 // src/skills.ts
@@ -17798,6 +17800,60 @@ function runVerifySpecMappings(argv) {
   writeJson(result);
   return result.valid ? 0 : 1;
 }
+var ARCHIVE_DATE_PATTERN = /^(\d{4}-\d{2}-\d{2})-(.+)$/;
+function runCommitAndPush(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven commit-and-push
+`);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(`Usage: strict-spec-driven commit-and-push
+`);
+    return 1;
+  }
+  const rootDir = process.cwd();
+  const archived = listArchivedChanges(rootDir);
+  if (archived.length === 0) {
+    writeError("no archived changes found under .strict-spec-driven/changes/archive/");
+    return 1;
+  }
+  const dated = archived.map((name) => {
+    const match = ARCHIVE_DATE_PATTERN.exec(name);
+    return match ? { dirName: name, date: match[1], bareName: match[2] } : null;
+  }).filter((entry) => entry !== null).sort((a, b) => b.date.localeCompare(a.date) || b.dirName.localeCompare(a.dirName));
+  if (dated.length === 0) {
+    writeError("no date-prefixed archived changes found under .strict-spec-driven/changes/archive/");
+    return 1;
+  }
+  const latest = dated[0];
+  const commitMessage = `feat: ${latest.bareName}`;
+  try {
+    execSync("git add .", { cwd: rootDir, stdio: "pipe" });
+  } catch (e) {
+    writeError(`git add failed: ${e instanceof Error ? e.message : String(e)}`);
+    return 1;
+  }
+  try {
+    execSync(`git commit -m ${JSON.stringify(commitMessage)}`, { cwd: rootDir, stdio: "pipe" });
+  } catch (e) {
+    const output = e instanceof Error && "stdout" in e ? String(e.stdout) : "";
+    if (output.includes("nothing to commit")) {
+      writeError("nothing to commit, working tree clean");
+      return 1;
+    }
+    writeError(`git commit failed: ${e instanceof Error ? e.message : String(e)}`);
+    return 1;
+  }
+  try {
+    execSync("git push", { cwd: rootDir, stdio: "pipe" });
+  } catch (e) {
+    writeJson({ changeName: latest.bareName, archiveDir: latest.dirName, commitMessage, pushed: false, pushError: e instanceof Error ? e.message : String(e) });
+    return 1;
+  }
+  writeJson({ changeName: latest.bareName, archiveDir: latest.dirName, commitMessage, pushed: true });
+  return 0;
+}
 
 // src/cli/cmd-templates.ts
 function normalizeTemplateKey(key) {
@@ -17903,6 +17959,7 @@ var commands = createCliCommandTable({
   "roadmap-sync": (argv) => runRoadmapSync(argv),
   maintenance: (argv) => runMaintenanceCommand(argv),
   ship: (argv) => runShip(argv),
+  "commit-and-push": (argv) => runCommitAndPush(argv),
   archive: (argv) => runArchive(argv),
   list: (argv) => runList(argv),
   modify: (argv) => runModify(argv),

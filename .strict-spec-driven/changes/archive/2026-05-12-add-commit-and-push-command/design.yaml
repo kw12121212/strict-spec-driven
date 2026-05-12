@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-commit-and-push-command
+approach:
+  - >-
+    Add runCommitAndPush to cmd-operations.ts alongside runShip. The function scans the archive
+    directory for the latest date-prefixed entry, extracts the bare change name, and shells out to
+    git for add, commit, and push. Register the new subcommand in strict-spec-cli.ts command table.
+decisions:
+  git-invocation:
+    decision: Use child_process.execSync to invoke git commands directly
+    rationale: >-
+      The project already uses Node.js child_process for file operations; git CLI is universally
+      available and avoids native git library dependencies.
+  error-handling:
+    decision: >-
+      Each git step exits non-zero on failure with a descriptive error; push failure does not roll
+      back the commit
+    rationale: Keeps behavior simple and predictable; the user can retry push manually.
+  no-args:
+    decision: The command takes no arguments and always uses the most recent archived change
+    rationale: >-
+      Matches the single-use-case workflow of commit-and-push after archive; avoids argument parsing
+      complexity.
+alternatives: []
+risks: []

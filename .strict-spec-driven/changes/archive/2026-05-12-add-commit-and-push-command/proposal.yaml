@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-commit-and-push-command
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a new commit-and-push CLI subcommand that auto-detects the most recently archived change
+      name and uses it to commit all project changes and push to remote.
+  why:
+    - >-
+      Automating the commit+push step after archive eliminates manual git operations and keeps
+      commit messages consistent with the strict workflow change names.
+scope:
+  in:
+    - .strict-spec-driven/changes/archive/ date-prefixed directory naming
+  out:
+    - new commit-and-push subcommand registered in the CLI command table
+unchanged_behavior:
+  - Existing ship, archive, list, and other CLI subcommands remain unchanged.

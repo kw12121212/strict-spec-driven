@@ -9,7 +9,7 @@ import { runApply, runVerify, runReview, runArchive, runList, runModify, runCanc
 import { runNext, runReady } from "./cli/cmd-workflow.js";
 import { runRoadmapStatus, runRoadmapSync } from "./cli/cmd-roadmap.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
-import { runShip, runValidateSkills, runVerifySpecMappings } from "./cli/cmd-operations.js";
+import { runShip, runValidateSkills, runVerifySpecMappings, runCommitAndPush } from "./cli/cmd-operations.js";
 import { runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 import { compileSchema, createSchemaValidator } from "./validation.js";
@@ -76,6 +76,7 @@ export const commands = createCliCommandTable({
   "roadmap-sync": (argv) => runRoadmapSync(argv),
   maintenance: (argv) => runMaintenanceCommand(argv),
   ship: (argv) => runShip(argv),
+  "commit-and-push": (argv) => runCommitAndPush(argv),
   archive: (argv) => runArchive(argv),
   list: (argv) => runList(argv),
   modify: (argv) => runModify(argv),

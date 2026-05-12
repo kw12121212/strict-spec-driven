@@ -1,0 +1,43 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/cmd-operations.ts
+  tests:
+    - test/suites/operations.ts
+operations:
+  ADDED:
+    cli-commit-and-push-auto-commits-latest-archive:
+      strength: MUST
+      statement: >-
+        The system MUST provide a commit-and-push subcommand that finds the most recently archived
+        change by date prefix, stages all project changes with git add ., commits with message
+        'feat: <change-name>', and pushes to remote.
+      scenarios:
+        no-archived-changes-exits-non-zero:
+          - GIVEN: no archived changes exist under .strict-spec-driven/changes/archive/
+          - WHEN: strict-spec-driven commit-and-push is executed
+          - THEN: >-
+              the command exits non-zero and an error message indicates no archived changes were
+              found
+        latest-archive-commits-and-pushes:
+          - GIVEN: one or more date-prefixed archived change directories exist
+          - WHEN: strict-spec-driven commit-and-push is executed
+          - THEN: >-
+              the command resolves the latest archived change by date prefix, runs git add .,
+              commits with 'feat: <change-name>', and pushes to remote
+        no-changes-to-commit-exits-non-zero:
+          - GIVEN: no unstaged or untracked changes exist in the working tree
+          - WHEN: strict-spec-driven commit-and-push is executed
+          - THEN: the command exits non-zero and an error message indicates nothing to commit
+        push-failure-does-not-rollback:
+          - GIVEN: git commit succeeds but git push fails
+          - WHEN: strict-spec-driven commit-and-push is executed
+          - THEN: >-
+              the command exits non-zero with a push error and the commit is preserved in the local
+              repository
+  MODIFIED: {}
+  REMOVED: {}

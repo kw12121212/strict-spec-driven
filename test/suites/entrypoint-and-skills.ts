@@ -40,6 +40,7 @@ const expectedCommandOrder = [
   "roadmap-sync",
   "maintenance",
   "ship",
+  "commit-and-push",
   "archive",
   "list",
   "modify",
