@@ -19,6 +19,7 @@ before running anything. Do not guess.
 ```yaml
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
 generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec> --<named-args>
+ready: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
 
@@ -82,7 +83,13 @@ proceeding, verify that strict workflow state already exists.
     for delta specs) so generated YAML matches the full document shape
     immediately.
 
-8. **Validate artifact structure** — run:
+8. **Validate proposal readiness and artifact structure** — run:
+   ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
+   ```
+   Use this as the deterministic proposal-handoff check. It reports structural
+   blockers without asking the CLI to decide product scope or requirement
+   content. Then run:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
    ```

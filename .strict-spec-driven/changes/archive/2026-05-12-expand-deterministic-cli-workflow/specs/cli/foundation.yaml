@@ -1,0 +1,88 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/strict-spec-cli.ts
+    - src/cli/registry.ts
+    - src/cli/cmd-workflow.ts
+    - src/workflow-state.ts
+    - src/cli/cmd-generation.ts
+    - src/propose-generation.ts
+    - src/task-list.ts
+    - src/skills/model.ts
+    - src/skills/content.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/change-lifecycle.ts
+operations:
+  ADDED:
+    cli-reports-deterministic-change-next-steps:
+      strength: MUST
+      statement: >-
+        The system MUST provide CLI behavior that reports a named active change's deterministic
+        workflow state, blocking conditions, and scriptable next-step command suggestions without
+        inventing product or implementation decisions.
+      scenarios:
+        next-step-output-reports-blocking-state:
+          - GIVEN: >-
+              an active strict change exists with planning artifacts, tasks, questions, and delta
+              specs
+          - WHEN: the deterministic workflow-state CLI behavior is executed for that change
+          - THEN: >-
+              the output identifies blocking conditions such as pending tasks, open questions,
+              missing delta specs, or validation diagnostics
+          - AND: >-
+              the output includes concrete command suggestions only for script-owned workflow
+              mechanics
+          - AND: >-
+              the output does not decide product scope, requirement content, or user checkpoint
+              answers
+    cli-checks-proposal-readiness:
+      strength: MUST
+      statement: >-
+        The system MUST provide deterministic proposal-readiness checks that can be run before
+        implementation to identify missing or incomplete strict planning artifacts.
+      scenarios:
+        readiness-check-finds-incomplete-planning-artifacts:
+          - GIVEN: a strict change has been scaffolded and partially populated
+          - WHEN: proposal-readiness CLI behavior is executed for that change
+          - THEN: >-
+              the output reports missing proposal, design, task-list, question-list, or delta-spec
+              structure that prevents a decision-ready handoff
+          - AND: >-
+              the diagnostics are deterministic and identify the affected artifact path and field or
+              workflow condition
+    cli-updates-question-state-deterministically:
+      strength: MUST
+      statement: >-
+        The system MUST provide CLI behavior for adding, preserving, and resolving strict change
+        questions while maintaining the question-list schema and refusing conflicting duplicate
+        question content.
+      scenarios:
+        question-resolution-preserves-structured-state:
+          - GIVEN: a strict change has a questions.yaml artifact with an open question
+          - WHEN: the CLI resolves that question with an explicit answer
+          - THEN: the question is moved or represented as resolved according to the question-list schema
+          - AND: the updated artifact validates against the registered question-list schema
+          - AND: conflicting duplicate question identifiers are rejected deterministically
+    cli-updates-task-lists-deterministically:
+      strength: SHOULD
+      statement: >-
+        The system SHOULD provide CLI behavior for creating or updating strict task-list entries
+        from named arguments while preserving task-list schema, keyed-map identity, testing gates,
+        and existing task statuses unless explicitly changed.
+      scenarios:
+        task-list-update-preserves-existing-state:
+          - GIVEN: >-
+              a strict change has a task-list artifact with implementation, testing, and
+              verification sections
+          - WHEN: task-list update CLI behavior adds or updates task entries from named arguments
+          - THEN: the resulting tasks.yaml remains valid task-list/v2 YAML
+          - AND: >-
+              existing task statuses and testing gates are preserved unless the command explicitly
+              changes them
+  MODIFIED: {}
+  REMOVED: {}

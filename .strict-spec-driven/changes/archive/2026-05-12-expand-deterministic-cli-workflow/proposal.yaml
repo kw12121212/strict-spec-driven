@@ -1,0 +1,47 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: expand-deterministic-cli-workflow
+  status: proposed
+summary:
+  what:
+    - >-
+      Move more deterministic strict workflow mechanics from skill prompts into CLI commands so
+      agents rely on scripts for artifact shape, state checks, and next-step guidance.
+    - >-
+      Keep skill prompts focused on intent gathering, judgment, tradeoffs, and explicit user
+      checkpoints.
+  why:
+    - >-
+      Current skills still contain procedural uncertainty around which artifact to edit next, how to
+      keep generated YAML complete, and how to report blocking state.
+    - >-
+      More CLI-owned workflow mechanics make strict changes more repeatable, easier to validate, and
+      less dependent on agent memory.
+scope:
+  in:
+    - >-
+      Define CLI responsibilities for deterministic workflow guidance, proposal readiness checks,
+      question resolution, and task-list generation or updates.
+    - >-
+      Extend strict specs and tests so script-owned behavior is validated independently of skill
+      wording.
+    - >-
+      Update affected strict skill prompts to call the new or expanded CLI surfaces instead of
+      describing manual artifact mechanics where the CLI can own them.
+  out:
+    - >-
+      Do not make the CLI infer product intent, decide scope, or author substantive requirement text
+      without agent or user input.
+    - Do not automate archive, git push, or irreversible user checkpoints.
+    - Do not replace Markdown SKILL.md packaging or remove the skill layer.
+unchanged_behavior:
+  - Strict workflow artifacts remain YAML under .strict-spec-driven/.
+  - >-
+    Existing propose, generate, apply, verify, review, archive, roadmap, and skill validation
+    semantics remain compatible unless explicitly extended by this change.
+  - >-
+    Human confirmation remains required before scaffolding brainstormed changes and before resolving
+    genuinely open questions.

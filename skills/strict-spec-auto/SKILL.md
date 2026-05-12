@@ -20,6 +20,8 @@ propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
 generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec> --<named-args>
 apply: node {{SKILL_DIR}}/scripts/strict-spec-driven.js apply <change-name>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
+ready: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
+next: node {{SKILL_DIR}}/scripts/strict-spec-driven.js next <change-name>
 review: node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>
 verify-spec-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings
 archive: node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>
@@ -78,8 +80,11 @@ proceeding, verify that strict workflow state already exists.
     Prefer one invocation per supported generated artifact (or per target spec
     for delta specs). Keep `tasks.yaml` structured with Implementation,
     Testing, and Verification sections plus valid testing gates.
-   If you use `verify` at proposal time, treat pending-task diagnostics as
-   expected until implementation is complete. If `questions.yaml.open` is not
+   Run `ready <change-name>` at proposal time when deciding whether the change
+   is ready for implementation; it reports deterministic handoff blockers
+   without deciding product scope or requirement content. If you use `verify`
+   at proposal time, treat pending-task diagnostics as expected until
+   implementation is complete. If `questions.yaml.open` is not
    empty, do not infer answers or continue automatically. For each open
    question, explain:
    - the unresolved decision or missing information
@@ -90,6 +95,9 @@ proceeding, verify that strict workflow state already exists.
 
 4. **Implement tasks in order** — read code, implement the next pending task, and
    preserve every `unchanged_behavior` item from `proposal.yaml`.
+   Use `next <change-name>` when you need deterministic state, blockers, or
+   script-owned next-step command suggestions; do not use it as a replacement
+   for user answers or implementation judgment.
 
 5. **Use strict apply only after completing a task** — after each completed task,
    run:

@@ -1,0 +1,18 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: expand-deterministic-cli-workflow
+open: []
+resolved:
+  - id: boundary
+    question: >-
+      Should the change move more workflow mechanics into scripts while preserving AI and human
+      judgment in skills?
+    context: >-
+      The brainstorm asked whether current scripts can replace more skill functionality to reduce
+      uncertain AI-assisted behavior.
+    answer: >-
+      Yes. Deterministic mechanics should move into CLI behavior, while intent, scope, tradeoffs,
+      and explicit user checkpoints remain in skills.
+    status: resolved

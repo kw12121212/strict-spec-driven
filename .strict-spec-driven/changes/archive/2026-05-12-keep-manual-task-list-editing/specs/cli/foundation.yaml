@@ -1,0 +1,19 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/cmd-generation.ts
+    - src/propose-generation.ts
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED: {}
+  MODIFIED: {}
+  REMOVED:
+    cli-updates-task-lists-deterministically:
+      reason: >-
+        tasks.yaml should retain the original direct-edit workflow and should not be generated or
+        updated by the generate command.

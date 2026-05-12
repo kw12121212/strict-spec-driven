@@ -1413,37 +1413,46 @@ requirements:
   skill-proposal-generation-uses-parameterized-cli:
     strength: MUST
     statement: >-
-      The system MUST guide proposal-generating skills to create generated strict change artifacts
-      by executing parameterized strict CLI commands directly, while guiding agents to edit
-      scaffolded tasks.yaml directly according to the task-list schema; those skills MUST NOT
-      instruct agents to create JSON payload files, and SHOULD show one full-artifact invocation for
-      supported generated artifacts or per target delta spec.
+      The system MUST guide proposal-generating skills to create or update supported strict change
+      artifacts through deterministic strict CLI commands when a script-owned operation exists,
+      while keeping agents responsible for supplying semantic facts, explicit checkpoint summaries,
+      and direct structured task-list edits; those skills MUST NOT instruct agents to hand-author
+      generated artifact shape or create JSON payload files for script-supported generated
+      artifacts.
     scenarios:
-      proposal-skill-requires-cli-generation:
-        - GIVEN: a strict proposal skill needs to populate change artifacts
+      proposal-skills-delegate-supported-mechanics-to-cli:
+        - GIVEN: a strict proposal-generating skill needs to populate or update change artifacts
         - WHEN: the skill instructions describe the artifact generation workflow
         - THEN: >-
-            the instructions require agents to generate and run strict CLI invocations with named
-            arguments for supported generated artifacts
-        - AND: the instructions direct agents to edit the scaffolded tasks.yaml directly
+            the instructions require agents to invoke strict CLI behavior with named arguments for
+            supported script-owned artifact operations
         - AND: >-
-            the instructions describe the ordered workflow steps from `propose` through each
-            artifact population step
-        - AND: the instructions prohibit JSON payload files
+            the instructions keep semantic decisions, scope summaries, task-list editing, and user
+            confirmation checkpoints in the skill workflow
+        - AND: >-
+            the instructions prohibit JSON payload files and hand-authored generated artifact shape
+            where CLI support exists
   skill-commands-do-not-own-artifact-shape:
     strength: MUST
     statement: >-
       The system MUST preserve the boundary that skills and generated CLI invocations provide key
-      facts while CLI code owns strict artifact shape, defaults, YAML writing, and validation for
-      supported generated artifacts, with tasks.yaml remaining governed by its scaffold and schema.
+      facts while CLI code owns strict artifact shape, defaults, YAML writing, validation,
+      deterministic workflow-state reporting, and safe updates for supported generated artifacts and
+      question operations; tasks.yaml remains governed by its scaffold, schema, and direct
+      structured edits.
     scenarios:
-      command-does-not-construct-yaml-or-json:
-        - GIVEN: a proposal skill instructs an agent to generate CLI invocations
+      command-invocations-do-not-construct-artifact-shape:
+        - GIVEN: >-
+            a proposal or lifecycle skill instructs an agent to perform a script-supported workflow
+            operation
         - WHEN: the generated commands are reviewed
         - THEN: >-
-            each command invokes strict CLI behavior with named parameters for supported generated
-            artifacts
-        - AND: the commands do not construct JSON payload files
+            each command invokes strict CLI behavior with named parameters for the supported
+            operation
+        - AND: the commands do not construct YAML or JSON payload files for script-owned artifact shape
+        - AND: >-
+            tasks.yaml editing and unsupported or judgment-dependent content remain represented as
+            explicit skill guidance or open questions
   yaml-standalone-planned-change-artifact-contract:
     strength: MUST
     statement: >-
@@ -1582,3 +1591,34 @@ requirements:
         - AND: >-
             the conflict outcome is reported through deterministic diagnostics or archive failure
             output
+  strict-skills-prefer-scripted-deterministic-workflow:
+    strength: MUST
+    statement: >-
+      The system MUST ensure strict skill prompts prefer deterministic CLI behavior over prompt-only
+      procedural instructions whenever the operation is filesystem mechanics, schema validation,
+      artifact serialization, duplicate detection, state reporting, or safe structured artifact
+      updates.
+    scenarios:
+      skills-reference-scripted-deterministic-operations:
+        - GIVEN: >-
+            a strict skill prompt describes a workflow step that has an implemented deterministic
+            CLI equivalent
+        - WHEN: strict skill content validation or human review inspects the prompt
+        - THEN: the prompt references the concrete strict CLI command for that operation
+        - AND: the prompt does not ask the agent to reproduce the CLI-owned mechanics manually
+  strict-skills-preserve-human-judgment-checkpoints:
+    strength: MUST
+    statement: >-
+      The system MUST ensure strict skill prompts preserve human or agent judgment checkpoints for
+      intent discovery, scope selection, tradeoff evaluation, unresolved question answers, and
+      irreversible workflow handoffs even when deterministic CLI helpers exist.
+    scenarios:
+      scripted-helpers-do-not-remove-confirmation-boundaries:
+        - GIVEN: a strict skill prompt uses deterministic CLI helpers during planning or lifecycle work
+        - WHEN: >-
+            the prompt reaches a step that changes scope, answers an open question, scaffolds a
+            brainstormed change, archives a change, or hands off git push
+        - THEN: the prompt requires the appropriate explicit user or operator checkpoint
+        - AND: >-
+            the CLI helper is treated as a mechanics tool rather than the source of the judgment
+            decision

@@ -20,6 +20,7 @@ mapping:
     - src/cli/cmd-roadmap.ts
     - src/cli/cmd-scaffold.ts
     - src/cli/cmd-templates.ts
+    - src/cli/cmd-workflow.ts
     - src/cli/entrypoint.ts
     - src/cli/fs.ts
     - src/cli/registry.ts
@@ -51,6 +52,7 @@ mapping:
     - src/scaffold.ts
     - src/embedded-templates.ts
     - src/validation.ts
+    - src/workflow-state.ts
     - src/yaml.ts
     - src/apply.ts
     - src/verify.ts
@@ -1602,3 +1604,52 @@ requirements:
         - WHEN: '`strict-spec-driven verify <name>` is executed'
         - THEN: verification reports a deterministic validation diagnostic for the ADDED collision
         - AND: the diagnostic identifies the delta spec path, target spec, and requirement id
+  cli-reports-deterministic-change-next-steps:
+    strength: MUST
+    statement: >-
+      The system MUST provide CLI behavior that reports a named active change's deterministic
+      workflow state, blocking conditions, and scriptable next-step command suggestions without
+      inventing product or implementation decisions.
+    scenarios:
+      next-step-output-reports-blocking-state:
+        - GIVEN: >-
+            an active strict change exists with planning artifacts, tasks, questions, and delta
+            specs
+        - WHEN: the deterministic workflow-state CLI behavior is executed for that change
+        - THEN: >-
+            the output identifies blocking conditions such as pending tasks, open questions, missing
+            delta specs, or validation diagnostics
+        - AND: >-
+            the output includes concrete command suggestions only for script-owned workflow
+            mechanics
+        - AND: >-
+            the output does not decide product scope, requirement content, or user checkpoint
+            answers
+  cli-checks-proposal-readiness:
+    strength: MUST
+    statement: >-
+      The system MUST provide deterministic proposal-readiness checks that can be run before
+      implementation to identify missing or incomplete strict planning artifacts.
+    scenarios:
+      readiness-check-finds-incomplete-planning-artifacts:
+        - GIVEN: a strict change has been scaffolded and partially populated
+        - WHEN: proposal-readiness CLI behavior is executed for that change
+        - THEN: >-
+            the output reports missing proposal, design, task-list, question-list, or delta-spec
+            structure that prevents a decision-ready handoff
+        - AND: >-
+            the diagnostics are deterministic and identify the affected artifact path and field or
+            workflow condition
+  cli-updates-question-state-deterministically:
+    strength: MUST
+    statement: >-
+      The system MUST provide CLI behavior for adding, preserving, and resolving strict change
+      questions while maintaining the question-list schema and refusing conflicting duplicate
+      question content.
+    scenarios:
+      question-resolution-preserves-structured-state:
+        - GIVEN: a strict change has a questions.yaml artifact with an open question
+        - WHEN: the CLI resolves that question with an explicit answer
+        - THEN: the question is moved or represented as resolved according to the question-list schema
+        - AND: the updated artifact validates against the registered question-list schema
+        - AND: conflicting duplicate question identifiers are rejected deterministically

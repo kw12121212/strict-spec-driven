@@ -1,0 +1,43 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: expand-deterministic-cli-workflow
+approach:
+  - >-
+    Add small, composable CLI surfaces for deterministic workflow work that skills currently
+    describe procedurally, then update skills to invoke those surfaces after human or agent judgment
+    supplies the content.
+  - >-
+    Keep artifact content generation parameterized: the CLI owns strict YAML shape, defaults,
+    validation, deterministic diagnostics, and safe rewrites; agents provide the semantic facts.
+decisions:
+  script-owned-mechanics:
+    decision: Move repeatable workflow mechanics into CLI commands instead of relying on skill prose.
+    rationale: >-
+      The repository already establishes that scripts own parsing, validation, scaffolding, and
+      deterministic rewrites while skill prompts own judgment. Expanding CLI coverage follows that
+      boundary and reduces prompt brittleness.
+  judgment-remains-in-skills:
+    decision: >-
+      Keep intent discovery, scope selection, tradeoff reasoning, and user checkpoints in skill
+      workflows.
+    rationale: >-
+      Those decisions depend on human goals and repository context, so encoding them as automatic
+      CLI behavior would make the workflow appear more certain than it is.
+alternatives:
+  - option: Rewrite skills to be more detailed without adding CLI behavior
+    reason: >-
+      More prompt detail would still depend on agent memory and would not produce independently
+      testable deterministic behavior.
+  - option: Build a single fully automatic workflow command
+    reason: >-
+      A broad automation command would blur human confirmation and judgment boundaries; smaller
+      deterministic commands are easier to test and compose.
+risks:
+  - >-
+    New CLI guidance could over-prescribe workflow sequencing if it tries to replace judgment
+    instead of reporting state and options.
+  - >-
+    Skill updates and CLI behavior could drift unless validation checks assert the new command
+    references and required guidance.

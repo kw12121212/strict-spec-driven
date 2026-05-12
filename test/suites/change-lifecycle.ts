@@ -157,6 +157,124 @@ try {
   rmSync(applyDeterminismDir, { recursive: true, force: true });
 }
 
+context.section("[11a] deterministic workflow guidance commands");
+
+const workflowGuidanceDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-workflow-guidance-"));
+try {
+  const changeName = "workflow-demo";
+  const changeDir = path.join(workflowGuidanceDir, ".strict-spec-driven", "changes", changeName);
+  mkdirSync(path.join(changeDir, "specs"), { recursive: true });
+
+  writeFileSync(path.join(changeDir, "proposal.yaml"), [
+    "schema: strict-spec-driven/change-proposal/v1",
+    "schema_version: 1",
+    "artifact_type: change_proposal",
+    "schema_file: test",
+    "change:",
+    `  id: ${changeName}`,
+    "  status: proposed",
+    "summary:",
+    "  what:",
+    "    - Test deterministic workflow guidance",
+    "  why:",
+    "    - Testing",
+    "scope:",
+    "  in: []",
+    "  out: []",
+    "unchanged_behavior: []",
+  ].join("\n") + "\n", "utf8");
+  writeFileSync(path.join(changeDir, "design.yaml"), [
+    "schema: strict-spec-driven/change-design/v1",
+    "schema_version: 1",
+    "artifact_type: change_design",
+    "schema_file: test",
+    `change: ${changeName}`,
+    "approach:",
+    "  - Test approach",
+    "decisions: {}",
+    "alternatives: []",
+  ].join("\n") + "\n", "utf8");
+  writeFileSync(path.join(changeDir, "tasks.yaml"), [
+    "schema: strict-spec-driven/task-list/v2",
+    "schema_version: 2",
+    "artifact_type: task_list",
+    "schema_file: test",
+    `change: ${changeName}`,
+    "sections:",
+    "  Implementation:",
+    "    impl-1:",
+    "      text: Implement",
+    "      status: pending",
+    "  Testing:",
+    "    run-tests:",
+    "      text: Run tests",
+    "      status: complete",
+    "      command: bun test/run.ts",
+    "  Verification:",
+    "    verify-1:",
+    "      text: Verify",
+    "      status: pending",
+    "testing_gates:",
+    "  validation_task: run-tests",
+    "  unit_test_task: run-tests",
+  ].join("\n") + "\n", "utf8");
+  writeFileSync(path.join(changeDir, "questions.yaml"), [
+    "schema: strict-spec-driven/question-list/v1",
+    "schema_version: 1",
+    "artifact_type: question_list",
+    "schema_file: test",
+    `change: ${changeName}`,
+    "open:",
+    "  - id: scope",
+    "    question: Should scope proceed?",
+    "    context: Test context",
+    "    status: open",
+    "resolved: []",
+  ].join("\n") + "\n", "utf8");
+
+  const readyMissingDelta = cli(["ready", changeName], { cwd: workflowGuidanceDir });
+  context.assert(readyMissingDelta.status !== 0, "ready exits non-zero when proposal handoff is blocked");
+  const readyJson = JSON.parse(readyMissingDelta.stdout.trim());
+  context.assert(
+    readyJson.ready === false &&
+      readyJson.diagnostics.some((diagnostic: { source: string }) => diagnostic.source === "proposal_readiness"),
+    "ready reports missing delta specs as deterministic readiness diagnostics",
+  );
+
+  const nextResult = cli(["next", changeName], { cwd: workflowGuidanceDir });
+  context.assert(nextResult.status === 0, "next exits zero while reporting workflow blockers");
+  const nextJson = JSON.parse(nextResult.stdout.trim());
+  context.assert(
+    nextJson.blockers.some((diagnostic: { source: string }) => diagnostic.source === "open_questions") &&
+      nextJson.suggestions.some((suggestion: { command: string }) => suggestion.command.includes("questions --resolve scope --answer <answer>")) &&
+      nextJson.suggestions.some((suggestion: { command: string }) => suggestion.command === `strict-spec-driven apply ${changeName}`),
+    "next reports open questions, pending tasks, and script-owned command suggestions",
+  );
+
+  const resolveQuestion = cli(["generate", changeName, "questions", "--resolve", "scope", "--answer", "Yes"], { cwd: workflowGuidanceDir });
+  context.assert(resolveQuestion.status === 0, "generate questions resolves an existing open question", resolveQuestion.stderr.trim());
+  const resolvedQuestions = yamlModule.parseYamlDocument<{ open: unknown[]; resolved: Array<{ id: string; answer: string }> }>(
+    readFileSync(path.join(changeDir, "questions.yaml"), "utf8"),
+  );
+  context.assert(
+    resolvedQuestions.open.length === 0 &&
+      resolvedQuestions.resolved[0]?.id === "scope" &&
+      resolvedQuestions.resolved[0]?.answer === "Yes",
+    "question resolution removes the open entry and writes resolved state",
+  );
+
+  const rejectedTasksGenerate = cli(["generate", changeName, "tasks", "--reset"], { cwd: workflowGuidanceDir });
+  context.assert(rejectedTasksGenerate.status !== 0, "generate tasks remains unsupported for task-list editing");
+  context.assert(
+    rejectedTasksGenerate.stderr.includes("artifact must be one of") &&
+      !rejectedTasksGenerate.stderr.includes("tasks"),
+    "generate tasks failure keeps task-list editing outside scripted generation",
+    rejectedTasksGenerate.stderr.trim(),
+  );
+} finally {
+  rmSync(workflowGuidanceDir, { recursive: true, force: true });
+}
+
 context.section("[12] verify command");
 
 const verifyModule = await loadDistModule<{

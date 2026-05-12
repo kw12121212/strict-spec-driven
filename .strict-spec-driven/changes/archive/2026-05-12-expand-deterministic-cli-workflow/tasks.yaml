@@ -1,0 +1,51 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: expand-deterministic-cli-workflow
+sections:
+  Implementation:
+    update-cli-spec:
+      text: >-
+        Update CLI foundation specs for deterministic workflow-state, readiness, question, and
+        task-list script behavior.
+      status: complete
+    update-skill-contract-spec:
+      text: >-
+        Update skill contract specs so prompts delegate script-owned mechanics to CLI behavior while
+        preserving judgment checkpoints.
+      status: complete
+    implement-cli-surfaces:
+      text: >-
+        Implement the scoped CLI behavior for deterministic workflow guidance and structured
+        artifact updates.
+      status: complete
+    update-skill-guidance:
+      text: >-
+        Update affected strict skill prompts and skill validation expectations to reference the new
+        script-owned workflow behavior.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-focused-tests:
+      text: Run focused workflow and skill validation tests.
+      status: complete
+      command: bun test/run.ts --suite change-lifecycle --suite entrypoint-and-skills
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+    verify-strict-change:
+      text: Run strict verification for this change after implementation tasks are complete.
+      status: complete
+      command: node scripts/strict-spec-driven.js verify expand-deterministic-cli-workflow
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

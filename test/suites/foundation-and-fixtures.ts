@@ -675,7 +675,7 @@ try {
   context.assert(rejectedTasksGenerate.status !== 0, "generate rejects tasks artifact selector");
   context.assert(
     rejectedTasksGenerate.stderr.includes("artifact must be one of")
-      && !rejectedTasksGenerate.stderr.includes("tasks, questions"),
+      && !rejectedTasksGenerate.stderr.includes("tasks"),
     "generate unsupported artifact list omits tasks",
     `stderr: ${rejectedTasksGenerate.stderr.trim()}`,
   );

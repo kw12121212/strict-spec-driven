@@ -24,6 +24,7 @@ before running anything. Do not guess.
 ```yaml
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
 generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec> --<named-args>
+ready: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
 
@@ -130,7 +131,13 @@ proceeding, verify that strict workflow state already exists.
    - if the change has no observable spec impact, leave the `specs/` directory
      empty rather than inventing a prose-only file
 
-9. **Validate artifact structure** — run:
+9. **Validate proposal readiness and artifact structure** — run:
+   ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
+   ```
+   Use this as the deterministic proposal-handoff check. It reports missing
+   planning artifacts, open questions, delta-spec gaps, and schema issues
+   without deciding product scope. Then run:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
    ```

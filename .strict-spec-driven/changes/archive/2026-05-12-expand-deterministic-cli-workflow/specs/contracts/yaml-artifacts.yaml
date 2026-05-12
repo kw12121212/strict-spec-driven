@@ -1,0 +1,97 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/propose-generation.ts
+    - src/cli/cmd-generation.ts
+    - src/skills/model.ts
+    - src/skills/content.ts
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-roadmap-propose/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    strict-skills-prefer-scripted-deterministic-workflow:
+      strength: MUST
+      statement: >-
+        The system MUST ensure strict skill prompts prefer deterministic CLI behavior over
+        prompt-only procedural instructions whenever the operation is filesystem mechanics, schema
+        validation, artifact serialization, duplicate detection, state reporting, or safe structured
+        artifact updates.
+      scenarios:
+        skills-reference-scripted-deterministic-operations:
+          - GIVEN: >-
+              a strict skill prompt describes a workflow step that has an implemented deterministic
+              CLI equivalent
+          - WHEN: strict skill content validation or human review inspects the prompt
+          - THEN: the prompt references the concrete strict CLI command for that operation
+          - AND: the prompt does not ask the agent to reproduce the CLI-owned mechanics manually
+    strict-skills-preserve-human-judgment-checkpoints:
+      strength: MUST
+      statement: >-
+        The system MUST ensure strict skill prompts preserve human or agent judgment checkpoints for
+        intent discovery, scope selection, tradeoff evaluation, unresolved question answers, and
+        irreversible workflow handoffs even when deterministic CLI helpers exist.
+      scenarios:
+        scripted-helpers-do-not-remove-confirmation-boundaries:
+          - GIVEN: a strict skill prompt uses deterministic CLI helpers during planning or lifecycle work
+          - WHEN: >-
+              the prompt reaches a step that changes scope, answers an open question, scaffolds a
+              brainstormed change, archives a change, or hands off git push
+          - THEN: the prompt requires the appropriate explicit user or operator checkpoint
+          - AND: >-
+              the CLI helper is treated as a mechanics tool rather than the source of the judgment
+              decision
+  MODIFIED:
+    skill-proposal-generation-uses-parameterized-cli:
+      strength: MUST
+      statement: >-
+        The system MUST guide proposal-generating skills to create or update supported strict change
+        artifacts through deterministic strict CLI commands when a script-owned operation exists,
+        while keeping agents responsible for supplying semantic facts and explicit checkpoint
+        summaries; those skills MUST NOT instruct agents to hand-author generated artifact shape or
+        create JSON payload files.
+      scenarios:
+        proposal-skills-delegate-supported-mechanics-to-cli:
+          - GIVEN: a strict proposal-generating skill needs to populate or update change artifacts
+          - WHEN: the skill instructions describe the artifact generation workflow
+          - THEN: >-
+              the instructions require agents to invoke strict CLI behavior with named arguments for
+              supported script-owned artifact operations
+          - AND: >-
+              the instructions keep semantic decisions, scope summaries, and user confirmation
+              checkpoints in the skill workflow
+          - AND: >-
+              the instructions prohibit JSON payload files and hand-authored generated artifact
+              shape where CLI support exists
+    skill-commands-do-not-own-artifact-shape:
+      strength: MUST
+      statement: >-
+        The system MUST preserve the boundary that skills and generated CLI invocations provide key
+        facts while CLI code owns strict artifact shape, defaults, YAML writing, validation,
+        deterministic workflow-state reporting, and safe updates for supported generated artifacts
+        and task/question operations.
+      scenarios:
+        command-invocations-do-not-construct-artifact-shape:
+          - GIVEN: >-
+              a proposal or lifecycle skill instructs an agent to perform a script-supported
+              workflow operation
+          - WHEN: the generated commands are reviewed
+          - THEN: >-
+              each command invokes strict CLI behavior with named parameters for the supported
+              operation
+          - AND: >-
+              the commands do not construct YAML or JSON payload files for script-owned artifact
+              shape
+          - AND: >-
+              unsupported or judgment-dependent content remains represented as explicit skill
+              guidance or open questions
+  REMOVED: {}

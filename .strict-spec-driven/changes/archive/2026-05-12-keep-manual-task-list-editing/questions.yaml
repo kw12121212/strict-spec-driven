@@ -1,0 +1,16 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: keep-manual-task-list-editing
+open: []
+resolved:
+  - id: task-generation-boundary
+    question: Should tasks.yaml be generated or updated by the strict CLI generate command?
+    context: >-
+      The previous change added generate tasks, but the user clarified that tasks.yaml should retain
+      the original direct-edit workflow.
+    answer: >-
+      No. tasks.yaml should remain a manually edited structured YAML artifact; scripts may validate
+      it but should not provide a task-list generation path.
+    status: resolved

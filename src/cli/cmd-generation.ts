@@ -22,7 +22,7 @@ function usage(): string {
     "Examples:",
     "  strict-spec-driven generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
     "  strict-spec-driven generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
-    "  strict-spec-driven generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)]...",
+    "  strict-spec-driven generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
     "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
   ].join("\n") + "\n";
 }
@@ -252,7 +252,7 @@ function buildDesignInput(rootDir: string, changeName: string, flags: FlagMap): 
 }
 
 type QuestionGroup = {
-  kind: "open" | "resolved";
+  kind: "open" | "resolved" | "resolve";
   id: string;
   question?: string;
   context?: string;
@@ -297,7 +297,7 @@ function parseQuestionCommandInput(argv: string[], rootDir: string): QuestionCom
       input.reset = true;
       continue;
     }
-    if (name === "open" || name === "resolved") {
+    if (name === "open" || name === "resolved" || name === "resolve") {
       currentItem = { kind: name, id: readValue(name, index) };
       input.items.push(currentItem);
       index += 1;
@@ -336,10 +336,9 @@ function buildQuestionsInputFromArgs(rootDir: string, changeName: string, argv: 
   let resolved = Array.isArray(input.resolved) ? input.resolved as GenerationInputRecord[] : [];
 
   for (const item of commandInput.items) {
-    if (!item.question) throw new Error(`missing required argument --question for question '${item.id}'`);
-    if (!item.context) throw new Error(`missing required argument --context for question '${item.id}'`);
-
     if (item.kind === "open") {
+      if (!item.question) throw new Error(`missing required argument --question for question '${item.id}'`);
+      if (!item.context) throw new Error(`missing required argument --context for question '${item.id}'`);
       if (item.answer !== undefined) {
         throw new Error(`--answer is only valid with --resolved for question '${item.id}'`);
       }
@@ -351,6 +350,26 @@ function buildQuestionsInputFromArgs(rootDir: string, changeName: string, argv: 
       continue;
     }
 
+    if (item.kind === "resolve") {
+      if (!item.answer) throw new Error(`missing required argument --answer for resolved question '${item.id}'`);
+      const existingOpen = open.find((candidate) => candidate.id === item.id);
+      const existingRecord = isRecord(existingOpen) ? existingOpen : undefined;
+      const question = item.question ?? (typeof existingRecord?.question === "string" ? existingRecord.question : undefined);
+      const context = item.context ?? (typeof existingRecord?.context === "string" ? existingRecord.context : undefined);
+      if (!question) throw new Error(`missing required argument --question for unresolved question '${item.id}'`);
+      if (!context) throw new Error(`missing required argument --context for unresolved question '${item.id}'`);
+      open = open.filter((candidate) => candidate.id !== item.id);
+      resolved = upsertListItem(resolved, {
+        id: item.id,
+        question,
+        context,
+        answer: item.answer,
+      }, item.id, "resolved question");
+      continue;
+    }
+
+    if (!item.question) throw new Error(`missing required argument --question for question '${item.id}'`);
+    if (!item.context) throw new Error(`missing required argument --context for question '${item.id}'`);
     if (!item.answer) throw new Error(`missing required argument --answer for resolved question '${item.id}'`);
     resolved = upsertListItem(resolved, {
       id: item.id,

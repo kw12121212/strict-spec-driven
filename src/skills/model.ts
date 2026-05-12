@@ -36,6 +36,8 @@ export const COMMAND_PREFIX = "node {{SKILL_DIR}}/scripts/strict-spec-driven.js"
 export const GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
 export const GENERATE_NAMED_ARGS_COMMAND =
   `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec> --<named-args>`;
+export const READY_COMMAND = `${COMMAND_PREFIX} ready <change-name>`;
+export const NEXT_COMMAND = `${COMMAND_PREFIX} next <change-name>`;
 
 export type SkillContentExpectation = {
   requiredCommands: Record<string, string>;
@@ -60,6 +62,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
     requiredCommands: {
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
+      ready: READY_COMMAND,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
@@ -115,6 +118,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       generate: GENERATE_NAMED_ARGS_COMMAND,
       apply: `${COMMAND_PREFIX} apply <change-name>`,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
+      ready: READY_COMMAND,
+      next: NEXT_COMMAND,
       review: `${COMMAND_PREFIX} review <change-name>`,
       "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
       archive: `${COMMAND_PREFIX} archive <change-name>`,
@@ -174,6 +179,7 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
+      ready: READY_COMMAND,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
@@ -190,6 +196,7 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
+      ready: READY_COMMAND,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
@@ -215,6 +222,7 @@ export const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpe
     requiredCommands: {
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
+      ready: READY_COMMAND,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],

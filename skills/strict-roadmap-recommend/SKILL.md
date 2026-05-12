@@ -21,6 +21,7 @@ before running anything. Do not guess.
 roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
 generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec> --<named-args>
+ready: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
 
@@ -104,6 +105,10 @@ proceeding, verify that strict workflow state already exists.
 
 5. **Validate the proposed strict change** — run:
    ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
+   ```
+   Use `ready` for deterministic proposal-handoff blockers, then run:
+   ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
    ```
    Fix safe proposal-shape issues and record real ambiguity in
@@ -112,7 +117,7 @@ proceeding, verify that strict workflow state already exists.
    `strict-spec-apply` to surface before implementation.
 
 6. **Automatically continue with implementation** — immediately invoke the
-   `strict-spec-auto` skill to carry the recommended change through the rest of
+   `/strict-spec-auto` skill to carry the recommended change through the rest of
    the strict lifecycle (review, apply, verify, archive). If
    `questions.yaml.open` is non-empty, `strict-spec-auto` will surface those
    questions before implementation begins. Do not offer a choice or ask the

@@ -26,6 +26,8 @@ const expectedCommandOrder = [
   "generate",
   "apply",
   "verify",
+  "ready",
+  "next",
   "review",
   "verify-spec-mappings",
   "validate-skills",

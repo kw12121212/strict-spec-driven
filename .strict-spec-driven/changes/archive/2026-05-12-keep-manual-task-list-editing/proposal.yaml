@@ -1,0 +1,37 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: keep-manual-task-list-editing
+  status: proposed
+summary:
+  what:
+    - >-
+      Keep tasks.yaml population as a manual structured YAML editing step instead of a generate
+      subcommand.
+    - >-
+      Retain deterministic CLI helpers for workflow state, proposal readiness, and question
+      resolution.
+  why:
+    - >-
+      The user explicitly wants tasks.yaml to remain generated and maintained through the original
+      direct-edit workflow, not through scripts.
+    - >-
+      Task planning still benefits from agent judgment about work breakdown, testing gates, and
+      implementation sequence.
+scope:
+  in:
+    - Remove tasks from the generate artifact selector and related generation internals.
+    - >-
+      Restore proposal-generating skill guidance to edit tasks.yaml directly according to the
+      task-list schema.
+    - Update specs and tests so scripted task-list updates are no longer required or accepted.
+  out:
+    - Do not remove ready, next, or questions --resolve behavior.
+    - Do not change task-list/v2 artifact schema.
+    - Do not change apply task-completion semantics.
+unchanged_behavior:
+  - Strict workflow artifacts remain YAML under .strict-spec-driven/.
+  - Question resolution may still use deterministic CLI behavior.
+  - Human or agent judgment remains responsible for task breakdown and testing-gate choices.

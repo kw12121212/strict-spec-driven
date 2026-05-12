@@ -6,6 +6,8 @@ export const COMMAND_REGISTRATION_ORDER = [
   "generate",
   "apply",
   "verify",
+  "ready",
+  "next",
   "review",
   "verify-spec-mappings",
   "validate-skills",

@@ -1,0 +1,64 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/skills/model.ts
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-roadmap-propose/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    skill-proposal-generation-uses-parameterized-cli:
+      strength: MUST
+      statement: >-
+        The system MUST guide proposal-generating skills to create or update supported strict change
+        artifacts through deterministic strict CLI commands when a script-owned operation exists,
+        while keeping agents responsible for supplying semantic facts, explicit checkpoint
+        summaries, and direct structured task-list edits; those skills MUST NOT instruct agents to
+        hand-author generated artifact shape or create JSON payload files for script-supported
+        generated artifacts.
+      scenarios:
+        proposal-skills-delegate-supported-mechanics-to-cli:
+          - GIVEN: a strict proposal-generating skill needs to populate or update change artifacts
+          - WHEN: the skill instructions describe the artifact generation workflow
+          - THEN: >-
+              the instructions require agents to invoke strict CLI behavior with named arguments for
+              supported script-owned artifact operations
+          - AND: >-
+              the instructions keep semantic decisions, scope summaries, task-list editing, and user
+              confirmation checkpoints in the skill workflow
+          - AND: >-
+              the instructions prohibit JSON payload files and hand-authored generated artifact
+              shape where CLI support exists
+    skill-commands-do-not-own-artifact-shape:
+      strength: MUST
+      statement: >-
+        The system MUST preserve the boundary that skills and generated CLI invocations provide key
+        facts while CLI code owns strict artifact shape, defaults, YAML writing, validation,
+        deterministic workflow-state reporting, and safe updates for supported generated artifacts
+        and question operations; tasks.yaml remains governed by its scaffold, schema, and direct
+        structured edits.
+      scenarios:
+        command-invocations-do-not-construct-artifact-shape:
+          - GIVEN: >-
+              a proposal or lifecycle skill instructs an agent to perform a script-supported
+              workflow operation
+          - WHEN: the generated commands are reviewed
+          - THEN: >-
+              each command invokes strict CLI behavior with named parameters for the supported
+              operation
+          - AND: >-
+              the commands do not construct YAML or JSON payload files for script-owned artifact
+              shape
+          - AND: >-
+              tasks.yaml editing and unsupported or judgment-dependent content remain represented as
+              explicit skill guidance or open questions
+  REMOVED: {}
