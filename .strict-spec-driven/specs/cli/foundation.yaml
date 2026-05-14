@@ -162,6 +162,9 @@ requirements:
         - AND: >-
             strict config, specs index, roadmap index, and changes state artifacts are created from
             bundled templates
+        - AND: >-
+            the scaffolded strict config documents the complete project-level regression command
+            required as review evidence before archive recommendation or execution
   init-scaffold-output-is-yaml-only:
     strength: MUST
     statement: >-

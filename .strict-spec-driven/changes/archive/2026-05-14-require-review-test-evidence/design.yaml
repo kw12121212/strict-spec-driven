@@ -1,0 +1,33 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: require-review-test-evidence
+approach:
+  - >-
+    Strengthen the human-agent skill instructions rather than the deterministic CLI commands. The
+    review and auto skills will require project-level regression test evidence before archive
+    recommendation or execution, and will stop with actionable environment-preparation guidance when
+    full regression tests cannot be run.
+  - >-
+    Record the repository's regression test method in .strict-spec-driven/config.yaml so skills can
+    resolve the required command and meaning from project workflow context instead of relying only
+    on conversational memory.
+decisions:
+  require-project-regression-evidence:
+    decision: >-
+      The review and auto skills must treat the project's complete regression test command as
+      required review evidence before archive.
+    rationale: >-
+      The user clarified that all tests means the full project regression suite, not only Testing
+      section tasks. Keeping this in skill guidance preserves CLI review's advisory-only contract
+      while making AI-driven review and auto workflows stricter.
+  document-regression-command-in-config:
+    decision: >-
+      .strict-spec-driven/config.yaml must describe the full regression command as `bun run build
+      && bun test/run.ts` and explain that review/archive evidence requires that command to pass.
+    rationale: >-
+      The project-level workflow context should carry the regression definition so future skills and
+      agents can discover it from the repository state before reviewing or archiving changes.
+alternatives: []
+risks: []

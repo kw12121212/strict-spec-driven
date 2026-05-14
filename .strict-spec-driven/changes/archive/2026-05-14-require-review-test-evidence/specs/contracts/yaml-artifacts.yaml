@@ -1,0 +1,44 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-spec-review/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - .strict-spec-driven/config.yaml
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    review-skills-require-project-regression-evidence:
+      strength: MUST
+      statement: >-
+        The strict review and automatic workflow skills MUST require passing complete project-level
+        regression test evidence before recommending or performing strict change archive, and MUST
+        discover the regression test method from strict workflow project context when available, and
+        MUST stop with actionable human setup guidance when the regression suite cannot be run.
+      scenarios:
+        review-blocks-archive-without-regression-evidence:
+          - GIVEN: a strict change is being reviewed by strict-spec-review or strict-spec-auto
+          - WHEN: >-
+              complete project-level regression tests have not passed or cannot be run because test
+              conditions are unavailable
+          - THEN: >-
+              the skill guidance requires the AI to treat archive recommendation or execution as
+              blocked
+          - AND: >-
+              the skill guidance requires actionable human setup or waiting guidance before review
+              can proceed
+        workflow-config-documents-regression-test-method:
+          - GIVEN: a strict workflow project context is available
+          - WHEN: the regression test method is inspected before review or archive
+          - THEN: >-
+              the workflow config explains that the complete project regression command is `bun run
+              build && bun test/run.ts`
+          - AND: >-
+              the workflow config explains that passing this command is required review evidence
+              before archive recommendation or execution
+  MODIFIED: {}
+  REMOVED: {}

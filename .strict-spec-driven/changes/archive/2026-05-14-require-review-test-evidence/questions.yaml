@@ -1,0 +1,17 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: require-review-test-evidence
+open: []
+resolved:
+  - id: all-tests-definition
+    question: What does all tests mean for review and auto workflows?
+    context: >-
+      The review and auto skills need an explicit testing evidence threshold before recommending or
+      performing archive.
+    answer: >-
+      All tests means the complete project-level regression test suite, equivalent in this
+      repository to running `bun run build && bun test/run.ts`, rather than only local Testing
+      section tasks.
+    status: resolved

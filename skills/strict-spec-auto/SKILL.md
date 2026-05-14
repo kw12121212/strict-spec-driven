@@ -131,7 +131,17 @@ proceeding, verify that strict workflow state already exists.
 9. **Review code quality** — run `review`, then read every changed implementation
    and test file yourself. Fix MUST FIX issues automatically when safe.
 
-10. **Archive cleanly** — if the change verifies and reviews cleanly, run:
+10. **Re-check complete regression evidence** — inspect project workflow
+   context, including `.strict-spec-driven/config.yaml` when available, for the
+   complete project-level regression test method. Require evidence that the full
+   project regression command has passed during review before archive execution,
+   even when all Testing tasks are complete. If the regression command cannot
+   run because dependencies, services, credentials, fixtures, or other test
+   conditions are unavailable, stop before archive and give the human actionable
+   setup or waiting guidance.
+
+11. **Archive cleanly** — if the change verifies, reviews cleanly, and has
+   passing complete project-level regression test evidence, run:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>
    ```
@@ -150,4 +160,6 @@ proceeding, verify that strict workflow state already exists.
 - Keep mappings in structured YAML fields
 - The final `/strict-spec-ship <change-name>` recommendation is advisory and
   must not be treated as required to complete `strict-spec-auto`
+- Do not run archive without passing complete project-level regression test
+  evidence or explicit setup guidance explaining why that evidence is blocked
 - Do not commit or push automatically

@@ -407,6 +407,18 @@ context.assert(missingAssets.length === 0, "required scaffold assets are all pre
 
 const scaffoldConfig = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("config.yaml");
 context.assert(scaffoldConfig.artifact_type === "workflow_config", "scaffold config template is loadable YAML");
+const scaffoldReviewEvidence = scaffoldConfig.review_evidence as
+  | { project_regression?: { command?: unknown; meaning?: unknown } }
+  | undefined;
+context.assert(
+  scaffoldReviewEvidence?.project_regression?.command === "bun run build && bun test/run.ts",
+  "scaffold config template includes complete project regression command",
+);
+context.assert(
+  typeof scaffoldReviewEvidence?.project_regression?.meaning === "string"
+    && scaffoldReviewEvidence.project_regression.meaning.includes("complete project-level regression suite"),
+  "scaffold config template documents regression evidence meaning",
+);
 
 const scaffoldSpecIndex = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("specs/INDEX.yaml");
 context.assert(scaffoldSpecIndex.artifact_type === "spec_index", "scaffold specs index template is loadable YAML");
@@ -447,6 +459,15 @@ try {
   );
 
   const configPath = path.join(strictRoot, "config.yaml");
+  const initConfigContent = readFileSync(configPath, "utf8");
+  const normalizedInitConfigContent = initConfigContent.replace(/\s+/g, " ");
+  context.assert(
+    normalizedInitConfigContent.includes("review_evidence:")
+      && normalizedInitConfigContent.includes("command: bun run build && bun test/run.ts")
+      && normalizedInitConfigContent.includes("complete project-level regression suite"),
+    "init scaffolded config includes project regression review evidence",
+  );
+
   writeFileSync(configPath, "custom: keep-me\n", "utf8");
 
   const initSecond = cli(["init"], { cwd: initTempDir });

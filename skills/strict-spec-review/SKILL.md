@@ -57,14 +57,27 @@ proceeding, verify that strict workflow state already exists.
 6. **Check spec alignment** — confirm the implementation and tests match the
    strict YAML delta specs and do not violate `unchanged_behavior`.
 
-7. **Report the result** — group findings into:
+7. **Confirm complete regression evidence** — inspect project workflow context,
+   including `.strict-spec-driven/config.yaml` when available, for the complete
+   project-level regression test method. Require evidence that the full project
+   regression command has passed before recommending archive. If the command
+   cannot run because dependencies, services, credentials, fixtures, or other
+   test conditions are unavailable, treat archive recommendation as blocked and
+   give the human actionable setup or waiting guidance instead of inferring a
+   clean result.
+
+8. **Report the result** — group findings into:
    - MUST FIX
    - SHOULD FIX
    - NITS
-   Recommend `strict-spec-archive` only when review is clean enough to archive.
+   Recommend `strict-spec-archive` only when review is clean enough to archive
+   and complete project-level regression test evidence has passed.
 
 ## Rules
 
 - Read every changed file before commenting on it
 - Focus on real issues, not style churn already handled elsewhere
 - Review code based on repository evidence, never on authorship
+- Do not recommend archive without passing complete project-level regression
+  test evidence or explicit setup guidance explaining why that evidence is
+  blocked

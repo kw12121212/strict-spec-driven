@@ -1,0 +1,51 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: require-review-test-evidence
+sections:
+  Implementation:
+    update-review-skill:
+      text: >-
+        Require strict-spec-review to collect complete project regression test evidence before
+        archive recommendation and to block with setup guidance when tests cannot run.
+      status: complete
+    update-auto-skill:
+      text: >-
+        Require strict-spec-auto to re-check complete project regression test evidence during review
+        before archive execution and to block with setup guidance when tests cannot run.
+      status: complete
+    document-regression-config:
+      text: >-
+        Update .strict-spec-driven/config.yaml with the project-level regression test method,
+        command line, and review evidence meaning.
+      status: complete
+    align-spec-mapping:
+      text: >-
+        Keep the strict YAML delta spec aligned with the implemented skill behavior and mapped
+        files.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-regression-tests:
+      text: Run the complete project regression test suite.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-change:
+      text: Verify the strict change artifacts after implementation.
+      status: complete
+      command: node scripts/strict-spec-driven.js verify require-review-test-evidence
+    verify-spec-mappings:
+      text: Verify strict main-spec implementation and test mappings.
+      status: complete
+      command: node scripts/strict-spec-driven.js verify-spec-mappings
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-regression-tests

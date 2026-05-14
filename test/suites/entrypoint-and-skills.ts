@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import {
@@ -157,6 +157,30 @@ const validateSkillsCli = validateSkillsDispatch;
 context.assert(validateSkillsCli.status === 0, "validate-skills CLI exits zero for valid strict skill packaging");
 const validateSkillsJson = validateSkillsDispatchJson;
 context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits valid=true JSON");
+
+const reviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-review", "SKILL.md"), "utf8");
+const autoSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-auto", "SKILL.md"), "utf8");
+const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
+const normalizedReviewSkillContent = reviewSkillContent.replace(/\s+/g, " ");
+const normalizedAutoSkillContent = autoSkillContent.replace(/\s+/g, " ");
+const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
+context.assert(
+  normalizedReviewSkillContent.includes("complete project-level regression test evidence")
+    && normalizedReviewSkillContent.includes("actionable setup or waiting guidance"),
+  "strict-spec-review requires complete project regression evidence before archive recommendation",
+);
+context.assert(
+  normalizedAutoSkillContent.includes("complete project-level regression test evidence")
+    && normalizedAutoSkillContent.includes("stop before archive")
+    && normalizedAutoSkillContent.includes("actionable setup or waiting guidance"),
+  "strict-spec-auto blocks archive without complete project regression evidence",
+);
+context.assert(
+  normalizedWorkflowConfigContent.includes("review_evidence:")
+    && normalizedWorkflowConfigContent.includes("command: bun run build && bun test/run.ts")
+    && normalizedWorkflowConfigContent.includes("complete project-level regression suite"),
+  "workflow config documents the complete project regression command and review meaning",
+);
 
 const noTemplateSymlinkRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-no-template-symlink-"));
 try {

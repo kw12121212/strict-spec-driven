@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: require-review-test-evidence
+  status: proposed
+summary:
+  what:
+    - >-
+      Require strict-spec-review and strict-spec-auto to obtain passing project-level regression
+      test evidence before recommending or performing archive.
+  why:
+    - >-
+      Review and auto workflows can otherwise treat task completion or advisory review output as
+      sufficient even when the full project regression suite has not been run or cannot run.
+scope:
+  in:
+    - >-
+      Update strict-spec-review skill guidance, strict-spec-auto review/archive guidance, strict
+      YAML spec mappings, and skill-content regression tests for complete project test evidence.
+    - >-
+      Update .strict-spec-driven/config.yaml to document the project-level regression test method,
+      command line, and review meaning used by strict workflow skills.
+  out:
+    - >-
+      Do not change CLI review, verify, archive behavior; do not add a new test runner or CI
+      integration; do not implement automatic test execution inside CLI commands.
+unchanged_behavior:
+  - >-
+    The review CLI remains advisory-only, verify and archive lifecycle gates remain deterministic
+    YAML checks, and Testing tasks still run through the existing task-list workflow.
