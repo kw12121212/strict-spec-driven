@@ -1,0 +1,18 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: define-dev-session-artifact-contract
+open: []
+resolved:
+  - id: dev-session-scaffold-scope
+    question: >-
+      Should this contract change scaffold a project-local .strict-spec-driven/dev-session.yaml
+      stub, or should scaffold coverage stay limited to bundled schema/example assets until a later
+      change explicitly adds project-facing session setup behavior?
+    context: >-
+      The roadmap requires scaffold coverage for the artifact, but this planned change is
+      intentionally limited to the declaration contract while later planned changes add plan and
+      lifecycle behavior.
+    answer: Scaffold the project-local .strict-spec-driven/dev-session.yaml stub now.
+    status: resolved

@@ -267,6 +267,38 @@ const plannedChangeValidation = validationModule.validateArtifact(
   "examples/strict-spec-driven/planned-change.yaml",
 );
 context.assert(plannedChangeValidation.valid, "planned change example validates against planned change schema");
+const devSessionSchema = validationModule.loadBundledSchemaByArtifactType("dev_session") as Record<string, unknown>;
+context.assert(
+  (devSessionSchema.properties as Record<string, unknown>)?.session !== undefined,
+  "dev-session schema resolves by artifact type",
+);
+const devSessionBySchemaId = validationModule.loadBundledSchemaBySchemaId("strict-spec-driven/dev-session/v1") as Record<string, unknown>;
+context.assert(
+  (devSessionBySchemaId.properties as Record<string, unknown>)?.session !== undefined,
+  "dev-session schema resolves by schema ID",
+);
+const devSessionExample = yamlModule.parseYamlFile<Record<string, unknown>>(
+  path.join(ROOT, "examples", "strict-spec-driven", "dev-session.yaml"),
+);
+const devSessionValidation = validationModule.validateArtifact(
+  devSessionSchema,
+  devSessionExample,
+  "examples/strict-spec-driven/dev-session.yaml",
+);
+context.assert(devSessionValidation.valid, "dev-session example validates against dev-session schema");
+const devSessionWithSecret = JSON.parse(JSON.stringify(devSessionExample)) as Record<string, unknown>;
+((((devSessionWithSecret.session as Record<string, unknown>).services as Record<string, unknown>).web as Record<string, unknown>)
+  .environment as Record<string, unknown>).values = { PORT: "3000" };
+const devSessionSecretValidation = validationModule.validateArtifact(
+  devSessionSchema,
+  devSessionWithSecret,
+  "memory://dev-session-secret",
+);
+context.assert(devSessionSecretValidation.valid === false, "dev-session schema rejects embedded secret values");
+context.assert(
+  devSessionSecretValidation.diagnostics.some((diagnostic) => diagnostic.fieldPath === "$.session.services.web.environment.values"),
+  "dev-session secret-value diagnostics point to the unexpected values field",
+);
 const bundledRegistry = validationModule.loadBundledSchema<Record<string, unknown>>("registry.yaml") as {
   entries: Array<{ schema_id: string; artifact_type: string; schema_file: string; primary_example: string }>;
 };
@@ -279,6 +311,16 @@ context.assert(
       && entry.primary_example.endsWith("/planned-change.yaml"),
   ),
   "schema registry includes standalone planned change schema and primary example",
+);
+context.assert(
+  bundledRegistry.entries.some(
+    (entry) =>
+      entry.schema_id === "strict-spec-driven/dev-session/v1"
+      && entry.artifact_type === "dev_session"
+      && entry.schema_file === "dev-session.yaml"
+      && entry.primary_example.endsWith("/dev-session.yaml"),
+  ),
+  "schema registry includes dev-session schema and primary example",
 );
 
 const testJsonSchema = {
@@ -384,11 +426,12 @@ context.assert(
   JSON.stringify(firstAssetList) === JSON.stringify(secondAssetList),
   "required scaffold asset manifest is deterministic",
 );
-context.assert(firstAssetList.length === 3, "required scaffold asset manifest includes three assets");
+context.assert(firstAssetList.length === 4, "required scaffold asset manifest includes four assets");
 context.assert(
   firstAssetList.every((asset) => asset.endsWith(".yaml")),
   "required scaffold asset manifest contains only YAML files",
 );
+context.assert(firstAssetList.includes("dev-session.yaml"), "required scaffold asset manifest includes dev-session scaffold");
 
 for (const relativeAssetPath of firstAssetList) {
   const absoluteAssetPath = scaffoldModule.getBundledScaffoldPath(relativeAssetPath);
@@ -427,6 +470,9 @@ const scaffoldRoadmapIndex = scaffoldModule.loadBundledScaffoldYaml<Record<strin
 context.assert(scaffoldRoadmapIndex.artifact_type === "roadmap_index", "scaffold roadmap index template is loadable YAML");
 context.assert(typeof scaffoldRoadmapIndex.milestones === "object" && scaffoldRoadmapIndex.milestones !== null && !Array.isArray(scaffoldRoadmapIndex.milestones), "scaffold roadmap index template includes milestone sequence field");
 
+const scaffoldDevSession = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("dev-session.yaml");
+context.assert(scaffoldDevSession.artifact_type === "dev_session", "scaffold dev-session template is loadable YAML");
+
 context.section("[5] init command");
 
 const initTempDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-driven-init-"));
@@ -444,6 +490,7 @@ try {
   const strictRoot = path.join(initTempDir, ".strict-spec-driven");
   const requiredArtifacts = [
     "config.yaml",
+    "dev-session.yaml",
     "specs/INDEX.yaml",
     "roadmap/INDEX.yaml",
   ];
@@ -1473,6 +1520,7 @@ for (const changeAsset of scaffoldModule.getRequiredBundledChangeTemplateAssets(
 }
 
 const distSchemaFiles = [
+  "dev-session.yaml",
   "registry.yaml",
   "main-spec.yaml",
   "delta-spec.yaml",
@@ -1498,7 +1546,7 @@ try {
   context.assert(distOnlyInit.status === 0, "init succeeds from dist-only temp directory", `got exit code ${distOnlyInit.status}`);
   const strictRoot = path.join(distOnlyDir, ".strict-spec-driven");
   context.assert(existsSync(strictRoot), "init from dist creates .strict-spec-driven directory");
-  for (const artifact of ["config.yaml", "specs/INDEX.yaml", "roadmap/INDEX.yaml"]) {
+  for (const artifact of ["config.yaml", "dev-session.yaml", "specs/INDEX.yaml", "roadmap/INDEX.yaml"]) {
     context.assert(existsSync(path.join(strictRoot, artifact)), `init from dist creates artifact (${artifact})`);
   }
   context.assert(

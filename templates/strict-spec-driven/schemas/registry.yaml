@@ -179,6 +179,19 @@ entries:
       notes:
         - Standalone planned changes are the normal roadmap work-item surface; materialize legacy inline milestone entries before running ordinary roadmap commands.
         - Optional team metadata is advisory coordination data and is not a locking or permission mechanism.
+  - schema_id: strict-spec-driven/dev-session/v1
+    schema_version: 1
+    artifact_type: dev_session
+    artifact_name: dev-session
+    schema_file: dev-session.yaml
+    primary_example: ../../../examples/strict-spec-driven/dev-session.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Development-session artifacts declare local services, browser targets, and cleanup guidance without storing secret values.
   - schema_id: strict-spec-driven/schema-registry/v1
     schema_version: 1
     artifact_type: schema_registry

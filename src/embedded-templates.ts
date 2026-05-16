@@ -125,6 +125,36 @@ review_evidence:
 #   checks:
 #     - type: roadmap-sync-check
 `,
+  "strict-spec-driven/scaffold/dev-session.yaml": `schema: strict-spec-driven/dev-session/v1
+schema_version: 1
+artifact_type: dev_session
+schema_file: templates/strict-spec-driven/schemas/dev-session.yaml
+session:
+  id: default
+  description: Replace the sample values with this repository's local development session details.
+  services:
+    app:
+      description: Replace with the primary local development service for this project.
+      command: replace-with-project-dev-command
+      working_directory: "."
+      environment:
+        required: []
+        optional: []
+      urls: []
+      ports: []
+      readiness:
+        type: manual
+        timeout_seconds: 60
+        interval_seconds: 5
+        notes:
+          - Replace manual readiness with HTTP or TCP readiness when known.
+      browser_targets: []
+      cleanup:
+        mode: none
+        grace_period_seconds: 0
+      unavailable_conditions: []
+  browser_targets: {}
+`,
   "strict-spec-driven/scaffold/roadmap/INDEX.yaml": `schema: strict-spec-driven/roadmap-index/v2
 schema_version: 2
 artifact_type: roadmap_index
@@ -445,6 +475,238 @@ json_schema:
             properties:
               reason:
                 type: string
+`,
+  "strict-spec-driven/schemas/dev-session.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/dev-session/v1
+artifact_type: dev_session
+artifact_name: dev-session
+description: Strict YAML development-session declaration artifact.
+example_ref: ../../../examples/strict-spec-driven/dev-session.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - session
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/dev-session/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: dev_session
+    schema_file:
+      type: string
+    session:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - services
+        - browser_targets
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        description:
+          type: string
+          minLength: 1
+        services:
+          type: object
+          minProperties: 1
+          additionalProperties: false
+          patternProperties:
+            "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
+              type: object
+              additionalProperties: false
+              required:
+                - command
+                - working_directory
+                - environment
+                - urls
+                - ports
+                - readiness
+                - browser_targets
+                - cleanup
+                - unavailable_conditions
+              properties:
+                description:
+                  type: string
+                  minLength: 1
+                command:
+                  type: string
+                  minLength: 1
+                working_directory:
+                  type: string
+                  minLength: 1
+                environment:
+                  type: object
+                  additionalProperties: false
+                  required:
+                    - required
+                    - optional
+                  properties:
+                    required:
+                      type: array
+                      items:
+                        type: string
+                        pattern: "^[A-Z][A-Z0-9_]*$"
+                    optional:
+                      type: array
+                      items:
+                        type: string
+                        pattern: "^[A-Z][A-Z0-9_]*$"
+                urls:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                ports:
+                  type: array
+                  items:
+                    type: integer
+                    minimum: 1
+                    maximum: 65535
+                readiness:
+                  type: object
+                  additionalProperties: false
+                  required:
+                    - type
+                    - timeout_seconds
+                    - interval_seconds
+                  properties:
+                    type:
+                      type: string
+                      enum:
+                        - http
+                        - tcp
+                        - manual
+                    url:
+                      type: string
+                      format: uri
+                    port:
+                      type: integer
+                      minimum: 1
+                      maximum: 65535
+                    timeout_seconds:
+                      type: integer
+                      minimum: 1
+                    interval_seconds:
+                      type: integer
+                      minimum: 1
+                    notes:
+                      type: array
+                      items:
+                        type: string
+                        minLength: 1
+                  allOf:
+                    - if:
+                        properties:
+                          type:
+                            const: http
+                      then:
+                        required:
+                          - url
+                    - if:
+                        properties:
+                          type:
+                            const: tcp
+                      then:
+                        required:
+                          - port
+                browser_targets:
+                  type: array
+                  items:
+                    type: string
+                    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+                cleanup:
+                  type: object
+                  additionalProperties: false
+                  required:
+                    - mode
+                    - grace_period_seconds
+                  properties:
+                    mode:
+                      type: string
+                      enum:
+                        - signal
+                        - command
+                        - none
+                    signal:
+                      type: string
+                      minLength: 1
+                    command:
+                      type: string
+                      minLength: 1
+                    grace_period_seconds:
+                      type: integer
+                      minimum: 0
+                  allOf:
+                    - if:
+                        properties:
+                          mode:
+                            const: signal
+                      then:
+                        required:
+                          - signal
+                    - if:
+                        properties:
+                          mode:
+                            const: command
+                      then:
+                        required:
+                          - command
+                unavailable_conditions:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
+        browser_targets:
+          type: object
+          additionalProperties: false
+          patternProperties:
+            "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
+              type: object
+              additionalProperties: false
+              required:
+                - url
+                - smoke_paths
+                - evidence_labels
+                - local_only
+              properties:
+                url:
+                  type: string
+                  format: uri
+                smoke_paths:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    minLength: 1
+                evidence_labels:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    minLength: 1
+                local_only:
+                  type: boolean
+                service:
+                  type: string
+                  pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+                notes:
+                  type: array
+                  items:
+                    type: string
+                    minLength: 1
 `,
   "strict-spec-driven/schemas/main-spec.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -908,6 +1170,19 @@ entries:
       notes:
         - Standalone planned changes are the normal roadmap work-item surface; materialize legacy inline milestone entries before running ordinary roadmap commands.
         - Optional team metadata is advisory coordination data and is not a locking or permission mechanism.
+  - schema_id: strict-spec-driven/dev-session/v1
+    schema_version: 1
+    artifact_type: dev_session
+    artifact_name: dev-session
+    schema_file: dev-session.yaml
+    primary_example: ../../../examples/strict-spec-driven/dev-session.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Development-session artifacts declare local services, browser targets, and cleanup guidance without storing secret values.
   - schema_id: strict-spec-driven/schema-registry/v1
     schema_version: 1
     artifact_type: schema_registry

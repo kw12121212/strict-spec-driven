@@ -1634,3 +1634,16 @@ requirements:
         - AND: >-
             the workflow config explains that passing this command is required review evidence
             before archive recommendation or execution
+  yaml-dev-session-declaration-contract:
+    strength: MUST
+    statement: >-
+      The system MUST define a strict YAML contract for .strict-spec-driven/dev-session.yaml that
+      models declared local services, readiness metadata, browser targets, cleanup rules,
+      unavailable-condition notes, and environment variable names without storing secret values.
+    scenarios:
+      dev-session-declaration-is-structured:
+        - GIVEN: the dev-session artifact contract is reviewed
+        - WHEN: its declared fields and validation rules are inspected
+        - THEN: >-
+            service startup, readiness, browser-target, cleanup, unavailable-condition, and
+            secret-handling metadata are represented through structured YAML fields

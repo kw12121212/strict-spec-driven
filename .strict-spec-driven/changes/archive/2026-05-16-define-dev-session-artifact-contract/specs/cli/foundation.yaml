@@ -1,0 +1,27 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/validation.ts
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    cli-dev-session-bundled-assets:
+      strength: MUST
+      statement: >-
+        The system MUST bundle dev-session schema and template assets so shared strict CLI
+        validation and scaffold utilities can recognize the dev-session declaration without
+        repository-specific setup.
+      scenarios:
+        cli-loads-dev-session-assets:
+          - GIVEN: a strict CLI command needs to validate or scaffold the dev-session declaration
+          - WHEN: it loads bundled schema or scaffold assets
+          - THEN: >-
+              the dev-session contract assets are available through the same bundled template and
+              validation pipeline used for other strict artifacts
+  MODIFIED: {}
+  REMOVED: {}

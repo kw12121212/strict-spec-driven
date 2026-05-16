@@ -1,0 +1,27 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/dev-session.yaml
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    yaml-dev-session-declaration-contract:
+      strength: MUST
+      statement: >-
+        The system MUST define a strict YAML contract for .strict-spec-driven/dev-session.yaml that
+        models declared local services, readiness metadata, browser targets, cleanup rules,
+        unavailable-condition notes, and environment variable names without storing secret values.
+      scenarios:
+        dev-session-declaration-is-structured:
+          - GIVEN: the dev-session artifact contract is reviewed
+          - WHEN: its declared fields and validation rules are inspected
+          - THEN: >-
+              service startup, readiness, browser-target, cleanup, unavailable-condition, and
+              secret-handling metadata are represented through structured YAML fields
+  MODIFIED: {}
+  REMOVED: {}

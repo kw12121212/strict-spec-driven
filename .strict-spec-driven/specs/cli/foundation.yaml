@@ -1683,3 +1683,16 @@ requirements:
         - THEN: >-
             the command exits non-zero with a push error and the commit is preserved in the local
             repository
+  cli-dev-session-bundled-assets:
+    strength: MUST
+    statement: >-
+      The system MUST bundle dev-session schema and template assets so shared strict CLI validation
+      and scaffold utilities can recognize the dev-session declaration without repository-specific
+      setup.
+    scenarios:
+      cli-loads-dev-session-assets:
+        - GIVEN: a strict CLI command needs to validate or scaffold the dev-session declaration
+        - WHEN: it loads bundled schema or scaffold assets
+        - THEN: >-
+            the dev-session contract assets are available through the same bundled template and
+            validation pipeline used for other strict artifacts

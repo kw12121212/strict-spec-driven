@@ -1,0 +1,47 @@
+schema: strict-spec-driven/dev-session/v1
+schema_version: 1
+artifact_type: dev_session
+schema_file: ../../templates/strict-spec-driven/schemas/dev-session.yaml
+session:
+  id: local-web-app
+  description: Frontend development session with one browser smoke target.
+  services:
+    web:
+      description: Local frontend dev server.
+      command: bun run dev
+      working_directory: "."
+      environment:
+        required:
+          - PORT
+        optional:
+          - API_BASE_URL
+      urls:
+        - "http://127.0.0.1:3000"
+      ports:
+        - 3000
+      readiness:
+        type: http
+        url: "http://127.0.0.1:3000/health"
+        timeout_seconds: 60
+        interval_seconds: 2
+        notes:
+          - Update the health URL to match the project.
+      browser_targets:
+        - home
+      cleanup:
+        mode: signal
+        signal: SIGTERM
+        grace_period_seconds: 10
+      unavailable_conditions:
+        - Install project dependencies before starting the dev server.
+  browser_targets:
+    home:
+      url: "http://127.0.0.1:3000"
+      smoke_paths:
+        - /
+      evidence_labels:
+        - homepage-loaded
+      local_only: true
+      service: web
+      notes:
+        - Confirm the page renders without console or network errors.

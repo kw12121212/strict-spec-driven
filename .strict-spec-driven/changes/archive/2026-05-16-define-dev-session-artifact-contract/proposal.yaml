@@ -1,0 +1,44 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: define-dev-session-artifact-contract
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a strict YAML declaration contract for .strict-spec-driven/dev-session.yaml covering local
+      services, readiness metadata, browser targets, cleanup rules, and unavailable-condition notes.
+  why:
+    - >-
+      Agents need deterministic local development-session metadata instead of guessing setup details
+      from README prose, scripts, or prior session memory.
+scope:
+  in:
+    - >-
+      Define the project-local dev-session artifact shape, including service commands, working
+      directories, environment variable names, readiness checks, browser targets, expected evidence
+      labels, and cleanup metadata.
+    - >-
+      Bundle schema, registry, example, and scaffold coverage for the dev-session artifact so the
+      contract is reusable across strict projects and new strict workflow scaffolds can create a
+      project-local declaration stub.
+    - >-
+      Reject secret values in the declaration while allowing projects to name required environment
+      variables and unavailable conditions.
+  out:
+    - Starting or stopping services, streaming logs, or recording runtime process state.
+    - >-
+      Guessing undeclared commands, ports, routes, or browser targets from package scripts or README
+      text.
+    - >-
+      Replacing project-owned scripts or introducing lifecycle CLI commands beyond contract
+      validation support.
+unchanged_behavior:
+  - >-
+    Existing strict workflow artifacts and commands remain unchanged except for recognizing the new
+    dev-session declaration contract and bundled assets.
+roadmap:
+  milestone: 0012-development-session-assistance
+  planned_change: define-dev-session-artifact-contract

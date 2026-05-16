@@ -19,6 +19,7 @@ function scaffoldTemplateKey(relativePath: string): string {
 
 const REQUIRED_SCAFFOLD_ASSETS = [
   "config.yaml",
+  "dev-session.yaml",
   "specs/INDEX.yaml",
   "roadmap/INDEX.yaml",
 ] as const;

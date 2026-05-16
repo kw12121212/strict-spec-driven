@@ -1,0 +1,40 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: define-dev-session-artifact-contract
+sections:
+  Implementation:
+    add-dev-session-schema-assets:
+      text: >-
+        Add the dev-session YAML schema, registry entries, minimal example, and project-local
+        scaffold stub assets.
+      status: complete
+    wire-dev-session-validation:
+      text: >-
+        Wire bundled template and validation loading so strict tooling recognizes the dev-session
+        artifact.
+      status: complete
+    enforce-dev-session-secret-rules:
+      text: >-
+        Enforce contract validation rules that allow environment variable names but reject secret
+        values in the declaration.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation for the dev-session contract changes.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run the strict test suite covering schema, scaffold, and validation behavior.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-contract-only-scope:
+      text: >-
+        Verify the change adds only dev-session contract assets and validation wiring, not plan or
+        lifecycle execution behavior.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

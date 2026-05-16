@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: define-dev-session-artifact-contract
   milestone: 0012-development-session-assistance
-status: planned
+status: complete
 summary: >-
   define a strict YAML artifact contract for local development-session metadata that agents can use
   to discover service startup, readiness, browser targets, evidence expectations, and cleanup rules.
