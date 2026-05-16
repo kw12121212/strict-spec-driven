@@ -47,3 +47,7 @@ milestones:
     title: 11 Conflict Resistant Team Roadmap
     path: roadmap/milestones/0011-team-roadmap-collaboration.yaml
     status: complete
+  0012-development-session-assistance:
+    title: 12 Development Session Assistance
+    path: roadmap/milestones/0012-development-session-assistance.yaml
+    status: proposed

@@ -1,0 +1,19 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-dev-session-validation-and-plan-output
+  milestone: 0012-development-session-assistance
+status: planned
+summary: >-
+  add CLI support that validates declared development-session metadata and emits a deterministic
+  startup, readiness, browser-target, and cleanup plan without starting any services.
+details: >-
+  The `dev-session-plan` command should let an agent inspect what the project declares before taking
+  action. Output should include service names, commands, working directories, required environment
+  variable names, readiness checks, target URLs, browser smoke paths, cleanup instructions, declared
+  unavailable conditions, and deterministic diagnostics for missing or invalid metadata. The command
+  must not start services, open browsers, or create runtime state.
+depends_on:
+  - define-dev-session-artifact-contract

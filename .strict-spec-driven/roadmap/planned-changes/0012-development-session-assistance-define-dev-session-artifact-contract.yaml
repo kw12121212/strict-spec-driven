@@ -1,0 +1,20 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: define-dev-session-artifact-contract
+  milestone: 0012-development-session-assistance
+status: planned
+summary: >-
+  define a strict YAML artifact contract for local development-session metadata that agents can use
+  to discover service startup, readiness, browser targets, evidence expectations, and cleanup rules.
+details: >-
+  The contract should introduce `.strict-spec-driven/dev-session.yaml` as the project-local
+  declaration and add bundled schema, registry, example, and scaffold coverage for the artifact. It
+  should model one or more local services with command, working directory, environment variable
+  names, expected ports or URLs, readiness checks, timeouts, stop behavior, and unavailable
+  conditions. It should also model browser trial targets with URLs, smoke paths, expected evidence
+  labels, and whether the target is local-only. The contract must reject secret values while
+  allowing projects to name required environment variables.
+depends_on: []

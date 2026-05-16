@@ -1,0 +1,20 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: cover-dev-session-real-project-regression
+  milestone: 0012-development-session-assistance
+status: planned
+summary: >-
+  add regression coverage proving development-session metadata, plan output, lifecycle cleanup, and
+  browser trial guidance work against a repeatable real-project fixture.
+details: >-
+  Tests should cover valid and invalid session metadata, deterministic plan output, readiness
+  failures, cleanup idempotency, and evidence guidance derived from browser targets. The fixture
+  should avoid external services and credentials so the suite remains repeatable in local and CI
+  environments. Regression should also cover stale runtime state recovery and confirm that
+  project-level regression evidence remains separate from browser trial evidence.
+depends_on:
+  - add-browser-trial-evidence-workflow
+  - add-dev-session-lifecycle-commands

@@ -1,0 +1,21 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-dev-session-lifecycle-commands
+  milestone: 0012-development-session-assistance
+status: planned
+summary: >-
+  add optional CLI lifecycle commands that start declared local services, wait for readiness, expose
+  session state and logs, and stop only the processes created by the strict session command.
+details: >-
+  Lifecycle support should add `dev-session-start`, `dev-session-status`, `dev-session-logs`, and
+  `dev-session-stop` commands. The commands should be explicit and conservative: record process
+  identifiers and log file paths in a local ignored runtime state location, enforce declared
+  timeouts, report readiness failures clearly, and make cleanup idempotent. They should not infer
+  undeclared services or kill unrelated processes that happen to use the same port, status output
+  should distinguish running, stopped, failed, and stale process records, and logs output should
+  support service selection without requiring users to know internal process identifiers.
+depends_on:
+  - add-dev-session-validation-and-plan-output
