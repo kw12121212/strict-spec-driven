@@ -6594,6 +6594,10 @@ var COMMAND_REGISTRATION_ORDER = [
   "template-list",
   "template-show",
   "dev-session-plan",
+  "dev-session-start",
+  "dev-session-status",
+  "dev-session-logs",
+  "dev-session-stop",
   "migrate",
   "roadmap-status",
   "roadmap-sync",
@@ -18228,9 +18232,14 @@ function runSchemaShow(argv) {
 }
 
 // src/dev-session.ts
-import { existsSync as existsSync29 } from "fs";
+import { closeSync, existsSync as existsSync29, mkdirSync as mkdirSync6, openSync, readFileSync as readFileSync24, rmSync as rmSync2, writeFileSync as writeFileSync9 } from "fs";
+import { spawn, spawnSync } from "child_process";
 import path30 from "path";
 var DEV_SESSION_DECLARATION_PATH = ".strict-spec-driven/dev-session.yaml";
+var DEV_SESSION_RUNTIME_DIR = ".strict-spec-driven/.runtime/dev-session";
+var DEV_SESSION_RUNTIME_STATE_PATH = `${DEV_SESSION_RUNTIME_DIR}/state.json`;
+var DEV_SESSION_LOGS_DIR = `${DEV_SESSION_RUNTIME_DIR}/logs`;
+var SLEEP_SIGNAL = new Int32Array(new SharedArrayBuffer(4));
 
 class DevSessionDeclarationNotFoundError extends Error {
   artifactPath;
@@ -18253,6 +18262,315 @@ class DevSessionDeclarationValidationError extends Error {
 }
 function sortEntries(record) {
   return Object.entries(record).sort(([left], [right]) => left.localeCompare(right));
+}
+function getRuntimePaths(rootDir) {
+  const absoluteRuntimeDir = path30.join(rootDir, DEV_SESSION_RUNTIME_DIR);
+  const absoluteLogsDir = path30.join(rootDir, DEV_SESSION_LOGS_DIR);
+  const absoluteStatePath = path30.join(rootDir, DEV_SESSION_RUNTIME_STATE_PATH);
+  return {
+    absoluteRuntimeDir,
+    absoluteLogsDir,
+    absoluteStatePath,
+    relativeStatePath: normalizeRepoRelativePath5(rootDir, absoluteStatePath)
+  };
+}
+function ensureRuntimeDirectories(rootDir) {
+  const runtimePaths = getRuntimePaths(rootDir);
+  mkdirSync6(runtimePaths.absoluteLogsDir, { recursive: true });
+  return runtimePaths;
+}
+function sleepSync(milliseconds) {
+  if (milliseconds <= 0) {
+    return;
+  }
+  Atomics.wait(SLEEP_SIGNAL, 0, 0, milliseconds);
+}
+function isProcessAlive(pid) {
+  if (pid === null) {
+    return false;
+  }
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ESRCH") {
+      return false;
+    }
+    return true;
+  }
+}
+function createLifecycleDiagnostic(artifactPath, fieldPath, message, options) {
+  return {
+    source: options?.source ?? "dev_session",
+    artifactPath,
+    fieldPath,
+    message,
+    expected: options?.expected,
+    actual: options?.actual,
+    serviceId: options?.serviceId,
+    phase: options?.phase
+  };
+}
+function createRuntimeRecord(service, logPath, pid) {
+  return {
+    serviceId: service.id,
+    description: service.description,
+    command: service.command,
+    workingDirectory: service.workingDirectory,
+    environment: {
+      required: [...service.environment.required],
+      optional: [...service.environment.optional]
+    },
+    urls: [...service.urls],
+    ports: [...service.ports],
+    readiness: {
+      type: service.readiness.type,
+      url: service.readiness.url,
+      port: service.readiness.port,
+      timeoutSeconds: service.readiness.timeoutSeconds,
+      intervalSeconds: service.readiness.intervalSeconds,
+      notes: [...service.readiness.notes]
+    },
+    browserTargets: [...service.browserTargets],
+    cleanup: {
+      mode: service.cleanup.mode,
+      signal: service.cleanup.signal,
+      command: service.cleanup.command,
+      gracePeriodSeconds: service.cleanup.gracePeriodSeconds
+    },
+    unavailableConditions: [...service.unavailableConditions],
+    pid,
+    logPath,
+    status: "running",
+    startedAt: new Date().toISOString()
+  };
+}
+function getOrderedServiceIds(state) {
+  const seen = new Set(state.serviceOrder);
+  const remaining = Object.keys(state.services).filter((serviceId) => !seen.has(serviceId)).sort((left, right) => left.localeCompare(right));
+  return [...state.serviceOrder, ...remaining];
+}
+function deriveServiceSnapshot(record) {
+  const alive = isProcessAlive(record.pid);
+  if (record.status === "failed") {
+    return {
+      id: record.serviceId,
+      status: "failed",
+      pid: record.pid,
+      logPath: record.logPath,
+      urls: [...record.urls],
+      ports: [...record.ports],
+      message: record.failureReason
+    };
+  }
+  if (record.status === "stopped") {
+    return {
+      id: record.serviceId,
+      status: alive ? "running" : "stopped",
+      pid: record.pid,
+      logPath: record.logPath,
+      urls: [...record.urls],
+      ports: [...record.ports],
+      message: alive ? "managed process is still live despite a stopped record" : undefined
+    };
+  }
+  return {
+    id: record.serviceId,
+    status: alive ? "running" : "stale",
+    pid: record.pid,
+    logPath: record.logPath,
+    urls: [...record.urls],
+    ports: [...record.ports],
+    message: alive ? undefined : "managed process record is stale"
+  };
+}
+function summarizeRuntimeState(state) {
+  return getOrderedServiceIds(state).map((serviceId) => state.services[serviceId]).filter((record) => record !== undefined).map((record) => deriveServiceSnapshot(record));
+}
+function readRuntimeState(rootDir) {
+  const runtimePaths = getRuntimePaths(rootDir);
+  if (!existsSync29(runtimePaths.absoluteStatePath)) {
+    return { ok: true, state: null };
+  }
+  try {
+    const raw = JSON.parse(readFileSync24(runtimePaths.absoluteStatePath, "utf8"));
+    if (typeof raw !== "object" || raw === null || raw.version !== 1 || typeof raw.artifactPath !== "string" || typeof raw.sessionId !== "string" || !Array.isArray(raw.serviceOrder) || typeof raw.services !== "object" || raw.services === null) {
+      return {
+        ok: false,
+        diagnostic: createLifecycleDiagnostic(DEV_SESSION_DECLARATION_PATH, "$", "dev-session runtime state is malformed", {
+          source: "runtime_state",
+          phase: "runtime_state",
+          expected: "versioned runtime-state object",
+          actual: "invalid-json-shape"
+        })
+      };
+    }
+    return { ok: true, state: raw };
+  } catch (error) {
+    return {
+      ok: false,
+      diagnostic: createLifecycleDiagnostic(DEV_SESSION_DECLARATION_PATH, "$", "dev-session runtime state is not valid JSON", {
+        source: "runtime_state",
+        phase: "runtime_state",
+        actual: error instanceof Error ? error.message : String(error)
+      })
+    };
+  }
+}
+function writeRuntimeState(rootDir, state) {
+  const runtimePaths = ensureRuntimeDirectories(rootDir);
+  writeFileSync9(runtimePaths.absoluteStatePath, JSON.stringify(state, null, 2) + `
+`, "utf8");
+}
+function clearRuntimeState(rootDir) {
+  rmSync2(getRuntimePaths(rootDir).absoluteRuntimeDir, { recursive: true, force: true });
+}
+function getMissingRequiredEnvironment(service) {
+  return service.environment.required.filter((name) => !(name in process.env));
+}
+function runHttpReadinessCheck(url) {
+  const script = [
+    "const http = require('http');",
+    "const https = require('https');",
+    "const target = new URL(process.argv[1]);",
+    "const client = target.protocol === 'https:' ? https : http;",
+    "const req = client.request(target, { method: 'GET' }, (res) => {",
+    "  const status = typeof res.statusCode === 'number' ? res.statusCode : 0;",
+    "  process.exit(status >= 200 && status < 400 ? 0 : 1);",
+    "});",
+    "req.on('error', () => process.exit(1));",
+    "req.end();"
+  ].join("");
+  const result = spawnSync(process.execPath, ["-e", script, url], { stdio: "ignore" });
+  return result.status === 0;
+}
+function runTcpReadinessCheck(port) {
+  const script = [
+    "const net = require('net');",
+    "const socket = net.createConnection({ host: '127.0.0.1', port: Number(process.argv[1]) }, () => {",
+    "  socket.end();",
+    "  process.exit(0);",
+    "});",
+    "socket.on('error', () => process.exit(1));"
+  ].join("");
+  const result = spawnSync(process.execPath, ["-e", script, String(port)], { stdio: "ignore" });
+  return result.status === 0;
+}
+function waitForReadiness(record) {
+  if (record.readiness.type === "manual") {
+    return { ok: true };
+  }
+  const deadline = Date.now() + record.readiness.timeoutSeconds * 1000;
+  const intervalMs = Math.max(1, record.readiness.intervalSeconds) * 1000;
+  while (Date.now() <= deadline) {
+    if (!isProcessAlive(record.pid)) {
+      return { ok: false, message: "service exited before readiness checks succeeded" };
+    }
+    const ready = record.readiness.type === "http" ? record.readiness.url !== undefined && runHttpReadinessCheck(record.readiness.url) : record.readiness.port !== undefined && runTcpReadinessCheck(record.readiness.port);
+    if (ready) {
+      return { ok: true };
+    }
+    sleepSync(Math.min(intervalMs, Math.max(0, deadline - Date.now())));
+  }
+  return {
+    ok: false,
+    message: `service did not satisfy ${record.readiness.type} readiness within ${record.readiness.timeoutSeconds} seconds`
+  };
+}
+function stopServiceProcess(rootDir, record) {
+  const live = isProcessAlive(record.pid);
+  if (!live) {
+    return record.status === "stopped" ? { status: "stopped" } : record.status === "failed" ? { status: "failed", message: record.failureReason } : { status: "stale", message: "managed process record is stale" };
+  }
+  if (record.cleanup.mode === "none") {
+    return {
+      status: "failed",
+      message: "cleanup mode 'none' does not define how to stop a running managed process"
+    };
+  }
+  if (record.cleanup.mode === "command") {
+    const workingDirectory = path30.join(rootDir, record.workingDirectory);
+    const result = spawnSync(record.cleanup.command ?? "", [], {
+      cwd: workingDirectory,
+      env: process.env,
+      shell: true,
+      encoding: "utf8"
+    });
+    if (result.status !== 0) {
+      const details = result.stderr.trim() || result.stdout.trim();
+      return {
+        status: "failed",
+        message: details.length > 0 ? `cleanup command failed: ${details}` : "cleanup command failed"
+      };
+    }
+  } else {
+    try {
+      process.kill(record.pid ?? 0, record.cleanup.signal ?? "SIGTERM");
+    } catch (error) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ESRCH") {
+        return { status: "stale", message: "managed process record is stale" };
+      }
+      return {
+        status: "failed",
+        message: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+  const deadline = Date.now() + record.cleanup.gracePeriodSeconds * 1000;
+  while (Date.now() <= deadline) {
+    if (!isProcessAlive(record.pid)) {
+      return { status: "stopped" };
+    }
+    sleepSync(Math.min(250, Math.max(0, deadline - Date.now())));
+  }
+  return {
+    status: "failed",
+    message: "managed process did not stop within the configured grace period"
+  };
+}
+function stopStartedServices(rootDir, state, serviceIds, failedServiceId, failureReason) {
+  for (const serviceId of [...serviceIds].reverse()) {
+    const record = state.services[serviceId];
+    if (record === undefined) {
+      continue;
+    }
+    const outcome = stopServiceProcess(rootDir, record);
+    if (serviceId === failedServiceId) {
+      record.status = "failed";
+      record.failureReason = failureReason ?? outcome.message ?? record.failureReason;
+      continue;
+    }
+    if (outcome.status === "stopped") {
+      record.status = "stopped";
+      delete record.failureReason;
+      continue;
+    }
+    if (outcome.status === "failed") {
+      record.status = "failed";
+      record.failureReason = outcome.message;
+      continue;
+    }
+  }
+}
+function createPlanFailureResult(rootDir, planResult) {
+  return {
+    ok: false,
+    artifactPath: planResult.artifactPath,
+    runtimeStatePath: getRuntimePaths(rootDir).relativeStatePath,
+    services: [],
+    diagnostics: planResult.diagnostics.map((diagnostic) => ({
+      ...diagnostic,
+      phase: "declaration"
+    }))
+  };
+}
+function createRuntimeStateConflictDiagnostics(artifactPath, state) {
+  return summarizeRuntimeState(state).filter((service) => service.status === "running").map((service) => createLifecycleDiagnostic(artifactPath, "$", "dev-session-start found existing managed runtime state for a still-running service", {
+    source: "runtime_state",
+    phase: "runtime_state",
+    serviceId: service.id,
+    actual: service.id
+  }));
 }
 function deriveDevSessionPlan(rootDir) {
   const absolutePath = path30.join(rootDir, DEV_SESSION_DECLARATION_PATH);
@@ -18359,9 +18677,323 @@ function getDevSessionPlanResult(rootDir) {
     };
   }
 }
+function startDevSession(rootDir) {
+  const runtimePaths = getRuntimePaths(rootDir);
+  const planResult = getDevSessionPlanResult(rootDir);
+  if (!planResult.valid) {
+    return createPlanFailureResult(rootDir, planResult);
+  }
+  const runtimeState = readRuntimeState(rootDir);
+  if (!runtimeState.ok) {
+    return {
+      ok: false,
+      artifactPath: planResult.artifactPath,
+      runtimeStatePath: runtimePaths.relativeStatePath,
+      sessionId: planResult.session.id,
+      services: [],
+      diagnostics: [runtimeState.diagnostic]
+    };
+  }
+  if (runtimeState.state !== null) {
+    const conflicts = createRuntimeStateConflictDiagnostics(planResult.artifactPath, runtimeState.state);
+    if (conflicts.length > 0) {
+      return {
+        ok: false,
+        artifactPath: planResult.artifactPath,
+        runtimeStatePath: runtimePaths.relativeStatePath,
+        sessionId: planResult.session.id,
+        services: summarizeRuntimeState(runtimeState.state),
+        diagnostics: conflicts
+      };
+    }
+  }
+  clearRuntimeState(rootDir);
+  const writableRuntimePaths = ensureRuntimeDirectories(rootDir);
+  const state = {
+    version: 1,
+    artifactPath: planResult.artifactPath,
+    runtimeStatePath: writableRuntimePaths.relativeStatePath,
+    sessionId: planResult.session.id,
+    serviceOrder: planResult.session.services.map((service) => service.id),
+    services: {}
+  };
+  const startedServiceIds = [];
+  for (const service of planResult.session.services) {
+    const logAbsolutePath = path30.join(writableRuntimePaths.absoluteLogsDir, `${service.id}.log`);
+    const logPath = normalizeRepoRelativePath5(rootDir, logAbsolutePath);
+    const missingEnvironment = getMissingRequiredEnvironment(service);
+    if (missingEnvironment.length > 0) {
+      const record2 = createRuntimeRecord(service, logPath, null);
+      record2.status = "failed";
+      record2.failureReason = `missing required environment variables: ${missingEnvironment.join(", ")}`;
+      state.services[service.id] = record2;
+      writeRuntimeState(rootDir, state);
+      return {
+        ok: false,
+        artifactPath: planResult.artifactPath,
+        runtimeStatePath: writableRuntimePaths.relativeStatePath,
+        sessionId: planResult.session.id,
+        services: summarizeRuntimeState(state),
+        diagnostics: [
+          createLifecycleDiagnostic(planResult.artifactPath, `$.session.services.${service.id}.environment.required`, "required environment variables are missing for dev-session-start", {
+            source: "environment",
+            phase: "environment",
+            serviceId: service.id,
+            expected: service.environment.required.join(", "),
+            actual: missingEnvironment.join(", ")
+          })
+        ]
+      };
+    }
+    writeFileSync9(logAbsolutePath, "", "utf8");
+    const logDescriptor = openSync(logAbsolutePath, "a");
+    const child = spawn(service.command, [], {
+      cwd: path30.join(rootDir, service.workingDirectory),
+      env: process.env,
+      shell: true,
+      detached: true,
+      stdio: ["ignore", logDescriptor, logDescriptor]
+    });
+    closeSync(logDescriptor);
+    child.unref();
+    const record = createRuntimeRecord(service, logPath, typeof child.pid === "number" ? child.pid : null);
+    state.services[service.id] = record;
+    writeRuntimeState(rootDir, state);
+    if (typeof child.pid !== "number") {
+      record.status = "failed";
+      record.failureReason = "service process did not provide a pid";
+      writeRuntimeState(rootDir, state);
+      return {
+        ok: false,
+        artifactPath: planResult.artifactPath,
+        runtimeStatePath: writableRuntimePaths.relativeStatePath,
+        sessionId: planResult.session.id,
+        services: summarizeRuntimeState(state),
+        diagnostics: [
+          createLifecycleDiagnostic(planResult.artifactPath, `$.session.services.${service.id}.command`, "dev-session-start could not determine the managed process identifier", {
+            source: "spawn",
+            phase: "spawn",
+            serviceId: service.id
+          })
+        ]
+      };
+    }
+    const readiness = waitForReadiness(record);
+    if (!readiness.ok) {
+      record.status = "failed";
+      record.failureReason = readiness.message;
+      stopStartedServices(rootDir, state, [...startedServiceIds, service.id], service.id, readiness.message);
+      writeRuntimeState(rootDir, state);
+      return {
+        ok: false,
+        artifactPath: planResult.artifactPath,
+        runtimeStatePath: writableRuntimePaths.relativeStatePath,
+        sessionId: planResult.session.id,
+        services: summarizeRuntimeState(state),
+        diagnostics: [
+          createLifecycleDiagnostic(planResult.artifactPath, `$.session.services.${service.id}.readiness`, readiness.message, {
+            source: "readiness",
+            phase: "readiness",
+            serviceId: service.id
+          })
+        ]
+      };
+    }
+    startedServiceIds.push(service.id);
+    writeRuntimeState(rootDir, state);
+  }
+  return {
+    ok: true,
+    artifactPath: planResult.artifactPath,
+    runtimeStatePath: writableRuntimePaths.relativeStatePath,
+    sessionId: planResult.session.id,
+    services: summarizeRuntimeState(state),
+    diagnostics: []
+  };
+}
+function getDevSessionStatus(rootDir) {
+  const runtimePaths = getRuntimePaths(rootDir);
+  const runtimeState = readRuntimeState(rootDir);
+  if (!runtimeState.ok) {
+    return {
+      ok: false,
+      artifactPath: DEV_SESSION_DECLARATION_PATH,
+      runtimeStatePath: runtimePaths.relativeStatePath,
+      services: [],
+      diagnostics: [runtimeState.diagnostic]
+    };
+  }
+  if (runtimeState.state === null) {
+    return {
+      ok: true,
+      artifactPath: DEV_SESSION_DECLARATION_PATH,
+      runtimeStatePath: runtimePaths.relativeStatePath,
+      services: [],
+      diagnostics: []
+    };
+  }
+  return {
+    ok: true,
+    artifactPath: runtimeState.state.artifactPath,
+    runtimeStatePath: runtimeState.state.runtimeStatePath,
+    sessionId: runtimeState.state.sessionId,
+    services: summarizeRuntimeState(runtimeState.state),
+    diagnostics: []
+  };
+}
+function getDevSessionLogs(rootDir, requestedServiceId) {
+  const runtimePaths = getRuntimePaths(rootDir);
+  const runtimeState = readRuntimeState(rootDir);
+  if (!runtimeState.ok) {
+    return {
+      ok: false,
+      artifactPath: DEV_SESSION_DECLARATION_PATH,
+      runtimeStatePath: runtimePaths.relativeStatePath,
+      diagnostics: [runtimeState.diagnostic]
+    };
+  }
+  if (runtimeState.state === null) {
+    return {
+      ok: false,
+      artifactPath: DEV_SESSION_DECLARATION_PATH,
+      runtimeStatePath: runtimePaths.relativeStatePath,
+      diagnostics: [
+        createLifecycleDiagnostic(DEV_SESSION_DECLARATION_PATH, "$", "dev-session-logs requires runtime state created by dev-session-start", {
+          source: "runtime_state",
+          phase: "logs"
+        })
+      ]
+    };
+  }
+  const serviceIds = getOrderedServiceIds(runtimeState.state);
+  const serviceId = requestedServiceId ?? (serviceIds.length === 1 ? serviceIds[0] : undefined);
+  if (serviceId === undefined) {
+    return {
+      ok: false,
+      artifactPath: runtimeState.state.artifactPath,
+      runtimeStatePath: runtimeState.state.runtimeStatePath,
+      diagnostics: [
+        createLifecycleDiagnostic(runtimeState.state.artifactPath, "$", "dev-session-logs requires a declared service id when multiple managed services exist", {
+          source: "logs",
+          phase: "logs",
+          expected: serviceIds.join(", ")
+        })
+      ]
+    };
+  }
+  const record = runtimeState.state.services[serviceId];
+  if (record === undefined) {
+    return {
+      ok: false,
+      artifactPath: runtimeState.state.artifactPath,
+      runtimeStatePath: runtimeState.state.runtimeStatePath,
+      diagnostics: [
+        createLifecycleDiagnostic(runtimeState.state.artifactPath, "$", "dev-session-logs received an unknown declared service id", {
+          source: "logs",
+          phase: "logs",
+          serviceId,
+          expected: serviceIds.join(", "),
+          actual: serviceId
+        })
+      ]
+    };
+  }
+  const logAbsolutePath = path30.join(rootDir, record.logPath);
+  if (!existsSync29(logAbsolutePath)) {
+    return {
+      ok: false,
+      artifactPath: runtimeState.state.artifactPath,
+      runtimeStatePath: runtimeState.state.runtimeStatePath,
+      serviceId,
+      logPath: record.logPath,
+      diagnostics: [
+        createLifecycleDiagnostic(runtimeState.state.artifactPath, "$", "dev-session-logs could not find the managed service log file", {
+          source: "logs",
+          phase: "logs",
+          serviceId,
+          expected: record.logPath,
+          actual: "missing"
+        })
+      ]
+    };
+  }
+  return {
+    ok: true,
+    artifactPath: runtimeState.state.artifactPath,
+    runtimeStatePath: runtimeState.state.runtimeStatePath,
+    serviceId,
+    logPath: record.logPath,
+    content: readFileSync24(logAbsolutePath, "utf8"),
+    diagnostics: []
+  };
+}
+function stopDevSession(rootDir) {
+  const runtimePaths = getRuntimePaths(rootDir);
+  const runtimeState = readRuntimeState(rootDir);
+  if (!runtimeState.ok) {
+    return {
+      ok: false,
+      artifactPath: DEV_SESSION_DECLARATION_PATH,
+      runtimeStatePath: runtimePaths.relativeStatePath,
+      services: [],
+      diagnostics: [runtimeState.diagnostic]
+    };
+  }
+  if (runtimeState.state === null) {
+    return {
+      ok: true,
+      artifactPath: DEV_SESSION_DECLARATION_PATH,
+      runtimeStatePath: runtimePaths.relativeStatePath,
+      services: [],
+      diagnostics: []
+    };
+  }
+  const diagnostics = [];
+  for (const serviceId of [...getOrderedServiceIds(runtimeState.state)].reverse()) {
+    const record = runtimeState.state.services[serviceId];
+    if (record === undefined) {
+      continue;
+    }
+    const wasAlreadyFailed = record.status === "failed" && !isProcessAlive(record.pid);
+    const outcome = stopServiceProcess(rootDir, record);
+    if (outcome.status === "stopped") {
+      record.status = "stopped";
+      delete record.failureReason;
+      continue;
+    }
+    if (outcome.status === "failed") {
+      record.status = "failed";
+      record.failureReason = outcome.message;
+      if (!wasAlreadyFailed) {
+        diagnostics.push(createLifecycleDiagnostic(runtimeState.state.artifactPath, `$.session.services.${serviceId}.cleanup`, outcome.message ?? "managed service cleanup failed", {
+          source: "cleanup",
+          phase: "cleanup",
+          serviceId
+        }));
+      }
+    }
+  }
+  writeRuntimeState(rootDir, runtimeState.state);
+  return {
+    ok: diagnostics.length === 0,
+    artifactPath: runtimeState.state.artifactPath,
+    runtimeStatePath: runtimeState.state.runtimeStatePath,
+    sessionId: runtimeState.state.sessionId,
+    services: summarizeRuntimeState(runtimeState.state),
+    diagnostics
+  };
+}
 
 // src/cli/cmd-dev-session.ts
 var DEV_SESSION_PLAN_USAGE = `Usage: strict-spec-driven dev-session-plan
+`;
+var DEV_SESSION_START_USAGE = `Usage: strict-spec-driven dev-session-start
+`;
+var DEV_SESSION_STATUS_USAGE = `Usage: strict-spec-driven dev-session-status
+`;
+var DEV_SESSION_LOGS_USAGE = `Usage: strict-spec-driven dev-session-logs [service-id]
+`;
+var DEV_SESSION_STOP_USAGE = `Usage: strict-spec-driven dev-session-stop
 `;
 function runDevSessionPlan(argv) {
   if (isHelpRequest(argv)) {
@@ -18375,6 +19007,62 @@ function runDevSessionPlan(argv) {
   const result = getDevSessionPlanResult(process.cwd());
   writeJson(result);
   return result.valid ? 0 : 1;
+}
+function runDevSessionStart(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(DEV_SESSION_START_USAGE);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(DEV_SESSION_START_USAGE);
+    return 1;
+  }
+  const result = startDevSession(process.cwd());
+  writeJson(result);
+  return result.ok ? 0 : 1;
+}
+function runDevSessionStatus(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(DEV_SESSION_STATUS_USAGE);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(DEV_SESSION_STATUS_USAGE);
+    return 1;
+  }
+  const result = getDevSessionStatus(process.cwd());
+  writeJson(result);
+  return result.ok ? 0 : 1;
+}
+function runDevSessionLogs(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(DEV_SESSION_LOGS_USAGE);
+    return 0;
+  }
+  if (argv.length > 1) {
+    writeUsage(DEV_SESSION_LOGS_USAGE);
+    return 1;
+  }
+  const result = getDevSessionLogs(process.cwd(), argv[0]);
+  if (!result.ok) {
+    writeJson(result);
+    return 1;
+  }
+  writeOut(result.content ?? "");
+  return 0;
+}
+function runDevSessionStop(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(DEV_SESSION_STOP_USAGE);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(DEV_SESSION_STOP_USAGE);
+    return 1;
+  }
+  const result = stopDevSession(process.cwd());
+  writeJson(result);
+  return result.ok ? 0 : 1;
 }
 
 // src/strict-spec-cli.ts
@@ -18394,6 +19082,10 @@ var commands = createCliCommandTable({
   "template-list": (argv) => runTemplateList(argv),
   "template-show": (argv) => runTemplateShow(argv),
   "dev-session-plan": (argv) => runDevSessionPlan(argv),
+  "dev-session-start": (argv) => runDevSessionStart(argv),
+  "dev-session-status": (argv) => runDevSessionStatus(argv),
+  "dev-session-logs": (argv) => runDevSessionLogs(argv),
+  "dev-session-stop": (argv) => runDevSessionStop(argv),
   migrate: (argv) => runMigrate(argv),
   "roadmap-status": (argv) => runRoadmapStatus(argv),
   "roadmap-sync": (argv) => runRoadmapSync(argv),

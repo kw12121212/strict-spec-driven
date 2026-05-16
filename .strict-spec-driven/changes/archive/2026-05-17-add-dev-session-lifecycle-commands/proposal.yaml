@@ -1,0 +1,41 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-dev-session-lifecycle-commands
+  status: proposed
+summary:
+  what:
+    - >-
+      Add dev-session-start, dev-session-status, dev-session-logs, and dev-session-stop commands
+      that run the declared session plan and report deterministic lifecycle state.
+  why:
+    - >-
+      Agents and operators need a declared way to start local services, wait for readiness, inspect
+      logs, and clean up only strict-managed processes.
+scope:
+  in:
+    - >-
+      Add lifecycle commands that start declared services, wait for readiness, persist managed
+      runtime state, and expose session state and service logs.
+    - >-
+      Report running, failed, stopped, and stale managed-service records without inferring
+      undeclared services or ports.
+  out:
+    - >-
+      Infer undeclared services, startup commands, ports, or cleanup behavior from package scripts,
+      fingerprints, or live system state.
+    - >-
+      Store secret environment values or terminate unrelated processes that were not started by the
+      strict lifecycle command.
+unchanged_behavior:
+  - >-
+    dev-session-plan remains a dry inspection command that never starts services, opens browsers, or
+    writes runtime state.
+  - >-
+    The existing dev-session declaration remains the source of truth for declared service,
+    readiness, browser-target, and cleanup metadata.
+roadmap:
+  milestone: 0012-development-session-assistance
+  planned_change: add-dev-session-lifecycle-commands

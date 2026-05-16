@@ -11,7 +11,13 @@ import { runRoadmapStatus, runRoadmapSync } from "./cli/cmd-roadmap.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runCommitAndPush } from "./cli/cmd-operations.js";
 import { runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
-import { runDevSessionPlan } from "./cli/cmd-dev-session.js";
+import {
+  runDevSessionLogs,
+  runDevSessionPlan,
+  runDevSessionStart,
+  runDevSessionStatus,
+  runDevSessionStop,
+} from "./cli/cmd-dev-session.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 import { compileSchema, createSchemaValidator } from "./validation.js";
 import {
@@ -73,6 +79,10 @@ export const commands = createCliCommandTable({
   "template-list": (argv) => runTemplateList(argv),
   "template-show": (argv) => runTemplateShow(argv),
   "dev-session-plan": (argv) => runDevSessionPlan(argv),
+  "dev-session-start": (argv) => runDevSessionStart(argv),
+  "dev-session-status": (argv) => runDevSessionStatus(argv),
+  "dev-session-logs": (argv) => runDevSessionLogs(argv),
+  "dev-session-stop": (argv) => runDevSessionStop(argv),
   migrate: (argv) => runMigrate(argv),
   "roadmap-status": (argv) => runRoadmapStatus(argv),
   "roadmap-sync": (argv) => runRoadmapSync(argv),

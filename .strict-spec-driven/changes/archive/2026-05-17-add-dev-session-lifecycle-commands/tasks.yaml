@@ -1,0 +1,40 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-dev-session-lifecycle-commands
+sections:
+  Implementation:
+    add-managed-runtime-state:
+      text: >-
+        Add lifecycle runtime-state helpers that start declared services, persist strict-managed
+        process and log metadata, and re-check readiness without guessing undeclared setup.
+      status: complete
+    add-dev-session-lifecycle-subcommands:
+      text: >-
+        Add dev-session-start, dev-session-status, dev-session-logs, and dev-session-stop command
+        handlers and register them in the CLI surface.
+      status: complete
+    add-lifecycle-regression-coverage:
+      text: >-
+        Add regression coverage for successful lifecycle flows, readiness failures, deterministic
+        status/log output, and stale-record cleanup behavior.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify lifecycle commands only manage strict-started processes and keep dev-session-plan as
+        a dry inspection command.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

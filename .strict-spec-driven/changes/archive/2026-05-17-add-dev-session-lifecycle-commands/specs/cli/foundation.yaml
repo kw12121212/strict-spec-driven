@@ -1,0 +1,69 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/dev-session.ts
+    - src/cli/cmd-dev-session.ts
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+  tests:
+    - test/run.ts
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/dev-session-lifecycle.ts
+operations:
+  ADDED:
+    cli-dev-session-start-command:
+      strength: MUST
+      statement: >-
+        The system MUST provide a dev-session-start command that loads the declared dev-session
+        plan, starts the declared services, waits for configured readiness checks, and records
+        managed runtime state without starting undeclared processes.
+      scenarios:
+        cli-starts-declared-dev-session-services:
+          - GIVEN: a strict project contains a valid dev-session declaration with startable services
+          - WHEN: the user runs strict-spec-driven dev-session-start
+          - THEN: >-
+              the command starts the declared services, waits for readiness, records managed runtime
+              state, and exits successfully without guessing undeclared setup
+    cli-dev-session-status-command:
+      strength: MUST
+      statement: >-
+        The system MUST provide a dev-session-status command that reports deterministic lifecycle
+        state for services previously started by dev-session-start, including running, failed,
+        stopped, and stale records.
+      scenarios:
+        cli-reports-managed-dev-session-state:
+          - GIVEN: managed runtime state exists for services started by dev-session-start
+          - WHEN: the user runs strict-spec-driven dev-session-status
+          - THEN: >-
+              the command reports per-service lifecycle state derived from the stored runtime
+              records and current process liveness checks
+    cli-dev-session-logs-command:
+      strength: MUST
+      statement: >-
+        The system MUST provide a dev-session-logs command that exposes logs for services started by
+        dev-session-start using deterministic service selection and stored log locations.
+      scenarios:
+        cli-prints-managed-dev-session-logs:
+          - GIVEN: managed runtime state includes log files for services started by dev-session-start
+          - WHEN: the user runs strict-spec-driven dev-session-logs
+          - THEN: >-
+              the command prints logs for the selected declared service without requiring internal
+              process identifiers
+    cli-dev-session-stop-command:
+      strength: MUST
+      statement: >-
+        The system MUST provide a dev-session-stop command that stops only the processes recorded by
+        dev-session-start, tolerates stale runtime records, and makes cleanup idempotent.
+      scenarios:
+        cli-stops-managed-dev-session-services:
+          - GIVEN: managed runtime state exists for services started by dev-session-start
+          - WHEN: the user runs strict-spec-driven dev-session-stop
+          - THEN: >-
+              the command stops only the recorded managed processes, reports stale records
+              explicitly, and leaves unrelated processes untouched
+  MODIFIED: {}
+  REMOVED: {}

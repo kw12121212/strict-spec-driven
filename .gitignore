@@ -16,6 +16,9 @@ dist/scripts/*
 *.log
 npm-debug.log*
 
+# Strict runtime state
+.strict-spec-driven/.runtime/
+
 # Editor
 .vscode/
 .idea/
