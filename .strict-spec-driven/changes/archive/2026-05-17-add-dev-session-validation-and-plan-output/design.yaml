@@ -1,0 +1,47 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-dev-session-validation-and-plan-output
+approach:
+  - >-
+    Add a dedicated dev-session-plan command handler to the strict CLI and register it alongside the
+    existing command surface.
+  - >-
+    Load the canonical dev-session declaration, validate it through the bundled schema pipeline, and
+    derive a reusable normalized session-plan model for machine-readable command output.
+  - >-
+    Keep the command side-effect free by only reading project files and emitting plan data or
+    diagnostics, never starting services, opening browsers, or writing runtime state.
+decisions:
+  reuse-bundled-validation:
+    decision: >-
+      Reuse the bundled dev-session schema and existing validation pipeline for command input
+      validation.
+    rationale: >-
+      The declaration contract already exists in bundled schema assets, so reusing the shared
+      validation path keeps diagnostics and schema enforcement consistent with other strict
+      artifacts.
+  normalize-session-plan:
+    decision: Derive an explicit normalized session-plan model and emit it as structured JSON output.
+    rationale: >-
+      A reusable normalized plan model lets later lifecycle and browser-evidence work consume the
+      same semantics instead of re-parsing raw YAML in each command.
+alternatives:
+  - option: >-
+      Parse the dev-session YAML ad hoc inside the CLI command without using the shared validation
+      pipeline.
+    reason: >-
+      Rejected because it would duplicate schema enforcement and risk divergent diagnostics for the
+      same declaration.
+  - option: Wait to add a dry planning command until lifecycle commands exist.
+    reason: >-
+      Rejected because the roadmap requires a deterministic inspection path before any long-running
+      command is started.
+risks:
+  - >-
+    Plan output can drift or become unstable if it depends on incidental object ordering, so the
+    derived plan shape must be deterministic and covered by command tests.
+  - >-
+    Projects may declare incomplete readiness metadata or missing environment requirements, so
+    diagnostics must surface blocking fields clearly without exposing secret values.

@@ -1,0 +1,19 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: add-dev-session-validation-and-plan-output
+open: []
+resolved:
+  - id: plan-output-contract
+    question: >-
+      Should dev-session-plan guarantee a structured machine-readable output contract, or is a
+      deterministic human-readable text format sufficient for the first milestone slice?
+    context: >-
+      The roadmap requires deterministic plan output that agents can inspect before taking action,
+      but it does not yet define whether the initial command contract should be JSON, human-readable
+      text, or both.
+    answer: >-
+      The first implementation MUST emit structured machine-readable JSON output; human-readable
+      formatting can be added by a follow-up change.
+    status: resolved

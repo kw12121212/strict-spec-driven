@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { printFinalSummary, TestContext } from "./support/harness.js";
 import { runChangeLifecycleSuite } from "./suites/change-lifecycle.js";
+import { runDevSessionPlanSuite } from "./suites/dev-session-plan.js";
 import { runEntrypointAndSkillsSuite } from "./suites/entrypoint-and-skills.js";
 import { runFoundationAndFixtureSuite } from "./suites/foundation-and-fixtures.js";
 import { runOperationsSuite } from "./suites/operations.js";
@@ -11,6 +12,7 @@ async function main(): Promise<void> {
 
   await runEntrypointAndSkillsSuite(context);
   await runFoundationAndFixtureSuite(context);
+  await runDevSessionPlanSuite(context);
   await runChangeLifecycleSuite(context);
   await runRoadmapAndMigrationSuite(context);
   await runOperationsSuite(context);

@@ -6593,6 +6593,7 @@ var COMMAND_REGISTRATION_ORDER = [
   "schema-show",
   "template-list",
   "template-show",
+  "dev-session-plan",
   "migrate",
   "roadmap-status",
   "roadmap-sync",
@@ -18226,6 +18227,156 @@ function runSchemaShow(argv) {
   return showKey(normalizeSchemaKey(name), usage2);
 }
 
+// src/dev-session.ts
+import { existsSync as existsSync29 } from "fs";
+import path30 from "path";
+var DEV_SESSION_DECLARATION_PATH = ".strict-spec-driven/dev-session.yaml";
+
+class DevSessionDeclarationNotFoundError extends Error {
+  artifactPath;
+  constructor(artifactPath) {
+    super(`dev-session declaration not found at ${artifactPath}`);
+    this.name = "DevSessionDeclarationNotFoundError";
+    this.artifactPath = artifactPath;
+  }
+}
+
+class DevSessionDeclarationValidationError extends Error {
+  artifactPath;
+  diagnostics;
+  constructor(artifactPath, diagnostics) {
+    super(`dev-session declaration is invalid at ${artifactPath}`);
+    this.name = "DevSessionDeclarationValidationError";
+    this.artifactPath = artifactPath;
+    this.diagnostics = diagnostics;
+  }
+}
+function sortEntries(record) {
+  return Object.entries(record).sort(([left], [right]) => left.localeCompare(right));
+}
+function deriveDevSessionPlan(rootDir) {
+  const absolutePath = path30.join(rootDir, DEV_SESSION_DECLARATION_PATH);
+  const artifactPath = normalizeRepoRelativePath5(rootDir, absolutePath);
+  if (!existsSync29(absolutePath)) {
+    throw new DevSessionDeclarationNotFoundError(artifactPath);
+  }
+  const artifact = parseYamlFile(absolutePath);
+  const schema2 = loadBundledSchemaByArtifactType("dev_session");
+  const validation = validateArtifact(schema2, artifact, artifactPath);
+  if (!validation.valid) {
+    throw new DevSessionDeclarationValidationError(artifactPath, validation.diagnostics);
+  }
+  return {
+    artifactPath,
+    session: {
+      id: artifact.session.id,
+      description: artifact.session.description,
+      services: sortEntries(artifact.session.services).map(([id, service]) => ({
+        id,
+        description: service.description,
+        command: service.command,
+        workingDirectory: service.working_directory,
+        environment: {
+          required: [...service.environment.required ?? []],
+          optional: [...service.environment.optional ?? []]
+        },
+        urls: [...service.urls],
+        ports: [...service.ports],
+        readiness: {
+          type: service.readiness.type,
+          url: service.readiness.url,
+          port: service.readiness.port,
+          timeoutSeconds: service.readiness.timeout_seconds,
+          intervalSeconds: service.readiness.interval_seconds,
+          notes: [...service.readiness.notes ?? []]
+        },
+        browserTargets: [...service.browser_targets],
+        cleanup: {
+          mode: service.cleanup.mode,
+          signal: service.cleanup.signal,
+          command: service.cleanup.command,
+          gracePeriodSeconds: service.cleanup.grace_period_seconds
+        },
+        unavailableConditions: [...service.unavailable_conditions]
+      })),
+      browserTargets: sortEntries(artifact.session.browser_targets).map(([id, target]) => ({
+        id,
+        url: target.url,
+        smokePaths: [...target.smoke_paths],
+        evidenceLabels: [...target.evidence_labels],
+        localOnly: target.local_only,
+        service: target.service,
+        notes: [...target.notes ?? []]
+      }))
+    }
+  };
+}
+function getDevSessionPlanResult(rootDir) {
+  const absolutePath = path30.join(rootDir, DEV_SESSION_DECLARATION_PATH);
+  const artifactPath = normalizeRepoRelativePath5(rootDir, absolutePath);
+  try {
+    const plan = deriveDevSessionPlan(rootDir);
+    return {
+      valid: true,
+      artifactPath: plan.artifactPath,
+      diagnostics: [],
+      session: plan.session
+    };
+  } catch (error) {
+    if (error instanceof DevSessionDeclarationNotFoundError) {
+      return {
+        valid: false,
+        artifactPath,
+        diagnostics: [{
+          source: "filesystem",
+          artifactPath,
+          fieldPath: "$",
+          message: "dev-session declaration file is missing",
+          expected: DEV_SESSION_DECLARATION_PATH,
+          actual: "missing"
+        }]
+      };
+    }
+    if (error instanceof DevSessionDeclarationValidationError) {
+      return {
+        valid: false,
+        artifactPath,
+        diagnostics: error.diagnostics
+      };
+    }
+    return {
+      valid: false,
+      artifactPath,
+      diagnostics: [{
+        source: "yaml_parse",
+        artifactPath,
+        fieldPath: "$",
+        message: "dev-session declaration is not parseable YAML",
+        expected: "parseable YAML mapping",
+        actual: formatYamlParseSummary(error),
+        ...getYamlDiagnosticDetails(error) ?? {}
+      }]
+    };
+  }
+}
+
+// src/cli/cmd-dev-session.ts
+var DEV_SESSION_PLAN_USAGE = `Usage: strict-spec-driven dev-session-plan
+`;
+function runDevSessionPlan(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(DEV_SESSION_PLAN_USAGE);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(DEV_SESSION_PLAN_USAGE);
+    return 1;
+  }
+  const result = getDevSessionPlanResult(process.cwd());
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+
 // src/strict-spec-cli.ts
 var commands = createCliCommandTable({
   init: (argv) => runInit(argv),
@@ -18242,6 +18393,7 @@ var commands = createCliCommandTable({
   "schema-show": (argv) => runSchemaShow(argv),
   "template-list": (argv) => runTemplateList(argv),
   "template-show": (argv) => runTemplateShow(argv),
+  "dev-session-plan": (argv) => runDevSessionPlan(argv),
   migrate: (argv) => runMigrate(argv),
   "roadmap-status": (argv) => runRoadmapStatus(argv),
   "roadmap-sync": (argv) => runRoadmapSync(argv),

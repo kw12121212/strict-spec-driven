@@ -13,6 +13,7 @@ mapping:
     - src/cli/argv.ts
     - src/cli/changes.ts
     - src/cli/cmd-change.ts
+    - src/cli/cmd-dev-session.ts
     - src/cli/cmd-generation.ts
     - src/cli/output.ts
     - src/cli/cmd-migration.ts
@@ -48,6 +49,7 @@ mapping:
     - src/roadmap/status.ts
     - src/roadmap/sync.ts
     - src/archive.ts
+    - src/dev-session.ts
     - src/propose-generation.ts
     - src/scaffold.ts
     - src/embedded-templates.ts
@@ -75,6 +77,7 @@ mapping:
     - test/run.ts
     - test/support/harness.ts
     - test/suites/entrypoint-and-skills.ts
+    - test/suites/dev-session-plan.ts
     - test/suites/foundation-and-fixtures.ts
     - test/suites/change-lifecycle.ts
     - test/suites/roadmap-and-migration.ts
@@ -1696,3 +1699,34 @@ requirements:
         - THEN: >-
             the dev-session contract assets are available through the same bundled template and
             validation pipeline used for other strict artifacts
+  cli-dev-session-plan-command:
+    strength: MUST
+    statement: >-
+      The system MUST provide a dev-session-plan CLI command that validates
+      .strict-spec-driven/dev-session.yaml and emits a deterministic machine-readable dry session
+      plan covering declared services, readiness checks, browser targets, cleanup behavior,
+      unavailable conditions, and required environment variable names without starting services or
+      creating runtime state.
+    scenarios:
+      cli-prints-dev-session-plan:
+        - GIVEN: a strict project contains a valid .strict-spec-driven/dev-session.yaml declaration
+        - WHEN: the user runs strict-spec-driven dev-session-plan
+        - THEN: >-
+            the command emits deterministic machine-readable output describing the declared
+            services, readiness metadata, browser targets, cleanup behavior, unavailable conditions,
+            and required environment variable names
+        - AND: the command does not start services, open browsers, or write runtime state
+  cli-dev-session-plan-diagnostics:
+    strength: MUST
+    statement: >-
+      The system MUST fail dev-session-plan with deterministic diagnostics when the dev-session
+      declaration is missing or violates the bundled dev-session schema.
+    scenarios:
+      cli-reports-missing-or-invalid-dev-session:
+        - GIVEN: >-
+            a strict project is missing .strict-spec-driven/dev-session.yaml or the declaration does
+            not satisfy the bundled dev-session schema
+        - WHEN: the user runs strict-spec-driven dev-session-plan
+        - THEN: >-
+            the command exits without starting services and reports deterministic diagnostics that
+            identify the blocking declaration problem

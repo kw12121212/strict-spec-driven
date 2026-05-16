@@ -15,6 +15,7 @@ export const COMMAND_REGISTRATION_ORDER = [
   "schema-show",
   "template-list",
   "template-show",
+  "dev-session-plan",
   "migrate",
   "roadmap-status",
   "roadmap-sync",

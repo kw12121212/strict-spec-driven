@@ -1,0 +1,39 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-dev-session-validation-and-plan-output
+sections:
+  Implementation:
+    add-dev-session-plan-command:
+      text: Add the dev-session-plan CLI command and register it in the strict CLI command surface.
+      status: complete
+    derive-dev-session-plan:
+      text: >-
+        Load and validate the canonical dev-session declaration, then derive a deterministic dry
+        session plan model for output.
+      status: complete
+    report-dev-session-plan-diagnostics:
+      text: >-
+        Report deterministic missing-file and schema-validation diagnostics without starting
+        services, opening browsers, or writing runtime state.
+      status: complete
+  Testing:
+    add-dev-session-plan-tests:
+      text: Add regression coverage for valid and invalid dev-session-plan command behavior.
+      status: complete
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests
