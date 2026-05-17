@@ -116,7 +116,7 @@ risks:
   - >-
     Generated helper scripts can drift from the declaration unless they include clear provenance and
     can be regenerated deterministically.
-status: proposed
+status: complete
 notes:
   - >-
     This milestone is about local-first coordination between strict workflow state and agent tools.

@@ -1573,4 +1573,65 @@ try {
   rmSync(distOnlyProposeDir, { recursive: true, force: true });
 }
 
+context.section("[11] dev-session user documentation smoke coverage");
+
+const devSessionsGuidePath = path.join(ROOT, "DEV_SESSIONS.md");
+context.assert(existsSync(devSessionsGuidePath), "DEV_SESSIONS.md guide exists");
+
+const devSessionsGuide = readFileSync(devSessionsGuidePath, "utf8");
+const devSessionsGuideNormalized = devSessionsGuide.replace(/\s+/g, " ");
+
+context.assert(
+  devSessionsGuideNormalized.includes("dev-session.yaml"),
+  "DEV_SESSIONS.md covers the declaration file path",
+);
+context.assert(
+  devSessionsGuideNormalized.includes("dev-session-plan")
+    && devSessionsGuideNormalized.includes("dev-session-start")
+    && devSessionsGuideNormalized.includes("dev-session-status")
+    && devSessionsGuideNormalized.includes("dev-session-logs")
+    && devSessionsGuideNormalized.includes("dev-session-stop")
+    && devSessionsGuideNormalized.includes("dev-session-trial"),
+  "DEV_SESSIONS.md covers all six dev-session CLI commands",
+);
+context.assert(
+  devSessionsGuideNormalized.includes("STRICT-MANAGED SECTION")
+    || devSessionsGuideNormalized.includes("managed section"),
+  "DEV_SESSIONS.md covers the generated helper script managed-section rules",
+);
+context.assert(
+  devSessionsGuideNormalized.includes("evidence_labels")
+    || (devSessionsGuideNormalized.includes("evidence") && devSessionsGuideNormalized.includes("smoke")),
+  "DEV_SESSIONS.md covers browser trial evidence",
+);
+context.assert(
+  (devSessionsGuideNormalized.toLowerCase().includes("regression") && devSessionsGuideNormalized.toLowerCase().includes("evidence"))
+    || devSessionsGuideNormalized.includes("project regression"),
+  "DEV_SESSIONS.md covers the relationship between browser trial evidence and the required project regression command",
+);
+context.assert(
+  (devSessionsGuideNormalized.toLowerCase().includes("secret") || devSessionsGuideNormalized.toLowerCase().includes("variable name"))
+    && devSessionsGuideNormalized.toLowerCase().includes("environment"),
+  "DEV_SESSIONS.md covers secret-handling rules for environment variables",
+);
+context.assert(
+  devSessionsGuideNormalized.toLowerCase().includes("stale")
+    && devSessionsGuideNormalized.toLowerCase().includes("runtime"),
+  "DEV_SESSIONS.md covers stale runtime cleanup behavior",
+);
+
+const readmePath = path.join(ROOT, "README.md");
+const readmeContent = readFileSync(readmePath, "utf8");
+context.assert(
+  readmeContent.includes("DEV_SESSIONS.md") && readmeContent.includes("Development Sessions"),
+  "README.md includes a Development Sessions section and link to DEV_SESSIONS.md",
+);
+
+const quickstartPath = path.join(ROOT, "QUICKSTART.md");
+const quickstartContent = readFileSync(quickstartPath, "utf8");
+context.assert(
+  quickstartContent.includes("dev-session") && quickstartContent.includes("DEV_SESSIONS.md"),
+  "QUICKSTART.md includes dev-session guidance and a link to DEV_SESSIONS.md",
+);
+
 }

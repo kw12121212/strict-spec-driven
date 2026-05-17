@@ -1,0 +1,42 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: write-dev-session-user-documentation
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a DEV_SESSIONS.md guide, a dev-session section to README.md, and dev-session usage to
+      QUICKSTART.md covering declaration syntax, all five CLI commands, generated helper scripts,
+      browser trial evidence, secret-handling rules, stale runtime cleanup, and the relationship
+      between supplemental browser evidence and the required project regression command
+  why:
+    - >-
+      All dev-session features are implemented and all dependency changes are archived, but no
+      user-facing documentation exists yet; without documentation, project authors cannot discover
+      or use the dev-session workflow independently
+scope:
+  in:
+    - >-
+      New DEV_SESSIONS.md guide with schema field reference, command reference, example frontend-app
+      declaration, secret-handling rules, stale runtime cleanup guidance, and browser trial evidence
+      explanation; README.md updated with a Development Sessions section pointing to the guide;
+      QUICKSTART.md updated with a quick-start dev-session step; contracts-yaml-artifacts spec
+      updated with documentation coverage requirements; cli-foundation spec updated with a
+      documentation smoke coverage requirement
+  out:
+    - >-
+      Implementing new dev-session CLI behavior, modifying existing schema definitions, changing
+      existing test suites, adding new lifecycle commands, altering skill SKILL.md content beyond
+      dev-session guidance already added by update-agent-skills-for-dev-sessions
+unchanged_behavior:
+  - >-
+    All dev-session CLI commands (dev-session-plan, dev-session-start, dev-session-status,
+    dev-session-logs, dev-session-stop, dev-session-trial), the script-generation skill, existing
+    test fixtures, existing skill SKILL.md dev-session guidance sections, and the existing
+    dev-session YAML contract schema assets
+roadmap:
+  milestone: 0012-development-session-assistance
+  planned_change: write-dev-session-user-documentation

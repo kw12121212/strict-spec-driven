@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-**Documentation:** [Quick Start](QUICKSTART.md) · [Roadmap Quick Start](ROADMAP_QUICKSTART.md) · [Roadmap Guide](ROADMAP_GUIDE.md) · [RTK](RTK.md)
+**Documentation:** [Quick Start](QUICKSTART.md) · [Roadmap Quick Start](ROADMAP_QUICKSTART.md) · [Roadmap Guide](ROADMAP_GUIDE.md) · [Dev Sessions](DEV_SESSIONS.md) · [RTK](RTK.md)
 
 `strict-spec-driven` is a YAML-first spec-driven development workflow. It provides the spec-driven lifecycle (propose → apply → verify → review → archive) with Agent Skills integration, converting all workflow artifacts — specs, changes, roadmap, tasks, questions — into strict YAML schemas enforced by deterministic scripts.
 
@@ -108,6 +108,12 @@ node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-list
 node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show change-proposal
 node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/changes/proposal.yaml
 ```
+
+## Development Sessions
+
+A development session declaration at `.strict-spec-driven/dev-session.yaml` tells agents what local services to start, how to wait for readiness, which browser URLs to open for smoke testing, and how to stop services cleanly — all from a single YAML file. Strict lifecycle skills check this file automatically when it exists.
+
+See [DEV_SESSIONS.md](DEV_SESSIONS.md) for the full reference: declaration syntax, schema fields, CLI commands (`dev-session-plan`, `dev-session-start`, `dev-session-status`, `dev-session-logs`, `dev-session-stop`, `dev-session-trial`), generated helper scripts, browser trial evidence, and secret-handling rules.
 
 ## Migration Boundaries
 

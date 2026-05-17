@@ -1,0 +1,26 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - DEV_SESSIONS.md
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    cli-dev-session-documentation-smoke-coverage:
+      strength: MUST
+      statement: >-
+        The system MUST include automated checks that verify DEV_SESSIONS.md exists and contains the
+        required documentation sections (declaration, commands, helper scripts, browser trial
+        evidence, secret handling, stale cleanup), emitting deterministic diagnostics when required
+        sections are absent.
+      scenarios:
+        automated-checks-accept-complete-dev-sessions-guide:
+          - GIVEN: DEV_SESSIONS.md exists with all required documentation sections
+          - WHEN: repository automated checks are executed
+          - THEN: the dev-session documentation checks pass
+  MODIFIED: {}
+  REMOVED: {}

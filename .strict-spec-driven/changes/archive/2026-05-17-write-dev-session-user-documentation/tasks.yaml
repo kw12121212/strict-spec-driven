@@ -1,0 +1,57 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: write-dev-session-user-documentation
+sections:
+  Implementation:
+    write-dev-sessions-guide:
+      text: >-
+        Create DEV_SESSIONS.md with sections covering: how to declare
+        .strict-spec-driven/dev-session.yaml (schema fields with a complete frontend-app example),
+        each CLI command (dev-session-plan, dev-session-start, dev-session-status, dev-session-logs,
+        dev-session-stop, dev-session-trial) with usage and output shape, generated helper scripts
+        (how to run the skill, managed sections, non-clobbering rules), browser trial evidence
+        workflow (deriving guidance from declaration, smoke paths, evidence labels, relationship to
+        required project regression command), secret-handling rules (store env var names not values,
+        unavailable-condition notes), and stale runtime cleanup behavior.
+      status: complete
+    update-readme-with-dev-sessions-section:
+      text: >-
+        Add a Development Sessions section to README.md that describes the feature in two to three
+        sentences and links to DEV_SESSIONS.md; add DEV_SESSIONS.md to the Documentation links line
+        at the top of README.md alongside QUICKSTART.md, ROADMAP_QUICKSTART.md, and
+        ROADMAP_GUIDE.md.
+      status: complete
+    update-quickstart-with-dev-session-step:
+      text: >-
+        Add a brief dev-session step to QUICKSTART.md that tells the reader to declare
+        .strict-spec-driven/dev-session.yaml, run dev-session-plan to preview the session, and link
+        to DEV_SESSIONS.md for the full reference.
+      status: complete
+    add-delta-specs-for-documentation-requirements:
+      text: >-
+        Write delta specs targeting contracts-yaml-artifacts with ADDED requirements for dev-session
+        documentation coverage (README and QUICKSTART include dev-session guidance, DEV_SESSIONS.md
+        guide exists with required sections) and targeting cli-foundation with an ADDED requirement
+        for automated dev-session documentation smoke coverage that detects missing guide sections.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run full test suite.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Confirm DEV_SESSIONS.md covers all required sections; confirm README.md and QUICKSTART.md
+        include dev-session references; confirm delta specs are valid and map to the correct main
+        spec IDs; confirm no existing test or skill content was unintentionally changed.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

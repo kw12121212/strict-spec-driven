@@ -1,0 +1,33 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - DEV_SESSIONS.md
+    - README.md
+    - QUICKSTART.md
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    dev-session-user-documentation-coverage:
+      strength: MUST
+      statement: >-
+        The system MUST provide a DEV_SESSIONS.md guide that documents how project authors declare
+        .strict-spec-driven/dev-session.yaml, all five dev-session lifecycle CLI commands, generated
+        helper scripts, browser trial evidence workflow, secret-handling rules, and stale runtime
+        cleanup behavior, and MUST include a Development Sessions section in README.md and a
+        dev-session step in QUICKSTART.md that reference the guide.
+      scenarios:
+        dev-sessions-guide-covers-required-sections:
+          - GIVEN: the DEV_SESSIONS.md guide is reviewed
+          - WHEN: its sections are inspected
+          - THEN: >-
+              it covers declaration schema fields with a frontend-app example, each CLI command with
+              usage and output shape, generated helper scripts with managed-section rules, browser
+              trial evidence with the relationship to the required project regression command,
+              secret-handling rules, and stale runtime cleanup behavior
+  MODIFIED: {}
+  REMOVED: {}
