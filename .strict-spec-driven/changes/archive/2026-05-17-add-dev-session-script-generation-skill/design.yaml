@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-dev-session-script-generation-skill
+approach:
+  - >-
+    Implement the skill as a standalone agent skill file with a SKILL.md instruction document. The
+    skill reads .strict-spec-driven/dev-session.yaml directly (and optionally runs dev-session-plan
+    for validation), then generates helper scripts in a project-configured output directory. Scripts
+    use comment-delimited managed sections so user-authored content above or below the managed block
+    is preserved on regeneration. The skill checks for existing unmanaged scripts before writing and
+    prompts the user for confirmation before overwriting.
+decisions:
+  managed-sections:
+    decision: Use comment-delimited managed sections in generated scripts
+    rationale: >-
+      Managed sections let the skill regenerate the strict-controlled portion of each script without
+      destroying user customizations. This is the standard pattern used in other code-generation
+      tools and aligns with the planned-change requirement to preserve user-authored content.
+alternatives: []
+risks: []

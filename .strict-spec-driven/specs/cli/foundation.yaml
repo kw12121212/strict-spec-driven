@@ -1800,3 +1800,18 @@ requirements:
             the command reports deterministic local URLs, smoke paths, evidence labels, and target
             provenance without guessing undeclared routes or replacing the required project
             regression command
+  dev-session-scripts-reads-declaration:
+    strength: MUST
+    statement: >-
+      The script-generation skill MUST read .strict-spec-driven/dev-session.yaml to discover
+      declared services, commands, readiness checks, and lifecycle behavior before generating any
+      output scripts.
+    scenarios:
+      skill-reads-dev-session-yaml:
+        - GIVEN: >-
+            A project has a valid .strict-spec-driven/dev-session.yaml declaring at least one
+            service
+        - WHEN: The script-generation skill is invoked
+        - THEN: >-
+            The skill reads the declared metadata and uses it as the sole source of truth for
+            generated script content

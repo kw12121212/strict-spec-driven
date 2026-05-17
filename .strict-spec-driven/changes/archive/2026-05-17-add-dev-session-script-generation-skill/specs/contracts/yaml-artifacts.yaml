@@ -1,0 +1,27 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-spec-dev-session-scripts/SKILL.md
+  tests: []
+operations:
+  ADDED:
+    generated-scripts-use-managed-sections:
+      strength: MUST
+      statement: >-
+        Generated helper scripts MUST use comment-delimited managed sections so user-authored
+        content outside the managed block is preserved when the skill is run again.
+      scenarios:
+        managed-section-preserved-on-regeneration:
+          - GIVEN: >-
+              A project helper script exists with user-authored content above and below a managed
+              section
+          - WHEN: The script-generation skill is run again against the same dev-session.yaml
+          - THEN: >-
+              Only the managed section is updated and the surrounding user-authored content is
+              unchanged
+  MODIFIED: {}
+  REMOVED: {}

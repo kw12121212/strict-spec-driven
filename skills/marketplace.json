@@ -12,6 +12,7 @@
     { "name": "strict-spec-auto", "family": "strict-spec" },
     { "name": "strict-spec-brainstorm", "family": "strict-spec" },
     { "name": "strict-spec-cancel", "family": "strict-spec" },
+    { "name": "strict-spec-dev-session-scripts", "family": "strict-spec" },
     { "name": "strict-spec-init", "family": "strict-spec" },
     { "name": "strict-spec-migrate", "family": "strict-spec" },
     { "name": "strict-spec-maintenance", "family": "strict-spec" },

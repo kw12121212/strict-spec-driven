@@ -1,0 +1,20 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: add-dev-session-script-generation-skill
+open: []
+resolved:
+  - id: skill-location
+    question: >-
+      Should the script-generation skill be implemented as a standalone agent skill directory (with
+      its own SKILL.md and supporting scripts) or integrated into an existing dev-session skill
+      bundle?
+    context: >-
+      The planned change specifies a dedicated skill, but the project has no existing dev-session
+      skill. A standalone directory is the standard pattern. Integration would be relevant only if a
+      dev-session meta-skill is planned elsewhere in the roadmap.
+    answer: >-
+      Standalone agent skill directory: skills/strict-dev-session-scripts/ with its own SKILL.md,
+      registered in marketplace.json under family strict-dev-session.
+    status: resolved

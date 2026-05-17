@@ -1,0 +1,29 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - skills/strict-spec-dev-session-scripts/SKILL.md
+    - skills/marketplace.json
+  tests: []
+operations:
+  ADDED:
+    dev-session-scripts-reads-declaration:
+      strength: MUST
+      statement: >-
+        The script-generation skill MUST read .strict-spec-driven/dev-session.yaml to discover
+        declared services, commands, readiness checks, and lifecycle behavior before generating any
+        output scripts.
+      scenarios:
+        skill-reads-dev-session-yaml:
+          - GIVEN: >-
+              A project has a valid .strict-spec-driven/dev-session.yaml declaring at least one
+              service
+          - WHEN: The script-generation skill is invoked
+          - THEN: >-
+              The skill reads the declared metadata and uses it as the sole source of truth for
+              generated script content
+  MODIFIED: {}
+  REMOVED: {}
