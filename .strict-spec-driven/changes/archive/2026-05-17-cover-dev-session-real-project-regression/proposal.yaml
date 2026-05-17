@@ -1,0 +1,38 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: cover-dev-session-real-project-regression
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a dev-session.yaml fixture to the todo-app project and a regression test suite that
+      exercises dev-session plan, lifecycle, and trial commands against a copied real-project
+      fixture using the existing copied-project harness.
+  why:
+    - >-
+      Existing dev-session tests run against ephemeral tmpdir workspaces with inline YAML.
+      Real-project fixture coverage ensures all session behaviors remain deterministic and
+      repeatable in the context a real project would actually use, matching how roadmap and
+      migration regressions already work.
+scope:
+  in:
+    - >-
+      A dev-session.yaml committed to test/fixtures/projects/todo-app/.strict-spec-driven/; a new
+      dev-session regression test suite using the copied-project harness covering valid metadata,
+      invalid metadata diagnostics, deterministic plan output, stale runtime state recovery, browser
+      trial evidence derivation, and confirmation that browser trial evidence is separate from the
+      project regression command.
+  out:
+    - >-
+      Changes to existing dev-session tmpdir-based suites; changes to todo-app application source
+      code; external services, network access, or credentials in test scenarios.
+unchanged_behavior:
+  - >-
+    dev-session.ts implementation; existing spec requirements; other test suites; the project
+    regression command contract in config.yaml.
+roadmap:
+  milestone: 0012-development-session-assistance
+  planned_change: cover-dev-session-real-project-regression

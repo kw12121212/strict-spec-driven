@@ -80,6 +80,7 @@ mapping:
     - test/suites/dev-session-plan.ts
     - test/suites/dev-session-lifecycle.ts
     - test/suites/dev-session-trial.ts
+    - test/suites/dev-session-regression.ts
     - test/suites/foundation-and-fixtures.ts
     - test/suites/change-lifecycle.ts
     - test/suites/roadmap-and-migration.ts
@@ -1815,3 +1816,17 @@ requirements:
         - THEN: >-
             The skill reads the declared metadata and uses it as the sole source of truth for
             generated script content
+  req-dev-session-real-project-fixture-regression:
+    strength: MUST
+    statement: >-
+      The system MUST validate dev-session plan output, invalid metadata diagnostics, stale runtime
+      state recovery, cleanup idempotency, and browser trial evidence derivation against a committed
+      real-project fixture using the copied-project harness so regression scenarios are repeatable
+      without external services or credentials.
+    scenarios:
+      scenario-valid-plan-against-fixture:
+        - GIVEN: a strict project fixture with a valid dev-session.yaml copied into a temporary workspace
+        - WHEN: dev-session-plan is run against the copied workspace
+        - THEN: >-
+            the command exits zero, reports valid=true, emits the declared session id and service
+            details, and produces no diagnostics

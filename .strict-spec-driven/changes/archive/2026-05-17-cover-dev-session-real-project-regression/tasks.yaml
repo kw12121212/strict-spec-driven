@@ -1,0 +1,50 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: cover-dev-session-real-project-regression
+sections:
+  Implementation:
+    add-dev-session-yaml-to-fixture:
+      text: >-
+        Add test/fixtures/projects/todo-app/.strict-spec-driven/dev-session.yaml declaring a minimal
+        local web service with no external dependencies, credentials, or real ports so the fixture
+        is self-contained.
+      status: complete
+    add-dev-session-regression-suite:
+      text: >-
+        Add test/suites/dev-session-regression.ts using the copied-project harness. Cover: valid
+        plan output against the fixture, invalid metadata diagnostics, stale runtime state recovery
+        (stopping when no process was started), and dev-session-trial evidence derivation from
+        declared browser targets.
+      status: complete
+    wire-suite-into-test-runner:
+      text: >-
+        Import and call the new dev-session regression suite from test/run.ts so it runs as part of
+        the standard bun test/run.ts invocation.
+      status: complete
+    confirm-evidence-separation:
+      text: >-
+        Add a test assertion confirming that dev-session-trial output does not replace or satisfy
+        the project regression command, and that running dev-session-plan on the fixture reports the
+        session without starting processes.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run full test suite including the new regression scenarios.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Confirm all planned-change details are covered: valid metadata, invalid metadata
+        diagnostics, plan output, readiness failure semantics, cleanup idempotency, stale runtime
+        recovery, browser trial evidence derivation, evidence separation.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests
