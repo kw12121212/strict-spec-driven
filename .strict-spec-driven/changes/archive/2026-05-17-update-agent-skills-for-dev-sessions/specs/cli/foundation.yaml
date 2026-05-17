@@ -1,0 +1,35 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - skills/strict-spec-apply/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-spec-verify/SKILL.md
+    - skills/strict-spec-review/SKILL.md
+    - src/skills/model.ts
+    - src/skills/content.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-dev-session-skill-content-validation-smoke-coverage:
+      strength: MUST
+      statement: >-
+        The system MUST include automated checks that verify core lifecycle skill SKILL.md files
+        contain dev-session guidance sections, emitting deterministic diagnostics when the guidance
+        is absent, and accepting aligned skills that include dev-session inspection, browser target,
+        evidence capture, service stop, and unavailable-prerequisite instructions.
+      scenarios:
+        automated-checks-accept-aligned-dev-session-skill-guidance:
+          - GIVEN: >-
+              strict core lifecycle skills (strict-spec-apply, strict-spec-auto, strict-spec-verify,
+              strict-spec-review) include a dev-session guidance section with dev-session-plan
+              inspection, declared browser target, evidence capture, service stop, and
+              unavailable-prerequisite instructions
+          - WHEN: repository automated checks are executed
+          - THEN: the dev-session skill content checks pass
+  MODIFIED: {}
+  REMOVED: {}

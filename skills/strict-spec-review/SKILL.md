@@ -73,6 +73,19 @@ proceeding, verify that strict workflow state already exists.
    Recommend `strict-spec-archive` only when review is clean enough to archive
    and complete project-level regression test evidence has passed.
 
+## Dev Session Guidance
+
+When `.strict-spec-driven/dev-session.yaml` exists in the project and browser
+trial evidence was gathered during implementation:
+
+1. Run `dev-session-trial` to derive the expected browser trial guidance and
+   compare it against the evidence that was reported.
+2. Check that declared services were stopped after evidence collection.
+3. Note any discrepancy between the declared smoke paths and the evidence
+   actually captured.
+4. Browser trial evidence supplements but does not replace the required project
+   regression command.
+
 ## Rules
 
 - Read every changed file before commenting on it

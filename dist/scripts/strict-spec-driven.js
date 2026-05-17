@@ -17300,8 +17300,8 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       apply: `${COMMAND_PREFIX} apply <change-name>`,
       verify: `${COMMAND_PREFIX} verify <change-name>`
     },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/"]
+    requiredHeadings: ["## Steps", "## Rules", "## Dev Session Guidance"],
+    requiredSnippets: [".strict-spec-driven/", "dev-session-plan"]
   },
   "strict-spec-verify": {
     requiredCommands: {
@@ -17309,8 +17309,8 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       verify: `${COMMAND_PREFIX} verify <change-name>`,
       "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`
     },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/"]
+    requiredHeadings: ["## Steps", "## Rules", "## Dev Session Guidance"],
+    requiredSnippets: [".strict-spec-driven/", "dev-session-trial"]
   },
   "strict-spec-review": {
     requiredCommands: {
@@ -17318,8 +17318,8 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       verify: `${COMMAND_PREFIX} verify <change-name>`,
       review: `${COMMAND_PREFIX} review <change-name>`
     },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/"]
+    requiredHeadings: ["## Steps", "## Rules", "## Dev Session Guidance"],
+    requiredSnippets: [".strict-spec-driven/", "dev-session-trial"]
   },
   "strict-spec-archive": {
     requiredCommands: {
@@ -17347,8 +17347,8 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
       archive: `${COMMAND_PREFIX} archive <change-name>`
     },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/", "/strict-spec-ship <change-name>"],
+    requiredHeadings: ["## Steps", "## Rules", "## Dev Session Guidance"],
+    requiredSnippets: [".strict-spec-driven/", "/strict-spec-ship <change-name>", "dev-session-plan"],
     forbiddenSnippets: [
       "empty-spec-impact decisions block progress",
       "empty-spec-impact decision has been explicitly confirmed"

@@ -1,0 +1,48 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: update-agent-skills-for-dev-sessions
+  status: proposed
+summary:
+  what:
+    - >-
+      Add dev-session awareness guidance to strict agent-facing lifecycle skill SKILL.md files and
+      add automated content validation smoke coverage for dev-session sections in core lifecycle
+      skills.
+  why:
+    - >-
+      Agents using strict-spec-apply, strict-spec-auto, strict-spec-verify, and strict-spec-review
+      have no instruction to consult dev-session metadata before running dev servers or browser
+      trials, leaving dev-session support invisible to the implementation and review workflows.
+scope:
+  in:
+    - >-
+      Update SKILL.md content in strict-spec-apply, strict-spec-auto, strict-spec-verify, and
+      strict-spec-review to include dev-session guidance covering: inspect dev-session-plan before
+      starting services, explain intended long-running commands, use declared browser targets,
+      capture evidence consistently, stop created services before finishing, and report unavailable
+      prerequisites.
+    - >-
+      Add automated skill content validation smoke coverage that checks whether core lifecycle
+      SKILL.md files include dev-session guidance, following the same pattern as existing
+      cli-core-skill-content-validation-smoke-coverage.
+    - >-
+      Document when NOT to use lifecycle commands: no declaration exists, required environment
+      values are missing, or the user has already provided a running service URL outside the strict
+      declaration.
+  out:
+    - Modifying dev-session CLI command implementations or the dev-session declaration schema.
+    - >-
+      Updating non-lifecycle skills such as strict-spec-propose, strict-spec-cancel, or roadmap
+      skills.
+    - >-
+      Adding browser automation or agent-browser integration beyond what is already declared in
+      dev-session.yaml.
+unchanged_behavior:
+  - dev-session CLI commands, schema contracts, and lifecycle behavior.
+  - The required project regression command and strict review evidence rules.
+roadmap:
+  milestone: 0012-development-session-assistance
+  planned_change: update-agent-skills-for-dev-sessions

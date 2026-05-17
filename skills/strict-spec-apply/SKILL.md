@@ -113,6 +113,26 @@ proceeding, verify that strict workflow state already exists.
 10. **Finish cleanly** — read `tasks.yaml` again to confirm there are no
     remaining `status: pending` entries, then suggest `strict-spec-verify`.
 
+## Dev Session Guidance
+
+When `.strict-spec-driven/dev-session.yaml` exists in the project and a task
+requires starting a local development server or opening browser targets:
+
+1. Run `dev-session-plan` first and explain the declared long-running commands
+   before starting them.
+2. Use `dev-session-start` to start declared services rather than guessing
+   undeclared startup steps.
+3. Use the declared browser targets from the plan when exercising the running
+   application.
+4. Capture evidence consistently using the declared smoke paths and evidence
+   labels.
+5. Run `dev-session-stop` to stop all services you started before finishing
+   the task.
+6. If required environment variables are missing, the declaration is absent,
+   or the user has already provided a running service URL outside the strict
+   declaration, report the unavailable prerequisites and do not use lifecycle
+   commands.
+
 ## Rules
 
 - Read existing code before modifying it

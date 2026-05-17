@@ -67,6 +67,21 @@ proceeding, verify that strict workflow state already exists.
    optional suggestions, then recommend `strict-spec-review` when the change is
    clean.
 
+## Dev Session Guidance
+
+When `.strict-spec-driven/dev-session.yaml` exists in the project and browser
+trial evidence is expected as part of verification:
+
+1. Run `dev-session-trial` to derive deterministic browser trial guidance from
+   the declared browser targets and managed lifecycle state.
+2. Report the declared target URLs, smoke paths, and evidence labels in the
+   verification summary.
+3. If required prerequisites are unavailable (missing declaration, missing env
+   values, or no managed lifecycle state), report the blocking condition and
+   do not attempt to guess undeclared setup.
+4. Browser trial evidence supplements but does not replace the required project
+   regression command.
+
 ## Rules
 
 - Be honest; do not treat checked tasks as proof by themselves

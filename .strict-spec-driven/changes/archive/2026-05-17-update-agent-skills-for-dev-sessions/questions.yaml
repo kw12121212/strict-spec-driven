@@ -1,0 +1,23 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: update-agent-skills-for-dev-sessions
+open: []
+resolved:
+  - id: q-content-validation-check-strength
+    question: >-
+      Should the automated content validation check for dev-session guidance sections be a hard
+      failure (exiting non-zero) or an advisory finding that still exits zero?
+    context: >-
+      The existing core skill content checks (cli-core-skill-content-validation-smoke-coverage) are
+      hard failures that exit non-zero when placeholder content is present. Dev-session guidance is
+      new and some skill authors may not have added it yet. Treating it as a hard failure is
+      consistent but could block CI. Treating it as advisory keeps CI green while new guidance is
+      being authored.
+    answer: >-
+      Hard failure. The validation exits non-zero when any core lifecycle SKILL.md is missing a
+      dev-session guidance section, consistent with existing
+      cli-core-skill-content-validation-smoke-coverage behavior. Safe because all four SKILL.md
+      updates land in the same change as the check.
+    status: resolved

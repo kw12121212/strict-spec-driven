@@ -150,6 +150,27 @@ proceeding, verify that strict workflow state already exists.
    as an optional next step for creating a focused git commit. An empty `specs/`
    directory is allowed and should not block archive.
 
+## Dev Session Guidance
+
+When `.strict-spec-driven/dev-session.yaml` exists in the project and
+implementation or review requires starting local development services:
+
+1. Run `dev-session-plan` first and explain the declared long-running commands
+   before starting them.
+2. Use `dev-session-start` to start declared services rather than guessing
+   undeclared startup steps.
+3. Use the declared browser targets from the plan when exercising the running
+   application.
+4. Capture evidence consistently using the declared smoke paths and evidence
+   labels.
+5. Run `dev-session-stop` to stop all services you started before finishing.
+
+**When NOT to use lifecycle commands:**
+- No `.strict-spec-driven/dev-session.yaml` declaration exists.
+- Required environment variable values are missing.
+- The user has already provided a running service URL outside the strict
+  declaration.
+
 ## Rules
 
 - The context reset is mandatory

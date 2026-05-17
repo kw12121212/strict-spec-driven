@@ -1,0 +1,57 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: update-agent-skills-for-dev-sessions
+sections:
+  Implementation:
+    read-lifecycle-skill-files:
+      text: >-
+        Read SKILL.md files for strict-spec-apply, strict-spec-auto, strict-spec-verify, and
+        strict-spec-review to understand their current structure.
+      status: complete
+    update-strict-spec-apply-skill:
+      text: >-
+        Add a dev-session guidance section to skills/strict-spec-apply/SKILL.md covering when to
+        inspect dev-session-plan, how to explain long-running commands, use declared browser
+        targets, stop services after finishing, and report unavailable prerequisites.
+      status: complete
+    update-strict-spec-auto-skill:
+      text: >-
+        Add a dev-session guidance section to skills/strict-spec-auto/SKILL.md with the same
+        lifecycle rules plus when NOT to use lifecycle commands.
+      status: complete
+    update-strict-spec-verify-skill:
+      text: >-
+        Add a dev-session guidance section to skills/strict-spec-verify/SKILL.md describing when to
+        run dev-session-trial for browser evidence during verification.
+      status: complete
+    update-strict-spec-review-skill:
+      text: >-
+        Add a dev-session guidance section to skills/strict-spec-review/SKILL.md describing how to
+        incorporate dev-session browser trial evidence into the review step.
+      status: complete
+    add-dev-session-skill-content-validation:
+      text: >-
+        Extend src/skills/ validation logic to check whether core lifecycle SKILL.md files include a
+        dev-session guidance section, emitting deterministic diagnostics when missing, following the
+        pattern of existing core skill content checks.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run full test suite.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify that only the four core lifecycle skills were updated and that the new content
+        validation checks pass deterministically.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests
