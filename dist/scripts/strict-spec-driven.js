@@ -6597,6 +6597,7 @@ var COMMAND_REGISTRATION_ORDER = [
   "dev-session-start",
   "dev-session-status",
   "dev-session-logs",
+  "dev-session-trial",
   "dev-session-stop",
   "migrate",
   "roadmap-status",
@@ -18456,6 +18457,41 @@ function runTcpReadinessCheck(port) {
   const result = spawnSync(process.execPath, ["-e", script, String(port)], { stdio: "ignore" });
   return result.status === 0;
 }
+function canProbeHttpUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+function isBrowserTrialTargetAvailable(service, target) {
+  if (service?.readiness.type === "http") {
+    return service.readiness.url !== undefined && runHttpReadinessCheck(service.readiness.url);
+  }
+  if (service?.readiness.type === "tcp") {
+    return service.readiness.port !== undefined && runTcpReadinessCheck(service.readiness.port);
+  }
+  return canProbeHttpUrl(target.url) && runHttpReadinessCheck(target.url);
+}
+function deriveBrowserTrialTarget(plan, target, runtimeState) {
+  const service = target.service === undefined ? undefined : plan.session.services.find((candidate) => candidate.id === target.service);
+  const managedRecord = service !== undefined && runtimeState !== null ? runtimeState.services[service.id] : undefined;
+  const managedSnapshot = managedRecord === undefined ? undefined : deriveServiceSnapshot(managedRecord);
+  const provenance = managedSnapshot !== undefined ? "started_by_strict" : isBrowserTrialTargetAvailable(service, target) ? "already_available" : "unavailable";
+  return {
+    id: target.id,
+    url: target.url,
+    smokePaths: [...target.smokePaths],
+    evidenceLabels: [...target.evidenceLabels],
+    localOnly: target.localOnly,
+    service: target.service,
+    notes: [...target.notes],
+    provenance,
+    trialReady: provenance === "started_by_strict" ? managedSnapshot?.status === "running" : provenance === "already_available",
+    managedServiceStatus: managedSnapshot?.status
+  };
+}
 function waitForReadiness(record) {
   if (record.readiness.type === "manual") {
     return { ok: true };
@@ -18927,6 +18963,41 @@ function getDevSessionLogs(rootDir, requestedServiceId) {
     diagnostics: []
   };
 }
+function getDevSessionTrialResult(rootDir) {
+  const runtimePaths = getRuntimePaths(rootDir);
+  const planResult = getDevSessionPlanResult(rootDir);
+  if (!planResult.valid) {
+    return {
+      ok: false,
+      artifactPath: planResult.artifactPath,
+      runtimeStatePath: runtimePaths.relativeStatePath,
+      browserTargets: [],
+      diagnostics: planResult.diagnostics.map((diagnostic) => ({
+        ...diagnostic,
+        phase: "declaration"
+      }))
+    };
+  }
+  const runtimeState = readRuntimeState(rootDir);
+  if (!runtimeState.ok) {
+    return {
+      ok: false,
+      artifactPath: planResult.artifactPath,
+      runtimeStatePath: runtimePaths.relativeStatePath,
+      sessionId: planResult.session.id,
+      browserTargets: [],
+      diagnostics: [runtimeState.diagnostic]
+    };
+  }
+  return {
+    ok: true,
+    artifactPath: planResult.artifactPath,
+    runtimeStatePath: runtimeState.state?.runtimeStatePath ?? runtimePaths.relativeStatePath,
+    sessionId: planResult.session.id,
+    browserTargets: planResult.session.browserTargets.map((target) => deriveBrowserTrialTarget(planResult, target, runtimeState.state)),
+    diagnostics: []
+  };
+}
 function stopDevSession(rootDir) {
   const runtimePaths = getRuntimePaths(rootDir);
   const runtimeState = readRuntimeState(rootDir);
@@ -18993,6 +19064,8 @@ var DEV_SESSION_STATUS_USAGE = `Usage: strict-spec-driven dev-session-status
 `;
 var DEV_SESSION_LOGS_USAGE = `Usage: strict-spec-driven dev-session-logs [service-id]
 `;
+var DEV_SESSION_TRIAL_USAGE = `Usage: strict-spec-driven dev-session-trial
+`;
 var DEV_SESSION_STOP_USAGE = `Usage: strict-spec-driven dev-session-stop
 `;
 function runDevSessionPlan(argv) {
@@ -19051,6 +19124,19 @@ function runDevSessionLogs(argv) {
   writeOut(result.content ?? "");
   return 0;
 }
+function runDevSessionTrial(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(DEV_SESSION_TRIAL_USAGE);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(DEV_SESSION_TRIAL_USAGE);
+    return 1;
+  }
+  const result = getDevSessionTrialResult(process.cwd());
+  writeJson(result);
+  return result.ok ? 0 : 1;
+}
 function runDevSessionStop(argv) {
   if (isHelpRequest(argv)) {
     writeHelp(DEV_SESSION_STOP_USAGE);
@@ -19085,6 +19171,7 @@ var commands = createCliCommandTable({
   "dev-session-start": (argv) => runDevSessionStart(argv),
   "dev-session-status": (argv) => runDevSessionStatus(argv),
   "dev-session-logs": (argv) => runDevSessionLogs(argv),
+  "dev-session-trial": (argv) => runDevSessionTrial(argv),
   "dev-session-stop": (argv) => runDevSessionStop(argv),
   migrate: (argv) => runMigrate(argv),
   "roadmap-status": (argv) => runRoadmapStatus(argv),

@@ -1,0 +1,38 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-browser-trial-evidence-workflow
+approach:
+  - >-
+    Add a dedicated dev-session-trial CLI report on top of the existing dev-session plan and
+    lifecycle state so strict workflows can describe what local browser smoke checks to run, what
+    evidence to capture, and whether targets are strict-managed, already available, or unavailable
+    without guessing routes or ports.
+decisions:
+  derive-from-plan-and-runtime:
+    decision: >-
+      Derive browser-trial guidance from the normalized dev-session plan plus lifecycle state
+      instead of introducing a second source of browser metadata.
+    rationale: >-
+      The declaration and lifecycle commands already hold the canonical target URLs, smoke paths,
+      evidence labels, and service ownership information, so reusing that data keeps the workflow
+      deterministic and avoids divergent browser guidance.
+  dedicated-trial-command:
+    decision: >-
+      Expose browser-trial guidance through a dedicated dev-session-trial CLI command instead of
+      requiring skills to merge plan and lifecycle output themselves.
+    rationale: >-
+      A dedicated report surface centralizes provenance and target-availability logic in one tested
+      place, which keeps implementation, verification, and review workflows consistent while still
+      leaving skill adoption to the follow-on roadmap change.
+  keep-browser-evidence-supplemental:
+    decision: >-
+      Treat browser trial output as supplemental workflow evidence that never replaces the
+      configured project regression command required for review and archive.
+    rationale: >-
+      The workflow config already defines the mandatory project-level regression command, and the
+      roadmap explicitly scopes browser evidence as additional context rather than a substitute for
+      full regression evidence.
+alternatives: []
+risks: []

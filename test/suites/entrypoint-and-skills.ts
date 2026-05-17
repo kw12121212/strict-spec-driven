@@ -39,6 +39,7 @@ const expectedCommandOrder = [
   "dev-session-start",
   "dev-session-status",
   "dev-session-logs",
+  "dev-session-trial",
   "dev-session-stop",
   "migrate",
   "roadmap-status",

@@ -226,6 +226,30 @@ export type DevSessionLogsResult = {
   diagnostics: DevSessionLifecycleDiagnostic[];
 };
 
+export type DevSessionTrialProvenance = "started_by_strict" | "already_available" | "unavailable";
+
+export type DevSessionTrialBrowserTarget = {
+  id: string;
+  url: string;
+  smokePaths: string[];
+  evidenceLabels: string[];
+  localOnly: boolean;
+  service?: string;
+  notes: string[];
+  provenance: DevSessionTrialProvenance;
+  trialReady: boolean;
+  managedServiceStatus?: DevSessionServiceStatus;
+};
+
+export type DevSessionTrialResult = {
+  ok: boolean;
+  artifactPath: string;
+  runtimeStatePath: string;
+  sessionId?: string;
+  browserTargets: DevSessionTrialBrowserTarget[];
+  diagnostics: DevSessionLifecycleDiagnostic[];
+};
+
 type RuntimeStateLoadResult =
   | { ok: true; state: DevSessionRuntimeState | null }
   | { ok: false; diagnostic: DevSessionLifecycleDiagnostic };
@@ -241,6 +265,9 @@ type CleanupOutcome = {
   status: DevSessionServiceStatus;
   message?: string;
 };
+
+type DerivedDevSessionService = DerivedDevSessionPlan["session"]["services"][number];
+type DerivedDevSessionBrowserTarget = DerivedDevSessionPlan["session"]["browserTargets"][number];
 
 export class DevSessionDeclarationNotFoundError extends Error {
   readonly artifactPath: string;
@@ -511,6 +538,62 @@ function runTcpReadinessCheck(port: number): boolean {
   ].join("");
   const result = spawnSync(process.execPath, ["-e", script, String(port)], { stdio: "ignore" });
   return result.status === 0;
+}
+
+function canProbeHttpUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function isBrowserTrialTargetAvailable(
+  service: DerivedDevSessionService | undefined,
+  target: DerivedDevSessionBrowserTarget,
+): boolean {
+  if (service?.readiness.type === "http") {
+    return service.readiness.url !== undefined && runHttpReadinessCheck(service.readiness.url);
+  }
+  if (service?.readiness.type === "tcp") {
+    return service.readiness.port !== undefined && runTcpReadinessCheck(service.readiness.port);
+  }
+  return canProbeHttpUrl(target.url) && runHttpReadinessCheck(target.url);
+}
+
+function deriveBrowserTrialTarget(
+  plan: DerivedDevSessionPlan,
+  target: DerivedDevSessionBrowserTarget,
+  runtimeState: DevSessionRuntimeState | null,
+): DevSessionTrialBrowserTarget {
+  const service = target.service === undefined
+    ? undefined
+    : plan.session.services.find((candidate) => candidate.id === target.service);
+  const managedRecord = service !== undefined && runtimeState !== null
+    ? runtimeState.services[service.id]
+    : undefined;
+  const managedSnapshot = managedRecord === undefined ? undefined : deriveServiceSnapshot(managedRecord);
+  const provenance = managedSnapshot !== undefined
+    ? "started_by_strict"
+    : isBrowserTrialTargetAvailable(service, target)
+      ? "already_available"
+      : "unavailable";
+
+  return {
+    id: target.id,
+    url: target.url,
+    smokePaths: [...target.smokePaths],
+    evidenceLabels: [...target.evidenceLabels],
+    localOnly: target.localOnly,
+    service: target.service,
+    notes: [...target.notes],
+    provenance,
+    trialReady: provenance === "started_by_strict"
+      ? managedSnapshot?.status === "running"
+      : provenance === "already_available",
+    managedServiceStatus: managedSnapshot?.status,
+  };
 }
 
 function waitForReadiness(record: DevSessionRuntimeServiceRecord): { ok: true } | { ok: false; message: string } {
@@ -1074,6 +1157,46 @@ export function getDevSessionLogs(rootDir: string, requestedServiceId?: string):
     serviceId,
     logPath: record.logPath,
     content: readFileSync(logAbsolutePath, "utf8"),
+    diagnostics: [],
+  };
+}
+
+export function getDevSessionTrialResult(rootDir: string): DevSessionTrialResult {
+  const runtimePaths = getRuntimePaths(rootDir);
+  const planResult = getDevSessionPlanResult(rootDir);
+  if (!planResult.valid) {
+    return {
+      ok: false,
+      artifactPath: planResult.artifactPath,
+      runtimeStatePath: runtimePaths.relativeStatePath,
+      browserTargets: [],
+      diagnostics: planResult.diagnostics.map((diagnostic) => ({
+        ...diagnostic,
+        phase: "declaration",
+      })),
+    };
+  }
+
+  const runtimeState = readRuntimeState(rootDir);
+  if (!runtimeState.ok) {
+    return {
+      ok: false,
+      artifactPath: planResult.artifactPath,
+      runtimeStatePath: runtimePaths.relativeStatePath,
+      sessionId: planResult.session.id,
+      browserTargets: [],
+      diagnostics: [runtimeState.diagnostic],
+    };
+  }
+
+  return {
+    ok: true,
+    artifactPath: planResult.artifactPath,
+    runtimeStatePath: runtimeState.state?.runtimeStatePath ?? runtimePaths.relativeStatePath,
+    sessionId: planResult.session.id,
+    browserTargets: planResult.session.browserTargets.map((target) =>
+      deriveBrowserTrialTarget(planResult, target, runtimeState.state)
+    ),
     diagnostics: [],
   };
 }

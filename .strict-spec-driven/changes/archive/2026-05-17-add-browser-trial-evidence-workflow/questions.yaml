@@ -1,0 +1,22 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: add-browser-trial-evidence-workflow
+open: []
+resolved:
+  - id: evidence-surface-shape
+    question: >-
+      Should the browser-trial workflow expose a dedicated deterministic CLI/report artifact, or
+      should strict skills consume trial guidance directly from dev-session-plan and lifecycle
+      state?
+    context: >-
+      The roadmap requires browser targets, smoke paths, evidence labels, and service-start
+      provenance to drive implementation, verification, and review, but it does not yet pin down
+      whether that behavior should be surfaced through a standalone command/report or only through
+      existing plan/lifecycle output plus workflow guidance.
+    answer: >-
+      Use a dedicated deterministic CLI/report artifact so browser-trial guidance is derived once
+      from dev-session-plan plus lifecycle state and can be consumed consistently by strict
+      implementation, verification, and review workflows.
+    status: resolved

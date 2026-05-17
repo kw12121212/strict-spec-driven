@@ -1,0 +1,38 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/dev-session.ts
+    - src/cli/cmd-dev-session.ts
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+  tests:
+    - test/run.ts
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/dev-session-trial.ts
+operations:
+  ADDED:
+    cli-dev-session-trial-command:
+      strength: MUST
+      statement: >-
+        The system MUST provide a dev-session-trial CLI command that derives deterministic
+        browser-trial guidance from declared dev-session browser targets and managed lifecycle state
+        so strict workflows can report target URLs, smoke paths, evidence labels, and whether local
+        targets are strict-managed, already available, or unavailable without replacing the required
+        project regression command.
+      scenarios:
+        cli-reports-browser-trial-guidance:
+          - GIVEN: >-
+              a strict project declares browser targets in .strict-spec-driven/dev-session.yaml and
+              may or may not have managed lifecycle state for the related services
+          - WHEN: >-
+              the user runs strict-spec-driven dev-session-trial
+          - THEN: >-
+              the command reports deterministic local URLs, smoke paths, evidence labels, and target
+              provenance without guessing undeclared routes or replacing the required project
+              regression command
+  MODIFIED: {}
+  REMOVED: {}

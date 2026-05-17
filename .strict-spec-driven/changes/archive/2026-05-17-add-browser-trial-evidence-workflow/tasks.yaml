@@ -1,0 +1,47 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-browser-trial-evidence-workflow
+sections:
+  Implementation:
+    derive-browser-trial-guidance:
+      text: >-
+        Extend dev-session planning and lifecycle data so browser-trial workflow consumers can
+        derive deterministic target URLs, smoke paths, evidence labels, and service-start provenance
+        without guessing undeclared routes or ports.
+      status: complete
+    expose-browser-trial-reporting-surface:
+      text: >-
+        Add the scoped browser-trial reporting surface needed by strict implementation,
+        verification, and review while keeping the required project regression command as the
+        archive gate.
+      status: complete
+    preserve-supplemental-evidence-boundary:
+      text: >-
+        Keep browser-trial evidence supplemental so the workflow reports extra local observations
+        without replacing project-level regression evidence.
+      status: complete
+  Testing:
+    add-browser-trial-regression-tests:
+      text: >-
+        Add regression coverage for deterministic browser-trial guidance, evidence reporting, and
+        service-start provenance handling.
+      status: complete
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-browser-trial-scope:
+      text: >-
+        Verify the change derives browser-trial guidance from declared dev-session metadata and
+        keeps browser evidence supplemental to the required project regression command.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests
