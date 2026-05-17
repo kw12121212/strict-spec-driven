@@ -29,8 +29,9 @@ archive: node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>
 
 ## Prerequisites
 
-The `.strict-spec-driven/` directory must exist at the project root. Before
-proceeding, verify that strict workflow state already exists.
+The `.strict-spec-driven/` directory must exist at the project root. If it is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
 
 ## YAML Writing Rules
 
@@ -54,6 +55,10 @@ proceeding, verify that strict workflow state already exists.
   commands to catch remaining schema or YAML issues.
 
 ## Steps
+
+Before any other step, confirm `.strict-spec-driven/` exists at the project
+root. If it is missing, stop immediately and tell the user to run
+`/strict-spec-init`. Do not run `init` from this skill.
 
 1. **Reset context from files** — treat prior chat context as stale unless it has
    been revalidated from the current change artifacts, strict main specs, and

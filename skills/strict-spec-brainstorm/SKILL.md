@@ -25,10 +25,15 @@ verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 
 ## Prerequisites
 
-The `.strict-spec-driven/` directory must exist at the project root. Before
-proceeding, verify that strict workflow state already exists.
+The `.strict-spec-driven/` directory must exist at the project root. If it is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
 
 ## Steps
+
+Before any other step, confirm `.strict-spec-driven/` exists at the project
+root. If it is missing, stop immediately and tell the user to run
+`/strict-spec-init`. Do not run `init` from this skill.
 
 1. **Start from the idea, not the artifact list** — ask the user what they want
    to achieve, what problem they are trying to solve, and any known constraints

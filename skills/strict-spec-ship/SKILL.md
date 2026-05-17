@@ -35,11 +35,19 @@ ship: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ship <change-name>
 
 ## Prerequisites
 
-The `.strict-spec-driven/` directory must exist at the project root. The change
-must already be archived under `.strict-spec-driven/changes/archive/` before
-this skill runs. Run `/strict-spec-archive` first if the change is not yet archived.
+The `.strict-spec-driven/` directory must exist at the project root. If it is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
+
+The change must already be archived under `.strict-spec-driven/changes/archive/`
+before this skill runs. Run `/strict-spec-archive` first if the change is not
+yet archived.
 
 ## Steps
+
+Before any other step, confirm `.strict-spec-driven/` exists at the project
+root. If it is missing, stop immediately and tell the user to run
+`/strict-spec-init`. Do not run `init` from this skill.
 
 1. **Run the ship command** to get verification JSON:
    ```bash

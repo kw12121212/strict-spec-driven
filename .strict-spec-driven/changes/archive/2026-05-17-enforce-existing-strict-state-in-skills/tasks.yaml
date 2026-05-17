@@ -1,0 +1,44 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: enforce-existing-strict-state-in-skills
+sections:
+  Implementation:
+    audit-skill-precheck-contract:
+      text: >-
+        Audit the current strict skill prompts, validator expectations, and regression coverage for
+        missing-workflow-state handling.
+      status: complete
+    update-non-init-skill-prompts:
+      text: >-
+        Update every non-init strict skill so step 1 checks for .strict-spec-driven/ and missing
+        state stops with /strict-spec-init guidance instead of running init.
+      status: complete
+    update-validation-and-regression:
+      text: >-
+        Update skill packaging validation and regression tests to enforce the shared non-init
+        workflow-state precheck contract.
+      status: complete
+  Testing:
+    run-validate-skills:
+      text: Run strict skill packaging validation.
+      status: complete
+      command: bun run validate-skills
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify the changed skills all start by checking for .strict-spec-driven/ and no non-init
+        skill still instructs the agent to run init as fallback.
+      status: complete
+testing_gates:
+  validation_task: run-validate-skills
+  unit_test_task: run-tests

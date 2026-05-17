@@ -164,26 +164,43 @@ context.assert(validateSkillsCli.status === 0, "validate-skills CLI exits zero f
 const validateSkillsJson = validateSkillsDispatchJson;
 context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits valid=true JSON");
 
-const reviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-review", "SKILL.md"), "utf8");
-const autoSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-auto", "SKILL.md"), "utf8");
-const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
-const normalizedReviewSkillContent = reviewSkillContent.replace(/\s+/g, " ");
-const normalizedAutoSkillContent = autoSkillContent.replace(/\s+/g, " ");
-const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
+  const reviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-review", "SKILL.md"), "utf8");
+  const autoSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-auto", "SKILL.md"), "utf8");
+  const roadmapPlanSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-plan", "SKILL.md"), "utf8");
+  const devSessionInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-dev-session-init", "SKILL.md"), "utf8");
+  const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
+  const normalizedReviewSkillContent = reviewSkillContent.replace(/\s+/g, " ");
+  const normalizedAutoSkillContent = autoSkillContent.replace(/\s+/g, " ");
+  const normalizedRoadmapPlanSkillContent = roadmapPlanSkillContent.replace(/\s+/g, " ");
+  const normalizedDevSessionInitSkillContent = devSessionInitSkillContent.replace(/\s+/g, " ");
+  const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
 context.assert(
   normalizedReviewSkillContent.includes("complete project-level regression test evidence")
     && normalizedReviewSkillContent.includes("actionable setup or waiting guidance"),
   "strict-spec-review requires complete project regression evidence before archive recommendation",
 );
-context.assert(
-  normalizedAutoSkillContent.includes("complete project-level regression test evidence")
-    && normalizedAutoSkillContent.includes("stop before archive")
-    && normalizedAutoSkillContent.includes("actionable setup or waiting guidance"),
-  "strict-spec-auto blocks archive without complete project regression evidence",
-);
-context.assert(
-  normalizedWorkflowConfigContent.includes("review_evidence:")
-    && normalizedWorkflowConfigContent.includes("command: bun run build && bun test/run.ts")
+  context.assert(
+    normalizedAutoSkillContent.includes("complete project-level regression test evidence")
+      && normalizedAutoSkillContent.includes("stop before archive")
+      && normalizedAutoSkillContent.includes("actionable setup or waiting guidance"),
+    "strict-spec-auto blocks archive without complete project regression evidence",
+  );
+  context.assert(
+    normalizedRoadmapPlanSkillContent.includes("Before any other step, confirm `.strict-spec-driven/` exists")
+      && normalizedRoadmapPlanSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
+      && !roadmapPlanSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js init"),
+    "strict-roadmap-plan requires existing strict workflow state instead of calling init",
+  );
+  context.assert(
+    normalizedDevSessionInitSkillContent.includes("Before any other step, confirm `.strict-spec-driven/` exists")
+      && normalizedDevSessionInitSkillContent.includes("template-show scaffold/dev-session.yaml")
+      && normalizedDevSessionInitSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
+      && !devSessionInitSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js init"),
+    "strict-spec-dev-session-init requires existing strict workflow state and uses template inspection instead of init",
+  );
+  context.assert(
+    normalizedWorkflowConfigContent.includes("review_evidence:")
+      && normalizedWorkflowConfigContent.includes("command: bun run build && bun test/run.ts")
     && normalizedWorkflowConfigContent.includes("complete project-level regression suite"),
   "workflow config documents the complete project regression command and review meaning",
 );
@@ -216,9 +233,19 @@ try {
       "demo: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify demo",
       "```",
       "",
-      "## Notes",
+      "## Prerequisites",
       "",
-      "Use strict workflow artifacts under .strict-spec-driven/.",
+      "The `.strict-spec-driven/` directory must exist at the project root. If it is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "",
+      "## Steps",
+      "",
+      "Before any other step, confirm `.strict-spec-driven/` exists at the project root. If it is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "",
+      "1. **Run the demo command** — inspect strict workflow artifacts under `.strict-spec-driven/`.",
+      "",
+      "## Rules",
+      "",
+      "- Use strict workflow artifacts under `.strict-spec-driven/`.",
     ].join("\n") + "\n",
     "utf8",
   );
@@ -270,6 +297,7 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
+      "init: node {{SKILL_DIR}}/scripts/strict-spec-driven.js init",
       "demo: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify demo",
       "```",
       "",
@@ -304,6 +332,14 @@ try {
   context.assert(
     invalidResultA.diagnostics.some((diagnostic) => diagnostic.code === "skill.reference.legacy_workflow_dir"),
     "invalid packaging reports stale legacy workflow reference diagnostic",
+  );
+  context.assert(
+    invalidResultA.diagnostics.some((diagnostic) => diagnostic.code === "skill.strict_workflow.precheck.missing"),
+    "invalid packaging reports missing strict workflow precheck guidance",
+  );
+  context.assert(
+    invalidResultA.diagnostics.some((diagnostic) => diagnostic.code === "skill.strict_workflow.init_command.forbidden"),
+    "invalid packaging reports forbidden init fallback command usage",
   );
   context.assert(
     JSON.stringify(invalidResultA) === JSON.stringify(invalidResultB),

@@ -1,0 +1,29 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: enforce-existing-strict-state-in-skills
+approach:
+  - >-
+    Standardize a single missing-workflow-state instruction across non-init skills so their first
+    workflow step verifies .strict-spec-driven exists before any other action.
+  - >-
+    Teach skill packaging validation and repository tests to reject regressions where a non-init
+    skill still offers init as a fallback or omits the explicit stop-and-initialize guidance.
+decisions:
+  skill-scope-only:
+    decision: >-
+      Constrain the change to skill prompts, skill validation, and related tests instead of changing
+      direct CLI subcommand semantics.
+    rationale: >-
+      The user request is about skill behavior, and keeping CLI runtime semantics unchanged avoids
+      widening scope beyond prompt and packaging contracts.
+alternatives:
+  - option: Add runtime guards to all non-init CLI commands.
+    reason: >-
+      Rejected for this change because it would alter direct CLI behavior beyond the requested
+      skill-flow adjustment.
+risks:
+  - >-
+    Many skill prompts need synchronized wording, so validation and regression tests must encode the
+    shared contract to prevent drift.

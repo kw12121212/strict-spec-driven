@@ -26,8 +26,9 @@ verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 
 ## Prerequisites
 
-The `.strict-spec-driven/` directory must exist at the project root. Before
-proceeding, verify that strict workflow state already exists.
+The `.strict-spec-driven/` directory must exist at the project root. If it is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
 
 ## Roadmap Linking Rules
 
@@ -41,6 +42,10 @@ proceeding, verify that strict workflow state already exists.
   and materialize them before proposing work.
 
 ## Steps
+
+Before any other step, confirm `.strict-spec-driven/` exists at the project
+root. If it is missing, stop immediately and tell the user to run
+`/strict-spec-init`. Do not run `init` from this skill.
 
 1. **Locate the planned change in the strict roadmap** — inspect
    `.strict-spec-driven/roadmap/INDEX.yaml`, the relevant milestone YAML file,

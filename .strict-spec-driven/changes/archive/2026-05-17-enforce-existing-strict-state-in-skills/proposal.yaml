@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: enforce-existing-strict-state-in-skills
+  status: proposed
+summary:
+  what:
+    - >-
+      Require every non-init strict skill to check for existing .strict-spec-driven workflow state
+      before any other workflow step.
+    - >-
+      Replace init-script fallback guidance with an immediate stop that tells the user to run
+      /strict-spec-init first.
+  why:
+    - >-
+      Skills should not bootstrap or repair strict workflow state implicitly when the user asked to
+      run a non-init workflow.
+    - >-
+      A shared prerequisite contract keeps skill behavior consistent and prevents accidental init
+      side effects.
+scope:
+  in:
+    - >-
+      Update non-init skill prompts so step 1 checks for .strict-spec-driven and stops with
+      initialization guidance when it is missing.
+    - >-
+      Update skill packaging validation and tests to enforce the new prompt contract and remove
+      non-init init fallback command guidance.
+  out:
+    - Change strict-spec-init initialization behavior.
+    - Change strict-spec-migrate legacy migration flow.
+unchanged_behavior:
+  - >-
+    strict-spec-init remains the only skill that runs the bundled init command to create or repair
+    .strict-spec-driven/.
+  - >-
+    strict-spec-migrate continues to treat .spec-driven as migration input rather than requiring
+    pre-existing strict workflow state.

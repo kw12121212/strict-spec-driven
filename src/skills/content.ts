@@ -6,10 +6,58 @@ import {
   MIGRATION_STRICT_SKILL_EXPECTATIONS,
   PLANNING_STRICT_SKILL_EXPECTATIONS,
   ROADMAP_STRICT_SKILL_EXPECTATIONS,
+  STRICT_WORKFLOW_EXISTENCE_STEP_SNIPPET,
+  STRICT_WORKFLOW_INIT_GUIDANCE_SNIPPET,
+  STRICT_WORKFLOW_NO_INIT_SNIPPET,
   makeDiagnostic,
   type SkillContentExpectation,
   type SkillPackagingDiagnostic,
 } from "./model.js";
+
+function requiresExistingStrictWorkflowState(skillName: string): boolean {
+  return (skillName.startsWith("strict-spec-") || skillName.startsWith("strict-roadmap-"))
+    && skillName !== "strict-spec-init"
+    && skillName !== "strict-spec-migrate";
+}
+
+function validateStrictWorkflowStateGuidance(
+  skillName: string,
+  content: string,
+  commands: Record<string, string>,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  if (!requiresExistingStrictWorkflowState(skillName)) return;
+  const normalizedContent = content.replace(/\s+/g, " ");
+
+  for (const snippet of [
+    STRICT_WORKFLOW_EXISTENCE_STEP_SNIPPET,
+    STRICT_WORKFLOW_INIT_GUIDANCE_SNIPPET,
+    STRICT_WORKFLOW_NO_INIT_SNIPPET,
+  ]) {
+    if (normalizedContent.includes(snippet.replace(/\s+/g, " "))) continue;
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.strict_workflow.precheck.missing",
+        skillPath,
+        "non-init strict skills must check for existing .strict-spec-driven/ state before any other step and stop with init guidance when it is missing",
+        snippet,
+      ),
+    );
+  }
+
+  if (commands.init) {
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.strict_workflow.init_command.forbidden",
+        `${skillPath}#commands.init`,
+        "non-init strict skills must not declare the bundled init command as a fallback",
+        "no init command entry",
+        commands.init,
+      ),
+    );
+  }
+}
 
 function validateSkillContentAgainstExpectation(
   skillName: string,
@@ -298,4 +346,5 @@ export function validateCommandSection(
   validateRoadmapSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validatePlanningSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateMigrationSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
+  validateStrictWorkflowStateGuidance(skillName, content, normalizedCommands, skillPath, diagnostics);
 }

@@ -37,10 +37,15 @@ archive: node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>
 
 ## Prerequisites
 
-The `.strict-spec-driven/` directory must exist at the project root. Before
-proceeding, verify that strict workflow state already exists.
+The `.strict-spec-driven/` directory must exist at the project root. If it is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
 
 ## Steps
+
+Before any other step, confirm `.strict-spec-driven/` exists at the project
+root. If it is missing, stop immediately and tell the user to run
+`/strict-spec-init`. Do not run `init` from this skill.
 
 1. **Select the change** — run `modify` without an argument to list active
    changes. If the change is already specified, use it.

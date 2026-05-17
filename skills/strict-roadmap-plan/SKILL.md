@@ -16,15 +16,15 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-init: node {{SKILL_DIR}}/scripts/strict-spec-driven.js init
 roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
 roadmap-sync: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync
 ```
 
 ## Prerequisites
 
-The `.strict-spec-driven/` directory must exist at the project root. Before
-proceeding, verify that strict workflow state already exists or initialize it.
+The `.strict-spec-driven/` directory must exist at the project root. If it is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
 
 ## Roadmap Linking Rules
 
@@ -36,6 +36,10 @@ proceeding, verify that strict workflow state already exists or initialize it.
   `planned_change.milestone` are the source of truth.
 
 ## Steps
+
+Before any other step, confirm `.strict-spec-driven/` exists at the project
+root. If it is missing, stop immediately and tell the user to run
+`/strict-spec-init`. Do not run `init` from this skill.
 
 1. **Read strict project context** — inspect `.strict-spec-driven/config.yaml`,
    `.strict-spec-driven/specs/INDEX.yaml`, and the main strict YAML specs that

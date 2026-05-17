@@ -31,9 +31,16 @@ Do NOT use when:
 
 ## Prerequisites
 
-The `.strict-spec-driven/` directory and a valid `.strict-spec-driven/dev-session.yaml` must exist at the project root.
+The `.strict-spec-driven/` directory and a valid `.strict-spec-driven/dev-session.yaml`
+must exist at the project root. If `.strict-spec-driven/` is missing, stop
+immediately and tell the user to run `/strict-spec-init`. Do not run `init`
+from this skill.
 
 ## Steps
+
+Before any other step, confirm `.strict-spec-driven/` exists at the project
+root. If it is missing, stop immediately and tell the user to run
+`/strict-spec-init`. Do not run `init` from this skill.
 
 1. **Validate the dev session declaration** — run:
    ```bash

@@ -21,7 +21,11 @@ archive-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change
 
 ## Prerequisites
 
-Use strict workflow artifacts under `.strict-spec-driven/`. Before running maintenance:
+The `.strict-spec-driven/` directory must exist at the project root. If it is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
+
+Before running maintenance:
 
 1. Verify `.strict-spec-driven/` exists.
 2. Verify `.strict-spec-driven/config.yaml` contains a `maintenance` section with at least one configured check.
@@ -36,9 +40,13 @@ maintenance:
 
 ## Steps
 
+Before any other step, confirm `.strict-spec-driven/` exists at the project
+root. If it is missing, stop immediately and tell the user to run
+`/strict-spec-init`. Do not run `init` from this skill.
+
 1. **Run maintenance checks** — execute:
-   ```
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js maintenance
+    ```
+    node {{SKILL_DIR}}/scripts/strict-spec-driven.js maintenance
    ```
    Parse the JSON output. Fields: `valid`, `checksRun`, `findingsCount`, `generatedChange`.
 

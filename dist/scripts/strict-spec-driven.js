@@ -17270,6 +17270,9 @@ var GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
 var GENERATE_NAMED_ARGS_COMMAND = `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec> --<named-args>`;
 var READY_COMMAND = `${COMMAND_PREFIX} ready <change-name>`;
 var NEXT_COMMAND = `${COMMAND_PREFIX} next <change-name>`;
+var STRICT_WORKFLOW_EXISTENCE_STEP_SNIPPET = "Before any other step, confirm `.strict-spec-driven/` exists";
+var STRICT_WORKFLOW_INIT_GUIDANCE_SNIPPET = "stop immediately and tell the user to run `/strict-spec-init`";
+var STRICT_WORKFLOW_NO_INIT_SNIPPET = "Do not run `init` from this skill.";
 var ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 var ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
 var ROADMAP_ACTIVE_CONFLICT_SNIPPET = "active strict change conflicts";
@@ -17381,7 +17384,6 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
 var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
   "strict-roadmap-plan": {
     requiredCommands: {
-      init: `${COMMAND_PREFIX} init`,
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`
     },
@@ -17496,6 +17498,26 @@ function makeDiagnostic3(code, diagPath, message, expected, actual) {
 }
 
 // src/skills/content.ts
+function requiresExistingStrictWorkflowState(skillName) {
+  return (skillName.startsWith("strict-spec-") || skillName.startsWith("strict-roadmap-")) && skillName !== "strict-spec-init" && skillName !== "strict-spec-migrate";
+}
+function validateStrictWorkflowStateGuidance(skillName, content, commands, skillPath, diagnostics) {
+  if (!requiresExistingStrictWorkflowState(skillName))
+    return;
+  const normalizedContent = content.replace(/\s+/g, " ");
+  for (const snippet2 of [
+    STRICT_WORKFLOW_EXISTENCE_STEP_SNIPPET,
+    STRICT_WORKFLOW_INIT_GUIDANCE_SNIPPET,
+    STRICT_WORKFLOW_NO_INIT_SNIPPET
+  ]) {
+    if (normalizedContent.includes(snippet2.replace(/\s+/g, " ")))
+      continue;
+    diagnostics.push(makeDiagnostic3("skill.strict_workflow.precheck.missing", skillPath, "non-init strict skills must check for existing .strict-spec-driven/ state before any other step and stop with init guidance when it is missing", snippet2));
+  }
+  if (commands.init) {
+    diagnostics.push(makeDiagnostic3("skill.strict_workflow.init_command.forbidden", `${skillPath}#commands.init`, "non-init strict skills must not declare the bundled init command as a fallback", "no init command entry", commands.init));
+  }
+}
 function validateSkillContentAgainstExpectation(skillName, content, commands, skillPath, diagnostics, expectationMap, diagnosticPrefix, label) {
   const expectation = expectationMap[skillName];
   if (!expectation)
@@ -17593,6 +17615,7 @@ function validateCommandSection(skillName, content, skillPath, diagnostics) {
   validateRoadmapSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validatePlanningSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateMigrationSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
+  validateStrictWorkflowStateGuidance(skillName, content, normalizedCommands, skillPath, diagnostics);
 }
 
 // src/skills/diagnostics.ts

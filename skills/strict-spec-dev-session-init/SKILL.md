@@ -13,7 +13,7 @@ You are initializing a strict development-session declaration for the current pr
 ## This Skill's Commands
 
 ```yaml
-init: node {{SKILL_DIR}}/scripts/strict-spec-driven.js init
+template-show: node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/dev-session.yaml
 dev-session-plan: node {{SKILL_DIR}}/scripts/strict-spec-driven.js dev-session-plan
 ```
 
@@ -31,26 +31,40 @@ Do NOT use when:
 
 ## Prerequisites
 
-The target project root must be accessible from the current environment. Work in the intended repository root before writing `.strict-spec-driven/dev-session.yaml`.
+The `.strict-spec-driven/` directory must exist at the project root. If it is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
+
+Work in the intended repository root before writing
+`.strict-spec-driven/dev-session.yaml`.
 
 ## Steps
 
-1. **Ensure strict scaffold state exists** — run:
-   ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js init
-   ```
-   - If `.strict-spec-driven/` is missing, this bootstraps the strict scaffold.
-   - If `.strict-spec-driven/` already exists, this repairs missing scaffold files without overwriting existing strict artifacts.
+Before any other step, confirm `.strict-spec-driven/` exists at the project
+root. If it is missing, stop immediately and tell the user to run
+`/strict-spec-init`. Do not run `init` from this skill.
 
-2. **Read project context and any existing declaration** — inspect the repository files that best describe local development behavior, including:
+1. **Read project context and any existing declaration** — inspect the repository
+   files that best describe local development behavior, including:
    - `.strict-spec-driven/dev-session.yaml` if it already exists
    - `README.md`, `AGENTS.md`, `package.json`, and project-local docs
    - environment examples or setup files that declare variable names only
    - source or config files that clearly expose local ports, URLs, or health endpoints
 
-3. **Refine the declaration in place** — update `.strict-spec-driven/dev-session.yaml` so it describes the repository's actual local development session:
+2. **Load the bundled declaration shape when the file is missing** — if
+   `.strict-spec-driven/dev-session.yaml` does not exist yet, run:
+   ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/dev-session.yaml
+   ```
+   Use the bundled template output as the strict YAML shape when you need to
+   create the declaration directly inside an already initialized strict
+   workflow.
+
+3. **Refine the declaration in place** — update `.strict-spec-driven/dev-session.yaml`
+   so it describes the repository's actual local development session:
    - replace scaffold placeholder values with project-specific content
-   - preserve existing user-authored values when they are already valid and more specific than repository heuristics
+   - preserve existing user-authored values when they are already valid and more
+     specific than repository heuristics
    - infer a sensible `session.id`, service IDs, descriptions, `working_directory`, URLs, ports, browser targets, and environment variable names from the repository context
    - prefer explicit project evidence over assumptions
 
@@ -70,7 +84,7 @@ The target project root must be accessible from the current environment. Work in
    - If validation still fails because the repository does not provide enough information, stop and report the blocking diagnostics together with the assumptions that need human confirmation.
 
 6. **Hand off the result** — summarize:
-   - whether the declaration was newly scaffolded or refined in place
+   - whether the declaration was created directly or refined in place
    - the resolved session ID and declared service IDs
    - the chosen readiness strategy and any conservative fallbacks
    - any required environment variable names
@@ -78,7 +92,8 @@ The target project root must be accessible from the current environment. Work in
 
 ## Rules
 
-- Always bootstrap through `init`; do not write a brand-new dev-session file shape from scratch.
+- When `.strict-spec-driven/dev-session.yaml` is missing but `.strict-spec-driven/`
+  exists, create the file directly using the bundled strict template shape.
 - When `.strict-spec-driven/dev-session.yaml` already exists, update it in place instead of replacing it wholesale.
 - Do not start services, open browsers, write runtime state, or generate helper scripts in this skill.
 - Do not invent secret values, undeclared routes, or speculative health endpoints.

@@ -30,8 +30,9 @@ verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 
 ## Prerequisites
 
-The `.strict-spec-driven/` directory must exist at the project root. Before
-proceeding, verify that strict workflow state already exists.
+The `.strict-spec-driven/` directory must exist at the project root. If it is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
 
 ## YAML Writing Rules
 
@@ -54,6 +55,10 @@ proceeding, verify that strict workflow state already exists.
   colon spacing, then run `verify` to catch remaining schema or YAML issues.
 
 ## Steps
+
+Before any other step, confirm `.strict-spec-driven/` exists at the project
+root. If it is missing, stop immediately and tell the user to run
+`/strict-spec-init`. Do not run `init` from this skill.
 
 1. **Determine the change name** — use the user-provided kebab-case name when it
    already exists. Otherwise derive one from the request and scope.

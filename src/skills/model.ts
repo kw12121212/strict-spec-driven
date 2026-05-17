@@ -38,6 +38,11 @@ export const GENERATE_NAMED_ARGS_COMMAND =
   `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec> --<named-args>`;
 export const READY_COMMAND = `${COMMAND_PREFIX} ready <change-name>`;
 export const NEXT_COMMAND = `${COMMAND_PREFIX} next <change-name>`;
+export const STRICT_WORKFLOW_EXISTENCE_STEP_SNIPPET =
+  "Before any other step, confirm `.strict-spec-driven/` exists";
+export const STRICT_WORKFLOW_INIT_GUIDANCE_SNIPPET =
+  "stop immediately and tell the user to run `/strict-spec-init`";
+export const STRICT_WORKFLOW_NO_INIT_SNIPPET = "Do not run `init` from this skill.";
 
 export type SkillContentExpectation = {
   requiredCommands: Record<string, string>;
@@ -159,7 +164,6 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
 export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
   "strict-roadmap-plan": {
     requiredCommands: {
-      init: `${COMMAND_PREFIX} init`,
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
     },
