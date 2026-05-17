@@ -1,0 +1,52 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: dev-session-init-skill
+sections:
+  Implementation:
+    review-dev-session-and-skill-patterns:
+      text: >-
+        Review the existing dev-session CLI, docs, and neighboring skill packages so the new skill
+        follows current init, validation, and packaging conventions.
+      status: complete
+    add-dev-session-init-skill:
+      text: >-
+        Add the standalone dev-session initialization skill package that runs init, reads project
+        context plus any existing dev-session.yaml, updates the declaration in place, and finishes
+        with dev-session-plan.
+      status: complete
+    register-skill-and-doc-surfaces:
+      text: >-
+        Register the new skill in marketplace metadata and update user-facing docs so the
+        initialization flow is discoverable and clearly separated from helper-script generation.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+    verify-non-destructive-merge-flow:
+      text: >-
+        Verify the planned implementation covers both missing and existing dev-session.yaml cases
+        without destructive overwrite behavior.
+      status: complete
+    verify-validation-only-handoff:
+      text: >-
+        Verify the skill ends with dev-session-plan success or deterministic diagnostics and does
+        not start services, open browsers, or generate helper scripts.
+      status: complete
+  Verification:
+    verify-scope:
+      text: >-
+        Verify the implementation matches proposal scope: bootstrap via init, refine existing
+        declarations in place, stay conservative when metadata is uncertain, and stop after
+        validation.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

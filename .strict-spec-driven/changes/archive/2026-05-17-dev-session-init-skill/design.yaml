@@ -1,0 +1,46 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: dev-session-init-skill
+approach:
+  - >-
+    Implement the feature as a standalone skill package whose SKILL.md drives a three-step workflow:
+    run the bundled strict init scaffold to ensure .strict-spec-driven/dev-session.yaml exists,
+    inspect project files and any existing declaration to infer a better session model, then run
+    dev-session-plan and report either the resolved plan or deterministic diagnostics.
+  - >-
+    Keep inference conservative: when the repository does not clearly declare a readiness URL,
+    browser smoke target, or environment variable requirement, preserve a schema-valid fallback such
+    as manual readiness or empty target lists instead of inventing undeclared behavior.
+decisions:
+  scaffold-via-init:
+    decision: >-
+      Bootstrap the declaration via the existing strict init scaffold rather than writing a
+      brand-new YAML file shape inside the skill.
+    rationale: >-
+      The init command already owns strict scaffold creation and repair semantics, so reusing it
+      keeps file layout and future schema/template changes centralized.
+  merge-existing-declaration:
+    decision: >-
+      When dev-session.yaml already exists, read it and refine it in place instead of overwriting
+      it.
+    rationale: >-
+      The user explicitly chose in-place refinement. Preserving existing content keeps the skill
+      non-destructive and protects author intent.
+  validate-with-plan:
+    decision: Use dev-session-plan as the required handoff gate after generating the declaration.
+    rationale: >-
+      dev-session-plan already provides the deterministic, machine-readable validation surface for
+      dev-session metadata without starting services.
+alternatives:
+  - option: Write the full YAML file from scratch inside the skill without calling init.
+    reason: Rejected because it duplicates scaffold ownership and risks drift from the bundled template.
+  - option: Regenerate the declaration from scratch whenever a file already exists.
+    reason: >-
+      Rejected because it would clobber user-authored metadata and ignores the agreed in-place
+      refinement behavior.
+risks:
+  - >-
+    Repository heuristics may not reveal exact readiness or browser-target details; the skill should
+    surface conservative defaults and explain assumptions rather than fabricating endpoints.

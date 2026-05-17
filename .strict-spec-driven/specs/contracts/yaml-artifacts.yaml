@@ -1678,3 +1678,20 @@ requirements:
             usage and output shape, generated helper scripts with managed-section rules, browser
             trial evidence with the relationship to the required project regression command,
             secret-handling rules, and stale runtime cleanup behavior
+  dev-session-init-skill-command-contract:
+    strength: MUST
+    statement: >-
+      The system MUST provide a standalone strict dev-session initialization skill package whose
+      SKILL.md declares explicit command mappings for the bundled init and dev-session-plan commands
+      and instructs agents to refine existing dev-session.yaml content in place instead of
+      overwriting it.
+    scenarios:
+      init-skill-exposes-bootstrap-and-validation-commands:
+        - GIVEN: the dev-session initialization SKILL.md is reviewed
+        - WHEN: its command mapping and workflow steps are inspected
+        - THEN: >-
+            the skill declares concrete init and dev-session-plan command usage for bootstrapping
+            and validation
+        - AND: >-
+            the guidance tells agents to update an existing declaration in place rather than
+            silently replacing it

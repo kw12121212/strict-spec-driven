@@ -1,0 +1,43 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: dev-session-init-skill
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a dedicated dev-session initialization skill that scaffolds or repairs
+      .strict-spec-driven/dev-session.yaml through the bundled init workflow, fills project-specific
+      session metadata from repository context, and validates the result with dev-session-plan.
+  why:
+    - >-
+      Today init only leaves a placeholder declaration, so authors still have to translate project
+      dev commands, readiness checks, browser targets, and environment-variable names into the
+      schema by hand. A dedicated skill reduces setup friction and gives strict lifecycle workflows
+      a usable starting declaration earlier.
+scope:
+  in:
+    - >-
+      Add a standalone strict dev-session initialization skill package that bootstraps missing
+      dev-session.yaml state through the existing strict init command.
+    - >-
+      Have the skill read project context and any existing dev-session.yaml, then update the
+      declaration in place with inferred session, service, readiness, browser target, and
+      environment-variable metadata.
+    - >-
+      Run dev-session-plan at the end and hand back either the deterministic plan output or blocking
+      diagnostics.
+  out:
+    - Change the dev-session.yaml schema or the lifecycle command semantics.
+    - >-
+      Generate helper scripts automatically; /strict-spec-dev-session-scripts remains a separate
+      explicit step.
+    - Start services, open browsers, or probe undeclared endpoints as part of initialization.
+unchanged_behavior:
+  - strict-spec-driven init remains the scaffold source and stays idempotent/non-clobbering.
+  - >-
+    dev-session-plan remains the deterministic validation command and does not start services or
+    write runtime state.
+  - Existing helper-script generation stays opt-in after the declaration exists.

@@ -22,6 +22,8 @@ When this file exists, the strict lifecycle skills (`strict-spec-apply`, `strict
 
 Run `strict-spec-driven init` in a project to scaffold a starter declaration, or create the file manually. The declaration must conform to the `strict-spec-driven/dev-session/v1` schema.
 
+If you want AI to prepare the declaration from repository context, use `/strict-spec-dev-session-init`. The skill runs `init`, reads project files plus any existing `.strict-spec-driven/dev-session.yaml`, updates the declaration in place, and ends with `dev-session-plan` validation. It does **not** start services or generate helper scripts.
+
 ### Minimal Frontend App Example
 
 ```yaml
@@ -289,6 +291,28 @@ rm -rf .strict-spec-driven/.runtime/dev-session
 ```
 
 This is safe — the next `dev-session-start` will recreate the directory and write fresh state.
+
+---
+
+## Guided Initialization Skill
+
+The `/strict-spec-dev-session-init` skill bootstraps or repairs the declaration before you start using lifecycle commands or helper-script generation.
+
+**Invoke it from Claude Code:**
+
+```
+/strict-spec-dev-session-init
+```
+
+The skill:
+
+1. Runs `strict-spec-driven init` through the bundled strict CLI to ensure the scaffold exists.
+2. Reads repository context (`README.md`, `AGENTS.md`, `package.json`, env examples, and any existing `dev-session.yaml`).
+3. Replaces scaffold placeholder values with project-specific metadata.
+4. Preserves existing declaration content when it is already valid and more specific than repository heuristics.
+5. Runs `dev-session-plan` and stops with deterministic diagnostics if the declaration is still incomplete.
+
+Use this skill when you want AI to draft or repair the YAML declaration itself. Use `/strict-spec-dev-session-scripts` only after the declaration already exists and validates cleanly.
 
 ---
 

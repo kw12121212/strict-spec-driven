@@ -1858,3 +1858,25 @@ requirements:
         - GIVEN: DEV_SESSIONS.md exists with all required documentation sections
         - WHEN: repository automated checks are executed
         - THEN: the dev-session documentation checks pass
+  dev-session-init-skill-bootstrap-and-validation:
+    strength: MUST
+    statement: >-
+      The system MUST provide a dedicated dev-session initialization skill that uses the bundled
+      strict init scaffold to create or repair .strict-spec-driven/dev-session.yaml, updates the
+      declaration from repository context and any existing declaration content, and validates the
+      result with dev-session-plan without starting services.
+    scenarios:
+      skill-bootstraps-or-updates-dev-session-yaml:
+        - GIVEN: >-
+            a strict workflow project may or may not already contain
+            .strict-spec-driven/dev-session.yaml
+        - WHEN: the dev-session initialization skill is invoked
+        - THEN: >-
+            the skill ensures the declaration exists via the bundled scaffold path and updates the
+            declaration in place with project-specific session metadata rather than silently
+            replacing it
+      skill-validates-generated-declaration:
+        - GIVEN: the skill has produced a candidate dev-session declaration
+        - WHEN: it reaches the validation step
+        - THEN: it runs dev-session-plan and reports the resulting plan or deterministic diagnostics
+        - AND: it does not start services, open browsers, or write runtime state

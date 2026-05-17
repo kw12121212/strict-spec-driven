@@ -1,0 +1,29 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: dev-session-init-skill
+open: []
+resolved:
+  - id: existing-file-handling
+    question: >-
+      When .strict-spec-driven/dev-session.yaml already exists, should the initialization skill
+      refine it in place or replace it entirely?
+    context: >-
+      The behavior affects whether the skill is safe to rerun in established repositories with
+      partially curated dev-session metadata.
+    answer: >-
+      Refine it in place. The skill should read the existing declaration and update it in place
+      rather than rebuilding from scratch.
+    status: resolved
+  - id: helper-script-scope
+    question: >-
+      Should the initialization skill also generate scripts/dev-* helper commands after producing
+      dev-session.yaml?
+    context: >-
+      The repository already has a separate strict-spec-dev-session-scripts skill, so bundling both
+      workflows would combine declaration authoring with convenience script generation.
+    answer: >-
+      No. This skill stops after updating and validating dev-session.yaml; helper-script generation
+      remains a separate explicit step.
+    status: resolved

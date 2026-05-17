@@ -166,13 +166,13 @@ The skill pauses only when open questions require user input or when an unrecove
 
 If your project has a local dev server, you can declare it so agents know how to start it, wait for readiness, and open browser smoke targets:
 
-1. Edit `.strict-spec-driven/dev-session.yaml` (scaffolded by `init`) to describe your service command, readiness check, browser targets, and required environment variable names.
+1. Run `/strict-spec-dev-session-init` to scaffold or refine `.strict-spec-driven/dev-session.yaml` from project context, or edit the file manually if you prefer.
 2. Run the dry plan to confirm the declaration:
    ```sh
    node dist/strict-spec-cli.js dev-session-plan
    ```
    The command validates the file and prints the resolved session plan without starting any processes.
-3. Use `/strict-spec-dev-session-scripts` to generate convenient shell scripts (`scripts/dev-start`, `scripts/dev-stop`, etc.) from the declaration.
+3. Use `/strict-spec-dev-session-scripts` to generate convenient shell scripts (`scripts/dev-start`, `scripts/dev-stop`, etc.) from the validated declaration.
 
 Lifecycle skills (`/strict-spec-apply`, `/strict-spec-auto`) automatically check `dev-session.yaml` when it exists. See [DEV_SESSIONS.md](DEV_SESSIONS.md) for the full reference.
 
