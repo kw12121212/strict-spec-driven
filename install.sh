@@ -36,5 +36,5 @@ if $UNINSTALL; then
   npx skills remove -g
 else
   echo "Installing strict skills from: $SCRIPT_DIR"
-  npx skills add "$SCRIPT_DIR" -g
+  npx skills add "$SCRIPT_DIR" -g -y
 fi
