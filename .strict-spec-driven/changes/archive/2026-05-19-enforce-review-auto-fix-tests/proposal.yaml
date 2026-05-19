@@ -1,0 +1,35 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: enforce-review-auto-fix-tests
+  status: proposed
+summary:
+  what:
+    - >-
+      Require strict review workflows to automatically repair safe review findings, rerun validation
+      after review-time code changes, and only recommend or perform archive when the complete
+      regression command passes.
+  why:
+    - >-
+      Review currently reports findings and regression evidence, while auto only says to fix MUST
+      FIX issues when safe. The workflow should make post-review repair and post-repair testing
+      mandatory so review findings cannot be left as advice when the AI can safely fix them.
+scope:
+  in:
+    - >-
+      Update strict review and auto skill guidance for automatic safe review finding repair; require
+      rerunning strict verification and complete project regression after review-time code changes;
+      add automated skill-content checks and tests for the new guidance; update strict specs to
+      describe the observable workflow requirement.
+  out:
+    - >-
+      No deterministic strict-spec-driven review CLI command; no automatic repair outside the
+      current strict change scope; no archive when tests cannot run or fail; no change to unrelated
+      roadmap workflow behavior.
+unchanged_behavior:
+  - >-
+    Review remains evidence-based and author-agnostic; open questions, ambiguous scope, unavailable
+    dependencies, or unsafe fixes still block automation; archive still requires direct code review
+    evidence and passing complete project-level regression evidence.

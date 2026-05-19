@@ -70,7 +70,15 @@ root. If it is missing, stop immediately and tell the user to run
 6. **Check spec alignment** — confirm the implementation and tests match the
    strict YAML delta specs and do not violate `unchanged_behavior`.
 
-7. **Confirm complete regression evidence** — inspect project workflow context,
+7. **Fix safe in-scope findings** — if review finds MUST FIX issues that are
+   safe to repair within the current strict change scope, make those fixes
+   automatically before reporting the review as complete. If any review-time
+   code or workflow artifact changes are made, rerun strict verification and
+   the configured complete project regression command before recommending
+   archive. Unsafe, ambiguous, blocked, or out-of-scope fixes must remain
+   reported as blockers instead of being inferred or silently expanded.
+
+8. **Confirm complete regression evidence** — inspect project workflow context,
    including `.strict-spec-driven/config.yaml` when available, for the complete
    project-level regression test method. Require evidence that the full project
    regression command has passed before recommending archive. If the command
@@ -79,10 +87,11 @@ root. If it is missing, stop immediately and tell the user to run
    give the human actionable setup or waiting guidance instead of inferring a
    clean result.
 
-8. **Report the result** — include review evidence before findings:
+9. **Report the result** — include review evidence before findings:
    - changed implementation and test files read
    - strict artifacts and delta specs read
-   - verification and regression commands executed, with pass/fail status
+   - verification and regression commands executed, including post-fix reruns
+     when review-time changes were made, with pass/fail status
    Then group findings into:
    - MUST FIX
    - SHOULD FIX
@@ -109,6 +118,9 @@ trial evidence was gathered during implementation:
 - Read every changed file before commenting on it
 - Do not call or rely on a `strict-spec-driven review` command
 - Do not recommend archive without explicit direct code review evidence
+- Automatically fix safe in-scope review findings before archive
+  recommendation, and rerun strict verification plus the configured complete
+  regression command after review-time changes
 - Focus on real issues, not style churn already handled elsewhere
 - Review code based on repository evidence, never on authorship
 - Do not recommend archive without passing complete project-level regression

@@ -1,0 +1,35 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - skills/strict-spec-review/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - src/skills/model.ts
+    - src/skills/content.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-review-auto-fixes-and-retests:
+      strength: MUST
+      statement: >-
+        The system MUST require strict review workflow guidance to automatically fix safe in-scope
+        review findings, rerun strict verification and the configured complete project regression
+        after review-time code changes, and block archive recommendation or execution unless that
+        regression evidence passes.
+      scenarios:
+        review-findings-are-fixed-and-retested:
+          - GIVEN: a completed strict change has passed strict verification and enters review
+          - WHEN: the AI review finds issues that are safe to fix within the current change scope
+          - THEN: the review workflow guidance requires the AI to apply those fixes automatically
+          - AND: >-
+              the workflow requires strict verification and the configured complete project
+              regression command to be rerun after the review-time code changes
+          - AND: >-
+              archive recommendation or execution remains blocked unless the rerun regression
+              evidence passes
+  MODIFIED: {}
+  REMOVED: {}

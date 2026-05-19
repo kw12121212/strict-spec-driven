@@ -71,6 +71,7 @@ function validateSkillContentAgainstExpectation(
 ): void {
   const expectation = expectationMap[skillName];
   if (!expectation) return;
+  const normalizedContent = content.replace(/\s+/g, " ");
 
   if (content.includes(GENERIC_COMMAND_PLACEHOLDER)) {
     diagnostics.push(
@@ -98,7 +99,7 @@ function validateSkillContentAgainstExpectation(
   }
 
   for (const snippet of expectation.requiredSnippets) {
-    if (!content.includes(snippet)) {
+    if (!normalizedContent.includes(snippet.replace(/\s+/g, " "))) {
       diagnostics.push(
         makeDiagnostic(
           `${diagnosticPrefix}.required_snippet.missing`,
@@ -111,7 +112,7 @@ function validateSkillContentAgainstExpectation(
   }
 
   for (const snippet of expectation.forbiddenSnippets ?? []) {
-    if (content.includes(snippet)) {
+    if (normalizedContent.includes(snippet.replace(/\s+/g, " "))) {
       diagnostics.push(
         makeDiagnostic(
           `${diagnosticPrefix}.forbidden_snippet.present`,

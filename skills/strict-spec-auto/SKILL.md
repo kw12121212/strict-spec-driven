@@ -141,7 +141,11 @@ root. If it is missing, stop immediately and tell the user to run
    `unchanged_behavior`, test coverage and assertions, error handling, edge
    cases, security, performance, maintainability, user-visible behavior,
    documentation impact, generated artifacts, and packaging impact. Fix MUST
-   FIX issues automatically when safe.
+   FIX issues automatically when safe and in scope. If review-time code or
+   workflow artifact changes are made, rerun strict verification and the
+   configured complete project regression command before continuing. Unsafe,
+   ambiguous, blocked, or out-of-scope fixes must stop archive rather than being
+   inferred or silently expanded.
 
 10. **Re-check complete regression evidence** — inspect project workflow
    context, including `.strict-spec-driven/config.yaml` when available, for the
@@ -196,6 +200,9 @@ implementation or review requires starting local development services:
 - Do not call or rely on a `strict-spec-driven review` command
 - Do not run archive without direct code review evidence from changed
   implementation and test files
+- Automatically fix safe in-scope review findings before archive, and rerun
+  strict verification plus the configured complete regression command after
+  review-time changes
 - Do not run archive without passing complete project-level regression test
   evidence or explicit setup guidance explaining why that evidence is blocked
 - Do not commit or push automatically

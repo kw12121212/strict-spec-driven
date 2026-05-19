@@ -177,18 +177,22 @@ context.assert(
   normalizedReviewSkillContent.includes("complete project-level regression test evidence")
     && normalizedReviewSkillContent.includes("actionable setup or waiting guidance")
     && normalizedReviewSkillContent.includes("direct code review evidence")
+    && normalizedReviewSkillContent.includes("Automatically fix safe in-scope review findings")
+    && normalizedReviewSkillContent.includes("rerun strict verification plus the configured complete regression command after review-time changes")
     && normalizedReviewSkillContent.includes("Do not call or rely on a `strict-spec-driven review` command")
     && !reviewSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>"),
-  "strict-spec-review requires direct code review and regression evidence before archive recommendation",
+  "strict-spec-review requires direct code review, automatic safe fixes, and regression evidence before archive recommendation",
 );
   context.assert(
     normalizedAutoSkillContent.includes("complete project-level regression test evidence")
       && normalizedAutoSkillContent.includes("stop before archive")
       && normalizedAutoSkillContent.includes("actionable setup or waiting guidance")
       && normalizedAutoSkillContent.includes("direct code review evidence")
+      && normalizedAutoSkillContent.includes("Automatically fix safe in-scope review findings")
+      && normalizedAutoSkillContent.includes("rerun strict verification plus the configured complete regression command after review-time changes")
       && normalizedAutoSkillContent.includes("correctness, spec alignment")
       && !autoSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>"),
-    "strict-spec-auto blocks archive without complete regression and direct code review evidence",
+    "strict-spec-auto blocks archive without automatic safe fixes, complete regression, and direct code review evidence",
   );
   context.assert(
     normalizedRoadmapPlanSkillContent.includes("Before any other step, confirm `.strict-spec-driven/` exists")
@@ -568,7 +572,7 @@ try {
 
 const invalidSemanticSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-core-skill-semantics-invalid-"));
 try {
-  const semanticSkillNames = ["strict-spec-propose", "strict-spec-archive", "strict-spec-auto"];
+  const semanticSkillNames = ["strict-spec-propose", "strict-spec-archive", "strict-spec-review", "strict-spec-auto"];
   mkdirSync(path.join(invalidSemanticSkillRoot, "dist", "scripts"), { recursive: true });
   mkdirSync(path.join(invalidSemanticSkillRoot, "dist", "templates"), { recursive: true });
 
@@ -652,6 +656,50 @@ try {
       "## Rules",
       "",
       "- Use the strict archive command.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(invalidSemanticSkillRoot, "skills", "strict-spec-review", "SKILL.md"),
+    [
+      "---",
+      "name: strict-spec-review",
+      "description: Review the code quality of a completed strict YAML change.",
+      "metadata:",
+      "  skill_id: strict_spec_review",
+      "  author: strict-spec-driven",
+      "  type: agent_skill",
+      "  version: 1.0.0",
+      "---",
+      "",
+      "You are reviewing the code quality of a completed strict YAML change.",
+      "",
+      "## This Skill's Commands",
+      "",
+      "```yaml",
+      "modify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js modify [change-name|archive-dir]",
+      "verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>",
+      "```",
+      "",
+      "## Prerequisites",
+      "",
+      "The `.strict-spec-driven/` directory must exist at the project root.",
+      "",
+      "## Steps",
+      "",
+      "Before any other step, confirm `.strict-spec-driven/` exists. If it is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "1. Read every changed file and require direct code review evidence.",
+      "2. Confirm dev-session-trial guidance when browser evidence exists.",
+      "3. Do not call or rely on a `strict-spec-driven review` command.",
+      "",
+      "## Dev Session Guidance",
+      "",
+      "Use dev-session-trial to evaluate browser trial evidence.",
+      "",
+      "## Rules",
+      "",
+      "- Require direct code review evidence.",
     ].join("\n") + "\n",
     "utf8",
   );
@@ -742,10 +790,46 @@ try {
     invalidSemanticResult.diagnostics.some(
       (diagnostic) =>
         diagnostic.code === "skill.core.required_snippet.missing"
+        && diagnostic.path === "skills/strict-spec-review/SKILL.md"
+        && diagnostic.expected === "Automatically fix safe in-scope review findings",
+    ),
+    "review skill missing review auto-fix guidance reports required snippet diagnostic",
+  );
+  context.assert(
+    invalidSemanticResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.required_snippet.missing"
+        && diagnostic.path === "skills/strict-spec-review/SKILL.md"
+        && diagnostic.expected === "rerun strict verification plus the configured complete regression command after review-time changes",
+    ),
+    "review skill missing post-review-fix regression guidance reports required snippet diagnostic",
+  );
+  context.assert(
+    invalidSemanticResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.required_snippet.missing"
         && diagnostic.path === "skills/strict-spec-auto/SKILL.md"
         && diagnostic.expected === "/strict-spec-ship <change-name>",
     ),
     "auto skill missing optional ship handoff reports required snippet diagnostic",
+  );
+  context.assert(
+    invalidSemanticResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.required_snippet.missing"
+        && diagnostic.path === "skills/strict-spec-auto/SKILL.md"
+        && diagnostic.expected === "Automatically fix safe in-scope review findings",
+    ),
+    "auto skill missing review auto-fix guidance reports required snippet diagnostic",
+  );
+  context.assert(
+    invalidSemanticResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.required_snippet.missing"
+        && diagnostic.path === "skills/strict-spec-auto/SKILL.md"
+        && diagnostic.expected === "rerun strict verification plus the configured complete regression command after review-time changes",
+    ),
+    "auto skill missing post-review-fix regression guidance reports required snippet diagnostic",
   );
 } finally {
   rmSync(invalidSemanticSkillRoot, { recursive: true, force: true });

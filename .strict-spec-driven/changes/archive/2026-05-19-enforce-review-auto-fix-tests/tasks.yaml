@@ -1,0 +1,56 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: enforce-review-auto-fix-tests
+sections:
+  Implementation:
+    update-review-skill:
+      text: >-
+        Update strict-spec-review guidance so safe in-scope review findings are automatically fixed,
+        review-time code changes are retested, and archive recommendation remains blocked until
+        configured regression evidence passes.
+      status: complete
+    update-auto-skill:
+      text: >-
+        Update strict-spec-auto guidance so the review stage runs the same automatic fix and retest
+        loop before archive.
+      status: complete
+    update-skill-validation:
+      text: >-
+        Add or update automated skill-content validation so core lifecycle skill prompts missing
+        review auto-fix and post-fix testing guidance fail deterministically.
+      status: complete
+    update-strict-spec:
+      text: >-
+        Update the strict YAML main spec with the observable review remediation and retest
+        requirement.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-change:
+      text: Run strict change verification after implementation tasks are complete.
+      status: complete
+      command: >-
+        node /home/code/.agents/skills/strict-spec-brainstorm/scripts/strict-spec-driven.js verify
+        enforce-review-auto-fix-tests
+    verify-spec-mappings:
+      text: Verify strict spec mappings remain valid after mapping and skill-content changes.
+      status: complete
+      command: >-
+        node /home/code/.agents/skills/strict-spec-brainstorm/scripts/strict-spec-driven.js
+        verify-spec-mappings
+    review-scope:
+      text: Review changed files against proposal scope and unchanged behavior before archive handoff.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

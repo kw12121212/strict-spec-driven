@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: enforce-review-auto-fix-tests
+approach:
+  - >-
+    Treat review remediation as mandatory workflow behavior in the strict skill prompts and as a
+    validated content contract for core lifecycle skills. The review skill should attempt safe
+    in-scope fixes after findings, rerun strict verification and the configured complete regression
+    command whenever those fixes change code, and block archive recommendation on failed or
+    unavailable tests. The auto skill should mirror the same review-stage loop before archive.
+    Automated checks should reject skill content that omits this behavior.
+decisions:
+  review-remediation-required:
+    decision: >-
+      Review findings that are safe and in scope must be fixed automatically before archive
+      recommendation or execution.
+    rationale: >-
+      The strict workflow already requires complete regression evidence before archive, but it does
+      not explicitly require the AI to repair review results or retest after review-time edits.
+      Making this a skill contract closes that gap without adding a misleading deterministic review
+      CLI command.
+alternatives: []
+risks: []

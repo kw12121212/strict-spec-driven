@@ -54,6 +54,9 @@ export type SkillContentExpectation = {
 const ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 const ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
 const ROADMAP_ACTIVE_CONFLICT_SNIPPET = "active strict change conflicts";
+const REVIEW_AUTO_FIX_SNIPPET = "Automatically fix safe in-scope review findings";
+const REVIEW_POST_FIX_REGRESSION_SNIPPET =
+  "rerun strict verification plus the configured complete regression command after review-time changes";
 
 export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
   "strict-spec-init": {
@@ -104,6 +107,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       ".strict-spec-driven/",
       "dev-session-trial",
       "direct code review evidence",
+      REVIEW_AUTO_FIX_SNIPPET,
+      REVIEW_POST_FIX_REGRESSION_SNIPPET,
       "Do not call or rely on a `strict-spec-driven review` command",
     ],
     forbiddenSnippets: [
@@ -141,6 +146,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "/strict-spec-ship <change-name>",
       "dev-session-plan",
       "direct code review evidence",
+      REVIEW_AUTO_FIX_SNIPPET,
+      REVIEW_POST_FIX_REGRESSION_SNIPPET,
       "Do not call or rely on a `strict-spec-driven review` command",
     ],
     forbiddenSnippets: [

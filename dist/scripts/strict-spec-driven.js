@@ -17029,6 +17029,8 @@ var STRICT_WORKFLOW_NO_INIT_SNIPPET = "Do not run `init` from this skill.";
 var ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 var ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
 var ROADMAP_ACTIVE_CONFLICT_SNIPPET = "active strict change conflicts";
+var REVIEW_AUTO_FIX_SNIPPET = "Automatically fix safe in-scope review findings";
+var REVIEW_POST_FIX_REGRESSION_SNIPPET = "rerun strict verification plus the configured complete regression command after review-time changes";
 var CORE_STRICT_SKILL_EXPECTATIONS = {
   "strict-spec-init": {
     requiredCommands: {
@@ -17078,6 +17080,8 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       ".strict-spec-driven/",
       "dev-session-trial",
       "direct code review evidence",
+      REVIEW_AUTO_FIX_SNIPPET,
+      REVIEW_POST_FIX_REGRESSION_SNIPPET,
       "Do not call or rely on a `strict-spec-driven review` command"
     ],
     forbiddenSnippets: [
@@ -17115,6 +17119,8 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       "/strict-spec-ship <change-name>",
       "dev-session-plan",
       "direct code review evidence",
+      REVIEW_AUTO_FIX_SNIPPET,
+      REVIEW_POST_FIX_REGRESSION_SNIPPET,
       "Do not call or rely on a `strict-spec-driven review` command"
     ],
     forbiddenSnippets: [
@@ -17288,6 +17294,7 @@ function validateSkillContentAgainstExpectation(skillName, content, commands, sk
   const expectation = expectationMap[skillName];
   if (!expectation)
     return;
+  const normalizedContent = content.replace(/\s+/g, " ");
   if (content.includes(GENERIC_COMMAND_PLACEHOLDER)) {
     diagnostics.push(makeDiagnostic3(`${diagnosticPrefix}.placeholder_command`, skillPath, `${label} must replace the generic placeholder command mapping with explicit commands`, "explicit command mapping", GENERIC_COMMAND_PLACEHOLDER));
   }
@@ -17297,12 +17304,12 @@ function validateSkillContentAgainstExpectation(skillName, content, commands, sk
     }
   }
   for (const snippet2 of expectation.requiredSnippets) {
-    if (!content.includes(snippet2)) {
+    if (!normalizedContent.includes(snippet2.replace(/\s+/g, " "))) {
       diagnostics.push(makeDiagnostic3(`${diagnosticPrefix}.required_snippet.missing`, skillPath, `${label} must reference '${snippet2}'`, snippet2));
     }
   }
   for (const snippet2 of expectation.forbiddenSnippets ?? []) {
-    if (content.includes(snippet2)) {
+    if (normalizedContent.includes(snippet2.replace(/\s+/g, " "))) {
       diagnostics.push(makeDiagnostic3(`${diagnosticPrefix}.forbidden_snippet.present`, skillPath, `${label} contains misleading prompt text '${snippet2}'`, "prompt text aligned with implemented CLI behavior", snippet2));
     }
   }
