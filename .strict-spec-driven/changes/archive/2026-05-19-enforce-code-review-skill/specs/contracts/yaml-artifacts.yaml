@@ -1,0 +1,44 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-spec-review/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - src/skills/model.ts
+    - README.md
+    - README.zh.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    strict-review-skills-require-code-review-evidence:
+      strength: MUST
+      statement: >-
+        The strict review and automatic workflow skills MUST require direct code review evidence
+        before archive recommendation or execution, including changed implementation and test file
+        review plus a concrete review checklist.
+      scenarios:
+        review-skill-cannot-delegate-code-review-to-cli:
+          - GIVEN: a strict change is being reviewed by strict-spec-review or strict-spec-auto
+          - WHEN: the review step reaches archive recommendation or execution
+          - THEN: the skill has read changed implementation and test files directly
+          - AND: the skill has not called a strict-spec-driven review subcommand as code review evidence
+        review-report-includes-evidence-and-categories:
+          - GIVEN: a strict review skill reports review results
+          - WHEN: the final review report is inspected
+          - THEN: the report identifies reviewed files and executed validation or regression commands
+          - AND: findings are evaluated across correctness, spec alignment, tests, error handling, security, performance, maintainability, boundary conditions, user-visible behavior, and documentation impact
+        auto-review-blocks-archive-without-code-review:
+          - GIVEN: strict-spec-auto is preparing to archive a completed change
+          - WHEN: direct code review evidence has not been gathered
+          - THEN: the skill blocks archive instead of inferring review success from deterministic validation
+  MODIFIED: {}
+  REMOVED:
+    review-skills-require-project-regression-evidence:
+      reason: >-
+        The regression-evidence requirement is replaced by a broader review-skill requirement that
+        preserves complete project regression evidence while also requiring direct code review
+        evidence and review categories.

@@ -117,8 +117,8 @@ function suggestionsForDiagnostics(rootDir: string, changeName: string, diagnost
 
   if (diagnostics.length === 0) {
     suggestions.push({
-      command: `strict-spec-driven review ${changeName}`,
-      reason: "Run code-quality review after the change verifies cleanly.",
+      command: `/strict-spec-review ${changeName}`,
+      reason: "Perform skill-driven code review after the change verifies cleanly.",
     });
   }
 

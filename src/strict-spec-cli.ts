@@ -5,7 +5,7 @@ import { exitCliEntrypoint, runCliEntrypoint, type CliCommandHandler } from "./c
 import { createCliCommandTable } from "./cli/registry.js";
 import { runInit, runPropose } from "./cli/cmd-scaffold.js";
 import { runGenerate } from "./cli/cmd-generation.js";
-import { runApply, runVerify, runReview, runArchive, runList, runModify, runCancel } from "./cli/cmd-change.js";
+import { runApply, runVerify, runArchive, runList, runModify, runCancel } from "./cli/cmd-change.js";
 import { runNext, runReady } from "./cli/cmd-workflow.js";
 import { runRoadmapStatus, runRoadmapSync } from "./cli/cmd-roadmap.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
@@ -35,7 +35,6 @@ import {
 import { applyTask, readChangeTasks, writeChangeTasks } from "./apply.js";
 import { verifyChange } from "./verify.js";
 import { checkProposalReadiness, getWorkflowState } from "./workflow-state.js";
-import { reviewChange } from "./review.js";
 import { archiveChange } from "./archive.js";
 import { getRoadmapStatus, syncRoadmap } from "./roadmap.js";
 import { migrateLegacyWorkflow } from "./migrate.js";
@@ -58,7 +57,6 @@ export {
 export { applyTask, readChangeTasks, writeChangeTasks };
 export { verifyChange };
 export { checkProposalReadiness, getWorkflowState };
-export { reviewChange };
 export { archiveChange };
 export { getRoadmapStatus, syncRoadmap };
 export { migrateLegacyWorkflow };
@@ -72,7 +70,6 @@ export const commands = createCliCommandTable({
   verify: (argv) => runVerify(argv),
   ready: (argv) => runReady(argv),
   next: (argv) => runNext(argv),
-  review: (argv) => runReview(argv),
   "verify-spec-mappings": (argv) => runVerifySpecMappings(argv),
   "validate-skills": (argv) => runValidateSkills(argv),
   "schema-list": (argv) => runSchemaList(argv),

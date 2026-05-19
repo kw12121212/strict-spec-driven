@@ -1606,34 +1606,6 @@ requirements:
         - AND: >-
             the CLI helper is treated as a mechanics tool rather than the source of the judgment
             decision
-  review-skills-require-project-regression-evidence:
-    strength: MUST
-    statement: >-
-      The strict review and automatic workflow skills MUST require passing complete project-level
-      regression test evidence before recommending or performing strict change archive, and MUST
-      discover the regression test method from strict workflow project context when available, and
-      MUST stop with actionable human setup guidance when the regression suite cannot be run.
-    scenarios:
-      review-blocks-archive-without-regression-evidence:
-        - GIVEN: a strict change is being reviewed by strict-spec-review or strict-spec-auto
-        - WHEN: >-
-            complete project-level regression tests have not passed or cannot be run because test
-            conditions are unavailable
-        - THEN: >-
-            the skill guidance requires the AI to treat archive recommendation or execution as
-            blocked
-        - AND: >-
-            the skill guidance requires actionable human setup or waiting guidance before review can
-            proceed
-      workflow-config-documents-regression-test-method:
-        - GIVEN: a strict workflow project context is available
-        - WHEN: the regression test method is inspected before review or archive
-        - THEN: >-
-            the workflow config explains that the complete project regression command is `bun run
-            build && bun test/run.ts`
-        - AND: >-
-            the workflow config explains that passing this command is required review evidence
-            before archive recommendation or execution
   yaml-dev-session-declaration-contract:
     strength: MUST
     statement: >-
@@ -1712,3 +1684,29 @@ requirements:
             workflow work
         - AND: the missing-directory path stops with guidance to run /strict-spec-init
         - AND: the prompt does not tell the agent to run the bundled init command as a fallback
+  strict-review-skills-require-code-review-evidence:
+    strength: MUST
+    statement: >-
+      The strict review and automatic workflow skills MUST require direct code review evidence
+      before archive recommendation or execution, including changed implementation and test file
+      review plus a concrete review checklist.
+    scenarios:
+      review-skill-cannot-delegate-code-review-to-cli:
+        - GIVEN: a strict change is being reviewed by strict-spec-review or strict-spec-auto
+        - WHEN: the review step reaches archive recommendation or execution
+        - THEN: the skill has read changed implementation and test files directly
+        - AND: the skill has not called a strict-spec-driven review subcommand as code review evidence
+      review-report-includes-evidence-and-categories:
+        - GIVEN: a strict review skill reports review results
+        - WHEN: the final review report is inspected
+        - THEN: the report identifies reviewed files and executed validation or regression commands
+        - AND: >-
+            findings are evaluated across correctness, spec alignment, tests, error handling,
+            security, performance, maintainability, boundary conditions, user-visible behavior, and
+            documentation impact
+      auto-review-blocks-archive-without-code-review:
+        - GIVEN: strict-spec-auto is preparing to archive a completed change
+        - WHEN: direct code review evidence has not been gathered
+        - THEN: >-
+            the skill blocks archive instead of inferring review success from deterministic
+            validation

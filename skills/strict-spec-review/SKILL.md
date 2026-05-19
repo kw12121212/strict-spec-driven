@@ -1,6 +1,6 @@
 ---
 name: strict-spec-review
-description: Review the code quality of a completed strict YAML change. Combine the strict review command with an author-agnostic read of the changed implementation and test files.
+description: Review the code quality of a completed strict YAML change through direct repository evidence, changed-file reading, and complete regression evidence.
 metadata:
   skill_id: strict_spec_review
   author: strict-spec-driven
@@ -18,7 +18,6 @@ before running anything. Do not guess.
 ```yaml
 modify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js modify [change-name|archive-dir]
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
-review: node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>
 ```
 
 ## Prerequisites
@@ -48,16 +47,25 @@ root. If it is missing, stop immediately and tell the user to run
    - `questions.yaml`
    - every strict YAML delta spec in `changes/<name>/specs/`
    - the implementation and test files mapped to those specs
+   - `git status --short` and the relevant diff for changed tracked files
+   - any newly created untracked source, test, documentation, or strict workflow
+     files that belong to the change
 
-4. **Run the strict review command** — run:
-   ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>
-   ```
-   Treat its findings as one input, not the whole review.
+4. **Read every changed file yourself** — perform an author-agnostic code
+   review from repository evidence. Do not call a `strict-spec-driven review`
+   command and do not treat any deterministic script as a substitute for code
+   review.
 
-5. **Read every changed file yourself** — perform an author-agnostic review of
-   readability, security, error handling, performance, best practices, and test
-   quality.
+5. **Apply the review checklist** — evaluate findings across:
+   - correctness and behavioral regressions
+   - strict spec alignment and `unchanged_behavior`
+   - test coverage, test independence, and test assertions
+   - error handling and edge cases
+   - security and unsafe input handling
+   - performance or scalability risks
+   - maintainability, readability, and unnecessary abstraction
+   - user-visible CLI or documentation behavior
+   - generated artifacts, build output, and packaging impact
 
 6. **Check spec alignment** — confirm the implementation and tests match the
    strict YAML delta specs and do not violate `unchanged_behavior`.
@@ -71,10 +79,15 @@ root. If it is missing, stop immediately and tell the user to run
    give the human actionable setup or waiting guidance instead of inferring a
    clean result.
 
-8. **Report the result** — group findings into:
+8. **Report the result** — include review evidence before findings:
+   - changed implementation and test files read
+   - strict artifacts and delta specs read
+   - verification and regression commands executed, with pass/fail status
+   Then group findings into:
    - MUST FIX
    - SHOULD FIX
    - NITS
+   Findings should include file and line references when available.
    Recommend `strict-spec-archive` only when review is clean enough to archive
    and complete project-level regression test evidence has passed.
 
@@ -94,6 +107,8 @@ trial evidence was gathered during implementation:
 ## Rules
 
 - Read every changed file before commenting on it
+- Do not call or rely on a `strict-spec-driven review` command
+- Do not recommend archive without explicit direct code review evidence
 - Focus on real issues, not style churn already handled elsewhere
 - Review code based on repository evidence, never on authorship
 - Do not recommend archive without passing complete project-level regression

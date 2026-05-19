@@ -8,7 +8,6 @@ export const COMMAND_REGISTRATION_ORDER = [
   "verify",
   "ready",
   "next",
-  "review",
   "verify-spec-mappings",
   "validate-skills",
   "schema-list",

@@ -58,7 +58,6 @@ mapping:
     - src/yaml.ts
     - src/apply.ts
     - src/verify.ts
-    - src/review.ts
     - src/skills.ts
     - src/skills/model.ts
     - src/skills/frontmatter.ts
@@ -833,59 +832,6 @@ requirements:
         - THEN: the command exits non-zero
         - AND: the archived directory remains unchanged
         - AND: the error explains that cancel is limited to active changes
-  cli-review-reads-active-change-artifacts:
-    strength: MUST
-    statement: >-
-      The system MUST provide a `review` subcommand that reads all strict YAML change artifacts
-      (proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and any delta spec files under
-      `specs/`) from a named active change directory under `.strict-spec-driven/changes/<name>/`.
-    scenarios:
-      review-locates-artifacts-for-an-existing-change:
-        - GIVEN: '`.strict-spec-driven/changes/<name>/` exists with planning artifacts'
-        - WHEN: '`strict-spec-driven review <name>` is executed'
-        - THEN: the command reads and parses each planning artifact from the change directory
-      review-rejects-missing-change:
-        - GIVEN: '`.strict-spec-driven/changes/<name>/` does not exist'
-        - WHEN: '`strict-spec-driven review <name>` is executed'
-        - THEN: the command exits non-zero
-        - AND: an error message is written to stderr indicating the change was not found
-  cli-review-reports-code-quality-findings:
-    strength: MUST
-    statement: >-
-      The system MUST report advisory code-quality findings across `requirement-quality`,
-      `mapping-coverage`, `delta-coherence`, and `proposal-clarity` categories without duplicating
-      or replacing verify lifecycle gates.
-    scenarios:
-      review-findings-are-advisory-only:
-        - GIVEN: a strict change has verify diagnostics
-        - WHEN: '`strict-spec-driven review <name>` is executed'
-        - THEN: review finding output is separate from verify diagnostic output
-        - AND: verify lifecycle gates are not re-evaluated as review findings
-      review-reports-findings-in-structured-categories:
-        - GIVEN: a strict change has reviewable artifacts
-        - WHEN: '`strict-spec-driven review <name>` is executed'
-        - THEN: each finding includes a fixed category string, message, and optional path
-  cli-review-emits-deterministic-json-output:
-    strength: MUST
-    statement: >-
-      The system MUST emit a deterministic JSON object to stdout containing `valid`, `changeName`,
-      `findings`, and `findingCount`.
-    scenarios:
-      review-output-is-parseable-json:
-        - GIVEN: '`strict-spec-driven review <name>` completes'
-        - WHEN: command stdout is parsed as JSON
-        - THEN: the JSON includes `valid` as a boolean
-        - AND: the JSON includes `changeName` as a string
-        - AND: the JSON includes `findings` as an array
-        - AND: the JSON includes `findingCount` as a number
-      review-exits-zero-when-findings-are-advisory:
-        - GIVEN: a strict change has code-quality findings but no input errors
-        - WHEN: '`strict-spec-driven review <name>` is executed'
-        - THEN: the command exits with exit code zero
-      review-exits-non-zero-on-input-error:
-        - GIVEN: the named change directory does not exist or an artifact is unparseable
-        - WHEN: '`strict-spec-driven review <name>` is executed'
-        - THEN: the command exits with a non-zero exit code
   cli-skill-packaging-validation-smoke-coverage:
     strength: MUST
     statement: >-
@@ -1880,3 +1826,18 @@ requirements:
         - WHEN: it reaches the validation step
         - THEN: it runs dev-session-plan and reports the resulting plan or deterministic diagnostics
         - AND: it does not start services, open browsers, or write runtime state
+  cli-review-command-is-removed:
+    strength: MUST
+    statement: >-
+      The system MUST remove the deterministic review subcommand from the strict CLI lifecycle so
+      review is not represented as a script-completed code audit.
+    scenarios:
+      review-command-is-not-registered:
+        - GIVEN: the strict CLI command registry is inspected
+        - WHEN: available lifecycle commands are enumerated
+        - THEN: review is not registered as a CLI subcommand
+      review-command-is-not-suggested-after-verify:
+        - GIVEN: a strict change verifies without diagnostics
+        - WHEN: workflow-state next-step suggestions are produced
+        - THEN: the suggestions do not include strict-spec-driven review
+        - AND: any review handoff is represented as skill guidance rather than a CLI command

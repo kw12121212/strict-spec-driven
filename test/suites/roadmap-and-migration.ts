@@ -3516,7 +3516,6 @@ function runCopiedWorkspaceLifecycleScenario(): {
   verifyBeforeApplyStatus: number;
   verifyBeforeApplyStdout: string;
   listBeforeArchiveStdout: string;
-  reviewStdout: string;
   archiveStatus: number;
   archiveStdout: string;
   listAfterArchiveStdout: string;
@@ -3588,21 +3587,6 @@ function runCopiedWorkspaceLifecycleScenario(): {
       "copied workspace list shows add-due-dates as active before archive",
     );
 
-    const reviewResult = projectWorkspaceCli(workspaceRoot, ["review", "add-due-dates"]);
-    const reviewStdout = reviewResult.stdout.trim();
-    context.assert(
-      reviewResult.status === 0,
-      "copied workspace review exits zero for completable change",
-      `stdout: ${reviewStdout} stderr: ${reviewResult.stderr.trim()}`,
-    );
-    const reviewJson = JSON.parse(reviewStdout);
-    context.assert(
-      reviewJson.changeName === "add-due-dates"
-        && typeof reviewJson.findingCount === "number"
-        && Array.isArray(reviewJson.findings),
-      "copied workspace review reports structured findings for migrated change",
-    );
-
     const archiveResult = projectWorkspaceCli(workspaceRoot, ["archive", "add-due-dates"]);
     const archiveStdout = archiveResult.stdout.trim();
     context.assert(
@@ -3639,7 +3623,6 @@ function runCopiedWorkspaceLifecycleScenario(): {
       verifyBeforeApplyStatus: verifyBeforeApply.status,
       verifyBeforeApplyStdout: verifyBeforeApplyStdout,
       listBeforeArchiveStdout: listBeforeArchiveStdout,
-      reviewStdout: reviewStdout,
       archiveStatus: archiveResult.status,
       archiveStdout: archiveStdout,
       listAfterArchiveStdout: listAfterArchiveStdout,
@@ -3662,10 +3645,6 @@ context.assert(
 context.assert(
   lifecycleFirstRun.listBeforeArchiveStdout === lifecycleSecondRun.listBeforeArchiveStdout,
   "copied workspace list-before-archive output stays stable across repeated lifecycle runs",
-);
-context.assert(
-  lifecycleFirstRun.reviewStdout === lifecycleSecondRun.reviewStdout,
-  "copied workspace review output stays stable across repeated lifecycle runs",
 );
 context.assert(
   lifecycleFirstRun.archiveStdout === lifecycleSecondRun.archiveStdout,

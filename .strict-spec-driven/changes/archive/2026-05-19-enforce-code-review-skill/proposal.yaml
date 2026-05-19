@@ -1,0 +1,38 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: enforce-code-review-skill
+  status: proposed
+summary:
+  what:
+    - Remove the deterministic CLI review subcommand from the strict workflow lifecycle.
+    - >-
+      Make strict review a skill-driven code review that requires reading implementation and test
+      changes.
+  why:
+    - >-
+      The current review command emits artifact-quality hints but can be mistaken for completed code
+      review by AI agents.
+    - >-
+      The workflow needs an explicit boundary between deterministic validation and human or AI
+      judgment over code quality.
+scope:
+  in:
+    - >-
+      Remove the review CLI command, reviewChange export, review command suggestions, and related
+      CLI documentation and tests.
+    - >-
+      Update strict review and auto skills to require direct code review evidence and a concrete
+      review checklist before archive recommendation or execution.
+    - Update strict specs so review is no longer a deterministic CLI lifecycle command.
+  out:
+    - Do not add a replacement artifact-audit command or compatibility alias.
+    - Do not change verify or archive correctness gates beyond removing review command references.
+unchanged_behavior:
+  - Verify remains the deterministic schema, task, question, and delta-spec gate.
+  - Archive continues to require a verified change state before merging delta specs.
+  - >-
+    Complete project-level regression evidence remains required before archive recommendation or
+    execution.

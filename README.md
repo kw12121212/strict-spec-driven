@@ -4,7 +4,7 @@ English | [中文](README.zh.md)
 
 **Documentation:** [Quick Start](QUICKSTART.md) · [Roadmap Quick Start](ROADMAP_QUICKSTART.md) · [Roadmap Guide](ROADMAP_GUIDE.md) · [Dev Sessions](DEV_SESSIONS.md) · [RTK](RTK.md)
 
-`strict-spec-driven` is a YAML-first spec-driven development workflow. It provides the spec-driven lifecycle (propose → apply → verify → review → archive) with Agent Skills integration, converting all workflow artifacts — specs, changes, roadmap, tasks, questions — into strict YAML schemas enforced by deterministic scripts.
+`strict-spec-driven` is a YAML-first spec-driven development workflow. It provides the spec-driven lifecycle (propose → apply → verify → skill-driven code review → archive) with Agent Skills integration, converting workflow artifacts — specs, changes, roadmap, tasks, questions — into strict YAML schemas enforced by deterministic scripts.
 
 `SKILL.md` files remain Markdown because that is the Agent Skills packaging format requirement. What changes is the artifact format those skills generate and consume.
 
@@ -40,7 +40,6 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 | `propose <name>` | Create a new strict change scaffold |
 | `apply <name>` | Complete the next pending task in a change |
 | `verify <name>` | Validate a change's artifacts and task completion |
-| `review <name>` | Advisory code-quality review of a change |
 | `archive <name>` | Merge delta specs and move change to archive |
 | `ship <name>` | Read archived change summary for git commit handoff |
 | `migrate` | Convert `.spec-driven/` bootstrap state to `.strict-spec-driven/` |
@@ -69,7 +68,7 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-spec-propose` | Propose a new change |
 | `/strict-spec-apply` | Implement tasks in a change |
 | `/strict-spec-verify` | Verify a change is complete |
-| `/strict-spec-review` | Code-quality review of a change |
+| `/strict-spec-review` | Evidence-based code-quality review of a change |
 | `/strict-spec-archive` | Archive a completed change |
 | `/strict-spec-auto` | End-to-end automated change lifecycle |
 | `/strict-spec-ship` | Ship an archived change via git commit |

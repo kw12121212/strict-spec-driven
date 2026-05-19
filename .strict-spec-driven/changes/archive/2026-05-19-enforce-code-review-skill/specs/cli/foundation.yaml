@@ -1,0 +1,46 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/registry.ts
+    - src/cli/cmd-change.ts
+    - src/strict-spec-cli.ts
+    - src/workflow-state.ts
+    - README.md
+    - README.zh.md
+  tests:
+    - test/suites/change-lifecycle.ts
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    cli-review-command-is-removed:
+      strength: MUST
+      statement: >-
+        The system MUST remove the deterministic review subcommand from the strict CLI lifecycle so
+        review is not represented as a script-completed code audit.
+      scenarios:
+        review-command-is-not-registered:
+          - GIVEN: the strict CLI command registry is inspected
+          - WHEN: available lifecycle commands are enumerated
+          - THEN: review is not registered as a CLI subcommand
+        review-command-is-not-suggested-after-verify:
+          - GIVEN: a strict change verifies without diagnostics
+          - WHEN: workflow-state next-step suggestions are produced
+          - THEN: the suggestions do not include strict-spec-driven review
+          - AND: any review handoff is represented as skill guidance rather than a CLI command
+  MODIFIED: {}
+  REMOVED:
+    cli-review-reads-active-change-artifacts:
+      reason: >-
+        The review subcommand is removed because strict review is no longer represented as a
+        deterministic CLI operation.
+    cli-review-reports-code-quality-findings:
+      reason: >-
+        The advisory artifact finding script is removed so agents cannot treat deterministic
+        findings as completed code review.
+    cli-review-emits-deterministic-json-output:
+      reason: The removed review command no longer has a CLI JSON output contract.

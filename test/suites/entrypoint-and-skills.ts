@@ -28,7 +28,6 @@ const expectedCommandOrder = [
   "verify",
   "ready",
   "next",
-  "review",
   "verify-spec-mappings",
   "validate-skills",
   "schema-list",
@@ -176,14 +175,20 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
 context.assert(
   normalizedReviewSkillContent.includes("complete project-level regression test evidence")
-    && normalizedReviewSkillContent.includes("actionable setup or waiting guidance"),
-  "strict-spec-review requires complete project regression evidence before archive recommendation",
+    && normalizedReviewSkillContent.includes("actionable setup or waiting guidance")
+    && normalizedReviewSkillContent.includes("direct code review evidence")
+    && normalizedReviewSkillContent.includes("Do not call or rely on a `strict-spec-driven review` command")
+    && !reviewSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>"),
+  "strict-spec-review requires direct code review and regression evidence before archive recommendation",
 );
   context.assert(
     normalizedAutoSkillContent.includes("complete project-level regression test evidence")
       && normalizedAutoSkillContent.includes("stop before archive")
-      && normalizedAutoSkillContent.includes("actionable setup or waiting guidance"),
-    "strict-spec-auto blocks archive without complete project regression evidence",
+      && normalizedAutoSkillContent.includes("actionable setup or waiting guidance")
+      && normalizedAutoSkillContent.includes("direct code review evidence")
+      && normalizedAutoSkillContent.includes("correctness, spec alignment")
+      && !autoSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>"),
+    "strict-spec-auto blocks archive without complete regression and direct code review evidence",
   );
   context.assert(
     normalizedRoadmapPlanSkillContent.includes("Before any other step, confirm `.strict-spec-driven/` exists")

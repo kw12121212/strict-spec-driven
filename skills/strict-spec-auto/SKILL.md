@@ -22,7 +22,6 @@ apply: node {{SKILL_DIR}}/scripts/strict-spec-driven.js apply <change-name>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ready: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
 next: node {{SKILL_DIR}}/scripts/strict-spec-driven.js next <change-name>
-review: node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>
 verify-spec-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings
 archive: node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>
 ```
@@ -133,8 +132,16 @@ root. If it is missing, stop immediately and tell the user to run
    ```
    Fix safe blockers automatically, then rerun verification.
 
-9. **Review code quality** — run `review`, then read every changed implementation
-   and test file yourself. Fix MUST FIX issues automatically when safe.
+9. **Review code quality** — read every changed implementation and test file
+   yourself, including mapped files from delta specs, `git status --short`, the
+   relevant tracked diff, and any untracked source, test, documentation, or
+   strict workflow files that belong to the change. Do not call a
+   `strict-spec-driven review` command and do not treat deterministic validation
+   as code review evidence. Evaluate correctness, spec alignment,
+   `unchanged_behavior`, test coverage and assertions, error handling, edge
+   cases, security, performance, maintainability, user-visible behavior,
+   documentation impact, generated artifacts, and packaging impact. Fix MUST
+   FIX issues automatically when safe.
 
 10. **Re-check complete regression evidence** — inspect project workflow
    context, including `.strict-spec-driven/config.yaml` when available, for the
@@ -186,6 +193,9 @@ implementation or review requires starting local development services:
 - Keep mappings in structured YAML fields
 - The final `/strict-spec-ship <change-name>` recommendation is advisory and
   must not be treated as required to complete `strict-spec-auto`
+- Do not call or rely on a `strict-spec-driven review` command
+- Do not run archive without direct code review evidence from changed
+  implementation and test files
 - Do not run archive without passing complete project-level regression test
   evidence or explicit setup guidance explaining why that evidence is blocked
 - Do not commit or push automatically

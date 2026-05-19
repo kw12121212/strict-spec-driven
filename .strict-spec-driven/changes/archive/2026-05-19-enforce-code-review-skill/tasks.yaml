@@ -1,0 +1,63 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: enforce-code-review-skill
+sections:
+  Implementation:
+    remove-review-cli:
+      text: >-
+        Remove the review CLI command, command registration, reviewChange export, and workflow-state
+        review command suggestion.
+      status: complete
+    remove-review-script-tests:
+      text: >-
+        Remove or replace tests that assert strict-spec-driven review command behavior and
+        reviewChange advisory findings.
+      status: complete
+    update-review-skills:
+      text: >-
+        Update strict-spec-review and strict-spec-auto so review requires direct code review
+        evidence instead of a script review command.
+      status: complete
+    update-skill-validation:
+      text: >-
+        Update skill packaging metadata and validation tests so review and auto skills no longer
+        require a review CLI command mapping.
+      status: complete
+    update-docs:
+      text: >-
+        Update user documentation and lifecycle descriptions to remove the review CLI command and
+        describe skill-driven code review.
+      status: complete
+    update-strict-specs:
+      text: Keep delta specs aligned with the implemented CLI and skill-review contract changes.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+    run-skill-validation-coverage:
+      text: >-
+        Confirm automated checks cover the absence of review CLI command mappings in review-related
+        skills.
+      status: complete
+  Verification:
+    verify-scope:
+      text: >-
+        Verify implementation removes the script review workflow surface without changing verify or
+        archive gates.
+      status: complete
+    verify-review-guidance:
+      text: >-
+        Verify strict-spec-review and strict-spec-auto require review evidence, changed-file
+        reading, and code review categories before archive.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

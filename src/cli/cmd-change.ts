@@ -2,7 +2,6 @@ import { existsSync, rmSync, statSync } from "fs";
 import path from "path";
 import { applyTask, readChangeTasks, writeChangeTasks } from "../apply.js";
 import { archiveChange } from "../archive.js";
-import { reviewChange } from "../review.js";
 import { verifyChange } from "../verify.js";
 import { CHANGE_NAME_PATTERN, isHelpRequest } from "./argv.js";
 import {
@@ -82,32 +81,6 @@ export function runVerify(argv: string[]): number {
     const result = verifyChange(process.cwd(), changeName);
     writeJson(result);
     return result.valid ? 0 : 1;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    writeError(message);
-    return 1;
-  }
-}
-
-export function runReview(argv: string[]): number {
-  const [changeName, ...extraArgs] = argv;
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven review <change-name>\n");
-    return 0;
-  }
-  if (!changeName || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-driven review <change-name>\n");
-    return 1;
-  }
-  if (!CHANGE_NAME_PATTERN.test(changeName)) {
-    writeError("change name must be kebab-case (lowercase letters, numbers, and hyphens)");
-    return 1;
-  }
-
-  try {
-    const result = reviewChange(process.cwd(), changeName);
-    writeJson(result);
-    return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     writeError(message);

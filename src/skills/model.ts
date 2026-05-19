@@ -98,10 +98,17 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
     requiredCommands: {
       modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
-      review: `${COMMAND_PREFIX} review <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules", "## Dev Session Guidance"],
-    requiredSnippets: [".strict-spec-driven/", "dev-session-trial"],
+    requiredSnippets: [
+      ".strict-spec-driven/",
+      "dev-session-trial",
+      "direct code review evidence",
+      "Do not call or rely on a `strict-spec-driven review` command",
+    ],
+    forbiddenSnippets: [
+      `${COMMAND_PREFIX} review <change-name>`,
+    ],
   },
   "strict-spec-archive": {
     requiredCommands: {
@@ -125,15 +132,21 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       verify: `${COMMAND_PREFIX} verify <change-name>`,
       ready: READY_COMMAND,
       next: NEXT_COMMAND,
-      review: `${COMMAND_PREFIX} review <change-name>`,
       "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
       archive: `${COMMAND_PREFIX} archive <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules", "## Dev Session Guidance"],
-    requiredSnippets: [".strict-spec-driven/", "/strict-spec-ship <change-name>", "dev-session-plan"],
+    requiredSnippets: [
+      ".strict-spec-driven/",
+      "/strict-spec-ship <change-name>",
+      "dev-session-plan",
+      "direct code review evidence",
+      "Do not call or rely on a `strict-spec-driven review` command",
+    ],
     forbiddenSnippets: [
       "empty-spec-impact decisions block progress",
       "empty-spec-impact decision has been explicitly confirmed",
+      `${COMMAND_PREFIX} review <change-name>`,
     ],
   },
   "strict-spec-modify": {
