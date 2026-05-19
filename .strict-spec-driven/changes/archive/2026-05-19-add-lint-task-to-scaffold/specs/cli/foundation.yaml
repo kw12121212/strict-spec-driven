@@ -1,0 +1,33 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - templates/strict-spec-driven/scaffold/changes/tasks.yaml
+    - src/embedded-templates.ts
+    - package.json
+    - skills/strict-spec-auto/SKILL.md
+    - dist/scripts/strict-spec-driven.js
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-propose-scaffolds-lint-testing-task:
+      strength: MUST
+      statement: >-
+        The system MUST scaffold new strict change tasks.yaml artifacts with an explicit lint
+        Testing task ordered before the unit test task.
+      scenarios:
+        propose-scaffold-includes-lint-before-tests:
+          - GIVEN: a valid kebab-case change name that does not already exist
+          - WHEN: strict-spec-driven propose <name> is executed
+          - THEN: the scaffolded tasks.yaml includes a run-lint task in the Testing section
+          - AND: the run-lint task appears before the run-tests task
+          - AND: >-
+              the existing validation_task and unit_test_task testing gates continue to reference
+              build validation and unit tests
+  MODIFIED: {}
+  REMOVED: {}

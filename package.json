@@ -8,6 +8,7 @@
     "build:bundle": "bun run build",
     "install-strict-skills": "bash install.sh",
     "install-strict-skills:project": "bash install.sh --project",
+    "lint": "tsc --noEmit",
     "test": "bun test/run.ts",
     "uninstall-strict-skills": "bash install.sh --uninstall",
     "uninstall-strict-skills:project": "bash install.sh --uninstall --project",

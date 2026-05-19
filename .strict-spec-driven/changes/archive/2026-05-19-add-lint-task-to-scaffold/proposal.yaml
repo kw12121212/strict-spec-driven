@@ -1,0 +1,30 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-lint-task-to-scaffold
+  status: proposed
+summary:
+  what:
+    - >-
+      Scaffolded strict change task lists include an explicit lint task in the Testing section
+      before full unit tests.
+  why:
+    - >-
+      A lint gate can catch common issues earlier, reducing avoidable full test runs and lowering
+      test pressure.
+scope:
+  in:
+    - >-
+      Update the strict change tasks.yaml scaffold and bundled template output to include a run-lint
+      Testing task.
+    - Cover the scaffolded lint task with existing propose/scaffold regression tests.
+  out:
+    - Add a new top-level task-list section outside the v2 schema.
+    - Require every downstream project to define a lint script at runtime.
+unchanged_behavior:
+  - Task-list v2 remains a keyed map with Implementation, Testing, and Verification sections.
+  - >-
+    Existing validation_task and unit_test_task testing gates continue to reference existing Testing
+    tasks.

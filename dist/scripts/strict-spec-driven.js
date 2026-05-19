@@ -6697,6 +6697,10 @@ sections:
       text: Run build validation.
       status: pending
       command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: pending
+      command: bun run lint
     run-tests:
       text: Run unit tests.
       status: pending

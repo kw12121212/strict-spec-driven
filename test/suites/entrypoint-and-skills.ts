@@ -191,6 +191,7 @@ context.assert(
       && normalizedAutoSkillContent.includes("Automatically fix safe in-scope review findings")
       && normalizedAutoSkillContent.includes("rerun strict verification plus the configured complete regression command after review-time changes")
       && normalizedAutoSkillContent.includes("correctness, spec alignment")
+      && normalizedAutoSkillContent.includes("dedicated lint Testing task before full unit or regression test tasks")
       && !autoSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>"),
     "strict-spec-auto blocks archive without automatic safe fixes, complete regression, and direct code review evidence",
   );

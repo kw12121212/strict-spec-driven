@@ -575,6 +575,23 @@ try {
     proposalArtifact.includes(`id: ${changeName}`),
     "propose template placeholders are rendered with change name",
   );
+  const taskArtifact = readFileSync(path.join(changeDir, "tasks.yaml"), "utf8");
+  context.assert(
+    taskArtifact.includes("    run-lint:\n")
+      && taskArtifact.includes("      text: Run lint checks.\n")
+      && taskArtifact.includes("      command: bun run lint\n"),
+    "propose scaffold includes an explicit lint Testing task",
+  );
+  context.assert(
+    taskArtifact.indexOf("    run-build:\n") < taskArtifact.indexOf("    run-lint:\n")
+      && taskArtifact.indexOf("    run-lint:\n") < taskArtifact.indexOf("    run-tests:\n"),
+    "propose scaffold orders lint after build validation and before unit tests",
+  );
+  context.assert(
+    taskArtifact.includes("  validation_task: run-build\n")
+      && taskArtifact.includes("  unit_test_task: run-tests\n"),
+    "propose scaffold preserves existing testing gate references",
+  );
 
   const duplicatePropose = cli(["propose", changeName], { cwd: proposeTempDir });
   context.assert(duplicatePropose.status !== 0, "propose rejects duplicate changes", `got exit code ${duplicatePropose.status}`);
@@ -637,6 +654,10 @@ try {
         "      text: Run build.",
         "      status: complete",
         "      command: bun run build",
+        "    run-lint:",
+        "      text: Run lint.",
+        "      status: complete",
+        "      command: bun run lint",
         "    run-tests:",
         "      text: Run tests.",
         "      status: complete",

@@ -83,7 +83,9 @@ root. If it is missing, stop immediately and tell the user to run
     - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."`
     Prefer one invocation per supported generated artifact (or per target spec
     for delta specs). Keep `tasks.yaml` structured with Implementation,
-    Testing, and Verification sections plus valid testing gates.
+    Testing, and Verification sections plus valid testing gates. Keep or add a
+    dedicated lint Testing task before full unit or regression test tasks when
+    the project has a runnable lint command.
    Run `ready <change-name>` at proposal time when deciding whether the change
    is ready for implementation; it reports deterministic handoff blockers
    without deciding product scope or requirement content. If you use `verify`
