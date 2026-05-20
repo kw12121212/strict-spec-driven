@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: roadmap-overview-table
+  status: proposed
+summary:
+  what:
+    - Add a roadmap-overview command that renders roadmap milestone state in a human-readable table.
+    - >-
+      Show milestones in roadmap order and include planned-change detail grouped under each
+      milestone.
+  why:
+    - Operators need a panoramic roadmap view without reading raw JSON status payloads.
+scope:
+  in:
+    - Add a dedicated roadmap-overview CLI command for human-readable roadmap reporting.
+    - >-
+      Reuse existing roadmap validation and derived status semantics so overview output stays
+      aligned with roadmap-status.
+    - Document the overview command in the roadmap-facing CLI documentation.
+  out:
+    - Change the default output contract of roadmap-status.
+    - Alter roadmap-sync reconciliation rules or roadmap artifact schemas.
+unchanged_behavior:
+  - roadmap-status continues to emit the existing JSON payload and exit-code behavior.
+  - Roadmap ordering, mismatch detection, and derived completion rules remain unchanged.

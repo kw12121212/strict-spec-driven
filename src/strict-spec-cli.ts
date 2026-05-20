@@ -7,7 +7,7 @@ import { runInit, runPropose } from "./cli/cmd-scaffold.js";
 import { runGenerate } from "./cli/cmd-generation.js";
 import { runApply, runVerify, runArchive, runList, runModify, runCancel } from "./cli/cmd-change.js";
 import { runNext, runReady } from "./cli/cmd-workflow.js";
-import { runRoadmapStatus, runRoadmapSync } from "./cli/cmd-roadmap.js";
+import { runRoadmapOverview, runRoadmapStatus, runRoadmapSync } from "./cli/cmd-roadmap.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runCommitAndPush } from "./cli/cmd-operations.js";
 import { runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
@@ -84,6 +84,7 @@ export const commands = createCliCommandTable({
   "dev-session-stop": (argv) => runDevSessionStop(argv),
   migrate: (argv) => runMigrate(argv),
   "roadmap-status": (argv) => runRoadmapStatus(argv),
+  "roadmap-overview": (argv) => runRoadmapOverview(argv),
   "roadmap-sync": (argv) => runRoadmapSync(argv),
   maintenance: (argv) => runMaintenanceCommand(argv),
   ship: (argv) => runShip(argv),

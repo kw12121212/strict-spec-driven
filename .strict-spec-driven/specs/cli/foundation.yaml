@@ -1873,3 +1873,20 @@ requirements:
         - AND: >-
             the existing validation_task and unit_test_task testing gates continue to reference
             build validation and unit tests
+  cli-roadmap-overview-renders-human-readable-roadmap-state:
+    strength: MUST
+    statement: >-
+      The system MUST provide a roadmap-overview subcommand that validates strict roadmap artifacts
+      and renders a human-readable milestone overview plus grouped planned-change detail using the
+      same roadmap ordering and derived-status semantics as roadmap-status.
+    scenarios:
+      roadmap-overview-renders-milestone-summary-and-detail:
+        - GIVEN: a valid strict roadmap exists under .strict-spec-driven/roadmap/
+        - WHEN: strict-spec-driven roadmap-overview is executed
+        - THEN: >-
+            the output shows milestone rows in roadmap order and grouped planned-change detail for
+            each milestone
+      roadmap-overview-surfaces-invalid-roadmap-diagnostics:
+        - GIVEN: a strict roadmap artifact violates the roadmap contract
+        - WHEN: strict-spec-driven roadmap-overview is executed
+        - THEN: the command exits non-zero and prints actionable diagnostics for human review

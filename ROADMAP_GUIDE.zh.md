@@ -174,8 +174,18 @@ depends_on: []
 
 ## 检查路线图状态
 
+如果你想查看适合人类阅读的全景状态和分组计划变更明细：
+
+```sh
+node scripts/strict-spec-driven.js roadmap-overview
+```
+
+如果你需要机器可读的校验输出：
+
 ```sh
 node scripts/strict-spec-driven.js roadmap-status
 ```
 
-报告每个里程碑的声明状态和派生状态、每个计划变更的来源文件路径和状态，以及路线图声明与工作流状态之间的任何不匹配。输出为 JSON。
+`roadmap-overview` 会先输出里程碑总览表，再按里程碑分组输出 planned change 明细。
+
+`roadmap-status` 会以 JSON 输出每个里程碑的声明状态和派生状态、每个计划变更的来源文件路径和状态，以及路线图声明与工作流状态之间的任何不匹配。

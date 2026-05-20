@@ -251,8 +251,18 @@ Do not hand-edit roadmap completion state after implementation. Let the strict w
 
 ## Checking Roadmap State
 
+For a human-readable panorama of milestone status plus grouped planned-change detail:
+
+```sh
+node scripts/strict-spec-driven.js roadmap-overview
+```
+
+For machine-readable validation output:
+
 ```sh
 node scripts/strict-spec-driven.js roadmap-status
 ```
 
-The command reports each milestone's declared and derived status, each planned change's source file path and workflow state, and any mismatches or cross-file validation problems.
+`roadmap-overview` prints a milestone summary table followed by per-milestone planned-change detail.
+
+`roadmap-status` reports each milestone's declared and derived status, each planned change's source file path and workflow state, and any mismatches or cross-file validation problems in JSON.

@@ -95,6 +95,12 @@ Keep milestone `planned_changes` empty in normal roadmap work. Non-empty inline 
 Inspect the roadmap at any time:
 
 ```sh
+node scripts/strict-spec-driven.js roadmap-overview
+```
+
+Use `roadmap-overview` for a human-readable milestone table with grouped planned-change detail, or `roadmap-status` for the JSON validation payload:
+
+```sh
 node scripts/strict-spec-driven.js roadmap-status
 ```
 

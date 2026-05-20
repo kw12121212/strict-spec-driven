@@ -83,6 +83,12 @@ depends_on: []
 随时可以检查路线图状态：
 
 ```sh
+node scripts/strict-spec-driven.js roadmap-overview
+```
+
+如果你想看适合人类阅读的里程碑表格和按里程碑分组的 planned change 明细，就用 `roadmap-overview`；如果你需要 JSON 校验载荷，就用 `roadmap-status`：
+
+```sh
 node scripts/strict-spec-driven.js roadmap-status
 ```
 

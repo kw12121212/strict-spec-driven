@@ -6600,6 +6600,7 @@ var COMMAND_REGISTRATION_ORDER = [
   "dev-session-stop",
   "migrate",
   "roadmap-status",
+  "roadmap-overview",
   "roadmap-sync",
   "maintenance",
   "ship",
@@ -13774,6 +13775,109 @@ function buildRoadmapIndexArtifact(milestones) {
 }
 
 // src/roadmap.ts
+function padTableCell(value, width, align = "left") {
+  return align === "right" ? value.padStart(width, " ") : value.padEnd(width, " ");
+}
+function renderTextTable(rows, columns) {
+  const widths = columns.map((column) => Math.max(column.header.length, ...rows.map((row) => column.value(row).length)));
+  const header = columns.map((column, index) => padTableCell(column.header, widths[index], column.align)).join("  ");
+  const separator = widths.map((width) => "-".repeat(width)).join("  ");
+  const body = rows.map((row) => columns.map((column, index) => padTableCell(column.value(row), widths[index], column.align)).join("  "));
+  return [header, separator, ...body];
+}
+function appendWarnings(lines, warnings) {
+  if (warnings.length === 0)
+    return;
+  lines.push("Warnings:");
+  for (const warning of warnings) {
+    lines.push(`- ${warning}`);
+  }
+  lines.push("");
+}
+function appendDiagnostics(lines, diagnostics) {
+  if (diagnostics.length === 0)
+    return;
+  lines.push("Diagnostics:");
+  for (const diagnostic of diagnostics) {
+    lines.push(`- [${diagnostic.source}] ${diagnostic.artifactPath} ${diagnostic.fieldPath}`);
+    lines.push(`  message: ${diagnostic.message}`);
+    if (diagnostic.expected !== undefined) {
+      lines.push(`  expected: ${diagnostic.expected}`);
+    }
+    if (diagnostic.actual !== undefined) {
+      lines.push(`  actual: ${diagnostic.actual}`);
+    }
+  }
+  lines.push("");
+}
+function milestoneIssueCount(milestone) {
+  return milestone.mismatches.length + milestone.plannedChanges.reduce((count, plannedChange) => count + plannedChange.mismatches.length, 0);
+}
+function appendPlannedChangeDetail(lines, plannedChange) {
+  lines.push(`  - ${plannedChange.id} | state=${plannedChange.state} | declared=${plannedChange.declaredStatus} | derived=${plannedChange.derivedStatus} | path=${plannedChange.path}`);
+  lines.push(`    summary: ${plannedChange.summary}`);
+  if (plannedChange.mismatches.length === 0)
+    return;
+  for (const mismatch of plannedChange.mismatches) {
+    lines.push(`    issue: ${mismatch}`);
+  }
+}
+function formatRoadmapOverview(result) {
+  const lines = [`Roadmap overview (${result.valid ? "valid" : "invalid"})`, ""];
+  appendWarnings(lines, result.warnings);
+  appendDiagnostics(lines, result.diagnostics);
+  lines.push("Milestone summary:");
+  if (result.milestones.length === 0) {
+    lines.push("(none)");
+  } else {
+    const summaryRows = renderTextTable(result.milestones, [
+      { header: "ID", value: (milestone) => milestone.id },
+      { header: "Declared", value: (milestone) => milestone.declaredStatus },
+      { header: "Derived", value: (milestone) => milestone.derivedStatus },
+      { header: "Planned", value: (milestone) => String(milestone.plannedChanges.length), align: "right" },
+      {
+        header: "Complete",
+        value: (milestone) => String(milestone.plannedChanges.filter((plannedChange) => plannedChange.derivedStatus === "complete").length),
+        align: "right"
+      },
+      { header: "Issues", value: (milestone) => String(milestoneIssueCount(milestone)), align: "right" },
+      { header: "Title", value: (milestone) => milestone.title }
+    ]);
+    lines.push(...summaryRows);
+  }
+  lines.push("");
+  lines.push("Milestone detail:");
+  if (result.milestones.length === 0) {
+    lines.push("(none)");
+  } else {
+    for (const milestone of result.milestones) {
+      lines.push(`[${milestone.id}] ${milestone.title}`);
+      lines.push(`path: ${milestone.path}`);
+      lines.push(`goal: ${milestone.goal}`);
+      lines.push(`status: declared=${milestone.declaredStatus} derived=${milestone.derivedStatus}`);
+      if (milestone.mismatches.length > 0) {
+        for (const mismatch of milestone.mismatches) {
+          lines.push(`issue: ${mismatch}`);
+        }
+      }
+      if (milestone.plannedChanges.length === 0) {
+        lines.push("planned changes: (none)");
+      } else {
+        lines.push("planned changes:");
+        for (const plannedChange of milestone.plannedChanges) {
+          appendPlannedChangeDetail(lines, plannedChange);
+        }
+      }
+      lines.push("");
+    }
+    while (lines[lines.length - 1] === "") {
+      lines.pop();
+    }
+  }
+  return `${lines.join(`
+`)}
+`;
+}
 function getRoadmapStatus(rootDir) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
@@ -15106,6 +15210,21 @@ function runRoadmapStatus(argv) {
   }
   const result = getRoadmapStatus(process.cwd());
   writeJson(result);
+  return result.valid ? 0 : 1;
+}
+function runRoadmapOverview(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven roadmap-overview
+`);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(`Usage: strict-spec-driven roadmap-overview
+`);
+    return 1;
+  }
+  const result = getRoadmapStatus(process.cwd());
+  writeOut(formatRoadmapOverview(result));
   return result.valid ? 0 : 1;
 }
 function runRoadmapSync(argv) {
@@ -18974,6 +19093,7 @@ var commands = createCliCommandTable({
   "dev-session-stop": (argv) => runDevSessionStop(argv),
   migrate: (argv) => runMigrate(argv),
   "roadmap-status": (argv) => runRoadmapStatus(argv),
+  "roadmap-overview": (argv) => runRoadmapOverview(argv),
   "roadmap-sync": (argv) => runRoadmapSync(argv),
   maintenance: (argv) => runMaintenanceCommand(argv),
   ship: (argv) => runShip(argv),

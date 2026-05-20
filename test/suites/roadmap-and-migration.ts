@@ -206,6 +206,33 @@ try {
       && roadmapStatusBeforeJson.milestones[0].plannedChanges[1].mismatches.length === 1,
     "roadmap-status reports mismatch details without failing structural validation",
   );
+  const roadmapOverviewBefore = cli(["roadmap-overview"], { cwd: roadmapHappyDir });
+  context.assert(roadmapOverviewBefore.status === 0, "roadmap-overview exits zero for a structurally valid roadmap");
+  context.assert(
+    roadmapOverviewBefore.stdout.includes("Roadmap overview (valid)")
+      && roadmapOverviewBefore.stdout.includes("Milestone summary:")
+      && roadmapOverviewBefore.stdout.includes("0001-roadmap"),
+    "roadmap-overview reports human-readable milestone summary content",
+  );
+  context.assert(
+    roadmapOverviewBefore.stdout.includes("Declared")
+      && roadmapOverviewBefore.stdout.includes("Derived")
+      && roadmapOverviewBefore.stdout.includes("Roadmap Workflow"),
+    "roadmap-overview renders milestone table headers and title content",
+  );
+  context.assert(
+    roadmapOverviewBefore.stdout.includes("[0001-roadmap] Roadmap Workflow")
+      && roadmapOverviewBefore.stdout.includes("planned changes:")
+      && roadmapOverviewBefore.stdout.includes("active-change | state=active")
+      && roadmapOverviewBefore.stdout.includes("roadmap/planned-changes/0001-active-change.yaml"),
+    "roadmap-overview groups planned-change detail under the owning milestone with workflow state and path",
+  );
+  const roadmapOverviewBeforeRepeat = cli(["roadmap-overview"], { cwd: roadmapHappyDir });
+  context.assert(
+    roadmapOverviewBeforeRepeat.status === roadmapOverviewBefore.status
+      && roadmapOverviewBeforeRepeat.stdout === roadmapOverviewBefore.stdout,
+    "roadmap-overview keeps deterministic output ordering across repeated valid runs",
+  );
 
   const roadmapSync = cli(["roadmap-sync"], { cwd: roadmapHappyDir });
   context.assert(roadmapSync.status === 0, "roadmap-sync exits zero for reconcilable roadmap state", `got ${roadmapSync.status}`);
@@ -855,6 +882,21 @@ try {
     invalidRoadmapStatusRepeat.status === invalidRoadmapStatus.status
       && invalidRoadmapStatusRepeat.stdout.trim() === invalidRoadmapStatus.stdout.trim(),
     "roadmap-status preserves diagnostic ordering across repeated invalid runs",
+  );
+  const invalidRoadmapOverview = cli(["roadmap-overview"], { cwd: roadmapInvalidDir });
+  context.assert(invalidRoadmapOverview.status !== 0, "roadmap-overview exits non-zero for invalid roadmap artifacts");
+  context.assert(
+    invalidRoadmapOverview.stdout.includes("Roadmap overview (invalid)")
+      && invalidRoadmapOverview.stdout.includes("Diagnostics:")
+      && invalidRoadmapOverview.stdout.includes(".strict-spec-driven/roadmap/milestones/0001-invalid.yaml")
+      && invalidRoadmapOverview.stdout.includes("planned_changes"),
+    "roadmap-overview prints actionable diagnostics for invalid roadmap artifacts",
+  );
+  const invalidRoadmapOverviewRepeat = cli(["roadmap-overview"], { cwd: roadmapInvalidDir });
+  context.assert(
+    invalidRoadmapOverviewRepeat.status === invalidRoadmapOverview.status
+      && invalidRoadmapOverviewRepeat.stdout === invalidRoadmapOverview.stdout,
+    "roadmap-overview preserves diagnostic ordering across repeated invalid runs",
   );
 
   const invalidRoadmapSync = cli(["roadmap-sync"], { cwd: roadmapInvalidDir });

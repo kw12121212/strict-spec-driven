@@ -1,0 +1,54 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: roadmap-overview-table
+sections:
+  Implementation:
+    implementation-1:
+      text: >-
+        Add `roadmap-overview` command wiring in `src/strict-spec-cli.ts`, `src/cli/registry.ts`,
+        and `src/cli/cmd-roadmap.ts` while preserving the existing `roadmap-status` JSON contract.
+      status: complete
+    implementation-2:
+      text: >-
+        Implement deterministic human-readable roadmap overview rendering from the existing roadmap
+        status result with milestone summary rows and grouped planned-change detail.
+      status: complete
+    implementation-3:
+      text: >-
+        Update roadmap command documentation in `README.md`, `ROADMAP_GUIDE.md`, and
+        `ROADMAP_QUICKSTART.md` for the new human-readable overview command.
+      status: complete
+  Testing:
+    testing-1:
+      text: Run `bun run build` to validate the CLI bundle and generated assets.
+      status: complete
+      command: bun run build
+    testing-2:
+      text: Run `bun run lint` to validate TypeScript correctness.
+      status: complete
+      command: bun run lint
+    testing-3:
+      text: Run `bun test/run.ts` to cover roadmap CLI regressions including the new overview command.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verification-1:
+      text: >-
+        Verify `roadmap-overview` shows milestones in roadmap order with declared and derived
+        milestone status visible in the summary table.
+      status: complete
+    verification-2:
+      text: >-
+        Verify `roadmap-overview` groups planned-change detail under each milestone, including
+        workflow-backed state and file path visibility.
+      status: complete
+    verification-3:
+      text: >-
+        Verify `roadmap-status` remains JSON-only and the overview output stays deterministic across
+        repeated runs.
+      status: complete
+testing_gates:
+  validation_task: testing-1
+  unit_test_task: testing-3

@@ -1,0 +1,25 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: roadmap-overview-table
+open: []
+resolved:
+  - id: output-contract-separation
+    question: >-
+      Should the human-readable roadmap view change roadmap-status output or live behind a separate
+      command?
+    context: >-
+      The existing roadmap-status command already exposes a machine-readable JSON contract and tests
+      depend on that shape.
+    answer: >-
+      Use a separate roadmap-overview command so human-readable output does not break roadmap-status
+      JSON consumers.
+    status: resolved
+  - id: overview-layout
+    question: Should the overview flatten all roadmap state into one table or stay milestone-first?
+    context: >-
+      The feature goal is a panoramic human-readable status view that still lets operators inspect
+      planned-change detail.
+    answer: Use a milestone summary table first, then grouped planned-change detail under each milestone.
+    status: resolved

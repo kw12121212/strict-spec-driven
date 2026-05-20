@@ -42,6 +42,7 @@ const expectedCommandOrder = [
   "dev-session-stop",
   "migrate",
   "roadmap-status",
+  "roadmap-overview",
   "roadmap-sync",
   "maintenance",
   "ship",

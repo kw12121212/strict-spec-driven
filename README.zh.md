@@ -47,6 +47,7 @@
 | `cancel <name>` | 删除活跃变更（已归档变更受保护） |
 | `maintenance` | 运行已配置的仓库维护检查 |
 | `roadmap-status` | 验证并报告严格路线图状态 |
+| `roadmap-overview` | 输出面向人的路线图总览表 |
 | `roadmap-sync` | 协调并重新生成严格路线图索引 |
 | `verify-spec-mappings` | 审计规范实现和测试映射覆盖率 |
 | `validate-skills` | 验证严格 Skill 打包元数据和命令脚本符号链接 |

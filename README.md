@@ -48,6 +48,7 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 | `cancel <name>` | Remove an active change (archived changes are protected) |
 | `maintenance` | Run configured repository maintenance checks |
 | `roadmap-status` | Validate and report strict roadmap state |
+| `roadmap-overview` | Print a human-readable roadmap overview table |
 | `roadmap-sync` | Reconcile and regenerate strict roadmap index |
 | `verify-spec-mappings` | Audit spec implementation and test mapping coverage |
 | `validate-skills` | Validate strict skill packaging metadata and command symlinks |

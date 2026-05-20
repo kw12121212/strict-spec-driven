@@ -22,6 +22,7 @@ export const COMMAND_REGISTRATION_ORDER = [
   "dev-session-stop",
   "migrate",
   "roadmap-status",
+  "roadmap-overview",
   "roadmap-sync",
   "maintenance",
   "ship",
