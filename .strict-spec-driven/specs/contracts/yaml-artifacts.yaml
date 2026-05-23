@@ -1710,3 +1710,28 @@ requirements:
         - THEN: >-
             the skill blocks archive instead of inferring review success from deterministic
             validation
+  strict-roadmap-recommend-scripted-selection:
+    strength: MUST
+    statement: >-
+      The strict-roadmap-recommend skill MUST obtain its next planned-change recommendation from the
+      scripted roadmap-recommend command before scaffolding a strict change.
+    scenarios:
+      skill-uses-scripted-recommendation:
+        - GIVEN: the strict-roadmap-recommend skill prompt is reviewed
+        - WHEN: its recommend workflow instructions are inspected
+        - THEN: >-
+            the prompt instructs the agent to run the roadmap-recommend command before selecting
+            work
+        - AND: >-
+            the prompt treats the command's selected planned change as authoritative for the
+            recommendation step
+        - AND: >-
+            the prompt no longer requires the agent to manually choose among eligible roadmap
+            planned changes
+      skill-command-contract-includes-roadmap-recommend:
+        - GIVEN: strict roadmap skill command expectations are validated
+        - WHEN: the strict-roadmap-recommend skill package is checked
+        - THEN: the expected command mapping includes roadmap-recommend
+        - AND: >-
+            skill validation can reject recommend guidance that omits the scripted recommendation
+            command

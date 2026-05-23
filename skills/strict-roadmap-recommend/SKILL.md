@@ -19,6 +19,7 @@ before running anything. Do not guess.
 
 ```yaml
 roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
+roadmap-recommend: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-recommend
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
 generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec> --<named-args>
 ready: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
@@ -62,21 +63,19 @@ root. If it is missing, stop immediately and tell the user to run
    - the selected standalone planned-change artifact's `details` field, if the
      planned change comes from a split-file artifact
 
-2. **Choose the next candidate from existing planned changes** — recommend only a
-   planned change that already exists as a standalone planned-change artifact in
-   the strict roadmap. Use `roadmap-status` output to avoid selecting planned
-   changes with unsatisfied cross-file dependencies, invalid milestone
-   references, duplicate identities, or active strict change conflicts. These
-   active strict change conflicts mean another active strict change already
-   claims the same planned-change identity. Choose a planned change whose
-   dependencies are complete and whose workflow state is missing, not active or
-   archived. Use the reported `plannedChanges[].path` to open the exact source
-   file you are recommending from.
+2. **Obtain the scripted recommendation first** — run the scripted
+   recommendation command before selecting work, and treat the command's
+   selected planned change as authoritative for the recommendation step. The
+   scripted result already accounts for active strict change conflicts,
+   invalid roadmap state, and dependency blockers. If the command exits
+   non-zero, surface the JSON result and stop instead of manually choosing
+   among planned changes. Use the returned recommendation `path` to open the
+   exact standalone planned-change file you are recommending from.
 
 3. **Present a checkpoint before scaffolding** — summarize:
    - the proposed change name
    - the milestone it comes from
-   - the standalone planned-change file path from `roadmap-status`
+   - the standalone planned-change file path from the scripted recommendation result
    - why it is the best next step
    - which strict specs are likely to change
    - any open questions that would need to go into the strict change proposal
@@ -134,7 +133,9 @@ root. If it is missing, stop immediately and tell the user to run
 - Recommend only work that already exists under `.strict-spec-driven/roadmap/`
 - Keep `.strict-spec-driven/roadmap/` as the canonical home of milestone-level
   and planned-change planning metadata
-- Use the standalone planned-change artifact path from `roadmap-status` when
-  opening or quoting roadmap work
+- Use the standalone planned-change artifact path from the scripted
+  recommendation result when opening or quoting roadmap work
 - Convert exactly one planned change into one normal strict change scaffold
 - Do not pause for user confirmation during the recommend step
+- Do not manually choose among eligible roadmap planned changes once the
+  scripted recommendation command returns a recommendation

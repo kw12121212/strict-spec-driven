@@ -54,6 +54,7 @@ export type SkillContentExpectation = {
 const ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 const ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
 const ROADMAP_ACTIVE_CONFLICT_SNIPPET = "active strict change conflicts";
+const ROADMAP_SCRIPTED_RECOMMEND_SNIPPET = "treat the command's selected planned change as authoritative";
 const REVIEW_AUTO_FIX_SNIPPET = "Automatically fix safe in-scope review findings";
 const REVIEW_POST_FIX_REGRESSION_SNIPPET =
   "rerun strict verification plus the configured complete regression command after review-time changes";
@@ -201,6 +202,7 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
   "strict-roadmap-recommend": {
     requiredCommands: {
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      "roadmap-recommend": `${COMMAND_PREFIX} roadmap-recommend`,
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
       ready: READY_COMMAND,
@@ -212,6 +214,7 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       ROADMAP_DETAILS_GUIDANCE_SNIPPET,
       ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
       ROADMAP_ACTIVE_CONFLICT_SNIPPET,
+      ROADMAP_SCRIPTED_RECOMMEND_SNIPPET,
       "/strict-spec-auto",
     ],
   },

@@ -44,6 +44,7 @@ const expectedCommandOrder = [
   "roadmap-status",
   "roadmap-overview",
   "roadmap-sync",
+  "roadmap-recommend",
   "maintenance",
   "ship",
   "commit-and-push",
@@ -167,11 +168,13 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const reviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-review", "SKILL.md"), "utf8");
   const autoSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-auto", "SKILL.md"), "utf8");
   const roadmapPlanSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-plan", "SKILL.md"), "utf8");
+  const roadmapRecommendSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
   const devSessionInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-dev-session-init", "SKILL.md"), "utf8");
   const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
   const normalizedReviewSkillContent = reviewSkillContent.replace(/\s+/g, " ");
   const normalizedAutoSkillContent = autoSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapPlanSkillContent = roadmapPlanSkillContent.replace(/\s+/g, " ");
+  const normalizedRoadmapRecommendSkillContent = roadmapRecommendSkillContent.replace(/\s+/g, " ");
   const normalizedDevSessionInitSkillContent = devSessionInitSkillContent.replace(/\s+/g, " ");
   const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
 context.assert(
@@ -201,6 +204,12 @@ context.assert(
       && normalizedRoadmapPlanSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
       && !roadmapPlanSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js init"),
     "strict-roadmap-plan requires existing strict workflow state instead of calling init",
+  );
+  context.assert(
+    roadmapRecommendSkillContent.includes("roadmap-recommend: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-recommend")
+      && normalizedRoadmapRecommendSkillContent.includes("treat the command's selected planned change as authoritative")
+      && normalizedRoadmapRecommendSkillContent.includes("instead of manually choosing among planned changes"),
+    "strict-roadmap-recommend requires the scripted recommendation command and authoritative selection guidance",
   );
   context.assert(
     normalizedDevSessionInitSkillContent.includes("Before any other step, confirm `.strict-spec-driven/` exists")

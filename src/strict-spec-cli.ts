@@ -7,7 +7,7 @@ import { runInit, runPropose } from "./cli/cmd-scaffold.js";
 import { runGenerate } from "./cli/cmd-generation.js";
 import { runApply, runVerify, runArchive, runList, runModify, runCancel } from "./cli/cmd-change.js";
 import { runNext, runReady } from "./cli/cmd-workflow.js";
-import { runRoadmapOverview, runRoadmapStatus, runRoadmapSync } from "./cli/cmd-roadmap.js";
+import { runRoadmapOverview, runRoadmapRecommend, runRoadmapStatus, runRoadmapSync } from "./cli/cmd-roadmap.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runCommitAndPush } from "./cli/cmd-operations.js";
 import { runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
@@ -36,7 +36,7 @@ import { applyTask, readChangeTasks, writeChangeTasks } from "./apply.js";
 import { verifyChange } from "./verify.js";
 import { checkProposalReadiness, getWorkflowState } from "./workflow-state.js";
 import { archiveChange } from "./archive.js";
-import { getRoadmapStatus, syncRoadmap } from "./roadmap.js";
+import { getRoadmapStatus, recommendRoadmapChange, syncRoadmap } from "./roadmap.js";
 import { migrateLegacyWorkflow } from "./migrate.js";
 import { runMaintenance } from "./maintenance.js";
 
@@ -58,7 +58,7 @@ export { applyTask, readChangeTasks, writeChangeTasks };
 export { verifyChange };
 export { checkProposalReadiness, getWorkflowState };
 export { archiveChange };
-export { getRoadmapStatus, syncRoadmap };
+export { getRoadmapStatus, recommendRoadmapChange, syncRoadmap };
 export { migrateLegacyWorkflow };
 export { runMaintenance };
 
@@ -86,6 +86,7 @@ export const commands = createCliCommandTable({
   "roadmap-status": (argv) => runRoadmapStatus(argv),
   "roadmap-overview": (argv) => runRoadmapOverview(argv),
   "roadmap-sync": (argv) => runRoadmapSync(argv),
+  "roadmap-recommend": (argv) => runRoadmapRecommend(argv),
   maintenance: (argv) => runMaintenanceCommand(argv),
   ship: (argv) => runShip(argv),
   "commit-and-push": (argv) => runCommitAndPush(argv),

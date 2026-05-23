@@ -1,0 +1,65 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-roadmap-recommend-command
+sections:
+  Implementation:
+    add-roadmap-recommend-selection:
+      text: >-
+        Add deterministic roadmap recommendation selection that reuses roadmap status data, filters
+        eligible standalone missing planned changes, and reports skip reasons for ineligible
+        candidates.
+      status: complete
+    expose-roadmap-recommend-command:
+      text: >-
+        Register the roadmap-recommend CLI command with usage/help output and JSON result handling
+        for recommendation, no-candidate, and invalid-roadmap outcomes.
+      status: complete
+    update-roadmap-recommend-skill:
+      text: >-
+        Update strict-roadmap-recommend skill guidance and validation expectations so the skill
+        executes roadmap-recommend and treats its selected candidate as authoritative.
+      status: complete
+    update-strict-specs:
+      text: >-
+        Update strict YAML delta specs for the CLI command behavior and roadmap recommend skill
+        contract.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+    add-command-regression-tests:
+      text: >-
+        Add regression coverage for roadmap-recommend selecting an eligible candidate, blocking
+        missing dependencies, reporting no eligible candidates, and preserving invalid roadmap
+        diagnostics.
+      status: complete
+      command: bun test/run.ts
+    add-skill-validation-tests:
+      text: >-
+        Add skill validation coverage requiring strict-roadmap-recommend to reference the
+        roadmap-recommend command and script-owned recommendation selection.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+    verify-strict-change:
+      text: Run strict verification for the completed change.
+      status: complete
+      command: node scripts/strict-spec-driven.js verify add-roadmap-recommend-command
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

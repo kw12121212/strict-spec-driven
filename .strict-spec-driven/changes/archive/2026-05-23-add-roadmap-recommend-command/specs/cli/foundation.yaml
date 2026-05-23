@@ -1,0 +1,53 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/cmd-roadmap.ts
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+    - src/roadmap.ts
+    - src/roadmap/model.ts
+    - src/roadmap/status.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-roadmap-recommend-command:
+      strength: MUST
+      statement: >-
+        The system MUST provide a roadmap-recommend subcommand that emits a deterministic JSON
+        recommendation for the next eligible standalone roadmap planned change without creating or
+        modifying strict change artifacts.
+      scenarios:
+        roadmap-recommend-selects-first-eligible-candidate:
+          - GIVEN: strict roadmap status is valid
+          - AND: multiple standalone planned changes are present in roadmap order
+          - AND: >-
+              at least one planned change is missing, has no mismatches, and has all dependencies
+              complete
+          - WHEN: the roadmap-recommend command is executed
+          - THEN: the command exits zero
+          - AND: >-
+              the JSON output identifies exactly one recommended planned change, its owning
+              milestone, source planned-change path, change name, and recommendation reason
+        roadmap-recommend-rejects-ineligible-roadmaps:
+          - GIVEN: strict roadmap status is invalid or legacy inline planned changes remain
+          - WHEN: the roadmap-recommend command is executed
+          - THEN: the command exits non-zero
+          - AND: >-
+              the JSON output preserves deterministic diagnostics explaining why recommendation
+              cannot proceed
+        roadmap-recommend-reports-no-candidate:
+          - GIVEN: strict roadmap status is valid
+          - AND: no standalone planned change is missing with complete dependencies and no conflicts
+          - WHEN: the roadmap-recommend command is executed
+          - THEN: the command exits non-zero
+          - AND: >-
+              the JSON output reports that no eligible recommendation exists with deterministic skip
+              reasons for inspected candidates
+  MODIFIED: {}
+  REMOVED: {}

@@ -162,6 +162,22 @@ try {
     details: "Standalone details for archived-change.",
     depends_on: ["active-change"],
   });
+  writeStandalonePlannedChangeArtifact(roadmapHappyDir, "planned-changes/0003-blocked-change.yaml", {
+    id: "blocked-change",
+    milestone: "0001-roadmap",
+    status: "planned",
+    summary: "Blocked work still depends on active change state.",
+    details: "Standalone details for blocked-change.",
+    depends_on: ["active-change"],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapHappyDir, "planned-changes/0004-next-change.yaml", {
+    id: "next-change",
+    milestone: "0001-roadmap",
+    status: "planned",
+    summary: "Ready work depends only on archived strict history.",
+    details: "Standalone details for next-change.",
+    depends_on: ["archived-change"],
+  });
 
   writeRoadmapIndexArtifact(roadmapHappyDir, [
     {
@@ -233,6 +249,31 @@ try {
       && roadmapOverviewBeforeRepeat.stdout === roadmapOverviewBefore.stdout,
     "roadmap-overview keeps deterministic output ordering across repeated valid runs",
   );
+  const roadmapRecommend = cli(["roadmap-recommend"], { cwd: roadmapHappyDir });
+  context.assert(roadmapRecommend.status === 0, "roadmap-recommend exits zero when an eligible candidate exists");
+  const roadmapRecommendJson = JSON.parse(roadmapRecommend.stdout.trim());
+  context.assert(
+    roadmapRecommendJson.valid === true
+      && roadmapRecommendJson.recommendation?.id === "next-change"
+      && roadmapRecommendJson.recommendation?.path === "roadmap/planned-changes/0004-next-change.yaml"
+      && roadmapRecommendJson.recommendation?.milestone?.id === "0001-roadmap",
+    "roadmap-recommend returns the first eligible standalone planned change in roadmap order",
+  );
+  context.assert(
+    roadmapRecommendJson.candidates.some(
+      (candidate: {
+        id: string;
+        eligible: boolean;
+        skipReasons: Array<{ code: string; message: string }>;
+      }) =>
+        candidate.id === "blocked-change"
+        && candidate.eligible === false
+        && candidate.skipReasons.some(
+          (reason) => reason.code === "dependency-incomplete" && reason.message.includes("active-change"),
+        ),
+    ),
+    "roadmap-recommend reports deterministic skip reasons for dependency-blocked planned changes",
+  );
 
   const roadmapSync = cli(["roadmap-sync"], { cwd: roadmapHappyDir });
   context.assert(roadmapSync.status === 0, "roadmap-sync exits zero for reconcilable roadmap state", `got ${roadmapSync.status}`);
@@ -276,6 +317,61 @@ try {
   );
 } finally {
   rmSync(roadmapHappyDir, { recursive: true, force: true });
+}
+
+const roadmapNoCandidateDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-no-candidate-"));
+try {
+  mkdirSync(path.join(roadmapNoCandidateDir, ".strict-spec-driven", "changes", "active-change"), { recursive: true });
+
+  writeRoadmapMilestoneArtifact(roadmapNoCandidateDir, "0001-no-candidate.yaml", {
+    id: "0001-no-candidate",
+    title: "No Candidate",
+    goal: "Report when roadmap work is blocked by dependencies.",
+    status: "active",
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapNoCandidateDir, "planned-changes/0001-active-change.yaml", {
+    id: "active-change",
+    milestone: "0001-no-candidate",
+    status: "planned",
+    summary: "Active work blocks the remaining roadmap entry.",
+    details: "Standalone details for active-change.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapNoCandidateDir, "planned-changes/0002-blocked-change.yaml", {
+    id: "blocked-change",
+    milestone: "0001-no-candidate",
+    status: "planned",
+    summary: "Blocked work still depends on an active change.",
+    details: "Standalone details for blocked-change.",
+    depends_on: ["active-change"],
+  });
+
+  writeRoadmapIndexArtifact(roadmapNoCandidateDir, [
+    {
+      id: "0001-no-candidate",
+      title: "No Candidate",
+      path: "roadmap/milestones/0001-no-candidate.yaml",
+      status: "active",
+    },
+  ]);
+
+  const roadmapNoCandidate = cli(["roadmap-recommend"], { cwd: roadmapNoCandidateDir });
+  context.assert(roadmapNoCandidate.status !== 0, "roadmap-recommend exits non-zero when no eligible candidate exists");
+  const roadmapNoCandidateJson = JSON.parse(roadmapNoCandidate.stdout.trim());
+  context.assert(
+    roadmapNoCandidateJson.valid === true && roadmapNoCandidateJson.recommendation === null,
+    "roadmap-recommend reports a valid roadmap with no selected recommendation when all candidates are ineligible",
+  );
+  context.assert(
+    roadmapNoCandidateJson.candidates.some(
+      (candidate: { id: string; skipReasons: Array<{ code: string }> }) =>
+        candidate.id === "blocked-change" && candidate.skipReasons.some((reason) => reason.code === "dependency-incomplete"),
+    ),
+    "roadmap-recommend keeps inspected candidate skip reasons when no eligible recommendation exists",
+  );
+} finally {
+  rmSync(roadmapNoCandidateDir, { recursive: true, force: true });
 }
 
 const roadmapSplitFilesDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-split-files-"));
@@ -898,6 +994,18 @@ try {
       && invalidRoadmapOverviewRepeat.stdout === invalidRoadmapOverview.stdout,
     "roadmap-overview preserves diagnostic ordering across repeated invalid runs",
   );
+  const invalidRoadmapRecommend = cli(["roadmap-recommend"], { cwd: roadmapInvalidDir });
+  context.assert(invalidRoadmapRecommend.status !== 0, "roadmap-recommend exits non-zero for invalid roadmap artifacts");
+  const invalidRoadmapRecommendJson = JSON.parse(invalidRoadmapRecommend.stdout.trim());
+  context.assert(
+    invalidRoadmapRecommendJson.valid === false
+      && invalidRoadmapRecommendJson.diagnostics.some(
+        (diagnostic: { artifactPath: string; fieldPath: string }) =>
+          diagnostic.artifactPath === ".strict-spec-driven/roadmap/milestones/0001-invalid.yaml"
+          && diagnostic.fieldPath.includes("planned_changes"),
+      ),
+    "roadmap-recommend preserves deterministic diagnostics for invalid roadmap artifacts",
+  );
 
   const invalidRoadmapSync = cli(["roadmap-sync"], { cwd: roadmapInvalidDir });
   context.assert(invalidRoadmapSync.status !== 0, "roadmap-sync exits non-zero when milestone artifacts are invalid");
@@ -973,6 +1081,102 @@ try {
   );
 } finally {
   rmSync(invalidRoadmapSkillRoot, { recursive: true, force: true });
+}
+
+const invalidRoadmapRecommendSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-roadmap-recommend-skill-invalid-"));
+try {
+  const invalidRoadmapRecommendSkillDir = path.join(invalidRoadmapRecommendSkillRoot, "skills", "strict-roadmap-recommend");
+  mkdirSync(path.join(invalidRoadmapRecommendSkillRoot, "dist", "scripts"), { recursive: true });
+  mkdirSync(path.join(invalidRoadmapRecommendSkillRoot, "dist", "templates"), { recursive: true });
+  mkdirSync(invalidRoadmapRecommendSkillDir, { recursive: true });
+
+  symlinkSync("../../dist/scripts", path.join(invalidRoadmapRecommendSkillDir, "scripts"));
+  symlinkSync("../../dist/templates", path.join(invalidRoadmapRecommendSkillDir, "templates"));
+
+  writeFileSync(
+    path.join(invalidRoadmapRecommendSkillDir, "SKILL.md"),
+    [
+      "---",
+      "name: strict-roadmap-recommend",
+      "description: stub",
+      "metadata:",
+      "  skill_id: strict_roadmap_recommend",
+      "  author: strict-spec-driven",
+      "  type: agent_skill",
+      "  version: 1.0.0",
+      "---",
+      "",
+      "You are helping with strict roadmap work under .strict-spec-driven/roadmap/.",
+      "",
+      "## This Skill's Commands",
+      "",
+      "```yaml",
+      "roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status",
+      "propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>",
+      "generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec> --<named-args>",
+      "ready: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>",
+      "verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>",
+      "```",
+      "",
+      "## Prerequisites",
+      "",
+      "The `.strict-spec-driven/` directory must exist at the project root. If it is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "",
+      "## Steps",
+      "",
+      "Before any other step, confirm `.strict-spec-driven/` exists at the project root. If it is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "",
+      "1. Read roadmap context under `.strict-spec-driven/roadmap/`, including each standalone planned-change artifact and any relevant `details` field guidance.",
+      "2. Use roadmap-status to find active strict change conflicts and manually choose the next planned change.",
+      "3. Continue with `/strict-spec-auto` after the manual selection.",
+      "",
+      "## Rules",
+      "",
+      "- Keep the roadmap source of truth in `.strict-spec-driven/roadmap/`.",
+      "- Use standalone planned-change artifacts instead of milestone-local copies.",
+      "- Respect active strict change conflicts when choosing roadmap work.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(invalidRoadmapRecommendSkillRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [{ name: "strict-roadmap-recommend", family: "strict-roadmap" }],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const invalidRoadmapRecommendSkillResult = skillValidationModule.validateStrictSkillPackaging(invalidRoadmapRecommendSkillRoot);
+  context.assert(
+    !invalidRoadmapRecommendSkillResult.valid,
+    "strict skill validation fails when roadmap recommend omits the scripted selection command",
+  );
+  context.assert(
+    invalidRoadmapRecommendSkillResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.command.missing"
+        && diagnostic.path === "skills/strict-roadmap-recommend/SKILL.md#commands.roadmap-recommend",
+    ),
+    "roadmap skill validation requires the roadmap-recommend command mapping",
+  );
+  context.assert(
+    invalidRoadmapRecommendSkillResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.required_snippet.missing"
+        && diagnostic.path === "skills/strict-roadmap-recommend/SKILL.md"
+        && diagnostic.expected === "treat the command's selected planned change as authoritative",
+    ),
+    "roadmap skill validation requires authoritative scripted recommendation guidance",
+  );
+} finally {
+  rmSync(invalidRoadmapRecommendSkillRoot, { recursive: true, force: true });
 }
 
 const invalidRoadmapDetailsSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-roadmap-details-skill-invalid-"));

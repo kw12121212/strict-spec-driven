@@ -1,0 +1,38 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-roadmap-recommend-command
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a deterministic strict CLI recommendation command that selects the next eligible
+      roadmap-backed planned change for the strict roadmap recommend workflow.
+  why:
+    - >-
+      The current strict-roadmap-recommend skill performs candidate discovery and eligibility
+      decisions in prompt instructions, which makes repeatability depend on the agent reading and
+      interpreting roadmap status manually. Moving recommendation selection into the CLI keeps
+      roadmap parsing, dependency checks, conflict avoidance, and candidate ordering in
+      deterministic script code while leaving artifact writing and product judgment in the skill.
+scope:
+  in:
+    - >-
+      Add a roadmap-recommend subcommand that reads existing strict roadmap state and emits one
+      structured JSON recommendation for the next eligible standalone planned-change artifact.
+      Update command registration, usage/help, skill validation expectations,
+      strict-roadmap-recommend guidance, specs, and regression tests for valid recommendation, no
+      eligible candidate, invalid roadmap, dependency gating, and active/archived conflict behavior.
+  out:
+    - >-
+      Do not implement automatic proposal artifact generation in the new recommend command. Do not
+      change roadmap artifact schemas unless existing fields are insufficient. Do not alter roadmap
+      sync semantics, archive semantics, or strict-spec-auto behavior.
+unchanged_behavior:
+  - >-
+    roadmap-status and roadmap-sync remain the canonical status and reconciliation commands. Roadmap
+    artifacts remain the canonical home for milestone and planned-change metadata. The
+    strict-roadmap-recommend skill still scaffolds and populates exactly one normal strict change
+    and then hands off to strict-spec-auto.

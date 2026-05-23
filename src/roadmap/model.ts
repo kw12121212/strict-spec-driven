@@ -156,11 +156,58 @@ export type RoadmapMilestoneStatus = {
   mismatches: string[];
 };
 
+export type RoadmapRecommendationSkipCode =
+  | "workflow-state-active"
+  | "workflow-state-archived"
+  | "workflow-state-ambiguous"
+  | "planned-change-mismatch"
+  | "dependency-incomplete";
+
+export type RoadmapRecommendationSkip = {
+  code: RoadmapRecommendationSkipCode;
+  message: string;
+};
+
+export type RoadmapRecommendationCandidate = {
+  id: string;
+  changeName: string;
+  summary: string;
+  path: string;
+  milestone: {
+    id: string;
+    title: string;
+    path: string;
+  };
+  eligible: boolean;
+  skipReasons: RoadmapRecommendationSkip[];
+};
+
+export type RoadmapRecommendation = {
+  id: string;
+  changeName: string;
+  summary: string;
+  path: string;
+  milestone: {
+    id: string;
+    title: string;
+    path: string;
+  };
+  reason: string;
+};
+
 export type RoadmapStatusResult = {
   valid: boolean;
   warnings: string[];
   diagnostics: RoadmapDiagnostic[];
   milestones: RoadmapMilestoneStatus[];
+};
+
+export type RoadmapRecommendResult = {
+  valid: boolean;
+  warnings: string[];
+  diagnostics: RoadmapDiagnostic[];
+  recommendation: RoadmapRecommendation | null;
+  candidates: RoadmapRecommendationCandidate[];
 };
 
 export type RoadmapSyncResult = {

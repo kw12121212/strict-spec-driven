@@ -24,6 +24,7 @@ export const COMMAND_REGISTRATION_ORDER = [
   "roadmap-status",
   "roadmap-overview",
   "roadmap-sync",
+  "roadmap-recommend",
   "maintenance",
   "ship",
   "commit-and-push",

@@ -5,10 +5,15 @@ import {
   ROADMAP_DIR,
   ROADMAP_INDEX_PATH,
   type RoadmapDiagnostic,
+  type RoadmapRecommendResult,
   type RoadmapMilestoneStatus,
   type RoadmapPlannedChangeStatus,
+  type RoadmapRecommendation,
+  type RoadmapRecommendationCandidate,
+  type RoadmapRecommendationSkip,
   type RoadmapStatusResult,
   type RoadmapSyncResult,
+  type LoadedRoadmap,
 } from "./roadmap/model.js";
 import { ensureTrailingNewline, makeDiagnostic, sortDiagnostics } from "./roadmap/shared.js";
 import { loadRoadmap } from "./roadmap/load.js";
@@ -32,8 +37,12 @@ import {
 
 export type {
   RoadmapDiagnostic,
+  RoadmapRecommendResult,
   RoadmapMilestoneStatus,
   RoadmapPlannedChangeStatus,
+  RoadmapRecommendation,
+  RoadmapRecommendationCandidate,
+  RoadmapRecommendationSkip,
   RoadmapStatusResult,
   RoadmapSyncResult,
 } from "./roadmap/model.js";
@@ -107,6 +116,35 @@ function appendPlannedChangeDetail(lines: string[], plannedChange: RoadmapPlanne
   }
 }
 
+type RoadmapStatusContext = {
+  roadmap: LoadedRoadmap;
+  warnings: string[];
+  diagnostics: RoadmapDiagnostic[];
+  milestones: RoadmapMilestoneStatus[];
+};
+
+function loadRoadmapStatusContext(rootDir: string): RoadmapStatusContext {
+  const roadmap = loadRoadmap(rootDir);
+  const changeStates = getChangeStateIndex(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
+  const statusMap = new Map<string, RoadmapMilestoneStatus>();
+  for (const milestone of roadmap.milestones) {
+    const milestonePath = `roadmap/milestones/${milestone.relativeMilestonePath}`;
+    const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
+    const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
+    statusMap.set(milestonePath, buildMilestoneStatus(milestone, changeStates, plannedChangeEntries));
+  }
+  const milestones = orderMilestoneStatuses(rootDir, roadmap, statusMap, ROADMAP_INDEX_PATH);
+  const diagnostics = sortDiagnostics(roadmap.diagnostics);
+
+  return {
+    roadmap,
+    warnings: roadmap.warnings,
+    diagnostics,
+    milestones,
+  };
+}
+
 export function formatRoadmapOverview(result: RoadmapStatusResult): string {
   const lines: string[] = [`Roadmap overview (${result.valid ? "valid" : "invalid"})`, ""];
   appendWarnings(lines, result.warnings);
@@ -166,25 +204,151 @@ export function formatRoadmapOverview(result: RoadmapStatusResult): string {
 }
 
 export function getRoadmapStatus(rootDir: string): RoadmapStatusResult {
-  const roadmap = loadRoadmap(rootDir);
-  const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
-  const statusMap = new Map<string, RoadmapMilestoneStatus>();
-  for (const milestone of roadmap.milestones) {
-    const milestonePath = `roadmap/milestones/${milestone.relativeMilestonePath}`;
-    const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
-    const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
-    statusMap.set(milestonePath, buildMilestoneStatus(milestone, changeStates, plannedChangeEntries));
-  }
-
-  const milestones = orderMilestoneStatuses(rootDir, roadmap, statusMap, ROADMAP_INDEX_PATH);
-  const diagnostics = sortDiagnostics(roadmap.diagnostics);
+  const { warnings, diagnostics, milestones } = loadRoadmapStatusContext(rootDir);
 
   return {
     valid: diagnostics.length === 0,
-    warnings: roadmap.warnings,
+    warnings,
     diagnostics,
     milestones,
+  };
+}
+
+function createPlannedChangeStatusIndex(milestones: RoadmapMilestoneStatus[]): Map<string, RoadmapPlannedChangeStatus> {
+  const index = new Map<string, RoadmapPlannedChangeStatus>();
+  for (const milestone of milestones) {
+    for (const plannedChange of milestone.plannedChanges) {
+      index.set(plannedChange.id, plannedChange);
+    }
+  }
+  return index;
+}
+
+function findPlannedChangeStatus(
+  milestoneStatus: RoadmapMilestoneStatus,
+  plannedChangeId: string,
+  plannedChangePath: string,
+): RoadmapPlannedChangeStatus | undefined {
+  return milestoneStatus.plannedChanges.find(
+    (plannedChange) => plannedChange.id === plannedChangeId && plannedChange.path === plannedChangePath,
+  );
+}
+
+function buildCandidateSkipReasons(
+  plannedChangeStatus: RoadmapPlannedChangeStatus,
+  dependencyStatusIndex: Map<string, RoadmapPlannedChangeStatus>,
+  dependencyIds: string[],
+): RoadmapRecommendationSkip[] {
+  const skipReasons: RoadmapRecommendationSkip[] = [];
+
+  if (plannedChangeStatus.state === "active") {
+    skipReasons.push({
+      code: "workflow-state-active",
+      message: "active strict change conflicts with this planned change",
+    });
+  } else if (plannedChangeStatus.state === "archived") {
+    skipReasons.push({
+      code: "workflow-state-archived",
+      message: "planned change is already complete in archived strict workflow state",
+    });
+  } else if (plannedChangeStatus.state === "ambiguous") {
+    skipReasons.push({
+      code: "workflow-state-ambiguous",
+      message: "planned change exists in both active and archived strict workflow state",
+    });
+  }
+
+  for (const mismatch of plannedChangeStatus.mismatches) {
+    skipReasons.push({
+      code: "planned-change-mismatch",
+      message: mismatch,
+    });
+  }
+
+  for (const dependencyId of dependencyIds) {
+    const dependencyStatus = dependencyStatusIndex.get(dependencyId);
+    if (dependencyStatus?.derivedStatus === "complete") continue;
+    skipReasons.push({
+      code: "dependency-incomplete",
+      message: dependencyStatus
+        ? `dependency '${dependencyId}' is not complete (state=${dependencyStatus.state})`
+        : `dependency '${dependencyId}' is missing from roadmap status`,
+    });
+  }
+
+  return skipReasons;
+}
+
+export function recommendRoadmapChange(rootDir: string): RoadmapRecommendResult {
+  const { roadmap, warnings, diagnostics, milestones } = loadRoadmapStatusContext(rootDir);
+  if (diagnostics.length > 0) {
+    return {
+      valid: false,
+      warnings,
+      diagnostics,
+      recommendation: null,
+      candidates: [],
+    };
+  }
+
+  const milestoneByPath = new Map(roadmap.milestones.map((milestone) => [`roadmap/milestones/${milestone.relativeMilestonePath}`, milestone]));
+  const dependencyStatusIndex = createPlannedChangeStatusIndex(milestones);
+  const candidates: RoadmapRecommendationCandidate[] = [];
+  const recommendationReason =
+    "first eligible standalone planned change in roadmap order with complete dependencies and no roadmap mismatches";
+  let recommendation: RoadmapRecommendation | null = null;
+
+  for (const milestoneStatus of milestones) {
+    const milestone = milestoneByPath.get(milestoneStatus.path);
+    if (!milestone) continue;
+
+    for (const standalonePlannedChange of getStandalonePlannedChangesForMilestone(roadmap, milestone)) {
+      const plannedChangePath = `roadmap/${standalonePlannedChange.relativeRoadmapPath}`;
+      const plannedChangeStatus = findPlannedChangeStatus(
+        milestoneStatus,
+        standalonePlannedChange.artifact.planned_change.id,
+        plannedChangePath,
+      );
+      if (!plannedChangeStatus) continue;
+
+      const skipReasons = buildCandidateSkipReasons(
+        plannedChangeStatus,
+        dependencyStatusIndex,
+        standalonePlannedChange.artifact.depends_on,
+      );
+      const candidate: RoadmapRecommendationCandidate = {
+        id: standalonePlannedChange.artifact.planned_change.id,
+        changeName: standalonePlannedChange.artifact.planned_change.id,
+        summary: standalonePlannedChange.artifact.summary,
+        path: plannedChangePath,
+        milestone: {
+          id: milestoneStatus.id,
+          title: milestoneStatus.title,
+          path: milestoneStatus.path,
+        },
+        eligible: skipReasons.length === 0,
+        skipReasons,
+      };
+      candidates.push(candidate);
+
+      if (!candidate.eligible || recommendation) continue;
+      recommendation = {
+        id: candidate.id,
+        changeName: candidate.changeName,
+        summary: candidate.summary,
+        path: candidate.path,
+        milestone: candidate.milestone,
+        reason: recommendationReason,
+      };
+    }
+  }
+
+  return {
+    valid: true,
+    warnings,
+    diagnostics,
+    recommendation,
+    candidates,
   };
 }
 
