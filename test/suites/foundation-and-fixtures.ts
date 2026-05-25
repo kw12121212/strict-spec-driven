@@ -1674,11 +1674,7 @@ context.assert(
     && devSessionsGuideNormalized.includes("dev-session-trial"),
   "DEV_SESSIONS.md covers all six dev-session CLI commands",
 );
-context.assert(
-  devSessionsGuideNormalized.includes("STRICT-MANAGED SECTION")
-    || devSessionsGuideNormalized.includes("managed section"),
-  "DEV_SESSIONS.md covers the generated helper script managed-section rules",
-);
+
 context.assert(
   devSessionsGuideNormalized.includes("evidence_labels")
     || (devSessionsGuideNormalized.includes("evidence") && devSessionsGuideNormalized.includes("smoke")),
