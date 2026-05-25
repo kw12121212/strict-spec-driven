@@ -1175,6 +1175,15 @@ try {
     ),
     "roadmap skill validation requires authoritative scripted recommendation guidance",
   );
+  context.assert(
+    invalidRoadmapRecommendSkillResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.required_snippet.missing"
+        && diagnostic.path === "skills/strict-roadmap-recommend/SKILL.md"
+        && diagnostic.expected === "Use `ready` as the proposal handoff validation",
+    ),
+    "roadmap skill validation requires ready-only handoff guidance",
+  );
 } finally {
   rmSync(invalidRoadmapRecommendSkillRoot, { recursive: true, force: true });
 }

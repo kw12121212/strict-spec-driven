@@ -586,62 +586,45 @@ requirements:
   strict-roadmap-skill-guidance-contract:
     strength: MUST
     statement: >-
-      The system MUST ensure strict roadmap skill packages describe `.strict-spec-driven/roadmap/`
-      YAML artifacts, canonical milestone ordering, declared and derived roadmap status rules, and
-      the prompt-vs-script split used by the strict workflow.
+      The system MUST ensure strict roadmap skill packages describe .strict-spec-driven/roadmap/
+      YAML artifacts, canonical milestone ordering, declared and derived roadmap status rules, the
+      prompt-vs-script split used by the strict workflow, and efficient handoff behavior that relies
+      on deterministic CLI recommendation output before broad manual context reads.
     scenarios:
-      roadmap-skills-reference-strict-roadmap-artifacts:
-        - GIVEN: a strict roadmap skill prompt is reviewed
-        - WHEN: its prerequisites and workflow guidance are inspected
+      roadmap-recommend-uses-scripted-output-before-targeted-reads:
+        - GIVEN: a strict roadmap recommend skill prompt is reviewed
+        - WHEN: its recommendation and context-gathering steps are inspected
         - THEN: >-
-            the skill describes `.strict-spec-driven/roadmap/` YAML artifacts and the roadmap files
-            it reads or writes
-        - AND: >-
-            the skill does not fall back to generic or legacy roadmap instructions where strict
-            behavior is required
-      roadmap-skills-preserve-deterministic-mechanics-in-scripts:
-        - GIVEN: a strict roadmap skill prompt is reviewed
-        - WHEN: its workflow steps are inspected
+            the skill instructs the agent to run the scripted roadmap-recommend command before
+            choosing work or reading broad roadmap context
         - THEN: >-
-            deterministic validation, status derivation, index regeneration, and proposal
-            scaffolding remain delegated to strict CLI commands
-        - AND: >-
-            the prompt guidance remains focused on recommendation, planning judgment, editing, and
-            user checkpoints
+            the skill uses the recommendation result path to open only the selected planned-change
+            artifact, owning milestone guidance, and target specs needed for proposal generation
   strict-roadmap-proposal-handoff-contract:
     strength: MUST
     statement: >-
       The system MUST ensure roadmap recommendation and roadmap proposal-handoff behavior convert
       exactly one planned change into a normal strict change scaffold without duplicating
-      roadmap-only planning metadata inside the change artifacts, and MUST read the owning
-      milestone's details field as targeted planning guidance when populating change artifacts.
+      roadmap-only planning metadata inside the change artifacts, consume relevant details as
+      targeted planning guidance, validate proposal handoff with the proposal readiness gate, and
+      pass the populated scaffold to the automatic workflow without redundant full proposal
+      verification.
     scenarios:
-      roadmap-recommendation-hands-off-one-planned-change:
-        - GIVEN: a roadmap milestone includes a planned change entry
-        - WHEN: the strict roadmap recommendation flow is accepted and the proposal handoff runs
-        - THEN: a normal strict change scaffold is created for that planned change
-        - AND: >-
-            the change artifacts describe proposal scope for that one change rather than copying the
-            full milestone plan
-      roadmap-proposal-handoff-preserves-canonical-planned-change-identity:
-        - GIVEN: a planned change already exists as a keyed entry under one milestone
-        - WHEN: the roadmap proposal handoff creates the strict change scaffold
-        - THEN: the resulting change uses the planned change key as its change identity
-        - AND: the roadmap artifact remains the canonical home of milestone-level planning metadata
-      roadmap-proposal-handoff-consumes-milestone-details:
-        - GIVEN: a roadmap milestone includes a planned change and a details field
-        - WHEN: the strict roadmap proposal handoff scaffolds a strict change
-        - THEN: the skill reads the milestone details field as context for populating change artifacts
-        - AND: >-
-            the change artifacts reflect guidance extracted from details without copying the full
-            milestone plan
-      roadmap-proposal-handoff-works-without-milestone-details:
-        - GIVEN: a roadmap milestone includes a planned change but omits the details field
-        - WHEN: the strict roadmap proposal handoff scaffolds a strict change
+      roadmap-recommend-validates-handoff-with-ready:
+        - GIVEN: a strict roadmap recommendation has scaffolded and populated a strict change
+        - WHEN: the roadmap recommendation handoff validates the proposal
+        - THEN: the skill runs ready for deterministic proposal-handoff blockers
         - THEN: >-
-            the change artifacts are populated using only the planned change entry and milestone
-            goal
-        - AND: the absence of details does not cause a failure or placeholder content
+            the skill does not require a separate full verify command at proposal time solely to
+            rediscover expected pending implementation tasks
+      roadmap-recommend-hands-populated-change-to-auto:
+        - GIVEN: >-
+            a strict roadmap recommendation has created populated proposal, design, tasks,
+            questions, and delta spec artifacts
+        - WHEN: the handoff invokes strict-spec-auto
+        - THEN: >-
+            the automatic workflow resumes the existing populated change instead of regenerating
+            those planning artifacts
   yaml-task-testing-gates:
     strength: MUST
     statement: >-

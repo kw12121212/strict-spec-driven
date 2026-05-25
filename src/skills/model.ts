@@ -55,6 +55,13 @@ const ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 const ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
 const ROADMAP_ACTIVE_CONFLICT_SNIPPET = "active strict change conflicts";
 const ROADMAP_SCRIPTED_RECOMMEND_SNIPPET = "treat the command's selected planned change as authoritative";
+const ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET = "before reading broad roadmap context";
+const ROADMAP_READY_HANDOFF_SNIPPET = "Use `ready` as the proposal handoff validation";
+const ROADMAP_AUTO_POPULATED_HANDOFF_SNIPPET = "populated change scaffold";
+const AUTO_TARGETED_CONTEXT_RESET_SNIPPET = "Reset context from targeted files";
+const AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET = "resume the existing populated strict change scaffold without regenerating planning artifacts";
+const AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET =
+  "exactly matches the configured complete project regression command";
 const REVIEW_AUTO_FIX_SNIPPET = "Automatically fix safe in-scope review findings";
 const REVIEW_POST_FIX_REGRESSION_SNIPPET =
   "rerun strict verification plus the configured complete regression command after review-time changes";
@@ -145,6 +152,9 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
     requiredSnippets: [
       ".strict-spec-driven/",
       "/strict-spec-ship <change-name>",
+      AUTO_TARGETED_CONTEXT_RESET_SNIPPET,
+      AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET,
+      AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET,
       "dev-session-plan",
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
@@ -206,7 +216,6 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
       ready: READY_COMMAND,
-      verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [
@@ -215,6 +224,9 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
       ROADMAP_ACTIVE_CONFLICT_SNIPPET,
       ROADMAP_SCRIPTED_RECOMMEND_SNIPPET,
+      ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET,
+      ROADMAP_READY_HANDOFF_SNIPPET,
+      ROADMAP_AUTO_POPULATED_HANDOFF_SNIPPET,
       "/strict-spec-auto",
     ],
   },

@@ -1,0 +1,58 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-roadmap-recommend/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - src/skills/model.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    strict-roadmap-skill-guidance-contract:
+      strength: MUST
+      statement: >-
+        The system MUST ensure strict roadmap skill packages describe .strict-spec-driven/roadmap/
+        YAML artifacts, canonical milestone ordering, declared and derived roadmap status rules, the
+        prompt-vs-script split used by the strict workflow, and efficient handoff behavior that
+        relies on deterministic CLI recommendation output before broad manual context reads.
+      scenarios:
+        roadmap-recommend-uses-scripted-output-before-targeted-reads:
+          - GIVEN: a strict roadmap recommend skill prompt is reviewed
+          - WHEN: its recommendation and context-gathering steps are inspected
+          - THEN: >-
+              the skill instructs the agent to run the scripted roadmap-recommend command before
+              choosing work or reading broad roadmap context
+          - THEN: >-
+              the skill uses the recommendation result path to open only the selected planned-change
+              artifact, owning milestone guidance, and target specs needed for proposal generation
+    strict-roadmap-proposal-handoff-contract:
+      strength: MUST
+      statement: >-
+        The system MUST ensure roadmap recommendation and roadmap proposal-handoff behavior convert
+        exactly one planned change into a normal strict change scaffold without duplicating
+        roadmap-only planning metadata inside the change artifacts, consume relevant details as
+        targeted planning guidance, validate proposal handoff with the proposal readiness gate, and
+        pass the populated scaffold to the automatic workflow without redundant full proposal
+        verification.
+      scenarios:
+        roadmap-recommend-validates-handoff-with-ready:
+          - GIVEN: a strict roadmap recommendation has scaffolded and populated a strict change
+          - WHEN: the roadmap recommendation handoff validates the proposal
+          - THEN: the skill runs ready for deterministic proposal-handoff blockers
+          - THEN: >-
+              the skill does not require a separate full verify command at proposal time solely to
+              rediscover expected pending implementation tasks
+        roadmap-recommend-hands-populated-change-to-auto:
+          - GIVEN: >-
+              a strict roadmap recommendation has created populated proposal, design, tasks,
+              questions, and delta spec artifacts
+          - WHEN: the handoff invokes strict-spec-auto
+          - THEN: >-
+              the automatic workflow resumes the existing populated change instead of regenerating
+              those planning artifacts
+  REMOVED: {}

@@ -1,0 +1,51 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: streamline-roadmap-recommend-auto
+  status: proposed
+summary:
+  what:
+    - >-
+      Streamline the strict-roadmap-recommend to strict-spec-auto handoff so agents avoid duplicate
+      context reads, proposal verification, artifact generation, and regression execution while
+      preserving all existing safety gates.
+  why:
+    - >-
+      The current skill guidance asks agents to perform broad roadmap reads before the scripted
+      recommendation, run proposal-time checks twice, and let auto reconsider already populated
+      artifacts. This slows the workflow and increases token use without adding deterministic safety
+      beyond existing CLI checks.
+scope:
+  in:
+    - >-
+      Update skills/strict-roadmap-recommend/SKILL.md to run the scripted recommendation before
+      targeted file reads, validate proposal handoff with ready only, and pass an already populated
+      change to strict-spec-auto.
+    - >-
+      Update skills/strict-spec-auto/SKILL.md to define a resume fast path for existing populated
+      changes, narrow context reset to mapped files and current artifacts, and allow reuse of
+      unchanged passing regression evidence when it is the configured complete project regression
+      command.
+    - >-
+      Update skill content validation expectations and tests as needed so the optimized guidance
+      remains enforced.
+    - Update strict delta specs for roadmap handoff and auto workflow guidance.
+  out:
+    - >-
+      Do not change roadmap-recommend, ready, verify, apply, archive, or verify-spec-mappings
+      command semantics.
+    - >-
+      Do not remove open-question blocking, per-task apply mutation rules, direct code review
+      evidence, final strict verification, mapping verification, or archive regression evidence
+      requirements.
+    - >-
+      Do not alter roadmap selection ordering, dependency handling, or planned-change eligibility
+      rules.
+unchanged_behavior:
+  - roadmap-recommend remains the authoritative selector for eligible standalone planned changes.
+  - strict-spec-auto still stops before implementation when questions.yaml.open is non-empty.
+  - >-
+    archive remains blocked without verification, direct review evidence, and complete project-level
+    regression evidence or explicit setup guidance.

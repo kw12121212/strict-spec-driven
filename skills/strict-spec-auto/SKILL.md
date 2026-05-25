@@ -59,9 +59,11 @@ Before any other step, confirm `.strict-spec-driven/` exists at the project
 root. If it is missing, stop immediately and tell the user to run
 `/strict-spec-init`. Do not run `init` from this skill.
 
-1. **Reset context from files** — treat prior chat context as stale unless it has
-   been revalidated from the current change artifacts, strict main specs, and
-   repository state.
+1. **Reset context from targeted files** — treat prior chat context as stale
+   unless it has been revalidated from the current change artifacts, relevant
+   main specs, mapped implementation and test files, repository status, and
+   regression configuration when needed. Do not reread unrelated roadmap,
+   archive, or spec files just because they exist.
 
 2. **Assess complexity** — proceed automatically only when the change is clearly
    scoped inside this repository with a concrete definition of done. If the
@@ -70,12 +72,16 @@ root. If it is missing, stop immediately and tell the user to run
 
 3. **Propose or resume the change** — if the strict change does not exist yet,
    scaffold with `propose`. If a prior workflow step such as
-   `/strict-roadmap-recommend` or `/strict-roadmap-propose` already created the
-   change directory, reuse the existing scaffold instead of running `propose`
-   again. If the target change directory already exists but only contains empty
-   subdirectories, `propose` may safely reuse it. Then populate artifacts in
-   this exact order. Generate supported artifacts with direct CLI invocations,
-   edit scaffolded `tasks.yaml` directly, and do not create JSON payload files.
+   `/strict-roadmap-recommend` or `/strict-roadmap-propose` already created a
+   populated change directory containing proposal, design, tasks, questions,
+   and delta spec artifacts, resume the existing populated strict change
+   scaffold without regenerating planning artifacts or running `propose` again.
+   Run `ready <change-name>` or `next <change-name>` to surface deterministic
+   blockers before implementation. If the target change directory already
+   exists but only contains empty subdirectories, `propose` may safely reuse it.
+   For new or empty scaffolds, populate artifacts in this exact order. Generate
+   supported artifacts with direct CLI invocations, edit scaffolded
+   `tasks.yaml` directly, and do not create JSON payload files.
     - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."`
     - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
     - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema
@@ -153,10 +159,14 @@ root. If it is missing, stop immediately and tell the user to run
    context, including `.strict-spec-driven/config.yaml` when available, for the
    complete project-level regression test method. Require evidence that the full
    project regression command has passed during review before archive execution,
-   even when all Testing tasks are complete. If the regression command cannot
-   run because dependencies, services, credentials, fixtures, or other test
-   conditions are unavailable, stop before archive and give the human actionable
-   setup or waiting guidance.
+   even when all Testing tasks are complete. A previously passed Testing task
+   command may satisfy the archive gate only when it exactly matches the
+   configured complete project regression command and no implementation, test,
+   strict artifact, or configuration files relevant to the change have changed
+   since that command passed. If the regression command cannot run because
+   dependencies, services, credentials, fixtures, or other test conditions are
+   unavailable, stop before archive and give the human actionable setup or
+   waiting guidance.
 
 11. **Archive cleanly** — if the change verifies, reviews cleanly, and has
    passing complete project-level regression test evidence, run:

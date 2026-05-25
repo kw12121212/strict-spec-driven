@@ -2083,3 +2083,41 @@ requirements:
         - GIVEN: exactly one active debug-session exists and the user does not provide a session id
         - WHEN: the debug-session-to-change skill resolves the source investigation
         - THEN: the skill uses that unique active session without an extra selection round
+  cli-auto-skill-efficient-resume-guidance:
+    strength: MUST
+    statement: >-
+      The system MUST require strict-spec-auto guidance to resume existing populated strict change
+      scaffolds without regenerating planning artifacts, narrow context reset to current change
+      artifacts and mapped files, and avoid rerunning an identical complete project regression
+      command when unchanged passing evidence already satisfies the configured archive gate.
+    scenarios:
+      auto-resumes-populated-scaffold:
+        - GIVEN: >-
+            a strict change directory already contains populated proposal, design, tasks, questions,
+            and delta spec artifacts
+        - WHEN: strict-spec-auto guidance is used for that change
+        - THEN: >-
+            the guidance instructs the agent to resume the existing artifacts instead of running
+            propose or generate again
+        - THEN: ready or next remains available to surface blockers before implementation
+      auto-uses-targeted-context-reset:
+        - GIVEN: strict-spec-auto resumes or proposes a strict change
+        - WHEN: the context reset step is followed
+        - THEN: >-
+            the guidance limits required rereads to current change artifacts, relevant main specs,
+            mapped implementation and test files, repository status, and regression configuration
+            when needed
+      auto-reuses-unchanged-regression-evidence:
+        - GIVEN: >-
+            a Testing task command has passed and exactly matches the configured complete project
+            regression command
+        - GIVEN: >-
+            no implementation, test, strict artifact, or configuration files relevant to the change
+            have changed since that command passed
+        - WHEN: strict-spec-auto evaluates archive readiness
+        - THEN: >-
+            the guidance allows that passing command result to satisfy the complete project
+            regression evidence requirement without rerunning the identical command
+        - THEN: >-
+            review-time changes still require strict verification and complete project regression
+            evidence to be refreshed

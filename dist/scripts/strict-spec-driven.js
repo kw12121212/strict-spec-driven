@@ -18013,6 +18013,12 @@ var ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 var ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
 var ROADMAP_ACTIVE_CONFLICT_SNIPPET = "active strict change conflicts";
 var ROADMAP_SCRIPTED_RECOMMEND_SNIPPET = "treat the command's selected planned change as authoritative";
+var ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET = "before reading broad roadmap context";
+var ROADMAP_READY_HANDOFF_SNIPPET = "Use `ready` as the proposal handoff validation";
+var ROADMAP_AUTO_POPULATED_HANDOFF_SNIPPET = "populated change scaffold";
+var AUTO_TARGETED_CONTEXT_RESET_SNIPPET = "Reset context from targeted files";
+var AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET = "resume the existing populated strict change scaffold without regenerating planning artifacts";
+var AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET = "exactly matches the configured complete project regression command";
 var REVIEW_AUTO_FIX_SNIPPET = "Automatically fix safe in-scope review findings";
 var REVIEW_POST_FIX_REGRESSION_SNIPPET = "rerun strict verification plus the configured complete regression command after review-time changes";
 var CORE_STRICT_SKILL_EXPECTATIONS = {
@@ -18101,6 +18107,9 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
     requiredSnippets: [
       ".strict-spec-driven/",
       "/strict-spec-ship <change-name>",
+      AUTO_TARGETED_CONTEXT_RESET_SNIPPET,
+      AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET,
+      AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET,
       "dev-session-plan",
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
@@ -18160,8 +18169,7 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
       "roadmap-recommend": `${COMMAND_PREFIX} roadmap-recommend`,
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
-      ready: READY_COMMAND,
-      verify: `${COMMAND_PREFIX} verify <change-name>`
+      ready: READY_COMMAND
     },
     requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [
@@ -18170,6 +18178,9 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
       ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
       ROADMAP_ACTIVE_CONFLICT_SNIPPET,
       ROADMAP_SCRIPTED_RECOMMEND_SNIPPET,
+      ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET,
+      ROADMAP_READY_HANDOFF_SNIPPET,
+      ROADMAP_AUTO_POPULATED_HANDOFF_SNIPPET,
       "/strict-spec-auto"
     ]
   },

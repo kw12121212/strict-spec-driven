@@ -208,8 +208,11 @@ context.assert(
       && normalizedAutoSkillContent.includes("rerun strict verification plus the configured complete regression command after review-time changes")
       && normalizedAutoSkillContent.includes("correctness, spec alignment")
       && normalizedAutoSkillContent.includes("dedicated lint Testing task before full unit or regression test tasks")
+      && normalizedAutoSkillContent.includes("Reset context from targeted files")
+      && normalizedAutoSkillContent.includes("resume the existing populated strict change scaffold without regenerating planning artifacts")
+      && normalizedAutoSkillContent.includes("exactly matches the configured complete project regression command")
       && !autoSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>"),
-    "strict-spec-auto blocks archive without automatic safe fixes, complete regression, and direct code review evidence",
+    "strict-spec-auto resumes populated scaffolds and blocks archive without automatic safe fixes, complete regression, and direct code review evidence",
   );
   context.assert(
     normalizedRoadmapPlanSkillContent.includes("Before any other step, confirm `.strict-spec-driven/` exists")
@@ -220,8 +223,11 @@ context.assert(
   context.assert(
     roadmapRecommendSkillContent.includes("roadmap-recommend: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-recommend")
       && normalizedRoadmapRecommendSkillContent.includes("treat the command's selected planned change as authoritative")
+      && normalizedRoadmapRecommendSkillContent.includes("before reading broad roadmap context")
+      && normalizedRoadmapRecommendSkillContent.includes("Use `ready` as the proposal handoff validation")
+      && normalizedRoadmapRecommendSkillContent.includes("populated change scaffold")
       && normalizedRoadmapRecommendSkillContent.includes("instead of manually choosing among planned changes"),
-    "strict-roadmap-recommend requires the scripted recommendation command and authoritative selection guidance",
+    "strict-roadmap-recommend requires scripted-first recommendation, ready handoff, and populated auto resume guidance",
   );
   context.assert(
     normalizedDevSessionInitSkillContent.includes("Before any other step, confirm `.strict-spec-driven/` exists")
@@ -883,6 +889,15 @@ try {
         && diagnostic.expected === "rerun strict verification plus the configured complete regression command after review-time changes",
     ),
     "auto skill missing post-review-fix regression guidance reports required snippet diagnostic",
+  );
+  context.assert(
+    invalidSemanticResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.required_snippet.missing"
+        && diagnostic.path === "skills/strict-spec-auto/SKILL.md"
+        && diagnostic.expected === "resume the existing populated strict change scaffold without regenerating planning artifacts",
+    ),
+    "auto skill missing populated scaffold resume guidance reports required snippet diagnostic",
   );
 } finally {
   rmSync(invalidSemanticSkillRoot, { recursive: true, force: true });

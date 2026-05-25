@@ -1,0 +1,52 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: streamline-roadmap-recommend-auto
+sections:
+  Implementation:
+    update-roadmap-recommend-skill:
+      text: >-
+        Update strict-roadmap-recommend guidance to run the scripted recommendation first, perform
+        targeted context reads after the recommendation, validate proposal handoff with ready, and
+        hand a populated change to strict-spec-auto without duplicate verify.
+      status: complete
+    update-auto-skill:
+      text: >-
+        Update strict-spec-auto guidance to resume populated change scaffolds without regenerating
+        artifacts, narrow context reset to current artifacts and mapped files, and document safe
+        reuse of unchanged complete regression evidence.
+      status: complete
+    update-skill-validation:
+      text: >-
+        Update skill content expectations and regression checks so the streamlined guidance is
+        required by automated validation where appropriate.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run the complete project regression suite.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-change:
+      text: Run strict verification for this change.
+      status: complete
+      command: node scripts/strict-spec-driven.js verify streamline-roadmap-recommend-auto
+    verify-spec-mappings:
+      text: Run strict spec mapping verification after spec and mapping changes.
+      status: complete
+      command: node scripts/strict-spec-driven.js verify-spec-mappings
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

@@ -23,7 +23,6 @@ roadmap-recommend: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-reco
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
 generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec> --<named-args>
 ready: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
-verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
 
 ## Prerequisites
@@ -49,28 +48,32 @@ Before any other step, confirm `.strict-spec-driven/` exists at the project
 root. If it is missing, stop immediately and tell the user to run
 `/strict-spec-init`. Do not run `init` from this skill.
 
-1. **Read roadmap context first** — read:
+1. **Obtain the scripted recommendation first** — run the scripted
+   recommendation command before reading broad roadmap context,
+   selecting work, or opening candidate planned-change files, and treat the
+   command's selected planned change as authoritative for the recommendation
+   step. The scripted result already accounts for active strict change
+   conflicts, invalid roadmap state, and dependency blockers. If the command exits
+   non-zero, surface the JSON result and stop instead of manually choosing
+   among planned changes. Use the returned recommendation `path` to open the
+   exact standalone planned-change file you are recommending from.
+
+2. **Read targeted recommendation context** — after a successful scripted
+   recommendation, read only the files needed to explain and scaffold that
+   selected change:
    - `.strict-spec-driven/config.yaml`
    - `.strict-spec-driven/roadmap/INDEX.yaml`
-   - the milestone YAML files relevant to the current strict roadmap phase
-   - standalone planned-change YAML artifacts under
-     `.strict-spec-driven/roadmap/planned-changes/`
+   - the owning milestone YAML file for the selected planned change
+   - the standalone planned-change YAML artifact reported by the
+     scripted recommendation result `path`
    - `.strict-spec-driven/specs/INDEX.yaml`
-   - the strict YAML main specs the candidate change is likely to touch
-   - the current `roadmap-status` output
+   - the strict YAML main specs the selected change is likely to touch
+   - `roadmap-status` output only when needed to explain diagnostic context or
+     legacy inline planned-change state
    - the owning milestone YAML file's `details` field, if present, as targeted
      planning guidance for the recommended change
    - the selected standalone planned-change artifact's `details` field, if the
      planned change comes from a split-file artifact
-
-2. **Obtain the scripted recommendation first** — run the scripted
-   recommendation command before selecting work, and treat the command's
-   selected planned change as authoritative for the recommendation step. The
-   scripted result already accounts for active strict change conflicts,
-   invalid roadmap state, and dependency blockers. If the command exits
-   non-zero, surface the JSON result and stop instead of manually choosing
-   among planned changes. Use the returned recommendation `path` to open the
-   exact standalone planned-change file you are recommending from.
 
 3. **Present a checkpoint before scaffolding** — summarize:
    - the proposed change name
@@ -111,22 +114,23 @@ root. If it is missing, stop immediately and tell the user to run
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
    ```
-   Use `ready` for deterministic proposal-handoff blockers, then run:
-   ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
-   ```
-   Fix safe proposal-shape issues and record real ambiguity in
-   `questions.yaml`. Do not stop for human question resolution during
-   `strict-roadmap-recommend`; leave those questions for `strict-spec-auto` or
-   `strict-spec-apply` to surface before implementation.
+   Use `ready` as the proposal handoff validation for deterministic blockers.
+   Do not run a separate full verify command at proposal time solely to
+   rediscover expected pending implementation tasks. Fix safe proposal-shape
+   issues and record real ambiguity in `questions.yaml`. Do not stop for human
+   question resolution during `strict-roadmap-recommend`; leave those questions
+   for `strict-spec-auto` or `strict-spec-apply` to surface before
+   implementation.
 
 6. **Automatically continue with implementation** — immediately invoke the
-   `/strict-spec-auto` skill to carry the recommended change through the rest of
-   the strict lifecycle (review, apply, verify, archive). If
-   `questions.yaml.open` is non-empty, `strict-spec-auto` will surface those
-   questions before implementation begins. Do not offer a choice or ask the
-   user which workflow to use — invoke the `strict-spec-auto` skill via the
-   Skill tool (do not run it as a bash command or raw slash command).
+   `/strict-spec-auto <change-name>` skill with the populated change scaffold
+   to carry the recommended change through the rest of the strict lifecycle
+   (review, apply, verify, archive). If `questions.yaml.open` is non-empty,
+   `strict-spec-auto` will surface those questions before implementation
+   begins. Do not offer a choice or ask the user which workflow to use —
+   invoke the `strict-spec-auto` skill via the Skill tool (do not run it as a
+   bash command or raw slash command), and rely on its populated-scaffold
+   resume path instead of regenerating the planning artifacts.
 
 ## Rules
 
