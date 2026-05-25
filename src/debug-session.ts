@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, renameSync, statSync, writeFileSync } from "fs";
 import path from "path";
 import { normalizeRepoRelativePath } from "./cli/fs.js";
 import { readBundledScaffoldTemplate } from "./scaffold.js";
@@ -6,6 +6,7 @@ import { loadBundledSchemaByArtifactType, validateArtifact, type ValidationDiagn
 import { formatYamlParseSummary, getYamlDiagnosticDetails, parseYamlFile } from "./yaml.js";
 
 export const DEBUG_SESSIONS_DIR = ".strict-spec-driven/debug-sessions";
+export const DEBUG_SESSION_ARCHIVE_DIR = `${DEBUG_SESSIONS_DIR}/archive`;
 export const DEBUG_SESSION_FILE_NAME = "session.yaml";
 export const DEBUG_SESSION_TEMPLATE_PATH = "debug-sessions/session.yaml";
 
@@ -36,6 +37,23 @@ export type DebugSessionValidateResult = {
   valid: boolean;
   artifactPath: string;
   diagnostics: DebugSessionDiagnostic[];
+};
+
+export type DebugSessionArchiveResult = {
+  ok: boolean;
+  sessionId: string | null;
+  sourceDir: string;
+  sourcePath: string;
+  archiveDir: string | null;
+  archivePath: string | null;
+  diagnostics: DebugSessionDiagnostic[];
+};
+
+type DebugSessionArtifact = {
+  debug_session?: {
+    id?: unknown;
+    status?: unknown;
+  };
 };
 
 function createDiagnostic(
@@ -71,6 +89,33 @@ function normalizeDebugSessionPath(rootDir: string, target: string): { artifactP
   };
 }
 
+function formatLocalDate(date = new Date()): string {
+  const year = String(date.getFullYear());
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function buildDebugSessionArchiveDestination(rootDir: string, sessionId: string): string {
+  const archiveRoot = path.join(rootDir, DEBUG_SESSION_ARCHIVE_DIR);
+  mkdirSync(archiveRoot, { recursive: true });
+
+  const baseName = `${formatLocalDate()}-${sessionId}`;
+  let candidate = path.join(archiveRoot, baseName);
+  let sequence = 2;
+
+  while (existsSync(candidate)) {
+    candidate = path.join(archiveRoot, `${baseName}-${sequence}`);
+    sequence += 1;
+  }
+
+  return candidate;
+}
+
+function isDirectory(filePath: string): boolean {
+  return existsSync(filePath) && statSync(filePath).isDirectory();
+}
+
 function yamlDiagnosticFromError(artifactPath: string, error: unknown): DebugSessionDiagnostic {
   const details = getYamlDiagnosticDetails(error);
   return {
@@ -96,7 +141,7 @@ export function createDebugSession(rootDir: string, sessionId: string): DebugSes
   const relativeSessionPath = normalizeRepoRelativePath(rootDir, sessionPath);
   const relativeEvidenceDir = normalizeRepoRelativePath(rootDir, evidenceDir);
 
-  if (!DEBUG_SESSION_ID_PATTERN.test(sessionId)) {
+  if (!DEBUG_SESSION_ID_PATTERN.test(sessionId) || sessionId === "archive") {
     return {
       ok: false,
       sessionId,
@@ -105,8 +150,8 @@ export function createDebugSession(rootDir: string, sessionId: string): DebugSes
       evidenceDir: relativeEvidenceDir,
       created: [],
       diagnostics: [
-        createDiagnostic(relativeSessionPath, "$.debug_session.id", "debug-session id must be kebab-case", {
-          expected: "lowercase letters, numbers, and hyphens",
+        createDiagnostic(relativeSessionPath, "$.debug_session.id", "debug-session id must be kebab-case and not reserved", {
+          expected: "lowercase letters, numbers, hyphens, and not 'archive'",
           actual: sessionId,
         }),
       ],
@@ -177,5 +222,131 @@ export function validateDebugSession(rootDir: string, target: string): DebugSess
     valid: result.valid,
     artifactPath,
     diagnostics: result.diagnostics,
+  };
+}
+
+export function archiveDebugSession(rootDir: string, target: string): DebugSessionArchiveResult {
+  const { artifactPath, absolutePath } = normalizeDebugSessionPath(rootDir, target);
+  const sourceDir = path.dirname(absolutePath);
+  const relativeSourceDir = normalizeRepoRelativePath(rootDir, sourceDir);
+
+  const missingResult = {
+    ok: false,
+    sessionId: null,
+    sourceDir: relativeSourceDir,
+    sourcePath: artifactPath,
+    archiveDir: null,
+    archivePath: null,
+  };
+
+  if (!existsSync(absolutePath)) {
+    return {
+      ...missingResult,
+      diagnostics: [
+        createDiagnostic(artifactPath, "$", "debug-session artifact not found", {
+          expected: "session.yaml file",
+          actual: "missing",
+        }),
+      ],
+    };
+  }
+
+  const activeRoot = path.resolve(rootDir, DEBUG_SESSIONS_DIR);
+  const sourceParent = path.dirname(path.resolve(sourceDir));
+  if (path.basename(absolutePath) !== DEBUG_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
+    return {
+      ...missingResult,
+      diagnostics: [
+        createDiagnostic(artifactPath, "$", "debug-session archive target must be an active session.yaml artifact", {
+          expected: `${DEBUG_SESSIONS_DIR}/<session-id>/${DEBUG_SESSION_FILE_NAME}`,
+          actual: artifactPath,
+        }),
+      ],
+    };
+  }
+
+  const validation = validateDebugSession(rootDir, artifactPath);
+  if (!validation.valid) {
+    return {
+      ...missingResult,
+      diagnostics: validation.diagnostics,
+    };
+  }
+
+  let artifact: DebugSessionArtifact;
+  try {
+    artifact = parseYamlFile(absolutePath) as DebugSessionArtifact;
+  } catch (error) {
+    return {
+      ...missingResult,
+      diagnostics: [yamlDiagnosticFromError(artifactPath, error)],
+    };
+  }
+
+  const sessionId = artifact.debug_session?.id;
+  const status = artifact.debug_session?.status;
+  if (typeof sessionId !== "string" || sessionId.length === 0) {
+    return {
+      ...missingResult,
+      diagnostics: [
+        createDiagnostic(artifactPath, "$.debug_session.id", "debug-session artifact is missing a session id", {
+          expected: "non-empty debug_session.id",
+          actual: typeof sessionId,
+        }),
+      ],
+    };
+  }
+
+  if (sessionId === "archive") {
+    return {
+      ...missingResult,
+      sessionId,
+      diagnostics: [
+        createDiagnostic(artifactPath, "$.debug_session.id", "debug-session id is reserved for archived sessions", {
+          expected: "non-reserved debug-session id",
+          actual: sessionId,
+        }),
+      ],
+    };
+  }
+
+  if (path.basename(sourceDir) !== sessionId) {
+    return {
+      ...missingResult,
+      sessionId,
+      diagnostics: [
+        createDiagnostic(artifactPath, "$.debug_session.id", "debug-session id must match its active directory name", {
+          expected: path.basename(sourceDir),
+          actual: sessionId,
+        }),
+      ],
+    };
+  }
+
+  if (status !== "resolved" && status !== "blocked") {
+    return {
+      ...missingResult,
+      sessionId,
+      diagnostics: [
+        createDiagnostic(artifactPath, "$.debug_session.status", "debug-session must be resolved or blocked before archive", {
+          expected: "resolved or blocked",
+          actual: typeof status === "string" ? status : typeof status,
+        }),
+      ],
+    };
+  }
+
+  const archiveDestination = buildDebugSessionArchiveDestination(rootDir, sessionId);
+  const archivePath = path.join(archiveDestination, DEBUG_SESSION_FILE_NAME);
+  renameSync(sourceDir, archiveDestination);
+
+  return {
+    ok: true,
+    sessionId,
+    sourceDir: relativeSourceDir,
+    sourcePath: artifactPath,
+    archiveDir: normalizeRepoRelativePath(rootDir, archiveDestination),
+    archivePath: normalizeRepoRelativePath(rootDir, archivePath),
+    diagnostics: [],
   };
 }

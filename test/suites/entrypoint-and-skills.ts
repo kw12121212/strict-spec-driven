@@ -42,6 +42,7 @@ const expectedCommandOrder = [
   "dev-session-stop",
   "debug-session-create",
   "debug-session-validate",
+  "debug-session-archive",
   "migrate",
   "roadmap-status",
   "roadmap-overview",
@@ -173,6 +174,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const roadmapRecommendSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
   const devSessionInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-dev-session-init", "SKILL.md"), "utf8");
   const debugSessionSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-debug-session", "SKILL.md"), "utf8");
+  const debugSessionArchiveSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-debug-session-archive", "SKILL.md"), "utf8");
   const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
   const normalizedReviewSkillContent = reviewSkillContent.replace(/\s+/g, " ");
   const normalizedAutoSkillContent = autoSkillContent.replace(/\s+/g, " ");
@@ -180,6 +182,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedRoadmapRecommendSkillContent = roadmapRecommendSkillContent.replace(/\s+/g, " ");
   const normalizedDevSessionInitSkillContent = devSessionInitSkillContent.replace(/\s+/g, " ");
   const normalizedDebugSessionSkillContent = debugSessionSkillContent.replace(/\s+/g, " ");
+  const normalizedDebugSessionArchiveSkillContent = debugSessionArchiveSkillContent.replace(/\s+/g, " ");
   const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
 context.assert(
   normalizedReviewSkillContent.includes("complete project-level regression test evidence")
@@ -232,6 +235,15 @@ context.assert(
       && normalizedDebugSessionSkillContent.includes("secrets_recorded: false")
       && normalizedDebugSessionSkillContent.includes("Web API, frontend, Electron, or CDP access"),
     "strict-spec-debug-session covers creation, validation, dev-session lifecycle, layer guidance, and human checkpoint secret boundaries",
+  );
+  context.assert(
+    normalizedDebugSessionArchiveSkillContent.includes("debug-session-validate")
+      && normalizedDebugSessionArchiveSkillContent.includes("debug-session-archive")
+      && normalizedDebugSessionArchiveSkillContent.includes("debug_session.status")
+      && normalizedDebugSessionArchiveSkillContent.includes("resolved")
+      && normalizedDebugSessionArchiveSkillContent.includes("blocked")
+      && normalizedDebugSessionArchiveSkillContent.includes("Do not delete, rewrite, or move evidence manually"),
+    "strict-spec-debug-session-archive validates closeout state and uses the archive command while preserving evidence",
   );
   context.assert(
     normalizedWorkflowConfigContent.includes("review_evidence:")

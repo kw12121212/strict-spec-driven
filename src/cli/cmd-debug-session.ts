@@ -1,9 +1,10 @@
-import { createDebugSession, validateDebugSession } from "../debug-session.js";
+import { archiveDebugSession, createDebugSession, validateDebugSession } from "../debug-session.js";
 import { CHANGE_NAME_PATTERN, isHelpRequest } from "./argv.js";
 import { writeError, writeHelp, writeJson, writeUsage } from "./output.js";
 
 const DEBUG_SESSION_CREATE_USAGE = "Usage: strict-spec-driven debug-session-create <session-id>\n";
 const DEBUG_SESSION_VALIDATE_USAGE = "Usage: strict-spec-driven debug-session-validate <session-id|session.yaml>\n";
+const DEBUG_SESSION_ARCHIVE_USAGE = "Usage: strict-spec-driven debug-session-archive <session-id|session.yaml>\n";
 
 export function runDebugSessionCreate(argv: string[]): number {
   const [sessionId, ...extraArgs] = argv;
@@ -39,4 +40,20 @@ export function runDebugSessionValidate(argv: string[]): number {
   const result = validateDebugSession(process.cwd(), target);
   writeJson(result);
   return result.valid ? 0 : 1;
+}
+
+export function runDebugSessionArchive(argv: string[]): number {
+  const [target, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(DEBUG_SESSION_ARCHIVE_USAGE);
+    return 0;
+  }
+  if (!target || extraArgs.length > 0) {
+    writeUsage(DEBUG_SESSION_ARCHIVE_USAGE);
+    return 1;
+  }
+
+  const result = archiveDebugSession(process.cwd(), target);
+  writeJson(result);
+  return result.ok ? 0 : 1;
 }

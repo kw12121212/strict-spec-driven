@@ -6600,6 +6600,7 @@ var COMMAND_REGISTRATION_ORDER = [
   "dev-session-stop",
   "debug-session-create",
   "debug-session-validate",
+  "debug-session-archive",
   "migrate",
   "roadmap-status",
   "roadmap-overview",
@@ -19933,9 +19934,10 @@ function runDevSessionStop(argv) {
 }
 
 // src/debug-session.ts
-import { existsSync as existsSync29, mkdirSync as mkdirSync7, writeFileSync as writeFileSync10 } from "fs";
+import { existsSync as existsSync29, mkdirSync as mkdirSync7, renameSync as renameSync2, statSync as statSync21, writeFileSync as writeFileSync10 } from "fs";
 import path30 from "path";
 var DEBUG_SESSIONS_DIR = ".strict-spec-driven/debug-sessions";
+var DEBUG_SESSION_ARCHIVE_DIR = `${DEBUG_SESSIONS_DIR}/archive`;
 var DEBUG_SESSION_FILE_NAME = "session.yaml";
 var DEBUG_SESSION_TEMPLATE_PATH = "debug-sessions/session.yaml";
 var DEBUG_SESSION_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
@@ -19960,6 +19962,27 @@ function normalizeDebugSessionPath(rootDir, target) {
     absolutePath
   };
 }
+function formatLocalDate2(date = new Date) {
+  const year = String(date.getFullYear());
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+function buildDebugSessionArchiveDestination(rootDir, sessionId) {
+  const archiveRoot = path30.join(rootDir, DEBUG_SESSION_ARCHIVE_DIR);
+  mkdirSync7(archiveRoot, { recursive: true });
+  const baseName = `${formatLocalDate2()}-${sessionId}`;
+  let candidate = path30.join(archiveRoot, baseName);
+  let sequence = 2;
+  while (existsSync29(candidate)) {
+    candidate = path30.join(archiveRoot, `${baseName}-${sequence}`);
+    sequence += 1;
+  }
+  return candidate;
+}
+function isDirectory(filePath) {
+  return existsSync29(filePath) && statSync21(filePath).isDirectory();
+}
 function yamlDiagnosticFromError(artifactPath, error) {
   const details = getYamlDiagnosticDetails(error);
   return {
@@ -19983,7 +20006,7 @@ function createDebugSession(rootDir, sessionId) {
   const relativeSessionDir = normalizeRepoRelativePath4(rootDir, sessionDir);
   const relativeSessionPath = normalizeRepoRelativePath4(rootDir, sessionPath);
   const relativeEvidenceDir = normalizeRepoRelativePath4(rootDir, evidenceDir);
-  if (!DEBUG_SESSION_ID_PATTERN.test(sessionId)) {
+  if (!DEBUG_SESSION_ID_PATTERN.test(sessionId) || sessionId === "archive") {
     return {
       ok: false,
       sessionId,
@@ -19992,8 +20015,8 @@ function createDebugSession(rootDir, sessionId) {
       evidenceDir: relativeEvidenceDir,
       created: [],
       diagnostics: [
-        createDiagnostic(relativeSessionPath, "$.debug_session.id", "debug-session id must be kebab-case", {
-          expected: "lowercase letters, numbers, and hyphens",
+        createDiagnostic(relativeSessionPath, "$.debug_session.id", "debug-session id must be kebab-case and not reserved", {
+          expected: "lowercase letters, numbers, hyphens, and not 'archive'",
           actual: sessionId
         })
       ]
@@ -20060,11 +20083,127 @@ function validateDebugSession(rootDir, target) {
     diagnostics: result.diagnostics
   };
 }
+function archiveDebugSession(rootDir, target) {
+  const { artifactPath, absolutePath } = normalizeDebugSessionPath(rootDir, target);
+  const sourceDir = path30.dirname(absolutePath);
+  const relativeSourceDir = normalizeRepoRelativePath4(rootDir, sourceDir);
+  const missingResult = {
+    ok: false,
+    sessionId: null,
+    sourceDir: relativeSourceDir,
+    sourcePath: artifactPath,
+    archiveDir: null,
+    archivePath: null
+  };
+  if (!existsSync29(absolutePath)) {
+    return {
+      ...missingResult,
+      diagnostics: [
+        createDiagnostic(artifactPath, "$", "debug-session artifact not found", {
+          expected: "session.yaml file",
+          actual: "missing"
+        })
+      ]
+    };
+  }
+  const activeRoot = path30.resolve(rootDir, DEBUG_SESSIONS_DIR);
+  const sourceParent = path30.dirname(path30.resolve(sourceDir));
+  if (path30.basename(absolutePath) !== DEBUG_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
+    return {
+      ...missingResult,
+      diagnostics: [
+        createDiagnostic(artifactPath, "$", "debug-session archive target must be an active session.yaml artifact", {
+          expected: `${DEBUG_SESSIONS_DIR}/<session-id>/${DEBUG_SESSION_FILE_NAME}`,
+          actual: artifactPath
+        })
+      ]
+    };
+  }
+  const validation = validateDebugSession(rootDir, artifactPath);
+  if (!validation.valid) {
+    return {
+      ...missingResult,
+      diagnostics: validation.diagnostics
+    };
+  }
+  let artifact;
+  try {
+    artifact = parseYamlFile(absolutePath);
+  } catch (error) {
+    return {
+      ...missingResult,
+      diagnostics: [yamlDiagnosticFromError(artifactPath, error)]
+    };
+  }
+  const sessionId = artifact.debug_session?.id;
+  const status = artifact.debug_session?.status;
+  if (typeof sessionId !== "string" || sessionId.length === 0) {
+    return {
+      ...missingResult,
+      diagnostics: [
+        createDiagnostic(artifactPath, "$.debug_session.id", "debug-session artifact is missing a session id", {
+          expected: "non-empty debug_session.id",
+          actual: typeof sessionId
+        })
+      ]
+    };
+  }
+  if (sessionId === "archive") {
+    return {
+      ...missingResult,
+      sessionId,
+      diagnostics: [
+        createDiagnostic(artifactPath, "$.debug_session.id", "debug-session id is reserved for archived sessions", {
+          expected: "non-reserved debug-session id",
+          actual: sessionId
+        })
+      ]
+    };
+  }
+  if (path30.basename(sourceDir) !== sessionId) {
+    return {
+      ...missingResult,
+      sessionId,
+      diagnostics: [
+        createDiagnostic(artifactPath, "$.debug_session.id", "debug-session id must match its active directory name", {
+          expected: path30.basename(sourceDir),
+          actual: sessionId
+        })
+      ]
+    };
+  }
+  if (status !== "resolved" && status !== "blocked") {
+    return {
+      ...missingResult,
+      sessionId,
+      diagnostics: [
+        createDiagnostic(artifactPath, "$.debug_session.status", "debug-session must be resolved or blocked before archive", {
+          expected: "resolved or blocked",
+          actual: typeof status === "string" ? status : typeof status
+        })
+      ]
+    };
+  }
+  const archiveDestination = buildDebugSessionArchiveDestination(rootDir, sessionId);
+  const archivePath = path30.join(archiveDestination, DEBUG_SESSION_FILE_NAME);
+  renameSync2(sourceDir, archiveDestination);
+  return {
+    ok: true,
+    sessionId,
+    sourceDir: relativeSourceDir,
+    sourcePath: artifactPath,
+    archiveDir: normalizeRepoRelativePath4(rootDir, archiveDestination),
+    archivePath: normalizeRepoRelativePath4(rootDir, archivePath),
+    diagnostics: []
+  };
+}
 
 // src/cli/cmd-debug-session.ts
 var DEBUG_SESSION_CREATE_USAGE = `Usage: strict-spec-driven debug-session-create <session-id>
 `;
 var DEBUG_SESSION_VALIDATE_USAGE = `Usage: strict-spec-driven debug-session-validate <session-id|session.yaml>
+`;
+var DEBUG_SESSION_ARCHIVE_USAGE = `Usage: strict-spec-driven debug-session-archive <session-id|session.yaml>
 `;
 function runDebugSessionCreate(argv) {
   const [sessionId, ...extraArgs] = argv;
@@ -20098,6 +20237,20 @@ function runDebugSessionValidate(argv) {
   writeJson(result);
   return result.valid ? 0 : 1;
 }
+function runDebugSessionArchive(argv) {
+  const [target, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(DEBUG_SESSION_ARCHIVE_USAGE);
+    return 0;
+  }
+  if (!target || extraArgs.length > 0) {
+    writeUsage(DEBUG_SESSION_ARCHIVE_USAGE);
+    return 1;
+  }
+  const result = archiveDebugSession(process.cwd(), target);
+  writeJson(result);
+  return result.ok ? 0 : 1;
+}
 
 // src/strict-spec-cli.ts
 var commands = createCliCommandTable({
@@ -20122,6 +20275,7 @@ var commands = createCliCommandTable({
   "dev-session-stop": (argv) => runDevSessionStop(argv),
   "debug-session-create": (argv) => runDebugSessionCreate(argv),
   "debug-session-validate": (argv) => runDebugSessionValidate(argv),
+  "debug-session-archive": (argv) => runDebugSessionArchive(argv),
   migrate: (argv) => runMigrate(argv),
   "roadmap-status": (argv) => runRoadmapStatus(argv),
   "roadmap-overview": (argv) => runRoadmapOverview(argv),

@@ -1,0 +1,35 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-debug-session-archive
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a debug-session archive CLI command that validates a completed debug session and moves it
+      out of the active debug-sessions directory into a date-prefixed archive directory.
+    - >-
+      Add an agent skill for archiving completed debug-session investigations using the new
+      deterministic command.
+  why:
+    - >-
+      Completed debug sessions currently remain active indefinitely, so investigations cannot be
+      closed while preserving evidence history.
+scope:
+  in:
+    - >-
+      Implement debug-session archive behavior for .strict-spec-driven/debug-sessions/<session-id>/
+      session directories.
+    - >-
+      Register the debug-session archive subcommand, update skill packaging metadata, and add tests
+      for CLI and skill validation behavior.
+    - Reserve `archive` as the internal debug-session archive directory name.
+  out:
+    - Do not alter strict change archive behavior for .strict-spec-driven/changes/.
+    - Do not change the debug-session YAML schema beyond what archive behavior needs.
+unchanged_behavior:
+  - Existing debug-session create behavior remains unchanged for non-reserved session IDs.
+  - Existing debug-session validate behavior remains unchanged.
+  - Existing dev-session lifecycle and strict change archive behavior remains unchanged.

@@ -1,0 +1,65 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/debug-session.ts
+    - src/cli/cmd-debug-session.ts
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+    - skills/strict-spec-debug-session-archive/SKILL.md
+    - skills/marketplace.json
+  tests:
+    - test/suites/debug-session.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-debug-session-archive:
+      strength: MUST
+      statement: >-
+        The system MUST provide a debug-session-archive CLI command that validates a debug-session
+        artifact by session ID or explicit session.yaml path, requires the session status to be
+        resolved or blocked, moves the entire session directory under
+        .strict-spec-driven/debug-sessions/archive/ using a date-prefixed archive directory, and
+        emits deterministic JSON describing the archive result. The system MUST reserve `archive`
+        as the debug-session archive directory name rather than allowing it as a new active
+        debug-session identifier.
+      scenarios:
+        debug-session-archive-moves-session:
+          - GIVEN: >-
+              a strict project contains a valid debug-session artifact with evidence under
+              .strict-spec-driven/debug-sessions/<session-id>/
+          - WHEN: strict-spec-driven debug-session-archive <session-id> is executed
+          - THEN: the command exits zero
+          - THEN: >-
+              the session directory is moved under .strict-spec-driven/debug-sessions/archive/ with
+              a date-prefixed directory name
+          - THEN: >-
+              JSON output reports the archived session id, source directory, archive directory, and
+              archived artifact path
+        debug-session-archive-rejects-unresolved-session:
+          - GIVEN: a strict project contains a valid debug-session artifact whose status is proposed
+          - WHEN: strict-spec-driven debug-session-archive <session-id> is executed
+          - THEN: the command exits non-zero
+          - THEN: JSON diagnostics identify that the status must be resolved or blocked
+        debug-session-create-rejects-reserved-archive-id:
+          - GIVEN: a strict project does not contain an active debug-session named archive
+          - WHEN: strict-spec-driven debug-session-create archive is executed
+          - THEN: the command exits non-zero
+          - THEN: JSON diagnostics identify archive as a reserved debug-session identifier
+    skill-debug-session-archive:
+      strength: MUST
+      statement: >-
+        The system MUST provide a debug-session archive skill that guides agents to validate
+        completion evidence, run the deterministic debug-session-archive command, and report the
+        archived investigation path without deleting evidence.
+      scenarios:
+        debug-session-archive-skill-uses-command:
+          - GIVEN: a completed debug-session investigation is ready to close
+          - WHEN: the debug-session archive skill is used
+          - THEN: the skill instructs the agent to validate the session and run debug-session-archive
+          - THEN: the skill preserves the archived evidence path in its handoff summary
+  MODIFIED: {}
+  REMOVED: {}
