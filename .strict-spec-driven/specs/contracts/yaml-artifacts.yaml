@@ -34,6 +34,7 @@ mapping:
     - skills/strict-spec-brainstorm/SKILL.md
     - skills/strict-spec-cancel/SKILL.md
     - skills/strict-spec-debug-session/SKILL.md
+    - skills/strict-spec-debug-session-to-change/SKILL.md
     - skills/strict-spec-init/SKILL.md
     - skills/strict-spec-migrate/SKILL.md
     - skills/strict-spec-maintenance/SKILL.md
@@ -1844,3 +1845,28 @@ requirements:
         - THEN: >-
             the artifact can reference dev-session-plan/start/status/logs/stop commands, selected
             services, status/log evidence, blocking conditions, and cleanup status
+  strict-debug-session-to-change-skill-guidance:
+    strength: MUST
+    statement: >-
+      The system MUST package a strict debug-session-to-change skill that selects only active
+      debug-session artifacts, derives a kebab-case change name from session content, records
+      unresolved ambiguity in questions.yaml, and preserves the source debug-session while handing
+      off to strict-spec-auto or strict-spec-apply.
+    scenarios:
+      packaged-skill-is-discoverable:
+        - GIVEN: strict skill packaging is validated
+        - WHEN: marketplace metadata and skill files are inspected
+        - THEN: >-
+            the debug-session-to-change skill is discoverable with valid metadata and command
+            references
+      incomplete-session-creates-open-questions:
+        - GIVEN: selected debug-session evidence does not fully determine scope or spec impact
+        - WHEN: the debug-session-to-change skill generates change artifacts
+        - THEN: unresolved details are recorded in questions.yaml as open entries
+        - AND: the skill stops before implementation begins
+      source-session-remains-unchanged:
+        - GIVEN: a debug-session has been converted into a strict change proposal
+        - WHEN: the handoff summary is produced
+        - THEN: >-
+            the original debug-session artifact is left in place and is not archived or rewritten by
+            the conversion skill

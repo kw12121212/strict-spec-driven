@@ -175,6 +175,10 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const devSessionInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-dev-session-init", "SKILL.md"), "utf8");
   const debugSessionSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-debug-session", "SKILL.md"), "utf8");
   const debugSessionArchiveSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-debug-session-archive", "SKILL.md"), "utf8");
+  const debugSessionToChangeSkillContent = readFileSync(
+    path.join(ROOT, "skills", "strict-spec-debug-session-to-change", "SKILL.md"),
+    "utf8",
+  );
   const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
   const normalizedReviewSkillContent = reviewSkillContent.replace(/\s+/g, " ");
   const normalizedAutoSkillContent = autoSkillContent.replace(/\s+/g, " ");
@@ -183,6 +187,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedDevSessionInitSkillContent = devSessionInitSkillContent.replace(/\s+/g, " ");
   const normalizedDebugSessionSkillContent = debugSessionSkillContent.replace(/\s+/g, " ");
   const normalizedDebugSessionArchiveSkillContent = debugSessionArchiveSkillContent.replace(/\s+/g, " ");
+  const normalizedDebugSessionToChangeSkillContent = debugSessionToChangeSkillContent.replace(/\s+/g, " ");
   const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
 context.assert(
   normalizedReviewSkillContent.includes("complete project-level regression test evidence")
@@ -244,6 +249,16 @@ context.assert(
       && normalizedDebugSessionArchiveSkillContent.includes("blocked")
       && normalizedDebugSessionArchiveSkillContent.includes("Do not delete, rewrite, or move evidence manually"),
     "strict-spec-debug-session-archive validates closeout state and uses the archive command while preserving evidence",
+  );
+  context.assert(
+    normalizedDebugSessionToChangeSkillContent.includes("debug-session-validate")
+      && normalizedDebugSessionToChangeSkillContent.includes("questions.yaml.open")
+      && normalizedDebugSessionToChangeSkillContent.includes("if exactly one active session exists, use it automatically")
+      && normalizedDebugSessionToChangeSkillContent.includes("session id + status + summary")
+      && normalizedDebugSessionToChangeSkillContent.includes("/strict-spec-auto <change-name>")
+      && normalizedDebugSessionToChangeSkillContent.includes("/strict-spec-apply <change-name>")
+      && normalizedDebugSessionToChangeSkillContent.includes("Preserve the source debug-session exactly as-is"),
+    "strict-spec-debug-session-to-change preserves the source session, resolves active-session selection, records open questions, and hands off to auto/apply",
   );
   context.assert(
     normalizedWorkflowConfigContent.includes("review_evidence:")

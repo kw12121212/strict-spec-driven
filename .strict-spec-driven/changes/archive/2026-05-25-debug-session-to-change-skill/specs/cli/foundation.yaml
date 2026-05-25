@@ -1,0 +1,42 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - skills/strict-spec-debug-session-to-change/SKILL.md
+    - skills/marketplace.json
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    skill-debug-session-to-change:
+      strength: MUST
+      statement: >-
+        The system MUST provide a debug-session-to-change skill that can select an active
+        debug-session, derive a strict change from its evidence, and stop with advisory
+        strict-spec-auto or strict-spec-apply guidance instead of starting implementation
+        automatically.
+      scenarios:
+        explicit-session-generates-change:
+          - GIVEN: an active debug-session id is provided to the skill
+          - WHEN: the debug-session-to-change skill creates change artifacts from the selected session
+          - THEN: >-
+              the skill scaffolds and populates proposal, design, tasks, questions, and delta specs
+              for a derived change name
+          - AND: >-
+              the handoff recommends strict-spec-auto or strict-spec-apply without invoking either
+              workflow
+        multiple-active-sessions-require-selection:
+          - GIVEN: multiple active debug-sessions exist and the user does not provide a session id
+          - WHEN: the debug-session-to-change skill resolves the source investigation
+          - THEN: >-
+              the skill asks the human to choose among candidates using session id, status, and
+              summary information
+        unique-active-session-is-selected-automatically:
+          - GIVEN: exactly one active debug-session exists and the user does not provide a session id
+          - WHEN: the debug-session-to-change skill resolves the source investigation
+          - THEN: the skill uses that unique active session without an extra selection round
+  MODIFIED: {}
+  REMOVED: {}

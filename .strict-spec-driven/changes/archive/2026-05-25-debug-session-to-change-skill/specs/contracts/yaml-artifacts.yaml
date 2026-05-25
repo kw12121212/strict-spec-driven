@@ -1,0 +1,40 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-spec-debug-session-to-change/SKILL.md
+    - skills/marketplace.json
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    strict-debug-session-to-change-skill-guidance:
+      strength: MUST
+      statement: >-
+        The system MUST package a strict debug-session-to-change skill that selects only active
+        debug-session artifacts, derives a kebab-case change name from session content, records
+        unresolved ambiguity in questions.yaml, and preserves the source debug-session while handing
+        off to strict-spec-auto or strict-spec-apply.
+      scenarios:
+        packaged-skill-is-discoverable:
+          - GIVEN: strict skill packaging is validated
+          - WHEN: marketplace metadata and skill files are inspected
+          - THEN: >-
+              the debug-session-to-change skill is discoverable with valid metadata and command
+              references
+        incomplete-session-creates-open-questions:
+          - GIVEN: selected debug-session evidence does not fully determine scope or spec impact
+          - WHEN: the debug-session-to-change skill generates change artifacts
+          - THEN: unresolved details are recorded in questions.yaml as open entries
+          - AND: the skill stops before implementation begins
+        source-session-remains-unchanged:
+          - GIVEN: a debug-session has been converted into a strict change proposal
+          - WHEN: the handoff summary is produced
+          - THEN: >-
+              the original debug-session artifact is left in place and is not archived or rewritten
+              by the conversion skill
+  MODIFIED: {}
+  REMOVED: {}

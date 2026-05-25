@@ -1,0 +1,52 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: debug-session-to-change-skill
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a strict skill that turns a selected active debug-session into a populated strict change
+      proposal with proposal, design, tasks, questions, and delta specs.
+    - >-
+      Allow the skill to accept an explicit debug-session name or choose among active sessions when
+      the name is omitted.
+    - >-
+      End the workflow with advisory strict-spec-auto or strict-spec-apply guidance instead of
+      automatically starting implementation.
+  why:
+    - >-
+      Operators should be able to promote debug evidence into a spec change without manually
+      re-entering scope, tasks, and likely spec impact.
+    - >-
+      The handoff should preserve ambiguity as structured open questions so implementation does not
+      start on guessed requirements.
+scope:
+  in:
+    - >-
+      Add a new strict skill that inspects active debug-session artifacts and derives change content
+      from the selected session.
+    - >-
+      Support automatic selection when exactly one active debug-session exists and interactive
+      selection when multiple active sessions exist.
+    - >-
+      Derive a kebab-case change name from debug-session content and scaffold complete change
+      artifacts.
+    - >-
+      Record uncertainty in questions.yaml and stop after advising strict-spec-auto or
+      strict-spec-apply.
+  out:
+    - Add a new CLI subcommand for debug-session to change conversion.
+    - Select archived debug-session artifacts when the user omits the session name.
+    - >-
+      Automatically implement code, run strict-spec-auto, or run strict-spec-apply after proposal
+      creation.
+    - Mutate or archive the source debug-session as part of conversion.
+unchanged_behavior:
+  - Existing debug-session create, validate, and archive commands keep their current behavior.
+  - >-
+    Existing strict-spec-brainstorm, strict-spec-auto, and strict-spec-apply skills remain separate
+    entrypoints.
+  - Archived debug-session handling remains unchanged unless a future change scopes it explicitly.

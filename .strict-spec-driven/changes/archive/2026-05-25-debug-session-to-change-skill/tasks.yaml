@@ -1,0 +1,48 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: debug-session-to-change-skill
+sections:
+  Implementation:
+    update-main-specs:
+      text: >-
+        Update cli-foundation and contracts-yaml-artifacts main specs for the new
+        debug-session-to-change skill behavior.
+      status: complete
+    add-debug-session-to-change-skill:
+      text: >-
+        Add the strict-spec-debug-session-to-change skill package for active-session selection, full
+        change artifact generation, questions.yaml fallback, and advisory auto/apply handoff.
+      status: complete
+    register-skill-packaging:
+      text: >-
+        Register the new skill in marketplace metadata and extend automated packaging and content
+        coverage for its guidance.
+      status: complete
+  Testing:
+    run-skill-validation:
+      text: Run strict skill packaging validation.
+      status: complete
+      command: node scripts/strict-spec-driven.js validate-skills
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-conversion-scope:
+      text: >-
+        Verify the new skill stops at proposal handoff, preserves the source debug-session, and
+        matches the scoped active-session selection behavior.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

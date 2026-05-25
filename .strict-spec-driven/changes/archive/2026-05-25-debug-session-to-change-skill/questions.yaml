@@ -1,0 +1,61 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: debug-session-to-change-skill
+open: []
+resolved:
+  - id: generation-depth
+    question: Should the conversion skill fully populate strict change artifacts or only scaffold them?
+    context: The skill needs a default artifact depth after a debug-session is selected.
+    answer: It should fully populate proposal, design, tasks, questions, and delta specs.
+    status: resolved
+  - id: unnamed-source-scope
+    question: Which sessions are eligible when the user omits the debug-session name?
+    context: >-
+      The skill needs deterministic source selection behavior when no explicit session id is
+      supplied.
+    answer: Only active debug-sessions are eligible by default; archived sessions stay out of scope.
+    status: resolved
+  - id: unique-candidate-handling
+    question: >-
+      What should happen when there is exactly one active debug-session and the user did not provide
+      a name?
+    context: >-
+      The selection flow can either auto-pick the unique candidate or require another confirmation
+      round.
+    answer: Automatically use the unique active debug-session.
+    status: resolved
+  - id: change-name-derivation
+    question: How should the new change name be chosen?
+    context: The conversion skill must create a change directory with a valid kebab-case identifier.
+    answer: >-
+      Derive a kebab-case change name from the debug-session content rather than reusing the session
+      id by default.
+    status: resolved
+  - id: ambiguity-policy
+    question: How should the skill handle missing or ambiguous information in the debug-session?
+    context: >-
+      The generated change may not always have enough evidence to finalize requirements, tasks, or
+      delta specs.
+    answer: Write unresolved items into questions.yaml and stop before implementation.
+    status: resolved
+  - id: handoff-policy
+    question: What should happen immediately after the change artifacts are created?
+    context: The conversion workflow can stop with guidance or continue directly into implementation.
+    answer: >-
+      Stop after proposal creation and advise the operator to continue with strict-spec-auto or
+      strict-spec-apply.
+    status: resolved
+  - id: source-status-policy
+    question: Must the source debug-session already be resolved or blocked before conversion?
+    context: >-
+      Some teams treat conversion as a closeout-only action while others use it during active
+      investigation.
+    answer: No. Any active debug-session can be converted when it has enough evidence.
+    status: resolved
+  - id: source-mutation-policy
+    question: Should conversion modify or archive the source debug-session?
+    context: The skill could preserve the source investigation or update it as part of the handoff.
+    answer: Leave the source debug-session unchanged.
+    status: resolved

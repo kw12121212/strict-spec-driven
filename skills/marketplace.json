@@ -14,6 +14,7 @@
     { "name": "strict-spec-cancel", "family": "strict-spec" },
     { "name": "strict-spec-debug-session", "family": "strict-spec" },
     { "name": "strict-spec-debug-session-archive", "family": "strict-spec" },
+    { "name": "strict-spec-debug-session-to-change", "family": "strict-spec" },
     { "name": "strict-spec-dev-session-init", "family": "strict-spec" },
     { "name": "strict-spec-init", "family": "strict-spec" },
     { "name": "strict-spec-migrate", "family": "strict-spec" },
