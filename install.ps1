@@ -32,49 +32,61 @@ function Resolve-RealPath {
     return $item.FullName
 }
 
-function Repair-SkillScriptLinks {
-    param([string]$RootDir)
+function New-StagingDir {
+    param([string]$SourceDir)
 
     # On Windows with core.symlinks=false, git stores symlinks as plain text
-    # files containing the target path. Each skills/*/scripts should be a
-    # directory symlink/junction pointing to ../../dist/scripts.
-    $skillsDir = Join-Path $RootDir 'skills'
-    if (-not (Test-Path -LiteralPath $skillsDir)) { return }
+    # files. We build a staging copy in a temp directory where broken links
+    # under skills/*/scripts are replaced with real junctions pointing to the
+    # dist/scripts directory inside the source tree.
+
+    $stageDir = Join-Path $env:TEMP "strict-spec-driven-install-$(Get-Random)"
+    New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
+
+    # Copy everything except skills/ (handled separately)
+    Get-ChildItem -LiteralPath $SourceDir -Force | Where-Object {
+        $_.Name -ne 'skills'
+    } | ForEach-Object {
+        Copy-Item -LiteralPath $_.FullName -Destination $stageDir -Recurse -Force
+    }
+
+    # Copy skills/ and fix broken symlinks in the copy
+    $srcSkills = Join-Path $SourceDir 'skills'
+    $dstSkills = Join-Path $stageDir 'skills'
+    Copy-Item -LiteralPath $srcSkills -Destination $dstSkills -Recurse -Force
 
     $fixed = 0
-    Get-ChildItem -LiteralPath $skillsDir -Directory | ForEach-Object {
+    Get-ChildItem -LiteralPath $dstSkills -Directory | ForEach-Object {
         $linkPath = Join-Path $_.FullName 'scripts'
         if (-not (Test-Path -LiteralPath $linkPath)) { return }
 
         $item = Get-Item -LiteralPath $linkPath -Force
-        # A real symlink/junction has LinkType set; a plain file means broken
         if ($item.LinkType) { return }
         if ($item.PSIsContainer) { return }
 
-        # Read the intended symlink target (e.g. "../../dist/scripts")
         $target = (Get-Content -LiteralPath $linkPath -Raw).Trim()
         if (-not $target) { return }
 
+        # Resolve relative target against the *source* skill dir
+        $srcSkillDir = Join-Path $srcSkills $_.Name
         $resolvedTarget = if ([System.IO.Path]::IsPathRooted($target)) {
             $target
         } else {
-            [System.IO.Path]::GetFullPath((Join-Path $_.FullName $target))
+            [System.IO.Path]::GetFullPath((Join-Path $srcSkillDir $target))
         }
 
-        if (-not (Test-Path -LiteralPath $resolvedTarget)) {
-            Write-Warning "Skipping $linkPath : target $resolvedTarget not found"
-            return
-        }
+        if (-not (Test-Path -LiteralPath $resolvedTarget)) { return }
 
         Remove-Item -LiteralPath $linkPath -Force
-        # mklink /J creates a directory junction (no admin rights needed)
         $null = & cmd.exe /c "mklink /J `"$linkPath`" `"$resolvedTarget`"" 2>&1
         $fixed++
     }
 
     if ($fixed -gt 0) {
-        Write-Host "Repaired $fixed broken symlink(s) under skills/"
+        Write-Host "Fixed $fixed symlink(s) in staging directory"
     }
+
+    return $stageDir
 }
 
 # Resolve script directory, following any symlinks / junctions
@@ -86,9 +98,14 @@ $ScriptDir = if ($PSScriptRoot) {
 
 if ($Uninstall) {
     Write-Host "Uninstalling strict skills from: $ScriptDir"
-    & npx skills remove -g
+    & npx skills remove --all -g -y
 } else {
-    Repair-SkillScriptLinks $ScriptDir
-    Write-Host "Installing strict skills from: $ScriptDir"
-    & npx skills add "$ScriptDir" -g -y
+    $stageDir = New-StagingDir $ScriptDir
+    try {
+        Write-Host "Installing strict skills from: $ScriptDir"
+        & npx skills add "$stageDir" -g -y
+    } finally {
+        Remove-Item -LiteralPath $stageDir -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "Cleaned up staging directory"
+    }
 }
