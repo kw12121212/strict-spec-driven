@@ -1,0 +1,68 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/debug-session.yaml
+    - examples/strict-spec-driven/debug-session.yaml
+    - templates/strict-spec-driven/schemas/schema-registry.yaml
+    - src/validation.ts
+  tests:
+    - test/run.ts
+    - test/suites/debug-session.ts
+operations:
+  ADDED:
+    yaml-debug-session-schema-coverage:
+      strength: MUST
+      statement: >-
+        The system MUST define a strict YAML debug-session artifact schema for debugging
+        investigations that involve Web API, frontend, Electron desktop, and CDP access layers.
+      scenarios:
+        debug-session-artifact-family-is-covered:
+          - GIVEN: the strict workflow artifact contract is reviewed
+          - WHEN: the debug-session artifact family is checked
+          - THEN: a concrete YAML schema exists for debug-session artifacts
+    yaml-debug-session-session-model:
+      strength: MUST
+      statement: >-
+        The system MUST represent each debug session with structured fields for identity, status,
+        target surfaces, reproduction steps, evidence references, hypotheses, findings, replay, and
+        verification.
+      scenarios:
+        debug-session-fields-are-structured:
+          - GIVEN: a debug-session artifact is reviewed
+          - WHEN: its top-level data is inspected
+          - THEN: >-
+              session identity, status, scope layers, targets, reproduction, evidence, hypotheses,
+              findings, replay, and verification are available as structured fields
+    yaml-debug-session-human-checkpoints:
+      strength: MUST
+      statement: >-
+        The system MUST represent required human participation with structured human_checkpoints and
+        manual_actions fields that describe requested actions, resume signals, and evidence captured
+        after the action without storing secrets.
+      scenarios:
+        human-actions-remain-auditable-without-secrets:
+          - GIVEN: >-
+              a debug session requires a human to complete login, 2FA, OAuth, native dialog
+              handling, fragile gestures, or visual judgment
+          - WHEN: the checkpoint and resulting manual action are recorded
+          - THEN: >-
+              the artifact records the semantic action, reason, resume condition, and post-action
+              evidence references
+    yaml-debug-session-cdp-health:
+      strength: MUST
+      statement: >-
+        The system MUST represent CDP access health with structured fields for connection state,
+        selected target type, selected target URL, webview selection, and last snapshot status.
+      scenarios:
+        cdp-access-state-is-reviewable:
+          - GIVEN: a debug session uses CDP to inspect a browser or Electron application
+          - WHEN: the CDP access state is recorded
+          - THEN: >-
+              connection, target, URL, webview, and snapshot health are available as structured
+              fields
+  MODIFIED: {}
+  REMOVED: {}

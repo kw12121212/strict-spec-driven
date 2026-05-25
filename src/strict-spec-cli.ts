@@ -19,6 +19,7 @@ import {
   runDevSessionStop,
   runDevSessionTrial,
 } from "./cli/cmd-dev-session.js";
+import { runDebugSessionCreate, runDebugSessionValidate } from "./cli/cmd-debug-session.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 import { compileSchema, createSchemaValidator } from "./validation.js";
 import {
@@ -82,6 +83,8 @@ export const commands = createCliCommandTable({
   "dev-session-logs": (argv) => runDevSessionLogs(argv),
   "dev-session-trial": (argv) => runDevSessionTrial(argv),
   "dev-session-stop": (argv) => runDevSessionStop(argv),
+  "debug-session-create": (argv) => runDebugSessionCreate(argv),
+  "debug-session-validate": (argv) => runDebugSessionValidate(argv),
   migrate: (argv) => runMigrate(argv),
   "roadmap-status": (argv) => runRoadmapStatus(argv),
   "roadmap-overview": (argv) => runRoadmapOverview(argv),

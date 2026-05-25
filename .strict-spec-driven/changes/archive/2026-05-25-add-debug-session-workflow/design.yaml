@@ -1,0 +1,82 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-debug-session-workflow
+approach:
+  - >-
+    Add a first-class debug-session workflow that records each investigation as a strict YAML
+    artifact plus evidence directory. The workflow should guide agents through reproduce, capture,
+    localize, and verify phases. It should support Web API, frontend, Electron desktop, and CDP
+    access as explicit debugging layers, and it should model human interaction as structured
+    checkpoints rather than informal pauses. The implementation should prefer deterministic CLI
+    creation and validation, with skill instructions using agent-browser and Electron CDP commands
+    only as evidence collection mechanisms.
+decisions:
+  debug-session-artifact:
+    decision: >-
+      Represent each investigation with a strict debug-session YAML artifact and sibling evidence
+      directory under .strict-spec-driven/debug-sessions/<session-id>/.
+    rationale: >-
+      A durable artifact keeps reproduction steps, targets, layer classification, evidence files,
+      hypotheses, findings, human checkpoints, manual actions, replay commands, and verification
+      results together so debugging can be resumed, reviewed, and audited.
+  human-checkpoints:
+    decision: >-
+      Model manual participation with human_checkpoints and manual_actions fields instead of
+      freeform chat-only instructions.
+    rationale: >-
+      Humans often need to enter credentials, complete 2FA, authorize OAuth, operate native dialogs,
+      perform fragile gestures, or judge visible state. Structured checkpoints let the agent prepare
+      capture first, request the minimum human action, and resume with evidence collection without
+      recording secrets.
+  layer-localization:
+    decision: >-
+      Require each session to classify findings against Web API, frontend, Electron, or CDP access
+      layers.
+    rationale: >-
+      Layer ownership prevents vague conclusions. The same evidence can distinguish missing
+      requests, wrong request payloads, wrong API responses, frontend state/render failures,
+      Electron-only container issues, and automation/CDP target selection failures.
+  cdp-boundary:
+    decision: >-
+      Limit desktop automation to Electron applications reachable through Chromium CDP targets and
+      webviews.
+    rationale: >-
+      This keeps the workflow aligned with existing agent-browser and Electron skill capabilities,
+      avoids broad OS-level automation scope, and still supports screenshots, snapshots, network
+      capture, runtime checks, and target switching.
+alternatives:
+  - option: >-
+      Add debugging advice only to existing implementation skills without a
+      dedicated artifact or schema.
+    reason: >-
+      This would leave manual steps, evidence files, layer ownership, and
+      verification state in transient chat context, which is the main failure
+      mode the change is intended to remove.
+  - option: >-
+      Integrate with a full production observability platform as the primary
+      debugging mechanism.
+    reason: >-
+      That would widen the scope into backend infrastructure, credentials,
+      deployment-specific tracing, and retention policy. The requested scope is
+      local agent debugging for Web API, frontend, Electron, and CDP access.
+  - option: >-
+      Use OS-level desktop automation for all desktop applications.
+    reason: >-
+      The available reliable boundary is Chromium CDP through agent-browser and
+      Electron. Expanding to non-Electron native applications would require a
+      separate automation model and different failure semantics.
+risks:
+  - >-
+    Evidence files may contain sensitive URLs, tokens, request bodies, or user
+    data unless the workflow documents redaction and avoids capturing secrets
+    directly from human input.
+  - >-
+    Human checkpoints can still become ambiguous if resume conditions are not
+    explicit enough; the schema and skill must require a clear resume signal or
+    observable post-action condition.
+  - >-
+    CDP target selection can produce misleading evidence when an Electron app
+    has multiple windows or webviews; the workflow must record selected target
+    type and URL.

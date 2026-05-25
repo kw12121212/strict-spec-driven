@@ -1,0 +1,50 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: ../../../../templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/debug-session.ts
+    - src/cli/cmd-debug-session.ts
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+    - src/embedded-templates.ts
+  tests:
+    - test/run.ts
+    - test/suites/debug-session.ts
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    cli-debug-session-create-and-validate:
+      strength: MUST
+      statement: >-
+        The system MUST provide strict CLI commands that create a debug-session directory with
+        `session.yaml` and an `evidence/` directory from bundled scaffold assets, and validate
+        debug-session artifacts by session ID or explicit YAML path using deterministic JSON
+        diagnostics.
+      scenarios:
+        debug-session-create-scaffolds-session:
+          - GIVEN: "a strict project has `.strict-spec-driven/` and no debug session with the requested ID"
+          - WHEN: "`strict-spec-driven debug-session-create <session-id>` is executed"
+          - THEN: "`.strict-spec-driven/debug-sessions/<session-id>/session.yaml` is created from the bundled scaffold"
+          - AND: "`.strict-spec-driven/debug-sessions/<session-id>/evidence/` is created"
+          - AND: JSON output lists the created artifact and evidence paths
+        debug-session-create-rejects-existing-session:
+          - GIVEN: a debug-session artifact or evidence directory already exists for the requested ID
+          - WHEN: "`strict-spec-driven debug-session-create <session-id>` is executed"
+          - THEN: the command exits non-zero
+          - AND: deterministic diagnostics report the existing session collision
+        debug-session-validate-accepts-id-or-path:
+          - GIVEN: a debug-session artifact exists and conforms to the debug-session schema
+          - WHEN: "`strict-spec-driven debug-session-validate <session-id>` or `strict-spec-driven debug-session-validate <session.yaml>` is executed"
+          - THEN: the command exits zero
+          - AND: "JSON output reports `valid: true` with no diagnostics"
+        debug-session-validate-reports-schema-errors:
+          - GIVEN: a debug-session artifact violates the debug-session schema
+          - WHEN: "`strict-spec-driven debug-session-validate <session-id>` is executed"
+          - THEN: the command exits non-zero
+          - AND: JSON diagnostics include artifact path and field-path context
+  MODIFIED: {}
+  REMOVED: {}

@@ -299,6 +299,49 @@ context.assert(
   devSessionSecretValidation.diagnostics.some((diagnostic) => diagnostic.fieldPath === "$.session.services.web.environment.values"),
   "dev-session secret-value diagnostics point to the unexpected values field",
 );
+const debugSessionSchema = validationModule.loadBundledSchemaByArtifactType("debug_session") as Record<string, unknown>;
+context.assert(
+  (debugSessionSchema.properties as Record<string, unknown>)?.debug_session !== undefined,
+  "debug-session schema resolves by artifact type",
+);
+const debugSessionBySchemaId = validationModule.loadBundledSchemaBySchemaId("strict-spec-driven/debug-session/v1") as Record<string, unknown>;
+context.assert(
+  (debugSessionBySchemaId.properties as Record<string, unknown>)?.human_checkpoints !== undefined,
+  "debug-session schema resolves by schema ID",
+);
+const debugSessionExample = yamlModule.parseYamlFile<Record<string, unknown>>(
+  path.join(ROOT, "examples", "strict-spec-driven", "debug-session.yaml"),
+);
+const debugSessionValidation = validationModule.validateArtifact(
+  debugSessionSchema,
+  debugSessionExample,
+  "examples/strict-spec-driven/debug-session.yaml",
+);
+context.assert(debugSessionValidation.valid, "debug-session example validates against debug-session schema");
+const debugSessionWithSecret = JSON.parse(JSON.stringify(debugSessionExample)) as Record<string, unknown>;
+((debugSessionWithSecret.manual_actions as Array<Record<string, unknown>>)[0] as Record<string, unknown>).secrets_recorded = true;
+const debugSessionSecretValidation = validationModule.validateArtifact(
+  debugSessionSchema,
+  debugSessionWithSecret,
+  "memory://debug-session-secret",
+);
+context.assert(debugSessionSecretValidation.valid === false, "debug-session schema rejects manual actions that record secrets");
+context.assert(
+  debugSessionSecretValidation.diagnostics.some((diagnostic) => diagnostic.fieldPath === "$.manual_actions[0].secrets_recorded"),
+  "debug-session secret diagnostics point to the forbidden secrets_recorded field",
+);
+const debugSessionWithInvalidLifecycle = JSON.parse(JSON.stringify(debugSessionExample)) as Record<string, unknown>;
+(((debugSessionWithInvalidLifecycle.dev_session as Record<string, unknown>).lifecycle as Record<string, unknown>).cleanup_status) = "running";
+const debugSessionLifecycleValidation = validationModule.validateArtifact(
+  debugSessionSchema,
+  debugSessionWithInvalidLifecycle,
+  "memory://debug-session-lifecycle",
+);
+context.assert(debugSessionLifecycleValidation.valid === false, "debug-session schema rejects malformed dev-session lifecycle entries");
+context.assert(
+  debugSessionLifecycleValidation.diagnostics.some((diagnostic) => diagnostic.fieldPath === "$.dev_session.lifecycle.cleanup_status"),
+  "debug-session lifecycle diagnostics point to the invalid cleanup_status field",
+);
 const bundledRegistry = validationModule.loadBundledSchema<Record<string, unknown>>("registry.yaml") as {
   entries: Array<{ schema_id: string; artifact_type: string; schema_file: string; primary_example: string }>;
 };
@@ -321,6 +364,16 @@ context.assert(
       && entry.primary_example.endsWith("/dev-session.yaml"),
   ),
   "schema registry includes dev-session schema and primary example",
+);
+context.assert(
+  bundledRegistry.entries.some(
+    (entry) =>
+      entry.schema_id === "strict-spec-driven/debug-session/v1"
+      && entry.artifact_type === "debug_session"
+      && entry.schema_file === "debug-session.yaml"
+      && entry.primary_example.endsWith("/debug-session.yaml"),
+  ),
+  "schema registry includes debug-session schema and primary example",
 );
 
 const testJsonSchema = {
@@ -472,6 +525,8 @@ context.assert(typeof scaffoldRoadmapIndex.milestones === "object" && scaffoldRo
 
 const scaffoldDevSession = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("dev-session.yaml");
 context.assert(scaffoldDevSession.artifact_type === "dev_session", "scaffold dev-session template is loadable YAML");
+const scaffoldDebugSession = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("debug-sessions/session.yaml");
+context.assert(scaffoldDebugSession.artifact_type === "debug_session", "scaffold debug-session template is loadable YAML");
 
 context.section("[5] init command");
 
@@ -1541,6 +1596,7 @@ for (const changeAsset of scaffoldModule.getRequiredBundledChangeTemplateAssets(
 }
 
 const distSchemaFiles = [
+  "debug-session.yaml",
   "dev-session.yaml",
   "registry.yaml",
   "main-spec.yaml",
@@ -1556,6 +1612,9 @@ for (const schemaFile of distSchemaFiles) {
   context.assert(existsSync(distSchemaPath), `dist schema file exists (${schemaFile})`);
   context.assert(statSync(distSchemaPath).isFile(), `dist schema file is a file (${schemaFile})`);
 }
+const distDebugSessionScaffoldPath = path.join(distScaffoldDir, "debug-sessions", "session.yaml");
+context.assert(existsSync(distDebugSessionScaffoldPath), "dist debug-session scaffold template exists");
+context.assert(statSync(distDebugSessionScaffoldPath).isFile(), "dist debug-session scaffold template is a file");
 
 context.assert(!existsSync(distExamplesDir), "dist/templates/strict-spec-driven/examples is not bundled after build");
 
@@ -1647,12 +1706,56 @@ context.assert(
   readmeContent.includes("DEV_SESSIONS.md") && readmeContent.includes("Development Sessions"),
   "README.md includes a Development Sessions section and link to DEV_SESSIONS.md",
 );
+context.assert(
+  readmeContent.includes("DEBUG_SESSIONS.md") && readmeContent.includes("Debug Sessions"),
+  "README.md includes a Debug Sessions section and link to DEBUG_SESSIONS.md",
+);
 
 const quickstartPath = path.join(ROOT, "QUICKSTART.md");
 const quickstartContent = readFileSync(quickstartPath, "utf8");
 context.assert(
   quickstartContent.includes("dev-session") && quickstartContent.includes("DEV_SESSIONS.md"),
   "QUICKSTART.md includes dev-session guidance and a link to DEV_SESSIONS.md",
+);
+context.assert(
+  quickstartContent.includes("debug-session") && quickstartContent.includes("DEBUG_SESSIONS.md"),
+  "QUICKSTART.md includes debug-session guidance and a link to DEBUG_SESSIONS.md",
+);
+
+const debugSessionsGuidePath = path.join(ROOT, "DEBUG_SESSIONS.md");
+context.assert(existsSync(debugSessionsGuidePath), "DEBUG_SESSIONS.md guide exists");
+const debugSessionsGuide = readFileSync(debugSessionsGuidePath, "utf8");
+const debugSessionsGuideNormalized = debugSessionsGuide.replace(/\s+/g, " ");
+context.assert(
+  debugSessionsGuideNormalized.includes(".strict-spec-driven/debug-sessions/<session-id>/")
+    && debugSessionsGuideNormalized.includes("evidence/"),
+  "DEBUG_SESSIONS.md covers the artifact and evidence layout",
+);
+context.assert(
+  debugSessionsGuideNormalized.includes("debug-session-create")
+    && debugSessionsGuideNormalized.includes("debug-session-validate"),
+  "DEBUG_SESSIONS.md covers debug-session CLI commands",
+);
+context.assert(
+  debugSessionsGuideNormalized.includes("dev-session-plan")
+    && debugSessionsGuideNormalized.includes("dev-session-start")
+    && debugSessionsGuideNormalized.includes("dev-session-status")
+    && debugSessionsGuideNormalized.includes("dev-session-logs")
+    && debugSessionsGuideNormalized.includes("dev-session-stop")
+    && debugSessionsGuideNormalized.includes("cleanup_status"),
+  "DEBUG_SESSIONS.md covers dev-session lifecycle evidence",
+);
+context.assert(
+  debugSessionsGuideNormalized.includes("web_api")
+    && debugSessionsGuideNormalized.includes("frontend")
+    && debugSessionsGuideNormalized.includes("electron")
+    && debugSessionsGuideNormalized.includes("cdp_access"),
+  "DEBUG_SESSIONS.md covers layer localization values",
+);
+context.assert(
+  debugSessionsGuideNormalized.toLowerCase().includes("credentials")
+    && debugSessionsGuideNormalized.toLowerCase().includes("secret"),
+  "DEBUG_SESSIONS.md covers human checkpoint secret boundaries",
 );
 
 }

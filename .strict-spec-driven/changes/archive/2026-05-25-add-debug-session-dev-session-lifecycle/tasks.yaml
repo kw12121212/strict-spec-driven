@@ -1,0 +1,50 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-debug-session-dev-session-lifecycle
+sections:
+  Implementation:
+    extend-debug-session-schema:
+      text: >-
+        Add a structured dev_session section to the debug-session schema, example, and scaffold so
+        investigations can reference the project dev-session declaration, selected services,
+        lifecycle commands, status/log evidence, unavailable conditions, and cleanup state.
+      status: complete
+    update-debug-session-skill-and-docs:
+      text: >-
+        Update the debug-session skill and documentation to require
+        dev-session-plan/start/status/logs/stop when local services are needed, while keeping
+        debug-session validation free of process management side effects.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+    validate-skills:
+      text: Validate strict skill packaging metadata and command references.
+      status: complete
+      command: bun run validate-skills
+  Verification:
+    verify-dev-session-linkage:
+      text: >-
+        Verify debug-session artifacts can record dev-session lifecycle references and evidence
+        while rejecting malformed lifecycle entries.
+      status: complete
+    verify-lifecycle-guidance:
+      text: >-
+        Verify debug-session skill and docs explain that startup, status, logs, and cleanup use
+        existing dev-session commands.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

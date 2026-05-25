@@ -1,0 +1,36 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-debug-session-workflow
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a strict debug-session workflow for Web API, frontend, Electron desktop, and CDP-based
+      debugging, including structured human checkpoints and evidence capture.
+  why:
+    - >-
+      Current development skills are sufficient for implementation, but debugging still depends on
+      ad hoc manual steps, transient observations, and unclear layer ownership. The workflow needs a
+      repeatable way to reproduce, capture, localize, and verify issues even when humans must
+      perform sensitive or unstable actions.
+scope:
+  in:
+    - >-
+      Introduce strict YAML debug-session artifacts under .strict-spec-driven/debug-sessions/,
+      define required fields for targets, reproduction, evidence, hypotheses, findings, human
+      checkpoints, manual actions, CDP health, replay, and verification, add CLI/skill behavior to
+      create and guide debug sessions, and document layer-specific capture rules for Web API,
+      frontend, Electron desktop, and CDP access.
+  out:
+    - >-
+      Do not implement general-purpose observability backends, production tracing infrastructure,
+      credential storage, OS-level desktop automation outside CDP, or debugging support for native
+      mobile and non-Electron desktop applications.
+unchanged_behavior:
+  - >-
+    The existing strict change proposal, apply, verify, archive, roadmap, and dev-session workflows
+    continue to behave as they do today. Existing development skills remain implementation-oriented
+    and are not replaced by the debug-session workflow.

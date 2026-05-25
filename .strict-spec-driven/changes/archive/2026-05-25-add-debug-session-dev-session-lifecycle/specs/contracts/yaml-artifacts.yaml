@@ -1,0 +1,36 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/debug-session.yaml
+    - templates/strict-spec-driven/scaffold/debug-sessions/session.yaml
+    - examples/strict-spec-driven/debug-session.yaml
+    - skills/strict-spec-debug-session/SKILL.md
+    - DEBUG_SESSIONS.md
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/debug-session.ts
+operations:
+  ADDED:
+    yaml-debug-session-dev-session-lifecycle:
+      strength: MUST
+      statement: >-
+        Debug-session artifacts and guidance MUST support optional dev-session lifecycle linkage
+        that references the project dev-session declaration, selected services, lifecycle commands,
+        status and log evidence, unavailable conditions, and cleanup state without duplicating
+        service configuration or storing secret values.
+      scenarios:
+        debug-session-records-dev-session-lifecycle:
+          - GIVEN: >-
+              a debug investigation depends on local services declared in
+              .strict-spec-driven/dev-session.yaml
+          - WHEN: the debug-session artifact records lifecycle context
+          - THEN: >-
+              the artifact can reference dev-session-plan/start/status/logs/stop commands, selected
+              services, status/log evidence, blocking conditions, and cleanup status
+  MODIFIED: {}
+  REMOVED: {}

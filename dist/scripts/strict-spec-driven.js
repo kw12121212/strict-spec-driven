@@ -6598,6 +6598,8 @@ var COMMAND_REGISTRATION_ORDER = [
   "dev-session-logs",
   "dev-session-trial",
   "dev-session-stop",
+  "debug-session-create",
+  "debug-session-validate",
   "migrate",
   "roadmap-status",
   "roadmap-overview",
@@ -6754,6 +6756,76 @@ review_evidence:
 # maintenance:
 #   checks:
 #     - type: roadmap-sync-check
+`,
+  "strict-spec-driven/scaffold/debug-sessions/session.yaml": `schema: strict-spec-driven/debug-session/v1
+schema_version: 1
+artifact_type: debug_session
+schema_file: ../../../templates/strict-spec-driven/schemas/debug-session.yaml
+debug_session:
+  id: "{{session_id}}"
+  status: proposed
+issue:
+  summary: Describe the failure under investigation.
+  observed_behavior: Describe what actually happens.
+  expected_behavior: Describe what should happen instead.
+scope:
+  layers:
+    - frontend
+  out_of_scope: []
+targets:
+  primary-target:
+    layer: frontend
+    kind: browser_page
+    label: Primary debug target.
+    url: "http://127.0.0.1:3000"
+    notes: []
+reproduction:
+  preconditions: []
+  steps:
+    - id: reproduce
+      target: primary-target
+      action: Reproduce the failure.
+      expected: The failure is visible or captured in evidence.
+  expected_failure: Describe the expected failing observation.
+evidence:
+  directory: evidence/
+  entries: []
+hypotheses: []
+findings: []
+human_checkpoints: []
+manual_actions: []
+cdp_health:
+  required: false
+  checks: []
+dev_session:
+  declaration: .strict-spec-driven/dev-session.yaml
+  services: []
+  lifecycle:
+    plan:
+      command: strict-spec-driven dev-session-plan
+      status: not_run
+      evidence: []
+    start:
+      command: strict-spec-driven dev-session-start
+      status: not_run
+      evidence: []
+    status:
+      command: strict-spec-driven dev-session-status
+      status: not_run
+      evidence: []
+    logs: []
+    stop:
+      command: strict-spec-driven dev-session-stop
+      status: not_run
+      evidence: []
+    cleanup_status: not_started
+  unavailable_conditions: []
+replay:
+  commands: []
+verification:
+  status: not_started
+  steps: []
+  evidence: []
 `,
   "strict-spec-driven/scaffold/dev-session.yaml": `schema: strict-spec-driven/dev-session/v1
 schema_version: 1
@@ -6978,6 +7050,648 @@ json_schema:
           type: string
         planned_change:
           type: string
+`,
+  "strict-spec-driven/schemas/debug-session.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/debug-session/v1
+artifact_type: debug_session
+artifact_name: debug-session
+description: Strict YAML debug-session investigation artifact.
+example_ref: ../../../examples/strict-spec-driven/debug-session.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - debug_session
+    - issue
+    - scope
+    - targets
+    - reproduction
+    - evidence
+    - hypotheses
+    - findings
+    - human_checkpoints
+    - manual_actions
+    - cdp_health
+    - replay
+    - verification
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/debug-session/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: debug_session
+    schema_file:
+      type: string
+      minLength: 1
+    debug_session:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        status:
+          type: string
+          enum:
+            - proposed
+            - reproducing
+            - capturing
+            - localizing
+            - waiting_for_human
+            - verifying
+            - resolved
+            - blocked
+        owner:
+          type: string
+          minLength: 1
+        created_at:
+          type: string
+          format: date-time
+    issue:
+      type: object
+      additionalProperties: false
+      required:
+        - summary
+        - observed_behavior
+        - expected_behavior
+      properties:
+        summary:
+          type: string
+          minLength: 1
+        observed_behavior:
+          type: string
+          minLength: 1
+        expected_behavior:
+          type: string
+          minLength: 1
+    scope:
+      type: object
+      additionalProperties: false
+      required:
+        - layers
+        - out_of_scope
+      properties:
+        layers:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum:
+              - web_api
+              - frontend
+              - electron
+              - cdp_access
+        out_of_scope:
+          type: array
+          items:
+            type: string
+            minLength: 1
+    targets:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      patternProperties:
+        "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
+          type: object
+          additionalProperties: false
+          required:
+            - layer
+            - kind
+            - label
+            - notes
+          properties:
+            layer:
+              type: string
+              enum:
+                - web_api
+                - frontend
+                - electron
+                - cdp_access
+            kind:
+              type: string
+              enum:
+                - http_endpoint
+                - browser_page
+                - electron_app
+                - cdp_target
+            label:
+              type: string
+              minLength: 1
+            url:
+              type: string
+              minLength: 1
+            command:
+              type: string
+              minLength: 1
+            cdp_endpoint:
+              type: string
+              minLength: 1
+            notes:
+              type: array
+              items:
+                type: string
+                minLength: 1
+    reproduction:
+      type: object
+      additionalProperties: false
+      required:
+        - preconditions
+        - steps
+        - expected_failure
+      properties:
+        preconditions:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        steps:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - id
+              - action
+            properties:
+              id:
+                type: string
+                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+              action:
+                type: string
+                minLength: 1
+              expected:
+                type: string
+                minLength: 1
+              target:
+                type: string
+                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        expected_failure:
+          type: string
+          minLength: 1
+    evidence:
+      type: object
+      additionalProperties: false
+      required:
+        - directory
+        - entries
+      properties:
+        directory:
+          type: string
+          minLength: 1
+        entries:
+          type: array
+          items:
+            $ref: "#/definitions/evidence_entry"
+    hypotheses:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - statement
+          - layer
+          - status
+          - evidence
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          statement:
+            type: string
+            minLength: 1
+          layer:
+            $ref: "#/definitions/layer"
+          status:
+            type: string
+            enum:
+              - open
+              - supported
+              - rejected
+              - verified
+          evidence:
+            type: array
+            items:
+              type: string
+              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    findings:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - layer
+          - summary
+          - status
+          - evidence
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          layer:
+            $ref: "#/definitions/layer"
+          target:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          summary:
+            type: string
+            minLength: 1
+          status:
+            type: string
+            enum:
+              - suspected
+              - confirmed
+              - fixed
+              - wont_fix
+          evidence:
+            type: array
+            items:
+              type: string
+              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    human_checkpoints:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - reason
+          - requested_action
+          - sensitive
+          - status
+          - resume_condition
+          - evidence_before
+          - evidence_after
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          reason:
+            type: string
+            minLength: 1
+          requested_action:
+            type: string
+            minLength: 1
+          sensitive:
+            type: boolean
+          status:
+            type: string
+            enum:
+              - pending
+              - completed
+              - skipped
+          resume_condition:
+            type: string
+            minLength: 1
+          evidence_before:
+            type: array
+            items:
+              type: string
+              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          evidence_after:
+            type: array
+            items:
+              type: string
+              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    manual_actions:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - checkpoint
+          - actor
+          - summary
+          - secrets_recorded
+          - status
+          - evidence
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          checkpoint:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          actor:
+            type: string
+            enum:
+              - human
+              - agent
+          summary:
+            type: string
+            minLength: 1
+          secrets_recorded:
+            type: boolean
+            const: false
+          status:
+            type: string
+            enum:
+              - completed
+              - skipped
+          evidence:
+            type: array
+            items:
+              type: string
+              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    cdp_health:
+      type: object
+      additionalProperties: false
+      required:
+        - required
+        - checks
+      properties:
+        required:
+          type: boolean
+        checks:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - id
+              - target
+              - status
+              - notes
+            properties:
+              id:
+                type: string
+                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+              target:
+                type: string
+                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+              status:
+                type: string
+                enum:
+                  - not_checked
+                  - ok
+                  - failed
+                  - unavailable
+              endpoint:
+                type: string
+                minLength: 1
+              selected_target:
+                type: string
+                minLength: 1
+              notes:
+                type: array
+                items:
+                  type: string
+                  minLength: 1
+    dev_session:
+      type: object
+      additionalProperties: false
+      required:
+        - declaration
+        - services
+        - lifecycle
+        - unavailable_conditions
+      properties:
+        declaration:
+          type: string
+          minLength: 1
+        session_id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        services:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        lifecycle:
+          type: object
+          additionalProperties: false
+          required:
+            - plan
+            - start
+            - status
+            - logs
+            - stop
+            - cleanup_status
+          properties:
+            plan:
+              $ref: "#/definitions/lifecycle_command"
+            start:
+              $ref: "#/definitions/lifecycle_command"
+            status:
+              $ref: "#/definitions/lifecycle_command"
+            logs:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required:
+                  - service
+                  - command
+                  - evidence
+                properties:
+                  service:
+                    type: string
+                    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+                  command:
+                    type: string
+                    minLength: 1
+                  evidence:
+                    type: array
+                    items:
+                      type: string
+                      pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+            stop:
+              $ref: "#/definitions/lifecycle_command"
+            cleanup_status:
+              type: string
+              enum:
+                - not_started
+                - not_needed
+                - pending
+                - stopped
+                - failed
+                - blocked
+        unavailable_conditions:
+          type: array
+          items:
+            type: string
+            minLength: 1
+    replay:
+      type: object
+      additionalProperties: false
+      required:
+        - commands
+      properties:
+        commands:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - id
+              - command
+              - working_directory
+              - layer
+              - expected_result
+            properties:
+              id:
+                type: string
+                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+              command:
+                type: string
+                minLength: 1
+              working_directory:
+                type: string
+                minLength: 1
+              layer:
+                $ref: "#/definitions/layer"
+              target:
+                type: string
+                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+              expected_result:
+                type: string
+                minLength: 1
+    verification:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - steps
+        - evidence
+      properties:
+        status:
+          type: string
+          enum:
+            - not_started
+            - pending
+            - passed
+            - failed
+            - blocked
+        steps:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - id
+              - action
+              - expected
+              - status
+            properties:
+              id:
+                type: string
+                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+              action:
+                type: string
+                minLength: 1
+              expected:
+                type: string
+                minLength: 1
+              status:
+                type: string
+                enum:
+                  - pending
+                  - passed
+                  - failed
+                  - blocked
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        conclusion:
+          type: string
+          minLength: 1
+  definitions:
+    layer:
+      type: string
+      enum:
+        - web_api
+        - frontend
+        - electron
+        - cdp_access
+    evidence_entry:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - type
+        - path
+        - layer
+        - description
+        - redacted
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        type:
+          type: string
+          enum:
+            - screenshot
+            - network_log
+            - console_log
+            - api_trace
+            - dom_snapshot
+            - cdp_snapshot
+            - video
+            - text_log
+            - other
+        path:
+          type: string
+          minLength: 1
+        layer:
+          $ref: "#/definitions/layer"
+        target:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        description:
+          type: string
+          minLength: 1
+        redacted:
+          type: boolean
+        captured_at:
+          type: string
+          format: date-time
+    lifecycle_command:
+      type: object
+      additionalProperties: false
+      required:
+        - command
+        - status
+        - evidence
+      properties:
+        command:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+            - not_run
+            - passed
+            - failed
+            - blocked
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        notes:
+          type: array
+          items:
+            type: string
+            minLength: 1
 `,
   "strict-spec-driven/schemas/delta-spec.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -7813,6 +8527,19 @@ entries:
       compatible_with: []
       notes:
         - Development-session artifacts declare local services, browser targets, and cleanup guidance without storing secret values.
+  - schema_id: strict-spec-driven/debug-session/v1
+    schema_version: 1
+    artifact_type: debug_session
+    artifact_name: debug-session
+    schema_file: debug-session.yaml
+    primary_example: ../../../examples/strict-spec-driven/debug-session.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Debug-session artifacts record local investigations, evidence, layer localization, human checkpoints, manual actions, CDP health, replay, and verification without storing secret values.
   - schema_id: strict-spec-driven/schema-registry/v1
     schema_version: 1
     artifact_type: schema_registry
@@ -19205,6 +19932,173 @@ function runDevSessionStop(argv) {
   return result.ok ? 0 : 1;
 }
 
+// src/debug-session.ts
+import { existsSync as existsSync29, mkdirSync as mkdirSync7, writeFileSync as writeFileSync10 } from "fs";
+import path30 from "path";
+var DEBUG_SESSIONS_DIR = ".strict-spec-driven/debug-sessions";
+var DEBUG_SESSION_FILE_NAME = "session.yaml";
+var DEBUG_SESSION_TEMPLATE_PATH = "debug-sessions/session.yaml";
+var DEBUG_SESSION_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
+var TEMPLATE_SESSION_ID_PLACEHOLDER = "{{session_id}}";
+function createDiagnostic(artifactPath, fieldPath, message, options) {
+  return {
+    source: options?.source ?? "filesystem",
+    artifactPath,
+    fieldPath,
+    message,
+    expected: options?.expected,
+    actual: options?.actual
+  };
+}
+function normalizeDebugSessionPath(rootDir, target) {
+  const normalized = target.split("\\").join("/");
+  const looksLikePath = normalized.includes("/") || normalized.endsWith(".yaml");
+  const repoRelativePath = looksLikePath ? normalized : `${DEBUG_SESSIONS_DIR}/${normalized}/${DEBUG_SESSION_FILE_NAME}`;
+  const absolutePath = path30.resolve(rootDir, repoRelativePath);
+  return {
+    artifactPath: normalizeRepoRelativePath4(rootDir, absolutePath),
+    absolutePath
+  };
+}
+function yamlDiagnosticFromError(artifactPath, error) {
+  const details = getYamlDiagnosticDetails(error);
+  return {
+    source: "yaml",
+    artifactPath,
+    fieldPath: "$",
+    message: formatYamlParseSummary(error),
+    actual: "invalid-yaml",
+    errorType: details?.errorType,
+    reason: details?.reason,
+    line: details?.line,
+    column: details?.column,
+    snippet: details?.snippet,
+    offendingCharacter: details?.offendingCharacter
+  };
+}
+function createDebugSession(rootDir, sessionId) {
+  const sessionDir = path30.join(rootDir, DEBUG_SESSIONS_DIR, sessionId);
+  const sessionPath = path30.join(sessionDir, DEBUG_SESSION_FILE_NAME);
+  const evidenceDir = path30.join(sessionDir, "evidence");
+  const relativeSessionDir = normalizeRepoRelativePath4(rootDir, sessionDir);
+  const relativeSessionPath = normalizeRepoRelativePath4(rootDir, sessionPath);
+  const relativeEvidenceDir = normalizeRepoRelativePath4(rootDir, evidenceDir);
+  if (!DEBUG_SESSION_ID_PATTERN.test(sessionId)) {
+    return {
+      ok: false,
+      sessionId,
+      sessionDir: relativeSessionDir,
+      sessionPath: relativeSessionPath,
+      evidenceDir: relativeEvidenceDir,
+      created: [],
+      diagnostics: [
+        createDiagnostic(relativeSessionPath, "$.debug_session.id", "debug-session id must be kebab-case", {
+          expected: "lowercase letters, numbers, and hyphens",
+          actual: sessionId
+        })
+      ]
+    };
+  }
+  if (existsSync29(sessionPath) || existsSync29(evidenceDir)) {
+    return {
+      ok: false,
+      sessionId,
+      sessionDir: relativeSessionDir,
+      sessionPath: relativeSessionPath,
+      evidenceDir: relativeEvidenceDir,
+      created: [],
+      diagnostics: [
+        createDiagnostic(relativeSessionPath, "$", "debug-session already exists", {
+          expected: "new debug-session directory",
+          actual: relativeSessionDir
+        })
+      ]
+    };
+  }
+  mkdirSync7(evidenceDir, { recursive: true });
+  const template = readBundledScaffoldTemplate(DEBUG_SESSION_TEMPLATE_PATH);
+  writeFileSync10(sessionPath, template.replaceAll(TEMPLATE_SESSION_ID_PLACEHOLDER, sessionId), "utf8");
+  return {
+    ok: true,
+    sessionId,
+    sessionDir: relativeSessionDir,
+    sessionPath: relativeSessionPath,
+    evidenceDir: `${relativeEvidenceDir}/`,
+    created: [relativeSessionPath, `${relativeEvidenceDir}/`],
+    diagnostics: []
+  };
+}
+function validateDebugSession(rootDir, target) {
+  const { artifactPath, absolutePath } = normalizeDebugSessionPath(rootDir, target);
+  if (!existsSync29(absolutePath)) {
+    return {
+      valid: false,
+      artifactPath,
+      diagnostics: [
+        createDiagnostic(artifactPath, "$", "debug-session artifact not found", {
+          expected: "session.yaml file",
+          actual: "missing"
+        })
+      ]
+    };
+  }
+  let artifact;
+  try {
+    artifact = parseYamlFile(absolutePath);
+  } catch (error) {
+    return {
+      valid: false,
+      artifactPath,
+      diagnostics: [yamlDiagnosticFromError(artifactPath, error)]
+    };
+  }
+  const schema2 = loadBundledSchemaByArtifactType("debug_session");
+  const result = validateArtifact(schema2, artifact, artifactPath);
+  return {
+    valid: result.valid,
+    artifactPath,
+    diagnostics: result.diagnostics
+  };
+}
+
+// src/cli/cmd-debug-session.ts
+var DEBUG_SESSION_CREATE_USAGE = `Usage: strict-spec-driven debug-session-create <session-id>
+`;
+var DEBUG_SESSION_VALIDATE_USAGE = `Usage: strict-spec-driven debug-session-validate <session-id|session.yaml>
+`;
+function runDebugSessionCreate(argv) {
+  const [sessionId, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(DEBUG_SESSION_CREATE_USAGE);
+    return 0;
+  }
+  if (!sessionId || extraArgs.length > 0) {
+    writeUsage(DEBUG_SESSION_CREATE_USAGE);
+    return 1;
+  }
+  if (!CHANGE_NAME_PATTERN.test(sessionId)) {
+    writeError("debug-session id must be kebab-case (lowercase letters, numbers, and hyphens)");
+    return 1;
+  }
+  const result = createDebugSession(process.cwd(), sessionId);
+  writeJson(result);
+  return result.ok ? 0 : 1;
+}
+function runDebugSessionValidate(argv) {
+  const [target, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(DEBUG_SESSION_VALIDATE_USAGE);
+    return 0;
+  }
+  if (!target || extraArgs.length > 0) {
+    writeUsage(DEBUG_SESSION_VALIDATE_USAGE);
+    return 1;
+  }
+  const result = validateDebugSession(process.cwd(), target);
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+
 // src/strict-spec-cli.ts
 var commands = createCliCommandTable({
   init: (argv) => runInit(argv),
@@ -19226,6 +20120,8 @@ var commands = createCliCommandTable({
   "dev-session-logs": (argv) => runDevSessionLogs(argv),
   "dev-session-trial": (argv) => runDevSessionTrial(argv),
   "dev-session-stop": (argv) => runDevSessionStop(argv),
+  "debug-session-create": (argv) => runDebugSessionCreate(argv),
+  "debug-session-validate": (argv) => runDebugSessionValidate(argv),
   migrate: (argv) => runMigrate(argv),
   "roadmap-status": (argv) => runRoadmapStatus(argv),
   "roadmap-overview": (argv) => runRoadmapOverview(argv),

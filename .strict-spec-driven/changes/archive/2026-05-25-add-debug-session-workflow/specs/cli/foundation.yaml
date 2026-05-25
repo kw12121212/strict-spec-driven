@@ -1,0 +1,73 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/cmd-debug-session.ts
+    - src/cli/entrypoint.ts
+    - src/debug-session.ts
+    - src/scaffold.ts
+    - templates/strict-spec-driven/scaffold/debug-session/session.yaml
+    - skills/strict-debug-session/SKILL.md
+    - skills/marketplace.json
+  tests:
+    - test/run.ts
+    - test/suites/debug-session.ts
+operations:
+  ADDED:
+    cli-debug-session-create:
+      strength: MUST
+      statement: >-
+        The system MUST provide strict CLI behavior to create a debug-session directory containing a
+        valid session.yaml artifact and evidence directory under
+        .strict-spec-driven/debug-sessions/<session-id>/.
+      scenarios:
+        debug-session-create-scaffolds-session:
+          - GIVEN: a valid debug-session identifier that does not already exist
+          - WHEN: the debug-session creation command is executed
+          - THEN: the session directory is created under .strict-spec-driven/debug-sessions/
+    cli-debug-session-validate:
+      strength: MUST
+      statement: >-
+        The system MUST validate debug-session artifacts through the shared strict YAML validation
+        pipeline and emit deterministic diagnostics for schema failures.
+      scenarios:
+        debug-session-validation-reports-field-errors:
+          - GIVEN: a debug-session session.yaml file is missing required structured fields
+          - WHEN: debug-session validation is executed
+          - THEN: >-
+              the command exits non-zero and reports deterministic artifact path and field-path
+              diagnostics
+    skill-debug-session-guidance:
+      strength: MUST
+      statement: >-
+        The system MUST provide a debug-session skill that guides agents through reproduce, capture,
+        localize, human checkpoint, resume, replay, and verify phases for Web API, frontend,
+        Electron desktop, and CDP access debugging.
+      scenarios:
+        debug-skill-guides-layered-investigation:
+          - GIVEN: a user asks to debug a Web API, frontend, Electron, or CDP-accessible issue
+          - WHEN: the debug-session skill is used
+          - THEN: >-
+              the skill instructs the agent to capture evidence before manual pauses, classify
+              findings by layer, and verify results using replayable commands or recorded evidence
+    skill-debug-session-human-pause:
+      strength: MUST
+      statement: >-
+        The debug-session skill MUST treat human operation as a structured checkpoint where the
+        agent prepares capture, requests the minimum action, waits for a resume signal, and records
+        post-action evidence without requesting secrets.
+      scenarios:
+        human-checkpoint-preserves-evidence-chain:
+          - GIVEN: >-
+              a debugging task requires a human to enter credentials, complete 2FA, authorize OAuth,
+              operate a native dialog, or perform an unstable gesture
+          - WHEN: the agent reaches the checkpoint
+          - THEN: >-
+              the agent records the checkpoint, starts or confirms evidence capture, asks for the
+              minimal human action, resumes on the configured signal, and records post-action
+              evidence
+  MODIFIED: {}
+  REMOVED: {}

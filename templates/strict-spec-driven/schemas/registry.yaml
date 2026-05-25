@@ -192,6 +192,19 @@ entries:
       compatible_with: []
       notes:
         - Development-session artifacts declare local services, browser targets, and cleanup guidance without storing secret values.
+  - schema_id: strict-spec-driven/debug-session/v1
+    schema_version: 1
+    artifact_type: debug_session
+    artifact_name: debug-session
+    schema_file: debug-session.yaml
+    primary_example: ../../../examples/strict-spec-driven/debug-session.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Debug-session artifacts record local investigations, evidence, layer localization, human checkpoints, manual actions, CDP health, replay, and verification without storing secret values.
   - schema_id: strict-spec-driven/schema-registry/v1
     schema_version: 1
     artifact_type: schema_registry

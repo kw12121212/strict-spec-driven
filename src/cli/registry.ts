@@ -20,6 +20,8 @@ export const COMMAND_REGISTRATION_ORDER = [
   "dev-session-logs",
   "dev-session-trial",
   "dev-session-stop",
+  "debug-session-create",
+  "debug-session-validate",
   "migrate",
   "roadmap-status",
   "roadmap-overview",

@@ -13,6 +13,7 @@ mapping:
     - src/cli/argv.ts
     - src/cli/changes.ts
     - src/cli/cmd-change.ts
+    - src/cli/cmd-debug-session.ts
     - src/cli/cmd-dev-session.ts
     - src/cli/cmd-generation.ts
     - src/cli/output.ts
@@ -49,6 +50,7 @@ mapping:
     - src/roadmap/status.ts
     - src/roadmap/sync.ts
     - src/archive.ts
+    - src/debug-session.ts
     - src/dev-session.ts
     - src/propose-generation.ts
     - src/scaffold.ts
@@ -76,6 +78,7 @@ mapping:
     - test/run.ts
     - test/support/harness.ts
     - test/suites/entrypoint-and-skills.ts
+    - test/suites/debug-session.ts
     - test/suites/dev-session-plan.ts
     - test/suites/dev-session-lifecycle.ts
     - test/suites/dev-session-trial.ts
@@ -1923,3 +1926,87 @@ requirements:
         - AND: >-
             the JSON output reports that no eligible recommendation exists with deterministic skip
             reasons for inspected candidates
+  cli-debug-session-create:
+    strength: MUST
+    statement: >-
+      The system MUST provide strict CLI behavior to create a debug-session directory containing a
+      valid session.yaml artifact and evidence directory under
+      .strict-spec-driven/debug-sessions/<session-id>/.
+    scenarios:
+      debug-session-create-scaffolds-session:
+        - GIVEN: a valid debug-session identifier that does not already exist
+        - WHEN: the debug-session creation command is executed
+        - THEN: the session directory is created under .strict-spec-driven/debug-sessions/
+  cli-debug-session-validate:
+    strength: MUST
+    statement: >-
+      The system MUST validate debug-session artifacts through the shared strict YAML validation
+      pipeline and emit deterministic diagnostics for schema failures.
+    scenarios:
+      debug-session-validation-reports-field-errors:
+        - GIVEN: a debug-session session.yaml file is missing required structured fields
+        - WHEN: debug-session validation is executed
+        - THEN: >-
+            the command exits non-zero and reports deterministic artifact path and field-path
+            diagnostics
+  skill-debug-session-guidance:
+    strength: MUST
+    statement: >-
+      The system MUST provide a debug-session skill that guides agents through reproduce, capture,
+      localize, human checkpoint, resume, replay, and verify phases for Web API, frontend, Electron
+      desktop, and CDP access debugging.
+    scenarios:
+      debug-skill-guides-layered-investigation:
+        - GIVEN: a user asks to debug a Web API, frontend, Electron, or CDP-accessible issue
+        - WHEN: the debug-session skill is used
+        - THEN: >-
+            the skill instructs the agent to capture evidence before manual pauses, classify
+            findings by layer, and verify results using replayable commands or recorded evidence
+  skill-debug-session-human-pause:
+    strength: MUST
+    statement: >-
+      The debug-session skill MUST treat human operation as a structured checkpoint where the agent
+      prepares capture, requests the minimum action, waits for a resume signal, and records
+      post-action evidence without requesting secrets.
+    scenarios:
+      human-checkpoint-preserves-evidence-chain:
+        - GIVEN: >-
+            a debugging task requires a human to enter credentials, complete 2FA, authorize OAuth,
+            operate a native dialog, or perform an unstable gesture
+        - WHEN: the agent reaches the checkpoint
+        - THEN: >-
+            the agent records the checkpoint, starts or confirms evidence capture, asks for the
+            minimal human action, resumes on the configured signal, and records post-action evidence
+  cli-debug-session-create-and-validate:
+    strength: MUST
+    statement: >-
+      The system MUST provide strict CLI commands that create a debug-session directory with
+      `session.yaml` and an `evidence/` directory from bundled scaffold assets, and validate
+      debug-session artifacts by session ID or explicit YAML path using deterministic JSON
+      diagnostics.
+    scenarios:
+      debug-session-create-scaffolds-session:
+        - GIVEN: a strict project has `.strict-spec-driven/` and no debug session with the requested ID
+        - WHEN: '`strict-spec-driven debug-session-create <session-id>` is executed'
+        - THEN: >-
+            `.strict-spec-driven/debug-sessions/<session-id>/session.yaml` is created from the
+            bundled scaffold
+        - AND: '`.strict-spec-driven/debug-sessions/<session-id>/evidence/` is created'
+        - AND: JSON output lists the created artifact and evidence paths
+      debug-session-create-rejects-existing-session:
+        - GIVEN: a debug-session artifact or evidence directory already exists for the requested ID
+        - WHEN: '`strict-spec-driven debug-session-create <session-id>` is executed'
+        - THEN: the command exits non-zero
+        - AND: deterministic diagnostics report the existing session collision
+      debug-session-validate-accepts-id-or-path:
+        - GIVEN: a debug-session artifact exists and conforms to the debug-session schema
+        - WHEN: >-
+            `strict-spec-driven debug-session-validate <session-id>` or `strict-spec-driven
+            debug-session-validate <session.yaml>` is executed
+        - THEN: the command exits zero
+        - AND: 'JSON output reports `valid: true` with no diagnostics'
+      debug-session-validate-reports-schema-errors:
+        - GIVEN: a debug-session artifact violates the debug-session schema
+        - WHEN: '`strict-spec-driven debug-session-validate <session-id>` is executed'
+        - THEN: the command exits non-zero
+        - AND: JSON diagnostics include artifact path and field-path context

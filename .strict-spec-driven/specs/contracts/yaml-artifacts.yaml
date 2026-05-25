@@ -16,10 +16,13 @@ mapping:
     - templates/strict-spec-driven/schemas/registry.yaml
     - templates/strict-spec-driven/schemas/roadmap-index.yaml
     - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+    - templates/strict-spec-driven/schemas/debug-session.yaml
+    - templates/strict-spec-driven/scaffold/debug-sessions/session.yaml
     - examples/strict-spec-driven/schema-registry.yaml
     - examples/strict-spec-driven/roadmap-index.yaml
     - examples/strict-spec-driven/roadmap-milestone.yaml
     - examples/strict-spec-driven/roadmap-milestone.planning.yaml
+    - examples/strict-spec-driven/debug-session.yaml
     - src/validation.ts
     - src/yaml.ts
     - install.sh
@@ -30,6 +33,7 @@ mapping:
     - skills/strict-spec-auto/SKILL.md
     - skills/strict-spec-brainstorm/SKILL.md
     - skills/strict-spec-cancel/SKILL.md
+    - skills/strict-spec-debug-session/SKILL.md
     - skills/strict-spec-init/SKILL.md
     - skills/strict-spec-migrate/SKILL.md
     - skills/strict-spec-maintenance/SKILL.md
@@ -49,10 +53,14 @@ mapping:
     - skills/strict-roadmap-sync/SKILL.md
     - README.md
     - QUICKSTART.md
+    - DEBUG_SESSIONS.md
     - ROADMAP_GUIDE.md
     - RTK.md
   tests:
     - test/run.ts
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/debug-session.ts
     - test/suites/roadmap-and-migration.ts
 requirements:
   yaml-artifact-schema-coverage:
@@ -1735,3 +1743,104 @@ requirements:
         - AND: >-
             skill validation can reject recommend guidance that omits the scripted recommendation
             command
+  yaml-debug-session-schema-coverage:
+    strength: MUST
+    statement: >-
+      The system MUST define a strict YAML debug-session artifact schema for debugging
+      investigations that involve Web API, frontend, Electron desktop, and CDP access layers.
+    scenarios:
+      debug-session-artifact-family-is-covered:
+        - GIVEN: the strict workflow artifact contract is reviewed
+        - WHEN: the debug-session artifact family is checked
+        - THEN: a concrete YAML schema exists for debug-session artifacts
+  yaml-debug-session-session-model:
+    strength: MUST
+    statement: >-
+      The system MUST represent each debug session with structured fields for identity, status,
+      target surfaces, reproduction steps, evidence references, hypotheses, findings, replay, and
+      verification.
+    scenarios:
+      debug-session-fields-are-structured:
+        - GIVEN: a debug-session artifact is reviewed
+        - WHEN: its top-level data is inspected
+        - THEN: >-
+            session identity, status, scope layers, targets, reproduction, evidence, hypotheses,
+            findings, replay, and verification are available as structured fields
+  yaml-debug-session-human-checkpoints:
+    strength: MUST
+    statement: >-
+      The system MUST represent required human participation with structured human_checkpoints and
+      manual_actions fields that describe requested actions, resume signals, and evidence captured
+      after the action without storing secrets.
+    scenarios:
+      human-actions-remain-auditable-without-secrets:
+        - GIVEN: >-
+            a debug session requires a human to complete login, 2FA, OAuth, native dialog handling,
+            fragile gestures, or visual judgment
+        - WHEN: the checkpoint and resulting manual action are recorded
+        - THEN: >-
+            the artifact records the semantic action, reason, resume condition, and post-action
+            evidence references
+  yaml-debug-session-cdp-health:
+    strength: MUST
+    statement: >-
+      The system MUST represent CDP access health with structured fields for connection state,
+      selected target type, selected target URL, webview selection, and last snapshot status.
+    scenarios:
+      cdp-access-state-is-reviewable:
+        - GIVEN: a debug session uses CDP to inspect a browser or Electron application
+        - WHEN: the CDP access state is recorded
+        - THEN: connection, target, URL, webview, and snapshot health are available as structured fields
+  yaml-debug-session-artifact-contract:
+    strength: MUST
+    statement: >-
+      The system MUST define a strict debug-session YAML artifact schema, bundled scaffold template,
+      and minimal valid example for local investigations that record session identity, status, layer
+      scope, targets, reproduction steps, evidence, hypotheses, findings, human checkpoints, manual
+      actions, CDP health, replay commands, and verification state without storing secret values.
+    scenarios:
+      debug-session-contract-is-loadable-and-validates-example:
+        - GIVEN: the bundled strict YAML schema registry is available
+        - WHEN: the debug-session schema is loaded by artifact type or schema ID
+        - THEN: the debug-session contract is resolved deterministically
+        - AND: the bundled minimal debug-session example validates against it
+      debug-session-secret-boundary-is-enforced:
+        - GIVEN: 'a debug-session manual action records `secrets_recorded: true`'
+        - WHEN: the artifact is validated
+        - THEN: validation fails with diagnostics pointing to the manual action secret flag
+  strict-debug-session-skill-guidance:
+    strength: MUST
+    statement: >-
+      The system MUST package a strict debug-session skill that creates or resumes debug-session
+      artifacts, guides reproduce, capture, localize, human checkpoint, resume, replay, and verify
+      phases, and distinguishes Web API, frontend, Electron, and CDP-access debugging evidence.
+    scenarios:
+      debug-session-skill-is-discoverable:
+        - GIVEN: strict skill packaging is validated
+        - WHEN: marketplace metadata and skill files are inspected
+        - THEN: the debug-session skill is discoverable with valid metadata and command references
+      debug-session-skill-defines-human-checkpoint-boundary:
+        - GIVEN: >-
+            a debugging step requires credentials, one-time codes, OAuth consent, or another
+            sensitive human action
+        - WHEN: the debug-session skill guides the investigation
+        - THEN: >-
+            it requires structured human checkpoints and manual actions with `secrets_recorded:
+            false`
+        - AND: it forbids storing secret values in chat, YAML, evidence filenames, or logs
+  yaml-debug-session-dev-session-lifecycle:
+    strength: MUST
+    statement: >-
+      Debug-session artifacts and guidance MUST support optional dev-session lifecycle linkage that
+      references the project dev-session declaration, selected services, lifecycle commands, status
+      and log evidence, unavailable conditions, and cleanup state without duplicating service
+      configuration or storing secret values.
+    scenarios:
+      debug-session-records-dev-session-lifecycle:
+        - GIVEN: >-
+            a debug investigation depends on local services declared in
+            .strict-spec-driven/dev-session.yaml
+        - WHEN: the debug-session artifact records lifecycle context
+        - THEN: >-
+            the artifact can reference dev-session-plan/start/status/logs/stop commands, selected
+            services, status/log evidence, blocking conditions, and cleanup status

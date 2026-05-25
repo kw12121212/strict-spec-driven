@@ -1,0 +1,33 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-debug-session-dev-session-lifecycle
+  status: proposed
+summary:
+  what:
+    - >-
+      Link debug-session artifacts and skill guidance to the existing dev-session lifecycle so
+      debugging can record declared service startup, status, logs, blocking conditions, and cleanup
+      evidence without duplicating service configuration.
+  why:
+    - >-
+      Debugging often depends on local services being started and stopped correctly. The
+      debug-session workflow needs to reuse the dev-session contract for environment lifecycle while
+      preserving debug-session as the investigation record.
+scope:
+  in:
+    - >-
+      Add dev_session linkage fields to the debug-session schema, example, scaffold, documentation,
+      and skill guidance; add tests covering valid lifecycle evidence, validation failures, and
+      guidance text.
+  out:
+    - >-
+      Do not replace dev-session lifecycle commands, add process management to debug-session
+      commands, introduce secret storage, or start services from debug-session-validate.
+unchanged_behavior:
+  - >-
+    Existing dev-session-plan/start/status/logs/trial/stop behavior continues unchanged. Existing
+    debug-session-create and debug-session-validate behavior remains deterministic and
+    validation-only except for the new schema fields.

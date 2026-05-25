@@ -40,6 +40,8 @@ const expectedCommandOrder = [
   "dev-session-logs",
   "dev-session-trial",
   "dev-session-stop",
+  "debug-session-create",
+  "debug-session-validate",
   "migrate",
   "roadmap-status",
   "roadmap-overview",
@@ -170,12 +172,14 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const roadmapPlanSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-plan", "SKILL.md"), "utf8");
   const roadmapRecommendSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
   const devSessionInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-dev-session-init", "SKILL.md"), "utf8");
+  const debugSessionSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-debug-session", "SKILL.md"), "utf8");
   const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
   const normalizedReviewSkillContent = reviewSkillContent.replace(/\s+/g, " ");
   const normalizedAutoSkillContent = autoSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapPlanSkillContent = roadmapPlanSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapRecommendSkillContent = roadmapRecommendSkillContent.replace(/\s+/g, " ");
   const normalizedDevSessionInitSkillContent = devSessionInitSkillContent.replace(/\s+/g, " ");
+  const normalizedDebugSessionSkillContent = debugSessionSkillContent.replace(/\s+/g, " ");
   const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
 context.assert(
   normalizedReviewSkillContent.includes("complete project-level regression test evidence")
@@ -217,6 +221,17 @@ context.assert(
       && normalizedDevSessionInitSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
       && !devSessionInitSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js init"),
     "strict-spec-dev-session-init requires existing strict workflow state and uses template inspection instead of init",
+  );
+  context.assert(
+    normalizedDebugSessionSkillContent.includes("debug-session-create")
+      && normalizedDebugSessionSkillContent.includes("debug-session-validate")
+      && normalizedDebugSessionSkillContent.includes("dev-session-plan")
+      && normalizedDebugSessionSkillContent.includes("dev-session-start")
+      && normalizedDebugSessionSkillContent.includes("dev-session-stop")
+      && normalizedDebugSessionSkillContent.includes("human_checkpoints")
+      && normalizedDebugSessionSkillContent.includes("secrets_recorded: false")
+      && normalizedDebugSessionSkillContent.includes("Web API, frontend, Electron, or CDP access"),
+    "strict-spec-debug-session covers creation, validation, dev-session lifecycle, layer guidance, and human checkpoint secret boundaries",
   );
   context.assert(
     normalizedWorkflowConfigContent.includes("review_evidence:")

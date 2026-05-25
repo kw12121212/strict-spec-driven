@@ -1,0 +1,57 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: ../../../../templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/debug-session.yaml
+    - templates/strict-spec-driven/schemas/registry.yaml
+    - templates/strict-spec-driven/scaffold/debug-sessions/session.yaml
+    - examples/strict-spec-driven/debug-session.yaml
+    - skills/strict-spec-debug-session/SKILL.md
+    - skills/marketplace.json
+    - DEBUG_SESSIONS.md
+    - README.md
+    - QUICKSTART.md
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    yaml-debug-session-artifact-contract:
+      strength: MUST
+      statement: >-
+        The system MUST define a strict debug-session YAML artifact schema, bundled scaffold
+        template, and minimal valid example for local investigations that record session identity,
+        status, layer scope, targets, reproduction steps, evidence, hypotheses, findings, human
+        checkpoints, manual actions, CDP health, replay commands, and verification state without
+        storing secret values.
+      scenarios:
+        debug-session-contract-is-loadable-and-validates-example:
+          - GIVEN: the bundled strict YAML schema registry is available
+          - WHEN: the debug-session schema is loaded by artifact type or schema ID
+          - THEN: the debug-session contract is resolved deterministically
+          - AND: the bundled minimal debug-session example validates against it
+        debug-session-secret-boundary-is-enforced:
+          - GIVEN: "a debug-session manual action records `secrets_recorded: true`"
+          - WHEN: the artifact is validated
+          - THEN: validation fails with diagnostics pointing to the manual action secret flag
+    strict-debug-session-skill-guidance:
+      strength: MUST
+      statement: >-
+        The system MUST package a strict debug-session skill that creates or resumes debug-session
+        artifacts, guides reproduce, capture, localize, human checkpoint, resume, replay, and verify
+        phases, and distinguishes Web API, frontend, Electron, and CDP-access debugging evidence.
+      scenarios:
+        debug-session-skill-is-discoverable:
+          - GIVEN: strict skill packaging is validated
+          - WHEN: marketplace metadata and skill files are inspected
+          - THEN: the debug-session skill is discoverable with valid metadata and command references
+        debug-session-skill-defines-human-checkpoint-boundary:
+          - GIVEN: a debugging step requires credentials, one-time codes, OAuth consent, or another sensitive human action
+          - WHEN: the debug-session skill guides the investigation
+          - THEN: "it requires structured human checkpoints and manual actions with `secrets_recorded: false`"
+          - AND: it forbids storing secret values in chat, YAML, evidence filenames, or logs
+  MODIFIED: {}
+  REMOVED: {}

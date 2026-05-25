@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-**Documentation:** [Quick Start](QUICKSTART.md) · [Roadmap Quick Start](ROADMAP_QUICKSTART.md) · [Roadmap Guide](ROADMAP_GUIDE.md) · [Dev Sessions](DEV_SESSIONS.md) · [RTK](RTK.md)
+**Documentation:** [Quick Start](QUICKSTART.md) · [Roadmap Quick Start](ROADMAP_QUICKSTART.md) · [Roadmap Guide](ROADMAP_GUIDE.md) · [Dev Sessions](DEV_SESSIONS.md) · [Debug Sessions](DEBUG_SESSIONS.md) · [RTK](RTK.md)
 
 `strict-spec-driven` is a YAML-first spec-driven development workflow. It provides the spec-driven lifecycle (propose → apply → verify → skill-driven code review → archive) with Agent Skills integration, converting workflow artifacts — specs, changes, roadmap, tasks, questions — into strict YAML schemas enforced by deterministic scripts.
 
@@ -56,6 +56,8 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 | `schema-show <name>` | Print a bundled strict schema asset |
 | `template-list` | List bundled template and schema asset keys |
 | `template-show <key>` | Print a bundled template or schema asset |
+| `debug-session-create <id>` | Create a strict debug-session artifact and evidence directory |
+| `debug-session-validate <id\|path>` | Validate a strict debug-session artifact |
 
 ### Skills: `strict-spec-*` and `strict-roadmap-*`
 
@@ -77,6 +79,7 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-spec-brainstorm` | Brainstorm a change idea before proposing |
 | `/strict-spec-modify` | Modify an existing change's artifacts |
 | `/strict-spec-cancel` | Cancel an active change |
+| `/strict-spec-debug-session` | Run a structured debugging investigation |
 | `/strict-spec-simple-task` | Lightweight ad-hoc task without full lifecycle |
 | `/strict-spec-spec-edit` | Edit main spec files directly |
 | `/strict-spec-sync-specs` | Synchronize specs with code drift |
@@ -114,6 +117,12 @@ node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/changes/
 A development session declaration at `.strict-spec-driven/dev-session.yaml` tells agents what local services to start, how to wait for readiness, which browser URLs to open for smoke testing, and how to stop services cleanly — all from a single YAML file. Strict lifecycle skills check this file automatically when it exists.
 
 See [DEV_SESSIONS.md](DEV_SESSIONS.md) for the full reference: declaration syntax, schema fields, CLI commands (`dev-session-plan`, `dev-session-start`, `dev-session-status`, `dev-session-logs`, `dev-session-stop`, `dev-session-trial`), generated helper scripts, browser trial evidence, and secret-handling rules.
+
+## Debug Sessions
+
+A debug session under `.strict-spec-driven/debug-sessions/<session-id>/` records a single investigation with reproduction steps, evidence files, hypotheses, findings, human checkpoints, manual actions, dev-session lifecycle evidence, CDP health, replay commands, and verification results. It is intended for Web API, frontend, Electron desktop, and CDP-access debugging.
+
+See [DEBUG_SESSIONS.md](DEBUG_SESSIONS.md) for the artifact layout, CLI commands (`debug-session-create`, `debug-session-validate`), layer localization rules, and secret-handling guidance.
 
 ## Migration Boundaries
 

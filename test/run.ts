@@ -5,6 +5,7 @@ import { runDevSessionLifecycleSuite } from "./suites/dev-session-lifecycle.js";
 import { runDevSessionPlanSuite } from "./suites/dev-session-plan.js";
 import { runDevSessionRegressionSuite } from "./suites/dev-session-regression.js";
 import { runDevSessionTrialSuite } from "./suites/dev-session-trial.js";
+import { runDebugSessionSuite } from "./suites/debug-session.js";
 import { runEntrypointAndSkillsSuite } from "./suites/entrypoint-and-skills.js";
 import { runFoundationAndFixtureSuite } from "./suites/foundation-and-fixtures.js";
 import { runOperationsSuite } from "./suites/operations.js";
@@ -16,6 +17,7 @@ async function main(): Promise<void> {
   await runEntrypointAndSkillsSuite(context);
   await runFoundationAndFixtureSuite(context);
   await runDevSessionPlanSuite(context);
+  await runDebugSessionSuite(context);
   await runDevSessionLifecycleSuite(context);
   await runDevSessionTrialSuite(context);
   await runDevSessionRegressionSuite(context);

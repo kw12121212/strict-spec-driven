@@ -1,0 +1,72 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-debug-session-workflow
+sections:
+  Implementation:
+    add-debug-session-schema:
+      text: >-
+        Add a strict debug-session YAML schema and minimal valid example covering session identity,
+        status, scope layers, targets, reproduction steps, evidence references, hypotheses,
+        findings, human_checkpoints, manual_actions, cdp_health, replay, and verification.
+      status: complete
+    add-debug-session-scaffold:
+      text: >-
+        Add bundled scaffold/template support for new debug sessions under
+        .strict-spec-driven/debug-sessions/<session-id>/ with a session.yaml file and evidence
+        directory contract.
+      status: complete
+    add-debug-session-cli:
+      text: >-
+        Add strict CLI behavior for creating and validating debug-session artifacts without
+        disrupting existing change, roadmap, dev-session, and template commands.
+      status: complete
+    add-debug-session-skill:
+      text: >-
+        Add a debug-session skill workflow that guides reproduce, capture, localize, human
+        checkpoint, resume, replay, and verify phases for Web API, frontend, Electron desktop, and
+        CDP access debugging.
+      status: complete
+    update-docs-and-installation:
+      text: >-
+        Document the debug-session workflow, artifact layout, human checkpoint contract, evidence
+        expectations, and installation metadata so the skill is discoverable with the existing
+        strict skills.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+    validate-skills:
+      text: Validate strict skill packaging metadata and command references.
+      status: complete
+      command: bun run validate-skills
+  Verification:
+    verify-schema-contract:
+      text: >-
+        Verify the debug-session schema rejects missing required fields and accepts the minimal
+        valid example.
+      status: complete
+    verify-human-checkpoint-flow:
+      text: >-
+        Verify a session can record a human checkpoint, manual action, resumed evidence capture, and
+        verification result without storing secrets.
+      status: complete
+    verify-layer-debugging-guidance:
+      text: >-
+        Verify the skill instructions distinguish Web API, frontend, Electron, and CDP access
+        failures with concrete capture and localization steps.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

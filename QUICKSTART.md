@@ -176,6 +176,24 @@ If your project has a local dev server, you can declare it so agents know how to
 
 Lifecycle skills (`/strict-spec-apply`, `/strict-spec-auto`) automatically check `dev-session.yaml` when it exists. See [DEV_SESSIONS.md](DEV_SESSIONS.md) for the full reference.
 
+## Running a Debug Session (Optional)
+
+When a bug needs structured evidence, create a strict debug-session artifact:
+
+```sh
+node dist/strict-spec-cli.js debug-session-create checkout-cdp-target
+```
+
+Use `/strict-spec-debug-session` to guide Web API, frontend, Electron, or CDP-access debugging. The workflow records reproduction steps, evidence files, hypotheses, findings, human checkpoints, manual actions, dev-session lifecycle evidence, replay commands, and verification state without storing secret values.
+
+Validate the artifact before handoff:
+
+```sh
+node dist/strict-spec-cli.js debug-session-validate checkout-cdp-target
+```
+
+See [DEBUG_SESSIONS.md](DEBUG_SESSIONS.md) for the full reference.
+
 ## Migrating from Bootstrap State
 
 If your project uses the legacy `.spec-driven/` Markdown workflow, migrate it to strict YAML:

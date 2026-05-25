@@ -1,0 +1,24 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-debug-session-dev-session-lifecycle
+approach:
+  - >-
+    Extend the debug-session artifact with an optional structured dev_session section that
+    references the project-level dev-session declaration, selected services, lifecycle commands,
+    status/log evidence, unavailable conditions, and cleanup state. Keep service startup and
+    shutdown owned by the existing dev-session commands; update the debug-session skill to plan,
+    start, inspect, capture logs, and stop through those commands when a debug investigation needs
+    local services.
+decisions:
+  dev-session-ownership:
+    decision: >-
+      Keep environment lifecycle ownership in dev-session and store only lifecycle references and
+      evidence in debug-session artifacts.
+    rationale: >-
+      The project already has strict dev-session commands for service declaration, readiness, logs,
+      and cleanup. Reusing them avoids duplicated process-management semantics and lets
+      debug-session remain a durable investigation record.
+alternatives: []
+risks: []
