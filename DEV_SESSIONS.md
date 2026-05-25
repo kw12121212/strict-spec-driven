@@ -312,62 +312,7 @@ The skill:
 4. Preserves existing declaration content when it is already valid and more specific than repository heuristics.
 5. Runs `dev-session-plan` and stops with deterministic diagnostics if the declaration is still incomplete.
 
-Use this skill when you want AI to draft or repair the YAML declaration itself. Use `/strict-spec-dev-session-scripts` only after the declaration already exists and validates cleanly.
-
----
-
-## Generated Helper Scripts
-
-The `/strict-spec-dev-session-scripts` skill generates project-local shell scripts from the declaration so users do not need to remember strict CLI subcommands.
-
-**Invoke it from Claude Code:**
-
-```
-/strict-spec-dev-session-scripts
-```
-
-The skill runs `dev-session-plan` to validate the declaration, then writes (by default) four scripts under `scripts/`:
-
-| Script | Wraps |
-|---|---|
-| `scripts/dev-start` | `dev-session-start` (with required-variable pre-flight) |
-| `scripts/dev-stop` | `dev-session-stop` |
-| `scripts/dev-status` | `dev-session-status` |
-| `scripts/dev-logs` | `dev-session-logs` (passes arguments through) |
-
-### Managed Sections
-
-Each generated script contains a `BEGIN STRICT-MANAGED SECTION` / `END STRICT-MANAGED SECTION` comment block. The skill only replaces the content between those markers on regeneration. Any content you add above or below the markers is preserved.
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-# Regenerate with: /strict-spec-dev-session-scripts
-
-# ============================================================
-# BEGIN STRICT-MANAGED SECTION
-# DO NOT EDIT BETWEEN THE MANAGED-SECTION MARKERS
-# ============================================================
-
-node "$(dirname "$0")/../dist/scripts/strict-spec-driven.js" dev-session-stop
-
-# ============================================================
-# END STRICT-MANAGED SECTION
-# ============================================================
-
-# You can add custom post-stop logic here safely.
-```
-
-### Non-Clobbering Rules
-
-- If the script does not exist: it is created fresh.
-- If the script exists with a managed section: only the managed block is updated.
-- If the script exists without a managed section: the skill stops and asks for confirmation before overwriting.
-
-### Secret Safety
-
-Generated scripts never embed environment variable values. The `dev-start` script emits a pre-flight loop that checks each `environment.required` variable and exits with a human-readable error if any is unset.
+Use this skill when you want AI to draft or repair the YAML declaration itself. Once the declaration validates cleanly, use the lifecycle CLI commands (`dev-session-start`, `dev-session-stop`, etc.) directly.
 
 ---
 

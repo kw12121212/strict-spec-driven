@@ -71,14 +71,12 @@ strict-spec-driven dev-session-logs web
 strict-spec-driven dev-session-stop
 ```
 
-为方便起见，可以生成在 Agent 之外也能运行的 shell 脚本：
+为方便起见，可以直接使用生命周期 CLI 命令：
 
 ```
-/strict-spec-dev-session-scripts
+node dist/strict-spec-cli.js dev-session-start
+node dist/strict-spec-cli.js dev-session-stop
 ```
-
-这会创建 `scripts/dev-start`、`scripts/dev-stop`、`scripts/dev-status`、
-`scripts/dev-logs`，每个脚本包含可安全重新生成的托管代码块。
 
 ---
 

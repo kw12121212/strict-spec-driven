@@ -25,7 +25,7 @@ Use this skill when:
 - The user wants AI to draft a usable dev-session declaration from project files instead of filling the YAML manually.
 
 Do NOT use when:
-- The user wants to generate helper scripts only — use `/strict-spec-dev-session-scripts`.
+- The user wants to start/stop services — use the lifecycle CLI commands directly.
 - The user wants to change the dev-session schema or lifecycle CLI semantics.
 - The user wants to start services, run browser trials, or inspect runtime logs — use the lifecycle commands instead.
 
@@ -88,7 +88,7 @@ root. If it is missing, stop immediately and tell the user to run
    - the resolved session ID and declared service IDs
    - the chosen readiness strategy and any conservative fallbacks
    - any required environment variable names
-   - whether `/strict-spec-dev-session-scripts` is the next optional step
+   - that the declaration is ready for use with the lifecycle CLI commands
 
 ## Rules
 

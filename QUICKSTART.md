@@ -172,7 +172,7 @@ If your project has a local dev server, you can declare it so agents know how to
    node dist/strict-spec-cli.js dev-session-plan
    ```
    The command validates the file and prints the resolved session plan without starting any processes.
-3. Use `/strict-spec-dev-session-scripts` to generate convenient shell scripts (`scripts/dev-start`, `scripts/dev-stop`, etc.) from the validated declaration.
+3. Use `dev-session-start` / `dev-session-stop` to manage services directly from the CLI.
 
 Lifecycle skills (`/strict-spec-apply`, `/strict-spec-auto`) automatically check `dev-session.yaml` when it exists. See [DEV_SESSIONS.md](DEV_SESSIONS.md) for the full reference.
 

@@ -75,14 +75,11 @@ Stop when done:
 strict-spec-driven dev-session-stop
 ```
 
-For convenience, generate shell scripts you can run outside the agent:
-
+For convenience, use the lifecycle CLI commands directly:
 ```
-/strict-spec-dev-session-scripts
+node dist/strict-spec-cli.js dev-session-start
+node dist/strict-spec-cli.js dev-session-stop
 ```
-
-This creates `scripts/dev-start`, `scripts/dev-stop`, `scripts/dev-status`,
-`scripts/dev-logs` with managed sections that regenerate safely.
 
 ---
 
