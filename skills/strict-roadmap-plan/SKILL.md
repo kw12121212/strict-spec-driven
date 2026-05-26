@@ -54,14 +54,23 @@ root. If it is missing, stop immediately and tell the user to run
    the returned `plannedChanges[].path` values when you need to inspect or move
    existing standalone roadmap items.
 
-3. **Create or revise roadmap YAML artifacts** — update:
+3. **Create or revise executable roadmap YAML artifacts** — update:
     - `.strict-spec-driven/roadmap/INDEX.yaml`
     - `.strict-spec-driven/roadmap/milestones/*.yaml`
     - `.strict-spec-driven/roadmap/planned-changes/*.yaml`
     Keep milestone planning in structured YAML fields such as `goal`, `scope`,
-    `done_criteria`, `dependencies`, `risks`, `status`, and `notes`. Keep
-    standalone work items in `planned-changes/*.yaml`, and keep milestone
+    `done_criteria`, `dependencies`, `risks`, `status`, `notes`, and
+    `details`. Refine each milestone until its goal, scope, done criteria,
+    dependencies, risks, notes, and details describe executable planning
+    context rather than placeholders or broad intentions. Keep standalone work
+    items in `planned-changes/*.yaml`, and give each standalone planned-change
+    artifact an actionable `summary`, `details`, `depends_on`, and `status` so
+    later roadmap recommendation, proposal, and implementation workflows can
+    understand the work without inventing missing detail. Keep milestone
     `planned_changes` empty unless you are explicitly materializing legacy data.
+    If a milestone needs more than ten planned changes or mixes unrelated work,
+    split it or stop for explicit user confirmation instead of hiding the scope
+    problem in one large milestone.
 
 4. **Normalize roadmap state** — run:
    ```bash
@@ -70,7 +79,16 @@ root. If it is missing, stop immediately and tell the user to run
    Use this to regenerate canonical index state and reconcile roadmap status
    with active and archived strict changes.
 
-5. **Summarize the result** — report the milestone set, the next planned change
+5. **Review the roadmap plan before handoff** — run `roadmap-status` after
+   sync, then review the edited roadmap files directly. Check for placeholders,
+   overbroad milestones, unclear dependencies, unverifiable done criteria, weak
+   planned-change detail, excessive planned change count, stale status values,
+   and current roadmap diagnostics. Fix safe structural or wording issues
+   immediately. If the review finds a product scope decision, dependency
+   decision, milestone split, or prioritization decision that requires the user,
+   stop and report the specific question instead of guessing.
+
+6. **Summarize the result** — report the milestone set, the next planned change
    candidates, and any roadmap diagnostics that still need human attention.
 
 ## Rules

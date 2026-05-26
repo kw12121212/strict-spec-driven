@@ -1,0 +1,42 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: tighten-roadmap-plan-guidance
+  status: proposed
+summary:
+  what:
+    - >-
+      Strengthen strict-roadmap-plan guidance so roadmap planning produces executable milestone and
+      planned-change detail before handoff.
+    - >-
+      Add a roadmap planning review step that checks the generated roadmap for coarse placeholders,
+      unclear dependencies, unverifiable done criteria, oversized milestones, and current roadmap
+      diagnostics.
+  why:
+    - >-
+      The current roadmap plan workflow can create structurally valid roadmap YAML while leaving the
+      planning content too vague for later recommendation, proposal, and implementation workflows.
+    - >-
+      A review checkpoint keeps roadmap planning quality in the skill prompt without introducing a
+      deterministic CLI review command.
+scope:
+  in:
+    - >-
+      Update strict-roadmap-plan skill guidance for AI-driven detail elaboration of milestones and
+      standalone planned changes.
+    - Require a post-sync roadmap planning review and follow-up status check before final handoff.
+    - >-
+      Update strict specs and skill-content validation coverage so the roadmap plan guidance cannot
+      regress silently.
+  out:
+    - Do not add a strict-spec-driven review subcommand or any roadmap-specific review CLI command.
+    - >-
+      Do not change roadmap YAML schemas, roadmap-status, roadmap-sync, recommendation selection, or
+      proposal handoff behavior.
+    - Do not implement roadmap work items or create strict changes from roadmap planned changes.
+unchanged_behavior:
+  - >-
+    Existing roadmap artifact locations, split-file planned-change ownership rules, roadmap-status
+    validation, and roadmap-sync canonicalization remain unchanged.

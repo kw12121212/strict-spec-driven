@@ -18012,6 +18012,8 @@ var STRICT_WORKFLOW_NO_INIT_SNIPPET = "Do not run `init` from this skill.";
 var ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 var ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
 var ROADMAP_ACTIVE_CONFLICT_SNIPPET = "active strict change conflicts";
+var ROADMAP_PLAN_EXECUTABLE_DETAIL_SNIPPET = "executable planning context";
+var ROADMAP_PLAN_REVIEW_SNIPPET = "Review the roadmap plan before handoff";
 var ROADMAP_SCRIPTED_RECOMMEND_SNIPPET = "treat the command's selected planned change as authoritative";
 var ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET = "before reading broad roadmap context";
 var ROADMAP_READY_HANDOFF_SNIPPET = "Use `ready` as the proposal handoff validation";
@@ -18153,7 +18155,11 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/roadmap/"]
+    requiredSnippets: [
+      ".strict-spec-driven/roadmap/",
+      ROADMAP_PLAN_EXECUTABLE_DETAIL_SNIPPET,
+      ROADMAP_PLAN_REVIEW_SNIPPET
+    ]
   },
   "strict-roadmap-milestone": {
     requiredCommands: {

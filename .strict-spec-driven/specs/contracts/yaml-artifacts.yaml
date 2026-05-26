@@ -1853,3 +1853,24 @@ requirements:
         - THEN: >-
             the original debug-session artifact is left in place and is not archived or rewritten by
             the conversion skill
+  strict-roadmap-plan-detail-and-review-guidance:
+    strength: MUST
+    statement: >-
+      The system MUST ensure strict-roadmap-plan skill guidance requires agents to elaborate roadmap
+      milestones and standalone planned changes into executable, reviewable planning detail and to
+      perform a roadmap planning review after roadmap synchronization before handoff.
+    scenarios:
+      roadmap-plan-skill-elaborates-roadmap-detail:
+        - GIVEN: a user asks the strict-roadmap-plan skill to create or restructure the roadmap
+        - WHEN: the skill workflow reaches roadmap YAML editing
+        - THEN: >-
+            the prompt requires the agent to refine milestone goal, scope, done criteria,
+            dependencies, risks, notes, details, and standalone planned-change summary, details,
+            dependencies, and status into actionable planning content
+      roadmap-plan-skill-reviews-before-handoff:
+        - GIVEN: the strict-roadmap-plan skill has edited roadmap artifacts and run roadmap-sync
+        - WHEN: the skill reaches final handoff
+        - THEN: >-
+            the prompt requires a roadmap planning review for placeholders, overbroad milestones,
+            unclear dependencies, unverifiable done criteria, weak planned-change detail, and
+            current roadmap diagnostics before reporting completion

@@ -1,0 +1,16 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: tighten-roadmap-plan-guidance
+open: []
+resolved:
+  - id: no-schema-change
+    question: Should this change introduce new roadmap YAML fields for planning detail or review state?
+    context: >-
+      The user asked to make roadmap plan skill guidance require AI detail elaboration and a review
+      step.
+    answer: >-
+      No. The requested behavior is workflow guidance for existing roadmap fields and a prompt-level
+      review checkpoint; roadmap schemas and CLI state remain unchanged.
+    status: resolved

@@ -54,6 +54,8 @@ export type SkillContentExpectation = {
 const ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 const ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
 const ROADMAP_ACTIVE_CONFLICT_SNIPPET = "active strict change conflicts";
+const ROADMAP_PLAN_EXECUTABLE_DETAIL_SNIPPET = "executable planning context";
+const ROADMAP_PLAN_REVIEW_SNIPPET = "Review the roadmap plan before handoff";
 const ROADMAP_SCRIPTED_RECOMMEND_SNIPPET = "treat the command's selected planned change as authoritative";
 const ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET = "before reading broad roadmap context";
 const ROADMAP_READY_HANDOFF_SNIPPET = "Use `ready` as the proposal handoff validation";
@@ -199,7 +201,11 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/roadmap/"],
+    requiredSnippets: [
+      ".strict-spec-driven/roadmap/",
+      ROADMAP_PLAN_EXECUTABLE_DETAIL_SNIPPET,
+      ROADMAP_PLAN_REVIEW_SNIPPET,
+    ],
   },
   "strict-roadmap-milestone": {
     requiredCommands: {

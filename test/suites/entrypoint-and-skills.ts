@@ -217,8 +217,10 @@ context.assert(
   context.assert(
     normalizedRoadmapPlanSkillContent.includes("Before any other step, confirm `.strict-spec-driven/` exists")
       && normalizedRoadmapPlanSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
+      && normalizedRoadmapPlanSkillContent.includes("executable planning context")
+      && normalizedRoadmapPlanSkillContent.includes("Review the roadmap plan before handoff")
       && !roadmapPlanSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js init"),
-    "strict-roadmap-plan requires existing strict workflow state instead of calling init",
+    "strict-roadmap-plan requires existing strict workflow state, executable detail guidance, and review guidance",
   );
   context.assert(
     roadmapRecommendSkillContent.includes("roadmap-recommend: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-recommend")
@@ -627,6 +629,94 @@ try {
   );
 } finally {
   rmSync(invalidGenericCommandSkillRoot, { recursive: true, force: true });
+}
+
+const invalidRoadmapPlanGuidanceRoot = mkdtempSync(path.join(os.tmpdir(), "strict-roadmap-plan-guidance-invalid-"));
+try {
+  const invalidRoadmapPlanSkillDir = path.join(invalidRoadmapPlanGuidanceRoot, "skills", "strict-roadmap-plan");
+  mkdirSync(path.join(invalidRoadmapPlanGuidanceRoot, "dist", "scripts"), { recursive: true });
+  mkdirSync(path.join(invalidRoadmapPlanGuidanceRoot, "dist", "templates"), { recursive: true });
+  mkdirSync(invalidRoadmapPlanSkillDir, { recursive: true });
+
+  symlinkSync("../../dist/scripts", path.join(invalidRoadmapPlanSkillDir, "scripts"));
+  symlinkSync("../../dist/templates", path.join(invalidRoadmapPlanSkillDir, "templates"));
+
+  writeFileSync(
+    path.join(invalidRoadmapPlanSkillDir, "SKILL.md"),
+    [
+      "---",
+      "name: strict-roadmap-plan",
+      "description: stub",
+      "metadata:",
+      "  skill_id: strict_roadmap_plan",
+      "  author: strict-spec-driven",
+      "  type: agent_skill",
+      "  version: 1.0.0",
+      "---",
+      "",
+      "You are helping with strict roadmap work under .strict-spec-driven/roadmap/.",
+      "",
+      "## This Skill's Commands",
+      "",
+      "```yaml",
+      "roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status",
+      "roadmap-sync: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync",
+      "```",
+      "",
+      "## Prerequisites",
+      "",
+      "The `.strict-spec-driven/` directory must exist at the project root. If it is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "",
+      "## Steps",
+      "",
+      "Before any other step, confirm `.strict-spec-driven/` exists at the project root. If it is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "",
+      "1. Run roadmap-status and update roadmap YAML under .strict-spec-driven/roadmap/.",
+      "2. Run roadmap-sync and summarize the result.",
+      "",
+      "## Rules",
+      "",
+      "- Keep all roadmap state under .strict-spec-driven/roadmap/.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(invalidRoadmapPlanGuidanceRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [{ name: "strict-roadmap-plan", family: "strict-roadmap" }],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const invalidRoadmapPlanGuidanceResult = skillValidationModule.validateStrictSkillPackaging(invalidRoadmapPlanGuidanceRoot);
+  context.assert(!invalidRoadmapPlanGuidanceResult.valid, "strict skill validation fails when roadmap plan omits detail and review guidance");
+  context.assert(
+    invalidRoadmapPlanGuidanceResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.required_snippet.missing"
+        && diagnostic.path === "skills/strict-roadmap-plan/SKILL.md"
+        && diagnostic.expected === "executable planning context",
+    ),
+    "roadmap plan skill validation requires executable detail guidance",
+  );
+  context.assert(
+    invalidRoadmapPlanGuidanceResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.required_snippet.missing"
+        && diagnostic.path === "skills/strict-roadmap-plan/SKILL.md"
+        && diagnostic.expected === "Review the roadmap plan before handoff",
+    ),
+    "roadmap plan skill validation requires post-sync review guidance",
+  );
+} finally {
+  rmSync(invalidRoadmapPlanGuidanceRoot, { recursive: true, force: true });
 }
 
 const invalidSemanticSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-core-skill-semantics-invalid-"));

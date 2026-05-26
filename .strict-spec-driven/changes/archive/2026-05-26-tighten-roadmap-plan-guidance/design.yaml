@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: tighten-roadmap-plan-guidance
+approach:
+  - >-
+    Keep this as a skill-guidance and validation change. The implementation should revise
+    strict-roadmap-plan/SKILL.md to require detail elaboration before YAML editing is considered
+    complete, then add a post-sync roadmap planning review that uses roadmap-status output and
+    direct file inspection to catch vague or inconsistent planning content. Skill content validation
+    should assert stable snippets for the new guidance so future prompt drift is caught by existing
+    validate-skills coverage.
+decisions:
+  roadmap-plan-review-is-prompt-guidance:
+    decision: Represent the new review as strict-roadmap-plan workflow guidance, not as a new CLI command.
+    rationale: >-
+      The review depends on AI judgment about planning quality, scope clarity, and executable
+      detail. Existing CLI commands already own deterministic mechanics such as status reporting,
+      schema validation, and sync.
+  validate-required-plan-guidance:
+    decision: Add explicit validation expectations for the new roadmap plan detail and review snippets.
+    rationale: >-
+      The repository already validates skill prompts for required commands and critical workflow
+      guidance, so snippet validation is the narrowest way to prevent this regression from
+      returning.
+alternatives: []
+risks: []

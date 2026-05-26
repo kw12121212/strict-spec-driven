@@ -1,0 +1,56 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: tighten-roadmap-plan-guidance
+sections:
+  Implementation:
+    update-roadmap-plan-skill:
+      text: >-
+        Update strict-roadmap-plan skill guidance to require executable milestone and planned-change
+        detail before handoff.
+      status: complete
+    add-roadmap-plan-review-guidance:
+      text: >-
+        Add a post-sync roadmap planning review step to strict-roadmap-plan that checks planning
+        quality, dependencies, done criteria, overbroad scope, placeholders, and roadmap
+        diagnostics.
+      status: complete
+    enforce-skill-content-expectations:
+      text: >-
+        Update strict skill content expectations so validate-skills detects missing roadmap plan
+        detail and review guidance.
+      status: complete
+    update-spec-artifacts:
+      text: >-
+        Keep strict main-spec deltas aligned with the implemented roadmap plan skill guidance and
+        validation behavior.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-skill-content-tests:
+      text: Run skill validation and roadmap skill regression coverage.
+      status: complete
+      command: bun test/run.ts --filter entrypoint-and-skills
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+    verify-change:
+      text: Run strict change verification before review/archive.
+      status: complete
+      command: node scripts/strict-spec-driven.js verify tighten-roadmap-plan-guidance
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

@@ -1,0 +1,35 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/skills/model.ts
+    - src/skills/content.ts
+    - skills/strict-roadmap-plan/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-roadmap-plan-guidance-validation:
+      strength: MUST
+      statement: >-
+        The system MUST include automated skill-content checks that fail when strict-roadmap-plan
+        guidance omits roadmap detail elaboration or the post-sync roadmap planning review
+        checkpoint.
+      scenarios:
+        validate-skills-requires-roadmap-plan-detail-guidance:
+          - GIVEN: strict skill content validation inspects strict-roadmap-plan/SKILL.md
+          - WHEN: the skill omits required guidance for elaborating milestone and planned-change detail
+          - THEN: >-
+              validate-skills reports deterministic diagnostics for the missing roadmap plan
+              guidance
+        validate-skills-requires-roadmap-plan-review-guidance:
+          - GIVEN: strict skill content validation inspects strict-roadmap-plan/SKILL.md
+          - WHEN: the skill omits the post-sync roadmap planning review checkpoint
+          - THEN: >-
+              validate-skills reports deterministic diagnostics for the missing roadmap review
+              guidance
+  MODIFIED: {}
+  REMOVED: {}

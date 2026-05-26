@@ -2121,3 +2121,19 @@ requirements:
         - THEN: >-
             review-time changes still require strict verification and complete project regression
             evidence to be refreshed
+  cli-roadmap-plan-guidance-validation:
+    strength: MUST
+    statement: >-
+      The system MUST include automated skill-content checks that fail when strict-roadmap-plan
+      guidance omits roadmap detail elaboration or the post-sync roadmap planning review checkpoint.
+    scenarios:
+      validate-skills-requires-roadmap-plan-detail-guidance:
+        - GIVEN: strict skill content validation inspects strict-roadmap-plan/SKILL.md
+        - WHEN: the skill omits required guidance for elaborating milestone and planned-change detail
+        - THEN: validate-skills reports deterministic diagnostics for the missing roadmap plan guidance
+      validate-skills-requires-roadmap-plan-review-guidance:
+        - GIVEN: strict skill content validation inspects strict-roadmap-plan/SKILL.md
+        - WHEN: the skill omits the post-sync roadmap planning review checkpoint
+        - THEN: >-
+            validate-skills reports deterministic diagnostics for the missing roadmap review
+            guidance
