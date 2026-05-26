@@ -1,0 +1,38 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-workflow-state-check-command
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a deterministic strict CLI workflow-state check command and update non-init strict skills
+      to run it before any workflow work.
+  why:
+    - >-
+      Hidden workflow directories can be missed by coding agents during initial exploration, so
+      skill prerequisites need a script-owned check that directly tests whether .strict-spec-driven/
+      exists.
+scope:
+  in:
+    - >-
+      Add a check-workflow-state CLI command that only verifies .strict-spec-driven/ exists as a
+      directory from the project root.
+    - >-
+      Expose the command in strict skill command mappings where non-init skills depend on existing
+      workflow state.
+    - >-
+      Update non-init and non-migrate strict skill prerequisites and first workflow steps to run the
+      command before other work.
+    - Add tests for the CLI success and missing-directory behavior plus skill prompt coverage.
+  out:
+    - Do not run or repair strict workflow initialization from this command.
+    - Do not validate the contents, schemas, or completeness of .strict-spec-driven/.
+    - Do not change strict-spec-init or strict-spec-migrate workflow ownership.
+unchanged_behavior:
+  - Existing init behavior remains responsible for creating or repairing .strict-spec-driven/.
+  - >-
+    Existing strict change, roadmap, debug-session, dev-session, and verification commands keep
+    their current semantics after the prerequisite check passes.

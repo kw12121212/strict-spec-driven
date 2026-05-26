@@ -1,0 +1,43 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-workflow-state-check-command
+sections:
+  Implementation:
+    add-workflow-state-check-command:
+      text: Add a strict CLI check-workflow-state command that only reports whether .strict-spec-driven/ exists as a directory and never initializes or validates workflow artifacts.
+      status: pending
+    wire-command-usage:
+      text: Register the new command in CLI dispatch and usage/help output with deterministic success and missing-directory diagnostics.
+      status: pending
+    update-non-init-skill-prompts:
+      text: Update every strict skill except strict-spec-init and strict-spec-migrate so its command mapping and first prerequisite step use check-workflow-state.
+      status: pending
+  Testing:
+    add-cli-command-tests:
+      text: Add tests covering check-workflow-state success when .strict-spec-driven/ exists and non-zero guidance when it is missing.
+      status: pending
+      command: bun test/run.ts
+    add-skill-prompt-tests:
+      text: Add or update skill validation tests so non-init skills must expose and run check-workflow-state before other workflow work.
+      status: pending
+      command: bun test/run.ts
+    run-build:
+      text: Run TypeScript build validation.
+      status: pending
+      command: bun run build
+    run-tests:
+      text: Run the full unit test suite.
+      status: pending
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify the command remains limited to directory existence checking and does not initialize, repair, or validate workflow artifacts.
+      status: pending
+    verify-skill-exceptions:
+      text: Verify strict-spec-init and strict-spec-migrate retain their distinct workflow ownership and are not forced through the new prerequisite check.
+      status: pending
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests
