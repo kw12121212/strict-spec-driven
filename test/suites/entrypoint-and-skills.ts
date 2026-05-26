@@ -247,7 +247,7 @@ context.assert(
   );
   context.assert(
     roadmapPlanSkillContent.includes("check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state")
-      && normalizedRoadmapPlanSkillContent.includes("Before any other step, run `check-workflow-state`")
+      && normalizedRoadmapPlanSkillContent.includes("Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`")
       && normalizedRoadmapPlanSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
       && normalizedRoadmapPlanSkillContent.includes("executable planning context")
       && normalizedRoadmapPlanSkillContent.includes("Review the roadmap plan before handoff")
@@ -265,7 +265,7 @@ context.assert(
   );
   context.assert(
     devSessionInitSkillContent.includes("check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state")
-      && normalizedDevSessionInitSkillContent.includes("Before any other step, run `check-workflow-state`")
+      && normalizedDevSessionInitSkillContent.includes("Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`")
       && normalizedDevSessionInitSkillContent.includes("template-show scaffold/dev-session.yaml")
       && normalizedDevSessionInitSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
       && !devSessionInitSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js init"),
@@ -339,11 +339,11 @@ try {
       "",
       "## Prerequisites",
       "",
-      "Run `check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "Run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
       "",
       "## Steps",
       "",
-      "Before any other step, run `check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
       "",
       "1. **Run the demo command** — inspect strict workflow artifacts under `.strict-spec-driven/`.",
       "",

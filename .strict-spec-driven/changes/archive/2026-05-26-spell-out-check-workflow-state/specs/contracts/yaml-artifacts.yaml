@@ -1,0 +1,58 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/skills/model.ts
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-spec-apply/SKILL.md
+    - skills/strict-spec-archive/SKILL.md
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-cancel/SKILL.md
+    - skills/strict-spec-debug-session/SKILL.md
+    - skills/strict-spec-debug-session-archive/SKILL.md
+    - skills/strict-spec-debug-session-to-change/SKILL.md
+    - skills/strict-spec-dev-session-init/SKILL.md
+    - skills/strict-spec-maintenance/SKILL.md
+    - skills/strict-spec-migrate/SKILL.md
+    - skills/strict-spec-modify/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-resync-code-mapping/SKILL.md
+    - skills/strict-spec-review/SKILL.md
+    - skills/strict-spec-ship/SKILL.md
+    - skills/strict-spec-simple-task/SKILL.md
+    - skills/strict-spec-spec-edit/SKILL.md
+    - skills/strict-spec-sync-specs/SKILL.md
+    - skills/strict-spec-verify/SKILL.md
+    - skills/strict-roadmap-milestone/SKILL.md
+    - skills/strict-roadmap-plan/SKILL.md
+    - skills/strict-roadmap-propose/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+    - skills/strict-roadmap-sync/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    skill-check-workflow-state-command-references:
+      strength: MUST
+      statement: >-
+        Skill command reference blocks and strict skill packaging validation MUST require the
+        check-workflow-state command as a full node invocation so agents can execute it directly
+        before workflow work.
+      scenarios:
+        check-workflow-state-reference-is-copyable:
+          - GIVEN: a bundled strict workflow skill documents a check-workflow-state command reference
+          - WHEN: an agent reads that command reference before starting workflow work
+          - THEN: >-
+              the command text includes the full node {{SKILL_DIR}}/scripts/strict-spec-driven.js
+              check-workflow-state invocation
+        check-workflow-state-validation-expects-full-command:
+          - GIVEN: skill packaging validation checks strict workflow precheck guidance
+          - WHEN: the precheck snippet is validated for a non-init strict skill
+          - THEN: >-
+              the expected snippet includes the full node {{SKILL_DIR}}/scripts/strict-spec-driven.js
+              check-workflow-state invocation
+  MODIFIED: {}
+  REMOVED: {}

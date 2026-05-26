@@ -40,7 +40,7 @@ export const READY_COMMAND = `${COMMAND_PREFIX} ready <change-name>`;
 export const NEXT_COMMAND = `${COMMAND_PREFIX} next <change-name>`;
 export const CHECK_WORKFLOW_STATE_COMMAND = `${COMMAND_PREFIX} check-workflow-state`;
 export const STRICT_WORKFLOW_EXISTENCE_STEP_SNIPPET =
-  "Before any other step, run `check-workflow-state`";
+  `Before any other step, run \`${CHECK_WORKFLOW_STATE_COMMAND}\``;
 export const STRICT_WORKFLOW_INIT_GUIDANCE_SNIPPET =
   "stop immediately and tell the user to run `/strict-spec-init`";
 export const STRICT_WORKFLOW_NO_INIT_SNIPPET = "Do not run `init` from this skill.";

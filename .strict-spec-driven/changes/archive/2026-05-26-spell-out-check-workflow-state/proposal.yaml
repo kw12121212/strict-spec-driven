@@ -1,0 +1,24 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: spell-out-check-workflow-state
+  status: proposed
+summary:
+  what:
+    - >-
+      Spell out every skill's check-workflow-state command as a full node invocation using the skill
+      script path.
+  why:
+    - >-
+      Agents need copyable commands for required workflow-state checks, matching the explicit
+      command style used by other skill command references.
+scope:
+  in:
+    - Update bundled skill SKILL.md command references that mention check-workflow-state.
+    - Update skill packaging validation and tests so the full command form is the expected precheck guidance.
+  out:
+    - Do not change strict workflow execution behavior, schemas, templates, or unrelated skill workflow steps.
+unchanged_behavior:
+  - Existing strict workflow commands and strict artifact schemas remain unchanged.

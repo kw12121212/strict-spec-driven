@@ -36,7 +36,7 @@ ship: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ship <change-name>
 
 ## Prerequisites
 
-Run `check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -46,7 +46,7 @@ yet archived.
 
 ## Steps
 
-Before any other step, run `check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 

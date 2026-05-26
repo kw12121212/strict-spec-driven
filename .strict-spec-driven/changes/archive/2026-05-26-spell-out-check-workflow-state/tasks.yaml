@@ -1,0 +1,32 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: spell-out-check-workflow-state
+sections:
+  Implementation:
+    update-skill-command-references:
+      text: >-
+        Update bundled skill command reference blocks so every check-workflow-state entry is a full
+        node invocation.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    validate-skills:
+      text: Validate bundled skill packaging and command documentation.
+      status: complete
+      command: bun run validate-skills
+    run-full-regression:
+      text: Run the complete project regression command.
+      status: complete
+      command: bun run build && bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify changed skill references and strict artifacts match proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-full-regression
