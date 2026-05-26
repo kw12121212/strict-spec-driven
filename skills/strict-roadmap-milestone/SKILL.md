@@ -16,13 +16,14 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
+check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
 roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
 roadmap-sync: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync
 ```
 
 ## Prerequisites
 
-The `.strict-spec-driven/` directory must exist at the project root. If it is
+Run `check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -38,9 +39,9 @@ run `init` from this skill.
 
 ## Steps
 
-Before any other step, confirm `.strict-spec-driven/` exists at the project
-root. If it is missing, stop immediately and tell the user to run
-`/strict-spec-init`. Do not run `init` from this skill.
+Before any other step, run `check-workflow-state`. If `.strict-spec-driven/` is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
 
 1. **Load milestone context** — read `.strict-spec-driven/config.yaml`,
    `.strict-spec-driven/roadmap/INDEX.yaml`, the target milestone YAML file

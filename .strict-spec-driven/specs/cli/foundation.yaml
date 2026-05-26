@@ -2137,3 +2137,21 @@ requirements:
         - THEN: >-
             validate-skills reports deterministic diagnostics for the missing roadmap review
             guidance
+  cli-workflow-state-check-command:
+    strength: MUST
+    statement: >-
+      The system MUST provide a check-workflow-state subcommand that checks whether
+      .strict-spec-driven/ exists as a directory in the current project root and reports the result
+      deterministically without creating or validating workflow artifacts.
+    scenarios:
+      workflow-state-check-succeeds-when-directory-exists:
+        - GIVEN: a repository contains a .strict-spec-driven/ directory
+        - WHEN: strict-spec-driven check-workflow-state is executed from that repository root
+        - THEN: the command exits with status 0
+        - THEN: the command reports that strict workflow state exists
+      workflow-state-check-fails-when-directory-is-missing:
+        - GIVEN: a repository does not contain a .strict-spec-driven/ directory
+        - WHEN: strict-spec-driven check-workflow-state is executed from that repository root
+        - THEN: the command exits with a non-zero status
+        - THEN: the command reports that strict workflow state is missing
+        - THEN: the command directs the user to run /strict-spec-init

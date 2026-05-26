@@ -1,6 +1,31 @@
+import { existsSync, statSync } from "node:fs";
+import path from "node:path";
 import { checkProposalReadiness, getWorkflowState } from "../workflow-state.js";
 import { CHANGE_NAME_PATTERN, isHelpRequest } from "./argv.js";
-import { writeError, writeHelp, writeJson, writeUsage } from "./output.js";
+import { writeError, writeHelp, writeJson, writeOut, writeUsage } from "./output.js";
+
+const STRICT_WORKFLOW_STATE_DIR = ".strict-spec-driven";
+
+export function runCheckWorkflowState(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-driven check-workflow-state\n");
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage("Usage: strict-spec-driven check-workflow-state\n");
+    return 1;
+  }
+
+  const workflowStatePath = path.join(process.cwd(), STRICT_WORKFLOW_STATE_DIR);
+  if (existsSync(workflowStatePath) && statSync(workflowStatePath).isDirectory()) {
+    writeOut("strict workflow state exists: .strict-spec-driven/\n");
+    return 0;
+  }
+
+  writeError("strict workflow state is missing: .strict-spec-driven/");
+  writeUsage("Run /strict-spec-init before using strict workflow commands.\n");
+  return 1;
+}
 
 export function runReady(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;

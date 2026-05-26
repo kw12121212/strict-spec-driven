@@ -2,6 +2,7 @@ import { formatYamlParseSummary, getYamlDiagnosticDetails, getYamlParseDetails, 
 import {
   COMMAND_PREFIX,
   CORE_STRICT_SKILL_EXPECTATIONS,
+  CHECK_WORKFLOW_STATE_COMMAND,
   GENERIC_COMMAND_PLACEHOLDER,
   MIGRATION_STRICT_SKILL_EXPECTATIONS,
   PLANNING_STRICT_SKILL_EXPECTATIONS,
@@ -29,6 +30,28 @@ function validateStrictWorkflowStateGuidance(
 ): void {
   if (!requiresExistingStrictWorkflowState(skillName)) return;
   const normalizedContent = content.replace(/\s+/g, " ");
+
+  const checkWorkflowStateCommand = commands["check-workflow-state"];
+  if (!checkWorkflowStateCommand) {
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.strict_workflow.check_command.missing",
+        `${skillPath}#commands.check-workflow-state`,
+        "non-init strict skills must expose the scripted strict workflow state check command",
+        CHECK_WORKFLOW_STATE_COMMAND,
+      ),
+    );
+  } else if (!checkWorkflowStateCommand.includes(CHECK_WORKFLOW_STATE_COMMAND)) {
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.strict_workflow.check_command.invalid",
+        `${skillPath}#commands.check-workflow-state`,
+        "non-init strict skills must run the scripted strict workflow state check command before workflow work",
+        CHECK_WORKFLOW_STATE_COMMAND,
+        checkWorkflowStateCommand,
+      ),
+    );
+  }
 
   for (const snippet of [
     STRICT_WORKFLOW_EXISTENCE_STEP_SNIPPET,

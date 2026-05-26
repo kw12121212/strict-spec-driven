@@ -2,6 +2,7 @@ import type { CliCommandHandler, CliCommandTable } from "./entrypoint.js";
 
 export const COMMAND_REGISTRATION_ORDER = [
   "init",
+  "check-workflow-state",
   "propose",
   "generate",
   "apply",

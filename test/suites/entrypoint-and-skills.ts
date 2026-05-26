@@ -22,6 +22,7 @@ context.section("[1] entrypoint smoke test");
 
 const expectedCommandOrder = [
   "init",
+  "check-workflow-state",
   "propose",
   "generate",
   "apply",
@@ -102,6 +103,36 @@ for (const commandName of expectedCommandOrder) {
     `stdout: ${commandHelp.stdout.trim()}`,
   );
   context.assert(commandHelp.stderr.length === 0, `${commandName} --help keeps stderr empty`, `stderr: ${commandHelp.stderr.trim()}`);
+}
+
+const workflowStateSuccess = cli(["check-workflow-state"], { cwd: ROOT });
+context.assert(
+  workflowStateSuccess.status === 0,
+  "check-workflow-state exits zero when .strict-spec-driven/ exists",
+  `stdout: ${workflowStateSuccess.stdout.trim()} stderr: ${workflowStateSuccess.stderr.trim()}`,
+);
+context.assert(
+  workflowStateSuccess.stdout.includes("strict workflow state exists"),
+  "check-workflow-state reports existing strict workflow state",
+  `stdout: ${workflowStateSuccess.stdout.trim()}`,
+);
+
+const missingWorkflowStateRoot = mkdtempSync(path.join(os.tmpdir(), "strict-workflow-state-missing-"));
+try {
+  const workflowStateMissing = cli(["check-workflow-state"], { cwd: missingWorkflowStateRoot });
+  context.assert(
+    workflowStateMissing.status !== 0,
+    "check-workflow-state exits non-zero when .strict-spec-driven/ is missing",
+    `stdout: ${workflowStateMissing.stdout.trim()} stderr: ${workflowStateMissing.stderr.trim()}`,
+  );
+  context.assert(
+    workflowStateMissing.stderr.includes("strict workflow state is missing")
+      && workflowStateMissing.stderr.includes("/strict-spec-init"),
+    "check-workflow-state reports missing state and init guidance",
+    `stderr: ${workflowStateMissing.stderr.trim()}`,
+  );
+} finally {
+  rmSync(missingWorkflowStateRoot, { recursive: true, force: true });
 }
 
 const validateSkillsDispatch = cli(["validate-skills"], { cwd: ROOT });
@@ -215,7 +246,8 @@ context.assert(
     "strict-spec-auto resumes populated scaffolds and blocks archive without automatic safe fixes, complete regression, and direct code review evidence",
   );
   context.assert(
-    normalizedRoadmapPlanSkillContent.includes("Before any other step, confirm `.strict-spec-driven/` exists")
+    roadmapPlanSkillContent.includes("check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state")
+      && normalizedRoadmapPlanSkillContent.includes("Before any other step, run `check-workflow-state`")
       && normalizedRoadmapPlanSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
       && normalizedRoadmapPlanSkillContent.includes("executable planning context")
       && normalizedRoadmapPlanSkillContent.includes("Review the roadmap plan before handoff")
@@ -232,7 +264,8 @@ context.assert(
     "strict-roadmap-recommend requires scripted-first recommendation, ready handoff, and populated auto resume guidance",
   );
   context.assert(
-    normalizedDevSessionInitSkillContent.includes("Before any other step, confirm `.strict-spec-driven/` exists")
+    devSessionInitSkillContent.includes("check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state")
+      && normalizedDevSessionInitSkillContent.includes("Before any other step, run `check-workflow-state`")
       && normalizedDevSessionInitSkillContent.includes("template-show scaffold/dev-session.yaml")
       && normalizedDevSessionInitSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
       && !devSessionInitSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js init"),
@@ -300,16 +333,17 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
+      "check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state",
       "demo: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify demo",
       "```",
       "",
       "## Prerequisites",
       "",
-      "The `.strict-spec-driven/` directory must exist at the project root. If it is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "Run `check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
       "",
       "## Steps",
       "",
-      "Before any other step, confirm `.strict-spec-driven/` exists at the project root. If it is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "Before any other step, run `check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
       "",
       "1. **Run the demo command** — inspect strict workflow artifacts under `.strict-spec-driven/`.",
       "",
@@ -406,6 +440,10 @@ try {
   context.assert(
     invalidResultA.diagnostics.some((diagnostic) => diagnostic.code === "skill.strict_workflow.precheck.missing"),
     "invalid packaging reports missing strict workflow precheck guidance",
+  );
+  context.assert(
+    invalidResultA.diagnostics.some((diagnostic) => diagnostic.code === "skill.strict_workflow.check_command.missing"),
+    "invalid packaging reports missing strict workflow check command mapping",
   );
   context.assert(
     invalidResultA.diagnostics.some((diagnostic) => diagnostic.code === "skill.strict_workflow.init_command.forbidden"),

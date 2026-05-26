@@ -1664,18 +1664,17 @@ requirements:
     strength: MUST
     statement: >-
       The system MUST require every strict skill except strict-spec-init and strict-spec-migrate to
-      verify that .strict-spec-driven/ already exists before any other workflow step, and when it is
-      missing the skill MUST stop and direct the user to run /strict-spec-init instead of invoking
-      init itself.
+      run the scripted check-workflow-state command before any other workflow step, and when
+      .strict-spec-driven/ is missing the skill MUST stop and direct the user to run
+      /strict-spec-init instead of invoking init itself.
     scenarios:
       missing-workflow-state-blocks-non-init-skills:
         - GIVEN: a strict non-init skill that operates on .strict-spec-driven/ workflow state is reviewed
         - WHEN: its prerequisites, command mapping, and first workflow step are inspected
-        - THEN: >-
-            the skill requires an explicit .strict-spec-driven/ existence check before any other
-            workflow work
-        - AND: the missing-directory path stops with guidance to run /strict-spec-init
-        - AND: the prompt does not tell the agent to run the bundled init command as a fallback
+        - THEN: the skill exposes the check-workflow-state command in its command mapping
+        - THEN: the skill requires running check-workflow-state before any other workflow work
+        - THEN: the missing-directory path stops with guidance to run /strict-spec-init
+        - THEN: the prompt does not tell the agent to run the bundled init command as a fallback
   strict-review-skills-require-code-review-evidence:
     strength: MUST
     statement: >-

@@ -13,6 +13,7 @@ You are initializing a strict development-session declaration for the current pr
 ## This Skill's Commands
 
 ```yaml
+check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
 template-show: node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/dev-session.yaml
 dev-session-plan: node {{SKILL_DIR}}/scripts/strict-spec-driven.js dev-session-plan
 ```
@@ -31,7 +32,7 @@ Do NOT use when:
 
 ## Prerequisites
 
-The `.strict-spec-driven/` directory must exist at the project root. If it is
+Run `check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -40,9 +41,9 @@ Work in the intended repository root before writing
 
 ## Steps
 
-Before any other step, confirm `.strict-spec-driven/` exists at the project
-root. If it is missing, stop immediately and tell the user to run
-`/strict-spec-init`. Do not run `init` from this skill.
+Before any other step, run `check-workflow-state`. If `.strict-spec-driven/` is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
 
 1. **Read project context and any existing declaration** — inspect the repository
    files that best describe local development behavior, including:

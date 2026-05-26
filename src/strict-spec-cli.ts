@@ -6,7 +6,7 @@ import { createCliCommandTable } from "./cli/registry.js";
 import { runInit, runPropose } from "./cli/cmd-scaffold.js";
 import { runGenerate } from "./cli/cmd-generation.js";
 import { runApply, runVerify, runArchive, runList, runModify, runCancel } from "./cli/cmd-change.js";
-import { runNext, runReady } from "./cli/cmd-workflow.js";
+import { runCheckWorkflowState, runNext, runReady } from "./cli/cmd-workflow.js";
 import { runRoadmapOverview, runRoadmapRecommend, runRoadmapStatus, runRoadmapSync } from "./cli/cmd-roadmap.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runCommitAndPush } from "./cli/cmd-operations.js";
@@ -65,6 +65,7 @@ export { runMaintenance };
 
 export const commands = createCliCommandTable({
   init: (argv) => runInit(argv),
+  "check-workflow-state": (argv) => runCheckWorkflowState(argv),
   propose: (argv) => runPropose(argv),
   generate: (argv) => runGenerate(argv),
   apply: (argv) => runApply(argv),
