@@ -93,6 +93,19 @@ run `init` from this skill.
     Testing, and Verification sections plus valid testing gates. Keep or add a
     dedicated lint Testing task before full unit or regression test tasks when
     the project has a runnable lint command.
+   For newly created or newly populated scaffolds, **Review and refine the
+   generated planning artifacts** before running handoff validation. Perform a
+   semantic self-review of every generated or edited file under
+   `.strict-spec-driven/changes/<change-name>/` against the user request, the
+   relevant main specs, and the existing project constraints. Look for vague
+   requirements, inconsistent in-scope/out-of-scope/unchanged behavior, missing
+   implementation or testing tasks, misplaced open questions, weak delta-spec
+   scenarios, and prose that should be represented in structured mapping
+   fields. Fix safe, in-scope issues immediately by rerunning the supported
+   `generate` commands for script-owned artifacts and by directly editing
+   `tasks.yaml` for task-list structure. Do not expand scope or answer
+   unresolved human questions during this review; record ambiguity in
+   `questions.yaml`.
    Run `ready <change-name>` at proposal time when deciding whether the change
    is ready for implementation; it reports deterministic handoff blockers
    without deciding product scope or requirement content. If you use `verify`

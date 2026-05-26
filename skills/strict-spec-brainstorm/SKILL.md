@@ -89,7 +89,20 @@ run `init` from this skill.
     for delta specs) so generated YAML matches the full document shape
     immediately.
 
-8. **Validate proposal readiness and artifact structure** — run:
+8. **Review and refine the generated planning artifacts** — before validation,
+   perform a semantic self-review of every generated or edited file under
+   `.strict-spec-driven/changes/<change-name>/` against the confirmed brainstorm
+   summary, the relevant main specs, and the existing project constraints. Look
+   for vague requirements, inconsistent in-scope/out-of-scope/unchanged behavior,
+   missing implementation or testing tasks, misplaced open questions, weak
+   delta-spec scenarios, and prose that should be represented in structured
+   mapping fields. Fix safe, in-scope issues immediately by rerunning the
+   supported `generate` commands for script-owned artifacts and by directly
+   editing `tasks.yaml` for task-list structure. Do not expand scope or answer
+   unresolved human questions during this review; record ambiguity in
+   `questions.yaml` or return to the user checkpoint when the scope changes.
+
+9. **Validate proposal readiness and artifact structure** — run:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
    ```
@@ -103,10 +116,10 @@ run `init` from this skill.
    pending-task diagnostics are expected because implementation has not started
    yet. Fix safe structure issues before handing the proposal off.
 
-9. **Hand off** — summarize the strict change scope, key decisions, task count,
-   unchanged behavior, and any open questions. If `questions.yaml` still has
-   open entries, make clear that implementation must stop for explicit user
-   resolution before coding starts.
+10. **Hand off** — summarize the strict change scope, key decisions, review
+   refinements made, task count, unchanged behavior, and any open questions. If
+   `questions.yaml` still has open entries, make clear that implementation must
+   stop for explicit user resolution before coding starts.
 
 ## Rules
 

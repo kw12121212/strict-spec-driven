@@ -1408,6 +1408,26 @@ requirements:
         - AND: >-
             the instructions prohibit JSON payload files and hand-authored generated artifact shape
             where CLI support exists
+  proposal-generating-skills-review-generated-artifacts:
+    strength: MUST
+    statement: >-
+      Proposal-generating skills MUST guide agents to review and refine generated planning
+      artifacts after population and before ready/verify validation so semantic quality issues are
+      corrected before proposal handoff or implementation.
+    scenarios:
+      generated-artifact-review-refines-before-validation:
+        - GIVEN: >-
+            strict-spec-brainstorm, strict-spec-propose, or the creation path of strict-spec-auto
+            has populated proposal, design, task, question, and delta spec artifacts for a change
+        - WHEN: the skill workflow proceeds toward proposal handoff
+        - THEN: >-
+            the skill requires a semantic self-review of generated artifacts against the confirmed
+            request or brainstorm summary, relevant main specs, and project constraints before
+            running ready or verify
+        - AND: >-
+            the review guidance tells agents to fix safe in-scope issues in generated artifacts
+            without expanding scope or answering unresolved human questions
+        - AND: unresolved ambiguity remains recorded in questions.yaml
   skill-commands-do-not-own-artifact-shape:
     strength: MUST
     statement: >-

@@ -200,7 +200,9 @@ const validateSkillsJson = validateSkillsDispatchJson;
 context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits valid=true JSON");
 
   const reviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-review", "SKILL.md"), "utf8");
+  const proposeSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"), "utf8");
   const autoSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-auto", "SKILL.md"), "utf8");
+  const brainstormSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-brainstorm", "SKILL.md"), "utf8");
   const roadmapPlanSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-plan", "SKILL.md"), "utf8");
   const roadmapRecommendSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
   const devSessionInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-dev-session-init", "SKILL.md"), "utf8");
@@ -212,7 +214,9 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   );
   const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
   const normalizedReviewSkillContent = reviewSkillContent.replace(/\s+/g, " ");
+  const normalizedProposeSkillContent = proposeSkillContent.replace(/\s+/g, " ");
   const normalizedAutoSkillContent = autoSkillContent.replace(/\s+/g, " ");
+  const normalizedBrainstormSkillContent = brainstormSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapPlanSkillContent = roadmapPlanSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapRecommendSkillContent = roadmapRecommendSkillContent.replace(/\s+/g, " ");
   const normalizedDevSessionInitSkillContent = devSessionInitSkillContent.replace(/\s+/g, " ");
@@ -231,6 +235,14 @@ context.assert(
   "strict-spec-review requires direct code review, automatic safe fixes, and regression evidence before archive recommendation",
 );
   context.assert(
+    normalizedProposeSkillContent.includes("Review and refine the generated planning artifacts")
+      && normalizedProposeSkillContent.includes("before validation")
+      && normalizedProposeSkillContent.includes("semantic self-review")
+      && normalizedProposeSkillContent.includes("Do not expand scope or answer unresolved human questions")
+      && normalizedProposeSkillContent.includes("review refinements made"),
+    "strict-spec-propose reviews and refines generated planning artifacts before ready/verify handoff",
+  );
+  context.assert(
     normalizedAutoSkillContent.includes("complete project-level regression test evidence")
       && normalizedAutoSkillContent.includes("stop before archive")
       && normalizedAutoSkillContent.includes("actionable setup or waiting guidance")
@@ -242,8 +254,20 @@ context.assert(
       && normalizedAutoSkillContent.includes("Reset context from targeted files")
       && normalizedAutoSkillContent.includes("resume the existing populated strict change scaffold without regenerating planning artifacts")
       && normalizedAutoSkillContent.includes("exactly matches the configured complete project regression command")
+      && normalizedAutoSkillContent.includes("Review and refine the generated planning artifacts")
+      && normalizedAutoSkillContent.includes("semantic self-review")
+      && normalizedAutoSkillContent.includes("Do not expand scope or answer unresolved human questions")
       && !autoSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>"),
-    "strict-spec-auto resumes populated scaffolds and blocks archive without automatic safe fixes, complete regression, and direct code review evidence",
+    "strict-spec-auto reviews generated planning artifacts, resumes populated scaffolds, and blocks archive without automatic safe fixes, complete regression, and direct code review evidence",
+  );
+  context.assert(
+    normalizedBrainstormSkillContent.includes("Review and refine the generated planning artifacts")
+      && normalizedBrainstormSkillContent.includes("before validation")
+      && normalizedBrainstormSkillContent.includes("semantic self-review")
+      && normalizedBrainstormSkillContent.includes("confirmed brainstorm summary")
+      && normalizedBrainstormSkillContent.includes("Do not expand scope or answer unresolved human questions")
+      && normalizedBrainstormSkillContent.includes("review refinements made"),
+    "strict-spec-brainstorm reviews and refines generated planning artifacts before ready/verify handoff",
   );
   context.assert(
     roadmapPlanSkillContent.includes("check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state")

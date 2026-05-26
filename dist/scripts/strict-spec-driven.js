@@ -18050,6 +18050,7 @@ var ROADMAP_AUTO_POPULATED_HANDOFF_SNIPPET = "populated change scaffold";
 var AUTO_TARGETED_CONTEXT_RESET_SNIPPET = "Reset context from targeted files";
 var AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET = "resume the existing populated strict change scaffold without regenerating planning artifacts";
 var AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET = "exactly matches the configured complete project regression command";
+var PROPOSAL_ARTIFACT_REVIEW_SNIPPET = "Review and refine the generated planning artifacts";
 var REVIEW_AUTO_FIX_SNIPPET = "Automatically fix safe in-scope review findings";
 var REVIEW_POST_FIX_REGRESSION_SNIPPET = "rerun strict verification plus the configured complete regression command after review-time changes";
 var CORE_STRICT_SKILL_EXPECTATIONS = {
@@ -18068,7 +18069,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       verify: `${COMMAND_PREFIX} verify <change-name>`
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/", "/strict-spec-auto"],
+    requiredSnippets: [".strict-spec-driven/", "/strict-spec-auto", PROPOSAL_ARTIFACT_REVIEW_SNIPPET],
     forbiddenSnippets: [
       "Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/."
     ]
@@ -18141,6 +18142,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       AUTO_TARGETED_CONTEXT_RESET_SNIPPET,
       AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET,
       AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET,
+      PROPOSAL_ARTIFACT_REVIEW_SNIPPET,
       "dev-session-plan",
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
@@ -18253,7 +18255,12 @@ var PLANNING_STRICT_SKILL_EXPECTATIONS = {
       verify: `${COMMAND_PREFIX} verify <change-name>`
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/", "proposal.yaml", "questions.yaml"]
+    requiredSnippets: [
+      ".strict-spec-driven/",
+      "proposal.yaml",
+      "questions.yaml",
+      PROPOSAL_ARTIFACT_REVIEW_SNIPPET
+    ]
   },
   "strict-spec-simple-task": {
     requiredCommands: {
