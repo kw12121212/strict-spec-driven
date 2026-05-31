@@ -254,6 +254,7 @@ try {
   const roadmapRecommendJson = JSON.parse(roadmapRecommend.stdout.trim());
   context.assert(
     roadmapRecommendJson.valid === true
+      && roadmapRecommendJson.status === "recommended"
       && roadmapRecommendJson.recommendation?.id === "next-change"
       && roadmapRecommendJson.recommendation?.path === "roadmap/planned-changes/0004-next-change.yaml"
       && roadmapRecommendJson.recommendation?.milestone?.id === "0001-roadmap",
@@ -360,7 +361,7 @@ try {
   context.assert(roadmapNoCandidate.status !== 0, "roadmap-recommend exits non-zero when no eligible candidate exists");
   const roadmapNoCandidateJson = JSON.parse(roadmapNoCandidate.stdout.trim());
   context.assert(
-    roadmapNoCandidateJson.valid === true && roadmapNoCandidateJson.recommendation === null,
+    roadmapNoCandidateJson.valid === true && roadmapNoCandidateJson.status === "no-candidate" && roadmapNoCandidateJson.recommendation === null,
     "roadmap-recommend reports a valid roadmap with no selected recommendation when all candidates are ineligible",
   );
   context.assert(
@@ -999,6 +1000,7 @@ try {
   const invalidRoadmapRecommendJson = JSON.parse(invalidRoadmapRecommend.stdout.trim());
   context.assert(
     invalidRoadmapRecommendJson.valid === false
+      && invalidRoadmapRecommendJson.status === "roadmap-error"
       && invalidRoadmapRecommendJson.diagnostics.some(
         (diagnostic: { artifactPath: string; fieldPath: string }) =>
           diagnostic.artifactPath === ".strict-spec-driven/roadmap/milestones/0001-invalid.yaml"

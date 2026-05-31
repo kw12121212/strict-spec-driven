@@ -60,5 +60,5 @@ export function runRoadmapRecommend(argv: string[]): number {
 
   const result = recommendRoadmapChange(process.cwd());
   writeJson(result);
-  return result.valid && result.recommendation !== null ? 0 : 1;
+  return result.status === "recommended" ? 0 : 1;
 }

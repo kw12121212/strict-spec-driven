@@ -1,0 +1,16 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: roadmap-recommend-status-disambiguation
+open: []
+resolved:
+  - id: delta-spec-scope
+    question: Should the requirement be updated with new scenarios or is updating existing ones sufficient?
+    context: >-
+      MODIFIED operation replaces the requirement statement and scenarios entirely. Three new
+      scenarios cover all status values.
+    answer: >-
+      Use MODIFIED on the existing requirement to replace its statement and scenarios. The three new
+      scenarios map 1:1 to the old ones and cover the status field completely.
+    status: resolved

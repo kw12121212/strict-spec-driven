@@ -54,10 +54,18 @@ run `init` from this skill.
    selecting work, or opening candidate planned-change files, and treat the
    command's selected planned change as authoritative for the recommendation
    step. The scripted result already accounts for active strict change
-   conflicts, invalid roadmap state, and dependency blockers. If the command exits
-   non-zero, surface the JSON result and stop instead of manually choosing
-   among planned changes. Use the returned recommendation `path` to open the
-   exact standalone planned-change file you are recommending from.
+   conflicts, invalid roadmap state, and dependency blockers. The JSON output
+   includes a `status` field with one of three values. Branch on `status`:
+   - `"roadmap-error"` — the roadmap has validation diagnostics. Surface the
+     JSON diagnostics and stop. Suggest running `roadmap-status` for details.
+   - `"no-candidate"` — the roadmap is valid but no planned change is eligible
+     right now. Surface the JSON candidates with their `skipReasons` and stop.
+     Explain which blockers need to clear before a candidate becomes eligible.
+   - `"recommended"` — proceed to step 2 with the returned recommendation.
+   Do not manually choose among planned changes; branch on `status`
+   instead of manually choosing among planned changes. Use the returned
+   recommendation `path` to open the exact standalone planned-change file you
+   are recommending from.
 
 2. **Read targeted recommendation context** — after a successful scripted
    recommendation, read only the files needed to explain and scaffold that

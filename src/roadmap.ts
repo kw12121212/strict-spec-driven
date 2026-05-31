@@ -284,6 +284,7 @@ export function recommendRoadmapChange(rootDir: string): RoadmapRecommendResult 
   if (diagnostics.length > 0) {
     return {
       valid: false,
+      status: "roadmap-error",
       warnings,
       diagnostics,
       recommendation: null,
@@ -345,6 +346,7 @@ export function recommendRoadmapChange(rootDir: string): RoadmapRecommendResult 
 
   return {
     valid: true,
+    status: recommendation ? "recommended" : "no-candidate",
     warnings,
     diagnostics,
     recommendation,

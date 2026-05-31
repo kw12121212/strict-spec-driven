@@ -1,0 +1,45 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: roadmap-recommend-status-disambiguation
+sections:
+  Implementation:
+    add-status-type-to-model:
+      text: >-
+        Add RoadmapRecommendStatus type and status field to RoadmapRecommendResult in
+        src/roadmap/model.ts.
+      status: complete
+    populate-status-in-recommend:
+      text: >-
+        Set status to roadmap-error or no-candidate or recommended in recommendRoadmapChange in
+        src/roadmap.ts.
+      status: complete
+    update-cli-handler:
+      text: Update runRoadmapRecommend in src/cli/cmd-roadmap.ts to use status for exit code logic.
+      status: complete
+    update-skill-guidance:
+      text: >-
+        Update skills/strict-roadmap-recommend/SKILL.md to branch on status field instead of
+        inferring from valid+recommendation.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests covering recommended, no-candidate, and roadmap-error status values.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

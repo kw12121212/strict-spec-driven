@@ -1,0 +1,46 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/roadmap/model.ts
+    - src/roadmap.ts
+    - src/cli/cmd-roadmap.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    cli-roadmap-recommend-command:
+      strength: MUST
+      statement: >-
+        The system MUST provide a roadmap-recommend subcommand that emits a deterministic JSON
+        recommendation including a top-level status field with values recommended, no-candidate, or
+        roadmap-error to distinguish successful recommendation from valid-but-empty and
+        invalid-roadmap conditions.
+      scenarios:
+        recommend-status-is-recommended:
+          - GIVEN: >-
+              strict roadmap status is valid and at least one eligible standalone planned change
+              exists
+          - WHEN: the roadmap-recommend command is executed
+          - THEN: >-
+              the command exits zero and the JSON output includes status with value recommended and
+              a non-null recommendation
+        recommend-status-is-no-candidate:
+          - GIVEN: >-
+              strict roadmap status is valid and no standalone planned change is missing with
+              complete dependencies and no conflicts
+          - WHEN: the roadmap-recommend command is executed
+          - THEN: >-
+              the command exits non-zero and the JSON output includes status with value no-candidate
+              and recommendation is null
+        recommend-status-is-roadmap-error:
+          - GIVEN: strict roadmap status is invalid or legacy inline planned changes remain
+          - WHEN: the roadmap-recommend command is executed
+          - THEN: >-
+              the command exits non-zero and the JSON output includes status with value
+              roadmap-error and diagnostics are present
+  REMOVED: {}

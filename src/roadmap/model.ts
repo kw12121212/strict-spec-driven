@@ -202,8 +202,11 @@ export type RoadmapStatusResult = {
   milestones: RoadmapMilestoneStatus[];
 };
 
+export type RoadmapRecommendStatus = "recommended" | "no-candidate" | "roadmap-error";
+
 export type RoadmapRecommendResult = {
   valid: boolean;
+  status: RoadmapRecommendStatus;
   warnings: string[];
   diagnostics: RoadmapDiagnostic[];
   recommendation: RoadmapRecommendation | null;

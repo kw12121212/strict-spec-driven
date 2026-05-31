@@ -1,0 +1,30 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: roadmap-recommend-status-disambiguation
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a top-level status field to the roadmap-recommend JSON output to distinguish roadmap
+      errors from no-candidate conditions
+  why:
+    - >-
+      roadmap-recommend exits non-zero for both invalid roadmaps and valid roadmaps with no eligible
+      candidates. Skill and agent consumers must infer the difference from valid + recommendation
+      field combinations instead of reading an explicit status.
+scope:
+  in:
+    - >-
+      src/roadmap/model.ts, src/roadmap.ts, src/cli/cmd-roadmap.ts,
+      test/suites/roadmap-and-migration.ts, skills/strict-roadmap-recommend/SKILL.md
+  out:
+    - >-
+      RoadmapRecommendResult carries an explicit status field with values recommended, no-candidate,
+      and roadmap-error. Skill guidance handles each status differently.
+unchanged_behavior:
+  - >-
+    roadmap-status, roadmap-sync, roadmap-overview commands; strict change lifecycle commands; other
+    roadmap model types

@@ -14689,6 +14689,7 @@ function recommendRoadmapChange(rootDir) {
   if (diagnostics.length > 0) {
     return {
       valid: false,
+      status: "roadmap-error",
       warnings,
       diagnostics,
       recommendation: null,
@@ -14738,6 +14739,7 @@ function recommendRoadmapChange(rootDir) {
   }
   return {
     valid: true,
+    status: recommendation ? "recommended" : "no-candidate",
     warnings,
     diagnostics,
     recommendation,
@@ -16129,7 +16131,7 @@ function runRoadmapRecommend(argv) {
   }
   const result = recommendRoadmapChange(process.cwd());
   writeJson(result);
-  return result.valid && result.recommendation !== null ? 0 : 1;
+  return result.status === "recommended" ? 0 : 1;
 }
 
 // src/maintenance.ts
