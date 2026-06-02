@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: broaden-harness-infer-runtime-detection
   milestone: 0013-harness-ai-friendliness-hardening
-status: planned
+status: complete
 summary: >-
   broaden harness-infer beyond Node/npm so common non-Node projects produce a useful draft or
   clearly report why no lifecycle command could be inferred.

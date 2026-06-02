@@ -48,7 +48,7 @@ strict-spec-driven harness-session archive checkout-investigation
 - `scripts/harness-logs`
 - `scripts/harness-session`
 
-`harness-infer` reads safe repository metadata such as package scripts and sample environment variable files, then emits a schema-valid draft. Inferred lifecycle commands stay manual, production lifecycle operations stay disabled, inferred status/logs metadata stays descriptive with `readonly`, and stateful lifecycle permissions are not enabled automatically.
+`harness-infer` reads safe repository metadata such as package scripts, compose services, Procfile processes, Makefile run/start/dev targets, and sample environment variable files, then emits a schema-valid draft. Package scripts still win when multiple signal types coexist; otherwise the first app-like candidate in file order is selected for compose and Procfile sources. Inferred lifecycle commands stay manual, production lifecycle operations stay disabled, inferred status/logs metadata stays descriptive with `readonly`, and when no supported lifecycle signal is found the draft stays manual with an explicit no-detection explanation.
 
 `harness-doctor` reports deterministic diagnostics for schema or planning failures, missing generated wrappers, missing working directories, missing package scripts, required environment names that are absent from sample env files, duplicated ports, and safety policy issues. It does not start or stop services.
 

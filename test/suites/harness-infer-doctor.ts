@@ -23,6 +23,17 @@ export async function runHarnessInferDoctorSuite(context: TestContext): Promise<
       scripts: { dev: "vite --host 127.0.0.1 --port 4321" },
       devDependencies: { vite: "latest" },
     }, null, 2),
+    "docker-compose.yml": [
+      "services:",
+      "  db:",
+      "    image: postgres:16",
+      "  app:",
+      "    build: .",
+      "    command: python -m http.server 8000",
+      "    ports:",
+      "      - \"8000:8000\"",
+      "",
+    ].join("\n"),
     ".env.example": "API_BASE_URL=\nPUBLIC_FEATURE_FLAG=\n",
     "bun.lock": "",
   });
@@ -34,12 +45,14 @@ export async function runHarnessInferDoctorSuite(context: TestContext): Promise<
     context.assert(
       inferJson.draft.includes("schema: strict-spec-driven/harness/v1")
         && inferJson.draft.includes("command: bun run dev")
+        && !inferJson.draft.includes("command: docker compose up app")
         && inferJson.draft.includes("mode: manual")
         && inferJson.draft.includes("mode: readonly")
         && inferJson.draft.includes("mode: disabled")
         && inferJson.evidence.includes("package.json")
+        && inferJson.evidence.some((entry) => entry.includes("Selected package script 'dev'"))
         && inferJson.evidence.includes(".env.example"),
-      "harness-infer emits a safe draft with manual lifecycle defaults and descriptive readonly status/logs metadata",
+      "harness-infer keeps package scripts ahead of other runtime signals while preserving safe draft defaults",
       infer.stdout.trim(),
     );
     context.assert(
@@ -77,6 +90,68 @@ export async function runHarnessInferDoctorSuite(context: TestContext): Promise<
     context.assert(doctorAfterScripts.status === 0, "harness-doctor exits zero after generated wrappers satisfy inferred draft", doctorAfterScripts.stdout.trim());
   } finally {
     inferredWorkspace.cleanup();
+  }
+
+  const composeWorkspace = createWorkspace({
+    "package.json": JSON.stringify({
+      name: "compose-app",
+      scripts: { test: "bun test" },
+    }, null, 2),
+    "docker-compose.yml": [
+      "services:",
+      "  db:",
+      "    image: postgres:16",
+      "  app:",
+      "    build: .",
+      "    command: python -m http.server 8000",
+      "    ports:",
+      "      - \"8000:8000\"",
+      "",
+    ].join("\n"),
+    ".env.example": "API_BASE_URL=\n",
+  });
+  try {
+    const infer = cli(["harness-infer"], { cwd: composeWorkspace.workspaceRoot });
+    context.assert(infer.status === 0, "harness-infer exits zero for compose metadata", infer.stderr.trim());
+    const inferJson = JSON.parse(infer.stdout.trim()) as { ok: boolean; draft: string; evidence: string[] };
+    context.assert(
+      inferJson.ok === true
+        && inferJson.draft.includes("command: docker compose up app")
+        && inferJson.draft.includes("Inferred from compose service 'app' in docker-compose.yml.")
+        && inferJson.draft.includes("port: 8000")
+        && inferJson.evidence.includes("No package.json dev/start/serve script was found.")
+        && inferJson.evidence.includes("docker-compose.yml")
+        && inferJson.evidence.some((entry) => entry.includes("Selected compose service 'app'")),
+      "harness-infer falls back to the first app-like compose service when no package script exists",
+      infer.stdout.trim(),
+    );
+  } finally {
+    composeWorkspace.cleanup();
+  }
+
+  const noSignalWorkspace = createWorkspace({
+    "package.json": JSON.stringify({
+      name: "manual-app",
+      scripts: { test: "bun test" },
+    }, null, 2),
+    ".env.example": "API_BASE_URL=\n",
+  });
+  try {
+    const infer = cli(["harness-infer"], { cwd: noSignalWorkspace.workspaceRoot });
+    context.assert(infer.status === 0, "harness-infer exits zero when no lifecycle signal can be inferred", infer.stderr.trim());
+    const inferJson = JSON.parse(infer.stdout.trim()) as { ok: boolean; draft: string; evidence: string[] };
+    context.assert(
+      inferJson.ok === true
+        && inferJson.draft.includes("No lifecycle command could be inferred; replace manual operations before use.")
+        && inferJson.draft.includes("No lifecycle command could be inferred from package.json,")
+        && inferJson.draft.includes("docker-compose.yml/compose.yaml, Procfile, or Makefile.")
+        && inferJson.evidence.includes("No package.json dev/start/serve script was found.")
+        && inferJson.evidence.includes("No supported lifecycle command was inferred from package.json, docker-compose.yml/compose.yaml, Procfile, or Makefile."),
+      "harness-infer emits explicit no-detection evidence when no supported runtime signal is present",
+      infer.stdout.trim(),
+    );
+  } finally {
+    noSignalWorkspace.cleanup();
   }
 
   const invalidWorkspace = createWorkspace({

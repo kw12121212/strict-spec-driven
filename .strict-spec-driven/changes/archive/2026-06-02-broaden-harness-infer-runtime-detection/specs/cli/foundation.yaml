@@ -1,0 +1,44 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/harness.ts
+    - HARNESS.md
+  tests:
+    - test/suites/harness-infer-doctor.ts
+operations:
+  ADDED:
+    cli-harness-infer-detects-runtime-signals-beyond-node:
+      strength: MUST
+      statement: >-
+        The system MUST let harness-infer detect supported non-Node runtime signals with a
+        deterministic precedence order, preserve manual and disabled safety defaults in inferred
+        drafts, and report explicit evidence when no lifecycle command can be inferred.
+      scenarios:
+        package-scripts-stay-highest-precedence:
+          - GIVEN: >-
+              a repository exposes both package.json dev/start/serve scripts and other supported
+              runtime signals such as compose, Procfile, or Makefile metadata
+          - WHEN: an operator or AI agent runs strict-spec-driven harness-infer
+          - THEN: >-
+              the draft uses the package-script-derived command and records evidence for the
+              selected signal without mixing multiple runtime sources
+        supported-non-node-signal-produces-safe-draft:
+          - GIVEN: >-
+              a repository lacks package dev/start/serve scripts but contains a supported compose,
+              Procfile, or Makefile runtime signal
+          - WHEN: an operator or AI agent runs strict-spec-driven harness-infer
+          - THEN: >-
+              the draft includes a manual development start command derived from the first supported
+              non-Node signal, keeps production disabled, and records which signal was used
+        unsupported-repository-explains-no-detection:
+          - GIVEN: a repository lacks package dev/start/serve scripts and other supported runtime signals
+          - WHEN: an operator or AI agent runs strict-spec-driven harness-infer
+          - THEN: >-
+              the draft remains manual and reports explicit evidence and an unavailable condition
+              explaining that no lifecycle command could be inferred
+  MODIFIED: {}
+  REMOVED: {}

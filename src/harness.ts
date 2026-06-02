@@ -4,7 +4,7 @@ import path from "path";
 import { normalizeRepoRelativePath } from "./cli/fs.js";
 import { readBundledScaffoldTemplate } from "./scaffold.js";
 import { loadBundledSchemaByArtifactType, validateArtifact, type ValidationDiagnostic } from "./validation.js";
-import { formatYamlParseSummary, getYamlDiagnosticDetails, parseYamlFile, stringifyYamlDocument } from "./yaml.js";
+import { formatYamlParseSummary, getYamlDiagnosticDetails, parseYamlDocument, parseYamlFile, stringifyYamlDocument } from "./yaml.js";
 
 export const HARNESS_DECLARATION_PATH = ".strict-spec-driven/harness.yaml";
 export const HARNESS_RUNTIME_DIR = ".strict-spec-driven/.runtime/harness";
@@ -22,6 +22,10 @@ const SCRIPT_NAMES = ["harness-infer", "harness-doctor", "harness-plan", "harnes
 const STATEFUL_TYPES = new Set(["database", "cache", "queue", "object_storage", "external_resource"]);
 const MUTATING_OPERATIONS = new Set(["start", "stop", "cleanup"]);
 const ENV_SAMPLE_FILES = [".env.example", ".env.sample", ".env.local.example", "example.env"];
+const PACKAGE_SCRIPT_NAMES = ["dev", "start", "serve"] as const;
+const COMPOSE_FILES = ["docker-compose.yml", "compose.yaml"] as const;
+const PROCFILE_EXCLUDED_PROCESS_NAMES = new Set(["release", "console", "test"]);
+const MAKEFILE_TARGET_NAMES = new Set(["run", "start", "dev"]);
 const DEFAULT_HARNESS_LOG_TAIL_LINES = 200;
 
 type HarnessEnvironmentKind = "development" | "production";
@@ -78,6 +82,18 @@ type HarnessArtifact = {
     description?: string;
     environments: Record<string, HarnessEnvironment>;
   };
+};
+type HarnessInferenceSignal = {
+  kind: "package-script" | "compose-service" | "procfile-process" | "makefile-target";
+  command: string;
+  description: string;
+  evidence: string[];
+  analysisCommand?: string;
+  port: number | null;
+};
+type HarnessInferenceProbe = {
+  candidate: HarnessInferenceSignal | null;
+  evidence: string[];
 };
 
 export type HarnessDiagnostic = Omit<ValidationDiagnostic, "source"> & {
@@ -619,21 +635,207 @@ function getPackageScripts(packageJson: Record<string, unknown> | null): Record<
   );
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readStringOrStringArray(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (Array.isArray(value) && value.every((item) => typeof item === "string")) {
+    const joined = value.map((item) => item.trim()).filter((item) => item.length > 0).join(" ");
+    return joined.length > 0 ? joined : undefined;
+  }
+  return undefined;
+}
+
+function inferComposePort(service: Record<string, unknown>): number | null {
+  if (!Array.isArray(service.ports)) return null;
+  for (const entry of service.ports) {
+    if (typeof entry === "number" && Number.isInteger(entry) && entry >= 1 && entry <= 65535) {
+      return entry;
+    }
+    if (typeof entry === "string") {
+      const segments = entry.split("/", 1)[0].split(":").map((part) => part.trim()).filter((part) => part.length > 0);
+      const candidate = segments.length === 1 ? Number(segments[0]) : Number(segments[segments.length - 2]);
+      if (Number.isInteger(candidate) && candidate >= 1 && candidate <= 65535) {
+        return candidate;
+      }
+    }
+    if (isRecord(entry)) {
+      const published = typeof entry.published === "number"
+        ? entry.published
+        : typeof entry.published === "string"
+          ? Number(entry.published)
+          : typeof entry.target === "number"
+            ? entry.target
+            : typeof entry.target === "string"
+              ? Number(entry.target)
+              : null;
+      if (published !== null && Number.isInteger(published) && published >= 1 && published <= 65535) {
+        return published;
+      }
+    }
+  }
+  return null;
+}
+
+function detectPackageScriptSignal(rootDir: string, packageJson: Record<string, unknown> | null, scripts: Record<string, string>): HarnessInferenceProbe {
+  if (!existsSync(path.join(rootDir, "package.json"))) {
+    return { candidate: null, evidence: [] };
+  }
+  const preferredScript = PACKAGE_SCRIPT_NAMES.find((name) => scripts[name] !== undefined);
+  if (!preferredScript) {
+    return {
+      candidate: null,
+      evidence: ["No package.json dev/start/serve script was found."],
+    };
+  }
+  const scriptCommand = scripts[preferredScript];
+  return {
+    candidate: {
+      kind: "package-script",
+      command: `${detectPackageRunner(rootDir)} ${preferredScript}`,
+      description: `Inferred from package script '${preferredScript}'.`,
+      evidence: ["package.json", `Selected package script '${preferredScript}'.`],
+      analysisCommand: scriptCommand,
+      port: inferPort(scriptCommand, packageJson),
+    },
+    evidence: ["package.json", `Selected package script '${preferredScript}'.`],
+  };
+}
+
+function detectComposeServiceSignal(rootDir: string): HarnessInferenceProbe {
+  const evidence: string[] = [];
+  for (const relativePath of COMPOSE_FILES) {
+    const absolutePath = path.join(rootDir, relativePath);
+    if (!existsSync(absolutePath)) continue;
+    try {
+      const compose = parseYamlDocument<unknown>(readFileSync(absolutePath, "utf8"), { source: relativePath });
+      const services = isRecord(compose) && isRecord(compose.services)
+        ? Object.entries(compose.services).filter((entry): entry is [string, Record<string, unknown>] => isRecord(entry[1]))
+        : [];
+      const eligible = services.filter(([, service]) => "build" in service || readStringOrStringArray(service.command) !== undefined);
+      if (eligible.length === 0) {
+        evidence.push(`${relativePath} exists but no app-like runnable service was found.`);
+        continue;
+      }
+      const [serviceName, service] = eligible[0];
+      return {
+        candidate: {
+          kind: "compose-service",
+          command: `docker compose up ${serviceName}`,
+          description: `Inferred from compose service '${serviceName}' in ${relativePath}.`,
+          evidence: [relativePath, `Selected compose service '${serviceName}'.`],
+          analysisCommand: readStringOrStringArray(service.command),
+          port: inferComposePort(service),
+        },
+        evidence: [...evidence, relativePath, `Selected compose service '${serviceName}'.`],
+      };
+    } catch (error) {
+      evidence.push(`${relativePath} could not be parsed: ${formatYamlParseSummary(error)}.`);
+    }
+  }
+  return { candidate: null, evidence };
+}
+
+function detectProcfileSignal(rootDir: string, packageJson: Record<string, unknown> | null): HarnessInferenceProbe {
+  const procfilePath = path.join(rootDir, "Procfile");
+  if (!existsSync(procfilePath)) {
+    return { candidate: null, evidence: [] };
+  }
+  const entries = readFileSync(procfilePath, "utf8")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith("#"))
+    .map((line) => line.match(/^([A-Za-z0-9_-]+):\s*(.+)$/))
+    .filter((match): match is RegExpMatchArray => match !== null)
+    .map((match) => ({ name: match[1], command: match[2].trim() }))
+    .filter((entry) => entry.command.length > 0);
+  const eligible = entries.filter((entry) => !PROCFILE_EXCLUDED_PROCESS_NAMES.has(entry.name.toLowerCase()));
+  if (eligible.length === 0) {
+    return {
+      candidate: null,
+      evidence: ["Procfile exists but no app-like runnable process was found."],
+    };
+  }
+  const selected = eligible[0];
+  return {
+    candidate: {
+      kind: "procfile-process",
+      command: selected.command,
+      description: `Inferred from Procfile process '${selected.name}'.`,
+      evidence: ["Procfile", `Selected Procfile process '${selected.name}'.`],
+      analysisCommand: selected.command,
+      port: inferPort(selected.command, packageJson),
+    },
+    evidence: ["Procfile", `Selected Procfile process '${selected.name}'.`],
+  };
+}
+
+function detectMakefileSignal(rootDir: string): HarnessInferenceProbe {
+  const makefilePath = path.join(rootDir, "Makefile");
+  if (!existsSync(makefilePath)) {
+    return { candidate: null, evidence: [] };
+  }
+  const target = readFileSync(makefilePath, "utf8")
+    .split(/\r?\n/)
+    .map((line) => line.match(/^([A-Za-z0-9_.-]+)\s*:(?![=])/))
+    .find((match) => match !== null && !match[1].startsWith(".") && MAKEFILE_TARGET_NAMES.has(match[1]));
+  if (!target) {
+    return {
+      candidate: null,
+      evidence: ["Makefile exists but no run/start/dev target was found."],
+    };
+  }
+  return {
+    candidate: {
+      kind: "makefile-target",
+      command: `make ${target[1]}`,
+      description: `Inferred from Makefile target '${target[1]}'.`,
+      evidence: ["Makefile", `Selected Makefile target '${target[1]}'.`],
+      port: null,
+    },
+    evidence: ["Makefile", `Selected Makefile target '${target[1]}'.`],
+  };
+}
+
+function detectHarnessInferenceSignal(rootDir: string, packageJson: Record<string, unknown> | null, scripts: Record<string, string>): { signal: HarnessInferenceSignal | null; evidence: string[] } {
+  const probes = [
+    detectPackageScriptSignal(rootDir, packageJson, scripts),
+    detectComposeServiceSignal(rootDir),
+    detectProcfileSignal(rootDir, packageJson),
+    detectMakefileSignal(rootDir),
+  ];
+  const evidence: string[] = [];
+  for (const probe of probes) {
+    evidence.push(...probe.evidence);
+    if (probe.candidate) {
+      return { signal: probe.candidate, evidence };
+    }
+  }
+  evidence.push("No supported lifecycle command was inferred from package.json, docker-compose.yml/compose.yaml, Procfile, or Makefile.");
+  return { signal: null, evidence };
+}
+
 function buildInferredHarness(rootDir: string): { artifact: HarnessArtifact & { schema: string; schema_version: number; artifact_type: string; schema_file: string }; evidence: string[] } {
-  const packageJsonPath = path.join(rootDir, "package.json");
-  const packageJson = readJsonFile<Record<string, unknown>>(packageJsonPath);
+  const packageJson = readJsonFile<Record<string, unknown>>(path.join(rootDir, "package.json"));
   const scripts = getPackageScripts(packageJson);
-  const preferredScript = ["dev", "start", "serve"].find((name) => scripts[name] !== undefined);
-  const runner = detectPackageRunner(rootDir);
-  const command = preferredScript ? `${runner} ${preferredScript}` : undefined;
   const envSamples = readEnvSampleNames(rootDir);
-  const port = inferPort(scripts[preferredScript ?? ""], packageJson);
+  const inference = detectHarnessInferenceSignal(rootDir, packageJson, scripts);
+  const command = inference.signal?.command;
+  const analysisCommand = inference.signal?.analysisCommand;
+  const port = inference.signal?.port ?? null;
   const urls = port === null ? [] : [`http://127.0.0.1:${port}`];
   const ports = port === null ? [] : [port];
-  const evidence = [
-    ...(existsSync(packageJsonPath) ? ["package.json"] : []),
-    ...envSamples.evidence,
-  ];
+  const description = inference.signal?.description ?? "No lifecycle command could be inferred; replace manual operations before use.";
+  const unavailableConditions = command === undefined
+    ? ["No lifecycle command could be inferred from package.json, docker-compose.yml/compose.yaml, Procfile, or Makefile."]
+    : [];
+  const evidence = [...inference.evidence, ...envSamples.evidence];
+  const inferredComponentType = inferComponentType(packageJson, analysisCommand);
 
   return {
     evidence,
@@ -651,8 +853,8 @@ function buildInferredHarness(rootDir: string): { artifact: HarnessArtifact & { 
             description: "Local development environment inferred from repository metadata.",
             components: {
               app: {
-                type: inferComponentType(packageJson, scripts[preferredScript ?? ""]),
-                description: command ? `Inferred from package script '${preferredScript}'.` : "No package lifecycle script was inferred; replace manual operations before use.",
+                type: inferredComponentType,
+                description,
                 working_directory: ".",
                 depends_on: [],
                 environment: {
@@ -682,7 +884,7 @@ function buildInferredHarness(rootDir: string): { artifact: HarnessArtifact & { 
                   logs: { mode: "readonly" },
                 },
                 evidence_labels: [],
-                unavailable_conditions: command === undefined ? ["No package dev/start/serve script was found."] : [],
+                unavailable_conditions: unavailableConditions,
               },
             },
           },
@@ -691,7 +893,7 @@ function buildInferredHarness(rootDir: string): { artifact: HarnessArtifact & { 
             description: "Production operations are intentionally disabled in inferred drafts.",
             components: {
               app: {
-                type: inferComponentType(packageJson, scripts[preferredScript ?? ""]),
+                type: inferredComponentType,
                 description: "Production lifecycle is disabled until a human explicitly declares safe operations.",
                 working_directory: ".",
                 depends_on: [],

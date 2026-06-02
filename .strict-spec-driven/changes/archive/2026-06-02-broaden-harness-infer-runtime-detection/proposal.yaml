@@ -1,0 +1,39 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: broaden-harness-infer-runtime-detection
+  status: proposed
+summary:
+  what:
+    - >-
+      Broaden harness-infer beyond package.json scripts so supported docker-compose, Procfile, and
+      Makefile projects emit a safe draft with the selected inference source or an explicit
+      no-detection explanation.
+  why:
+    - >-
+      Non-Node repositories currently fall back to a command-less manual draft with only a missing
+      package-script message, which leaves agents without actionable guidance.
+scope:
+  in:
+    - >-
+      Update harness inference precedence and evidence so package scripts remain first, followed by
+      compose services, Procfile entries, and Makefile run, start, or dev targets.
+    - >-
+      Add deterministic regression coverage for precedence, at least one non-Node detection path,
+      and the explicit no-detection fallback.
+  out:
+    - >-
+      Auto-enabling inferred lifecycle operations or changing the manual and disabled safety
+      defaults in inferred drafts.
+    - >-
+      Supporting arbitrary runtime manifests beyond package.json, docker-compose or compose.yaml,
+      Procfile, and Makefile in this change.
+unchanged_behavior:
+  - >-
+    Existing package.json dev/start/serve inference stays highest precedence and production
+    operations remain disabled in inferred drafts.
+roadmap:
+  milestone: 0013-harness-ai-friendliness-hardening
+  planned_change: broaden-harness-infer-runtime-detection

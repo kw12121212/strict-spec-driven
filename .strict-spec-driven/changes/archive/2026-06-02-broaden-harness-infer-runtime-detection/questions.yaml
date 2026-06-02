@@ -1,0 +1,29 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: broaden-harness-infer-runtime-detection
+open: []
+resolved:
+  - id: multiple-runtime-candidates-selection
+    question: >-
+      When a compose file, Procfile, or Makefile exposes multiple runnable candidates, should
+      harness-infer pick the first supported entry deterministically or stop with explicit evidence?
+    context: >-
+      The roadmap defines precedence across signal types but does not define how to choose among
+      multiple services, processes, or targets inside one supported signal source.
+    answer: >-
+      Pick the first runnable candidate in file order for a supported compose file, Procfile, or
+      Makefile source.
+    status: resolved
+  - id: filter-app-like-runnable-candidates
+    question: >-
+      For compose and Procfile detection, what should count as an eligible candidate before applying
+      the first-in-file-order rule?
+    context: >-
+      Treating every listed service or process as eligible can infer infrastructure services or
+      one-shot processes instead of the primary app command.
+    answer: >-
+      Filter to app-like runnable entries first, then select the first remaining candidate in file
+      order.
+    status: resolved

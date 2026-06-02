@@ -1,0 +1,27 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: broaden-harness-infer-runtime-detection
+approach:
+  - >-
+    Extend buildInferredHarness to probe supported runtime metadata in a fixed precedence order,
+    derive a single manual draft command and source-specific evidence from the first supported
+    signal, and emit an explicit no-detection explanation when no supported signal exists.
+decisions:
+  infer-fixed-signal-precedence:
+    decision: >-
+      Use a single-source precedence order of package.json scripts, compose services, Procfile
+      entries, then Makefile targets when inferring a draft command.
+    rationale: >-
+      A fixed single-source order keeps harness-infer reproducible when several signals coexist and
+      avoids mixing multiple lifecycle sources into one unsafe or confusing draft.
+  filter-app-like-candidates-before-ordering:
+    decision: >-
+      Within compose and Procfile sources, filter to app-like runnable entries first, then choose
+      the first remaining candidate in file order.
+    rationale: >-
+      Filtering avoids inferring database containers or one-shot release processes as the app
+      command while preserving deterministic selection once eligible candidates are identified.
+alternatives: []
+risks: []

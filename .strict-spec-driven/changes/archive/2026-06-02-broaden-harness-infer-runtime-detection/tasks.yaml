@@ -1,0 +1,47 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: broaden-harness-infer-runtime-detection
+sections:
+  Implementation:
+    broaden-runtime-signal-detection:
+      text: >-
+        Update src/harness.ts to infer draft commands from package scripts, compose services,
+        Procfile entries, or Makefile targets in deterministic precedence order.
+      status: complete
+    record-inference-source-and-fallback:
+      text: >-
+        Update src/harness.ts so inferred drafts record which runtime signal was selected and emit
+        an explicit no-detection unavailable condition when no supported signal exists.
+      status: complete
+    document-supported-inference-signals:
+      text: >-
+        Update HARNESS.md to describe supported harness-infer runtime signals, their precedence, and
+        the explicit manual fallback when no lifecycle command can be inferred.
+      status: complete
+    add-runtime-detection-regression:
+      text: >-
+        Extend test/suites/harness-infer-doctor.ts with deterministic scenarios for precedence, a
+        non-Node inference path, and the explicit no-detection evidence path.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests
