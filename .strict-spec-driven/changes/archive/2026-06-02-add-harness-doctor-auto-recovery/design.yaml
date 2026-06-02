@@ -1,0 +1,17 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-harness-doctor-auto-recovery
+approach:
+  - >-
+    Introduce an optional recovery action schema to HarnessDiagnostic, extend harness-doctor to
+    generate these actions for missing wrappers/templates, and run them sequentially under --fix
+decisions:
+  structured-recovery-schema:
+    decision: >-
+      HarnessDiagnostic includes an optional structured recovery array specifying action steps
+      (write_file, run_command)
+    rationale: Allows programmatic repair of simple configuration/setup errors by agents or CLI runners
+alternatives: []
+risks: []

@@ -18868,7 +18868,7 @@ function runSchemaShow(argv) {
 }
 
 // src/harness.ts
-import { closeSync, existsSync as existsSync29, mkdirSync as mkdirSync6, openSync, readFileSync as readFileSync23, renameSync as renameSync2, rmSync as rmSync2, statSync as statSync22, writeFileSync as writeFileSync9 } from "fs";
+import { closeSync, existsSync as existsSync29, mkdirSync as mkdirSync6, openSync, readFileSync as readFileSync23, renameSync as renameSync2, rmSync as rmSync2, statSync as statSync22, writeFileSync as writeFileSync9, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
 import path30 from "path";
 var HARNESS_DECLARATION_PATH = ".strict-spec-driven/harness.yaml";
@@ -18903,7 +18903,8 @@ function createDiagnostic(artifactPath, fieldPath, message, options) {
     expected: options?.expected,
     actual: options?.actual,
     componentId: options?.componentId,
-    phase: options?.phase
+    phase: options?.phase,
+    recovery: options?.recovery
   };
 }
 function yamlDiagnosticFromError(artifactPath, error) {
@@ -19962,12 +19963,37 @@ function doctorHarness(rootDir) {
       const documentedEnvNames = new Set([...rootEnvSamples.names, ...componentEnvSamples.names]);
       for (const name of component.environment.required) {
         if (!documentedEnvNames.has(name)) {
+          let targetPath = ".env.example";
+          if (componentEnvSamples.evidence.length > 0) {
+            targetPath = path30.join(component.workingDirectory, componentEnvSamples.evidence[0]);
+          } else if (rootEnvSamples.evidence.length > 0) {
+            targetPath = rootEnvSamples.evidence[0];
+          } else if (component.workingDirectory !== ".") {
+            targetPath = path30.join(component.workingDirectory, ".env.example");
+          }
+          const repoRelativeTarget = normalizeRepoRelativePath4(rootDir, path30.resolve(rootDir, targetPath));
+          const recovery = {
+            type: "bootstrap_env",
+            description: `Append missing required environment variable ${name} to ${repoRelativeTarget}`,
+            steps: [
+              {
+                action: "write_file",
+                path: repoRelativeTarget,
+                content: `
+# Added by harness-doctor recovery
+${name}=
+`,
+                mode: "append"
+              }
+            ]
+          };
           addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.environment.required`, "required environment variable is not documented in an env sample file", {
             source: "environment",
             phase: "environment",
             componentId: component.id,
             expected: ENV_SAMPLE_FILES.join(", "),
-            actual: name
+            actual: name,
+            recovery
           });
         }
       }
@@ -20026,6 +20052,53 @@ function doctorHarness(rootDir) {
   }
   return { ok: diagnostics.length === 0, artifactPath, diagnostics };
 }
+function fixHarnessDiagnostics(rootDir, diagnostics) {
+  let anyFixed = false;
+  const executedKeys = new Set;
+  for (const diag of diagnostics) {
+    if (!diag.recovery)
+      continue;
+    for (const step of diag.recovery.steps) {
+      if (step.action === "write_file") {
+        const absolutePath = path30.resolve(rootDir, step.path);
+        const mode = step.mode ?? "overwrite";
+        const key = `write_file::${absolutePath}::${mode}::${step.content}`;
+        if (executedKeys.has(key))
+          continue;
+        executedKeys.add(key);
+        const dir = path30.dirname(absolutePath);
+        if (!existsSync29(dir)) {
+          mkdirSync6(dir, { recursive: true });
+        }
+        if (mode === "append") {
+          appendFileSync(absolutePath, step.content, "utf8");
+        } else {
+          writeFileSync9(absolutePath, step.content, "utf8");
+        }
+        anyFixed = true;
+      } else if (step.action === "run_cli") {
+        const key = `run_cli::${step.args.join("\x00")}`;
+        if (executedKeys.has(key))
+          continue;
+        executedKeys.add(key);
+        const cliPath = path30.resolve(process.argv[1]);
+        const display = ["strict-spec-driven", ...step.args].join(" ");
+        const result = spawnSync(process.execPath, [cliPath, ...step.args], { cwd: rootDir, encoding: "utf8" });
+        if (result.error) {
+          throw new Error(`Failed to execute recovery command: ${display}. Error: ${result.error.message}`);
+        }
+        if (result.status !== 0) {
+          const detail = [result.stderr, result.stdout].map((s) => (s ?? "").trim()).filter((s) => s.length > 0).join(`
+`);
+          throw new Error(`Failed to execute recovery command: ${display}${detail ? `
+${detail}` : ""}`);
+        }
+        anyFixed = true;
+      }
+    }
+  }
+  return anyFixed;
+}
 function wrapperContent(scriptName) {
   const command = scriptName === "harness-session" ? "harness-session" : scriptName;
   return [
@@ -20060,16 +20133,38 @@ function generateHarnessScripts(rootDir) {
 function verifyHarnessScripts(rootDir) {
   const diagnostics = [];
   const verified = [];
+  const recovery = {
+    type: "generate_scripts",
+    description: "Generate missing or outdated project-local harness wrapper scripts under scripts/",
+    steps: [
+      {
+        action: "run_cli",
+        args: ["harness-scripts", "generate"]
+      }
+    ]
+  };
   for (const scriptName of SCRIPT_NAMES) {
     const relativePath = `scripts/${scriptName}`;
     const absolutePath = path30.join(rootDir, relativePath);
     if (!existsSync29(absolutePath)) {
-      diagnostics.push(createDiagnostic(relativePath, "$", "harness script is missing", { source: "scripts", phase: "scripts", expected: "generated wrapper", actual: "missing" }));
+      diagnostics.push(createDiagnostic(relativePath, "$", "harness script is missing", {
+        source: "scripts",
+        phase: "scripts",
+        expected: "generated wrapper",
+        actual: "missing",
+        recovery
+      }));
       continue;
     }
     const content = readFileSync23(absolutePath, "utf8");
     if (content !== wrapperContent(scriptName)) {
-      diagnostics.push(createDiagnostic(relativePath, "$", "harness script content does not match generated wrapper", { source: "scripts", phase: "scripts", expected: "current generated wrapper", actual: "different content" }));
+      diagnostics.push(createDiagnostic(relativePath, "$", "harness script content does not match generated wrapper", {
+        source: "scripts",
+        phase: "scripts",
+        expected: "current generated wrapper",
+        actual: "different content",
+        recovery
+      }));
       continue;
     }
     verified.push(relativePath);
@@ -20182,7 +20277,7 @@ var HARNESS_PLAN_USAGE = `Usage: strict-spec-driven harness-plan [--environment 
 `;
 var HARNESS_INFER_USAGE = `Usage: strict-spec-driven harness-infer [--write] [--force]
 `;
-var HARNESS_DOCTOR_USAGE = `Usage: strict-spec-driven harness-doctor
+var HARNESS_DOCTOR_USAGE = `Usage: strict-spec-driven harness-doctor [--fix]
 `;
 var HARNESS_START_USAGE = `Usage: strict-spec-driven harness-start [--environment <id>] [--component <id> ...] [--confirm]
 `;
@@ -20304,11 +20399,30 @@ function runHarnessDoctor(argv) {
     writeHelp(HARNESS_DOCTOR_USAGE);
     return 0;
   }
-  if (argv.length > 0) {
-    writeUsage(HARNESS_DOCTOR_USAGE);
-    return 1;
+  let fix = false;
+  for (const arg of argv) {
+    if (arg === "--fix") {
+      fix = true;
+    } else {
+      writeUsage(HARNESS_DOCTOR_USAGE);
+      return 1;
+    }
   }
-  const result = doctorHarness(process.cwd());
+  let result = doctorHarness(process.cwd());
+  if (fix && !result.ok) {
+    try {
+      const maxPasses = 5;
+      for (let pass = 0;pass < maxPasses && !result.ok; pass++) {
+        const fixed = fixHarnessDiagnostics(process.cwd(), result.diagnostics);
+        if (!fixed)
+          break;
+        result = doctorHarness(process.cwd());
+      }
+    } catch (error) {
+      writeError(error.message);
+      return 1;
+    }
+  }
   writeJson(result);
   return result.ok ? 0 : 1;
 }

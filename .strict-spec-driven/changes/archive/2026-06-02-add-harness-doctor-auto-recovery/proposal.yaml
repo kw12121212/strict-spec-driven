@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-harness-doctor-auto-recovery
+  status: proposed
+summary:
+  what:
+    - >-
+      Implement structured diagnostic auto-recovery for harness-doctor with a non-interactive --fix
+      CLI command
+  why:
+    - >-
+      Enables AI agents and human operators to resolve common environment setup and configuration
+      issues programmatically
+scope:
+  in:
+    - >-
+      Extend HarnessDiagnostic type with recovery action schema; update harness-doctor to generate
+      recovery steps for missing wrapper scripts or environment files; implement strict-spec-driven
+      harness-doctor --fix flag; write tests
+  out:
+    - Recovering stateful components or modifying production environment variables
+unchanged_behavior:
+  - Existing harness lifecycle flow and YAML schemas for non-diagnostic structures

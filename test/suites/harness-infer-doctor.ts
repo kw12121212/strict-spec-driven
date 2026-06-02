@@ -278,4 +278,98 @@ export async function runHarnessInferDoctorSuite(context: TestContext): Promise<
   } finally {
     componentEnvWorkspace.cleanup();
   }
+
+  // Recovery and --fix testing
+  const recoveryWorkspace = createWorkspace({
+    ".strict-spec-driven/harness.yaml": [
+      "schema: strict-spec-driven/harness/v1",
+      "schema_version: 1",
+      "artifact_type: harness",
+      "schema_file: templates/strict-spec-driven/schemas/harness.yaml",
+      "harness:",
+      "  id: recovery-test",
+      "  environments:",
+      "    development:",
+      "      kind: development",
+      "      components:",
+      "        app:",
+      "          type: backend",
+      "          working_directory: .",
+      "          depends_on: []",
+      "          environment:",
+      "            required:",
+      "              - APP_SECRET",
+      "            optional: []",
+      "          urls: []",
+      "          ports: []",
+      "          readiness:",
+      "            type: manual",
+      "            timeout_seconds: 60",
+      "            interval_seconds: 5",
+      "          operations:",
+      "            start:",
+      "              mode: manual",
+      "            stop:",
+      "              mode: manual",
+      "          evidence_labels: []",
+      "          unavailable_conditions: []",
+      "",
+    ].join("\n"),
+    ".env.example": "# initial config\n",
+  });
+  try {
+    const doctorBefore = cli(["harness-doctor"], { cwd: recoveryWorkspace.workspaceRoot });
+    context.assert(doctorBefore.status !== 0, "harness-doctor fails initially when scripts and env configs are missing");
+    const jsonBefore = JSON.parse(doctorBefore.stdout.trim()) as {
+      diagnostics: Array<{
+        source: string;
+        message: string;
+        recovery?: {
+          type: string;
+          description: string;
+          steps: Array<{ action: string; path?: string; args?: string[] }>;
+        };
+      }>;
+    };
+
+    const scriptsRecovery = jsonBefore.diagnostics.find(
+      (d) => d.source === "scripts" && d.recovery?.type === "generate_scripts"
+    )?.recovery;
+    const hasEnvRecovery = jsonBefore.diagnostics.some(
+      (d) => d.source === "environment" && d.recovery?.type === "bootstrap_env"
+    );
+
+    context.assert(Boolean(scriptsRecovery), "harness-doctor outputs recovery diagnostic for missing wrapper scripts");
+    context.assert(hasEnvRecovery, "harness-doctor outputs recovery diagnostic for missing environment variables");
+
+    const scriptsStep = scriptsRecovery?.steps[0];
+    context.assert(
+      scriptsStep?.action === "run_cli" && JSON.stringify(scriptsStep.args) === JSON.stringify(["harness-scripts", "generate"]),
+      "scripts recovery is a shell-free run_cli action"
+    );
+    context.assert(
+      !doctorBefore.stdout.includes(process.cwd()) && !/\/[^"]*node_modules/.test(doctorBefore.stdout),
+      "doctor recovery output contains no machine-specific absolute paths"
+    );
+
+    const doctorFix = cli(["harness-doctor", "--fix"], { cwd: recoveryWorkspace.workspaceRoot });
+    context.assert(doctorFix.status === 0, "harness-doctor --fix runs recovery actions and completes successfully", doctorFix.stderr.trim());
+
+    context.assert(
+      existsSync(path.join(recoveryWorkspace.workspaceRoot, "scripts", "harness-start")),
+      "harness-doctor --fix generates missing scripts"
+    );
+
+    const envExampleContent = readFileSync(path.join(recoveryWorkspace.workspaceRoot, ".env.example"), "utf8");
+    context.assert(
+      envExampleContent.includes("APP_SECRET="),
+      "harness-doctor --fix appends missing environment variables to .env.example"
+    );
+
+    const doctorAfter = cli(["harness-doctor"], { cwd: recoveryWorkspace.workspaceRoot });
+    context.assert(doctorAfter.status === 0, "subsequent harness-doctor passes cleanly without --fix");
+  } finally {
+    recoveryWorkspace.cleanup();
+  }
 }
+

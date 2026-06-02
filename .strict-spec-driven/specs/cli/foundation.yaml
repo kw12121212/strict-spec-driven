@@ -1959,3 +1959,17 @@ requirements:
             the command fails, keeps the earlier component marked running in the component snapshot,
             and includes a dedicated recovery signal naming the running component together with the
             harness-stop cleanup instruction
+  cli-harness-doctor-auto-recovery:
+    strength: MUST
+    statement: >-
+      The system MUST support generating structured recovery actions for doctor diagnostics and
+      executing them non-interactively using the --fix flag.
+    scenarios:
+      doctor-performs-non-interactive-auto-recovery:
+        - GIVEN: >-
+            a harness declaration contains missing local wrapper scripts or template environment
+            configurations
+        - WHEN: an operator or AI agent runs strict-spec-driven harness-doctor with the --fix flag
+        - THEN: >-
+            the command automatically resolves all autofixable diagnostics, regenerates missing
+            files, and exits zero after validation succeeds

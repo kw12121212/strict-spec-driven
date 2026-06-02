@@ -1,0 +1,45 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-harness-doctor-auto-recovery
+sections:
+  Implementation:
+    define-recovery-schema:
+      text: Define recovery action types and add optional recovery metadata to HarnessDiagnostic.
+      status: complete
+    extend-doctor-diagnostics:
+      text: >-
+        Extend harness-doctor to generate structured recovery actions for missing wrapper scripts or
+        environment files.
+      status: complete
+    implement-doctor-fix-command:
+      text: >-
+        Implement the --fix command flag in strict-spec-driven harness-doctor to execute generated
+        recovery steps non-interactively.
+      status: complete
+  Testing:
+    write-recovery-tests:
+      text: >-
+        Add unit and integration tests under test/suites/ verifying doctor recovery steps generation
+        and --fix command execution.
+      status: complete
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

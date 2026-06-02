@@ -2,6 +2,7 @@ import {
   archiveHarnessSession,
   createHarnessSession,
   doctorHarness,
+  fixHarnessDiagnostics,
   generateHarnessScripts,
   getHarnessLogs,
   getHarnessPlanResult,
@@ -17,7 +18,7 @@ import { writeError, writeHelp, writeJson, writeOut, writeUsage } from "./output
 
 const HARNESS_PLAN_USAGE = "Usage: strict-spec-driven harness-plan [--environment <id>] [--component <id> ...]\n";
 const HARNESS_INFER_USAGE = "Usage: strict-spec-driven harness-infer [--write] [--force]\n";
-const HARNESS_DOCTOR_USAGE = "Usage: strict-spec-driven harness-doctor\n";
+const HARNESS_DOCTOR_USAGE = "Usage: strict-spec-driven harness-doctor [--fix]\n";
 const HARNESS_START_USAGE = "Usage: strict-spec-driven harness-start [--environment <id>] [--component <id> ...] [--confirm]\n";
 const HARNESS_STOP_USAGE = "Usage: strict-spec-driven harness-stop [--confirm]\n";
 const HARNESS_STATUS_USAGE = "Usage: strict-spec-driven harness-status\n";
@@ -147,11 +148,29 @@ export function runHarnessDoctor(argv: string[]): number {
     writeHelp(HARNESS_DOCTOR_USAGE);
     return 0;
   }
-  if (argv.length > 0) {
-    writeUsage(HARNESS_DOCTOR_USAGE);
-    return 1;
+  let fix = false;
+  for (const arg of argv) {
+    if (arg === "--fix") {
+      fix = true;
+    } else {
+      writeUsage(HARNESS_DOCTOR_USAGE);
+      return 1;
+    }
   }
-  const result = doctorHarness(process.cwd());
+  let result = doctorHarness(process.cwd());
+  if (fix && !result.ok) {
+    try {
+      const maxPasses = 5;
+      for (let pass = 0; pass < maxPasses && !result.ok; pass++) {
+        const fixed = fixHarnessDiagnostics(process.cwd(), result.diagnostics);
+        if (!fixed) break;
+        result = doctorHarness(process.cwd());
+      }
+    } catch (error) {
+      writeError((error as Error).message);
+      return 1;
+    }
+  }
   writeJson(result);
   return result.ok ? 0 : 1;
 }
