@@ -1,0 +1,52 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: harness-shared-port-confirmation
+sections:
+  Implementation:
+    add-cross-environment-port-check:
+      text: >-
+        In src/harness.ts doctorHarness, add a cross-environment port aggregation pass that records,
+        for each declared port, the environments and components declaring it across all
+        environments. Emit a source:safety diagnostic with no auto-fix recovery when a port is
+        declared in two or more environments, naming the involved environments and components, while
+        leaving the existing per-environment duplicate-port diagnostic unchanged.
+      status: complete
+    update-harness-init-skill-confirmation:
+      text: >-
+        Update skills/strict-spec-harness-init/SKILL.md to require explicit human confirmation when
+        a port is shared across environments (notably development and production) before writing
+        harness.yaml, and note in the doctor resolution step that the cross-environment shared-port
+        safety diagnostic is confirm-required rather than silently resolved.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run type/lint checks.
+      status: complete
+      command: bun run lint
+    add-cross-environment-port-tests:
+      text: >-
+        Add coverage in test/suites/harness-infer-doctor.ts that the cross-environment shared-port
+        diagnostic fires when a port is shared across environments, does not fire when every
+        environment uses distinct ports, and that the existing same-environment duplicate-port
+        diagnostic still fires.
+      status: complete
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify the implementation matches proposal scope: cross-environment detection is
+        deterministic and confirm-required, same-environment behavior and harness.yaml schema are
+        unchanged.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

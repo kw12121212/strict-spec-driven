@@ -1973,3 +1973,27 @@ requirements:
         - THEN: >-
             the command automatically resolves all autofixable diagnostics, regenerates missing
             files, and exits zero after validation succeeds
+  cli-harness-doctor-flags-cross-environment-shared-ports:
+    strength: MUST
+    statement: >-
+      The system MUST report a deterministic harness-doctor safety diagnostic when the same port is
+      declared by components in two or more environments, identifying the shared port and the
+      involved environments and components, without automatically rewriting ports, so that a likely
+      cross-environment port conflict between development and production is surfaced for explicit
+      human confirmation in the harness-init skill before the harness declaration is accepted.
+    scenarios:
+      cross-environment-shared-port-is-reported:
+        - GIVEN: >-
+            a harness declaration in which a port is declared by components in two or more
+            environments, such as development and production
+        - WHEN: an operator or AI agent runs strict-spec-driven harness-doctor
+        - THEN: >-
+            the command reports a deterministic safety diagnostic that identifies the shared port
+            and the involved environments and components and offers no automatic port-rewriting
+            recovery
+      distinct-environment-ports-do-not-trigger-the-diagnostic:
+        - GIVEN: a harness declaration in which every environment declares distinct port numbers
+        - WHEN: an operator or AI agent runs strict-spec-driven harness-doctor
+        - THEN: >-
+            no cross-environment shared-port diagnostic is reported while existing same-environment
+            duplicate-port detection is unaffected

@@ -14,6 +14,77 @@ function createWorkspace(files: Record<string, string>): { workspaceRoot: string
   return { workspaceRoot, cleanup: () => rmSync(workspaceRoot, { recursive: true, force: true }) };
 }
 
+function crossEnvironmentHarnessYaml(developmentPort: number, productionPort: number): string {
+  return [
+    "schema: strict-spec-driven/harness/v1",
+    "schema_version: 1",
+    "artifact_type: harness",
+    "schema_file: templates/strict-spec-driven/schemas/harness.yaml",
+    "harness:",
+    "  id: cross-env-ports",
+    "  environments:",
+    "    development:",
+    "      kind: development",
+    "      components:",
+    "        app:",
+    "          type: backend",
+    "          working_directory: .",
+    "          depends_on: []",
+    "          environment:",
+    "            required: []",
+    "            optional: []",
+    "          urls: []",
+    "          ports:",
+    `            - ${developmentPort}`,
+    "          readiness:",
+    "            type: manual",
+    "            timeout_seconds: 60",
+    "            interval_seconds: 5",
+    "          operations:",
+    "            start:",
+    "              mode: manual",
+    "            stop:",
+    "              mode: manual",
+    "            status:",
+    "              mode: readonly",
+    "            logs:",
+    "              mode: readonly",
+    "          evidence_labels: []",
+    "          unavailable_conditions: []",
+    "    production:",
+    "      kind: production",
+    "      components:",
+    "        web:",
+    "          type: external_resource",
+    "          working_directory: .",
+    "          depends_on: []",
+    "          environment:",
+    "            required: []",
+    "            optional: []",
+    "          urls: []",
+    "          ports:",
+    `            - ${productionPort}`,
+    "          readiness:",
+    "            type: manual",
+    "            timeout_seconds: 60",
+    "            interval_seconds: 5",
+    "          operations:",
+    "            start:",
+    "              mode: disabled",
+    "              requires_confirmation: true",
+    "            stop:",
+    "              mode: disabled",
+    "              requires_confirmation: true",
+    "            status:",
+    "              mode: readonly",
+    "            logs:",
+    "              mode: readonly",
+    "          evidence_labels: []",
+    "          unavailable_conditions: []",
+    "",
+  ].join("\n");
+}
+
 export async function runHarnessInferDoctorSuite(context: TestContext): Promise<void> {
   context.section("[5a] harness infer and doctor commands");
 
@@ -370,6 +441,53 @@ export async function runHarnessInferDoctorSuite(context: TestContext): Promise<
     context.assert(doctorAfter.status === 0, "subsequent harness-doctor passes cleanly without --fix");
   } finally {
     recoveryWorkspace.cleanup();
+  }
+
+  const sharedPortWorkspace = createWorkspace({
+    ".strict-spec-driven/harness.yaml": crossEnvironmentHarnessYaml(3000, 3000),
+  });
+  try {
+    const result = cli(["harness-doctor"], { cwd: sharedPortWorkspace.workspaceRoot });
+    context.assert(result.status !== 0, "harness-doctor exits non-zero when a port is shared across environments");
+    const json = JSON.parse(result.stdout.trim()) as { diagnostics: Array<{ source: string; message: string; expected?: string; actual?: string; recovery?: unknown }> };
+    const crossEnvDiagnostic = json.diagnostics.find(
+      (diagnostic) => diagnostic.source === "safety" && diagnostic.message.includes("multiple environments"),
+    );
+    context.assert(
+      Boolean(crossEnvDiagnostic)
+        && crossEnvDiagnostic!.actual?.includes("development") === true
+        && crossEnvDiagnostic!.actual?.includes("production") === true
+        && crossEnvDiagnostic!.actual?.includes("3000") === true,
+      "harness-doctor reports a safety diagnostic naming the shared port and both environments",
+      result.stdout.trim(),
+    );
+    context.assert(
+      !json.diagnostics.some((diagnostic) => diagnostic.recovery !== undefined && diagnostic.message.includes("multiple environments")),
+      "cross-environment shared-port diagnostic offers no automatic recovery",
+      result.stdout.trim(),
+    );
+  } finally {
+    sharedPortWorkspace.cleanup();
+  }
+
+  const distinctPortWorkspace = createWorkspace({
+    ".strict-spec-driven/harness.yaml": crossEnvironmentHarnessYaml(3000, 4000),
+  });
+  try {
+    const result = cli(["harness-doctor"], { cwd: distinctPortWorkspace.workspaceRoot });
+    const json = JSON.parse(result.stdout.trim()) as { diagnostics: Array<{ source: string; message: string }> };
+    context.assert(
+      !json.diagnostics.some((diagnostic) => diagnostic.source === "safety" && diagnostic.message.includes("multiple environments")),
+      "harness-doctor reports no cross-environment shared-port diagnostic when environments use distinct ports",
+      result.stdout.trim(),
+    );
+    context.assert(
+      !json.diagnostics.some((diagnostic) => diagnostic.message.includes("multiple components")),
+      "distinct cross-environment ports do not trigger the same-environment duplicate-port diagnostic",
+      result.stdout.trim(),
+    );
+  } finally {
+    distinctPortWorkspace.cleanup();
   }
 }
 

@@ -1,0 +1,32 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: harness-shared-port-confirmation
+open: []
+resolved:
+  - id: overlap-scope
+    question: >-
+      Should the shared-port check cover only development-production pairs or any cross-environment
+      overlap?
+    context: User described the dev-prod conflict; additional environments may exist in other repositories.
+    answer: >-
+      Flag the same port declared in any two or more environments; the dev-prod case is the
+      motivating example but the rule generalizes.
+    status: resolved
+  - id: treatment-severity
+    question: Should a cross-environment shared port hard-fail the harness or only require confirmation?
+    context: >-
+      Development and production frequently run on separate hosts where reusing a port number is
+      legitimate.
+    answer: >-
+      Treat it as a confirm-required safety diagnostic with no automatic port rewriting; the human
+      confirms intent rather than the tool forcing distinct ports.
+    status: resolved
+  - id: detection-layer
+    question: Should detection be skill-prompt only or also a deterministic CLI check?
+    context: Repository principle keeps deterministic detection in scripts and human judgment in skills.
+    answer: >-
+      Add a deterministic harness-doctor source:safety diagnostic plus a mandatory skill
+      confirmation step.
+    status: resolved

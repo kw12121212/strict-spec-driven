@@ -19942,6 +19942,7 @@ function doctorHarness(rootDir) {
   const rootEnvSamples = readEnvSampleNames(rootDir);
   const wrapperCheck = verifyHarnessScripts(rootDir);
   diagnostics.push(...wrapperCheck.diagnostics);
+  const crossEnvironmentPorts = new Map;
   for (const [environmentId] of sortEntries(artifact.harness.environments)) {
     const environmentPlan = getHarnessPlanResult(rootDir, environmentId);
     if (!environmentPlan.valid) {
@@ -20008,6 +20009,9 @@ ${name}=
           });
         }
         seenPorts.set(port, component.id);
+        const declarations = crossEnvironmentPorts.get(port) ?? [];
+        declarations.push({ environmentId, componentId: component.id });
+        crossEnvironmentPorts.set(port, declarations);
       }
       for (const operationName of ["start", "stop", "status", "logs"]) {
         const operation = component.operations[operationName];
@@ -20049,6 +20053,20 @@ ${name}=
         }
       }
     }
+  }
+  for (const port of [...crossEnvironmentPorts.keys()].sort((a, b) => a - b)) {
+    const declarations = crossEnvironmentPorts.get(port);
+    const environmentIds = [...new Set(declarations.map((declaration) => declaration.environmentId))];
+    if (environmentIds.length < 2)
+      continue;
+    const firstDeclaration = declarations[0];
+    const involved = declarations.map((declaration) => `${declaration.environmentId}.${declaration.componentId}`).join(", ");
+    addDoctorDiagnostic(diagnostics, artifactPath, `$.harness.environments.${firstDeclaration.environmentId}.components.${firstDeclaration.componentId}.ports`, "harness port is declared in multiple environments (possible cross-environment port conflict requiring human confirmation)", {
+      source: "safety",
+      componentId: firstDeclaration.componentId,
+      expected: `port ${port} declared in a single environment, or explicit human confirmation that the shared port is intentional`,
+      actual: `${port} declared in environments ${environmentIds.join(", ")} by ${involved}`
+    });
   }
   return { ok: diagnostics.length === 0, artifactPath, diagnostics };
 }

@@ -1,0 +1,47 @@
+schema: strict-spec-driven/harness/v1
+schema_version: 1
+artifact_type: harness
+schema_file: templates/strict-spec-driven/schemas/harness.yaml
+harness:
+  id: strict-spec-driven
+  description: >-
+    Build/test toolchain harness for the strict-spec-driven CLI. This project
+    is a Bun + TypeScript CLI and skill package, not a long-running service, so
+    lifecycle operations are manual.
+  environments:
+    development:
+      kind: development
+      description: Local Bun + TypeScript build and test toolchain.
+      components:
+        toolchain:
+          type: backend
+          description: >-
+            CLI build and test toolchain. Build with `bun run build`; run the
+            test suite with `bun test/run.ts`. No persistent process to start.
+          working_directory: .
+          depends_on: []
+          environment:
+            required: []
+            optional: []
+          urls: []
+          ports: []
+          readiness:
+            type: manual
+            timeout_seconds: 60
+            interval_seconds: 5
+            notes:
+              - No long-running process; readiness is build/test completion.
+          operations:
+            start:
+              mode: manual
+            stop:
+              mode: manual
+            status:
+              mode: readonly
+            logs:
+              mode: readonly
+          evidence_labels:
+            - build-passed
+            - tests-passed
+          unavailable_conditions:
+            - Run `bun install` before building or testing.

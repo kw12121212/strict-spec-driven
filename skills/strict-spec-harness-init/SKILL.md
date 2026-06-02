@@ -35,6 +35,7 @@ Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js che
 3. **Ask mandatory confirmation questions** — ask the user to confirm or correct at least the following:
    - **Development environment**: Are the detected component types, start/stop commands, ports, URLs, and environment variable names correct?
    - **Production environment**: Should a production environment be declared? If so, are its component configurations and operation modes correct? Note that production start, stop, and cleanup default to disabled unless explicitly confirmed here.
+   - **Cross-environment shared ports**: If the same port is declared in more than one environment (notably development and production), you MUST surface every shared port and require explicit human confirmation that it is intentional and free of conflict before writing `harness.yaml`. Do not silently accept a port reused across environments.
 4. **Ask project-specific confirmation questions** — based on the inferred draft and repository context, ask additional targeted questions when the agent cannot confidently determine:
    - Stateful component lifecycle permissions (database, cache, queue, etc.)
    - Readiness probe settings (type, URL/port, timeouts)
@@ -43,7 +44,7 @@ Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js che
    Skip questions for items the agent can confidently resolve from the draft evidence.
 5. **Require explicit approval before writing** — present the final `harness.yaml` content that will be written and require the user to confirm before proceeding. If the user requests changes, incorporate them and re-present for approval. Do not write files or run downstream commands until the user explicitly approves.
 6. **Draft or update harness.yaml** — write `.strict-spec-driven/harness.yaml` from the approved draft and only store environment variable names, never secret values, credentials, tokens, or connection strings.
-7. **Run deterministic repair checks** — run `harness-doctor`, then resolve missing working directories, missing package scripts, generated wrapper drift, env sample gaps, duplicated ports, and safety diagnostics.
+7. **Run deterministic repair checks** — run `harness-doctor`, then resolve missing working directories, missing package scripts, generated wrapper drift, env sample gaps, duplicated ports, and safety diagnostics. Treat the cross-environment shared-port safety diagnostic as confirm-required: do not silently resolve it by rewriting ports — surface it and require explicit human confirmation that the shared port is intentional.
 8. **Validate the plan** — run `harness-plan` for each declared environment and resolve deterministic diagnostics.
 9. **Generate scripts** — run `harness-scripts generate`, then run `harness-scripts verify`.
 
