@@ -1,0 +1,53 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-spec-harness-init/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    strict-harness-init-interactive-checkpoint:
+      strength: MUST
+      statement: >-
+        The strict-spec-harness-init skill MUST present the full inferred harness declaration draft
+        to the user and ask structured confirmation questions about development and production
+        environment configurations before writing any files, with the agent supplementing
+        project-specific questions as needed, and MUST require explicit user approval before
+        proceeding.
+      scenarios:
+        draft-review-checkpoint:
+          - GIVEN: harness-infer has produced a draft harness declaration
+          - WHEN: the skill workflow proceeds past the inference step
+          - THEN: the agent presents the full draft to the user
+        mandatory-dev-env-confirmation:
+          - GIVEN: the inferred draft contains a development environment
+          - WHEN: the agent asks the user about the development environment configuration
+          - THEN: >-
+              the user confirms or corrects component types, commands, ports, URLs, and environment
+              variable names
+        mandatory-prod-env-confirmation:
+          - GIVEN: the inferred draft contains or omits a production environment
+          - WHEN: the agent asks the user about production configuration
+          - THEN: >-
+              the user decides whether production should be enabled and confirms or corrects its
+              configuration
+        agent-supplementary-questions:
+          - GIVEN: the inferred draft contains project-specific details that benefit from human review
+          - WHEN: >-
+              the agent identifies items such as stateful component lifecycle permissions, readiness
+              probe settings, or dependency ordering
+          - THEN: >-
+              the agent asks additional targeted questions beyond the mandatory environment
+              confirmations
+        explicit-approval-before-write:
+          - GIVEN: the user has reviewed the draft and answered all confirmation questions
+          - WHEN: the skill workflow is about to write harness.yaml
+          - THEN: >-
+              the agent presents the final harness.yaml content and requires explicit user approval
+              before writing the file or running downstream commands
+  MODIFIED: {}
+  REMOVED: {}

@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: harness-init-interactive-checkpoint
+  status: proposed
+summary:
+  what:
+    - >-
+      Make the harness-init skill perform structured human interaction after inference and before
+      writing files
+  why:
+    - >-
+      The current skill writes harness.yaml from inferred drafts without sufficient human
+      confirmation. Users cannot review or correct environment-specific configurations before files
+      are generated.
+scope:
+  in:
+    - skills/strict-spec-harness-init/SKILL.md
+  out:
+    - >-
+      skills/strict-spec-harness-init/SKILL.md with revised step-by-step workflow that includes
+      mandatory confirmation checkpoints
+unchanged_behavior:
+  - CLI commands, TypeScript source, harness schema, other skills, safety rules

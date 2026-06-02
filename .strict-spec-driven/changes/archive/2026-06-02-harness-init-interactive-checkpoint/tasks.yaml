@@ -1,0 +1,38 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: harness-init-interactive-checkpoint
+sections:
+  Implementation:
+    revise-skill-steps:
+      text: >
+        Revise skills/strict-spec-harness-init/SKILL.md Steps section to insert a structured human
+        confirmation checkpoint after harness-infer output and before writing harness.yaml. The
+        checkpoint must: present the full inferred draft, ask mandatory questions about development
+        and production environment configurations, allow the agent to ask additional
+        project-specific confirmation questions, and require explicit user approval before
+        proceeding to file writes and downstream commands.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify the revised SKILL.md contains the confirmation checkpoint, preserves all existing
+        commands and rules, and does not change CLI behavior.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests
