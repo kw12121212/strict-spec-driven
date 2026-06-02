@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: align-harness-status-logs-operation-model
   milestone: 0013-harness-ai-friendliness-hardening
-status: planned
+status: complete
 summary: >-
   make the declared status/logs operation model consistent with runtime behavior so agents stop
   authoring command and mode fields that the CLI never executes.

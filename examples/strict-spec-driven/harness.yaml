@@ -37,10 +37,6 @@ harness:
             stop:
               mode: script
               command: pkill -f "bun run dev"
-            status:
-              mode: readonly
-            logs:
-              mode: readonly
           evidence_labels:
             - homepage-loaded
           unavailable_conditions:
@@ -81,7 +77,7 @@ harness:
       components:
         web:
           type: external_resource
-          description: Production web service observed through read-only operations.
+          description: Production web service documented with descriptive read-only status markers.
           working_directory: "."
           depends_on: []
           environment:

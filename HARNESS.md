@@ -11,6 +11,12 @@ It describes development and production environments, typed components, dependen
 
 Do not store secret values, credentials, tokens, connection strings, or production credential material in harness YAML, generated scripts, evidence filenames, logs, or chat.
 
+Only `operations.start` and `operations.stop` are executable lifecycle hooks. `operations.status` and
+`operations.logs` are optional descriptive metadata: when present, `readonly` means the declaration is
+documenting availability, not supplying a command the CLI will run. `harness-status` always reports
+runtime state, `harness-logs` always reads the captured runtime log file, and `harness-plan` plus
+`harness-doctor` do not require status/logs commands.
+
 ## Commands
 
 ```bash
@@ -42,7 +48,7 @@ strict-spec-driven harness-session archive checkout-investigation
 - `scripts/harness-logs`
 - `scripts/harness-session`
 
-`harness-infer` reads safe repository metadata such as package scripts and sample environment variable files, then emits a schema-valid draft. Inferred lifecycle commands stay manual, production lifecycle operations stay disabled, and stateful lifecycle permissions are not enabled automatically.
+`harness-infer` reads safe repository metadata such as package scripts and sample environment variable files, then emits a schema-valid draft. Inferred lifecycle commands stay manual, production lifecycle operations stay disabled, inferred status/logs metadata stays descriptive with `readonly`, and stateful lifecycle permissions are not enabled automatically.
 
 `harness-doctor` reports deterministic diagnostics for schema or planning failures, missing generated wrappers, missing working directories, missing package scripts, required environment names that are absent from sample env files, duplicated ports, and safety policy issues. It does not start or stop services.
 

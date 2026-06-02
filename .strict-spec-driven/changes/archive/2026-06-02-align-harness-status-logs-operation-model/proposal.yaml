@@ -1,0 +1,37 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: align-harness-status-logs-operation-model
+  status: proposed
+summary:
+  what:
+    - >-
+      Relax the harness declaration contract so status and logs are descriptive rather than
+      executable operations, and align the schema, example, docs, and command expectations with
+      runtime behavior.
+  why:
+    - >-
+      Agents are currently required to author status/logs mode and command fields that the CLI never
+      executes, which makes harness plans and repair guidance misleading.
+scope:
+  in:
+    - >-
+      Make operations.status and operations.logs optional descriptive fields, keep readonly as a
+      non-executed marker, and stop harness-plan and harness-doctor from treating those fields as
+      executable lifecycle requirements.
+    - >-
+      Update the bundled harness example, HARNESS.md, inference defaults, and deterministic harness
+      regressions to reflect runtime-derived status and captured-log behavior.
+  out:
+    - >-
+      Changing harness-logs output bounds, automatic environment loading, non-Node inference
+      expansion, or partial-start recovery reporting.
+unchanged_behavior:
+  - >-
+    Harness start/stop safety checks, runtime-derived status snapshots, and captured-log retrieval
+    remain in place except where the dead executable status/logs contract is removed.
+roadmap:
+  milestone: 0013-harness-ai-friendliness-hardening
+  planned_change: align-harness-status-logs-operation-model

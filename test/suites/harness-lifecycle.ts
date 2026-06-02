@@ -31,7 +31,7 @@ async function reservePort(): Promise<number> {
   });
 }
 
-function buildHarness(command: string, port: number, type = "backend", extraStartFields = ""): string {
+function buildHarness(command: string, port: number, type = "backend", extraStartFields = "", includeStatusAndLogs = true): string {
   return [
     "schema: strict-spec-driven/harness/v1",
     "schema_version: 1",
@@ -66,10 +66,14 @@ function buildHarness(command: string, port: number, type = "backend", extraStar
     "            stop:",
     "              mode: script",
     "              command: node stop.cjs",
-    "            status:",
-    "              mode: readonly",
-    "            logs:",
-    "              mode: readonly",
+    ...(includeStatusAndLogs
+      ? [
+          "            status:",
+          "              mode: readonly",
+          "            logs:",
+          "              mode: readonly",
+        ]
+      : []),
     "          evidence_labels:",
     "            - web-ready",
     "          unavailable_conditions: []",
@@ -171,6 +175,51 @@ export async function runHarnessLifecycleSuite(context: TestContext): Promise<vo
   } finally {
     cli(["harness-stop"], { cwd: workspace.workspaceRoot, env });
     workspace.cleanup();
+  }
+
+  const optionalPort = await reservePort();
+  const optionalWorkspace = createWorkspace(
+    buildHarness("node server.cjs", optionalPort, "backend", "", false),
+    {
+      "server.cjs": [
+        "const http = require('http');",
+        "const fs = require('fs');",
+        "const port = Number(process.env.PORT);",
+        "const server = http.createServer((req, res) => {",
+        "  if (req.url === '/health') { res.writeHead(200); res.end('ok'); return; }",
+        "  res.writeHead(200); res.end('hello');",
+        "});",
+        "server.listen(port, '127.0.0.1', () => { fs.writeFileSync('server.pid', String(process.pid)); });",
+        "process.on('SIGTERM', () => server.close(() => process.exit(0)));",
+        "setInterval(() => {}, 1000);",
+        "",
+      ].join("\n"),
+      "stop.cjs": "const fs = require('fs'); process.kill(Number(fs.readFileSync('server.pid', 'utf8')), 'SIGTERM');\n",
+    },
+  );
+  const optionalEnv = { ...process.env, PORT: String(optionalPort) };
+  try {
+    const start = cli(["harness-start", "--environment", "development"], { cwd: optionalWorkspace.workspaceRoot, env: optionalEnv });
+    context.assert(start.status === 0, "harness-start accepts components that omit status/logs declarations", start.stderr.trim());
+    const startJson = JSON.parse(start.stdout.trim()) as { ok: boolean; components: Array<{ status: string; logPath: string }> };
+    const optionalLogPath = startJson.components[0]?.logPath;
+    context.assert(startJson.ok === true && typeof optionalLogPath === "string", "harness-start still captures runtime state and logs without status/logs declarations", start.stdout.trim());
+    if (typeof optionalLogPath !== "string") {
+      throw new Error("expected harness-start to return a log path when status/logs are omitted");
+    }
+    writeFileSync(path.join(optionalWorkspace.workspaceRoot, optionalLogPath), "optional-log-line\n", "utf8");
+
+    const status = cli(["harness-status"], { cwd: optionalWorkspace.workspaceRoot, env: optionalEnv });
+    context.assert(status.status === 0, "harness-status remains available when the declaration omits status/logs", status.stderr.trim());
+    const statusJson = JSON.parse(status.stdout.trim()) as { ok: boolean; components: Array<{ status: string }> };
+    context.assert(statusJson.ok === true && statusJson.components[0]?.status === "running", "harness-status still reports runtime-derived component state", status.stdout.trim());
+
+    const logs = cli(["harness-logs"], { cwd: optionalWorkspace.workspaceRoot, env: optionalEnv });
+    context.assert(logs.status === 0, "harness-logs remains available when the declaration omits status/logs", logs.stderr.trim());
+    context.assert(logs.stdout.trim() === "optional-log-line", "harness-logs still reads the captured runtime log without status/logs declarations", logs.stdout.trim());
+  } finally {
+    cli(["harness-stop"], { cwd: optionalWorkspace.workspaceRoot, env: optionalEnv });
+    optionalWorkspace.cleanup();
   }
 
   const statefulWorkspace = createWorkspace(buildHarness("node server.cjs", await reservePort(), "database"), { "server.cjs": "setInterval(() => {}, 1000);\n", "stop.cjs": "" });

@@ -7668,6 +7668,9 @@ json_schema:
     operation:
       type: object
       additionalProperties: false
+      description: >-
+        Operation capability metadata for a harness component. Start and stop may be executed when
+        declared as script operations; status and logs are descriptive only and may be omitted.
       required:
         - mode
       properties:
@@ -7817,16 +7820,20 @@ json_schema:
           required:
             - start
             - stop
-            - status
-            - logs
           properties:
             start:
               $ref: "#/definitions/operation"
             stop:
               $ref: "#/definitions/operation"
             status:
+              description: >-
+                Optional descriptive metadata. Harness status is reported from runtime state; any
+                declared status operation is never executed.
               $ref: "#/definitions/operation"
             logs:
+              description: >-
+                Optional descriptive metadata. Harness logs are read from the captured runtime log
+                file; any declared logs operation is never executed.
               $ref: "#/definitions/operation"
         evidence_labels:
           type: array
@@ -19091,7 +19098,7 @@ function assertOperationAllowed(artifactPath, environment, component, operationN
   if (operation.mode !== "script") {
     return createDiagnostic(artifactPath, `$.harness.environments.${environment.id}.components.${component.id}.operations.${operationName}.mode`, "harness operation is not executable by script", {
       source: "safety",
-      phase: operationName === "logs" ? "logs" : "environment",
+      phase: "environment",
       componentId: component.id,
       expected: "script",
       actual: operation.mode
@@ -19262,8 +19269,8 @@ function buildInferredHarness(rootDir) {
                 operations: {
                   start: command === undefined ? { mode: "manual" } : { mode: "manual", command },
                   stop: { mode: "manual" },
-                  status: { mode: "manual" },
-                  logs: { mode: "manual" }
+                  status: { mode: "readonly" },
+                  logs: { mode: "readonly" }
                 },
                 evidence_labels: [],
                 unavailable_conditions: command === undefined ? ["No package dev/start/serve script was found."] : []
@@ -19294,8 +19301,8 @@ function buildInferredHarness(rootDir) {
                 operations: {
                   start: { mode: "disabled" },
                   stop: { mode: "disabled" },
-                  status: { mode: "manual" },
-                  logs: { mode: "manual" }
+                  status: { mode: "readonly" },
+                  logs: { mode: "readonly" }
                 },
                 evidence_labels: [],
                 unavailable_conditions: ["Production lifecycle is disabled in inferred harness drafts."]
@@ -19408,8 +19415,8 @@ function deriveHarnessPlan(rootDir, environmentId, componentIds = []) {
       operations: {
         start: normalizeOperation(component.operations.start),
         stop: normalizeOperation(component.operations.stop),
-        status: normalizeOperation(component.operations.status),
-        logs: normalizeOperation(component.operations.logs)
+        status: component.operations.status ? normalizeOperation(component.operations.status) : undefined,
+        logs: component.operations.logs ? normalizeOperation(component.operations.logs) : undefined
       },
       evidenceLabels: [...component.evidence_labels],
       unavailableConditions: [...component.unavailable_conditions]
@@ -19787,6 +19794,8 @@ function doctorHarness(rootDir) {
       }
       for (const operationName of ["start", "stop", "status", "logs"]) {
         const operation = component.operations[operationName];
+        if (operation === undefined)
+          continue;
         if (!operation.command)
           continue;
         const scriptName = extractPackageScriptName(operation.command);

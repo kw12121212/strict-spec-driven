@@ -35,10 +35,11 @@ export async function runHarnessInferDoctorSuite(context: TestContext): Promise<
       inferJson.draft.includes("schema: strict-spec-driven/harness/v1")
         && inferJson.draft.includes("command: bun run dev")
         && inferJson.draft.includes("mode: manual")
+        && inferJson.draft.includes("mode: readonly")
         && inferJson.draft.includes("mode: disabled")
         && inferJson.evidence.includes("package.json")
         && inferJson.evidence.includes(".env.example"),
-      "harness-infer emits a safe draft with evidence and manual or disabled lifecycle defaults",
+      "harness-infer emits a safe draft with manual lifecycle defaults and descriptive readonly status/logs metadata",
       infer.stdout.trim(),
     );
     context.assert(
@@ -136,10 +137,6 @@ export async function runHarnessInferDoctorSuite(context: TestContext): Promise<
       "              mode: manual",
       "            stop:",
       "              mode: manual",
-      "            status:",
-      "              mode: manual",
-      "            logs:",
-      "              mode: manual",
       "          evidence_labels: []",
       "          unavailable_conditions: []",
       "",
@@ -192,10 +189,6 @@ export async function runHarnessInferDoctorSuite(context: TestContext): Promise<
       "            start:",
       "              mode: manual",
       "            stop:",
-      "              mode: manual",
-      "            status:",
-      "              mode: manual",
-      "            logs:",
       "              mode: manual",
       "          evidence_labels: []",
       "          unavailable_conditions: []",

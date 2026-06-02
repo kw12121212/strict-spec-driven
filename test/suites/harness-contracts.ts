@@ -19,6 +19,13 @@ export async function runHarnessContractsSuite(context: TestContext): Promise<vo
   const harnessValidation = validationModule.validateArtifact(harnessSchema, harnessExample, "examples/strict-spec-driven/harness.yaml");
   context.assert(harnessValidation.valid, "harness example validates against harness schema", JSON.stringify(harnessValidation.diagnostics));
 
+  const harnessWithoutStatusLogs = JSON.parse(JSON.stringify(harnessExample)) as Record<string, unknown>;
+  const browserComponent = ((((harnessWithoutStatusLogs.harness as Record<string, unknown>).environments as Record<string, unknown>).development as Record<string, unknown>).components as Record<string, unknown>).browser as Record<string, unknown>;
+  delete (browserComponent.operations as Record<string, unknown>).status;
+  delete (browserComponent.operations as Record<string, unknown>).logs;
+  const optionalOperationValidation = validationModule.validateArtifact(harnessSchema, harnessWithoutStatusLogs, "memory://harness-without-status-logs");
+  context.assert(optionalOperationValidation.valid, "harness schema accepts components that omit status/logs declarations", JSON.stringify(optionalOperationValidation.diagnostics));
+
   const harnessWithSecret = JSON.parse(JSON.stringify(harnessExample)) as Record<string, unknown>;
   const development = (((harnessWithSecret.harness as Record<string, unknown>).environments as Record<string, unknown>).development as Record<string, unknown>);
   const web = ((development.components as Record<string, unknown>).web as Record<string, unknown>);

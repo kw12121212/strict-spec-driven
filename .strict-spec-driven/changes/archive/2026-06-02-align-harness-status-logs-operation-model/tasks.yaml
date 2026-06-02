@@ -1,0 +1,50 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: align-harness-status-logs-operation-model
+sections:
+  Implementation:
+    relax-harness-status-logs-contract:
+      text: >-
+        Update templates/strict-spec-driven/schemas/harness.yaml and src/harness.ts so
+        operations.status and operations.logs are optional descriptive fields while start and stop
+        remain the only executable lifecycle operations.
+      status: complete
+    align-harness-plan-doctor-and-infer:
+      text: >-
+        Update src/harness.ts so harness-plan, harness-doctor, and inferred harness drafts no longer
+        require executable status/logs commands and instead match the runtime-derived status/log
+        model.
+      status: complete
+    update-harness-example-and-docs:
+      text: >-
+        Update examples/strict-spec-driven/harness.yaml and HARNESS.md so the bundled declaration
+        and reference docs describe status as runtime-derived, logs as captured-file output, and
+        readonly as a descriptive non-executed marker.
+      status: complete
+    add-harness-status-logs-regressions:
+      text: >-
+        Extend harness contract and command regression coverage so optional status/logs declarations
+        and descriptive readonly behavior are proven deterministically.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

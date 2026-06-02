@@ -1748,3 +1748,18 @@ requirements:
             the contracts expose structured fields for environments, components, dependencies,
             operation modes, lifecycle scripts, readiness, status, logs, safety policy, secret-safe
             environment variable names, evidence, human checkpoints, replay, and verification
+  yaml-harness-status-logs-are-descriptive:
+    strength: MUST
+    statement: >-
+      The system MUST let harness declarations treat operations.status and operations.logs as
+      optional descriptive metadata, keep readonly as a valid never-executed marker, and document
+      that status comes from runtime state while logs come from the captured runtime log file.
+    scenarios:
+      optional-status-logs-remain-valid:
+        - GIVEN: >-
+            a strict harness declaration omits operations.status and operations.logs or keeps
+            readonly markers without script commands
+        - WHEN: the declaration schema, bundled example, and harness contract guidance are validated
+        - THEN: >-
+            the artifact remains valid and the contract describes status as runtime-derived and logs
+            as captured-file output rather than executable lifecycle commands

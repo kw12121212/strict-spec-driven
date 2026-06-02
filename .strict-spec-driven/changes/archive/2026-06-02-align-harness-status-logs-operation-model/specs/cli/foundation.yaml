@@ -1,0 +1,35 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/harness.ts
+    - HARNESS.md
+  tests:
+    - test/suites/harness-plan.ts
+    - test/suites/harness-infer-doctor.ts
+    - test/suites/harness-lifecycle.ts
+operations:
+  ADDED:
+    cli-harness-status-logs-follow-runtime-model:
+      strength: MUST
+      statement: >-
+        The system MUST have harness-plan, harness-doctor, harness-status, harness-logs, and
+        harness-infer follow the runtime status/log model so agents are not asked to author
+        executable status or logs commands that the lifecycle never runs.
+      scenarios:
+        planning-and-doctor-respect-descriptive-status-logs:
+          - GIVEN: >-
+              a strict project uses a harness declaration where status/logs are omitted or declared
+              with descriptive readonly metadata
+          - WHEN: >-
+              an operator or AI agent runs strict-spec-driven harness-plan, harness-doctor, or
+              harness-infer
+          - THEN: >-
+              planning and diagnostics do not require executable status/logs commands and the
+              resulting behavior keeps status runtime-derived and logs sourced from the captured log
+              file
+  MODIFIED: {}
+  REMOVED: {}

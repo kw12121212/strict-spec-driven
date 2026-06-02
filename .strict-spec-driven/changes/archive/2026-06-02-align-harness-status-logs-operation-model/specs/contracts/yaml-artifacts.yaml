@@ -1,0 +1,34 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/harness.yaml
+    - examples/strict-spec-driven/harness.yaml
+    - HARNESS.md
+    - src/harness.ts
+  tests:
+    - test/suites/harness-contracts.ts
+    - test/suites/harness-plan.ts
+    - test/suites/harness-infer-doctor.ts
+operations:
+  ADDED:
+    yaml-harness-status-logs-are-descriptive:
+      strength: MUST
+      statement: >-
+        The system MUST let harness declarations treat operations.status and operations.logs as
+        optional descriptive metadata, keep readonly as a valid never-executed marker, and document
+        that status comes from runtime state while logs come from the captured runtime log file.
+      scenarios:
+        optional-status-logs-remain-valid:
+          - GIVEN: >-
+              a strict harness declaration omits operations.status and operations.logs or keeps
+              readonly markers without script commands
+          - WHEN: the declaration schema, bundled example, and harness contract guidance are validated
+          - THEN: >-
+              the artifact remains valid and the contract describes status as runtime-derived and
+              logs as captured-file output rather than executable lifecycle commands
+  MODIFIED: {}
+  REMOVED: {}

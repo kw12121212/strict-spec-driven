@@ -40,6 +40,12 @@ type HarnessOperation = {
   requires_confirmation?: boolean;
   allow_stateful_lifecycle?: boolean;
 };
+type DerivedHarnessOperation = {
+  mode: HarnessOperationMode;
+  command?: string;
+  requiresConfirmation: boolean;
+  allowStatefulLifecycle: boolean;
+};
 type HarnessComponent = {
   type: string;
   description?: string;
@@ -55,8 +61,8 @@ type HarnessComponent = {
   operations: {
     start: HarnessOperation;
     stop: HarnessOperation;
-    status: HarnessOperation;
-    logs: HarnessOperation;
+    status?: HarnessOperation;
+    logs?: HarnessOperation;
   };
   evidence_labels: string[];
   unavailable_conditions: string[];
@@ -106,12 +112,12 @@ export type DerivedHarnessComponent = {
     intervalSeconds: number;
     notes: string[];
   };
-  operations: Record<"start" | "stop" | "status" | "logs", {
-    mode: HarnessOperationMode;
-    command?: string;
-    requiresConfirmation: boolean;
-    allowStatefulLifecycle: boolean;
-  }>;
+  operations: {
+    start: DerivedHarnessOperation;
+    stop: DerivedHarnessOperation;
+    status?: DerivedHarnessOperation;
+    logs?: DerivedHarnessOperation;
+  };
   evidenceLabels: string[];
   unavailableConditions: string[];
 };
@@ -488,14 +494,14 @@ function assertOperationAllowed(
   artifactPath: string,
   environment: { id: string; kind: HarnessEnvironmentKind },
   component: DerivedHarnessComponent,
-  operationName: "start" | "stop" | "status" | "logs",
+  operationName: "start" | "stop",
   confirmed: boolean,
 ): HarnessDiagnostic | null {
   const operation = component.operations[operationName];
   if (operation.mode !== "script") {
     return createDiagnostic(artifactPath, `$.harness.environments.${environment.id}.components.${component.id}.operations.${operationName}.mode`, "harness operation is not executable by script", {
       source: "safety",
-      phase: operationName === "logs" ? "logs" : "environment",
+      phase: "environment",
       componentId: component.id,
       expected: "script",
       actual: operation.mode,
@@ -672,8 +678,8 @@ function buildInferredHarness(rootDir: string): { artifact: HarnessArtifact & { 
                 operations: {
                   start: command === undefined ? { mode: "manual" } : { mode: "manual", command },
                   stop: { mode: "manual" },
-                  status: { mode: "manual" },
-                  logs: { mode: "manual" },
+                  status: { mode: "readonly" },
+                  logs: { mode: "readonly" },
                 },
                 evidence_labels: [],
                 unavailable_conditions: command === undefined ? ["No package dev/start/serve script was found."] : [],
@@ -704,8 +710,8 @@ function buildInferredHarness(rootDir: string): { artifact: HarnessArtifact & { 
                 operations: {
                   start: { mode: "disabled" },
                   stop: { mode: "disabled" },
-                  status: { mode: "manual" },
-                  logs: { mode: "manual" },
+                  status: { mode: "readonly" },
+                  logs: { mode: "readonly" },
                 },
                 evidence_labels: [],
                 unavailable_conditions: ["Production lifecycle is disabled in inferred harness drafts."],
@@ -827,8 +833,8 @@ export function deriveHarnessPlan(rootDir: string, environmentId?: string, compo
         operations: {
           start: normalizeOperation(component.operations.start),
           stop: normalizeOperation(component.operations.stop),
-          status: normalizeOperation(component.operations.status),
-          logs: normalizeOperation(component.operations.logs),
+          status: component.operations.status ? normalizeOperation(component.operations.status) : undefined,
+          logs: component.operations.logs ? normalizeOperation(component.operations.logs) : undefined,
         },
         evidenceLabels: [...component.evidence_labels],
         unavailableConditions: [...component.unavailable_conditions],
@@ -850,7 +856,7 @@ export function deriveHarnessPlan(rootDir: string, environmentId?: string, compo
   };
 }
 
-function normalizeOperation(operation: HarnessOperation): DerivedHarnessComponent["operations"]["start"] {
+function normalizeOperation(operation: HarnessOperation): DerivedHarnessOperation {
   return {
     mode: operation.mode,
     command: operation.command,
@@ -1230,6 +1236,7 @@ export function doctorHarness(rootDir: string): HarnessDoctorResult {
 
       for (const operationName of ["start", "stop", "status", "logs"] as const) {
         const operation = component.operations[operationName];
+        if (operation === undefined) continue;
         if (!operation.command) continue;
         const scriptName = extractPackageScriptName(operation.command);
         if (scriptName !== null) {

@@ -23,7 +23,7 @@ export async function runHarnessPlanSuite(context: TestContext): Promise<void> {
       valid: boolean;
       artifactPath: string;
       environment: { id: string; kind: string };
-      components: Array<{ id: string; type: string; operations: { start: { mode: string } } }>;
+      components: Array<{ id: string; type: string; operations: { start: { mode: string }; status?: { mode: string }; logs?: { mode: string } } }>;
     };
     context.assert(json.valid === true, "harness-plan reports valid=true");
     context.assert(json.artifactPath === ".strict-spec-driven/harness.yaml", "harness-plan reports canonical declaration path");
@@ -32,6 +32,13 @@ export async function runHarnessPlanSuite(context: TestContext): Promise<void> {
       json.components.map((component) => component.id).join(",") === "web,browser"
         && json.components[0]?.operations.start.mode === "script",
       "harness-plan emits dependency-ordered component details",
+      result.stdout.trim(),
+    );
+    context.assert(
+      json.components[0]?.operations.status === undefined
+        && json.components[0]?.operations.logs === undefined
+        && json.components[1]?.operations.status?.mode === "readonly",
+      "harness-plan accepts components that omit status/logs while preserving descriptive markers when present",
       result.stdout.trim(),
     );
   } finally {

@@ -1038,6 +1038,9 @@ json_schema:
     operation:
       type: object
       additionalProperties: false
+      description: >-
+        Operation capability metadata for a harness component. Start and stop may be executed when
+        declared as script operations; status and logs are descriptive only and may be omitted.
       required:
         - mode
       properties:
@@ -1187,16 +1190,20 @@ json_schema:
           required:
             - start
             - stop
-            - status
-            - logs
           properties:
             start:
               $ref: "#/definitions/operation"
             stop:
               $ref: "#/definitions/operation"
             status:
+              description: >-
+                Optional descriptive metadata. Harness status is reported from runtime state; any
+                declared status operation is never executed.
               $ref: "#/definitions/operation"
             logs:
+              description: >-
+                Optional descriptive metadata. Harness logs are read from the captured runtime log
+                file; any declared logs operation is never executed.
               $ref: "#/definitions/operation"
         evidence_labels:
           type: array
