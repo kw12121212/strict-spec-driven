@@ -1,0 +1,44 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: reconcile-harness-start-env-with-doctor
+sections:
+  Implementation:
+    clarify-start-env-diagnostic:
+      text: >-
+        Update src/harness.ts so harness-start missing-environment failures explain that
+        harness-doctor only checks env-sample documentation, the harness does not load .env files,
+        and required values must be exported or sourced before retrying.
+      status: complete
+    document-env-supply-expectations:
+      text: >-
+        Update HARNESS.md to describe that env sample files document required variable names but
+        harness-start still reads only the current process environment.
+      status: complete
+    add-env-guidance-regression:
+      text: >-
+        Extend test/suites/harness-lifecycle.ts with a deterministic scenario where a required
+        variable is documented in an env sample, passes harness-doctor, remains unexported, and
+        causes harness-start to fail with the new explanatory diagnostic.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

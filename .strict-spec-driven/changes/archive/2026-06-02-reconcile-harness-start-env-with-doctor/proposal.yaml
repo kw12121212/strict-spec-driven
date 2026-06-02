@@ -1,0 +1,36 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: reconcile-harness-start-env-with-doctor
+  status: proposed
+summary:
+  what:
+    - >-
+      Update harness-start missing-required-environment diagnostics so they explain that values must
+      be exported or sourced, align the message with harness-doctor's env-sample documentation
+      check, and document the behavior with deterministic regression coverage.
+  why:
+    - >-
+      A project can pass harness-doctor because required names are documented in env sample files
+      yet still fail harness-start because the values are not present in process.env, which
+      currently reads like a contradictory missing-environment failure.
+scope:
+  in:
+    - >-
+      Rewrite harness-start missing-environment failure output and structured diagnostics, document
+      the env-sample-versus-exported-value expectation in HARNESS.md, and add a deterministic
+      regression proving a documented-but-unexported variable still fails start with explanatory
+      guidance.
+  out:
+    - >-
+      Automatic .env loading, secret value handling, changes to harness-doctor's env-sample
+      validation scope, or broader harness environment model redesign.
+unchanged_behavior:
+  - >-
+    harness-start continues checking process.env only, harness-doctor continues validating that
+    required names are documented in sample env files, and no secret values are read or stored.
+roadmap:
+  milestone: 0013-harness-ai-friendliness-hardening
+  planned_change: reconcile-harness-start-env-with-doctor

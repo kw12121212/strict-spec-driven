@@ -1109,6 +1109,10 @@ function getMissingRequiredEnvironment(component: DerivedHarnessComponent): stri
   return component.environment.required.filter((name) => !(name in process.env));
 }
 
+function formatMissingRequiredEnvironmentFailure(missingEnvironment: string[]): string {
+  return `missing required environment variables in the current process environment: ${missingEnvironment.join(", ")}. harness-doctor only checks that required names are documented in env sample files, and harness-start does not load .env files. Export or source the missing values before retrying.`;
+}
+
 function runHttpReadinessCheck(url: string): boolean {
   const script = [
     "const http = require('http');",
@@ -1224,9 +1228,10 @@ export function startHarness(rootDir: string, options: { environment?: string; c
     const logAbsolutePath = path.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
     const logPath = normalizeRepoRelativePath(rootDir, logAbsolutePath);
     if (missingEnvironment.length > 0) {
+      const failureReason = formatMissingRequiredEnvironmentFailure(missingEnvironment);
       const record = createRuntimeRecord(component, component.operations.start.command ?? "", logPath, null);
       record.status = "failed";
-      record.failureReason = `missing required environment variables: ${missingEnvironment.join(", ")}`;
+      record.failureReason = failureReason;
       state.components[component.id] = record;
       writeRuntimeState(rootDir, state);
       return {
@@ -1236,11 +1241,11 @@ export function startHarness(rootDir: string, options: { environment?: string; c
         harnessId: planResult.harness.id,
         environmentId: planResult.environment.id,
         components: summarizeRuntimeState(state),
-        diagnostics: [createDiagnostic(planResult.artifactPath, `$.harness.environments.${planResult.environment.id}.components.${component.id}.environment.required`, "required environment variables are missing for harness-start", {
+        diagnostics: [createDiagnostic(planResult.artifactPath, `$.harness.environments.${planResult.environment.id}.components.${component.id}.environment.required`, "required environment variables are missing from the current process environment for harness-start", {
           source: "environment",
           phase: "environment",
           componentId: component.id,
-          expected: component.environment.required.join(", "),
+          expected: "required values exported or sourced into the current process environment before harness-start; env sample files only document required names and the harness does not load .env files",
           actual: missingEnvironment.join(", "),
         })],
       };

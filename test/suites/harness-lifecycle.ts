@@ -31,7 +31,14 @@ async function reservePort(): Promise<number> {
   });
 }
 
-function buildHarness(command: string, port: number, type = "backend", extraStartFields = "", includeStatusAndLogs = true): string {
+function buildHarness(
+  command: string,
+  port: number,
+  type = "backend",
+  extraStartFields = "",
+  includeStatusAndLogs = true,
+  requiredEnvironment = ["PORT"],
+): string {
   return [
     "schema: strict-spec-driven/harness/v1",
     "schema_version: 1",
@@ -49,7 +56,7 @@ function buildHarness(command: string, port: number, type = "backend", extraStar
     "          depends_on: []",
     "          environment:",
     "            required:",
-    "              - PORT",
+    ...requiredEnvironment.map((name) => `              - ${name}`),
     "            optional: []",
     `          urls:\n            - \"http://127.0.0.1:${port}\"`,
     `          ports:\n            - ${port}`,
@@ -234,5 +241,67 @@ export async function runHarnessLifecycleSuite(context: TestContext): Promise<vo
     );
   } finally {
     statefulWorkspace.cleanup();
+  }
+
+  const envGuidancePort = await reservePort();
+  const envGuidanceWorkspace = createWorkspace(
+    buildHarness("node server.cjs", envGuidancePort, "backend", "", true, ["PORT", "API_KEY"]),
+    {
+      "server.cjs": [
+        "const http = require('http');",
+        "const fs = require('fs');",
+        "const port = Number(process.env.PORT);",
+        "const server = http.createServer((req, res) => {",
+        "  if (req.url === '/health') { res.writeHead(200); res.end('ok'); return; }",
+        "  res.writeHead(200); res.end('hello');",
+        "});",
+        "server.listen(port, '127.0.0.1', () => { fs.writeFileSync('server.pid', String(process.pid)); });",
+        "process.on('SIGTERM', () => server.close(() => process.exit(0)));",
+        "setInterval(() => {}, 1000);",
+        "",
+      ].join("\n"),
+      "stop.cjs": "const fs = require('fs'); process.kill(Number(fs.readFileSync('server.pid', 'utf8')), 'SIGTERM');\n",
+      ".env.example": "PORT=\nAPI_KEY=\n",
+    },
+  );
+  try {
+    const scriptsGenerate = cli(["harness-scripts", "generate"], { cwd: envGuidanceWorkspace.workspaceRoot });
+    context.assert(scriptsGenerate.status === 0, "harness-scripts generate exits zero for documented environment guidance coverage", scriptsGenerate.stderr.trim());
+    const scriptsVerify = cli(["harness-scripts", "verify"], { cwd: envGuidanceWorkspace.workspaceRoot });
+    context.assert(scriptsVerify.status === 0, "harness-scripts verify exits zero for documented environment guidance coverage", scriptsVerify.stdout.trim());
+
+    const doctor = cli(["harness-doctor"], { cwd: envGuidanceWorkspace.workspaceRoot });
+    context.assert(doctor.status === 0, "harness-doctor accepts required env names documented in an env sample file before start", doctor.stdout.trim());
+
+    const start = cli(["harness-start", "--environment", "development"], {
+      cwd: envGuidanceWorkspace.workspaceRoot,
+      env: { ...process.env, PORT: String(envGuidancePort) },
+    });
+    context.assert(start.status !== 0, "harness-start rejects required values that are documented but not exported", start.stdout.trim());
+    const startJson = JSON.parse(start.stdout.trim()) as {
+      ok: boolean;
+      components: Array<{ status: string; message?: string }>;
+      diagnostics: Array<{ message?: string; expected?: string; actual?: string }>;
+    };
+    const missingDiagnostic = startJson.diagnostics[0];
+    context.assert(
+      startJson.ok === false
+        && startJson.components[0]?.status === "failed"
+        && startJson.components[0]?.message?.includes("harness-doctor only checks that required names are documented in env sample files")
+        && startJson.components[0]?.message?.includes("harness-start does not load .env files")
+        && startJson.components[0]?.message?.includes("Export or source the missing values before retrying."),
+      "harness-start explains that documented env sample entries do not satisfy runtime environment requirements",
+      start.stdout.trim(),
+    );
+    context.assert(
+      missingDiagnostic?.message === "required environment variables are missing from the current process environment for harness-start"
+        && missingDiagnostic.expected?.includes("exported or sourced into the current process environment")
+        && missingDiagnostic.expected?.includes("does not load .env files")
+        && missingDiagnostic.actual === "API_KEY",
+      "harness-start diagnostics explain how to supply documented required environment values",
+      start.stdout.trim(),
+    );
+  } finally {
+    envGuidanceWorkspace.cleanup();
   }
 }

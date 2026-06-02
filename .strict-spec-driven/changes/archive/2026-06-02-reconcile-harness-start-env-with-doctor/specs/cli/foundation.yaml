@@ -1,0 +1,34 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/harness.ts
+    - HARNESS.md
+  tests:
+    - test/suites/harness-lifecycle.ts
+operations:
+  ADDED:
+    cli-harness-start-env-guidance-aligns-with-doctor:
+      strength: MUST
+      statement: >-
+        The system MUST make harness-start missing-required-environment failures explicitly explain
+        that harness-doctor verifies env-sample documentation only, the harness does not load .env
+        files, and required values must be exported or sourced before retrying.
+      scenarios:
+        documented-env-sample-still-requires-exported-values:
+          - GIVEN: >-
+              a harness component requires an environment variable and that variable name is
+              documented in an env sample file
+          - WHEN: >-
+              an operator or AI agent runs strict-spec-driven harness-start without exporting or
+              sourcing that required value into the current process environment
+          - THEN: >-
+              harness-start fails with a diagnostic that says the variable is missing from the
+              current environment, explains that documented env sample entries do not satisfy
+              runtime requirements, notes that the harness does not load .env files, and tells the
+              operator to export or source the value before retrying
+  MODIFIED: {}
+  REMOVED: {}

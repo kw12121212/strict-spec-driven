@@ -1,0 +1,24 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: reconcile-harness-start-env-with-doctor
+approach:
+  - >-
+    Keep required-environment enforcement process.env-based in harness-start, but rewrite the
+    failure reason and structured diagnostic so they explicitly explain that harness-doctor only
+    verifies env-sample documentation, the harness does not load .env files, and operators must
+    export or source values before retrying; then align HARNESS.md and deterministic regression
+    tests with that contract.
+decisions:
+  env-guidance-stays-diagnostic-only:
+    decision: >-
+      Keep harness-start environment enforcement bound to process.env and fix the doctor/start
+      mismatch with clearer diagnostics and documentation instead of automatically reading .env
+      files.
+    rationale: >-
+      The roadmap explicitly accepts diagnostic guidance only for this mismatch. Automatic .env
+      loading would change harness behavior, introduce secret-adjacent handling, and blur the
+      current safety model that records only environment variable names.
+alternatives: []
+risks: []

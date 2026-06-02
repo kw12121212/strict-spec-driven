@@ -1924,3 +1924,22 @@ requirements:
         - THEN: >-
             the draft remains manual and reports explicit evidence and an unavailable condition
             explaining that no lifecycle command could be inferred
+  cli-harness-start-env-guidance-aligns-with-doctor:
+    strength: MUST
+    statement: >-
+      The system MUST make harness-start missing-required-environment failures explicitly explain
+      that harness-doctor verifies env-sample documentation only, the harness does not load .env
+      files, and required values must be exported or sourced before retrying.
+    scenarios:
+      documented-env-sample-still-requires-exported-values:
+        - GIVEN: >-
+            a harness component requires an environment variable and that variable name is
+            documented in an env sample file
+        - WHEN: >-
+            an operator or AI agent runs strict-spec-driven harness-start without exporting or
+            sourcing that required value into the current process environment
+        - THEN: >-
+            harness-start fails with a diagnostic that says the variable is missing from the current
+            environment, explains that documented env sample entries do not satisfy runtime
+            requirements, notes that the harness does not load .env files, and tells the operator to
+            export or source the value before retrying
