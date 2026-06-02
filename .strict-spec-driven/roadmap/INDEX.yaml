@@ -54,4 +54,4 @@ milestones:
   0013-harness-ai-friendliness-hardening:
     title: 13 Harness AI Friendliness Hardening
     path: roadmap/milestones/0013-harness-ai-friendliness-hardening.yaml
-    status: proposed
+    status: complete

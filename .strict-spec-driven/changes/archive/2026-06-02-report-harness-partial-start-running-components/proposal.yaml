@@ -1,0 +1,39 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: report-harness-partial-start-running-components
+  status: proposed
+summary:
+  what:
+    - >-
+      Add harness-start failure output that explicitly reports which earlier components remain
+      running after a later component fails.
+    - Add deterministic lifecycle coverage for partial-start recovery guidance.
+  why:
+    - >-
+      Agents can miss live managed processes after a later component fails because the current
+      failure output only implies the partial-start state through the snapshot.
+    - >-
+      Explicit cleanup guidance makes recovery deterministic and prevents accidental orphaned
+      services.
+scope:
+  in:
+    - >-
+      Extend harness-start partial-start failures to name already-running components and tell the
+      operator to run harness-stop.
+    - >-
+      Add regression coverage for a multi-component start where an earlier component remains running
+      after a later component fails readiness.
+  out:
+    - Auto-stop already-started components when a later startup step fails.
+    - Redesign harness-stop or add new lifecycle commands.
+unchanged_behavior:
+  - Successful harness-start behavior and runtime-state persistence remain unchanged.
+  - >-
+    Failed starts still preserve already-started components for inspection instead of killing them
+    automatically.
+roadmap:
+  milestone: 0013-harness-ai-friendliness-hardening
+  planned_change: report-harness-partial-start-running-components

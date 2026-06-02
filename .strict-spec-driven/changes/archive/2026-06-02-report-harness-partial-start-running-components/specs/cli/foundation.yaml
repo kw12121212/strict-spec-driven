@@ -1,0 +1,30 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/harness.ts
+  tests:
+    - test/suites/harness-lifecycle.ts
+operations:
+  ADDED:
+    cli-harness-start-reports-partial-failure-recovery:
+      strength: MUST
+      statement: >-
+        The system MUST make harness-start partial-start failures explicitly report which
+        already-started components remain running and direct operators to run harness-stop for
+        recovery while preserving those components for inspection.
+      scenarios:
+        later-readiness-failure-names-running-components-and-recovery:
+          - GIVEN: >-
+              a harness environment starts components in dependency order and a later component
+              fails readiness after an earlier component is already running
+          - WHEN: an operator or AI agent runs strict-spec-driven harness-start for that environment
+          - THEN: >-
+              the command fails, keeps the earlier component marked running in the component
+              snapshot, and includes a dedicated recovery signal naming the running component
+              together with the harness-stop cleanup instruction
+  MODIFIED: {}
+  REMOVED: {}

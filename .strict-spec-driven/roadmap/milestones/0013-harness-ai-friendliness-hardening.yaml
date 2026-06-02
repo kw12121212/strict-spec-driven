@@ -93,7 +93,7 @@ risks:
   - >-
     Broadening inference increases the chance of emitting an unsafe or wrong command, so inferred
     lifecycle operations must stay manual and clearly marked as drafts.
-status: proposed
+status: complete
 notes:
   - >-
     This milestone is follow-up hardening from an AI-friendliness review of the harness feature. The

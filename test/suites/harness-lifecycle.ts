@@ -88,6 +88,80 @@ function buildHarness(
   ].filter(Boolean).join("\n");
 }
 
+function buildPartialStartFailureHarness(apiPort: number, brokenPort: number): string {
+  return [
+    "schema: strict-spec-driven/harness/v1",
+    "schema_version: 1",
+    "artifact_type: harness",
+    "schema_file: templates/strict-spec-driven/schemas/harness.yaml",
+    "harness:",
+    "  id: partial-start-recovery",
+    "  environments:",
+    "    development:",
+    "      kind: development",
+    "      components:",
+    "        api:",
+    "          type: backend",
+    "          working_directory: \".\"",
+    "          depends_on: []",
+    "          environment:",
+    "            required:",
+    "              - API_PORT",
+    "            optional: []",
+    `          urls:\n            - "http://127.0.0.1:${apiPort}"`,
+    `          ports:\n            - ${apiPort}`,
+    "          readiness:",
+    "            type: http",
+    `            url: "http://127.0.0.1:${apiPort}/health"`,
+    "            timeout_seconds: 5",
+    "            interval_seconds: 1",
+    "          operations:",
+    "            start:",
+    "              mode: script",
+    "              command: node api.cjs",
+    "            stop:",
+    "              mode: script",
+    "              command: node stop-api.cjs",
+    "            status:",
+    "              mode: readonly",
+    "            logs:",
+    "              mode: readonly",
+    "          evidence_labels:",
+    "            - api-ready",
+    "          unavailable_conditions: []",
+    "        broken:",
+    "          type: backend",
+    "          working_directory: \".\"",
+    "          depends_on:",
+    "            - api",
+    "          environment:",
+    "            required: []",
+    "            optional: []",
+    `          urls:\n            - "http://127.0.0.1:${brokenPort}"`,
+    `          ports:\n            - ${brokenPort}`,
+    "          readiness:",
+    "            type: http",
+    `            url: "http://127.0.0.1:${brokenPort}/health"`,
+    "            timeout_seconds: 1",
+    "            interval_seconds: 1",
+    "          operations:",
+    "            start:",
+    "              mode: script",
+    "              command: node broken.cjs",
+    "            stop:",
+    "              mode: script",
+    "              command: node stop-broken.cjs",
+    "            status:",
+    "              mode: readonly",
+    "            logs:",
+    "              mode: readonly",
+    "          evidence_labels:",
+    "            - broken-ready",
+    "          unavailable_conditions: []",
+    "",
+  ].join("\n");
+}
+
 export async function runHarnessLifecycleSuite(context: TestContext): Promise<void> {
   context.section("[5] harness lifecycle commands");
 
@@ -303,5 +377,70 @@ export async function runHarnessLifecycleSuite(context: TestContext): Promise<vo
     );
   } finally {
     envGuidanceWorkspace.cleanup();
+  }
+
+  const partialFailureApiPort = await reservePort();
+  const partialFailureBrokenPort = await reservePort();
+  const partialFailureWorkspace = createWorkspace(
+    buildPartialStartFailureHarness(partialFailureApiPort, partialFailureBrokenPort),
+    {
+      "api.cjs": [
+        "const http = require('http');",
+        "const fs = require('fs');",
+        "const port = Number(process.env.API_PORT);",
+        "const server = http.createServer((req, res) => {",
+        "  if (req.url === '/health') { res.writeHead(200); res.end('ok'); return; }",
+        "  res.writeHead(200); res.end('hello');",
+        "});",
+        "server.listen(port, '127.0.0.1', () => { fs.writeFileSync('api.pid', String(process.pid)); });",
+        "process.on('SIGTERM', () => server.close(() => process.exit(0)));",
+        "setInterval(() => {}, 1000);",
+        "",
+      ].join("\n"),
+      "stop-api.cjs": "const fs = require('fs'); process.kill(Number(fs.readFileSync('api.pid', 'utf8')), 'SIGTERM');\n",
+      "broken.cjs": [
+        "const fs = require('fs');",
+        "fs.writeFileSync('broken.pid', String(process.pid));",
+        "process.on('SIGTERM', () => process.exit(0));",
+        "setInterval(() => {}, 1000);",
+        "",
+      ].join("\n"),
+      "stop-broken.cjs": "const fs = require('fs'); process.kill(Number(fs.readFileSync('broken.pid', 'utf8')), 'SIGTERM');\n",
+    },
+  );
+  const partialFailureEnv = { ...process.env, API_PORT: String(partialFailureApiPort) };
+  try {
+    const scriptsGenerate = cli(["harness-scripts", "generate"], { cwd: partialFailureWorkspace.workspaceRoot });
+    context.assert(scriptsGenerate.status === 0, "harness-scripts generate exits zero for partial-start recovery coverage", scriptsGenerate.stderr.trim());
+    const scriptsVerify = cli(["harness-scripts", "verify"], { cwd: partialFailureWorkspace.workspaceRoot });
+    context.assert(scriptsVerify.status === 0, "harness-scripts verify exits zero for partial-start recovery coverage", scriptsVerify.stdout.trim());
+
+    const start = cli(["harness-start", "--environment", "development"], {
+      cwd: partialFailureWorkspace.workspaceRoot,
+      env: partialFailureEnv,
+    });
+    context.assert(start.status !== 0, "harness-start exits non-zero when a later component fails after an earlier one starts", start.stdout.trim());
+    const startJson = JSON.parse(start.stdout.trim()) as {
+      ok: boolean;
+      components: Array<{ id: string; status: string; message?: string }>;
+      diagnostics: Array<{ source: string; phase?: string; message?: string; expected?: string; actual?: string }>;
+    };
+    const apiComponent = startJson.components.find((component) => component.id === "api");
+    const brokenComponent = startJson.components.find((component) => component.id === "broken");
+    const recoveryDiagnostic = startJson.diagnostics.find((diagnostic) => diagnostic.source === "runtime_state" && diagnostic.phase === "cleanup");
+    context.assert(
+      startJson.ok === false
+        && apiComponent?.status === "running"
+        && brokenComponent?.status === "failed"
+        && recoveryDiagnostic?.message?.includes("api")
+        && recoveryDiagnostic?.message?.includes("strict-spec-driven harness-stop")
+        && recoveryDiagnostic?.expected === "strict-spec-driven harness-stop"
+        && recoveryDiagnostic?.actual === "api",
+      "harness-start partial failures report the running component and the harness-stop recovery instruction",
+      start.stdout.trim(),
+    );
+  } finally {
+    cli(["harness-stop"], { cwd: partialFailureWorkspace.workspaceRoot, env: partialFailureEnv });
+    partialFailureWorkspace.cleanup();
   }
 }

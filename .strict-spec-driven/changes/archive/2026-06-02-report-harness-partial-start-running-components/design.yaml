@@ -1,0 +1,21 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: report-harness-partial-start-running-components
+approach:
+  - >-
+    Surface partial-start recovery as an additive harness-start failure diagnostic emitted when
+    summarizeRuntimeState still contains running components after a later startup failure, and cover
+    it with a deterministic multi-component lifecycle regression.
+decisions:
+  report-recovery-via-diagnostic:
+    decision: >-
+      Represent partial-start recovery guidance as a dedicated diagnostic on the harness-start
+      failure result.
+    rationale: >-
+      The roadmap already allows a dedicated diagnostic or remediation field; a diagnostic keeps the
+      contract additive, visible in existing failure handling, and avoids teaching CLI callers a new
+      top-level recovery object.
+alternatives: []
+risks: []

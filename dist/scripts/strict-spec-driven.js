@@ -19037,6 +19037,19 @@ function summarizeRuntimeState(state) {
   ];
   return ordered.map((id) => state.components[id]).filter((record) => record !== undefined).map(snapshot);
 }
+function createPartialStartRecoveryDiagnostic(artifactPath, state) {
+  const runningComponentIds = summarizeRuntimeState(state).filter((component) => component.status === "running").map((component) => component.id);
+  if (runningComponentIds.length === 0)
+    return null;
+  const componentLabel = runningComponentIds.length === 1 ? "component remains" : "components remain";
+  const runningSummary = runningComponentIds.join(", ");
+  return createDiagnostic(artifactPath, "$", `harness-start left already-started managed ${componentLabel} running after a later startup failure: ${runningSummary}; run strict-spec-driven harness-stop to clean them up`, {
+    source: "runtime_state",
+    phase: "cleanup",
+    expected: "strict-spec-driven harness-stop",
+    actual: runningSummary
+  });
+}
 function takeTailLines(content, tailLines) {
   if (content.length === 0)
     return content;
@@ -19753,7 +19766,11 @@ function startHarness(rootDir, options = {}) {
   for (const component of planResult.components) {
     const safety = assertOperationAllowed(planResult.artifactPath, planResult.environment, component, "start", options.confirm ?? false);
     if (safety !== null) {
-      return { ok: false, artifactPath: planResult.artifactPath, runtimeStatePath: writablePaths.relativeStatePath, harnessId: planResult.harness.id, environmentId: planResult.environment.id, components: summarizeRuntimeState(state), diagnostics: [safety] };
+      const diagnostics = [safety];
+      const recovery = createPartialStartRecoveryDiagnostic(planResult.artifactPath, state);
+      if (recovery !== null)
+        diagnostics.push(recovery);
+      return { ok: false, artifactPath: planResult.artifactPath, runtimeStatePath: writablePaths.relativeStatePath, harnessId: planResult.harness.id, environmentId: planResult.environment.id, components: summarizeRuntimeState(state), diagnostics };
     }
     const missingEnvironment = getMissingRequiredEnvironment(component);
     const logAbsolutePath = path30.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
@@ -19765,6 +19782,16 @@ function startHarness(rootDir, options = {}) {
       record2.failureReason = failureReason;
       state.components[component.id] = record2;
       writeRuntimeState(rootDir, state);
+      const diagnostics = [createDiagnostic(planResult.artifactPath, `$.harness.environments.${planResult.environment.id}.components.${component.id}.environment.required`, "required environment variables are missing from the current process environment for harness-start", {
+        source: "environment",
+        phase: "environment",
+        componentId: component.id,
+        expected: "required values exported or sourced into the current process environment before harness-start; env sample files only document required names and the harness does not load .env files",
+        actual: missingEnvironment.join(", ")
+      })];
+      const recovery = createPartialStartRecoveryDiagnostic(planResult.artifactPath, state);
+      if (recovery !== null)
+        diagnostics.push(recovery);
       return {
         ok: false,
         artifactPath: planResult.artifactPath,
@@ -19772,13 +19799,7 @@ function startHarness(rootDir, options = {}) {
         harnessId: planResult.harness.id,
         environmentId: planResult.environment.id,
         components: summarizeRuntimeState(state),
-        diagnostics: [createDiagnostic(planResult.artifactPath, `$.harness.environments.${planResult.environment.id}.components.${component.id}.environment.required`, "required environment variables are missing from the current process environment for harness-start", {
-          source: "environment",
-          phase: "environment",
-          componentId: component.id,
-          expected: "required values exported or sourced into the current process environment before harness-start; env sample files only document required names and the harness does not load .env files",
-          actual: missingEnvironment.join(", ")
-        })]
+        diagnostics
       };
     }
     writeFileSync9(logAbsolutePath, "", "utf8");
@@ -19800,6 +19821,14 @@ function startHarness(rootDir, options = {}) {
       record.status = "failed";
       record.failureReason = readiness.message;
       writeRuntimeState(rootDir, state);
+      const diagnostics = [createDiagnostic(planResult.artifactPath, `$.harness.environments.${planResult.environment.id}.components.${component.id}.readiness`, readiness.message, {
+        source: "readiness",
+        phase: "readiness",
+        componentId: component.id
+      })];
+      const recovery = createPartialStartRecoveryDiagnostic(planResult.artifactPath, state);
+      if (recovery !== null)
+        diagnostics.push(recovery);
       return {
         ok: false,
         artifactPath: planResult.artifactPath,
@@ -19807,11 +19836,7 @@ function startHarness(rootDir, options = {}) {
         harnessId: planResult.harness.id,
         environmentId: planResult.environment.id,
         components: summarizeRuntimeState(state),
-        diagnostics: [createDiagnostic(planResult.artifactPath, `$.harness.environments.${planResult.environment.id}.components.${component.id}.readiness`, readiness.message, {
-          source: "readiness",
-          phase: "readiness",
-          componentId: component.id
-        })]
+        diagnostics
       };
     }
   }

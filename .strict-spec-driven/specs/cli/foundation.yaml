@@ -1943,3 +1943,19 @@ requirements:
             environment, explains that documented env sample entries do not satisfy runtime
             requirements, notes that the harness does not load .env files, and tells the operator to
             export or source the value before retrying
+  cli-harness-start-reports-partial-failure-recovery:
+    strength: MUST
+    statement: >-
+      The system MUST make harness-start partial-start failures explicitly report which
+      already-started components remain running and direct operators to run harness-stop for
+      recovery while preserving those components for inspection.
+    scenarios:
+      later-readiness-failure-names-running-components-and-recovery:
+        - GIVEN: >-
+            a harness environment starts components in dependency order and a later component fails
+            readiness after an earlier component is already running
+        - WHEN: an operator or AI agent runs strict-spec-driven harness-start for that environment
+        - THEN: >-
+            the command fails, keeps the earlier component marked running in the component snapshot,
+            and includes a dedicated recovery signal naming the running component together with the
+            harness-stop cleanup instruction
