@@ -1,0 +1,47 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-harness-logs-output-bounds
+sections:
+  Implementation:
+    parse-harness-logs-bounds:
+      text: >-
+        Update the harness-logs command surface in src/cli/cmd-harness.ts to accept explicit
+        bounded-output arguments and preserve deterministic help and usage behavior.
+      status: complete
+    bound-captured-log-output:
+      text: >-
+        Update src/harness.ts so harness-logs returns a conservative default tail from the captured
+        log file and keeps an explicit override for full output.
+      status: complete
+    document-bounded-log-behavior:
+      text: >-
+        Update HARNESS.md to describe the default harness-logs bound and the explicit override for
+        full log output.
+      status: complete
+    add-harness-log-bound-regression:
+      text: >-
+        Extend test/suites/harness-lifecycle.ts with a deterministic oversized-log scenario that
+        proves harness-logs returns only the bounded tail by default.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

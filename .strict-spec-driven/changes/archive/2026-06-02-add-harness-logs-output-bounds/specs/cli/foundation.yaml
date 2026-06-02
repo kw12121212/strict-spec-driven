@@ -1,0 +1,46 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/cmd-harness.ts
+    - src/harness.ts
+    - HARNESS.md
+  tests:
+    - test/suites/harness-lifecycle.ts
+operations:
+  ADDED:
+    cli-harness-logs-bounded-output:
+      strength: MUST
+      statement: >-
+        The system MUST return a conservative tail-line slice from harness-logs by default, support
+        --tail <n> for explicit line selection, and document --all as the explicit full-output
+        override so agents can inspect long-running managed component logs without flooding their
+        context window.
+      scenarios:
+        default-tail-bound-limits-output:
+          - GIVEN: >-
+              a managed component has a captured log file larger than the documented default
+              tail-line bound
+          - WHEN: >-
+              an operator or AI agent runs strict-spec-driven harness-logs for that component
+              without flags
+          - THEN: the command returns only the most recent lines up to the documented default bound
+        explicit-tail-count-overrides-default:
+          - GIVEN: a managed component has a captured log file larger than the default tail-line bound
+          - WHEN: >-
+              an operator or AI agent runs strict-spec-driven harness-logs --tail <n> for that
+              component
+          - THEN: the command returns the most recent requested number of lines
+        all-override-returns-full-captured-log:
+          - GIVEN: >-
+              a managed component has a captured log file larger than the documented default
+              tail-line bound
+          - WHEN: an operator or AI agent runs strict-spec-driven harness-logs --all for that component
+          - THEN: >-
+              the command returns the full captured log content and the command usage or HARNESS.md
+              documents the override
+  MODIFIED: {}
+  REMOVED: {}

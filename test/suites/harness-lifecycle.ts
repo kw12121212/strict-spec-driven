@@ -119,10 +119,50 @@ export async function runHarnessLifecycleSuite(context: TestContext): Promise<vo
       "harness-start records deterministic runtime state and log paths",
       start.stdout.trim(),
     );
+    const componentLogPath = startJson.components[0]?.logPath;
+    context.assert(typeof componentLogPath === "string", "harness-start returns a captured log path", start.stdout.trim());
+    if (typeof componentLogPath !== "string") {
+      throw new Error("expected harness-start to return a component log path");
+    }
+
+    const capturedLogLines = Array.from({ length: 250 }, (_, index) => `log-line-${String(index + 1).padStart(3, "0")}`);
+    writeFileSync(path.join(workspace.workspaceRoot, componentLogPath), `${capturedLogLines.join("\n")}\n`, "utf8");
 
     const logs = cli(["harness-logs"], { cwd: workspace.workspaceRoot, env });
     context.assert(logs.status === 0, "harness-logs exits zero for a single managed component", logs.stderr.trim());
-    context.assert(logs.stdout.includes(`listening:${port}`) && logs.stdout.includes("request:/health"), "harness-logs prints component log output");
+    const defaultLines = logs.stdout.trim().split(/\r?\n/);
+    context.assert(
+      defaultLines.length === 200
+        && defaultLines[0] === "log-line-051"
+        && defaultLines[199] === "log-line-250"
+        && !logs.stdout.includes("log-line-050"),
+      "harness-logs returns only the default bounded tail of a large captured log",
+      logs.stdout.trim(),
+    );
+
+    const explicitTail = cli(["harness-logs", "--tail", "5"], { cwd: workspace.workspaceRoot, env });
+    context.assert(explicitTail.status === 0, "harness-logs accepts an explicit tail size", explicitTail.stderr.trim());
+    context.assert(
+      explicitTail.stdout.trim() === capturedLogLines.slice(-5).join("\n"),
+      "harness-logs returns the requested explicit tail line count",
+      explicitTail.stdout.trim(),
+    );
+
+    const allLogs = cli(["harness-logs", "--all"], { cwd: workspace.workspaceRoot, env });
+    context.assert(allLogs.status === 0, "harness-logs accepts the explicit full-output override", allLogs.stderr.trim());
+    context.assert(
+      allLogs.stdout.trim() === capturedLogLines.join("\n"),
+      "harness-logs returns the full captured log when --all is provided",
+      allLogs.stdout.trim(),
+    );
+
+    const help = cli(["harness-logs", "--help"], { cwd: workspace.workspaceRoot, env });
+    context.assert(help.status === 0, "harness-logs help exits zero", help.stderr.trim());
+    context.assert(
+      help.stdout.includes("Usage: strict-spec-driven harness-logs [component-id] [--tail <n> | --all]"),
+      "harness-logs help documents the tail and full-output flags",
+      help.stdout.trim(),
+    );
 
     const stop = cli(["harness-stop"], { cwd: workspace.workspaceRoot, env });
     context.assert(stop.status === 0, "harness-stop exits zero for a managed component", stop.stderr.trim());

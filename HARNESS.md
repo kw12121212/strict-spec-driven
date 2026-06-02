@@ -21,6 +21,8 @@ strict-spec-driven harness-plan --environment development
 strict-spec-driven harness-start --environment development --component web
 strict-spec-driven harness-status
 strict-spec-driven harness-logs web
+strict-spec-driven harness-logs web --tail 50
+strict-spec-driven harness-logs web --all
 strict-spec-driven harness-stop
 strict-spec-driven harness-scripts generate
 strict-spec-driven harness-scripts verify
@@ -43,6 +45,8 @@ strict-spec-driven harness-session archive checkout-investigation
 `harness-infer` reads safe repository metadata such as package scripts and sample environment variable files, then emits a schema-valid draft. Inferred lifecycle commands stay manual, production lifecycle operations stay disabled, and stateful lifecycle permissions are not enabled automatically.
 
 `harness-doctor` reports deterministic diagnostics for schema or planning failures, missing generated wrappers, missing working directories, missing package scripts, required environment names that are absent from sample env files, duplicated ports, and safety policy issues. It does not start or stop services.
+
+`harness-logs` reads the captured runtime log for the selected managed component. By default it returns only the most recent 200 lines; use `--tail <n>` to request a different line count or `--all` to print the full captured log.
 
 ## Safety
 

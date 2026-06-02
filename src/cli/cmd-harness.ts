@@ -21,7 +21,7 @@ const HARNESS_DOCTOR_USAGE = "Usage: strict-spec-driven harness-doctor\n";
 const HARNESS_START_USAGE = "Usage: strict-spec-driven harness-start [--environment <id>] [--component <id> ...] [--confirm]\n";
 const HARNESS_STOP_USAGE = "Usage: strict-spec-driven harness-stop [--confirm]\n";
 const HARNESS_STATUS_USAGE = "Usage: strict-spec-driven harness-status\n";
-const HARNESS_LOGS_USAGE = "Usage: strict-spec-driven harness-logs [component-id]\n";
+const HARNESS_LOGS_USAGE = "Usage: strict-spec-driven harness-logs [component-id] [--tail <n> | --all]\n";
 const HARNESS_SCRIPTS_USAGE = "Usage: strict-spec-driven harness-scripts <generate|verify>\n";
 const HARNESS_SESSION_USAGE = "Usage: strict-spec-driven harness-session <create|validate|archive> <session-id|session.yaml>\n";
 
@@ -29,6 +29,11 @@ type SelectionArgs = {
   environment?: string;
   components: string[];
   confirm: boolean;
+};
+type HarnessLogsArgs = {
+  componentId?: string;
+  tailLines?: number;
+  all: boolean;
 };
 
 function parseSelectionArgs(argv: string[], usage: string, allowConfirm: boolean): SelectionArgs | null {
@@ -61,6 +66,38 @@ function parseSelectionArgs(argv: string[], usage: string, allowConfirm: boolean
     }
     writeUsage(usage);
     return null;
+  }
+  return parsed;
+}
+
+function parseHarnessLogsArgs(argv: string[]): HarnessLogsArgs | null {
+  const parsed: HarnessLogsArgs = { all: false };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--tail") {
+      const value = argv[index + 1];
+      const tailLines = Number(value);
+      if (!value || !Number.isInteger(tailLines) || tailLines <= 0 || parsed.tailLines !== undefined || parsed.all) {
+        writeUsage(HARNESS_LOGS_USAGE);
+        return null;
+      }
+      parsed.tailLines = tailLines;
+      index += 1;
+      continue;
+    }
+    if (arg === "--all") {
+      if (parsed.tailLines !== undefined || parsed.all) {
+        writeUsage(HARNESS_LOGS_USAGE);
+        return null;
+      }
+      parsed.all = true;
+      continue;
+    }
+    if (arg.startsWith("--") || parsed.componentId !== undefined) {
+      writeUsage(HARNESS_LOGS_USAGE);
+      return null;
+    }
+    parsed.componentId = arg;
   }
   return parsed;
 }
@@ -166,11 +203,9 @@ export function runHarnessLogs(argv: string[]): number {
     writeHelp(HARNESS_LOGS_USAGE);
     return 0;
   }
-  if (argv.length > 1) {
-    writeUsage(HARNESS_LOGS_USAGE);
-    return 1;
-  }
-  const result = getHarnessLogs(process.cwd(), argv[0]);
+  const parsed = parseHarnessLogsArgs(argv);
+  if (parsed === null) return 1;
+  const result = getHarnessLogs(process.cwd(), parsed);
   if (!result.ok) {
     writeJson(result);
     return 1;

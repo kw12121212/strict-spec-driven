@@ -22,6 +22,7 @@ const SCRIPT_NAMES = ["harness-infer", "harness-doctor", "harness-plan", "harnes
 const STATEFUL_TYPES = new Set(["database", "cache", "queue", "object_storage", "external_resource"]);
 const MUTATING_OPERATIONS = new Set(["start", "stop", "cleanup"]);
 const ENV_SAMPLE_FILES = [".env.example", ".env.sample", ".env.local.example", "example.env"];
+const DEFAULT_HARNESS_LOG_TAIL_LINES = 200;
 
 type HarnessEnvironmentKind = "development" | "production";
 type HarnessOperationMode = "script" | "readonly" | "manual" | "disabled";
@@ -199,6 +200,11 @@ export type HarnessLogsResult = {
   logPath?: string;
   content?: string;
   diagnostics: HarnessDiagnostic[];
+};
+export type HarnessLogsOptions = {
+  componentId?: string;
+  tailLines?: number;
+  all?: boolean;
 };
 export type HarnessScriptsResult = {
   ok: boolean;
@@ -420,6 +426,19 @@ function summarizeRuntimeState(state: RuntimeState): HarnessComponentSnapshot[] 
     .map((id) => state.components[id])
     .filter((record): record is RuntimeComponentRecord => record !== undefined)
     .map(snapshot);
+}
+
+function takeTailLines(content: string, tailLines: number): string {
+  if (content.length === 0) return content;
+  let cursor = content.endsWith("\n") ? content.length - 1 : content.length;
+  let remaining = tailLines;
+  while (remaining > 0) {
+    const newlineIndex = content.lastIndexOf("\n", cursor - 1);
+    if (newlineIndex === -1) return content;
+    cursor = newlineIndex;
+    remaining -= 1;
+  }
+  return content.slice(cursor + 1);
 }
 
 function topologicalOrder(components: Record<string, HarnessComponent>, artifactPath: string): { ids: string[]; diagnostics: HarnessDiagnostic[] } {
@@ -1066,7 +1085,7 @@ export function getHarnessStatus(rootDir: string): HarnessLifecycleResult {
   return { ok: true, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, harnessId: runtime.state.harnessId, environmentId: runtime.state.environmentId, components: summarizeRuntimeState(runtime.state), diagnostics: [] };
 }
 
-export function getHarnessLogs(rootDir: string, requestedComponentId?: string): HarnessLogsResult {
+export function getHarnessLogs(rootDir: string, options: HarnessLogsOptions = {}): HarnessLogsResult {
   const paths = getRuntimePaths(rootDir);
   const runtime = readRuntimeState(rootDir);
   if (!runtime.ok) return { ok: false, artifactPath: HARNESS_DECLARATION_PATH, runtimeStatePath: paths.relativeStatePath, diagnostics: [runtime.diagnostic] };
@@ -1074,7 +1093,7 @@ export function getHarnessLogs(rootDir: string, requestedComponentId?: string): 
     return { ok: false, artifactPath: HARNESS_DECLARATION_PATH, runtimeStatePath: paths.relativeStatePath, diagnostics: [createDiagnostic(HARNESS_DECLARATION_PATH, "$", "harness-logs requires runtime state created by harness-start", { source: "runtime_state", phase: "logs" })] };
   }
   const ids = runtime.state.componentOrder;
-  const componentId = requestedComponentId ?? (ids.length === 1 ? ids[0] : undefined);
+  const componentId = options.componentId ?? (ids.length === 1 ? ids[0] : undefined);
   if (componentId === undefined) {
     return { ok: false, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, diagnostics: [createDiagnostic(runtime.state.artifactPath, "$", "harness-logs requires a declared component id when multiple managed components exist", { source: "logs", phase: "logs", expected: ids.join(", ") })] };
   }
@@ -1082,7 +1101,9 @@ export function getHarnessLogs(rootDir: string, requestedComponentId?: string): 
   if (record === undefined) {
     return { ok: false, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, diagnostics: [createDiagnostic(runtime.state.artifactPath, "$", "harness-logs received an unknown declared component id", { source: "logs", phase: "logs", componentId, expected: ids.join(", "), actual: componentId })] };
   }
-  return { ok: true, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, componentId, logPath: record.logPath, content: readFileSync(path.join(rootDir, record.logPath), "utf8"), diagnostics: [] };
+  const content = readFileSync(path.join(rootDir, record.logPath), "utf8");
+  const boundedContent = options.all ? content : takeTailLines(content, options.tailLines ?? DEFAULT_HARNESS_LOG_TAIL_LINES);
+  return { ok: true, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, componentId, logPath: record.logPath, content: boundedContent, diagnostics: [] };
 }
 
 export function stopHarness(rootDir: string, options: { confirm?: boolean } = {}): HarnessLifecycleResult {

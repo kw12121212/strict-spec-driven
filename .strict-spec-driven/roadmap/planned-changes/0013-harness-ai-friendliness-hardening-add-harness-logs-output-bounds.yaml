@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: add-harness-logs-output-bounds
   milestone: 0013-harness-ai-friendliness-hardening
-status: planned
+status: complete
 summary: >-
   bound harness-logs output with an explicit tail or byte limit and a documented default so agents
   do not flood their context window when reading long-running service logs.

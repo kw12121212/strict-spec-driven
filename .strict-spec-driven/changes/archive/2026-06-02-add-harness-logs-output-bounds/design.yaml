@@ -1,0 +1,21 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-harness-logs-output-bounds
+approach:
+  - >-
+    Extend harness-logs parsing with --tail <n> and --all, enforce a conservative default tail-line
+    bound when reading the captured log file, and update HARNESS.md plus deterministic harness
+    coverage to describe and prove the bounded-output behavior.
+decisions:
+  tail-lines-define-log-bound-contract:
+    decision: >-
+      Use tail lines as the harness-logs bound unit, keep a conservative default when no flag is
+      supplied, and reserve --all for the explicit full-output escape hatch.
+    rationale: >-
+      Tail lines match how operators inspect service logs, produce readable output boundaries, and
+      keep the CLI, docs, and regression assertions aligned without expanding scope to multiple
+      bound units.
+alternatives: []
+risks: []

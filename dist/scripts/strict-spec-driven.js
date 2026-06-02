@@ -18879,6 +18879,7 @@ var SCRIPT_NAMES = ["harness-infer", "harness-doctor", "harness-plan", "harness-
 var STATEFUL_TYPES = new Set(["database", "cache", "queue", "object_storage", "external_resource"]);
 var MUTATING_OPERATIONS = new Set(["start", "stop", "cleanup"]);
 var ENV_SAMPLE_FILES = [".env.example", ".env.sample", ".env.local.example", "example.env"];
+var DEFAULT_HARNESS_LOG_TAIL_LINES = 200;
 function sortEntries(record) {
   return Object.entries(record).sort(([left], [right]) => left.localeCompare(right));
 }
@@ -19024,6 +19025,22 @@ function summarizeRuntimeState(state) {
     ...Object.keys(state.components).filter((id) => !seen.has(id)).sort((left, right) => left.localeCompare(right))
   ];
   return ordered.map((id) => state.components[id]).filter((record) => record !== undefined).map(snapshot);
+}
+function takeTailLines(content, tailLines) {
+  if (content.length === 0)
+    return content;
+  let cursor = content.endsWith(`
+`) ? content.length - 1 : content.length;
+  let remaining = tailLines;
+  while (remaining > 0) {
+    const newlineIndex = content.lastIndexOf(`
+`, cursor - 1);
+    if (newlineIndex === -1)
+      return content;
+    cursor = newlineIndex;
+    remaining -= 1;
+  }
+  return content.slice(cursor + 1);
 }
 function topologicalOrder(components, artifactPath) {
   const diagnostics = [];
@@ -19636,7 +19653,7 @@ function getHarnessStatus(rootDir) {
     return { ok: true, artifactPath: HARNESS_DECLARATION_PATH, runtimeStatePath: paths.relativeStatePath, components: [], diagnostics: [] };
   return { ok: true, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, harnessId: runtime.state.harnessId, environmentId: runtime.state.environmentId, components: summarizeRuntimeState(runtime.state), diagnostics: [] };
 }
-function getHarnessLogs(rootDir, requestedComponentId) {
+function getHarnessLogs(rootDir, options = {}) {
   const paths = getRuntimePaths(rootDir);
   const runtime = readRuntimeState(rootDir);
   if (!runtime.ok)
@@ -19645,7 +19662,7 @@ function getHarnessLogs(rootDir, requestedComponentId) {
     return { ok: false, artifactPath: HARNESS_DECLARATION_PATH, runtimeStatePath: paths.relativeStatePath, diagnostics: [createDiagnostic(HARNESS_DECLARATION_PATH, "$", "harness-logs requires runtime state created by harness-start", { source: "runtime_state", phase: "logs" })] };
   }
   const ids = runtime.state.componentOrder;
-  const componentId = requestedComponentId ?? (ids.length === 1 ? ids[0] : undefined);
+  const componentId = options.componentId ?? (ids.length === 1 ? ids[0] : undefined);
   if (componentId === undefined) {
     return { ok: false, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, diagnostics: [createDiagnostic(runtime.state.artifactPath, "$", "harness-logs requires a declared component id when multiple managed components exist", { source: "logs", phase: "logs", expected: ids.join(", ") })] };
   }
@@ -19653,7 +19670,9 @@ function getHarnessLogs(rootDir, requestedComponentId) {
   if (record === undefined) {
     return { ok: false, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, diagnostics: [createDiagnostic(runtime.state.artifactPath, "$", "harness-logs received an unknown declared component id", { source: "logs", phase: "logs", componentId, expected: ids.join(", "), actual: componentId })] };
   }
-  return { ok: true, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, componentId, logPath: record.logPath, content: readFileSync23(path30.join(rootDir, record.logPath), "utf8"), diagnostics: [] };
+  const content = readFileSync23(path30.join(rootDir, record.logPath), "utf8");
+  const boundedContent = options.all ? content : takeTailLines(content, options.tailLines ?? DEFAULT_HARNESS_LOG_TAIL_LINES);
+  return { ok: true, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, componentId, logPath: record.logPath, content: boundedContent, diagnostics: [] };
 }
 function stopHarness(rootDir, options = {}) {
   const paths = getRuntimePaths(rootDir);
@@ -19971,7 +19990,7 @@ var HARNESS_STOP_USAGE = `Usage: strict-spec-driven harness-stop [--confirm]
 `;
 var HARNESS_STATUS_USAGE = `Usage: strict-spec-driven harness-status
 `;
-var HARNESS_LOGS_USAGE = `Usage: strict-spec-driven harness-logs [component-id]
+var HARNESS_LOGS_USAGE = `Usage: strict-spec-driven harness-logs [component-id] [--tail <n> | --all]
 `;
 var HARNESS_SCRIPTS_USAGE = `Usage: strict-spec-driven harness-scripts <generate|verify>
 `;
@@ -20007,6 +20026,37 @@ function parseSelectionArgs(argv, usage2, allowConfirm) {
     }
     writeUsage(usage2);
     return null;
+  }
+  return parsed;
+}
+function parseHarnessLogsArgs(argv) {
+  const parsed = { all: false };
+  for (let index = 0;index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--tail") {
+      const value = argv[index + 1];
+      const tailLines = Number(value);
+      if (!value || !Number.isInteger(tailLines) || tailLines <= 0 || parsed.tailLines !== undefined || parsed.all) {
+        writeUsage(HARNESS_LOGS_USAGE);
+        return null;
+      }
+      parsed.tailLines = tailLines;
+      index += 1;
+      continue;
+    }
+    if (arg === "--all") {
+      if (parsed.tailLines !== undefined || parsed.all) {
+        writeUsage(HARNESS_LOGS_USAGE);
+        return null;
+      }
+      parsed.all = true;
+      continue;
+    }
+    if (arg.startsWith("--") || parsed.componentId !== undefined) {
+      writeUsage(HARNESS_LOGS_USAGE);
+      return null;
+    }
+    parsed.componentId = arg;
   }
   return parsed;
 }
@@ -20108,11 +20158,10 @@ function runHarnessLogs(argv) {
     writeHelp(HARNESS_LOGS_USAGE);
     return 0;
   }
-  if (argv.length > 1) {
-    writeUsage(HARNESS_LOGS_USAGE);
+  const parsed = parseHarnessLogsArgs(argv);
+  if (parsed === null)
     return 1;
-  }
-  const result = getHarnessLogs(process.cwd(), argv[0]);
+  const result = getHarnessLogs(process.cwd(), parsed);
   if (!result.ok) {
     writeJson(result);
     return 1;

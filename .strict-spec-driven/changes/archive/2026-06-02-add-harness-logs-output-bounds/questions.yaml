@@ -1,0 +1,16 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: add-harness-logs-output-bounds
+open: []
+resolved:
+  - id: default-log-bound-contract
+    question: Should the default harness-logs bound be defined as a tail line count, a byte cap, or both?
+    context: >-
+      The roadmap requires a conservative documented default and an explicit full-output override,
+      but it does not settle the concrete bound unit or option contract.
+    answer: >-
+      Use a tail-line default with --tail <n> for explicit line selection and --all as the explicit
+      full-output override.
+    status: resolved

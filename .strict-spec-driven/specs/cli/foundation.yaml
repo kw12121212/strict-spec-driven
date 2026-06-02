@@ -1847,3 +1847,33 @@ requirements:
             the command reports deterministic diagnostics for missing working directories, missing
             script commands, wrapper drift, undeclared environment samples, schema or planning
             failures, and safety policy issues without starting or stopping services
+  cli-harness-logs-bounded-output:
+    strength: MUST
+    statement: >-
+      The system MUST return a conservative tail-line slice from harness-logs by default, support
+      --tail <n> for explicit line selection, and document --all as the explicit full-output
+      override so agents can inspect long-running managed component logs without flooding their
+      context window.
+    scenarios:
+      default-tail-bound-limits-output:
+        - GIVEN: >-
+            a managed component has a captured log file larger than the documented default tail-line
+            bound
+        - WHEN: >-
+            an operator or AI agent runs strict-spec-driven harness-logs for that component without
+            flags
+        - THEN: the command returns only the most recent lines up to the documented default bound
+      explicit-tail-count-overrides-default:
+        - GIVEN: a managed component has a captured log file larger than the default tail-line bound
+        - WHEN: >-
+            an operator or AI agent runs strict-spec-driven harness-logs --tail <n> for that
+            component
+        - THEN: the command returns the most recent requested number of lines
+      all-override-returns-full-captured-log:
+        - GIVEN: >-
+            a managed component has a captured log file larger than the documented default tail-line
+            bound
+        - WHEN: an operator or AI agent runs strict-spec-driven harness-logs --all for that component
+        - THEN: >-
+            the command returns the full captured log content and the command usage or HARNESS.md
+            documents the override
