@@ -68,3 +68,34 @@ Harness sessions live under `.strict-spec-driven/harness-sessions/<session-id>/`
 Each session records selected environment/components, lifecycle evidence, reproduction steps, evidence entries, hypotheses, findings, human checkpoints, manual actions, replay commands, and verification status.
 
 Evidence entries and manual actions must keep `contains_secrets: false` and `secrets_recorded: false`.
+
+## Skills
+
+Two skills drive the harness workflow:
+
+### `/strict-spec-harness-init`
+
+Creates or refines a project harness declaration. Steps:
+
+1. Runs `harness-infer` to draft `harness.yaml` from repository metadata (package scripts, compose services, Procfile processes, Makefile targets, sample env files).
+2. Inspects the project for frontend, backend, database, cache, worker, queue, object storage, external resource, browser, Electron, and CDP components.
+3. Asks targeted questions when commands, production safety, stateful lifecycle permission, readiness checks, or secret-safe env var names cannot be discovered.
+4. Writes `.strict-spec-driven/harness.yaml` storing only environment variable names — never secret values.
+5. Runs `harness-doctor` to resolve missing directories, missing scripts, wrapper drift, env sample gaps, duplicated ports, and safety issues.
+6. Validates via `harness-plan` for each declared environment.
+7. Generates and verifies project-local scripts under `scripts/`.
+
+Inferred production commands and stateful lifecycle operations stay disabled until the human confirms them explicitly.
+
+### `/strict-spec-harness-session`
+
+Guides harness investigation sessions with lifecycle evidence, human checkpoints, replay commands, and validation. Steps:
+
+1. Creates a new session with `harness-session create <session-id>` or validates an existing one.
+2. Records the selected harness environment and components.
+3. Captures lifecycle evidence through `scripts/harness-*` wrappers (plan, start, status, logs, stop).
+4. Records sensitive or manual actions via `human_checkpoints` and `manual_actions` with `secrets_recorded: false`.
+5. Preserves replay commands and updates verification status with evidence identifiers.
+6. Validates with `harness-session validate <session-id>`, then archives sessions whose status is `resolved` or `blocked`.
+
+This skill replaces the older debug-session workflow. Do not create or manage `debug-session` artifacts from it.

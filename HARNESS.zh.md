@@ -64,3 +64,34 @@ Harness 会话保存在 `.strict-spec-driven/harness-sessions/<session-id>/` 目
 每个会话会记录选定的环境/组件、生命周期证据（lifecycle evidence）、重现步骤、证据条目（evidence entries）、假设（hypotheses）、发现（findings）、人工检查点（human checkpoints）、手动操作、重放/重现命令（replay commands）以及验证状态。
 
 证据条目和手动操作必须保持 `contains_secrets: false` 和 `secrets_recorded: false`。
+
+## 技能 (Skills)
+
+两个技能驱动 harness 工作流：
+
+### `/strict-spec-harness-init`
+
+创建或优化项目的 harness 声明。步骤如下：
+
+1. 运行 `harness-infer`，从仓库元数据（package 脚本、compose 服务、Procfile 进程、Makefile 目标、示例 env 文件）生成 `harness.yaml` 草案。
+2. 检查项目中的前端、后端、数据库、缓存、Worker、队列、对象存储、外部资源、浏览器、Electron 和 CDP 组件。
+3. 当命令、生产环境安全性、有状态生命周期权限、就绪性检查或敏感环境变量名称无法自动发现时，提出针对性问题。
+4. 写入 `.strict-spec-driven/harness.yaml`，仅存储环境变量名称——绝不存储敏感值。
+5. 运行 `harness-doctor`，修复缺失的目录、缺失的脚本、包装脚本偏差、env 示例文件缺口、重复端口以及安全问题。
+6. 对每个声明的环境通过 `harness-plan` 进行验证。
+7. 在 `scripts/` 下生成并验证项目本地脚本。
+
+推断出的生产环境命令和有状态生命周期操作保持禁用状态，直到人工明确确认。
+
+### `/strict-spec-harness-session`
+
+引导 harness 调查会话，包含生命周期证据、人工检查点、重放命令和验证。步骤如下：
+
+1. 使用 `harness-session create <session-id>` 创建新会话，或验证现有会话。
+2. 记录选定的 harness 环境和组件。
+3. 通过 `scripts/harness-*` 包装脚本（plan、start、status、logs、stop）捕获生命周期证据。
+4. 通过 `human_checkpoints` 和 `manual_actions` 记录敏感或手动操作，并保持 `secrets_recorded: false`。
+5. 保存重放命令，并使用证据标识符更新验证状态。
+6. 使用 `harness-session validate <session-id>` 进行验证，然后归档状态为 `resolved` 或 `blocked` 的会话。
+
+此技能取代了早期的 debug-session 工作流。不要从中创建或管理 `debug-session` 产物。
