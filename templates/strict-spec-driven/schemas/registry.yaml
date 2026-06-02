@@ -179,32 +179,32 @@ entries:
       notes:
         - Standalone planned changes are the normal roadmap work-item surface; materialize legacy inline milestone entries before running ordinary roadmap commands.
         - Optional team metadata is advisory coordination data and is not a locking or permission mechanism.
-  - schema_id: strict-spec-driven/dev-session/v1
+  - schema_id: strict-spec-driven/harness/v1
     schema_version: 1
-    artifact_type: dev_session
-    artifact_name: dev-session
-    schema_file: dev-session.yaml
-    primary_example: ../../../examples/strict-spec-driven/dev-session.yaml
+    artifact_type: harness
+    artifact_name: harness
+    schema_file: harness.yaml
+    primary_example: ../../../examples/strict-spec-driven/harness.yaml
     compatibility:
       status: current
       introduced_in: 1
       supersedes: []
       compatible_with: []
       notes:
-        - Development-session artifacts declare local services, browser targets, and cleanup guidance without storing secret values.
-  - schema_id: strict-spec-driven/debug-session/v1
+        - Harness declarations replace development-session artifacts with mixed environment and component operation contracts.
+  - schema_id: strict-spec-driven/harness-session/v1
     schema_version: 1
-    artifact_type: debug_session
-    artifact_name: debug-session
-    schema_file: debug-session.yaml
-    primary_example: ../../../examples/strict-spec-driven/debug-session.yaml
+    artifact_type: harness_session
+    artifact_name: harness-session
+    schema_file: harness-session.yaml
+    primary_example: ../../../examples/strict-spec-driven/harness-session.yaml
     compatibility:
       status: current
       introduced_in: 1
       supersedes: []
       compatible_with: []
       notes:
-        - Debug-session artifacts record local investigations, evidence, layer localization, human checkpoints, manual actions, CDP health, replay, and verification without storing secret values.
+        - Harness-session artifacts replace debug-session investigation records.
   - schema_id: strict-spec-driven/schema-registry/v1
     schema_version: 1
     artifact_type: schema_registry

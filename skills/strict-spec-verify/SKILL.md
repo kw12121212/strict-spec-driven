@@ -73,19 +73,19 @@ run `init` from this skill.
    optional suggestions, then recommend `strict-spec-review` when the change is
    clean.
 
-## Dev Session Guidance
+## Harness Guidance
 
-When `.strict-spec-driven/dev-session.yaml` exists in the project and browser
-trial evidence is expected as part of verification:
+When `.strict-spec-driven/harness.yaml` exists in the project and harness
+evidence is expected as part of verification:
 
-1. Run `dev-session-trial` to derive deterministic browser trial guidance from
-   the declared browser targets and managed lifecycle state.
-2. Report the declared target URLs, smoke paths, and evidence labels in the
+1. Run `harness-plan` to derive deterministic harness guidance from the declared
+   environment and components.
+2. Report the declared target URLs, component ids, and evidence labels in the
    verification summary.
 3. If required prerequisites are unavailable (missing declaration, missing env
-   values, or no managed lifecycle state), report the blocking condition and
+   values, or no managed harness state), report the blocking condition and
    do not attempt to guess undeclared setup.
-4. Browser trial evidence supplements but does not replace the required project
+4. Harness evidence supplements but does not replace the required project
    regression command.
 
 ## Rules

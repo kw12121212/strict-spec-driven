@@ -1,0 +1,45 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/harness.ts
+    - src/cli/cmd-harness.ts
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+    - skills/strict-spec-harness-init/SKILL.md
+    - README.md
+    - HARNESS.md
+  tests:
+    - test/suites/harness-infer-doctor.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-harness-infer-and-doctor:
+      strength: MUST
+      statement: >-
+        The system MUST provide deterministic harness inference and doctor commands that help agents
+        draft and repair .strict-spec-driven/harness.yaml from repository metadata without executing
+        lifecycle commands, while preserving explicit human control over production and stateful
+        lifecycle operations.
+      scenarios:
+        ai-assisted-harness-draft-is-safe:
+          - GIVEN: >-
+              a repository contains common project metadata such as package scripts, sample
+              environment variable files, or service declarations
+          - WHEN: an operator or AI agent runs strict-spec-driven harness-infer
+          - THEN: >-
+              the command emits a valid harness declaration draft that identifies likely development
+              components, environment variable names, URLs or ports when discoverable, and manual or
+              disabled defaults for uncertain, production, or stateful lifecycle operations
+        doctor-reports-repairable-diagnostics:
+          - GIVEN: a strict project contains a harness declaration and project-local wrapper expectations
+          - WHEN: an operator or AI agent runs strict-spec-driven harness-doctor
+          - THEN: >-
+              the command reports deterministic diagnostics for missing working directories, missing
+              script commands, wrapper drift, undeclared environment samples, schema or planning
+              failures, and safety policy issues without starting or stopping services
+  MODIFIED: {}
+  REMOVED: {}

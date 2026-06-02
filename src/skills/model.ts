@@ -97,8 +97,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       apply: `${COMMAND_PREFIX} apply <change-name>`,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
-    requiredHeadings: ["## Steps", "## Rules", "## Dev Session Guidance"],
-    requiredSnippets: [".strict-spec-driven/", "dev-session-plan"],
+    requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
+    requiredSnippets: [".strict-spec-driven/", "harness-plan"],
   },
   "strict-spec-verify": {
     requiredCommands: {
@@ -106,18 +106,18 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       verify: `${COMMAND_PREFIX} verify <change-name>`,
       "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
     },
-    requiredHeadings: ["## Steps", "## Rules", "## Dev Session Guidance"],
-    requiredSnippets: [".strict-spec-driven/", "dev-session-trial"],
+    requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
+    requiredSnippets: [".strict-spec-driven/", "harness-plan"],
   },
   "strict-spec-review": {
     requiredCommands: {
       modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
-    requiredHeadings: ["## Steps", "## Rules", "## Dev Session Guidance"],
+    requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
     requiredSnippets: [
       ".strict-spec-driven/",
-      "dev-session-trial",
+      "harness-plan",
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
@@ -152,7 +152,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
       archive: `${COMMAND_PREFIX} archive <change-name>`,
     },
-    requiredHeadings: ["## Steps", "## Rules", "## Dev Session Guidance"],
+    requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
     requiredSnippets: [
       ".strict-spec-driven/",
       "/strict-spec-ship <change-name>",
@@ -160,7 +160,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET,
       AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET,
       PROPOSAL_ARTIFACT_REVIEW_SNIPPET,
-      "dev-session-plan",
+      "harness-plan",
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,

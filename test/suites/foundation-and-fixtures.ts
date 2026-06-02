@@ -267,80 +267,15 @@ const plannedChangeValidation = validationModule.validateArtifact(
   "examples/strict-spec-driven/planned-change.yaml",
 );
 context.assert(plannedChangeValidation.valid, "planned change example validates against planned change schema");
-const devSessionSchema = validationModule.loadBundledSchemaByArtifactType("dev_session") as Record<string, unknown>;
+const harnessSchema = validationModule.loadBundledSchemaByArtifactType("harness") as Record<string, unknown>;
 context.assert(
-  (devSessionSchema.properties as Record<string, unknown>)?.session !== undefined,
-  "dev-session schema resolves by artifact type",
+  (harnessSchema.properties as Record<string, unknown>)?.harness !== undefined,
+  "harness schema resolves by artifact type",
 );
-const devSessionBySchemaId = validationModule.loadBundledSchemaBySchemaId("strict-spec-driven/dev-session/v1") as Record<string, unknown>;
+const harnessSessionSchema = validationModule.loadBundledSchemaByArtifactType("harness_session") as Record<string, unknown>;
 context.assert(
-  (devSessionBySchemaId.properties as Record<string, unknown>)?.session !== undefined,
-  "dev-session schema resolves by schema ID",
-);
-const devSessionExample = yamlModule.parseYamlFile<Record<string, unknown>>(
-  path.join(ROOT, "examples", "strict-spec-driven", "dev-session.yaml"),
-);
-const devSessionValidation = validationModule.validateArtifact(
-  devSessionSchema,
-  devSessionExample,
-  "examples/strict-spec-driven/dev-session.yaml",
-);
-context.assert(devSessionValidation.valid, "dev-session example validates against dev-session schema");
-const devSessionWithSecret = JSON.parse(JSON.stringify(devSessionExample)) as Record<string, unknown>;
-((((devSessionWithSecret.session as Record<string, unknown>).services as Record<string, unknown>).web as Record<string, unknown>)
-  .environment as Record<string, unknown>).values = { PORT: "3000" };
-const devSessionSecretValidation = validationModule.validateArtifact(
-  devSessionSchema,
-  devSessionWithSecret,
-  "memory://dev-session-secret",
-);
-context.assert(devSessionSecretValidation.valid === false, "dev-session schema rejects embedded secret values");
-context.assert(
-  devSessionSecretValidation.diagnostics.some((diagnostic) => diagnostic.fieldPath === "$.session.services.web.environment.values"),
-  "dev-session secret-value diagnostics point to the unexpected values field",
-);
-const debugSessionSchema = validationModule.loadBundledSchemaByArtifactType("debug_session") as Record<string, unknown>;
-context.assert(
-  (debugSessionSchema.properties as Record<string, unknown>)?.debug_session !== undefined,
-  "debug-session schema resolves by artifact type",
-);
-const debugSessionBySchemaId = validationModule.loadBundledSchemaBySchemaId("strict-spec-driven/debug-session/v1") as Record<string, unknown>;
-context.assert(
-  (debugSessionBySchemaId.properties as Record<string, unknown>)?.human_checkpoints !== undefined,
-  "debug-session schema resolves by schema ID",
-);
-const debugSessionExample = yamlModule.parseYamlFile<Record<string, unknown>>(
-  path.join(ROOT, "examples", "strict-spec-driven", "debug-session.yaml"),
-);
-const debugSessionValidation = validationModule.validateArtifact(
-  debugSessionSchema,
-  debugSessionExample,
-  "examples/strict-spec-driven/debug-session.yaml",
-);
-context.assert(debugSessionValidation.valid, "debug-session example validates against debug-session schema");
-const debugSessionWithSecret = JSON.parse(JSON.stringify(debugSessionExample)) as Record<string, unknown>;
-((debugSessionWithSecret.manual_actions as Array<Record<string, unknown>>)[0] as Record<string, unknown>).secrets_recorded = true;
-const debugSessionSecretValidation = validationModule.validateArtifact(
-  debugSessionSchema,
-  debugSessionWithSecret,
-  "memory://debug-session-secret",
-);
-context.assert(debugSessionSecretValidation.valid === false, "debug-session schema rejects manual actions that record secrets");
-context.assert(
-  debugSessionSecretValidation.diagnostics.some((diagnostic) => diagnostic.fieldPath === "$.manual_actions[0].secrets_recorded"),
-  "debug-session secret diagnostics point to the forbidden secrets_recorded field",
-);
-const debugSessionWithInvalidLifecycle = JSON.parse(JSON.stringify(debugSessionExample)) as Record<string, unknown>;
-(((debugSessionWithInvalidLifecycle.dev_session as Record<string, unknown>).lifecycle as Record<string, unknown>).cleanup_status) = "running";
-const debugSessionLifecycleValidation = validationModule.validateArtifact(
-  debugSessionSchema,
-  debugSessionWithInvalidLifecycle,
-  "memory://debug-session-lifecycle",
-);
-context.assert(debugSessionLifecycleValidation.valid === false, "debug-session schema rejects malformed dev-session lifecycle entries");
-context.assert(
-  debugSessionLifecycleValidation.diagnostics.some((diagnostic) => diagnostic.fieldPath === "$.dev_session.lifecycle.cleanup_status"),
-  "debug-session lifecycle diagnostics point to the invalid cleanup_status field",
+  (harnessSessionSchema.properties as Record<string, unknown>)?.harness_session !== undefined,
+  "harness-session schema resolves by artifact type",
 );
 const bundledRegistry = validationModule.loadBundledSchema<Record<string, unknown>>("registry.yaml") as {
   entries: Array<{ schema_id: string; artifact_type: string; schema_file: string; primary_example: string }>;
@@ -358,22 +293,22 @@ context.assert(
 context.assert(
   bundledRegistry.entries.some(
     (entry) =>
-      entry.schema_id === "strict-spec-driven/dev-session/v1"
-      && entry.artifact_type === "dev_session"
-      && entry.schema_file === "dev-session.yaml"
-      && entry.primary_example.endsWith("/dev-session.yaml"),
+      entry.schema_id === "strict-spec-driven/harness/v1"
+      && entry.artifact_type === "harness"
+      && entry.schema_file === "harness.yaml"
+      && entry.primary_example.endsWith("/harness.yaml"),
   ),
-  "schema registry includes dev-session schema and primary example",
+  "schema registry includes harness schema and primary example",
 );
 context.assert(
   bundledRegistry.entries.some(
     (entry) =>
-      entry.schema_id === "strict-spec-driven/debug-session/v1"
-      && entry.artifact_type === "debug_session"
-      && entry.schema_file === "debug-session.yaml"
-      && entry.primary_example.endsWith("/debug-session.yaml"),
+      entry.schema_id === "strict-spec-driven/harness-session/v1"
+      && entry.artifact_type === "harness_session"
+      && entry.schema_file === "harness-session.yaml"
+      && entry.primary_example.endsWith("/harness-session.yaml"),
   ),
-  "schema registry includes debug-session schema and primary example",
+  "schema registry includes harness-session schema and primary example",
 );
 
 const testJsonSchema = {
@@ -484,7 +419,7 @@ context.assert(
   firstAssetList.every((asset) => asset.endsWith(".yaml")),
   "required scaffold asset manifest contains only YAML files",
 );
-context.assert(firstAssetList.includes("dev-session.yaml"), "required scaffold asset manifest includes dev-session scaffold");
+context.assert(firstAssetList.includes("harness.yaml"), "required scaffold asset manifest includes harness scaffold");
 
 for (const relativeAssetPath of firstAssetList) {
   const absoluteAssetPath = scaffoldModule.getBundledScaffoldPath(relativeAssetPath);
@@ -523,10 +458,10 @@ const scaffoldRoadmapIndex = scaffoldModule.loadBundledScaffoldYaml<Record<strin
 context.assert(scaffoldRoadmapIndex.artifact_type === "roadmap_index", "scaffold roadmap index template is loadable YAML");
 context.assert(typeof scaffoldRoadmapIndex.milestones === "object" && scaffoldRoadmapIndex.milestones !== null && !Array.isArray(scaffoldRoadmapIndex.milestones), "scaffold roadmap index template includes milestone sequence field");
 
-const scaffoldDevSession = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("dev-session.yaml");
-context.assert(scaffoldDevSession.artifact_type === "dev_session", "scaffold dev-session template is loadable YAML");
-const scaffoldDebugSession = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("debug-sessions/session.yaml");
-context.assert(scaffoldDebugSession.artifact_type === "debug_session", "scaffold debug-session template is loadable YAML");
+const scaffoldHarness = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("harness.yaml");
+context.assert(scaffoldHarness.artifact_type === "harness", "scaffold harness template is loadable YAML");
+const scaffoldHarnessSession = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("harness-sessions/session.yaml");
+context.assert(scaffoldHarnessSession.artifact_type === "harness_session", "scaffold harness-session template is loadable YAML");
 
 context.section("[5] init command");
 
@@ -545,7 +480,7 @@ try {
   const strictRoot = path.join(initTempDir, ".strict-spec-driven");
   const requiredArtifacts = [
     "config.yaml",
-    "dev-session.yaml",
+    "harness.yaml",
     "specs/INDEX.yaml",
     "roadmap/INDEX.yaml",
   ];
@@ -1596,8 +1531,8 @@ for (const changeAsset of scaffoldModule.getRequiredBundledChangeTemplateAssets(
 }
 
 const distSchemaFiles = [
-  "debug-session.yaml",
-  "dev-session.yaml",
+  "harness-session.yaml",
+  "harness.yaml",
   "registry.yaml",
   "main-spec.yaml",
   "delta-spec.yaml",
@@ -1612,9 +1547,9 @@ for (const schemaFile of distSchemaFiles) {
   context.assert(existsSync(distSchemaPath), `dist schema file exists (${schemaFile})`);
   context.assert(statSync(distSchemaPath).isFile(), `dist schema file is a file (${schemaFile})`);
 }
-const distDebugSessionScaffoldPath = path.join(distScaffoldDir, "debug-sessions", "session.yaml");
-context.assert(existsSync(distDebugSessionScaffoldPath), "dist debug-session scaffold template exists");
-context.assert(statSync(distDebugSessionScaffoldPath).isFile(), "dist debug-session scaffold template is a file");
+const distHarnessSessionScaffoldPath = path.join(distScaffoldDir, "harness-sessions", "session.yaml");
+context.assert(existsSync(distHarnessSessionScaffoldPath), "dist harness-session scaffold template exists");
+context.assert(statSync(distHarnessSessionScaffoldPath).isFile(), "dist harness-session scaffold template is a file");
 
 context.assert(!existsSync(distExamplesDir), "dist/templates/strict-spec-driven/examples is not bundled after build");
 
@@ -1626,7 +1561,7 @@ try {
   context.assert(distOnlyInit.status === 0, "init succeeds from dist-only temp directory", `got exit code ${distOnlyInit.status}`);
   const strictRoot = path.join(distOnlyDir, ".strict-spec-driven");
   context.assert(existsSync(strictRoot), "init from dist creates .strict-spec-driven directory");
-  for (const artifact of ["config.yaml", "dev-session.yaml", "specs/INDEX.yaml", "roadmap/INDEX.yaml"]) {
+  for (const artifact of ["config.yaml", "harness.yaml", "specs/INDEX.yaml", "roadmap/INDEX.yaml"]) {
     context.assert(existsSync(path.join(strictRoot, artifact)), `init from dist creates artifact (${artifact})`);
   }
   context.assert(
@@ -1653,105 +1588,66 @@ try {
   rmSync(distOnlyProposeDir, { recursive: true, force: true });
 }
 
-context.section("[11] dev-session user documentation smoke coverage");
+context.section("[11] harness user documentation smoke coverage");
 
-const devSessionsGuidePath = path.join(ROOT, "DEV_SESSIONS.md");
-context.assert(existsSync(devSessionsGuidePath), "DEV_SESSIONS.md guide exists");
+const harnessGuidePath = path.join(ROOT, "HARNESS.md");
+context.assert(existsSync(harnessGuidePath), "HARNESS.md guide exists");
 
-const devSessionsGuide = readFileSync(devSessionsGuidePath, "utf8");
-const devSessionsGuideNormalized = devSessionsGuide.replace(/\s+/g, " ");
-
-context.assert(
-  devSessionsGuideNormalized.includes("dev-session.yaml"),
-  "DEV_SESSIONS.md covers the declaration file path",
-);
-context.assert(
-  devSessionsGuideNormalized.includes("dev-session-plan")
-    && devSessionsGuideNormalized.includes("dev-session-start")
-    && devSessionsGuideNormalized.includes("dev-session-status")
-    && devSessionsGuideNormalized.includes("dev-session-logs")
-    && devSessionsGuideNormalized.includes("dev-session-stop")
-    && devSessionsGuideNormalized.includes("dev-session-trial"),
-  "DEV_SESSIONS.md covers all six dev-session CLI commands",
-);
+const harnessGuide = readFileSync(harnessGuidePath, "utf8");
+const harnessGuideNormalized = harnessGuide.replace(/\s+/g, " ");
 
 context.assert(
-  devSessionsGuideNormalized.includes("evidence_labels")
-    || (devSessionsGuideNormalized.includes("evidence") && devSessionsGuideNormalized.includes("smoke")),
-  "DEV_SESSIONS.md covers browser trial evidence",
+  harnessGuideNormalized.includes("harness.yaml"),
+  "HARNESS.md covers the declaration file path",
 );
 context.assert(
-  (devSessionsGuideNormalized.toLowerCase().includes("regression") && devSessionsGuideNormalized.toLowerCase().includes("evidence"))
-    || devSessionsGuideNormalized.includes("project regression"),
-  "DEV_SESSIONS.md covers the relationship between browser trial evidence and the required project regression command",
+  harnessGuideNormalized.includes("harness-infer")
+    && harnessGuideNormalized.includes("harness-doctor")
+    && harnessGuideNormalized.includes("harness-plan")
+    && harnessGuideNormalized.includes("harness-start")
+    && harnessGuideNormalized.includes("harness-status")
+    && harnessGuideNormalized.includes("harness-logs")
+    && harnessGuideNormalized.includes("harness-stop")
+    && harnessGuideNormalized.includes("harness-session"),
+  "HARNESS.md covers harness CLI commands",
+);
+
+context.assert(
+  harnessGuideNormalized.includes("scripts/harness-infer")
+    && harnessGuideNormalized.includes("scripts/harness-doctor")
+    && harnessGuideNormalized.includes("scripts/harness-plan")
+    && harnessGuideNormalized.includes("scripts/harness-session"),
+  "HARNESS.md covers generated project-local scripts",
 );
 context.assert(
-  (devSessionsGuideNormalized.toLowerCase().includes("secret") || devSessionsGuideNormalized.toLowerCase().includes("variable name"))
-    && devSessionsGuideNormalized.toLowerCase().includes("environment"),
-  "DEV_SESSIONS.md covers secret-handling rules for environment variables",
+  harnessGuideNormalized.includes("evidence_labels")
+    || (harnessGuideNormalized.includes("evidence") && harnessGuideNormalized.includes("replay")),
+  "HARNESS.md covers harness evidence and replay",
 );
 context.assert(
-  devSessionsGuideNormalized.toLowerCase().includes("stale")
-    && devSessionsGuideNormalized.toLowerCase().includes("runtime"),
-  "DEV_SESSIONS.md covers stale runtime cleanup behavior",
+  (harnessGuideNormalized.toLowerCase().includes("secret") || harnessGuideNormalized.toLowerCase().includes("variable name"))
+    && harnessGuideNormalized.toLowerCase().includes("environment"),
+  "HARNESS.md covers secret-handling rules for environment variables",
+);
+context.assert(
+  harnessGuideNormalized.includes("production")
+    && harnessGuideNormalized.includes("requires_confirmation")
+    && harnessGuideNormalized.includes("allow_stateful_lifecycle"),
+  "HARNESS.md covers production and stateful safety policy",
 );
 
 const readmePath = path.join(ROOT, "README.md");
 const readmeContent = readFileSync(readmePath, "utf8");
 context.assert(
-  readmeContent.includes("DEV_SESSIONS.md") && readmeContent.includes("Development Sessions"),
-  "README.md includes a Development Sessions section and link to DEV_SESSIONS.md",
-);
-context.assert(
-  readmeContent.includes("DEBUG_SESSIONS.md") && readmeContent.includes("Debug Sessions"),
-  "README.md includes a Debug Sessions section and link to DEBUG_SESSIONS.md",
+  readmeContent.includes("HARNESS.md") && readmeContent.includes("Harness"),
+  "README.md includes a Harness section and link to HARNESS.md",
 );
 
 const quickstartPath = path.join(ROOT, "QUICKSTART.md");
 const quickstartContent = readFileSync(quickstartPath, "utf8");
 context.assert(
-  quickstartContent.includes("dev-session") && quickstartContent.includes("DEV_SESSIONS.md"),
-  "QUICKSTART.md includes dev-session guidance and a link to DEV_SESSIONS.md",
-);
-context.assert(
-  quickstartContent.includes("debug-session") && quickstartContent.includes("DEBUG_SESSIONS.md"),
-  "QUICKSTART.md includes debug-session guidance and a link to DEBUG_SESSIONS.md",
-);
-
-const debugSessionsGuidePath = path.join(ROOT, "DEBUG_SESSIONS.md");
-context.assert(existsSync(debugSessionsGuidePath), "DEBUG_SESSIONS.md guide exists");
-const debugSessionsGuide = readFileSync(debugSessionsGuidePath, "utf8");
-const debugSessionsGuideNormalized = debugSessionsGuide.replace(/\s+/g, " ");
-context.assert(
-  debugSessionsGuideNormalized.includes(".strict-spec-driven/debug-sessions/<session-id>/")
-    && debugSessionsGuideNormalized.includes("evidence/"),
-  "DEBUG_SESSIONS.md covers the artifact and evidence layout",
-);
-context.assert(
-  debugSessionsGuideNormalized.includes("debug-session-create")
-    && debugSessionsGuideNormalized.includes("debug-session-validate"),
-  "DEBUG_SESSIONS.md covers debug-session CLI commands",
-);
-context.assert(
-  debugSessionsGuideNormalized.includes("dev-session-plan")
-    && debugSessionsGuideNormalized.includes("dev-session-start")
-    && debugSessionsGuideNormalized.includes("dev-session-status")
-    && debugSessionsGuideNormalized.includes("dev-session-logs")
-    && debugSessionsGuideNormalized.includes("dev-session-stop")
-    && debugSessionsGuideNormalized.includes("cleanup_status"),
-  "DEBUG_SESSIONS.md covers dev-session lifecycle evidence",
-);
-context.assert(
-  debugSessionsGuideNormalized.includes("web_api")
-    && debugSessionsGuideNormalized.includes("frontend")
-    && debugSessionsGuideNormalized.includes("electron")
-    && debugSessionsGuideNormalized.includes("cdp_access"),
-  "DEBUG_SESSIONS.md covers layer localization values",
-);
-context.assert(
-  debugSessionsGuideNormalized.toLowerCase().includes("credentials")
-    && debugSessionsGuideNormalized.toLowerCase().includes("secret"),
-  "DEBUG_SESSIONS.md covers human checkpoint secret boundaries",
+  quickstartContent.includes("harness") && quickstartContent.includes("HARNESS.md"),
+  "QUICKSTART.md includes harness guidance and a link to HARNESS.md",
 );
 
 }

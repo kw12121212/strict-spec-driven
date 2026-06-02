@@ -1,0 +1,53 @@
+schema: strict-spec-driven/harness-session/v1
+schema_version: 1
+artifact_type: harness_session
+schema_file: ../../../templates/strict-spec-driven/schemas/harness-session.yaml
+harness_session:
+  id: "{{session_id}}"
+  status: proposed
+harness:
+  declaration: .strict-spec-driven/harness.yaml
+  environment: development
+issue:
+  summary: Describe the failure under investigation.
+  observed_behavior: Describe what actually happens.
+  expected_behavior: Describe what should happen instead.
+selected_components: []
+lifecycle_evidence:
+  plan:
+    command: strict-spec-driven harness-plan --environment development
+    status: not_run
+    evidence: []
+  start:
+    command: strict-spec-driven harness-start --environment development
+    status: not_run
+    evidence: []
+  status:
+    command: strict-spec-driven harness-status
+    status: not_run
+    evidence: []
+  logs: []
+  stop:
+    command: strict-spec-driven harness-stop
+    status: not_run
+    evidence: []
+reproduction:
+  preconditions: []
+  steps:
+    - id: reproduce
+      action: Reproduce the failure.
+      expected: The failure is visible or captured in evidence.
+  expected_failure: Describe the expected failing observation.
+evidence:
+  directory: evidence/
+  entries: []
+hypotheses: []
+findings: []
+human_checkpoints: []
+manual_actions: []
+replay:
+  commands: []
+verification:
+  status: not_started
+  steps: []
+  evidence: []

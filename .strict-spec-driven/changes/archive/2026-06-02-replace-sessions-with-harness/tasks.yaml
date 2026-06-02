@@ -1,0 +1,92 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: replace-sessions-with-harness
+sections:
+  Implementation:
+    design-harness-artifact-model:
+      text: >-
+        Design the unified harness declaration and harness session YAML shapes, including
+        environments, typed components/resources, dependency order, lifecycle scripts, readiness,
+        status, logs, explicit operation capabilities, safety policy, evidence, human checkpoints,
+        replay, and verification.
+      status: complete
+    add-harness-schema-assets:
+      text: >-
+        Add bundled schemas, registry entries, scaffold templates, and examples for harness.yaml and
+        harness session artifacts.
+      status: complete
+    implement-harness-plan-and-script-generation:
+      text: >-
+        Add CLI behavior that validates harness declarations, emits deterministic plans, and
+        generates or verifies thin project-local scripts under the unified scripts/harness-*
+        namespace for plan/start/stop/status/logs/session operations.
+      status: complete
+    implement-harness-lifecycle:
+      text: >-
+        Implement script-backed lifecycle behavior for selected environments and components,
+        including dependency ordering, readiness checks, runtime state, logs, unavailable
+        conditions, and declared safety-policy enforcement.
+      status: complete
+    implement-harness-sessions:
+      text: >-
+        Add harness session create/validate/archive behavior that replaces debug-session records
+        with selected environment/component context, lifecycle evidence, reproduction, evidence,
+        hypotheses, findings, human checkpoints, manual actions, replay, and verification.
+      status: complete
+    replace-session-skills-and-docs:
+      text: >-
+        Add harness initialization and harness session skills, update docs and core skill guidance,
+        and remove dev-session/debug-session guidance and command references without compatibility
+        aliases or automatic artifact migration.
+      status: complete
+    resolve-transition-and-migration-policy:
+      text: >-
+        Apply the resolved decisions: no legacy command compatibility, no automatic old artifact
+        migration, conservative production defaults, unified harness script names, and explicit
+        stateful component lifecycle permissions.
+      status: complete
+  Testing:
+    add-harness-contract-tests:
+      text: >-
+        Add schema, scaffold, example, and registry tests for harness declarations and harness
+        session artifacts.
+      status: complete
+    add-harness-cli-tests:
+      text: >-
+        Add CLI tests for harness plan output, script generation or validation, selected component
+        lifecycle behavior, safety-policy enforcement, logs/status output, and session
+        create/validate/archive behavior.
+      status: complete
+    add-replacement-regression-tests:
+      text: >-
+        Add regression coverage proving harness replaces dev-session and debug-session entry points
+        without compatibility aliases or automatic old artifact migration.
+      status: complete
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify implementation matches the confirmed replacement scope and does not leave
+        dev-session/debug-session as independent long-term workflow families.
+      status: complete
+    verify-safety-and-secret-handling:
+      text: >-
+        Verify harness artifacts, generated scripts, logs, evidence paths, and skill guidance store
+        only environment variable names and enforce production safety policy.
+      status: complete
+    run-project-regression:
+      text: Run the configured complete project regression command.
+      status: complete
+      command: bun run build && bun test/run.ts
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

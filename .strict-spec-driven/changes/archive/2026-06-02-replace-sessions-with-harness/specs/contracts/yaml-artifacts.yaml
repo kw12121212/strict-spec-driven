@@ -1,0 +1,65 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/harness.yaml
+    - templates/strict-spec-driven/schemas/harness-session.yaml
+    - templates/strict-spec-driven/scaffold/harness.yaml
+    - templates/strict-spec-driven/scaffold/harness-sessions/session.yaml
+    - examples/strict-spec-driven/harness.yaml
+    - examples/strict-spec-driven/harness-session.yaml
+    - skills/strict-spec-harness-init/SKILL.md
+    - skills/strict-spec-harness-session/SKILL.md
+  tests:
+    - test/suites/harness-contracts.ts
+operations:
+  ADDED:
+    yaml-harness-artifact-contract:
+      strength: MUST
+      statement: >-
+        The system MUST define strict YAML harness declaration and harness session contracts that
+        replace dev-session and debug-session artifacts with one script-managed model for
+        environments, mixed components, explicit operation capabilities, lifecycle safety, evidence,
+        human checkpoints, replay, and verification, without requiring backward-compatible
+        dev-session or debug-session artifact migration.
+      scenarios:
+        harness-contract-models-mixed-environments:
+          - GIVEN: >-
+              a strict project needs to describe development and production operation for frontend,
+              backend, database, cache, worker, external resource, browser, Electron, or CDP
+              components
+          - WHEN: the harness declaration and harness session contracts are reviewed
+          - THEN: >-
+              the contracts expose structured fields for environments, components, dependencies,
+              operation modes, lifecycle scripts, readiness, status, logs, safety policy,
+              secret-safe environment variable names, evidence, human checkpoints, replay, and
+              verification
+  MODIFIED: {}
+  REMOVED:
+    yaml-dev-session-declaration-contract:
+      reason: Superseded by the harness declaration contract.
+    generated-scripts-use-managed-sections:
+      reason: Superseded by generated harness wrapper scripts.
+    dev-session-user-documentation-coverage:
+      reason: Superseded by HARNESS.md, README, and QUICKSTART harness documentation.
+    dev-session-init-skill-command-contract:
+      reason: Superseded by strict-spec-harness-init guidance and harness-plan validation.
+    yaml-debug-session-schema-coverage:
+      reason: Superseded by the harness-session artifact contract.
+    yaml-debug-session-session-model:
+      reason: Superseded by the harness-session model.
+    yaml-debug-session-human-checkpoints:
+      reason: Superseded by harness-session human_checkpoints and manual_actions.
+    yaml-debug-session-cdp-health:
+      reason: Superseded by harness component types and harness-session evidence.
+    yaml-debug-session-artifact-contract:
+      reason: Superseded by the harness-session schema, scaffold, and example.
+    strict-debug-session-skill-guidance:
+      reason: Superseded by strict-spec-harness-session.
+    yaml-debug-session-dev-session-lifecycle:
+      reason: Superseded by harness lifecycle evidence in harness-session artifacts.
+    strict-debug-session-to-change-skill-guidance:
+      reason: Superseded by harness-session evidence handoff to ordinary strict change workflows.

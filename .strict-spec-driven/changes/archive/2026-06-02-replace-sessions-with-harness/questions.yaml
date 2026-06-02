@@ -1,0 +1,71 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: replace-sessions-with-harness
+open: []
+resolved:
+  - id: legacy-command-transition
+    question: >-
+      Should existing dev-session-* and debug-session-* CLI commands be removed immediately, or
+      retained temporarily as deprecated aliases that route to harness behavior?
+    context: >-
+      The user confirmed harness will completely replace dev-session and debug-session. Immediate
+      removal simplifies ownership but may break existing docs, skills, and users; temporary aliases
+      reduce migration shock but require additional compatibility behavior.
+    answer: >-
+      Remove dev-session-* and debug-session-* as independent workflow command families during the
+      harness replacement. Do not keep deprecated compatibility aliases; update docs, skills, and
+      tests to use harness commands and scripts directly.
+    status: resolved
+  - id: existing-artifact-migration
+    question: >-
+      Should implementation include migration from .strict-spec-driven/dev-session.yaml and
+      .strict-spec-driven/debug-sessions/ into harness.yaml and harness-sessions/, or only define
+      the new harness surface and deprecate old artifacts?
+    context: >-
+      The repository already has dev-session and debug-session schemas, examples, skills, tests, and
+      archive paths. A migration path is larger but preserves user state; a clean replacement is
+      simpler but leaves manual migration work.
+    answer: >-
+      Do not implement backward-compatible migration for existing dev-session.yaml or debug-sessions
+      artifacts in this change. The change defines the new harness surface and removes or supersedes
+      the old surfaces without preserving old artifact compatibility.
+    status: resolved
+  - id: production-operation-policy
+    question: >-
+      For production environments, which operations may scripts execute directly, and which must be
+      read-only, runbook-only, or require explicit confirmation before every invocation?
+    context: >-
+      Harness must support production, but production start/stop/cleanup can be destructive. The
+      schema needs a precise default safety model before implementation can encode script behavior.
+    answer: >-
+      Production defaults are conservative: status and logs may be declared as read-only operations;
+      start, stop, cleanup, and destructive operations default to disabled unless the harness
+      declaration explicitly permits them and requires confirmation for each invocation.
+    status: resolved
+  - id: script-surface-names
+    question: >-
+      Should generated scripts use one unified namespace such as scripts/harness-* only, or also
+      generate environment-specific aliases such as scripts/dev-* and scripts/prod-*?
+    context: >-
+      The user asked for unified script management. A single harness namespace is less ambiguous;
+      aliases may be more convenient but increase generated surface area and drift risk.
+    answer: >-
+      Use one unified script namespace: scripts/harness-plan, scripts/harness-start,
+      scripts/harness-stop, scripts/harness-status, scripts/harness-logs, and
+      scripts/harness-session. Do not generate dev-* or prod-* aliases by default.
+    status: resolved
+  - id: stateful-component-defaults
+    question: >-
+      Should stateful development components such as databases and caches be startable/stoppable by
+      default when declared, or should they require an explicit lifecycle permission field?
+    context: >-
+      Mixed harness environments include databases and caches. These can be local containers,
+      managed services, or shared resources, so the default matters for safety and predictable
+      cleanup.
+    answer: >-
+      Stateful components such as databases, caches, queues, object storage, and managed external
+      resources require explicit lifecycle permission fields before scripts may start, stop, or
+      clean them up. Declaration alone is not permission to mutate stateful resources.
+    status: resolved

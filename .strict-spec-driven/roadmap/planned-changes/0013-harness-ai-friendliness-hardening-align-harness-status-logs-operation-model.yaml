@@ -1,0 +1,28 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: align-harness-status-logs-operation-model
+  milestone: 0013-harness-ai-friendliness-hardening
+status: planned
+summary: >-
+  make the declared status/logs operation model consistent with runtime behavior so agents stop
+  authoring command and mode fields that the CLI never executes.
+details: >-
+  The harness schema requires every component to declare `operations.status` and `operations.logs`
+  with a mode (and a command when mode is `script`), but `getHarnessStatus` derives status from
+  runtime state and `getHarnessLogs` reads the captured log file, so those declared operations are
+  never executed. The `readonly` mode similarly has no executable path because
+  `assertOperationAllowed` treats any non-`script` mode as not script-executable and is only invoked
+  for start and stop. The accepted direction is to relax the contract so status/logs are declarative
+  rather than executable: make `operations.status` and `operations.logs` optional in the schema,
+  stop requiring a command for them, and document in the schema descriptions and HARNESS.md that
+  status is reported from runtime state and logs from the captured log file regardless of any
+  declared command. Keep `readonly` in the operation-mode enum but document it as a descriptive
+  marker that is never executed, so existing declarations stay valid, and make `start`/`stop` the
+  only operations whose `mode` and `command` the lifecycle actually runs. Update the bundled example
+  to match, ensure `harness-doctor` and `harness-plan` do not demand executable status/logs fields,
+  and cover the relaxed contract with the harness contract tests. Output bounding for the captured
+  logs is handled separately by `add-harness-logs-output-bounds`.
+depends_on: []

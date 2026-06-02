@@ -101,17 +101,19 @@ run `init` from this skill.
    Recommend `strict-spec-archive` only when review is clean enough to archive
    and complete project-level regression test evidence has passed.
 
-## Dev Session Guidance
+## Harness Guidance
 
-When `.strict-spec-driven/dev-session.yaml` exists in the project and browser
-trial evidence was gathered during implementation:
+When `.strict-spec-driven/harness.yaml` exists in the project and harness
+evidence was gathered during implementation:
 
-1. Run `dev-session-trial` to derive the expected browser trial guidance and
-   compare it against the evidence that was reported.
-2. Check that declared services were stopped after evidence collection.
-3. Note any discrepancy between the declared smoke paths and the evidence
+1. Run `harness-plan` for the relevant environment and components, then compare
+   the declared targets and evidence labels against the evidence that was
+   reported.
+2. Check that declared components were stopped after evidence collection when
+   the harness started them.
+3. Note any discrepancy between declared harness targets and the evidence
    actually captured.
-4. Browser trial evidence supplements but does not replace the required project
+4. Harness evidence supplements but does not replace the required project
    regression command.
 
 ## Rules

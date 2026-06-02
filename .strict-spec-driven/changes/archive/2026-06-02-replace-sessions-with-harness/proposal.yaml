@@ -1,0 +1,63 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: replace-sessions-with-harness
+  status: proposed
+summary:
+  what:
+    - >-
+      Replace the separate dev-session and debug-session workflows with a unified harness workflow
+      that manages mixed project environments and investigation sessions through project-local
+      scripts.
+  why:
+    - >-
+      The current split makes environment lifecycle, service evidence, debugging, replay, and human
+      checkpoints live in separate models. Users need one harness system that AI can draft from
+      project analysis, clarify through questions, confirm with a human, and then expose as
+      practical scripts for both AI and human operators.
+scope:
+  in:
+    - >-
+      Define a unified harness declaration covering development and production environments, mixed
+      components such as frontend, backend, databases, caches, workers, external resources,
+      browser/Electron/CDP targets, dependency order, readiness, logs, status, start/stop behavior,
+      safety policy, and secret-safe environment variable names.
+    - >-
+      Define harness session artifacts that replace debug-session records by capturing selected
+      environment/components, reproduction steps, lifecycle evidence, logs/status evidence, human
+      checkpoints, manual actions, hypotheses, findings, replay commands, and verification results.
+    - >-
+      Add CLI support for validating harness declarations, deriving deterministic plans, generating
+      or validating project-local harness scripts, and creating, validating, and archiving harness
+      sessions.
+    - >-
+      Add agent-facing skills that analyze a repository, ask targeted questions, wait for explicit
+      confirmation, create the harness declaration, and guide harness sessions through the generated
+      scripts.
+    - >-
+      Generate or validate a single project-local script namespace for harness operation, including
+      scripts/harness-plan, scripts/harness-start, scripts/harness-stop, scripts/harness-status,
+      scripts/harness-logs, and scripts/harness-session.
+    - >-
+      Model component operations as explicit capabilities so scripts can distinguish read-only,
+      manual, disabled, and executable operations and enforce production and stateful-resource
+      safety policy.
+  out:
+    - >-
+      Do not keep dev-session and debug-session as independent long-term workflow families after the
+      replacement is implemented.
+    - >-
+      Do not provide backward-compatible dev-session/debug-session aliases or automatic migration of
+      existing dev-session.yaml and debug-session artifacts as part of this change.
+    - >-
+      Do not store secret values, credentials, tokens, connection strings, or production credential
+      material in YAML, generated scripts, logs, evidence filenames, or chat.
+    - >-
+      Do not automate destructive production lifecycle operations unless the harness declaration
+      explicitly permits them and the operator confirmation policy is satisfied.
+unchanged_behavior:
+  - >-
+    The strict change lifecycle, roadmap workflow, main-spec and delta-spec YAML contracts, and
+    project regression review evidence remain authoritative and continue to use strict YAML schemas.

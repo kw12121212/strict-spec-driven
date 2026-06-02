@@ -1,0 +1,244 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/harness/v1
+artifact_type: harness
+artifact_name: harness
+description: Strict YAML harness declaration artifact for environments, components, operations, safety, and evidence targets.
+example_ref: ../../../examples/strict-spec-driven/harness.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - harness
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/harness/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: harness
+    schema_file:
+      type: string
+      minLength: 1
+    harness:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - environments
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        description:
+          type: string
+          minLength: 1
+        environments:
+          type: object
+          minProperties: 1
+          additionalProperties: false
+          patternProperties:
+            "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
+              type: object
+              additionalProperties: false
+              required:
+                - kind
+                - components
+              properties:
+                kind:
+                  type: string
+                  enum:
+                    - development
+                    - production
+                description:
+                  type: string
+                  minLength: 1
+                components:
+                  type: object
+                  minProperties: 1
+                  additionalProperties: false
+                  patternProperties:
+                    "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
+                      $ref: "#/definitions/component"
+  definitions:
+    operation:
+      type: object
+      additionalProperties: false
+      required:
+        - mode
+      properties:
+        mode:
+          type: string
+          enum:
+            - script
+            - readonly
+            - manual
+            - disabled
+        command:
+          type: string
+          minLength: 1
+        requires_confirmation:
+          type: boolean
+        allow_stateful_lifecycle:
+          type: boolean
+      allOf:
+        - if:
+            properties:
+              mode:
+                const: script
+          then:
+            required:
+              - command
+    readiness:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - timeout_seconds
+        - interval_seconds
+      properties:
+        type:
+          type: string
+          enum:
+            - http
+            - tcp
+            - manual
+        url:
+          type: string
+          format: uri
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        timeout_seconds:
+          type: integer
+          minimum: 1
+        interval_seconds:
+          type: integer
+          minimum: 1
+        notes:
+          type: array
+          items:
+            type: string
+            minLength: 1
+      allOf:
+        - if:
+            properties:
+              type:
+                const: http
+          then:
+            required:
+              - url
+        - if:
+            properties:
+              type:
+                const: tcp
+          then:
+            required:
+              - port
+    component:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - working_directory
+        - depends_on
+        - environment
+        - urls
+        - ports
+        - readiness
+        - operations
+        - evidence_labels
+        - unavailable_conditions
+      properties:
+        type:
+          type: string
+          enum:
+            - frontend
+            - backend
+            - database
+            - cache
+            - worker
+            - queue
+            - object_storage
+            - external_resource
+            - browser
+            - electron
+            - cdp
+        description:
+          type: string
+          minLength: 1
+        working_directory:
+          type: string
+          minLength: 1
+        depends_on:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        environment:
+          type: object
+          additionalProperties: false
+          required:
+            - required
+            - optional
+          properties:
+            required:
+              type: array
+              items:
+                type: string
+                pattern: "^[A-Z][A-Z0-9_]*$"
+            optional:
+              type: array
+              items:
+                type: string
+                pattern: "^[A-Z][A-Z0-9_]*$"
+        urls:
+          type: array
+          items:
+            type: string
+            format: uri
+        ports:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+            maximum: 65535
+        readiness:
+          $ref: "#/definitions/readiness"
+        operations:
+          type: object
+          additionalProperties: false
+          required:
+            - start
+            - stop
+            - status
+            - logs
+          properties:
+            start:
+              $ref: "#/definitions/operation"
+            stop:
+              $ref: "#/definitions/operation"
+            status:
+              $ref: "#/definitions/operation"
+            logs:
+              $ref: "#/definitions/operation"
+        evidence_labels:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        unavailable_conditions:
+          type: array
+          items:
+            type: string
+            minLength: 1

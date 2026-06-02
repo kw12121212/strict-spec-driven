@@ -35,15 +35,15 @@ const expectedCommandOrder = [
   "schema-show",
   "template-list",
   "template-show",
-  "dev-session-plan",
-  "dev-session-start",
-  "dev-session-status",
-  "dev-session-logs",
-  "dev-session-trial",
-  "dev-session-stop",
-  "debug-session-create",
-  "debug-session-validate",
-  "debug-session-archive",
+  "harness-infer",
+  "harness-doctor",
+  "harness-plan",
+  "harness-start",
+  "harness-stop",
+  "harness-status",
+  "harness-logs",
+  "harness-scripts",
+  "harness-session",
   "migrate",
   "roadmap-status",
   "roadmap-overview",
@@ -205,13 +205,8 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const brainstormSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-brainstorm", "SKILL.md"), "utf8");
   const roadmapPlanSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-plan", "SKILL.md"), "utf8");
   const roadmapRecommendSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
-  const devSessionInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-dev-session-init", "SKILL.md"), "utf8");
-  const debugSessionSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-debug-session", "SKILL.md"), "utf8");
-  const debugSessionArchiveSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-debug-session-archive", "SKILL.md"), "utf8");
-  const debugSessionToChangeSkillContent = readFileSync(
-    path.join(ROOT, "skills", "strict-spec-debug-session-to-change", "SKILL.md"),
-    "utf8",
-  );
+  const harnessInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-init", "SKILL.md"), "utf8");
+  const harnessSessionSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-session", "SKILL.md"), "utf8");
   const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
   const normalizedReviewSkillContent = reviewSkillContent.replace(/\s+/g, " ");
   const normalizedProposeSkillContent = proposeSkillContent.replace(/\s+/g, " ");
@@ -219,10 +214,8 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedBrainstormSkillContent = brainstormSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapPlanSkillContent = roadmapPlanSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapRecommendSkillContent = roadmapRecommendSkillContent.replace(/\s+/g, " ");
-  const normalizedDevSessionInitSkillContent = devSessionInitSkillContent.replace(/\s+/g, " ");
-  const normalizedDebugSessionSkillContent = debugSessionSkillContent.replace(/\s+/g, " ");
-  const normalizedDebugSessionArchiveSkillContent = debugSessionArchiveSkillContent.replace(/\s+/g, " ");
-  const normalizedDebugSessionToChangeSkillContent = debugSessionToChangeSkillContent.replace(/\s+/g, " ");
+  const normalizedHarnessInitSkillContent = harnessInitSkillContent.replace(/\s+/g, " ");
+  const normalizedHarnessSessionSkillContent = harnessSessionSkillContent.replace(/\s+/g, " ");
   const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
 context.assert(
   normalizedReviewSkillContent.includes("complete project-level regression test evidence")
@@ -288,42 +281,33 @@ context.assert(
     "strict-roadmap-recommend requires scripted-first recommendation, ready handoff, and populated auto resume guidance",
   );
   context.assert(
-    devSessionInitSkillContent.includes("check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state")
-      && normalizedDevSessionInitSkillContent.includes("Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`")
-      && normalizedDevSessionInitSkillContent.includes("template-show scaffold/dev-session.yaml")
-      && normalizedDevSessionInitSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
-      && !devSessionInitSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js init"),
-    "strict-spec-dev-session-init requires existing strict workflow state and uses template inspection instead of init",
+    harnessInitSkillContent.includes("check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state")
+      && normalizedHarnessInitSkillContent.includes("Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`")
+      && normalizedHarnessInitSkillContent.includes("template-show scaffold/harness.yaml")
+      && normalizedHarnessInitSkillContent.includes("harness-infer")
+      && normalizedHarnessInitSkillContent.includes("harness-doctor")
+      && normalizedHarnessInitSkillContent.includes("harness-scripts generate")
+      && normalizedHarnessInitSkillContent.includes("Treat `harness-infer` output as a draft")
+      && normalizedHarnessInitSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
+      && !harnessInitSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js init"),
+    "strict-spec-harness-init requires existing strict workflow state and generates harness scripts",
   );
   context.assert(
-    normalizedDebugSessionSkillContent.includes("debug-session-create")
-      && normalizedDebugSessionSkillContent.includes("debug-session-validate")
-      && normalizedDebugSessionSkillContent.includes("dev-session-plan")
-      && normalizedDebugSessionSkillContent.includes("dev-session-start")
-      && normalizedDebugSessionSkillContent.includes("dev-session-stop")
-      && normalizedDebugSessionSkillContent.includes("human_checkpoints")
-      && normalizedDebugSessionSkillContent.includes("secrets_recorded: false")
-      && normalizedDebugSessionSkillContent.includes("Web API, frontend, Electron, or CDP access"),
-    "strict-spec-debug-session covers creation, validation, dev-session lifecycle, layer guidance, and human checkpoint secret boundaries",
+    normalizedHarnessSessionSkillContent.includes("harness-session create")
+      && normalizedHarnessSessionSkillContent.includes("harness-session validate")
+      && normalizedHarnessSessionSkillContent.includes("harness-plan")
+      && normalizedHarnessSessionSkillContent.includes("harness-start")
+      && normalizedHarnessSessionSkillContent.includes("harness-stop")
+      && normalizedHarnessSessionSkillContent.includes("human_checkpoints")
+      && normalizedHarnessSessionSkillContent.includes("secrets_recorded: false")
+      && normalizedHarnessSessionSkillContent.includes("generated `scripts/harness-*` wrappers")
+      && !normalizedHarnessSessionSkillContent.includes("debug-session artifacts"),
+    "strict-spec-harness-session covers creation, validation, harness lifecycle, human checkpoints, and secret boundaries",
   );
   context.assert(
-    normalizedDebugSessionArchiveSkillContent.includes("debug-session-validate")
-      && normalizedDebugSessionArchiveSkillContent.includes("debug-session-archive")
-      && normalizedDebugSessionArchiveSkillContent.includes("debug_session.status")
-      && normalizedDebugSessionArchiveSkillContent.includes("resolved")
-      && normalizedDebugSessionArchiveSkillContent.includes("blocked")
-      && normalizedDebugSessionArchiveSkillContent.includes("Do not delete, rewrite, or move evidence manually"),
-    "strict-spec-debug-session-archive validates closeout state and uses the archive command while preserving evidence",
-  );
-  context.assert(
-    normalizedDebugSessionToChangeSkillContent.includes("debug-session-validate")
-      && normalizedDebugSessionToChangeSkillContent.includes("questions.yaml.open")
-      && normalizedDebugSessionToChangeSkillContent.includes("if exactly one active session exists, use it automatically")
-      && normalizedDebugSessionToChangeSkillContent.includes("session id + status + summary")
-      && normalizedDebugSessionToChangeSkillContent.includes("/strict-spec-auto <change-name>")
-      && normalizedDebugSessionToChangeSkillContent.includes("/strict-spec-apply <change-name>")
-      && normalizedDebugSessionToChangeSkillContent.includes("Preserve the source debug-session exactly as-is"),
-    "strict-spec-debug-session-to-change preserves the source session, resolves active-session selection, records open questions, and hands off to auto/apply",
+    cli(["dev-session-plan"], { cwd: ROOT }).status !== 0
+      && cli(["debug-session-create", "legacy"], { cwd: ROOT }).status !== 0,
+    "retired dev-session and debug-session commands are not compatibility aliases",
   );
   context.assert(
     normalizedWorkflowConfigContent.includes("review_evidence:")
@@ -901,12 +885,12 @@ try {
       "",
       "Before any other step, confirm `.strict-spec-driven/` exists. If it is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
       "1. Read every changed file and require direct code review evidence.",
-      "2. Confirm dev-session-trial guidance when browser evidence exists.",
+      "2. Confirm harness-plan guidance when harness evidence exists.",
       "3. Do not call or rely on a `strict-spec-driven review` command.",
       "",
-      "## Dev Session Guidance",
+      "## Harness Guidance",
       "",
-      "Use dev-session-trial to evaluate browser trial evidence.",
+      "Use harness-plan to evaluate harness evidence.",
       "",
       "## Rules",
       "",

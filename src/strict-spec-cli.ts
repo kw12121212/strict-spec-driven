@@ -12,14 +12,16 @@ import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runCommitAndPush } from "./cli/cmd-operations.js";
 import { runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
 import {
-  runDevSessionLogs,
-  runDevSessionPlan,
-  runDevSessionStart,
-  runDevSessionStatus,
-  runDevSessionStop,
-  runDevSessionTrial,
-} from "./cli/cmd-dev-session.js";
-import { runDebugSessionArchive, runDebugSessionCreate, runDebugSessionValidate } from "./cli/cmd-debug-session.js";
+  runHarnessDoctor,
+  runHarnessInfer,
+  runHarnessLogs,
+  runHarnessPlan,
+  runHarnessScripts,
+  runHarnessSession,
+  runHarnessStart,
+  runHarnessStatus,
+  runHarnessStop,
+} from "./cli/cmd-harness.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 import { compileSchema, createSchemaValidator } from "./validation.js";
 import {
@@ -78,15 +80,15 @@ export const commands = createCliCommandTable({
   "schema-show": (argv) => runSchemaShow(argv),
   "template-list": (argv) => runTemplateList(argv),
   "template-show": (argv) => runTemplateShow(argv),
-  "dev-session-plan": (argv) => runDevSessionPlan(argv),
-  "dev-session-start": (argv) => runDevSessionStart(argv),
-  "dev-session-status": (argv) => runDevSessionStatus(argv),
-  "dev-session-logs": (argv) => runDevSessionLogs(argv),
-  "dev-session-trial": (argv) => runDevSessionTrial(argv),
-  "dev-session-stop": (argv) => runDevSessionStop(argv),
-  "debug-session-create": (argv) => runDebugSessionCreate(argv),
-  "debug-session-validate": (argv) => runDebugSessionValidate(argv),
-  "debug-session-archive": (argv) => runDebugSessionArchive(argv),
+  "harness-infer": (argv) => runHarnessInfer(argv),
+  "harness-doctor": (argv) => runHarnessDoctor(argv),
+  "harness-plan": (argv) => runHarnessPlan(argv),
+  "harness-start": (argv) => runHarnessStart(argv),
+  "harness-stop": (argv) => runHarnessStop(argv),
+  "harness-status": (argv) => runHarnessStatus(argv),
+  "harness-logs": (argv) => runHarnessLogs(argv),
+  "harness-scripts": (argv) => runHarnessScripts(argv),
+  "harness-session": (argv) => runHarnessSession(argv),
   migrate: (argv) => runMigrate(argv),
   "roadmap-status": (argv) => runRoadmapStatus(argv),
   "roadmap-overview": (argv) => runRoadmapOverview(argv),

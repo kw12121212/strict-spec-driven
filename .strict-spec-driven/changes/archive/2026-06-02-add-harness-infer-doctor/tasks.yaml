@@ -1,0 +1,47 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-harness-infer-doctor
+sections:
+  Implementation:
+    implement-infer-command:
+      text: >-
+        Add deterministic harness inference that scans safe repository metadata and emits a valid
+        harness draft without executing lifecycle commands.
+      status: complete
+    implement-doctor-command:
+      text: >-
+        Add harness doctor diagnostics for schema/planning failures, wrapper drift, working
+        directories, package scripts, env samples, ports, and safety policy.
+      status: complete
+    update-guidance-and-command-surface:
+      text: >-
+        Register the new commands and update harness-init guidance plus user docs for AI-assisted
+        generation and repair.
+      status: complete
+    add-regression-coverage:
+      text: >-
+        Add tests for harness inference, doctor diagnostics, command registration, and harness-init
+        skill guidance.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

@@ -129,33 +129,43 @@ review_evidence:
 #   checks:
 #     - type: roadmap-sync-check
 `,
-  "strict-spec-driven/scaffold/debug-sessions/session.yaml": `schema: strict-spec-driven/debug-session/v1
+  "strict-spec-driven/scaffold/harness-sessions/session.yaml": `schema: strict-spec-driven/harness-session/v1
 schema_version: 1
-artifact_type: debug_session
-schema_file: ../../../templates/strict-spec-driven/schemas/debug-session.yaml
-debug_session:
+artifact_type: harness_session
+schema_file: ../../../templates/strict-spec-driven/schemas/harness-session.yaml
+harness_session:
   id: "{{session_id}}"
   status: proposed
+harness:
+  declaration: .strict-spec-driven/harness.yaml
+  environment: development
 issue:
   summary: Describe the failure under investigation.
   observed_behavior: Describe what actually happens.
   expected_behavior: Describe what should happen instead.
-scope:
-  layers:
-    - frontend
-  out_of_scope: []
-targets:
-  primary-target:
-    layer: frontend
-    kind: browser_page
-    label: Primary debug target.
-    url: "http://127.0.0.1:3000"
-    notes: []
+selected_components: []
+lifecycle_evidence:
+  plan:
+    command: strict-spec-driven harness-plan --environment development
+    status: not_run
+    evidence: []
+  start:
+    command: strict-spec-driven harness-start --environment development
+    status: not_run
+    evidence: []
+  status:
+    command: strict-spec-driven harness-status
+    status: not_run
+    evidence: []
+  logs: []
+  stop:
+    command: strict-spec-driven harness-stop
+    status: not_run
+    evidence: []
 reproduction:
   preconditions: []
   steps:
     - id: reproduce
-      target: primary-target
       action: Reproduce the failure.
       expected: The failure is visible or captured in evidence.
   expected_failure: Describe the expected failing observation.
@@ -166,32 +176,6 @@ hypotheses: []
 findings: []
 human_checkpoints: []
 manual_actions: []
-cdp_health:
-  required: false
-  checks: []
-dev_session:
-  declaration: .strict-spec-driven/dev-session.yaml
-  services: []
-  lifecycle:
-    plan:
-      command: strict-spec-driven dev-session-plan
-      status: not_run
-      evidence: []
-    start:
-      command: strict-spec-driven dev-session-start
-      status: not_run
-      evidence: []
-    status:
-      command: strict-spec-driven dev-session-status
-      status: not_run
-      evidence: []
-    logs: []
-    stop:
-      command: strict-spec-driven dev-session-stop
-      status: not_run
-      evidence: []
-    cleanup_status: not_started
-  unavailable_conditions: []
 replay:
   commands: []
 verification:
@@ -199,35 +183,45 @@ verification:
   steps: []
   evidence: []
 `,
-  "strict-spec-driven/scaffold/dev-session.yaml": `schema: strict-spec-driven/dev-session/v1
+  "strict-spec-driven/scaffold/harness.yaml": `schema: strict-spec-driven/harness/v1
 schema_version: 1
-artifact_type: dev_session
-schema_file: templates/strict-spec-driven/schemas/dev-session.yaml
-session:
+artifact_type: harness
+schema_file: templates/strict-spec-driven/schemas/harness.yaml
+harness:
   id: default
-  description: Replace the sample values with this repository's local development session details.
-  services:
-    app:
-      description: Replace with the primary local development service for this project.
-      command: replace-with-project-dev-command
-      working_directory: "."
-      environment:
-        required: []
-        optional: []
-      urls: []
-      ports: []
-      readiness:
-        type: manual
-        timeout_seconds: 60
-        interval_seconds: 5
-        notes:
-          - Replace manual readiness with HTTP or TCP readiness when known.
-      browser_targets: []
-      cleanup:
-        mode: none
-        grace_period_seconds: 0
-      unavailable_conditions: []
-  browser_targets: {}
+  description: Replace the sample values with this repository's harness environments and components.
+  environments:
+    development:
+      kind: development
+      description: Local development environment.
+      components:
+        app:
+          type: backend
+          description: Replace with the primary local component for this project.
+          working_directory: "."
+          depends_on: []
+          environment:
+            required: []
+            optional: []
+          urls: []
+          ports: []
+          readiness:
+            type: manual
+            timeout_seconds: 60
+            interval_seconds: 5
+            notes:
+              - Replace manual readiness with HTTP or TCP readiness when known.
+          operations:
+            start:
+              mode: manual
+            stop:
+              mode: manual
+            status:
+              mode: manual
+            logs:
+              mode: manual
+          evidence_labels: []
+          unavailable_conditions: []
 `,
   "strict-spec-driven/scaffold/roadmap/INDEX.yaml": `schema: strict-spec-driven/roadmap-index/v2
 schema_version: 2
@@ -423,648 +417,6 @@ json_schema:
         planned_change:
           type: string
 `,
-  "strict-spec-driven/schemas/debug-session.yaml": `schema: strict-spec-driven/schema/v1
-schema_version: 1
-schema_id: strict-spec-driven/debug-session/v1
-artifact_type: debug_session
-artifact_name: debug-session
-description: Strict YAML debug-session investigation artifact.
-example_ref: ../../../examples/strict-spec-driven/debug-session.yaml
-json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
-  type: object
-  additionalProperties: false
-  required:
-    - schema
-    - schema_version
-    - artifact_type
-    - schema_file
-    - debug_session
-    - issue
-    - scope
-    - targets
-    - reproduction
-    - evidence
-    - hypotheses
-    - findings
-    - human_checkpoints
-    - manual_actions
-    - cdp_health
-    - replay
-    - verification
-  properties:
-    schema:
-      type: string
-      const: strict-spec-driven/debug-session/v1
-    schema_version:
-      type: integer
-      const: 1
-    artifact_type:
-      type: string
-      const: debug_session
-    schema_file:
-      type: string
-      minLength: 1
-    debug_session:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - status
-      properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        status:
-          type: string
-          enum:
-            - proposed
-            - reproducing
-            - capturing
-            - localizing
-            - waiting_for_human
-            - verifying
-            - resolved
-            - blocked
-        owner:
-          type: string
-          minLength: 1
-        created_at:
-          type: string
-          format: date-time
-    issue:
-      type: object
-      additionalProperties: false
-      required:
-        - summary
-        - observed_behavior
-        - expected_behavior
-      properties:
-        summary:
-          type: string
-          minLength: 1
-        observed_behavior:
-          type: string
-          minLength: 1
-        expected_behavior:
-          type: string
-          minLength: 1
-    scope:
-      type: object
-      additionalProperties: false
-      required:
-        - layers
-        - out_of_scope
-      properties:
-        layers:
-          type: array
-          minItems: 1
-          uniqueItems: true
-          items:
-            type: string
-            enum:
-              - web_api
-              - frontend
-              - electron
-              - cdp_access
-        out_of_scope:
-          type: array
-          items:
-            type: string
-            minLength: 1
-    targets:
-      type: object
-      additionalProperties: false
-      minProperties: 1
-      patternProperties:
-        "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
-          type: object
-          additionalProperties: false
-          required:
-            - layer
-            - kind
-            - label
-            - notes
-          properties:
-            layer:
-              type: string
-              enum:
-                - web_api
-                - frontend
-                - electron
-                - cdp_access
-            kind:
-              type: string
-              enum:
-                - http_endpoint
-                - browser_page
-                - electron_app
-                - cdp_target
-            label:
-              type: string
-              minLength: 1
-            url:
-              type: string
-              minLength: 1
-            command:
-              type: string
-              minLength: 1
-            cdp_endpoint:
-              type: string
-              minLength: 1
-            notes:
-              type: array
-              items:
-                type: string
-                minLength: 1
-    reproduction:
-      type: object
-      additionalProperties: false
-      required:
-        - preconditions
-        - steps
-        - expected_failure
-      properties:
-        preconditions:
-          type: array
-          items:
-            type: string
-            minLength: 1
-        steps:
-          type: array
-          minItems: 1
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - id
-              - action
-            properties:
-              id:
-                type: string
-                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-              action:
-                type: string
-                minLength: 1
-              expected:
-                type: string
-                minLength: 1
-              target:
-                type: string
-                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        expected_failure:
-          type: string
-          minLength: 1
-    evidence:
-      type: object
-      additionalProperties: false
-      required:
-        - directory
-        - entries
-      properties:
-        directory:
-          type: string
-          minLength: 1
-        entries:
-          type: array
-          items:
-            $ref: "#/definitions/evidence_entry"
-    hypotheses:
-      type: array
-      items:
-        type: object
-        additionalProperties: false
-        required:
-          - id
-          - statement
-          - layer
-          - status
-          - evidence
-        properties:
-          id:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-          statement:
-            type: string
-            minLength: 1
-          layer:
-            $ref: "#/definitions/layer"
-          status:
-            type: string
-            enum:
-              - open
-              - supported
-              - rejected
-              - verified
-          evidence:
-            type: array
-            items:
-              type: string
-              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    findings:
-      type: array
-      items:
-        type: object
-        additionalProperties: false
-        required:
-          - id
-          - layer
-          - summary
-          - status
-          - evidence
-        properties:
-          id:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-          layer:
-            $ref: "#/definitions/layer"
-          target:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-          summary:
-            type: string
-            minLength: 1
-          status:
-            type: string
-            enum:
-              - suspected
-              - confirmed
-              - fixed
-              - wont_fix
-          evidence:
-            type: array
-            items:
-              type: string
-              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    human_checkpoints:
-      type: array
-      items:
-        type: object
-        additionalProperties: false
-        required:
-          - id
-          - reason
-          - requested_action
-          - sensitive
-          - status
-          - resume_condition
-          - evidence_before
-          - evidence_after
-        properties:
-          id:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-          reason:
-            type: string
-            minLength: 1
-          requested_action:
-            type: string
-            minLength: 1
-          sensitive:
-            type: boolean
-          status:
-            type: string
-            enum:
-              - pending
-              - completed
-              - skipped
-          resume_condition:
-            type: string
-            minLength: 1
-          evidence_before:
-            type: array
-            items:
-              type: string
-              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-          evidence_after:
-            type: array
-            items:
-              type: string
-              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    manual_actions:
-      type: array
-      items:
-        type: object
-        additionalProperties: false
-        required:
-          - id
-          - checkpoint
-          - actor
-          - summary
-          - secrets_recorded
-          - status
-          - evidence
-        properties:
-          id:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-          checkpoint:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-          actor:
-            type: string
-            enum:
-              - human
-              - agent
-          summary:
-            type: string
-            minLength: 1
-          secrets_recorded:
-            type: boolean
-            const: false
-          status:
-            type: string
-            enum:
-              - completed
-              - skipped
-          evidence:
-            type: array
-            items:
-              type: string
-              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    cdp_health:
-      type: object
-      additionalProperties: false
-      required:
-        - required
-        - checks
-      properties:
-        required:
-          type: boolean
-        checks:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - id
-              - target
-              - status
-              - notes
-            properties:
-              id:
-                type: string
-                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-              target:
-                type: string
-                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-              status:
-                type: string
-                enum:
-                  - not_checked
-                  - ok
-                  - failed
-                  - unavailable
-              endpoint:
-                type: string
-                minLength: 1
-              selected_target:
-                type: string
-                minLength: 1
-              notes:
-                type: array
-                items:
-                  type: string
-                  minLength: 1
-    dev_session:
-      type: object
-      additionalProperties: false
-      required:
-        - declaration
-        - services
-        - lifecycle
-        - unavailable_conditions
-      properties:
-        declaration:
-          type: string
-          minLength: 1
-        session_id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        services:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        lifecycle:
-          type: object
-          additionalProperties: false
-          required:
-            - plan
-            - start
-            - status
-            - logs
-            - stop
-            - cleanup_status
-          properties:
-            plan:
-              $ref: "#/definitions/lifecycle_command"
-            start:
-              $ref: "#/definitions/lifecycle_command"
-            status:
-              $ref: "#/definitions/lifecycle_command"
-            logs:
-              type: array
-              items:
-                type: object
-                additionalProperties: false
-                required:
-                  - service
-                  - command
-                  - evidence
-                properties:
-                  service:
-                    type: string
-                    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-                  command:
-                    type: string
-                    minLength: 1
-                  evidence:
-                    type: array
-                    items:
-                      type: string
-                      pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-            stop:
-              $ref: "#/definitions/lifecycle_command"
-            cleanup_status:
-              type: string
-              enum:
-                - not_started
-                - not_needed
-                - pending
-                - stopped
-                - failed
-                - blocked
-        unavailable_conditions:
-          type: array
-          items:
-            type: string
-            minLength: 1
-    replay:
-      type: object
-      additionalProperties: false
-      required:
-        - commands
-      properties:
-        commands:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - id
-              - command
-              - working_directory
-              - layer
-              - expected_result
-            properties:
-              id:
-                type: string
-                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-              command:
-                type: string
-                minLength: 1
-              working_directory:
-                type: string
-                minLength: 1
-              layer:
-                $ref: "#/definitions/layer"
-              target:
-                type: string
-                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-              expected_result:
-                type: string
-                minLength: 1
-    verification:
-      type: object
-      additionalProperties: false
-      required:
-        - status
-        - steps
-        - evidence
-      properties:
-        status:
-          type: string
-          enum:
-            - not_started
-            - pending
-            - passed
-            - failed
-            - blocked
-        steps:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - id
-              - action
-              - expected
-              - status
-            properties:
-              id:
-                type: string
-                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-              action:
-                type: string
-                minLength: 1
-              expected:
-                type: string
-                minLength: 1
-              status:
-                type: string
-                enum:
-                  - pending
-                  - passed
-                  - failed
-                  - blocked
-        evidence:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        conclusion:
-          type: string
-          minLength: 1
-  definitions:
-    layer:
-      type: string
-      enum:
-        - web_api
-        - frontend
-        - electron
-        - cdp_access
-    evidence_entry:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - type
-        - path
-        - layer
-        - description
-        - redacted
-      properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        type:
-          type: string
-          enum:
-            - screenshot
-            - network_log
-            - console_log
-            - api_trace
-            - dom_snapshot
-            - cdp_snapshot
-            - video
-            - text_log
-            - other
-        path:
-          type: string
-          minLength: 1
-        layer:
-          $ref: "#/definitions/layer"
-        target:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        description:
-          type: string
-          minLength: 1
-        redacted:
-          type: boolean
-        captured_at:
-          type: string
-          format: date-time
-    lifecycle_command:
-      type: object
-      additionalProperties: false
-      required:
-        - command
-        - status
-        - evidence
-      properties:
-        command:
-          type: string
-          minLength: 1
-        status:
-          type: string
-          enum:
-            - not_run
-            - passed
-            - failed
-            - blocked
-        evidence:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        notes:
-          type: array
-          items:
-            type: string
-            minLength: 1
-`,
   "strict-spec-driven/schemas/delta-spec.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
 schema_id: strict-spec-driven/delta-spec/v1
@@ -1192,13 +544,13 @@ json_schema:
               reason:
                 type: string
 `,
-  "strict-spec-driven/schemas/dev-session.yaml": `schema: strict-spec-driven/schema/v1
+  "strict-spec-driven/schemas/harness-session.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
-schema_id: strict-spec-driven/dev-session/v1
-artifact_type: dev_session
-artifact_name: dev-session
-description: Strict YAML development-session declaration artifact.
-example_ref: ../../../examples/strict-spec-driven/dev-session.yaml
+schema_id: strict-spec-driven/harness-session/v1
+artifact_type: harness_session
+artifact_name: harness-session
+description: Strict YAML harness investigation session artifact.
+example_ref: ../../../examples/strict-spec-driven/harness-session.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object
@@ -1208,26 +560,446 @@ json_schema:
     - schema_version
     - artifact_type
     - schema_file
-    - session
+    - harness_session
+    - harness
+    - issue
+    - selected_components
+    - lifecycle_evidence
+    - reproduction
+    - evidence
+    - hypotheses
+    - findings
+    - human_checkpoints
+    - manual_actions
+    - replay
+    - verification
   properties:
     schema:
       type: string
-      const: strict-spec-driven/dev-session/v1
+      const: strict-spec-driven/harness-session/v1
     schema_version:
       type: integer
       const: 1
     artifact_type:
       type: string
-      const: dev_session
+      const: harness_session
     schema_file:
       type: string
-    session:
+      minLength: 1
+    harness_session:
       type: object
       additionalProperties: false
       required:
         - id
-        - services
-        - browser_targets
+        - status
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        status:
+          type: string
+          enum:
+            - proposed
+            - reproducing
+            - capturing
+            - localizing
+            - waiting_for_human
+            - verifying
+            - resolved
+            - blocked
+        owner:
+          type: string
+          minLength: 1
+        created_at:
+          type: string
+          format: date-time
+    harness:
+      type: object
+      additionalProperties: false
+      required:
+        - declaration
+        - environment
+      properties:
+        declaration:
+          type: string
+          minLength: 1
+        environment:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    issue:
+      type: object
+      additionalProperties: false
+      required:
+        - summary
+        - observed_behavior
+        - expected_behavior
+      properties:
+        summary:
+          type: string
+          minLength: 1
+        observed_behavior:
+          type: string
+          minLength: 1
+        expected_behavior:
+          type: string
+          minLength: 1
+    selected_components:
+      type: array
+      items:
+        type: string
+        pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    lifecycle_evidence:
+      type: object
+      additionalProperties: false
+      required:
+        - plan
+        - start
+        - status
+        - logs
+        - stop
+      properties:
+        plan:
+          $ref: "#/definitions/command_evidence"
+        start:
+          $ref: "#/definitions/command_evidence"
+        status:
+          $ref: "#/definitions/command_evidence"
+        logs:
+          type: array
+          items:
+            $ref: "#/definitions/command_evidence"
+        stop:
+          $ref: "#/definitions/command_evidence"
+    reproduction:
+      type: object
+      additionalProperties: false
+      required:
+        - preconditions
+        - steps
+        - expected_failure
+      properties:
+        preconditions:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        steps:
+          type: array
+          items:
+            $ref: "#/definitions/step"
+        expected_failure:
+          type: string
+          minLength: 1
+    evidence:
+      type: object
+      additionalProperties: false
+      required:
+        - directory
+        - entries
+      properties:
+        directory:
+          type: string
+          minLength: 1
+        entries:
+          type: array
+          items:
+            $ref: "#/definitions/evidence_entry"
+    hypotheses:
+      type: array
+      items:
+        $ref: "#/definitions/hypothesis"
+    findings:
+      type: array
+      items:
+        $ref: "#/definitions/finding"
+    human_checkpoints:
+      type: array
+      items:
+        $ref: "#/definitions/human_checkpoint"
+    manual_actions:
+      type: array
+      items:
+        $ref: "#/definitions/manual_action"
+    replay:
+      type: object
+      additionalProperties: false
+      required:
+        - commands
+      properties:
+        commands:
+          type: array
+          items:
+            type: string
+            minLength: 1
+    verification:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - steps
+        - evidence
+      properties:
+        status:
+          type: string
+          enum:
+            - not_started
+            - passed
+            - failed
+            - blocked
+        steps:
+          type: array
+          items:
+            $ref: "#/definitions/step"
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+  definitions:
+    command_evidence:
+      type: object
+      additionalProperties: false
+      required:
+        - command
+        - status
+        - evidence
+      properties:
+        command:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+            - not_run
+            - passed
+            - failed
+            - blocked
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    step:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - action
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        action:
+          type: string
+          minLength: 1
+        expected:
+          type: string
+          minLength: 1
+        target:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    evidence_entry:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - path
+        - description
+        - contains_secrets
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        kind:
+          type: string
+          enum:
+            - log
+            - screenshot
+            - trace
+            - command_output
+            - status
+            - note
+        path:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          minLength: 1
+        contains_secrets:
+          type: boolean
+          const: false
+    hypothesis:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - statement
+        - status
+        - evidence
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        statement:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+            - open
+            - supported
+            - rejected
+            - verified
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    finding:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - summary
+        - status
+        - evidence
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        target:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        summary:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+            - suspected
+            - confirmed
+            - fixed
+            - wont_fix
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    human_checkpoint:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - reason
+        - requested_action
+        - sensitive
+        - status
+        - resume_condition
+        - evidence_before
+        - evidence_after
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        reason:
+          type: string
+          minLength: 1
+        requested_action:
+          type: string
+          minLength: 1
+        sensitive:
+          type: boolean
+        status:
+          type: string
+          enum:
+            - pending
+            - completed
+            - skipped
+        resume_condition:
+          type: string
+          minLength: 1
+        evidence_before:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        evidence_after:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    manual_action:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - actor
+        - summary
+        - secrets_recorded
+        - status
+        - evidence
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        actor:
+          type: string
+          minLength: 1
+        summary:
+          type: string
+          minLength: 1
+        secrets_recorded:
+          type: boolean
+          const: false
+        status:
+          type: string
+          enum:
+            - planned
+            - completed
+            - skipped
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+`,
+  "strict-spec-driven/schemas/harness.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/harness/v1
+artifact_type: harness
+artifact_name: harness
+description: Strict YAML harness declaration artifact for environments, components, operations, safety, and evidence targets.
+example_ref: ../../../examples/strict-spec-driven/harness.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - harness
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/harness/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: harness
+    schema_file:
+      type: string
+      minLength: 1
+    harness:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - environments
       properties:
         id:
           type: string
@@ -1235,7 +1007,7 @@ json_schema:
         description:
           type: string
           minLength: 1
-        services:
+        environments:
           type: object
           minProperties: 1
           additionalProperties: false
@@ -1244,185 +1016,198 @@ json_schema:
               type: object
               additionalProperties: false
               required:
-                - command
-                - working_directory
-                - environment
-                - urls
-                - ports
-                - readiness
-                - browser_targets
-                - cleanup
-                - unavailable_conditions
+                - kind
+                - components
               properties:
+                kind:
+                  type: string
+                  enum:
+                    - development
+                    - production
                 description:
                   type: string
                   minLength: 1
-                command:
-                  type: string
-                  minLength: 1
-                working_directory:
-                  type: string
-                  minLength: 1
-                environment:
+                components:
                   type: object
+                  minProperties: 1
                   additionalProperties: false
-                  required:
-                    - required
-                    - optional
-                  properties:
-                    required:
-                      type: array
-                      items:
-                        type: string
-                        pattern: "^[A-Z][A-Z0-9_]*$"
-                    optional:
-                      type: array
-                      items:
-                        type: string
-                        pattern: "^[A-Z][A-Z0-9_]*$"
-                urls:
-                  type: array
-                  items:
-                    type: string
-                    format: uri
-                ports:
-                  type: array
-                  items:
-                    type: integer
-                    minimum: 1
-                    maximum: 65535
-                readiness:
-                  type: object
-                  additionalProperties: false
-                  required:
-                    - type
-                    - timeout_seconds
-                    - interval_seconds
-                  properties:
-                    type:
-                      type: string
-                      enum:
-                        - http
-                        - tcp
-                        - manual
-                    url:
-                      type: string
-                      format: uri
-                    port:
-                      type: integer
-                      minimum: 1
-                      maximum: 65535
-                    timeout_seconds:
-                      type: integer
-                      minimum: 1
-                    interval_seconds:
-                      type: integer
-                      minimum: 1
-                    notes:
-                      type: array
-                      items:
-                        type: string
-                        minLength: 1
-                  allOf:
-                    - if:
-                        properties:
-                          type:
-                            const: http
-                      then:
-                        required:
-                          - url
-                    - if:
-                        properties:
-                          type:
-                            const: tcp
-                      then:
-                        required:
-                          - port
-                browser_targets:
-                  type: array
-                  items:
-                    type: string
-                    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-                cleanup:
-                  type: object
-                  additionalProperties: false
-                  required:
-                    - mode
-                    - grace_period_seconds
-                  properties:
-                    mode:
-                      type: string
-                      enum:
-                        - signal
-                        - command
-                        - none
-                    signal:
-                      type: string
-                      minLength: 1
-                    command:
-                      type: string
-                      minLength: 1
-                    grace_period_seconds:
-                      type: integer
-                      minimum: 0
-                  allOf:
-                    - if:
-                        properties:
-                          mode:
-                            const: signal
-                      then:
-                        required:
-                          - signal
-                    - if:
-                        properties:
-                          mode:
-                            const: command
-                      then:
-                        required:
-                          - command
-                unavailable_conditions:
-                  type: array
-                  items:
-                    type: string
-                    minLength: 1
-        browser_targets:
+                  patternProperties:
+                    "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
+                      $ref: "#/definitions/component"
+  definitions:
+    operation:
+      type: object
+      additionalProperties: false
+      required:
+        - mode
+      properties:
+        mode:
+          type: string
+          enum:
+            - script
+            - readonly
+            - manual
+            - disabled
+        command:
+          type: string
+          minLength: 1
+        requires_confirmation:
+          type: boolean
+        allow_stateful_lifecycle:
+          type: boolean
+      allOf:
+        - if:
+            properties:
+              mode:
+                const: script
+          then:
+            required:
+              - command
+    readiness:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - timeout_seconds
+        - interval_seconds
+      properties:
+        type:
+          type: string
+          enum:
+            - http
+            - tcp
+            - manual
+        url:
+          type: string
+          format: uri
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        timeout_seconds:
+          type: integer
+          minimum: 1
+        interval_seconds:
+          type: integer
+          minimum: 1
+        notes:
+          type: array
+          items:
+            type: string
+            minLength: 1
+      allOf:
+        - if:
+            properties:
+              type:
+                const: http
+          then:
+            required:
+              - url
+        - if:
+            properties:
+              type:
+                const: tcp
+          then:
+            required:
+              - port
+    component:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - working_directory
+        - depends_on
+        - environment
+        - urls
+        - ports
+        - readiness
+        - operations
+        - evidence_labels
+        - unavailable_conditions
+      properties:
+        type:
+          type: string
+          enum:
+            - frontend
+            - backend
+            - database
+            - cache
+            - worker
+            - queue
+            - object_storage
+            - external_resource
+            - browser
+            - electron
+            - cdp
+        description:
+          type: string
+          minLength: 1
+        working_directory:
+          type: string
+          minLength: 1
+        depends_on:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        environment:
           type: object
           additionalProperties: false
-          patternProperties:
-            "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
-              type: object
-              additionalProperties: false
-              required:
-                - url
-                - smoke_paths
-                - evidence_labels
-                - local_only
-              properties:
-                url:
-                  type: string
-                  format: uri
-                smoke_paths:
-                  type: array
-                  minItems: 1
-                  items:
-                    type: string
-                    minLength: 1
-                evidence_labels:
-                  type: array
-                  minItems: 1
-                  items:
-                    type: string
-                    minLength: 1
-                local_only:
-                  type: boolean
-                service:
-                  type: string
-                  pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-                notes:
-                  type: array
-                  items:
-                    type: string
-                    minLength: 1
+          required:
+            - required
+            - optional
+          properties:
+            required:
+              type: array
+              items:
+                type: string
+                pattern: "^[A-Z][A-Z0-9_]*$"
+            optional:
+              type: array
+              items:
+                type: string
+                pattern: "^[A-Z][A-Z0-9_]*$"
+        urls:
+          type: array
+          items:
+            type: string
+            format: uri
+        ports:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+            maximum: 65535
+        readiness:
+          $ref: "#/definitions/readiness"
+        operations:
+          type: object
+          additionalProperties: false
+          required:
+            - start
+            - stop
+            - status
+            - logs
+          properties:
+            start:
+              $ref: "#/definitions/operation"
+            stop:
+              $ref: "#/definitions/operation"
+            status:
+              $ref: "#/definitions/operation"
+            logs:
+              $ref: "#/definitions/operation"
+        evidence_labels:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        unavailable_conditions:
+          type: array
+          items:
+            type: string
+            minLength: 1
 `,
   "strict-spec-driven/schemas/main-spec.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -1886,32 +1671,32 @@ entries:
       notes:
         - Standalone planned changes are the normal roadmap work-item surface; materialize legacy inline milestone entries before running ordinary roadmap commands.
         - Optional team metadata is advisory coordination data and is not a locking or permission mechanism.
-  - schema_id: strict-spec-driven/dev-session/v1
+  - schema_id: strict-spec-driven/harness/v1
     schema_version: 1
-    artifact_type: dev_session
-    artifact_name: dev-session
-    schema_file: dev-session.yaml
-    primary_example: ../../../examples/strict-spec-driven/dev-session.yaml
+    artifact_type: harness
+    artifact_name: harness
+    schema_file: harness.yaml
+    primary_example: ../../../examples/strict-spec-driven/harness.yaml
     compatibility:
       status: current
       introduced_in: 1
       supersedes: []
       compatible_with: []
       notes:
-        - Development-session artifacts declare local services, browser targets, and cleanup guidance without storing secret values.
-  - schema_id: strict-spec-driven/debug-session/v1
+        - Harness declarations replace development-session artifacts with mixed environment and component operation contracts.
+  - schema_id: strict-spec-driven/harness-session/v1
     schema_version: 1
-    artifact_type: debug_session
-    artifact_name: debug-session
-    schema_file: debug-session.yaml
-    primary_example: ../../../examples/strict-spec-driven/debug-session.yaml
+    artifact_type: harness_session
+    artifact_name: harness-session
+    schema_file: harness-session.yaml
+    primary_example: ../../../examples/strict-spec-driven/harness-session.yaml
     compatibility:
       status: current
       introduced_in: 1
       supersedes: []
       compatible_with: []
       notes:
-        - Debug-session artifacts record local investigations, evidence, layer localization, human checkpoints, manual actions, CDP health, replay, and verification without storing secret values.
+        - Harness-session artifacts replace debug-session investigation records.
   - schema_id: strict-spec-driven/schema-registry/v1
     schema_version: 1
     artifact_type: schema_registry

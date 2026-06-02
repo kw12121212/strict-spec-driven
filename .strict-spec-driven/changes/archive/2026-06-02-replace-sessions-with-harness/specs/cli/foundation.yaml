@@ -1,0 +1,83 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/harness.ts
+    - src/cli/cmd-harness.ts
+    - src/cli/entrypoint.ts
+    - scripts/strict-spec-driven.js
+    - skills/strict-spec-harness-init/SKILL.md
+    - skills/strict-spec-harness-session/SKILL.md
+  tests:
+    - test/suites/harness-plan.ts
+    - test/suites/harness-lifecycle.ts
+    - test/suites/harness-session.ts
+operations:
+  ADDED:
+    cli-harness-script-managed-workflow:
+      strength: MUST
+      statement: >-
+        The system MUST provide a script-first harness workflow that validates harness declarations,
+        generates or verifies thin project-local scripts under the scripts/harness-* namespace,
+        manages declared environment components through those scripts, and creates, validates, and
+        archives harness sessions as the replacement for dev-session and debug-session commands
+        without backward-compatible command aliases.
+      scenarios:
+        harness-scripts-manage-selected-environment-components:
+          - GIVEN: >-
+              a strict project contains a valid harness declaration with development and production
+              environments and generated project-local harness scripts
+          - WHEN: >-
+              an operator invokes the harness scripts with an environment and optional component
+              selection
+          - THEN: >-
+              the workflow plans or runs only the selected declared components in dependency order,
+              reports deterministic status/log evidence, enforces declared operation capabilities
+              and safety policy, and records session evidence when a harness session is active
+  MODIFIED: {}
+  REMOVED:
+    cli-dev-session-bundled-assets:
+      reason: Superseded by the unified harness declaration and bundled harness contract assets.
+    cli-dev-session-plan-command:
+      reason: Superseded by harness-plan without backward-compatible dev-session command aliases.
+    cli-dev-session-plan-diagnostics:
+      reason: Superseded by harness-plan diagnostics against .strict-spec-driven/harness.yaml.
+    cli-dev-session-start-command:
+      reason: Superseded by harness-start for declared harness components.
+    cli-dev-session-status-command:
+      reason: Superseded by harness-status for managed harness runtime state.
+    cli-dev-session-logs-command:
+      reason: Superseded by harness-logs for managed harness component logs.
+    cli-dev-session-stop-command:
+      reason: Superseded by harness-stop for managed harness runtime cleanup.
+    cli-dev-session-trial-command:
+      reason: Superseded by harness evidence and session records rather than browser-trial guidance.
+    dev-session-scripts-reads-declaration:
+      reason: Superseded by harness script generation and verification against the harness declaration.
+    req-dev-session-real-project-fixture-regression:
+      reason: Superseded by harness plan, lifecycle, contracts, and session regression coverage.
+    cli-dev-session-skill-content-validation-smoke-coverage:
+      reason: Superseded by harness guidance validation in core strict skills.
+    cli-dev-session-documentation-smoke-coverage:
+      reason: Superseded by harness documentation coverage.
+    dev-session-init-skill-bootstrap-and-validation:
+      reason: Superseded by strict-spec-harness-init.
+    cli-debug-session-create:
+      reason: Superseded by harness-session create.
+    cli-debug-session-validate:
+      reason: Superseded by harness-session validate.
+    skill-debug-session-guidance:
+      reason: Superseded by strict-spec-harness-session.
+    skill-debug-session-human-pause:
+      reason: Superseded by harness-session human checkpoint and manual action guidance.
+    cli-debug-session-create-and-validate:
+      reason: Superseded by harness-session create and validate.
+    cli-debug-session-archive:
+      reason: Superseded by harness-session archive.
+    skill-debug-session-archive:
+      reason: Superseded by harness-session archive guidance.
+    skill-debug-session-to-change:
+      reason: Superseded by harness-session evidence flow into ordinary strict change workflows.

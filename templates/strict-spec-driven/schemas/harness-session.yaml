@@ -1,0 +1,419 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/harness-session/v1
+artifact_type: harness_session
+artifact_name: harness-session
+description: Strict YAML harness investigation session artifact.
+example_ref: ../../../examples/strict-spec-driven/harness-session.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - harness_session
+    - harness
+    - issue
+    - selected_components
+    - lifecycle_evidence
+    - reproduction
+    - evidence
+    - hypotheses
+    - findings
+    - human_checkpoints
+    - manual_actions
+    - replay
+    - verification
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/harness-session/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: harness_session
+    schema_file:
+      type: string
+      minLength: 1
+    harness_session:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        status:
+          type: string
+          enum:
+            - proposed
+            - reproducing
+            - capturing
+            - localizing
+            - waiting_for_human
+            - verifying
+            - resolved
+            - blocked
+        owner:
+          type: string
+          minLength: 1
+        created_at:
+          type: string
+          format: date-time
+    harness:
+      type: object
+      additionalProperties: false
+      required:
+        - declaration
+        - environment
+      properties:
+        declaration:
+          type: string
+          minLength: 1
+        environment:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    issue:
+      type: object
+      additionalProperties: false
+      required:
+        - summary
+        - observed_behavior
+        - expected_behavior
+      properties:
+        summary:
+          type: string
+          minLength: 1
+        observed_behavior:
+          type: string
+          minLength: 1
+        expected_behavior:
+          type: string
+          minLength: 1
+    selected_components:
+      type: array
+      items:
+        type: string
+        pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    lifecycle_evidence:
+      type: object
+      additionalProperties: false
+      required:
+        - plan
+        - start
+        - status
+        - logs
+        - stop
+      properties:
+        plan:
+          $ref: "#/definitions/command_evidence"
+        start:
+          $ref: "#/definitions/command_evidence"
+        status:
+          $ref: "#/definitions/command_evidence"
+        logs:
+          type: array
+          items:
+            $ref: "#/definitions/command_evidence"
+        stop:
+          $ref: "#/definitions/command_evidence"
+    reproduction:
+      type: object
+      additionalProperties: false
+      required:
+        - preconditions
+        - steps
+        - expected_failure
+      properties:
+        preconditions:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        steps:
+          type: array
+          items:
+            $ref: "#/definitions/step"
+        expected_failure:
+          type: string
+          minLength: 1
+    evidence:
+      type: object
+      additionalProperties: false
+      required:
+        - directory
+        - entries
+      properties:
+        directory:
+          type: string
+          minLength: 1
+        entries:
+          type: array
+          items:
+            $ref: "#/definitions/evidence_entry"
+    hypotheses:
+      type: array
+      items:
+        $ref: "#/definitions/hypothesis"
+    findings:
+      type: array
+      items:
+        $ref: "#/definitions/finding"
+    human_checkpoints:
+      type: array
+      items:
+        $ref: "#/definitions/human_checkpoint"
+    manual_actions:
+      type: array
+      items:
+        $ref: "#/definitions/manual_action"
+    replay:
+      type: object
+      additionalProperties: false
+      required:
+        - commands
+      properties:
+        commands:
+          type: array
+          items:
+            type: string
+            minLength: 1
+    verification:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - steps
+        - evidence
+      properties:
+        status:
+          type: string
+          enum:
+            - not_started
+            - passed
+            - failed
+            - blocked
+        steps:
+          type: array
+          items:
+            $ref: "#/definitions/step"
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+  definitions:
+    command_evidence:
+      type: object
+      additionalProperties: false
+      required:
+        - command
+        - status
+        - evidence
+      properties:
+        command:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+            - not_run
+            - passed
+            - failed
+            - blocked
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    step:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - action
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        action:
+          type: string
+          minLength: 1
+        expected:
+          type: string
+          minLength: 1
+        target:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    evidence_entry:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - path
+        - description
+        - contains_secrets
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        kind:
+          type: string
+          enum:
+            - log
+            - screenshot
+            - trace
+            - command_output
+            - status
+            - note
+        path:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          minLength: 1
+        contains_secrets:
+          type: boolean
+          const: false
+    hypothesis:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - statement
+        - status
+        - evidence
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        statement:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+            - open
+            - supported
+            - rejected
+            - verified
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    finding:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - summary
+        - status
+        - evidence
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        target:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        summary:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+            - suspected
+            - confirmed
+            - fixed
+            - wont_fix
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    human_checkpoint:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - reason
+        - requested_action
+        - sensitive
+        - status
+        - resume_condition
+        - evidence_before
+        - evidence_after
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        reason:
+          type: string
+          minLength: 1
+        requested_action:
+          type: string
+          minLength: 1
+        sensitive:
+          type: boolean
+        status:
+          type: string
+          enum:
+            - pending
+            - completed
+            - skipped
+        resume_condition:
+          type: string
+          minLength: 1
+        evidence_before:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        evidence_after:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    manual_action:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - actor
+        - summary
+        - secrets_recorded
+        - status
+        - evidence
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        actor:
+          type: string
+          minLength: 1
+        summary:
+          type: string
+          minLength: 1
+        secrets_recorded:
+          type: boolean
+          const: false
+        status:
+          type: string
+          enum:
+            - planned
+            - completed
+            - skipped
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"

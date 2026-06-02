@@ -56,8 +56,13 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 | `schema-show <name>` | Print a bundled strict schema asset |
 | `template-list` | List bundled template and schema asset keys |
 | `template-show <key>` | Print a bundled template or schema asset |
-| `debug-session-create <id>` | Create a strict debug-session artifact and evidence directory |
-| `debug-session-validate <id\|path>` | Validate a strict debug-session artifact |
+| `harness-infer` | Draft a safe harness declaration from repository metadata |
+| `harness-doctor` | Diagnose harness declaration, wrapper, environment, and safety issues |
+| `harness-plan` | Validate and derive a deterministic harness plan |
+| `harness-start` / `harness-stop` | Manage declared executable harness components |
+| `harness-status` / `harness-logs` | Inspect managed harness runtime state and logs |
+| `harness-scripts <generate\|verify>` | Generate or verify project-local `scripts/harness-*` wrappers |
+| `harness-session <create\|validate\|archive>` | Manage structured harness investigation sessions |
 
 ### Skills: `strict-spec-*` and `strict-roadmap-*`
 
@@ -79,7 +84,8 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-spec-brainstorm` | Brainstorm a change idea before proposing |
 | `/strict-spec-modify` | Modify an existing change's artifacts |
 | `/strict-spec-cancel` | Cancel an active change |
-| `/strict-spec-debug-session` | Run a structured debugging investigation |
+| `/strict-spec-harness-init` | Create or refine `.strict-spec-driven/harness.yaml` and generated scripts |
+| `/strict-spec-harness-session` | Run a structured harness investigation |
 | `/strict-spec-simple-task` | Lightweight ad-hoc task without full lifecycle |
 | `/strict-spec-spec-edit` | Edit main spec files directly |
 | `/strict-spec-sync-specs` | Synchronize specs with code drift |
@@ -112,17 +118,11 @@ node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show change-proposal
 node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/changes/proposal.yaml
 ```
 
-## Development Sessions
+## Harness
 
-A development session declaration at `.strict-spec-driven/dev-session.yaml` tells agents what local services to start, how to wait for readiness, which browser URLs to open for smoke testing, and how to stop services cleanly — all from a single YAML file. Strict lifecycle skills check this file automatically when it exists.
+A harness declaration at `.strict-spec-driven/harness.yaml` tells agents and humans how to plan, start, stop, inspect, and investigate mixed project environments. It covers local development and production observability, typed components, dependency order, readiness, logs, status, generated `scripts/harness-*` wrappers, lifecycle safety, evidence, replay, and secret-handling rules.
 
-See [DEV_SESSIONS.md](DEV_SESSIONS.md) for the full reference: declaration syntax, schema fields, CLI commands (`dev-session-plan`, `dev-session-start`, `dev-session-status`, `dev-session-logs`, `dev-session-stop`, `dev-session-trial`), generated helper scripts, browser trial evidence, and secret-handling rules.
-
-## Debug Sessions
-
-A debug session under `.strict-spec-driven/debug-sessions/<session-id>/` records a single investigation with reproduction steps, evidence files, hypotheses, findings, human checkpoints, manual actions, dev-session lifecycle evidence, CDP health, replay commands, and verification results. It is intended for Web API, frontend, Electron desktop, and CDP-access debugging.
-
-See [DEBUG_SESSIONS.md](DEBUG_SESSIONS.md) for the artifact layout, CLI commands (`debug-session-create`, `debug-session-validate`), layer localization rules, and secret-handling guidance.
+See [HARNESS.md](HARNESS.md) for the full reference.
 
 ## Migration Boundaries
 

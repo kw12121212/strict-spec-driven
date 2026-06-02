@@ -1,0 +1,114 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: replace-sessions-with-harness
+approach:
+  - >-
+    Introduce a unified harness model with a project declaration, generated project-local scripts,
+    and session records. The declaration becomes the source of truth for environments, components,
+    dependencies, readiness, lifecycle commands, logs, status checks, safety policies, and evidence
+    targets. Harness sessions replace debug sessions by recording investigations, lifecycle
+    evidence, human checkpoints, replay, and verification against selected harness environments and
+    components.
+decisions:
+  script-first-interface:
+    decision: >-
+      Expose normal harness operation through project-local scripts generated or validated from the
+      harness declaration.
+    rationale: >-
+      Users and agents should operate one predictable script surface instead of remembering strict
+      CLI subcommands. Strict CLI commands remain useful for validation, planning, script
+      generation, and schema enforcement, while daily operation flows through scripts such as
+      scripts/harness-plan, scripts/harness-start, scripts/harness-stop, scripts/harness-status,
+      scripts/harness-logs, and scripts/harness-session.
+  mixed-environment-component-model:
+    decision: >-
+      Model harness state as environments containing typed components and resources rather than as a
+      single local service.
+    rationale: >-
+      Real projects commonly include frontend, backend, databases, caches, workers, queues, object
+      storage, external managed resources, browser targets, Electron targets, and CDP targets. A
+      component model can express dependency order, readiness, status, logs, lifecycle permissions,
+      and unavailable conditions per component across development and production.
+  replace-session-families:
+    decision: >-
+      Treat harness as the replacement for dev-session and debug-session, not an additive wrapper
+      around them.
+    rationale: >-
+      Keeping three parallel workflow families would preserve the current split and create unclear
+      ownership for lifecycle state, evidence, sessions, and skills. The confirmed direction is to
+      remove dev-session and debug-session as independent workflow families rather than maintain
+      compatibility aliases or migration behavior.
+  production-safety-policy:
+    decision: >-
+      Require explicit safety policy for production components and default production operations to
+      non-destructive or confirmation-gated behavior.
+    rationale: >-
+      Production resources can be stateful, remote, shared, or customer-facing. Harness must support
+      production observability and runbook-style operation without silently authorizing start, stop,
+      cleanup, or destructive actions.
+  capability-declaration-model:
+    decision: >-
+      Model component operations as explicit capabilities with modes and safety metadata instead of
+      deriving behavior only from component type.
+    rationale: >-
+      The same component type can be local, shared, production, managed externally, or destructive to
+      mutate. Explicit operation modes such as script, readonly, manual, and disabled let the
+      harness enforce what scripts may do without guessing from labels like database or backend.
+  thin-wrapper-scripts:
+    decision: >-
+      Generate project-local harness scripts as thin wrappers around strict harness validation and
+      execution behavior.
+    rationale: >-
+      Keeping core planning, validation, ordering, safety checks, and session recording in the
+      strict CLI reduces drift. Scripts should provide the stable user-facing entry point,
+      provenance, argument forwarding, and minimal preflight behavior.
+  phased-implementation-order:
+    decision: >-
+      Implement harness in phases: contracts and plan output first, script generation and
+      validation second, lifecycle third, and harness sessions plus session-family replacement last.
+    rationale: >-
+      The replacement spans schemas, scripts, lifecycle execution, evidence records, skills, docs,
+      and tests. Phasing keeps each layer reviewable while still belonging to one replacement
+      change.
+  unified-script-namespace:
+    decision: >-
+      Generate only the unified scripts/harness-* namespace by default, without dev-* or prod-*
+      aliases.
+    rationale: >-
+      A single namespace matches the user's script-first requirement while avoiding ambiguous alias
+      behavior and generated-script drift across environments.
+  stateful-explicit-permission:
+    decision: >-
+      Require explicit lifecycle permission before scripts may start, stop, clean up, or otherwise
+      mutate stateful components.
+    rationale: >-
+      Databases, caches, queues, object storage, and managed resources may be local, shared, or
+      production-backed. Treating declaration as permission would be unsafe for mixed environments.
+alternatives:
+  - option: Keep dev-session and debug-session as separate workflows and add harness as a wrapper.
+    reason: >-
+      The confirmed goal is complete replacement. A wrapper would preserve unclear ownership for
+      lifecycle, evidence, and session records.
+  - option: Model only local development services and leave production as documentation.
+    reason: >-
+      The confirmed harness needs to cover development and production environments, including
+      stateful and external components.
+risks:
+  - >-
+    Replacing two existing workflow families without compatibility aliases or artifact migration can
+    break current users, so documentation, skills, tests, and command listings must clearly point to
+    the new harness surface.
+  - >-
+    Production operations can be destructive or affect shared resources, so safety policy defaults
+    and confirmation gates must be explicit before executable script behavior is added.
+  - >-
+    Mixed component dependency graphs can become complex; the implementation should validate
+    dependency references and preserve deterministic ordering.
+  - >-
+    Generated scripts can drift from harness.yaml unless they include provenance and can be
+    regenerated or verified deterministically.
+  - >-
+    Logs, screenshots, evidence files, and runtime state can leak sensitive data unless harness
+    guidance and validation keep secrets out of stored artifacts and filenames.

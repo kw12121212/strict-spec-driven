@@ -1,0 +1,114 @@
+schema: strict-spec-driven/harness/v1
+schema_version: 1
+artifact_type: harness
+schema_file: templates/strict-spec-driven/schemas/harness.yaml
+harness:
+  id: local-web-app
+  description: Example mixed harness declaration with local and production environments.
+  environments:
+    development:
+      kind: development
+      description: Local development environment.
+      components:
+        web:
+          type: backend
+          description: Local web server.
+          working_directory: "."
+          depends_on: []
+          environment:
+            required:
+              - PORT
+            optional:
+              - FEATURE_FLAG
+          urls:
+            - "http://127.0.0.1:3000"
+          ports:
+            - 3000
+          readiness:
+            type: http
+            url: "http://127.0.0.1:3000/health"
+            timeout_seconds: 60
+            interval_seconds: 5
+            notes: []
+          operations:
+            start:
+              mode: script
+              command: bun run dev
+            stop:
+              mode: script
+              command: pkill -f "bun run dev"
+            status:
+              mode: readonly
+            logs:
+              mode: readonly
+          evidence_labels:
+            - homepage-loaded
+          unavailable_conditions:
+            - Install dependencies before starting the harness.
+        browser:
+          type: browser
+          description: Browser target for smoke evidence.
+          working_directory: "."
+          depends_on:
+            - web
+          environment:
+            required: []
+            optional: []
+          urls:
+            - "http://127.0.0.1:3000"
+          ports: []
+          readiness:
+            type: manual
+            timeout_seconds: 60
+            interval_seconds: 5
+            notes:
+              - Use the declared URL for browser automation.
+          operations:
+            start:
+              mode: manual
+            stop:
+              mode: manual
+            status:
+              mode: readonly
+            logs:
+              mode: disabled
+          evidence_labels:
+            - browser-smoke
+          unavailable_conditions: []
+    production:
+      kind: production
+      description: Read-only production observability.
+      components:
+        web:
+          type: external_resource
+          description: Production web service observed through read-only operations.
+          working_directory: "."
+          depends_on: []
+          environment:
+            required:
+              - PROD_STATUS_TOKEN
+            optional: []
+          urls:
+            - "https://example.com"
+          ports: []
+          readiness:
+            type: manual
+            timeout_seconds: 60
+            interval_seconds: 5
+            notes:
+              - Production readiness is verified through runbook status checks.
+          operations:
+            start:
+              mode: disabled
+              requires_confirmation: true
+            stop:
+              mode: disabled
+              requires_confirmation: true
+            status:
+              mode: readonly
+            logs:
+              mode: readonly
+          evidence_labels:
+            - production-status
+          unavailable_conditions:
+            - Production credentials must remain outside YAML.

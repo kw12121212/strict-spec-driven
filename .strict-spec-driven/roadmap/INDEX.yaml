@@ -51,3 +51,7 @@ milestones:
     title: 12 Development Session Assistance
     path: roadmap/milestones/0012-development-session-assistance.yaml
     status: complete
+  0013-harness-ai-friendliness-hardening:
+    title: 13 Harness AI Friendliness Hardening
+    path: roadmap/milestones/0013-harness-ai-friendliness-hardening.yaml
+    status: proposed

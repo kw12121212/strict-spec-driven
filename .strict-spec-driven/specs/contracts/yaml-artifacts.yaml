@@ -16,13 +16,16 @@ mapping:
     - templates/strict-spec-driven/schemas/registry.yaml
     - templates/strict-spec-driven/schemas/roadmap-index.yaml
     - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
-    - templates/strict-spec-driven/schemas/debug-session.yaml
-    - templates/strict-spec-driven/scaffold/debug-sessions/session.yaml
+    - templates/strict-spec-driven/schemas/harness.yaml
+    - templates/strict-spec-driven/schemas/harness-session.yaml
+    - templates/strict-spec-driven/scaffold/harness.yaml
+    - templates/strict-spec-driven/scaffold/harness-sessions/session.yaml
     - examples/strict-spec-driven/schema-registry.yaml
     - examples/strict-spec-driven/roadmap-index.yaml
     - examples/strict-spec-driven/roadmap-milestone.yaml
     - examples/strict-spec-driven/roadmap-milestone.planning.yaml
-    - examples/strict-spec-driven/debug-session.yaml
+    - examples/strict-spec-driven/harness.yaml
+    - examples/strict-spec-driven/harness-session.yaml
     - src/validation.ts
     - src/yaml.ts
     - install.sh
@@ -33,8 +36,8 @@ mapping:
     - skills/strict-spec-auto/SKILL.md
     - skills/strict-spec-brainstorm/SKILL.md
     - skills/strict-spec-cancel/SKILL.md
-    - skills/strict-spec-debug-session/SKILL.md
-    - skills/strict-spec-debug-session-to-change/SKILL.md
+    - skills/strict-spec-harness-init/SKILL.md
+    - skills/strict-spec-harness-session/SKILL.md
     - skills/strict-spec-init/SKILL.md
     - skills/strict-spec-migrate/SKILL.md
     - skills/strict-spec-maintenance/SKILL.md
@@ -54,6 +57,7 @@ mapping:
     - skills/strict-roadmap-sync/SKILL.md
     - README.md
     - QUICKSTART.md
+    - HARNESS.md
     - DEBUG_SESSIONS.md
     - ROADMAP_GUIDE.md
     - RTK.md
@@ -61,7 +65,8 @@ mapping:
     - test/run.ts
     - test/suites/entrypoint-and-skills.ts
     - test/suites/foundation-and-fixtures.ts
-    - test/suites/debug-session.ts
+    - test/suites/harness-contracts.ts
+    - test/suites/harness-session.ts
     - test/suites/roadmap-and-migration.ts
 requirements:
   yaml-artifact-schema-coverage:
@@ -1411,9 +1416,9 @@ requirements:
   proposal-generating-skills-review-generated-artifacts:
     strength: MUST
     statement: >-
-      Proposal-generating skills MUST guide agents to review and refine generated planning
-      artifacts after population and before ready/verify validation so semantic quality issues are
-      corrected before proposal handoff or implementation.
+      Proposal-generating skills MUST guide agents to review and refine generated planning artifacts
+      after population and before ready/verify validation so semantic quality issues are corrected
+      before proposal handoff or implementation.
     scenarios:
       generated-artifact-review-refines-before-validation:
         - GIVEN: >-
@@ -1618,68 +1623,6 @@ requirements:
         - AND: >-
             the CLI helper is treated as a mechanics tool rather than the source of the judgment
             decision
-  yaml-dev-session-declaration-contract:
-    strength: MUST
-    statement: >-
-      The system MUST define a strict YAML contract for .strict-spec-driven/dev-session.yaml that
-      models declared local services, readiness metadata, browser targets, cleanup rules,
-      unavailable-condition notes, and environment variable names without storing secret values.
-    scenarios:
-      dev-session-declaration-is-structured:
-        - GIVEN: the dev-session artifact contract is reviewed
-        - WHEN: its declared fields and validation rules are inspected
-        - THEN: >-
-            service startup, readiness, browser-target, cleanup, unavailable-condition, and
-            secret-handling metadata are represented through structured YAML fields
-  generated-scripts-use-managed-sections:
-    strength: MUST
-    statement: >-
-      Generated helper scripts MUST use comment-delimited managed sections so user-authored content
-      outside the managed block is preserved when the skill is run again.
-    scenarios:
-      managed-section-preserved-on-regeneration:
-        - GIVEN: >-
-            A project helper script exists with user-authored content above and below a managed
-            section
-        - WHEN: The script-generation skill is run again against the same dev-session.yaml
-        - THEN: >-
-            Only the managed section is updated and the surrounding user-authored content is
-            unchanged
-  dev-session-user-documentation-coverage:
-    strength: MUST
-    statement: >-
-      The system MUST provide a DEV_SESSIONS.md guide that documents how project authors declare
-      .strict-spec-driven/dev-session.yaml, all five dev-session lifecycle CLI commands, generated
-      helper scripts, browser trial evidence workflow, secret-handling rules, and stale runtime
-      cleanup behavior, and MUST include a Development Sessions section in README.md and a
-      dev-session step in QUICKSTART.md that reference the guide.
-    scenarios:
-      dev-sessions-guide-covers-required-sections:
-        - GIVEN: the DEV_SESSIONS.md guide is reviewed
-        - WHEN: its sections are inspected
-        - THEN: >-
-            it covers declaration schema fields with a frontend-app example, each CLI command with
-            usage and output shape, generated helper scripts with managed-section rules, browser
-            trial evidence with the relationship to the required project regression command,
-            secret-handling rules, and stale runtime cleanup behavior
-  dev-session-init-skill-command-contract:
-    strength: MUST
-    statement: >-
-      The system MUST provide a standalone strict dev-session initialization skill package whose
-      SKILL.md declares explicit command mappings for the bundled dev-session-plan command, requires
-      pre-existing .strict-spec-driven/ workflow state before any other workflow step, and instructs
-      agents to refine existing dev-session.yaml content in place instead of overwriting it.
-    scenarios:
-      init-skill-requires-existing-strict-workflow-state:
-        - GIVEN: the dev-session initialization SKILL.md is reviewed
-        - WHEN: its command mapping and workflow steps are inspected
-        - THEN: the skill requires .strict-spec-driven/ to exist before any other workflow step
-        - AND: >-
-            if the directory is missing the skill stops and directs the user to run
-            /strict-spec-init
-        - AND: >-
-            the guidance tells agents to update an existing declaration in place rather than
-            silently replacing it
   non-init-strict-skills-require-existing-workflow-state:
     strength: MUST
     statement: >-
@@ -1746,132 +1689,6 @@ requirements:
         - AND: >-
             skill validation can reject recommend guidance that omits the scripted recommendation
             command
-  yaml-debug-session-schema-coverage:
-    strength: MUST
-    statement: >-
-      The system MUST define a strict YAML debug-session artifact schema for debugging
-      investigations that involve Web API, frontend, Electron desktop, and CDP access layers.
-    scenarios:
-      debug-session-artifact-family-is-covered:
-        - GIVEN: the strict workflow artifact contract is reviewed
-        - WHEN: the debug-session artifact family is checked
-        - THEN: a concrete YAML schema exists for debug-session artifacts
-  yaml-debug-session-session-model:
-    strength: MUST
-    statement: >-
-      The system MUST represent each debug session with structured fields for identity, status,
-      target surfaces, reproduction steps, evidence references, hypotheses, findings, replay, and
-      verification.
-    scenarios:
-      debug-session-fields-are-structured:
-        - GIVEN: a debug-session artifact is reviewed
-        - WHEN: its top-level data is inspected
-        - THEN: >-
-            session identity, status, scope layers, targets, reproduction, evidence, hypotheses,
-            findings, replay, and verification are available as structured fields
-  yaml-debug-session-human-checkpoints:
-    strength: MUST
-    statement: >-
-      The system MUST represent required human participation with structured human_checkpoints and
-      manual_actions fields that describe requested actions, resume signals, and evidence captured
-      after the action without storing secrets.
-    scenarios:
-      human-actions-remain-auditable-without-secrets:
-        - GIVEN: >-
-            a debug session requires a human to complete login, 2FA, OAuth, native dialog handling,
-            fragile gestures, or visual judgment
-        - WHEN: the checkpoint and resulting manual action are recorded
-        - THEN: >-
-            the artifact records the semantic action, reason, resume condition, and post-action
-            evidence references
-  yaml-debug-session-cdp-health:
-    strength: MUST
-    statement: >-
-      The system MUST represent CDP access health with structured fields for connection state,
-      selected target type, selected target URL, webview selection, and last snapshot status.
-    scenarios:
-      cdp-access-state-is-reviewable:
-        - GIVEN: a debug session uses CDP to inspect a browser or Electron application
-        - WHEN: the CDP access state is recorded
-        - THEN: connection, target, URL, webview, and snapshot health are available as structured fields
-  yaml-debug-session-artifact-contract:
-    strength: MUST
-    statement: >-
-      The system MUST define a strict debug-session YAML artifact schema, bundled scaffold template,
-      and minimal valid example for local investigations that record session identity, status, layer
-      scope, targets, reproduction steps, evidence, hypotheses, findings, human checkpoints, manual
-      actions, CDP health, replay commands, and verification state without storing secret values.
-    scenarios:
-      debug-session-contract-is-loadable-and-validates-example:
-        - GIVEN: the bundled strict YAML schema registry is available
-        - WHEN: the debug-session schema is loaded by artifact type or schema ID
-        - THEN: the debug-session contract is resolved deterministically
-        - AND: the bundled minimal debug-session example validates against it
-      debug-session-secret-boundary-is-enforced:
-        - GIVEN: 'a debug-session manual action records `secrets_recorded: true`'
-        - WHEN: the artifact is validated
-        - THEN: validation fails with diagnostics pointing to the manual action secret flag
-  strict-debug-session-skill-guidance:
-    strength: MUST
-    statement: >-
-      The system MUST package a strict debug-session skill that creates or resumes debug-session
-      artifacts, guides reproduce, capture, localize, human checkpoint, resume, replay, and verify
-      phases, and distinguishes Web API, frontend, Electron, and CDP-access debugging evidence.
-    scenarios:
-      debug-session-skill-is-discoverable:
-        - GIVEN: strict skill packaging is validated
-        - WHEN: marketplace metadata and skill files are inspected
-        - THEN: the debug-session skill is discoverable with valid metadata and command references
-      debug-session-skill-defines-human-checkpoint-boundary:
-        - GIVEN: >-
-            a debugging step requires credentials, one-time codes, OAuth consent, or another
-            sensitive human action
-        - WHEN: the debug-session skill guides the investigation
-        - THEN: >-
-            it requires structured human checkpoints and manual actions with `secrets_recorded:
-            false`
-        - AND: it forbids storing secret values in chat, YAML, evidence filenames, or logs
-  yaml-debug-session-dev-session-lifecycle:
-    strength: MUST
-    statement: >-
-      Debug-session artifacts and guidance MUST support optional dev-session lifecycle linkage that
-      references the project dev-session declaration, selected services, lifecycle commands, status
-      and log evidence, unavailable conditions, and cleanup state without duplicating service
-      configuration or storing secret values.
-    scenarios:
-      debug-session-records-dev-session-lifecycle:
-        - GIVEN: >-
-            a debug investigation depends on local services declared in
-            .strict-spec-driven/dev-session.yaml
-        - WHEN: the debug-session artifact records lifecycle context
-        - THEN: >-
-            the artifact can reference dev-session-plan/start/status/logs/stop commands, selected
-            services, status/log evidence, blocking conditions, and cleanup status
-  strict-debug-session-to-change-skill-guidance:
-    strength: MUST
-    statement: >-
-      The system MUST package a strict debug-session-to-change skill that selects only active
-      debug-session artifacts, derives a kebab-case change name from session content, records
-      unresolved ambiguity in questions.yaml, and preserves the source debug-session while handing
-      off to strict-spec-auto or strict-spec-apply.
-    scenarios:
-      packaged-skill-is-discoverable:
-        - GIVEN: strict skill packaging is validated
-        - WHEN: marketplace metadata and skill files are inspected
-        - THEN: >-
-            the debug-session-to-change skill is discoverable with valid metadata and command
-            references
-      incomplete-session-creates-open-questions:
-        - GIVEN: selected debug-session evidence does not fully determine scope or spec impact
-        - WHEN: the debug-session-to-change skill generates change artifacts
-        - THEN: unresolved details are recorded in questions.yaml as open entries
-        - AND: the skill stops before implementation begins
-      source-session-remains-unchanged:
-        - GIVEN: a debug-session has been converted into a strict change proposal
-        - WHEN: the handoff summary is produced
-        - THEN: >-
-            the original debug-session artifact is left in place and is not archived or rewritten by
-            the conversion skill
   strict-roadmap-plan-detail-and-review-guidance:
     strength: MUST
     statement: >-
@@ -1912,3 +1729,22 @@ requirements:
         - THEN: >-
             the expected snippet includes the full node {{SKILL_DIR}}/scripts/strict-spec-driven.js
             check-workflow-state invocation
+  yaml-harness-artifact-contract:
+    strength: MUST
+    statement: >-
+      The system MUST define strict YAML harness declaration and harness session contracts that
+      replace dev-session and debug-session artifacts with one script-managed model for
+      environments, mixed components, explicit operation capabilities, lifecycle safety, evidence,
+      human checkpoints, replay, and verification, without requiring backward-compatible dev-session
+      or debug-session artifact migration.
+    scenarios:
+      harness-contract-models-mixed-environments:
+        - GIVEN: >-
+            a strict project needs to describe development and production operation for frontend,
+            backend, database, cache, worker, external resource, browser, Electron, or CDP
+            components
+        - WHEN: the harness declaration and harness session contracts are reviewed
+        - THEN: >-
+            the contracts expose structured fields for environments, components, dependencies,
+            operation modes, lifecycle scripts, readiness, status, logs, safety policy, secret-safe
+            environment variable names, evidence, human checkpoints, replay, and verification

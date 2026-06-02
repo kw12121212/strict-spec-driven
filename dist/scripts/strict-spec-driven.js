@@ -6593,15 +6593,15 @@ var COMMAND_REGISTRATION_ORDER = [
   "schema-show",
   "template-list",
   "template-show",
-  "dev-session-plan",
-  "dev-session-start",
-  "dev-session-status",
-  "dev-session-logs",
-  "dev-session-trial",
-  "dev-session-stop",
-  "debug-session-create",
-  "debug-session-validate",
-  "debug-session-archive",
+  "harness-infer",
+  "harness-doctor",
+  "harness-plan",
+  "harness-start",
+  "harness-stop",
+  "harness-status",
+  "harness-logs",
+  "harness-scripts",
+  "harness-session",
   "migrate",
   "roadmap-status",
   "roadmap-overview",
@@ -6759,33 +6759,43 @@ review_evidence:
 #   checks:
 #     - type: roadmap-sync-check
 `,
-  "strict-spec-driven/scaffold/debug-sessions/session.yaml": `schema: strict-spec-driven/debug-session/v1
+  "strict-spec-driven/scaffold/harness-sessions/session.yaml": `schema: strict-spec-driven/harness-session/v1
 schema_version: 1
-artifact_type: debug_session
-schema_file: ../../../templates/strict-spec-driven/schemas/debug-session.yaml
-debug_session:
+artifact_type: harness_session
+schema_file: ../../../templates/strict-spec-driven/schemas/harness-session.yaml
+harness_session:
   id: "{{session_id}}"
   status: proposed
+harness:
+  declaration: .strict-spec-driven/harness.yaml
+  environment: development
 issue:
   summary: Describe the failure under investigation.
   observed_behavior: Describe what actually happens.
   expected_behavior: Describe what should happen instead.
-scope:
-  layers:
-    - frontend
-  out_of_scope: []
-targets:
-  primary-target:
-    layer: frontend
-    kind: browser_page
-    label: Primary debug target.
-    url: "http://127.0.0.1:3000"
-    notes: []
+selected_components: []
+lifecycle_evidence:
+  plan:
+    command: strict-spec-driven harness-plan --environment development
+    status: not_run
+    evidence: []
+  start:
+    command: strict-spec-driven harness-start --environment development
+    status: not_run
+    evidence: []
+  status:
+    command: strict-spec-driven harness-status
+    status: not_run
+    evidence: []
+  logs: []
+  stop:
+    command: strict-spec-driven harness-stop
+    status: not_run
+    evidence: []
 reproduction:
   preconditions: []
   steps:
     - id: reproduce
-      target: primary-target
       action: Reproduce the failure.
       expected: The failure is visible or captured in evidence.
   expected_failure: Describe the expected failing observation.
@@ -6796,32 +6806,6 @@ hypotheses: []
 findings: []
 human_checkpoints: []
 manual_actions: []
-cdp_health:
-  required: false
-  checks: []
-dev_session:
-  declaration: .strict-spec-driven/dev-session.yaml
-  services: []
-  lifecycle:
-    plan:
-      command: strict-spec-driven dev-session-plan
-      status: not_run
-      evidence: []
-    start:
-      command: strict-spec-driven dev-session-start
-      status: not_run
-      evidence: []
-    status:
-      command: strict-spec-driven dev-session-status
-      status: not_run
-      evidence: []
-    logs: []
-    stop:
-      command: strict-spec-driven dev-session-stop
-      status: not_run
-      evidence: []
-    cleanup_status: not_started
-  unavailable_conditions: []
 replay:
   commands: []
 verification:
@@ -6829,35 +6813,45 @@ verification:
   steps: []
   evidence: []
 `,
-  "strict-spec-driven/scaffold/dev-session.yaml": `schema: strict-spec-driven/dev-session/v1
+  "strict-spec-driven/scaffold/harness.yaml": `schema: strict-spec-driven/harness/v1
 schema_version: 1
-artifact_type: dev_session
-schema_file: templates/strict-spec-driven/schemas/dev-session.yaml
-session:
+artifact_type: harness
+schema_file: templates/strict-spec-driven/schemas/harness.yaml
+harness:
   id: default
-  description: Replace the sample values with this repository's local development session details.
-  services:
-    app:
-      description: Replace with the primary local development service for this project.
-      command: replace-with-project-dev-command
-      working_directory: "."
-      environment:
-        required: []
-        optional: []
-      urls: []
-      ports: []
-      readiness:
-        type: manual
-        timeout_seconds: 60
-        interval_seconds: 5
-        notes:
-          - Replace manual readiness with HTTP or TCP readiness when known.
-      browser_targets: []
-      cleanup:
-        mode: none
-        grace_period_seconds: 0
-      unavailable_conditions: []
-  browser_targets: {}
+  description: Replace the sample values with this repository's harness environments and components.
+  environments:
+    development:
+      kind: development
+      description: Local development environment.
+      components:
+        app:
+          type: backend
+          description: Replace with the primary local component for this project.
+          working_directory: "."
+          depends_on: []
+          environment:
+            required: []
+            optional: []
+          urls: []
+          ports: []
+          readiness:
+            type: manual
+            timeout_seconds: 60
+            interval_seconds: 5
+            notes:
+              - Replace manual readiness with HTTP or TCP readiness when known.
+          operations:
+            start:
+              mode: manual
+            stop:
+              mode: manual
+            status:
+              mode: manual
+            logs:
+              mode: manual
+          evidence_labels: []
+          unavailable_conditions: []
 `,
   "strict-spec-driven/scaffold/roadmap/INDEX.yaml": `schema: strict-spec-driven/roadmap-index/v2
 schema_version: 2
@@ -7053,648 +7047,6 @@ json_schema:
         planned_change:
           type: string
 `,
-  "strict-spec-driven/schemas/debug-session.yaml": `schema: strict-spec-driven/schema/v1
-schema_version: 1
-schema_id: strict-spec-driven/debug-session/v1
-artifact_type: debug_session
-artifact_name: debug-session
-description: Strict YAML debug-session investigation artifact.
-example_ref: ../../../examples/strict-spec-driven/debug-session.yaml
-json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
-  type: object
-  additionalProperties: false
-  required:
-    - schema
-    - schema_version
-    - artifact_type
-    - schema_file
-    - debug_session
-    - issue
-    - scope
-    - targets
-    - reproduction
-    - evidence
-    - hypotheses
-    - findings
-    - human_checkpoints
-    - manual_actions
-    - cdp_health
-    - replay
-    - verification
-  properties:
-    schema:
-      type: string
-      const: strict-spec-driven/debug-session/v1
-    schema_version:
-      type: integer
-      const: 1
-    artifact_type:
-      type: string
-      const: debug_session
-    schema_file:
-      type: string
-      minLength: 1
-    debug_session:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - status
-      properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        status:
-          type: string
-          enum:
-            - proposed
-            - reproducing
-            - capturing
-            - localizing
-            - waiting_for_human
-            - verifying
-            - resolved
-            - blocked
-        owner:
-          type: string
-          minLength: 1
-        created_at:
-          type: string
-          format: date-time
-    issue:
-      type: object
-      additionalProperties: false
-      required:
-        - summary
-        - observed_behavior
-        - expected_behavior
-      properties:
-        summary:
-          type: string
-          minLength: 1
-        observed_behavior:
-          type: string
-          minLength: 1
-        expected_behavior:
-          type: string
-          minLength: 1
-    scope:
-      type: object
-      additionalProperties: false
-      required:
-        - layers
-        - out_of_scope
-      properties:
-        layers:
-          type: array
-          minItems: 1
-          uniqueItems: true
-          items:
-            type: string
-            enum:
-              - web_api
-              - frontend
-              - electron
-              - cdp_access
-        out_of_scope:
-          type: array
-          items:
-            type: string
-            minLength: 1
-    targets:
-      type: object
-      additionalProperties: false
-      minProperties: 1
-      patternProperties:
-        "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
-          type: object
-          additionalProperties: false
-          required:
-            - layer
-            - kind
-            - label
-            - notes
-          properties:
-            layer:
-              type: string
-              enum:
-                - web_api
-                - frontend
-                - electron
-                - cdp_access
-            kind:
-              type: string
-              enum:
-                - http_endpoint
-                - browser_page
-                - electron_app
-                - cdp_target
-            label:
-              type: string
-              minLength: 1
-            url:
-              type: string
-              minLength: 1
-            command:
-              type: string
-              minLength: 1
-            cdp_endpoint:
-              type: string
-              minLength: 1
-            notes:
-              type: array
-              items:
-                type: string
-                minLength: 1
-    reproduction:
-      type: object
-      additionalProperties: false
-      required:
-        - preconditions
-        - steps
-        - expected_failure
-      properties:
-        preconditions:
-          type: array
-          items:
-            type: string
-            minLength: 1
-        steps:
-          type: array
-          minItems: 1
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - id
-              - action
-            properties:
-              id:
-                type: string
-                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-              action:
-                type: string
-                minLength: 1
-              expected:
-                type: string
-                minLength: 1
-              target:
-                type: string
-                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        expected_failure:
-          type: string
-          minLength: 1
-    evidence:
-      type: object
-      additionalProperties: false
-      required:
-        - directory
-        - entries
-      properties:
-        directory:
-          type: string
-          minLength: 1
-        entries:
-          type: array
-          items:
-            $ref: "#/definitions/evidence_entry"
-    hypotheses:
-      type: array
-      items:
-        type: object
-        additionalProperties: false
-        required:
-          - id
-          - statement
-          - layer
-          - status
-          - evidence
-        properties:
-          id:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-          statement:
-            type: string
-            minLength: 1
-          layer:
-            $ref: "#/definitions/layer"
-          status:
-            type: string
-            enum:
-              - open
-              - supported
-              - rejected
-              - verified
-          evidence:
-            type: array
-            items:
-              type: string
-              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    findings:
-      type: array
-      items:
-        type: object
-        additionalProperties: false
-        required:
-          - id
-          - layer
-          - summary
-          - status
-          - evidence
-        properties:
-          id:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-          layer:
-            $ref: "#/definitions/layer"
-          target:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-          summary:
-            type: string
-            minLength: 1
-          status:
-            type: string
-            enum:
-              - suspected
-              - confirmed
-              - fixed
-              - wont_fix
-          evidence:
-            type: array
-            items:
-              type: string
-              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    human_checkpoints:
-      type: array
-      items:
-        type: object
-        additionalProperties: false
-        required:
-          - id
-          - reason
-          - requested_action
-          - sensitive
-          - status
-          - resume_condition
-          - evidence_before
-          - evidence_after
-        properties:
-          id:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-          reason:
-            type: string
-            minLength: 1
-          requested_action:
-            type: string
-            minLength: 1
-          sensitive:
-            type: boolean
-          status:
-            type: string
-            enum:
-              - pending
-              - completed
-              - skipped
-          resume_condition:
-            type: string
-            minLength: 1
-          evidence_before:
-            type: array
-            items:
-              type: string
-              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-          evidence_after:
-            type: array
-            items:
-              type: string
-              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    manual_actions:
-      type: array
-      items:
-        type: object
-        additionalProperties: false
-        required:
-          - id
-          - checkpoint
-          - actor
-          - summary
-          - secrets_recorded
-          - status
-          - evidence
-        properties:
-          id:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-          checkpoint:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-          actor:
-            type: string
-            enum:
-              - human
-              - agent
-          summary:
-            type: string
-            minLength: 1
-          secrets_recorded:
-            type: boolean
-            const: false
-          status:
-            type: string
-            enum:
-              - completed
-              - skipped
-          evidence:
-            type: array
-            items:
-              type: string
-              pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-    cdp_health:
-      type: object
-      additionalProperties: false
-      required:
-        - required
-        - checks
-      properties:
-        required:
-          type: boolean
-        checks:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - id
-              - target
-              - status
-              - notes
-            properties:
-              id:
-                type: string
-                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-              target:
-                type: string
-                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-              status:
-                type: string
-                enum:
-                  - not_checked
-                  - ok
-                  - failed
-                  - unavailable
-              endpoint:
-                type: string
-                minLength: 1
-              selected_target:
-                type: string
-                minLength: 1
-              notes:
-                type: array
-                items:
-                  type: string
-                  minLength: 1
-    dev_session:
-      type: object
-      additionalProperties: false
-      required:
-        - declaration
-        - services
-        - lifecycle
-        - unavailable_conditions
-      properties:
-        declaration:
-          type: string
-          minLength: 1
-        session_id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        services:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        lifecycle:
-          type: object
-          additionalProperties: false
-          required:
-            - plan
-            - start
-            - status
-            - logs
-            - stop
-            - cleanup_status
-          properties:
-            plan:
-              $ref: "#/definitions/lifecycle_command"
-            start:
-              $ref: "#/definitions/lifecycle_command"
-            status:
-              $ref: "#/definitions/lifecycle_command"
-            logs:
-              type: array
-              items:
-                type: object
-                additionalProperties: false
-                required:
-                  - service
-                  - command
-                  - evidence
-                properties:
-                  service:
-                    type: string
-                    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-                  command:
-                    type: string
-                    minLength: 1
-                  evidence:
-                    type: array
-                    items:
-                      type: string
-                      pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-            stop:
-              $ref: "#/definitions/lifecycle_command"
-            cleanup_status:
-              type: string
-              enum:
-                - not_started
-                - not_needed
-                - pending
-                - stopped
-                - failed
-                - blocked
-        unavailable_conditions:
-          type: array
-          items:
-            type: string
-            minLength: 1
-    replay:
-      type: object
-      additionalProperties: false
-      required:
-        - commands
-      properties:
-        commands:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - id
-              - command
-              - working_directory
-              - layer
-              - expected_result
-            properties:
-              id:
-                type: string
-                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-              command:
-                type: string
-                minLength: 1
-              working_directory:
-                type: string
-                minLength: 1
-              layer:
-                $ref: "#/definitions/layer"
-              target:
-                type: string
-                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-              expected_result:
-                type: string
-                minLength: 1
-    verification:
-      type: object
-      additionalProperties: false
-      required:
-        - status
-        - steps
-        - evidence
-      properties:
-        status:
-          type: string
-          enum:
-            - not_started
-            - pending
-            - passed
-            - failed
-            - blocked
-        steps:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - id
-              - action
-              - expected
-              - status
-            properties:
-              id:
-                type: string
-                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-              action:
-                type: string
-                minLength: 1
-              expected:
-                type: string
-                minLength: 1
-              status:
-                type: string
-                enum:
-                  - pending
-                  - passed
-                  - failed
-                  - blocked
-        evidence:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        conclusion:
-          type: string
-          minLength: 1
-  definitions:
-    layer:
-      type: string
-      enum:
-        - web_api
-        - frontend
-        - electron
-        - cdp_access
-    evidence_entry:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - type
-        - path
-        - layer
-        - description
-        - redacted
-      properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        type:
-          type: string
-          enum:
-            - screenshot
-            - network_log
-            - console_log
-            - api_trace
-            - dom_snapshot
-            - cdp_snapshot
-            - video
-            - text_log
-            - other
-        path:
-          type: string
-          minLength: 1
-        layer:
-          $ref: "#/definitions/layer"
-        target:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        description:
-          type: string
-          minLength: 1
-        redacted:
-          type: boolean
-        captured_at:
-          type: string
-          format: date-time
-    lifecycle_command:
-      type: object
-      additionalProperties: false
-      required:
-        - command
-        - status
-        - evidence
-      properties:
-        command:
-          type: string
-          minLength: 1
-        status:
-          type: string
-          enum:
-            - not_run
-            - passed
-            - failed
-            - blocked
-        evidence:
-          type: array
-          items:
-            type: string
-            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        notes:
-          type: array
-          items:
-            type: string
-            minLength: 1
-`,
   "strict-spec-driven/schemas/delta-spec.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
 schema_id: strict-spec-driven/delta-spec/v1
@@ -7822,13 +7174,13 @@ json_schema:
               reason:
                 type: string
 `,
-  "strict-spec-driven/schemas/dev-session.yaml": `schema: strict-spec-driven/schema/v1
+  "strict-spec-driven/schemas/harness-session.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
-schema_id: strict-spec-driven/dev-session/v1
-artifact_type: dev_session
-artifact_name: dev-session
-description: Strict YAML development-session declaration artifact.
-example_ref: ../../../examples/strict-spec-driven/dev-session.yaml
+schema_id: strict-spec-driven/harness-session/v1
+artifact_type: harness_session
+artifact_name: harness-session
+description: Strict YAML harness investigation session artifact.
+example_ref: ../../../examples/strict-spec-driven/harness-session.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   type: object
@@ -7838,26 +7190,446 @@ json_schema:
     - schema_version
     - artifact_type
     - schema_file
-    - session
+    - harness_session
+    - harness
+    - issue
+    - selected_components
+    - lifecycle_evidence
+    - reproduction
+    - evidence
+    - hypotheses
+    - findings
+    - human_checkpoints
+    - manual_actions
+    - replay
+    - verification
   properties:
     schema:
       type: string
-      const: strict-spec-driven/dev-session/v1
+      const: strict-spec-driven/harness-session/v1
     schema_version:
       type: integer
       const: 1
     artifact_type:
       type: string
-      const: dev_session
+      const: harness_session
     schema_file:
       type: string
-    session:
+      minLength: 1
+    harness_session:
       type: object
       additionalProperties: false
       required:
         - id
-        - services
-        - browser_targets
+        - status
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        status:
+          type: string
+          enum:
+            - proposed
+            - reproducing
+            - capturing
+            - localizing
+            - waiting_for_human
+            - verifying
+            - resolved
+            - blocked
+        owner:
+          type: string
+          minLength: 1
+        created_at:
+          type: string
+          format: date-time
+    harness:
+      type: object
+      additionalProperties: false
+      required:
+        - declaration
+        - environment
+      properties:
+        declaration:
+          type: string
+          minLength: 1
+        environment:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    issue:
+      type: object
+      additionalProperties: false
+      required:
+        - summary
+        - observed_behavior
+        - expected_behavior
+      properties:
+        summary:
+          type: string
+          minLength: 1
+        observed_behavior:
+          type: string
+          minLength: 1
+        expected_behavior:
+          type: string
+          minLength: 1
+    selected_components:
+      type: array
+      items:
+        type: string
+        pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    lifecycle_evidence:
+      type: object
+      additionalProperties: false
+      required:
+        - plan
+        - start
+        - status
+        - logs
+        - stop
+      properties:
+        plan:
+          $ref: "#/definitions/command_evidence"
+        start:
+          $ref: "#/definitions/command_evidence"
+        status:
+          $ref: "#/definitions/command_evidence"
+        logs:
+          type: array
+          items:
+            $ref: "#/definitions/command_evidence"
+        stop:
+          $ref: "#/definitions/command_evidence"
+    reproduction:
+      type: object
+      additionalProperties: false
+      required:
+        - preconditions
+        - steps
+        - expected_failure
+      properties:
+        preconditions:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        steps:
+          type: array
+          items:
+            $ref: "#/definitions/step"
+        expected_failure:
+          type: string
+          minLength: 1
+    evidence:
+      type: object
+      additionalProperties: false
+      required:
+        - directory
+        - entries
+      properties:
+        directory:
+          type: string
+          minLength: 1
+        entries:
+          type: array
+          items:
+            $ref: "#/definitions/evidence_entry"
+    hypotheses:
+      type: array
+      items:
+        $ref: "#/definitions/hypothesis"
+    findings:
+      type: array
+      items:
+        $ref: "#/definitions/finding"
+    human_checkpoints:
+      type: array
+      items:
+        $ref: "#/definitions/human_checkpoint"
+    manual_actions:
+      type: array
+      items:
+        $ref: "#/definitions/manual_action"
+    replay:
+      type: object
+      additionalProperties: false
+      required:
+        - commands
+      properties:
+        commands:
+          type: array
+          items:
+            type: string
+            minLength: 1
+    verification:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - steps
+        - evidence
+      properties:
+        status:
+          type: string
+          enum:
+            - not_started
+            - passed
+            - failed
+            - blocked
+        steps:
+          type: array
+          items:
+            $ref: "#/definitions/step"
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+  definitions:
+    command_evidence:
+      type: object
+      additionalProperties: false
+      required:
+        - command
+        - status
+        - evidence
+      properties:
+        command:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+            - not_run
+            - passed
+            - failed
+            - blocked
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    step:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - action
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        action:
+          type: string
+          minLength: 1
+        expected:
+          type: string
+          minLength: 1
+        target:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    evidence_entry:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - path
+        - description
+        - contains_secrets
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        kind:
+          type: string
+          enum:
+            - log
+            - screenshot
+            - trace
+            - command_output
+            - status
+            - note
+        path:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          minLength: 1
+        contains_secrets:
+          type: boolean
+          const: false
+    hypothesis:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - statement
+        - status
+        - evidence
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        statement:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+            - open
+            - supported
+            - rejected
+            - verified
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    finding:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - summary
+        - status
+        - evidence
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        target:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        summary:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+            - suspected
+            - confirmed
+            - fixed
+            - wont_fix
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    human_checkpoint:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - reason
+        - requested_action
+        - sensitive
+        - status
+        - resume_condition
+        - evidence_before
+        - evidence_after
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        reason:
+          type: string
+          minLength: 1
+        requested_action:
+          type: string
+          minLength: 1
+        sensitive:
+          type: boolean
+        status:
+          type: string
+          enum:
+            - pending
+            - completed
+            - skipped
+        resume_condition:
+          type: string
+          minLength: 1
+        evidence_before:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        evidence_after:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+    manual_action:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - actor
+        - summary
+        - secrets_recorded
+        - status
+        - evidence
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        actor:
+          type: string
+          minLength: 1
+        summary:
+          type: string
+          minLength: 1
+        secrets_recorded:
+          type: boolean
+          const: false
+        status:
+          type: string
+          enum:
+            - planned
+            - completed
+            - skipped
+        evidence:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+`,
+  "strict-spec-driven/schemas/harness.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/harness/v1
+artifact_type: harness
+artifact_name: harness
+description: Strict YAML harness declaration artifact for environments, components, operations, safety, and evidence targets.
+example_ref: ../../../examples/strict-spec-driven/harness.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - harness
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/harness/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: harness
+    schema_file:
+      type: string
+      minLength: 1
+    harness:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - environments
       properties:
         id:
           type: string
@@ -7865,7 +7637,7 @@ json_schema:
         description:
           type: string
           minLength: 1
-        services:
+        environments:
           type: object
           minProperties: 1
           additionalProperties: false
@@ -7874,185 +7646,198 @@ json_schema:
               type: object
               additionalProperties: false
               required:
-                - command
-                - working_directory
-                - environment
-                - urls
-                - ports
-                - readiness
-                - browser_targets
-                - cleanup
-                - unavailable_conditions
+                - kind
+                - components
               properties:
+                kind:
+                  type: string
+                  enum:
+                    - development
+                    - production
                 description:
                   type: string
                   minLength: 1
-                command:
-                  type: string
-                  minLength: 1
-                working_directory:
-                  type: string
-                  minLength: 1
-                environment:
+                components:
                   type: object
+                  minProperties: 1
                   additionalProperties: false
-                  required:
-                    - required
-                    - optional
-                  properties:
-                    required:
-                      type: array
-                      items:
-                        type: string
-                        pattern: "^[A-Z][A-Z0-9_]*$"
-                    optional:
-                      type: array
-                      items:
-                        type: string
-                        pattern: "^[A-Z][A-Z0-9_]*$"
-                urls:
-                  type: array
-                  items:
-                    type: string
-                    format: uri
-                ports:
-                  type: array
-                  items:
-                    type: integer
-                    minimum: 1
-                    maximum: 65535
-                readiness:
-                  type: object
-                  additionalProperties: false
-                  required:
-                    - type
-                    - timeout_seconds
-                    - interval_seconds
-                  properties:
-                    type:
-                      type: string
-                      enum:
-                        - http
-                        - tcp
-                        - manual
-                    url:
-                      type: string
-                      format: uri
-                    port:
-                      type: integer
-                      minimum: 1
-                      maximum: 65535
-                    timeout_seconds:
-                      type: integer
-                      minimum: 1
-                    interval_seconds:
-                      type: integer
-                      minimum: 1
-                    notes:
-                      type: array
-                      items:
-                        type: string
-                        minLength: 1
-                  allOf:
-                    - if:
-                        properties:
-                          type:
-                            const: http
-                      then:
-                        required:
-                          - url
-                    - if:
-                        properties:
-                          type:
-                            const: tcp
-                      then:
-                        required:
-                          - port
-                browser_targets:
-                  type: array
-                  items:
-                    type: string
-                    pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-                cleanup:
-                  type: object
-                  additionalProperties: false
-                  required:
-                    - mode
-                    - grace_period_seconds
-                  properties:
-                    mode:
-                      type: string
-                      enum:
-                        - signal
-                        - command
-                        - none
-                    signal:
-                      type: string
-                      minLength: 1
-                    command:
-                      type: string
-                      minLength: 1
-                    grace_period_seconds:
-                      type: integer
-                      minimum: 0
-                  allOf:
-                    - if:
-                        properties:
-                          mode:
-                            const: signal
-                      then:
-                        required:
-                          - signal
-                    - if:
-                        properties:
-                          mode:
-                            const: command
-                      then:
-                        required:
-                          - command
-                unavailable_conditions:
-                  type: array
-                  items:
-                    type: string
-                    minLength: 1
-        browser_targets:
+                  patternProperties:
+                    "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
+                      $ref: "#/definitions/component"
+  definitions:
+    operation:
+      type: object
+      additionalProperties: false
+      required:
+        - mode
+      properties:
+        mode:
+          type: string
+          enum:
+            - script
+            - readonly
+            - manual
+            - disabled
+        command:
+          type: string
+          minLength: 1
+        requires_confirmation:
+          type: boolean
+        allow_stateful_lifecycle:
+          type: boolean
+      allOf:
+        - if:
+            properties:
+              mode:
+                const: script
+          then:
+            required:
+              - command
+    readiness:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - timeout_seconds
+        - interval_seconds
+      properties:
+        type:
+          type: string
+          enum:
+            - http
+            - tcp
+            - manual
+        url:
+          type: string
+          format: uri
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        timeout_seconds:
+          type: integer
+          minimum: 1
+        interval_seconds:
+          type: integer
+          minimum: 1
+        notes:
+          type: array
+          items:
+            type: string
+            minLength: 1
+      allOf:
+        - if:
+            properties:
+              type:
+                const: http
+          then:
+            required:
+              - url
+        - if:
+            properties:
+              type:
+                const: tcp
+          then:
+            required:
+              - port
+    component:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - working_directory
+        - depends_on
+        - environment
+        - urls
+        - ports
+        - readiness
+        - operations
+        - evidence_labels
+        - unavailable_conditions
+      properties:
+        type:
+          type: string
+          enum:
+            - frontend
+            - backend
+            - database
+            - cache
+            - worker
+            - queue
+            - object_storage
+            - external_resource
+            - browser
+            - electron
+            - cdp
+        description:
+          type: string
+          minLength: 1
+        working_directory:
+          type: string
+          minLength: 1
+        depends_on:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        environment:
           type: object
           additionalProperties: false
-          patternProperties:
-            "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
-              type: object
-              additionalProperties: false
-              required:
-                - url
-                - smoke_paths
-                - evidence_labels
-                - local_only
-              properties:
-                url:
-                  type: string
-                  format: uri
-                smoke_paths:
-                  type: array
-                  minItems: 1
-                  items:
-                    type: string
-                    minLength: 1
-                evidence_labels:
-                  type: array
-                  minItems: 1
-                  items:
-                    type: string
-                    minLength: 1
-                local_only:
-                  type: boolean
-                service:
-                  type: string
-                  pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-                notes:
-                  type: array
-                  items:
-                    type: string
-                    minLength: 1
+          required:
+            - required
+            - optional
+          properties:
+            required:
+              type: array
+              items:
+                type: string
+                pattern: "^[A-Z][A-Z0-9_]*$"
+            optional:
+              type: array
+              items:
+                type: string
+                pattern: "^[A-Z][A-Z0-9_]*$"
+        urls:
+          type: array
+          items:
+            type: string
+            format: uri
+        ports:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+            maximum: 65535
+        readiness:
+          $ref: "#/definitions/readiness"
+        operations:
+          type: object
+          additionalProperties: false
+          required:
+            - start
+            - stop
+            - status
+            - logs
+          properties:
+            start:
+              $ref: "#/definitions/operation"
+            stop:
+              $ref: "#/definitions/operation"
+            status:
+              $ref: "#/definitions/operation"
+            logs:
+              $ref: "#/definitions/operation"
+        evidence_labels:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        unavailable_conditions:
+          type: array
+          items:
+            type: string
+            minLength: 1
 `,
   "strict-spec-driven/schemas/main-spec.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -8516,32 +8301,32 @@ entries:
       notes:
         - Standalone planned changes are the normal roadmap work-item surface; materialize legacy inline milestone entries before running ordinary roadmap commands.
         - Optional team metadata is advisory coordination data and is not a locking or permission mechanism.
-  - schema_id: strict-spec-driven/dev-session/v1
+  - schema_id: strict-spec-driven/harness/v1
     schema_version: 1
-    artifact_type: dev_session
-    artifact_name: dev-session
-    schema_file: dev-session.yaml
-    primary_example: ../../../examples/strict-spec-driven/dev-session.yaml
+    artifact_type: harness
+    artifact_name: harness
+    schema_file: harness.yaml
+    primary_example: ../../../examples/strict-spec-driven/harness.yaml
     compatibility:
       status: current
       introduced_in: 1
       supersedes: []
       compatible_with: []
       notes:
-        - Development-session artifacts declare local services, browser targets, and cleanup guidance without storing secret values.
-  - schema_id: strict-spec-driven/debug-session/v1
+        - Harness declarations replace development-session artifacts with mixed environment and component operation contracts.
+  - schema_id: strict-spec-driven/harness-session/v1
     schema_version: 1
-    artifact_type: debug_session
-    artifact_name: debug-session
-    schema_file: debug-session.yaml
-    primary_example: ../../../examples/strict-spec-driven/debug-session.yaml
+    artifact_type: harness_session
+    artifact_name: harness-session
+    schema_file: harness-session.yaml
+    primary_example: ../../../examples/strict-spec-driven/harness-session.yaml
     compatibility:
       status: current
       introduced_in: 1
       supersedes: []
       compatible_with: []
       notes:
-        - Debug-session artifacts record local investigations, evidence, layer localization, human checkpoints, manual actions, CDP health, replay, and verification without storing secret values.
+        - Harness-session artifacts replace debug-session investigation records.
   - schema_id: strict-spec-driven/schema-registry/v1
     schema_version: 1
     artifact_type: schema_registry
@@ -11935,7 +11720,7 @@ function scaffoldTemplateKey(relativePath) {
 }
 var REQUIRED_SCAFFOLD_ASSETS = [
   "config.yaml",
-  "dev-session.yaml",
+  "harness.yaml",
   "specs/INDEX.yaml",
   "roadmap/INDEX.yaml"
 ];
@@ -18082,8 +17867,8 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       apply: `${COMMAND_PREFIX} apply <change-name>`,
       verify: `${COMMAND_PREFIX} verify <change-name>`
     },
-    requiredHeadings: ["## Steps", "## Rules", "## Dev Session Guidance"],
-    requiredSnippets: [".strict-spec-driven/", "dev-session-plan"]
+    requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
+    requiredSnippets: [".strict-spec-driven/", "harness-plan"]
   },
   "strict-spec-verify": {
     requiredCommands: {
@@ -18091,18 +17876,18 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       verify: `${COMMAND_PREFIX} verify <change-name>`,
       "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`
     },
-    requiredHeadings: ["## Steps", "## Rules", "## Dev Session Guidance"],
-    requiredSnippets: [".strict-spec-driven/", "dev-session-trial"]
+    requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
+    requiredSnippets: [".strict-spec-driven/", "harness-plan"]
   },
   "strict-spec-review": {
     requiredCommands: {
       modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
       verify: `${COMMAND_PREFIX} verify <change-name>`
     },
-    requiredHeadings: ["## Steps", "## Rules", "## Dev Session Guidance"],
+    requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
     requiredSnippets: [
       ".strict-spec-driven/",
-      "dev-session-trial",
+      "harness-plan",
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
@@ -18137,7 +17922,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
       archive: `${COMMAND_PREFIX} archive <change-name>`
     },
-    requiredHeadings: ["## Steps", "## Rules", "## Dev Session Guidance"],
+    requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
     requiredSnippets: [
       ".strict-spec-driven/",
       "/strict-spec-ship <change-name>",
@@ -18145,7 +17930,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET,
       AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET,
       PROPOSAL_ARTIFACT_REVIEW_SNIPPET,
-      "dev-session-plan",
+      "harness-plan",
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
@@ -19075,934 +18860,28 @@ function runSchemaShow(argv) {
   return showKey(normalizeSchemaKey(name), usage2);
 }
 
-// src/dev-session.ts
-import { closeSync, existsSync as existsSync29, mkdirSync as mkdirSync6, openSync, readFileSync as readFileSync23, rmSync as rmSync2, writeFileSync as writeFileSync9 } from "fs";
+// src/harness.ts
+import { closeSync, existsSync as existsSync29, mkdirSync as mkdirSync6, openSync, readFileSync as readFileSync23, renameSync as renameSync2, rmSync as rmSync2, statSync as statSync22, writeFileSync as writeFileSync9 } from "fs";
 import { spawn, spawnSync } from "child_process";
 import path30 from "path";
-var DEV_SESSION_DECLARATION_PATH = ".strict-spec-driven/dev-session.yaml";
-var DEV_SESSION_RUNTIME_DIR = ".strict-spec-driven/.runtime/dev-session";
-var DEV_SESSION_RUNTIME_STATE_PATH = `${DEV_SESSION_RUNTIME_DIR}/state.json`;
-var DEV_SESSION_LOGS_DIR = `${DEV_SESSION_RUNTIME_DIR}/logs`;
+var HARNESS_DECLARATION_PATH = ".strict-spec-driven/harness.yaml";
+var HARNESS_RUNTIME_DIR = ".strict-spec-driven/.runtime/harness";
+var HARNESS_RUNTIME_STATE_PATH = `${HARNESS_RUNTIME_DIR}/state.json`;
+var HARNESS_SESSIONS_DIR = ".strict-spec-driven/harness-sessions";
+var HARNESS_SESSION_ARCHIVE_DIR = `${HARNESS_SESSIONS_DIR}/archive`;
+var HARNESS_SESSION_FILE_NAME = "session.yaml";
+var HARNESS_SESSION_TEMPLATE_PATH = "harness-sessions/session.yaml";
+var HARNESS_LOGS_DIR = `${HARNESS_RUNTIME_DIR}/logs`;
+var SESSION_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
+var TEMPLATE_SESSION_ID_PLACEHOLDER = "{{session_id}}";
 var SLEEP_SIGNAL = new Int32Array(new SharedArrayBuffer(4));
-
-class DevSessionDeclarationNotFoundError extends Error {
-  artifactPath;
-  constructor(artifactPath) {
-    super(`dev-session declaration not found at ${artifactPath}`);
-    this.name = "DevSessionDeclarationNotFoundError";
-    this.artifactPath = artifactPath;
-  }
-}
-
-class DevSessionDeclarationValidationError extends Error {
-  artifactPath;
-  diagnostics;
-  constructor(artifactPath, diagnostics) {
-    super(`dev-session declaration is invalid at ${artifactPath}`);
-    this.name = "DevSessionDeclarationValidationError";
-    this.artifactPath = artifactPath;
-    this.diagnostics = diagnostics;
-  }
-}
+var SCRIPT_NAMES = ["harness-infer", "harness-doctor", "harness-plan", "harness-start", "harness-stop", "harness-status", "harness-logs", "harness-session"];
+var STATEFUL_TYPES = new Set(["database", "cache", "queue", "object_storage", "external_resource"]);
+var MUTATING_OPERATIONS = new Set(["start", "stop", "cleanup"]);
+var ENV_SAMPLE_FILES = [".env.example", ".env.sample", ".env.local.example", "example.env"];
 function sortEntries(record) {
   return Object.entries(record).sort(([left], [right]) => left.localeCompare(right));
 }
-function getRuntimePaths(rootDir) {
-  const absoluteRuntimeDir = path30.join(rootDir, DEV_SESSION_RUNTIME_DIR);
-  const absoluteLogsDir = path30.join(rootDir, DEV_SESSION_LOGS_DIR);
-  const absoluteStatePath = path30.join(rootDir, DEV_SESSION_RUNTIME_STATE_PATH);
-  return {
-    absoluteRuntimeDir,
-    absoluteLogsDir,
-    absoluteStatePath,
-    relativeStatePath: normalizeRepoRelativePath4(rootDir, absoluteStatePath)
-  };
-}
-function ensureRuntimeDirectories(rootDir) {
-  const runtimePaths = getRuntimePaths(rootDir);
-  mkdirSync6(runtimePaths.absoluteLogsDir, { recursive: true });
-  return runtimePaths;
-}
-function sleepSync(milliseconds) {
-  if (milliseconds <= 0) {
-    return;
-  }
-  Atomics.wait(SLEEP_SIGNAL, 0, 0, milliseconds);
-}
-function isProcessAlive(pid) {
-  if (pid === null) {
-    return false;
-  }
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "ESRCH") {
-      return false;
-    }
-    return true;
-  }
-}
-function createLifecycleDiagnostic(artifactPath, fieldPath, message, options) {
-  return {
-    source: options?.source ?? "dev_session",
-    artifactPath,
-    fieldPath,
-    message,
-    expected: options?.expected,
-    actual: options?.actual,
-    serviceId: options?.serviceId,
-    phase: options?.phase
-  };
-}
-function createRuntimeRecord(service, logPath, pid) {
-  return {
-    serviceId: service.id,
-    description: service.description,
-    command: service.command,
-    workingDirectory: service.workingDirectory,
-    environment: {
-      required: [...service.environment.required],
-      optional: [...service.environment.optional]
-    },
-    urls: [...service.urls],
-    ports: [...service.ports],
-    readiness: {
-      type: service.readiness.type,
-      url: service.readiness.url,
-      port: service.readiness.port,
-      timeoutSeconds: service.readiness.timeoutSeconds,
-      intervalSeconds: service.readiness.intervalSeconds,
-      notes: [...service.readiness.notes]
-    },
-    browserTargets: [...service.browserTargets],
-    cleanup: {
-      mode: service.cleanup.mode,
-      signal: service.cleanup.signal,
-      command: service.cleanup.command,
-      gracePeriodSeconds: service.cleanup.gracePeriodSeconds
-    },
-    unavailableConditions: [...service.unavailableConditions],
-    pid,
-    logPath,
-    status: "running",
-    startedAt: new Date().toISOString()
-  };
-}
-function getOrderedServiceIds(state) {
-  const seen = new Set(state.serviceOrder);
-  const remaining = Object.keys(state.services).filter((serviceId) => !seen.has(serviceId)).sort((left, right) => left.localeCompare(right));
-  return [...state.serviceOrder, ...remaining];
-}
-function deriveServiceSnapshot(record) {
-  const alive = isProcessAlive(record.pid);
-  if (record.status === "failed") {
-    return {
-      id: record.serviceId,
-      status: "failed",
-      pid: record.pid,
-      logPath: record.logPath,
-      urls: [...record.urls],
-      ports: [...record.ports],
-      message: record.failureReason
-    };
-  }
-  if (record.status === "stopped") {
-    return {
-      id: record.serviceId,
-      status: alive ? "running" : "stopped",
-      pid: record.pid,
-      logPath: record.logPath,
-      urls: [...record.urls],
-      ports: [...record.ports],
-      message: alive ? "managed process is still live despite a stopped record" : undefined
-    };
-  }
-  return {
-    id: record.serviceId,
-    status: alive ? "running" : "stale",
-    pid: record.pid,
-    logPath: record.logPath,
-    urls: [...record.urls],
-    ports: [...record.ports],
-    message: alive ? undefined : "managed process record is stale"
-  };
-}
-function summarizeRuntimeState(state) {
-  return getOrderedServiceIds(state).map((serviceId) => state.services[serviceId]).filter((record) => record !== undefined).map((record) => deriveServiceSnapshot(record));
-}
-function readRuntimeState(rootDir) {
-  const runtimePaths = getRuntimePaths(rootDir);
-  if (!existsSync29(runtimePaths.absoluteStatePath)) {
-    return { ok: true, state: null };
-  }
-  try {
-    const raw = JSON.parse(readFileSync23(runtimePaths.absoluteStatePath, "utf8"));
-    if (typeof raw !== "object" || raw === null || raw.version !== 1 || typeof raw.artifactPath !== "string" || typeof raw.sessionId !== "string" || !Array.isArray(raw.serviceOrder) || typeof raw.services !== "object" || raw.services === null) {
-      return {
-        ok: false,
-        diagnostic: createLifecycleDiagnostic(DEV_SESSION_DECLARATION_PATH, "$", "dev-session runtime state is malformed", {
-          source: "runtime_state",
-          phase: "runtime_state",
-          expected: "versioned runtime-state object",
-          actual: "invalid-json-shape"
-        })
-      };
-    }
-    return { ok: true, state: raw };
-  } catch (error) {
-    return {
-      ok: false,
-      diagnostic: createLifecycleDiagnostic(DEV_SESSION_DECLARATION_PATH, "$", "dev-session runtime state is not valid JSON", {
-        source: "runtime_state",
-        phase: "runtime_state",
-        actual: error instanceof Error ? error.message : String(error)
-      })
-    };
-  }
-}
-function writeRuntimeState(rootDir, state) {
-  const runtimePaths = ensureRuntimeDirectories(rootDir);
-  writeFileSync9(runtimePaths.absoluteStatePath, JSON.stringify(state, null, 2) + `
-`, "utf8");
-}
-function clearRuntimeState(rootDir) {
-  rmSync2(getRuntimePaths(rootDir).absoluteRuntimeDir, { recursive: true, force: true });
-}
-function getMissingRequiredEnvironment(service) {
-  return service.environment.required.filter((name) => !(name in process.env));
-}
-function runHttpReadinessCheck(url) {
-  const script = [
-    "const http = require('http');",
-    "const https = require('https');",
-    "const target = new URL(process.argv[1]);",
-    "const client = target.protocol === 'https:' ? https : http;",
-    "const req = client.request(target, { method: 'GET' }, (res) => {",
-    "  const status = typeof res.statusCode === 'number' ? res.statusCode : 0;",
-    "  process.exit(status >= 200 && status < 400 ? 0 : 1);",
-    "});",
-    "req.on('error', () => process.exit(1));",
-    "req.end();"
-  ].join("");
-  const result = spawnSync(process.execPath, ["-e", script, url], { stdio: "ignore" });
-  return result.status === 0;
-}
-function runTcpReadinessCheck(port) {
-  const script = [
-    "const net = require('net');",
-    "const socket = net.createConnection({ host: '127.0.0.1', port: Number(process.argv[1]) }, () => {",
-    "  socket.end();",
-    "  process.exit(0);",
-    "});",
-    "socket.on('error', () => process.exit(1));"
-  ].join("");
-  const result = spawnSync(process.execPath, ["-e", script, String(port)], { stdio: "ignore" });
-  return result.status === 0;
-}
-function canProbeHttpUrl(url) {
-  try {
-    const parsed = new URL(url);
-    return parsed.protocol === "http:" || parsed.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
-function isBrowserTrialTargetAvailable(service, target) {
-  if (service?.readiness.type === "http") {
-    return service.readiness.url !== undefined && runHttpReadinessCheck(service.readiness.url);
-  }
-  if (service?.readiness.type === "tcp") {
-    return service.readiness.port !== undefined && runTcpReadinessCheck(service.readiness.port);
-  }
-  return canProbeHttpUrl(target.url) && runHttpReadinessCheck(target.url);
-}
-function deriveBrowserTrialTarget(plan, target, runtimeState) {
-  const service = target.service === undefined ? undefined : plan.session.services.find((candidate) => candidate.id === target.service);
-  const managedRecord = service !== undefined && runtimeState !== null ? runtimeState.services[service.id] : undefined;
-  const managedSnapshot = managedRecord === undefined ? undefined : deriveServiceSnapshot(managedRecord);
-  const provenance = managedSnapshot !== undefined ? "started_by_strict" : isBrowserTrialTargetAvailable(service, target) ? "already_available" : "unavailable";
-  return {
-    id: target.id,
-    url: target.url,
-    smokePaths: [...target.smokePaths],
-    evidenceLabels: [...target.evidenceLabels],
-    localOnly: target.localOnly,
-    service: target.service,
-    notes: [...target.notes],
-    provenance,
-    trialReady: provenance === "started_by_strict" ? managedSnapshot?.status === "running" : provenance === "already_available",
-    managedServiceStatus: managedSnapshot?.status
-  };
-}
-function waitForReadiness(record) {
-  if (record.readiness.type === "manual") {
-    return { ok: true };
-  }
-  const deadline = Date.now() + record.readiness.timeoutSeconds * 1000;
-  const intervalMs = Math.max(1, record.readiness.intervalSeconds) * 1000;
-  while (Date.now() <= deadline) {
-    if (!isProcessAlive(record.pid)) {
-      return { ok: false, message: "service exited before readiness checks succeeded" };
-    }
-    const ready = record.readiness.type === "http" ? record.readiness.url !== undefined && runHttpReadinessCheck(record.readiness.url) : record.readiness.port !== undefined && runTcpReadinessCheck(record.readiness.port);
-    if (ready) {
-      return { ok: true };
-    }
-    sleepSync(Math.min(intervalMs, Math.max(0, deadline - Date.now())));
-  }
-  return {
-    ok: false,
-    message: `service did not satisfy ${record.readiness.type} readiness within ${record.readiness.timeoutSeconds} seconds`
-  };
-}
-function stopServiceProcess(rootDir, record) {
-  const live = isProcessAlive(record.pid);
-  if (!live) {
-    return record.status === "stopped" ? { status: "stopped" } : record.status === "failed" ? { status: "failed", message: record.failureReason } : { status: "stale", message: "managed process record is stale" };
-  }
-  if (record.cleanup.mode === "none") {
-    return {
-      status: "failed",
-      message: "cleanup mode 'none' does not define how to stop a running managed process"
-    };
-  }
-  if (record.cleanup.mode === "command") {
-    const workingDirectory = path30.join(rootDir, record.workingDirectory);
-    const result = spawnSync(record.cleanup.command ?? "", [], {
-      cwd: workingDirectory,
-      env: process.env,
-      shell: true,
-      encoding: "utf8"
-    });
-    if (result.status !== 0) {
-      const details = result.stderr.trim() || result.stdout.trim();
-      return {
-        status: "failed",
-        message: details.length > 0 ? `cleanup command failed: ${details}` : "cleanup command failed"
-      };
-    }
-  } else {
-    try {
-      process.kill(record.pid ?? 0, record.cleanup.signal ?? "SIGTERM");
-    } catch (error) {
-      if (error && typeof error === "object" && "code" in error && error.code === "ESRCH") {
-        return { status: "stale", message: "managed process record is stale" };
-      }
-      return {
-        status: "failed",
-        message: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }
-  const deadline = Date.now() + record.cleanup.gracePeriodSeconds * 1000;
-  while (Date.now() <= deadline) {
-    if (!isProcessAlive(record.pid)) {
-      return { status: "stopped" };
-    }
-    sleepSync(Math.min(250, Math.max(0, deadline - Date.now())));
-  }
-  return {
-    status: "failed",
-    message: "managed process did not stop within the configured grace period"
-  };
-}
-function stopStartedServices(rootDir, state, serviceIds, failedServiceId, failureReason) {
-  for (const serviceId of [...serviceIds].reverse()) {
-    const record = state.services[serviceId];
-    if (record === undefined) {
-      continue;
-    }
-    const outcome = stopServiceProcess(rootDir, record);
-    if (serviceId === failedServiceId) {
-      record.status = "failed";
-      record.failureReason = failureReason ?? outcome.message ?? record.failureReason;
-      continue;
-    }
-    if (outcome.status === "stopped") {
-      record.status = "stopped";
-      delete record.failureReason;
-      continue;
-    }
-    if (outcome.status === "failed") {
-      record.status = "failed";
-      record.failureReason = outcome.message;
-      continue;
-    }
-  }
-}
-function createPlanFailureResult(rootDir, planResult) {
-  return {
-    ok: false,
-    artifactPath: planResult.artifactPath,
-    runtimeStatePath: getRuntimePaths(rootDir).relativeStatePath,
-    services: [],
-    diagnostics: planResult.diagnostics.map((diagnostic) => ({
-      ...diagnostic,
-      phase: "declaration"
-    }))
-  };
-}
-function createRuntimeStateConflictDiagnostics(artifactPath, state) {
-  return summarizeRuntimeState(state).filter((service) => service.status === "running").map((service) => createLifecycleDiagnostic(artifactPath, "$", "dev-session-start found existing managed runtime state for a still-running service", {
-    source: "runtime_state",
-    phase: "runtime_state",
-    serviceId: service.id,
-    actual: service.id
-  }));
-}
-function deriveDevSessionPlan(rootDir) {
-  const absolutePath = path30.join(rootDir, DEV_SESSION_DECLARATION_PATH);
-  const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
-  if (!existsSync29(absolutePath)) {
-    throw new DevSessionDeclarationNotFoundError(artifactPath);
-  }
-  const artifact = parseYamlFile(absolutePath);
-  const schema2 = loadBundledSchemaByArtifactType("dev_session");
-  const validation = validateArtifact(schema2, artifact, artifactPath);
-  if (!validation.valid) {
-    throw new DevSessionDeclarationValidationError(artifactPath, validation.diagnostics);
-  }
-  return {
-    artifactPath,
-    session: {
-      id: artifact.session.id,
-      description: artifact.session.description,
-      services: sortEntries(artifact.session.services).map(([id, service]) => ({
-        id,
-        description: service.description,
-        command: service.command,
-        workingDirectory: service.working_directory,
-        environment: {
-          required: [...service.environment.required ?? []],
-          optional: [...service.environment.optional ?? []]
-        },
-        urls: [...service.urls],
-        ports: [...service.ports],
-        readiness: {
-          type: service.readiness.type,
-          url: service.readiness.url,
-          port: service.readiness.port,
-          timeoutSeconds: service.readiness.timeout_seconds,
-          intervalSeconds: service.readiness.interval_seconds,
-          notes: [...service.readiness.notes ?? []]
-        },
-        browserTargets: [...service.browser_targets],
-        cleanup: {
-          mode: service.cleanup.mode,
-          signal: service.cleanup.signal,
-          command: service.cleanup.command,
-          gracePeriodSeconds: service.cleanup.grace_period_seconds
-        },
-        unavailableConditions: [...service.unavailable_conditions]
-      })),
-      browserTargets: sortEntries(artifact.session.browser_targets).map(([id, target]) => ({
-        id,
-        url: target.url,
-        smokePaths: [...target.smoke_paths],
-        evidenceLabels: [...target.evidence_labels],
-        localOnly: target.local_only,
-        service: target.service,
-        notes: [...target.notes ?? []]
-      }))
-    }
-  };
-}
-function getDevSessionPlanResult(rootDir) {
-  const absolutePath = path30.join(rootDir, DEV_SESSION_DECLARATION_PATH);
-  const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
-  try {
-    const plan = deriveDevSessionPlan(rootDir);
-    return {
-      valid: true,
-      artifactPath: plan.artifactPath,
-      diagnostics: [],
-      session: plan.session
-    };
-  } catch (error) {
-    if (error instanceof DevSessionDeclarationNotFoundError) {
-      return {
-        valid: false,
-        artifactPath,
-        diagnostics: [{
-          source: "filesystem",
-          artifactPath,
-          fieldPath: "$",
-          message: "dev-session declaration file is missing",
-          expected: DEV_SESSION_DECLARATION_PATH,
-          actual: "missing"
-        }]
-      };
-    }
-    if (error instanceof DevSessionDeclarationValidationError) {
-      return {
-        valid: false,
-        artifactPath,
-        diagnostics: error.diagnostics
-      };
-    }
-    return {
-      valid: false,
-      artifactPath,
-      diagnostics: [{
-        source: "yaml_parse",
-        artifactPath,
-        fieldPath: "$",
-        message: "dev-session declaration is not parseable YAML",
-        expected: "parseable YAML mapping",
-        actual: formatYamlParseSummary(error),
-        ...getYamlDiagnosticDetails(error) ?? {}
-      }]
-    };
-  }
-}
-function startDevSession(rootDir) {
-  const runtimePaths = getRuntimePaths(rootDir);
-  const planResult = getDevSessionPlanResult(rootDir);
-  if (!planResult.valid) {
-    return createPlanFailureResult(rootDir, planResult);
-  }
-  const runtimeState = readRuntimeState(rootDir);
-  if (!runtimeState.ok) {
-    return {
-      ok: false,
-      artifactPath: planResult.artifactPath,
-      runtimeStatePath: runtimePaths.relativeStatePath,
-      sessionId: planResult.session.id,
-      services: [],
-      diagnostics: [runtimeState.diagnostic]
-    };
-  }
-  if (runtimeState.state !== null) {
-    const conflicts = createRuntimeStateConflictDiagnostics(planResult.artifactPath, runtimeState.state);
-    if (conflicts.length > 0) {
-      return {
-        ok: false,
-        artifactPath: planResult.artifactPath,
-        runtimeStatePath: runtimePaths.relativeStatePath,
-        sessionId: planResult.session.id,
-        services: summarizeRuntimeState(runtimeState.state),
-        diagnostics: conflicts
-      };
-    }
-  }
-  clearRuntimeState(rootDir);
-  const writableRuntimePaths = ensureRuntimeDirectories(rootDir);
-  const state = {
-    version: 1,
-    artifactPath: planResult.artifactPath,
-    runtimeStatePath: writableRuntimePaths.relativeStatePath,
-    sessionId: planResult.session.id,
-    serviceOrder: planResult.session.services.map((service) => service.id),
-    services: {}
-  };
-  const startedServiceIds = [];
-  for (const service of planResult.session.services) {
-    const logAbsolutePath = path30.join(writableRuntimePaths.absoluteLogsDir, `${service.id}.log`);
-    const logPath = normalizeRepoRelativePath4(rootDir, logAbsolutePath);
-    const missingEnvironment = getMissingRequiredEnvironment(service);
-    if (missingEnvironment.length > 0) {
-      const record2 = createRuntimeRecord(service, logPath, null);
-      record2.status = "failed";
-      record2.failureReason = `missing required environment variables: ${missingEnvironment.join(", ")}`;
-      state.services[service.id] = record2;
-      writeRuntimeState(rootDir, state);
-      return {
-        ok: false,
-        artifactPath: planResult.artifactPath,
-        runtimeStatePath: writableRuntimePaths.relativeStatePath,
-        sessionId: planResult.session.id,
-        services: summarizeRuntimeState(state),
-        diagnostics: [
-          createLifecycleDiagnostic(planResult.artifactPath, `$.session.services.${service.id}.environment.required`, "required environment variables are missing for dev-session-start", {
-            source: "environment",
-            phase: "environment",
-            serviceId: service.id,
-            expected: service.environment.required.join(", "),
-            actual: missingEnvironment.join(", ")
-          })
-        ]
-      };
-    }
-    writeFileSync9(logAbsolutePath, "", "utf8");
-    const logDescriptor = openSync(logAbsolutePath, "a");
-    const child = spawn(service.command, [], {
-      cwd: path30.join(rootDir, service.workingDirectory),
-      env: process.env,
-      shell: true,
-      detached: true,
-      stdio: ["ignore", logDescriptor, logDescriptor]
-    });
-    closeSync(logDescriptor);
-    child.unref();
-    const record = createRuntimeRecord(service, logPath, typeof child.pid === "number" ? child.pid : null);
-    state.services[service.id] = record;
-    writeRuntimeState(rootDir, state);
-    if (typeof child.pid !== "number") {
-      record.status = "failed";
-      record.failureReason = "service process did not provide a pid";
-      writeRuntimeState(rootDir, state);
-      return {
-        ok: false,
-        artifactPath: planResult.artifactPath,
-        runtimeStatePath: writableRuntimePaths.relativeStatePath,
-        sessionId: planResult.session.id,
-        services: summarizeRuntimeState(state),
-        diagnostics: [
-          createLifecycleDiagnostic(planResult.artifactPath, `$.session.services.${service.id}.command`, "dev-session-start could not determine the managed process identifier", {
-            source: "spawn",
-            phase: "spawn",
-            serviceId: service.id
-          })
-        ]
-      };
-    }
-    const readiness = waitForReadiness(record);
-    if (!readiness.ok) {
-      record.status = "failed";
-      record.failureReason = readiness.message;
-      stopStartedServices(rootDir, state, [...startedServiceIds, service.id], service.id, readiness.message);
-      writeRuntimeState(rootDir, state);
-      return {
-        ok: false,
-        artifactPath: planResult.artifactPath,
-        runtimeStatePath: writableRuntimePaths.relativeStatePath,
-        sessionId: planResult.session.id,
-        services: summarizeRuntimeState(state),
-        diagnostics: [
-          createLifecycleDiagnostic(planResult.artifactPath, `$.session.services.${service.id}.readiness`, readiness.message, {
-            source: "readiness",
-            phase: "readiness",
-            serviceId: service.id
-          })
-        ]
-      };
-    }
-    startedServiceIds.push(service.id);
-    writeRuntimeState(rootDir, state);
-  }
-  return {
-    ok: true,
-    artifactPath: planResult.artifactPath,
-    runtimeStatePath: writableRuntimePaths.relativeStatePath,
-    sessionId: planResult.session.id,
-    services: summarizeRuntimeState(state),
-    diagnostics: []
-  };
-}
-function getDevSessionStatus(rootDir) {
-  const runtimePaths = getRuntimePaths(rootDir);
-  const runtimeState = readRuntimeState(rootDir);
-  if (!runtimeState.ok) {
-    return {
-      ok: false,
-      artifactPath: DEV_SESSION_DECLARATION_PATH,
-      runtimeStatePath: runtimePaths.relativeStatePath,
-      services: [],
-      diagnostics: [runtimeState.diagnostic]
-    };
-  }
-  if (runtimeState.state === null) {
-    return {
-      ok: true,
-      artifactPath: DEV_SESSION_DECLARATION_PATH,
-      runtimeStatePath: runtimePaths.relativeStatePath,
-      services: [],
-      diagnostics: []
-    };
-  }
-  return {
-    ok: true,
-    artifactPath: runtimeState.state.artifactPath,
-    runtimeStatePath: runtimeState.state.runtimeStatePath,
-    sessionId: runtimeState.state.sessionId,
-    services: summarizeRuntimeState(runtimeState.state),
-    diagnostics: []
-  };
-}
-function getDevSessionLogs(rootDir, requestedServiceId) {
-  const runtimePaths = getRuntimePaths(rootDir);
-  const runtimeState = readRuntimeState(rootDir);
-  if (!runtimeState.ok) {
-    return {
-      ok: false,
-      artifactPath: DEV_SESSION_DECLARATION_PATH,
-      runtimeStatePath: runtimePaths.relativeStatePath,
-      diagnostics: [runtimeState.diagnostic]
-    };
-  }
-  if (runtimeState.state === null) {
-    return {
-      ok: false,
-      artifactPath: DEV_SESSION_DECLARATION_PATH,
-      runtimeStatePath: runtimePaths.relativeStatePath,
-      diagnostics: [
-        createLifecycleDiagnostic(DEV_SESSION_DECLARATION_PATH, "$", "dev-session-logs requires runtime state created by dev-session-start", {
-          source: "runtime_state",
-          phase: "logs"
-        })
-      ]
-    };
-  }
-  const serviceIds = getOrderedServiceIds(runtimeState.state);
-  const serviceId = requestedServiceId ?? (serviceIds.length === 1 ? serviceIds[0] : undefined);
-  if (serviceId === undefined) {
-    return {
-      ok: false,
-      artifactPath: runtimeState.state.artifactPath,
-      runtimeStatePath: runtimeState.state.runtimeStatePath,
-      diagnostics: [
-        createLifecycleDiagnostic(runtimeState.state.artifactPath, "$", "dev-session-logs requires a declared service id when multiple managed services exist", {
-          source: "logs",
-          phase: "logs",
-          expected: serviceIds.join(", ")
-        })
-      ]
-    };
-  }
-  const record = runtimeState.state.services[serviceId];
-  if (record === undefined) {
-    return {
-      ok: false,
-      artifactPath: runtimeState.state.artifactPath,
-      runtimeStatePath: runtimeState.state.runtimeStatePath,
-      diagnostics: [
-        createLifecycleDiagnostic(runtimeState.state.artifactPath, "$", "dev-session-logs received an unknown declared service id", {
-          source: "logs",
-          phase: "logs",
-          serviceId,
-          expected: serviceIds.join(", "),
-          actual: serviceId
-        })
-      ]
-    };
-  }
-  const logAbsolutePath = path30.join(rootDir, record.logPath);
-  if (!existsSync29(logAbsolutePath)) {
-    return {
-      ok: false,
-      artifactPath: runtimeState.state.artifactPath,
-      runtimeStatePath: runtimeState.state.runtimeStatePath,
-      serviceId,
-      logPath: record.logPath,
-      diagnostics: [
-        createLifecycleDiagnostic(runtimeState.state.artifactPath, "$", "dev-session-logs could not find the managed service log file", {
-          source: "logs",
-          phase: "logs",
-          serviceId,
-          expected: record.logPath,
-          actual: "missing"
-        })
-      ]
-    };
-  }
-  return {
-    ok: true,
-    artifactPath: runtimeState.state.artifactPath,
-    runtimeStatePath: runtimeState.state.runtimeStatePath,
-    serviceId,
-    logPath: record.logPath,
-    content: readFileSync23(logAbsolutePath, "utf8"),
-    diagnostics: []
-  };
-}
-function getDevSessionTrialResult(rootDir) {
-  const runtimePaths = getRuntimePaths(rootDir);
-  const planResult = getDevSessionPlanResult(rootDir);
-  if (!planResult.valid) {
-    return {
-      ok: false,
-      artifactPath: planResult.artifactPath,
-      runtimeStatePath: runtimePaths.relativeStatePath,
-      browserTargets: [],
-      diagnostics: planResult.diagnostics.map((diagnostic) => ({
-        ...diagnostic,
-        phase: "declaration"
-      }))
-    };
-  }
-  const runtimeState = readRuntimeState(rootDir);
-  if (!runtimeState.ok) {
-    return {
-      ok: false,
-      artifactPath: planResult.artifactPath,
-      runtimeStatePath: runtimePaths.relativeStatePath,
-      sessionId: planResult.session.id,
-      browserTargets: [],
-      diagnostics: [runtimeState.diagnostic]
-    };
-  }
-  return {
-    ok: true,
-    artifactPath: planResult.artifactPath,
-    runtimeStatePath: runtimeState.state?.runtimeStatePath ?? runtimePaths.relativeStatePath,
-    sessionId: planResult.session.id,
-    browserTargets: planResult.session.browserTargets.map((target) => deriveBrowserTrialTarget(planResult, target, runtimeState.state)),
-    diagnostics: []
-  };
-}
-function stopDevSession(rootDir) {
-  const runtimePaths = getRuntimePaths(rootDir);
-  const runtimeState = readRuntimeState(rootDir);
-  if (!runtimeState.ok) {
-    return {
-      ok: false,
-      artifactPath: DEV_SESSION_DECLARATION_PATH,
-      runtimeStatePath: runtimePaths.relativeStatePath,
-      services: [],
-      diagnostics: [runtimeState.diagnostic]
-    };
-  }
-  if (runtimeState.state === null) {
-    return {
-      ok: true,
-      artifactPath: DEV_SESSION_DECLARATION_PATH,
-      runtimeStatePath: runtimePaths.relativeStatePath,
-      services: [],
-      diagnostics: []
-    };
-  }
-  const diagnostics = [];
-  for (const serviceId of [...getOrderedServiceIds(runtimeState.state)].reverse()) {
-    const record = runtimeState.state.services[serviceId];
-    if (record === undefined) {
-      continue;
-    }
-    const wasAlreadyFailed = record.status === "failed" && !isProcessAlive(record.pid);
-    const outcome = stopServiceProcess(rootDir, record);
-    if (outcome.status === "stopped") {
-      record.status = "stopped";
-      delete record.failureReason;
-      continue;
-    }
-    if (outcome.status === "failed") {
-      record.status = "failed";
-      record.failureReason = outcome.message;
-      if (!wasAlreadyFailed) {
-        diagnostics.push(createLifecycleDiagnostic(runtimeState.state.artifactPath, `$.session.services.${serviceId}.cleanup`, outcome.message ?? "managed service cleanup failed", {
-          source: "cleanup",
-          phase: "cleanup",
-          serviceId
-        }));
-      }
-    }
-  }
-  writeRuntimeState(rootDir, runtimeState.state);
-  return {
-    ok: diagnostics.length === 0,
-    artifactPath: runtimeState.state.artifactPath,
-    runtimeStatePath: runtimeState.state.runtimeStatePath,
-    sessionId: runtimeState.state.sessionId,
-    services: summarizeRuntimeState(runtimeState.state),
-    diagnostics
-  };
-}
-
-// src/cli/cmd-dev-session.ts
-var DEV_SESSION_PLAN_USAGE = `Usage: strict-spec-driven dev-session-plan
-`;
-var DEV_SESSION_START_USAGE = `Usage: strict-spec-driven dev-session-start
-`;
-var DEV_SESSION_STATUS_USAGE = `Usage: strict-spec-driven dev-session-status
-`;
-var DEV_SESSION_LOGS_USAGE = `Usage: strict-spec-driven dev-session-logs [service-id]
-`;
-var DEV_SESSION_TRIAL_USAGE = `Usage: strict-spec-driven dev-session-trial
-`;
-var DEV_SESSION_STOP_USAGE = `Usage: strict-spec-driven dev-session-stop
-`;
-function runDevSessionPlan(argv) {
-  if (isHelpRequest(argv)) {
-    writeHelp(DEV_SESSION_PLAN_USAGE);
-    return 0;
-  }
-  if (argv.length > 0) {
-    writeUsage(DEV_SESSION_PLAN_USAGE);
-    return 1;
-  }
-  const result = getDevSessionPlanResult(process.cwd());
-  writeJson(result);
-  return result.valid ? 0 : 1;
-}
-function runDevSessionStart(argv) {
-  if (isHelpRequest(argv)) {
-    writeHelp(DEV_SESSION_START_USAGE);
-    return 0;
-  }
-  if (argv.length > 0) {
-    writeUsage(DEV_SESSION_START_USAGE);
-    return 1;
-  }
-  const result = startDevSession(process.cwd());
-  writeJson(result);
-  return result.ok ? 0 : 1;
-}
-function runDevSessionStatus(argv) {
-  if (isHelpRequest(argv)) {
-    writeHelp(DEV_SESSION_STATUS_USAGE);
-    return 0;
-  }
-  if (argv.length > 0) {
-    writeUsage(DEV_SESSION_STATUS_USAGE);
-    return 1;
-  }
-  const result = getDevSessionStatus(process.cwd());
-  writeJson(result);
-  return result.ok ? 0 : 1;
-}
-function runDevSessionLogs(argv) {
-  if (isHelpRequest(argv)) {
-    writeHelp(DEV_SESSION_LOGS_USAGE);
-    return 0;
-  }
-  if (argv.length > 1) {
-    writeUsage(DEV_SESSION_LOGS_USAGE);
-    return 1;
-  }
-  const result = getDevSessionLogs(process.cwd(), argv[0]);
-  if (!result.ok) {
-    writeJson(result);
-    return 1;
-  }
-  writeOut(result.content ?? "");
-  return 0;
-}
-function runDevSessionTrial(argv) {
-  if (isHelpRequest(argv)) {
-    writeHelp(DEV_SESSION_TRIAL_USAGE);
-    return 0;
-  }
-  if (argv.length > 0) {
-    writeUsage(DEV_SESSION_TRIAL_USAGE);
-    return 1;
-  }
-  const result = getDevSessionTrialResult(process.cwd());
-  writeJson(result);
-  return result.ok ? 0 : 1;
-}
-function runDevSessionStop(argv) {
-  if (isHelpRequest(argv)) {
-    writeHelp(DEV_SESSION_STOP_USAGE);
-    return 0;
-  }
-  if (argv.length > 0) {
-    writeUsage(DEV_SESSION_STOP_USAGE);
-    return 1;
-  }
-  const result = stopDevSession(process.cwd());
-  writeJson(result);
-  return result.ok ? 0 : 1;
-}
-
-// src/debug-session.ts
-import { existsSync as existsSync30, mkdirSync as mkdirSync7, renameSync as renameSync2, statSync as statSync22, writeFileSync as writeFileSync10 } from "fs";
-import path31 from "path";
-var DEBUG_SESSIONS_DIR = ".strict-spec-driven/debug-sessions";
-var DEBUG_SESSION_ARCHIVE_DIR = `${DEBUG_SESSIONS_DIR}/archive`;
-var DEBUG_SESSION_FILE_NAME = "session.yaml";
-var DEBUG_SESSION_TEMPLATE_PATH = "debug-sessions/session.yaml";
-var DEBUG_SESSION_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
-var TEMPLATE_SESSION_ID_PLACEHOLDER = "{{session_id}}";
 function createDiagnostic(artifactPath, fieldPath, message, options) {
   return {
     source: options?.source ?? "filesystem",
@@ -20010,39 +18889,10 @@ function createDiagnostic(artifactPath, fieldPath, message, options) {
     fieldPath,
     message,
     expected: options?.expected,
-    actual: options?.actual
+    actual: options?.actual,
+    componentId: options?.componentId,
+    phase: options?.phase
   };
-}
-function normalizeDebugSessionPath(rootDir, target) {
-  const normalized = target.split("\\").join("/");
-  const looksLikePath = normalized.includes("/") || normalized.endsWith(".yaml");
-  const repoRelativePath = looksLikePath ? normalized : `${DEBUG_SESSIONS_DIR}/${normalized}/${DEBUG_SESSION_FILE_NAME}`;
-  const absolutePath = path31.resolve(rootDir, repoRelativePath);
-  return {
-    artifactPath: normalizeRepoRelativePath4(rootDir, absolutePath),
-    absolutePath
-  };
-}
-function formatLocalDate2(date = new Date) {
-  const year = String(date.getFullYear());
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-function buildDebugSessionArchiveDestination(rootDir, sessionId) {
-  const archiveRoot = path31.join(rootDir, DEBUG_SESSION_ARCHIVE_DIR);
-  mkdirSync7(archiveRoot, { recursive: true });
-  const baseName = `${formatLocalDate2()}-${sessionId}`;
-  let candidate = path31.join(archiveRoot, baseName);
-  let sequence = 2;
-  while (existsSync30(candidate)) {
-    candidate = path31.join(archiveRoot, `${baseName}-${sequence}`);
-    sequence += 1;
-  }
-  return candidate;
-}
-function isDirectory(filePath) {
-  return existsSync30(filePath) && statSync22(filePath).isDirectory();
 }
 function yamlDiagnosticFromError(artifactPath, error) {
   const details = getYamlDiagnosticDetails(error);
@@ -20060,193 +18910,1042 @@ function yamlDiagnosticFromError(artifactPath, error) {
     offendingCharacter: details?.offendingCharacter
   };
 }
-function createDebugSession(rootDir, sessionId) {
-  const sessionDir = path31.join(rootDir, DEBUG_SESSIONS_DIR, sessionId);
-  const sessionPath = path31.join(sessionDir, DEBUG_SESSION_FILE_NAME);
-  const evidenceDir = path31.join(sessionDir, "evidence");
+function getRuntimePaths(rootDir) {
+  const absoluteRuntimeDir = path30.join(rootDir, HARNESS_RUNTIME_DIR);
+  const absoluteLogsDir = path30.join(rootDir, HARNESS_LOGS_DIR);
+  const absoluteStatePath = path30.join(rootDir, HARNESS_RUNTIME_STATE_PATH);
+  return {
+    absoluteRuntimeDir,
+    absoluteLogsDir,
+    absoluteStatePath,
+    relativeStatePath: normalizeRepoRelativePath4(rootDir, absoluteStatePath)
+  };
+}
+function ensureRuntimeDirectories(rootDir) {
+  const paths = getRuntimePaths(rootDir);
+  mkdirSync6(paths.absoluteLogsDir, { recursive: true });
+  return paths;
+}
+function sleepSync(milliseconds) {
+  if (milliseconds > 0) {
+    Atomics.wait(SLEEP_SIGNAL, 0, 0, milliseconds);
+  }
+}
+function isProcessAlive(pid) {
+  if (pid === null)
+    return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ESRCH")
+      return false;
+    return true;
+  }
+}
+function readRuntimeState(rootDir) {
+  const paths = getRuntimePaths(rootDir);
+  if (!existsSync29(paths.absoluteStatePath))
+    return { ok: true, state: null };
+  try {
+    const state = JSON.parse(readFileSync23(paths.absoluteStatePath, "utf8"));
+    if (typeof state !== "object" || state === null || state.version !== 1 || typeof state.artifactPath !== "string" || typeof state.harnessId !== "string" || typeof state.environmentId !== "string" || !Array.isArray(state.componentOrder) || typeof state.components !== "object" || state.components === null) {
+      return {
+        ok: false,
+        diagnostic: createDiagnostic(HARNESS_DECLARATION_PATH, "$", "harness runtime state is malformed", {
+          source: "runtime_state",
+          phase: "runtime_state",
+          expected: "versioned runtime-state object",
+          actual: "invalid-json-shape"
+        })
+      };
+    }
+    return { ok: true, state };
+  } catch (error) {
+    return {
+      ok: false,
+      diagnostic: createDiagnostic(HARNESS_DECLARATION_PATH, "$", "harness runtime state is not valid JSON", {
+        source: "runtime_state",
+        phase: "runtime_state",
+        actual: error instanceof Error ? error.message : String(error)
+      })
+    };
+  }
+}
+function writeRuntimeState(rootDir, state) {
+  const paths = ensureRuntimeDirectories(rootDir);
+  writeFileSync9(paths.absoluteStatePath, JSON.stringify(state, null, 2) + `
+`, "utf8");
+}
+function clearRuntimeState(rootDir) {
+  rmSync2(getRuntimePaths(rootDir).absoluteRuntimeDir, { recursive: true, force: true });
+}
+function snapshot(record) {
+  const alive = isProcessAlive(record.pid);
+  if (record.status === "failed") {
+    return {
+      id: record.componentId,
+      type: record.type,
+      status: "failed",
+      pid: record.pid,
+      logPath: record.logPath,
+      urls: [...record.urls],
+      ports: [...record.ports],
+      message: record.failureReason
+    };
+  }
+  if (record.status === "stopped") {
+    return {
+      id: record.componentId,
+      type: record.type,
+      status: alive ? "running" : "stopped",
+      pid: record.pid,
+      logPath: record.logPath,
+      urls: [...record.urls],
+      ports: [...record.ports],
+      message: alive ? "managed process is still live despite a stopped record" : undefined
+    };
+  }
+  return {
+    id: record.componentId,
+    type: record.type,
+    status: alive ? "running" : "stale",
+    pid: record.pid,
+    logPath: record.logPath,
+    urls: [...record.urls],
+    ports: [...record.ports],
+    message: alive ? undefined : "managed process record is stale"
+  };
+}
+function summarizeRuntimeState(state) {
+  const seen = new Set(state.componentOrder);
+  const ordered = [
+    ...state.componentOrder,
+    ...Object.keys(state.components).filter((id) => !seen.has(id)).sort((left, right) => left.localeCompare(right))
+  ];
+  return ordered.map((id) => state.components[id]).filter((record) => record !== undefined).map(snapshot);
+}
+function topologicalOrder(components, artifactPath) {
+  const diagnostics = [];
+  const ids = Object.keys(components).sort((left, right) => left.localeCompare(right));
+  const idSet = new Set(ids);
+  for (const id of ids) {
+    for (const dependency of components[id]?.depends_on ?? []) {
+      if (!idSet.has(dependency)) {
+        diagnostics.push(createDiagnostic(artifactPath, `$.harness.environments.*.components.${id}.depends_on`, "component dependency reference is missing", {
+          source: "reference",
+          expected: ids.join(", "),
+          actual: dependency,
+          componentId: id
+        }));
+      }
+    }
+  }
+  if (diagnostics.length > 0)
+    return { ids: [], diagnostics };
+  const temporary = new Set;
+  const permanent = new Set;
+  const ordered = [];
+  function visit(id) {
+    if (permanent.has(id))
+      return;
+    if (temporary.has(id)) {
+      diagnostics.push(createDiagnostic(artifactPath, `$.harness.environments.*.components.${id}.depends_on`, "component dependency cycle detected", {
+        source: "reference",
+        actual: id,
+        componentId: id
+      }));
+      return;
+    }
+    temporary.add(id);
+    for (const dependency of [...components[id]?.depends_on ?? []].sort((left, right) => left.localeCompare(right))) {
+      visit(dependency);
+    }
+    temporary.delete(id);
+    permanent.add(id);
+    ordered.push(id);
+  }
+  for (const id of ids)
+    visit(id);
+  return { ids: diagnostics.length > 0 ? [] : ordered, diagnostics };
+}
+function assertOperationAllowed(artifactPath, environment, component, operationName, confirmed) {
+  const operation = component.operations[operationName];
+  if (operation.mode !== "script") {
+    return createDiagnostic(artifactPath, `$.harness.environments.${environment.id}.components.${component.id}.operations.${operationName}.mode`, "harness operation is not executable by script", {
+      source: "safety",
+      phase: operationName === "logs" ? "logs" : "environment",
+      componentId: component.id,
+      expected: "script",
+      actual: operation.mode
+    });
+  }
+  if (!operation.command) {
+    return createDiagnostic(artifactPath, `$.harness.environments.${environment.id}.components.${component.id}.operations.${operationName}.command`, "script operation requires a command", {
+      source: "safety",
+      phase: "environment",
+      componentId: component.id,
+      expected: "non-empty command",
+      actual: "missing"
+    });
+  }
+  if (environment.kind === "production" && MUTATING_OPERATIONS.has(operationName) && (!operation.requiresConfirmation || !confirmed)) {
+    return createDiagnostic(artifactPath, `$.harness.environments.${environment.id}.components.${component.id}.operations.${operationName}.requires_confirmation`, "production mutating operations require explicit confirmation for each invocation", {
+      source: "safety",
+      phase: "environment",
+      componentId: component.id,
+      expected: "--confirm",
+      actual: confirmed ? "missing declaration" : "not confirmed"
+    });
+  }
+  if (STATEFUL_TYPES.has(component.type) && MUTATING_OPERATIONS.has(operationName) && !operation.allowStatefulLifecycle) {
+    return createDiagnostic(artifactPath, `$.harness.environments.${environment.id}.components.${component.id}.operations.${operationName}.allow_stateful_lifecycle`, "stateful component lifecycle operations require explicit permission", {
+      source: "safety",
+      phase: "environment",
+      componentId: component.id,
+      expected: "true",
+      actual: "false"
+    });
+  }
+  return null;
+}
+function readJsonFile(filePath) {
+  if (!existsSync29(filePath))
+    return null;
+  try {
+    return JSON.parse(readFileSync23(filePath, "utf8"));
+  } catch {
+    return null;
+  }
+}
+function detectPackageRunner(rootDir) {
+  if (existsSync29(path30.join(rootDir, "bun.lock")) || existsSync29(path30.join(rootDir, "bun.lockb")))
+    return "bun run";
+  if (existsSync29(path30.join(rootDir, "pnpm-lock.yaml")))
+    return "pnpm run";
+  if (existsSync29(path30.join(rootDir, "yarn.lock")))
+    return "yarn";
+  return "npm run";
+}
+function inferComponentType(packageJson, scriptCommand) {
+  const dependencies = {
+    ...typeof packageJson?.dependencies === "object" && packageJson.dependencies !== null ? packageJson.dependencies : {},
+    ...typeof packageJson?.devDependencies === "object" && packageJson.devDependencies !== null ? packageJson.devDependencies : {}
+  };
+  const dependencyNames = Object.keys(dependencies);
+  const command = scriptCommand ?? "";
+  if (dependencyNames.some((name) => ["next", "vite", "react", "vue", "svelte", "@angular/core"].includes(name)) || /\b(next|vite|webpack-dev-server)\b/.test(command)) {
+    return "frontend";
+  }
+  if (dependencyNames.some((name) => ["express", "fastify", "@nestjs/core", "koa", "hono"].includes(name))) {
+    return "backend";
+  }
+  return "backend";
+}
+function inferPort(scriptCommand, packageJson) {
+  if (scriptCommand) {
+    const explicit = scriptCommand.match(/(?:PORT=|--port\s+|localhost:|127\.0\.0\.1:)(\d{2,5})/);
+    if (explicit) {
+      const port = Number(explicit[1]);
+      if (port >= 1 && port <= 65535)
+        return port;
+    }
+    if (/\bvite\b/.test(scriptCommand))
+      return 5173;
+    if (/\bnext\b/.test(scriptCommand))
+      return 3000;
+  }
+  const dependencies = {
+    ...typeof packageJson?.dependencies === "object" && packageJson.dependencies !== null ? packageJson.dependencies : {},
+    ...typeof packageJson?.devDependencies === "object" && packageJson.devDependencies !== null ? packageJson.devDependencies : {}
+  };
+  if ("vite" in dependencies)
+    return 5173;
+  if ("next" in dependencies)
+    return 3000;
+  return null;
+}
+function readEnvSampleNames(rootDir) {
+  const names = new Set;
+  const evidence = [];
+  for (const relativePath of ENV_SAMPLE_FILES) {
+    const absolutePath = path30.join(rootDir, relativePath);
+    if (!existsSync29(absolutePath))
+      continue;
+    evidence.push(relativePath);
+    for (const line of readFileSync23(absolutePath, "utf8").split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#"))
+        continue;
+      const match = trimmed.match(/^(?:export\s+)?([A-Z][A-Z0-9_]*)\s*=/);
+      if (match)
+        names.add(match[1]);
+    }
+  }
+  return { names: [...names].sort((left, right) => left.localeCompare(right)), evidence };
+}
+function getPackageScripts(packageJson) {
+  if (!packageJson || typeof packageJson.scripts !== "object" || packageJson.scripts === null)
+    return {};
+  return Object.fromEntries(Object.entries(packageJson.scripts).filter((entry) => typeof entry[1] === "string"));
+}
+function buildInferredHarness(rootDir) {
+  const packageJsonPath = path30.join(rootDir, "package.json");
+  const packageJson = readJsonFile(packageJsonPath);
+  const scripts = getPackageScripts(packageJson);
+  const preferredScript = ["dev", "start", "serve"].find((name) => scripts[name] !== undefined);
+  const runner = detectPackageRunner(rootDir);
+  const command = preferredScript ? `${runner} ${preferredScript}` : undefined;
+  const envSamples = readEnvSampleNames(rootDir);
+  const port = inferPort(scripts[preferredScript ?? ""], packageJson);
+  const urls = port === null ? [] : [`http://127.0.0.1:${port}`];
+  const ports = port === null ? [] : [port];
+  const evidence = [
+    ...existsSync29(packageJsonPath) ? ["package.json"] : [],
+    ...envSamples.evidence
+  ];
+  return {
+    evidence,
+    artifact: {
+      schema: "strict-spec-driven/harness/v1",
+      schema_version: 1,
+      artifact_type: "harness",
+      schema_file: "templates/strict-spec-driven/schemas/harness.yaml",
+      harness: {
+        id: path30.basename(rootDir).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "default",
+        description: "AI-assisted draft inferred from repository metadata. Review commands and safety policy before enabling lifecycle scripts.",
+        environments: {
+          development: {
+            kind: "development",
+            description: "Local development environment inferred from repository metadata.",
+            components: {
+              app: {
+                type: inferComponentType(packageJson, scripts[preferredScript ?? ""]),
+                description: command ? `Inferred from package script '${preferredScript}'.` : "No package lifecycle script was inferred; replace manual operations before use.",
+                working_directory: ".",
+                depends_on: [],
+                environment: {
+                  required: envSamples.names,
+                  optional: []
+                },
+                urls,
+                ports,
+                readiness: port === null ? {
+                  type: "manual",
+                  timeout_seconds: 60,
+                  interval_seconds: 5,
+                  notes: ["No port was inferred; replace manual readiness with HTTP or TCP readiness when known."]
+                } : {
+                  type: "tcp",
+                  port,
+                  timeout_seconds: 60,
+                  interval_seconds: 5,
+                  notes: ["TCP readiness was inferred from repository metadata; confirm the port before enabling lifecycle scripts."]
+                },
+                operations: {
+                  start: command === undefined ? { mode: "manual" } : { mode: "manual", command },
+                  stop: { mode: "manual" },
+                  status: { mode: "manual" },
+                  logs: { mode: "manual" }
+                },
+                evidence_labels: [],
+                unavailable_conditions: command === undefined ? ["No package dev/start/serve script was found."] : []
+              }
+            }
+          },
+          production: {
+            kind: "production",
+            description: "Production operations are intentionally disabled in inferred drafts.",
+            components: {
+              app: {
+                type: inferComponentType(packageJson, scripts[preferredScript ?? ""]),
+                description: "Production lifecycle is disabled until a human explicitly declares safe operations.",
+                working_directory: ".",
+                depends_on: [],
+                environment: {
+                  required: envSamples.names,
+                  optional: []
+                },
+                urls: [],
+                ports: [],
+                readiness: {
+                  type: "manual",
+                  timeout_seconds: 60,
+                  interval_seconds: 5,
+                  notes: ["Production readiness must be declared explicitly by a human operator."]
+                },
+                operations: {
+                  start: { mode: "disabled" },
+                  stop: { mode: "disabled" },
+                  status: { mode: "manual" },
+                  logs: { mode: "manual" }
+                },
+                evidence_labels: [],
+                unavailable_conditions: ["Production lifecycle is disabled in inferred harness drafts."]
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+}
+function inferHarness(rootDir, options = {}) {
+  const absolutePath = path30.join(rootDir, HARNESS_DECLARATION_PATH);
+  const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
+  const inferred = buildInferredHarness(rootDir);
+  const draft = stringifyYamlDocument(inferred.artifact);
+  const validation = validateArtifact(loadBundledSchemaByArtifactType("harness"), inferred.artifact, artifactPath);
+  const diagnostics = validation.valid ? [] : validation.diagnostics;
+  if (!validation.valid) {
+    return { ok: false, artifactPath, created: false, draft, evidence: inferred.evidence, diagnostics };
+  }
+  if (options.write) {
+    if (existsSync29(absolutePath) && !options.force) {
+      return {
+        ok: false,
+        artifactPath,
+        created: false,
+        draft,
+        evidence: inferred.evidence,
+        diagnostics: [createDiagnostic(artifactPath, "$", "harness declaration already exists; use --force to replace it", {
+          expected: "missing harness declaration or --force",
+          actual: "exists"
+        })]
+      };
+    }
+    mkdirSync6(path30.dirname(absolutePath), { recursive: true });
+    writeFileSync9(absolutePath, draft, "utf8");
+  }
+  return { ok: true, artifactPath, created: options.write ?? false, draft, evidence: inferred.evidence, diagnostics: [] };
+}
+function deriveHarnessPlan(rootDir, environmentId, componentIds = []) {
+  const absolutePath = path30.join(rootDir, HARNESS_DECLARATION_PATH);
+  const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
+  if (!existsSync29(absolutePath)) {
+    throw new Error("missing-harness");
+  }
+  const artifact = parseYamlFile(absolutePath);
+  const schema2 = loadBundledSchemaByArtifactType("harness");
+  const validation = validateArtifact(schema2, artifact, artifactPath);
+  if (!validation.valid) {
+    const error = new Error("invalid-harness");
+    error.diagnostics = validation.diagnostics;
+    throw error;
+  }
+  const environmentEntries = sortEntries(artifact.harness.environments);
+  const selectedEnvironmentEntry = environmentId === undefined ? environmentEntries[0] : environmentEntries.find(([id]) => id === environmentId);
+  if (selectedEnvironmentEntry === undefined) {
+    const error = new Error("unknown-environment");
+    error.diagnostics = [
+      createDiagnostic(artifactPath, "$.harness.environments", "requested harness environment is not declared", {
+        source: "reference",
+        expected: environmentEntries.map(([id]) => id).join(", "),
+        actual: environmentId ?? "missing"
+      })
+    ];
+    throw error;
+  }
+  const [selectedEnvironmentId, selectedEnvironment] = selectedEnvironmentEntry;
+  const ordering = topologicalOrder(selectedEnvironment.components, artifactPath);
+  if (ordering.diagnostics.length > 0) {
+    const error = new Error("invalid-references");
+    error.diagnostics = ordering.diagnostics;
+    throw error;
+  }
+  const requested = new Set(componentIds);
+  const unknownComponents = [...requested].filter((id) => selectedEnvironment.components[id] === undefined).sort();
+  if (unknownComponents.length > 0) {
+    const error = new Error("unknown-component");
+    error.diagnostics = [
+      createDiagnostic(artifactPath, `$.harness.environments.${selectedEnvironmentId}.components`, "requested harness component is not declared", {
+        source: "reference",
+        expected: Object.keys(selectedEnvironment.components).sort().join(", "),
+        actual: unknownComponents.join(", ")
+      })
+    ];
+    throw error;
+  }
+  const components = ordering.ids.filter((id) => requested.size === 0 || requested.has(id)).map((id) => {
+    const component = selectedEnvironment.components[id];
+    return {
+      id,
+      type: component.type,
+      description: component.description,
+      workingDirectory: component.working_directory,
+      dependsOn: [...component.depends_on],
+      environment: {
+        required: [...component.environment.required],
+        optional: [...component.environment.optional]
+      },
+      urls: [...component.urls],
+      ports: [...component.ports],
+      readiness: {
+        type: component.readiness.type,
+        url: component.readiness.url,
+        port: component.readiness.port,
+        timeoutSeconds: component.readiness.timeout_seconds,
+        intervalSeconds: component.readiness.interval_seconds,
+        notes: [...component.readiness.notes ?? []]
+      },
+      operations: {
+        start: normalizeOperation(component.operations.start),
+        stop: normalizeOperation(component.operations.stop),
+        status: normalizeOperation(component.operations.status),
+        logs: normalizeOperation(component.operations.logs)
+      },
+      evidenceLabels: [...component.evidence_labels],
+      unavailableConditions: [...component.unavailable_conditions]
+    };
+  });
+  return {
+    artifactPath,
+    harness: {
+      id: artifact.harness.id,
+      description: artifact.harness.description
+    },
+    environment: {
+      id: selectedEnvironmentId,
+      kind: selectedEnvironment.kind,
+      description: selectedEnvironment.description
+    },
+    components
+  };
+}
+function normalizeOperation(operation) {
+  return {
+    mode: operation.mode,
+    command: operation.command,
+    requiresConfirmation: operation.requires_confirmation ?? false,
+    allowStatefulLifecycle: operation.allow_stateful_lifecycle ?? false
+  };
+}
+function getHarnessPlanResult(rootDir, environmentId, componentIds = []) {
+  const artifactPath = normalizeRepoRelativePath4(rootDir, path30.join(rootDir, HARNESS_DECLARATION_PATH));
+  try {
+    return {
+      valid: true,
+      diagnostics: [],
+      ...deriveHarnessPlan(rootDir, environmentId, componentIds)
+    };
+  } catch (error) {
+    if (error instanceof Error && error.message === "missing-harness") {
+      return {
+        valid: false,
+        artifactPath,
+        diagnostics: [createDiagnostic(artifactPath, "$", "harness declaration file is missing", {
+          expected: HARNESS_DECLARATION_PATH,
+          actual: "missing"
+        })]
+      };
+    }
+    if (error instanceof Error && "diagnostics" in error && Array.isArray(error.diagnostics)) {
+      return { valid: false, artifactPath, diagnostics: error.diagnostics };
+    }
+    return {
+      valid: false,
+      artifactPath,
+      diagnostics: [{
+        source: "yaml",
+        artifactPath,
+        fieldPath: "$",
+        message: "harness declaration is not parseable YAML",
+        expected: "parseable YAML mapping",
+        actual: formatYamlParseSummary(error),
+        ...getYamlDiagnosticDetails(error) ?? {}
+      }]
+    };
+  }
+}
+function getMissingRequiredEnvironment(component) {
+  return component.environment.required.filter((name) => !(name in process.env));
+}
+function runHttpReadinessCheck(url) {
+  const script = [
+    "const http = require('http');",
+    "const https = require('https');",
+    "const target = new URL(process.argv[1]);",
+    "const client = target.protocol === 'https:' ? https : http;",
+    "const req = client.request(target, { method: 'GET' }, (res) => {",
+    "  const status = typeof res.statusCode === 'number' ? res.statusCode : 0;",
+    "  process.exit(status >= 200 && status < 400 ? 0 : 1);",
+    "});",
+    "req.on('error', () => process.exit(1));",
+    "req.end();"
+  ].join("");
+  return spawnSync(process.execPath, ["-e", script, url], { stdio: "ignore" }).status === 0;
+}
+function runTcpReadinessCheck(port) {
+  const script = [
+    "const net = require('net');",
+    "const socket = net.createConnection({ host: '127.0.0.1', port: Number(process.argv[1]) }, () => {",
+    "  socket.end();",
+    "  process.exit(0);",
+    "});",
+    "socket.on('error', () => process.exit(1));"
+  ].join("");
+  return spawnSync(process.execPath, ["-e", script, String(port)], { stdio: "ignore" }).status === 0;
+}
+function waitForReadiness(record) {
+  if (record.readiness.type === "manual")
+    return { ok: true };
+  const deadline = Date.now() + record.readiness.timeoutSeconds * 1000;
+  const intervalMs = Math.max(1, record.readiness.intervalSeconds) * 1000;
+  while (Date.now() <= deadline) {
+    if (!isProcessAlive(record.pid))
+      return { ok: false, message: "component exited before readiness checks succeeded" };
+    const ready = record.readiness.type === "http" ? record.readiness.url !== undefined && runHttpReadinessCheck(record.readiness.url) : record.readiness.port !== undefined && runTcpReadinessCheck(record.readiness.port);
+    if (ready)
+      return { ok: true };
+    sleepSync(Math.min(intervalMs, Math.max(0, deadline - Date.now())));
+  }
+  return { ok: false, message: `component did not satisfy ${record.readiness.type} readiness within ${record.readiness.timeoutSeconds} seconds` };
+}
+function createRuntimeRecord(component, command, logPath, pid) {
+  return {
+    componentId: component.id,
+    type: component.type,
+    command,
+    stopCommand: component.operations.stop.command,
+    workingDirectory: component.workingDirectory,
+    environment: {
+      required: [...component.environment.required],
+      optional: [...component.environment.optional]
+    },
+    urls: [...component.urls],
+    ports: [...component.ports],
+    readiness: { ...component.readiness, notes: [...component.readiness.notes] },
+    pid,
+    logPath,
+    status: "running",
+    startedAt: new Date().toISOString()
+  };
+}
+function startHarness(rootDir, options = {}) {
+  const runtimePaths = getRuntimePaths(rootDir);
+  const planResult = getHarnessPlanResult(rootDir, options.environment, options.components ?? []);
+  if (!planResult.valid) {
+    return { ok: false, artifactPath: planResult.artifactPath, runtimeStatePath: runtimePaths.relativeStatePath, components: [], diagnostics: planResult.diagnostics };
+  }
+  const existing = readRuntimeState(rootDir);
+  if (!existing.ok) {
+    return { ok: false, artifactPath: planResult.artifactPath, runtimeStatePath: runtimePaths.relativeStatePath, harnessId: planResult.harness.id, environmentId: planResult.environment.id, components: [], diagnostics: [existing.diagnostic] };
+  }
+  if (existing.state !== null) {
+    const running = summarizeRuntimeState(existing.state).filter((component) => component.status === "running");
+    if (running.length > 0) {
+      return {
+        ok: false,
+        artifactPath: planResult.artifactPath,
+        runtimeStatePath: runtimePaths.relativeStatePath,
+        harnessId: planResult.harness.id,
+        environmentId: planResult.environment.id,
+        components: summarizeRuntimeState(existing.state),
+        diagnostics: running.map((component) => createDiagnostic(planResult.artifactPath, "$", "harness-start found existing managed runtime state for a still-running component", {
+          source: "runtime_state",
+          phase: "runtime_state",
+          componentId: component.id,
+          actual: component.id
+        }))
+      };
+    }
+  }
+  clearRuntimeState(rootDir);
+  const writablePaths = ensureRuntimeDirectories(rootDir);
+  const state = {
+    version: 1,
+    artifactPath: planResult.artifactPath,
+    runtimeStatePath: writablePaths.relativeStatePath,
+    harnessId: planResult.harness.id,
+    environmentId: planResult.environment.id,
+    componentOrder: planResult.components.map((component) => component.id),
+    components: {}
+  };
+  for (const component of planResult.components) {
+    const safety = assertOperationAllowed(planResult.artifactPath, planResult.environment, component, "start", options.confirm ?? false);
+    if (safety !== null) {
+      return { ok: false, artifactPath: planResult.artifactPath, runtimeStatePath: writablePaths.relativeStatePath, harnessId: planResult.harness.id, environmentId: planResult.environment.id, components: summarizeRuntimeState(state), diagnostics: [safety] };
+    }
+    const missingEnvironment = getMissingRequiredEnvironment(component);
+    const logAbsolutePath = path30.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
+    const logPath = normalizeRepoRelativePath4(rootDir, logAbsolutePath);
+    if (missingEnvironment.length > 0) {
+      const record2 = createRuntimeRecord(component, component.operations.start.command ?? "", logPath, null);
+      record2.status = "failed";
+      record2.failureReason = `missing required environment variables: ${missingEnvironment.join(", ")}`;
+      state.components[component.id] = record2;
+      writeRuntimeState(rootDir, state);
+      return {
+        ok: false,
+        artifactPath: planResult.artifactPath,
+        runtimeStatePath: writablePaths.relativeStatePath,
+        harnessId: planResult.harness.id,
+        environmentId: planResult.environment.id,
+        components: summarizeRuntimeState(state),
+        diagnostics: [createDiagnostic(planResult.artifactPath, `$.harness.environments.${planResult.environment.id}.components.${component.id}.environment.required`, "required environment variables are missing for harness-start", {
+          source: "environment",
+          phase: "environment",
+          componentId: component.id,
+          expected: component.environment.required.join(", "),
+          actual: missingEnvironment.join(", ")
+        })]
+      };
+    }
+    writeFileSync9(logAbsolutePath, "", "utf8");
+    const logDescriptor = openSync(logAbsolutePath, "a");
+    const child = spawn(component.operations.start.command ?? "", [], {
+      cwd: path30.join(rootDir, component.workingDirectory),
+      env: process.env,
+      shell: true,
+      detached: true,
+      stdio: ["ignore", logDescriptor, logDescriptor]
+    });
+    closeSync(logDescriptor);
+    child.unref();
+    const record = createRuntimeRecord(component, component.operations.start.command ?? "", logPath, typeof child.pid === "number" ? child.pid : null);
+    state.components[component.id] = record;
+    writeRuntimeState(rootDir, state);
+    const readiness = waitForReadiness(record);
+    if (!readiness.ok) {
+      record.status = "failed";
+      record.failureReason = readiness.message;
+      writeRuntimeState(rootDir, state);
+      return {
+        ok: false,
+        artifactPath: planResult.artifactPath,
+        runtimeStatePath: writablePaths.relativeStatePath,
+        harnessId: planResult.harness.id,
+        environmentId: planResult.environment.id,
+        components: summarizeRuntimeState(state),
+        diagnostics: [createDiagnostic(planResult.artifactPath, `$.harness.environments.${planResult.environment.id}.components.${component.id}.readiness`, readiness.message, {
+          source: "readiness",
+          phase: "readiness",
+          componentId: component.id
+        })]
+      };
+    }
+  }
+  return { ok: true, artifactPath: planResult.artifactPath, runtimeStatePath: writablePaths.relativeStatePath, harnessId: planResult.harness.id, environmentId: planResult.environment.id, components: summarizeRuntimeState(state), diagnostics: [] };
+}
+function getHarnessStatus(rootDir) {
+  const paths = getRuntimePaths(rootDir);
+  const runtime = readRuntimeState(rootDir);
+  if (!runtime.ok)
+    return { ok: false, artifactPath: HARNESS_DECLARATION_PATH, runtimeStatePath: paths.relativeStatePath, components: [], diagnostics: [runtime.diagnostic] };
+  if (runtime.state === null)
+    return { ok: true, artifactPath: HARNESS_DECLARATION_PATH, runtimeStatePath: paths.relativeStatePath, components: [], diagnostics: [] };
+  return { ok: true, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, harnessId: runtime.state.harnessId, environmentId: runtime.state.environmentId, components: summarizeRuntimeState(runtime.state), diagnostics: [] };
+}
+function getHarnessLogs(rootDir, requestedComponentId) {
+  const paths = getRuntimePaths(rootDir);
+  const runtime = readRuntimeState(rootDir);
+  if (!runtime.ok)
+    return { ok: false, artifactPath: HARNESS_DECLARATION_PATH, runtimeStatePath: paths.relativeStatePath, diagnostics: [runtime.diagnostic] };
+  if (runtime.state === null) {
+    return { ok: false, artifactPath: HARNESS_DECLARATION_PATH, runtimeStatePath: paths.relativeStatePath, diagnostics: [createDiagnostic(HARNESS_DECLARATION_PATH, "$", "harness-logs requires runtime state created by harness-start", { source: "runtime_state", phase: "logs" })] };
+  }
+  const ids = runtime.state.componentOrder;
+  const componentId = requestedComponentId ?? (ids.length === 1 ? ids[0] : undefined);
+  if (componentId === undefined) {
+    return { ok: false, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, diagnostics: [createDiagnostic(runtime.state.artifactPath, "$", "harness-logs requires a declared component id when multiple managed components exist", { source: "logs", phase: "logs", expected: ids.join(", ") })] };
+  }
+  const record = runtime.state.components[componentId];
+  if (record === undefined) {
+    return { ok: false, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, diagnostics: [createDiagnostic(runtime.state.artifactPath, "$", "harness-logs received an unknown declared component id", { source: "logs", phase: "logs", componentId, expected: ids.join(", "), actual: componentId })] };
+  }
+  return { ok: true, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, componentId, logPath: record.logPath, content: readFileSync23(path30.join(rootDir, record.logPath), "utf8"), diagnostics: [] };
+}
+function stopHarness(rootDir, options = {}) {
+  const paths = getRuntimePaths(rootDir);
+  const runtime = readRuntimeState(rootDir);
+  if (!runtime.ok)
+    return { ok: false, artifactPath: HARNESS_DECLARATION_PATH, runtimeStatePath: paths.relativeStatePath, components: [], diagnostics: [runtime.diagnostic] };
+  if (runtime.state === null)
+    return { ok: true, artifactPath: HARNESS_DECLARATION_PATH, runtimeStatePath: paths.relativeStatePath, components: [], diagnostics: [] };
+  const plan = getHarnessPlanResult(rootDir, runtime.state.environmentId, runtime.state.componentOrder);
+  if (!plan.valid)
+    return { ok: false, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, components: summarizeRuntimeState(runtime.state), diagnostics: plan.diagnostics };
+  const planById = new Map(plan.components.map((component) => [component.id, component]));
+  const diagnostics = [];
+  for (const componentId of [...runtime.state.componentOrder].reverse()) {
+    const record = runtime.state.components[componentId];
+    const component = planById.get(componentId);
+    if (record === undefined || component === undefined)
+      continue;
+    const safety = assertOperationAllowed(plan.artifactPath, plan.environment, component, "stop", options.confirm ?? false);
+    if (safety !== null) {
+      record.status = "failed";
+      record.failureReason = safety.message;
+      diagnostics.push(safety);
+      continue;
+    }
+    if (!isProcessAlive(record.pid)) {
+      record.status = record.status === "failed" ? "failed" : "stopped";
+      continue;
+    }
+    if (record.stopCommand) {
+      const result = spawnSync(record.stopCommand, [], { cwd: path30.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
+      if (result.status !== 0) {
+        record.status = "failed";
+        record.failureReason = result.stderr.trim() || result.stdout.trim() || "stop command failed";
+        diagnostics.push(createDiagnostic(plan.artifactPath, `$.harness.environments.${plan.environment.id}.components.${component.id}.operations.stop.command`, "harness stop command failed", { source: "runtime_state", phase: "cleanup", componentId: component.id, actual: record.failureReason }));
+        continue;
+      }
+    } else {
+      process.kill(record.pid ?? 0, "SIGTERM");
+    }
+    const deadline = Date.now() + 2000;
+    while (Date.now() <= deadline && isProcessAlive(record.pid))
+      sleepSync(100);
+    record.status = isProcessAlive(record.pid) ? "failed" : "stopped";
+    if (record.status === "failed")
+      record.failureReason = "managed process did not stop within the configured grace period";
+  }
+  writeRuntimeState(rootDir, runtime.state);
+  return { ok: diagnostics.length === 0, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, harnessId: runtime.state.harnessId, environmentId: runtime.state.environmentId, components: summarizeRuntimeState(runtime.state), diagnostics };
+}
+function extractPackageScriptName(command) {
+  const trimmed = command.trim();
+  const match = trimmed.match(/^(?:bun|npm|pnpm)\s+run\s+([A-Za-z0-9:_-]+)$/) ?? trimmed.match(/^yarn(?:\s+run)?\s+([A-Za-z0-9:_-]+)$/);
+  return match?.[1] ?? null;
+}
+function addDoctorDiagnostic(diagnostics, artifactPath, fieldPath, message, options) {
+  diagnostics.push(createDiagnostic(artifactPath, fieldPath, message, options));
+}
+function doctorHarness(rootDir) {
+  const artifactPath = normalizeRepoRelativePath4(rootDir, path30.join(rootDir, HARNESS_DECLARATION_PATH));
+  const planResult = getHarnessPlanResult(rootDir);
+  const diagnostics = [];
+  if (!planResult.valid) {
+    return { ok: false, artifactPath: planResult.artifactPath, diagnostics: planResult.diagnostics };
+  }
+  const absolutePath = path30.join(rootDir, HARNESS_DECLARATION_PATH);
+  const artifact = parseYamlFile(absolutePath);
+  const rootEnvSamples = readEnvSampleNames(rootDir);
+  const wrapperCheck = verifyHarnessScripts(rootDir);
+  diagnostics.push(...wrapperCheck.diagnostics);
+  for (const [environmentId] of sortEntries(artifact.harness.environments)) {
+    const environmentPlan = getHarnessPlanResult(rootDir, environmentId);
+    if (!environmentPlan.valid) {
+      diagnostics.push(...environmentPlan.diagnostics);
+      continue;
+    }
+    const seenPorts = new Map;
+    for (const component of environmentPlan.components) {
+      const workingDirectory = path30.join(rootDir, component.workingDirectory);
+      if (!existsSync29(workingDirectory) || !statSync22(workingDirectory).isDirectory()) {
+        addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.working_directory`, "harness component working directory is missing", {
+          source: "filesystem",
+          componentId: component.id,
+          expected: "existing directory",
+          actual: component.workingDirectory
+        });
+      }
+      const componentEnvSamples = workingDirectory === rootDir || !existsSync29(workingDirectory) ? { names: [], evidence: [] } : readEnvSampleNames(workingDirectory);
+      const documentedEnvNames = new Set([...rootEnvSamples.names, ...componentEnvSamples.names]);
+      for (const name of component.environment.required) {
+        if (!documentedEnvNames.has(name)) {
+          addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.environment.required`, "required environment variable is not documented in an env sample file", {
+            source: "environment",
+            phase: "environment",
+            componentId: component.id,
+            expected: ENV_SAMPLE_FILES.join(", "),
+            actual: name
+          });
+        }
+      }
+      for (const port of component.ports) {
+        const existing = seenPorts.get(port);
+        if (existing !== undefined) {
+          addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.ports`, "harness port is declared by multiple components in the same environment", {
+            source: "reference",
+            componentId: component.id,
+            expected: `unique port in ${environmentId}`,
+            actual: `${port} also declared by ${existing}`
+          });
+        }
+        seenPorts.set(port, component.id);
+      }
+      for (const operationName of ["start", "stop", "status", "logs"]) {
+        const operation = component.operations[operationName];
+        if (!operation.command)
+          continue;
+        const scriptName = extractPackageScriptName(operation.command);
+        if (scriptName !== null) {
+          const packageJson = readJsonFile(path30.join(workingDirectory, "package.json"));
+          const scripts = getPackageScripts(packageJson);
+          if (scripts[scriptName] === undefined) {
+            addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.operations.${operationName}.command`, "harness operation references a missing package script", {
+              source: "reference",
+              phase: "environment",
+              componentId: component.id,
+              expected: `package.json scripts.${scriptName}`,
+              actual: operation.command
+            });
+          }
+        }
+        if (environmentPlan.environment.kind === "production" && (operationName === "start" || operationName === "stop") && operation.mode === "script" && !operation.requiresConfirmation) {
+          addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.operations.${operationName}.requires_confirmation`, "production script lifecycle operation should require explicit confirmation", {
+            source: "safety",
+            phase: "environment",
+            componentId: component.id,
+            expected: "requires_confirmation: true",
+            actual: "missing or false"
+          });
+        }
+        if (STATEFUL_TYPES.has(component.type) && (operationName === "start" || operationName === "stop") && operation.mode === "script" && !operation.allowStatefulLifecycle) {
+          addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.operations.${operationName}.allow_stateful_lifecycle`, "stateful script lifecycle operation should explicitly allow stateful lifecycle control", {
+            source: "safety",
+            phase: "environment",
+            componentId: component.id,
+            expected: "allow_stateful_lifecycle: true",
+            actual: "missing or false"
+          });
+        }
+      }
+    }
+  }
+  return { ok: diagnostics.length === 0, artifactPath, diagnostics };
+}
+function wrapperContent(scriptName) {
+  const command = scriptName === "harness-session" ? "harness-session" : scriptName;
+  return [
+    "#!/usr/bin/env sh",
+    "set -eu",
+    'SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)',
+    'ROOT_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)',
+    'CLI="$ROOT_DIR/dist/scripts/strict-spec-driven.js"',
+    'if [ -f "$CLI" ]; then',
+    `  exec node "$CLI" ${command} "$@"`,
+    "fi",
+    "if command -v strict-spec-driven >/dev/null 2>&1; then",
+    `  exec strict-spec-driven ${command} "$@"`,
+    "fi",
+    'echo "strict-spec-driven CLI not found; build this project or install the CLI" >&2',
+    "exit 1",
+    ""
+  ].join(`
+`);
+}
+function generateHarnessScripts(rootDir) {
+  const scriptsDir = path30.join(rootDir, "scripts");
+  mkdirSync6(scriptsDir, { recursive: true });
+  const created = [];
+  for (const scriptName of SCRIPT_NAMES) {
+    const absolutePath = path30.join(scriptsDir, scriptName);
+    writeFileSync9(absolutePath, wrapperContent(scriptName), { encoding: "utf8", mode: 493 });
+    created.push(normalizeRepoRelativePath4(rootDir, absolutePath));
+  }
+  return { ok: true, scripts: SCRIPT_NAMES.map((name) => `scripts/${name}`), created, verified: [], diagnostics: [] };
+}
+function verifyHarnessScripts(rootDir) {
+  const diagnostics = [];
+  const verified = [];
+  for (const scriptName of SCRIPT_NAMES) {
+    const relativePath = `scripts/${scriptName}`;
+    const absolutePath = path30.join(rootDir, relativePath);
+    if (!existsSync29(absolutePath)) {
+      diagnostics.push(createDiagnostic(relativePath, "$", "harness script is missing", { source: "scripts", phase: "scripts", expected: "generated wrapper", actual: "missing" }));
+      continue;
+    }
+    const content = readFileSync23(absolutePath, "utf8");
+    if (content !== wrapperContent(scriptName)) {
+      diagnostics.push(createDiagnostic(relativePath, "$", "harness script content does not match generated wrapper", { source: "scripts", phase: "scripts", expected: "current generated wrapper", actual: "different content" }));
+      continue;
+    }
+    verified.push(relativePath);
+  }
+  return { ok: diagnostics.length === 0, scripts: SCRIPT_NAMES.map((name) => `scripts/${name}`), created: [], verified, diagnostics };
+}
+function normalizeHarnessSessionPath(rootDir, target) {
+  const normalized = target.split("\\").join("/");
+  const looksLikePath = normalized.includes("/") || normalized.endsWith(".yaml");
+  const repoRelativePath = looksLikePath ? normalized : `${HARNESS_SESSIONS_DIR}/${normalized}/${HARNESS_SESSION_FILE_NAME}`;
+  const absolutePath = path30.resolve(rootDir, repoRelativePath);
+  return { artifactPath: normalizeRepoRelativePath4(rootDir, absolutePath), absolutePath };
+}
+function formatLocalDate2(date = new Date) {
+  return `${String(date.getFullYear())}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+function buildHarnessSessionArchiveDestination(rootDir, sessionId) {
+  const archiveRoot = path30.join(rootDir, HARNESS_SESSION_ARCHIVE_DIR);
+  mkdirSync6(archiveRoot, { recursive: true });
+  const baseName = `${formatLocalDate2()}-${sessionId}`;
+  let candidate = path30.join(archiveRoot, baseName);
+  let sequence = 2;
+  while (existsSync29(candidate)) {
+    candidate = path30.join(archiveRoot, `${baseName}-${sequence}`);
+    sequence += 1;
+  }
+  return candidate;
+}
+function isDirectory(filePath) {
+  return existsSync29(filePath) && statSync22(filePath).isDirectory();
+}
+function createHarnessSession(rootDir, sessionId) {
+  const sessionDir = path30.join(rootDir, HARNESS_SESSIONS_DIR, sessionId);
+  const sessionPath = path30.join(sessionDir, HARNESS_SESSION_FILE_NAME);
+  const evidenceDir = path30.join(sessionDir, "evidence");
   const relativeSessionDir = normalizeRepoRelativePath4(rootDir, sessionDir);
   const relativeSessionPath = normalizeRepoRelativePath4(rootDir, sessionPath);
   const relativeEvidenceDir = normalizeRepoRelativePath4(rootDir, evidenceDir);
-  if (!DEBUG_SESSION_ID_PATTERN.test(sessionId) || sessionId === "archive") {
-    return {
-      ok: false,
-      sessionId,
-      sessionDir: relativeSessionDir,
-      sessionPath: relativeSessionPath,
-      evidenceDir: relativeEvidenceDir,
-      created: [],
-      diagnostics: [
-        createDiagnostic(relativeSessionPath, "$.debug_session.id", "debug-session id must be kebab-case and not reserved", {
-          expected: "lowercase letters, numbers, hyphens, and not 'archive'",
-          actual: sessionId
-        })
-      ]
-    };
+  if (!SESSION_ID_PATTERN.test(sessionId) || sessionId === "archive") {
+    return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$.harness_session.id", "harness-session id must be kebab-case and not reserved", { expected: "lowercase letters, numbers, hyphens, and not 'archive'", actual: sessionId })] };
   }
-  if (existsSync30(sessionPath) || existsSync30(evidenceDir)) {
-    return {
-      ok: false,
-      sessionId,
-      sessionDir: relativeSessionDir,
-      sessionPath: relativeSessionPath,
-      evidenceDir: relativeEvidenceDir,
-      created: [],
-      diagnostics: [
-        createDiagnostic(relativeSessionPath, "$", "debug-session already exists", {
-          expected: "new debug-session directory",
-          actual: relativeSessionDir
-        })
-      ]
-    };
+  if (existsSync29(sessionPath) || existsSync29(evidenceDir)) {
+    return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$", "harness-session already exists", { expected: "new harness-session directory", actual: relativeSessionDir })] };
   }
-  mkdirSync7(evidenceDir, { recursive: true });
-  const template = readBundledScaffoldTemplate(DEBUG_SESSION_TEMPLATE_PATH);
-  writeFileSync10(sessionPath, template.replaceAll(TEMPLATE_SESSION_ID_PLACEHOLDER, sessionId), "utf8");
-  return {
-    ok: true,
-    sessionId,
-    sessionDir: relativeSessionDir,
-    sessionPath: relativeSessionPath,
-    evidenceDir: `${relativeEvidenceDir}/`,
-    created: [relativeSessionPath, `${relativeEvidenceDir}/`],
-    diagnostics: []
-  };
+  mkdirSync6(evidenceDir, { recursive: true });
+  writeFileSync9(sessionPath, readBundledScaffoldTemplate(HARNESS_SESSION_TEMPLATE_PATH).replaceAll(TEMPLATE_SESSION_ID_PLACEHOLDER, sessionId), "utf8");
+  return { ok: true, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: `${relativeEvidenceDir}/`, created: [relativeSessionPath, `${relativeEvidenceDir}/`], diagnostics: [] };
 }
-function validateDebugSession(rootDir, target) {
-  const { artifactPath, absolutePath } = normalizeDebugSessionPath(rootDir, target);
-  if (!existsSync30(absolutePath)) {
-    return {
-      valid: false,
-      artifactPath,
-      diagnostics: [
-        createDiagnostic(artifactPath, "$", "debug-session artifact not found", {
-          expected: "session.yaml file",
-          actual: "missing"
-        })
-      ]
-    };
+function validateHarnessSession(rootDir, target) {
+  const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
+  if (!existsSync29(absolutePath)) {
+    return { valid: false, artifactPath, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
   }
   let artifact;
   try {
     artifact = parseYamlFile(absolutePath);
   } catch (error) {
-    return {
-      valid: false,
-      artifactPath,
-      diagnostics: [yamlDiagnosticFromError(artifactPath, error)]
-    };
+    return { valid: false, artifactPath, diagnostics: [yamlDiagnosticFromError(artifactPath, error)] };
   }
-  const schema2 = loadBundledSchemaByArtifactType("debug_session");
-  const result = validateArtifact(schema2, artifact, artifactPath);
-  return {
-    valid: result.valid,
-    artifactPath,
-    diagnostics: result.diagnostics
-  };
+  const validation = validateArtifact(loadBundledSchemaByArtifactType("harness_session"), artifact, artifactPath);
+  return { valid: validation.valid, artifactPath, diagnostics: validation.diagnostics };
 }
-function archiveDebugSession(rootDir, target) {
-  const { artifactPath, absolutePath } = normalizeDebugSessionPath(rootDir, target);
-  const sourceDir = path31.dirname(absolutePath);
+function archiveHarnessSession(rootDir, target) {
+  const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
+  const sourceDir = path30.dirname(absolutePath);
   const relativeSourceDir = normalizeRepoRelativePath4(rootDir, sourceDir);
-  const missingResult = {
-    ok: false,
-    sessionId: null,
-    sourceDir: relativeSourceDir,
-    sourcePath: artifactPath,
-    archiveDir: null,
-    archivePath: null
-  };
-  if (!existsSync30(absolutePath)) {
-    return {
-      ...missingResult,
-      diagnostics: [
-        createDiagnostic(artifactPath, "$", "debug-session artifact not found", {
-          expected: "session.yaml file",
-          actual: "missing"
-        })
-      ]
-    };
+  const missingResult = { ok: false, sessionId: null, sourceDir: relativeSourceDir, sourcePath: artifactPath, archiveDir: null, archivePath: null };
+  if (!existsSync29(absolutePath)) {
+    return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
   }
-  const activeRoot = path31.resolve(rootDir, DEBUG_SESSIONS_DIR);
-  const sourceParent = path31.dirname(path31.resolve(sourceDir));
-  if (path31.basename(absolutePath) !== DEBUG_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
-    return {
-      ...missingResult,
-      diagnostics: [
-        createDiagnostic(artifactPath, "$", "debug-session archive target must be an active session.yaml artifact", {
-          expected: `${DEBUG_SESSIONS_DIR}/<session-id>/${DEBUG_SESSION_FILE_NAME}`,
-          actual: artifactPath
-        })
-      ]
-    };
+  const activeRoot = path30.resolve(rootDir, HARNESS_SESSIONS_DIR);
+  const sourceParent = path30.dirname(path30.resolve(sourceDir));
+  if (path30.basename(absolutePath) !== HARNESS_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
+    return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session archive target must be an active session.yaml artifact", { expected: `${HARNESS_SESSIONS_DIR}/<session-id>/${HARNESS_SESSION_FILE_NAME}`, actual: artifactPath })] };
   }
-  const validation = validateDebugSession(rootDir, artifactPath);
-  if (!validation.valid) {
-    return {
-      ...missingResult,
-      diagnostics: validation.diagnostics
-    };
-  }
-  let artifact;
-  try {
-    artifact = parseYamlFile(absolutePath);
-  } catch (error) {
-    return {
-      ...missingResult,
-      diagnostics: [yamlDiagnosticFromError(artifactPath, error)]
-    };
-  }
-  const sessionId = artifact.debug_session?.id;
-  const status = artifact.debug_session?.status;
+  const validation = validateHarnessSession(rootDir, artifactPath);
+  if (!validation.valid)
+    return { ...missingResult, diagnostics: validation.diagnostics };
+  const artifact = parseYamlFile(absolutePath);
+  const sessionId = artifact.harness_session?.id;
+  const status = artifact.harness_session?.status;
   if (typeof sessionId !== "string" || sessionId.length === 0) {
-    return {
-      ...missingResult,
-      diagnostics: [
-        createDiagnostic(artifactPath, "$.debug_session.id", "debug-session artifact is missing a session id", {
-          expected: "non-empty debug_session.id",
-          actual: typeof sessionId
-        })
-      ]
-    };
+    return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session artifact is missing a session id", { expected: "non-empty harness_session.id", actual: typeof sessionId })] };
   }
   if (sessionId === "archive") {
-    return {
-      ...missingResult,
-      sessionId,
-      diagnostics: [
-        createDiagnostic(artifactPath, "$.debug_session.id", "debug-session id is reserved for archived sessions", {
-          expected: "non-reserved debug-session id",
-          actual: sessionId
-        })
-      ]
-    };
+    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id is reserved for archived sessions", { expected: "non-reserved harness-session id", actual: sessionId })] };
   }
-  if (path31.basename(sourceDir) !== sessionId) {
-    return {
-      ...missingResult,
-      sessionId,
-      diagnostics: [
-        createDiagnostic(artifactPath, "$.debug_session.id", "debug-session id must match its active directory name", {
-          expected: path31.basename(sourceDir),
-          actual: sessionId
-        })
-      ]
-    };
+  if (path30.basename(sourceDir) !== sessionId) {
+    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path30.basename(sourceDir), actual: sessionId })] };
   }
   if (status !== "resolved" && status !== "blocked") {
-    return {
-      ...missingResult,
-      sessionId,
-      diagnostics: [
-        createDiagnostic(artifactPath, "$.debug_session.status", "debug-session must be resolved or blocked before archive", {
-          expected: "resolved or blocked",
-          actual: typeof status === "string" ? status : typeof status
-        })
-      ]
-    };
+    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.status", "harness-session must be resolved or blocked before archive", { expected: "resolved or blocked", actual: typeof status === "string" ? status : typeof status })] };
   }
-  const archiveDestination = buildDebugSessionArchiveDestination(rootDir, sessionId);
-  const archivePath = path31.join(archiveDestination, DEBUG_SESSION_FILE_NAME);
+  const archiveDestination = buildHarnessSessionArchiveDestination(rootDir, sessionId);
+  const archivePath = path30.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
   renameSync2(sourceDir, archiveDestination);
   return {
     ok: true,
@@ -20259,56 +19958,207 @@ function archiveDebugSession(rootDir, target) {
   };
 }
 
-// src/cli/cmd-debug-session.ts
-var DEBUG_SESSION_CREATE_USAGE = `Usage: strict-spec-driven debug-session-create <session-id>
+// src/cli/cmd-harness.ts
+var HARNESS_PLAN_USAGE = `Usage: strict-spec-driven harness-plan [--environment <id>] [--component <id> ...]
 `;
-var DEBUG_SESSION_VALIDATE_USAGE = `Usage: strict-spec-driven debug-session-validate <session-id|session.yaml>
+var HARNESS_INFER_USAGE = `Usage: strict-spec-driven harness-infer [--write] [--force]
 `;
-var DEBUG_SESSION_ARCHIVE_USAGE = `Usage: strict-spec-driven debug-session-archive <session-id|session.yaml>
+var HARNESS_DOCTOR_USAGE = `Usage: strict-spec-driven harness-doctor
 `;
-function runDebugSessionCreate(argv) {
-  const [sessionId, ...extraArgs] = argv;
-  if (isHelpRequest(argv)) {
-    writeHelp(DEBUG_SESSION_CREATE_USAGE);
-    return 0;
+var HARNESS_START_USAGE = `Usage: strict-spec-driven harness-start [--environment <id>] [--component <id> ...] [--confirm]
+`;
+var HARNESS_STOP_USAGE = `Usage: strict-spec-driven harness-stop [--confirm]
+`;
+var HARNESS_STATUS_USAGE = `Usage: strict-spec-driven harness-status
+`;
+var HARNESS_LOGS_USAGE = `Usage: strict-spec-driven harness-logs [component-id]
+`;
+var HARNESS_SCRIPTS_USAGE = `Usage: strict-spec-driven harness-scripts <generate|verify>
+`;
+var HARNESS_SESSION_USAGE = `Usage: strict-spec-driven harness-session <create|validate|archive> <session-id|session.yaml>
+`;
+function parseSelectionArgs(argv, usage2, allowConfirm) {
+  const parsed = { components: [], confirm: false };
+  for (let index = 0;index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--environment") {
+      const value = argv[index + 1];
+      if (!value) {
+        writeUsage(usage2);
+        return null;
+      }
+      parsed.environment = value;
+      index += 1;
+      continue;
+    }
+    if (arg === "--component") {
+      const value = argv[index + 1];
+      if (!value) {
+        writeUsage(usage2);
+        return null;
+      }
+      parsed.components.push(value);
+      index += 1;
+      continue;
+    }
+    if (arg === "--confirm" && allowConfirm) {
+      parsed.confirm = true;
+      continue;
+    }
+    writeUsage(usage2);
+    return null;
   }
-  if (!sessionId || extraArgs.length > 0) {
-    writeUsage(DEBUG_SESSION_CREATE_USAGE);
-    return 1;
-  }
-  if (!CHANGE_NAME_PATTERN.test(sessionId)) {
-    writeError("debug-session id must be kebab-case (lowercase letters, numbers, and hyphens)");
-    return 1;
-  }
-  const result = createDebugSession(process.cwd(), sessionId);
-  writeJson(result);
-  return result.ok ? 0 : 1;
+  return parsed;
 }
-function runDebugSessionValidate(argv) {
-  const [target, ...extraArgs] = argv;
+function runHarnessPlan(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(DEBUG_SESSION_VALIDATE_USAGE);
+    writeHelp(HARNESS_PLAN_USAGE);
     return 0;
   }
-  if (!target || extraArgs.length > 0) {
-    writeUsage(DEBUG_SESSION_VALIDATE_USAGE);
+  const selection = parseSelectionArgs(argv, HARNESS_PLAN_USAGE, false);
+  if (selection === null)
     return 1;
-  }
-  const result = validateDebugSession(process.cwd(), target);
+  const result = getHarnessPlanResult(process.cwd(), selection.environment, selection.components);
   writeJson(result);
   return result.valid ? 0 : 1;
 }
-function runDebugSessionArchive(argv) {
-  const [target, ...extraArgs] = argv;
+function runHarnessInfer(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(DEBUG_SESSION_ARCHIVE_USAGE);
+    writeHelp(HARNESS_INFER_USAGE);
     return 0;
   }
-  if (!target || extraArgs.length > 0) {
-    writeUsage(DEBUG_SESSION_ARCHIVE_USAGE);
+  let write = false;
+  let force = false;
+  for (const arg of argv) {
+    if (arg === "--write") {
+      write = true;
+      continue;
+    }
+    if (arg === "--force") {
+      force = true;
+      continue;
+    }
+    writeUsage(HARNESS_INFER_USAGE);
     return 1;
   }
-  const result = archiveDebugSession(process.cwd(), target);
+  if (force && !write) {
+    writeUsage(HARNESS_INFER_USAGE);
+    return 1;
+  }
+  const result = inferHarness(process.cwd(), { write, force });
+  writeJson(result);
+  return result.ok ? 0 : 1;
+}
+function runHarnessDoctor(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(HARNESS_DOCTOR_USAGE);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(HARNESS_DOCTOR_USAGE);
+    return 1;
+  }
+  const result = doctorHarness(process.cwd());
+  writeJson(result);
+  return result.ok ? 0 : 1;
+}
+function runHarnessStart(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(HARNESS_START_USAGE);
+    return 0;
+  }
+  const selection = parseSelectionArgs(argv, HARNESS_START_USAGE, true);
+  if (selection === null)
+    return 1;
+  const result = startHarness(process.cwd(), {
+    environment: selection.environment,
+    components: selection.components,
+    confirm: selection.confirm
+  });
+  writeJson(result);
+  return result.ok ? 0 : 1;
+}
+function runHarnessStop(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(HARNESS_STOP_USAGE);
+    return 0;
+  }
+  const selection = parseSelectionArgs(argv, HARNESS_STOP_USAGE, true);
+  if (selection === null || selection.environment !== undefined || selection.components.length > 0)
+    return 1;
+  const result = stopHarness(process.cwd(), { confirm: selection.confirm });
+  writeJson(result);
+  return result.ok ? 0 : 1;
+}
+function runHarnessStatus(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(HARNESS_STATUS_USAGE);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(HARNESS_STATUS_USAGE);
+    return 1;
+  }
+  const result = getHarnessStatus(process.cwd());
+  writeJson(result);
+  return result.ok ? 0 : 1;
+}
+function runHarnessLogs(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(HARNESS_LOGS_USAGE);
+    return 0;
+  }
+  if (argv.length > 1) {
+    writeUsage(HARNESS_LOGS_USAGE);
+    return 1;
+  }
+  const result = getHarnessLogs(process.cwd(), argv[0]);
+  if (!result.ok) {
+    writeJson(result);
+    return 1;
+  }
+  writeOut(result.content ?? "");
+  return 0;
+}
+function runHarnessScripts(argv) {
+  const [action, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(HARNESS_SCRIPTS_USAGE);
+    return 0;
+  }
+  if (!action || extraArgs.length > 0 || action !== "generate" && action !== "verify") {
+    writeUsage(HARNESS_SCRIPTS_USAGE);
+    return 1;
+  }
+  const result = action === "generate" ? generateHarnessScripts(process.cwd()) : verifyHarnessScripts(process.cwd());
+  writeJson(result);
+  return result.ok ? 0 : 1;
+}
+function runHarnessSession(argv) {
+  const [action, target, ...extraArgs] = argv;
+  if (isHelpRequest(argv)) {
+    writeHelp(HARNESS_SESSION_USAGE);
+    return 0;
+  }
+  if (!action || !target || extraArgs.length > 0 || !["create", "validate", "archive"].includes(action)) {
+    writeUsage(HARNESS_SESSION_USAGE);
+    return 1;
+  }
+  if (action === "create") {
+    if (!CHANGE_NAME_PATTERN.test(target)) {
+      writeError("harness-session id must be kebab-case (lowercase letters, numbers, and hyphens)");
+      return 1;
+    }
+    const result2 = createHarnessSession(process.cwd(), target);
+    writeJson(result2);
+    return result2.ok ? 0 : 1;
+  }
+  if (action === "validate") {
+    const result2 = validateHarnessSession(process.cwd(), target);
+    writeJson(result2);
+    return result2.valid ? 0 : 1;
+  }
+  const result = archiveHarnessSession(process.cwd(), target);
   writeJson(result);
   return result.ok ? 0 : 1;
 }
@@ -20329,15 +20179,15 @@ var commands = createCliCommandTable({
   "schema-show": (argv) => runSchemaShow(argv),
   "template-list": (argv) => runTemplateList(argv),
   "template-show": (argv) => runTemplateShow(argv),
-  "dev-session-plan": (argv) => runDevSessionPlan(argv),
-  "dev-session-start": (argv) => runDevSessionStart(argv),
-  "dev-session-status": (argv) => runDevSessionStatus(argv),
-  "dev-session-logs": (argv) => runDevSessionLogs(argv),
-  "dev-session-trial": (argv) => runDevSessionTrial(argv),
-  "dev-session-stop": (argv) => runDevSessionStop(argv),
-  "debug-session-create": (argv) => runDebugSessionCreate(argv),
-  "debug-session-validate": (argv) => runDebugSessionValidate(argv),
-  "debug-session-archive": (argv) => runDebugSessionArchive(argv),
+  "harness-infer": (argv) => runHarnessInfer(argv),
+  "harness-doctor": (argv) => runHarnessDoctor(argv),
+  "harness-plan": (argv) => runHarnessPlan(argv),
+  "harness-start": (argv) => runHarnessStart(argv),
+  "harness-stop": (argv) => runHarnessStop(argv),
+  "harness-status": (argv) => runHarnessStatus(argv),
+  "harness-logs": (argv) => runHarnessLogs(argv),
+  "harness-scripts": (argv) => runHarnessScripts(argv),
+  "harness-session": (argv) => runHarnessSession(argv),
   migrate: (argv) => runMigrate(argv),
   "roadmap-status": (argv) => runRoadmapStatus(argv),
   "roadmap-overview": (argv) => runRoadmapOverview(argv),

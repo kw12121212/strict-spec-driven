@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 import { printFinalSummary, TestContext } from "./support/harness.js";
 import { runChangeLifecycleSuite } from "./suites/change-lifecycle.js";
-import { runDevSessionLifecycleSuite } from "./suites/dev-session-lifecycle.js";
-import { runDevSessionPlanSuite } from "./suites/dev-session-plan.js";
-import { runDevSessionRegressionSuite } from "./suites/dev-session-regression.js";
-import { runDevSessionTrialSuite } from "./suites/dev-session-trial.js";
-import { runDebugSessionSuite } from "./suites/debug-session.js";
 import { runEntrypointAndSkillsSuite } from "./suites/entrypoint-and-skills.js";
 import { runFoundationAndFixtureSuite } from "./suites/foundation-and-fixtures.js";
+import { runHarnessContractsSuite } from "./suites/harness-contracts.js";
+import { runHarnessInferDoctorSuite } from "./suites/harness-infer-doctor.js";
+import { runHarnessLifecycleSuite } from "./suites/harness-lifecycle.js";
+import { runHarnessPlanSuite } from "./suites/harness-plan.js";
+import { runHarnessSessionSuite } from "./suites/harness-session.js";
 import { runOperationsSuite } from "./suites/operations.js";
 import { runRoadmapAndMigrationSuite } from "./suites/roadmap-and-migration.js";
 
@@ -16,11 +16,11 @@ async function main(): Promise<void> {
 
   await runEntrypointAndSkillsSuite(context);
   await runFoundationAndFixtureSuite(context);
-  await runDevSessionPlanSuite(context);
-  await runDebugSessionSuite(context);
-  await runDevSessionLifecycleSuite(context);
-  await runDevSessionTrialSuite(context);
-  await runDevSessionRegressionSuite(context);
+  await runHarnessContractsSuite(context);
+  await runHarnessPlanSuite(context);
+  await runHarnessLifecycleSuite(context);
+  await runHarnessInferDoctorSuite(context);
+  await runHarnessSessionSuite(context);
   await runChangeLifecycleSuite(context);
   await runRoadmapAndMigrationSuite(context);
   await runOperationsSuite(context);

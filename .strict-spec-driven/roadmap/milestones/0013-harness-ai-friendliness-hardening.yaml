@@ -1,0 +1,134 @@
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+milestone:
+  0013-harness-ai-friendliness-hardening:
+    title: 13 Harness AI Friendliness Hardening
+goal: >-
+  Close the gaps between the harness declaration model and its actual runtime behavior so AI agents
+  can author, run, and recover from harness lifecycle operations without being misled by dead schema
+  fields, unbounded output, contradictory diagnostics, or silent partial-start state.
+scope:
+  in:
+    - >-
+      Reconcile the declared `operations.status` and `operations.logs` model with runtime behavior
+      so agents are not led to write command/mode fields that the CLI never executes, including the
+      `readonly` mode that has no executable path today.
+    - >-
+      Bound `harness-logs` output with an explicit tail or byte limit so agents do not flood their
+      context window when reading long-running service logs.
+    - >-
+      Reconcile `harness-start` required-environment checking with `harness-doctor` expectations so
+      a project that passes doctor does not fail start, and so diagnostics explain how environment
+      values are expected to be supplied.
+    - >-
+      Broaden `harness-infer` runtime detection beyond Node/npm so common non-Node projects produce
+      a useful draft, or clearly report why no lifecycle command could be inferred.
+    - >-
+      Make partial-start failures report that earlier components are still running and how to
+      recover them, instead of leaving the agent to discover live processes on its own.
+    - >-
+      Keep all new behavior covered by deterministic tests and reflected in the harness schema,
+      example, and HARNESS.md documentation.
+  out:
+    - >-
+      Adding new managed component types, environment kinds, or readiness mechanisms beyond what the
+      current harness contract already supports.
+    - >-
+      Loading or interpreting secret values; environment handling continues to record only variable
+      names and never stores credentials in YAML, scripts, logs, or evidence.
+    - >-
+      Turning the harness into a hosted environment manager or replacing project-owned package
+      scripts, framework CLIs, or process supervisors.
+    - >-
+      Redesigning the harness session investigation artifact, which is out of scope for this
+      hardening pass.
+done_criteria:
+  - >-
+    The status/logs operation model is declarative: `operations.status` and `operations.logs` are
+    optional and carry no required command, the schema and HARNESS.md state that status comes from
+    runtime state and logs from the captured log file, `readonly` is documented as a never-executed
+    descriptive marker, and only `start`/`stop` are executed by the lifecycle.
+  - >-
+    `harness-logs` supports an explicit output bound (such as a tail line count or byte cap) with a
+    documented default, and the bound is covered by a deterministic test.
+  - >-
+    `harness-start`'s missing-environment diagnostic explicitly states that the harness does not
+    read `.env` files and that values must be exported or sourced, reads as complementary to
+    `harness-doctor`'s env-sample check rather than contradicting it, and is covered by a
+    deterministic test; automatic `.env` loading remains out of scope.
+  - >-
+    `harness-infer` either detects at least one common non-Node project shape (such as
+    docker-compose, Procfile, Makefile, or a language-specific runner) or records explicit evidence
+    explaining why no lifecycle command was inferred.
+  - >-
+    A partial `harness-start` failure reports which already-started components remain running and
+    the command to stop them, verified by a deterministic test.
+  - >-
+    The harness schema, example, and HARNESS.md are updated to match the reconciled behavior, and
+    the harness test suites pass.
+planned_changes: {}
+dependencies:
+  - >-
+    The harness declaration, lifecycle, inference, doctor, and session behavior delivered by the
+    earlier harness changes remains the baseline this milestone hardens.
+  - >-
+    Existing strict YAML schema and validation tooling remains the source of truth for any harness
+    contract change made here.
+  - >-
+    The secret-safety policy that keeps credential values out of harness YAML, scripts, logs, and
+    evidence remains in force for all changes in this milestone.
+risks:
+  - >-
+    Changing the status/logs operation contract can invalidate existing harness declarations, so the
+    reconciliation must be a deliberate, documented schema decision rather than a silent behavior
+    change.
+  - >-
+    Bounding log output can hide the relevant tail of a failure if defaults are chosen poorly, so
+    the default and override behavior must be explicit and testable.
+  - >-
+    Loosening environment handling toward reading env files could encourage secret leakage, so any
+    environment reconciliation must preserve the name-only, no-values policy.
+  - >-
+    Broadening inference increases the chance of emitting an unsafe or wrong command, so inferred
+    lifecycle operations must stay manual and clearly marked as drafts.
+status: proposed
+notes:
+  - >-
+    This milestone is follow-up hardening from an AI-friendliness review of the harness feature. The
+    findings are real mismatches between the declared model and runtime behavior, not new feature
+    requests.
+  - >-
+    The highest-value items are reconciling the status/logs dead model and bounding harness-logs
+    output, because they most directly affect whether an agent can author and consume the harness
+    correctly.
+  - >-
+    Two contract decisions are settled for this milestone: status/logs become declarative (optional,
+    never executed) rather than runtime-honored, and the environment mismatch is fixed with
+    diagnostic guidance only, leaving automatic `.env` loading out of scope to avoid secret-adjacent
+    handling.
+details: >-
+  An AI-friendliness review of the harness feature surfaced five gaps between what the harness
+  declaration tells an agent and what the CLI actually does. First, every component must declare
+  `operations.status` and `operations.logs` with a mode and, for script mode, a command, but the CLI
+  derives status from runtime state and logs from the captured log file and never executes those
+  operations; the `readonly` mode likewise has no executable path. Agents therefore craft fields
+  that are silently ignored. Second, `harness-logs` returns the entire captured log file with no
+  tail or byte cap, which can exhaust an agent's context window on a long-running service. Third,
+  `harness-start` checks required environment variables only against `process.env`, while
+  `harness-doctor` checks whether those names are documented in an env sample file, so a project can
+  pass doctor and still fail start with a confusing missing-environment error and no guidance that
+  values must be exported. Fourth, `harness-infer` only reads `package.json` and env sample files,
+  so non-Node projects get an empty, command-less manual draft with no explanation. Fifth, when a
+  later component fails readiness during `harness-start`, earlier components remain running and
+  runtime state is persisted, but the failure result does not tell the agent that live processes
+  exist or how to stop them.
+
+  The accepted direction is to make the declared model and runtime behavior consistent and to make
+  agent-facing output bounded, self-explanatory, and recoverable. Each finding becomes one
+  standalone planned change so it can be proposed and implemented independently, with the
+  status/logs reconciliation and the log output bound prioritized first. All changes keep the
+  existing safety posture: production lifecycle stays disabled by default, stateful lifecycle stays
+  gated, inferred commands stay manual drafts, and environment handling continues to record only
+  variable names with no secret values stored anywhere in strict artifacts.

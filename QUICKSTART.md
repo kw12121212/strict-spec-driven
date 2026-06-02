@@ -162,37 +162,27 @@ For changes where the scope is already clear, `/strict-spec-auto` runs the full 
 
 The skill pauses only when open questions require user input or when an unrecoverable error is encountered.
 
-## Declaring a Development Session (Optional)
+## Harness (Optional)
 
-If your project has a local dev server, you can declare it so agents know how to start it, wait for readiness, and open browser smoke targets:
+If your project has local services, production observability, or structured investigations, declare them in one harness:
 
-1. Run `/strict-spec-dev-session-init` to scaffold or refine `.strict-spec-driven/dev-session.yaml` from project context, or edit the file manually if you prefer.
-2. Run the dry plan to confirm the declaration:
+1. Run `/strict-spec-harness-init` to scaffold or refine `.strict-spec-driven/harness.yaml` from project context, or edit the file manually.
+2. Run the dry plan and generate scripts:
    ```sh
-   node dist/strict-spec-cli.js dev-session-plan
+   node dist/strict-spec-cli.js harness-plan --environment development
+   node dist/strict-spec-cli.js harness-scripts generate
    ```
-   The command validates the file and prints the resolved session plan without starting any processes.
-3. Use `dev-session-start` / `dev-session-stop` to manage services directly from the CLI.
+3. Use `scripts/harness-start`, `scripts/harness-status`, `scripts/harness-logs`, and `scripts/harness-stop` to operate declared components.
 
-Lifecycle skills (`/strict-spec-apply`, `/strict-spec-auto`) automatically check `dev-session.yaml` when it exists. See [DEV_SESSIONS.md](DEV_SESSIONS.md) for the full reference.
-
-## Running a Debug Session (Optional)
-
-When a bug needs structured evidence, create a strict debug-session artifact:
+When a bug needs structured evidence, create a harness session:
 
 ```sh
-node dist/strict-spec-cli.js debug-session-create checkout-cdp-target
+node dist/strict-spec-cli.js harness-session create checkout-investigation
 ```
 
-Use `/strict-spec-debug-session` to guide Web API, frontend, Electron, or CDP-access debugging. The workflow records reproduction steps, evidence files, hypotheses, findings, human checkpoints, manual actions, dev-session lifecycle evidence, replay commands, and verification state without storing secret values.
+Use `/strict-spec-harness-session` to guide the investigation. The workflow records selected environment/components, lifecycle evidence, reproduction steps, evidence files, hypotheses, findings, human checkpoints, manual actions, replay commands, and verification state without storing secret values.
 
-Validate the artifact before handoff:
-
-```sh
-node dist/strict-spec-cli.js debug-session-validate checkout-cdp-target
-```
-
-See [DEBUG_SESSIONS.md](DEBUG_SESSIONS.md) for the full reference.
+See [HARNESS.md](HARNESS.md) for the full reference.
 
 ## Migrating from Bootstrap State
 

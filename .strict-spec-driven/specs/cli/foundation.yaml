@@ -13,8 +13,7 @@ mapping:
     - src/cli/argv.ts
     - src/cli/changes.ts
     - src/cli/cmd-change.ts
-    - src/cli/cmd-debug-session.ts
-    - src/cli/cmd-dev-session.ts
+    - src/cli/cmd-harness.ts
     - src/cli/cmd-generation.ts
     - src/cli/output.ts
     - src/cli/cmd-migration.ts
@@ -50,8 +49,7 @@ mapping:
     - src/roadmap/status.ts
     - src/roadmap/sync.ts
     - src/archive.ts
-    - src/debug-session.ts
-    - src/dev-session.ts
+    - src/harness.ts
     - src/propose-generation.ts
     - src/scaffold.ts
     - src/embedded-templates.ts
@@ -66,7 +64,8 @@ mapping:
     - src/skills/content.ts
     - src/skills/fs-checks.ts
     - src/skills/diagnostics.ts
-    - skills/strict-spec-debug-session-to-change/SKILL.md
+    - skills/strict-spec-harness-init/SKILL.md
+    - skills/strict-spec-harness-session/SKILL.md
     - skills/strict-spec-ship/SKILL.md
     - templates/strict-spec-driven/scaffold/config.yaml
     - templates/strict-spec-driven/scaffold/changes/proposal.yaml
@@ -79,11 +78,10 @@ mapping:
     - test/run.ts
     - test/support/harness.ts
     - test/suites/entrypoint-and-skills.ts
-    - test/suites/debug-session.ts
-    - test/suites/dev-session-plan.ts
-    - test/suites/dev-session-lifecycle.ts
-    - test/suites/dev-session-trial.ts
-    - test/suites/dev-session-regression.ts
+    - test/suites/harness-plan.ts
+    - test/suites/harness-lifecycle.ts
+    - test/suites/harness-infer-doctor.ts
+    - test/suites/harness-session.ts
     - test/suites/foundation-and-fixtures.ts
     - test/suites/change-lifecycle.ts
     - test/suites/roadmap-and-migration.ts
@@ -1639,197 +1637,6 @@ requirements:
         - THEN: >-
             the command exits non-zero with a push error and the commit is preserved in the local
             repository
-  cli-dev-session-bundled-assets:
-    strength: MUST
-    statement: >-
-      The system MUST bundle dev-session schema and template assets so shared strict CLI validation
-      and scaffold utilities can recognize the dev-session declaration without repository-specific
-      setup.
-    scenarios:
-      cli-loads-dev-session-assets:
-        - GIVEN: a strict CLI command needs to validate or scaffold the dev-session declaration
-        - WHEN: it loads bundled schema or scaffold assets
-        - THEN: >-
-            the dev-session contract assets are available through the same bundled template and
-            validation pipeline used for other strict artifacts
-  cli-dev-session-plan-command:
-    strength: MUST
-    statement: >-
-      The system MUST provide a dev-session-plan CLI command that validates
-      .strict-spec-driven/dev-session.yaml and emits a deterministic machine-readable dry session
-      plan covering declared services, readiness checks, browser targets, cleanup behavior,
-      unavailable conditions, and required environment variable names without starting services or
-      creating runtime state.
-    scenarios:
-      cli-prints-dev-session-plan:
-        - GIVEN: a strict project contains a valid .strict-spec-driven/dev-session.yaml declaration
-        - WHEN: the user runs strict-spec-driven dev-session-plan
-        - THEN: >-
-            the command emits deterministic machine-readable output describing the declared
-            services, readiness metadata, browser targets, cleanup behavior, unavailable conditions,
-            and required environment variable names
-        - AND: the command does not start services, open browsers, or write runtime state
-  cli-dev-session-plan-diagnostics:
-    strength: MUST
-    statement: >-
-      The system MUST fail dev-session-plan with deterministic diagnostics when the dev-session
-      declaration is missing or violates the bundled dev-session schema.
-    scenarios:
-      cli-reports-missing-or-invalid-dev-session:
-        - GIVEN: >-
-            a strict project is missing .strict-spec-driven/dev-session.yaml or the declaration does
-            not satisfy the bundled dev-session schema
-        - WHEN: the user runs strict-spec-driven dev-session-plan
-        - THEN: >-
-            the command exits without starting services and reports deterministic diagnostics that
-            identify the blocking declaration problem
-  cli-dev-session-start-command:
-    strength: MUST
-    statement: >-
-      The system MUST provide a dev-session-start command that loads the declared dev-session plan,
-      starts the declared services, waits for configured readiness checks, and records managed
-      runtime state without starting undeclared processes.
-    scenarios:
-      cli-starts-declared-dev-session-services:
-        - GIVEN: a strict project contains a valid dev-session declaration with startable services
-        - WHEN: the user runs strict-spec-driven dev-session-start
-        - THEN: >-
-            the command starts the declared services, waits for readiness, records managed runtime
-            state, and exits successfully without guessing undeclared setup
-  cli-dev-session-status-command:
-    strength: MUST
-    statement: >-
-      The system MUST provide a dev-session-status command that reports deterministic lifecycle
-      state for services previously started by dev-session-start, including running, failed,
-      stopped, and stale records.
-    scenarios:
-      cli-reports-managed-dev-session-state:
-        - GIVEN: managed runtime state exists for services started by dev-session-start
-        - WHEN: the user runs strict-spec-driven dev-session-status
-        - THEN: >-
-            the command reports per-service lifecycle state derived from the stored runtime records
-            and current process liveness checks
-  cli-dev-session-logs-command:
-    strength: MUST
-    statement: >-
-      The system MUST provide a dev-session-logs command that exposes logs for services started by
-      dev-session-start using deterministic service selection and stored log locations.
-    scenarios:
-      cli-prints-managed-dev-session-logs:
-        - GIVEN: managed runtime state includes log files for services started by dev-session-start
-        - WHEN: the user runs strict-spec-driven dev-session-logs
-        - THEN: >-
-            the command prints logs for the selected declared service without requiring internal
-            process identifiers
-  cli-dev-session-stop-command:
-    strength: MUST
-    statement: >-
-      The system MUST provide a dev-session-stop command that stops only the processes recorded by
-      dev-session-start, tolerates stale runtime records, and makes cleanup idempotent.
-    scenarios:
-      cli-stops-managed-dev-session-services:
-        - GIVEN: managed runtime state exists for services started by dev-session-start
-        - WHEN: the user runs strict-spec-driven dev-session-stop
-        - THEN: >-
-            the command stops only the recorded managed processes, reports stale records explicitly,
-            and leaves unrelated processes untouched
-  cli-dev-session-trial-command:
-    strength: MUST
-    statement: >-
-      The system MUST provide a dev-session-trial CLI command that derives deterministic
-      browser-trial guidance from declared dev-session browser targets and managed lifecycle state
-      so strict workflows can report target URLs, smoke paths, evidence labels, and whether local
-      targets are strict-managed, already available, or unavailable without replacing the required
-      project regression command.
-    scenarios:
-      cli-reports-browser-trial-guidance:
-        - GIVEN: >-
-            a strict project declares browser targets in .strict-spec-driven/dev-session.yaml and
-            may or may not have managed lifecycle state for the related services
-        - WHEN: the user runs strict-spec-driven dev-session-trial
-        - THEN: >-
-            the command reports deterministic local URLs, smoke paths, evidence labels, and target
-            provenance without guessing undeclared routes or replacing the required project
-            regression command
-  dev-session-scripts-reads-declaration:
-    strength: MUST
-    statement: >-
-      The script-generation skill MUST read .strict-spec-driven/dev-session.yaml to discover
-      declared services, commands, readiness checks, and lifecycle behavior before generating any
-      output scripts.
-    scenarios:
-      skill-reads-dev-session-yaml:
-        - GIVEN: >-
-            A project has a valid .strict-spec-driven/dev-session.yaml declaring at least one
-            service
-        - WHEN: The script-generation skill is invoked
-        - THEN: >-
-            The skill reads the declared metadata and uses it as the sole source of truth for
-            generated script content
-  req-dev-session-real-project-fixture-regression:
-    strength: MUST
-    statement: >-
-      The system MUST validate dev-session plan output, invalid metadata diagnostics, stale runtime
-      state recovery, cleanup idempotency, and browser trial evidence derivation against a committed
-      real-project fixture using the copied-project harness so regression scenarios are repeatable
-      without external services or credentials.
-    scenarios:
-      scenario-valid-plan-against-fixture:
-        - GIVEN: a strict project fixture with a valid dev-session.yaml copied into a temporary workspace
-        - WHEN: dev-session-plan is run against the copied workspace
-        - THEN: >-
-            the command exits zero, reports valid=true, emits the declared session id and service
-            details, and produces no diagnostics
-  cli-dev-session-skill-content-validation-smoke-coverage:
-    strength: MUST
-    statement: >-
-      The system MUST include automated checks that verify core lifecycle skill SKILL.md files
-      contain dev-session guidance sections, emitting deterministic diagnostics when the guidance is
-      absent, and accepting aligned skills that include dev-session inspection, browser target,
-      evidence capture, service stop, and unavailable-prerequisite instructions.
-    scenarios:
-      automated-checks-accept-aligned-dev-session-skill-guidance:
-        - GIVEN: >-
-            strict core lifecycle skills (strict-spec-apply, strict-spec-auto, strict-spec-verify,
-            strict-spec-review) include a dev-session guidance section with dev-session-plan
-            inspection, declared browser target, evidence capture, service stop, and
-            unavailable-prerequisite instructions
-        - WHEN: repository automated checks are executed
-        - THEN: the dev-session skill content checks pass
-  cli-dev-session-documentation-smoke-coverage:
-    strength: MUST
-    statement: >-
-      The system MUST include automated checks that verify DEV_SESSIONS.md exists and contains the
-      required documentation sections (declaration, commands, helper scripts, browser trial
-      evidence, secret handling, stale cleanup), emitting deterministic diagnostics when required
-      sections are absent.
-    scenarios:
-      automated-checks-accept-complete-dev-sessions-guide:
-        - GIVEN: DEV_SESSIONS.md exists with all required documentation sections
-        - WHEN: repository automated checks are executed
-        - THEN: the dev-session documentation checks pass
-  dev-session-init-skill-bootstrap-and-validation:
-    strength: MUST
-    statement: >-
-      The system MUST provide a dedicated dev-session initialization skill that uses the bundled
-      strict init scaffold to create or repair .strict-spec-driven/dev-session.yaml, updates the
-      declaration from repository context and any existing declaration content, and validates the
-      result with dev-session-plan without starting services.
-    scenarios:
-      skill-bootstraps-or-updates-dev-session-yaml:
-        - GIVEN: >-
-            a strict workflow project may or may not already contain
-            .strict-spec-driven/dev-session.yaml
-        - WHEN: the dev-session initialization skill is invoked
-        - THEN: >-
-            the skill ensures the declaration exists via the bundled scaffold path and updates the
-            declaration in place with project-specific session metadata rather than silently
-            replacing it
-      skill-validates-generated-declaration:
-        - GIVEN: the skill has produced a candidate dev-session declaration
-        - WHEN: it reaches the validation step
-        - THEN: it runs dev-session-plan and reports the resulting plan or deterministic diagnostics
-        - AND: it does not start services, open browsers, or write runtime state
   cli-review-command-is-removed:
     strength: MUST
     statement: >-
@@ -1924,162 +1731,6 @@ requirements:
         - THEN: >-
             the command exits non-zero and the JSON output includes status with value roadmap-error
             and diagnostics are present
-  cli-debug-session-create:
-    strength: MUST
-    statement: >-
-      The system MUST provide strict CLI behavior to create a debug-session directory containing a
-      valid session.yaml artifact and evidence directory under
-      .strict-spec-driven/debug-sessions/<session-id>/.
-    scenarios:
-      debug-session-create-scaffolds-session:
-        - GIVEN: a valid debug-session identifier that does not already exist
-        - WHEN: the debug-session creation command is executed
-        - THEN: the session directory is created under .strict-spec-driven/debug-sessions/
-  cli-debug-session-validate:
-    strength: MUST
-    statement: >-
-      The system MUST validate debug-session artifacts through the shared strict YAML validation
-      pipeline and emit deterministic diagnostics for schema failures.
-    scenarios:
-      debug-session-validation-reports-field-errors:
-        - GIVEN: a debug-session session.yaml file is missing required structured fields
-        - WHEN: debug-session validation is executed
-        - THEN: >-
-            the command exits non-zero and reports deterministic artifact path and field-path
-            diagnostics
-  skill-debug-session-guidance:
-    strength: MUST
-    statement: >-
-      The system MUST provide a debug-session skill that guides agents through reproduce, capture,
-      localize, human checkpoint, resume, replay, and verify phases for Web API, frontend, Electron
-      desktop, and CDP access debugging.
-    scenarios:
-      debug-skill-guides-layered-investigation:
-        - GIVEN: a user asks to debug a Web API, frontend, Electron, or CDP-accessible issue
-        - WHEN: the debug-session skill is used
-        - THEN: >-
-            the skill instructs the agent to capture evidence before manual pauses, classify
-            findings by layer, and verify results using replayable commands or recorded evidence
-  skill-debug-session-human-pause:
-    strength: MUST
-    statement: >-
-      The debug-session skill MUST treat human operation as a structured checkpoint where the agent
-      prepares capture, requests the minimum action, waits for a resume signal, and records
-      post-action evidence without requesting secrets.
-    scenarios:
-      human-checkpoint-preserves-evidence-chain:
-        - GIVEN: >-
-            a debugging task requires a human to enter credentials, complete 2FA, authorize OAuth,
-            operate a native dialog, or perform an unstable gesture
-        - WHEN: the agent reaches the checkpoint
-        - THEN: >-
-            the agent records the checkpoint, starts or confirms evidence capture, asks for the
-            minimal human action, resumes on the configured signal, and records post-action evidence
-  cli-debug-session-create-and-validate:
-    strength: MUST
-    statement: >-
-      The system MUST provide strict CLI commands that create a debug-session directory with
-      `session.yaml` and an `evidence/` directory from bundled scaffold assets, and validate
-      debug-session artifacts by session ID or explicit YAML path using deterministic JSON
-      diagnostics.
-    scenarios:
-      debug-session-create-scaffolds-session:
-        - GIVEN: a strict project has `.strict-spec-driven/` and no debug session with the requested ID
-        - WHEN: '`strict-spec-driven debug-session-create <session-id>` is executed'
-        - THEN: >-
-            `.strict-spec-driven/debug-sessions/<session-id>/session.yaml` is created from the
-            bundled scaffold
-        - AND: '`.strict-spec-driven/debug-sessions/<session-id>/evidence/` is created'
-        - AND: JSON output lists the created artifact and evidence paths
-      debug-session-create-rejects-existing-session:
-        - GIVEN: a debug-session artifact or evidence directory already exists for the requested ID
-        - WHEN: '`strict-spec-driven debug-session-create <session-id>` is executed'
-        - THEN: the command exits non-zero
-        - AND: deterministic diagnostics report the existing session collision
-      debug-session-validate-accepts-id-or-path:
-        - GIVEN: a debug-session artifact exists and conforms to the debug-session schema
-        - WHEN: >-
-            `strict-spec-driven debug-session-validate <session-id>` or `strict-spec-driven
-            debug-session-validate <session.yaml>` is executed
-        - THEN: the command exits zero
-        - AND: 'JSON output reports `valid: true` with no diagnostics'
-      debug-session-validate-reports-schema-errors:
-        - GIVEN: a debug-session artifact violates the debug-session schema
-        - WHEN: '`strict-spec-driven debug-session-validate <session-id>` is executed'
-        - THEN: the command exits non-zero
-        - AND: JSON diagnostics include artifact path and field-path context
-  cli-debug-session-archive:
-    strength: MUST
-    statement: >-
-      The system MUST provide a debug-session-archive CLI command that validates a debug-session
-      artifact by session ID or explicit session.yaml path, requires the session status to be
-      resolved or blocked, moves the entire session directory under
-      .strict-spec-driven/debug-sessions/archive/ using a date-prefixed archive directory, and emits
-      deterministic JSON describing the archive result. The system MUST reserve `archive` as the
-      debug-session archive directory name rather than allowing it as a new active debug-session
-      identifier.
-    scenarios:
-      debug-session-archive-moves-session:
-        - GIVEN: >-
-            a strict project contains a valid debug-session artifact with evidence under
-            .strict-spec-driven/debug-sessions/<session-id>/
-        - WHEN: strict-spec-driven debug-session-archive <session-id> is executed
-        - THEN: the command exits zero
-        - THEN: >-
-            the session directory is moved under .strict-spec-driven/debug-sessions/archive/ with a
-            date-prefixed directory name
-        - THEN: >-
-            JSON output reports the archived session id, source directory, archive directory, and
-            archived artifact path
-      debug-session-archive-rejects-unresolved-session:
-        - GIVEN: a strict project contains a valid debug-session artifact whose status is proposed
-        - WHEN: strict-spec-driven debug-session-archive <session-id> is executed
-        - THEN: the command exits non-zero
-        - THEN: JSON diagnostics identify that the status must be resolved or blocked
-      debug-session-create-rejects-reserved-archive-id:
-        - GIVEN: a strict project does not contain an active debug-session named archive
-        - WHEN: strict-spec-driven debug-session-create archive is executed
-        - THEN: the command exits non-zero
-        - THEN: JSON diagnostics identify archive as a reserved debug-session identifier
-  skill-debug-session-archive:
-    strength: MUST
-    statement: >-
-      The system MUST provide a debug-session archive skill that guides agents to validate
-      completion evidence, run the deterministic debug-session-archive command, and report the
-      archived investigation path without deleting evidence.
-    scenarios:
-      debug-session-archive-skill-uses-command:
-        - GIVEN: a completed debug-session investigation is ready to close
-        - WHEN: the debug-session archive skill is used
-        - THEN: the skill instructs the agent to validate the session and run debug-session-archive
-        - THEN: the skill preserves the archived evidence path in its handoff summary
-  skill-debug-session-to-change:
-    strength: MUST
-    statement: >-
-      The system MUST provide a debug-session-to-change skill that can select an active
-      debug-session, derive a strict change from its evidence, and stop with advisory
-      strict-spec-auto or strict-spec-apply guidance instead of starting implementation
-      automatically.
-    scenarios:
-      explicit-session-generates-change:
-        - GIVEN: an active debug-session id is provided to the skill
-        - WHEN: the debug-session-to-change skill creates change artifacts from the selected session
-        - THEN: >-
-            the skill scaffolds and populates proposal, design, tasks, questions, and delta specs
-            for a derived change name
-        - AND: >-
-            the handoff recommends strict-spec-auto or strict-spec-apply without invoking either
-            workflow
-      multiple-active-sessions-require-selection:
-        - GIVEN: multiple active debug-sessions exist and the user does not provide a session id
-        - WHEN: the debug-session-to-change skill resolves the source investigation
-        - THEN: >-
-            the skill asks the human to choose among candidates using session id, status, and
-            summary information
-      unique-active-session-is-selected-automatically:
-        - GIVEN: exactly one active debug-session exists and the user does not provide a session id
-        - WHEN: the debug-session-to-change skill resolves the source investigation
-        - THEN: the skill uses that unique active session without an extra selection round
   cli-auto-skill-efficient-resume-guidance:
     strength: MUST
     statement: >-
@@ -2152,3 +1803,47 @@ requirements:
         - THEN: the command exits with a non-zero status
         - THEN: the command reports that strict workflow state is missing
         - THEN: the command directs the user to run /strict-spec-init
+  cli-harness-script-managed-workflow:
+    strength: MUST
+    statement: >-
+      The system MUST provide a script-first harness workflow that validates harness declarations,
+      generates or verifies thin project-local scripts under the scripts/harness-* namespace,
+      manages declared environment components through those scripts, and creates, validates, and
+      archives harness sessions as the replacement for dev-session and debug-session commands
+      without backward-compatible command aliases.
+    scenarios:
+      harness-scripts-manage-selected-environment-components:
+        - GIVEN: >-
+            a strict project contains a valid harness declaration with development and production
+            environments and generated project-local harness scripts
+        - WHEN: >-
+            an operator invokes the harness scripts with an environment and optional component
+            selection
+        - THEN: >-
+            the workflow plans or runs only the selected declared components in dependency order,
+            reports deterministic status/log evidence, enforces declared operation capabilities and
+            safety policy, and records session evidence when a harness session is active
+  cli-harness-infer-and-doctor:
+    strength: MUST
+    statement: >-
+      The system MUST provide deterministic harness inference and doctor commands that help agents
+      draft and repair .strict-spec-driven/harness.yaml from repository metadata without executing
+      lifecycle commands, while preserving explicit human control over production and stateful
+      lifecycle operations.
+    scenarios:
+      ai-assisted-harness-draft-is-safe:
+        - GIVEN: >-
+            a repository contains common project metadata such as package scripts, sample
+            environment variable files, or service declarations
+        - WHEN: an operator or AI agent runs strict-spec-driven harness-infer
+        - THEN: >-
+            the command emits a valid harness declaration draft that identifies likely development
+            components, environment variable names, URLs or ports when discoverable, and manual or
+            disabled defaults for uncertain, production, or stateful lifecycle operations
+      doctor-reports-repairable-diagnostics:
+        - GIVEN: a strict project contains a harness declaration and project-local wrapper expectations
+        - WHEN: an operator or AI agent runs strict-spec-driven harness-doctor
+        - THEN: >-
+            the command reports deterministic diagnostics for missing working directories, missing
+            script commands, wrapper drift, undeclared environment samples, schema or planning
+            failures, and safety policy issues without starting or stopping services
