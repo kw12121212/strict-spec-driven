@@ -1,5 +1,7 @@
 # Harness
 
+English | [中文](HARNESS.zh.md)
+
 `harness.yaml` is the unified environment, component, lifecycle, and investigation model for strict projects.
 It replaces separate development-session and debug-session workflows with one script-managed surface.
 

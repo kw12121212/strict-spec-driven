@@ -162,6 +162,28 @@ Ship Skill 读取已归档的变更摘要，构建提交信息，并将 `git pus
 
 仅当开放性问题需要用户输入或遇到不可恢复的错误时，该 Skill 才会暂停。
 
+## Harness (可选)
+
+如果你的项目有本地服务、生产环境可观测性或结构化调查，可以在一个 harness 中声明它们：
+
+1. 运行 `/strict-spec-harness-init` 从项目上下文中脚手架化（scaffold）或完善 `.strict-spec-driven/harness.yaml`，或者手动编辑该文件。
+2. 运行空转规划（dry plan）并生成脚本：
+   ```sh
+   node dist/strict-spec-cli.js harness-plan --environment development
+   node dist/strict-spec-cli.js harness-scripts generate
+   ```
+3. 使用 `scripts/harness-start`、`scripts/harness-status`、`scripts/harness-logs` 和 `scripts/harness-stop` 来操作声明的组件。
+
+当某个 Bug 需要结构化证据时，创建一个 harness 会话：
+
+```sh
+node dist/strict-spec-cli.js harness-session create checkout-investigation
+```
+
+使用 `/strict-spec-harness-session` 来引导调查。该工作流会记录选定的环境/组件、生命周期证据、重现步骤、证据文件、假设、发现、人工检查点、手动操作、重放/重现命令以及验证状态，且不会存储敏感值。
+
+参见 [HARNESS.zh.md](HARNESS.zh.md) 了解完整参考。
+
 ## 从引导状态迁移
 
 如果你的项目使用旧版 `.spec-driven/` Markdown 工作流，将其迁移到严格 YAML：

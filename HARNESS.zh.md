@@ -1,0 +1,66 @@
+# Harness
+
+[English](HARNESS.md) | 中文
+
+`harness.yaml` 是针对严格（strict）项目的统一环境、组件、生命周期和调查模型。
+它用一个由脚本管理的工作面取代了独立的开发会话（development-session）和调试会话（debug-session）工作流。
+
+## 声明定义 (Declaration)
+
+该声明定义文件位于 `.strict-spec-driven/harness.yaml`。
+
+它描述了开发和生产环境、类型化组件、依赖顺序、就绪性检查（readiness checks）、敏感环境变量名称（避免泄密）、显式操作模式、生成的脚本、证据标签（evidence labels）、重现/重放命令（replay commands）以及不可用条件。
+
+请勿在 harness YAML、生成的脚本、证据文件名、日志或聊天记录中存储敏感值（secrets）、凭证、Token、连接字符串或生产环境凭证材料。
+
+只有 `operations.start` 和 `operations.stop` 是可执行的生命周期钩子（lifecycle hooks）。`operations.status` 和 `operations.logs` 是可选的描述性元数据：当其存在且为 `readonly` 时，表示该声明仅用于记录可用性状况，而不是提供供 CLI 运行的命令。`harness-status` 始终报告运行时的状态，`harness-logs` 始终读取捕获的运行时日志文件，而 `harness-plan` 和 `harness-doctor` 不需要 status/logs 命令。
+
+## 命令 (Commands)
+
+```bash
+strict-spec-driven harness-infer
+strict-spec-driven harness-infer --write
+strict-spec-driven harness-doctor
+strict-spec-driven harness-plan --environment development
+strict-spec-driven harness-start --environment development --component web
+strict-spec-driven harness-status
+strict-spec-driven harness-logs web
+strict-spec-driven harness-logs web --tail 50
+strict-spec-driven harness-logs web --all
+strict-spec-driven harness-stop
+strict-spec-driven harness-scripts generate
+strict-spec-driven harness-scripts verify
+strict-spec-driven harness-session create checkout-investigation
+strict-spec-driven harness-session validate checkout-investigation
+strict-spec-driven harness-session archive checkout-investigation
+```
+
+`harness-scripts generate` 将写入项目本地的包装脚本（wrappers）：
+
+- `scripts/harness-infer`
+- `scripts/harness-doctor`
+- `scripts/harness-plan`
+- `scripts/harness-start`
+- `scripts/harness-stop`
+- `scripts/harness-status`
+- `scripts/harness-logs`
+- `scripts/harness-session`
+
+`harness-infer` 读取安全的仓库元数据，例如 package 脚本、compose 服务、Procfile 进程、Makefile 中的 run/start/dev 目标以及示例环境变量文件（sample env files），然后生成一个符合 Schema 的有效草案。当多种信号类型共存时，package 脚本仍然优先；否则，对于 compose 和 Procfile 源，会按文件中的顺序选择第一个类似于应用的候选。推断出的生命周期命令保持为手动模式（manual），生产环境生命周期操作保持禁用，推断出的 status/logs 元数据通过 `readonly` 保持为描述性，如果未找到受支持的生命周期信号，草案将保持为手动模式并附带显式的“未检测到”说明。
+
+`harness-doctor` 针对 Schema 或规划失败、缺失生成的包装脚本、缺失工作目录、缺失 package 脚本、示例 env 文件中未声明但为必填的环境变量名称、重复的端口以及安全策略问题报告确定性的诊断结果。它不会启动或停止服务。类似于 `.env.example` 的示例 env 文件仅记录所需的变量名称：`harness-start` 仍会读取当前进程的环境变量，不会替你加载 `.env` 文件，并要求你在启动组件之前先导出（export）或 source 所需的值。
+
+`harness-logs` 用于读取选定托管组件的已捕获运行时日志。默认情况下，它仅返回最近的 200 行；使用 `--tail <n>` 可以请求不同的行数，或者使用 `--all` 打印完整的捕获日志。
+
+## 安全性 (Safety)
+
+生产环境的变更性操作（mutating operations）默认处于禁用状态。生产环境的 `start`、`stop` 或类似于清理的操作必须被显式声明，且设置 `requires_confirmation: true`，并在调用时进行二次确认。
+
+有状态的组件（如数据库、缓存、队列、对象存储和托管外部资源）需要设置 `allow_stateful_lifecycle: true`，然后脚本才能启动或停止它们。
+
+## 会话 (Sessions)
+
+Harness 会话保存在 `.strict-spec-driven/harness-sessions/<session-id>/` 目录下。
+每个会话会记录选定的环境/组件、生命周期证据（lifecycle evidence）、重现步骤、证据条目（evidence entries）、假设（hypotheses）、发现（findings）、人工检查点（human checkpoints）、手动操作、重放/重现命令（replay commands）以及验证状态。
+
+证据条目和手动操作必须保持 `contains_secrets: false` 和 `secrets_recorded: false`。

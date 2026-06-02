@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-**文档：** [快速入门](QUICKSTART.zh.md) · [路线图快速入门](ROADMAP_QUICKSTART.zh.md) · [路线图指南](ROADMAP_GUIDE.zh.md) · [RTK](RTK.md)
+**文档：** [快速入门](QUICKSTART.zh.md) · [路线图快速入门](ROADMAP_QUICKSTART.zh.md) · [路线图指南](ROADMAP_GUIDE.zh.md) · [Harness](HARNESS.zh.md) · [RTK](RTK.md)
 
 `strict-spec-driven` 是一个 YAML 优先的规范驱动开发工作流。它提供规范驱动生命周期（提议 → 执行 → 验证 → Skill 驱动代码审查 → 归档）和 Agent Skills 集成，将工作流制品——规范、变更、路线图、任务、问题——转换为严格 YAML 模式，由确定性脚本强制执行。
 
@@ -105,6 +105,12 @@ node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-list
 node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show change-proposal
 node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/changes/proposal.yaml
 ```
+
+## Harness
+
+位于 `.strict-spec-driven/harness.yaml` 的 harness 声明文件告诉 Agent 和人类如何规划、启动、停止、检查和调查混合的项目环境。它涵盖了本地开发和生产环境的可观测性、类型化组件、依赖顺序、就绪性、日志、状态、生成的 `scripts/harness-*` 包装脚本、生命周期安全、证据、重放以及敏感信息处理规则。
+
+参见 [HARNESS.zh.md](HARNESS.zh.md) 了解完整参考。
 
 ## 迁移边界
 
