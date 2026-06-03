@@ -31,10 +31,16 @@ while (($#)); do
   esac
 done
 
+# Use npm exec instead of npx to avoid npm interpreting "skills" as a local
+# package.json script (npm run skills) in projects that have a package.json.
+# Pin to 1.5.9 to avoid upstream bug where PromptScript agent (which does not
+# support global installation) is incorrectly included in global install targets.
+SKILLS_CMD="npm exec skills@1.5.9 --"
+
 if $UNINSTALL; then
   echo "Uninstalling strict skills from: $SCRIPT_DIR"
-  npx skills remove -g
+  $SKILLS_CMD remove -g
 else
   echo "Installing strict skills from: $SCRIPT_DIR"
-  npx skills add "$SCRIPT_DIR" -g -y
+  $SKILLS_CMD add "$SCRIPT_DIR" -g -y
 fi
