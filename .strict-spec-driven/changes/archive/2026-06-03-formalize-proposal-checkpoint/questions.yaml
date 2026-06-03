@@ -1,0 +1,27 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: formalize-proposal-checkpoint
+open: []
+resolved:
+  - id: checkpoint-name
+    question: Should the planning-stage gate be named proposal review or proposal checkpoint?
+    context: >-
+      The workflow already has strict-spec-review as a completed-change code review skill, and
+      review terminology can be confused with spec review or code review.
+    answer: >-
+      Use proposal checkpoint as the stage name. It describes a pre-implementation planning handoff
+      check without overloading review, while strict-spec-review remains the completed-change code
+      review skill.
+    status: resolved
+  - id: review-surface
+    question: Should the proposal checkpoint be implemented as a new strict-spec-driven review CLI command?
+    context: >-
+      The workflow already has strict-spec-review as a completed-change code review skill, while the
+      proposal checkpoint requires semantic planning judgment before implementation exists.
+    answer: >-
+      No. The proposal checkpoint should be a named skill-enforced planning gate, with ready
+      remaining the deterministic proposal handoff check and strict-spec-review remaining
+      post-implementation code review.
+    status: resolved

@@ -119,15 +119,23 @@ run `init` from this skill.
    plan or the full planned-change details — only extract guidance relevant to
     this one planned change. If `details` is absent, proceed normally.
 
-5. **Validate the proposed strict change** — run:
+5. **Run the proposal checkpoint and validate the proposed strict change** —
+   before running `ready`, perform a proposal checkpoint over the populated
+   change artifacts against the selected roadmap planned change, relevant main
+   specs, and project constraints. Check scope consistency, design decisions,
+   task coverage, unresolved questions, delta spec quality, unchanged behavior,
+   and structured mapping fields. Fix safe in-scope issues immediately, and
+   record real ambiguity in `questions.yaml` without expanding scope or
+   answering unresolved human questions.
+
+   Then run:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
    ```
    Use `ready` as the proposal handoff validation for deterministic blockers.
    Do not run a separate full verify command at proposal time solely to
-   rediscover expected pending implementation tasks. Fix safe proposal-shape
-   issues and record real ambiguity in `questions.yaml`. Do not stop for human
-   question resolution during `strict-roadmap-recommend`; leave those questions
+   rediscover expected pending implementation tasks. Do not stop for human
+   question resolution during `strict-roadmap-recommend`; leave open questions
    for `strict-spec-auto` or `strict-spec-apply` to surface before
    implementation.
 

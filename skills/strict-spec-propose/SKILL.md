@@ -137,8 +137,8 @@ run `init` from this skill.
    - if the change has no observable spec impact, leave the `specs/` directory
      empty rather than inventing a prose-only file
 
-9. **Review and refine the generated planning artifacts** — before validation,
-   perform a semantic self-review of every generated or edited file under
+9. **Run the proposal checkpoint over generated planning artifacts** — before
+   validation, perform a semantic self-check of every generated or edited file under
    `.strict-spec-driven/changes/<change-name>/` against the user request, the
    relevant main specs, and the existing project constraints. Look for vague
    requirements, inconsistent in-scope/out-of-scope/unchanged behavior, missing
@@ -147,7 +147,7 @@ run `init` from this skill.
    fields. Fix safe, in-scope issues immediately by rerunning the supported
    `generate` commands for script-owned artifacts and by directly editing
    `tasks.yaml` for task-list structure. Do not expand scope or answer
-   unresolved human questions during this review; record ambiguity in
+   unresolved human questions during this checkpoint; record ambiguity in
    `questions.yaml`.
 
 10. **Validate proposal readiness and artifact structure** — run:
@@ -166,8 +166,8 @@ run `init` from this skill.
    proposal off. Do not stop for human question resolution during
    `strict-spec-propose`; leave open questions in `questions.yaml`.
 
-11. **Hand off** — summarize the scope, key decisions, review refinements made,
-    task count, unchanged behavior, and any open questions. Explicitly
+11. **Hand off** — summarize the scope, key decisions, proposal checkpoint
+    refinements made, task count, unchanged behavior, and any open questions. Explicitly
     recommend `/strict-spec-auto` as the primary next step. If `questions.yaml`
     still has open entries, make clear that `/strict-spec-auto` or
     `/strict-spec-apply` must surface and resolve them before coding starts.

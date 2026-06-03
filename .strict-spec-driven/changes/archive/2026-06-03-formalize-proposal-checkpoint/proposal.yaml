@@ -1,0 +1,48 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: formalize-proposal-checkpoint
+  status: proposed
+summary:
+  what:
+    - Formalize a named proposal checkpoint for strict change creation and populated handoff flows.
+    - >-
+      Clarify that the proposal checkpoint checks planning artifact quality before
+      ready/implementation, while strict-spec-review remains the completed-change code review step.
+  why:
+    - >-
+      Current skills already perform semantic self-review of generated planning artifacts, but the
+      lifecycle does not expose that as a clear checkpoint distinct from post-implementation review.
+    - >-
+      A named proposal checkpoint makes scope, delta specs, task coverage, unchanged behavior, and
+      unresolved questions easier to audit before coding starts without overloading the word review.
+scope:
+  in:
+    - >-
+      Update strict workflow skill guidance and validation expectations so strict-spec-propose,
+      strict-spec-brainstorm, strict-spec-auto, and roadmap handoff paths consistently include a
+      proposal checkpoint before ready or implementation handoff.
+    - >-
+      Specify proposal checkpoint criteria for proposal.yaml, design.yaml, tasks.yaml,
+      questions.yaml, delta specs, mapping fields, and explicit ambiguity handling.
+    - >-
+      Preserve ready as the deterministic proposal handoff check and verify as the
+      schema/artifact-shape check.
+  out:
+    - Do not add a strict-spec-driven review CLI command.
+    - >-
+      Do not add deterministic CLI behavior that claims to complete semantic proposal checkpoint
+      judgment.
+    - >-
+      Do not change the completed-change code review requirements of strict-spec-review except to
+      clarify terminology if needed.
+unchanged_behavior:
+  - >-
+    strict-spec-review remains a post-implementation direct code review skill requiring changed-file
+    reading and complete project regression evidence.
+  - >-
+    ready continues to report deterministic proposal-handoff blockers rather than deciding product
+    scope or requirement quality.
+  - Open questions continue to block automatic implementation until explicitly resolved by a human.

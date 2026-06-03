@@ -90,7 +90,15 @@ run `init` from this skill.
    Prefer one invocation per supported generated artifact (or per target spec
    for delta specs).
 
-6. **Validate the result** — run:
+6. **Run the proposal checkpoint and validate the result** — before running
+   `ready`, perform a proposal checkpoint over the populated change artifacts
+   against the selected roadmap planned change, relevant main specs, and project
+   constraints. Check scope consistency, design decisions, task coverage,
+   unresolved questions, delta spec quality, unchanged behavior, and structured
+   mapping fields. Fix safe in-scope issues immediately, and keep unresolved
+   ambiguity in `questions.yaml` instead of guessing.
+
+   Then run:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
    ```
@@ -98,8 +106,7 @@ run `init` from this skill.
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
    ```
-   Fix safe proposal-structure issues immediately and keep unresolved ambiguity
-   in `questions.yaml` instead of guessing.
+   Treat pending-task diagnostics as expected at proposal time.
 
 ## Rules
 

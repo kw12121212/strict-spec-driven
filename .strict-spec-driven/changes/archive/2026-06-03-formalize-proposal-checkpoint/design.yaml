@@ -1,0 +1,61 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: formalize-proposal-checkpoint
+approach:
+  - >-
+    Treat the proposal checkpoint as a required planning-stage activity described in skill guidance
+    and strict specs, not as a new deterministic CLI subcommand.
+  - >-
+    Keep ready focused on machine-checkable proposal handoff blockers, then require the skill-driven
+    proposal checkpoint before ready or implementation handoff to cover semantic quality that
+    scripts cannot decide.
+  - >-
+    Avoid naming the planning-stage gate proposal review so users do not confuse it with
+    strict-spec-review or code review.
+  - >-
+    Update tests that validate skill prompt contracts so future prompt regressions keep proposal
+    checkpoint terminology, boundaries, and handoff order intact.
+decisions:
+  proposal-checkpoint-is-skill-gate:
+    decision: >-
+      Define the proposal checkpoint as a skill-enforced planning gate rather than a new CLI
+      command.
+    rationale: >-
+      The checkpoint criteria include scope coherence, requirement quality, and ambiguity placement,
+      which require agent or human judgment and should not be represented as deterministic CLI
+      validation.
+  avoid-review-terminology:
+    decision: Use proposal checkpoint as the stage name instead of proposal review.
+    rationale: >-
+      The word review is already associated with strict-spec-review and completed-change code
+      review, so using checkpoint reduces workflow ambiguity.
+  keep-code-review-separate:
+    decision: Keep strict-spec-review reserved for completed-change code review.
+    rationale: >-
+      Completed-change review depends on implementation diffs, mapped source and test files, and
+      regression evidence that do not exist when a change is only being proposed.
+  ready-remains-handoff-check:
+    decision: Use ready after the proposal checkpoint as the deterministic proposal handoff check.
+    rationale: >-
+      ready already filters expected pending task diagnostics and reports structural blockers
+      without rediscovering expected implementation work.
+alternatives:
+  - option: Call the planning gate proposal review
+    reason: Rejected because it is easy to confuse with strict-spec-review and code review.
+  - option: Add a strict-spec-driven review CLI subcommand
+    reason: >-
+      Rejected because deterministic scripts cannot replace semantic planning judgment and the name
+      would conflict with the existing direct code review skill boundary.
+  - option: Rely only on existing semantic self-review wording
+    reason: >-
+      Rejected because the current behavior exists but is easy to miss and is not expressed as a
+      named lifecycle checkpoint.
+risks:
+  - >-
+    Prompt-only enforcement can drift unless validation tests and strict specs assert the checkpoint
+    language.
+  - >-
+    Users may still use review colloquially, so the guidance must consistently reserve
+    strict-spec-review for completed-change code review.

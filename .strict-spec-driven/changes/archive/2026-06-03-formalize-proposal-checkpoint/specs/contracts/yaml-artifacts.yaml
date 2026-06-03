@@ -1,0 +1,64 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+    - skills/strict-roadmap-propose/SKILL.md
+    - src/skills/model.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    proposal-generating-skills-run-proposal-checkpoint:
+      strength: MUST
+      statement: >-
+        Proposal-generating and proposal-handoff skills MUST guide agents to run a proposal
+        checkpoint over generated planning artifacts after population and before ready/verify
+        validation, ready handoff, auto implementation, or handoff to another strict workflow skill
+        so semantic quality issues are corrected without naming the planning-stage gate a review.
+      scenarios:
+        proposal-checkpoint-refines-before-validation:
+          - GIVEN: >-
+              strict-spec-brainstorm, strict-spec-propose, a strict roadmap handoff skill, or the
+              creation path of strict-spec-auto has populated proposal, design, task, question, and
+              delta spec artifacts for a change.
+          - WHEN: >-
+              The skill workflow proceeds toward proposal handoff, ready validation, verify
+              validation, auto implementation, or another strict workflow skill.
+          - THEN: >-
+              The skill requires a proposal checkpoint over generated artifacts against the
+              confirmed request or brainstorm summary, relevant main specs, and project constraints
+              before that handoff.
+          - AND: >-
+              The checkpoint criteria cover scope consistency, design decisions, task coverage,
+              unresolved questions, delta spec quality, unchanged behavior, and structured mapping
+              fields.
+          - AND: >-
+              The checkpoint guidance tells agents to fix safe in-scope issues without expanding
+              scope or answering unresolved human questions.
+          - AND: Unresolved ambiguity remains recorded in questions.yaml.
+        proposal-checkpoint-remains-distinct-from-review:
+          - GIVEN: >-
+              A strict proposal-generating or proposal-handoff skill names the planning-stage
+              quality gate.
+          - WHEN: The skill instructions are reviewed.
+          - THEN: The gate is called a proposal checkpoint rather than proposal review.
+          - AND: >-
+              The guidance does not direct agents to run or rely on a strict-spec-driven review CLI
+              command.
+          - AND: >-
+              strict-spec-review remains reserved for completed-change direct code review and
+              regression evidence.
+  MODIFIED: {}
+  REMOVED:
+    proposal-generating-skills-review-generated-artifacts:
+      reason: >-
+        Replaced by proposal-generating-skills-run-proposal-checkpoint to avoid overloading review
+        terminology for the pre-implementation planning gate.

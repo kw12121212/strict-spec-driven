@@ -1,0 +1,44 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: formalize-proposal-checkpoint
+sections:
+  Implementation:
+    update-strict-specs:
+      text: >-
+        Update strict main-spec deltas for the proposal checkpoint contract and ready handoff
+        boundary.
+      status: complete
+    update-skill-guidance:
+      text: >-
+        Update affected strict skill prompts so the proposal checkpoint is named, ordered before
+        ready or implementation handoff, and distinct from completed-change code review.
+      status: complete
+    update-skill-validation:
+      text: >-
+        Update skill packaging or prompt validation expectations so proposal checkpoint language
+        cannot silently regress.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run TypeScript no-emit lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify the implementation preserves ready as deterministic handoff validation and
+        strict-spec-review as post-implementation code review.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

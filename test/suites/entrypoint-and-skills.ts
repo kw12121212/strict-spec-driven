@@ -205,6 +205,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const brainstormSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-brainstorm", "SKILL.md"), "utf8");
   const roadmapPlanSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-plan", "SKILL.md"), "utf8");
   const roadmapRecommendSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
+  const roadmapProposeSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-propose", "SKILL.md"), "utf8");
   const harnessInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-init", "SKILL.md"), "utf8");
   const harnessSessionSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-session", "SKILL.md"), "utf8");
   const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
@@ -214,6 +215,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedBrainstormSkillContent = brainstormSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapPlanSkillContent = roadmapPlanSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapRecommendSkillContent = roadmapRecommendSkillContent.replace(/\s+/g, " ");
+  const normalizedRoadmapProposeSkillContent = roadmapProposeSkillContent.replace(/\s+/g, " ");
   const normalizedHarnessInitSkillContent = harnessInitSkillContent.replace(/\s+/g, " ");
   const normalizedHarnessSessionSkillContent = harnessSessionSkillContent.replace(/\s+/g, " ");
   const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
@@ -228,12 +230,13 @@ context.assert(
   "strict-spec-review requires direct code review, automatic safe fixes, and regression evidence before archive recommendation",
 );
   context.assert(
-    normalizedProposeSkillContent.includes("Review and refine the generated planning artifacts")
+    normalizedProposeSkillContent.includes("proposal checkpoint")
       && normalizedProposeSkillContent.includes("before validation")
-      && normalizedProposeSkillContent.includes("semantic self-review")
+      && normalizedProposeSkillContent.includes("semantic self-check")
       && normalizedProposeSkillContent.includes("Do not expand scope or answer unresolved human questions")
-      && normalizedProposeSkillContent.includes("review refinements made"),
-    "strict-spec-propose reviews and refines generated planning artifacts before ready/verify handoff",
+      && normalizedProposeSkillContent.includes("proposal checkpoint refinements made")
+      && !normalizedProposeSkillContent.includes("proposal review"),
+    "strict-spec-propose runs a proposal checkpoint over generated planning artifacts before ready/verify handoff",
   );
   context.assert(
     normalizedAutoSkillContent.includes("complete project-level regression test evidence")
@@ -247,20 +250,21 @@ context.assert(
       && normalizedAutoSkillContent.includes("Reset context from targeted files")
       && normalizedAutoSkillContent.includes("resume the existing populated strict change scaffold without regenerating planning artifacts")
       && normalizedAutoSkillContent.includes("exactly matches the configured complete project regression command")
-      && normalizedAutoSkillContent.includes("Review and refine the generated planning artifacts")
-      && normalizedAutoSkillContent.includes("semantic self-review")
+      && normalizedAutoSkillContent.includes("proposal checkpoint")
+      && normalizedAutoSkillContent.includes("semantic self-check")
       && normalizedAutoSkillContent.includes("Do not expand scope or answer unresolved human questions")
       && !autoSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>"),
-    "strict-spec-auto reviews generated planning artifacts, resumes populated scaffolds, and blocks archive without automatic safe fixes, complete regression, and direct code review evidence",
+    "strict-spec-auto runs proposal checkpoints, resumes populated scaffolds, and blocks archive without automatic safe fixes, complete regression, and direct code review evidence",
   );
   context.assert(
-    normalizedBrainstormSkillContent.includes("Review and refine the generated planning artifacts")
+    normalizedBrainstormSkillContent.includes("proposal checkpoint")
       && normalizedBrainstormSkillContent.includes("before validation")
-      && normalizedBrainstormSkillContent.includes("semantic self-review")
+      && normalizedBrainstormSkillContent.includes("semantic self-check")
       && normalizedBrainstormSkillContent.includes("confirmed brainstorm summary")
       && normalizedBrainstormSkillContent.includes("Do not expand scope or answer unresolved human questions")
-      && normalizedBrainstormSkillContent.includes("review refinements made"),
-    "strict-spec-brainstorm reviews and refines generated planning artifacts before ready/verify handoff",
+      && normalizedBrainstormSkillContent.includes("proposal checkpoint refinements made")
+      && !normalizedBrainstormSkillContent.includes("proposal review"),
+    "strict-spec-brainstorm runs a proposal checkpoint over generated planning artifacts before ready/verify handoff",
   );
   context.assert(
     roadmapPlanSkillContent.includes("check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state")
@@ -277,8 +281,15 @@ context.assert(
       && normalizedRoadmapRecommendSkillContent.includes("before reading broad roadmap context")
       && normalizedRoadmapRecommendSkillContent.includes("Use `ready` as the proposal handoff validation")
       && normalizedRoadmapRecommendSkillContent.includes("populated change scaffold")
+      && normalizedRoadmapRecommendSkillContent.includes("proposal checkpoint")
       && normalizedRoadmapRecommendSkillContent.includes("instead of manually choosing among planned changes"),
-    "strict-roadmap-recommend requires scripted-first recommendation, ready handoff, and populated auto resume guidance",
+    "strict-roadmap-recommend requires scripted-first recommendation, proposal checkpoint, ready handoff, and populated auto resume guidance",
+  );
+  context.assert(
+    normalizedRoadmapProposeSkillContent.includes("proposal checkpoint")
+      && normalizedRoadmapProposeSkillContent.includes("Use `ready` for deterministic proposal-handoff blockers")
+      && !normalizedRoadmapProposeSkillContent.includes("proposal review"),
+    "strict-roadmap-propose runs a proposal checkpoint before ready/verify handoff",
   );
   context.assert(
     harnessInitSkillContent.includes("check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state")

@@ -1186,6 +1186,15 @@ try {
     ),
     "roadmap skill validation requires ready-only handoff guidance",
   );
+  context.assert(
+    invalidRoadmapRecommendSkillResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.required_snippet.missing"
+        && diagnostic.path === "skills/strict-roadmap-recommend/SKILL.md"
+        && diagnostic.expected === "proposal checkpoint",
+    ),
+    "roadmap skill validation requires proposal checkpoint guidance",
+  );
 } finally {
   rmSync(invalidRoadmapRecommendSkillRoot, { recursive: true, force: true });
 }
