@@ -267,6 +267,73 @@ const plannedChangeValidation = validationModule.validateArtifact(
   "examples/strict-spec-driven/planned-change.yaml",
 );
 context.assert(plannedChangeValidation.valid, "planned change example validates against planned change schema");
+
+const mainTechSchema = validationModule.loadBundledSchemaByArtifactType("main_tech") as Record<string, unknown>;
+context.assert(
+  (mainTechSchema.properties as Record<string, unknown>)?.rules !== undefined,
+  "main-tech schema resolves by artifact type and exposes rules",
+);
+const mainTechExample = yamlModule.parseYamlFile<Record<string, unknown>>(
+  path.join(ROOT, "examples", "strict-spec-driven", "main-tech.yaml"),
+);
+const mainTechValidation = validationModule.validateArtifact(
+  mainTechSchema,
+  mainTechExample,
+  "examples/strict-spec-driven/main-tech.yaml",
+);
+context.assert(mainTechValidation.valid, "main-tech example validates against main-tech schema");
+
+const mainTechCategoryEnum = (((mainTechSchema.properties as Record<string, unknown>)?.standard as Record<string, unknown>)?.properties as Record<string, unknown> | undefined);
+const mainTechCategorySchema = (mainTechCategoryEnum?.category as { enum?: string[] } | undefined);
+context.assert(
+  Array.isArray(mainTechCategorySchema?.enum) && mainTechCategorySchema!.enum!.includes("ui"),
+  "main-tech category enum includes ui",
+);
+const mainTechUiExample = yamlModule.parseYamlFile<Record<string, unknown>>(
+  path.join(ROOT, "examples", "strict-spec-driven", "main-tech-ui.yaml"),
+);
+const mainTechUiValidation = validationModule.validateArtifact(
+  mainTechSchema,
+  mainTechUiExample,
+  "examples/strict-spec-driven/main-tech-ui.yaml",
+);
+context.assert(mainTechUiValidation.valid, "main-tech ui-category example validates against main-tech schema");
+
+const techIndexSchema = validationModule.loadBundledSchemaBySchemaId("strict-spec-driven/tech-index/v1") as Record<string, unknown>;
+const techIndexExample = yamlModule.parseYamlFile<Record<string, unknown>>(
+  path.join(ROOT, "examples", "strict-spec-driven", "tech-index.yaml"),
+);
+const techIndexValidation = validationModule.validateArtifact(
+  techIndexSchema,
+  techIndexExample,
+  "examples/strict-spec-driven/tech-index.yaml",
+);
+context.assert(techIndexValidation.valid, "tech-index example validates against tech-index schema");
+
+const deltaTechSchema = validationModule.loadBundledSchemaByArtifactType("delta_tech") as Record<string, unknown>;
+context.assert(
+  (deltaTechSchema.properties as Record<string, unknown>)?.target_standard !== undefined,
+  "delta-tech schema resolves by artifact type and exposes target_standard",
+);
+const deltaTechExample = yamlModule.parseYamlFile<Record<string, unknown>>(
+  path.join(ROOT, "examples", "strict-spec-driven", "delta-tech.yaml"),
+);
+const deltaTechValidation = validationModule.validateArtifact(
+  deltaTechSchema,
+  deltaTechExample,
+  "examples/strict-spec-driven/delta-tech.yaml",
+);
+context.assert(deltaTechValidation.valid, "delta-tech example validates against delta-tech schema");
+const deltaTechOperationsExample = yamlModule.parseYamlFile<Record<string, unknown>>(
+  path.join(ROOT, "examples", "strict-spec-driven", "delta-tech.operations.yaml"),
+);
+const deltaTechOperationsValidation = validationModule.validateArtifact(
+  deltaTechSchema,
+  deltaTechOperationsExample,
+  "examples/strict-spec-driven/delta-tech.operations.yaml",
+);
+context.assert(deltaTechOperationsValidation.valid, "delta-tech operations example validates against delta-tech schema");
+
 const harnessSchema = validationModule.loadBundledSchemaByArtifactType("harness") as Record<string, unknown>;
 context.assert(
   (harnessSchema.properties as Record<string, unknown>)?.harness !== undefined,
@@ -414,7 +481,7 @@ context.assert(
   JSON.stringify(firstAssetList) === JSON.stringify(secondAssetList),
   "required scaffold asset manifest is deterministic",
 );
-context.assert(firstAssetList.length === 4, "required scaffold asset manifest includes four assets");
+context.assert(firstAssetList.length === 5, "required scaffold asset manifest includes five assets");
 context.assert(
   firstAssetList.every((asset) => asset.endsWith(".yaml")),
   "required scaffold asset manifest contains only YAML files",
@@ -458,6 +525,9 @@ const scaffoldRoadmapIndex = scaffoldModule.loadBundledScaffoldYaml<Record<strin
 context.assert(scaffoldRoadmapIndex.artifact_type === "roadmap_index", "scaffold roadmap index template is loadable YAML");
 context.assert(typeof scaffoldRoadmapIndex.milestones === "object" && scaffoldRoadmapIndex.milestones !== null && !Array.isArray(scaffoldRoadmapIndex.milestones), "scaffold roadmap index template includes milestone sequence field");
 
+const scaffoldTechIndex = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("tech/INDEX.yaml");
+context.assert(scaffoldTechIndex.artifact_type === "tech_index", "scaffold tech index template is loadable YAML");
+
 const scaffoldHarness = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("harness.yaml");
 context.assert(scaffoldHarness.artifact_type === "harness", "scaffold harness template is loadable YAML");
 const scaffoldHarnessSession = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("harness-sessions/session.yaml");
@@ -482,6 +552,7 @@ try {
     "config.yaml",
     "harness.yaml",
     "specs/INDEX.yaml",
+    "tech/INDEX.yaml",
     "roadmap/INDEX.yaml",
   ];
   for (const artifactPath of requiredArtifacts) {
@@ -1066,6 +1137,133 @@ try {
 
   const verifyDirectGenerated = cli(["verify", directChangeName], { cwd: generateTempDir });
   context.assert(verifyDirectGenerated.status === 0, "argument-driven generated complete change passes verify", `stderr: ${verifyDirectGenerated.stderr.trim()} stdout: ${verifyDirectGenerated.stdout.trim()}`);
+
+  const newStandardDeltaTech = cli([
+    "generate",
+    directChangeName,
+    "delta-tech",
+    "--target-standard",
+    "error-handling",
+    "--title",
+    "Error Handling",
+    "--category",
+    "coding",
+    "--implementation",
+    "src/errors.ts",
+    "--operation",
+    "ADDED",
+    "--rule",
+    "wrap-errors",
+    "--strength",
+    "MUST",
+    "--statement",
+    "Errors MUST be wrapped with context.",
+    "--rationale",
+    "Context aids debugging.",
+    "--method",
+    "review",
+    "--example-good",
+    "throw a wrapped error",
+    "--exception",
+    "Top-level handlers may rethrow.",
+  ], { cwd: generateTempDir });
+  context.assert(newStandardDeltaTech.status === 0, "generate writes a new-standard delta tech from one command", `stderr: ${newStandardDeltaTech.stderr.trim()}`);
+
+  const mergeDeltaTech = cli([
+    "generate",
+    directChangeName,
+    "delta-tech",
+    "--target-standard",
+    "error-handling",
+    "--operation",
+    "MODIFIED",
+    "--rule",
+    "wrap-errors",
+    "--strength",
+    "MUST",
+    "--statement",
+    "Errors MUST be wrapped with a code.",
+    "--rationale",
+    "Codes enable handling.",
+    "--method",
+    "ci",
+    "--detail",
+    "lint rule err/wrap",
+    "--operation",
+    "REMOVED",
+    "--rule",
+    "legacy-rule",
+    "--reason",
+    "Superseded by wrap-errors.",
+  ], { cwd: generateTempDir });
+  context.assert(mergeDeltaTech.status === 0, "generate merges additional delta tech operations into the existing file", `stderr: ${mergeDeltaTech.stderr.trim()}`);
+
+  const parsedDeltaTech = yamlModule.parseYamlDocument<{
+    target_standard: string;
+    standard?: { title: string; category: string };
+    mapping: { implementation: string[]; enforcement: string[] };
+    operations: {
+      ADDED: Record<string, { enforcement: { method: string }; examples?: { good?: string[] }; exceptions?: string[] }>;
+      MODIFIED: Record<string, { enforcement: { method: string; detail?: string } }>;
+      REMOVED: Record<string, { reason: string }>;
+    };
+  }>(readFileSync(path.join(directChangeDir, "tech", "error-handling.yaml"), "utf8"));
+  context.assert(parsedDeltaTech.standard?.category === "coding", "generate delta-tech writes the new-standard block");
+  context.assert(
+    parsedDeltaTech.operations.ADDED["wrap-errors"]?.enforcement.method === "review"
+      && parsedDeltaTech.operations.ADDED["wrap-errors"]?.examples?.good?.length === 1
+      && parsedDeltaTech.operations.ADDED["wrap-errors"]?.exceptions?.length === 1,
+    "generate delta-tech writes ADDED rule with enforcement, examples, and exceptions",
+  );
+  context.assert(
+    parsedDeltaTech.operations.MODIFIED["wrap-errors"]?.enforcement.detail === "lint rule err/wrap"
+      && parsedDeltaTech.operations.REMOVED["legacy-rule"]?.reason === "Superseded by wrap-errors.",
+    "generate delta-tech merges MODIFIED and REMOVED operations across invocations",
+  );
+
+  const deltaTechMissingRationale = cli([
+    "generate",
+    directChangeName,
+    "delta-tech",
+    "--target-standard",
+    "error-handling",
+    "--operation",
+    "ADDED",
+    "--rule",
+    "no-rationale",
+    "--strength",
+    "MUST",
+    "--statement",
+    "A rule without a rationale.",
+    "--method",
+    "review",
+  ], { cwd: generateTempDir });
+  context.assert(deltaTechMissingRationale.status !== 0, "generate delta-tech rejects a rule missing --rationale");
+  context.assert(
+    deltaTechMissingRationale.stderr.includes("--rationale"),
+    "generate delta-tech missing rationale failure names the flag",
+    `stderr: ${deltaTechMissingRationale.stderr.trim()}`,
+  );
+
+  const deltaTechRemovedExtra = cli([
+    "generate",
+    directChangeName,
+    "delta-tech",
+    "--target-standard",
+    "error-handling",
+    "--operation",
+    "REMOVED",
+    "--rule",
+    "bad-removed",
+    "--reason",
+    "Some reason.",
+    "--strength",
+    "MUST",
+  ], { cwd: generateTempDir });
+  context.assert(deltaTechRemovedExtra.status !== 0, "generate delta-tech rejects a REMOVED rule carrying non-reason fields");
+
+  const verifyWithDeltaTech = cli(["verify", directChangeName], { cwd: generateTempDir });
+  context.assert(verifyWithDeltaTech.status === 0, "change with generated delta tech still passes verify", `stderr: ${verifyWithDeltaTech.stderr.trim()} stdout: ${verifyWithDeltaTech.stdout.trim()}`);
 } finally {
   rmSync(generateTempDir, { recursive: true, force: true });
 }

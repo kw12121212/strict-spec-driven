@@ -1,0 +1,55 @@
+schema: strict-spec-driven/main-tech/v1
+schema_version: 1
+artifact_type: main_tech
+schema_file: ../schemas/main-tech.yaml
+standard:
+  id: typescript-esm-baseline
+  title: TypeScript ESM Baseline
+  category: coding
+mapping:
+  implementation:
+    - tsconfig.json
+    - package.json
+  enforcement:
+    - package.json
+rules:
+  esm-typescript-only:
+    strength: MUST
+    statement: >-
+      Source modules MUST be authored in strict TypeScript using ESM syntax with
+      NodeNext resolution, compiled from src/ to dist/.
+    rationale: >-
+      A single, strict module system keeps imports, build output, and tooling
+      consistent and avoids dual-package and CommonJS interop hazards.
+    enforcement:
+      method: ci
+      detail: "tsc with strict and NodeNext settings fails the build on violations; build command: bun run build."
+    examples:
+      good:
+        - 'import { parseYamlDocument } from "./yaml.js";'
+      bad:
+        - 'const yaml = require("./yaml");'
+    exceptions:
+      - Generated bundle output under dist/ is exempt.
+  rebuild-after-source-edits:
+    strength: MUST
+    statement: >-
+      Compiled output MUST be rebuilt after editing TypeScript sources before
+      relying on dist/ behavior or running the dist-based test suite.
+    rationale: >-
+      Tests and installed skills run against compiled dist/ output, so stale
+      builds produce misleading results.
+    enforcement:
+      method: test
+      detail: "bun run build && bun test/run.ts is the complete project regression command."
+  tests-verify-observable-behavior:
+    strength: SHOULD
+    statement: >-
+      Tests SHOULD verify observable behavior described in specs and prefer real
+      dependencies over mocks for code the project owns.
+    rationale: >-
+      Behavior-facing tests survive refactors and catch real regressions;
+      implementation-coupled tests and mocks of owned code do not.
+    enforcement:
+      method: review
+      detail: Reviewers reject tests that assert internal implementation detail or mock owned modules without cause.

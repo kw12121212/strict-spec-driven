@@ -17,6 +17,8 @@ before running anything. Do not guess.
 
 ```yaml
 check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
+tech-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js tech-status
+verify-tech-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-tech-mappings
 modify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js modify [change-name|archive-dir]
 apply: node {{SKILL_DIR}}/scripts/strict-spec-driven.js apply <change-name>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
@@ -67,6 +69,10 @@ run `init` from this skill.
    - `.strict-spec-driven/config.yaml`
    - `.strict-spec-driven/specs/INDEX.yaml`
    - every relevant strict YAML main spec
+   - the technical standards that govern the files this change will touch: run
+     `node {{SKILL_DIR}}/scripts/strict-spec-driven.js tech-status` and read the
+     relevant files under `.strict-spec-driven/tech/`. These are the engineering
+     rules the implementation must satisfy.
 
 3. **Gate on open questions** — inspect `questions.yaml`.
    - if `open` contains entries, do not infer answers or continue
@@ -83,6 +89,16 @@ run `init` from this skill.
    - read relevant code before editing
    - implement the next pending task
    - preserve every item in `proposal.yaml.unchanged_behavior`
+   - write code that satisfies the applicable technical standards from step 2:
+     never violate a MUST rule, and follow each SHOULD rule unless the change's
+     design already records an explicit justified deviation. If a task can only
+     be completed by violating a MUST rule, stop and raise it as an open
+     question rather than breaking the standard; if the standard itself is wrong
+     and must change as part of this change, carry that change as a delta tech
+     artifact under `changes/<name>/tech/` (run
+     `node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show delta-tech`
+     for the contract) so it merges on archive — do not edit the live standard
+     under `.strict-spec-driven/tech/` directly.
 
 5. **Mark tasks with the strict apply command** — after you finish the next
    pending task, run:
@@ -100,10 +116,13 @@ run `init` from this skill.
    the task's `command` and confirm it succeeds before marking the task
    complete.
 
-8. **Update delta specs after coding** — re-read the strict YAML delta specs and
-   make sure they match what was actually implemented. Keep `mapping` fields in
-   sync with the implementation and test files that were changed or directly
-   relied on.
+8. **Update delta specs and delta tech after coding** — re-read the strict YAML
+   delta specs and make sure they match what was actually implemented. Keep
+   `mapping` fields in sync with the implementation and test files that were
+   changed or directly relied on. If the change carries delta tech artifacts
+   under `changes/<name>/tech/`, re-read them too and confirm the rule
+   operations and `mapping` still match the standard change that was actually
+   implemented.
 
 9. **Gitignore hygiene** — once all tasks are complete, check for non-source
    artifacts that should not be committed:
@@ -146,4 +165,10 @@ requires starting declared components or opening declared targets:
 - Never run `apply` just to inspect status
 - Open questions require a problem explanation, impact analysis, recommendation,
   and explicit human answer before continuing
+- Implemented code must satisfy applicable technical standards under
+  `.strict-spec-driven/tech/`: never break a MUST rule, follow SHOULD rules by
+  default, and raise a conflict instead of silently violating a standard
+- When a change must alter a standard, do it through a delta tech artifact under
+  the change's `tech/` directory, never by editing the live standard during the
+  change
 - Keep implementation and test mappings in structured YAML fields, not prose

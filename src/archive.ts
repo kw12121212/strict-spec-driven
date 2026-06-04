@@ -49,9 +49,71 @@ type SpecIndexArtifact = {
   [key: string]: unknown;
 };
 
+type TechRuleValue = {
+  strength: string;
+  statement: string;
+  rationale: string;
+  enforcement: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
+type TechMapping = {
+  implementation: string[];
+  enforcement: string[];
+};
+
+type MainTechArtifact = {
+  schema: string;
+  schema_version: number;
+  artifact_type: string;
+  schema_file: string;
+  standard: {
+    id: string;
+    title: string;
+    category: string;
+  };
+  mapping: TechMapping;
+  rules: Record<string, TechRuleValue>;
+  [key: string]: unknown;
+};
+
+type DeltaTechArtifact = {
+  target_standard: string;
+  standard?: {
+    title: string;
+    category: string;
+  };
+  mapping?: TechMapping;
+  operations?: {
+    ADDED?: Record<string, TechRuleValue>;
+    MODIFIED?: Record<string, TechRuleValue>;
+    REMOVED?: Record<string, { reason: string }>;
+  };
+};
+
+type TechIndexArtifact = {
+  schema: string;
+  schema_version: number;
+  artifact_type: string;
+  schema_file: string;
+  standards: Array<{ id: string; title: string; category: string; path: string }>;
+  [key: string]: unknown;
+};
+
 export type ArchiveMergedSpecResult = {
   targetSpec: string;
   specPath: string;
+  added: number;
+  modified: number;
+  removed: number;
+  modifiedMissingTargetAsAdded: string[];
+  removedMissingTargetSkipped: string[];
+};
+
+export type ArchiveMergedStandardResult = {
+  targetStandard: string;
+  standardPath: string;
+  created: boolean;
   added: number;
   modified: number;
   removed: number;
@@ -72,6 +134,16 @@ export type ArchiveResult = {
     removedMissingTargetSkipped: number;
   };
   mergedSpecs: ArchiveMergedSpecResult[];
+  techMergeSummary: {
+    standardsUpdated: number;
+    standardsCreated: number;
+    added: number;
+    modified: number;
+    removed: number;
+    modifiedMissingTargetAsAdded: number;
+    removedMissingTargetSkipped: number;
+  };
+  mergedStandards: ArchiveMergedStandardResult[];
   roadmapSync: RoadmapSyncResult | null;
 };
 
@@ -301,6 +373,299 @@ function regenerateSpecIndex(rootDir: string): void {
   writeYamlFile(indexPath, indexArtifact);
 }
 
+function collectMainTechPathsById(rootDir: string): Map<string, string> {
+  const techRoot = path.join(rootDir, STRICT_WORKFLOW_DIR, "tech");
+  const byId = new Map<string, string>();
+
+  for (const techPath of listYamlFiles(techRoot)) {
+    if (path.basename(techPath) === "INDEX.yaml") {
+      continue;
+    }
+
+    const parsed = readYamlFile<unknown>(techPath);
+    const artifact = asObject(parsed, `main tech '${techPath}'`);
+    if (artifact.artifact_type !== "main_tech") {
+      continue;
+    }
+
+    const standard = asObject(artifact.standard, `main tech '${techPath}' field 'standard'`);
+    const standardId = standard.id;
+    if (typeof standardId !== "string" || standardId.length === 0) {
+      throw new Error(`main tech '${techPath}' is missing standard.id`);
+    }
+
+    if (byId.has(standardId)) {
+      throw new Error(`duplicate main tech id '${standardId}' in '${techPath}' and '${byId.get(standardId)}'`);
+    }
+    byId.set(standardId, techPath);
+  }
+
+  return byId;
+}
+
+function unionStringArrays(existing: string[] | undefined, additions: string[] | undefined): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const value of [...(existing ?? []), ...(additions ?? [])]) {
+    if (typeof value !== "string" || seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    result.push(value);
+  }
+  return result;
+}
+
+function applyTechOperations(
+  rules: Record<string, TechRuleValue>,
+  deltaTech: DeltaTechArtifact,
+  report: ArchiveMergedStandardResult,
+): void {
+  const operations = deltaTech.operations ?? {};
+
+  for (const [ruleId, value] of Object.entries(operations.ADDED ?? {})) {
+    if (ruleId in rules) {
+      throw new Error(
+        `ADDED rule '${ruleId}' already exists in target standard '${deltaTech.target_standard}'`,
+      );
+    }
+
+    rules[ruleId] = { ...value };
+    report.added += 1;
+  }
+
+  for (const [targetRule, replacement] of Object.entries(operations.MODIFIED ?? {})) {
+    if (!(targetRule in rules)) {
+      rules[targetRule] = { ...replacement };
+      report.modifiedMissingTargetAsAdded.push(targetRule);
+      continue;
+    }
+
+    rules[targetRule] = { ...replacement };
+    report.modified += 1;
+  }
+
+  for (const targetRule of Object.keys(operations.REMOVED ?? {})) {
+    if (!(targetRule in rules)) {
+      report.removedMissingTargetSkipped.push(targetRule);
+      continue;
+    }
+
+    delete rules[targetRule];
+    report.removed += 1;
+  }
+}
+
+function applyDeltaToMainTech(
+  mainTech: MainTechArtifact,
+  deltaTech: DeltaTechArtifact,
+  report: ArchiveMergedStandardResult,
+  techPath: string,
+): void {
+  if (!mainTech.rules || typeof mainTech.rules !== "object" || Array.isArray(mainTech.rules)) {
+    throw new Error(`main tech '${techPath}' is missing rules`);
+  }
+
+  if (deltaTech.mapping) {
+    // Mapping merge is additive: the delta unions its governed/enforcing paths
+    // into the standard's existing mapping rather than replacing it, so an empty
+    // or partial delta mapping never wipes paths the change did not touch. Use
+    // /strict-tech-edit for standalone path removal.
+    const existingMapping = mainTech.mapping ?? { implementation: [], enforcement: [] };
+    mainTech.mapping = {
+      implementation: unionStringArrays(existingMapping.implementation, deltaTech.mapping.implementation),
+      enforcement: unionStringArrays(existingMapping.enforcement, deltaTech.mapping.enforcement),
+    };
+  }
+
+  if (deltaTech.standard) {
+    mainTech.standard = {
+      ...mainTech.standard,
+      title: deltaTech.standard.title,
+      category: deltaTech.standard.category,
+    };
+  }
+
+  applyTechOperations(mainTech.rules, deltaTech, report);
+}
+
+function buildNewMainTech(deltaTech: DeltaTechArtifact): MainTechArtifact {
+  if (!deltaTech.standard) {
+    throw new Error(
+      `delta tech for new standard '${deltaTech.target_standard}' must provide a standard block with title and category`,
+    );
+  }
+
+  return {
+    schema: "strict-spec-driven/main-tech/v1",
+    schema_version: 1,
+    artifact_type: "main_tech",
+    schema_file: "templates/strict-spec-driven/schemas/main-tech.yaml",
+    standard: {
+      id: deltaTech.target_standard,
+      title: deltaTech.standard.title,
+      category: deltaTech.standard.category,
+    },
+    mapping: {
+      implementation: [...(deltaTech.mapping?.implementation ?? [])],
+      enforcement: [...(deltaTech.mapping?.enforcement ?? [])],
+    },
+    rules: {},
+  };
+}
+
+function regenerateTechIndex(rootDir: string): void {
+  const techRoot = path.join(rootDir, STRICT_WORKFLOW_DIR, "tech");
+  if (!existsSync(techRoot)) {
+    return;
+  }
+
+  const indexPath = path.join(techRoot, "INDEX.yaml");
+
+  const standards = listYamlFiles(techRoot)
+    .filter((filePath) => path.basename(filePath) !== "INDEX.yaml")
+    .map((filePath) => {
+      const parsed = readYamlFile<unknown>(filePath);
+      const artifact = asObject(parsed, `tech '${filePath}'`);
+      if (artifact.artifact_type !== "main_tech") {
+        return null;
+      }
+
+      const standard = asObject(artifact.standard, `tech '${filePath}' field 'standard'`);
+      const standardId = standard.id;
+      const title = standard.title;
+      const category = standard.category;
+      if (typeof standardId !== "string" || standardId.length === 0) {
+        throw new Error(`main tech '${filePath}' is missing standard.id`);
+      }
+      if (typeof title !== "string" || title.length === 0) {
+        throw new Error(`main tech '${filePath}' is missing standard.title`);
+      }
+      if (typeof category !== "string" || category.length === 0) {
+        throw new Error(`main tech '${filePath}' is missing standard.category`);
+      }
+
+      return {
+        id: standardId,
+        title,
+        category,
+        path: normalizeRepoRelativePath(rootDir, filePath),
+      };
+    })
+    .filter((value): value is { id: string; title: string; category: string; path: string } => value !== null)
+    .sort((left, right) => {
+      const byPath = left.path.localeCompare(right.path);
+      if (byPath !== 0) {
+        return byPath;
+      }
+      return left.id.localeCompare(right.id);
+    });
+
+  let indexArtifact: TechIndexArtifact = {
+    schema: "strict-spec-driven/tech-index/v1",
+    schema_version: 1,
+    artifact_type: "tech_index",
+    schema_file: "templates/strict-spec-driven/schemas/tech-index.yaml",
+    standards: [],
+  };
+
+  if (existsSync(indexPath)) {
+    const parsed = readYamlFile<unknown>(indexPath);
+    const artifact = asObject(parsed, `tech index '${indexPath}'`) as TechIndexArtifact;
+    indexArtifact = {
+      ...artifact,
+      standards: [],
+    };
+  } else {
+    mkdirSync(path.dirname(indexPath), { recursive: true });
+  }
+
+  indexArtifact.standards = standards;
+  writeYamlFile(indexPath, indexArtifact);
+}
+
+function mergeDeltaTechStandards(
+  rootDir: string,
+  changeDir: string,
+): ArchiveMergedStandardResult[] {
+  const deltaTechDir = path.join(changeDir, "tech");
+  const deltaTechPaths = listYamlFiles(deltaTechDir);
+  if (deltaTechPaths.length === 0) {
+    return [];
+  }
+
+  const techRoot = path.join(rootDir, STRICT_WORKFLOW_DIR, "tech");
+  const mainTechPathsById = collectMainTechPathsById(rootDir);
+  const newStandardPaths = new Map<string, string>();
+  // Cache keyed by absolute tech file path.
+  const mainTechCache = new Map<string, MainTechArtifact>();
+  const mergeReports = new Map<string, ArchiveMergedStandardResult>();
+
+  for (const deltaTechPath of deltaTechPaths) {
+    const deltaTech = readYamlFile<DeltaTechArtifact>(deltaTechPath);
+    if (typeof deltaTech.target_standard !== "string" || deltaTech.target_standard.length === 0) {
+      throw new Error(`delta tech '${deltaTechPath}' is missing target_standard`);
+    }
+
+    let report = mergeReports.get(deltaTech.target_standard);
+    if (!report) {
+      report = {
+        targetStandard: deltaTech.target_standard,
+        standardPath: "",
+        created: false,
+        added: 0,
+        modified: 0,
+        removed: 0,
+        modifiedMissingTargetAsAdded: [],
+        removedMissingTargetSkipped: [],
+      };
+      mergeReports.set(deltaTech.target_standard, report);
+    }
+
+    const existingTechPath = mainTechPathsById.get(deltaTech.target_standard);
+    let cacheKey: string;
+
+    if (existingTechPath) {
+      cacheKey = existingTechPath;
+      if (!mainTechCache.has(cacheKey)) {
+        const loaded = readYamlFile<MainTechArtifact>(existingTechPath);
+        if (loaded.artifact_type !== "main_tech") {
+          throw new Error(`target standard '${existingTechPath}' is not a main_tech artifact`);
+        }
+        mainTechCache.set(cacheKey, loaded);
+      }
+      report.standardPath = normalizeRepoRelativePath(rootDir, existingTechPath);
+    } else if (newStandardPaths.has(deltaTech.target_standard)) {
+      cacheKey = newStandardPaths.get(deltaTech.target_standard)!;
+    } else {
+      cacheKey = path.join(techRoot, `${deltaTech.target_standard}.yaml`);
+      mainTechCache.set(cacheKey, buildNewMainTech(deltaTech));
+      newStandardPaths.set(deltaTech.target_standard, cacheKey);
+      report.created = true;
+      report.standardPath = normalizeRepoRelativePath(rootDir, cacheKey);
+    }
+
+    const mainTech = mainTechCache.get(cacheKey)!;
+    applyDeltaToMainTech(mainTech, deltaTech, report, cacheKey);
+  }
+
+  if (mainTechCache.size > 0) {
+    mkdirSync(techRoot, { recursive: true });
+    for (const [techPath, mainTechArtifact] of mainTechCache) {
+      writeYamlFile(techPath, mainTechArtifact);
+    }
+    regenerateTechIndex(rootDir);
+  }
+
+  return Array.from(mergeReports.values()).sort((left, right) => {
+    const byPath = left.standardPath.localeCompare(right.standardPath);
+    if (byPath !== 0) {
+      return byPath;
+    }
+    return left.targetStandard.localeCompare(right.targetStandard);
+  });
+}
+
 function syncRoadmapAfterArchive(rootDir: string): RoadmapSyncResult | null {
   const roadmapDir = path.join(rootDir, ROADMAP_DIR);
   if (!existsSync(roadmapDir)) {
@@ -382,6 +747,8 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
 
   regenerateSpecIndex(rootDir);
 
+  const mergedStandards = mergeDeltaTechStandards(rootDir, changeDir);
+
   const archiveDestination = buildArchiveDestination(rootDir, changeName);
   renameSync(changeDir, archiveDestination);
   const roadmapSync = syncRoadmapAfterArchive(rootDir);
@@ -414,12 +781,39 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
     },
   );
 
+  const techMergeSummary = mergedStandards.reduce(
+    (summary, report) => {
+      if (report.created) {
+        summary.standardsCreated += 1;
+      } else {
+        summary.standardsUpdated += 1;
+      }
+      summary.added += report.added;
+      summary.modified += report.modified;
+      summary.removed += report.removed;
+      summary.modifiedMissingTargetAsAdded += report.modifiedMissingTargetAsAdded.length;
+      summary.removedMissingTargetSkipped += report.removedMissingTargetSkipped.length;
+      return summary;
+    },
+    {
+      standardsUpdated: 0,
+      standardsCreated: 0,
+      added: 0,
+      modified: 0,
+      removed: 0,
+      modifiedMissingTargetAsAdded: 0,
+      removedMissingTargetSkipped: 0,
+    },
+  );
+
   return {
     valid: true,
     changeName,
     archiveDestination: normalizeRepoRelativePath(rootDir, archiveDestination),
     mergeSummary,
     mergedSpecs,
+    techMergeSummary,
+    mergedStandards,
     roadmapSync,
   };
 }

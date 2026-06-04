@@ -1932,6 +1932,217 @@ try {
   rmSync(archiveRoadmapDir, { recursive: true, force: true });
 }
 
+// 13t: delta-tech archive merge (modify existing standard + create new standard)
+function writeMainTechArtifact(
+  rootDir: string,
+  relativePath: string,
+  standardId: string,
+  title: string,
+  category: string,
+  rules: Array<{ id: string; strength: string; statement: string }>,
+  mapping: { implementation: string[]; enforcement: string[] } = { implementation: [], enforcement: [] },
+): void {
+  const techPath = path.join(rootDir, ".strict-spec-driven", "tech", relativePath);
+  mkdirSync(path.dirname(techPath), { recursive: true });
+  writeFileSync(
+    techPath,
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/main-tech/v1",
+      schema_version: 1,
+      artifact_type: "main_tech",
+      schema_file: "test",
+      standard: { id: standardId, title, category },
+      mapping: { implementation: [...mapping.implementation], enforcement: [...mapping.enforcement] },
+      rules: Object.fromEntries(rules.map((rule) => [rule.id, {
+        strength: rule.strength,
+        statement: rule.statement,
+        rationale: `Rationale for ${rule.id}`,
+        enforcement: { method: "review" },
+      }])),
+    }),
+    "utf8",
+  );
+}
+
+function writeDeltaTechArtifact(
+  rootDir: string,
+  changeName: string,
+  fileName: string,
+  targetStandard: string,
+  options: {
+    standard?: { title: string; category: string };
+    mapping?: { implementation: string[]; enforcement: string[] };
+    ADDED?: Record<string, { strength: string; statement: string }>;
+    MODIFIED?: Record<string, { strength: string; statement: string }>;
+    REMOVED?: Record<string, { reason: string }>;
+  },
+): void {
+  const deltaPath = path.join(rootDir, ".strict-spec-driven", "changes", changeName, "tech", fileName);
+  mkdirSync(path.dirname(deltaPath), { recursive: true });
+  const toRule = (value: { strength: string; statement: string }, id: string) => ({
+    strength: value.strength,
+    statement: value.statement,
+    rationale: `Rationale for ${id}`,
+    enforcement: { method: "review" },
+  });
+  const artifact: Record<string, unknown> = {
+    schema: "strict-spec-driven/delta-tech/v1",
+    schema_version: 1,
+    artifact_type: "delta_tech",
+    schema_file: "test",
+    target_standard: targetStandard,
+    mapping: options.mapping ?? { implementation: [], enforcement: [] },
+    operations: {
+      ADDED: Object.fromEntries(Object.entries(options.ADDED ?? {}).map(([id, value]) => [id, toRule(value, id)])),
+      MODIFIED: Object.fromEntries(Object.entries(options.MODIFIED ?? {}).map(([id, value]) => [id, toRule(value, id)])),
+      REMOVED: options.REMOVED ?? {},
+    },
+  };
+  if (options.standard) {
+    artifact.standard = options.standard;
+  }
+  writeFileSync(deltaPath, yamlModule.stringifyYamlDocument(artifact), "utf8");
+}
+
+const archiveTechModifyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-tech-modify-"));
+try {
+  const changeName = "archive-tech-modify";
+  writeMainTechArtifact(
+    archiveTechModifyDir,
+    "coding-baseline.yaml",
+    "coding-baseline",
+    "Coding Baseline",
+    "coding",
+    [
+      { id: "rule-base", strength: "MUST", statement: "Base rule" },
+      { id: "rule-remove", strength: "SHOULD", statement: "Removable rule" },
+    ],
+    { implementation: ["src/existing.ts"], enforcement: ["eslint.config.js"] },
+  );
+  writeValidChangeArtifacts(archiveTechModifyDir, changeName);
+  writeDeltaTechArtifact(archiveTechModifyDir, changeName, "coding.yaml", "coding-baseline", {
+    mapping: { implementation: ["src/added.ts"], enforcement: [] },
+    ADDED: { "rule-added": { strength: "MUST", statement: "Added rule" } },
+    MODIFIED: { "rule-base": { strength: "MUST", statement: "Updated base rule" } },
+    REMOVED: { "rule-remove": { reason: "No longer needed" } },
+  });
+
+  const archiveResult = cli(["archive", changeName], { cwd: archiveTechModifyDir });
+  context.assert(archiveResult.status === 0, "archive exits zero for a change with delta tech", `got ${archiveResult.status}: ${archiveResult.stderr}`);
+  const archiveJson = JSON.parse(archiveResult.stdout.trim());
+  context.assert(archiveJson.techMergeSummary.standardsUpdated === 1, "tech merge summary reports one updated standard");
+  context.assert(archiveJson.techMergeSummary.standardsCreated === 0, "tech merge summary reports zero created standards");
+  context.assert(archiveJson.techMergeSummary.added === 1, "tech merge summary reports ADDED rule count");
+  context.assert(archiveJson.techMergeSummary.modified === 1, "tech merge summary reports MODIFIED rule count");
+  context.assert(archiveJson.techMergeSummary.removed === 1, "tech merge summary reports REMOVED rule count");
+
+  const mergedTech = yamlModule.parseYamlDocument<{
+    rules: Record<string, { statement: string }>;
+    mapping: { implementation: string[]; enforcement: string[] };
+  }>(
+    readFileSync(path.join(archiveTechModifyDir, ".strict-spec-driven", "tech", "coding-baseline.yaml"), "utf8"),
+  );
+  context.assert(mergedTech.rules["rule-added"] !== undefined, "delta tech ADDED rule merges into standard");
+  context.assert(mergedTech.rules["rule-base"]?.statement === "Updated base rule", "delta tech MODIFIED rule replaces standard rule");
+  context.assert(mergedTech.rules["rule-remove"] === undefined, "delta tech REMOVED rule deletes standard rule");
+  context.assert(
+    mergedTech.mapping.implementation.includes("src/existing.ts")
+      && mergedTech.mapping.implementation.includes("src/added.ts"),
+    "delta tech mapping merge unions new paths into the existing standard mapping without wiping it",
+  );
+  context.assert(
+    mergedTech.mapping.enforcement.includes("eslint.config.js"),
+    "delta tech mapping merge preserves existing enforcement paths the delta did not touch",
+  );
+
+  const techIndex = yamlModule.parseYamlDocument<{ standards: Array<{ id: string }> }>(
+    readFileSync(path.join(archiveTechModifyDir, ".strict-spec-driven", "tech", "INDEX.yaml"), "utf8"),
+  );
+  context.assert(
+    techIndex.standards.some((standard) => standard.id === "coding-baseline"),
+    "archive regenerates tech index from merged standard state",
+  );
+} finally {
+  rmSync(archiveTechModifyDir, { recursive: true, force: true });
+}
+
+const archiveTechCreateDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-tech-create-"));
+try {
+  const changeName = "archive-tech-create";
+  writeValidChangeArtifacts(archiveTechCreateDir, changeName);
+  writeDeltaTechArtifact(archiveTechCreateDir, changeName, "new.yaml", "new-standard", {
+    standard: { title: "New Standard", category: "architecture" },
+    mapping: { implementation: [], enforcement: [] },
+    ADDED: { "rule-one": { strength: "MUST", statement: "First rule of new standard" } },
+  });
+
+  const archiveResult = cli(["archive", changeName], { cwd: archiveTechCreateDir });
+  context.assert(archiveResult.status === 0, "archive exits zero when creating a standard via delta tech", `got ${archiveResult.status}: ${archiveResult.stderr}`);
+  const archiveJson = JSON.parse(archiveResult.stdout.trim());
+  context.assert(archiveJson.techMergeSummary.standardsCreated === 1, "tech merge summary reports one created standard");
+  context.assert(archiveJson.techMergeSummary.added === 1, "tech merge summary reports created standard rule count");
+
+  const createdPath = path.join(archiveTechCreateDir, ".strict-spec-driven", "tech", "new-standard.yaml");
+  context.assert(existsSync(createdPath), "archive creates a new main tech file from delta tech");
+  const createdTech = yamlModule.parseYamlDocument<{ artifact_type: string; standard: { id: string; category: string }; rules: Record<string, unknown> }>(
+    readFileSync(createdPath, "utf8"),
+  );
+  context.assert(createdTech.artifact_type === "main_tech", "created standard has main_tech artifact_type");
+  context.assert(createdTech.standard.id === "new-standard", "created standard id comes from target_standard");
+  context.assert(createdTech.standard.category === "architecture", "created standard category comes from delta standard block");
+  context.assert(createdTech.rules["rule-one"] !== undefined, "created standard includes delta ADDED rules");
+} finally {
+  rmSync(archiveTechCreateDir, { recursive: true, force: true });
+}
+
+// 13u: verify rejects new-standard delta missing standard block
+const verifyTechNewDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-tech-new-"));
+try {
+  const changeName = "verify-tech-new";
+  writeValidChangeArtifacts(verifyTechNewDir, changeName);
+  writeDeltaTechArtifact(verifyTechNewDir, changeName, "new.yaml", "missing-standard", {
+    mapping: { implementation: [], enforcement: [] },
+    ADDED: { "rule-one": { strength: "MUST", statement: "Rule without standard block" } },
+  });
+
+  const result = verifyModule.verifyChange(verifyTechNewDir, changeName);
+  context.assert(!result.valid, "verify rejects a new-standard delta tech without standard metadata");
+  context.assert(
+    result.diagnostics.some((d) => d.source === "new_standard_metadata"),
+    "verify reports new_standard_metadata diagnostic for missing standard block",
+  );
+} finally {
+  rmSync(verifyTechNewDir, { recursive: true, force: true });
+}
+
+// 13v: verify rejects ADDED rule colliding with an existing standard rule
+const verifyTechCollisionDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-tech-collision-"));
+try {
+  const changeName = "verify-tech-collision";
+  writeMainTechArtifact(
+    verifyTechCollisionDir,
+    "coding-baseline.yaml",
+    "coding-baseline",
+    "Coding Baseline",
+    "coding",
+    [{ id: "rule-exists", strength: "MUST", statement: "Existing rule" }],
+  );
+  writeValidChangeArtifacts(verifyTechCollisionDir, changeName);
+  writeDeltaTechArtifact(verifyTechCollisionDir, changeName, "coding.yaml", "coding-baseline", {
+    mapping: { implementation: [], enforcement: [] },
+    ADDED: { "rule-exists": { strength: "MUST", statement: "Colliding rule" } },
+  });
+
+  const result = verifyModule.verifyChange(verifyTechCollisionDir, changeName);
+  context.assert(!result.valid, "verify rejects a delta tech ADDED rule that already exists");
+  context.assert(
+    result.diagnostics.some((d) => d.source === "added_rule_collision"),
+    "verify reports added_rule_collision diagnostic",
+  );
+} finally {
+  rmSync(verifyTechCollisionDir, { recursive: true, force: true });
+}
+
 context.section("[14] list/modify/cancel commands");
 
 function writeArchivedChangeArtifacts(rootDir: string, archiveDirName: string): string {

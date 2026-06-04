@@ -1,0 +1,40 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: formalize-tech-artifact-family
+sections:
+  Implementation:
+    document-tech-schema-coverage:
+      text: >-
+        Record the main_tech, delta_tech, and tech_index schema coverage and rule model
+        requirements in the contracts-yaml-artifacts delta spec.
+      status: complete
+    document-delta-tech-lifecycle:
+      text: >-
+        Record the delta tech operation model, archive merge, and new-standard creation
+        requirements in the contracts-yaml-artifacts delta spec.
+      status: complete
+    add-config-tech-rules:
+      text: Add a tech rules category to .strict-spec-driven/config.yaml.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run type-check lint.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify the documented contract matches the shipped tech artifact family.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

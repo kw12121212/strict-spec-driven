@@ -6588,6 +6588,8 @@ var COMMAND_REGISTRATION_ORDER = [
   "ready",
   "next",
   "verify-spec-mappings",
+  "verify-tech-mappings",
+  "tech-status",
   "validate-skills",
   "schema-list",
   "schema-show",
@@ -6872,6 +6874,17 @@ specs:
   - id: sample-spec
     title: Sample Spec Title
     path: .strict-spec-driven/specs/sample-area.yaml
+`,
+  "strict-spec-driven/scaffold/tech/INDEX.yaml": `schema: strict-spec-driven/tech-index/v1
+schema_version: 1
+artifact_type: tech_index
+schema_file: ../schemas/tech-index.yaml
+standards:
+  # Replace the sample entry below with real technical standards, or remove if unused.
+  - id: sample-standard
+    title: Sample Technical Standard
+    category: coding
+    path: .strict-spec-driven/tech/sample-standard.yaml
 `,
   "strict-spec-driven/schemas/change-design.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -7163,6 +7176,197 @@ json_schema:
           type: object
           additionalProperties:
             "$ref": "#/definitions/requirement_value"
+        REMOVED:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: false
+            required:
+              - reason
+            properties:
+              reason:
+                type: string
+`,
+  "strict-spec-driven/schemas/delta-tech.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/delta-tech/v1
+artifact_type: delta_tech
+artifact_name: delta-tech
+description: >-
+  Strict YAML delta tech standard artifact. A delta tech artifact lives under a
+  change at changes/<name>/tech/ and expresses how that change evolves a
+  technical standard: adding, modifying, or removing rules of an existing
+  standard, or creating a whole new standard. Archive merges every delta tech
+  artifact into .strict-spec-driven/tech/ so standard changes flow through the
+  same proposal, review, and archive audit path as observable-behavior specs.
+example_ref: ../../../examples/strict-spec-driven/delta-tech.yaml
+coverage_examples:
+  - ../../../examples/strict-spec-driven/delta-tech.operations.yaml
+merge_rules:
+  exclusive_active_target: |
+    A rule ID that appears as a MODIFIED or REMOVED target in one active change
+    MUST NOT appear as a MODIFIED or REMOVED target for the same target_standard
+    in any other active change. Verify must enforce this constraint and report it
+    as a deterministic validation failure.
+  added_existing_target: |
+    A rule ID that appears as an ADDED entry MUST NOT already exist in the target
+    standard at archive time. Verify must enforce this constraint and report it as
+    a deterministic validation failure before archive can rewrite tech standards.
+  modified_missing_target: |
+    If a MODIFIED entry targets a rule ID that does not exist in the standard at
+    archive time, the entry is treated as ADDED and recorded in the archive merge
+    report.
+  removed_missing_target: |
+    If a REMOVED entry targets a rule ID that does not exist in the standard at
+    archive time, the entry is silently skipped and recorded as a skipped removal
+    in the archive merge report.
+  new_standard_creation: |
+    If target_standard does not match any existing standard id at archive time,
+    the delta is a new-standard creation: it MUST provide a standard block with
+    title and category, archive creates a new main_tech file at
+    .strict-spec-driven/tech/<target_standard>.yaml from the standard block,
+    mapping, and ADDED rules, and the tech index is regenerated.
+  mapping_merge: |
+    The mapping block is additive on merge: archive unions the delta's
+    implementation and enforcement paths into the standard's existing mapping and
+    de-duplicates, rather than replacing it. An empty or partial delta mapping
+    therefore never removes paths the change did not touch. Use /strict-tech-edit
+    for standalone removal of mapping paths.
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  definitions:
+    enforcement:
+      type: object
+      additionalProperties: false
+      required:
+        - method
+      properties:
+        method:
+          type: string
+          enum:
+            - lint
+            - ci
+            - test
+            - review
+            - manual
+        detail:
+          type: string
+    examples:
+      type: object
+      additionalProperties: false
+      properties:
+        good:
+          type: array
+          items:
+            type: string
+        bad:
+          type: array
+          items:
+            type: string
+    rule_value:
+      type: object
+      additionalProperties: false
+      required:
+        - strength
+        - statement
+        - rationale
+        - enforcement
+      properties:
+        strength:
+          type: string
+          enum:
+            - MUST
+            - SHOULD
+            - MAY
+        statement:
+          type: string
+        rationale:
+          type: string
+        enforcement:
+          "$ref": "#/definitions/enforcement"
+        examples:
+          "$ref": "#/definitions/examples"
+        exceptions:
+          type: array
+          items:
+            type: string
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - target_standard
+    - mapping
+    - operations
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/delta-tech/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: delta_tech
+    schema_file:
+      type: string
+    target_standard:
+      type: string
+    standard:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - category
+      properties:
+        title:
+          type: string
+        category:
+          type: string
+          enum:
+            - coding
+            - architecture
+            - security
+            - performance
+            - api
+            - testing
+            - tooling
+            - operations
+            - documentation
+            - ui
+    mapping:
+      type: object
+      additionalProperties: false
+      required:
+        - implementation
+        - enforcement
+      properties:
+        implementation:
+          type: array
+          items:
+            type: string
+        enforcement:
+          type: array
+          items:
+            type: string
+    operations:
+      type: object
+      additionalProperties: false
+      required:
+        - ADDED
+        - MODIFIED
+        - REMOVED
+      properties:
+        ADDED:
+          type: object
+          additionalProperties:
+            "$ref": "#/definitions/rule_value"
+        MODIFIED:
+          type: object
+          additionalProperties:
+            "$ref": "#/definitions/rule_value"
         REMOVED:
           type: object
           additionalProperties:
@@ -7940,6 +8144,145 @@ json_schema:
                 "$ref": "#/definitions/step"
               minItems: 1
 `,
+  "strict-spec-driven/schemas/main-tech.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/main-tech/v1
+artifact_type: main_tech
+artifact_name: main-tech
+description: >-
+  Strict YAML technical standard artifact. A tech standard captures the
+  implementation-facing engineering rules that main specs deliberately exclude:
+  technology choices, coding conventions, architecture rules, internal structure
+  constraints, and security, performance, or API design baselines. Each rule
+  carries a strength, a statement, a rationale, and an enforcement contract so
+  later change proposal, implementation, and review workflows can treat it as a
+  binding constraint rather than informal advice.
+example_ref: ../../../examples/strict-spec-driven/main-tech.yaml
+coverage_examples:
+  - ../../../examples/strict-spec-driven/main-tech-ui.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  definitions:
+    enforcement:
+      type: object
+      additionalProperties: false
+      required:
+        - method
+      properties:
+        method:
+          type: string
+          enum:
+            - lint
+            - ci
+            - test
+            - review
+            - manual
+        detail:
+          type: string
+    examples:
+      type: object
+      additionalProperties: false
+      properties:
+        good:
+          type: array
+          items:
+            type: string
+        bad:
+          type: array
+          items:
+            type: string
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - standard
+    - mapping
+    - rules
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/main-tech/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: main_tech
+    schema_file:
+      type: string
+    standard:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - category
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+          enum:
+            - coding
+            - architecture
+            - security
+            - performance
+            - api
+            - testing
+            - tooling
+            - operations
+            - documentation
+            - ui
+    mapping:
+      type: object
+      additionalProperties: false
+      required:
+        - implementation
+        - enforcement
+      properties:
+        implementation:
+          type: array
+          items:
+            type: string
+        enforcement:
+          type: array
+          items:
+            type: string
+    rules:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - strength
+          - statement
+          - rationale
+          - enforcement
+        properties:
+          strength:
+            type: string
+            enum:
+              - MUST
+              - SHOULD
+              - MAY
+          statement:
+            type: string
+          rationale:
+            type: string
+          enforcement:
+            "$ref": "#/definitions/enforcement"
+          examples:
+            "$ref": "#/definitions/examples"
+          exceptions:
+            type: array
+            items:
+              type: string
+`,
   "strict-spec-driven/schemas/planned-change.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
 schema_id: strict-spec-driven/planned-change/v1
@@ -8230,6 +8573,44 @@ entries:
     artifact_name: spec-index
     schema_file: spec-index.yaml
     primary_example: ../../../examples/strict-spec-driven/spec-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+  - schema_id: strict-spec-driven/main-tech/v1
+    schema_version: 1
+    artifact_type: main_tech
+    artifact_name: main-tech
+    schema_file: main-tech.yaml
+    primary_example: ../../../examples/strict-spec-driven/main-tech.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Technical standards capture implementation-facing engineering rules that main specs exclude.
+  - schema_id: strict-spec-driven/delta-tech/v1
+    schema_version: 1
+    artifact_type: delta_tech
+    artifact_name: delta-tech
+    schema_file: delta-tech.yaml
+    primary_example: ../../../examples/strict-spec-driven/delta-tech.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Delta tech artifacts carry standard changes through the change lifecycle and merge into tech standards on archive.
+  - schema_id: strict-spec-driven/tech-index/v1
+    schema_version: 1
+    artifact_type: tech_index
+    artifact_name: tech-index
+    schema_file: tech-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/tech-index.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -8856,6 +9237,58 @@ json_schema:
           type: string
         unit_test_task:
           type: string
+`,
+  "strict-spec-driven/schemas/tech-index.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/tech-index/v1
+artifact_type: tech_index
+artifact_name: tech-index
+description: >-
+  Strict YAML technical standard index artifact. Lists every tech standard file
+  under .strict-spec-driven/tech/ so workflows can enumerate applicable
+  engineering constraints without scanning the filesystem.
+example_ref: ../../../examples/strict-spec-driven/tech-index.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - standards
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/tech-index/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: tech_index
+    schema_file:
+      type: string
+    standards:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - title
+          - category
+          - path
+        properties:
+          id:
+            type: string
+          title:
+            type: string
+          category:
+            type: string
+          path:
+            type: string
 `
 };
 function hasEmbeddedTemplate(key) {
@@ -11729,6 +12162,7 @@ var REQUIRED_SCAFFOLD_ASSETS = [
   "config.yaml",
   "harness.yaml",
   "specs/INDEX.yaml",
+  "tech/INDEX.yaml",
   "roadmap/INDEX.yaml"
 ];
 var REQUIRED_CHANGE_TEMPLATE_ASSETS = [
@@ -12216,7 +12650,7 @@ function validateArtifact(schema2, artifact, artifactPath, options = {}) {
 
 // src/propose-generation.ts
 var STRICT_WORKFLOW_DIR2 = ".strict-spec-driven";
-var GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "delta-spec"];
+var GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "delta-spec", "delta-tech"];
 function normalizeRepoRelativePath(rootDir, absolutePath) {
   return path3.relative(rootDir, absolutePath).split(path3.sep).join("/");
 }
@@ -12274,7 +12708,8 @@ function mapGeneratedFieldToInputField(artifact, fieldPath) {
     proposal: ["$.summary", "$.scope", "$.unchanged_behavior", "$.roadmap"],
     design: ["$.approach", "$.decisions", "$.alternatives", "$.risks"],
     questions: ["$.open", "$.resolved"],
-    "delta-spec": ["$.target_spec", "$.mapping", "$.operations"]
+    "delta-spec": ["$.target_spec", "$.mapping", "$.operations"],
+    "delta-tech": ["$.target_standard", "$.standard", "$.mapping", "$.operations"]
   };
   for (const prefix of directPrefixes[artifact]) {
     if (fieldPath === prefix || fieldPath.startsWith(`${prefix}.`) || fieldPath.startsWith(`${prefix}[`)) {
@@ -12299,7 +12734,7 @@ function mapGeneratedFieldToInputField(artifact, fieldPath) {
     if (resolvedStatusMatch)
       return `$.resolved[${resolvedStatusMatch[1]}]`;
   }
-  if (artifact === "delta-spec" && fieldPath === "$.schema_file") {
+  if ((artifact === "delta-spec" || artifact === "delta-tech") && fieldPath === "$.schema_file") {
     return "<generated schema_file>";
   }
   if (fieldPath === "$.schema" || fieldPath === "$.schema_version" || fieldPath === "$.artifact_type" || fieldPath === "$.schema_file") {
@@ -12495,6 +12930,73 @@ function buildDeltaSpecArtifact(rootDir, input) {
     }
   };
 }
+function normalizeDeltaTechRelativePath(relativePath) {
+  let normalized = relativePath.replaceAll("\\", "/");
+  const strictTechPrefix = `${STRICT_WORKFLOW_DIR2}/tech/`;
+  if (normalized.startsWith(strictTechPrefix)) {
+    normalized = normalized.slice(strictTechPrefix.length);
+  }
+  if (path3.isAbsolute(normalized)) {
+    throw new Error("input field '$.tech_path' must be relative to the strict tech directory");
+  }
+  const parts = normalized.split("/");
+  if (normalized.length === 0 || parts.some((part) => part.length === 0 || part === "." || part === "..") || path3.basename(normalized) === "INDEX.yaml" || !(normalized.endsWith(".yaml") || normalized.endsWith(".yml"))) {
+    throw new Error("input field '$.tech_path' must be a normalized YAML path under the strict tech directory");
+  }
+  return normalized;
+}
+function readTechIndexPathForTarget(rootDir, targetStandard) {
+  const indexPath = path3.join(rootDir, STRICT_WORKFLOW_DIR2, "tech", "INDEX.yaml");
+  if (!existsSync3(indexPath))
+    return;
+  const index = parseYamlDocument(readFileSync4(indexPath, "utf8"), { source: normalizeRepoRelativePath(rootDir, indexPath) });
+  const match = (index.standards ?? []).find((candidate) => candidate.id === targetStandard);
+  return typeof match?.path === "string" ? match.path : undefined;
+}
+function resolveDeltaTechRelativePath(rootDir, targetStandard, input) {
+  const explicitPath = asOptionalString(input.tech_path, "$.tech_path");
+  if (explicitPath) {
+    return normalizeDeltaTechRelativePath(explicitPath);
+  }
+  const indexedPath = readTechIndexPathForTarget(rootDir, targetStandard);
+  if (indexedPath) {
+    return normalizeDeltaTechRelativePath(indexedPath);
+  }
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(targetStandard)) {
+    throw new Error("input field '$.tech_path' is required when target_standard is not a kebab-case standard id");
+  }
+  return `${targetStandard}.yaml`;
+}
+function buildDeltaTechArtifact(rootDir, input) {
+  const targetStandard = asString(input.target_standard, "$.target_standard");
+  const mapping = asRecord(input.mapping, "$.mapping");
+  const operations = asRecord(input.operations ?? {}, "$.operations");
+  const relativePath = resolveDeltaTechRelativePath(rootDir, targetStandard, input);
+  const standardBlock = asOptionalRecord(input.standard, "$.standard");
+  const artifact = {
+    schema: "strict-spec-driven/delta-tech/v1",
+    schema_version: 1,
+    artifact_type: "delta_tech",
+    schema_file: "templates/strict-spec-driven/schemas/delta-tech.yaml",
+    target_standard: targetStandard
+  };
+  if (standardBlock) {
+    artifact.standard = {
+      title: asString(standardBlock.title, "$.standard.title"),
+      category: asString(standardBlock.category, "$.standard.category")
+    };
+  }
+  artifact.mapping = {
+    implementation: asStringArray(mapping.implementation ?? [], "$.mapping.implementation"),
+    enforcement: asStringArray(mapping.enforcement ?? [], "$.mapping.enforcement")
+  };
+  artifact.operations = {
+    ADDED: asRecord(operations.ADDED ?? {}, "$.operations.ADDED"),
+    MODIFIED: asRecord(operations.MODIFIED ?? {}, "$.operations.MODIFIED"),
+    REMOVED: asRecord(operations.REMOVED ?? {}, "$.operations.REMOVED")
+  };
+  return { relativePath, artifact };
+}
 function buildTarget(rootDir, changeDir, changeName, artifact, input) {
   switch (artifact) {
     case "proposal":
@@ -12521,6 +13023,14 @@ function buildTarget(rootDir, changeDir, changeName, artifact, input) {
         artifact: deltaSpec.artifact,
         artifactType: "delta_spec",
         absolutePath: path3.join(changeDir, "specs", deltaSpec.relativePath)
+      };
+    }
+    case "delta-tech": {
+      const deltaTech = buildDeltaTechArtifact(rootDir, input);
+      return {
+        artifact: deltaTech.artifact,
+        artifactType: "delta_tech",
+        absolutePath: path3.join(changeDir, "tech", deltaTech.relativePath)
       };
     }
   }
@@ -12562,13 +13072,14 @@ var STRICT_WORKFLOW_DIR3 = ".strict-spec-driven";
 var BOOLEAN_FLAGS = new Set(["reset"]);
 function usage() {
   return [
-    "Usage: strict-spec-driven generate <change-name> <proposal|design|questions|delta-spec> --<named-args>",
+    "Usage: strict-spec-driven generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>",
     "",
     "Examples:",
     "  strict-spec-driven generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
     "  strict-spec-driven generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
     "  strict-spec-driven generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
-    "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]..."
+    "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
+    "  strict-spec-driven generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
   ].join(`
 `) + `
 `;
@@ -13113,6 +13624,262 @@ function buildDeltaInputFromArgs(rootDir, changeName, argv) {
   input.operations = operations;
   return input;
 }
+function normalizeDeltaTechRelativePath2(relativePath) {
+  let normalized = relativePath.replaceAll("\\", "/");
+  const strictTechPrefix = `${STRICT_WORKFLOW_DIR3}/tech/`;
+  if (normalized.startsWith(strictTechPrefix)) {
+    normalized = normalized.slice(strictTechPrefix.length);
+  }
+  return normalized;
+}
+function readTechIndexPathForTarget2(rootDir, targetStandard) {
+  const index = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/tech/INDEX.yaml`);
+  const match = (index?.standards ?? []).find((candidate) => candidate.id === targetStandard);
+  return typeof match?.path === "string" ? normalizeDeltaTechRelativePath2(match.path) : undefined;
+}
+function resolveDeltaTechExistingPath(rootDir, targetStandard, techPath) {
+  if (techPath) {
+    return normalizeDeltaTechRelativePath2(techPath);
+  }
+  const indexedPath = readTechIndexPathForTarget2(rootDir, targetStandard);
+  if (indexedPath)
+    return indexedPath;
+  return `${targetStandard}.yaml`;
+}
+function emptyDeltaTechInput(targetStandard, techPath) {
+  return {
+    target_standard: targetStandard,
+    tech_path: techPath,
+    mapping: { implementation: [], enforcement: [] },
+    operations: { ADDED: {}, MODIFIED: {}, REMOVED: {} }
+  };
+}
+function existingDeltaTechInput(rootDir, changeName, targetStandard, techPath, reset) {
+  const relativeTechPath = resolveDeltaTechExistingPath(rootDir, targetStandard, techPath);
+  if (reset) {
+    return emptyDeltaTechInput(targetStandard, relativeTechPath);
+  }
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/changes/${changeName}/tech/${relativeTechPath}`);
+  if (!artifact) {
+    return emptyDeltaTechInput(targetStandard, relativeTechPath);
+  }
+  const input = {
+    target_standard: artifact.target_standard ?? targetStandard,
+    tech_path: relativeTechPath,
+    mapping: isRecord2(artifact.mapping) ? artifact.mapping : { implementation: [], enforcement: [] },
+    operations: isRecord2(artifact.operations) ? artifact.operations : { ADDED: {}, MODIFIED: {}, REMOVED: {} }
+  };
+  if (isRecord2(artifact.standard)) {
+    input.standard = artifact.standard;
+  }
+  return input;
+}
+function parseDeltaTechCommandInput(argv, rootDir) {
+  const input = {
+    reset: false,
+    implementation: [],
+    enforcement: [],
+    rules: []
+  };
+  let currentOperation;
+  let hasPendingOperation = false;
+  let currentRule;
+  function readValue(name, index) {
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith("--")) {
+      throw new Error(`missing value for --${name}`);
+    }
+    return resolveStringValue(value, rootDir);
+  }
+  function ensureRule(flagName) {
+    if (!currentRule) {
+      throw new Error(`missing required argument --rule before --${flagName}`);
+    }
+    return currentRule;
+  }
+  function finalizeRule() {
+    if (!currentRule)
+      return;
+    input.rules.push(currentRule);
+    currentRule = undefined;
+  }
+  const onceScalar = new Set(["strength", "statement", "rationale", "method", "detail", "reason"]);
+  for (let index = 0;index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token?.startsWith("--") || token.length === 2) {
+      throw new Error(`expected named argument, got '${token ?? ""}'`);
+    }
+    const name = token.slice(2);
+    if (name === "reset") {
+      input.reset = true;
+      continue;
+    }
+    if (name === "target-standard") {
+      if (input.targetStandard !== undefined)
+        throw new Error("--target-standard may only be supplied once");
+      input.targetStandard = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "tech-path") {
+      if (input.techPath !== undefined)
+        throw new Error("--tech-path may only be supplied once");
+      input.techPath = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "title") {
+      if (input.title !== undefined)
+        throw new Error("--title may only be supplied once");
+      input.title = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "category") {
+      if (input.category !== undefined)
+        throw new Error("--category may only be supplied once");
+      input.category = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "implementation") {
+      input.implementation.push(readValue(name, index));
+      index += 1;
+      continue;
+    }
+    if (name === "enforcement") {
+      input.enforcement.push(readValue(name, index));
+      index += 1;
+      continue;
+    }
+    if (name === "operation") {
+      finalizeRule();
+      currentOperation = readValue(name, index);
+      hasPendingOperation = true;
+      index += 1;
+      continue;
+    }
+    if (name === "rule") {
+      finalizeRule();
+      if (!currentOperation) {
+        throw new Error("missing required argument --operation before --rule");
+      }
+      currentRule = {
+        operation: currentOperation,
+        id: readValue(name, index),
+        examplesGood: [],
+        examplesBad: [],
+        exceptions: []
+      };
+      hasPendingOperation = false;
+      index += 1;
+      continue;
+    }
+    if (onceScalar.has(name)) {
+      const rule = ensureRule(name);
+      const key = name;
+      if (rule[key] !== undefined) {
+        throw new Error(`--${name} may only be supplied once per rule`);
+      }
+      rule[key] = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "example-good") {
+      ensureRule(name).examplesGood.push(readValue(name, index));
+      index += 1;
+      continue;
+    }
+    if (name === "example-bad") {
+      ensureRule(name).examplesBad.push(readValue(name, index));
+      index += 1;
+      continue;
+    }
+    if (name === "exception") {
+      ensureRule(name).exceptions.push(readValue(name, index));
+      index += 1;
+      continue;
+    }
+    throw new Error(`unsupported argument(s): --${name}`);
+  }
+  finalizeRule();
+  if (hasPendingOperation) {
+    throw new Error("missing required argument --rule");
+  }
+  return input;
+}
+function buildDeltaTechInputFromArgs(rootDir, changeName, argv) {
+  const commandInput = parseDeltaTechCommandInput(argv, rootDir);
+  const targetStandard = commandInput.targetStandard;
+  if (!targetStandard) {
+    throw new Error("missing required argument --target-standard");
+  }
+  const input = existingDeltaTechInput(rootDir, changeName, targetStandard, commandInput.techPath, commandInput.reset);
+  if (commandInput.title !== undefined || commandInput.category !== undefined) {
+    if (commandInput.title === undefined || commandInput.category === undefined) {
+      throw new Error("--title and --category must be supplied together to define a new standard");
+    }
+    input.standard = { title: commandInput.title, category: commandInput.category };
+  }
+  const mapping = isRecord2(input.mapping) ? input.mapping : {};
+  mapping.implementation = uniqueStrings([
+    ...Array.isArray(mapping.implementation) ? mapping.implementation : [],
+    ...commandInput.implementation
+  ]);
+  mapping.enforcement = uniqueStrings([
+    ...Array.isArray(mapping.enforcement) ? mapping.enforcement : [],
+    ...commandInput.enforcement
+  ]);
+  input.mapping = mapping;
+  const operations = isRecord2(input.operations) ? input.operations : {};
+  for (const rule of commandInput.rules) {
+    if (!["ADDED", "MODIFIED", "REMOVED"].includes(rule.operation)) {
+      throw new Error("--operation must be one of: ADDED, MODIFIED, REMOVED");
+    }
+    const operationMap = isRecord2(operations[rule.operation]) ? operations[rule.operation] : {};
+    if (rule.operation === "REMOVED") {
+      if (!rule.reason)
+        throw new Error(`missing required argument --reason for removed rule '${rule.id}'`);
+      if (rule.strength || rule.statement || rule.rationale || rule.method || rule.detail || rule.examplesGood.length > 0 || rule.examplesBad.length > 0 || rule.exceptions.length > 0) {
+        throw new Error(`removed rule '${rule.id}' only supports --reason`);
+      }
+      upsertKeyedItem(operationMap, rule.id, { reason: rule.reason }, "delta tech rule");
+      operations[rule.operation] = operationMap;
+      continue;
+    }
+    if (!rule.strength)
+      throw new Error(`missing required argument --strength for rule '${rule.id}'`);
+    if (!rule.statement)
+      throw new Error(`missing required argument --statement for rule '${rule.id}'`);
+    if (!rule.rationale)
+      throw new Error(`missing required argument --rationale for rule '${rule.id}'`);
+    if (!rule.method)
+      throw new Error(`missing required argument --method for rule '${rule.id}'`);
+    if (rule.reason)
+      throw new Error(`--reason is only valid with removed rule '${rule.id}'`);
+    const ruleValue = {
+      strength: rule.strength,
+      statement: rule.statement,
+      rationale: rule.rationale,
+      enforcement: rule.detail !== undefined ? { method: rule.method, detail: rule.detail } : { method: rule.method }
+    };
+    if (rule.examplesGood.length > 0 || rule.examplesBad.length > 0) {
+      const examples = {};
+      if (rule.examplesGood.length > 0)
+        examples.good = rule.examplesGood;
+      if (rule.examplesBad.length > 0)
+        examples.bad = rule.examplesBad;
+      ruleValue.examples = examples;
+    }
+    if (rule.exceptions.length > 0) {
+      ruleValue.exceptions = rule.exceptions;
+    }
+    upsertKeyedItem(operationMap, rule.id, ruleValue, "delta tech rule");
+    operations[rule.operation] = operationMap;
+  }
+  input.operations = operations;
+  return input;
+}
 function buildInputFromNamedArgs(rootDir, changeName, artifact, argv) {
   switch (artifact) {
     case "proposal":
@@ -13123,6 +13890,8 @@ function buildInputFromNamedArgs(rootDir, changeName, artifact, argv) {
       return buildQuestionsInputFromArgs(rootDir, changeName, argv);
     case "delta-spec":
       return buildDeltaInputFromArgs(rootDir, changeName, argv);
+    case "delta-tech":
+      return buildDeltaTechInputFromArgs(rootDir, changeName, argv);
   }
 }
 function runGenerate(argv) {
@@ -13140,7 +13909,7 @@ function runGenerate(argv) {
     return 1;
   }
   if (!isGeneratableArtifact(artifact)) {
-    writeError("artifact must be one of: proposal, design, questions, delta-spec");
+    writeError("artifact must be one of: proposal, design, questions, delta-spec, delta-tech");
     return 1;
   }
   try {
@@ -14755,6 +15524,34 @@ function validateDeltaSpecs(changeDir, artifactPathPrefix) {
   scanDir(specsDir);
   return diagnostics;
 }
+function validateDeltaTech(changeDir, artifactPathPrefix) {
+  const techDir = path12.join(changeDir, "tech");
+  if (!existsSync11(techDir))
+    return [];
+  const diagnostics = [];
+  function scanDir(dir) {
+    for (const entry of readdirSync4(dir, { withFileTypes: true })) {
+      const fullPath = path12.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        scanDir(fullPath);
+      } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
+        const relativePath = path12.relative(techDir, fullPath).split(path12.sep).join("/");
+        const content = readFileSync10(fullPath, "utf8");
+        const artifactPath = `${artifactPathPrefix}/${relativePath}`;
+        let artifact;
+        try {
+          artifact = parseYamlDocument(content, { source: artifactPath });
+        } catch (error) {
+          diagnostics.push(makeYamlParseDiagnostic(artifactPath, "delta tech is not valid YAML", error));
+          continue;
+        }
+        diagnostics.push(...validateArtifactSchema("delta_tech", artifact, artifactPath));
+      }
+    }
+  }
+  scanDir(techDir);
+  return diagnostics;
+}
 function listYamlFiles2(directoryPath) {
   if (!existsSync11(directoryPath)) {
     return [];
@@ -14857,6 +15654,170 @@ function checkAddedRequirementCollisions(rootDir, changeDir) {
         actual: `existing requirement '${requirementId}' in ${targetSpec.artifactPath}`
       });
     }
+  }
+  return diagnostics;
+}
+function buildMainTechRuleIndex(rootDir) {
+  const techRoot = path12.join(rootDir, STRICT_WORKFLOW_DIR5, "tech");
+  const diagnostics = [];
+  const standardsById = new Map;
+  for (const techPath of listYamlFiles2(techRoot)) {
+    if (path12.basename(techPath) === "INDEX.yaml") {
+      continue;
+    }
+    const artifactPath = path12.relative(rootDir, techPath).split(path12.sep).join("/");
+    const content = readFileSync10(techPath, "utf8");
+    let artifact;
+    try {
+      artifact = parseYamlDocument(content, { source: artifactPath });
+    } catch (error) {
+      diagnostics.push(makeYamlParseDiagnostic(artifactPath, "main tech is not valid YAML", error));
+      continue;
+    }
+    if (!artifact || typeof artifact !== "object" || Array.isArray(artifact)) {
+      continue;
+    }
+    const record = artifact;
+    if (record.artifact_type !== "main_tech") {
+      continue;
+    }
+    const standard = record.standard;
+    if (!standard || typeof standard !== "object" || Array.isArray(standard)) {
+      continue;
+    }
+    const standardId = standard.id;
+    if (typeof standardId !== "string" || standardId.length === 0) {
+      continue;
+    }
+    const rules = record.rules;
+    if (!rules || typeof rules !== "object" || Array.isArray(rules)) {
+      continue;
+    }
+    standardsById.set(standardId, {
+      artifactPath,
+      ruleIds: new Set(Object.keys(rules))
+    });
+  }
+  return { diagnostics, standardsById };
+}
+function checkTechDeltaTargets(rootDir, changeDir) {
+  const diagnostics = [];
+  const { diagnostics: mainTechDiagnostics, standardsById } = buildMainTechRuleIndex(rootDir);
+  diagnostics.push(...mainTechDiagnostics);
+  const techDir = path12.join(changeDir, "tech");
+  for (const deltaTechPath of listYamlFiles2(techDir)) {
+    const artifactPath = path12.relative(rootDir, deltaTechPath).split(path12.sep).join("/");
+    const content = readFileSync10(deltaTechPath, "utf8");
+    let artifact;
+    try {
+      artifact = parseYamlDocument(content, { source: artifactPath });
+    } catch {
+      continue;
+    }
+    if (typeof artifact.target_standard !== "string" || artifact.target_standard.length === 0) {
+      continue;
+    }
+    const targetStandard = standardsById.get(artifact.target_standard);
+    if (!targetStandard) {
+      const standardBlock = artifact.standard;
+      const hasStandardBlock = standardBlock !== null && typeof standardBlock === "object" && !Array.isArray(standardBlock);
+      const title = hasStandardBlock ? standardBlock.title : undefined;
+      const category = hasStandardBlock ? standardBlock.category : undefined;
+      if (typeof title !== "string" || title.length === 0 || typeof category !== "string" || category.length === 0) {
+        diagnostics.push({
+          source: "new_standard_metadata",
+          artifactPath,
+          fieldPath: "$.standard",
+          message: `delta tech creates new standard '${artifact.target_standard}' and must provide standard.title and standard.category`,
+          expected: "standard block with non-empty title and category",
+          actual: hasStandardBlock ? "incomplete standard block" : "missing standard block"
+        });
+      }
+      continue;
+    }
+    const added = artifact.operations?.ADDED;
+    if (!added || typeof added !== "object" || Array.isArray(added)) {
+      continue;
+    }
+    for (const ruleId of Object.keys(added).sort()) {
+      if (!targetStandard.ruleIds.has(ruleId)) {
+        continue;
+      }
+      diagnostics.push({
+        source: "added_rule_collision",
+        artifactPath,
+        fieldPath: `$.operations.ADDED.${ruleId}`,
+        message: `ADDED rule '${ruleId}' already exists in target standard '${artifact.target_standard}'`,
+        expected: "ADDED rule id absent from target standard",
+        actual: `existing rule '${ruleId}' in ${targetStandard.artifactPath}`
+      });
+    }
+  }
+  return diagnostics;
+}
+function checkExclusiveActiveTechTargets(rootDir, changeName) {
+  const changesDir = path12.join(rootDir, STRICT_WORKFLOW_DIR5, "changes");
+  if (!existsSync11(changesDir))
+    return [];
+  const diagnostics = [];
+  const targetMap = new Map;
+  const activeDirs = readdirSync4(changesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+  for (const activeChange of activeDirs) {
+    const techDir = path12.join(changesDir, activeChange, "tech");
+    if (!existsSync11(techDir))
+      continue;
+    for (const deltaTechPath of listYamlFiles2(techDir)) {
+      const artifactPath = path12.relative(rootDir, deltaTechPath).split(path12.sep).join("/");
+      const content = readFileSync10(deltaTechPath, "utf8");
+      let artifact;
+      try {
+        artifact = parseYamlDocument(content, { source: artifactPath });
+      } catch (error) {
+        if (activeChange !== changeName) {
+          diagnostics.push(makeYamlParseDiagnostic(artifactPath, "delta tech is not valid YAML", error));
+        }
+        continue;
+      }
+      if (typeof artifact.target_standard !== "string" || artifact.target_standard.length === 0) {
+        continue;
+      }
+      const ops = artifact.operations ?? {};
+      for (const [opName, entries] of Object.entries(ops)) {
+        if (opName !== "MODIFIED" && opName !== "REMOVED")
+          continue;
+        if (!entries || typeof entries !== "object" || Array.isArray(entries))
+          continue;
+        for (const ruleId of Object.keys(entries)) {
+          const key = `${artifact.target_standard}\x00${ruleId}`;
+          if (!targetMap.has(key))
+            targetMap.set(key, []);
+          targetMap.get(key).push({
+            changeName: activeChange,
+            operation: opName,
+            targetStandard: artifact.target_standard,
+            ruleId
+          });
+        }
+      }
+    }
+  }
+  for (const entries of targetMap.values()) {
+    if (entries.length <= 1)
+      continue;
+    const changeNames = [...new Set(entries.map((c) => c.changeName))];
+    if (!changeNames.includes(changeName))
+      continue;
+    if (changeNames.length <= 1)
+      continue;
+    const { targetStandard, ruleId } = entries[0];
+    diagnostics.push({
+      source: "exclusive_active_target",
+      artifactPath: `.strict-spec-driven/changes/${changeName}/tech/`,
+      fieldPath: `$.operations`,
+      message: `rule '${ruleId}' of standard '${targetStandard}' is MODIFIED/REMOVED in multiple active changes: ${changeNames.join(", ")}`,
+      expected: "unique MODIFIED/REMOVED target across active changes",
+      actual: `conflict between ${changeNames.join(" and ")}`
+    });
   }
   return diagnostics;
 }
@@ -14997,6 +15958,10 @@ function verifyChange(rootDir, changeName) {
   allDiagnostics.push(...validateDeltaSpecs(changeDir, specsPrefix));
   allDiagnostics.push(...checkAddedRequirementCollisions(rootDir, changeDir));
   allDiagnostics.push(...checkExclusiveActiveTargets(rootDir, changeName));
+  const techPrefix = `.strict-spec-driven/changes/${changeName}/tech`;
+  allDiagnostics.push(...validateDeltaTech(changeDir, techPrefix));
+  allDiagnostics.push(...checkTechDeltaTargets(rootDir, changeDir));
+  allDiagnostics.push(...checkExclusiveActiveTechTargets(rootDir, changeName));
   allDiagnostics.sort((a, b) => {
     const aKey = [a.source, a.artifactPath, a.fieldPath, a.message].join("|");
     const bKey = [b.source, b.artifactPath, b.fieldPath, b.message].join("|");
@@ -15185,6 +16150,237 @@ function regenerateSpecIndex(rootDir) {
   indexArtifact.specs = specs;
   writeYamlFile(indexPath, indexArtifact);
 }
+function collectMainTechPathsById(rootDir) {
+  const techRoot = path13.join(rootDir, STRICT_WORKFLOW_DIR6, "tech");
+  const byId = new Map;
+  for (const techPath of listYamlFiles3(techRoot)) {
+    if (path13.basename(techPath) === "INDEX.yaml") {
+      continue;
+    }
+    const parsed = readYamlFile2(techPath);
+    const artifact = asObject2(parsed, `main tech '${techPath}'`);
+    if (artifact.artifact_type !== "main_tech") {
+      continue;
+    }
+    const standard = asObject2(artifact.standard, `main tech '${techPath}' field 'standard'`);
+    const standardId = standard.id;
+    if (typeof standardId !== "string" || standardId.length === 0) {
+      throw new Error(`main tech '${techPath}' is missing standard.id`);
+    }
+    if (byId.has(standardId)) {
+      throw new Error(`duplicate main tech id '${standardId}' in '${techPath}' and '${byId.get(standardId)}'`);
+    }
+    byId.set(standardId, techPath);
+  }
+  return byId;
+}
+function unionStringArrays(existing, additions) {
+  const result = [];
+  const seen = new Set;
+  for (const value of [...existing ?? [], ...additions ?? []]) {
+    if (typeof value !== "string" || seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    result.push(value);
+  }
+  return result;
+}
+function applyTechOperations(rules, deltaTech, report) {
+  const operations = deltaTech.operations ?? {};
+  for (const [ruleId, value] of Object.entries(operations.ADDED ?? {})) {
+    if (ruleId in rules) {
+      throw new Error(`ADDED rule '${ruleId}' already exists in target standard '${deltaTech.target_standard}'`);
+    }
+    rules[ruleId] = { ...value };
+    report.added += 1;
+  }
+  for (const [targetRule, replacement] of Object.entries(operations.MODIFIED ?? {})) {
+    if (!(targetRule in rules)) {
+      rules[targetRule] = { ...replacement };
+      report.modifiedMissingTargetAsAdded.push(targetRule);
+      continue;
+    }
+    rules[targetRule] = { ...replacement };
+    report.modified += 1;
+  }
+  for (const targetRule of Object.keys(operations.REMOVED ?? {})) {
+    if (!(targetRule in rules)) {
+      report.removedMissingTargetSkipped.push(targetRule);
+      continue;
+    }
+    delete rules[targetRule];
+    report.removed += 1;
+  }
+}
+function applyDeltaToMainTech(mainTech, deltaTech, report, techPath) {
+  if (!mainTech.rules || typeof mainTech.rules !== "object" || Array.isArray(mainTech.rules)) {
+    throw new Error(`main tech '${techPath}' is missing rules`);
+  }
+  if (deltaTech.mapping) {
+    const existingMapping = mainTech.mapping ?? { implementation: [], enforcement: [] };
+    mainTech.mapping = {
+      implementation: unionStringArrays(existingMapping.implementation, deltaTech.mapping.implementation),
+      enforcement: unionStringArrays(existingMapping.enforcement, deltaTech.mapping.enforcement)
+    };
+  }
+  if (deltaTech.standard) {
+    mainTech.standard = {
+      ...mainTech.standard,
+      title: deltaTech.standard.title,
+      category: deltaTech.standard.category
+    };
+  }
+  applyTechOperations(mainTech.rules, deltaTech, report);
+}
+function buildNewMainTech(deltaTech) {
+  if (!deltaTech.standard) {
+    throw new Error(`delta tech for new standard '${deltaTech.target_standard}' must provide a standard block with title and category`);
+  }
+  return {
+    schema: "strict-spec-driven/main-tech/v1",
+    schema_version: 1,
+    artifact_type: "main_tech",
+    schema_file: "templates/strict-spec-driven/schemas/main-tech.yaml",
+    standard: {
+      id: deltaTech.target_standard,
+      title: deltaTech.standard.title,
+      category: deltaTech.standard.category
+    },
+    mapping: {
+      implementation: [...deltaTech.mapping?.implementation ?? []],
+      enforcement: [...deltaTech.mapping?.enforcement ?? []]
+    },
+    rules: {}
+  };
+}
+function regenerateTechIndex(rootDir) {
+  const techRoot = path13.join(rootDir, STRICT_WORKFLOW_DIR6, "tech");
+  if (!existsSync12(techRoot)) {
+    return;
+  }
+  const indexPath = path13.join(techRoot, "INDEX.yaml");
+  const standards = listYamlFiles3(techRoot).filter((filePath) => path13.basename(filePath) !== "INDEX.yaml").map((filePath) => {
+    const parsed = readYamlFile2(filePath);
+    const artifact = asObject2(parsed, `tech '${filePath}'`);
+    if (artifact.artifact_type !== "main_tech") {
+      return null;
+    }
+    const standard = asObject2(artifact.standard, `tech '${filePath}' field 'standard'`);
+    const standardId = standard.id;
+    const title = standard.title;
+    const category = standard.category;
+    if (typeof standardId !== "string" || standardId.length === 0) {
+      throw new Error(`main tech '${filePath}' is missing standard.id`);
+    }
+    if (typeof title !== "string" || title.length === 0) {
+      throw new Error(`main tech '${filePath}' is missing standard.title`);
+    }
+    if (typeof category !== "string" || category.length === 0) {
+      throw new Error(`main tech '${filePath}' is missing standard.category`);
+    }
+    return {
+      id: standardId,
+      title,
+      category,
+      path: normalizeRepoRelativePath3(rootDir, filePath)
+    };
+  }).filter((value) => value !== null).sort((left, right) => {
+    const byPath = left.path.localeCompare(right.path);
+    if (byPath !== 0) {
+      return byPath;
+    }
+    return left.id.localeCompare(right.id);
+  });
+  let indexArtifact = {
+    schema: "strict-spec-driven/tech-index/v1",
+    schema_version: 1,
+    artifact_type: "tech_index",
+    schema_file: "templates/strict-spec-driven/schemas/tech-index.yaml",
+    standards: []
+  };
+  if (existsSync12(indexPath)) {
+    const parsed = readYamlFile2(indexPath);
+    const artifact = asObject2(parsed, `tech index '${indexPath}'`);
+    indexArtifact = {
+      ...artifact,
+      standards: []
+    };
+  } else {
+    mkdirSync4(path13.dirname(indexPath), { recursive: true });
+  }
+  indexArtifact.standards = standards;
+  writeYamlFile(indexPath, indexArtifact);
+}
+function mergeDeltaTechStandards(rootDir, changeDir) {
+  const deltaTechDir = path13.join(changeDir, "tech");
+  const deltaTechPaths = listYamlFiles3(deltaTechDir);
+  if (deltaTechPaths.length === 0) {
+    return [];
+  }
+  const techRoot = path13.join(rootDir, STRICT_WORKFLOW_DIR6, "tech");
+  const mainTechPathsById = collectMainTechPathsById(rootDir);
+  const newStandardPaths = new Map;
+  const mainTechCache = new Map;
+  const mergeReports = new Map;
+  for (const deltaTechPath of deltaTechPaths) {
+    const deltaTech = readYamlFile2(deltaTechPath);
+    if (typeof deltaTech.target_standard !== "string" || deltaTech.target_standard.length === 0) {
+      throw new Error(`delta tech '${deltaTechPath}' is missing target_standard`);
+    }
+    let report = mergeReports.get(deltaTech.target_standard);
+    if (!report) {
+      report = {
+        targetStandard: deltaTech.target_standard,
+        standardPath: "",
+        created: false,
+        added: 0,
+        modified: 0,
+        removed: 0,
+        modifiedMissingTargetAsAdded: [],
+        removedMissingTargetSkipped: []
+      };
+      mergeReports.set(deltaTech.target_standard, report);
+    }
+    const existingTechPath = mainTechPathsById.get(deltaTech.target_standard);
+    let cacheKey;
+    if (existingTechPath) {
+      cacheKey = existingTechPath;
+      if (!mainTechCache.has(cacheKey)) {
+        const loaded = readYamlFile2(existingTechPath);
+        if (loaded.artifact_type !== "main_tech") {
+          throw new Error(`target standard '${existingTechPath}' is not a main_tech artifact`);
+        }
+        mainTechCache.set(cacheKey, loaded);
+      }
+      report.standardPath = normalizeRepoRelativePath3(rootDir, existingTechPath);
+    } else if (newStandardPaths.has(deltaTech.target_standard)) {
+      cacheKey = newStandardPaths.get(deltaTech.target_standard);
+    } else {
+      cacheKey = path13.join(techRoot, `${deltaTech.target_standard}.yaml`);
+      mainTechCache.set(cacheKey, buildNewMainTech(deltaTech));
+      newStandardPaths.set(deltaTech.target_standard, cacheKey);
+      report.created = true;
+      report.standardPath = normalizeRepoRelativePath3(rootDir, cacheKey);
+    }
+    const mainTech = mainTechCache.get(cacheKey);
+    applyDeltaToMainTech(mainTech, deltaTech, report, cacheKey);
+  }
+  if (mainTechCache.size > 0) {
+    mkdirSync4(techRoot, { recursive: true });
+    for (const [techPath, mainTechArtifact] of mainTechCache) {
+      writeYamlFile(techPath, mainTechArtifact);
+    }
+    regenerateTechIndex(rootDir);
+  }
+  return Array.from(mergeReports.values()).sort((left, right) => {
+    const byPath = left.standardPath.localeCompare(right.standardPath);
+    if (byPath !== 0) {
+      return byPath;
+    }
+    return left.targetStandard.localeCompare(right.targetStandard);
+  });
+}
 function syncRoadmapAfterArchive(rootDir) {
   const roadmapDir = path13.join(rootDir, ROADMAP_DIR);
   if (!existsSync12(roadmapDir)) {
@@ -15250,6 +16446,7 @@ function archiveChange(rootDir, changeName) {
     writeYamlFile(mainSpecPath, mainSpecArtifact);
   }
   regenerateSpecIndex(rootDir);
+  const mergedStandards = mergeDeltaTechStandards(rootDir, changeDir);
   const archiveDestination = buildArchiveDestination(rootDir, changeName);
   renameSync(changeDir, archiveDestination);
   const roadmapSync = syncRoadmapAfterArchive(rootDir);
@@ -15276,12 +16473,35 @@ function archiveChange(rootDir, changeName) {
     modifiedMissingTargetAsAdded: 0,
     removedMissingTargetSkipped: 0
   });
+  const techMergeSummary = mergedStandards.reduce((summary, report) => {
+    if (report.created) {
+      summary.standardsCreated += 1;
+    } else {
+      summary.standardsUpdated += 1;
+    }
+    summary.added += report.added;
+    summary.modified += report.modified;
+    summary.removed += report.removed;
+    summary.modifiedMissingTargetAsAdded += report.modifiedMissingTargetAsAdded.length;
+    summary.removedMissingTargetSkipped += report.removedMissingTargetSkipped.length;
+    return summary;
+  }, {
+    standardsUpdated: 0,
+    standardsCreated: 0,
+    added: 0,
+    modified: 0,
+    removed: 0,
+    modifiedMissingTargetAsAdded: 0,
+    removedMissingTargetSkipped: 0
+  });
   return {
     valid: true,
     changeName,
     archiveDestination: normalizeRepoRelativePath3(rootDir, archiveDestination),
     mergeSummary,
     mergedSpecs,
+    techMergeSummary,
+    mergedStandards,
     roadmapSync
   };
 }
@@ -17812,9 +19032,9 @@ function runMaintenanceCommand(argv) {
 }
 
 // src/cli/cmd-operations.ts
-import { existsSync as existsSync28, readFileSync as readFileSync22, statSync as statSync21 } from "fs";
+import { existsSync as existsSync29, readFileSync as readFileSync23, statSync as statSync22 } from "fs";
 import { execSync } from "child_process";
-import path29 from "path";
+import path30 from "path";
 
 // src/skills.ts
 import { existsSync as existsSync26, readdirSync as readdirSync11, readFileSync as readFileSync20, statSync as statSync19 } from "node:fs";
@@ -17825,7 +19045,7 @@ var REQUIRED_METADATA_FIELDS = ["skill_id", "author", "type", "version"];
 var EXPECTED_SCRIPT_SYMLINK = "../../dist/scripts";
 var COMMAND_PREFIX = "node {{SKILL_DIR}}/scripts/strict-spec-driven.js";
 var GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
-var GENERATE_NAMED_ARGS_COMMAND = `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec> --<named-args>`;
+var GENERATE_NAMED_ARGS_COMMAND = `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>`;
 var READY_COMMAND = `${COMMAND_PREFIX} ready <change-name>`;
 var NEXT_COMMAND = `${COMMAND_PREFIX} next <change-name>`;
 var CHECK_WORKFLOW_STATE_COMMAND = `${COMMAND_PREFIX} check-workflow-state`;
@@ -18111,7 +19331,7 @@ function makeDiagnostic3(code, diagPath, message, expected, actual) {
 
 // src/skills/content.ts
 function requiresExistingStrictWorkflowState(skillName) {
-  return (skillName.startsWith("strict-spec-") || skillName.startsWith("strict-roadmap-")) && skillName !== "strict-spec-init" && skillName !== "strict-spec-migrate";
+  return (skillName.startsWith("strict-spec-") || skillName.startsWith("strict-roadmap-") || skillName.startsWith("strict-tech-")) && skillName !== "strict-spec-init" && skillName !== "strict-spec-migrate";
 }
 function validateStrictWorkflowStateGuidance(skillName, content, commands, skillPath, diagnostics) {
   if (!requiresExistingStrictWorkflowState(skillName))
@@ -18309,8 +19529,8 @@ function validateMarketplaceMetadata(rootDir, skillNames, diagnostics) {
       continue;
     }
     marketplaceNames.push(entry.name);
-    if (!entry.name.startsWith("strict-spec-") && !entry.name.startsWith("strict-roadmap-")) {
-      diagnostics.push(makeDiagnostic3("skills.marketplace.skills.entry.name.legacy", `${relativeMetadataPath}#skills[${index}].name`, "skills marketplace entries must use strict skill name prefixes", "strict-spec-* or strict-roadmap-*", entry.name));
+    if (!entry.name.startsWith("strict-spec-") && !entry.name.startsWith("strict-roadmap-") && !entry.name.startsWith("strict-tech-")) {
+      diagnostics.push(makeDiagnostic3("skills.marketplace.skills.entry.name.legacy", `${relativeMetadataPath}#skills[${index}].name`, "skills marketplace entries must use strict skill name prefixes", "strict-spec-*, strict-roadmap-*, or strict-tech-*", entry.name));
     }
   }
   const normalizeList = (values2) => [...new Set(values2)].sort((a, b) => a.localeCompare(b));
@@ -18431,8 +19651,8 @@ function validateStrictSkillPackaging(rootDir) {
   for (const skillName of skillNames) {
     const skillDir = path27.join(skillsRoot, skillName);
     const skillPath = path27.join("skills", skillName, "SKILL.md");
-    if (!skillName.startsWith("strict-spec-") && !skillName.startsWith("strict-roadmap-")) {
-      diagnostics.push(makeDiagnostic3("skill.directory.legacy_name", path27.join("skills", skillName), "skill directory must use strict prefix", "strict-spec-* or strict-roadmap-*", skillName));
+    if (!skillName.startsWith("strict-spec-") && !skillName.startsWith("strict-roadmap-") && !skillName.startsWith("strict-tech-")) {
+      diagnostics.push(makeDiagnostic3("skill.directory.legacy_name", path27.join("skills", skillName), "skill directory must use strict prefix", "strict-spec-*, strict-roadmap-*, or strict-tech-*", skillName));
     }
     const skillFilePath = path27.join(skillDir, "SKILL.md");
     if (!existsSync26(skillFilePath)) {
@@ -18643,6 +19863,213 @@ function verifySpecMappings(rootDir) {
   };
 }
 
+// src/cli/tech-mapping.ts
+import { existsSync as existsSync28, readFileSync as readFileSync22, statSync as statSync21 } from "fs";
+import path29 from "path";
+var STRICT_TECH_DIR = path29.join(".strict-spec-driven", "tech");
+var EXCLUDED_TECH_BASENAMES = new Set(["INDEX.yaml"]);
+var MECHANICAL_ENFORCEMENT_METHODS = new Set(["lint", "ci", "test"]);
+function makeDiagnostic4(source, artifactPath, fieldPath, message, expected, actual) {
+  return { source, artifactPath, fieldPath, message, expected, actual };
+}
+function validateMappedPath(rootDir, artifactPath, field, index, rawPath, diagnostics) {
+  const fieldPath = `$.mapping.${field}[${index}]`;
+  if (typeof rawPath !== "string" || rawPath.trim().length === 0) {
+    diagnostics.push(makeDiagnostic4("mapping_coverage", artifactPath, fieldPath, "mapping entry must be a non-empty string", "non-empty repo-relative path", String(rawPath)));
+    return null;
+  }
+  const normalizedInput = rawPath.trim().replaceAll("\\", "/");
+  if (path29.isAbsolute(normalizedInput)) {
+    diagnostics.push(makeDiagnostic4("mapping_coverage", artifactPath, fieldPath, "mapping entry must be repo-relative", "repo-relative path", normalizedInput));
+    return null;
+  }
+  const resolved = path29.resolve(rootDir, normalizedInput);
+  const repoRelative = normalizeRepoRelativePath4(rootDir, resolved);
+  if (repoRelative === ".." || repoRelative.startsWith("../")) {
+    diagnostics.push(makeDiagnostic4("mapping_coverage", artifactPath, fieldPath, "mapping entry cannot traverse outside repository", "path inside repository", normalizedInput));
+    return null;
+  }
+  if (repoRelative !== normalizedInput) {
+    diagnostics.push(makeDiagnostic4("mapping_coverage", artifactPath, fieldPath, "mapping entry must be normalized repo-relative path", repoRelative, normalizedInput));
+    return null;
+  }
+  if (!existsSync28(path29.join(rootDir, repoRelative))) {
+    diagnostics.push(makeDiagnostic4("mapping_coverage", artifactPath, fieldPath, "mapping entry points to a file that does not exist", "existing file path", normalizedInput));
+    return null;
+  }
+  return repoRelative;
+}
+function parseTechMapping(rootDir, techPath, diagnostics) {
+  const artifactPath = normalizeRepoRelativePath4(rootDir, techPath);
+  const content = readFileSync22(techPath, "utf8");
+  let doc;
+  try {
+    doc = parseYamlDocument(content, { source: artifactPath });
+  } catch (error) {
+    diagnostics.push(makeDiagnostic4("mapping_coverage", artifactPath, "$.mapping", "tech standard file is not valid YAML", "parseable YAML mapping", error instanceof Error ? error.message : String(error)));
+    return null;
+  }
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) {
+    diagnostics.push(makeDiagnostic4("mapping_coverage", artifactPath, "$.mapping", "tech standard file must contain a YAML mapping", "YAML mapping"));
+    return null;
+  }
+  const mappingValue = doc.mapping;
+  if (!mappingValue || typeof mappingValue !== "object" || Array.isArray(mappingValue)) {
+    diagnostics.push(makeDiagnostic4("mapping_coverage", artifactPath, "$.mapping", "tech standard must define mapping.implementation and mapping.enforcement arrays", "mapping object"));
+    return null;
+  }
+  const mapping = mappingValue;
+  const normalized = { implementation: [], enforcement: [] };
+  for (const field of ["implementation", "enforcement"]) {
+    const value = mapping[field];
+    const fieldPath = `$.mapping.${field}`;
+    if (!Array.isArray(value)) {
+      diagnostics.push(makeDiagnostic4("mapping_coverage", artifactPath, fieldPath, `mapping.${field} must be an array`, "array of repo-relative paths", String(value)));
+      continue;
+    }
+    value.forEach((entry, index) => {
+      const mappedPath = validateMappedPath(rootDir, artifactPath, field, index, entry, diagnostics);
+      if (mappedPath) {
+        normalized[field].push(mappedPath);
+      }
+    });
+  }
+  return normalized;
+}
+function checkEnforcementDeclaration(rootDir, techPath, diagnostics) {
+  const artifactPath = normalizeRepoRelativePath4(rootDir, techPath);
+  let doc;
+  try {
+    doc = parseYamlDocument(readFileSync22(techPath, "utf8"), { source: artifactPath });
+  } catch {
+    return;
+  }
+  if (!doc || typeof doc !== "object" || Array.isArray(doc)) {
+    return;
+  }
+  const record = doc;
+  const mappingValue = record.mapping;
+  const enforcementPaths = mappingValue && typeof mappingValue === "object" && !Array.isArray(mappingValue) && Array.isArray(mappingValue.enforcement) ? mappingValue.enforcement : [];
+  const rulesValue = record.rules;
+  if (!rulesValue || typeof rulesValue !== "object" || Array.isArray(rulesValue)) {
+    return;
+  }
+  const mechanicalRuleIds = [];
+  for (const [ruleId, ruleValueRaw] of Object.entries(rulesValue)) {
+    const ruleValue = ruleValueRaw && typeof ruleValueRaw === "object" && !Array.isArray(ruleValueRaw) ? ruleValueRaw : undefined;
+    const enforcement = ruleValue?.enforcement && typeof ruleValue.enforcement === "object" && !Array.isArray(ruleValue.enforcement) ? ruleValue.enforcement : undefined;
+    const method = typeof enforcement?.method === "string" ? enforcement.method : undefined;
+    if (method && MECHANICAL_ENFORCEMENT_METHODS.has(method)) {
+      mechanicalRuleIds.push(ruleId);
+    }
+  }
+  if (mechanicalRuleIds.length > 0 && enforcementPaths.length === 0) {
+    diagnostics.push(makeDiagnostic4("enforcement_declaration", artifactPath, "$.mapping.enforcement", `standard declares mechanical enforcement (lint, ci, or test) for rule(s) ${mechanicalRuleIds.sort().join(", ")} but maps no enforcement files`, "at least one mapping.enforcement path", "empty mapping.enforcement"));
+  }
+}
+function sortDiagnostics3(diagnostics) {
+  return diagnostics.sort((left, right) => {
+    const leftKey = [left.source, left.artifactPath, left.fieldPath, left.message, left.expected ?? "", left.actual ?? ""].join("|");
+    const rightKey = [right.source, right.artifactPath, right.fieldPath, right.message, right.expected ?? "", right.actual ?? ""].join("|");
+    return leftKey.localeCompare(rightKey);
+  });
+}
+function listTechFiles(techDir) {
+  return listFilesRecursive(techDir).filter((filePath) => {
+    const basename = path29.basename(filePath);
+    return basename.endsWith(".yaml") && !EXCLUDED_TECH_BASENAMES.has(basename);
+  });
+}
+function verifyTechMappings(rootDir) {
+  const diagnostics = [];
+  const techDir = path29.join(rootDir, STRICT_TECH_DIR);
+  const mapped = { implementation: new Set, enforcement: new Set };
+  if (!existsSync28(techDir) || !statSync21(techDir).isDirectory()) {
+    diagnostics.push(makeDiagnostic4("mapping_input", STRICT_TECH_DIR, "$", "tech mapping inputs are unavailable because .strict-spec-driven/tech/ does not exist", "existing .strict-spec-driven/tech/ directory"));
+    return {
+      valid: false,
+      diagnostics,
+      summary: { standardCount: 0, mappedImplementationCount: 0, mappedEnforcementCount: 0 }
+    };
+  }
+  const techFiles = listTechFiles(techDir);
+  for (const techFile of techFiles) {
+    checkEnforcementDeclaration(rootDir, techFile, diagnostics);
+    const mapping = parseTechMapping(rootDir, techFile, diagnostics);
+    if (!mapping)
+      continue;
+    mapping.implementation.forEach((value) => mapped.implementation.add(value));
+    mapping.enforcement.forEach((value) => mapped.enforcement.add(value));
+  }
+  return {
+    valid: diagnostics.length === 0,
+    diagnostics: sortDiagnostics3(diagnostics),
+    summary: {
+      standardCount: techFiles.length,
+      mappedImplementationCount: mapped.implementation.size,
+      mappedEnforcementCount: mapped.enforcement.size
+    }
+  };
+}
+function getTechStatus(rootDir) {
+  const techDir = path29.join(rootDir, STRICT_TECH_DIR);
+  const empty = {
+    techDirExists: false,
+    standardCount: 0,
+    ruleCount: 0,
+    strengthCounts: { MUST: 0, SHOULD: 0, MAY: 0 },
+    standards: []
+  };
+  if (!existsSync28(techDir) || !statSync21(techDir).isDirectory()) {
+    return empty;
+  }
+  const standards = [];
+  const totals = { MUST: 0, SHOULD: 0, MAY: 0 };
+  for (const techFile of listTechFiles(techDir).sort()) {
+    const artifactPath = normalizeRepoRelativePath4(rootDir, techFile);
+    let doc;
+    try {
+      doc = parseYamlDocument(readFileSync22(techFile, "utf8"), { source: artifactPath });
+    } catch {
+      continue;
+    }
+    if (!doc || typeof doc !== "object")
+      continue;
+    const standardMeta = doc.standard ?? {};
+    const rulesValue = doc.rules ?? {};
+    const strengthCounts = { MUST: 0, SHOULD: 0, MAY: 0 };
+    const rules = [];
+    if (rulesValue && typeof rulesValue === "object" && !Array.isArray(rulesValue)) {
+      for (const [ruleId, ruleValueRaw] of Object.entries(rulesValue)) {
+        const ruleValue = ruleValueRaw ?? {};
+        const strength = typeof ruleValue.strength === "string" ? ruleValue.strength : "";
+        const statement = typeof ruleValue.statement === "string" ? ruleValue.statement : "";
+        if (strength === "MUST" || strength === "SHOULD" || strength === "MAY") {
+          strengthCounts[strength] += 1;
+          totals[strength] += 1;
+        }
+        rules.push({ id: ruleId, strength, statement });
+      }
+    }
+    standards.push({
+      id: typeof standardMeta.id === "string" ? standardMeta.id : "",
+      title: typeof standardMeta.title === "string" ? standardMeta.title : "",
+      category: typeof standardMeta.category === "string" ? standardMeta.category : "",
+      path: artifactPath,
+      ruleCount: rules.length,
+      strengthCounts,
+      rules
+    });
+  }
+  return {
+    techDirExists: true,
+    standardCount: standards.length,
+    ruleCount: totals.MUST + totals.SHOULD + totals.MAY,
+    strengthCounts: totals,
+    standards
+  };
+}
+
 // src/cli/cmd-operations.ts
 function runShip(argv) {
   const [target, ...extraArgs] = argv;
@@ -18659,8 +20086,8 @@ function runShip(argv) {
   const rootDir = process.cwd();
   const archiveRoot = getArchiveDir(rootDir);
   let resolvedArchiveName = null;
-  const exactDir = path29.join(archiveRoot, target);
-  if (existsSync28(exactDir) && statSync21(exactDir).isDirectory()) {
+  const exactDir = path30.join(archiveRoot, target);
+  if (existsSync29(exactDir) && statSync22(exactDir).isDirectory()) {
     resolvedArchiveName = target;
   } else {
     const bareMatches = findArchivedMatchesByBareName(rootDir, target);
@@ -18678,13 +20105,13 @@ function runShip(argv) {
     writeError(`archived change '${target}' not found`);
     return 1;
   }
-  const resolvedArchiveDir = path29.join(archiveRoot, resolvedArchiveName);
+  const resolvedArchiveDir = path30.join(archiveRoot, resolvedArchiveName);
   const archivePath = normalizeRepoRelativePath4(rootDir, resolvedArchiveDir);
   let proposalSummary = "";
-  const proposalPath = path29.join(resolvedArchiveDir, "proposal.yaml");
-  if (existsSync28(proposalPath)) {
+  const proposalPath = path30.join(resolvedArchiveDir, "proposal.yaml");
+  if (existsSync29(proposalPath)) {
     try {
-      const proposalDoc = parseYamlDocument(readFileSync22(proposalPath, "utf8"));
+      const proposalDoc = parseYamlDocument(readFileSync23(proposalPath, "utf8"));
       const summary = proposalDoc.summary;
       if (summary && typeof summary === "object" && !Array.isArray(summary)) {
         const what = summary.what;
@@ -18735,6 +20162,35 @@ function runVerifySpecMappings(argv) {
   const result = verifySpecMappings(process.cwd());
   writeJson(result);
   return result.valid ? 0 : 1;
+}
+function runVerifyTechMappings(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven verify-tech-mappings
+`);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(`Usage: strict-spec-driven verify-tech-mappings
+`);
+    return 1;
+  }
+  const result = verifyTechMappings(process.cwd());
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+function runTechStatus(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-driven tech-status
+`);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(`Usage: strict-spec-driven tech-status
+`);
+    return 1;
+  }
+  writeJson(getTechStatus(process.cwd()));
+  return 0;
 }
 var ARCHIVE_DATE_PATTERN = /^(\d{4}-\d{2}-\d{2})-(.+)$/;
 function runCommitAndPush(argv) {
@@ -18875,9 +20331,9 @@ function runSchemaShow(argv) {
 }
 
 // src/harness.ts
-import { closeSync, existsSync as existsSync29, mkdirSync as mkdirSync6, openSync, readFileSync as readFileSync23, renameSync as renameSync2, rmSync as rmSync2, statSync as statSync22, writeFileSync as writeFileSync9, appendFileSync } from "fs";
+import { closeSync, existsSync as existsSync30, mkdirSync as mkdirSync6, openSync, readFileSync as readFileSync24, renameSync as renameSync2, rmSync as rmSync2, statSync as statSync23, writeFileSync as writeFileSync9, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
-import path30 from "path";
+import path31 from "path";
 var HARNESS_DECLARATION_PATH = ".strict-spec-driven/harness.yaml";
 var HARNESS_RUNTIME_DIR = ".strict-spec-driven/.runtime/harness";
 var HARNESS_RUNTIME_STATE_PATH = `${HARNESS_RUNTIME_DIR}/state.json`;
@@ -18931,9 +20387,9 @@ function yamlDiagnosticFromError(artifactPath, error) {
   };
 }
 function getRuntimePaths(rootDir) {
-  const absoluteRuntimeDir = path30.join(rootDir, HARNESS_RUNTIME_DIR);
-  const absoluteLogsDir = path30.join(rootDir, HARNESS_LOGS_DIR);
-  const absoluteStatePath = path30.join(rootDir, HARNESS_RUNTIME_STATE_PATH);
+  const absoluteRuntimeDir = path31.join(rootDir, HARNESS_RUNTIME_DIR);
+  const absoluteLogsDir = path31.join(rootDir, HARNESS_LOGS_DIR);
+  const absoluteStatePath = path31.join(rootDir, HARNESS_RUNTIME_STATE_PATH);
   return {
     absoluteRuntimeDir,
     absoluteLogsDir,
@@ -18965,10 +20421,10 @@ function isProcessAlive(pid) {
 }
 function readRuntimeState(rootDir) {
   const paths = getRuntimePaths(rootDir);
-  if (!existsSync29(paths.absoluteStatePath))
+  if (!existsSync30(paths.absoluteStatePath))
     return { ok: true, state: null };
   try {
-    const state = JSON.parse(readFileSync23(paths.absoluteStatePath, "utf8"));
+    const state = JSON.parse(readFileSync24(paths.absoluteStatePath, "utf8"));
     if (typeof state !== "object" || state === null || state.version !== 1 || typeof state.artifactPath !== "string" || typeof state.harnessId !== "string" || typeof state.environmentId !== "string" || !Array.isArray(state.componentOrder) || typeof state.components !== "object" || state.components === null) {
       return {
         ok: false,
@@ -19159,20 +20615,20 @@ function assertOperationAllowed(artifactPath, environment, component, operationN
   return null;
 }
 function readJsonFile(filePath) {
-  if (!existsSync29(filePath))
+  if (!existsSync30(filePath))
     return null;
   try {
-    return JSON.parse(readFileSync23(filePath, "utf8"));
+    return JSON.parse(readFileSync24(filePath, "utf8"));
   } catch {
     return null;
   }
 }
 function detectPackageRunner(rootDir) {
-  if (existsSync29(path30.join(rootDir, "bun.lock")) || existsSync29(path30.join(rootDir, "bun.lockb")))
+  if (existsSync30(path31.join(rootDir, "bun.lock")) || existsSync30(path31.join(rootDir, "bun.lockb")))
     return "bun run";
-  if (existsSync29(path30.join(rootDir, "pnpm-lock.yaml")))
+  if (existsSync30(path31.join(rootDir, "pnpm-lock.yaml")))
     return "pnpm run";
-  if (existsSync29(path30.join(rootDir, "yarn.lock")))
+  if (existsSync30(path31.join(rootDir, "yarn.lock")))
     return "yarn";
   return "npm run";
 }
@@ -19218,11 +20674,11 @@ function readEnvSampleNames(rootDir) {
   const names = new Set;
   const evidence = [];
   for (const relativePath of ENV_SAMPLE_FILES) {
-    const absolutePath = path30.join(rootDir, relativePath);
-    if (!existsSync29(absolutePath))
+    const absolutePath = path31.join(rootDir, relativePath);
+    if (!existsSync30(absolutePath))
       continue;
     evidence.push(relativePath);
-    for (const line of readFileSync23(absolutePath, "utf8").split(/\r?\n/)) {
+    for (const line of readFileSync24(absolutePath, "utf8").split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#"))
         continue;
@@ -19276,7 +20732,7 @@ function inferComposePort(service) {
   return null;
 }
 function detectPackageScriptSignal(rootDir, packageJson, scripts) {
-  if (!existsSync29(path30.join(rootDir, "package.json"))) {
+  if (!existsSync30(path31.join(rootDir, "package.json"))) {
     return { candidate: null, evidence: [] };
   }
   const preferredScript = PACKAGE_SCRIPT_NAMES.find((name) => scripts[name] !== undefined);
@@ -19302,11 +20758,11 @@ function detectPackageScriptSignal(rootDir, packageJson, scripts) {
 function detectComposeServiceSignal(rootDir) {
   const evidence = [];
   for (const relativePath of COMPOSE_FILES) {
-    const absolutePath = path30.join(rootDir, relativePath);
-    if (!existsSync29(absolutePath))
+    const absolutePath = path31.join(rootDir, relativePath);
+    if (!existsSync30(absolutePath))
       continue;
     try {
-      const compose = parseYamlDocument(readFileSync23(absolutePath, "utf8"), { source: relativePath });
+      const compose = parseYamlDocument(readFileSync24(absolutePath, "utf8"), { source: relativePath });
       const services = isRecord5(compose) && isRecord5(compose.services) ? Object.entries(compose.services).filter((entry) => isRecord5(entry[1])) : [];
       const eligible = services.filter(([, service2]) => ("build" in service2) || readStringOrStringArray(service2.command) !== undefined);
       if (eligible.length === 0) {
@@ -19332,11 +20788,11 @@ function detectComposeServiceSignal(rootDir) {
   return { candidate: null, evidence };
 }
 function detectProcfileSignal(rootDir, packageJson) {
-  const procfilePath = path30.join(rootDir, "Procfile");
-  if (!existsSync29(procfilePath)) {
+  const procfilePath = path31.join(rootDir, "Procfile");
+  if (!existsSync30(procfilePath)) {
     return { candidate: null, evidence: [] };
   }
-  const entries = readFileSync23(procfilePath, "utf8").split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0 && !line.startsWith("#")).map((line) => line.match(/^([A-Za-z0-9_-]+):\s*(.+)$/)).filter((match) => match !== null).map((match) => ({ name: match[1], command: match[2].trim() })).filter((entry) => entry.command.length > 0);
+  const entries = readFileSync24(procfilePath, "utf8").split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0 && !line.startsWith("#")).map((line) => line.match(/^([A-Za-z0-9_-]+):\s*(.+)$/)).filter((match) => match !== null).map((match) => ({ name: match[1], command: match[2].trim() })).filter((entry) => entry.command.length > 0);
   const eligible = entries.filter((entry) => !PROCFILE_EXCLUDED_PROCESS_NAMES.has(entry.name.toLowerCase()));
   if (eligible.length === 0) {
     return {
@@ -19358,11 +20814,11 @@ function detectProcfileSignal(rootDir, packageJson) {
   };
 }
 function detectMakefileSignal(rootDir) {
-  const makefilePath = path30.join(rootDir, "Makefile");
-  if (!existsSync29(makefilePath)) {
+  const makefilePath = path31.join(rootDir, "Makefile");
+  if (!existsSync30(makefilePath)) {
     return { candidate: null, evidence: [] };
   }
-  const target = readFileSync23(makefilePath, "utf8").split(/\r?\n/).map((line) => line.match(/^([A-Za-z0-9_.-]+)\s*:(?![=])/)).find((match) => match !== null && !match[1].startsWith(".") && MAKEFILE_TARGET_NAMES.has(match[1]));
+  const target = readFileSync24(makefilePath, "utf8").split(/\r?\n/).map((line) => line.match(/^([A-Za-z0-9_.-]+)\s*:(?![=])/)).find((match) => match !== null && !match[1].startsWith(".") && MAKEFILE_TARGET_NAMES.has(match[1]));
   if (!target) {
     return {
       candidate: null,
@@ -19398,7 +20854,7 @@ function detectHarnessInferenceSignal(rootDir, packageJson, scripts) {
   return { signal: null, evidence };
 }
 function buildInferredHarness(rootDir) {
-  const packageJson = readJsonFile(path30.join(rootDir, "package.json"));
+  const packageJson = readJsonFile(path31.join(rootDir, "package.json"));
   const scripts = getPackageScripts(packageJson);
   const envSamples = readEnvSampleNames(rootDir);
   const inference = detectHarnessInferenceSignal(rootDir, packageJson, scripts);
@@ -19419,7 +20875,7 @@ function buildInferredHarness(rootDir) {
       artifact_type: "harness",
       schema_file: "templates/strict-spec-driven/schemas/harness.yaml",
       harness: {
-        id: path30.basename(rootDir).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "default",
+        id: path31.basename(rootDir).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "default",
         description: "AI-assisted draft inferred from repository metadata. Review commands and safety policy before enabling lifecycle scripts.",
         environments: {
           development: {
@@ -19498,7 +20954,7 @@ function buildInferredHarness(rootDir) {
   };
 }
 function inferHarness(rootDir, options = {}) {
-  const absolutePath = path30.join(rootDir, HARNESS_DECLARATION_PATH);
+  const absolutePath = path31.join(rootDir, HARNESS_DECLARATION_PATH);
   const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
   const inferred = buildInferredHarness(rootDir);
   const draft = stringifyYamlDocument(inferred.artifact);
@@ -19508,7 +20964,7 @@ function inferHarness(rootDir, options = {}) {
     return { ok: false, artifactPath, created: false, draft, evidence: inferred.evidence, diagnostics };
   }
   if (options.write) {
-    if (existsSync29(absolutePath) && !options.force) {
+    if (existsSync30(absolutePath) && !options.force) {
       return {
         ok: false,
         artifactPath,
@@ -19521,15 +20977,15 @@ function inferHarness(rootDir, options = {}) {
         })]
       };
     }
-    mkdirSync6(path30.dirname(absolutePath), { recursive: true });
+    mkdirSync6(path31.dirname(absolutePath), { recursive: true });
     writeFileSync9(absolutePath, draft, "utf8");
   }
   return { ok: true, artifactPath, created: options.write ?? false, draft, evidence: inferred.evidence, diagnostics: [] };
 }
 function deriveHarnessPlan(rootDir, environmentId, componentIds = []) {
-  const absolutePath = path30.join(rootDir, HARNESS_DECLARATION_PATH);
+  const absolutePath = path31.join(rootDir, HARNESS_DECLARATION_PATH);
   const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
-  if (!existsSync29(absolutePath)) {
+  if (!existsSync30(absolutePath)) {
     throw new Error("missing-harness");
   }
   const artifact = parseYamlFile(absolutePath);
@@ -19628,7 +21084,7 @@ function normalizeOperation(operation) {
   };
 }
 function getHarnessPlanResult(rootDir, environmentId, componentIds = []) {
-  const artifactPath = normalizeRepoRelativePath4(rootDir, path30.join(rootDir, HARNESS_DECLARATION_PATH));
+  const artifactPath = normalizeRepoRelativePath4(rootDir, path31.join(rootDir, HARNESS_DECLARATION_PATH));
   try {
     return {
       valid: true,
@@ -19781,7 +21237,7 @@ function startHarness(rootDir, options = {}) {
       return { ok: false, artifactPath: planResult.artifactPath, runtimeStatePath: writablePaths.relativeStatePath, harnessId: planResult.harness.id, environmentId: planResult.environment.id, components: summarizeRuntimeState(state), diagnostics };
     }
     const missingEnvironment = getMissingRequiredEnvironment(component);
-    const logAbsolutePath = path30.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
+    const logAbsolutePath = path31.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
     const logPath = normalizeRepoRelativePath4(rootDir, logAbsolutePath);
     if (missingEnvironment.length > 0) {
       const failureReason = formatMissingRequiredEnvironmentFailure(missingEnvironment);
@@ -19813,7 +21269,7 @@ function startHarness(rootDir, options = {}) {
     writeFileSync9(logAbsolutePath, "", "utf8");
     const logDescriptor = openSync(logAbsolutePath, "a");
     const child = spawn(component.operations.start.command ?? "", [], {
-      cwd: path30.join(rootDir, component.workingDirectory),
+      cwd: path31.join(rootDir, component.workingDirectory),
       env: process.env,
       shell: true,
       detached: true,
@@ -19876,7 +21332,7 @@ function getHarnessLogs(rootDir, options = {}) {
   if (record === undefined) {
     return { ok: false, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, diagnostics: [createDiagnostic(runtime.state.artifactPath, "$", "harness-logs received an unknown declared component id", { source: "logs", phase: "logs", componentId, expected: ids.join(", "), actual: componentId })] };
   }
-  const content = readFileSync23(path30.join(rootDir, record.logPath), "utf8");
+  const content = readFileSync24(path31.join(rootDir, record.logPath), "utf8");
   const boundedContent = options.all ? content : takeTailLines(content, options.tailLines ?? DEFAULT_HARNESS_LOG_TAIL_LINES);
   return { ok: true, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, componentId, logPath: record.logPath, content: boundedContent, diagnostics: [] };
 }
@@ -19909,7 +21365,7 @@ function stopHarness(rootDir, options = {}) {
       continue;
     }
     if (record.stopCommand) {
-      const result = spawnSync(record.stopCommand, [], { cwd: path30.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
+      const result = spawnSync(record.stopCommand, [], { cwd: path31.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
       if (result.status !== 0) {
         record.status = "failed";
         record.failureReason = result.stderr.trim() || result.stdout.trim() || "stop command failed";
@@ -19938,13 +21394,13 @@ function addDoctorDiagnostic(diagnostics, artifactPath, fieldPath, message, opti
   diagnostics.push(createDiagnostic(artifactPath, fieldPath, message, options));
 }
 function doctorHarness(rootDir) {
-  const artifactPath = normalizeRepoRelativePath4(rootDir, path30.join(rootDir, HARNESS_DECLARATION_PATH));
+  const artifactPath = normalizeRepoRelativePath4(rootDir, path31.join(rootDir, HARNESS_DECLARATION_PATH));
   const planResult = getHarnessPlanResult(rootDir);
   const diagnostics = [];
   if (!planResult.valid) {
     return { ok: false, artifactPath: planResult.artifactPath, diagnostics: planResult.diagnostics };
   }
-  const absolutePath = path30.join(rootDir, HARNESS_DECLARATION_PATH);
+  const absolutePath = path31.join(rootDir, HARNESS_DECLARATION_PATH);
   const artifact = parseYamlFile(absolutePath);
   const rootEnvSamples = readEnvSampleNames(rootDir);
   const wrapperCheck = verifyHarnessScripts(rootDir);
@@ -19958,8 +21414,8 @@ function doctorHarness(rootDir) {
     }
     const seenPorts = new Map;
     for (const component of environmentPlan.components) {
-      const workingDirectory = path30.join(rootDir, component.workingDirectory);
-      if (!existsSync29(workingDirectory) || !statSync22(workingDirectory).isDirectory()) {
+      const workingDirectory = path31.join(rootDir, component.workingDirectory);
+      if (!existsSync30(workingDirectory) || !statSync23(workingDirectory).isDirectory()) {
         addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.working_directory`, "harness component working directory is missing", {
           source: "filesystem",
           componentId: component.id,
@@ -19967,19 +21423,19 @@ function doctorHarness(rootDir) {
           actual: component.workingDirectory
         });
       }
-      const componentEnvSamples = workingDirectory === rootDir || !existsSync29(workingDirectory) ? { names: [], evidence: [] } : readEnvSampleNames(workingDirectory);
+      const componentEnvSamples = workingDirectory === rootDir || !existsSync30(workingDirectory) ? { names: [], evidence: [] } : readEnvSampleNames(workingDirectory);
       const documentedEnvNames = new Set([...rootEnvSamples.names, ...componentEnvSamples.names]);
       for (const name of component.environment.required) {
         if (!documentedEnvNames.has(name)) {
           let targetPath = ".env.example";
           if (componentEnvSamples.evidence.length > 0) {
-            targetPath = path30.join(component.workingDirectory, componentEnvSamples.evidence[0]);
+            targetPath = path31.join(component.workingDirectory, componentEnvSamples.evidence[0]);
           } else if (rootEnvSamples.evidence.length > 0) {
             targetPath = rootEnvSamples.evidence[0];
           } else if (component.workingDirectory !== ".") {
-            targetPath = path30.join(component.workingDirectory, ".env.example");
+            targetPath = path31.join(component.workingDirectory, ".env.example");
           }
-          const repoRelativeTarget = normalizeRepoRelativePath4(rootDir, path30.resolve(rootDir, targetPath));
+          const repoRelativeTarget = normalizeRepoRelativePath4(rootDir, path31.resolve(rootDir, targetPath));
           const recovery = {
             type: "bootstrap_env",
             description: `Append missing required environment variable ${name} to ${repoRelativeTarget}`,
@@ -20028,7 +21484,7 @@ ${name}=
           continue;
         const scriptName = extractPackageScriptName(operation.command);
         if (scriptName !== null) {
-          const packageJson = readJsonFile(path30.join(workingDirectory, "package.json"));
+          const packageJson = readJsonFile(path31.join(workingDirectory, "package.json"));
           const scripts = getPackageScripts(packageJson);
           if (scripts[scriptName] === undefined) {
             addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.operations.${operationName}.command`, "harness operation references a missing package script", {
@@ -20085,14 +21541,14 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
       continue;
     for (const step of diag.recovery.steps) {
       if (step.action === "write_file") {
-        const absolutePath = path30.resolve(rootDir, step.path);
+        const absolutePath = path31.resolve(rootDir, step.path);
         const mode = step.mode ?? "overwrite";
         const key = `write_file::${absolutePath}::${mode}::${step.content}`;
         if (executedKeys.has(key))
           continue;
         executedKeys.add(key);
-        const dir = path30.dirname(absolutePath);
-        if (!existsSync29(dir)) {
+        const dir = path31.dirname(absolutePath);
+        if (!existsSync30(dir)) {
           mkdirSync6(dir, { recursive: true });
         }
         if (mode === "append") {
@@ -20106,7 +21562,7 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
         if (executedKeys.has(key))
           continue;
         executedKeys.add(key);
-        const cliPath = path30.resolve(process.argv[1]);
+        const cliPath = path31.resolve(process.argv[1]);
         const display = ["strict-spec-driven", ...step.args].join(" ");
         const result = spawnSync(process.execPath, [cliPath, ...step.args], { cwd: rootDir, encoding: "utf8" });
         if (result.error) {
@@ -20145,11 +21601,11 @@ function wrapperContent(scriptName) {
 `);
 }
 function generateHarnessScripts(rootDir) {
-  const scriptsDir = path30.join(rootDir, "scripts");
+  const scriptsDir = path31.join(rootDir, "scripts");
   mkdirSync6(scriptsDir, { recursive: true });
   const created = [];
   for (const scriptName of SCRIPT_NAMES) {
-    const absolutePath = path30.join(scriptsDir, scriptName);
+    const absolutePath = path31.join(scriptsDir, scriptName);
     writeFileSync9(absolutePath, wrapperContent(scriptName), { encoding: "utf8", mode: 493 });
     created.push(normalizeRepoRelativePath4(rootDir, absolutePath));
   }
@@ -20170,8 +21626,8 @@ function verifyHarnessScripts(rootDir) {
   };
   for (const scriptName of SCRIPT_NAMES) {
     const relativePath = `scripts/${scriptName}`;
-    const absolutePath = path30.join(rootDir, relativePath);
-    if (!existsSync29(absolutePath)) {
+    const absolutePath = path31.join(rootDir, relativePath);
+    if (!existsSync30(absolutePath)) {
       diagnostics.push(createDiagnostic(relativePath, "$", "harness script is missing", {
         source: "scripts",
         phase: "scripts",
@@ -20181,7 +21637,7 @@ function verifyHarnessScripts(rootDir) {
       }));
       continue;
     }
-    const content = readFileSync23(absolutePath, "utf8");
+    const content = readFileSync24(absolutePath, "utf8");
     if (content !== wrapperContent(scriptName)) {
       diagnostics.push(createDiagnostic(relativePath, "$", "harness script content does not match generated wrapper", {
         source: "scripts",
@@ -20200,38 +21656,38 @@ function normalizeHarnessSessionPath(rootDir, target) {
   const normalized = target.split("\\").join("/");
   const looksLikePath = normalized.includes("/") || normalized.endsWith(".yaml");
   const repoRelativePath = looksLikePath ? normalized : `${HARNESS_SESSIONS_DIR}/${normalized}/${HARNESS_SESSION_FILE_NAME}`;
-  const absolutePath = path30.resolve(rootDir, repoRelativePath);
+  const absolutePath = path31.resolve(rootDir, repoRelativePath);
   return { artifactPath: normalizeRepoRelativePath4(rootDir, absolutePath), absolutePath };
 }
 function formatLocalDate2(date = new Date) {
   return `${String(date.getFullYear())}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 function buildHarnessSessionArchiveDestination(rootDir, sessionId) {
-  const archiveRoot = path30.join(rootDir, HARNESS_SESSION_ARCHIVE_DIR);
+  const archiveRoot = path31.join(rootDir, HARNESS_SESSION_ARCHIVE_DIR);
   mkdirSync6(archiveRoot, { recursive: true });
   const baseName = `${formatLocalDate2()}-${sessionId}`;
-  let candidate = path30.join(archiveRoot, baseName);
+  let candidate = path31.join(archiveRoot, baseName);
   let sequence = 2;
-  while (existsSync29(candidate)) {
-    candidate = path30.join(archiveRoot, `${baseName}-${sequence}`);
+  while (existsSync30(candidate)) {
+    candidate = path31.join(archiveRoot, `${baseName}-${sequence}`);
     sequence += 1;
   }
   return candidate;
 }
 function isDirectory(filePath) {
-  return existsSync29(filePath) && statSync22(filePath).isDirectory();
+  return existsSync30(filePath) && statSync23(filePath).isDirectory();
 }
 function createHarnessSession(rootDir, sessionId) {
-  const sessionDir = path30.join(rootDir, HARNESS_SESSIONS_DIR, sessionId);
-  const sessionPath = path30.join(sessionDir, HARNESS_SESSION_FILE_NAME);
-  const evidenceDir = path30.join(sessionDir, "evidence");
+  const sessionDir = path31.join(rootDir, HARNESS_SESSIONS_DIR, sessionId);
+  const sessionPath = path31.join(sessionDir, HARNESS_SESSION_FILE_NAME);
+  const evidenceDir = path31.join(sessionDir, "evidence");
   const relativeSessionDir = normalizeRepoRelativePath4(rootDir, sessionDir);
   const relativeSessionPath = normalizeRepoRelativePath4(rootDir, sessionPath);
   const relativeEvidenceDir = normalizeRepoRelativePath4(rootDir, evidenceDir);
   if (!SESSION_ID_PATTERN.test(sessionId) || sessionId === "archive") {
     return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$.harness_session.id", "harness-session id must be kebab-case and not reserved", { expected: "lowercase letters, numbers, hyphens, and not 'archive'", actual: sessionId })] };
   }
-  if (existsSync29(sessionPath) || existsSync29(evidenceDir)) {
+  if (existsSync30(sessionPath) || existsSync30(evidenceDir)) {
     return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$", "harness-session already exists", { expected: "new harness-session directory", actual: relativeSessionDir })] };
   }
   mkdirSync6(evidenceDir, { recursive: true });
@@ -20240,7 +21696,7 @@ function createHarnessSession(rootDir, sessionId) {
 }
 function validateHarnessSession(rootDir, target) {
   const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
-  if (!existsSync29(absolutePath)) {
+  if (!existsSync30(absolutePath)) {
     return { valid: false, artifactPath, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
   }
   let artifact;
@@ -20254,15 +21710,15 @@ function validateHarnessSession(rootDir, target) {
 }
 function archiveHarnessSession(rootDir, target) {
   const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
-  const sourceDir = path30.dirname(absolutePath);
+  const sourceDir = path31.dirname(absolutePath);
   const relativeSourceDir = normalizeRepoRelativePath4(rootDir, sourceDir);
   const missingResult = { ok: false, sessionId: null, sourceDir: relativeSourceDir, sourcePath: artifactPath, archiveDir: null, archivePath: null };
-  if (!existsSync29(absolutePath)) {
+  if (!existsSync30(absolutePath)) {
     return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
   }
-  const activeRoot = path30.resolve(rootDir, HARNESS_SESSIONS_DIR);
-  const sourceParent = path30.dirname(path30.resolve(sourceDir));
-  if (path30.basename(absolutePath) !== HARNESS_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
+  const activeRoot = path31.resolve(rootDir, HARNESS_SESSIONS_DIR);
+  const sourceParent = path31.dirname(path31.resolve(sourceDir));
+  if (path31.basename(absolutePath) !== HARNESS_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
     return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session archive target must be an active session.yaml artifact", { expected: `${HARNESS_SESSIONS_DIR}/<session-id>/${HARNESS_SESSION_FILE_NAME}`, actual: artifactPath })] };
   }
   const validation = validateHarnessSession(rootDir, artifactPath);
@@ -20277,14 +21733,14 @@ function archiveHarnessSession(rootDir, target) {
   if (sessionId === "archive") {
     return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id is reserved for archived sessions", { expected: "non-reserved harness-session id", actual: sessionId })] };
   }
-  if (path30.basename(sourceDir) !== sessionId) {
-    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path30.basename(sourceDir), actual: sessionId })] };
+  if (path31.basename(sourceDir) !== sessionId) {
+    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path31.basename(sourceDir), actual: sessionId })] };
   }
   if (status !== "resolved" && status !== "blocked") {
     return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.status", "harness-session must be resolved or blocked before archive", { expected: "resolved or blocked", actual: typeof status === "string" ? status : typeof status })] };
   }
   const archiveDestination = buildHarnessSessionArchiveDestination(rootDir, sessionId);
-  const archivePath = path30.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
+  const archivePath = path31.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
   renameSync2(sourceDir, archiveDestination);
   return {
     ok: true,
@@ -20562,6 +22018,8 @@ var commands = createCliCommandTable({
   ready: (argv) => runReady(argv),
   next: (argv) => runNext(argv),
   "verify-spec-mappings": (argv) => runVerifySpecMappings(argv),
+  "verify-tech-mappings": (argv) => runVerifyTechMappings(argv),
+  "tech-status": (argv) => runTechStatus(argv),
   "validate-skills": (argv) => runValidateSkills(argv),
   "schema-list": (argv) => runSchemaList(argv),
   "schema-show": (argv) => runSchemaShow(argv),

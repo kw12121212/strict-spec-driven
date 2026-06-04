@@ -1,0 +1,51 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/tech-index/v1
+artifact_type: tech_index
+artifact_name: tech-index
+description: >-
+  Strict YAML technical standard index artifact. Lists every tech standard file
+  under .strict-spec-driven/tech/ so workflows can enumerate applicable
+  engineering constraints without scanning the filesystem.
+example_ref: ../../../examples/strict-spec-driven/tech-index.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - standards
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/tech-index/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: tech_index
+    schema_file:
+      type: string
+    standards:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - title
+          - category
+          - path
+        properties:
+          id:
+            type: string
+          title:
+            type: string
+          category:
+            type: string
+          path:
+            type: string

@@ -249,4 +249,150 @@ try {
   rmSync(maintMismatchDir, { recursive: true, force: true });
 }
 
+context.section("[23] tech standards commands");
+
+const techMissingDir = mkdtempSync(path.join(os.tmpdir(), "strict-tech-missing-"));
+try {
+  const statusMissing = cli(["tech-status"], { cwd: techMissingDir });
+  context.assert(statusMissing.status === 0, "tech-status exits zero when tech dir is absent");
+  const statusMissingJson = JSON.parse(statusMissing.stdout.trim()) as { techDirExists: boolean; standardCount: number };
+  context.assert(statusMissingJson.techDirExists === false && statusMissingJson.standardCount === 0, "tech-status reports no tech dir");
+
+  const verifyMissing = cli(["verify-tech-mappings"], { cwd: techMissingDir });
+  context.assert(verifyMissing.status === 1, "verify-tech-mappings exits non-zero when tech dir is absent");
+  const verifyMissingJson = JSON.parse(verifyMissing.stdout.trim()) as { valid: boolean; diagnostics: Array<{ source: string }> };
+  context.assert(
+    verifyMissingJson.valid === false && verifyMissingJson.diagnostics.some((d) => d.source === "mapping_input"),
+    "verify-tech-mappings reports missing tech dir as mapping_input diagnostic",
+  );
+} finally {
+  rmSync(techMissingDir, { recursive: true, force: true });
+}
+
+const techValidDir = mkdtempSync(path.join(os.tmpdir(), "strict-tech-valid-"));
+try {
+  const techDir = path.join(techValidDir, ".strict-spec-driven", "tech");
+  mkdirSync(techDir, { recursive: true });
+  writeFileSync(path.join(techValidDir, "src-file.ts"), "export const x = 1;\n", "utf8");
+  writeFileSync(path.join(techValidDir, "eslint.config.js"), "export default [];\n", "utf8");
+  writeFileSync(
+    path.join(techDir, "coding.yaml"),
+    [
+      "schema: strict-spec-driven/main-tech/v1",
+      "schema_version: 1",
+      "artifact_type: main_tech",
+      "schema_file: ../../templates/strict-spec-driven/schemas/main-tech.yaml",
+      "standard:",
+      "  id: coding-baseline",
+      "  title: Coding Baseline",
+      "  category: coding",
+      "mapping:",
+      "  implementation:",
+      "    - src-file.ts",
+      "  enforcement:",
+      "    - eslint.config.js",
+      "rules:",
+      "  esm-only:",
+      "    strength: MUST",
+      "    statement: Modules MUST be ESM.",
+      "    rationale: Consistency.",
+      "    enforcement:",
+      "      method: ci",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+
+  const statusValid = cli(["tech-status"], { cwd: techValidDir });
+  context.assert(statusValid.status === 0, "tech-status exits zero with a valid standard");
+  const statusValidJson = JSON.parse(statusValid.stdout.trim()) as {
+    standardCount: number;
+    ruleCount: number;
+    strengthCounts: { MUST: number };
+    standards: Array<{ id: string; category: string; ruleCount: number }>;
+  };
+  context.assert(
+    statusValidJson.standardCount === 1 && statusValidJson.ruleCount === 1 && statusValidJson.strengthCounts.MUST === 1,
+    "tech-status summarizes standards and rule strengths",
+  );
+  context.assert(
+    statusValidJson.standards[0]?.id === "coding-baseline" && statusValidJson.standards[0]?.category === "coding",
+    "tech-status reports standard identity and category",
+  );
+
+  const verifyValid = cli(["verify-tech-mappings"], { cwd: techValidDir });
+  context.assert(verifyValid.status === 0, "verify-tech-mappings exits zero when mapping paths resolve");
+  const verifyValidJson = JSON.parse(verifyValid.stdout.trim()) as { valid: boolean; summary: { standardCount: number; mappedImplementationCount: number } };
+  context.assert(
+    verifyValidJson.valid === true && verifyValidJson.summary.mappedImplementationCount === 1,
+    "verify-tech-mappings validates resolvable mapping entries",
+  );
+
+  writeFileSync(
+    path.join(techDir, "broken.yaml"),
+    [
+      "schema: strict-spec-driven/main-tech/v1",
+      "schema_version: 1",
+      "artifact_type: main_tech",
+      "schema_file: ../../templates/strict-spec-driven/schemas/main-tech.yaml",
+      "standard:",
+      "  id: broken",
+      "  title: Broken",
+      "  category: coding",
+      "mapping:",
+      "  implementation:",
+      "    - does-not-exist.ts",
+      "  enforcement: []",
+      "rules: {}",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+  const verifyBroken = cli(["verify-tech-mappings"], { cwd: techValidDir });
+  context.assert(verifyBroken.status === 1, "verify-tech-mappings exits non-zero when a mapping path is missing");
+  const verifyBrokenJson = JSON.parse(verifyBroken.stdout.trim()) as { valid: boolean; diagnostics: Array<{ message: string }> };
+  context.assert(
+    verifyBrokenJson.valid === false && verifyBrokenJson.diagnostics.some((d) => d.message.includes("does not exist")),
+    "verify-tech-mappings flags mapping entries that point to missing files",
+  );
+
+  rmSync(path.join(techDir, "broken.yaml"));
+  writeFileSync(
+    path.join(techDir, "undeclared-enforcement.yaml"),
+    [
+      "schema: strict-spec-driven/main-tech/v1",
+      "schema_version: 1",
+      "artifact_type: main_tech",
+      "schema_file: ../../templates/strict-spec-driven/schemas/main-tech.yaml",
+      "standard:",
+      "  id: undeclared-enforcement",
+      "  title: Undeclared Enforcement",
+      "  category: tooling",
+      "mapping:",
+      "  implementation:",
+      "    - src-file.ts",
+      "  enforcement: []",
+      "rules:",
+      "  must-lint:",
+      "    strength: MUST",
+      "    statement: Code MUST pass the linter.",
+      "    rationale: Consistency.",
+      "    enforcement:",
+      "      method: lint",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+  const verifyUndeclared = cli(["verify-tech-mappings"], { cwd: techValidDir });
+  context.assert(verifyUndeclared.status === 1, "verify-tech-mappings exits non-zero when a mechanical-enforcement rule maps no enforcement files");
+  const verifyUndeclaredJson = JSON.parse(verifyUndeclared.stdout.trim()) as { valid: boolean; diagnostics: Array<{ source: string; message: string }> };
+  context.assert(
+    verifyUndeclaredJson.valid === false
+      && verifyUndeclaredJson.diagnostics.some((d) => d.source === "enforcement_declaration" && d.message.includes("must-lint")),
+    "verify-tech-mappings reports an enforcement_declaration diagnostic for lint/ci/test rules without enforcement files",
+  );
+} finally {
+  rmSync(techValidDir, { recursive: true, force: true });
+}
+
 }

@@ -20,7 +20,7 @@ before running anything. Do not guess.
 check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
 roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
-generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec> --<named-args>
+generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
 ready: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
@@ -87,6 +87,7 @@ run `init` from this skill.
    - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema
    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` for each target spec under `.strict-spec-driven/changes/<change-name>/specs/`
+   - when the change alters a technical standard, generate delta tech under `.strict-spec-driven/changes/<change-name>/tech/` with `generate <change-name> delta-tech --target-standard <id> ...`; for user interface work, capture observable UI behavior as delta-spec requirements and UI engineering and design rules as a `ui`-category technical standard, with visual fidelity governed by visual-regression snapshots rather than inlined
    Prefer one invocation per supported generated artifact (or per target spec
    for delta specs).
 

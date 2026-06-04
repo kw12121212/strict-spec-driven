@@ -9,7 +9,7 @@ import { runApply, runVerify, runArchive, runList, runModify, runCancel } from "
 import { runCheckWorkflowState, runNext, runReady } from "./cli/cmd-workflow.js";
 import { runRoadmapOverview, runRoadmapRecommend, runRoadmapStatus, runRoadmapSync } from "./cli/cmd-roadmap.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
-import { runShip, runValidateSkills, runVerifySpecMappings, runCommitAndPush } from "./cli/cmd-operations.js";
+import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMappings, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
 import { runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
 import {
   runHarnessDoctor,
@@ -75,6 +75,8 @@ export const commands = createCliCommandTable({
   ready: (argv) => runReady(argv),
   next: (argv) => runNext(argv),
   "verify-spec-mappings": (argv) => runVerifySpecMappings(argv),
+  "verify-tech-mappings": (argv) => runVerifyTechMappings(argv),
+  "tech-status": (argv) => runTechStatus(argv),
   "validate-skills": (argv) => runValidateSkills(argv),
   "schema-list": (argv) => runSchemaList(argv),
   "schema-show": (argv) => runSchemaShow(argv),

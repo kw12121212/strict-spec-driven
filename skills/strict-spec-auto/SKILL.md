@@ -17,8 +17,9 @@ before running anything. Do not guess.
 
 ```yaml
 check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
+tech-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js tech-status
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
-generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec> --<named-args>
+generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
 apply: node {{SKILL_DIR}}/scripts/strict-spec-driven.js apply <change-name>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ready: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
@@ -62,9 +63,11 @@ run `init` from this skill.
 
 1. **Reset context from targeted files** — treat prior chat context as stale
    unless it has been revalidated from the current change artifacts, relevant
-   main specs, mapped implementation and test files, repository status, and
-   regression configuration when needed. Do not reread unrelated roadmap,
-   archive, or spec files just because they exist.
+   main specs, the applicable technical standards (run
+   `node {{SKILL_DIR}}/scripts/strict-spec-driven.js tech-status` and read the
+   relevant files under `.strict-spec-driven/tech/`), mapped implementation and
+   test files, repository status, and regression configuration when needed. Do
+   not reread unrelated roadmap, archive, or spec files just because they exist.
 
 2. **Assess complexity** — proceed automatically only when the change is clearly
    scoped inside this repository with a concrete definition of done. If the
@@ -88,6 +91,17 @@ run `init` from this skill.
     - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema
     - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
     - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."`
+    - when this change must alter a technical standard (add, modify, or retire a
+      rule, or introduce a new standard), generate strict YAML delta tech
+      artifacts under `.strict-spec-driven/changes/<change-name>/tech/`:
+      `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-tech --target-standard <standard-id> [--title "..." --category <category>] [--implementation "src/file.ts"] [--enforcement "config"] --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review`
+      (use `--title`/`--category` to create a new standard; `REMOVED` rules take
+      only `--reason`). Leave `tech/` absent when the change only complies with
+      existing standards.
+    - for user interface work, split it: capture user-observable UI behavior as
+      delta-spec requirements, capture UI engineering and design rules as a
+      `ui`-category technical standard (delta-tech), and govern visual fidelity
+      with visual-regression snapshots referenced from mappings, not inlined.
     Prefer one invocation per supported generated artifact (or per target spec
     for delta specs). Keep `tasks.yaml` structured with Implementation,
     Testing, and Verification sections plus valid testing gates. Keep or add a
@@ -120,7 +134,14 @@ run `init` from this skill.
    `questions.yaml.resolved` and remove them from `open` before implementation.
 
 4. **Implement tasks in order** — read code, implement the next pending task, and
-   preserve every `unchanged_behavior` item from `proposal.yaml`.
+   preserve every `unchanged_behavior` item from `proposal.yaml`. Write code that
+   satisfies the applicable technical standards under `.strict-spec-driven/tech/`:
+   never violate a MUST rule and follow SHOULD rules unless `design.yaml` records
+   a justified deviation. If a task can only be completed by breaking a MUST
+   rule, stop and surface it as an open question instead of violating the
+   standard. If the standard itself must change as part of this change, carry it
+   as a delta tech artifact under `changes/<change-name>/tech/` so it merges on
+   archive, never by editing the live standard directly.
    Use `next <change-name>` when you need deterministic state, blockers, or
    script-owned next-step command suggestions; do not use it as a replacement
    for user answers or implementation judgment.
@@ -162,7 +183,14 @@ run `init` from this skill.
    as code review evidence. Evaluate correctness, spec alignment,
    `unchanged_behavior`, test coverage and assertions, error handling, edge
    cases, security, performance, maintainability, user-visible behavior,
-   documentation impact, generated artifacts, and packaging impact. Fix MUST
+   documentation impact, generated artifacts, packaging impact, and
+   technical-standard compliance against `.strict-spec-driven/tech/` (a MUST
+   rule violation is a MUST FIX; an unjustified SHOULD violation is a SHOULD
+   FIX; a deviation is acceptable only when `design.yaml` justifies it). When the
+   change carries delta tech artifacts under `changes/<change-name>/tech/`,
+   confirm each standard change is justified by the proposal and design and that
+   its operations and mapping are correct; treat an unjustified or malformed
+   standard change as a MUST FIX. Fix MUST
    FIX issues automatically when safe and in scope. If review-time code or
    workflow artifact changes are made, rerun strict verification and the
    configured complete project regression command before continuing. Unsafe,
@@ -220,6 +248,13 @@ implementation or review requires starting declared components:
 - The workflow is automatic except when open questions block progress
 - Open questions require a problem explanation, impact analysis, recommendation,
   and explicit human answer before continuing
+- Honor applicable technical standards under `.strict-spec-driven/tech/` across
+  proposal, implementation, and review: never break a MUST rule, follow SHOULD
+  rules by default, and treat unjustified violations as review findings that
+  block archive
+- When a change must alter a standard, carry it as a delta tech artifact under
+  the change's `tech/` directory so it merges on archive; never edit live
+  standards directly during a change
 - Keep mappings in structured YAML fields
 - The final `/strict-spec-ship <change-name>` recommendation is advisory and
   must not be treated as required to complete `strict-spec-auto`

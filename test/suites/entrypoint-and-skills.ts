@@ -30,6 +30,8 @@ const expectedCommandOrder = [
   "ready",
   "next",
   "verify-spec-mappings",
+  "verify-tech-mappings",
+  "tech-status",
   "validate-skills",
   "schema-list",
   "schema-show",

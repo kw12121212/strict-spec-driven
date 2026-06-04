@@ -33,9 +33,24 @@ type DeltaSpecArtifact = {
   };
 };
 
+type DeltaTechArtifact = {
+  target_standard?: unknown;
+  standard?: unknown;
+  operations?: {
+    ADDED?: Record<string, unknown>;
+    MODIFIED?: Record<string, unknown>;
+    REMOVED?: Record<string, unknown>;
+  };
+};
+
 type MainSpecRequirementIndex = {
   artifactPath: string;
   requirementIds: Set<string>;
+};
+
+type MainTechRuleIndex = {
+  artifactPath: string;
+  ruleIds: Set<string>;
 };
 
 export type VerifyDiagnostic = {
@@ -245,6 +260,42 @@ function validateDeltaSpecs(
   return diagnostics;
 }
 
+function validateDeltaTech(
+  changeDir: string,
+  artifactPathPrefix: string,
+): VerifyDiagnostic[] {
+  const techDir = path.join(changeDir, "tech");
+  if (!existsSync(techDir)) return [];
+
+  const diagnostics: VerifyDiagnostic[] = [];
+
+  function scanDir(dir: string): void {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        scanDir(fullPath);
+      } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
+        const relativePath = path.relative(techDir, fullPath).split(path.sep).join("/");
+        const content = readFileSync(fullPath, "utf8");
+        const artifactPath = `${artifactPathPrefix}/${relativePath}`;
+        let artifact: unknown;
+        try {
+          artifact = parseYamlDocument<unknown>(content, { source: artifactPath });
+        } catch (error) {
+          diagnostics.push(makeYamlParseDiagnostic(artifactPath, "delta tech is not valid YAML", error));
+          continue;
+        }
+        diagnostics.push(
+          ...validateArtifactSchema("delta_tech", artifact, artifactPath),
+        );
+      }
+    }
+  }
+
+  scanDir(techDir);
+  return diagnostics;
+}
+
 function listYamlFiles(directoryPath: string): string[] {
   if (!existsSync(directoryPath)) {
     return [];
@@ -373,6 +424,209 @@ function checkAddedRequirementCollisions(
         actual: `existing requirement '${requirementId}' in ${targetSpec.artifactPath}`,
       });
     }
+  }
+
+  return diagnostics;
+}
+
+function buildMainTechRuleIndex(rootDir: string): {
+  diagnostics: VerifyDiagnostic[];
+  standardsById: Map<string, MainTechRuleIndex>;
+} {
+  const techRoot = path.join(rootDir, STRICT_WORKFLOW_DIR, "tech");
+  const diagnostics: VerifyDiagnostic[] = [];
+  const standardsById = new Map<string, MainTechRuleIndex>();
+
+  for (const techPath of listYamlFiles(techRoot)) {
+    if (path.basename(techPath) === "INDEX.yaml") {
+      continue;
+    }
+
+    const artifactPath = path.relative(rootDir, techPath).split(path.sep).join("/");
+    const content = readFileSync(techPath, "utf8");
+    let artifact: unknown;
+    try {
+      artifact = parseYamlDocument<unknown>(content, { source: artifactPath });
+    } catch (error) {
+      diagnostics.push(makeYamlParseDiagnostic(artifactPath, "main tech is not valid YAML", error));
+      continue;
+    }
+
+    if (!artifact || typeof artifact !== "object" || Array.isArray(artifact)) {
+      continue;
+    }
+
+    const record = artifact as Record<string, unknown>;
+    if (record.artifact_type !== "main_tech") {
+      continue;
+    }
+
+    const standard = record.standard;
+    if (!standard || typeof standard !== "object" || Array.isArray(standard)) {
+      continue;
+    }
+
+    const standardId = (standard as Record<string, unknown>).id;
+    if (typeof standardId !== "string" || standardId.length === 0) {
+      continue;
+    }
+
+    const rules = record.rules;
+    if (!rules || typeof rules !== "object" || Array.isArray(rules)) {
+      continue;
+    }
+
+    standardsById.set(standardId, {
+      artifactPath,
+      ruleIds: new Set(Object.keys(rules)),
+    });
+  }
+
+  return { diagnostics, standardsById };
+}
+
+function checkTechDeltaTargets(
+  rootDir: string,
+  changeDir: string,
+): VerifyDiagnostic[] {
+  const diagnostics: VerifyDiagnostic[] = [];
+  const { diagnostics: mainTechDiagnostics, standardsById } = buildMainTechRuleIndex(rootDir);
+  diagnostics.push(...mainTechDiagnostics);
+
+  const techDir = path.join(changeDir, "tech");
+  for (const deltaTechPath of listYamlFiles(techDir)) {
+    const artifactPath = path.relative(rootDir, deltaTechPath).split(path.sep).join("/");
+    const content = readFileSync(deltaTechPath, "utf8");
+    let artifact: DeltaTechArtifact;
+    try {
+      artifact = parseYamlDocument<DeltaTechArtifact>(content, { source: artifactPath });
+    } catch {
+      continue;
+    }
+
+    if (typeof artifact.target_standard !== "string" || artifact.target_standard.length === 0) {
+      continue;
+    }
+
+    const targetStandard = standardsById.get(artifact.target_standard);
+
+    if (!targetStandard) {
+      // New-standard creation requires a standard block with title and category.
+      const standardBlock = artifact.standard;
+      const hasStandardBlock = standardBlock !== null && typeof standardBlock === "object" && !Array.isArray(standardBlock);
+      const title = hasStandardBlock ? (standardBlock as Record<string, unknown>).title : undefined;
+      const category = hasStandardBlock ? (standardBlock as Record<string, unknown>).category : undefined;
+      if (typeof title !== "string" || title.length === 0 || typeof category !== "string" || category.length === 0) {
+        diagnostics.push({
+          source: "new_standard_metadata",
+          artifactPath,
+          fieldPath: "$.standard",
+          message: `delta tech creates new standard '${artifact.target_standard}' and must provide standard.title and standard.category`,
+          expected: "standard block with non-empty title and category",
+          actual: hasStandardBlock ? "incomplete standard block" : "missing standard block",
+        });
+      }
+      continue;
+    }
+
+    const added = artifact.operations?.ADDED;
+    if (!added || typeof added !== "object" || Array.isArray(added)) {
+      continue;
+    }
+
+    for (const ruleId of Object.keys(added).sort()) {
+      if (!targetStandard.ruleIds.has(ruleId)) {
+        continue;
+      }
+
+      diagnostics.push({
+        source: "added_rule_collision",
+        artifactPath,
+        fieldPath: `$.operations.ADDED.${ruleId}`,
+        message: `ADDED rule '${ruleId}' already exists in target standard '${artifact.target_standard}'`,
+        expected: "ADDED rule id absent from target standard",
+        actual: `existing rule '${ruleId}' in ${targetStandard.artifactPath}`,
+      });
+    }
+  }
+
+  return diagnostics;
+}
+
+function checkExclusiveActiveTechTargets(
+  rootDir: string,
+  changeName: string,
+): VerifyDiagnostic[] {
+  const changesDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "changes");
+  if (!existsSync(changesDir)) return [];
+
+  const diagnostics: VerifyDiagnostic[] = [];
+
+  // Keyed by `${target_standard} ${ruleId}` so the same rule id under
+  // different standards does not falsely collide.
+  const targetMap = new Map<
+    string,
+    { changeName: string; operation: string; targetStandard: string; ruleId: string }[]
+  >();
+
+  const activeDirs = readdirSync(changesDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name);
+
+  for (const activeChange of activeDirs) {
+    const techDir = path.join(changesDir, activeChange, "tech");
+    if (!existsSync(techDir)) continue;
+
+    for (const deltaTechPath of listYamlFiles(techDir)) {
+      const artifactPath = path.relative(rootDir, deltaTechPath).split(path.sep).join("/");
+      const content = readFileSync(deltaTechPath, "utf8");
+      let artifact: DeltaTechArtifact;
+      try {
+        artifact = parseYamlDocument<DeltaTechArtifact>(content, { source: artifactPath });
+      } catch (error) {
+        if (activeChange !== changeName) {
+          diagnostics.push(makeYamlParseDiagnostic(artifactPath, "delta tech is not valid YAML", error));
+        }
+        continue;
+      }
+
+      if (typeof artifact.target_standard !== "string" || artifact.target_standard.length === 0) {
+        continue;
+      }
+
+      const ops = artifact.operations ?? {};
+      for (const [opName, entries] of Object.entries(ops)) {
+        if (opName !== "MODIFIED" && opName !== "REMOVED") continue;
+        if (!entries || typeof entries !== "object" || Array.isArray(entries)) continue;
+        for (const ruleId of Object.keys(entries)) {
+          const key = `${artifact.target_standard} ${ruleId}`;
+          if (!targetMap.has(key)) targetMap.set(key, []);
+          targetMap.get(key)!.push({
+            changeName: activeChange,
+            operation: opName,
+            targetStandard: artifact.target_standard,
+            ruleId,
+          });
+        }
+      }
+    }
+  }
+
+  for (const entries of targetMap.values()) {
+    if (entries.length <= 1) continue;
+    const changeNames = [...new Set(entries.map((c) => c.changeName))];
+    if (!changeNames.includes(changeName)) continue;
+    if (changeNames.length <= 1) continue;
+
+    const { targetStandard, ruleId } = entries[0];
+    diagnostics.push({
+      source: "exclusive_active_target",
+      artifactPath: `.strict-spec-driven/changes/${changeName}/tech/`,
+      fieldPath: `$.operations`,
+      message: `rule '${ruleId}' of standard '${targetStandard}' is MODIFIED/REMOVED in multiple active changes: ${changeNames.join(", ")}`,
+      expected: "unique MODIFIED/REMOVED target across active changes",
+      actual: `conflict between ${changeNames.join(" and ")}`,
+    });
   }
 
   return diagnostics;
@@ -545,6 +799,11 @@ export function verifyChange(
   allDiagnostics.push(...checkAddedRequirementCollisions(rootDir, changeDir));
 
   allDiagnostics.push(...checkExclusiveActiveTargets(rootDir, changeName));
+
+  const techPrefix = `.strict-spec-driven/changes/${changeName}/tech`;
+  allDiagnostics.push(...validateDeltaTech(changeDir, techPrefix));
+  allDiagnostics.push(...checkTechDeltaTargets(rootDir, changeDir));
+  allDiagnostics.push(...checkExclusiveActiveTechTargets(rootDir, changeName));
 
   allDiagnostics.sort((a, b) => {
     const aKey = [a.source, a.artifactPath, a.fieldPath, a.message].join("|");

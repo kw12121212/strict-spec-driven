@@ -1,0 +1,40 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/main-tech.yaml
+    - templates/strict-spec-driven/schemas/delta-tech.yaml
+    - examples/strict-spec-driven/main-tech-ui.yaml
+    - .strict-spec-driven/config.yaml
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    ui-classification-policy:
+      strength: SHOULD
+      statement: >-
+        User-observable UI behavior SHOULD be recorded as main spec requirements, UI engineering and
+        design rules SHOULD be recorded as technical standards in the ui category, and pixel-level
+        visual fidelity SHOULD be governed by visual-regression snapshots referenced from mappings
+        rather than inlined into YAML artifacts.
+      scenarios:
+        ui-work-is-classified:
+          - GIVEN: a change includes user interface work
+          - WHEN: its strict artifacts are authored
+          - THEN: user-observable UI behavior is recorded as main spec requirements
+          - AND: UI engineering and design rules are recorded as ui-category technical standards
+    yaml-tech-category-includes-ui:
+      strength: MUST
+      statement: >-
+        The strict YAML technical standard and delta tech schemas MUST accept a ui category for
+        standards that govern user interface engineering and design rules.
+      scenarios:
+        ui-category-is-accepted:
+          - GIVEN: a technical standard or delta tech artifact declares the ui category
+          - WHEN: it is validated against its schema
+          - THEN: the ui category is accepted as a valid standard category
+  MODIFIED: {}
+  REMOVED: {}

@@ -21,6 +21,7 @@ const REQUIRED_SCAFFOLD_ASSETS = [
   "config.yaml",
   "harness.yaml",
   "specs/INDEX.yaml",
+  "tech/INDEX.yaml",
   "roadmap/INDEX.yaml",
 ] as const;
 const REQUIRED_CHANGE_TEMPLATE_ASSETS = [

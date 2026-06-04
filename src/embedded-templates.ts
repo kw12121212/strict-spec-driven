@@ -243,6 +243,17 @@ specs:
     title: Sample Spec Title
     path: .strict-spec-driven/specs/sample-area.yaml
 `,
+  "strict-spec-driven/scaffold/tech/INDEX.yaml": `schema: strict-spec-driven/tech-index/v1
+schema_version: 1
+artifact_type: tech_index
+schema_file: ../schemas/tech-index.yaml
+standards:
+  # Replace the sample entry below with real technical standards, or remove if unused.
+  - id: sample-standard
+    title: Sample Technical Standard
+    category: coding
+    path: .strict-spec-driven/tech/sample-standard.yaml
+`,
   "strict-spec-driven/schemas/change-design.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
 schema_id: strict-spec-driven/change-design/v1
@@ -533,6 +544,197 @@ json_schema:
           type: object
           additionalProperties:
             "$ref": "#/definitions/requirement_value"
+        REMOVED:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: false
+            required:
+              - reason
+            properties:
+              reason:
+                type: string
+`,
+  "strict-spec-driven/schemas/delta-tech.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/delta-tech/v1
+artifact_type: delta_tech
+artifact_name: delta-tech
+description: >-
+  Strict YAML delta tech standard artifact. A delta tech artifact lives under a
+  change at changes/<name>/tech/ and expresses how that change evolves a
+  technical standard: adding, modifying, or removing rules of an existing
+  standard, or creating a whole new standard. Archive merges every delta tech
+  artifact into .strict-spec-driven/tech/ so standard changes flow through the
+  same proposal, review, and archive audit path as observable-behavior specs.
+example_ref: ../../../examples/strict-spec-driven/delta-tech.yaml
+coverage_examples:
+  - ../../../examples/strict-spec-driven/delta-tech.operations.yaml
+merge_rules:
+  exclusive_active_target: |
+    A rule ID that appears as a MODIFIED or REMOVED target in one active change
+    MUST NOT appear as a MODIFIED or REMOVED target for the same target_standard
+    in any other active change. Verify must enforce this constraint and report it
+    as a deterministic validation failure.
+  added_existing_target: |
+    A rule ID that appears as an ADDED entry MUST NOT already exist in the target
+    standard at archive time. Verify must enforce this constraint and report it as
+    a deterministic validation failure before archive can rewrite tech standards.
+  modified_missing_target: |
+    If a MODIFIED entry targets a rule ID that does not exist in the standard at
+    archive time, the entry is treated as ADDED and recorded in the archive merge
+    report.
+  removed_missing_target: |
+    If a REMOVED entry targets a rule ID that does not exist in the standard at
+    archive time, the entry is silently skipped and recorded as a skipped removal
+    in the archive merge report.
+  new_standard_creation: |
+    If target_standard does not match any existing standard id at archive time,
+    the delta is a new-standard creation: it MUST provide a standard block with
+    title and category, archive creates a new main_tech file at
+    .strict-spec-driven/tech/<target_standard>.yaml from the standard block,
+    mapping, and ADDED rules, and the tech index is regenerated.
+  mapping_merge: |
+    The mapping block is additive on merge: archive unions the delta's
+    implementation and enforcement paths into the standard's existing mapping and
+    de-duplicates, rather than replacing it. An empty or partial delta mapping
+    therefore never removes paths the change did not touch. Use /strict-tech-edit
+    for standalone removal of mapping paths.
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  definitions:
+    enforcement:
+      type: object
+      additionalProperties: false
+      required:
+        - method
+      properties:
+        method:
+          type: string
+          enum:
+            - lint
+            - ci
+            - test
+            - review
+            - manual
+        detail:
+          type: string
+    examples:
+      type: object
+      additionalProperties: false
+      properties:
+        good:
+          type: array
+          items:
+            type: string
+        bad:
+          type: array
+          items:
+            type: string
+    rule_value:
+      type: object
+      additionalProperties: false
+      required:
+        - strength
+        - statement
+        - rationale
+        - enforcement
+      properties:
+        strength:
+          type: string
+          enum:
+            - MUST
+            - SHOULD
+            - MAY
+        statement:
+          type: string
+        rationale:
+          type: string
+        enforcement:
+          "$ref": "#/definitions/enforcement"
+        examples:
+          "$ref": "#/definitions/examples"
+        exceptions:
+          type: array
+          items:
+            type: string
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - target_standard
+    - mapping
+    - operations
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/delta-tech/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: delta_tech
+    schema_file:
+      type: string
+    target_standard:
+      type: string
+    standard:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - category
+      properties:
+        title:
+          type: string
+        category:
+          type: string
+          enum:
+            - coding
+            - architecture
+            - security
+            - performance
+            - api
+            - testing
+            - tooling
+            - operations
+            - documentation
+            - ui
+    mapping:
+      type: object
+      additionalProperties: false
+      required:
+        - implementation
+        - enforcement
+      properties:
+        implementation:
+          type: array
+          items:
+            type: string
+        enforcement:
+          type: array
+          items:
+            type: string
+    operations:
+      type: object
+      additionalProperties: false
+      required:
+        - ADDED
+        - MODIFIED
+        - REMOVED
+      properties:
+        ADDED:
+          type: object
+          additionalProperties:
+            "$ref": "#/definitions/rule_value"
+        MODIFIED:
+          type: object
+          additionalProperties:
+            "$ref": "#/definitions/rule_value"
         REMOVED:
           type: object
           additionalProperties:
@@ -1310,6 +1512,145 @@ json_schema:
                 "$ref": "#/definitions/step"
               minItems: 1
 `,
+  "strict-spec-driven/schemas/main-tech.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/main-tech/v1
+artifact_type: main_tech
+artifact_name: main-tech
+description: >-
+  Strict YAML technical standard artifact. A tech standard captures the
+  implementation-facing engineering rules that main specs deliberately exclude:
+  technology choices, coding conventions, architecture rules, internal structure
+  constraints, and security, performance, or API design baselines. Each rule
+  carries a strength, a statement, a rationale, and an enforcement contract so
+  later change proposal, implementation, and review workflows can treat it as a
+  binding constraint rather than informal advice.
+example_ref: ../../../examples/strict-spec-driven/main-tech.yaml
+coverage_examples:
+  - ../../../examples/strict-spec-driven/main-tech-ui.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  definitions:
+    enforcement:
+      type: object
+      additionalProperties: false
+      required:
+        - method
+      properties:
+        method:
+          type: string
+          enum:
+            - lint
+            - ci
+            - test
+            - review
+            - manual
+        detail:
+          type: string
+    examples:
+      type: object
+      additionalProperties: false
+      properties:
+        good:
+          type: array
+          items:
+            type: string
+        bad:
+          type: array
+          items:
+            type: string
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - standard
+    - mapping
+    - rules
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/main-tech/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: main_tech
+    schema_file:
+      type: string
+    standard:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - category
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+          enum:
+            - coding
+            - architecture
+            - security
+            - performance
+            - api
+            - testing
+            - tooling
+            - operations
+            - documentation
+            - ui
+    mapping:
+      type: object
+      additionalProperties: false
+      required:
+        - implementation
+        - enforcement
+      properties:
+        implementation:
+          type: array
+          items:
+            type: string
+        enforcement:
+          type: array
+          items:
+            type: string
+    rules:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - strength
+          - statement
+          - rationale
+          - enforcement
+        properties:
+          strength:
+            type: string
+            enum:
+              - MUST
+              - SHOULD
+              - MAY
+          statement:
+            type: string
+          rationale:
+            type: string
+          enforcement:
+            "$ref": "#/definitions/enforcement"
+          examples:
+            "$ref": "#/definitions/examples"
+          exceptions:
+            type: array
+            items:
+              type: string
+`,
   "strict-spec-driven/schemas/planned-change.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
 schema_id: strict-spec-driven/planned-change/v1
@@ -1600,6 +1941,44 @@ entries:
     artifact_name: spec-index
     schema_file: spec-index.yaml
     primary_example: ../../../examples/strict-spec-driven/spec-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+  - schema_id: strict-spec-driven/main-tech/v1
+    schema_version: 1
+    artifact_type: main_tech
+    artifact_name: main-tech
+    schema_file: main-tech.yaml
+    primary_example: ../../../examples/strict-spec-driven/main-tech.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Technical standards capture implementation-facing engineering rules that main specs exclude.
+  - schema_id: strict-spec-driven/delta-tech/v1
+    schema_version: 1
+    artifact_type: delta_tech
+    artifact_name: delta-tech
+    schema_file: delta-tech.yaml
+    primary_example: ../../../examples/strict-spec-driven/delta-tech.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Delta tech artifacts carry standard changes through the change lifecycle and merge into tech standards on archive.
+  - schema_id: strict-spec-driven/tech-index/v1
+    schema_version: 1
+    artifact_type: tech_index
+    artifact_name: tech-index
+    schema_file: tech-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/tech-index.yaml
     compatibility:
       status: current
       introduced_in: 1
@@ -2226,6 +2605,58 @@ json_schema:
           type: string
         unit_test_task:
           type: string
+`,
+  "strict-spec-driven/schemas/tech-index.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/tech-index/v1
+artifact_type: tech_index
+artifact_name: tech-index
+description: >-
+  Strict YAML technical standard index artifact. Lists every tech standard file
+  under .strict-spec-driven/tech/ so workflows can enumerate applicable
+  engineering constraints without scanning the filesystem.
+example_ref: ../../../examples/strict-spec-driven/tech-index.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - standards
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/tech-index/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: tech_index
+    schema_file:
+      type: string
+    standards:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - title
+          - category
+          - path
+        properties:
+          id:
+            type: string
+          title:
+            type: string
+          category:
+            type: string
+          path:
+            type: string
 `,
 };
 

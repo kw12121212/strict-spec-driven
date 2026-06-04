@@ -26,6 +26,16 @@ mapping:
     - examples/strict-spec-driven/roadmap-milestone.planning.yaml
     - examples/strict-spec-driven/harness.yaml
     - examples/strict-spec-driven/harness-session.yaml
+    - templates/strict-spec-driven/schemas/main-tech.yaml
+    - templates/strict-spec-driven/schemas/delta-tech.yaml
+    - templates/strict-spec-driven/schemas/tech-index.yaml
+    - templates/strict-spec-driven/scaffold/tech/INDEX.yaml
+    - examples/strict-spec-driven/main-tech.yaml
+    - examples/strict-spec-driven/main-tech-ui.yaml
+    - examples/strict-spec-driven/delta-tech.yaml
+    - examples/strict-spec-driven/delta-tech.operations.yaml
+    - examples/strict-spec-driven/tech-index.yaml
+    - src/cli/tech-mapping.ts
     - src/validation.ts
     - src/yaml.ts
     - install.sh
@@ -50,6 +60,8 @@ mapping:
     - skills/strict-spec-spec-edit/SKILL.md
     - skills/strict-spec-sync-specs/SKILL.md
     - skills/strict-spec-verify/SKILL.md
+    - skills/strict-tech-edit/SKILL.md
+    - skills/strict-tech-sync/SKILL.md
     - skills/strict-roadmap-milestone/SKILL.md
     - skills/strict-roadmap-plan/SKILL.md
     - skills/strict-roadmap-propose/SKILL.md
@@ -1822,3 +1834,106 @@ requirements:
         - AND: >-
             strict-spec-review remains reserved for completed-change direct code review and
             regression evidence.
+  yaml-tech-artifact-schema-coverage:
+    strength: MUST
+    statement: >-
+      The system MUST define strict YAML schemas for technical standards (main_tech), delta tech
+      standards (delta_tech), and tech standard indexes (tech_index).
+    scenarios:
+      tech-artifact-families-are-covered:
+        - GIVEN: the strict workflow artifact contract is reviewed
+        - WHEN: the technical-standard artifact families are checked
+        - THEN: >-
+            main_tech, delta_tech, and tech_index each have a registered strict YAML schema
+            definition and a minimal valid example
+  yaml-tech-standard-rule-model:
+    strength: MUST
+    statement: >-
+      The system MUST represent each strict YAML technical standard rule with a stable identifier,
+      an RFC 2119 strength enum, an enforceable statement, a rationale, and an enforcement contract
+      with a method enum, plus optional examples and exceptions.
+    scenarios:
+      tech-rule-fields-are-structured:
+        - GIVEN: a strict YAML technical standard rule is reviewed
+        - WHEN: its rule data is inspected
+        - THEN: >-
+            the strength, statement, rationale, and enforcement method are available as structured
+            fields and examples and exceptions are optional structured fields
+  yaml-delta-tech-operation-model:
+    strength: MUST
+    statement: >-
+      The system MUST represent strict YAML delta tech operations as ADDED, MODIFIED, and REMOVED
+      maps keyed by rule identifier that target a named standard, where REMOVED entries carry a
+      reason.
+    scenarios:
+      delta-tech-operations-are-structured:
+        - GIVEN: a strict YAML delta tech artifact is reviewed
+        - WHEN: its operations are inspected
+        - THEN: >-
+            the target standard, the ADDED, MODIFIED, and REMOVED rule maps, and each REMOVED reason
+            are available as structured fields
+  yaml-delta-tech-archive-merge:
+    strength: MUST
+    statement: >-
+      The system MUST merge a change's delta tech operations into the targeted standard on archive
+      and regenerate the tech index, applying the same active-target exclusivity,
+      added-existing-target, modified-missing-target, and removed-missing-target rules used for
+      delta specs.
+    scenarios:
+      delta-tech-merges-on-archive:
+        - GIVEN: an active change contains delta tech operations targeting a standard
+        - WHEN: the change is archived
+        - THEN: >-
+            the targeted standard rules reflect the ADDED, MODIFIED, and REMOVED operations and the
+            tech index is regenerated from the merged state
+  yaml-delta-tech-new-standard-creation:
+    strength: MUST
+    statement: >-
+      The system MUST create a new technical standard on archive when a delta tech artifact targets
+      a standard identifier that does not yet exist and supplies a standard block with title and
+      category.
+    scenarios:
+      delta-tech-creates-new-standard:
+        - GIVEN: >-
+            a delta tech artifact targets a missing standard id and supplies a standard block with
+            title and category
+        - WHEN: the change is archived
+        - THEN: >-
+            a new strict YAML technical standard file is created from the standard block, mapping,
+            and ADDED rules and is listed in the tech index
+  tech-standards-consulted-in-lifecycle:
+    strength: SHOULD
+    statement: >-
+      The change workflow SHOULD consult applicable technical standards during proposal,
+      implementation, and review so that standard changes flow through delta tech rather than
+      out-of-band edits.
+    scenarios:
+      lifecycle-consults-tech-standards:
+        - GIVEN: a strict change is proposed, implemented, and reviewed
+        - WHEN: applicable technical standards exist
+        - THEN: >-
+            the workflow treats applicable MUST rules as binding and SHOULD rules as defaults and
+            carries any standard change as a delta tech artifact
+  ui-classification-policy:
+    strength: SHOULD
+    statement: >-
+      User-observable UI behavior SHOULD be recorded as main spec requirements, UI engineering and
+      design rules SHOULD be recorded as technical standards in the ui category, and pixel-level
+      visual fidelity SHOULD be governed by visual-regression snapshots referenced from mappings
+      rather than inlined into YAML artifacts.
+    scenarios:
+      ui-work-is-classified:
+        - GIVEN: a change includes user interface work
+        - WHEN: its strict artifacts are authored
+        - THEN: user-observable UI behavior is recorded as main spec requirements
+        - AND: UI engineering and design rules are recorded as ui-category technical standards
+  yaml-tech-category-includes-ui:
+    strength: MUST
+    statement: >-
+      The strict YAML technical standard and delta tech schemas MUST accept a ui category for
+      standards that govern user interface engineering and design rules.
+    scenarios:
+      ui-category-is-accepted:
+        - GIVEN: a technical standard or delta tech artifact declares the ui category
+        - WHEN: it is validated against its schema
+        - THEN: the ui category is accepted as a valid standard category

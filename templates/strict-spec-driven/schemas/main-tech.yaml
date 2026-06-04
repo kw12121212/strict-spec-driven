@@ -1,0 +1,138 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/main-tech/v1
+artifact_type: main_tech
+artifact_name: main-tech
+description: >-
+  Strict YAML technical standard artifact. A tech standard captures the
+  implementation-facing engineering rules that main specs deliberately exclude:
+  technology choices, coding conventions, architecture rules, internal structure
+  constraints, and security, performance, or API design baselines. Each rule
+  carries a strength, a statement, a rationale, and an enforcement contract so
+  later change proposal, implementation, and review workflows can treat it as a
+  binding constraint rather than informal advice.
+example_ref: ../../../examples/strict-spec-driven/main-tech.yaml
+coverage_examples:
+  - ../../../examples/strict-spec-driven/main-tech-ui.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  definitions:
+    enforcement:
+      type: object
+      additionalProperties: false
+      required:
+        - method
+      properties:
+        method:
+          type: string
+          enum:
+            - lint
+            - ci
+            - test
+            - review
+            - manual
+        detail:
+          type: string
+    examples:
+      type: object
+      additionalProperties: false
+      properties:
+        good:
+          type: array
+          items:
+            type: string
+        bad:
+          type: array
+          items:
+            type: string
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - standard
+    - mapping
+    - rules
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/main-tech/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: main_tech
+    schema_file:
+      type: string
+    standard:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - category
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+          enum:
+            - coding
+            - architecture
+            - security
+            - performance
+            - api
+            - testing
+            - tooling
+            - operations
+            - documentation
+            - ui
+    mapping:
+      type: object
+      additionalProperties: false
+      required:
+        - implementation
+        - enforcement
+      properties:
+        implementation:
+          type: array
+          items:
+            type: string
+        enforcement:
+          type: array
+          items:
+            type: string
+    rules:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - strength
+          - statement
+          - rationale
+          - enforcement
+        properties:
+          strength:
+            type: string
+            enum:
+              - MUST
+              - SHOULD
+              - MAY
+          statement:
+            type: string
+          rationale:
+            type: string
+          enforcement:
+            "$ref": "#/definitions/enforcement"
+          examples:
+            "$ref": "#/definitions/examples"
+          exceptions:
+            type: array
+            items:
+              type: string

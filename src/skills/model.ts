@@ -35,7 +35,7 @@ export const EXPECTED_SCRIPT_SYMLINK = "../../dist/scripts";
 export const COMMAND_PREFIX = "node {{SKILL_DIR}}/scripts/strict-spec-driven.js";
 export const GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
 export const GENERATE_NAMED_ARGS_COMMAND =
-  `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec> --<named-args>`;
+  `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>`;
 export const READY_COMMAND = `${COMMAND_PREFIX} ready <change-name>`;
 export const NEXT_COMMAND = `${COMMAND_PREFIX} next <change-name>`;
 export const CHECK_WORKFLOW_STATE_COMMAND = `${COMMAND_PREFIX} check-workflow-state`;

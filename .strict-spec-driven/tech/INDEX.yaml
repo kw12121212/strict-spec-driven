@@ -1,0 +1,13 @@
+schema: strict-spec-driven/tech-index/v1
+schema_version: 1
+artifact_type: tech_index
+schema_file: ../schemas/tech-index.yaml
+standards:
+  - id: yaml-first-artifacts
+    title: YAML-First Artifact Authoring
+    category: architecture
+    path: .strict-spec-driven/tech/yaml-first-artifacts.yaml
+  - id: typescript-esm-baseline
+    title: TypeScript ESM Baseline
+    category: coding
+    path: .strict-spec-driven/tech/typescript-esm-baseline.yaml

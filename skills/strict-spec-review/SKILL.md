@@ -17,6 +17,8 @@ before running anything. Do not guess.
 
 ```yaml
 check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
+tech-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js tech-status
+verify-tech-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-tech-mappings
 modify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js modify [change-name|archive-dir]
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
@@ -47,10 +49,14 @@ run `init` from this skill.
    - `design.yaml`
    - `questions.yaml`
    - every strict YAML delta spec in `changes/<name>/specs/`
+   - every strict YAML delta tech artifact in `changes/<name>/tech/`, if present
    - the implementation and test files mapped to those specs
    - `git status --short` and the relevant diff for changed tracked files
    - any newly created untracked source, test, documentation, or strict workflow
      files that belong to the change
+   - the technical standards that govern the changed files: run
+     `node {{SKILL_DIR}}/scripts/strict-spec-driven.js tech-status` and read the
+     relevant files under `.strict-spec-driven/tech/`
 
 4. **Read every changed file yourself** — perform an author-agnostic code
    review from repository evidence. Do not call a `strict-spec-driven review`
@@ -67,6 +73,19 @@ run `init` from this skill.
    - maintainability, readability, and unnecessary abstraction
    - user-visible CLI or documentation behavior
    - generated artifacts, build output, and packaging impact
+   - technical-standard compliance: every changed file must satisfy the
+     applicable MUST and SHOULD rules under `.strict-spec-driven/tech/`. A MUST
+     violation is a MUST FIX finding; an unjustified SHOULD violation is at
+     least a SHOULD FIX finding. A deviation is acceptable only when the
+     change's `design.yaml` records an explicit justification for it.
+   - delta tech correctness: when the change carries delta tech artifacts under
+     `changes/<name>/tech/`, confirm each standard change is justified by
+     `proposal.yaml`/`design.yaml`, that the `operations` target the right rule
+     ids, that `ADDED` rules do not duplicate existing rules, that the `mapping`
+     lists the implementation and enforcement paths this change adds (the merge
+     is additive — it unions into the standard's existing mapping), and that a
+     new standard supplies a `standard` block with title and category. Flag an
+     unjustified or incorrect standard change as a MUST FIX finding.
 
 6. **Check spec alignment** — confirm the implementation and tests match the
    strict YAML delta specs and do not violate `unchanged_behavior`.
@@ -126,6 +145,13 @@ evidence was gathered during implementation:
   regression command after review-time changes
 - Focus on real issues, not style churn already handled elsewhere
 - Review code based on repository evidence, never on authorship
+- Treat applicable technical standards under `.strict-spec-driven/tech/` as part
+  of the review bar: MUST violations are MUST FIX, unjustified SHOULD violations
+  are SHOULD FIX, and deviations are acceptable only when `design.yaml` justifies
+  them
+- When the change carries delta tech artifacts under `changes/<name>/tech/`,
+  review each standard change for justification and correct merge operations; an
+  unjustified or malformed standard change is a MUST FIX finding
 - Do not recommend archive without passing complete project-level regression
   test evidence or explicit setup guidance explaining why that evidence is
   blocked

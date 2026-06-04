@@ -1,0 +1,124 @@
+---
+name: strict-tech-edit
+description: Create or modify individual strict YAML technical standard files directly for lightweight engineering-standard corrections.
+metadata:
+  skill_id: strict_tech_edit
+  author: strict-spec-driven
+  type: agent_skill
+  version: 1.0.0
+---
+
+You are helping the user create or modify strict YAML technical standard files
+under `.strict-spec-driven/tech/` directly, without going through the strict
+change workflow.
+
+Technical standards capture the implementation-facing engineering rules that
+main specs deliberately exclude: technology choices, coding conventions,
+architecture rules, internal structure constraints, and security, performance,
+or API design baselines. A main spec says what the system does; a technical
+standard says how the code that implements it must be built.
+
+Use this skill only for standalone, lightweight standard maintenance that is not
+part of an active strict change. When a standard change is part of a code change
+— so it must be reviewed and merged alongside that change — do not edit the live
+standard here; carry it as a delta tech artifact under
+`.strict-spec-driven/changes/<name>/tech/` through `/strict-spec-propose`,
+`/strict-spec-apply`, and archive instead.
+
+## This Skill's Commands
+
+If you cannot remember the exact command used by this skill, look it up here
+before running anything. Do not guess.
+
+```yaml
+check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
+tech-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js tech-status
+verify-tech-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-tech-mappings
+schema-show: node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show main-tech
+```
+
+## Prerequisites
+
+Run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
+
+## Steps
+
+Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is
+missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
+run `init` from this skill.
+
+1. **Read strict tech context first** — before making any changes, read:
+   - `.strict-spec-driven/config.yaml`
+   - `.strict-spec-driven/tech/INDEX.yaml`
+   - run `tech-status` to see existing standards and their rules
+   - any existing strict YAML technical standard files relevant to the request
+   - the schema contract via `schema-show main-tech` when unsure of the shape
+
+2. **Understand the request** — identify whether the user wants to:
+   - add a new strict YAML technical standard file or category
+   - add new structured rules to an existing standard file
+   - modify an existing rule
+   - remove one or more existing rules
+
+3. **Choose the target** — use `INDEX.yaml` and `tech-status` to determine where
+   the content belongs:
+   - if an existing standard file covers the area, use it
+   - only create a new standard file if no existing file fits
+   - keep one standard file focused on one category
+     (`coding`, `architecture`, `security`, `performance`, `api`, `testing`,
+     `tooling`, `operations`, or `documentation`)
+
+4. **Prepare the changes** — draft the exact structured edits. Every rule must
+   carry:
+   - `strength`: MUST (required, no exceptions), SHOULD (default unless
+     justified), or MAY (genuinely optional)
+   - `statement`: the rule itself, phrased as an enforceable engineering
+     constraint
+   - `rationale`: why the rule exists — this is what separates a standard from
+     arbitrary preference
+   - `enforcement`: a `method` of `lint`, `ci`, `test`, `review`, or `manual`,
+     plus optional `detail`
+   - optional `examples.good` / `examples.bad` and `exceptions`
+   Keep `mapping.implementation` (representative files the standard governs) and
+   `mapping.enforcement` (lint configs, CI files, or tests that enforce it) as
+   repo-relative path arrays. Either may be empty for a manual-only standard.
+
+5. **Present and confirm** — show the user:
+   - which strict YAML standard file or files will change
+   - the exact content that will be added, modified, or removed
+   - whether `.strict-spec-driven/tech/INDEX.yaml` needs updating
+
+   Wait for explicit confirmation before writing anything.
+
+6. **Apply the confirmed edits** — after confirmation:
+   - edit the target files under `.strict-spec-driven/tech/`
+   - preserve existing `mapping.implementation` and `mapping.enforcement` fields
+     unless the edit changes the governed or enforcing files
+   - if a new file or category was created, update
+     `.strict-spec-driven/tech/INDEX.yaml`
+   - for removals, delete the exact structured rule entries cleanly
+
+7. **Validate the result** — after editing, verify:
+   - each edited file remains valid strict YAML matching the `main-tech` schema
+   - `INDEX.yaml` reflects the current standard files and matches the `tech-index`
+     schema
+   - run `verify-tech-mappings` when mapping fields changed
+   - run `tech-status` to confirm the standards and rules read back correctly
+
+8. **Summarize** — tell the user which strict YAML standard files changed, what
+   was added, modified, or removed, and whether `INDEX.yaml` was updated.
+
+## Rules
+
+- Always read existing standards before editing
+- Present the exact changes and wait for confirmation before writing
+- Prefer existing categories and files unless the content clearly requires a new
+  path
+- Every rule MUST carry a rationale and an enforcement method — no rationale-free
+  rules
+- Do not implement product code
+- Do not create or interact with `.strict-spec-driven/changes/`
+- Keep mappings in `mapping.implementation` and `mapping.enforcement`, not in
+  rule prose

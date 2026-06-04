@@ -1,0 +1,35 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: formalize-tech-artifact-family
+  status: proposed
+summary:
+  what:
+    - >-
+      Document the tech (technical standards) artifact family contract in the
+      contracts-yaml-artifacts main spec.
+    - >-
+      Document delta-tech operations, archive merge, and new-standard creation as part of the change
+      lifecycle contract.
+    - Record technical-standard workflow rules in config.yaml.
+  why:
+    - >-
+      The tech artifact family and its lifecycle integration were added to the workflow but the
+      strict contract spec and config rules did not yet record them.
+    - >-
+      Recording the contract keeps the YAML-first workflow self-describing and prevents silent scope
+      drift.
+scope:
+  in:
+    - >-
+      New requirements in .strict-spec-driven/specs/contracts/yaml-artifacts.yaml describing
+      main_tech, delta_tech, and tech_index schemas and their lifecycle behavior.
+    - A tech rules category in .strict-spec-driven/config.yaml.
+  out:
+    - Changing the already-implemented tech schemas, CLI commands, or skills behavior.
+    - Adding new technical standards content for this repository.
+unchanged_behavior:
+  - Existing spec, delta-spec, roadmap, and harness artifact contracts remain valid and unchanged.
+  - All existing CLI commands and skills continue to behave as before.

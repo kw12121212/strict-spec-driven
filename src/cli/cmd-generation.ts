@@ -17,13 +17,14 @@ type FlagMap = Record<string, string[]>;
 
 function usage(): string {
   return [
-    "Usage: strict-spec-driven generate <change-name> <proposal|design|questions|delta-spec> --<named-args>",
+    "Usage: strict-spec-driven generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>",
     "",
     "Examples:",
     "  strict-spec-driven generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
     "  strict-spec-driven generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
     "  strict-spec-driven generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
     "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
+    "  strict-spec-driven generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]...",
   ].join("\n") + "\n";
 }
 
@@ -675,6 +676,311 @@ function buildDeltaInputFromArgs(rootDir: string, changeName: string, argv: stri
   return input;
 }
 
+function normalizeDeltaTechRelativePath(relativePath: string): string {
+  let normalized = relativePath.replaceAll("\\", "/");
+  const strictTechPrefix = `${STRICT_WORKFLOW_DIR}/tech/`;
+  if (normalized.startsWith(strictTechPrefix)) {
+    normalized = normalized.slice(strictTechPrefix.length);
+  }
+  return normalized;
+}
+
+function readTechIndexPathForTarget(rootDir: string, targetStandard: string): string | undefined {
+  const index = readYamlIfExists<{ standards?: Array<{ id?: unknown; path?: unknown }> }>(
+    rootDir,
+    `${STRICT_WORKFLOW_DIR}/tech/INDEX.yaml`,
+  );
+  const match = (index?.standards ?? []).find((candidate) => candidate.id === targetStandard);
+  return typeof match?.path === "string" ? normalizeDeltaTechRelativePath(match.path) : undefined;
+}
+
+function resolveDeltaTechExistingPath(rootDir: string, targetStandard: string, techPath: string | undefined): string {
+  if (techPath) {
+    return normalizeDeltaTechRelativePath(techPath);
+  }
+  const indexedPath = readTechIndexPathForTarget(rootDir, targetStandard);
+  if (indexedPath) return indexedPath;
+  return `${targetStandard}.yaml`;
+}
+
+function emptyDeltaTechInput(targetStandard: string, techPath: string): GenerationInputRecord {
+  return {
+    target_standard: targetStandard,
+    tech_path: techPath,
+    mapping: { implementation: [], enforcement: [] },
+    operations: { ADDED: {}, MODIFIED: {}, REMOVED: {} },
+  };
+}
+
+function existingDeltaTechInput(
+  rootDir: string,
+  changeName: string,
+  targetStandard: string,
+  techPath: string | undefined,
+  reset: boolean,
+): GenerationInputRecord {
+  const relativeTechPath = resolveDeltaTechExistingPath(rootDir, targetStandard, techPath);
+  if (reset) {
+    return emptyDeltaTechInput(targetStandard, relativeTechPath);
+  }
+  const artifact = readYamlIfExists<GenerationInputRecord>(
+    rootDir,
+    `${STRICT_WORKFLOW_DIR}/changes/${changeName}/tech/${relativeTechPath}`,
+  );
+  if (!artifact) {
+    return emptyDeltaTechInput(targetStandard, relativeTechPath);
+  }
+  const input: GenerationInputRecord = {
+    target_standard: artifact.target_standard ?? targetStandard,
+    tech_path: relativeTechPath,
+    mapping: isRecord(artifact.mapping) ? artifact.mapping : { implementation: [], enforcement: [] },
+    operations: isRecord(artifact.operations) ? artifact.operations : { ADDED: {}, MODIFIED: {}, REMOVED: {} },
+  };
+  if (isRecord(artifact.standard)) {
+    input.standard = artifact.standard;
+  }
+  return input;
+}
+
+type TechRuleGroup = {
+  operation: string;
+  id: string;
+  strength?: string;
+  statement?: string;
+  rationale?: string;
+  method?: string;
+  detail?: string;
+  reason?: string;
+  examplesGood: string[];
+  examplesBad: string[];
+  exceptions: string[];
+};
+
+type DeltaTechCommandInput = {
+  reset: boolean;
+  targetStandard?: string;
+  techPath?: string;
+  title?: string;
+  category?: string;
+  implementation: string[];
+  enforcement: string[];
+  rules: TechRuleGroup[];
+};
+
+function parseDeltaTechCommandInput(argv: string[], rootDir: string): DeltaTechCommandInput {
+  const input: DeltaTechCommandInput = {
+    reset: false,
+    implementation: [],
+    enforcement: [],
+    rules: [],
+  };
+  let currentOperation: string | undefined;
+  let hasPendingOperation = false;
+  let currentRule: TechRuleGroup | undefined;
+
+  function readValue(name: string, index: number): string {
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith("--")) {
+      throw new Error(`missing value for --${name}`);
+    }
+    return resolveStringValue(value, rootDir);
+  }
+
+  function ensureRule(flagName: string): TechRuleGroup {
+    if (!currentRule) {
+      throw new Error(`missing required argument --rule before --${flagName}`);
+    }
+    return currentRule;
+  }
+
+  function finalizeRule(): void {
+    if (!currentRule) return;
+    input.rules.push(currentRule);
+    currentRule = undefined;
+  }
+
+  const onceScalar = new Set(["strength", "statement", "rationale", "method", "detail", "reason"]);
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token?.startsWith("--") || token.length === 2) {
+      throw new Error(`expected named argument, got '${token ?? ""}'`);
+    }
+
+    const name = token.slice(2);
+    if (name === "reset") {
+      input.reset = true;
+      continue;
+    }
+    if (name === "target-standard") {
+      if (input.targetStandard !== undefined) throw new Error("--target-standard may only be supplied once");
+      input.targetStandard = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "tech-path") {
+      if (input.techPath !== undefined) throw new Error("--tech-path may only be supplied once");
+      input.techPath = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "title") {
+      if (input.title !== undefined) throw new Error("--title may only be supplied once");
+      input.title = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "category") {
+      if (input.category !== undefined) throw new Error("--category may only be supplied once");
+      input.category = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "implementation") {
+      input.implementation.push(readValue(name, index));
+      index += 1;
+      continue;
+    }
+    if (name === "enforcement") {
+      input.enforcement.push(readValue(name, index));
+      index += 1;
+      continue;
+    }
+    if (name === "operation") {
+      finalizeRule();
+      currentOperation = readValue(name, index);
+      hasPendingOperation = true;
+      index += 1;
+      continue;
+    }
+    if (name === "rule") {
+      finalizeRule();
+      if (!currentOperation) {
+        throw new Error("missing required argument --operation before --rule");
+      }
+      currentRule = {
+        operation: currentOperation,
+        id: readValue(name, index),
+        examplesGood: [],
+        examplesBad: [],
+        exceptions: [],
+      };
+      hasPendingOperation = false;
+      index += 1;
+      continue;
+    }
+    if (onceScalar.has(name)) {
+      const rule = ensureRule(name);
+      const key = name as "strength" | "statement" | "rationale" | "method" | "detail" | "reason";
+      if (rule[key] !== undefined) {
+        throw new Error(`--${name} may only be supplied once per rule`);
+      }
+      rule[key] = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "example-good") {
+      ensureRule(name).examplesGood.push(readValue(name, index));
+      index += 1;
+      continue;
+    }
+    if (name === "example-bad") {
+      ensureRule(name).examplesBad.push(readValue(name, index));
+      index += 1;
+      continue;
+    }
+    if (name === "exception") {
+      ensureRule(name).exceptions.push(readValue(name, index));
+      index += 1;
+      continue;
+    }
+
+    throw new Error(`unsupported argument(s): --${name}`);
+  }
+
+  finalizeRule();
+  if (hasPendingOperation) {
+    throw new Error("missing required argument --rule");
+  }
+  return input;
+}
+
+function buildDeltaTechInputFromArgs(rootDir: string, changeName: string, argv: string[]): GenerationInputRecord {
+  const commandInput = parseDeltaTechCommandInput(argv, rootDir);
+  const targetStandard = commandInput.targetStandard;
+  if (!targetStandard) {
+    throw new Error("missing required argument --target-standard");
+  }
+  const input = existingDeltaTechInput(rootDir, changeName, targetStandard, commandInput.techPath, commandInput.reset);
+
+  if (commandInput.title !== undefined || commandInput.category !== undefined) {
+    if (commandInput.title === undefined || commandInput.category === undefined) {
+      throw new Error("--title and --category must be supplied together to define a new standard");
+    }
+    input.standard = { title: commandInput.title, category: commandInput.category };
+  }
+
+  const mapping = isRecord(input.mapping) ? input.mapping : {};
+  mapping.implementation = uniqueStrings([
+    ...(Array.isArray(mapping.implementation) ? mapping.implementation as string[] : []),
+    ...commandInput.implementation,
+  ]);
+  mapping.enforcement = uniqueStrings([
+    ...(Array.isArray(mapping.enforcement) ? mapping.enforcement as string[] : []),
+    ...commandInput.enforcement,
+  ]);
+  input.mapping = mapping;
+
+  const operations = isRecord(input.operations) ? input.operations : {};
+  for (const rule of commandInput.rules) {
+    if (!["ADDED", "MODIFIED", "REMOVED"].includes(rule.operation)) {
+      throw new Error("--operation must be one of: ADDED, MODIFIED, REMOVED");
+    }
+    const operationMap = isRecord(operations[rule.operation])
+      ? operations[rule.operation] as GenerationInputRecord
+      : {};
+
+    if (rule.operation === "REMOVED") {
+      if (!rule.reason) throw new Error(`missing required argument --reason for removed rule '${rule.id}'`);
+      if (rule.strength || rule.statement || rule.rationale || rule.method || rule.detail
+        || rule.examplesGood.length > 0 || rule.examplesBad.length > 0 || rule.exceptions.length > 0) {
+        throw new Error(`removed rule '${rule.id}' only supports --reason`);
+      }
+      upsertKeyedItem(operationMap, rule.id, { reason: rule.reason }, "delta tech rule");
+      operations[rule.operation] = operationMap;
+      continue;
+    }
+
+    if (!rule.strength) throw new Error(`missing required argument --strength for rule '${rule.id}'`);
+    if (!rule.statement) throw new Error(`missing required argument --statement for rule '${rule.id}'`);
+    if (!rule.rationale) throw new Error(`missing required argument --rationale for rule '${rule.id}'`);
+    if (!rule.method) throw new Error(`missing required argument --method for rule '${rule.id}'`);
+    if (rule.reason) throw new Error(`--reason is only valid with removed rule '${rule.id}'`);
+
+    const ruleValue: GenerationInputRecord = {
+      strength: rule.strength,
+      statement: rule.statement,
+      rationale: rule.rationale,
+      enforcement: rule.detail !== undefined
+        ? { method: rule.method, detail: rule.detail }
+        : { method: rule.method },
+    };
+    if (rule.examplesGood.length > 0 || rule.examplesBad.length > 0) {
+      const examples: GenerationInputRecord = {};
+      if (rule.examplesGood.length > 0) examples.good = rule.examplesGood;
+      if (rule.examplesBad.length > 0) examples.bad = rule.examplesBad;
+      ruleValue.examples = examples;
+    }
+    if (rule.exceptions.length > 0) {
+      ruleValue.exceptions = rule.exceptions;
+    }
+    upsertKeyedItem(operationMap, rule.id, ruleValue, "delta tech rule");
+    operations[rule.operation] = operationMap;
+  }
+  input.operations = operations;
+  return input;
+}
+
 function buildInputFromNamedArgs(
   rootDir: string,
   changeName: string,
@@ -690,6 +996,8 @@ function buildInputFromNamedArgs(
       return buildQuestionsInputFromArgs(rootDir, changeName, argv);
     case "delta-spec":
       return buildDeltaInputFromArgs(rootDir, changeName, argv);
+    case "delta-tech":
+      return buildDeltaTechInputFromArgs(rootDir, changeName, argv);
   }
 }
 
@@ -708,7 +1016,7 @@ export function runGenerate(argv: string[]): number {
     return 1;
   }
   if (!isGeneratableArtifact(artifact)) {
-    writeError("artifact must be one of: proposal, design, questions, delta-spec");
+    writeError("artifact must be one of: proposal, design, questions, delta-spec, delta-tech");
     return 1;
   }
 

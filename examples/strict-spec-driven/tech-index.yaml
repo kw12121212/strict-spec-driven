@@ -1,0 +1,9 @@
+schema: strict-spec-driven/tech-index/v1
+schema_version: 1
+artifact_type: tech_index
+schema_file: ../../templates/strict-spec-driven/schemas/tech-index.yaml
+standards:
+  - id: example-standard
+    title: Example Technical Standard
+    category: coding
+    path: tech/example-standard.yaml

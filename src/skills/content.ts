@@ -16,7 +16,11 @@ import {
 } from "./model.js";
 
 function requiresExistingStrictWorkflowState(skillName: string): boolean {
-  return (skillName.startsWith("strict-spec-") || skillName.startsWith("strict-roadmap-"))
+  return (
+    skillName.startsWith("strict-spec-") ||
+    skillName.startsWith("strict-roadmap-") ||
+    skillName.startsWith("strict-tech-")
+  )
     && skillName !== "strict-spec-init"
     && skillName !== "strict-spec-migrate";
 }

@@ -1,0 +1,28 @@
+schema: strict-spec-driven/main-tech/v1
+schema_version: 1
+artifact_type: main_tech
+schema_file: ../../templates/strict-spec-driven/schemas/main-tech.yaml
+standard:
+  id: example-standard
+  title: Example Technical Standard
+  category: coding
+mapping:
+  implementation: []
+  enforcement: []
+rules:
+  example-rule:
+    strength: MUST
+    statement: All source modules MUST be authored as ESM TypeScript.
+    rationale: >-
+      A single module system keeps build output, imports, and tooling
+      consistent across the codebase and avoids dual-package hazards.
+    enforcement:
+      method: ci
+      detail: tsc with module NodeNext fails the build on non-ESM modules.
+    examples:
+      good:
+        - import { thing } from "./thing.js";
+      bad:
+        - const thing = require("./thing");
+    exceptions:
+      - Generated bundle output under dist/ is exempt.

@@ -38,6 +38,30 @@ rules:
     - Tests must verify observable behavior described in specs, not internal implementation details
     - Each test must be independent — no shared mutable state between tests
     - Prefer real dependencies over mocks for code the project owns
+  tech:
+    - >-
+      Technical standards under .strict-spec-driven/tech/ capture implementation-facing engineering
+      rules that specs deliberately exclude — technology choices, conventions, architecture, and
+      security, performance, or API baselines
+    - >-
+      Treat applicable MUST rules as binding and SHOULD rules as defaults during proposal,
+      implementation, and review
+    - >-
+      When a change must alter a standard, carry it as a delta tech artifact under the change's tech/
+      directory so it merges on archive — never edit live standards during a change
+    - >-
+      Standalone standard maintenance outside an active change may use /strict-tech-edit directly
+  ui:
+    - >-
+      User-observable UI behavior — what is shown, what is interactive, how state changes, and
+      loading, error, and empty conditions — is captured as main spec requirements, not as
+      implementation detail
+    - >-
+      UI engineering and design rules — design-system usage, styling conventions, accessibility
+      baselines, internationalization — are captured as technical standards in the ui category
+    - >-
+      Pixel-level visual fidelity is governed by visual-regression snapshots referenced from
+      mappings, not inlined into YAML artifacts
 review_evidence:
   project_regression:
     method: complete_project_regression

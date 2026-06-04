@@ -5,7 +5,7 @@ import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 
-export const GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "delta-spec"] as const;
+export const GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "delta-spec", "delta-tech"] as const;
 export type GeneratableArtifact = (typeof GENERATABLE_ARTIFACTS)[number];
 
 export type GenerationInputRecord = Record<string, unknown>;
@@ -92,6 +92,7 @@ function mapGeneratedFieldToInputField(artifact: GeneratableArtifact, fieldPath:
     design: ["$.approach", "$.decisions", "$.alternatives", "$.risks"],
     questions: ["$.open", "$.resolved"],
     "delta-spec": ["$.target_spec", "$.mapping", "$.operations"],
+    "delta-tech": ["$.target_standard", "$.standard", "$.mapping", "$.operations"],
   };
 
   for (const prefix of directPrefixes[artifact]) {
@@ -113,7 +114,7 @@ function mapGeneratedFieldToInputField(artifact: GeneratableArtifact, fieldPath:
     const resolvedStatusMatch = fieldPath.match(/^\$\.resolved\[(\d+)\]\.status$/);
     if (resolvedStatusMatch) return `$.resolved[${resolvedStatusMatch[1]}]`;
   }
-  if (artifact === "delta-spec" && fieldPath === "$.schema_file") {
+  if ((artifact === "delta-spec" || artifact === "delta-tech") && fieldPath === "$.schema_file") {
     return "<generated schema_file>";
   }
 
@@ -347,6 +348,90 @@ function buildDeltaSpecArtifact(rootDir: string, input: GenerationInputRecord): 
   };
 }
 
+function normalizeDeltaTechRelativePath(relativePath: string): string {
+  let normalized = relativePath.replaceAll("\\", "/");
+  const strictTechPrefix = `${STRICT_WORKFLOW_DIR}/tech/`;
+  if (normalized.startsWith(strictTechPrefix)) {
+    normalized = normalized.slice(strictTechPrefix.length);
+  }
+  if (path.isAbsolute(normalized)) {
+    throw new Error("input field '$.tech_path' must be relative to the strict tech directory");
+  }
+  const parts = normalized.split("/");
+  if (
+    normalized.length === 0
+    || parts.some((part) => part.length === 0 || part === "." || part === "..")
+    || path.basename(normalized) === "INDEX.yaml"
+    || !(normalized.endsWith(".yaml") || normalized.endsWith(".yml"))
+  ) {
+    throw new Error("input field '$.tech_path' must be a normalized YAML path under the strict tech directory");
+  }
+  return normalized;
+}
+
+function readTechIndexPathForTarget(rootDir: string, targetStandard: string): string | undefined {
+  const indexPath = path.join(rootDir, STRICT_WORKFLOW_DIR, "tech", "INDEX.yaml");
+  if (!existsSync(indexPath)) return undefined;
+  const index = parseYamlDocument<{ standards?: Array<{ id?: unknown; path?: unknown }> }>(
+    readFileSync(indexPath, "utf8"),
+    { source: normalizeRepoRelativePath(rootDir, indexPath) },
+  );
+  const match = (index.standards ?? []).find((candidate) => candidate.id === targetStandard);
+  return typeof match?.path === "string" ? match.path : undefined;
+}
+
+function resolveDeltaTechRelativePath(rootDir: string, targetStandard: string, input: GenerationInputRecord): string {
+  const explicitPath = asOptionalString(input.tech_path, "$.tech_path");
+  if (explicitPath) {
+    return normalizeDeltaTechRelativePath(explicitPath);
+  }
+
+  const indexedPath = readTechIndexPathForTarget(rootDir, targetStandard);
+  if (indexedPath) {
+    return normalizeDeltaTechRelativePath(indexedPath);
+  }
+
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(targetStandard)) {
+    throw new Error("input field '$.tech_path' is required when target_standard is not a kebab-case standard id");
+  }
+  return `${targetStandard}.yaml`;
+}
+
+function buildDeltaTechArtifact(rootDir: string, input: GenerationInputRecord): { artifact: unknown; relativePath: string } {
+  const targetStandard = asString(input.target_standard, "$.target_standard");
+  const mapping = asRecord(input.mapping, "$.mapping");
+  const operations = asRecord(input.operations ?? {}, "$.operations");
+  const relativePath = resolveDeltaTechRelativePath(rootDir, targetStandard, input);
+  const standardBlock = asOptionalRecord(input.standard, "$.standard");
+
+  const artifact: GenerationInputRecord = {
+    schema: "strict-spec-driven/delta-tech/v1",
+    schema_version: 1,
+    artifact_type: "delta_tech",
+    schema_file: "templates/strict-spec-driven/schemas/delta-tech.yaml",
+    target_standard: targetStandard,
+  };
+
+  if (standardBlock) {
+    artifact.standard = {
+      title: asString(standardBlock.title, "$.standard.title"),
+      category: asString(standardBlock.category, "$.standard.category"),
+    };
+  }
+
+  artifact.mapping = {
+    implementation: asStringArray(mapping.implementation ?? [], "$.mapping.implementation"),
+    enforcement: asStringArray(mapping.enforcement ?? [], "$.mapping.enforcement"),
+  };
+  artifact.operations = {
+    ADDED: asRecord(operations.ADDED ?? {}, "$.operations.ADDED"),
+    MODIFIED: asRecord(operations.MODIFIED ?? {}, "$.operations.MODIFIED"),
+    REMOVED: asRecord(operations.REMOVED ?? {}, "$.operations.REMOVED"),
+  };
+
+  return { relativePath, artifact };
+}
+
 function buildTarget(
   rootDir: string,
   changeDir: string,
@@ -379,6 +464,14 @@ function buildTarget(
         artifact: deltaSpec.artifact,
         artifactType: "delta_spec",
         absolutePath: path.join(changeDir, "specs", deltaSpec.relativePath),
+      };
+    }
+    case "delta-tech": {
+      const deltaTech = buildDeltaTechArtifact(rootDir, input);
+      return {
+        artifact: deltaTech.artifact,
+        artifactType: "delta_tech",
+        absolutePath: path.join(changeDir, "tech", deltaTech.relativePath),
       };
     }
   }

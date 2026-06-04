@@ -107,6 +107,44 @@ entries:
       supersedes: []
       compatible_with: []
       notes: []
+  - schema_id: strict-spec-driven/main-tech/v1
+    schema_version: 1
+    artifact_type: main_tech
+    artifact_name: main-tech
+    schema_file: main-tech.yaml
+    primary_example: ../../../examples/strict-spec-driven/main-tech.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Technical standards capture implementation-facing engineering rules that main specs exclude.
+  - schema_id: strict-spec-driven/delta-tech/v1
+    schema_version: 1
+    artifact_type: delta_tech
+    artifact_name: delta-tech
+    schema_file: delta-tech.yaml
+    primary_example: ../../../examples/strict-spec-driven/delta-tech.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Delta tech artifacts carry standard changes through the change lifecycle and merge into tech standards on archive.
+  - schema_id: strict-spec-driven/tech-index/v1
+    schema_version: 1
+    artifact_type: tech_index
+    artifact_name: tech-index
+    schema_file: tech-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/tech-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
   - schema_id: strict-spec-driven/roadmap-index/v1
     schema_version: 1
     artifact_type: roadmap_index

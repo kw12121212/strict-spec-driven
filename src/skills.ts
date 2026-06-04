@@ -44,13 +44,17 @@ export function validateStrictSkillPackaging(rootDir: string): SkillPackagingVal
   for (const skillName of skillNames) {
     const skillDir = path.join(skillsRoot, skillName);
     const skillPath = path.join("skills", skillName, "SKILL.md");
-    if (!skillName.startsWith("strict-spec-") && !skillName.startsWith("strict-roadmap-")) {
+    if (
+      !skillName.startsWith("strict-spec-") &&
+      !skillName.startsWith("strict-roadmap-") &&
+      !skillName.startsWith("strict-tech-")
+    ) {
       diagnostics.push(
         makeDiagnostic(
           "skill.directory.legacy_name",
           path.join("skills", skillName),
           "skill directory must use strict prefix",
-          "strict-spec-* or strict-roadmap-*",
+          "strict-spec-*, strict-roadmap-*, or strict-tech-*",
           skillName,
         ),
       );

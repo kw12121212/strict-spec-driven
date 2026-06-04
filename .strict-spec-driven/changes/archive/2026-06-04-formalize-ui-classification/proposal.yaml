@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: formalize-ui-classification
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a ui category to the tech standard schemas and record the UI classification policy in the
+      contract spec and config.
+    - >-
+      Provide a ui-category technical standard example so projects and AI agents have a reference
+      for UI engineering rules.
+  why:
+    - >-
+      UI work spans observable behavior and engineering rules; without a recorded policy and a ui
+      category, agents cannot consistently split UI into specs versus technical standards.
+scope:
+  in:
+    - >-
+      ui category in main-tech and delta-tech schemas; a ui-category main-tech example; a UI
+      classification requirement in contracts-yaml-artifacts; a ui rules group in config.yaml; UI
+      guidance lines in propose and brainstorm skills.
+  out:
+    - Adding a live UI standard to this repository, which has no user interface.
+    - Changing how specs, tech, or delta artifacts are validated or merged.
+unchanged_behavior:
+  - >-
+    Existing tech categories, standards, schemas, and all current CLI and skill behavior remain
+    valid and unchanged.

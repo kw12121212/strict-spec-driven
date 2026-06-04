@@ -1,0 +1,38 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: formalize-ui-classification
+sections:
+  Implementation:
+    add-ui-category:
+      text: Add the ui category to the main-tech and delta-tech schema enums.
+      status: complete
+    add-ui-example:
+      text: Add the ui-category main-tech example and validate it in the foundation suite.
+      status: complete
+    record-ui-policy:
+      text: >-
+        Record the UI classification policy in config.yaml ui rules, the contracts delta spec,
+        and the propose and brainstorm skill prompts.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run type-check lint.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify the ui category, example, and recorded policy match the proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

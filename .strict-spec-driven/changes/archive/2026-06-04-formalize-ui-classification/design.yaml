@@ -1,0 +1,30 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: formalize-ui-classification
+approach:
+  - >-
+    Extend the tech category enum with ui, add a reference ui standard example, and encode the
+    classification policy in the channels agents read at runtime: config rules, the contract spec,
+    and the propose and brainstorm skill prompts.
+decisions:
+  ui-category:
+    decision: Add ui as a distinct tech category rather than reusing coding or architecture.
+    rationale: >-
+      UI engineering rules are a recognizable, self-contained concern; a dedicated category makes UI
+      standards discoverable and correctly classified.
+  policy-in-read-channels:
+    decision: >-
+      Record the behavior-vs-rules-vs-fidelity split in config rules, the contract spec, and skill
+      prompts.
+    rationale: >-
+      Agents only act on knowledge present in the channels they read each run; chat explanations do
+      not persist.
+  example-not-live-standard:
+    decision: Ship the UI standard as an example asset, not a live standard under the tech directory.
+    rationale: >-
+      This repository is a CLI with no UI; a live ui standard would be false, while an example
+      serves as a reusable reference.
+alternatives: []
+risks: []

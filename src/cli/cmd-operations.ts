@@ -9,6 +9,7 @@ import { findArchivedMatchesByBareName, getArchiveDir, listArchivedChanges } fro
 import { normalizeRepoRelativePath } from "./fs.js";
 import { writeErr, writeError, writeHelp, writeJson, writeUsage } from "./output.js";
 import { verifySpecMappings } from "./spec-mapping.js";
+import { getTechStatus, verifyTechMappings } from "./tech-mapping.js";
 
 export type ShipResult = {
   changeName: string;
@@ -115,6 +116,35 @@ export function runVerifySpecMappings(argv: string[]): number {
   const result = verifySpecMappings(process.cwd());
   writeJson(result);
   return result.valid ? 0 : 1;
+}
+
+export function runVerifyTechMappings(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-driven verify-tech-mappings\n");
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage("Usage: strict-spec-driven verify-tech-mappings\n");
+    return 1;
+  }
+
+  const result = verifyTechMappings(process.cwd());
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+
+export function runTechStatus(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-driven tech-status\n");
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage("Usage: strict-spec-driven tech-status\n");
+    return 1;
+  }
+
+  writeJson(getTechStatus(process.cwd()));
+  return 0;
 }
 
 const ARCHIVE_DATE_PATTERN = /^(\d{4}-\d{2}-\d{2})-(.+)$/;

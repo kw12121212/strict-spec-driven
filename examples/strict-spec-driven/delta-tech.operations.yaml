@@ -1,0 +1,31 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: ../../templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: example-standard
+standard:
+  title: Example Standard
+  category: coding
+mapping:
+  implementation: []
+  enforcement: []
+operations:
+  ADDED:
+    added-rule:
+      strength: MUST
+      statement: Modules MUST follow the added engineering rule.
+      rationale: The added rule keeps implementation consistent with the standard.
+      enforcement:
+        method: review
+        detail: Reviewers reject code that violates the added rule.
+  MODIFIED:
+    existing-rule:
+      strength: SHOULD
+      statement: Modules SHOULD follow the modified engineering rule.
+      rationale: The modified rule clarifies the previous guidance.
+      enforcement:
+        method: ci
+        detail: A lint rule fails the build on violations.
+  REMOVED:
+    retired-rule:
+      reason: The rule is superseded by the modified rule.

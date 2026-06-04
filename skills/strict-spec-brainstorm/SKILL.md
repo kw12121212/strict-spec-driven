@@ -18,8 +18,9 @@ before running anything. Do not guess.
 
 ```yaml
 check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
+tech-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js tech-status
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
-generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec> --<named-args>
+generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
 ready: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
 verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 ```
@@ -40,17 +41,27 @@ run `init` from this skill.
    to achieve, what problem they are trying to solve, and any known constraints
    or preferences. Do not require a change name up front.
 
-2. **Read strict project context and existing specs early** — before narrowing
-   scope, read:
+2. **Read strict project context, existing specs, and technical standards
+   early** — before narrowing scope, read:
    - `.strict-spec-driven/config.yaml`
    - `.strict-spec-driven/specs/INDEX.yaml`
    - every relevant strict YAML main spec file the idea appears likely to touch
+   - run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js tech-status` and read
+     the relevant files under `.strict-spec-driven/tech/` so the brainstorm
+     stays inside the project's technical standards from the start
 
 3. **Brainstorm until the change is decision-ready** — use the discussion to
    converge on:
    - the desired outcome and user-visible behavior
    - what is in scope and explicitly out of scope
    - important tradeoffs, constraints, risks, and unchanged behavior
+   - how the idea fits the applicable technical standards: MUST rules are hard
+     constraints on the approach, SHOULD rules are the default, and any tension
+     with a standard is a tradeoff to settle now or raise as an open question
+   - for user interface work, how it splits: user-observable UI behavior becomes
+     spec requirements, UI engineering and design rules become a `ui`-category
+     technical standard, and visual fidelity is governed by visual-regression
+     snapshots rather than inlined detail
    - which existing strict YAML spec files will likely be modified, or whether a
      new strict spec area is needed
    - any questions that still need a human answer before implementation

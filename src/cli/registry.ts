@@ -10,6 +10,8 @@ export const COMMAND_REGISTRATION_ORDER = [
   "ready",
   "next",
   "verify-spec-mappings",
+  "verify-tech-mappings",
+  "tech-status",
   "validate-skills",
   "schema-list",
   "schema-show",
