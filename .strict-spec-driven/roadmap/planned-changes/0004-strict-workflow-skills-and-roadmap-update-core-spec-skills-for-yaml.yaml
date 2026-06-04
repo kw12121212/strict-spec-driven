@@ -6,8 +6,6 @@ planned_change:
   id: update-core-spec-skills-for-yaml
   milestone: 0004-strict-workflow-skills-and-roadmap
 status: complete
-summary: >-
-  update init, propose, apply, verify, review, archive, auto, modify, and cancel skill instructions
-  to use `.strict-spec-driven/` and YAML change artifacts.
+summary: update init, propose, apply, verify, review, archive, auto, modify, and cancel skill instructions to use `.strict-spec-driven/` and YAML change artifacts.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

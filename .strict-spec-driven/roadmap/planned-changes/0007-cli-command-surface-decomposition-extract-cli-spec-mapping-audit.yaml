@@ -6,8 +6,6 @@ planned_change:
   id: extract-cli-spec-mapping-audit
   milestone: 0007-cli-command-surface-decomposition
 status: complete
-summary: >-
-  move spec-mapping parsing, normalization, evidence collection, and diagnostic sorting into
-  dedicated modules instead of keeping them inline in the entrypoint.
+summary: move spec-mapping parsing, normalization, evidence collection, and diagnostic sorting into dedicated modules instead of keeping them inline in the entrypoint.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

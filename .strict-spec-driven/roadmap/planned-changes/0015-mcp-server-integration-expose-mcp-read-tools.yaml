@@ -6,23 +6,10 @@ planned_change:
   id: expose-mcp-read-tools
   milestone: 0015-mcp-server-integration
 status: complete
-summary: >-
-  Expose read-only strict workflow diagnostics as MCP tools with typed arguments and deterministic
-  JSON results.
-details: >-
-  Add read-only tools for workflow-state checks, change listing, ready/next guidance, change
-  verification, roadmap status and recommendation, roadmap overview, spec and tech mapping audits,
-  tech status, harness plan, harness status, and bounded harness logs. Tests should prove tool
-  schemas, success output, error diagnostics, and stable ordering without mutating repository state.
-
-  The first read tool inventory should include `check_workflow_state`, `list_changes`,
-  `ready_change`, `next_change_step`, `verify_change`, `roadmap_status`, `roadmap_overview`,
-  `roadmap_recommend`, `verify_spec_mappings`, `verify_tech_mappings`, `tech_status`,
-  `harness_plan`, `harness_status`, and `harness_logs`. Each tool should declare a typed input
-  schema through the MCP SDK, delegate to the existing strict operation, return a compact JSON text
-  result, and include `safety: read` in the server inventory. Tests should snapshot tool discovery,
-  call representative success and failure cases, and confirm read tools leave the workspace diff
-  unchanged.
+summary: Expose read-only strict workflow diagnostics as MCP tools with typed arguments and deterministic JSON results.
+details: |-
+  Add read-only tools for workflow-state checks, change listing, ready/next guidance, change verification, roadmap status and recommendation, roadmap overview, spec and tech mapping audits, tech status, harness plan, harness status, and bounded harness logs. Tests should prove tool schemas, success output, error diagnostics, and stable ordering without mutating repository state.
+  The first read tool inventory should include `check_workflow_state`, `list_changes`, `ready_change`, `next_change_step`, `verify_change`, `roadmap_status`, `roadmap_overview`, `roadmap_recommend`, `verify_spec_mappings`, `verify_tech_mappings`, `tech_status`, `harness_plan`, `harness_status`, and `harness_logs`. Each tool should declare a typed input schema through the MCP SDK, delegate to the existing strict operation, return a compact JSON text result, and include `safety: read` in the server inventory. Tests should snapshot tool discovery, call representative success and failure cases, and confirm read tools leave the workspace diff unchanged.
 depends_on:
   - add-mcp-server-entrypoint
 team:

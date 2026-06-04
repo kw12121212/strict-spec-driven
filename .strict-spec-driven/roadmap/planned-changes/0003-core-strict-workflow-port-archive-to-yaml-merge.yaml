@@ -6,9 +6,6 @@ planned_change:
   id: port-archive-to-yaml-merge
   milestone: 0003-core-strict-workflow
 status: complete
-summary: >-
-  implement archive merge utilities that apply YAML delta specs to main YAML specs, regenerate specs
-  indexes, move completed changes into date-prefixed archive directories, and preserve stable
-  identifiers.
+summary: implement archive merge utilities that apply YAML delta specs to main YAML specs, regenerate specs indexes, move completed changes into date-prefixed archive directories, and preserve stable identifiers.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

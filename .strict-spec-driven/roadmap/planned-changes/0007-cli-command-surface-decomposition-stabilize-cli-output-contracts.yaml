@@ -6,8 +6,6 @@ planned_change:
   id: stabilize-cli-output-contracts
   milestone: 0007-cli-command-surface-decomposition
 status: complete
-summary: >-
-  centralize human-readable and JSON output shaping so command text and machine-readable structures
-  stay stable while modules move.
+summary: centralize human-readable and JSON output shaping so command text and machine-readable structures stay stable while modules move.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

@@ -6,8 +6,6 @@ planned_change:
   id: port-review-to-yaml
   milestone: 0003-core-strict-workflow
 status: complete
-summary: >-
-  implement review support that reads strict YAML proposals, designs, tasks, questions, deltas,
-  mappings, and verification evidence and reports code-quality findings.
+summary: implement review support that reads strict YAML proposals, designs, tasks, questions, deltas, mappings, and verification evidence and reports code-quality findings.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

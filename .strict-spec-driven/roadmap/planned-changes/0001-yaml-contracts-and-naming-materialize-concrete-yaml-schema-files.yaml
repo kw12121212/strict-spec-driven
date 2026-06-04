@@ -6,9 +6,6 @@ planned_change:
   id: materialize-concrete-yaml-schema-files
   milestone: 0001-yaml-contracts-and-naming
 status: complete
-summary: >-
-  create `templates/strict-spec-driven/schemas/*.yaml` and
-  `templates/strict-spec-driven/examples/*.yaml` files for all required artifact families and
-  validate their YAML parseability and artifact identity.
+summary: create `templates/strict-spec-driven/schemas/*.yaml` and `templates/strict-spec-driven/examples/*.yaml` files for all required artifact families and validate their YAML parseability and artifact identity.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

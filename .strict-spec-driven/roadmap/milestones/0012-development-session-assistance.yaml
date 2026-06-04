@@ -5,150 +5,52 @@ schema_file: templates/strict-spec-driven/schemas/roadmap-milestone.yaml
 milestone:
   0012-development-session-assistance:
     title: 12 Development Session Assistance
-goal: >-
-  Make strict projects describe local development sessions in structured YAML so agents can start
-  dev services, wait for readiness, open browser targets, gather trial evidence, and clean up
-  without relying on ad hoc project memory.
+goal: Make strict projects describe local development sessions in structured YAML so agents can start dev services, wait for readiness, open browser targets, gather trial evidence, and clean up without relying on ad hoc project memory.
 scope:
   in:
-    - >-
-      Define strict YAML metadata for local development services, including commands, working
-      directories, environment variable names, ports, URLs, readiness checks, browser targets, and
-      cleanup behavior.
-    - >-
-      Establish `.strict-spec-driven/dev-session.yaml` as the project-local declaration file and
-      bundled `dev-session` schema, example, and scaffold assets as the reusable contract surface.
-    - >-
-      Add deterministic CLI support for validating the metadata and rendering an actionable session
-      plan before any long-running command is started.
-    - >-
-      Add optional lifecycle support that can start declared services, wait for readiness, report
-      session state, stream or print logs, and stop the services it started.
-    - >-
-      Add an agent skill that reads the declared development session and creates standard
-      human-operated project scripts for start, stop, status, and logs without requiring users to
-      remember strict CLI subcommands.
-    - >-
-      Connect browser-based trial guidance to the same metadata so agents know which local URL to
-      open, what minimal smoke paths to exercise, and what evidence to report.
-    - >-
-      Update agent-facing skills and user documentation so development-session assistance becomes a
-      normal part of strict change implementation and review when a project declares it.
-    - >-
-      Keep local runtime state for started processes in an ignored runtime location so session
-      lifecycle commands do not dirty strict workflow artifacts.
+    - Define strict YAML metadata for local development services, including commands, working directories, environment variable names, ports, URLs, readiness checks, browser targets, and cleanup behavior.
+    - Establish `.strict-spec-driven/dev-session.yaml` as the project-local declaration file and bundled `dev-session` schema, example, and scaffold assets as the reusable contract surface.
+    - Add deterministic CLI support for validating the metadata and rendering an actionable session plan before any long-running command is started.
+    - Add optional lifecycle support that can start declared services, wait for readiness, report session state, stream or print logs, and stop the services it started.
+    - Add an agent skill that reads the declared development session and creates standard human-operated project scripts for start, stop, status, and logs without requiring users to remember strict CLI subcommands.
+    - Connect browser-based trial guidance to the same metadata so agents know which local URL to open, what minimal smoke paths to exercise, and what evidence to report.
+    - Update agent-facing skills and user documentation so development-session assistance becomes a normal part of strict change implementation and review when a project declares it.
+    - Keep local runtime state for started processes in an ignored runtime location so session lifecycle commands do not dirty strict workflow artifacts.
   out:
-    - >-
-      Provisioning hosted development environments, remote workspaces, containers, virtual machines,
-      or cloud services.
-    - >-
-      Storing secrets, credentials, API tokens, browser login state, or personal environment values
-      in strict workflow artifacts.
-    - >-
-      Replacing project-owned package-manager scripts, framework CLIs, test runners, or browser
-      automation tools.
-    - >-
-      Guessing undeclared startup commands from package scripts, framework fingerprints, open ports,
-      README prose, or previous agent actions.
-    - >-
-      Guaranteeing that browser trial evidence can replace the configured project regression command
-      required by strict review evidence.
-    - >-
-      Automating authenticated third-party product flows unless the consuming agent already has
-      explicit user permission and the project declares safe local targets.
+    - Provisioning hosted development environments, remote workspaces, containers, virtual machines, or cloud services.
+    - Storing secrets, credentials, API tokens, browser login state, or personal environment values in strict workflow artifacts.
+    - Replacing project-owned package-manager scripts, framework CLIs, test runners, or browser automation tools.
+    - Guessing undeclared startup commands from package scripts, framework fingerprints, open ports, README prose, or previous agent actions.
+    - Guaranteeing that browser trial evidence can replace the configured project regression command required by strict review evidence.
+    - Automating authenticated third-party product flows unless the consuming agent already has explicit user permission and the project declares safe local targets.
 done_criteria:
-  - >-
-    A strict YAML contract exists for declared development sessions and validates service commands,
-    readiness checks, browser targets, cleanup rules, and unavailable-condition notes.
-  - >-
-    The contract is backed by bundled schema, registry, example, and scaffold assets, and the
-    project-local declaration path is documented.
-  - >-
-    The CLI can inspect a project and emit a deterministic development-session plan without starting
-    processes.
-  - >-
-    Optional lifecycle commands can start declared local services, wait for readiness, expose
-    session state, expose logs, and clean up only the processes they created.
-  - >-
-    A script-generation skill can create or update standard development helper scripts from the
-    declared session metadata using non-clobbering rules and clear managed sections.
-  - >-
-    Browser trial guidance can be derived from structured YAML so agents can open the expected local
-    URLs and report reproducible evidence.
-  - >-
-    Strict skills and documentation instruct agents to use declared development sessions when
-    available and to report blockers when required commands, dependencies, or credentials are
-    unavailable.
-  - >-
-    User documentation explains how to declare a session, run the dry plan, start and stop services,
-    inspect logs, capture browser trial evidence, generate manual helper scripts, and keep secrets
-    out of strict artifacts.
+  - A strict YAML contract exists for declared development sessions and validates service commands, readiness checks, browser targets, cleanup rules, and unavailable-condition notes.
+  - The contract is backed by bundled schema, registry, example, and scaffold assets, and the project-local declaration path is documented.
+  - The CLI can inspect a project and emit a deterministic development-session plan without starting processes.
+  - Optional lifecycle commands can start declared local services, wait for readiness, expose session state, expose logs, and clean up only the processes they created.
+  - A script-generation skill can create or update standard development helper scripts from the declared session metadata using non-clobbering rules and clear managed sections.
+  - Browser trial guidance can be derived from structured YAML so agents can open the expected local URLs and report reproducible evidence.
+  - Strict skills and documentation instruct agents to use declared development sessions when available and to report blockers when required commands, dependencies, or credentials are unavailable.
+  - User documentation explains how to declare a session, run the dry plan, start and stop services, inspect logs, capture browser trial evidence, generate manual helper scripts, and keep secrets out of strict artifacts.
 planned_changes: {}
 dependencies:
-  - >-
-    Existing strict YAML schema and validation tooling must remain the source of truth for new
-    artifact contracts.
-  - >-
-    The existing `review_evidence.project_regression` command remains the authoritative regression
-    requirement unless a future strict change explicitly modifies that contract.
-  - >-
-    Agent browser and shell capabilities remain external execution tools; strict workflow artifacts
-    describe how to use them but do not embed their implementations.
-  - >-
-    Project-owned package scripts and framework CLIs remain responsible for the actual dev server
-    behavior; strict session commands orchestrate only declared local commands.
+  - Existing strict YAML schema and validation tooling must remain the source of truth for new artifact contracts.
+  - The existing `review_evidence.project_regression` command remains the authoritative regression requirement unless a future strict change explicitly modifies that contract.
+  - Agent browser and shell capabilities remain external execution tools; strict workflow artifacts describe how to use them but do not embed their implementations.
+  - Project-owned package scripts and framework CLIs remain responsible for the actual dev server behavior; strict session commands orchestrate only declared local commands.
 risks:
-  - >-
-    Development commands can be long-running or flaky, so lifecycle behavior must make readiness,
-    timeout, and cleanup semantics explicit.
-  - >-
-    Environment setup metadata can accidentally encourage secret leakage unless the contract records
-    variable names and unavailable conditions without storing values.
-  - >-
-    Browser guidance can become stale quickly if applications change routes without updating the
-    strict session metadata.
-  - >-
-    Starting project services from an agent can surprise users if commands are not clearly declared
-    and scoped to local development.
-  - >-
-    Runtime process-state files can become stale after crashes, so status and stop behavior must
-    distinguish live child processes from stale records.
-  - >-
-    Generated helper scripts can drift from the declaration unless they include clear provenance and
-    can be regenerated deterministically.
+  - Development commands can be long-running or flaky, so lifecycle behavior must make readiness, timeout, and cleanup semantics explicit.
+  - Environment setup metadata can accidentally encourage secret leakage unless the contract records variable names and unavailable conditions without storing values.
+  - Browser guidance can become stale quickly if applications change routes without updating the strict session metadata.
+  - Starting project services from an agent can surprise users if commands are not clearly declared and scoped to local development.
+  - Runtime process-state files can become stale after crashes, so status and stop behavior must distinguish live child processes from stale records.
+  - Generated helper scripts can drift from the declaration unless they include clear provenance and can be regenerated deterministically.
 status: complete
 notes:
-  - >-
-    This milestone is about local-first coordination between strict workflow state and agent tools.
-    It should make development setup discoverable and reproducible without turning the strict CLI
-    into a hosted environment manager.
-  - >-
-    The intended user experience is: read the strict session plan, start declared services when
-    appropriate, open declared browser targets, gather evidence, stop created processes, and report
-    any unavailable prerequisites.
-details: >-
-  In normal implementation work, agents often need to run a development server, wait for it to be
-  ready, open a browser, exercise a page, capture screenshots or observations, and then clean up.
-  Today that knowledge is usually implicit in README prose, package scripts, or user memory. Strict
-  workflow can help by making the local development loop explicit, validated, and easy for agents to
-  consume.
-
-  The accepted direction is a structured declaration plus deterministic CLI support. The declaration
-  should say what can be started, how readiness is detected, where browser smoke checks begin, and
-  what evidence should be reported. The strict CLI should first provide a dry inspection path so an
-  agent can explain what it is about to do. Lifecycle execution can follow, but it must be scoped to
-  local commands declared by the project and must clean up only processes it created.
-
-  Proposed command names for the implementation changes are `dev-session-plan`, `dev-session-start`,
-  `dev-session-status`, `dev-session-logs`, and `dev-session-stop`. The first command is the
-  required inspection path. The lifecycle commands are optional behavior layered on top of the same
-  declaration. The declaration file should avoid secrets by storing only environment variable names,
-  not values, and runtime process bookkeeping should live outside committed strict artifacts.
-
-  Manual command-line use should not require users to remember the strict command names. A dedicated
-  skill should be able to generate project-local helper scripts from the declaration, such as
-  `scripts/dev-start`, `scripts/dev-stop`, `scripts/dev-status`, and `scripts/dev-logs`, or a
-  project-configured equivalent. Those scripts should call the strict lifecycle commands or the
-  declared project commands consistently, include provenance comments, avoid embedding secrets, and
-  refuse to overwrite user-authored scripts unless a managed section or explicit confirmation
-  exists.
+  - This milestone is about local-first coordination between strict workflow state and agent tools. It should make development setup discoverable and reproducible without turning the strict CLI into a hosted environment manager.
+  - 'The intended user experience is: read the strict session plan, start declared services when appropriate, open declared browser targets, gather evidence, stop created processes, and report any unavailable prerequisites.'
+details: |-
+  In normal implementation work, agents often need to run a development server, wait for it to be ready, open a browser, exercise a page, capture screenshots or observations, and then clean up. Today that knowledge is usually implicit in README prose, package scripts, or user memory. Strict workflow can help by making the local development loop explicit, validated, and easy for agents to consume.
+  The accepted direction is a structured declaration plus deterministic CLI support. The declaration should say what can be started, how readiness is detected, where browser smoke checks begin, and what evidence should be reported. The strict CLI should first provide a dry inspection path so an agent can explain what it is about to do. Lifecycle execution can follow, but it must be scoped to local commands declared by the project and must clean up only processes it created.
+  Proposed command names for the implementation changes are `dev-session-plan`, `dev-session-start`, `dev-session-status`, `dev-session-logs`, and `dev-session-stop`. The first command is the required inspection path. The lifecycle commands are optional behavior layered on top of the same declaration. The declaration file should avoid secrets by storing only environment variable names, not values, and runtime process bookkeeping should live outside committed strict artifacts.
+  Manual command-line use should not require users to remember the strict command names. A dedicated skill should be able to generate project-local helper scripts from the declaration, such as `scripts/dev-start`, `scripts/dev-stop`, `scripts/dev-status`, and `scripts/dev-logs`, or a project-configured equivalent. Those scripts should call the strict lifecycle commands or the declared project commands consistently, include provenance comments, avoid embedding secrets, and refuse to overwrite user-authored scripts unless a managed section or explicit confirmation exists.

@@ -6,26 +6,10 @@ planned_change:
   id: expose-mcp-resources
   milestone: 0015-mcp-server-integration
 status: complete
-summary: >-
-  Expose strict workflow artifacts and summaries as MCP resources with stable URI conventions and
-  bounded project scope.
-details: >-
-  Add resource listing and resource reading for strict workflow context, active and archived
-  changes, proposal/design/tasks/questions artifacts, specs, roadmap, tech standards, harness
-  declarations, and compact command summaries. Keep resource templates limited to
-  `.strict-spec-driven/` and generated strict summaries so generic file browsing does not become
-  part of the server's initial responsibility.
-
-  The initial resource set should be explicit and bounded: `strict://config`,
-  `strict://workflow/state`, `strict://changes`, `strict://changes/{change}/proposal`,
-  `strict://changes/{change}/design`, `strict://changes/{change}/tasks`,
-  `strict://changes/{change}/questions`, `strict://specs/index`, `strict://specs/{specId}`,
-  `strict://roadmap/index`, `strict://roadmap/milestones/{milestoneId}`,
-  `strict://roadmap/planned-changes/{plannedChangeId}`, `strict://tech/index`,
-  `strict://tech/{standardId}`, and `strict://harness/declaration`. Resource reads should return
-  deterministic text or JSON content, reject parent-directory traversal and unknown identifiers, and
-  avoid exposing arbitrary repository files. Tests should cover list/read behavior, URI-template
-  resolution, missing artifacts, malformed strict YAML diagnostics, and stable output ordering.
+summary: Expose strict workflow artifacts and summaries as MCP resources with stable URI conventions and bounded project scope.
+details: |-
+  Add resource listing and resource reading for strict workflow context, active and archived changes, proposal/design/tasks/questions artifacts, specs, roadmap, tech standards, harness declarations, and compact command summaries. Keep resource templates limited to `.strict-spec-driven/` and generated strict summaries so generic file browsing does not become part of the server's initial responsibility.
+  The initial resource set should be explicit and bounded: `strict://config`, `strict://workflow/state`, `strict://changes`, `strict://changes/{change}/proposal`, `strict://changes/{change}/design`, `strict://changes/{change}/tasks`, `strict://changes/{change}/questions`, `strict://specs/index`, `strict://specs/{specId}`, `strict://roadmap/index`, `strict://roadmap/milestones/{milestoneId}`, `strict://roadmap/planned-changes/{plannedChangeId}`, `strict://tech/index`, `strict://tech/{standardId}`, and `strict://harness/declaration`. Resource reads should return deterministic text or JSON content, reject parent-directory traversal and unknown identifiers, and avoid exposing arbitrary repository files. Tests should cover list/read behavior, URI-template resolution, missing artifacts, malformed strict YAML diagnostics, and stable output ordering.
 depends_on:
   - add-mcp-server-entrypoint
 team:

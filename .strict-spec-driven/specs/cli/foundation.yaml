@@ -68,9 +68,7 @@ mapping:
 requirements:
   cli-build-and-test-commands:
     strength: MUST
-    statement: >-
-      The system MUST provide `build` and `test` package scripts that compile TypeScript sources to
-      `dist/` and run the test suite using bun.
+    statement: The system MUST provide `build` and `test` package scripts that compile TypeScript sources to `dist/` and run the test suite using bun.
     scenarios:
       build-compiles-without-errors:
         - GIVEN: the TypeScript sources under `src/` are syntactically valid
@@ -82,9 +80,7 @@ requirements:
         - THEN: the test suite runs and reports pass or fail status
   cli-unknown-subcommand-rejection:
     strength: MUST
-    statement: >-
-      The system MUST exit non-zero and write a usage hint to stderr when invoked with an unknown
-      subcommand or no arguments.
+    statement: The system MUST exit non-zero and write a usage hint to stderr when invoked with an unknown subcommand or no arguments.
     scenarios:
       unknown-subcommand-exits-non-zero:
         - GIVEN: the `strict-spec-driven` CLI is invoked with an unrecognized subcommand
@@ -98,17 +94,12 @@ requirements:
         - AND: a usage hint is written to stderr
   cli-shared-yaml-validation-layer:
     strength: MUST
-    statement: >-
-      The system MUST provide shared strict-CLI validation utilities for YAML parse/stringify,
-      schema compilation, bundled schema loading, and deterministic diagnostics so multiple commands
-      can validate artifacts through one consistent pipeline.
+    statement: The system MUST provide shared strict-CLI validation utilities for YAML parse/stringify, schema compilation, bundled schema loading, and deterministic diagnostics so multiple commands can validate artifacts through one consistent pipeline.
     scenarios:
       bundled-schemas-are-loadable-for-command-validation:
         - GIVEN: a strict CLI command needs to validate an artifact
         - WHEN: it requests a schema through the shared validation utilities
-        - THEN: >-
-            the schema is loaded from bundled strict schema assets under
-            `templates/strict-spec-driven/schemas/`
+        - THEN: the schema is loaded from bundled strict schema assets under `templates/strict-spec-driven/schemas/`
       validation-diagnostics-are-deterministic:
         - GIVEN: the same invalid artifact is validated multiple times against the same schema
         - WHEN: diagnostics are emitted by the shared validation utilities
@@ -116,16 +107,12 @@ requirements:
         - AND: each diagnostic includes artifact path and field-path context
   cli-strict-scaffold-template-assets:
     strength: MUST
-    statement: >-
-      The system MUST provide bundled strict scaffold template assets that can seed initial
-      `.strict-spec-driven/` project state for init and fixture-driven tests.
+    statement: The system MUST provide bundled strict scaffold template assets that can seed initial `.strict-spec-driven/` project state for init and fixture-driven tests.
     scenarios:
       required-scaffold-template-asset-families-are-present:
         - GIVEN: the strict CLI bundled templates are inspected
         - WHEN: scaffold template assets are enumerated
-        - THEN: >-
-            template assets exist for strict config, specs index, roadmap index, and empty changes
-            state
+        - THEN: template assets exist for strict config, specs index, roadmap index, and empty changes state
       scaffold-templates-remain-separate-from-contract-schemas-and-examples:
         - GIVEN: strict template directories are inspected
         - WHEN: scaffold template assets are compared to schema and example assets
@@ -133,26 +120,18 @@ requirements:
         - AND: schema and example files remain dedicated to validation contracts and examples
   cli-init-creates-strict-workflow-scaffold:
     strength: MUST
-    statement: >-
-      The system MUST provide an `init` subcommand that creates strict workflow state under
-      `.strict-spec-driven/` using bundled scaffold template assets.
+    statement: The system MUST provide an `init` subcommand that creates strict workflow state under `.strict-spec-driven/` using bundled scaffold template assets.
     scenarios:
       init-creates-missing-strict-scaffold-artifacts:
         - GIVEN: a repository with bundled strict scaffold template assets
         - AND: '`.strict-spec-driven/` does not yet exist'
         - WHEN: '`strict-spec-driven init` is executed'
         - THEN: '`.strict-spec-driven/` is created'
-        - AND: >-
-            strict config, specs index, roadmap index, and changes state artifacts are created from
-            bundled templates
-        - AND: >-
-            the scaffolded strict config documents the complete project-level regression command
-            required as review evidence before archive recommendation or execution
+        - AND: strict config, specs index, roadmap index, and changes state artifacts are created from bundled templates
+        - AND: the scaffolded strict config documents the complete project-level regression command required as review evidence before archive recommendation or execution
   init-scaffold-output-is-yaml-only:
     strength: MUST
-    statement: >-
-      The system MUST scaffold only YAML files under `.strict-spec-driven/` during init so that the
-      initialized workflow state directory contains no Markdown files.
+    statement: The system MUST scaffold only YAML files under `.strict-spec-driven/` during init so that the initialized workflow state directory contains no Markdown files.
     scenarios:
       init-creates-no-markdown-in-workflow-dir:
         - GIVEN: the init command runs for the first time in a repository
@@ -161,9 +140,7 @@ requirements:
         - AND: no Markdown files are created under `.strict-spec-driven/`
   cli-init-is-idempotent-and-non-clobbering:
     strength: MUST
-    statement: >-
-      The system MUST make `init` idempotent and MUST NOT overwrite existing strict workflow
-      artifacts.
+    statement: The system MUST make `init` idempotent and MUST NOT overwrite existing strict workflow artifacts.
     scenarios:
       existing-strict-artifacts-are-preserved-on-rerun:
         - GIVEN: '`.strict-spec-driven/` already exists with user-authored artifact content'
@@ -172,38 +149,26 @@ requirements:
         - AND: only missing required scaffold artifacts are created
   cli-init-handles-bootstrap-coexistence:
     strength: MUST
-    statement: >-
-      The system MUST allow strict scaffold initialization to proceed when a legacy `.spec-driven/`
-      directory is present and MUST emit a warning about coexistence.
+    statement: The system MUST allow strict scaffold initialization to proceed when a legacy `.spec-driven/` directory is present and MUST emit a warning about coexistence.
     scenarios:
       init-warns-and-continues-when-bootstrap-directory-exists:
         - GIVEN: a repository contains `.spec-driven/`
         - WHEN: '`strict-spec-driven init` is executed'
-        - THEN: >-
-            the command emits one warning indicating `.spec-driven/` is bootstrap or legacy workflow
-            state
-        - AND: >-
-            strict scaffold initialization continues without failing solely due to that directory's
-            presence
+        - THEN: the command emits one warning indicating `.spec-driven/` is bootstrap or legacy workflow state
+        - AND: strict scaffold initialization continues without failing solely due to that directory's presence
   cli-propose-creates-strict-change-scaffold:
     strength: MUST
-    statement: >-
-      The system MUST provide a `propose` subcommand that creates strict change planning artifacts
-      under `.strict-spec-driven/changes/<name>/`.
+    statement: The system MUST provide a `propose` subcommand that creates strict change planning artifacts under `.strict-spec-driven/changes/<name>/`.
     scenarios:
       propose-scaffolds-strict-yaml-artifacts:
         - GIVEN: a valid kebab-case change name that does not already exist
         - WHEN: '`strict-spec-driven propose <name>` is executed'
         - THEN: the change directory is created under `.strict-spec-driven/changes/`
-        - AND: >-
-            `proposal.yaml`, `design.yaml`, `tasks.yaml`, and `questions.yaml` are created from
-            strict templates
+        - AND: '`proposal.yaml`, `design.yaml`, `tasks.yaml`, and `questions.yaml` are created from strict templates'
         - AND: a `specs/` directory is created for delta specs
   cli-propose-validates-change-name-and-collision:
     strength: MUST
-    statement: >-
-      The system MUST reject invalid strict change names and existing strict change collisions
-      before writing scaffold files.
+    statement: The system MUST reject invalid strict change names and existing strict change collisions before writing scaffold files.
     scenarios:
       propose-rejects-invalid-name:
         - GIVEN: a requested change name that is not kebab-case
@@ -217,9 +182,7 @@ requirements:
         - AND: existing change artifacts are left unchanged
   cli-propose-reports-created-artifacts:
     strength: MUST
-    statement: >-
-      The system MUST emit deterministic output listing the strict change artifacts created by
-      `propose`.
+    statement: The system MUST emit deterministic output listing the strict change artifacts created by `propose`.
     scenarios:
       propose-output-includes-artifact-paths:
         - GIVEN: '`strict-spec-driven propose <name>` completes successfully'
@@ -228,24 +191,16 @@ requirements:
         - AND: output lists the created planning artifact paths for follow-up editing
   cli-build-bundles-templates:
     strength: MUST
-    statement: >-
-      The system MUST copy the `templates/` directory into `dist/templates/` as part of the build
-      step so compiled scripts can resolve scaffold and schema assets without depending on the
-      source tree.
+    statement: The system MUST copy the `templates/` directory into `dist/templates/` as part of the build step so compiled scripts can resolve scaffold and schema assets without depending on the source tree.
     scenarios:
       templates-appear-in-dist-after-build:
         - GIVEN: the TypeScript sources compile successfully
         - WHEN: '`bun run build` completes'
-        - THEN: >-
-            `dist/templates/strict-spec-driven/scaffold/` contains all required scaffold template
-            assets
+        - THEN: '`dist/templates/strict-spec-driven/scaffold/` contains all required scaffold template assets'
         - AND: '`dist/templates/strict-spec-driven/schemas/` contains all schema and registry assets'
   cli-template-resolution-from-dist:
     strength: MUST
-    statement: >-
-      The system MUST resolve bundled template directories relative to `import.meta.url` so that
-      compiled scripts in `dist/` find templates under `dist/templates/` without depending on the
-      source tree.
+    statement: The system MUST resolve bundled template directories relative to `import.meta.url` so that compiled scripts in `dist/` find templates under `dist/templates/` without depending on the source tree.
     scenarios:
       compiled-scripts-find-scaffold-templates:
         - GIVEN: '`dist/` contains compiled JS and `dist/templates/` contains copied template assets'
@@ -257,22 +212,15 @@ requirements:
         - THEN: the schema is found under `dist/templates/strict-spec-driven/schemas/`
   cli-template-resolution-fallback:
     strength: MUST
-    statement: >-
-      The system MUST fall back to `../templates/` relative to the module file when
-      `dist/templates/` does not exist, so template resolution works during development before the
-      copy step runs.
+    statement: The system MUST fall back to `../templates/` relative to the module file when `dist/templates/` does not exist, so template resolution works during development before the copy step runs.
     scenarios:
       source-tree-fallback-when-dist-templates-missing:
         - GIVEN: '`dist/templates/` does not exist'
         - WHEN: a script resolves a bundled template path
-        - THEN: >-
-            the template is found under `../templates/strict-spec-driven/` relative to the module
-            file
+        - THEN: the template is found under `../templates/strict-spec-driven/` relative to the module file
   cli-init-works-from-dist-only:
     strength: MUST
-    statement: >-
-      The system MUST allow `strict-spec-driven init` to create scaffold files correctly when run
-      from the compiled `dist/` output without the source tree present.
+    statement: The system MUST allow `strict-spec-driven init` to create scaffold files correctly when run from the compiled `dist/` output without the source tree present.
     scenarios:
       init-succeeds-from-dist-only-environment:
         - GIVEN: only the `dist/` directory exists with compiled JS and bundled templates
@@ -280,9 +228,7 @@ requirements:
         - THEN: it creates `.strict-spec-driven/` with all required scaffold artifacts
   cli-propose-works-from-dist-only:
     strength: MUST
-    statement: >-
-      The system MUST allow `strict-spec-driven propose` to create change scaffolds correctly when
-      run from the compiled `dist/` output without the source tree present.
+    statement: The system MUST allow `strict-spec-driven propose` to create change scaffolds correctly when run from the compiled `dist/` output without the source tree present.
     scenarios:
       propose-succeeds-from-dist-only-environment:
         - GIVEN: only the `dist/` directory exists with compiled JS and bundled templates
@@ -290,9 +236,7 @@ requirements:
         - THEN: it creates the change directory with all planning artifacts
   cli-apply-reads-tasks-yaml:
     strength: MUST
-    statement: >-
-      The system MUST provide an `apply` subcommand that reads `tasks.yaml` from a named active
-      strict change directory under `.strict-spec-driven/changes/<name>/`.
+    statement: The system MUST provide an `apply` subcommand that reads `tasks.yaml` from a named active strict change directory under `.strict-spec-driven/changes/<name>/`.
     scenarios:
       apply-locates-tasks-for-an-existing-change:
         - GIVEN: '`.strict-spec-driven/changes/<name>/tasks.yaml` exists with at least one pending task'
@@ -305,10 +249,7 @@ requirements:
         - AND: an error message is written to stderr indicating the change was not found
   cli-apply-completes-next-pending-task:
     strength: MUST
-    statement: >-
-      The system MUST complete exactly one pending task per `apply` invocation by locating the first
-      task with `status: pending` across all task sections, setting its status to `complete`, and
-      writing the updated `tasks.yaml` back to disk.
+    statement: 'The system MUST complete exactly one pending task per `apply` invocation by locating the first task with `status: pending` across all task sections, setting its status to `complete`, and writing the updated `tasks.yaml` back to disk.'
     scenarios:
       apply-completes-first-pending-task:
         - GIVEN: a strict change has `tasks.yaml` with multiple pending tasks across sections
@@ -319,9 +260,7 @@ requirements:
       apply-preserves-tasks-yaml-structure:
         - GIVEN: a strict change has `tasks.yaml` with sections, task fields, and testing gates
         - WHEN: '`strict-spec-driven apply <name>` is executed'
-        - THEN: >-
-            the `tasks.yaml` sections, task identifiers, task text, commands, and testing gates
-            remain unchanged
+        - THEN: the `tasks.yaml` sections, task identifiers, task text, commands, and testing gates remain unchanged
         - AND: only the target task `status` field is modified
   cli-apply-rejects-all-complete:
     strength: MUST
@@ -334,9 +273,7 @@ requirements:
         - AND: an error message is written to stderr indicating no pending tasks remain
   cli-apply-emits-task-status-json:
     strength: MUST
-    statement: >-
-      The system MUST emit a deterministic JSON object to stdout describing the completed task and
-      remaining task summary.
+    statement: The system MUST emit a deterministic JSON object to stdout describing the completed task and remaining task summary.
     scenarios:
       apply-output-is-parseable-json:
         - GIVEN: '`strict-spec-driven apply <name>` completes a task successfully'
@@ -349,11 +286,7 @@ requirements:
         - THEN: each output reflects only the task completed in that invocation
   cli-verify-reads-active-change-artifacts:
     strength: MUST
-    statement: >-
-      The system MUST provide a `verify` subcommand that reads all planning artifacts
-      (proposal.yaml, design.yaml, tasks.yaml, questions.yaml) and any delta spec files under
-      `specs/` from a named active strict change directory under
-      `.strict-spec-driven/changes/<name>/`.
+    statement: The system MUST provide a `verify` subcommand that reads all planning artifacts (proposal.yaml, design.yaml, tasks.yaml, questions.yaml) and any delta spec files under `specs/` from a named active strict change directory under `.strict-spec-driven/changes/<name>/`.
     scenarios:
       verify-locates-artifacts-for-an-existing-change:
         - GIVEN: '`.strict-spec-driven/changes/<name>/` exists with planning artifacts'
@@ -366,9 +299,7 @@ requirements:
         - AND: an error message is written to stderr indicating the change was not found
   cli-verify-validates-artifacts-against-schemas:
     strength: MUST
-    statement: >-
-      The system MUST validate each change planning artifact against its registered strict YAML
-      schema and include any schema violations in the verification diagnostics.
+    statement: The system MUST validate each change planning artifact against its registered strict YAML schema and include any schema violations in the verification diagnostics.
     scenarios:
       valid-artifacts-produce-no-schema-diagnostics:
         - GIVEN: a strict change has valid proposal.yaml, design.yaml, tasks.yaml, and questions.yaml
@@ -380,9 +311,7 @@ requirements:
         - THEN: a schema validation diagnostic is emitted identifying the artifact path and field path
   cli-verify-checks-task-completion:
     strength: MUST
-    statement: >-
-      The system MUST report a verification diagnostic when any task in the change has a status
-      other than `complete`.
+    statement: The system MUST report a verification diagnostic when any task in the change has a status other than `complete`.
     scenarios:
       all-tasks-complete-produce-no-task-diagnostics:
         - GIVEN: 'a strict change has tasks.yaml with all tasks having `status: complete`'
@@ -394,9 +323,7 @@ requirements:
         - THEN: a diagnostic is emitted identifying the incomplete task
   cli-verify-checks-open-questions:
     strength: MUST
-    statement: >-
-      The system MUST report a verification diagnostic when the questions artifact contains any open
-      questions.
+    statement: The system MUST report a verification diagnostic when the questions artifact contains any open questions.
     scenarios:
       no-open-questions-produce-no-question-diagnostics:
         - GIVEN: a strict change has questions.yaml with an empty `open` list
@@ -408,33 +335,22 @@ requirements:
         - THEN: a diagnostic is emitted for each open question
   cli-verify-validates-testing-gates:
     strength: MUST
-    statement: >-
-      The system MUST validate that `tasks.yaml` testing gates reference existing task IDs within
-      the Testing section and report a diagnostic when a referenced task ID is missing or outside
-      the Testing section.
+    statement: The system MUST validate that `tasks.yaml` testing gates reference existing task IDs within the Testing section and report a diagnostic when a referenced task ID is missing or outside the Testing section.
     scenarios:
       valid-testing-gates-produce-no-diagnostics:
-        - GIVEN: >-
-            a strict change has tasks.yaml where `testing_gates.validation_task` and
-            `testing_gates.unit_test_task` reference existing task IDs in the Testing section
+        - GIVEN: a strict change has tasks.yaml where `testing_gates.validation_task` and `testing_gates.unit_test_task` reference existing task IDs in the Testing section
         - WHEN: '`strict-spec-driven verify <name>` is executed'
         - THEN: no testing-gate diagnostics are emitted
       missing-testing-gate-target-produces-diagnostic:
-        - GIVEN: >-
-            a strict change has tasks.yaml where `testing_gates.validation_task` references a task
-            ID that does not exist in the Testing section
+        - GIVEN: a strict change has tasks.yaml where `testing_gates.validation_task` references a task ID that does not exist in the Testing section
         - WHEN: '`strict-spec-driven verify <name>` is executed'
         - THEN: a diagnostic is emitted identifying the invalid testing gate reference
   cli-verify-validates-delta-specs:
     strength: MUST
-    statement: >-
-      The system MUST validate each YAML file under the change `specs/` directory against the
-      registered delta-spec schema and include any violations in the verification diagnostics.
+    statement: The system MUST validate each YAML file under the change `specs/` directory against the registered delta-spec schema and include any violations in the verification diagnostics.
     scenarios:
       valid-delta-specs-produce-no-diagnostics:
-        - GIVEN: >-
-            a strict change has delta spec files under `specs/` that conform to the delta-spec
-            schema
+        - GIVEN: a strict change has delta spec files under `specs/` that conform to the delta-spec schema
         - WHEN: '`strict-spec-driven verify <name>` is executed'
         - THEN: no delta-spec diagnostics are emitted
       malformed-delta-spec-produces-diagnostics:
@@ -443,38 +359,26 @@ requirements:
         - THEN: a diagnostic is emitted identifying the delta spec path and violation
   cli-verify-enforces-exclusive-active-targets:
     strength: MUST
-    statement: >-
-      The system MUST report a verification diagnostic when two or more active changes have delta
-      specs that target the same requirement ID with MODIFIED or REMOVED operations.
+    statement: The system MUST report a verification diagnostic when two or more active changes have delta specs that target the same requirement ID with MODIFIED or REMOVED operations.
     scenarios:
       no-target-overlap-produces-no-conflict-diagnostics:
-        - GIVEN: >-
-            active changes have delta specs with disjoint MODIFIED and REMOVED target_requirement
-            values
+        - GIVEN: active changes have delta specs with disjoint MODIFIED and REMOVED target_requirement values
         - WHEN: '`strict-spec-driven verify <name>` is executed'
         - THEN: no exclusive-active-target diagnostics are emitted
       overlapping-targets-produce-conflict-diagnostics:
-        - GIVEN: >-
-            two active changes each have a delta spec with a MODIFIED entry targeting the same
-            requirement ID
+        - GIVEN: two active changes each have a delta spec with a MODIFIED entry targeting the same requirement ID
         - WHEN: '`strict-spec-driven verify <name>` is executed'
-        - THEN: >-
-            a diagnostic is emitted identifying the conflicting requirement ID and the competing
-            change names
+        - THEN: a diagnostic is emitted identifying the conflicting requirement ID and the competing change names
   cli-verify-emits-deterministic-json-output:
     strength: MUST
-    statement: >-
-      The system MUST emit a deterministic JSON object to stdout containing `valid`, `diagnostics`,
-      `changeName`, `totalTasks`, `completeTasks`, `remainingPending`, and `openQuestionCount`.
+    statement: The system MUST emit a deterministic JSON object to stdout containing `valid`, `diagnostics`, `changeName`, `totalTasks`, `completeTasks`, `remainingPending`, and `openQuestionCount`.
     scenarios:
       verify-output-is-parseable-json:
         - GIVEN: '`strict-spec-driven verify <name>` completes'
         - WHEN: command stdout is parsed as JSON
         - THEN: the JSON includes `valid` as a boolean
         - AND: the JSON includes `diagnostics` as an array
-        - AND: >-
-            the JSON includes `changeName`, `totalTasks`, `completeTasks`, `remainingPending`, and
-            `openQuestionCount`
+        - AND: the JSON includes `changeName`, `totalTasks`, `completeTasks`, `remainingPending`, and `openQuestionCount`
       verify-exits-non-zero-when-invalid:
         - GIVEN: a strict change has verification diagnostics
         - WHEN: '`strict-spec-driven verify <name>` is executed'
@@ -485,9 +389,7 @@ requirements:
         - THEN: the command exits with exit code zero
   cli-verify-works-from-dist-only:
     strength: MUST
-    statement: >-
-      The system MUST allow `strict-spec-driven verify` to validate change artifacts correctly when
-      run from the compiled `dist/` output without the source tree present.
+    statement: The system MUST allow `strict-spec-driven verify` to validate change artifacts correctly when run from the compiled `dist/` output without the source tree present.
     scenarios:
       verify-succeeds-from-dist-only-environment:
         - GIVEN: only the `dist/` directory exists with compiled JS and bundled templates
@@ -495,10 +397,7 @@ requirements:
         - THEN: it validates the change and emits correct diagnostics
   cli-roadmap-status-reports-strict-roadmap-state:
     strength: MUST
-    statement: >-
-      The system MUST provide a `roadmap-status` subcommand that validates
-      `.strict-spec-driven/roadmap/` artifacts and reports milestone and planned change state using
-      strict roadmap declared-status rules and derived completion semantics.
+    statement: The system MUST provide a `roadmap-status` subcommand that validates `.strict-spec-driven/roadmap/` artifacts and reports milestone and planned change state using strict roadmap declared-status rules and derived completion semantics.
     scenarios:
       roadmap-status-reports-ordered-milestone-state:
         - GIVEN: a valid strict roadmap exists under `.strict-spec-driven/roadmap/`
@@ -513,10 +412,7 @@ requirements:
         - AND: the diagnostics identify the invalid artifact and field context
   cli-roadmap-sync-reconciles-strict-roadmap-state:
     strength: MUST
-    statement: >-
-      The system MUST provide a `roadmap-sync` subcommand that regenerates or repairs strict roadmap
-      index state and reconciles milestone and planned change completion against active and archived
-      strict changes without inventing new roadmap items.
+    statement: The system MUST provide a `roadmap-sync` subcommand that regenerates or repairs strict roadmap index state and reconciles milestone and planned change completion against active and archived strict changes without inventing new roadmap items.
     scenarios:
       roadmap-sync-regenerates-canonical-roadmap-index-state:
         - GIVEN: strict roadmap milestone files exist under `.strict-spec-driven/roadmap/milestones/`
@@ -531,39 +427,27 @@ requirements:
         - AND: unrelated milestone notes and scope content remain unchanged
   cli-roadmap-validation-and-skill-smoke-coverage:
     strength: MUST
-    statement: >-
-      The system MUST include automated checks that exercise strict roadmap command behavior and
-      strict roadmap skill content for both aligned and failing states, including regression
-      coverage for milestones that use the optional `details` field across roadmap validation, sync,
-      and proposal-handoff flows.
+    statement: The system MUST include automated checks that exercise strict roadmap command behavior and strict roadmap skill content for both aligned and failing states, including regression coverage for milestones that use the optional `details` field across roadmap validation, sync, and proposal-handoff flows.
     scenarios:
       automated-checks-accept-details-bearing-roadmap-workflow-surfaces:
-        - GIVEN: >-
-            strict roadmap commands and `strict-roadmap-*` skill packages are aligned with
-            `.strict-spec-driven/roadmap/`
+        - GIVEN: strict roadmap commands and `strict-roadmap-*` skill packages are aligned with `.strict-spec-driven/roadmap/`
         - AND: a milestone includes a valid `details` field
         - WHEN: repository automated checks are executed
         - THEN: the roadmap workflow checks pass
       automated-checks-accept-milestones-without-details:
-        - GIVEN: >-
-            strict roadmap commands and `strict-roadmap-*` skill packages are aligned with
-            `.strict-spec-driven/roadmap/`
+        - GIVEN: strict roadmap commands and `strict-roadmap-*` skill packages are aligned with `.strict-spec-driven/roadmap/`
         - AND: a milestone omits the optional `details` field
         - WHEN: repository automated checks are executed
         - THEN: the roadmap workflow checks pass
         - AND: no placeholder or synthetic `details` value is required
       automated-checks-reject-placeholder-or-stale-roadmap-surfaces:
-        - GIVEN: >-
-            a strict roadmap skill keeps a generic placeholder command block or a roadmap command
-            ignores strict roadmap status rules
+        - GIVEN: a strict roadmap skill keeps a generic placeholder command block or a roadmap command ignores strict roadmap status rules
         - WHEN: repository automated checks are executed
         - THEN: the roadmap workflow checks fail
         - AND: diagnostics identify the failing skill or roadmap surface deterministically
   cli-verify-spec-mappings-subcommand:
     strength: MUST
-    statement: >-
-      The system MUST provide a `verify-spec-mappings` subcommand for strict spec-mapping audits
-      against .strict-spec-driven/specs/.
+    statement: The system MUST provide a `verify-spec-mappings` subcommand for strict spec-mapping audits against .strict-spec-driven/specs/.
     scenarios:
       verify-spec-mappings-runs-from-repository-state:
         - GIVEN: '`.strict-spec-driven/specs/` contains one or more main spec YAML files'
@@ -577,45 +461,31 @@ requirements:
         - AND: a diagnostic explains that spec mapping inputs are unavailable
   cli-verify-spec-mappings-audits-mapping-coverage:
     strength: MUST
-    statement: >-
-      The system MUST audit mapping coverage across main spec mapping fields and report diagnostics
-      when mapping coverage is incomplete.
+    statement: The system MUST audit mapping coverage across main spec mapping fields and report diagnostics when mapping coverage is incomplete.
     scenarios:
       mapped-implementation-and-tests-produce-no-coverage-diagnostics:
-        - GIVEN: >-
-            each main spec has a mapping field with non-empty implementation and test path
-            collections
+        - GIVEN: each main spec has a mapping field with non-empty implementation and test path collections
         - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
         - THEN: mapping-coverage diagnostics are not emitted
       missing-mapping-coverage-produces-diagnostics:
-        - GIVEN: >-
-            a main spec omits the mapping field or has an empty implementation or test mapping
-            collection
+        - GIVEN: a main spec omits the mapping field or has an empty implementation or test mapping collection
         - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
         - THEN: a diagnostic is emitted identifying the spec path and missing coverage
   cli-verify-spec-mappings-audits-unmapped-evidence:
     strength: MUST
-    statement: >-
-      The system MUST audit unmapped repository evidence by reporting implementation or test files
-      that are not referenced by any spec mapping entry.
+    statement: The system MUST audit unmapped repository evidence by reporting implementation or test files that are not referenced by any spec mapping entry.
     scenarios:
       fully-mapped-repository-evidence-produces-no-unmapped-diagnostics:
-        - GIVEN: >-
-            relevant implementation and test files are each referenced by at least one spec mapping
-            entry
+        - GIVEN: relevant implementation and test files are each referenced by at least one spec mapping entry
         - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
         - THEN: unmapped-evidence diagnostics are not emitted
       unmapped-evidence-produces-diagnostics:
-        - GIVEN: >-
-            at least one relevant implementation or test file is not referenced by any spec mapping
-            entry
+        - GIVEN: at least one relevant implementation or test file is not referenced by any spec mapping entry
         - WHEN: '`strict-spec-driven verify-spec-mappings` is executed'
         - THEN: a diagnostic is emitted identifying each unmapped file path
   cli-verify-spec-mappings-emits-deterministic-json-output:
     strength: MUST
-    statement: >-
-      The system MUST emit deterministic JSON output for mapping audit results, including validity,
-      diagnostics, and mapping summary counts.
+    statement: The system MUST emit deterministic JSON output for mapping audit results, including validity, diagnostics, and mapping summary counts.
     scenarios:
       output-is-parseable-json:
         - GIVEN: '`strict-spec-driven verify-spec-mappings` completes'
@@ -633,14 +503,10 @@ requirements:
         - THEN: the command exits with exit code zero
   cli-archive-reads-active-change-artifacts:
     strength: MUST
-    statement: >-
-      The system MUST provide an `archive` subcommand that reads planning artifacts and delta specs
-      from a named active strict change directory under `.strict-spec-driven/changes/<name>/`.
+    statement: The system MUST provide an `archive` subcommand that reads planning artifacts and delta specs from a named active strict change directory under `.strict-spec-driven/changes/<name>/`.
     scenarios:
       archive-locates-artifacts-for-an-existing-change:
-        - GIVEN: >-
-            `.strict-spec-driven/changes/<name>/` exists with proposal, design, tasks, questions,
-            and delta spec files
+        - GIVEN: '`.strict-spec-driven/changes/<name>/` exists with proposal, design, tasks, questions, and delta spec files'
         - WHEN: '`strict-spec-driven archive <name>` is executed'
         - THEN: the command reads the change artifacts needed for archive processing
       archive-rejects-missing-change:
@@ -650,9 +516,7 @@ requirements:
         - AND: an error message is written to stderr indicating the change was not found
   cli-archive-requires-verified-change-state:
     strength: MUST
-    statement: >-
-      The system MUST block archive when the named active change has incomplete tasks, open
-      questions, or validation diagnostics.
+    statement: The system MUST block archive when the named active change has incomplete tasks, open questions, or validation diagnostics.
     scenarios:
       archive-rejects-incomplete-or-unresolved-change-state:
         - GIVEN: a strict change has at least one pending task or at least one open question
@@ -666,22 +530,15 @@ requirements:
         - AND: the archive move is not performed
   cli-archive-merges-delta-specs-into-main-specs:
     strength: MUST
-    statement: >-
-      The system MUST merge delta specs from the archived change into their corresponding main
-      strict specs using stable requirement identifiers and explicit ADDED, MODIFIED, and REMOVED
-      operations.
+    statement: The system MUST merge delta specs from the archived change into their corresponding main strict specs using stable requirement identifiers and explicit ADDED, MODIFIED, and REMOVED operations.
     scenarios:
       archive-applies-added-and-modified-operations:
-        - GIVEN: >-
-            a strict change includes delta specs with ADDED and MODIFIED entries targeting existing
-            strict main specs
+        - GIVEN: a strict change includes delta specs with ADDED and MODIFIED entries targeting existing strict main specs
         - WHEN: '`strict-spec-driven archive <name>` is executed'
         - THEN: ADDED requirements are appended to the target specs
         - AND: MODIFIED requirements replace the targeted requirements by stable requirement identifier
       archive-applies-removed-operations:
-        - GIVEN: >-
-            a strict change includes delta specs with REMOVED entries targeting existing
-            requirements
+        - GIVEN: a strict change includes delta specs with REMOVED entries targeting existing requirements
         - WHEN: '`strict-spec-driven archive <name>` is executed'
         - THEN: targeted requirements are removed from the target main specs
   cli-archive-applies-missing-target-merge-rules:
@@ -689,24 +546,18 @@ requirements:
     statement: The system MUST apply deterministic missing-target merge rules during archive processing.
     scenarios:
       missing-modified-target-is-treated-as-added:
-        - GIVEN: >-
-            a delta MODIFIED entry targets a requirement ID missing from the target main spec at
-            archive time
+        - GIVEN: a delta MODIFIED entry targets a requirement ID missing from the target main spec at archive time
         - WHEN: '`strict-spec-driven archive <name>` is executed'
         - THEN: the replacement requirement is merged as an added requirement
         - AND: the fallback outcome is recorded in the archive merge report
       missing-removed-target-is-skipped:
-        - GIVEN: >-
-            a delta REMOVED entry targets a requirement ID missing from the target main spec at
-            archive time
+        - GIVEN: a delta REMOVED entry targets a requirement ID missing from the target main spec at archive time
         - WHEN: '`strict-spec-driven archive <name>` is executed'
         - THEN: the removal is skipped
         - AND: the skipped removal is recorded in the archive merge report
   cli-archive-moves-change-to-date-prefixed-archive:
     strength: MUST
-    statement: >-
-      The system MUST move a successfully archived change from the active changes directory to
-      `.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` using local date naming.
+    statement: The system MUST move a successfully archived change from the active changes directory to `.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` using local date naming.
     scenarios:
       successful-archive-move-uses-date-prefixed-destination:
         - GIVEN: '`strict-spec-driven archive <name>` completes merge successfully'
@@ -720,9 +571,7 @@ requirements:
         - AND: the existing archive directory is preserved
   cli-archive-regenerates-spec-index-after-merge:
     strength: MUST
-    statement: >-
-      The system MUST regenerate strict specs index artifacts after archive merge writes updated
-      main strict specs.
+    statement: The system MUST regenerate strict specs index artifacts after archive merge writes updated main strict specs.
     scenarios:
       specs-index-reflects-merged-spec-state:
         - GIVEN: archive merges one or more delta specs into main strict specs
@@ -731,23 +580,17 @@ requirements:
         - AND: index entries remain aligned with the available main strict spec files
   cli-archive-emits-deterministic-json-output:
     strength: MUST
-    statement: >-
-      The system MUST emit deterministic JSON to stdout describing archive validity, merge outcomes,
-      and archive destination details.
+    statement: The system MUST emit deterministic JSON to stdout describing archive validity, merge outcomes, and archive destination details.
     scenarios:
       archive-output-is-parseable-json:
         - GIVEN: '`strict-spec-driven archive <name>` completes'
         - WHEN: command stdout is parsed as JSON
         - THEN: the output includes archive validity state
-        - AND: >-
-            the output includes merged, skipped, and conflict/fallback outcome summaries when
-            present
+        - AND: the output includes merged, skipped, and conflict/fallback outcome summaries when present
         - AND: the output includes the archive destination path
   cli-list-reports-active-and-archived-strict-changes:
     strength: MUST
-    statement: >-
-      The system MUST provide a `list` subcommand that reports active and archived strict changes
-      from `.strict-spec-driven/changes/`.
+    statement: The system MUST provide a `list` subcommand that reports active and archived strict changes from `.strict-spec-driven/changes/`.
     scenarios:
       list-reports-active-changes:
         - GIVEN: one or more active strict change directories exist under `.strict-spec-driven/changes/`
@@ -755,9 +598,7 @@ requirements:
         - THEN: the command output includes active change names
         - AND: each active change includes a status summary derived from strict planning artifacts
       list-reports-archived-changes:
-        - GIVEN: >-
-            one or more archived strict change directories exist under
-            `.strict-spec-driven/changes/archive/`
+        - GIVEN: one or more archived strict change directories exist under `.strict-spec-driven/changes/archive/`
         - WHEN: '`strict-spec-driven list` is executed'
         - THEN: the command output includes archived directory names
       list-handles-empty-state:
@@ -766,9 +607,7 @@ requirements:
         - THEN: the command reports that no changes are present
   cli-modify-reports-strict-artifact-paths:
     strength: MUST
-    statement: >-
-      The system MUST provide a `modify` subcommand that reports editable strict artifact paths for
-      the selected change.
+    statement: The system MUST provide a `modify` subcommand that reports editable strict artifact paths for the selected change.
     scenarios:
       modify-with-no-argument-lists-active-changes:
         - GIVEN: one or more active strict changes exist
@@ -777,17 +616,11 @@ requirements:
       modify-reports-active-change-artifacts:
         - GIVEN: '`.strict-spec-driven/changes/<name>/` exists'
         - WHEN: '`strict-spec-driven modify <name>` is executed'
-        - THEN: >-
-            the command output lists `proposal.yaml`, `design.yaml`, `tasks.yaml`, `questions.yaml`,
-            and the `specs/` delta spec paths for that change
+        - THEN: the command output lists `proposal.yaml`, `design.yaml`, `tasks.yaml`, `questions.yaml`, and the `specs/` delta spec paths for that change
       modify-reports-archived-change-artifacts-by-exact-directory-name:
         - GIVEN: '`.strict-spec-driven/changes/archive/<archive-dir>/` exists'
-        - WHEN: >-
-            `strict-spec-driven modify <archive-dir>` is executed with the exact archive directory
-            name
-        - THEN: >-
-            the command output lists the strict planning artifact and delta spec paths for the
-            archived change
+        - WHEN: '`strict-spec-driven modify <archive-dir>` is executed with the exact archive directory name'
+        - THEN: the command output lists the strict planning artifact and delta spec paths for the archived change
       modify-rejects-archived-bare-name-ambiguity:
         - GIVEN: archived changes exist whose directories use `YYYY-MM-DD-<name>`
         - WHEN: '`strict-spec-driven modify <name>` is executed without the date prefix'
@@ -795,9 +628,7 @@ requirements:
         - AND: the error explains that archived targets require exact archive directory names
   cli-cancel-removes-active-strict-changes-only:
     strength: MUST
-    statement: >-
-      The system MUST provide a `cancel` subcommand that removes active strict changes and rejects
-      archived change targets.
+    statement: The system MUST provide a `cancel` subcommand that removes active strict changes and rejects archived change targets.
     scenarios:
       cancel-removes-an-active-change:
         - GIVEN: '`.strict-spec-driven/changes/<name>/` exists'
@@ -812,19 +643,14 @@ requirements:
         - AND: the error explains that cancel is limited to active changes
   cli-skill-packaging-validation-smoke-coverage:
     strength: MUST
-    statement: >-
-      The system MUST include automated checks that exercise strict skill packaging validation
-      behavior for both passing and failing package states, with validation logic sourced from
-      focused modules under `src/skills/` rather than a single monolithic file.
+    statement: The system MUST include automated checks that exercise strict skill packaging validation behavior for both passing and failing package states, with validation logic sourced from focused modules under `src/skills/` rather than a single monolithic file.
     scenarios:
       packaging-checks-confirm-valid-strict-package-state:
         - GIVEN: strict skill packages satisfy metadata, command reference, and symlink assumptions
         - WHEN: repository automated checks are executed
         - THEN: strict skill packaging checks pass
       packaging-checks-report-deterministic-diagnostics-for-invalid-state:
-        - GIVEN: >-
-            a strict skill package has stale naming, missing required metadata, or broken symlink
-            assumptions
+        - GIVEN: a strict skill package has stale naming, missing required metadata, or broken symlink assumptions
         - WHEN: repository automated checks are executed
         - THEN: strict skill packaging checks fail
         - AND: diagnostics remain machine-readable and path-specific
@@ -835,130 +661,84 @@ requirements:
         - AND: output includes validity, deterministic diagnostics, and summary counts
   cli-installation-and-packaging-smoke-coverage:
     strength: MUST
-    statement: >-
-      The system MUST include automated checks that exercise strict skill installation and
-      uninstallation surfaces together with packaged skill layout expectations.
+    statement: The system MUST include automated checks that exercise strict skill installation and uninstallation surfaces together with packaged skill layout expectations.
     scenarios:
       install-smoke-checks-confirm-packaged-strict-skills-remain-usable:
         - GIVEN: strict skill packages expose the expected bundled `scripts` and `templates` symlinks
         - WHEN: repository automated install smoke checks are executed
         - THEN: install registration succeeds for the selected scope
-        - AND: >-
-            the packaged strict skills keep resolving bundled scripts and templates through the
-            registered source-repository layout
+        - AND: the packaged strict skills keep resolving bundled scripts and templates through the registered source-repository layout
       uninstall-smoke-checks-remove-strict-registration-cleanly:
         - GIVEN: strict skills were registered through the repository install surface
         - WHEN: repository automated uninstall smoke checks are executed
         - THEN: the registered strict skills are removed for the selected scope
         - AND: the smoke checks do not require manual cleanup of copied package files
       install-smoke-checks-report-deterministic-diagnostics-for-invalid-package-state:
-        - GIVEN: >-
-            a strict skill package has broken bundled symlinks or stale legacy install naming
-            assumptions
+        - GIVEN: a strict skill package has broken bundled symlinks or stale legacy install naming assumptions
         - WHEN: repository automated install or packaging smoke checks are executed
         - THEN: the checks fail
         - AND: diagnostics remain machine-readable and path-specific
   cli-core-skill-content-validation-smoke-coverage:
     strength: MUST
-    statement: >-
-      The system MUST include automated checks that exercise strict core lifecycle skill content for
-      both passing and failing states, not only package-shape validation.
+    statement: The system MUST include automated checks that exercise strict core lifecycle skill content for both passing and failing states, not only package-shape validation.
     scenarios:
       automated-checks-accept-aligned-core-skill-content:
-        - GIVEN: >-
-            the strict core lifecycle skills contain explicit strict command mappings and
-            `.strict-spec-driven/` workflow guidance
+        - GIVEN: the strict core lifecycle skills contain explicit strict command mappings and `.strict-spec-driven/` workflow guidance
         - WHEN: repository automated checks are executed
         - THEN: the core skill content checks pass
-        - AND: >-
-            `strict-spec-auto` includes an advisory `/strict-spec-ship <change-name>` handoff
-            recommendation
+        - AND: '`strict-spec-auto` includes an advisory `/strict-spec-ship <change-name>` handoff recommendation'
       automated-checks-reject-placeholder-core-skill-content:
-        - GIVEN: >-
-            a strict core lifecycle skill keeps a generic placeholder command block or omits
-            required strict workflow guidance
+        - GIVEN: a strict core lifecycle skill keeps a generic placeholder command block or omits required strict workflow guidance
         - WHEN: repository automated checks are executed
         - THEN: the core skill content checks fail
         - AND: diagnostics identify the failing skill package deterministically
   cli-planning-skill-content-validation-smoke-coverage:
     strength: MUST
-    statement: >-
-      The system MUST include automated checks that exercise strict planning and documentation skill
-      content for both passing and failing states, not only package-shape validation.
+    statement: The system MUST include automated checks that exercise strict planning and documentation skill content for both passing and failing states, not only package-shape validation.
     scenarios:
       automated-checks-accept-aligned-planning-skill-content:
-        - GIVEN: >-
-            the strict planning and documentation skills contain explicit strict command mappings
-            and `.strict-spec-driven/` workflow guidance
+        - GIVEN: the strict planning and documentation skills contain explicit strict command mappings and `.strict-spec-driven/` workflow guidance
         - WHEN: repository automated checks are executed
         - THEN: the planning skill content checks pass
       automated-checks-reject-placeholder-planning-skill-content:
-        - GIVEN: >-
-            a strict planning or documentation skill keeps a generic placeholder command block or
-            omits required strict workflow guidance
+        - GIVEN: a strict planning or documentation skill keeps a generic placeholder command block or omits required strict workflow guidance
         - WHEN: repository automated checks are executed
         - THEN: the planning skill content checks fail
         - AND: diagnostics identify the failing skill package deterministically
   cli-migration-skill-content-validation-smoke-coverage:
     strength: MUST
-    statement: >-
-      The system MUST include automated checks that exercise strict migration skill content for both
-      passing and failing states, not only generic package-shape validation.
+    statement: The system MUST include automated checks that exercise strict migration skill content for both passing and failing states, not only generic package-shape validation.
     scenarios:
       automated-checks-accept-aligned-migration-skill-content:
-        - GIVEN: >-
-            the strict migration skill contains explicit strict command mappings and
-            `.strict-spec-driven/` migration guidance
+        - GIVEN: the strict migration skill contains explicit strict command mappings and `.strict-spec-driven/` migration guidance
         - WHEN: repository automated checks are executed
         - THEN: the migration skill content checks pass
       automated-checks-reject-placeholder-migration-skill-content:
-        - GIVEN: >-
-            the strict migration skill keeps a generic placeholder command block or omits required
-            migration guidance
+        - GIVEN: the strict migration skill keeps a generic placeholder command block or omits required migration guidance
         - WHEN: repository automated checks are executed
         - THEN: the migration skill content checks fail
         - AND: diagnostics identify the failing skill package deterministically
   cli-migrate-converts-bootstrap-workflow-state:
     strength: MUST
-    statement: >-
-      The system MUST provide a `migrate` subcommand that reads legacy `.spec-driven/` workflow
-      state and migrates supported bootstrap config, main specs, delta specs, active and archived
-      change artifacts, roadmap index, roadmap milestones, and the specs index into strict YAML
-      output under `.strict-spec-driven/`, with legacy Markdown parsing for specs and change
-      artifacts sourced from focused modules under `src/migrate/parsers/`, initializes any remaining
-      required strict scaffold assets, and reports only unsupported or ambiguous legacy artifacts as
-      manual follow-up items.
+    statement: The system MUST provide a `migrate` subcommand that reads legacy `.spec-driven/` workflow state and migrates supported bootstrap config, main specs, delta specs, active and archived change artifacts, roadmap index, roadmap milestones, and the specs index into strict YAML output under `.strict-spec-driven/`, with legacy Markdown parsing for specs and change artifacts sourced from focused modules under `src/migrate/parsers/`, initializes any remaining required strict scaffold assets, and reports only unsupported or ambiguous legacy artifacts as manual follow-up items.
     scenarios:
       migrate-converts-legacy-specs-and-change-artifacts-into-strict-workflow-state:
-        - GIVEN: >-
-            legacy main specs, delta specs, and active or archived changes exist under
-            `.spec-driven/`
+        - GIVEN: legacy main specs, delta specs, and active or archived changes exist under `.spec-driven/`
         - AND: no unsafe strict target conflict blocks execution
         - WHEN: '`strict-spec-driven migrate` is executed'
         - THEN: the command writes strict YAML spec and change artifacts under `.strict-spec-driven/`
         - AND: the command updates the strict spec index to reference the migrated main spec outputs
-        - AND: >-
-            the migrated artifacts preserve the stable identifiers, mappings, task state, question
-            state, and archive-date behavior required by the strict workflow
+        - AND: the migrated artifacts preserve the stable identifiers, mappings, task state, question state, and archive-date behavior required by the strict workflow
         - AND: the source `.spec-driven/` artifacts remain unchanged
   cli-migrate-converts-roadmap-and-project-state:
     strength: MUST
-    statement: >-
-      The system MUST convert legacy `.spec-driven/roadmap/` Markdown artifacts and the legacy specs
-      index into strict YAML equivalents during a `migrate` run, writing results under
-      `.strict-spec-driven/roadmap/` and the strict specs index path.
+    statement: The system MUST convert legacy `.spec-driven/roadmap/` Markdown artifacts and the legacy specs index into strict YAML equivalents during a `migrate` run, writing results under `.strict-spec-driven/roadmap/` and the strict specs index path.
     scenarios:
       migrate-converts-roadmap-index-and-milestones:
-        - GIVEN: >-
-            legacy `roadmap/INDEX.md` and one or more `roadmap/milestones/*.md` files exist under
-            `.spec-driven/`
+        - GIVEN: legacy `roadmap/INDEX.md` and one or more `roadmap/milestones/*.md` files exist under `.spec-driven/`
         - WHEN: '`strict-spec-driven migrate` is executed'
-        - THEN: >-
-            the roadmap index is written as a strict YAML artifact under
-            `.strict-spec-driven/roadmap/`
-        - AND: >-
-            each milestone file is converted to a strict YAML milestone artifact preserving goal,
-            scope, done criteria, dependencies, risks, notes, status, and planned change entries
+        - THEN: the roadmap index is written as a strict YAML artifact under `.strict-spec-driven/roadmap/`
+        - AND: each milestone file is converted to a strict YAML milestone artifact preserving goal, scope, done criteria, dependencies, risks, notes, status, and planned change entries
         - AND: the converted artifacts appear in the migration report as converted entries
       migrate-converts-specs-index:
         - GIVEN: a legacy `specs/INDEX.md` exists under `.spec-driven/`
@@ -966,17 +746,13 @@ requirements:
         - THEN: the specs index is written as a strict YAML artifact under `.strict-spec-driven/specs/`
         - AND: the converted artifact appears in the migration report as a converted entry
       unsupported-roadmap-markdown-shape-becomes-manual-follow-up:
-        - GIVEN: >-
-            a legacy roadmap artifact has a Markdown structure that cannot be deterministically
-            mapped to strict YAML fields
+        - GIVEN: a legacy roadmap artifact has a Markdown structure that cannot be deterministically mapped to strict YAML fields
         - WHEN: '`strict-spec-driven migrate` is executed'
         - THEN: the artifact appears in the migration report as a manual follow-up item
         - AND: no strict YAML output is invented for that artifact
   cli-migrate-enforces-preflight-and-overwrite-protection:
     strength: MUST
-    statement: >-
-      The system MUST reject migration runs that cannot proceed safely and report the blocking
-      preflight or overwrite-protection reason deterministically.
+    statement: The system MUST reject migration runs that cannot proceed safely and report the blocking preflight or overwrite-protection reason deterministically.
     scenarios:
       migrate-rejects-unsafe-strict-target-overwrite:
         - GIVEN: '`.strict-spec-driven/` already contains conflicting workflow state'
@@ -992,27 +768,16 @@ requirements:
         - AND: the result identifies the missing bootstrap source state
   cli-migrate-emits-structured-report-output:
     strength: MUST
-    statement: >-
-      The system MUST emit a structured migration report for each migration run so the operator can
-      review converted core workflow artifacts, remaining deferred artifacts, failures, warnings,
-      and manual follow-up items.
+    statement: The system MUST emit a structured migration report for each migration run so the operator can review converted core workflow artifacts, remaining deferred artifacts, failures, warnings, and manual follow-up items.
     scenarios:
       migrate-report-distinguishes-converted-core-workflow-artifacts-from-deferred-artifacts:
-        - GIVEN: >-
-            `strict-spec-driven migrate` converts supported core workflow artifacts while roadmap or
-            project-state converters are still pending
+        - GIVEN: '`strict-spec-driven migrate` converts supported core workflow artifacts while roadmap or project-state converters are still pending'
         - WHEN: the migration result is inspected
-        - THEN: >-
-            converted spec and change artifacts appear in converted entries with their strict target
-            paths
-        - AND: >-
-            unsupported roadmap or project-state artifacts remain identifiable through skipped
-            entries or manual follow-up items with source references
+        - THEN: converted spec and change artifacts appear in converted entries with their strict target paths
+        - AND: unsupported roadmap or project-state artifacts remain identifiable through skipped entries or manual follow-up items with source references
   cli-migrate-force-rerun:
     strength: MUST
-    statement: >-
-      The system MUST allow `strict-spec-driven migrate` to rerun into an existing non-empty
-      `.strict-spec-driven/` directory only when the operator explicitly passes `--force` or `-f`.
+    statement: The system MUST allow `strict-spec-driven migrate` to rerun into an existing non-empty `.strict-spec-driven/` directory only when the operator explicitly passes `--force` or `-f`.
     scenarios:
       rerun-without-force-stays-blocked:
         - GIVEN: '`strict-spec-driven migrate` already populated `.strict-spec-driven/`'
@@ -1031,39 +796,26 @@ requirements:
         - AND: the result matches the structured migration report from the initial successful run
   cli-domain-diagnostic-ordering-stability:
     strength: MUST
-    statement: >-
-      The system MUST preserve deterministic ordering for roadmap, skill-validation, and migration
-      diagnostics or report collections even when their implementation is distributed across focused
-      modules under `src/skills/`, `src/migrate/parsers/`, and shared helpers in
-      `src/diagnostics.ts`.
+    statement: The system MUST preserve deterministic ordering for roadmap, skill-validation, and migration diagnostics or report collections even when their implementation is distributed across focused modules under `src/skills/`, `src/migrate/parsers/`, and shared helpers in `src/diagnostics.ts`.
     scenarios:
       roadmap-diagnostics-keep-stable-ordering-across-repeated-runs:
         - GIVEN: strict roadmap artifacts produce multiple validation diagnostics
-        - WHEN: >-
-            `strict-spec-driven roadmap-status` is executed repeatedly against the same repository
-            state
+        - WHEN: '`strict-spec-driven roadmap-status` is executed repeatedly against the same repository state'
         - THEN: the diagnostics appear in the same order each time
         - AND: each diagnostic still identifies the invalid artifact and field context
       skill-validation-diagnostics-keep-stable-ordering-across-repeated-runs:
         - GIVEN: strict skill packaging or content validation produces multiple diagnostics
-        - WHEN: >-
-            `strict-spec-driven validate-skills` is executed repeatedly against the same repository
-            state
+        - WHEN: '`strict-spec-driven validate-skills` is executed repeatedly against the same repository state'
         - THEN: the diagnostics appear in the same order each time
         - AND: the JSON result keeps the same diagnostic field shape and summary counts
       migration-report-collections-keep-stable-ordering-across-repeated-runs:
-        - GIVEN: >-
-            bootstrap migration produces multiple warnings, errors, skipped entries, or manual
-            follow-up items
+        - GIVEN: bootstrap migration produces multiple warnings, errors, skipped entries, or manual follow-up items
         - WHEN: '`strict-spec-driven migrate` is executed repeatedly against the same repository state'
         - THEN: each report collection keeps deterministic ordering across runs
         - AND: shared diagnostic helpers do not invent, drop, or reorder entries nondeterministically
   cli-migrate-report-collections-are-always-arrays:
     strength: MUST
-    statement: >-
-      The system MUST emit `converted`, `skipped`, `warnings`, `errors`, and `manualFollowUp` as
-      top-level array fields in every migration report, including successful, partial, and blocked
-      runs.
+    statement: The system MUST emit `converted`, `skipped`, `warnings`, `errors`, and `manualFollowUp` as top-level array fields in every migration report, including successful, partial, and blocked runs.
     scenarios:
       successful-migration-keeps-warning-collections-explicit:
         - GIVEN: a migration run converts all supported artifacts without deferred legacy spec files
@@ -1086,43 +838,27 @@ requirements:
         - AND: '`manualFollowUp` is present as an array'
   cli-migrate-supports-repository-self-hosting:
     strength: MUST
-    statement: >-
-      The system MUST allow a repository's actual bootstrap `.spec-driven/` workflow state to be
-      migrated into `.strict-spec-driven/` output that is usable as the repository's active strict
-      workflow state without rewriting the preserved bootstrap source artifacts.
+    statement: The system MUST allow a repository's actual bootstrap `.spec-driven/` workflow state to be migrated into `.strict-spec-driven/` output that is usable as the repository's active strict workflow state without rewriting the preserved bootstrap source artifacts.
     scenarios:
       self-host-cutover-migrates-repository-workflow-state:
-        - GIVEN: >-
-            a repository contains bootstrap specs, roadmap artifacts, and archived or active changes
-            under `.spec-driven/`
+        - GIVEN: a repository contains bootstrap specs, roadmap artifacts, and archived or active changes under `.spec-driven/`
         - WHEN: '`strict-spec-driven migrate` is executed for the repository cutover'
         - THEN: the command writes corresponding strict YAML workflow state under `.strict-spec-driven/`
-        - AND: >-
-            the migrated output preserves the identities and relationships needed by strict workflow
-            commands
+        - AND: the migrated output preserves the identities and relationships needed by strict workflow commands
         - AND: the source `.spec-driven/` artifacts remain unchanged
       self-host-cutover-normalizes-blank-legacy-mappings:
-        - GIVEN: >-
-            a legacy archived delta leaves `mapping.implementation` or `mapping.tests` blank in
-            Markdown frontmatter
+        - GIVEN: a legacy archived delta leaves `mapping.implementation` or `mapping.tests` blank in Markdown frontmatter
         - WHEN: '`strict-spec-driven migrate` is executed for the repository cutover'
-        - THEN: >-
-            the migrated strict delta keeps those mapping fields as empty structured path
-            collections
+        - THEN: the migrated strict delta keeps those mapping fields as empty structured path collections
         - AND: the change is not deferred only because the legacy mapping fields were blank
       roadmap-status-accepts-migrated-roadmap-index-paths:
-        - GIVEN: >-
-            `strict-spec-driven migrate` has produced strict roadmap state for the repository
-            cutover
+        - GIVEN: '`strict-spec-driven migrate` has produced strict roadmap state for the repository cutover'
         - WHEN: '`strict-spec-driven roadmap-status` reads the migrated strict roadmap'
         - THEN: migrated milestone paths resolve without reference diagnostics
         - AND: roadmap status validation succeeds against the migrated roadmap index
   cli-ship-reads-archived-change:
     strength: MUST
-    statement: >-
-      The system MUST provide a `ship` subcommand that resolves a named archived change under
-      `.strict-spec-driven/changes/archive/` and reads its proposal summary, supporting both exact
-      archive directory names and bare change names expanded via date-prefix matching.
+    statement: The system MUST provide a `ship` subcommand that resolves a named archived change under `.strict-spec-driven/changes/archive/` and reads its proposal summary, supporting both exact archive directory names and bare change names expanded via date-prefix matching.
     scenarios:
       ship-resolves-exact-archive-directory-name:
         - GIVEN: '`.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` exists'
@@ -1131,18 +867,12 @@ requirements:
       ship-expands-bare-name-to-date-prefixed-archive-directory:
         - GIVEN: '`.strict-spec-driven/changes/archive/<YYYY-MM-DD>-<name>/` exists'
         - WHEN: '`strict-spec-driven ship <name>` is executed with the bare change name'
-        - THEN: >-
-            the command resolves the archived directory by date-prefix expansion and reads its
-            artifacts
+        - THEN: the command resolves the archived directory by date-prefix expansion and reads its artifacts
       ship-reports-ambiguity-when-multiple-date-prefixed-matches-exist:
-        - GIVEN: >-
-            multiple archive directories matching `*-<name>` exist under
-            `.strict-spec-driven/changes/archive/`
+        - GIVEN: multiple archive directories matching `*-<name>` exist under `.strict-spec-driven/changes/archive/`
         - WHEN: '`strict-spec-driven ship <name>` is executed with the bare name'
         - THEN: the command exits non-zero
-        - AND: >-
-            the error message lists the matching archive directories and asks the operator to
-            specify the full archive directory name
+        - AND: the error message lists the matching archive directories and asks the operator to specify the full archive directory name
       ship-rejects-missing-archived-change:
         - GIVEN: no matching archived directory exists for the given name
         - WHEN: '`strict-spec-driven ship <name>` is executed'
@@ -1150,9 +880,7 @@ requirements:
         - AND: an error message is written to stderr indicating the archived change was not found
   cli-ship-emits-deterministic-json-output:
     strength: MUST
-    statement: >-
-      The system MUST emit a deterministic JSON object to stdout from the `ship` subcommand
-      containing `changeName`, `archivePath`, `proposalSummary`, and `roadmapSnapshot`.
+    statement: The system MUST emit a deterministic JSON object to stdout from the `ship` subcommand containing `changeName`, `archivePath`, `proposalSummary`, and `roadmapSnapshot`.
     scenarios:
       ship-output-is-parseable-json:
         - GIVEN: '`strict-spec-driven ship <name>` resolves a valid archived change'
@@ -1160,38 +888,27 @@ requirements:
         - THEN: the JSON includes `changeName` as a string
         - AND: the JSON includes `archivePath` as the resolved archive directory path
         - AND: the JSON includes `proposalSummary` derived from the archived `proposal.yaml`
-        - AND: >-
-            the JSON includes `roadmapSnapshot` reflecting current roadmap milestone and planned
-            change state
+        - AND: the JSON includes `roadmapSnapshot` reflecting current roadmap milestone and planned change state
       ship-exits-zero-for-a-valid-archived-change:
         - GIVEN: a named archived change exists and its artifacts are readable
         - WHEN: '`strict-spec-driven ship <name>` is executed'
         - THEN: the command exits with exit code zero
   cli-ship-skill-content-validation-smoke-coverage:
     strength: MUST
-    statement: >-
-      The system MUST include automated checks that exercise strict ship skill content for both
-      passing and failing states, not only package-shape validation.
+    statement: The system MUST include automated checks that exercise strict ship skill content for both passing and failing states, not only package-shape validation.
     scenarios:
       automated-checks-accept-aligned-ship-skill-content:
-        - GIVEN: >-
-            `strict-spec-ship/SKILL.md` contains an explicit `ship` command reference and
-            `.strict-spec-driven/` workflow guidance
+        - GIVEN: '`strict-spec-ship/SKILL.md` contains an explicit `ship` command reference and `.strict-spec-driven/` workflow guidance'
         - WHEN: repository automated checks are executed
         - THEN: the ship skill content checks pass
       automated-checks-reject-placeholder-ship-skill-content:
-        - GIVEN: >-
-            `strict-spec-ship/SKILL.md` retains a generic placeholder command block or omits
-            `.strict-spec-driven/` workflow guidance
+        - GIVEN: '`strict-spec-ship/SKILL.md` retains a generic placeholder command block or omits `.strict-spec-driven/` workflow guidance'
         - WHEN: repository automated checks are executed
         - THEN: the ship skill content checks fail
         - AND: diagnostics identify the failing skill package deterministically
   cli-shared-output-helpers:
     strength: MUST
-    statement: >-
-      The system MUST provide a shared `src/cli/output.ts` module with typed helpers for writing
-      JSON, human-readable text, usage hints, and error messages to stdout and stderr so command
-      modules do not call `process.stdout.write` or `process.stderr.write` directly.
+    statement: The system MUST provide a shared `src/cli/output.ts` module with typed helpers for writing JSON, human-readable text, usage hints, and error messages to stdout and stderr so command modules do not call `process.stdout.write` or `process.stderr.write` directly.
     scenarios:
       json-output-is-written-through-shared-helper:
         - GIVEN: a CLI command produces a structured result
@@ -1205,10 +922,7 @@ requirements:
         - AND: the stderr format is identical to the pre-centralization behavior
   cli-propose-populates-artifacts-from-structured-input:
     strength: MUST
-    statement: >-
-      The system MUST provide CLI behavior that populates existing strict change planning artifacts
-      from explicit structured command input without requiring an AI agent to write the YAML
-      artifact directly.
+    statement: The system MUST provide CLI behavior that populates existing strict change planning artifacts from explicit structured command input without requiring an AI agent to write the YAML artifact directly.
     scenarios:
       proposal-artifact-is-generated-from-command-input:
         - GIVEN: a strict change scaffold already exists
@@ -1218,23 +932,16 @@ requirements:
         - AND: the written artifact validates against its strict YAML artifact schema
   cli-propose-generation-is-artifact-scoped:
     strength: MUST
-    statement: >-
-      The system MUST expose proposal population as artifact-level operations so proposal, design,
-      questions, and individual delta specs can be generated through separate CLI invocations.
+    statement: The system MUST expose proposal population as artifact-level operations so proposal, design, questions, and individual delta specs can be generated through separate CLI invocations.
     scenarios:
       artifacts-can-be-generated-one-at-a-time:
         - GIVEN: a strict change scaffold exists
-        - WHEN: >-
-            a user or agent generates only one supported planning artifact from explicit command
-            input
+        - WHEN: a user or agent generates only one supported planning artifact from explicit command input
         - THEN: the command writes only that target artifact
         - AND: unrelated planning artifacts in the same change are left unchanged
   cli-propose-generation-preserves-scaffold-behavior:
     strength: MUST
-    statement: >-
-      The system MUST preserve the existing propose scaffold behavior while adding scripted artifact
-      population as a follow-up workflow step and may reuse an existing change directory tree only
-      when that tree contains no files.
+    statement: The system MUST preserve the existing propose scaffold behavior while adding scripted artifact population as a follow-up workflow step and may reuse an existing change directory tree only when that tree contains no files.
     scenarios:
       existing-propose-command-still-scaffolds:
         - GIVEN: a valid kebab-case change name that does not already exist
@@ -1242,9 +949,7 @@ requirements:
         - THEN: the command creates the standard strict change scaffold
         - AND: no artifact-specific population input is required
       empty-change-directory-can-be-scaffolded:
-        - GIVEN: >-
-            a valid kebab-case change name whose change directory already exists with only empty
-            subdirectories
+        - GIVEN: a valid kebab-case change name whose change directory already exists with only empty subdirectories
         - WHEN: strict-spec-driven propose is executed for that name
         - THEN: the command writes the standard strict change scaffold into that directory
         - AND: pre-existing empty subdirectories remain in place
@@ -1255,10 +960,7 @@ requirements:
         - AND: existing artifacts remain unchanged
   cli-propose-generation-uses-named-arguments:
     strength: MUST
-    statement: >-
-      The system MUST provide proposal population commands that accept supported artifact content
-      only through named CLI arguments, including repeated grouped question, mapping, scenario, and
-      requirement arguments in a single invocation for artifacts that contain keyed collections.
+    statement: The system MUST provide proposal population commands that accept supported artifact content only through named CLI arguments, including repeated grouped question, mapping, scenario, and requirement arguments in a single invocation for artifacts that contain keyed collections.
     scenarios:
       named-argument-generation-does-not-use-payload-files:
         - GIVEN: a strict change scaffold exists
@@ -1267,23 +969,17 @@ requirements:
         - AND: no JSON payload file is required
   cli-propose-generation-uses-direct-invocations:
     strength: MUST
-    statement: >-
-      The system MUST support direct agent-generated CLI invocations with named arguments as the
-      only orchestration form for strict proposal population.
+    statement: The system MUST support direct agent-generated CLI invocations with named arguments as the only orchestration form for strict proposal population.
     scenarios:
       generated-cli-invocations-populate-change:
         - GIVEN: a strict change scaffold exists
-        - AND: >-
-            an agent produces one or more strict CLI proposal population commands with named
-            arguments
+        - AND: an agent produces one or more strict CLI proposal population commands with named arguments
         - WHEN: those commands are executed from the repository root
         - THEN: the requested strict change artifacts are populated
         - AND: no command constructs or consumes an AI-authored JSON payload file
   cli-propose-generation-reports-argument-errors:
     strength: MUST
-    statement: >-
-      The system MUST report invalid, incomplete, or positional proposal population arguments as
-      deterministic CLI failures before writing target YAML artifacts.
+    statement: The system MUST report invalid, incomplete, or positional proposal population arguments as deterministic CLI failures before writing target YAML artifacts.
     scenarios:
       missing-required-flag-fails-before-write:
         - GIVEN: a strict change scaffold exists
@@ -1301,9 +997,7 @@ requirements:
         - AND: the existing target artifact is left unchanged
   cli-propose-generation-prevents-duplicates:
     strength: MUST
-    statement: >-
-      The system MUST prevent duplicate YAML content when equivalent proposal population commands
-      are executed more than once.
+    statement: The system MUST prevent duplicate YAML content when equivalent proposal population commands are executed more than once.
     scenarios:
       repeated-list-values-are-deduplicated:
         - GIVEN: a strict change artifact already contains a generated list entry
@@ -1311,9 +1005,7 @@ requirements:
         - THEN: the resulting YAML artifact contains that list entry only once
         - AND: the original list order is preserved
       keyed-items-are-upserted-by-identifier:
-        - GIVEN: >-
-            a generated artifact contains a keyed item such as a task, question, decision, or
-            requirement
+        - GIVEN: a generated artifact contains a keyed item such as a task, question, decision, or requirement
         - WHEN: a later population command targets the same item identifier with equivalent content
         - THEN: the resulting YAML artifact contains one item for that identifier
         - AND: no duplicate keyed entry is written
@@ -1324,9 +1016,7 @@ requirements:
         - AND: stderr identifies the duplicate identifier conflict
   cli-propose-tasks-yaml-remains-scaffold-authored:
     strength: MUST
-    statement: >-
-      The system MUST keep tasks.yaml as a scaffolded change artifact that agents edit directly
-      according to the task-list schema rather than exposing tasks as a generate command artifact.
+    statement: The system MUST keep tasks.yaml as a scaffolded change artifact that agents edit directly according to the task-list schema rather than exposing tasks as a generate command artifact.
     scenarios:
       tasks-artifact-is-not-generated-by-command:
         - GIVEN: a strict change scaffold exists
@@ -1335,10 +1025,7 @@ requirements:
         - AND: the scaffolded tasks.yaml remains unchanged
   cli-subcommands-support-help:
     strength: MUST
-    statement: >-
-      The system MUST support exact `--help` and `-h` help requests for the root CLI and every
-      registered subcommand, printing usage to stdout and exiting zero without performing the
-      command's normal mutation or validation behavior.
+    statement: The system MUST support exact `--help` and `-h` help requests for the root CLI and every registered subcommand, printing usage to stdout and exiting zero without performing the command's normal mutation or validation behavior.
     scenarios:
       root-help-lists-commands:
         - GIVEN: the strict CLI is available
@@ -1354,99 +1041,54 @@ requirements:
         - AND: stderr is empty
   cli-roadmap-loads-split-planned-change-files:
     strength: MUST
-    statement: >-
-      The system MUST load roadmap planned-change state from standalone planned-change artifacts as
-      well as inline milestone planned_changes entries, associating every standalone planned change
-      with exactly one owning milestone and preserving deterministic roadmap order.
+    statement: The system MUST load roadmap planned-change state from standalone planned-change artifacts as well as inline milestone planned_changes entries, associating every standalone planned change with exactly one owning milestone and preserving deterministic roadmap order.
     scenarios:
       split-planned-change-files-load-with-owning-milestone:
-        - GIVEN: >-
-            a strict roadmap contains milestone metadata and a standalone planned-change artifact
-            that references one owning milestone
+        - GIVEN: a strict roadmap contains milestone metadata and a standalone planned-change artifact that references one owning milestone
         - WHEN: strict roadmap state is loaded for roadmap-status or roadmap-sync
-        - THEN: >-
-            the standalone planned change is reported under its owning milestone in deterministic
-            roadmap order
-        - AND: >-
-            existing inline milestone planned_changes entries remain valid during the compatibility
-            window
+        - THEN: the standalone planned change is reported under its owning milestone in deterministic roadmap order
+        - AND: existing inline milestone planned_changes entries remain valid during the compatibility window
   cli-roadmap-sync-preserves-split-planned-change-state:
     strength: MUST
-    statement: >-
-      The system MUST make roadmap-status and roadmap-sync derive and rewrite planned-change
-      completion state consistently for inline and standalone planned-change representations without
-      adding duplicate planned-change entries or moving data between representations implicitly.
+    statement: The system MUST make roadmap-status and roadmap-sync derive and rewrite planned-change completion state consistently for inline and standalone planned-change representations without adding duplicate planned-change entries or moving data between representations implicitly.
     scenarios:
       sync-keeps-split-and-inline-state-deterministic:
-        - GIVEN: >-
-            a strict roadmap includes standalone planned-change files and inline milestone
-            planned_changes entries
-        - WHEN: >-
-            roadmap-status or roadmap-sync reconciles planned-change state against active and
-            archived strict changes
-        - THEN: >-
-            declared and derived planned-change statuses are computed consistently for both
-            representations
-        - AND: >-
-            sync output preserves deterministic ordering and does not create duplicate
-            planned-change entries
+        - GIVEN: a strict roadmap includes standalone planned-change files and inline milestone planned_changes entries
+        - WHEN: roadmap-status or roadmap-sync reconciles planned-change state against active and archived strict changes
+        - THEN: declared and derived planned-change statuses are computed consistently for both representations
+        - AND: sync output preserves deterministic ordering and does not create duplicate planned-change entries
   cli-roadmap-materializes-inline-planned-changes:
     strength: MUST
-    statement: >-
-      The system MUST provide an explicit operator-selected roadmap conversion path that
-      materializes inline milestone planned_changes entries as standalone planned-change YAML
-      artifacts without losing planned-change identity, owning milestone, status, summary, details,
-      or dependency data.
+    statement: The system MUST provide an explicit operator-selected roadmap conversion path that materializes inline milestone planned_changes entries as standalone planned-change YAML artifacts without losing planned-change identity, owning milestone, status, summary, details, or dependency data.
     scenarios:
       inline-planned-changes-materialize-as-standalone-files:
         - GIVEN: a strict roadmap milestone contains inline planned_changes entries
         - WHEN: the explicit inline-to-standalone roadmap conversion path is executed
         - THEN: standalone planned-change YAML artifacts are written for the converted planned changes
-        - AND: >-
-            each standalone artifact preserves the planned change id, owning milestone reference,
-            status, summary, details, and depends_on values
+        - AND: each standalone artifact preserves the planned change id, owning milestone reference, status, summary, details, and depends_on values
       ordinary-sync-does-not-move-representation:
         - GIVEN: a strict roadmap still contains inline planned_changes entries
-        - WHEN: >-
-            ordinary roadmap-status or roadmap-sync behavior runs without the explicit conversion
-            trigger
+        - WHEN: ordinary roadmap-status or roadmap-sync behavior runs without the explicit conversion trigger
         - THEN: planned changes are not silently moved between inline and standalone representations
   cli-roadmap-cross-file-conflict-validation:
     strength: MUST
-    statement: >-
-      The system MUST make roadmap-status reject invalid split-file roadmap state with deterministic
-      diagnostics for duplicate planned change identities, missing milestone references, invalid
-      cross-file dependency references, ambiguous advisory ownership metadata, and conflicts with
-      active strict changes for the same planned change identity.
+    statement: The system MUST make roadmap-status reject invalid split-file roadmap state with deterministic diagnostics for duplicate planned change identities, missing milestone references, invalid cross-file dependency references, ambiguous advisory ownership metadata, and conflicts with active strict changes for the same planned change identity.
     scenarios:
       roadmap-status-rejects-cross-file-conflicts:
         - GIVEN: a strict roadmap contains milestone metadata plus standalone planned-change files
         - WHEN: strict-spec-driven roadmap-status is executed
-        - THEN: >-
-            the command exits non-zero for duplicate planned change identities, missing milestone
-            references, invalid dependency references, ambiguous advisory ownership metadata, or
-            active strict change conflicts
+        - THEN: the command exits non-zero for duplicate planned change identities, missing milestone references, invalid dependency references, ambiguous advisory ownership metadata, or active strict change conflicts
   cli-roadmap-handoff-uses-split-planned-change-sources:
     strength: MUST
-    statement: >-
-      The system MUST make roadmap recommendation and roadmap-to-change proposal handoff treat
-      standalone planned-change artifacts as eligible roadmap-backed work sources, using dependency
-      readiness and active strict change conflicts when selecting or scaffolding exactly one planned
-      change.
+    statement: The system MUST make roadmap recommendation and roadmap-to-change proposal handoff treat standalone planned-change artifacts as eligible roadmap-backed work sources, using dependency readiness and active strict change conflicts when selecting or scaffolding exactly one planned change.
     scenarios:
       split-planned-change-is-selected-for-handoff:
-        - GIVEN: >-
-            a strict roadmap contains milestone metadata and standalone planned-change artifacts
-            with complete dependencies
+        - GIVEN: a strict roadmap contains milestone metadata and standalone planned-change artifacts with complete dependencies
         - WHEN: strict roadmap recommendation or proposal handoff evaluates roadmap-backed work
-        - THEN: >-
-            one eligible standalone planned change can be selected and scaffolded as a normal strict
-            change with its planned-change identity and owning milestone reference
+        - THEN: one eligible standalone planned change can be selected and scaffolded as a normal strict change with its planned-change identity and owning milestone reference
   cli-roadmap-team-metadata-validation:
     strength: MUST
-    statement: >-
-      The system MUST accept valid optional team metadata on standalone planned-change files and
-      reject malformed team metadata through deterministic roadmap validation diagnostics.
+    statement: The system MUST accept valid optional team metadata on standalone planned-change files and reject malformed team metadata through deterministic roadmap validation diagnostics.
     scenarios:
       roadmap-status-validates-planned-change-team-metadata:
         - GIVEN: a strict roadmap contains standalone planned-change files with optional team metadata
@@ -1454,30 +1096,15 @@ requirements:
         - THEN: valid owner, reviewer, blocked-state, label, and external-reference metadata is accepted
   cli-split-roadmap-regression-coverage:
     strength: MUST
-    statement: >-
-      The system MUST include copied-project regression coverage for split-file roadmap workflows,
-      covering standalone planned-change loading, inline planned-change materialization, cross-file
-      validation, recommendation and proposal handoff, team metadata validation, and shared roadmap
-      index preservation.
+    statement: The system MUST include copied-project regression coverage for split-file roadmap workflows, covering standalone planned-change loading, inline planned-change materialization, cross-file validation, recommendation and proposal handoff, team metadata validation, and shared roadmap index preservation.
     scenarios:
       copied-project-split-roadmap-regressions-cover-team-workflow:
-        - GIVEN: >-
-            a copied project fixture contains strict roadmap milestone metadata, standalone
-            planned-change artifacts, and inline planned_changes entries where compatibility or
-            migration behavior is required
-        - WHEN: >-
-            the repository roadmap regression tests execute roadmap status, sync, materialization,
-            validation, recommendation, and proposal-handoff flows
-        - THEN: >-
-            the tests verify deterministic CLI behavior, preserved planned-change metadata, stable
-            shared index output, accepted valid team metadata, rejected invalid cross-file state,
-            and exactly-one eligible planned-change handoff
+        - GIVEN: a copied project fixture contains strict roadmap milestone metadata, standalone planned-change artifacts, and inline planned_changes entries where compatibility or migration behavior is required
+        - WHEN: the repository roadmap regression tests execute roadmap status, sync, materialization, validation, recommendation, and proposal-handoff flows
+        - THEN: the tests verify deterministic CLI behavior, preserved planned-change metadata, stable shared index output, accepted valid team metadata, rejected invalid cross-file state, and exactly-one eligible planned-change handoff
   cli-embedded-template-inspection:
     strength: MUST
-    statement: >-
-      The system MUST provide read-only CLI commands that list bundled template asset keys and print
-      a selected embedded schema or scaffold template asset so agents can inspect artifact contracts
-      without per-skill template directories.
+    statement: The system MUST provide read-only CLI commands that list bundled template asset keys and print a selected embedded schema or scaffold template asset so agents can inspect artifact contracts without per-skill template directories.
     scenarios:
       embedded-template-listing-is-deterministic:
         - GIVEN: the strict CLI has embedded template assets available
@@ -1489,15 +1116,10 @@ requirements:
         - THEN: the command exits zero and writes the selected asset content
   cli-skills-templates-symlink-optional:
     strength: MUST
-    statement: >-
-      The system MUST validate strict skill packaging without requiring every skill directory to
-      include a templates symlink, while continuing to require executable script access for
-      documented skill commands.
+    statement: The system MUST validate strict skill packaging without requiring every skill directory to include a templates symlink, while continuing to require executable script access for documented skill commands.
     scenarios:
       skills-without-template-symlink-validate:
-        - GIVEN: >-
-            a strict skill package includes valid skill metadata, SKILL.md content, and the required
-            scripts symlink
+        - GIVEN: a strict skill package includes valid skill metadata, SKILL.md content, and the required scripts symlink
         - WHEN: skill packaging validation runs
         - THEN: the package is not rejected solely because a templates symlink is absent
       script-symlink-remains-required:
@@ -1506,10 +1128,7 @@ requirements:
         - THEN: the missing scripts symlink remains a validation failure
   cli-skill-yaml-rules-schema-lookup-reminder:
     strength: SHOULD
-    statement: >-
-      Core strict skills that directly create or edit strict change YAML SHOULD remind agents in
-      their YAML Writing Rules to use the embedded schema lookup CLI when artifact fields are
-      unclear, because installed skills do not carry per-skill templates directories.
+    statement: Core strict skills that directly create or edit strict change YAML SHOULD remind agents in their YAML Writing Rules to use the embedded schema lookup CLI when artifact fields are unclear, because installed skills do not carry per-skill templates directories.
     scenarios:
       yaml-rules-mention-schema-lookup:
         - GIVEN: a core strict skill includes a YAML Writing Rules section
@@ -1518,67 +1137,41 @@ requirements:
         - THEN: the rules state that installed skills do not carry a templates directory
   cli-archive-rejects-added-requirement-collisions:
     strength: MUST
-    statement: >-
-      The system MUST block archive when a strict delta spec ADDED operation would overwrite an
-      existing requirement in the target main spec.
+    statement: The system MUST block archive when a strict delta spec ADDED operation would overwrite an existing requirement in the target main spec.
     scenarios:
       added-collision-blocks-archive-before-main-spec-write:
-        - GIVEN: >-
-            a complete strict change contains a delta spec whose ADDED keyed map includes a
-            requirement id already present in the target main spec
+        - GIVEN: a complete strict change contains a delta spec whose ADDED keyed map includes a requirement id already present in the target main spec
         - WHEN: '`strict-spec-driven archive <name>` is executed'
         - THEN: the command exits non-zero before rewriting the target main spec
         - AND: the active change remains in the active changes directory
         - AND: the error output identifies the duplicate ADDED requirement id and target spec
       verify-reports-added-collision:
-        - GIVEN: >-
-            a strict change contains a delta spec whose ADDED keyed map includes a requirement id
-            already present in the target main spec
+        - GIVEN: a strict change contains a delta spec whose ADDED keyed map includes a requirement id already present in the target main spec
         - WHEN: '`strict-spec-driven verify <name>` is executed'
         - THEN: verification reports a deterministic validation diagnostic for the ADDED collision
         - AND: the diagnostic identifies the delta spec path, target spec, and requirement id
   cli-reports-deterministic-change-next-steps:
     strength: MUST
-    statement: >-
-      The system MUST provide CLI behavior that reports a named active change's deterministic
-      workflow state, blocking conditions, and scriptable next-step command suggestions without
-      inventing product or implementation decisions.
+    statement: The system MUST provide CLI behavior that reports a named active change's deterministic workflow state, blocking conditions, and scriptable next-step command suggestions without inventing product or implementation decisions.
     scenarios:
       next-step-output-reports-blocking-state:
-        - GIVEN: >-
-            an active strict change exists with planning artifacts, tasks, questions, and delta
-            specs
+        - GIVEN: an active strict change exists with planning artifacts, tasks, questions, and delta specs
         - WHEN: the deterministic workflow-state CLI behavior is executed for that change
-        - THEN: >-
-            the output identifies blocking conditions such as pending tasks, open questions, missing
-            delta specs, or validation diagnostics
-        - AND: >-
-            the output includes concrete command suggestions only for script-owned workflow
-            mechanics
-        - AND: >-
-            the output does not decide product scope, requirement content, or user checkpoint
-            answers
+        - THEN: the output identifies blocking conditions such as pending tasks, open questions, missing delta specs, or validation diagnostics
+        - AND: the output includes concrete command suggestions only for script-owned workflow mechanics
+        - AND: the output does not decide product scope, requirement content, or user checkpoint answers
   cli-checks-proposal-readiness:
     strength: MUST
-    statement: >-
-      The system MUST provide deterministic proposal-readiness checks that can be run before
-      implementation to identify missing or incomplete strict planning artifacts.
+    statement: The system MUST provide deterministic proposal-readiness checks that can be run before implementation to identify missing or incomplete strict planning artifacts.
     scenarios:
       readiness-check-finds-incomplete-planning-artifacts:
         - GIVEN: a strict change has been scaffolded and partially populated
         - WHEN: proposal-readiness CLI behavior is executed for that change
-        - THEN: >-
-            the output reports missing proposal, design, task-list, question-list, or delta-spec
-            structure that prevents a decision-ready handoff
-        - AND: >-
-            the diagnostics are deterministic and identify the affected artifact path and field or
-            workflow condition
+        - THEN: the output reports missing proposal, design, task-list, question-list, or delta-spec structure that prevents a decision-ready handoff
+        - AND: the diagnostics are deterministic and identify the affected artifact path and field or workflow condition
   cli-updates-question-state-deterministically:
     strength: MUST
-    statement: >-
-      The system MUST provide CLI behavior for adding, preserving, and resolving strict change
-      questions while maintaining the question-list schema and refusing conflicting duplicate
-      question content.
+    statement: The system MUST provide CLI behavior for adding, preserving, and resolving strict change questions while maintaining the question-list schema and refusing conflicting duplicate question content.
     scenarios:
       question-resolution-preserves-structured-state:
         - GIVEN: a strict change has a questions.yaml artifact with an open question
@@ -1588,10 +1181,7 @@ requirements:
         - AND: conflicting duplicate question identifiers are rejected deterministically
   cli-commit-and-push-auto-commits-latest-archive:
     strength: MUST
-    statement: >-
-      The system MUST provide a commit-and-push subcommand that finds the most recently archived
-      change by date prefix, stages all project changes with git add ., commits with message 'feat:
-      <change-name>', and pushes to remote.
+    statement: 'The system MUST provide a commit-and-push subcommand that finds the most recently archived change by date prefix, stages all project changes with git add ., commits with message ''feat: <change-name>'', and pushes to remote.'
     scenarios:
       no-archived-changes-exits-non-zero:
         - GIVEN: no archived changes exist under .strict-spec-driven/changes/archive/
@@ -1600,9 +1190,7 @@ requirements:
       latest-archive-commits-and-pushes:
         - GIVEN: one or more date-prefixed archived change directories exist
         - WHEN: strict-spec-driven commit-and-push is executed
-        - THEN: >-
-            the command resolves the latest archived change by date prefix, runs git add ., commits
-            with 'feat: <change-name>', and pushes to remote
+        - THEN: 'the command resolves the latest archived change by date prefix, runs git add ., commits with ''feat: <change-name>'', and pushes to remote'
       no-changes-to-commit-exits-non-zero:
         - GIVEN: no unstaged or untracked changes exist in the working tree
         - WHEN: strict-spec-driven commit-and-push is executed
@@ -1610,14 +1198,10 @@ requirements:
       push-failure-does-not-rollback:
         - GIVEN: git commit succeeds but git push fails
         - WHEN: strict-spec-driven commit-and-push is executed
-        - THEN: >-
-            the command exits non-zero with a push error and the commit is preserved in the local
-            repository
+        - THEN: the command exits non-zero with a push error and the commit is preserved in the local repository
   cli-review-command-is-removed:
     strength: MUST
-    statement: >-
-      The system MUST remove the deterministic review subcommand from the strict CLI lifecycle so
-      review is not represented as a script-completed code audit.
+    statement: The system MUST remove the deterministic review subcommand from the strict CLI lifecycle so review is not represented as a script-completed code audit.
     scenarios:
       review-command-is-not-registered:
         - GIVEN: the strict CLI command registry is inspected
@@ -1630,126 +1214,74 @@ requirements:
         - AND: any review handoff is represented as skill guidance rather than a CLI command
   cli-review-auto-fixes-and-retests:
     strength: MUST
-    statement: >-
-      The system MUST require strict review workflow guidance to automatically fix safe in-scope
-      review findings, rerun strict verification and the configured complete project regression
-      after review-time code changes, and block archive recommendation or execution unless that
-      regression evidence passes.
+    statement: The system MUST require strict review workflow guidance to automatically fix safe in-scope review findings, rerun strict verification and the configured complete project regression after review-time code changes, and block archive recommendation or execution unless that regression evidence passes.
     scenarios:
       review-findings-are-fixed-and-retested:
         - GIVEN: a completed strict change has passed strict verification and enters review
         - WHEN: the AI review finds issues that are safe to fix within the current change scope
         - THEN: the review workflow guidance requires the AI to apply those fixes automatically
-        - AND: >-
-            the workflow requires strict verification and the configured complete project regression
-            command to be rerun after the review-time code changes
-        - AND: >-
-            archive recommendation or execution remains blocked unless the rerun regression evidence
-            passes
+        - AND: the workflow requires strict verification and the configured complete project regression command to be rerun after the review-time code changes
+        - AND: archive recommendation or execution remains blocked unless the rerun regression evidence passes
   cli-propose-scaffolds-lint-testing-task:
     strength: MUST
-    statement: >-
-      The system MUST scaffold new strict change tasks.yaml artifacts with an explicit lint Testing
-      task ordered before the unit test task.
+    statement: The system MUST scaffold new strict change tasks.yaml artifacts with an explicit lint Testing task ordered before the unit test task.
     scenarios:
       propose-scaffold-includes-lint-before-tests:
         - GIVEN: a valid kebab-case change name that does not already exist
         - WHEN: strict-spec-driven propose <name> is executed
         - THEN: the scaffolded tasks.yaml includes a run-lint task in the Testing section
         - AND: the run-lint task appears before the run-tests task
-        - AND: >-
-            the existing validation_task and unit_test_task testing gates continue to reference
-            build validation and unit tests
+        - AND: the existing validation_task and unit_test_task testing gates continue to reference build validation and unit tests
   cli-roadmap-overview-renders-human-readable-roadmap-state:
     strength: MUST
-    statement: >-
-      The system MUST provide a roadmap-overview subcommand that validates strict roadmap artifacts
-      and renders a human-readable milestone overview plus grouped planned-change detail using the
-      same roadmap ordering and derived-status semantics as roadmap-status.
+    statement: The system MUST provide a roadmap-overview subcommand that validates strict roadmap artifacts and renders a human-readable milestone overview plus grouped planned-change detail using the same roadmap ordering and derived-status semantics as roadmap-status.
     scenarios:
       roadmap-overview-renders-milestone-summary-and-detail:
         - GIVEN: a valid strict roadmap exists under .strict-spec-driven/roadmap/
         - WHEN: strict-spec-driven roadmap-overview is executed
-        - THEN: >-
-            the output shows milestone rows in roadmap order and grouped planned-change detail for
-            each milestone
+        - THEN: the output shows milestone rows in roadmap order and grouped planned-change detail for each milestone
       roadmap-overview-surfaces-invalid-roadmap-diagnostics:
         - GIVEN: a strict roadmap artifact violates the roadmap contract
         - WHEN: strict-spec-driven roadmap-overview is executed
         - THEN: the command exits non-zero and prints actionable diagnostics for human review
   cli-roadmap-recommend-command:
     strength: MUST
-    statement: >-
-      The system MUST provide a roadmap-recommend subcommand that emits a deterministic JSON
-      recommendation including a top-level status field with values recommended, no-candidate, or
-      roadmap-error to distinguish successful recommendation from valid-but-empty and
-      invalid-roadmap conditions.
+    statement: The system MUST provide a roadmap-recommend subcommand that emits a deterministic JSON recommendation including a top-level status field with values recommended, no-candidate, or roadmap-error to distinguish successful recommendation from valid-but-empty and invalid-roadmap conditions.
     scenarios:
       recommend-status-is-recommended:
-        - GIVEN: >-
-            strict roadmap status is valid and at least one eligible standalone planned change
-            exists
+        - GIVEN: strict roadmap status is valid and at least one eligible standalone planned change exists
         - WHEN: the roadmap-recommend command is executed
-        - THEN: >-
-            the command exits zero and the JSON output includes status with value recommended and a
-            non-null recommendation
+        - THEN: the command exits zero and the JSON output includes status with value recommended and a non-null recommendation
       recommend-status-is-no-candidate:
-        - GIVEN: >-
-            strict roadmap status is valid and no standalone planned change is missing with complete
-            dependencies and no conflicts
+        - GIVEN: strict roadmap status is valid and no standalone planned change is missing with complete dependencies and no conflicts
         - WHEN: the roadmap-recommend command is executed
-        - THEN: >-
-            the command exits non-zero and the JSON output includes status with value no-candidate
-            and recommendation is null
+        - THEN: the command exits non-zero and the JSON output includes status with value no-candidate and recommendation is null
       recommend-status-is-roadmap-error:
         - GIVEN: strict roadmap status is invalid or legacy inline planned changes remain
         - WHEN: the roadmap-recommend command is executed
-        - THEN: >-
-            the command exits non-zero and the JSON output includes status with value roadmap-error
-            and diagnostics are present
+        - THEN: the command exits non-zero and the JSON output includes status with value roadmap-error and diagnostics are present
   cli-auto-skill-efficient-resume-guidance:
     strength: MUST
-    statement: >-
-      The system MUST require strict-spec-auto guidance to resume existing populated strict change
-      scaffolds without regenerating planning artifacts, narrow context reset to current change
-      artifacts and mapped files, and avoid rerunning an identical complete project regression
-      command when unchanged passing evidence already satisfies the configured archive gate.
+    statement: The system MUST require strict-spec-auto guidance to resume existing populated strict change scaffolds without regenerating planning artifacts, narrow context reset to current change artifacts and mapped files, and avoid rerunning an identical complete project regression command when unchanged passing evidence already satisfies the configured archive gate.
     scenarios:
       auto-resumes-populated-scaffold:
-        - GIVEN: >-
-            a strict change directory already contains populated proposal, design, tasks, questions,
-            and delta spec artifacts
+        - GIVEN: a strict change directory already contains populated proposal, design, tasks, questions, and delta spec artifacts
         - WHEN: strict-spec-auto guidance is used for that change
-        - THEN: >-
-            the guidance instructs the agent to resume the existing artifacts instead of running
-            propose or generate again
+        - THEN: the guidance instructs the agent to resume the existing artifacts instead of running propose or generate again
         - THEN: ready or next remains available to surface blockers before implementation
       auto-uses-targeted-context-reset:
         - GIVEN: strict-spec-auto resumes or proposes a strict change
         - WHEN: the context reset step is followed
-        - THEN: >-
-            the guidance limits required rereads to current change artifacts, relevant main specs,
-            mapped implementation and test files, repository status, and regression configuration
-            when needed
+        - THEN: the guidance limits required rereads to current change artifacts, relevant main specs, mapped implementation and test files, repository status, and regression configuration when needed
       auto-reuses-unchanged-regression-evidence:
-        - GIVEN: >-
-            a Testing task command has passed and exactly matches the configured complete project
-            regression command
-        - GIVEN: >-
-            no implementation, test, strict artifact, or configuration files relevant to the change
-            have changed since that command passed
+        - GIVEN: a Testing task command has passed and exactly matches the configured complete project regression command
+        - GIVEN: no implementation, test, strict artifact, or configuration files relevant to the change have changed since that command passed
         - WHEN: strict-spec-auto evaluates archive readiness
-        - THEN: >-
-            the guidance allows that passing command result to satisfy the complete project
-            regression evidence requirement without rerunning the identical command
-        - THEN: >-
-            review-time changes still require strict verification and complete project regression
-            evidence to be refreshed
+        - THEN: the guidance allows that passing command result to satisfy the complete project regression evidence requirement without rerunning the identical command
+        - THEN: review-time changes still require strict verification and complete project regression evidence to be refreshed
   cli-roadmap-plan-guidance-validation:
     strength: MUST
-    statement: >-
-      The system MUST include automated skill-content checks that fail when strict-roadmap-plan
-      guidance omits roadmap detail elaboration or the post-sync roadmap planning review checkpoint.
+    statement: The system MUST include automated skill-content checks that fail when strict-roadmap-plan guidance omits roadmap detail elaboration or the post-sync roadmap planning review checkpoint.
     scenarios:
       validate-skills-requires-roadmap-plan-detail-guidance:
         - GIVEN: strict skill content validation inspects strict-roadmap-plan/SKILL.md
@@ -1758,15 +1290,10 @@ requirements:
       validate-skills-requires-roadmap-plan-review-guidance:
         - GIVEN: strict skill content validation inspects strict-roadmap-plan/SKILL.md
         - WHEN: the skill omits the post-sync roadmap planning review checkpoint
-        - THEN: >-
-            validate-skills reports deterministic diagnostics for the missing roadmap review
-            guidance
+        - THEN: validate-skills reports deterministic diagnostics for the missing roadmap review guidance
   cli-workflow-state-check-command:
     strength: MUST
-    statement: >-
-      The system MUST provide a check-workflow-state subcommand that checks whether
-      .strict-spec-driven/ exists as a directory in the current project root and reports the result
-      deterministically without creating or validating workflow artifacts.
+    statement: The system MUST provide a check-workflow-state subcommand that checks whether .strict-spec-driven/ exists as a directory in the current project root and reports the result deterministically without creating or validating workflow artifacts.
     scenarios:
       workflow-state-check-succeeds-when-directory-exists:
         - GIVEN: a repository contains a .strict-spec-driven/ directory
@@ -1781,304 +1308,164 @@ requirements:
         - THEN: the command directs the user to run /strict-spec-init
   cli-harness-script-managed-workflow:
     strength: MUST
-    statement: >-
-      The system MUST provide a script-first harness workflow that validates harness declarations,
-      generates or verifies thin project-local scripts under the scripts/harness-* namespace,
-      manages declared environment components through those scripts, and creates, validates, and
-      archives harness sessions as the replacement for dev-session and debug-session commands
-      without backward-compatible command aliases.
+    statement: The system MUST provide a script-first harness workflow that validates harness declarations, generates or verifies thin project-local scripts under the scripts/harness-* namespace, manages declared environment components through those scripts, and creates, validates, and archives harness sessions as the replacement for dev-session and debug-session commands without backward-compatible command aliases.
     scenarios:
       harness-scripts-manage-selected-environment-components:
-        - GIVEN: >-
-            a strict project contains a valid harness declaration with development and production
-            environments and generated project-local harness scripts
-        - WHEN: >-
-            an operator invokes the harness scripts with an environment and optional component
-            selection
-        - THEN: >-
-            the workflow plans or runs only the selected declared components in dependency order,
-            reports deterministic status/log evidence, enforces declared operation capabilities and
-            safety policy, and records session evidence when a harness session is active
+        - GIVEN: a strict project contains a valid harness declaration with development and production environments and generated project-local harness scripts
+        - WHEN: an operator invokes the harness scripts with an environment and optional component selection
+        - THEN: the workflow plans or runs only the selected declared components in dependency order, reports deterministic status/log evidence, enforces declared operation capabilities and safety policy, and records session evidence when a harness session is active
   cli-harness-infer-and-doctor:
     strength: MUST
-    statement: >-
-      The system MUST provide deterministic harness inference and doctor commands that help agents
-      draft and repair .strict-spec-driven/harness.yaml from repository metadata without executing
-      lifecycle commands, while preserving explicit human control over production and stateful
-      lifecycle operations.
+    statement: The system MUST provide deterministic harness inference and doctor commands that help agents draft and repair .strict-spec-driven/harness.yaml from repository metadata without executing lifecycle commands, while preserving explicit human control over production and stateful lifecycle operations.
     scenarios:
       ai-assisted-harness-draft-is-safe:
-        - GIVEN: >-
-            a repository contains common project metadata such as package scripts, sample
-            environment variable files, or service declarations
+        - GIVEN: a repository contains common project metadata such as package scripts, sample environment variable files, or service declarations
         - WHEN: an operator or AI agent runs strict-spec-driven harness-infer
-        - THEN: >-
-            the command emits a valid harness declaration draft that identifies likely development
-            components, environment variable names, URLs or ports when discoverable, and manual or
-            disabled defaults for uncertain, production, or stateful lifecycle operations
+        - THEN: the command emits a valid harness declaration draft that identifies likely development components, environment variable names, URLs or ports when discoverable, and manual or disabled defaults for uncertain, production, or stateful lifecycle operations
       doctor-reports-repairable-diagnostics:
         - GIVEN: a strict project contains a harness declaration and project-local wrapper expectations
         - WHEN: an operator or AI agent runs strict-spec-driven harness-doctor
-        - THEN: >-
-            the command reports deterministic diagnostics for missing working directories, missing
-            script commands, wrapper drift, undeclared environment samples, schema or planning
-            failures, and safety policy issues without starting or stopping services
+        - THEN: the command reports deterministic diagnostics for missing working directories, missing script commands, wrapper drift, undeclared environment samples, schema or planning failures, and safety policy issues without starting or stopping services
   cli-harness-logs-bounded-output:
     strength: MUST
-    statement: >-
-      The system MUST return a conservative tail-line slice from harness-logs by default, support
-      --tail <n> for explicit line selection, and document --all as the explicit full-output
-      override so agents can inspect long-running managed component logs without flooding their
-      context window.
+    statement: The system MUST return a conservative tail-line slice from harness-logs by default, support --tail <n> for explicit line selection, and document --all as the explicit full-output override so agents can inspect long-running managed component logs without flooding their context window.
     scenarios:
       default-tail-bound-limits-output:
-        - GIVEN: >-
-            a managed component has a captured log file larger than the documented default tail-line
-            bound
-        - WHEN: >-
-            an operator or AI agent runs strict-spec-driven harness-logs for that component without
-            flags
+        - GIVEN: a managed component has a captured log file larger than the documented default tail-line bound
+        - WHEN: an operator or AI agent runs strict-spec-driven harness-logs for that component without flags
         - THEN: the command returns only the most recent lines up to the documented default bound
       explicit-tail-count-overrides-default:
         - GIVEN: a managed component has a captured log file larger than the default tail-line bound
-        - WHEN: >-
-            an operator or AI agent runs strict-spec-driven harness-logs --tail <n> for that
-            component
+        - WHEN: an operator or AI agent runs strict-spec-driven harness-logs --tail <n> for that component
         - THEN: the command returns the most recent requested number of lines
       all-override-returns-full-captured-log:
-        - GIVEN: >-
-            a managed component has a captured log file larger than the documented default tail-line
-            bound
+        - GIVEN: a managed component has a captured log file larger than the documented default tail-line bound
         - WHEN: an operator or AI agent runs strict-spec-driven harness-logs --all for that component
-        - THEN: >-
-            the command returns the full captured log content and the command usage or HARNESS.md
-            documents the override
+        - THEN: the command returns the full captured log content and the command usage or HARNESS.md documents the override
   cli-harness-status-logs-follow-runtime-model:
     strength: MUST
-    statement: >-
-      The system MUST have harness-plan, harness-doctor, harness-status, harness-logs, and
-      harness-infer follow the runtime status/log model so agents are not asked to author executable
-      status or logs commands that the lifecycle never runs.
+    statement: The system MUST have harness-plan, harness-doctor, harness-status, harness-logs, and harness-infer follow the runtime status/log model so agents are not asked to author executable status or logs commands that the lifecycle never runs.
     scenarios:
       planning-and-doctor-respect-descriptive-status-logs:
-        - GIVEN: >-
-            a strict project uses a harness declaration where status/logs are omitted or declared
-            with descriptive readonly metadata
-        - WHEN: >-
-            an operator or AI agent runs strict-spec-driven harness-plan, harness-doctor, or
-            harness-infer
-        - THEN: >-
-            planning and diagnostics do not require executable status/logs commands and the
-            resulting behavior keeps status runtime-derived and logs sourced from the captured log
-            file
+        - GIVEN: a strict project uses a harness declaration where status/logs are omitted or declared with descriptive readonly metadata
+        - WHEN: an operator or AI agent runs strict-spec-driven harness-plan, harness-doctor, or harness-infer
+        - THEN: planning and diagnostics do not require executable status/logs commands and the resulting behavior keeps status runtime-derived and logs sourced from the captured log file
   cli-harness-infer-detects-runtime-signals-beyond-node:
     strength: MUST
-    statement: >-
-      The system MUST let harness-infer detect supported non-Node runtime signals with a
-      deterministic precedence order, preserve manual and disabled safety defaults in inferred
-      drafts, and report explicit evidence when no lifecycle command can be inferred.
+    statement: The system MUST let harness-infer detect supported non-Node runtime signals with a deterministic precedence order, preserve manual and disabled safety defaults in inferred drafts, and report explicit evidence when no lifecycle command can be inferred.
     scenarios:
       package-scripts-stay-highest-precedence:
-        - GIVEN: >-
-            a repository exposes both package.json dev/start/serve scripts and other supported
-            runtime signals such as compose, Procfile, or Makefile metadata
+        - GIVEN: a repository exposes both package.json dev/start/serve scripts and other supported runtime signals such as compose, Procfile, or Makefile metadata
         - WHEN: an operator or AI agent runs strict-spec-driven harness-infer
-        - THEN: >-
-            the draft uses the package-script-derived command and records evidence for the selected
-            signal without mixing multiple runtime sources
+        - THEN: the draft uses the package-script-derived command and records evidence for the selected signal without mixing multiple runtime sources
       supported-non-node-signal-produces-safe-draft:
-        - GIVEN: >-
-            a repository lacks package dev/start/serve scripts but contains a supported compose,
-            Procfile, or Makefile runtime signal
+        - GIVEN: a repository lacks package dev/start/serve scripts but contains a supported compose, Procfile, or Makefile runtime signal
         - WHEN: an operator or AI agent runs strict-spec-driven harness-infer
-        - THEN: >-
-            the draft includes a manual development start command derived from the first supported
-            non-Node signal, keeps production disabled, and records which signal was used
+        - THEN: the draft includes a manual development start command derived from the first supported non-Node signal, keeps production disabled, and records which signal was used
       unsupported-repository-explains-no-detection:
         - GIVEN: a repository lacks package dev/start/serve scripts and other supported runtime signals
         - WHEN: an operator or AI agent runs strict-spec-driven harness-infer
-        - THEN: >-
-            the draft remains manual and reports explicit evidence and an unavailable condition
-            explaining that no lifecycle command could be inferred
+        - THEN: the draft remains manual and reports explicit evidence and an unavailable condition explaining that no lifecycle command could be inferred
   cli-harness-start-env-guidance-aligns-with-doctor:
     strength: MUST
-    statement: >-
-      The system MUST make harness-start missing-required-environment failures explicitly explain
-      that harness-doctor verifies env-sample documentation only, the harness does not load .env
-      files, and required values must be exported or sourced before retrying.
+    statement: The system MUST make harness-start missing-required-environment failures explicitly explain that harness-doctor verifies env-sample documentation only, the harness does not load .env files, and required values must be exported or sourced before retrying.
     scenarios:
       documented-env-sample-still-requires-exported-values:
-        - GIVEN: >-
-            a harness component requires an environment variable and that variable name is
-            documented in an env sample file
-        - WHEN: >-
-            an operator or AI agent runs strict-spec-driven harness-start without exporting or
-            sourcing that required value into the current process environment
-        - THEN: >-
-            harness-start fails with a diagnostic that says the variable is missing from the current
-            environment, explains that documented env sample entries do not satisfy runtime
-            requirements, notes that the harness does not load .env files, and tells the operator to
-            export or source the value before retrying
+        - GIVEN: a harness component requires an environment variable and that variable name is documented in an env sample file
+        - WHEN: an operator or AI agent runs strict-spec-driven harness-start without exporting or sourcing that required value into the current process environment
+        - THEN: harness-start fails with a diagnostic that says the variable is missing from the current environment, explains that documented env sample entries do not satisfy runtime requirements, notes that the harness does not load .env files, and tells the operator to export or source the value before retrying
   cli-harness-start-reports-partial-failure-recovery:
     strength: MUST
-    statement: >-
-      The system MUST make harness-start partial-start failures explicitly report which
-      already-started components remain running and direct operators to run harness-stop for
-      recovery while preserving those components for inspection.
+    statement: The system MUST make harness-start partial-start failures explicitly report which already-started components remain running and direct operators to run harness-stop for recovery while preserving those components for inspection.
     scenarios:
       later-readiness-failure-names-running-components-and-recovery:
-        - GIVEN: >-
-            a harness environment starts components in dependency order and a later component fails
-            readiness after an earlier component is already running
+        - GIVEN: a harness environment starts components in dependency order and a later component fails readiness after an earlier component is already running
         - WHEN: an operator or AI agent runs strict-spec-driven harness-start for that environment
-        - THEN: >-
-            the command fails, keeps the earlier component marked running in the component snapshot,
-            and includes a dedicated recovery signal naming the running component together with the
-            harness-stop cleanup instruction
+        - THEN: the command fails, keeps the earlier component marked running in the component snapshot, and includes a dedicated recovery signal naming the running component together with the harness-stop cleanup instruction
   cli-harness-doctor-auto-recovery:
     strength: MUST
-    statement: >-
-      The system MUST support generating structured recovery actions for doctor diagnostics and
-      executing them non-interactively using the --fix flag.
+    statement: The system MUST support generating structured recovery actions for doctor diagnostics and executing them non-interactively using the --fix flag.
     scenarios:
       doctor-performs-non-interactive-auto-recovery:
-        - GIVEN: >-
-            a harness declaration contains missing local wrapper scripts or template environment
-            configurations
+        - GIVEN: a harness declaration contains missing local wrapper scripts or template environment configurations
         - WHEN: an operator or AI agent runs strict-spec-driven harness-doctor with the --fix flag
-        - THEN: >-
-            the command automatically resolves all autofixable diagnostics, regenerates missing
-            files, and exits zero after validation succeeds
+        - THEN: the command automatically resolves all autofixable diagnostics, regenerates missing files, and exits zero after validation succeeds
   cli-harness-doctor-flags-cross-environment-shared-ports:
     strength: MUST
-    statement: >-
-      The system MUST report a deterministic harness-doctor safety diagnostic when the same port is
-      declared by components in two or more environments, identifying the shared port and the
-      involved environments and components, without automatically rewriting ports, so that a likely
-      cross-environment port conflict between development and production is surfaced for explicit
-      human confirmation in the harness-init skill before the harness declaration is accepted.
+    statement: The system MUST report a deterministic harness-doctor safety diagnostic when the same port is declared by components in two or more environments, identifying the shared port and the involved environments and components, without automatically rewriting ports, so that a likely cross-environment port conflict between development and production is surfaced for explicit human confirmation in the harness-init skill before the harness declaration is accepted.
     scenarios:
       cross-environment-shared-port-is-reported:
-        - GIVEN: >-
-            a harness declaration in which a port is declared by components in two or more
-            environments, such as development and production
+        - GIVEN: a harness declaration in which a port is declared by components in two or more environments, such as development and production
         - WHEN: an operator or AI agent runs strict-spec-driven harness-doctor
-        - THEN: >-
-            the command reports a deterministic safety diagnostic that identifies the shared port
-            and the involved environments and components and offers no automatic port-rewriting
-            recovery
+        - THEN: the command reports a deterministic safety diagnostic that identifies the shared port and the involved environments and components and offers no automatic port-rewriting recovery
       distinct-environment-ports-do-not-trigger-the-diagnostic:
         - GIVEN: a harness declaration in which every environment declares distinct port numbers
         - WHEN: an operator or AI agent runs strict-spec-driven harness-doctor
-        - THEN: >-
-            no cross-environment shared-port diagnostic is reported while existing same-environment
-            duplicate-port detection is unaffected
+        - THEN: no cross-environment shared-port diagnostic is reported while existing same-environment duplicate-port detection is unaffected
   cli-mcp-server-contract:
     strength: MUST
-    statement: >-
-      The system MUST define one integrated local MCP server contract that uses stdio transport,
-      accepts an explicit project root from MCP client configuration, and preserves the existing
-      strict CLI and Agent Skills as authoritative workflow surfaces.
+    statement: The system MUST define one integrated local MCP server contract that uses stdio transport, accepts an explicit project root from MCP client configuration, and preserves the existing strict CLI and Agent Skills as authoritative workflow surfaces.
     scenarios:
       mcp-contract-defines-local-stdio-launch:
         - GIVEN: the MCP server contract is reviewed
         - WHEN: the launch and release boundary is inspected
         - THEN: the contract identifies a local stdio server entrypoint for MCP-compatible clients
         - AND: the contract requires explicit project root selection
-        - AND: >-
-            the contract does not define hosted HTTP transport, authentication, or multi-tenant
-            routing for the first integration
+        - AND: the contract does not define hosted HTTP transport, authentication, or multi-tenant routing for the first integration
       mcp-contract-preserves-existing-workflow-authority:
         - GIVEN: an MCP client invokes strict workflow capabilities
         - WHEN: the contract describes the relationship to existing strict workflow behavior
-        - THEN: >-
-            the CLI command surface, strict YAML artifacts, Agent Skills, verification, review, and
-            archive gates remain authoritative
+        - THEN: the CLI command surface, strict YAML artifacts, Agent Skills, verification, review, and archive gates remain authoritative
   cli-mcp-resource-contract:
     strength: MUST
-    statement: >-
-      The MCP server contract MUST define stable strict-resource URI conventions for workflow
-      config, active and archived changes, change artifacts, specs, roadmap artifacts, tech
-      standards, harness declaration, and selected command summaries.
+    statement: The MCP server contract MUST define stable strict-resource URI conventions for workflow config, active and archived changes, change artifacts, specs, roadmap artifacts, tech standards, harness declaration, and selected command summaries.
     scenarios:
       mcp-contract-lists-resource-uri-families:
         - GIVEN: the MCP resource contract is reviewed
         - WHEN: resource URI templates are inspected
-        - THEN: >-
-            the contract includes stable URI families for config, changes, specs, roadmap, tech
-            standards, harness declaration, and command summaries
+        - THEN: the contract includes stable URI families for config, changes, specs, roadmap, tech standards, harness declaration, and command summaries
         - AND: each URI family identifies deterministic content for valid strict workflow projects
   cli-mcp-tool-inventory-contract:
     strength: MUST
-    statement: >-
-      The MCP server contract MUST define a server-owned tool inventory covering read-only
-      diagnostics and guarded mutating workflow actions with names, input schema fields, delegated
-      CLI or domain operation, success output shape, and representative failure diagnostics.
+    statement: The MCP server contract MUST define a server-owned tool inventory covering read-only diagnostics and guarded mutating workflow actions with names, input schema fields, delegated CLI or domain operation, success output shape, and representative failure diagnostics.
     scenarios:
       mcp-contract-lists-read-and-mutating-tool-inventory:
         - GIVEN: the MCP tool inventory is reviewed
         - WHEN: tool entries are inspected
-        - THEN: >-
-            read-only diagnostics and mutating workflow actions are both represented in one
-            inventory
+        - THEN: read-only diagnostics and mutating workflow actions are both represented in one inventory
         - AND: each entry identifies its delegated strict CLI or domain operation
-        - AND: >-
-            each entry identifies input schema fields, success output shape, and representative
-            failure diagnostics
+        - AND: each entry identifies input schema fields, success output shape, and representative failure diagnostics
   cli-mcp-tool-safety-contract:
     strength: MUST
-    statement: >-
-      The MCP server contract MUST classify every MCP tool as read, write, lifecycle, release, or
-      destructive and MUST describe mutation behavior so MCP hosts can present appropriate
-      confirmation boundaries.
+    statement: The MCP server contract MUST classify every MCP tool as read, write, lifecycle, release, or destructive and MUST describe mutation behavior so MCP hosts can present appropriate confirmation boundaries.
     scenarios:
       mcp-contract-classifies-tool-safety:
         - GIVEN: the MCP tool inventory is reviewed
         - WHEN: tool safety metadata is inspected
         - THEN: each tool has one of the read, write, lifecycle, release, or destructive safety classes
-        - AND: >-
-            mutating, lifecycle, release, and destructive tools describe their project-state
-            mutation behavior
+        - AND: mutating, lifecycle, release, and destructive tools describe their project-state mutation behavior
   cli-mcp-prompt-contract:
     strength: MUST
-    statement: >-
-      The MCP server contract MUST define MCP prompt inventory for proposal, apply or review,
-      archive, roadmap recommendation, and harness investigation workflows, with prompt text derived
-      from existing strict skill guidance or covered by drift tests.
+    statement: The MCP server contract MUST define MCP prompt inventory for proposal, apply or review, archive, roadmap recommendation, and harness investigation workflows, with prompt text derived from existing strict skill guidance or covered by drift tests.
     scenarios:
       mcp-contract-lists-skill-backed-prompts:
         - GIVEN: the MCP prompt contract is reviewed
         - WHEN: prompt inventory entries are inspected
-        - THEN: >-
-            proposal, apply or review, archive, roadmap recommendation, and harness investigation
-            workflows are represented
-        - AND: >-
-            the contract requires prompt content to reuse existing strict skill guidance or be
-            protected by drift tests
+        - THEN: proposal, apply or review, archive, roadmap recommendation, and harness investigation workflows are represented
+        - AND: the contract requires prompt content to reuse existing strict skill guidance or be protected by drift tests
   cli-mcp-sdk-package-contract:
     strength: MUST
-    statement: >-
-      The MCP server contract MUST identify the official server-side MCP TypeScript SDK package as
-      `@modelcontextprotocol/server`, record the selected initial version range as `^2.0.0-alpha.2`,
-      and define local stdio registration in terms of `McpServer` and `StdioServerTransport` without
-      adding the runtime dependency in the contract-only change.
+    statement: The MCP server contract MUST identify the official server-side MCP TypeScript SDK package as `@modelcontextprotocol/server`, record the selected initial version range as `^2.0.0-alpha.2`, and define local stdio registration in terms of `McpServer` and `StdioServerTransport` without adding the runtime dependency in the contract-only change.
     scenarios:
       mcp-contract-pins-sdk-package-and-version-range:
         - GIVEN: the MCP server contract is reviewed before runtime implementation
         - WHEN: SDK package and transport guidance are inspected
-        - THEN: >-
-            the contract identifies `@modelcontextprotocol/server` as the server-side MCP TypeScript
-            SDK package
+        - THEN: the contract identifies `@modelcontextprotocol/server` as the server-side MCP TypeScript SDK package
         - AND: the contract records `^2.0.0-alpha.2` as the selected initial version range
-        - AND: >-
-            the contract names `McpServer` and `StdioServerTransport` as the local stdio server
-            registration APIs
+        - AND: the contract names `McpServer` and `StdioServerTransport` as the local stdio server registration APIs
   cli-mcp-entrypoint-build-output:
     strength: MUST
-    statement: >-
-      The system MUST build a dedicated local MCP server entrypoint at
-      `dist/scripts/strict-spec-driven-mcp.js` without removing or renaming the existing strict CLI
-      bundle.
+    statement: The system MUST build a dedicated local MCP server entrypoint at `dist/scripts/strict-spec-driven-mcp.js` without removing or renaming the existing strict CLI bundle.
     scenarios:
       mcp-build-emits-dedicated-entrypoint:
         - GIVEN: the repository build command is executed
@@ -2087,10 +1474,7 @@ requirements:
         - AND: the existing `strict-spec-driven.js` CLI bundle remains available
   cli-mcp-entrypoint-project-root:
     strength: MUST
-    statement: >-
-      The MCP server entrypoint MUST require an explicit `--project <path>` argument, resolve it to
-      a directory, and reject missing or non-directory project roots before connecting the stdio
-      transport.
+    statement: The MCP server entrypoint MUST require an explicit `--project <path>` argument, resolve it to a directory, and reject missing or non-directory project roots before connecting the stdio transport.
     scenarios:
       mcp-entrypoint-rejects-missing-project-root:
         - GIVEN: an MCP client or operator starts the server without `--project`
@@ -2098,18 +1482,13 @@ requirements:
         - THEN: startup fails before stdio transport connection
         - AND: stderr reports that `--project <path>` is required
       mcp-entrypoint-rejects-invalid-project-root:
-        - GIVEN: >-
-            an MCP client or operator starts the server with `--project` pointing at a missing path
-            or file
+        - GIVEN: an MCP client or operator starts the server with `--project` pointing at a missing path or file
         - WHEN: the entrypoint validates startup arguments
         - THEN: startup fails before stdio transport connection
         - AND: stderr identifies the invalid project root
   cli-mcp-entrypoint-stdio-server:
     strength: MUST
-    statement: >-
-      The MCP server entrypoint MUST create an SDK `McpServer` using strict-spec-driven server
-      metadata, connect it with `StdioServerTransport`, and expose startup code that tests can
-      exercise without a real MCP host.
+    statement: The MCP server entrypoint MUST create an SDK `McpServer` using strict-spec-driven server metadata, connect it with `StdioServerTransport`, and expose startup code that tests can exercise without a real MCP host.
     scenarios:
       mcp-entrypoint-creates-stdio-server:
         - GIVEN: a valid project root is supplied
@@ -2118,23 +1497,16 @@ requirements:
         - AND: the stdio transport connection path is available for the process entrypoint
   cli-mcp-inventory-foundation:
     strength: MUST
-    statement: >-
-      The MCP server entrypoint MUST load server metadata and initial capability registration from a
-      server-owned MCP inventory module so later resources, tools, and prompts can extend one
-      registry.
+    statement: The MCP server entrypoint MUST load server metadata and initial capability registration from a server-owned MCP inventory module so later resources, tools, and prompts can extend one registry.
     scenarios:
       mcp-entrypoint-uses-inventory-module:
         - GIVEN: the MCP server factory is exercised in tests
         - WHEN: inventory-backed registration runs
         - THEN: server metadata comes from the MCP inventory
-        - AND: >-
-            the initial inventory contains no workflow resources, tools, or prompts before their
-            planned changes implement them
+        - AND: the initial inventory contains no workflow resources, tools, or prompts before their planned changes implement them
   cli-mcp-sdk-runtime-dependency:
     strength: MUST
-    statement: >-
-      The package MUST include the official `@modelcontextprotocol/server` runtime dependency at the
-      selected `^2.0.0-alpha.2` range when the MCP entrypoint is implemented.
+    statement: The package MUST include the official `@modelcontextprotocol/server` runtime dependency at the selected `^2.0.0-alpha.2` range when the MCP entrypoint is implemented.
     scenarios:
       mcp-entrypoint-declares-sdk-dependency:
         - GIVEN: package metadata is inspected after the entrypoint change
@@ -2142,23 +1514,16 @@ requirements:
         - THEN: '`@modelcontextprotocol/server` is declared with version range `^2.0.0-alpha.2`'
   cli-mcp-read-tool-inventory:
     strength: MUST
-    statement: >-
-      The MCP server MUST expose a read-only tool inventory for strict workflow diagnostics, change
-      guidance, verification, roadmap status and recommendation, mapping audits, tech status,
-      harness plan, harness status, and bounded harness logs.
+    statement: The MCP server MUST expose a read-only tool inventory for strict workflow diagnostics, change guidance, verification, roadmap status and recommendation, mapping audits, tech status, harness plan, harness status, and bounded harness logs.
     scenarios:
       mcp-read-tools-are-discoverable:
         - GIVEN: the MCP server registers its tool inventory
         - WHEN: read-only tool definitions are inspected
-        - THEN: >-
-            the expected workflow, change, roadmap, mapping, tech, and harness diagnostic tools are
-            present
+        - THEN: the expected workflow, change, roadmap, mapping, tech, and harness diagnostic tools are present
         - AND: every read-only tool reports safety class read
   cli-mcp-read-tool-delegation:
     strength: MUST
-    statement: >-
-      Each read-only MCP tool MUST delegate to the existing strict CLI command surface under the
-      configured project root instead of reimplementing strict workflow behavior.
+    statement: Each read-only MCP tool MUST delegate to the existing strict CLI command surface under the configured project root instead of reimplementing strict workflow behavior.
     scenarios:
       mcp-read-tools-delegate-to-strict-cli:
         - GIVEN: a read-only MCP tool is called with valid typed arguments
@@ -2167,9 +1532,7 @@ requirements:
         - AND: it uses the MCP server project root as the command working directory
   cli-mcp-read-tool-output-envelope:
     strength: MUST
-    statement: >-
-      Read-only MCP tools MUST return a deterministic JSON text envelope containing command name,
-      exit status, stdout, stderr, parsed JSON when stdout is parseable, and safety metadata.
+    statement: Read-only MCP tools MUST return a deterministic JSON text envelope containing command name, exit status, stdout, stderr, parsed JSON when stdout is parseable, and safety metadata.
     scenarios:
       mcp-read-tool-wraps-success-and-failure:
         - GIVEN: a delegated strict command succeeds or fails
@@ -2178,9 +1541,7 @@ requirements:
         - AND: the JSON includes command, status, stdout, stderr, safety, and parsedJson fields
   cli-mcp-read-tools-do-not-mutate:
     strength: MUST
-    statement: >-
-      Read-only MCP tool calls MUST NOT mutate repository files and tests MUST prove representative
-      read tool calls preserve the workspace diff.
+    statement: Read-only MCP tool calls MUST NOT mutate repository files and tests MUST prove representative read tool calls preserve the workspace diff.
     scenarios:
       mcp-read-tool-preserves-workspace-diff:
         - GIVEN: a strict workflow project has a captured workspace diff
@@ -2188,36 +1549,25 @@ requirements:
         - THEN: the workspace diff after the calls matches the captured diff
   cli-mcp-mutating-tool-inventory:
     strength: MUST
-    statement: >-
-      The MCP server MUST expose guarded mutating tools for init, proposal creation, artifact
-      generation, task-state completion, roadmap sync, archive, harness lifecycle, and harness
-      session creation with explicit safety and mutation metadata.
+    statement: The MCP server MUST expose guarded mutating tools for init, proposal creation, artifact generation, task-state completion, roadmap sync, archive, harness lifecycle, and harness session creation with explicit safety and mutation metadata.
     scenarios:
       mcp-mutating-tools-are-discoverable:
         - GIVEN: the MCP tool inventory is inspected
         - WHEN: mutating tool definitions are enumerated
-        - THEN: >-
-            init, propose, generate, apply-backed task completion, roadmap sync, archive, harness
-            lifecycle, and harness session creation tools are present
+        - THEN: init, propose, generate, apply-backed task completion, roadmap sync, archive, harness lifecycle, and harness session creation tools are present
         - THEN: each mutating tool reports mutates true and a conservative safety class
   cli-mcp-mutating-tool-delegation:
     strength: MUST
-    statement: >-
-      Each mutating MCP tool MUST delegate to the existing strict CLI command surface under the
-      configured project root and MUST preserve strict CLI preconditions and failure diagnostics.
+    statement: Each mutating MCP tool MUST delegate to the existing strict CLI command surface under the configured project root and MUST preserve strict CLI preconditions and failure diagnostics.
     scenarios:
       mcp-mutating-tools-delegate-to-existing-cli:
         - GIVEN: a mutating MCP tool is called with valid typed arguments
         - WHEN: the tool handler runs
         - THEN: it invokes the mapped strict CLI command in the MCP server project root
-        - THEN: >-
-            success and failure results preserve the delegated command exit status, stdout, and
-            stderr
+        - THEN: success and failure results preserve the delegated command exit status, stdout, and stderr
   cli-mcp-mutating-tool-input-validation:
     strength: MUST
-    statement: >-
-      Mutating MCP tools MUST use typed input schemas and reject invalid inputs before invoking
-      delegated strict CLI commands.
+    statement: Mutating MCP tools MUST use typed input schemas and reject invalid inputs before invoking delegated strict CLI commands.
     scenarios:
       mcp-mutating-tools-reject-invalid-input-before-delegation:
         - GIVEN: a mutating MCP tool is called with invalid input
@@ -2226,10 +1576,7 @@ requirements:
         - AND: no project mutation is attempted by the MCP handler
   cli-mcp-mutating-tool-safety-boundaries:
     strength: MUST
-    statement: >-
-      Mutating MCP tool descriptions and envelopes MUST make project-state mutation explicit,
-      including write, lifecycle, and release safety classes, and the apply-backed tool MUST be
-      worded as task-state completion rather than implementation work.
+    statement: Mutating MCP tool descriptions and envelopes MUST make project-state mutation explicit, including write, lifecycle, and release safety classes, and the apply-backed tool MUST be worded as task-state completion rather than implementation work.
     scenarios:
       mcp-mutating-tools-report-confirmation-metadata:
         - GIVEN: MCP clients inspect mutating tool metadata and call results
@@ -2239,10 +1586,7 @@ requirements:
         - AND: the apply-backed tool is named and described as marking the next task complete
   cli-mcp-resource-inventory:
     strength: MUST
-    statement: >-
-      The MCP server MUST expose bounded strict workflow resources for config, workflow state,
-      changes, change artifacts, specs, roadmap, tech standards, and harness declaration using
-      stable strict:// URI conventions.
+    statement: The MCP server MUST expose bounded strict workflow resources for config, workflow state, changes, change artifacts, specs, roadmap, tech standards, and harness declaration using stable strict:// URI conventions.
     scenarios:
       mcp-resources-are-discoverable:
         - GIVEN: the MCP resource inventory is inspected
@@ -2251,9 +1595,7 @@ requirements:
         - THEN: resources are listed in stable order
   cli-mcp-resource-reading:
     strength: MUST
-    statement: >-
-      MCP resource reads MUST return deterministic text content for valid strict workflow artifacts
-      and generated strict summaries.
+    statement: MCP resource reads MUST return deterministic text content for valid strict workflow artifacts and generated strict summaries.
     scenarios:
       mcp-resources-return-deterministic-content:
         - GIVEN: a valid strict workflow project
@@ -2262,9 +1604,7 @@ requirements:
         - AND: repeated reads of the same resource produce stable content
   cli-mcp-resource-bounds:
     strength: MUST
-    statement: >-
-      MCP resource reads MUST reject unknown identifiers, missing artifacts, and parent-directory
-      traversal before exposing project files.
+    statement: MCP resource reads MUST reject unknown identifiers, missing artifacts, and parent-directory traversal before exposing project files.
     scenarios:
       mcp-resources-reject-unbounded-file-access:
         - GIVEN: a resource URI contains an unknown identifier or traversal segment
@@ -2273,75 +1613,48 @@ requirements:
         - AND: no arbitrary repository file is exposed
   cli-mcp-prompt-inventory:
     strength: MUST
-    statement: >-
-      The MCP server MUST expose stable prompt inventory entries for strict proposal, application,
-      review, archive, roadmap recommendation, and harness investigation workflows, including typed
-      argument schemas and user-facing descriptions.
+    statement: The MCP server MUST expose stable prompt inventory entries for strict proposal, application, review, archive, roadmap recommendation, and harness investigation workflows, including typed argument schemas and user-facing descriptions.
     scenarios:
       mcp-prompts-are-discoverable:
         - GIVEN: the MCP server prompt inventory is inspected
         - WHEN: prompt entries are enumerated
-        - THEN: >-
-            strict_propose_change, strict_apply_change, strict_review_change, strict_archive_change,
-            strict_roadmap_recommend, and strict_harness_investigation are present
+        - THEN: strict_propose_change, strict_apply_change, strict_review_change, strict_archive_change, strict_roadmap_recommend, and strict_harness_investigation are present
         - AND: each prompt declares its expected typed arguments and description
   cli-mcp-prompt-rendering:
     strength: MUST
-    statement: >-
-      MCP prompts MUST render deterministic user messages derived from existing strict skill
-      workflow guidance and MUST preserve strict verification, review, archive, and safety
-      boundaries.
+    statement: MCP prompts MUST render deterministic user messages derived from existing strict skill workflow guidance and MUST preserve strict verification, review, archive, and safety boundaries.
     scenarios:
       mcp-prompts-render-skill-backed-guidance:
         - GIVEN: an MCP client requests a strict workflow prompt
         - WHEN: the prompt is rendered with valid arguments
-        - THEN: >-
-            the returned prompt message references the relevant strict workflow command or skill
-            guidance
-        - AND: >-
-            the message preserves strict verification, code review, archive, and mutating-tool
-            confirmation expectations
+        - THEN: the returned prompt message references the relevant strict workflow command or skill guidance
+        - AND: the message preserves strict verification, code review, archive, and mutating-tool confirmation expectations
   cli-mcp-user-documentation:
     strength: MUST
-    statement: >-
-      User documentation MUST describe local MCP server configuration, explicit project-root launch
-      arguments, representative resources, tools, prompts, read-only requests, and mutating
-      confirmation boundaries.
+    statement: User documentation MUST describe local MCP server configuration, explicit project-root launch arguments, representative resources, tools, prompts, read-only requests, and mutating confirmation boundaries.
     scenarios:
       mcp-docs-cover-local-client-setup:
         - GIVEN: a user reads the MCP documentation
         - WHEN: setup and usage examples are inspected
         - THEN: the docs include a local stdio MCP client JSON configuration
-        - AND: >-
-            the docs include read-only status, resource, prompt, and guarded mutating workflow
-            examples
+        - AND: the docs include read-only status, resource, prompt, and guarded mutating workflow examples
   cli-mcp-protocol-regression:
     strength: MUST
-    statement: >-
-      The regression suite MUST cover MCP protocol smoke flows for listing tools, calling tools,
-      listing resources, reading resources, listing prompts, getting prompts, built-output launch
-      availability, and prompt drift against strict skill guidance.
+    statement: The regression suite MUST cover MCP protocol smoke flows for listing tools, calling tools, listing resources, reading resources, listing prompts, getting prompts, built-output launch availability, and prompt drift against strict skill guidance.
     scenarios:
       mcp-protocol-smoke-coverage-exists:
         - GIVEN: the project test suite is executed after build
         - WHEN: MCP server regression tests run
-        - THEN: >-
-            tools/list, tools/call, resources/list, resources/read, prompts/list, and prompts/get
-            are exercised through the MCP protocol
+        - THEN: tools/list, tools/call, resources/list, resources/read, prompts/list, and prompts/get are exercised through the MCP protocol
         - AND: built-output launch and skill-prompt drift checks are covered
   cli-mcp-mutating-tool-confirmation:
     strength: MUST
-    statement: >-
-      Mutating MCP tools MUST require an explicit confirm flag at the server boundary and MUST
-      refuse the call with a confirmation diagnostic, without invoking the delegated strict CLI
-      command, when confirm is not true.
+    statement: Mutating MCP tools MUST require an explicit confirm flag at the server boundary and MUST refuse the call with a confirmation diagnostic, without invoking the delegated strict CLI command, when confirm is not true.
     scenarios:
       mcp-mutating-tool-refuses-without-confirmation:
         - GIVEN: a mutating MCP tool is called with valid typed arguments but without confirm set to true
         - WHEN: the MCP server processes the call
-        - THEN: >-
-            the server returns a confirmation-required diagnostic and does not invoke the delegated
-            strict CLI command
+        - THEN: the server returns a confirmation-required diagnostic and does not invoke the delegated strict CLI command
       mcp-mutating-tool-proceeds-with-confirmation:
         - GIVEN: a mutating MCP tool is called with valid typed arguments and confirm set to true
         - WHEN: the MCP server processes the call
@@ -2349,70 +1662,44 @@ requirements:
         - AND: the confirm flag is forwarded to the CLI only for harness lifecycle commands
   cli-mcp-tool-error-signaling:
     strength: MUST
-    statement: >-
-      MCP tool results MUST set the protocol isError flag when input validation fails, a required
-      confirmation is missing, or the delegated strict CLI command exits non-zero, while still
-      returning the deterministic JSON envelope as the result content.
+    statement: MCP tool results MUST set the protocol isError flag when input validation fails, a required confirmation is missing, or the delegated strict CLI command exits non-zero, while still returning the deterministic JSON envelope as the result content.
     scenarios:
       mcp-tool-failure-sets-protocol-error:
-        - GIVEN: >-
-            an MCP tool call fails input validation, lacks required confirmation, or its delegated
-            command exits non-zero
+        - GIVEN: an MCP tool call fails input validation, lacks required confirmation, or its delegated command exits non-zero
         - WHEN: the MCP server formats the tool result
-        - THEN: >-
-            the result is marked as a protocol error and still contains the JSON envelope reporting
-            command, status, stdout, stderr, and safety
+        - THEN: the result is marked as a protocol error and still contains the JSON envelope reporting command, status, stdout, stderr, and safety
   cli-mcp-destructive-tool:
     strength: MUST
-    statement: >-
-      The MCP server MUST expose the change cancellation command as a destructive mutating tool
-      classified with safety destructive and mutates true that requires confirmation and delegates
-      to the strict cancel CLI command under the configured project root.
+    statement: The MCP server MUST expose the change cancellation command as a destructive mutating tool classified with safety destructive and mutates true that requires confirmation and delegates to the strict cancel CLI command under the configured project root.
     scenarios:
       mcp-exposes-destructive-cancel-tool:
         - GIVEN: the MCP mutating tool inventory is inspected
         - WHEN: the cancellation tool definition is examined
-        - THEN: >-
-            it reports safety destructive with mutates true, requires confirmation, and delegates to
-            the strict cancel command
+        - THEN: it reports safety destructive with mutates true, requires confirmation, and delegates to the strict cancel command
   cli-mcp-resource-template-enumeration:
     strength: MUST
-    statement: >-
-      MCP template resources MUST provide list callbacks so that existing strict changes, specs,
-      roadmap milestones, roadmap planned changes, and tech standards are enumerable through the MCP
-      resources listing as concrete strict:// URIs.
+    statement: MCP template resources MUST provide list callbacks so that existing strict changes, specs, roadmap milestones, roadmap planned changes, and tech standards are enumerable through the MCP resources listing as concrete strict:// URIs.
     scenarios:
       mcp-template-resources-are-enumerable:
         - GIVEN: a strict workflow project contains changes, specs, roadmap, and tech artifacts
         - WHEN: the MCP client lists resources
-        - THEN: >-
-            the listing includes concrete strict:// URIs for the existing change, spec, roadmap, and
-            tech artifacts derived from template resources
+        - THEN: the listing includes concrete strict:// URIs for the existing change, spec, roadmap, and tech artifacts derived from template resources
   cli-mcp-install-command-surface:
     strength: MUST
-    statement: >-
-      The system MUST provide an mcp-install strict CLI subcommand, registered in canonical command
-      order, that registers the built strict-spec-driven MCP server into selected MCP clients.
+    statement: The system MUST provide an mcp-install strict CLI subcommand, registered in canonical command order, that registers the built strict-spec-driven MCP server into selected MCP clients.
     scenarios:
       mcp-install-is-a-registered-subcommand:
         - GIVEN: the strict CLI command listing is inspected
         - WHEN: registered subcommands are enumerated
-        - THEN: >-
-            mcp-install appears in canonical command order alongside the existing strict CLI
-            commands
+        - THEN: mcp-install appears in canonical command order alongside the existing strict CLI commands
       mcp-install-registers-the-server:
         - GIVEN: a supported client and a valid project root are provided
         - WHEN: mcp-install runs to completion
         - THEN: the strict-spec-driven MCP server is registered for that client
-        - AND: >-
-            the command reports the client, scope, entry name, and resolved entrypoint path it
-            registered
+        - AND: the command reports the client, scope, entry name, and resolved entrypoint path it registered
   cli-mcp-install-builds-and-resolves-entrypoint:
     strength: MUST
-    statement: >-
-      The mcp-install command MUST build the project before registration and resolve the absolute
-      dist MCP server entrypoint path together with a project root that defaults to the current
-      directory.
+    statement: The mcp-install command MUST build the project before registration and resolve the absolute dist MCP server entrypoint path together with a project root that defaults to the current directory.
     scenarios:
       mcp-install-builds-before-registering:
         - GIVEN: mcp-install is invoked
@@ -2425,10 +1712,7 @@ requirements:
         - THEN: the current working directory is used as the registered --project value
   cli-mcp-install-client-selection:
     strength: MUST
-    statement: >-
-      The mcp-install command MUST accept a client selector covering claude-code, codex, opencode,
-      copilot, and a generic json target, delegating to an official client CLI where one exists and
-      writing the client config file directly otherwise.
+    statement: The mcp-install command MUST accept a client selector covering claude-code, codex, opencode, copilot, and a generic json target, delegating to an official client CLI where one exists and writing the client config file directly otherwise.
     scenarios:
       mcp-install-supports-each-client:
         - GIVEN: the mcp-install client selector is inspected
@@ -2441,9 +1725,7 @@ requirements:
         - AND: no client configuration is modified
   cli-mcp-install-multi-client:
     strength: MUST
-    statement: >-
-      The mcp-install command MUST accept a repeatable client selection and an all value,
-      registering each selected client and reporting a per-client result.
+    statement: The mcp-install command MUST accept a repeatable client selection and an all value, registering each selected client and reporting a per-client result.
     scenarios:
       mcp-install-targets-multiple-clients:
         - GIVEN: mcp-install is invoked with more than one selected client or the all value
@@ -2452,10 +1734,7 @@ requirements:
         - AND: the command reports an individual result for each client
   cli-mcp-install-missing-cli-skips:
     strength: MUST
-    statement: >-
-      When a selected client requires an official client CLI that is not available, the mcp-install
-      command MUST skip that client with a diagnostic instructing installation of the CLI and MUST
-      NOT write that client's configuration directly.
+    statement: When a selected client requires an official client CLI that is not available, the mcp-install command MUST skip that client with a diagnostic instructing installation of the CLI and MUST NOT write that client's configuration directly.
     scenarios:
       mcp-install-skips-client-without-cli:
         - GIVEN: a CLI-backed client is selected but its official CLI is unavailable
@@ -2464,10 +1743,7 @@ requirements:
         - AND: that client's configuration is not modified
   cli-mcp-install-native-format-idempotent:
     strength: MUST
-    statement: >-
-      The mcp-install command MUST register each file-written client entry in that client's native
-      configuration format and merge idempotently, preserving unrelated existing entries and never
-      duplicating the registered entry on repeated runs.
+    statement: The mcp-install command MUST register each file-written client entry in that client's native configuration format and merge idempotently, preserving unrelated existing entries and never duplicating the registered entry on repeated runs.
     scenarios:
       mcp-install-preserves-existing-entries:
         - GIVEN: a target client config already contains unrelated server entries
@@ -2480,10 +1756,7 @@ requirements:
         - THEN: the client config still contains exactly one entry for that name
   cli-mcp-install-entry-name:
     strength: MUST
-    statement: >-
-      The mcp-install command MUST default the registered MCP server entry name to
-      strict-spec-driven and MUST allow overriding it through a name argument so distinct project
-      roots can register into one client.
+    statement: The mcp-install command MUST default the registered MCP server entry name to strict-spec-driven and MUST allow overriding it through a name argument so distinct project roots can register into one client.
     scenarios:
       mcp-install-defaults-entry-name:
         - GIVEN: mcp-install is invoked without a name override
@@ -2495,9 +1768,7 @@ requirements:
         - THEN: the overridden name is used as the entry name and idempotency key
   cli-mcp-install-scope-selection:
     strength: MUST
-    statement: >-
-      The mcp-install command MUST accept a scope selector for project and user scopes, defaulting
-      to project scope when none is supplied.
+    statement: The mcp-install command MUST accept a scope selector for project and user scopes, defaulting to project scope when none is supplied.
     scenarios:
       mcp-install-defaults-to-project-scope:
         - GIVEN: mcp-install is invoked without a scope selector
@@ -2507,3 +1778,11 @@ requirements:
         - GIVEN: mcp-install is invoked with the user scope selector
         - WHEN: the registration scope is resolved
         - THEN: the user-level client configuration target is used instead of the project-level target
+  init-skill-generates-agents-md-when-missing:
+    strength: MUST
+    statement: The strict-spec-init skill prompt MUST instruct the agent to generate an AGENTS.md describing the project when the target project has none, and MUST instruct it not to overwrite an existing AGENTS.md; strict skill packaging validation MUST enforce that this guidance is present in the init skill prompt.
+    scenarios:
+      init-skill-prompt-carries-agents-md-guidance:
+        - GIVEN: the packaged strict-spec-init skill prompt is inspected by strict skill packaging validation
+        - WHEN: validate-skills runs against the strict skill packages
+        - THEN: validation passes and the strict-spec-init prompt contains the AGENTS.md generation and non-overwrite guidance

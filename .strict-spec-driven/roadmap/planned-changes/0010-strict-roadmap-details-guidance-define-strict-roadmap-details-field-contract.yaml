@@ -6,8 +6,6 @@ planned_change:
   id: define-strict-roadmap-details-field-contract
   milestone: 0010-strict-roadmap-details-guidance
 status: complete
-summary: >-
-  add the strict roadmap milestone schema, example, template, and registry definitions for a
-  dedicated freeform `details` field intended for long-form planning guidance.
+summary: add the strict roadmap milestone schema, example, template, and registry definitions for a dedicated freeform `details` field intended for long-form planning guidance.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

@@ -6,19 +6,6 @@ planned_change:
   id: report-harness-partial-start-running-components
   milestone: 0013-harness-ai-friendliness-hardening
 status: complete
-summary: >-
-  make a partial harness-start failure report which already-started components remain running and
-  how to stop them, instead of leaving the agent to discover live processes.
-details: >-
-  When a later component fails readiness or a safety check during `startHarness`, earlier components
-  in dependency order have already been spawned and persisted to runtime state. The returned
-  `components` snapshot already lists them as `running`, but the failure `diagnostics` neither point
-  at those still-running components nor say how to recover, so the live processes are easy to miss.
-  Add an explicit remediation signal to the partial-start failure: include the ids of the components
-  that are still running and a clear instruction to run `harness-stop` to clean them up, surfaced as
-  a dedicated diagnostic or remediation field rather than left implicit in the snapshot. Keep the
-  existing conservative behavior of not auto-killing started components on failure, since an agent
-  may want to inspect them. Add a deterministic test that forces a readiness failure on a later
-  component and asserts both that the earlier component appears as `running` in the snapshot and
-  that the failure output names it together with the `harness-stop` recovery instruction.
+summary: make a partial harness-start failure report which already-started components remain running and how to stop them, instead of leaving the agent to discover live processes.
+details: 'When a later component fails readiness or a safety check during `startHarness`, earlier components in dependency order have already been spawned and persisted to runtime state. The returned `components` snapshot already lists them as `running`, but the failure `diagnostics` neither point at those still-running components nor say how to recover, so the live processes are easy to miss. Add an explicit remediation signal to the partial-start failure: include the ids of the components that are still running and a clear instruction to run `harness-stop` to clean them up, surfaced as a dedicated diagnostic or remediation field rather than left implicit in the snapshot. Keep the existing conservative behavior of not auto-killing started components on failure, since an agent may want to inspect them. Add a deterministic test that forces a readiness failure on a later component and asserts both that the earlier component appears as `running` in the snapshot and that the failure output names it together with the `harness-stop` recovery instruction.'
 depends_on: []

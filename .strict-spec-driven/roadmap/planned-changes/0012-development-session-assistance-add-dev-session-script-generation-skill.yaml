@@ -6,17 +6,7 @@ planned_change:
   id: add-dev-session-script-generation-skill
   milestone: 0012-development-session-assistance
 status: complete
-summary: >-
-  add an agent skill that generates standard manual development scripts from declared
-  development-session metadata.
-details: >-
-  The skill should read `.strict-spec-driven/dev-session.yaml`, run the dry session plan, and create
-  project-local helper scripts such as `scripts/dev-start`, `scripts/dev-stop`,
-  `scripts/dev-status`, and `scripts/dev-logs`, or a project-configured equivalent. Generated
-  scripts should be executable, deterministic, and human-friendly; include provenance comments
-  pointing back to the strict declaration; avoid embedding secret values; preserve user-authored
-  content outside managed sections; and refuse to overwrite existing unmanaged scripts without
-  explicit user confirmation. The scripts should either wrap strict lifecycle commands or faithfully
-  execute the declared project commands while preserving readiness, runtime-state, and log behavior.
+summary: add an agent skill that generates standard manual development scripts from declared development-session metadata.
+details: The skill should read `.strict-spec-driven/dev-session.yaml`, run the dry session plan, and create project-local helper scripts such as `scripts/dev-start`, `scripts/dev-stop`, `scripts/dev-status`, and `scripts/dev-logs`, or a project-configured equivalent. Generated scripts should be executable, deterministic, and human-friendly; include provenance comments pointing back to the strict declaration; avoid embedding secret values; preserve user-authored content outside managed sections; and refuse to overwrite existing unmanaged scripts without explicit user confirmation. The scripts should either wrap strict lifecycle commands or faithfully execute the declared project commands while preserving readiness, runtime-state, and log behavior.
 depends_on:
   - add-dev-session-lifecycle-commands

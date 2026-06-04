@@ -5,90 +5,38 @@ schema_file: templates/strict-spec-driven/schemas/roadmap-milestone.yaml
 milestone:
   0011-team-roadmap-collaboration:
     title: 11 Conflict Resistant Team Roadmap
-goal: >-
-  Redesign strict roadmap storage so multiple people can plan and claim work with fewer Git merge
-  conflicts by keeping the shared roadmap index simple, keeping milestone files mostly stable, and
-  moving planned changes into independent YAML files.
+goal: Redesign strict roadmap storage so multiple people can plan and claim work with fewer Git merge conflicts by keeping the shared roadmap index simple, keeping milestone files mostly stable, and moving planned changes into independent YAML files.
 scope:
   in:
-    - >-
-      Define a low-conflict roadmap layout where milestone files hold durable milestone metadata and
-      each planned change lives in its own YAML artifact under the roadmap directory.
-    - >-
-      Preserve compatibility with current inline `planned_changes` milestone files during migration
-      and sync.
-    - >-
-      Add validation that detects duplicate planned change IDs, malformed milestone references,
-      dependency problems across planned-change files, and active work conflicts.
-    - >-
-      Add team metadata such as owner, reviewers, blocked state, and external references on planned
-      change files after the split-file contract is stable.
+    - Define a low-conflict roadmap layout where milestone files hold durable milestone metadata and each planned change lives in its own YAML artifact under the roadmap directory.
+    - Preserve compatibility with current inline `planned_changes` milestone files during migration and sync.
+    - Add validation that detects duplicate planned change IDs, malformed milestone references, dependency problems across planned-change files, and active work conflicts.
+    - Add team metadata such as owner, reviewers, blocked state, and external references on planned change files after the split-file contract is stable.
   out:
-    - >-
-      Building a hosted locking service, realtime collaboration UI, or account and permission model
-      for the first team roadmap milestone.
+    - Building a hosted locking service, realtime collaboration UI, or account and permission model for the first team roadmap milestone.
     - Making GitHub Issues, Linear, Jira, or any external tracker the required source of truth.
     - Treating local YAML owner fields as hard locks that can prevent divergent Git branches.
     - Replacing the strict change archive as the authoritative record of completed work.
 done_criteria:
-  - >-
-    The roadmap contract defines a standalone planned-change artifact shape that references exactly
-    one owning milestone.
-  - >-
-    Roadmap loading, status, sync, recommendation, and proposal handoff work with standalone planned
-    change files while preserving existing inline milestone compatibility where required.
-  - >-
-    Roadmap sync preserves the shared roadmap index and, where appropriate, canonical planned-change
-    projections without requiring users to hand-edit aggregate planned-change maps.
-  - >-
-    Validation reports cross-file dependency errors, duplicate planned change identities, missing
-    milestone references, and conflicts with active strict changes deterministically.
-  - >-
-    Documentation explains the Git-native team workflow and gives clear conflict recovery guidance:
-    keep planned changes file-scoped, keep milestone edits deliberate, and rerun sync after merges.
+  - The roadmap contract defines a standalone planned-change artifact shape that references exactly one owning milestone.
+  - Roadmap loading, status, sync, recommendation, and proposal handoff work with standalone planned change files while preserving existing inline milestone compatibility where required.
+  - Roadmap sync preserves the shared roadmap index and, where appropriate, canonical planned-change projections without requiring users to hand-edit aggregate planned-change maps.
+  - Validation reports cross-file dependency errors, duplicate planned change identities, missing milestone references, and conflicts with active strict changes deterministically.
+  - 'Documentation explains the Git-native team workflow and gives clear conflict recovery guidance: keep planned changes file-scoped, keep milestone edits deliberate, and rerun sync after merges.'
 planned_changes: {}
 dependencies:
-  - >-
-    Existing roadmap v2 milestone files and inline planned changes must remain understandable until
-    a migration path is available.
-  - >-
-    Current strict change active and archive state remains the source used to derive planned change
-    progress and conflict diagnostics.
-  - >-
-    Roadmap details support from milestone 0010 remains available for long milestone-level planning
-    context, while standalone planned-change files carry executable planning and team metadata.
+  - Existing roadmap v2 milestone files and inline planned changes must remain understandable until a migration path is available.
+  - Current strict change active and archive state remains the source used to derive planned change progress and conflict diagnostics.
+  - Roadmap details support from milestone 0010 remains available for long milestone-level planning context, while standalone planned-change files carry executable planning and team metadata.
 risks:
-  - >-
-    Splitting planned changes into many files can increase directory noise if naming and index
-    organization rules are not simple.
-  - >-
-    Backward compatibility with inline planned changes can make loader behavior ambiguous unless the
-    preferred layout and migration rules are explicit.
-  - >-
-    Shared indexes can still appear in Git conflicts, so the design should avoid making the index a
-    high-churn work item registry.
-  - >-
-    Owner and reviewer fields could be mistaken for hard locks even though Git branches can still
-    diverge.
+  - Splitting planned changes into many files can increase directory noise if naming and index organization rules are not simple.
+  - Backward compatibility with inline planned changes can make loader behavior ambiguous unless the preferred layout and migration rules are explicit.
+  - Shared indexes can still appear in Git conflicts, so the design should avoid making the index a high-churn work item registry.
+  - Owner and reviewer fields could be mistaken for hard locks even though Git branches can still diverge.
 status: complete
 notes:
-  - >-
-    Accepted direction: solve team roadmap merge conflicts primarily through file layout and
-    independent planned-change files, not through locks, index ownership changes, or external
-    services.
-  - >-
-    The desired target layout is milestone metadata files plus standalone planned-change files under
-    `.strict-spec-driven/roadmap/`, with `INDEX.yaml` remaining a shared milestone index.
-details: >-
-  Compared options: process-only rules are cheap but leave milestone files as conflict hot spots.
-  Changing roadmap index ownership is unnecessary for the expected team workflow because teams
-  rarely modify the milestone index concurrently. External issue trackers provide mature
-  collaboration but introduce authentication, provider coupling, sync failures, and weaker
-  local-first guarantees. Hosted realtime collaboration is powerful but much larger than the current
-  YAML-first CLI product.
-
-  The accepted approach is to reduce conflict probability through artifact granularity. Milestone
-  files should change rarely. Each planned change should have its own file, so most contributors
-  edit only the work item they own. The shared roadmap index remains a simple milestone list rather
-  than becoming the work-item coordination surface. Team fields come after the split because owner
-  and reviewer metadata is most useful when attached to a file with a narrow review surface.
+  - 'Accepted direction: solve team roadmap merge conflicts primarily through file layout and independent planned-change files, not through locks, index ownership changes, or external services.'
+  - The desired target layout is milestone metadata files plus standalone planned-change files under `.strict-spec-driven/roadmap/`, with `INDEX.yaml` remaining a shared milestone index.
+details: |-
+  Compared options: process-only rules are cheap but leave milestone files as conflict hot spots. Changing roadmap index ownership is unnecessary for the expected team workflow because teams rarely modify the milestone index concurrently. External issue trackers provide mature collaboration but introduce authentication, provider coupling, sync failures, and weaker local-first guarantees. Hosted realtime collaboration is powerful but much larger than the current YAML-first CLI product.
+  The accepted approach is to reduce conflict probability through artifact granularity. Milestone files should change rarely. Each planned change should have its own file, so most contributors edit only the work item they own. The shared roadmap index remains a simple milestone list rather than becoming the work-item coordination surface. Team fields come after the split because owner and reviewer metadata is most useful when attached to a file with a narrow review surface.

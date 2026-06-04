@@ -6,8 +6,6 @@ planned_change:
   id: teach-strict-roadmap-propose-to-consume-details
   milestone: 0010-strict-roadmap-details-guidance
 status: complete
-summary: >-
-  update strict roadmap proposal handoff so milestone `details` informs proposal scaffolding without
-  duplicating whole milestone plans into strict change artifacts.
+summary: update strict roadmap proposal handoff so milestone `details` informs proposal scaffolding without duplicating whole milestone plans into strict change artifacts.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

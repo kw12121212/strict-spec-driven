@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: init-skill-generates-agents-md
+  status: proposed
+summary:
+  what:
+    - Add a step and rule to the strict-spec-init skill prompt that directs the agent to auto-generate an AGENTS.md describing the project when the target project has none, and enforce that the init skill prompt carries this guidance via skill packaging validation.
+  why:
+    - Projects newly initialized with the strict workflow frequently lack an AGENTS.md, which agents (including this workflow) rely on for durable project context. Having the init skill auto-create one improves onboarding without manual prompting, while a packaging-validation snippet keeps the prompt contract enforceable.
+scope:
+  in:
+    - Edit skills/strict-spec-init/SKILL.md to add an AGENTS.md generation step and rule. Add a required content snippet for the init skill in src/skills/model.ts so validate-skills enforces the guidance. Add a focused test assertion over the init SKILL.md content. Rebuild dist.
+  out:
+    - Changing the init CLI/script to write AGENTS.md (generation is AI judgment, not deterministic YAML). Auto-generating other agent files (CLAUDE.md beyond an existing symlink convention). Re-installing the skill into the user global ~/.claude/skills copy.
+unchanged_behavior:
+  - Existing init steps (run init, draft config context, capture initial specs, confirm). YAML-only scaffold output under .strict-spec-driven/. Idempotent, non-clobbering init behavior. The init skill remaining exempt from the strict-workflow-state precheck.

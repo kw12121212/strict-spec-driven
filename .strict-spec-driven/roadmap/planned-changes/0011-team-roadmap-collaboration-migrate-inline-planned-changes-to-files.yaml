@@ -6,11 +6,7 @@ planned_change:
   id: migrate-inline-planned-changes-to-files
   milestone: 0011-team-roadmap-collaboration
 status: complete
-summary: >-
-  add migration and sync support that can materialize existing inline milestone planned changes as
-  standalone planned-change files without losing status, details, or dependency data.
-details: >-
-  Migration should be explicit and reviewable. It should avoid silent data movement unless the
-  command or skill is intentionally converting a roadmap to the low-conflict layout.
+summary: add migration and sync support that can materialize existing inline milestone planned changes as standalone planned-change files without losing status, details, or dependency data.
+details: Migration should be explicit and reviewable. It should avoid silent data movement unless the command or skill is intentionally converting a roadmap to the low-conflict layout.
 depends_on:
   - update-roadmap-loader-status-and-sync-for-split-files

@@ -6,21 +6,6 @@ planned_change:
   id: broaden-harness-infer-runtime-detection
   milestone: 0013-harness-ai-friendliness-hardening
 status: complete
-summary: >-
-  broaden harness-infer beyond Node/npm so common non-Node projects produce a useful draft or
-  clearly report why no lifecycle command could be inferred.
-details: >-
-  `buildInferredHarness` only reads `package.json` scripts and env sample files, so any non-Node
-  project produces an empty, command-less manual draft with `unavailable_conditions` noting only
-  that no package script was found, and no explanation an agent can act on. Broaden inference with a
-  deterministic precedence order so results are reproducible when several signals coexist: prefer an
-  existing `package.json` dev/start/serve script (current behavior), then a
-  `docker-compose.yml`/`compose.yaml` service, then a `Procfile` process, then a `Makefile`
-  run/start/dev target. Emit a manual draft for the first shape matched and record which signal was
-  used in the inference evidence. When no supported shape is detected, record explicit evidence and
-  an unavailable condition explaining that no lifecycle command could be inferred and that commands
-  must be filled in by hand. Keep all inferred lifecycle operations manual and production operations
-  disabled as today, so broadening detection never auto-enables an unsafe command. Add deterministic
-  tests for the precedence order, for at least one newly detected non-Node shape, and for the
-  explicit no-detection evidence path.
+summary: broaden harness-infer beyond Node/npm so common non-Node projects produce a useful draft or clearly report why no lifecycle command could be inferred.
+details: '`buildInferredHarness` only reads `package.json` scripts and env sample files, so any non-Node project produces an empty, command-less manual draft with `unavailable_conditions` noting only that no package script was found, and no explanation an agent can act on. Broaden inference with a deterministic precedence order so results are reproducible when several signals coexist: prefer an existing `package.json` dev/start/serve script (current behavior), then a `docker-compose.yml`/`compose.yaml` service, then a `Procfile` process, then a `Makefile` run/start/dev target. Emit a manual draft for the first shape matched and record which signal was used in the inference evidence. When no supported shape is detected, record explicit evidence and an unavailable condition explaining that no lifecycle command could be inferred and that commands must be filled in by hand. Keep all inferred lifecycle operations manual and production operations disabled as today, so broadening detection never auto-enables an unsafe command. Add deterministic tests for the precedence order, for at least one newly detected non-Node shape, and for the explicit no-detection evidence path.'
 depends_on: []

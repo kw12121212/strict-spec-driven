@@ -6,11 +6,6 @@ planned_change:
   id: port-strict-skill-packaging-and-validation
   milestone: 0004-strict-workflow-skills-and-roadmap
 status: complete
-summary: >-
-  create strict spec and strict roadmap skill directories and `SKILL.md` metadata, remove legacy
-  install names, update installer scripts and marketplace metadata, enforce `scripts ->
-  ../../dist/scripts` and `templates -> ../../dist/templates` symlink behavior, and port validation
-  for frontmatter, command references, stale legacy names, bundled script assumptions, and broken
-  symlinks.
+summary: create strict spec and strict roadmap skill directories and `SKILL.md` metadata, remove legacy install names, update installer scripts and marketplace metadata, enforce `scripts -> ../../dist/scripts` and `templates -> ../../dist/templates` symlink behavior, and port validation for frontmatter, command references, stale legacy names, bundled script assumptions, and broken symlinks.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

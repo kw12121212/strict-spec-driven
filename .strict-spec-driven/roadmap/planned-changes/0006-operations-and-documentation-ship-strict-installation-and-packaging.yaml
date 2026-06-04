@@ -6,10 +6,6 @@ planned_change:
   id: ship-strict-installation-and-packaging
   milestone: 0006-operations-and-documentation
 status: complete
-summary: >-
-  add install and uninstall scripts for global and project-local strict skill installation with
-  legacy-name safeguards and working relative symlink expectations, plus install, uninstall, and
-  packaged skill smoke tests covering bundled scripts, bundled templates, symlink resolution, and
-  failure diagnostics.
+summary: add install and uninstall scripts for global and project-local strict skill installation with legacy-name safeguards and working relative symlink expectations, plus install, uninstall, and packaged skill smoke tests covering bundled scripts, bundled templates, symlink resolution, and failure diagnostics.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

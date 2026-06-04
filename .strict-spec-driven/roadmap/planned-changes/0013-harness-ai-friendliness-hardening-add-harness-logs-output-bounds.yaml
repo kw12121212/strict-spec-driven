@@ -6,17 +6,6 @@ planned_change:
   id: add-harness-logs-output-bounds
   milestone: 0013-harness-ai-friendliness-hardening
 status: complete
-summary: >-
-  bound harness-logs output with an explicit tail or byte limit and a documented default so agents
-  do not flood their context window when reading long-running service logs.
-details: >-
-  `getHarnessLogs` reads the full captured log file and `runHarnessLogs` prints it verbatim, so a
-  long-running service can return megabytes of output into an agent's context in a single call. Add
-  an explicit output bound to `harness-logs`, such as a `--tail <n>` line count or a byte cap, with
-  a documented and conservative default that returns the most recent output. Keep the full-output
-  path available through an explicit override flag if needed. Update the `harness-logs` usage string
-  and HARNESS.md to describe the default and the override, and add a deterministic test that writes
-  a log larger than the default bound and asserts the command returns only the bounded tail. This
-  concerns only the captured-log file read by `harness-logs`; the declared `operations.logs` field
-  is handled separately by `align-harness-status-logs-operation-model`.
+summary: bound harness-logs output with an explicit tail or byte limit and a documented default so agents do not flood their context window when reading long-running service logs.
+details: '`getHarnessLogs` reads the full captured log file and `runHarnessLogs` prints it verbatim, so a long-running service can return megabytes of output into an agent''s context in a single call. Add an explicit output bound to `harness-logs`, such as a `--tail <n>` line count or a byte cap, with a documented and conservative default that returns the most recent output. Keep the full-output path available through an explicit override flag if needed. Update the `harness-logs` usage string and HARNESS.md to describe the default and the override, and add a deterministic test that writes a log larger than the default bound and asserts the command returns only the bounded tail. This concerns only the captured-log file read by `harness-logs`; the declared `operations.logs` field is handled separately by `align-harness-status-logs-operation-model`.'
 depends_on: []

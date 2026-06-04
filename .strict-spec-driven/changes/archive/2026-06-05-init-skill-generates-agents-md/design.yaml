@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: init-skill-generates-agents-md
+approach:
+  - Treat AGENTS.md generation as AI judgment that belongs in the skill prompt, not the init script, per the scripts-own-mechanics standard. Add a numbered step to skills/strict-spec-init/SKILL.md instructing the agent to check for AGENTS.md and, when absent, draft a concise one from the project context it already gathered, without overwriting an existing file. Make the prompt contract deterministically verifiable by registering a required content snippet for strict-spec-init in CORE_STRICT_SKILL_EXPECTATIONS (src/skills/model.ts), which validate-skills and the existing skill-content test already enforce, and add a focused assertion over the init SKILL.md.
+decisions:
+  agents-md-in-prompt-not-script:
+    decision: Keep AGENTS.md generation in the init skill prompt rather than the init CLI command.
+    rationale: AGENTS.md is project-specific Markdown prose requiring AI judgment, which the yaml-first-artifacts standard assigns to skill prompts; the init script deterministically scaffolds only YAML and must stay non-clobbering and YAML-only.
+  enforce-via-packaging-validation:
+    decision: Enforce the prompt guidance with a required skill content snippet plus a test assertion.
+    rationale: A registered required snippet makes an otherwise prose-only prompt change a verifiable contract checked by validate-skills, satisfying the project rule that every change include test coverage.
+  no-overwrite-existing-agents:
+    decision: Generate AGENTS.md only when none exists and never overwrite an existing AGENTS.md.
+    rationale: Mirrors init's existing idempotent, non-clobbering philosophy and avoids destroying user-authored project context.
+alternatives: []
+risks: []

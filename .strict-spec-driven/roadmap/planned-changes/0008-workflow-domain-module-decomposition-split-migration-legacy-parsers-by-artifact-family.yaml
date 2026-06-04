@@ -6,8 +6,6 @@ planned_change:
   id: split-migration-legacy-parsers-by-artifact-family
   milestone: 0008-workflow-domain-module-decomposition
 status: complete
-summary: >-
-  extract legacy Markdown parsing for specs, proposals, designs, tasks, questions, roadmap files,
-  and index files into dedicated parser modules with explicit interfaces.
+summary: extract legacy Markdown parsing for specs, proposals, designs, tasks, questions, roadmap files, and index files into dedicated parser modules with explicit interfaces.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

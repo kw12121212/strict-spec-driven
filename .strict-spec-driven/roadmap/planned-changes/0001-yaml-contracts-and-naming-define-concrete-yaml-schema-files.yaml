@@ -6,8 +6,6 @@ planned_change:
   id: define-concrete-yaml-schema-files
   milestone: 0001-yaml-contracts-and-naming
 status: complete
-summary: >-
-  add contract requirements that concrete schema and example files must exist for strict workflow
-  artifacts, including parseability and artifact-family coverage.
+summary: add contract requirements that concrete schema and example files must exist for strict workflow artifacts, including parseability and artifact-family coverage.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

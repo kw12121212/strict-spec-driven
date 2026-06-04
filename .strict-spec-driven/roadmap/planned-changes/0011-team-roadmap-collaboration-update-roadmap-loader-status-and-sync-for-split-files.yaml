@@ -6,11 +6,7 @@ planned_change:
   id: update-roadmap-loader-status-and-sync-for-split-files
   milestone: 0011-team-roadmap-collaboration
 status: complete
-summary: >-
-  update roadmap loading, status derivation, and sync rewriting to read milestone metadata plus
-  standalone planned-change files and to preserve deterministic ordering.
-details: >-
-  The loader should treat the split-file model as the preferred layout while keeping existing inline
-  milestone planned changes valid during the migration window.
+summary: update roadmap loading, status derivation, and sync rewriting to read milestone metadata plus standalone planned-change files and to preserve deterministic ordering.
+details: The loader should treat the split-file model as the preferred layout while keeping existing inline milestone planned changes valid during the migration window.
 depends_on:
   - define-standalone-planned-change-artifact

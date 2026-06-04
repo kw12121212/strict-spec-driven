@@ -6,21 +6,6 @@ planned_change:
   id: reconcile-harness-start-env-with-doctor
   milestone: 0013-harness-ai-friendliness-hardening
 status: complete
-summary: >-
-  reconcile harness-start required-environment checking with harness-doctor so a project that passes
-  doctor does not fail start with a confusing missing-environment error.
-details: >-
-  `harness-start` checks required environment variables only against `process.env` via
-  `getMissingRequiredEnvironment`, while `harness-doctor` only checks that those names are
-  documented in an env sample file such as `.env.example`. A project can therefore pass doctor and
-  still fail start because the documented values are not exported, with no guidance to the agent.
-  The accepted direction is diagnostic guidance only, preserving the name-only, no-secret-values
-  policy: keep checking `process.env`, but rewrite the missing-environment diagnostic so it states
-  explicitly that the harness does not read `.env` files and that the listed variables must be
-  exported or sourced before starting, and frame it so it reads as complementary to harness-doctor's
-  env-sample documentation check rather than contradicting it. Automatic `.env` loading is
-  intentionally out of scope for this change to avoid secret-adjacent handling. Update HARNESS.md to
-  describe how environment values are expected to be supplied, and add a deterministic test that
-  documents a required variable in an env sample, leaves it unexported, and asserts harness-start
-  fails with the new explanatory diagnostic.
+summary: reconcile harness-start required-environment checking with harness-doctor so a project that passes doctor does not fail start with a confusing missing-environment error.
+details: '`harness-start` checks required environment variables only against `process.env` via `getMissingRequiredEnvironment`, while `harness-doctor` only checks that those names are documented in an env sample file such as `.env.example`. A project can therefore pass doctor and still fail start because the documented values are not exported, with no guidance to the agent. The accepted direction is diagnostic guidance only, preserving the name-only, no-secret-values policy: keep checking `process.env`, but rewrite the missing-environment diagnostic so it states explicitly that the harness does not read `.env` files and that the listed variables must be exported or sourced before starting, and frame it so it reads as complementary to harness-doctor''s env-sample documentation check rather than contradicting it. Automatic `.env` loading is intentionally out of scope for this change to avoid secret-adjacent handling. Update HARNESS.md to describe how environment values are expected to be supplied, and add a deterministic test that documents a required variable in an env sample, leaves it unexported, and asserts harness-start fails with the new explanatory diagnostic.'
 depends_on: []

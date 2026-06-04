@@ -6,8 +6,6 @@ planned_change:
   id: split-roadmap-load-validate-derive-sync
   milestone: 0008-workflow-domain-module-decomposition
 status: complete
-summary: >-
-  separate roadmap artifact loading, schema validation, semantic validation, status derivation,
-  canonical milestone rebuilding, and sync writes into focused modules instead of one large file.
+summary: separate roadmap artifact loading, schema validation, semantic validation, status derivation, canonical milestone rebuilding, and sync writes into focused modules instead of one large file.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

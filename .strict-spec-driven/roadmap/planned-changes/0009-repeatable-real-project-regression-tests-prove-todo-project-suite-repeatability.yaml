@@ -6,8 +6,6 @@ planned_change:
   id: prove-todo-project-suite-repeatability
   milestone: 0009-repeatable-real-project-regression-tests
 status: complete
-summary: >-
-  add explicit checks that the same copied-fixture scenarios can run repeatedly without baseline
-  drift and with deterministic diagnostics or output ordering.
+summary: add explicit checks that the same copied-fixture scenarios can run repeatedly without baseline drift and with deterministic diagnostics or output ordering.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

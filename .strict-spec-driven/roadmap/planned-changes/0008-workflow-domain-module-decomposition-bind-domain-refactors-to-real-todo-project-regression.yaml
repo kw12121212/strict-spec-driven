@@ -6,8 +6,6 @@ planned_change:
   id: bind-domain-refactors-to-real-todo-project-regression
   milestone: 0008-workflow-domain-module-decomposition
 status: complete
-summary: >-
-  validate roadmap, skill-validation, and migration refactors against the shared copied todo project
-  fixture so domain splits are checked in a repeatable project context.
+summary: validate roadmap, skill-validation, and migration refactors against the shared copied todo project fixture so domain splits are checked in a repeatable project context.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

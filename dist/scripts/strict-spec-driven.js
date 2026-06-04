@@ -19348,7 +19348,11 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       init: `${COMMAND_PREFIX} init`
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/"]
+    requiredSnippets: [
+      ".strict-spec-driven/",
+      "generate a concise `AGENTS.md`",
+      "never overwrite an existing `AGENTS.md`"
+    ]
   },
   "strict-spec-propose": {
     requiredCommands: {

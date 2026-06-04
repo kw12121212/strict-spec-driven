@@ -6,9 +6,6 @@ planned_change:
   id: convert-roadmap-and-project-state-to-yaml
   milestone: 0005-migration-and-self-hosting
 status: complete
-summary: >-
-  implement conversion modules and validation tests for roadmap indexes, milestone files, statuses,
-  dependencies, risks, notes, planned change entries, config, specs indexes, roadmap indexes, and
-  generated scaffold metadata into strict YAML project state files.
+summary: implement conversion modules and validation tests for roadmap indexes, milestone files, statuses, dependencies, risks, notes, planned change entries, config, specs indexes, roadmap indexes, and generated scaffold metadata into strict YAML project state files.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

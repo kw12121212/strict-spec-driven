@@ -1,0 +1,40 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: init-skill-generates-agents-md
+sections:
+  Implementation:
+    add-agents-md-step-to-init-skill:
+      text: Add a numbered step and a matching rule to skills/strict-spec-init/SKILL.md directing the agent to generate a concise AGENTS.md from the gathered project context when the target project has no AGENTS.md, and never to overwrite an existing AGENTS.md.
+      status: complete
+    register-init-skill-required-snippet:
+      text: Add a required content snippet for strict-spec-init in CORE_STRICT_SKILL_EXPECTATIONS (src/skills/model.ts) so validate-skills enforces that the init prompt carries the AGENTS.md generation guidance.
+      status: complete
+    rebuild-dist:
+      text: Rebuild compiled output so dist reflects the updated skill validation model.
+      status: complete
+      command: bun run build
+  Testing:
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    assert-init-skill-content:
+      text: Add a focused assertion in test/suites/entrypoint-and-skills.ts that the init SKILL.md content includes the AGENTS.md generation and non-overwrite guidance.
+      status: complete
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests including validate-skills and the init skill content assertion.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify the change matches proposal scope — init prompt change only, no init CLI/script change, non-clobbering AGENTS.md guidance, YAML-only scaffold output unchanged.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

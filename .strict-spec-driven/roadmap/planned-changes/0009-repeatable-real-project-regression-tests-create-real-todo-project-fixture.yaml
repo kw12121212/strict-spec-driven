@@ -6,8 +6,6 @@ planned_change:
   id: create-real-todo-project-fixture
   milestone: 0009-repeatable-real-project-regression-tests
 status: complete
-summary: >-
-  add a committed todo project fixture under `test/fixtures/projects/` with realistic source files,
-  repository metadata, and workflow artifacts that exercise the strict CLI meaningfully.
+summary: add a committed todo project fixture under `test/fixtures/projects/` with realistic source files, repository metadata, and workflow artifacts that exercise the strict CLI meaningfully.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

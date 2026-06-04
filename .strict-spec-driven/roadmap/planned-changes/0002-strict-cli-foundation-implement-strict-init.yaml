@@ -6,8 +6,6 @@ planned_change:
   id: implement-strict-init
   milestone: 0002-strict-cli-foundation
 status: complete
-summary: >-
-  implement the `init` subcommand to create `.strict-spec-driven/` config, specs, roadmap, and
-  changes from bundled template assets without clobbering existing user state.
+summary: implement the `init` subcommand to create `.strict-spec-driven/` config, specs, roadmap, and changes from bundled template assets without clobbering existing user state.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

@@ -6,8 +6,6 @@ planned_change:
   id: implement-spec-to-strict-migrate-command
   milestone: 0005-migration-and-self-hosting
 status: complete
-summary: >-
-  implement a `migrate` subcommand that reads `.spec-driven/`, writes `.strict-spec-driven/`,
-  performs preflight checks, enforces overwrite protection, and emits a structured migration report.
+summary: implement a `migrate` subcommand that reads `.spec-driven/`, writes `.strict-spec-driven/`, performs preflight checks, enforces overwrite protection, and emits a structured migration report.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

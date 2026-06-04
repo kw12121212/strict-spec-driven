@@ -6,8 +6,6 @@ planned_change:
   id: cover-strict-roadmap-details-with-regression
   milestone: 0010-strict-roadmap-details-guidance
 status: complete
-summary: >-
-  add fixture and end-to-end regression coverage proving `details` survives strict roadmap
-  validation, sync, proposal handoff, and related workflows.
+summary: add fixture and end-to-end regression coverage proving `details` survives strict roadmap validation, sync, proposal handoff, and related workflows.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

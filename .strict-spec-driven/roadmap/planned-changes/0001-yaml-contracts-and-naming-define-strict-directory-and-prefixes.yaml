@@ -6,8 +6,6 @@ planned_change:
   id: define-strict-directory-and-prefixes
   milestone: 0001-yaml-contracts-and-naming
 status: complete
-summary: >-
-  define `.strict-spec-driven/` as the workflow directory and rename skill and command families to
-  `strict-spec-*` and `strict-roadmap-*`.
+summary: define `.strict-spec-driven/` as the workflow directory and rename skill and command families to `strict-spec-*` and `strict-roadmap-*`.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

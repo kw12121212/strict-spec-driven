@@ -6,16 +6,8 @@ planned_change:
   id: update-agent-skills-for-dev-sessions
   milestone: 0012-development-session-assistance
 status: complete
-summary: >-
-  update strict agent-facing skills so implementation, verification, review, and auto workflows
-  consult declared development-session metadata before running dev servers or browser trials.
-details: >-
-  Skill guidance should instruct agents to inspect the development-session plan, explain intended
-  long-running commands before starting them, use declared browser targets when available, capture
-  evidence consistently, stop created services before finishing, and report unavailable
-  prerequisites instead of guessing undocumented setup steps. Skills should also say when not to use
-  the lifecycle commands, such as when no declaration exists, required environment values are
-  missing, or the user has already provided a running service URL outside the strict declaration.
+summary: update strict agent-facing skills so implementation, verification, review, and auto workflows consult declared development-session metadata before running dev servers or browser trials.
+details: Skill guidance should instruct agents to inspect the development-session plan, explain intended long-running commands before starting them, use declared browser targets when available, capture evidence consistently, stop created services before finishing, and report unavailable prerequisites instead of guessing undocumented setup steps. Skills should also say when not to use the lifecycle commands, such as when no declaration exists, required environment values are missing, or the user has already provided a running service URL outside the strict declaration.
 depends_on:
   - add-browser-trial-evidence-workflow
   - add-dev-session-lifecycle-commands

@@ -6,8 +6,6 @@ planned_change:
   id: add-strict-spec-migrate-skill
   milestone: 0005-migration-and-self-hosting
 status: complete
-summary: >-
-  create a strict migration skill package that runs preflight checks, invokes migration, reviews
-  reports, validates generated YAML, and guides manual follow-up.
+summary: create a strict migration skill package that runs preflight checks, invokes migration, reviews reports, validates generated YAML, and guides manual follow-up.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

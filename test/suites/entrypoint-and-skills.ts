@@ -211,6 +211,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const roadmapProposeSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-propose", "SKILL.md"), "utf8");
   const harnessInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-init", "SKILL.md"), "utf8");
   const harnessSessionSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-session", "SKILL.md"), "utf8");
+  const initSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-init", "SKILL.md"), "utf8");
   const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
   const normalizedReviewSkillContent = reviewSkillContent.replace(/\s+/g, " ");
   const normalizedProposeSkillContent = proposeSkillContent.replace(/\s+/g, " ");
@@ -221,6 +222,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedRoadmapProposeSkillContent = roadmapProposeSkillContent.replace(/\s+/g, " ");
   const normalizedHarnessInitSkillContent = harnessInitSkillContent.replace(/\s+/g, " ");
   const normalizedHarnessSessionSkillContent = harnessSessionSkillContent.replace(/\s+/g, " ");
+  const normalizedInitSkillContent = initSkillContent.replace(/\s+/g, " ");
   const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
 context.assert(
   normalizedReviewSkillContent.includes("complete project-level regression test evidence")
@@ -317,6 +319,12 @@ context.assert(
       && normalizedHarnessSessionSkillContent.includes("generated `scripts/harness-*` wrappers")
       && !normalizedHarnessSessionSkillContent.includes("debug-session artifacts"),
     "strict-spec-harness-session covers creation, validation, harness lifecycle, human checkpoints, and secret boundaries",
+  );
+  context.assert(
+    normalizedInitSkillContent.includes("Ensure AGENTS.md exists")
+      && normalizedInitSkillContent.includes("generate a concise `AGENTS.md`")
+      && normalizedInitSkillContent.includes("never overwrite an existing `AGENTS.md`"),
+    "strict-spec-init directs the agent to generate AGENTS.md when missing and never overwrite an existing one",
   );
   context.assert(
     cli(["dev-session-plan"], { cwd: ROOT }).status !== 0

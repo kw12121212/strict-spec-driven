@@ -6,24 +6,10 @@ planned_change:
   id: add-mcp-server-entrypoint
   milestone: 0015-mcp-server-integration
 status: complete
-summary: >-
-  Add a local Node/TypeScript MCP server entrypoint that accepts a project root and delegates strict
-  workflow behavior to the existing CLI/domain modules.
-details: >-
-  Implement the package-level server entrypoint, argument parsing, project-root validation,
-  capability registration, structured error handling, and build output needed for MCP clients to
-  launch the server as a local process. Keep the implementation thin: command behavior should call
-  existing strict modules or CLI wrappers so validation, roadmap, harness, and archive rules do not
-  fork.
-
-  The entrypoint should live under a small MCP-specific source area and build to a documented
-  executable path such as `dist/scripts/strict-spec-driven-mcp.js`. It should accept `--project
-  <path>` as the explicit workflow root, reject missing or non-directory roots with structured MCP
-  errors, and use stdio transport for the first release. The implementation should register
-  capabilities from a single inventory module, expose server name/version metadata, and include a
-  client configuration example that launches `node <dist-entrypoint> --project <repo>`. Tests should
-  exercise startup, initialization, invalid project roots, and built-output availability without
-  requiring a real MCP host.
+summary: Add a local Node/TypeScript MCP server entrypoint that accepts a project root and delegates strict workflow behavior to the existing CLI/domain modules.
+details: |-
+  Implement the package-level server entrypoint, argument parsing, project-root validation, capability registration, structured error handling, and build output needed for MCP clients to launch the server as a local process. Keep the implementation thin: command behavior should call existing strict modules or CLI wrappers so validation, roadmap, harness, and archive rules do not fork.
+  The entrypoint should live under a small MCP-specific source area and build to a documented executable path such as `dist/scripts/strict-spec-driven-mcp.js`. It should accept `--project <path>` as the explicit workflow root, reject missing or non-directory roots with structured MCP errors, and use stdio transport for the first release. The implementation should register capabilities from a single inventory module, expose server name/version metadata, and include a client configuration example that launches `node <dist-entrypoint> --project <repo>`. Tests should exercise startup, initialization, invalid project roots, and built-output availability without requiring a real MCP host.
 depends_on:
   - define-mcp-contract
 team:

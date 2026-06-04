@@ -6,8 +6,6 @@ planned_change:
   id: port-list-modify-cancel-to-yaml
   milestone: 0003-core-strict-workflow
 status: complete
-summary: >-
-  implement `list`, `modify`, and `cancel` subcommands for active and archived
-  `.strict-spec-driven/changes/` YAML artifacts, including path output for agent editing.
+summary: implement `list`, `modify`, and `cancel` subcommands for active and archived `.strict-spec-driven/changes/` YAML artifacts, including path output for agent editing.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

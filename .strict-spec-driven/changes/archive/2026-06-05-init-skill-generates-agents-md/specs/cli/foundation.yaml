@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - skills/strict-spec-init/SKILL.md
+    - src/skills/model.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    init-skill-generates-agents-md-when-missing:
+      strength: MUST
+      statement: The strict-spec-init skill prompt MUST instruct the agent to generate an AGENTS.md describing the project when the target project has none, and MUST instruct it not to overwrite an existing AGENTS.md; strict skill packaging validation MUST enforce that this guidance is present in the init skill prompt.
+      scenarios:
+        init-skill-prompt-carries-agents-md-guidance:
+          - GIVEN: the packaged strict-spec-init skill prompt is inspected by strict skill packaging validation
+          - WHEN: validate-skills runs against the strict skill packages
+          - THEN: validation passes and the strict-spec-init prompt contains the AGENTS.md generation and non-overwrite guidance
+  MODIFIED: {}
+  REMOVED: {}

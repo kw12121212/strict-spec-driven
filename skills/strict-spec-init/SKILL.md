@@ -46,7 +46,16 @@ intended project root.
    - the tech stack and languages
    - key conventions or constraints worth preserving
 
-4. **Capture existing behavior** — if the project already has stable behavior,
+4. **Ensure AGENTS.md exists** — check the target project root for an `AGENTS.md`.
+   If none exists, generate a concise `AGENTS.md` describing the project for future
+   agents, reusing the understanding you gathered while drafting context:
+   - what the project does
+   - the tech stack and languages
+   - key conventions, constraints, and commands worth preserving
+   Do not overwrite an existing `AGENTS.md`; if one is already present, leave it
+   untouched.
+
+5. **Capture existing behavior** — if the project already has stable behavior,
    help the user create initial strict YAML main specs under
    `.strict-spec-driven/specs/`.
    - update `.strict-spec-driven/specs/INDEX.yaml`
@@ -54,7 +63,7 @@ intended project root.
      `requirements`
    - describe current observable behavior, not future aspirations
 
-5. **Confirm** — summarize what was created and suggest
+6. **Confirm** — summarize what was created and suggest
    `strict-roadmap-plan` to shape the roadmap or `strict-spec-propose` to create
    the first strict change.
 
@@ -64,3 +73,5 @@ intended project root.
 - Keep the `context` field concise; a few sentences are enough
 - Do not overwrite existing `.strict-spec-driven/` artifacts when repairing
   scaffold files
+- Generate an `AGENTS.md` only when the project has none, and never overwrite an
+  existing `AGENTS.md`

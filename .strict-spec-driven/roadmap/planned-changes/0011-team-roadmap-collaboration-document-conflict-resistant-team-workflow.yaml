@@ -6,12 +6,7 @@ planned_change:
   id: document-conflict-resistant-team-workflow
   milestone: 0011-team-roadmap-collaboration
 status: complete
-summary: >-
-  document the recommended team workflow for editing planned-change files, keeping the shared index
-  simple, rerunning roadmap-sync after merges, and using optional external tracker references.
-details: >-
-  Documentation should clearly compare this approach with process-only rules, external tracker
-  source of truth, and hosted collaboration so teams know why the split-file model is the default
-  recommendation.
+summary: document the recommended team workflow for editing planned-change files, keeping the shared index simple, rerunning roadmap-sync after merges, and using optional external tracker references.
+details: Documentation should clearly compare this approach with process-only rules, external tracker source of truth, and hosted collaboration so teams know why the split-file model is the default recommendation.
 depends_on:
   - add-split-roadmap-regression-coverage

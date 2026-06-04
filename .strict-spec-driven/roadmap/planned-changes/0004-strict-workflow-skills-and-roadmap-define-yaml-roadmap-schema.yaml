@@ -6,8 +6,6 @@ planned_change:
   id: define-yaml-roadmap-schema
   milestone: 0004-strict-workflow-skills-and-roadmap
 status: complete
-summary: >-
-  finalize concrete YAML roadmap index and milestone schemas plus examples covering ordering,
-  status, scope, criteria, dependencies, risks, notes, and planned change entries.
+summary: finalize concrete YAML roadmap index and milestone schemas plus examples covering ordering, status, scope, criteria, dependencies, risks, notes, and planned change entries.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

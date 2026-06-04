@@ -6,8 +6,6 @@ planned_change:
   id: extract-cli-change-discovery-and-status
   milestone: 0007-cli-command-surface-decomposition
 status: complete
-summary: >-
-  move change listing, archive matching, and active-status calculation into focused helper modules
-  reused by CLI commands.
+summary: move change listing, archive matching, and active-status calculation into focused helper modules reused by CLI commands.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

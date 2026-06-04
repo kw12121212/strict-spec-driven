@@ -6,8 +6,6 @@ planned_change:
   id: add-todo-project-cli-regression-scenarios
   milestone: 0009-repeatable-real-project-regression-tests
 status: complete
-summary: >-
-  cover init, propose, list, modify, cancel, verify-spec-mappings, and other command-surface
-  behavior against the copied todo project fixture.
+summary: cover init, propose, list, modify, cancel, verify-spec-mappings, and other command-surface behavior against the copied todo project fixture.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

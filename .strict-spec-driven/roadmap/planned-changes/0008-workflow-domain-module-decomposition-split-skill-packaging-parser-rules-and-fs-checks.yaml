@@ -6,8 +6,6 @@ planned_change:
   id: split-skill-packaging-parser-rules-and-fs-checks
   milestone: 0008-workflow-domain-module-decomposition
 status: complete
-summary: >-
-  separate frontmatter parsing, skill-content expectation checks, symlink validation, marketplace
-  metadata validation, and diagnostic sorting into smaller validation modules.
+summary: separate frontmatter parsing, skill-content expectation checks, symlink validation, marketplace metadata validation, and diagnostic sorting into smaller validation modules.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

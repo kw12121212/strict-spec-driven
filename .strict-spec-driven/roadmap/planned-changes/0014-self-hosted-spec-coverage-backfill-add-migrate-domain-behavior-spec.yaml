@@ -6,18 +6,6 @@ planned_change:
   id: add-migrate-domain-behavior-spec
   milestone: 0014-self-hosted-spec-coverage-backfill
 status: complete
-summary: >-
-  add a behavior-contract main spec for the migrate command domain and re-point its implementation
-  and test mappings off the cli-foundation catch-all onto the new spec.
-details: >-
-  The migrate domain (migrate plus src/migrate/preflight, parsers, converters, reporting, and
-  shared) is one of the largest command surfaces and currently has no dedicated behavior spec. Add a
-  main spec under .strict-spec-driven/specs/migrate/ describing observable behavior: how migrate
-  detects a legacy .spec-driven/ directory, the preflight conditions it requires, which artifact
-  families it converts, what the migration report records for supported versus unsupported or
-  ambiguous shapes, that the source .spec-driven/ directory is never modified, and the relevant exit
-  codes and diagnostics. Keep requirements at the observable altitude with verifiable scenarios, not
-  per-parser implementation detail. Register the spec in specs/INDEX.yaml and move the migrate
-  implementation and test mapping entries from cli-foundation to this spec, then confirm
-  verify-spec-mappings reports zero unmapped files.
+summary: add a behavior-contract main spec for the migrate command domain and re-point its implementation and test mappings off the cli-foundation catch-all onto the new spec.
+details: 'The migrate domain (migrate plus src/migrate/preflight, parsers, converters, reporting, and shared) is one of the largest command surfaces and currently has no dedicated behavior spec. Add a main spec under .strict-spec-driven/specs/migrate/ describing observable behavior: how migrate detects a legacy .spec-driven/ directory, the preflight conditions it requires, which artifact families it converts, what the migration report records for supported versus unsupported or ambiguous shapes, that the source .spec-driven/ directory is never modified, and the relevant exit codes and diagnostics. Keep requirements at the observable altitude with verifiable scenarios, not per-parser implementation detail. Register the spec in specs/INDEX.yaml and move the migrate implementation and test mapping entries from cli-foundation to this spec, then confirm verify-spec-mappings reports zero unmapped files.'
 depends_on: []

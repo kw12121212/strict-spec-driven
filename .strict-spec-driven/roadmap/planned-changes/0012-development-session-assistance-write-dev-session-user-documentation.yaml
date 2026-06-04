@@ -6,15 +6,8 @@ planned_change:
   id: write-dev-session-user-documentation
   milestone: 0012-development-session-assistance
 status: complete
-summary: >-
-  document how project authors declare development sessions and how agents use plan, lifecycle, and
-  browser evidence workflows during strict changes.
-details: >-
-  Documentation should cover the `.strict-spec-driven/dev-session.yaml` file, schema fields,
-  examples for a typical frontend app, the `dev-session-plan`, `dev-session-start`,
-  `dev-session-status`, `dev-session-logs`, and `dev-session-stop` commands, generated manual helper
-  scripts, browser trial evidence, secret-handling rules, stale runtime cleanup, and the
-  relationship between supplemental browser evidence and the required project regression command.
+summary: document how project authors declare development sessions and how agents use plan, lifecycle, and browser evidence workflows during strict changes.
+details: Documentation should cover the `.strict-spec-driven/dev-session.yaml` file, schema fields, examples for a typical frontend app, the `dev-session-plan`, `dev-session-start`, `dev-session-status`, `dev-session-logs`, and `dev-session-stop` commands, generated manual helper scripts, browser trial evidence, secret-handling rules, stale runtime cleanup, and the relationship between supplemental browser evidence and the required project regression command.
 depends_on:
   - cover-dev-session-real-project-regression
   - update-agent-skills-for-dev-sessions

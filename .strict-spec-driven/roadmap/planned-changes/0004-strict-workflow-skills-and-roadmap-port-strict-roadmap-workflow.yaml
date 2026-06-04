@@ -6,11 +6,6 @@ planned_change:
   id: port-strict-roadmap-workflow
   milestone: 0004-strict-workflow-skills-and-roadmap
 status: complete
-summary: >-
-  implement roadmap validation, status, index regeneration, sync, and archive reconciliation
-  commands for `.strict-spec-driven/roadmap/`, add recommendation and roadmap-to-change proposal
-  handoff without duplicating planning metadata, and rewrite roadmap plan, milestone, recommend,
-  propose, and sync skills for YAML roadmap artifacts, strict command names, numbered milestone
-  files, and single-line planned change entries.
+summary: implement roadmap validation, status, index regeneration, sync, and archive reconciliation commands for `.strict-spec-driven/roadmap/`, add recommendation and roadmap-to-change proposal handoff without duplicating planning metadata, and rewrite roadmap plan, milestone, recommend, propose, and sync skills for YAML roadmap artifacts, strict command names, numbered milestone files, and single-line planned change entries.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

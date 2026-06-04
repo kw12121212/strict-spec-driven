@@ -6,8 +6,6 @@ planned_change:
   id: define-command-naming-model
   milestone: 0001-yaml-contracts-and-naming
 status: complete
-summary: >-
-  distinguish skill names, slash commands, CLI entrypoints, CLI subcommands, and installer-facing
-  names so strict naming is applied consistently.
+summary: distinguish skill names, slash commands, CLI entrypoints, CLI subcommands, and installer-facing names so strict naming is applied consistently.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

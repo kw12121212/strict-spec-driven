@@ -6,8 +6,6 @@ planned_change:
   id: port-apply-to-yaml-tasks
   milestone: 0003-core-strict-workflow
 status: complete
-summary: >-
-  implement the `apply` subcommand to read and update `tasks.yaml`, preserve one-task-at-a-time
-  completion semantics, and emit machine-readable task status JSON.
+summary: implement the `apply` subcommand to read and update `tasks.yaml`, preserve one-task-at-a-time completion semantics, and emit machine-readable task status JSON.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

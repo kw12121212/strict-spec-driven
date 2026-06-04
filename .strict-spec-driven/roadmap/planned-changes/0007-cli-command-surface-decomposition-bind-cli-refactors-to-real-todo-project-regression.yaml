@@ -6,8 +6,6 @@ planned_change:
   id: bind-cli-refactors-to-real-todo-project-regression
   milestone: 0007-cli-command-surface-decomposition
 status: complete
-summary: >-
-  run command-surface scenarios against the shared copied todo project fixture on every test run so
-  CLI decomposition is validated in a repeatable project context.
+summary: run command-surface scenarios against the shared copied todo project fixture on every test run so CLI decomposition is validated in a repeatable project context.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

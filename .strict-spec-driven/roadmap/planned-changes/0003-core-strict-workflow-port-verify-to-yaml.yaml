@@ -6,9 +6,6 @@ planned_change:
   id: port-verify-to-yaml
   milestone: 0003-core-strict-workflow
 status: complete
-summary: >-
-  implement the `verify` subcommand to validate YAML artifacts, task status, open questions,
-  explicit test commands, mappings, delta operations, and spec alignment with actionable
-  diagnostics.
+summary: implement the `verify` subcommand to validate YAML artifacts, task status, open questions, explicit test commands, mappings, delta operations, and spec alignment with actionable diagnostics.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

@@ -6,8 +6,6 @@ planned_change:
   id: extract-cli-command-handlers-by-domain
   milestone: 0007-cli-command-surface-decomposition
 status: complete
-summary: >-
-  split init, propose, verify, review, roadmap, migrate, maintenance, ship, list, modify, and cancel
-  handlers into smaller domain-oriented command modules while preserving outputs.
+summary: split init, propose, verify, review, roadmap, migrate, maintenance, ship, list, modify, and cancel handlers into smaller domain-oriented command modules while preserving outputs.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

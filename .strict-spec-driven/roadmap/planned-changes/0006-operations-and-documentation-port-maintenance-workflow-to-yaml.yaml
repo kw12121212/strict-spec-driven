@@ -6,8 +6,6 @@ planned_change:
   id: port-maintenance-workflow-to-yaml
   milestone: 0006-operations-and-documentation
 status: complete
-summary: >-
-  implement strict `run-maintenance` behavior, maintenance config YAML, generated maintenance change
-  artifacts, archive flow, and tests.
+summary: implement strict `run-maintenance` behavior, maintenance config YAML, generated maintenance change artifacts, archive flow, and tests.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

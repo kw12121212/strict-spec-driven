@@ -6,9 +6,6 @@ planned_change:
   id: harden-concrete-yaml-schema-dialect
   milestone: 0001-yaml-contracts-and-naming
 status: complete
-summary: >-
-  harden concrete schema files to use a uniform nested field dialect suitable for validator inputs
-  rather than prose-like metadata, update examples to match stable schema identities, and split
-  minimal examples from coverage examples.
+summary: harden concrete schema files to use a uniform nested field dialect suitable for validator inputs rather than prose-like metadata, update examples to match stable schema identities, and split minimal examples from coverage examples.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

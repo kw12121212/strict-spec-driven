@@ -6,8 +6,6 @@ planned_change:
   id: create-strict-template-assets
   milestone: 0002-strict-cli-foundation
 status: complete
-summary: >-
-  add bundled template YAML files for config, specs index, roadmap index, and empty changes state
-  used by init and fixture tests.
+summary: add bundled template YAML files for config, specs index, roadmap index, and empty changes state used by init and fixture tests.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

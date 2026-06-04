@@ -6,8 +6,6 @@ planned_change:
   id: split-monolithic-test-runner-into-modules
   milestone: 0009-repeatable-real-project-regression-tests
 status: complete
-summary: >-
-  decompose `test/run.ts` into smaller suites and helpers for CLI, roadmap, migration, validation,
-  and project-fixture scenarios.
+summary: decompose `test/run.ts` into smaller suites and helpers for CLI, roadmap, migration, validation, and project-fixture scenarios.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

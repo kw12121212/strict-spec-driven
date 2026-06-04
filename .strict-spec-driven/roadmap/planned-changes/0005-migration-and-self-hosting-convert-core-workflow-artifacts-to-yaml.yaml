@@ -6,10 +6,6 @@ planned_change:
   id: convert-core-workflow-artifacts-to-yaml
   milestone: 0005-migration-and-self-hosting
 status: complete
-summary: >-
-  implement conversion modules and fixtures for main specs, delta specs, requirement scenarios,
-  operation sections, mapping frontmatter, and active and archived proposal, design, tasks, and
-  questions artifacts so strict YAML spec and change directories preserve status, stable
-  identifiers, and archive dates.
+summary: implement conversion modules and fixtures for main specs, delta specs, requirement scenarios, operation sections, mapping frontmatter, and active and archived proposal, design, tasks, and questions artifacts so strict YAML spec and change directories preserve status, stable identifiers, and archive dates.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

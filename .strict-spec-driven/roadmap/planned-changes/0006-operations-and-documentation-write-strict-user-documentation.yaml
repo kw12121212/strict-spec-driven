@@ -6,8 +6,6 @@ planned_change:
   id: write-strict-user-documentation
   milestone: 0006-operations-and-documentation
 status: complete
-summary: >-
-  add README, QUICKSTART, ROADMAP_GUIDE, and Chinese equivalents that explain strict setup,
-  commands, artifacts, schema and example files, and migration boundaries.
+summary: add README, QUICKSTART, ROADMAP_GUIDE, and Chinese equivalents that explain strict setup, commands, artifacts, schema and example files, and migration boundaries.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

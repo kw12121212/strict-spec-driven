@@ -6,11 +6,7 @@ planned_change:
   id: add-cross-file-roadmap-conflict-validation
   milestone: 0011-team-roadmap-collaboration
 status: complete
-summary: >-
-  add deterministic validation for duplicate planned change IDs, missing milestone references,
-  cross-file dependency errors, ambiguous ownership, and conflicts with active strict changes.
-details: >-
-  This replaces fragile social coordination with CLI-visible diagnostics. It should report
-  coordination risks without pretending that local YAML metadata is a distributed lock.
+summary: add deterministic validation for duplicate planned change IDs, missing milestone references, cross-file dependency errors, ambiguous ownership, and conflicts with active strict changes.
+details: This replaces fragile social coordination with CLI-visible diagnostics. It should report coordination risks without pretending that local YAML metadata is a distributed lock.
 depends_on:
   - update-roadmap-loader-status-and-sync-for-split-files

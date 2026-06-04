@@ -6,8 +6,6 @@ planned_change:
   id: split-migration-builders-and-converters
   milestone: 0008-workflow-domain-module-decomposition
 status: complete
-summary: >-
-  extract strict artifact builders, roadmap conversion, spec-index conversion, and related helper
-  logic from `src/migrate.ts` into focused converter modules.
+summary: extract strict artifact builders, roadmap conversion, spec-index conversion, and related helper logic from `src/migrate.ts` into focused converter modules.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []

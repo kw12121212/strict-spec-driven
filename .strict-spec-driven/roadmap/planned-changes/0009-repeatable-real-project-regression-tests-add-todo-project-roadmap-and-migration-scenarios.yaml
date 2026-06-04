@@ -6,8 +6,6 @@ planned_change:
   id: add-todo-project-roadmap-and-migration-scenarios
   milestone: 0009-repeatable-real-project-regression-tests
 status: complete
-summary: >-
-  cover roadmap-status, roadmap-sync, migrate, and related artifact assertions against the copied
-  todo project fixture and its expected outputs.
+summary: cover roadmap-status, roadmap-sync, migrate, and related artifact assertions against the copied todo project fixture and its expected outputs.
 details: 'Migration from v1: add technical and design context for this planned change.'
 depends_on: []
