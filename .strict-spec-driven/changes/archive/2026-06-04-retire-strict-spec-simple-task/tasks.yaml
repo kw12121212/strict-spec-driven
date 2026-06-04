@@ -1,0 +1,56 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: retire-strict-spec-simple-task
+sections:
+  Implementation:
+    delete-skill-directory:
+      text: Delete the skills/strict-spec-simple-task/ directory and its SKILL.md.
+      status: complete
+    remove-marketplace-entry:
+      text: Remove the strict-spec-simple-task entry from skills/marketplace.json.
+      status: complete
+    remove-readme-rows:
+      text: Remove the strict-spec-simple-task rows from the skill tables in README.md and README.zh.md.
+      status: complete
+    remove-model-expectation:
+      text: >-
+        Remove the strict-spec-simple-task entry from PLANNING_STRICT_SKILL_EXPECTATIONS in
+        src/skills/model.ts.
+      status: complete
+    remove-spec-mapping-path:
+      text: >-
+        Remove skills/strict-spec-simple-task/SKILL.md from the contracts-yaml-artifacts main spec
+        mapping.
+      status: complete
+    rename-test-fixture:
+      text: >-
+        Rename the synthetic strict-spec-simple-task fixture in test/suites/entrypoint-and-skills.ts
+        to a non-real placeholder skill name.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-build:
+      text: Run build validation (rebuilds dist).
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-no-references:
+      text: >-
+        Confirm no live (non-archive) references to strict-spec-simple-task remain in the
+        repository.
+      status: complete
+    verify-scope:
+      text: Verify implementation matches proposal scope and preserves all unchanged_behavior items.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

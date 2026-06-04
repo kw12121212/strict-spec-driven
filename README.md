@@ -85,7 +85,6 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-spec-cancel` | Cancel an active change |
 | `/strict-spec-harness-init` | Create or refine `.strict-spec-driven/harness.yaml` and generated scripts |
 | `/strict-spec-harness-session` | Run a structured harness investigation |
-| `/strict-spec-simple-task` | Lightweight ad-hoc task without full lifecycle |
 | `/strict-spec-spec-edit` | Edit main spec files directly |
 | `/strict-spec-sync-specs` | Synchronize specs with code drift |
 | `/strict-spec-resync-code-mapping` | Repair spec implementation and test mappings |

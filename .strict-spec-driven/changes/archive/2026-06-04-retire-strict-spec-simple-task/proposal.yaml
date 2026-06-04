@@ -1,0 +1,38 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: retire-strict-spec-simple-task
+  status: proposed
+summary:
+  what:
+    - >-
+      Retire the strict-spec-simple-task skill and remove all live references to it across skills,
+      documentation, validation expectations, and the strict spec contract.
+  why:
+    - >-
+      The strict-spec-simple-task skill is no longer used; keeping it leaves a dead skill in the
+      marketplace, documentation, validation expectations, and the strict planning-skill contract
+      that all must stay in sync.
+scope:
+  in:
+    - >-
+      Delete the skills/strict-spec-simple-task/ directory; remove its marketplace.json entry;
+      remove its rows from README.md and README.zh.md skill tables; remove its
+      PLANNING_STRICT_SKILL_EXPECTATIONS entry in src/skills/model.ts; rename the synthetic test
+      fixture in test/suites/entrypoint-and-skills.ts that reuses the retired skill name; modify the
+      strict-planning-skill-command-contract and strict-planning-skill-guidance-contract
+      requirements in the contracts-yaml-artifacts spec to drop simple-task via a delta spec; edit
+      that main spec's mapping to drop the retired skill path; rebuild dist.
+  out:
+    - >-
+      No new skill behavior; no changes to any other skill's behavior; no changes to the strict CLI
+      command surface; legacy .spec-driven migration capability untouched.
+unchanged_behavior:
+  - >-
+    All other strict skills continue to validate, package, and run exactly as before;
+    marketplace.json names continue to match skill directories exactly; the contracts-yaml-artifacts
+    spec continues to map every remaining skill SKILL.md and keep its other requirements intact; the
+    entrypoint-and-skills generic-command-placeholder negative test continues to assert the same
+    diagnostic.

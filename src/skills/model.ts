@@ -288,15 +288,6 @@ export const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpe
     ],
     forbiddenSnippets: ["proposal review"],
   },
-  "strict-spec-simple-task": {
-    requiredCommands: {
-      "list-changes": `${COMMAND_PREFIX} list`,
-      "inspect-change": `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
-      "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/", ".strict-spec-driven/changes/"],
-  },
   "strict-spec-spec-edit": {
     requiredCommands: {
       "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,

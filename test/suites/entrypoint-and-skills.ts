@@ -627,7 +627,7 @@ try {
 
 const invalidGenericCommandSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-generic-command-invalid-"));
 try {
-  const invalidGenericCommandSkillDir = path.join(invalidGenericCommandSkillRoot, "skills", "strict-spec-simple-task");
+  const invalidGenericCommandSkillDir = path.join(invalidGenericCommandSkillRoot, "skills", "strict-spec-placeholder-fixture");
   mkdirSync(path.join(invalidGenericCommandSkillRoot, "dist", "scripts"), { recursive: true });
   mkdirSync(path.join(invalidGenericCommandSkillRoot, "dist", "templates"), { recursive: true });
   mkdirSync(invalidGenericCommandSkillDir, { recursive: true });
@@ -639,16 +639,16 @@ try {
     path.join(invalidGenericCommandSkillDir, "SKILL.md"),
     [
       "---",
-      "name: strict-spec-simple-task",
-      "description: Handle a strict simple task.",
+      "name: strict-spec-placeholder-fixture",
+      "description: Handle a strict placeholder fixture task.",
       "metadata:",
-      "  skill_id: strict_spec_simple_task",
+      "  skill_id: strict_spec_placeholder_fixture",
       "  author: strict-spec-driven",
       "  type: agent_skill",
       "  version: 1.0.0",
       "---",
       "",
-      "You are helping the user with a strict simple task.",
+      "You are helping the user with a strict placeholder fixture task.",
       "",
       "## This Skill's Commands",
       "",
@@ -669,7 +669,7 @@ try {
       {
         schema: "strict-spec-driven/skill-marketplace/v1",
         namespace: "strict-spec-driven",
-        skills: [{ name: "strict-spec-simple-task", family: "strict-spec" }],
+        skills: [{ name: "strict-spec-placeholder-fixture", family: "strict-spec" }],
       },
       null,
       2,
@@ -683,7 +683,7 @@ try {
     invalidGenericCommandResult.diagnostics.some(
       (diagnostic) =>
         diagnostic.code === "skill.commands_section.command.placeholder"
-        && diagnostic.path === "skills/strict-spec-simple-task/SKILL.md#commands.cli",
+        && diagnostic.path === "skills/strict-spec-placeholder-fixture/SKILL.md#commands.cli",
     ),
     "generic command placeholder reports explicit subcommand diagnostic for non-core skill",
   );

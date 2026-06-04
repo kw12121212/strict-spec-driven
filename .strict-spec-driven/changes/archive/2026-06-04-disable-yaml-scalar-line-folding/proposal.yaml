@@ -1,0 +1,30 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: disable-yaml-scalar-line-folding
+  status: proposed
+summary:
+  what:
+    - >-
+      Disable js-yaml line folding in stringifyYamlDocument so serialized strict YAML keeps each
+      scalar on a single physical line.
+  why:
+    - >-
+      The shared YAML writer dumps with lineWidth 100, so every command that re-serializes artifacts
+      (roadmap sync, propose, generate, apply, archive, migrate, maintenance) folds long scalars
+      across multiple lines. The reflowed multi-line text is harder for agents to read and diff and
+      was reported as confusing during roadmap sync.
+scope:
+  in:
+    - src/yaml.ts stringifyYamlDocument serializer line-width configuration
+  out:
+    - >-
+      YAML parsing behavior; schema validation; quoting decisions; which fields use block scalars;
+      any per-command serialization logic outside the shared writer
+unchanged_behavior:
+  - >-
+    Parsing via parseYamlDocument and parseYamlFile; schema validity of all emitted artifacts;
+    structural content of serialized artifacts; existing block-scalar and quoting styles chosen by
+    js-yaml

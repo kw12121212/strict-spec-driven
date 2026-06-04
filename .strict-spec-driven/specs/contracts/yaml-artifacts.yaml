@@ -56,7 +56,6 @@ mapping:
     - skills/strict-spec-resync-code-mapping/SKILL.md
     - skills/strict-spec-review/SKILL.md
     - skills/strict-spec-ship/SKILL.md
-    - skills/strict-spec-simple-task/SKILL.md
     - skills/strict-spec-spec-edit/SKILL.md
     - skills/strict-spec-sync-specs/SKILL.md
     - skills/strict-spec-verify/SKILL.md
@@ -1212,8 +1211,8 @@ requirements:
     strength: MUST
     statement: >-
       The system MUST provide strict planning and documentation skill packages for `brainstorm`,
-      `simple-task`, `spec-edit`, `sync-specs`, and `resync-code-mapping` with explicit command
-      mappings that reference the strict bundled CLI subcommands those skills depend on.
+      `spec-edit`, `sync-specs`, and `resync-code-mapping` with explicit command mappings that
+      reference the strict bundled CLI subcommands those skills depend on.
     scenarios:
       planning-skills-expose-concrete-strict-commands:
         - GIVEN: a strict planning or documentation `SKILL.md` file is reviewed
@@ -1227,8 +1226,7 @@ requirements:
     statement: >-
       The system MUST ensure strict planning and documentation skill packages describe
       `.strict-spec-driven/` YAML workflow artifacts and preserve the intended boundaries between
-      brainstorming, simple tasks, direct main-spec edits, repository spec synchronization, and
-      mapping repair.
+      brainstorming, direct main-spec edits, repository spec synchronization, and mapping repair.
     scenarios:
       planning-skills-reference-strict-workflow-artifacts:
         - GIVEN: a strict planning or documentation `SKILL.md` file is reviewed
@@ -1937,3 +1935,13 @@ requirements:
         - GIVEN: a technical standard or delta tech artifact declares the ui category
         - WHEN: it is validated against its schema
         - THEN: the ui category is accepted as a valid standard category
+  serializer-does-not-fold-long-scalars:
+    strength: MUST
+    statement: >-
+      The shared strict YAML serializer MUST NOT fold long scalar values across multiple physical
+      lines; each serialized scalar MUST remain on a single line regardless of length.
+    scenarios:
+      long-scalar-serializes-on-one-line:
+        - GIVEN: a strict artifact value whose scalar field is longer than a conventional line-wrap width
+        - WHEN: the value is serialized through the shared stringifyYamlDocument writer
+        - THEN: the emitted scalar appears on a single physical line with no folded continuation lines

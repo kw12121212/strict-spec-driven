@@ -50,6 +50,14 @@ context.assert(parsed.service.name === "strict-spec", "parseYamlDocument parses 
 const yamlString = yamlModule.stringifyYamlDocument({ alpha: "beta" });
 context.assert(yamlString.includes("alpha: beta"), "stringifyYamlDocument serializes mappings");
 
+const longScalar = `summary-${"x".repeat(160)}-end`;
+const longScalarYaml = yamlModule.stringifyYamlDocument({ summary: longScalar });
+const longScalarLines = longScalarYaml.split("\n").filter((line) => line.length > 0);
+context.assert(
+  longScalarLines.length === 1 && longScalarLines[0].includes(longScalar),
+  "stringifyYamlDocument does not fold long scalars across multiple lines",
+);
+
 const tempDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-driven-"));
 const yamlPath = path.join(tempDir, "sample.yaml");
 const malformedYamlPath = path.join(tempDir, "special-char.yaml");

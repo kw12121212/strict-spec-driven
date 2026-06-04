@@ -85,7 +85,6 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-spec-cancel` | 取消活跃变更 |
 | `/strict-spec-harness-init` | 创建或优化 `.strict-spec-driven/harness.yaml` 和生成脚本 |
 | `/strict-spec-harness-session` | 运行结构化 harness 调查 |
-| `/strict-spec-simple-task` | 不走完整生命周期的轻量级临时任务 |
 | `/strict-spec-spec-edit` | 直接编辑主规范文件 |
 | `/strict-spec-sync-specs` | 与代码漂移同步规范 |
 | `/strict-spec-resync-code-mapping` | 修复规范实现和测试映射 |

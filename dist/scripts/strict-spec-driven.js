@@ -12141,7 +12141,7 @@ function parseYamlDocument(input, options) {
   }
 }
 function stringifyYamlDocument(value) {
-  return dump(value, { lineWidth: 100 });
+  return dump(value, { lineWidth: -1 });
 }
 function parseYamlFile(path) {
   return parseYamlDocument(readFileSync(path, "utf8"), { source: path });
@@ -19557,15 +19557,6 @@ var PLANNING_STRICT_SKILL_EXPECTATIONS = {
       PROPOSAL_CHECKPOINT_SNIPPET
     ],
     forbiddenSnippets: ["proposal review"]
-  },
-  "strict-spec-simple-task": {
-    requiredCommands: {
-      "list-changes": `${COMMAND_PREFIX} list`,
-      "inspect-change": `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
-      "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/", ".strict-spec-driven/changes/"]
   },
   "strict-spec-spec-edit": {
     requiredCommands: {

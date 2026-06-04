@@ -1,0 +1,39 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: disable-yaml-scalar-line-folding
+sections:
+  Implementation:
+    set-linewidth-unlimited:
+      text: >-
+        Change the dump call in stringifyYamlDocument (src/yaml.ts) from lineWidth 100 to lineWidth
+        -1 so long scalars are never folded onto multiple lines.
+      status: complete
+    add-no-fold-test:
+      text: >-
+        Add a foundation suite assertion that serializing a value with a scalar longer than 100
+        characters produces no folded continuation lines (the scalar stays on one physical line).
+      status: complete
+  Testing:
+    run-lint:
+      text: Run TypeScript type checks.
+      status: complete
+      command: bun run lint
+    run-build:
+      text: Rebuild dist so the dist-based test suite exercises the change.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run the full regression suite.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify the serializer change matches proposal scope and the new requirement, with no
+        unintended parsing or schema-validity changes.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

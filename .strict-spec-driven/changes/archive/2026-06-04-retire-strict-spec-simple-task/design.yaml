@@ -1,0 +1,50 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: retire-strict-spec-simple-task
+approach:
+  - >-
+    Remove the skill directory and every live reference in lockstep so the
+    marketplace/skill-directory equality check, the planning-skill contract, the spec mapping, and
+    the documentation tables all stay consistent. Carry the requirement text changes as a delta spec
+    that MODIFIES the two planning-skill contract requirements so archive merges them. Edit the
+    contracts main spec mapping directly to drop the retired skill path, because archive merges only
+    requirement operations and never mapping fields. Treat the skill-name string in the entrypoint
+    negative test as a synthetic fixture and rename it to a non-real placeholder. Rebuild dist so
+    the bundled output drops the retired skill expectation.
+decisions:
+  retire-not-deprecate:
+    decision: Delete the skill outright rather than marking it deprecated.
+    rationale: >-
+      The user confirmed it is no longer used, and the repository has no deprecation lifecycle for
+      skills; marketplace.json must match skill directories exactly, so a half-removed skill would
+      fail validation.
+  delta-spec-for-requirements:
+    decision: >-
+      Modify the strict-planning-skill-command-contract and strict-planning-skill-guidance-contract
+      requirements through a delta spec rather than editing the main spec requirements directly.
+    rationale: >-
+      Two MUST requirements enumerate simple-task; the strict workflow merges requirement
+      ADDED/MODIFIED/REMOVED operations from delta specs into main specs at archive with exclusivity
+      and merge reporting, so requirement edits must flow through a delta spec, not a direct
+      main-spec rewrite.
+  direct-mapping-edit-for-path:
+    decision: >-
+      Edit the contracts-yaml-artifacts main spec mapping directly to drop
+      skills/strict-spec-simple-task/SKILL.md.
+    rationale: >-
+      Archive applies only requirement operations to main specs and never merges delta-spec mapping
+      fields; the mapping path points at a deleted file, so verify-spec-mappings would fail unless
+      the main spec mapping is edited directly, which is the same mechanism
+      strict-spec-resync-code-mapping uses.
+  rename-test-fixture:
+    decision: >-
+      Rename the synthetic skill name used in the entrypoint generic-command-placeholder negative
+      test instead of leaving it as strict-spec-simple-task.
+    rationale: >-
+      The fixture only needs an arbitrary strict skill name to exercise the placeholder diagnostic;
+      keeping the retired skill's name there would leave a misleading live reference to a skill that
+      no longer exists.
+alternatives: []
+risks: []

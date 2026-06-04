@@ -1,0 +1,26 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/yaml.ts
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    serializer-does-not-fold-long-scalars:
+      strength: MUST
+      statement: >-
+        The shared strict YAML serializer MUST NOT fold long scalar values across multiple physical
+        lines; each serialized scalar MUST remain on a single line regardless of length.
+      scenarios:
+        long-scalar-serializes-on-one-line:
+          - GIVEN: >-
+              a strict artifact value whose scalar field is longer than a conventional line-wrap
+              width
+          - WHEN: the value is serialized through the shared stringifyYamlDocument writer
+          - THEN: the emitted scalar appears on a single physical line with no folded continuation lines
+  MODIFIED: {}
+  REMOVED: {}

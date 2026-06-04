@@ -222,7 +222,9 @@ export function parseYamlDocument<T>(input: string, options?: { source?: string 
 }
 
 export function stringifyYamlDocument(value: unknown): string {
-  return dump(value, { lineWidth: 100 });
+  // lineWidth -1 disables js-yaml scalar line folding so long values stay on a
+  // single physical line, keeping re-serialized artifacts stable to read and diff.
+  return dump(value, { lineWidth: -1 });
 }
 
 export function parseYamlFile<T>(path: string): T {
