@@ -26,7 +26,9 @@ export function registerStrictResources(server: McpServer, projectRoot: string):
     if (resource.template) {
       server.registerResource(
         resource.name,
-        new ResourceTemplate(resource.uri, { list: undefined }),
+        new ResourceTemplate(resource.uri, {
+          list: async () => listTemplateResources(projectRoot, resource),
+        }),
         config,
         async (uri) => readStrictResource(projectRoot, uri.href),
       );
@@ -39,6 +41,65 @@ export function registerStrictResources(server: McpServer, projectRoot: string):
       );
     }
   }
+}
+
+type ResourceTemplateInventory = McpCapabilityInventory["resources"][number];
+
+type TemplateListResult = {
+  resources: Array<{ uri: string; name: string }>;
+};
+
+export function listTemplateResources(
+  projectRoot: string,
+  resource: ResourceTemplateInventory,
+): TemplateListResult {
+  const placeholder = resource.uri.match(/\{[^}]+\}/)?.[0];
+  if (!placeholder) return { resources: [] };
+  return {
+    resources: enumerateTemplateIds(projectRoot, resource.name).map((id) => ({
+      uri: resource.uri.replace(placeholder, id),
+      name: `${resource.name}:${id}`,
+    })),
+  };
+}
+
+function enumerateTemplateIds(projectRoot: string, resourceName: string): string[] {
+  switch (resourceName) {
+    case "change_proposal":
+    case "change_design":
+    case "change_tasks":
+    case "change_questions":
+      return listDirs(strictPath(projectRoot, "changes")).filter((entry) => entry !== "archive");
+    case "spec":
+      return listSpecIds(projectRoot);
+    case "roadmap_milestone":
+      return listYamlIds(strictPath(projectRoot, "roadmap/milestones"));
+    case "roadmap_planned_change":
+      return listYamlIds(strictPath(projectRoot, "roadmap/planned-changes"));
+    case "tech_standard":
+      return listYamlIds(strictPath(projectRoot, "tech"));
+    default:
+      return [];
+  }
+}
+
+function listSpecIds(projectRoot: string): string[] {
+  const indexPath = strictPath(projectRoot, "specs/INDEX.yaml");
+  if (!existsSync(indexPath)) return [];
+  const index = yaml.load(readFileSync(indexPath, "utf8")) as { specs?: Array<{ id?: string }> };
+  return (index.specs ?? [])
+    .map((entry) => entry.id)
+    .filter((id): id is string => typeof id === "string" && SAFE_ID.test(id))
+    .sort();
+}
+
+function listYamlIds(directory: string): string[] {
+  if (!existsSync(directory)) return [];
+  return readdirSync(directory)
+    .filter((entry) => entry.endsWith(".yaml") && entry !== "INDEX.yaml")
+    .map((entry) => entry.slice(0, -".yaml".length))
+    .filter((id) => SAFE_ID.test(id))
+    .sort();
 }
 
 export async function readStrictResource(projectRoot: string, uri: string): Promise<ResourceReadResult> {

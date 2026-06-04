@@ -135,7 +135,9 @@ Representative read-only request: ask the MCP client to check strict workflow st
 
 Representative prompt request: ask for `strict_review_change` with `{ "change": "my-change" }` to get review guidance that keeps verification, direct code review, and complete regression evidence in the workflow.
 
-Mutating tools require host-visible confirmation boundaries. Tools such as `propose_change`, `generate_change_artifact`, `mark_next_task_complete`, `roadmap_sync`, and `archive_change` write strict workflow state. `harness_start` and `harness_stop` are lifecycle actions, and `archive_change` is release-class because it merges specs and reconciles roadmap state.
+Mutating tools require explicit confirmation. Every mutating tool enforces a server-side gate: the call must include `confirm: true`, or the MCP server refuses it with a confirmation-required diagnostic and never invokes the strict CLI. Tools such as `propose_change`, `generate_change_artifact`, `mark_next_task_complete`, `roadmap_sync`, and `archive_change` write strict workflow state. `harness_start` and `harness_stop` are lifecycle actions, `archive_change` is release-class because it merges specs and reconciles roadmap state, and `cancel_change` is destructive because it permanently deletes an active change. Tool failures (invalid input, missing confirmation, or a non-zero delegated command) are returned as MCP protocol errors while still carrying the diagnostic JSON envelope.
+
+Template resources are enumerable: an MCP client can list resources to discover the concrete `strict://` URIs for existing changes, specs, roadmap milestones, planned changes, and tech standards instead of having to know each identifier in advance.
 
 ## Schema and Example Assets
 

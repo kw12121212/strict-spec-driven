@@ -1,0 +1,81 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: harden-mcp-safety-contract
+approach:
+  - >-
+    Add a server-side confirmation gate in the shared callStrictTool path: after schema validation,
+    if a tool mutates and confirm is not true, return an isError envelope with a
+    confirmation_required diagnostic before running the CLI delegate. Forward confirm to the CLI
+    only where the command accepts it (harness-start/stop); for all other mutating tools confirm is
+    consumed by the gate. Set isError on results for invalid input, refused confirmation, and
+    non-zero delegate exits while keeping the existing JSON envelope as content. Wire cancel as a
+    destructive mutating tool. Add ResourceTemplate list callbacks that enumerate existing strict
+    artifacts. Remove the registerInventoryCapabilities no-op.
+decisions:
+  require-confirm-for-all-mutations:
+    decision: >-
+      Every mutating tool (write, lifecycle, release, destructive) requires confirm:true at the MCP
+      server boundary; the server refuses and does not delegate when it is absent.
+    rationale: >-
+      Safety was previously advisory metadata only. A server-enforced gate guarantees a mutation
+      cannot occur via MCP without explicit confirmation regardless of whether the host honors
+      _meta, while keeping read-only tools unguarded.
+  confirm-is-server-side-not-cli-forwarded:
+    decision: >-
+      The MCP confirm field is a server-side gate; it is forwarded to the CLI as --confirm only for
+      harness-start and harness-stop, which accept that flag, and is otherwise not passed to
+      delegated commands.
+    rationale: >-
+      The cancel command and most strict commands reject unknown extra arguments, so forwarding
+      --confirm universally would break delegation; the gate's job is to block the call, not to
+      alter CLI argument contracts.
+  land-destructive-via-cancel:
+    decision: >-
+      Make the destructive safety class real by exposing the existing cancel command as
+      cancel_change with safety destructive and mutates true, rather than removing destructive from
+      the vocabulary.
+    rationale: >-
+      Keeps the advertised safety vocabulary backed by a real capability and preserves the
+      cli-mcp-tool-safety-contract requirement; the new confirmation gate makes exposing a
+      destructive delete acceptably safe.
+  signal-failures-as-protocol-errors:
+    decision: >-
+      Tool results set isError:true for schema validation failures, refused confirmation, and
+      non-zero delegate exits, while still returning the full JSON envelope in content.
+    rationale: >-
+      Hosts and models can treat failures as errors instead of parsing a status field out of an
+      always-successful result, without losing the diagnostic envelope read tools already depend on.
+  enumerate-templates-via-list-callbacks:
+    decision: >-
+      Template resources register SDK list callbacks that read existing strict artifacts (changes,
+      specs, roadmap milestones, planned changes, tech standards) and emit concrete strict:// URIs.
+    rationale: >-
+      Clients can discover available resource instances through resources/list instead of having to
+      already know each identifier.
+alternatives:
+  - option: Remove the destructive class from MCP_SAFETY_CLASSES instead of exposing cancel.
+    reason: >-
+      That narrows the advertised safety vocabulary and the cli-mcp-tool-safety-contract requirement
+      rather than backing it with a real capability; with the new confirmation gate, exposing the
+      already-existing cancel command is safe and keeps the contract intact.
+  - option: Keep failures as status:1 text envelopes and rely on the host to inspect the status field.
+    reason: >-
+      That leaves the existing gap where every tool call appears successful at the protocol level;
+      setting isError lets hosts and models handle failures without parsing envelope internals.
+  - option: Require confirmation per-tool via separate confirmed variants of each mutating tool.
+    reason: >-
+      Doubling the tool surface is more confusing than one confirm field gated uniformly in the
+      shared delegate path.
+risks:
+  - >-
+    The MCP confirm field and the harness CLI --confirm flag share a name but differ in scope, so the
+    delegation mapping must forward --confirm only for harness-start/stop and never to commands such
+    as cancel that reject extra arguments.
+  - >-
+    Setting isError must not drop the JSON envelope content that read-only tool consumers and existing
+    tests depend on; the envelope stays in content while isError is added.
+  - >-
+    Resource list callbacks read the filesystem under the project root, so they must reuse the
+    existing safe-id and traversal guards and emit only strict:// URIs for artifacts that exist.

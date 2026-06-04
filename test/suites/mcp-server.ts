@@ -79,7 +79,7 @@ type McpToolsModule = {
       projectRoot: string;
       runner: (args: string[], options: { cwd: string }) => { status: number; stdout: string; stderr: string };
     },
-  ): Promise<{ content: Array<{ type: "text"; text: string }> }>;
+  ): Promise<{ content: Array<{ type: "text"; text: string }>; isError?: boolean }>;
   callMutatingTool(
     name: string,
     args: Record<string, unknown>,
@@ -87,12 +87,16 @@ type McpToolsModule = {
       projectRoot: string;
       runner?: (args: string[], options: { cwd: string }) => { status: number; stdout: string; stderr: string };
     },
-  ): Promise<{ content: Array<{ type: "text"; text: string }> }>;
+  ): Promise<{ content: Array<{ type: "text"; text: string }>; isError?: boolean }>;
 };
 
 type McpResourcesModule = {
   createResourceInventory(): Array<{ name: string; uri: string; template: boolean }>;
   readStrictResourceText(projectRoot: string, uri: string): string;
+  listTemplateResources(
+    projectRoot: string,
+    resource: { name: string; uri: string; description: string; template: boolean },
+  ): { resources: Array<{ uri: string; name: string }> };
 };
 
 type McpPromptsModule = {
@@ -225,6 +229,16 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   context.assert(archiveTool?.safety === "release", "MCP archive tool uses release safety class");
   const harnessStartTool = toolsModule.MUTATING_TOOL_DEFINITIONS.find((tool) => tool.name === "harness_start");
   context.assert(harnessStartTool?.safety === "lifecycle", "MCP harness start tool uses lifecycle safety class");
+  context.assert(mutatingToolNames.includes("cancel_change"), "MCP mutating tools include destructive cancel");
+  const cancelTool = toolsModule.MUTATING_TOOL_DEFINITIONS.find((tool) => tool.name === "cancel_change");
+  context.assert(cancelTool?.safety === "destructive", "MCP cancel tool uses destructive safety class");
+  context.assert(cancelTool?.cliCommand === "cancel", "MCP cancel tool delegates to cancel command");
+  context.assert(
+    inventoryModule.MCP_SAFETY_CLASSES.every((safetyClass) =>
+      toolsModule.READ_ONLY_TOOL_DEFINITIONS.concat(toolsModule.MUTATING_TOOL_DEFINITIONS).some((tool) => tool.safety === safetyClass),
+    ),
+    "every MCP safety class is backed by at least one exposed tool",
+  );
   context.assert(
     inventoryModule.MCP_INVENTORY.resources.length === resourcesModule.createResourceInventory().length,
     "initial MCP inventory exposes resources",
@@ -414,10 +428,62 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
     context.assert(invalidInputEnvelope.status === 1, "MCP mutating tool rejects invalid input");
     context.assert(invalidInputEnvelope.stderr.includes("change"), "MCP mutating invalid input reports schema diagnostics");
     context.assert(!invalidInputDelegated, "MCP mutating invalid input does not invoke CLI delegate");
+    context.assert(invalidInput.isError === true, "MCP mutating invalid input is signaled as a protocol error");
+
+    let unconfirmedDelegated = false;
+    const unconfirmedMutation = await toolsModule.callMutatingTool(
+      "archive_change",
+      { change: "demo-change" },
+      {
+        projectRoot: tempProject,
+        runner: () => {
+          unconfirmedDelegated = true;
+          return { status: 0, stdout: "", stderr: "" };
+        },
+      },
+    );
+    const unconfirmedEnvelope = JSON.parse(unconfirmedMutation.content[0]?.text ?? "{}") as { status: number; stderr: string };
+    context.assert(!unconfirmedDelegated, "MCP mutating tool without confirmation does not invoke CLI delegate");
+    context.assert(unconfirmedEnvelope.status === 1, "MCP mutating tool without confirmation reports failure status");
+    context.assert(unconfirmedEnvelope.stderr.includes("confirmation required"), "MCP mutating tool without confirmation reports confirmation diagnostic");
+    context.assert(unconfirmedMutation.isError === true, "MCP mutating tool without confirmation is signaled as a protocol error");
+
+    let confirmedDelegated = false;
+    const confirmedMutation = await toolsModule.callMutatingTool(
+      "propose_change",
+      { change: "demo-change", confirm: true },
+      {
+        projectRoot: tempProject,
+        runner: (args) => {
+          confirmedDelegated = true;
+          context.assert(args.join(" ") === "propose demo-change", "MCP confirmed mutation does not forward confirm to non-harness CLI");
+          return { status: 0, stdout: "{\"ok\":true}", stderr: "" };
+        },
+      },
+    );
+    context.assert(confirmedDelegated, "MCP mutating tool with confirmation invokes CLI delegate");
+    context.assert(confirmedMutation.isError === undefined, "MCP successful confirmed mutation is not a protocol error");
+
+    const cancelDelegated = await toolsModule.callMutatingTool(
+      "cancel_change",
+      { change: "demo-change", confirm: true },
+      {
+        projectRoot: tempProject,
+        runner: (args, options) => {
+          context.assert(options.cwd === tempProject, "MCP cancel tool runner uses project root cwd");
+          context.assert(args.join(" ") === "cancel demo-change", "MCP cancel tool delegates to cancel CLI without confirm flag");
+          return { status: 0, stdout: "Cancelled: .strict-spec-driven/changes/demo-change", stderr: "" };
+        },
+      },
+    );
+    const cancelEnvelope = JSON.parse(cancelDelegated.content[0]?.text ?? "{}") as { command: string; safety: string; mutates: boolean };
+    context.assert(cancelEnvelope.command === "cancel", "MCP cancel envelope reports cancel command");
+    context.assert(cancelEnvelope.safety === "destructive", "MCP cancel envelope reports destructive safety");
+    context.assert(cancelEnvelope.mutates === true, "MCP cancel envelope marks mutation");
 
     const failedMutation = await toolsModule.callMutatingTool(
       "archive_change",
-      { change: "unfinished-change" },
+      { change: "unfinished-change", confirm: true },
       {
         projectRoot: tempProject,
         runner: () => ({ status: 1, stdout: "", stderr: "verification blocker" }),
@@ -433,6 +499,32 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
     context.assert(failedMutationEnvelope.stderr === "verification blocker", "MCP mutating tool preserves failed precondition stderr");
     context.assert(failedMutationEnvelope.safety === "release", "MCP mutating failed precondition preserves safety class");
     context.assert(failedMutationEnvelope.mutates === true, "MCP mutating failed precondition preserves mutation flag");
+    context.assert(failedMutation.isError === true, "MCP mutating failed precondition is signaled as a protocol error");
+
+    const templateInventory = resourcesModule.createResourceInventory();
+    const changeProposalTemplate = templateInventory.find((resource) => resource.name === "change_proposal");
+    const enumeratedChanges = resourcesModule.listTemplateResources(tempProject, changeProposalTemplate!);
+    context.assert(
+      enumeratedChanges.resources.some((resource) => resource.uri === "strict://changes/demo-change/proposal"),
+      "MCP change template enumerates existing active change URIs",
+    );
+    const specTemplate = templateInventory.find((resource) => resource.name === "spec");
+    const enumeratedSpecs = resourcesModule.listTemplateResources(tempProject, specTemplate!);
+    context.assert(
+      enumeratedSpecs.resources.some((resource) => resource.uri === "strict://specs/cli-foundation"),
+      "MCP spec template enumerates existing spec URIs",
+    );
+    const techTemplate = templateInventory.find((resource) => resource.name === "tech_standard");
+    const enumeratedTech = resourcesModule.listTemplateResources(tempProject, techTemplate!);
+    context.assert(
+      enumeratedTech.resources.some((resource) => resource.uri === "strict://tech/typescript-esm-baseline"),
+      "MCP tech template enumerates existing standard URIs and excludes INDEX",
+    );
+    context.assert(
+      !enumeratedTech.resources.some((resource) => resource.uri.endsWith("/INDEX")),
+      "MCP tech template enumeration excludes the INDEX file",
+    );
+
     const afterDiff = runCommand("git", ["status", "--short"], { cwd: tempProject }).stdout;
     context.assert(afterDiff === beforeDiff, "MCP read and guarded mutating tool calls preserve workspace diff");
 
@@ -465,6 +557,10 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
     const resourcesList = await transport.request("resources/list");
     const listedResources = resourcesList.result?.resources as Array<{ uri: string }> | undefined;
     context.assert(listedResources?.some((resource) => resource.uri === "strict://config") === true, "MCP protocol resources/list exposes strict resource");
+    context.assert(
+      listedResources?.some((resource) => resource.uri === "strict://changes/demo-change/proposal") === true,
+      "MCP protocol resources/list enumerates template resource instances",
+    );
     const resourceRead = await transport.request("resources/read", { uri: "strict://config" });
     const resourceContents = resourceRead.result?.contents as Array<{ text: string }> | undefined;
     context.assert(resourceContents?.[0]?.text.includes("schema: config") === true, "MCP protocol resources/read returns strict artifact");
@@ -538,16 +634,23 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   context.assert(readme.includes("strict://workflow/state"), "README documents representative MCP resource");
   context.assert(readme.includes("strict_review_change"), "README documents representative MCP prompt");
   context.assert(readme.includes("release-class"), "README documents mutating confirmation boundary");
+  context.assert(readme.includes("confirm: true"), "README documents server-side confirmation requirement");
+  context.assert(readme.includes("cancel_change") && readme.includes("destructive"), "README documents destructive cancel tool");
   context.assert(quickstart.includes("\"mcpServers\""), "Quick Start documents MCP client JSON configuration");
   context.assert(quickstart.includes("check_workflow_state"), "Quick Start documents read-only MCP request");
   context.assert(quickstart.includes("archive_change"), "Quick Start documents guarded mutating MCP request");
+  context.assert(quickstart.includes("cancel_change"), "Quick Start documents destructive cancel request");
+  context.assert(quickstart.includes("confirm"), "Quick Start documents confirmation requirement");
 
   const proposeSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"), "utf8");
+  const applySkill = readFileSync(path.join(ROOT, "skills", "strict-spec-apply", "SKILL.md"), "utf8");
   const reviewSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-review", "SKILL.md"), "utf8");
   const roadmapSkill = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
   const harnessSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-session", "SKILL.md"), "utf8");
   const proposePrompt = promptsModule.renderStrictPrompt("strict_propose_change", {}).messages[0]?.content.text ?? "";
+  const applyPrompt = promptsModule.renderStrictPrompt("strict_apply_change", { change: "demo-change" }).messages[0]?.content.text ?? "";
   context.assert(proposeSkill.includes("check-workflow-state") && proposePrompt.includes("check-workflow-state"), "MCP propose prompt tracks skill workflow precheck");
+  context.assert(applySkill.includes("next pending task") && applyPrompt.includes("next pending task"), "MCP apply prompt tracks skill next-pending-task wording");
   context.assert(reviewSkill.includes("complete project regression command") && reviewPrompt.includes("complete project regression command"), "MCP review prompt tracks regression gate wording");
   context.assert(roadmapSkill.includes("roadmap-recommend") && roadmapPrompt.includes("roadmap-recommend"), "MCP roadmap prompt tracks recommendation command");
   context.assert(harnessSkill.includes("secrets_recorded: false") && harnessPrompt.includes("secrets_recorded: false"), "MCP harness prompt tracks secret boundary");

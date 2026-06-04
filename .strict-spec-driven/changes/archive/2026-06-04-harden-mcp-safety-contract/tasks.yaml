@@ -1,0 +1,59 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: harden-mcp-safety-contract
+sections:
+  Implementation:
+    add-confirmation-gate:
+      text: >-
+        Add confirm fields to mutating tool input schemas and gate the shared callStrictTool path so
+        a mutating tool refuses with a confirmation-required result and skips the CLI delegate when
+        confirm is not true; forward confirm to the CLI only for harness-start/stop.
+      status: complete
+    signal-protocol-errors:
+      text: >-
+        Set isError on tool results for input-validation failures, refused confirmation, and
+        non-zero delegate exits, while keeping the JSON envelope as result content.
+      status: complete
+    expose-destructive-cancel:
+      text: >-
+        Add a cancel_change destructive mutating tool to the inventory and tool definitions that
+        requires confirmation and delegates to the strict cancel command.
+      status: complete
+    enumerate-template-resources:
+      text: >-
+        Add ResourceTemplate list callbacks that enumerate existing changes, specs, roadmap
+        milestones, roadmap planned changes, and tech standards as concrete strict:// URIs using the
+        existing safe-id and traversal guards.
+      status: complete
+    remove-inventory-noop:
+      text: >-
+        Remove the no-op registerInventoryCapabilities indirection and assign the inventory directly
+        in the server factory.
+      status: complete
+    update-mcp-docs:
+      text: >-
+        Update README and QUICKSTART to document the server-side confirmation requirement for
+        mutating tools and the destructive cancel_change tool.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope and delta-spec requirements.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

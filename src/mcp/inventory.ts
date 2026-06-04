@@ -178,6 +178,13 @@ export const MCP_MUTATING_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
     mutates: true,
   },
   {
+    name: "cancel_change",
+    description: "Performs a destructive mutation by permanently deleting an active strict change; requires confirmation.",
+    safety: "destructive",
+    cliCommand: "cancel",
+    mutates: true,
+  },
+  {
     name: "harness_start",
     description: "Performs a lifecycle mutation by starting harness-managed project components.",
     safety: "lifecycle",
@@ -274,7 +281,3 @@ export const MCP_INVENTORY: McpCapabilityInventory = {
   tools: [...MCP_READ_ONLY_TOOL_INVENTORY, ...MCP_MUTATING_TOOL_INVENTORY],
   prompts: MCP_PROMPT_INVENTORY,
 };
-
-export function registerInventoryCapabilities(_server: unknown, inventory = MCP_INVENTORY): McpCapabilityInventory {
-  return inventory;
-}

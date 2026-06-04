@@ -12,13 +12,18 @@ import {
 
 const emptySchema = z.strictObject({});
 const changeSchema = z.strictObject({ change: z.string().min(1) });
+const confirmField = { confirm: z.boolean().optional() };
+const confirmSchema = z.strictObject({ ...confirmField });
+const changeConfirmSchema = z.strictObject({ change: z.string().min(1), ...confirmField });
 const generateArtifactSchema = z.strictObject({
   change: z.string().min(1),
   artifact: z.enum(["proposal", "design", "questions", "delta-spec", "delta-tech"]),
   args: z.array(z.string().min(1)).optional(),
+  ...confirmField,
 });
 const roadmapSyncSchema = z.strictObject({
   materializePlannedChanges: z.boolean().optional(),
+  ...confirmField,
 });
 const harnessPlanSchema = z.strictObject({
   environment: z.string().min(1).optional(),
@@ -39,9 +44,15 @@ const harnessStopSchema = z.strictObject({
 });
 const harnessSessionCreateSchema = z.strictObject({
   session: z.string().min(1),
+  ...confirmField,
 });
 
 type ReadToolArgs = Record<string, unknown>;
+
+export type McpToolResult = {
+  content: Array<{ type: "text"; text: string }>;
+  isError?: boolean;
+};
 
 export type StrictCliCommandResult = {
   status: number;
@@ -110,21 +121,22 @@ export const READ_ONLY_TOOL_DEFINITIONS: McpToolDefinition[] = [
 ];
 
 export const MUTATING_TOOL_DEFINITIONS: McpToolDefinition[] = [
-  command(inventoryFor("init_workflow"), () => ["init"]),
-  command(inventoryFor("propose_change"), (args) => ["propose", String(args.change)], changeSchema),
+  command(inventoryFor("init_workflow"), () => ["init"], confirmSchema),
+  command(inventoryFor("propose_change"), (args) => ["propose", String(args.change)], changeConfirmSchema),
   command(inventoryFor("generate_change_artifact"), (args) => [
     "generate",
     String(args.change),
     String(args.artifact),
     ...(Array.isArray(args.args) ? args.args.map(String) : []),
   ], generateArtifactSchema),
-  command(inventoryFor("mark_next_task_complete"), (args) => ["apply", String(args.change)], changeSchema),
+  command(inventoryFor("mark_next_task_complete"), (args) => ["apply", String(args.change)], changeConfirmSchema),
+  command(inventoryFor("cancel_change"), (args) => ["cancel", String(args.change)], changeConfirmSchema),
   command(inventoryFor("roadmap_sync"), (args) => {
     const cliArgs = ["roadmap-sync"];
     if (args.materializePlannedChanges === true) cliArgs.push("--materialize-planned-changes");
     return cliArgs;
   }, roadmapSyncSchema),
-  command(inventoryFor("archive_change"), (args) => ["archive", String(args.change)], changeSchema),
+  command(inventoryFor("archive_change"), (args) => ["archive", String(args.change)], changeConfirmSchema),
   command(inventoryFor("harness_start"), (args) => {
     const cliArgs = ["harness-start"];
     if (typeof args.environment === "string") cliArgs.push("--environment", args.environment);
@@ -194,7 +206,7 @@ export async function callReadOnlyTool(
     projectRoot: string;
     runner?: StrictCliCommandRunner;
   },
-): Promise<{ content: Array<{ type: "text"; text: string }> }> {
+): Promise<McpToolResult> {
   const definition = READ_ONLY_TOOL_DEFINITIONS.find((candidate) => candidate.name === name);
   if (!definition) {
     throw new Error(`unknown read-only MCP tool '${name}'`);
@@ -209,12 +221,40 @@ export async function callMutatingTool(
     projectRoot: string;
     runner?: StrictCliCommandRunner;
   },
-): Promise<{ content: Array<{ type: "text"; text: string }> }> {
+): Promise<McpToolResult> {
   const definition = MUTATING_TOOL_DEFINITIONS.find((candidate) => candidate.name === name);
   if (!definition) {
     throw new Error(`unknown mutating MCP tool '${name}'`);
   }
   return callStrictTool(definition, args, options);
+}
+
+function toolErrorResult(definition: McpToolDefinition, stderr: string): McpToolResult {
+  return errorOrEnvelope(definition, [], { status: 1, stdout: "", stderr }, true);
+}
+
+function errorOrEnvelope(
+  definition: McpToolDefinition,
+  cliArgs: string[],
+  result: StrictCliCommandResult,
+  isError: boolean,
+): McpToolResult {
+  const envelope = {
+    tool: definition.name,
+    command: definition.cliCommand,
+    args: cliArgs,
+    safety: definition.safety,
+    mutates: definition.mutates,
+    status: result.status,
+    stdout: result.stdout,
+    stderr: result.stderr,
+    parsedJson: parseJsonOrNull(result.stdout),
+  };
+  const wrapped: McpToolResult = {
+    content: [{ type: "text", text: JSON.stringify(envelope) }],
+  };
+  if (isError) wrapped.isError = true;
+  return wrapped;
 }
 
 async function callStrictTool(
@@ -224,42 +264,21 @@ async function callStrictTool(
     projectRoot: string;
     runner?: StrictCliCommandRunner;
   },
-): Promise<{ content: Array<{ type: "text"; text: string }> }> {
+): Promise<McpToolResult> {
   const parsed = definition.inputSchema.safeParse(args);
   if (!parsed.success) {
-    return {
-      content: [{
-        type: "text",
-        text: JSON.stringify({
-          tool: definition.name,
-          command: definition.cliCommand,
-          args: [],
-          safety: definition.safety,
-          mutates: definition.mutates,
-          status: 1,
-          stdout: "",
-          stderr: parsed.error.message,
-          parsedJson: null,
-        }),
-      }],
-    };
+    return toolErrorResult(definition, parsed.error.message);
   }
-  const cliArgs = definition.toCliArgs(parsed.data as ReadToolArgs);
+  const data = parsed.data as ReadToolArgs;
+  if (definition.mutates && data.confirm !== true) {
+    return toolErrorResult(
+      definition,
+      `confirmation required: call ${definition.name} with confirm: true to authorize this ${definition.safety}-class mutation`,
+    );
+  }
+  const cliArgs = definition.toCliArgs(data);
   const result = (options.runner ?? defaultStrictCliCommandRunner)(cliArgs, { cwd: options.projectRoot });
-  const envelope = {
-    tool: definition.name,
-    command: definition.cliCommand,
-    args: cliArgs.slice(1),
-    safety: definition.safety,
-    mutates: definition.mutates,
-    status: result.status,
-    stdout: result.stdout,
-    stderr: result.stderr,
-    parsedJson: parseJsonOrNull(result.stdout),
-  };
-  return {
-    content: [{ type: "text", text: JSON.stringify(envelope) }],
-  };
+  return errorOrEnvelope(definition, cliArgs.slice(1), result, result.status !== 0);
 }
 
 export function registerReadOnlyTools(

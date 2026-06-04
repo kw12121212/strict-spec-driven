@@ -72,9 +72,10 @@ Example user requests for an MCP client:
 - "Check whether this project has strict workflow state." Expected tool: `check_workflow_state`.
 - "Read the proposal for change `my-change`." Expected resource: `strict://changes/my-change/proposal`.
 - "Guide me through reviewing `my-change`." Expected prompt: `strict_review_change` with `{ "change": "my-change" }`.
-- "Archive `my-change`." Expected tool: `archive_change`, after host confirmation because it is release-class and mutates workflow state.
+- "Archive `my-change`." Expected tool: `archive_change` with `{ "change": "my-change", "confirm": true }`; it is release-class and mutates workflow state.
+- "Cancel `my-change`." Expected tool: `cancel_change` with `{ "change": "my-change", "confirm": true }`; it is destructive and permanently deletes the active change.
 
-The MCP server does not replace the CLI or skills. Read-only tools report diagnostics without changing files. Mutating tools such as `propose_change`, `mark_next_task_complete`, `roadmap_sync`, `harness_start`, and `archive_change` should be shown by the MCP host as write, lifecycle, or release actions before execution.
+The MCP server does not replace the CLI or skills. Read-only tools report diagnostics without changing files. Mutating tools such as `propose_change`, `mark_next_task_complete`, `roadmap_sync`, `harness_start`, `archive_change`, and `cancel_change` require an explicit `confirm: true`; without it the server refuses the call and does not run the underlying strict command. Hosts should surface these as write, lifecycle, release, or destructive actions before execution.
 
 ## Set Up a New Project
 

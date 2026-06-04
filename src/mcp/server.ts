@@ -1,7 +1,7 @@
 import { existsSync, statSync } from "fs";
 import path from "path";
 import { McpServer, StdioServerTransport, type Transport } from "@modelcontextprotocol/server";
-import { MCP_INVENTORY, registerInventoryCapabilities, type McpCapabilityInventory } from "./inventory.js";
+import { MCP_INVENTORY, type McpCapabilityInventory } from "./inventory.js";
 import { registerStrictPrompts } from "./prompts.js";
 import { registerStrictResources } from "./resources.js";
 import { registerMutatingTools, registerReadOnlyTools, type StrictCliCommandRunner } from "./tools.js";
@@ -64,7 +64,7 @@ export function createStrictMcpServer(
   registerStrictPrompts(server);
   return {
     projectRoot,
-    inventory: registerInventoryCapabilities(server, inventory),
+    inventory,
     server,
   };
 }

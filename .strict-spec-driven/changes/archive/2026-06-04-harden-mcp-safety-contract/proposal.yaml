@@ -1,0 +1,46 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: harden-mcp-safety-contract
+  status: proposed
+summary:
+  what:
+    - >-
+      Harden the local MCP server's safety and contract layer: enforce explicit confirmation for all
+      mutating tools at the server boundary, surface tool failures as MCP protocol isError results,
+      make the destructive safety class real by exposing the cancel command as a destructive tool,
+      add list callbacks so template resources are enumerable, and remove the no-op
+      registerInventoryCapabilities indirection.
+  why:
+    - >-
+      The current MCP server treats safety as metadata only: mutating, lifecycle, release, and the
+      unused destructive classes rely entirely on the host to honor _meta, tool failures return as
+      always-successful status:1 text envelopes, template resources cannot be enumerated, and
+      registerInventoryCapabilities is a misleadingly named no-op. Closing these gaps makes the
+      contract self-enforcing and consistent with what it advertises.
+scope:
+  in:
+    - >-
+      Server-side confirmation gating that refuses mutating tool calls lacking confirm:true before
+      delegating to the strict CLI; setting isError on tool results for invalid input, refused
+      confirmation, and non-zero delegate exits while preserving the JSON envelope; exposing a
+      destructive cancel_change tool that delegates to the cancel CLI; adding ResourceTemplate list
+      callbacks for change, spec, roadmap milestone, roadmap planned-change, and tech standard
+      templates; removing registerInventoryCapabilities and assigning inventory directly; updating
+      README and QUICKSTART for confirmation and the destructive tool; adding regression coverage
+      for confirmation refusal, isError signaling, destructive classification, and resource template
+      enumeration.
+  out:
+    - >-
+      HTTP or remote transport, multi-project routing, replacing spawnSync per-call delegation,
+      changing the alpha SDK version pin, and verifying that apply-backed task completion reflects
+      real implementation work.
+unchanged_behavior:
+  - >-
+    Read-only tools remain freely callable and non-mutating; mutating tools continue to delegate to
+    the existing strict CLI under the configured project root and preserve delegated exit status,
+    stdout, and stderr; the inventory module remains the single source of truth for tools,
+    resources, and prompts; existing strict:// resource URIs, prompt names, and read-tool output
+    envelope fields are preserved; stdio-only local transport with required --project is unchanged.

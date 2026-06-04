@@ -2327,3 +2327,62 @@ requirements:
             tools/list, tools/call, resources/list, resources/read, prompts/list, and prompts/get
             are exercised through the MCP protocol
         - AND: built-output launch and skill-prompt drift checks are covered
+  cli-mcp-mutating-tool-confirmation:
+    strength: MUST
+    statement: >-
+      Mutating MCP tools MUST require an explicit confirm flag at the server boundary and MUST
+      refuse the call with a confirmation diagnostic, without invoking the delegated strict CLI
+      command, when confirm is not true.
+    scenarios:
+      mcp-mutating-tool-refuses-without-confirmation:
+        - GIVEN: a mutating MCP tool is called with valid typed arguments but without confirm set to true
+        - WHEN: the MCP server processes the call
+        - THEN: >-
+            the server returns a confirmation-required diagnostic and does not invoke the delegated
+            strict CLI command
+      mcp-mutating-tool-proceeds-with-confirmation:
+        - GIVEN: a mutating MCP tool is called with valid typed arguments and confirm set to true
+        - WHEN: the MCP server processes the call
+        - THEN: the delegated strict CLI command runs under the configured project root
+        - AND: the confirm flag is forwarded to the CLI only for harness lifecycle commands
+  cli-mcp-tool-error-signaling:
+    strength: MUST
+    statement: >-
+      MCP tool results MUST set the protocol isError flag when input validation fails, a required
+      confirmation is missing, or the delegated strict CLI command exits non-zero, while still
+      returning the deterministic JSON envelope as the result content.
+    scenarios:
+      mcp-tool-failure-sets-protocol-error:
+        - GIVEN: >-
+            an MCP tool call fails input validation, lacks required confirmation, or its delegated
+            command exits non-zero
+        - WHEN: the MCP server formats the tool result
+        - THEN: >-
+            the result is marked as a protocol error and still contains the JSON envelope reporting
+            command, status, stdout, stderr, and safety
+  cli-mcp-destructive-tool:
+    strength: MUST
+    statement: >-
+      The MCP server MUST expose the change cancellation command as a destructive mutating tool
+      classified with safety destructive and mutates true that requires confirmation and delegates
+      to the strict cancel CLI command under the configured project root.
+    scenarios:
+      mcp-exposes-destructive-cancel-tool:
+        - GIVEN: the MCP mutating tool inventory is inspected
+        - WHEN: the cancellation tool definition is examined
+        - THEN: >-
+            it reports safety destructive with mutates true, requires confirmation, and delegates to
+            the strict cancel command
+  cli-mcp-resource-template-enumeration:
+    strength: MUST
+    statement: >-
+      MCP template resources MUST provide list callbacks so that existing strict changes, specs,
+      roadmap milestones, roadmap planned changes, and tech standards are enumerable through the MCP
+      resources listing as concrete strict:// URIs.
+    scenarios:
+      mcp-template-resources-are-enumerable:
+        - GIVEN: a strict workflow project contains changes, specs, roadmap, and tech artifacts
+        - WHEN: the MCP client lists resources
+        - THEN: >-
+            the listing includes concrete strict:// URIs for the existing change, spec, roadmap, and
+            tech artifacts derived from template resources
