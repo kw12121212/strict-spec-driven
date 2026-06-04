@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-roadmap-domain-behavior-spec
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a registered roadmap command-domain behavior spec for roadmap-status, roadmap-overview,
+      roadmap-sync, and roadmap-recommend.
+  why:
+    - >-
+      Milestone 0014 backfills self-hosted spec coverage so roadmap behavior has a dedicated
+      observable contract instead of the cli-foundation catch-all.
+scope:
+  in:
+    - >-
+      Create .strict-spec-driven/specs/roadmap/domain-behavior.yaml for roadmap status derivation,
+      overview rendering, sync reconciliation, recommendation, split planned-change handling,
+      conflict diagnostics, exit codes, and deterministic output.
+    - Register the new roadmap domain spec in .strict-spec-driven/specs/INDEX.yaml.
+    - >-
+      Move roadmap implementation and roadmap test mappings from cli-foundation to the roadmap
+      domain spec without changing command behavior.
+  out:
+    - >-
+      Changing roadmap CLI behavior, roadmap schemas, status derivation, sync semantics, or skill
+      prompts.
+    - >-
+      Rewriting unrelated cli-foundation requirements beyond removing mapping entries that move to
+      the roadmap domain spec.
+unchanged_behavior:
+  - >-
+    All strict roadmap command behavior remains unchanged; this change only adds and re-points spec
+    coverage.
+roadmap:
+  milestone: 0014-self-hosted-spec-coverage-backfill
+  planned_change: add-roadmap-domain-behavior-spec

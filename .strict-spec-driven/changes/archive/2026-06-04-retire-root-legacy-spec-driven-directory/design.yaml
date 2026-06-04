@@ -1,0 +1,45 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: retire-root-legacy-spec-driven-directory
+approach:
+  - >-
+    Treat this as a documentation-and-housekeeping change with no source or schema edits. First
+    inspect the repo-root .spec-driven/ to confirm its actual contents and tracking state, then
+    remove it. Audit every doc that references .spec-driven, and for each reference decide whether
+    it describes (a) THIS repo's retained legacy state — rewrite to say migration is complete and no
+    root .spec-driven is kept — or (b) the migrate CAPABILITY for external projects — keep, but
+    phrase it as an external-project feature. Leave all migrate source, scaffold legacy-detection,
+    skill validation rules, and todo-app fixtures untouched. Close with a full build+test regression
+    to prove no behavioral impact.
+decisions:
+  delete-empty-untracked-legacy-dir:
+    decision: >-
+      Delete the repo-root .spec-driven/ directly. Inspection shows it is 32 empty directories with
+      zero files and is not git-tracked.
+    rationale: >-
+      It holds no file content at all — only a hollow skeleton of archived change-name folders — so
+      removal loses nothing and there is no migration state worth retaining; the directory's only
+      effect is supporting a misleading two-directory narrative in docs.
+  preserve-migrate-capability:
+    decision: >-
+      Make no edits to src/migrate/*, src/scaffold.ts legacy detection, src/skills validation rules,
+      or test/fixtures/projects/todo-app/.spec-driven/.
+    rationale: >-
+      Migrating external .spec-driven/ projects is a shipped product capability and a covered
+      regression; this change retires only the repo's own history, not the feature.
+  separate-capability-from-history-in-docs:
+    decision: >-
+      Rewrite doc references so that 'how external projects migrate' is clearly distinct from 'this
+      repo's own directory layout', removing the two-directory coexistence framing for this repo.
+    rationale: >-
+      The conflation of repo history with the migrate feature is itself a documented cognitive-load
+      source; separating them is the durable fix, not just deleting the folder.
+  keep-init-coexistence-behavior:
+    decision: Do not change the cli-init-handles-bootstrap-coexistence requirement or its warning behavior.
+    rationale: >-
+      That requirement governs CLI behavior in any target project and stays true after this repo's
+      own directory is removed, so no delta-spec is warranted.
+alternatives: []
+risks: []

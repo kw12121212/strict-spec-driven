@@ -1,0 +1,118 @@
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+milestone:
+  0014-self-hosted-spec-coverage-backfill:
+    title: 14 Self Hosted Spec Coverage Backfill
+goal: >-
+  Raise this repository's own strict spec coverage from two coarse catch-all specs to per-command-
+  domain behavior contracts, so the migrate, roadmap, harness, session, and operations command
+  surfaces are each described by an observable-behavior main spec with valid spec-to-code mappings.
+scope:
+  in:
+    - >-
+      Add a behavior-contract main spec for the migrate command domain (migrate plus its preflight,
+      parsers, converters, and reporting) describing observable inputs, outputs, exit codes, and
+      diagnostics, and re-point the corresponding implementation and test mappings from the
+      cli-foundation catch-all spec to the new domain spec.
+    - >-
+      Add a behavior-contract main spec for the roadmap command domain (roadmap-status,
+      roadmap-overview, roadmap-sync, planned-change and milestone state derivation) with the same
+      observable-contract shape and mapping re-pointing.
+    - >-
+      Add a behavior-contract main spec for the harness command domain (harness-infer, harness-
+      doctor, harness-plan, harness-start/stop, harness-status/logs, harness-scripts, harness-
+      session) capturing the already-hardened lifecycle behavior from milestone 0013 as durable
+      requirements.
+    - >-
+      Add a behavior-contract main spec for the development and debug session command domains
+      (dev-session lifecycle and scripts, debug-session lifecycle and evidence) describing their
+      observable artifacts and command results.
+    - >-
+      Add a behavior-contract main spec for the operations command domain (maintenance, ship, list,
+      modify, cancel) describing observable command behavior and guardrails.
+    - >-
+      Register every new domain spec in .strict-spec-driven/specs/INDEX.yaml and keep verify-spec-
+      mappings reporting zero unmapped implementation and test files after each re-pointing.
+  out:
+    - >-
+      Rewriting or restructuring the existing cli-foundation and contracts-yaml-artifacts main specs
+      beyond removing mapping entries that move to a new domain spec.
+    - >-
+      Creating per-file shadow specs that mirror implementation modules one-to-one; specs stay at
+      the observable-behavior altitude, not the code-structure altitude.
+    - >-
+      Changing any CLI behavior, command surface, schema, or skill prompt; this milestone documents
+      existing behavior rather than altering it.
+    - >-
+      Using verify-spec-mappings as a semantic-depth metric; it enforces mapping validity and
+      coverage of candidate files, while spec depth and correctness remain a human and skill review
+      concern.
+done_criteria:
+  - >-
+    The migrate, roadmap, harness, session, and operations command domains each have a registered
+    behavior-contract main spec under .strict-spec-driven/specs/ that describes observable behavior
+    with verifiable requirements and scenarios, not implementation structure.
+  - >-
+    Implementation and test files for each covered domain are mapped to that domain's spec rather
+    than only to the cli-foundation catch-all, and verify-spec-mappings reports zero unmapped
+    implementation and test files.
+  - >-
+    The spec index lists every new domain spec, and roadmap-status and verify-spec-mappings both
+    pass after the final domain is backfilled.
+planned_changes: {}
+dependencies:
+  - >-
+    The CLI command surface and workflow domain modules delivered by milestones 0007 and 0008 remain
+    the implementation that these specs describe; this milestone documents that surface rather than
+    changing it.
+  - >-
+    The verify-spec-mappings command and the strict main-spec and spec-index schemas remain the
+    source of truth for mapping validity and spec structure.
+  - >-
+    The harness behavior reconciled by milestone 0013 is the baseline the harness domain spec
+    records as durable requirements.
+risks:
+  - >-
+    Re-pointing mappings from the catch-all spec to new domain specs can accidentally orphan a file
+    if a path is moved but not re-added, so verify-spec-mappings must be run after every re-pointing
+    to confirm zero unmapped files.
+  - >-
+    Behavior-contract specs written after the fact can drift toward restating implementation detail,
+    so each domain spec must be reviewed for observable-behavior altitude rather than code
+    mirroring.
+status: complete
+notes:
+  - >-
+    This milestone is follow-up hardening from a self-hosting review: the repository ships strict
+    spec tooling but governs ~17k lines of its own source and 27 skills with only two coarse main
+    specs (cli-foundation and contracts-yaml-artifacts), so most command behavior has no first-class
+    spec contract.
+  - >-
+    verify-spec-mappings already reports zero unmapped files because everything maps to the two
+    catch-all specs; the value here is granularity and depth, not a new coverage percentage. Running
+    verify-spec-mappings after each re-pointing guards against orphaning a file.
+  - >-
+    Each command domain is one standalone planned change so domains can be proposed, implemented,
+    and archived independently, in any order.
+details: >-
+  A self-hosting review found that strict-spec-driven applies its own discipline only thinly to
+  itself. The active spec set is two main specs: cli-foundation, which acts as a catch-all that
+  every CLI and workflow implementation file maps to, and contracts-yaml-artifacts, which covers the
+  YAML schema dialect. As a result migrate, roadmap, harness, the development and debug sessions,
+  and the operations commands have no dedicated behavior contract, even though the codebase was
+  already decomposed by domain in milestones 0007 and 0008 and the harness behavior was hardened in
+  0013.
+
+  The accepted direction is to backfill one behavior-contract main spec per command domain at the
+  observable-behavior altitude — inputs, outputs, exit codes, diagnostics, and guardrails — and to
+  move the relevant implementation and test mapping entries off the cli-foundation catch-all onto
+  the new domain spec. Because verify-spec-mappings already passes with everything pointed at the
+  two catch-all specs, it is not a semantic-depth metric here; its role is to guarantee that every
+  re-pointing keeps all candidate files mapped and all mapping paths resolvable, and it is run
+  locally after each re-pointing rather than through any automated pipeline.
+
+  Each command domain becomes one standalone planned change so it can move through the strict
+  lifecycle independently and in any order. Spec depth and correctness stay a human and skill review
+  responsibility; verify-spec-mappings only prevents mapping regressions.

@@ -1,0 +1,38 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-harness-domain-behavior-spec
+sections:
+  Implementation:
+    add-harness-domain-spec:
+      text: Add the harness domain behavior main spec from the change delta.
+      status: complete
+    register-spec-index:
+      text: Register the harness domain behavior spec in .strict-spec-driven/specs/INDEX.yaml.
+      status: complete
+    repoint-harness-mappings:
+      text: >-
+        Move harness implementation, script, skill, example, and test mappings from cli-foundation
+        to the harness domain spec.
+      status: complete
+  Testing:
+    verify-spec-mappings:
+      text: Run spec mapping validation after the mapping move.
+      status: complete
+      command: node dist/scripts/strict-spec-driven.js verify-spec-mappings
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: verify-spec-mappings
+  unit_test_task: run-tests

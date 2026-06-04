@@ -21,7 +21,7 @@
 
 这些文件都是严格 YAML 制品，由 `roadmap-status` 和 `roadmap-sync` CLI 子命令验证。
 
-如果同时存在保留的引导目录 `.spec-driven/roadmap/`，仅将其视为迁移历史。严格 CLI 读取和重写 `.strict-spec-driven/roadmap/` 作为规范路线图来源。
+如果你的项目在迁移前还遗留了 `.spec-driven/roadmap/` 目录，仅将其视为迁移历史。严格 CLI 读取和重写 `.strict-spec-driven/roadmap/` 作为规范路线图来源。
 
 ## 路线图索引
 

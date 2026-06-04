@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-session-domains-behavior-spec
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a sessions domain behavior main spec covering the current harness-based replacement for
+      development-session and debug-session workflows.
+    - >-
+      Document observable contracts for session bootstrapping, helper-script generation,
+      investigation-session evidence, validation, archive guards, and retired legacy command
+      behavior.
+    - >-
+      Re-point session-focused implementation and test mappings onto the new sessions domain spec
+      while preserving existing harness-domain behavior coverage.
+  why:
+    - >-
+      The roadmap backfill requires every shipped command domain to have a behavior-contract spec
+      rather than leaving session workflow behavior only in broad foundation or schema contracts.
+    - >-
+      The repository no longer ships dev-session or debug-session commands, so the spec must make
+      the harness replacement and retired-alias behavior explicit.
+scope:
+  in:
+    - Add .strict-spec-driven/specs/sessions/domain-behavior.yaml.
+    - Register the new sessions spec in .strict-spec-driven/specs/INDEX.yaml.
+    - >-
+      Map harness session implementation, skills, templates, examples, and relevant tests to the
+      sessions spec.
+  out:
+    - Do not restore dev-session-* or debug-session-* CLI aliases or legacy artifact migration.
+    - Do not change runtime harness lifecycle behavior.
+unchanged_behavior:
+  - >-
+    Existing harness command behavior, schemas, examples, and tests remain unchanged except for spec
+    mappings.

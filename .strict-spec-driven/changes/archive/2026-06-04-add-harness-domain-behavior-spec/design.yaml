@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-harness-domain-behavior-spec
+approach:
+  - >-
+    Add one observable-behavior main spec under .strict-spec-driven/specs/harness/ and keep it
+    independent from implementation module structure.
+  - >-
+    Use milestone 0013 archived changes, HARNESS documentation, current command code, and current
+    harness tests as evidence for requirements and scenarios.
+  - >-
+    Re-point harness-specific mappings from cli-foundation to the new spec, then run
+    verify-spec-mappings and the project regression suite.
+decisions:
+  domain-behavior-spec:
+    decision: >-
+      Represent harness coverage as one command-domain main spec rather than several per-command
+      specs.
+    rationale: >-
+      The roadmap milestone requires domain-level behavior contracts, and one spec keeps
+      requirements at observable behavior altitude while avoiding one-to-one mirrors of
+      implementation files.
+alternatives: []
+risks: []

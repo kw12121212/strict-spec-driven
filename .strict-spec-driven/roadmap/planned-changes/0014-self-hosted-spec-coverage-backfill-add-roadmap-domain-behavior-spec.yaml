@@ -1,0 +1,23 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-roadmap-domain-behavior-spec
+  milestone: 0014-self-hosted-spec-coverage-backfill
+status: complete
+summary: >-
+  add a behavior-contract main spec for the roadmap command domain and re-point its implementation
+  and test mappings off the cli-foundation catch-all onto the new spec.
+details: >-
+  The roadmap domain (roadmap-status, roadmap-overview, roadmap-sync, and the load, validate,
+  derive, and sync modules split out in milestone 0008) currently has no dedicated behavior spec.
+  Add a main spec under .strict-spec-driven/specs/roadmap/ describing observable behavior: how
+  status and derived status are computed from milestone and standalone planned-change files, how
+  roadmap-sync reconciles milestone and change state and regenerates the index, how split-file
+  planned changes and cross-file conflicts are reported, and the exit codes and diagnostics each
+  command emits. Keep requirements observable with verifiable scenarios rather than restating loader
+  internals. Register the spec in specs/INDEX.yaml, move the roadmap implementation and test mapping
+  entries from cli-foundation to this spec, and confirm verify-spec-mappings reports zero unmapped
+  files.
+depends_on: []

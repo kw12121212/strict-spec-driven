@@ -9,3 +9,18 @@ specs:
   - id: contracts-yaml-artifacts
     title: Strict YAML Artifact Schemas
     path: .strict-spec-driven/specs/contracts/yaml-artifacts.yaml
+  - id: harness-domain-behavior
+    title: Harness Domain Behavior
+    path: .strict-spec-driven/specs/harness/domain-behavior.yaml
+  - id: migrate-domain-behavior
+    title: Migrate Domain Behavior
+    path: .strict-spec-driven/specs/migrate/domain-behavior.yaml
+  - id: operations-domain-behavior
+    title: Operations Domain Behavior
+    path: .strict-spec-driven/specs/operations/domain-behavior.yaml
+  - id: roadmap-domain-behavior
+    title: Roadmap Domain Behavior
+    path: .strict-spec-driven/specs/roadmap/domain-behavior.yaml
+  - id: sessions-domain-behavior
+    title: Sessions Domain Behavior
+    path: .strict-spec-driven/specs/sessions/domain-behavior.yaml

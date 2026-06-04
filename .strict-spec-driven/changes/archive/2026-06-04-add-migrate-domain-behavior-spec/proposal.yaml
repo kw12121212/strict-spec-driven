@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-migrate-domain-behavior-spec
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a registered migrate command-domain behavior spec that captures existing migration
+      observable behavior.
+  why:
+    - >-
+      Milestone 0014 backfills self-hosted spec coverage so migrate behavior is governed by a
+      dedicated domain contract instead of the cli-foundation catch-all.
+scope:
+  in:
+    - >-
+      Create .strict-spec-driven/specs/migrate/domain-behavior.yaml for migrate preflight, artifact
+      conversion, reporting, unsupported-shape handling, source preservation, exit codes, and
+      diagnostics.
+    - Register the new migrate domain spec in .strict-spec-driven/specs/INDEX.yaml.
+    - >-
+      Move migrate implementation and test mapping entries from cli-foundation to the migrate domain
+      spec without changing command behavior.
+  out:
+    - >-
+      Changing CLI behavior, migration converters, schemas, command names, migration output
+      semantics, or skill prompts.
+    - >-
+      Rewriting unrelated cli-foundation requirements beyond removing mapping entries that move to
+      the migrate domain spec.
+unchanged_behavior:
+  - >-
+    All strict CLI and migrate command behavior remains unchanged; this change only adds and
+    re-points spec coverage.
+roadmap:
+  milestone: 0014-self-hosted-spec-coverage-backfill
+  planned_change: add-migrate-domain-behavior-spec

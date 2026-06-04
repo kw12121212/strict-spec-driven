@@ -1,0 +1,119 @@
+schema: strict-spec-driven/main-spec/v1
+schema_version: 1
+artifact_type: main_spec
+schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
+spec:
+  id: migrate-domain-behavior
+  title: Migrate Domain Behavior
+mapping:
+  implementation:
+    - src/cli/cmd-migration.ts
+    - src/migrate.ts
+    - src/migrate/preflight.ts
+    - src/migrate/reporting.ts
+    - src/migrate/shared.ts
+    - src/migrate/parsers/shared.ts
+    - src/migrate/parsers/specs.ts
+    - src/migrate/parsers/change-artifacts.ts
+    - src/migrate/converters/changes.ts
+    - src/migrate/converters/roadmap.ts
+    - src/migrate/converters/specs.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+requirements:
+  migrate-source-and-preflight-contract:
+    strength: MUST
+    statement: >-
+      The system MUST make migrate detect legacy .spec-driven workflow state, require safe preflight
+      conditions before writing strict output, and reject missing source state, malformed legacy
+      config, or unsafe strict target conflicts with structured diagnostics.
+    scenarios:
+      missing-source-is-blocked:
+        - GIVEN: a repository has no legacy .spec-driven directory
+        - WHEN: strict-spec-driven migrate runs
+        - THEN: >-
+            the command exits non-zero and emits a valid=false report describing the missing
+            bootstrap source
+      strict-target-conflict-is-blocked:
+        - GIVEN: a repository has non-empty strict target state that would be overwritten
+        - WHEN: strict-spec-driven migrate runs without force
+        - THEN: >-
+            the command exits non-zero, reports overwrite-protection errors, and leaves existing
+            strict target files unchanged
+  migrate-supported-artifact-conversion:
+    strength: MUST
+    statement: >-
+      The system MUST convert supported legacy workflow config, specs index, main specs, delta
+      specs, active changes, archived changes, roadmap index, and roadmap milestone artifacts into
+      strict YAML outputs while preserving stable identities, mappings, task state, question state,
+      roadmap identity, and declared statuses.
+    scenarios:
+      supported-artifacts-are-converted:
+        - GIVEN: >-
+            a legacy .spec-driven workflow contains supported config, spec, change, archive, and
+            roadmap artifacts
+        - WHEN: strict-spec-driven migrate runs
+        - THEN: >-
+            the command exits zero and writes strict YAML outputs for the supported artifact
+            families
+      migrated-state-preserves-recorded-workflow-data:
+        - GIVEN: >-
+            legacy artifacts contain IDs, mappings, tasks, questions, archive state, roadmap
+            milestones, and planned changes
+        - WHEN: migration output is inspected
+        - THEN: the strict YAML artifacts preserve that recorded workflow data in structured fields
+  migrate-report-contract:
+    strength: MUST
+    statement: >-
+      The system MUST emit a structured migration report on every migrate run with converted,
+      skipped, warnings, errors, and manualFollowUp arrays that distinguish successful, partial, and
+      blocked migration outcomes.
+    scenarios:
+      successful-report-keeps-arrays:
+        - GIVEN: a migration run converts all supported artifacts
+        - WHEN: the migration report is inspected
+        - THEN: >-
+            valid is true and converted, skipped, warnings, errors, and manualFollowUp are present
+            as arrays
+      blocked-report-keeps-arrays:
+        - GIVEN: a migration run is blocked by missing source, malformed config, or target conflicts
+        - WHEN: the migration report is inspected
+        - THEN: valid is false and all report collections remain explicit arrays
+  migrate-unsupported-shape-handling:
+    strength: MUST
+    statement: >-
+      The system MUST defer unsupported, ambiguous, or malformed legacy spec shapes without
+      inventing strict YAML output for them, while recording skipped entries, warnings, and manual
+      follow-up guidance.
+    scenarios:
+      unsupported-specs-are-deferred:
+        - GIVEN: legacy spec files include unsupported, ambiguous, or malformed shapes
+        - WHEN: strict-spec-driven migrate runs
+        - THEN: >-
+            supported artifacts are converted, unsupported spec files are skipped, and warnings plus
+            manualFollowUp entries describe the deferred work
+  migrate-source-preservation:
+    strength: MUST
+    statement: >-
+      The system MUST leave legacy bootstrap .spec-driven source artifacts unchanged during
+      migration, including copied real-project regression flows.
+    scenarios:
+      legacy-source-is-not-rewritten:
+        - GIVEN: a migration run reads legacy .spec-driven config, specs, changes, and roadmap artifacts
+        - WHEN: migration completes or fails
+        - THEN: the legacy source artifacts remain unchanged
+  migrate-force-rerun-contract:
+    strength: MUST
+    statement: >-
+      The system MUST reject accidental migration reruns into populated strict state by default and
+      allow explicit force reruns with --force or -f when the operator chooses to overwrite
+      generated strict output.
+    scenarios:
+      rerun-without-force-is-blocked:
+        - GIVEN: migrate has already populated .strict-spec-driven output
+        - WHEN: strict-spec-driven migrate runs again without force
+        - THEN: the command exits non-zero and preserves overwrite protection
+      explicit-force-rerun-is-accepted:
+        - GIVEN: migrate has already populated .strict-spec-driven output
+        - WHEN: strict-spec-driven migrate --force or migrate -f runs
+        - THEN: the command permits the rerun and emits the same structured migration report shape

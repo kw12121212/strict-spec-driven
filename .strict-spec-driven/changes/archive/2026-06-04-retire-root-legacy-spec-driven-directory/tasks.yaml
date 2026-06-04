@@ -1,0 +1,61 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: retire-root-legacy-spec-driven-directory
+sections:
+  Implementation:
+    confirm-git-tracked-and-delete-root-legacy-dir:
+      text: >-
+        Confirm git tracks the repository-root .spec-driven/ directory so removal is recoverable,
+        then delete it. Do not touch test/fixtures/projects/todo-app/.spec-driven/.
+      status: complete
+    reconcile-readme-and-quickstart-docs:
+      text: >-
+        Update README.md, README.zh.md, QUICKSTART.md, and QUICKSTART.zh.md to remove the 'two
+        directories preserved as intentional design / bootstrap input' framing for this repo,
+        stating migration is complete with no root .spec-driven retained, while keeping any text
+        that explains how external projects migrate phrased as a capability for other projects.
+      status: complete
+    reconcile-roadmap-guide-docs:
+      text: >-
+        Update ROADMAP_GUIDE.md and ROADMAP_GUIDE.zh.md so .spec-driven references no longer imply a
+        retained active-adjacent roadmap directory in this repo, keeping external-project migration
+        guidance intact.
+      status: complete
+    update-project-constraint-in-rtk:
+      text: >-
+        Rewrite the Product Constraint narrative in RTK.md (the project constraint included by
+        AGENTS.md) so it no longer describes .spec-driven/ as preserved bootstrap/migration input
+        for this repo; state .strict-spec-driven/ is the single active workflow state and migration
+        is complete, while preserving the rule that schema/scaffold assets live under templates/.
+      status: complete
+    verify-migrate-capability-untouched:
+      text: >-
+        Confirm no edits were made to src/migrate/*, src/scaffold.ts legacy detection, src/skills
+        validation rules, schemas, or main specs, and that documentation describing external-project
+        migration remains present.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run the full regression suite and confirm all 1367 tests pass.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify the implementation matches proposal scope: root .spec-driven/ removed, docs and the
+        RTK.md constraint reconciled, migrate capability and fixtures preserved, no spec or schema
+        changes.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

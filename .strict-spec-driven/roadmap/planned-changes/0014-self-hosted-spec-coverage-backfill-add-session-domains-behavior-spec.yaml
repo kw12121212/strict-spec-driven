@@ -1,0 +1,23 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-session-domains-behavior-spec
+  milestone: 0014-self-hosted-spec-coverage-backfill
+status: complete
+summary: >-
+  add a behavior-contract main spec for the development and debug session command domains and
+  re-point their implementation and test mappings onto the new spec.
+details: >-
+  The development-session and debug-session domains deliver lifecycle and evidence workflows but
+  have no dedicated behavior spec. Add a main spec under .strict-spec-driven/specs/sessions/
+  describing observable behavior for both: how a dev-session is bootstrapped, validated, and turned
+  into helper scripts; how a debug-session is created, accumulates structured evidence with human
+  checkpoints, and is validated and archived; and the observable artifacts, command results, exit
+  codes, and diagnostics each produces. Keep the two session families in one domain spec unless
+  their contracts prove large enough to warrant a split, and keep requirements at the observable
+  altitude. Register the spec in specs/INDEX.yaml, move the session implementation and test mapping
+  entries from cli-foundation to this spec, and confirm verify-spec-mappings reports zero unmapped
+  files.
+depends_on: []

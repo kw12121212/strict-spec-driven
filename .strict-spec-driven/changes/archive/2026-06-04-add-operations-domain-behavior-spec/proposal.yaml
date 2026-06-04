@@ -1,0 +1,39 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-operations-domain-behavior-spec
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a registered operations command-domain behavior spec for maintenance, ship, list, modify,
+      and cancel.
+  why:
+    - >-
+      Milestone 0014 backfills self-hosted spec coverage so operations commands have a dedicated
+      observable behavior contract instead of relying on cli-foundation.
+scope:
+  in:
+    - >-
+      Create .strict-spec-driven/specs/operations/domain-behavior.yaml for maintenance, ship, list,
+      modify, and cancel observable behavior, guardrails, exit codes, and diagnostics.
+    - Register the new operations domain spec in .strict-spec-driven/specs/INDEX.yaml.
+    - >-
+      Move operations implementation, ship skill, and operations test mappings from cli-foundation
+      to the operations domain spec without changing command behavior.
+  out:
+    - >-
+      Changing CLI behavior, maintenance checks, ship output, list/modify/cancel semantics, schemas,
+      or skill prompts.
+    - >-
+      Rewriting unrelated cli-foundation requirements beyond removing mapping entries that move to
+      the operations domain spec.
+unchanged_behavior:
+  - >-
+    All strict CLI operations command behavior remains unchanged; this change only adds and
+    re-points spec coverage.
+roadmap:
+  milestone: 0014-self-hosted-spec-coverage-backfill
+  planned_change: add-operations-domain-behavior-spec

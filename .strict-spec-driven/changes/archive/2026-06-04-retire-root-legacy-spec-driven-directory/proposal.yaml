@@ -1,0 +1,42 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: retire-root-legacy-spec-driven-directory
+  status: proposed
+summary:
+  what:
+    - >-
+      Remove this repository's own root-level .spec-driven/ legacy bootstrap directory and reconcile
+      documentation so the repo presents a single active workflow directory (.strict-spec-driven/),
+      while fully preserving the migrate capability and its fixtures that serve external projects.
+  why:
+    - >-
+      The repo completed migration to .strict-spec-driven/ long ago; the only remaining root
+      .spec-driven/ content is changes/archive/ stale history. Keeping a second directory plus a
+      'two directories preserved by design' narrative across many docs is a recurring cognitive-load
+      and mis-operation source, and contradicts the repo's self-hosting claim that
+      .strict-spec-driven/ is the single active state.
+scope:
+  in:
+    - >-
+      Delete the repository root .spec-driven/ directory. Update README.md, README.zh.md,
+      QUICKSTART.md, QUICKSTART.zh.md, ROADMAP_GUIDE.md, ROADMAP_GUIDE.zh.md, RTK.md, and AGENTS.md
+      to remove the 'two directories preserved as intentional design / bootstrap input' narrative
+      for this repo and state migration is complete with no root .spec-driven retained. Clarify in
+      docs that migrate is a capability for external projects, distinct from this repo's own
+      history.
+  out:
+    - >-
+      No changes to the migrate feature code (src/migrate/*, src/scaffold.ts legacy detection,
+      src/skills validation rules). No changes to test fixtures under
+      test/fixtures/projects/todo-app/.spec-driven/. No changes to CLI behavior, schemas, or main
+      specs. No removal of documentation that explains how OTHER projects migrate from
+      .spec-driven/.
+unchanged_behavior:
+  - >-
+    The CLI continues to detect, warn about, and migrate a .spec-driven/ directory in any target
+    project. strict init still emits the bootstrap-coexistence warning when a .spec-driven/ exists.
+    bun run build and bun test/run.ts remain green with all 1367 tests passing. Migrate fixtures and
+    their regression scenarios are untouched.

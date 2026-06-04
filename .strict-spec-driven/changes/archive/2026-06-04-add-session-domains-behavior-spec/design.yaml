@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-session-domains-behavior-spec
+approach:
+  - >-
+    Create one sessions-domain main spec at observable-command altitude instead of splitting
+    development and debug sessions, because both current contracts are delivered by the harness
+    declaration plus harness-session model.
+  - >-
+    Describe the current replacement behavior explicitly: harness declarations replace dev-session
+    artifacts; harness sessions replace debug-session records; legacy dev-session/debug-session
+    commands are not compatibility aliases.
+  - >-
+    Register the spec and map the session-specific implementation, skill, template, example, and
+    test evidence to it without changing runtime code.
+decisions:
+  sessions-as-harness-replacement:
+    decision: >-
+      Model sessions as the current harness-based replacement contract rather than resurrecting
+      legacy dev-session or debug-session domains.
+    rationale: >-
+      The shipped CLI exposes harness and harness-session commands; tests assert retired legacy
+      commands are unavailable, so the behavior spec should match observable product behavior.
+  one-domain-spec:
+    decision: Keep development and investigation session requirements in one sessions-domain spec.
+    rationale: >-
+      The requirements are related by session lifecycle and evidence semantics, and the planned
+      change allows one domain spec unless the contracts prove too large.
+alternatives: []
+risks: []

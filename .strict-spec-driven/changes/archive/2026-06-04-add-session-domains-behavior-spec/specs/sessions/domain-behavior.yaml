@@ -1,0 +1,74 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: sessions-domain-behavior
+mapping:
+  implementation:
+    - src/cli/cmd-harness.ts
+    - src/harness.ts
+    - src/strict-spec-cli.ts
+    - src/cli/registry.ts
+    - skills/strict-spec-harness-init/SKILL.md
+    - skills/strict-spec-harness-session/SKILL.md
+    - templates/strict-spec-driven/scaffold/harness.yaml
+    - templates/strict-spec-driven/scaffold/harness-sessions/session.yaml
+    - templates/strict-spec-driven/schemas/harness-session.yaml
+    - examples/strict-spec-driven/harness-session.yaml
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/harness-contracts.ts
+    - test/suites/harness-session.ts
+operations:
+  ADDED:
+    session-replacement-contract:
+      strength: MUST
+      statement: >-
+        The system MUST expose harness declarations and harness sessions as the replacement for
+        development-session and debug-session artifacts without preserving dev-session-* or
+        debug-session-* CLI aliases.
+      scenarios:
+        replacement-model-is-observable:
+          - GIVEN: a strict workflow user inspects session-related commands and skill guidance
+          - WHEN: the CLI and bundled skills are validated
+          - THEN: >-
+              harness and harness-session commands are documented and executable while retired
+              dev-session and debug-session commands are not registered aliases
+    development-session-bootstrap-contract:
+      strength: MUST
+      statement: >-
+        The system MUST make harness inference, declaration review, and generated harness helper
+        scripts provide the observable development-session bootstrap workflow.
+      scenarios:
+        bootstrap-uses-harness-declaration:
+          - GIVEN: a project needs development helper scripts
+          - WHEN: harness-infer and harness-scripts generate run through the harness-init workflow
+          - THEN: >-
+              the resulting harness declaration and scripts describe environments, components,
+              operations, safety policy, and project-local helpers
+    investigation-session-contract:
+      strength: MUST
+      statement: >-
+        The system MUST make harness-session create, validate, and archive provide the observable
+        debug-session investigation workflow with structured evidence and deterministic paths.
+      scenarios:
+        investigation-session-lifecycle:
+          - GIVEN: a valid harness declaration exists
+          - WHEN: harness-session create, validate, and archive are run for a session
+          - THEN: >-
+              session.yaml, the evidence directory, validation diagnostics, and archive paths are
+              produced deterministically
+    session-secret-and-checkpoint-contract:
+      strength: MUST
+      statement: >-
+        The system MUST keep session evidence secret-safe and require human checkpoints in
+        harness-session guidance before closing or archiving investigations.
+      scenarios:
+        secret-safe-evidence:
+          - GIVEN: a harness-session artifact or skill-guided investigation records manual actions
+          - WHEN: validation and skill guidance are followed
+          - THEN: >-
+              secret-recording fields are rejected or prohibited and evidence remains tied to
+              explicit checkpoints
+  MODIFIED: {}
+  REMOVED: {}

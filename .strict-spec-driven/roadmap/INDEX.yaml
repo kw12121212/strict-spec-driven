@@ -55,3 +55,7 @@ milestones:
     title: 13 Harness AI Friendliness Hardening
     path: roadmap/milestones/0013-harness-ai-friendliness-hardening.yaml
     status: complete
+  0014-self-hosted-spec-coverage-backfill:
+    title: 14 Self Hosted Spec Coverage Backfill
+    path: roadmap/milestones/0014-self-hosted-spec-coverage-backfill.yaml
+    status: complete

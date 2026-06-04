@@ -15,10 +15,14 @@ All spec-driven artifacts and related documentation formats should be represente
 as strict YAML where practical. Scripts should create, parse, and validate YAML
 through structured APIs rather than ad hoc text manipulation.
 
-`.strict-spec-driven/` is the preferred active workflow state for this
-repository's self-hosted strict workflow. `.spec-driven/` remains preserved as
-bootstrap or migration input and should not be treated as an equivalent active
-target.
+`.strict-spec-driven/` is the single active workflow state for this
+repository's self-hosted strict workflow. This repository completed its
+migration and retains no root `.spec-driven/` directory; do not recreate one.
+A `.spec-driven/` directory is meaningful only as migration *input* in external
+projects that still use the legacy Markdown workflow — the `migrate` command and
+`/strict-spec-migrate` skill convert such a directory without modifying it. Keep
+that external-project migration capability distinct from this repository's own
+workflow state.
 
 `.strict-spec-driven/` is reserved for generated or migrated workflow state.
 Repository-bundled schema and scaffold assets live under

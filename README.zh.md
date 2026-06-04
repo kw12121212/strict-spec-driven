@@ -17,7 +17,6 @@
 | `.strict-spec-driven/changes/archive/` | 已归档的变更 |
 | `.strict-spec-driven/roadmap/` | 严格 YAML 路线图制品 |
 | `.strict-spec-driven/specs/` | 严格 YAML 主规范文件 |
-| `.spec-driven/` | 仅用于引导和迁移输入 |
 | `templates/strict-spec-driven/schemas/` | 捆绑的严格 YAML 模式文件 |
 | `examples/strict-spec-driven/` | 仓库参考用的最小有效 YAML 示例 |
 | `templates/strict-spec-driven/scaffold/` | `init` 和 `propose` 使用的脚手架模板 |
@@ -25,7 +24,7 @@
 | `src/` | TypeScript CLI 源码 |
 | `dist/` | 编译输出（由构建生成） |
 
-`.spec-driven/` 保留为引导和迁移输入，不是严格迁移后的活跃工作流目录。不要将 `.spec-driven/` 和 `.strict-spec-driven/` 视为等价的活跃目标；一旦 `.strict-spec-driven/roadmap/` 存在，也不要再把 `.spec-driven/roadmap/` 视为规范路线图来源。
+本仓库只保留一个活跃工作流目录 `.strict-spec-driven/`。`.spec-driven/` 仅作为仍使用旧版 Markdown 工作流的**其他项目**的迁移*输入*相关，详见[迁移边界](#迁移边界)。本仓库已完成该迁移，不再保留根级 `.spec-driven/` 目录。
 
 ## 严格命令接口
 
@@ -120,7 +119,7 @@ node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/changes/
 
 ## 自托管状态
 
-本仓库自托管于严格工作流之上。`.strict-spec-driven/` 包含活跃的严格规范、路线图和变更历史。`.spec-driven/` 保留为引导迁移输入。
+本仓库自托管于严格工作流之上。`.strict-spec-driven/` 是唯一活跃的工作流状态，包含活跃的严格规范、路线图和变更历史。从旧版 `.spec-driven/` 工作流的迁移已完成，不再保留根级 `.spec-driven/` 目录。
 
 ## 开发
 

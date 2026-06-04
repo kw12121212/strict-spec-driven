@@ -27,7 +27,7 @@ The preferred layout is:
 - milestone files hold durable milestone metadata and keep `planned_changes: {}` after migration
 - standalone planned-change files under `planned-changes/` are the normal team work-item surface
 
-If a preserved bootstrap `.spec-driven/roadmap/` directory also exists, treat it as migration history only. The strict CLI reads and rewrites `.strict-spec-driven/roadmap/` as the canonical roadmap source.
+If your project still has a legacy `.spec-driven/roadmap/` directory left over from before migration, treat it as migration history only. The strict CLI reads and rewrites `.strict-spec-driven/roadmap/` as the canonical roadmap source.
 
 ## Roadmap Index
 
