@@ -1,0 +1,50 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/mcp/inventory.ts
+    - src/mcp/resources.ts
+    - src/mcp/server.ts
+  tests:
+    - test/suites/mcp-server.ts
+operations:
+  ADDED:
+    cli-mcp-resource-inventory:
+      strength: MUST
+      statement: >-
+        The MCP server MUST expose bounded strict workflow resources for config, workflow state,
+        changes, change artifacts, specs, roadmap, tech standards, and harness declaration using
+        stable strict:// URI conventions.
+      scenarios:
+        mcp-resources-are-discoverable:
+          - GIVEN: the MCP resource inventory is inspected
+          - WHEN: resource definitions are enumerated
+          - THEN: the expected strict workflow resource URIs and URI templates are present
+          - THEN: resources are listed in stable order
+    cli-mcp-resource-reading:
+      strength: MUST
+      statement: >-
+        MCP resource reads MUST return deterministic text content for valid strict workflow artifacts
+        and generated strict summaries.
+      scenarios:
+        mcp-resources-return-deterministic-content:
+          - GIVEN: a valid strict workflow project
+          - WHEN: a known MCP resource URI is read
+          - THEN: the returned content includes the requested URI and deterministic text
+          - AND: repeated reads of the same resource produce stable content
+    cli-mcp-resource-bounds:
+      strength: MUST
+      statement: >-
+        MCP resource reads MUST reject unknown identifiers, missing artifacts, and parent-directory
+        traversal before exposing project files.
+      scenarios:
+        mcp-resources-reject-unbounded-file-access:
+          - GIVEN: a resource URI contains an unknown identifier or traversal segment
+          - WHEN: the MCP resource reader resolves the URI
+          - THEN: the read fails with a deterministic diagnostic
+          - AND: no arbitrary repository file is exposed
+  MODIFIED: {}
+  REMOVED: {}

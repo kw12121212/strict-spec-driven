@@ -23,6 +23,12 @@ mapping:
     - src/cli/registry.ts
     - src/cli/spec-mapping.ts
     - src/cli/usage.ts
+    - src/mcp/entrypoint.ts
+    - src/mcp/inventory.ts
+    - src/mcp/prompts.ts
+    - src/mcp/resources.ts
+    - src/mcp/server.ts
+    - src/mcp/tools.ts
     - src/diagnostics.ts
     - src/strict-spec-cli.ts
     - src/archive.ts
@@ -51,6 +57,7 @@ mapping:
     - test/run.ts
     - test/support/harness.ts
     - test/suites/entrypoint-and-skills.ts
+    - test/suites/mcp-server.ts
     - test/suites/foundation-and-fixtures.ts
     - test/suites/change-lifecycle.ts
     - test/fixtures/projects/todo-app/src/index.ts
@@ -1964,3 +1971,359 @@ requirements:
         - THEN: >-
             no cross-environment shared-port diagnostic is reported while existing same-environment
             duplicate-port detection is unaffected
+  cli-mcp-server-contract:
+    strength: MUST
+    statement: >-
+      The system MUST define one integrated local MCP server contract that uses stdio transport,
+      accepts an explicit project root from MCP client configuration, and preserves the existing
+      strict CLI and Agent Skills as authoritative workflow surfaces.
+    scenarios:
+      mcp-contract-defines-local-stdio-launch:
+        - GIVEN: the MCP server contract is reviewed
+        - WHEN: the launch and release boundary is inspected
+        - THEN: the contract identifies a local stdio server entrypoint for MCP-compatible clients
+        - AND: the contract requires explicit project root selection
+        - AND: >-
+            the contract does not define hosted HTTP transport, authentication, or multi-tenant
+            routing for the first integration
+      mcp-contract-preserves-existing-workflow-authority:
+        - GIVEN: an MCP client invokes strict workflow capabilities
+        - WHEN: the contract describes the relationship to existing strict workflow behavior
+        - THEN: >-
+            the CLI command surface, strict YAML artifacts, Agent Skills, verification, review, and
+            archive gates remain authoritative
+  cli-mcp-resource-contract:
+    strength: MUST
+    statement: >-
+      The MCP server contract MUST define stable strict-resource URI conventions for workflow
+      config, active and archived changes, change artifacts, specs, roadmap artifacts, tech
+      standards, harness declaration, and selected command summaries.
+    scenarios:
+      mcp-contract-lists-resource-uri-families:
+        - GIVEN: the MCP resource contract is reviewed
+        - WHEN: resource URI templates are inspected
+        - THEN: >-
+            the contract includes stable URI families for config, changes, specs, roadmap, tech
+            standards, harness declaration, and command summaries
+        - AND: each URI family identifies deterministic content for valid strict workflow projects
+  cli-mcp-tool-inventory-contract:
+    strength: MUST
+    statement: >-
+      The MCP server contract MUST define a server-owned tool inventory covering read-only
+      diagnostics and guarded mutating workflow actions with names, input schema fields, delegated
+      CLI or domain operation, success output shape, and representative failure diagnostics.
+    scenarios:
+      mcp-contract-lists-read-and-mutating-tool-inventory:
+        - GIVEN: the MCP tool inventory is reviewed
+        - WHEN: tool entries are inspected
+        - THEN: >-
+            read-only diagnostics and mutating workflow actions are both represented in one
+            inventory
+        - AND: each entry identifies its delegated strict CLI or domain operation
+        - AND: >-
+            each entry identifies input schema fields, success output shape, and representative
+            failure diagnostics
+  cli-mcp-tool-safety-contract:
+    strength: MUST
+    statement: >-
+      The MCP server contract MUST classify every MCP tool as read, write, lifecycle, release, or
+      destructive and MUST describe mutation behavior so MCP hosts can present appropriate
+      confirmation boundaries.
+    scenarios:
+      mcp-contract-classifies-tool-safety:
+        - GIVEN: the MCP tool inventory is reviewed
+        - WHEN: tool safety metadata is inspected
+        - THEN: each tool has one of the read, write, lifecycle, release, or destructive safety classes
+        - AND: >-
+            mutating, lifecycle, release, and destructive tools describe their project-state
+            mutation behavior
+  cli-mcp-prompt-contract:
+    strength: MUST
+    statement: >-
+      The MCP server contract MUST define MCP prompt inventory for proposal, apply or review,
+      archive, roadmap recommendation, and harness investigation workflows, with prompt text derived
+      from existing strict skill guidance or covered by drift tests.
+    scenarios:
+      mcp-contract-lists-skill-backed-prompts:
+        - GIVEN: the MCP prompt contract is reviewed
+        - WHEN: prompt inventory entries are inspected
+        - THEN: >-
+            proposal, apply or review, archive, roadmap recommendation, and harness investigation
+            workflows are represented
+        - AND: >-
+            the contract requires prompt content to reuse existing strict skill guidance or be
+            protected by drift tests
+  cli-mcp-sdk-package-contract:
+    strength: MUST
+    statement: >-
+      The MCP server contract MUST identify the official server-side MCP TypeScript SDK package as
+      `@modelcontextprotocol/server`, record the selected initial version range as `^2.0.0-alpha.2`,
+      and define local stdio registration in terms of `McpServer` and `StdioServerTransport` without
+      adding the runtime dependency in the contract-only change.
+    scenarios:
+      mcp-contract-pins-sdk-package-and-version-range:
+        - GIVEN: the MCP server contract is reviewed before runtime implementation
+        - WHEN: SDK package and transport guidance are inspected
+        - THEN: >-
+            the contract identifies `@modelcontextprotocol/server` as the server-side MCP TypeScript
+            SDK package
+        - AND: the contract records `^2.0.0-alpha.2` as the selected initial version range
+        - AND: >-
+            the contract names `McpServer` and `StdioServerTransport` as the local stdio server
+            registration APIs
+  cli-mcp-entrypoint-build-output:
+    strength: MUST
+    statement: >-
+      The system MUST build a dedicated local MCP server entrypoint at
+      `dist/scripts/strict-spec-driven-mcp.js` without removing or renaming the existing strict CLI
+      bundle.
+    scenarios:
+      mcp-build-emits-dedicated-entrypoint:
+        - GIVEN: the repository build command is executed
+        - WHEN: build output under dist/scripts is inspected
+        - THEN: '`strict-spec-driven-mcp.js` exists as a Node-executable bundled server entrypoint'
+        - AND: the existing `strict-spec-driven.js` CLI bundle remains available
+  cli-mcp-entrypoint-project-root:
+    strength: MUST
+    statement: >-
+      The MCP server entrypoint MUST require an explicit `--project <path>` argument, resolve it to
+      a directory, and reject missing or non-directory project roots before connecting the stdio
+      transport.
+    scenarios:
+      mcp-entrypoint-rejects-missing-project-root:
+        - GIVEN: an MCP client or operator starts the server without `--project`
+        - WHEN: the entrypoint validates startup arguments
+        - THEN: startup fails before stdio transport connection
+        - AND: stderr reports that `--project <path>` is required
+      mcp-entrypoint-rejects-invalid-project-root:
+        - GIVEN: >-
+            an MCP client or operator starts the server with `--project` pointing at a missing path
+            or file
+        - WHEN: the entrypoint validates startup arguments
+        - THEN: startup fails before stdio transport connection
+        - AND: stderr identifies the invalid project root
+  cli-mcp-entrypoint-stdio-server:
+    strength: MUST
+    statement: >-
+      The MCP server entrypoint MUST create an SDK `McpServer` using strict-spec-driven server
+      metadata, connect it with `StdioServerTransport`, and expose startup code that tests can
+      exercise without a real MCP host.
+    scenarios:
+      mcp-entrypoint-creates-stdio-server:
+        - GIVEN: a valid project root is supplied
+        - WHEN: the entrypoint constructs the MCP server
+        - THEN: the server metadata identifies strict-spec-driven and the package version
+        - AND: the stdio transport connection path is available for the process entrypoint
+  cli-mcp-inventory-foundation:
+    strength: MUST
+    statement: >-
+      The MCP server entrypoint MUST load server metadata and initial capability registration from a
+      server-owned MCP inventory module so later resources, tools, and prompts can extend one
+      registry.
+    scenarios:
+      mcp-entrypoint-uses-inventory-module:
+        - GIVEN: the MCP server factory is exercised in tests
+        - WHEN: inventory-backed registration runs
+        - THEN: server metadata comes from the MCP inventory
+        - AND: >-
+            the initial inventory contains no workflow resources, tools, or prompts before their
+            planned changes implement them
+  cli-mcp-sdk-runtime-dependency:
+    strength: MUST
+    statement: >-
+      The package MUST include the official `@modelcontextprotocol/server` runtime dependency at the
+      selected `^2.0.0-alpha.2` range when the MCP entrypoint is implemented.
+    scenarios:
+      mcp-entrypoint-declares-sdk-dependency:
+        - GIVEN: package metadata is inspected after the entrypoint change
+        - WHEN: dependencies are reviewed
+        - THEN: '`@modelcontextprotocol/server` is declared with version range `^2.0.0-alpha.2`'
+  cli-mcp-read-tool-inventory:
+    strength: MUST
+    statement: >-
+      The MCP server MUST expose a read-only tool inventory for strict workflow diagnostics, change
+      guidance, verification, roadmap status and recommendation, mapping audits, tech status,
+      harness plan, harness status, and bounded harness logs.
+    scenarios:
+      mcp-read-tools-are-discoverable:
+        - GIVEN: the MCP server registers its tool inventory
+        - WHEN: read-only tool definitions are inspected
+        - THEN: >-
+            the expected workflow, change, roadmap, mapping, tech, and harness diagnostic tools are
+            present
+        - AND: every read-only tool reports safety class read
+  cli-mcp-read-tool-delegation:
+    strength: MUST
+    statement: >-
+      Each read-only MCP tool MUST delegate to the existing strict CLI command surface under the
+      configured project root instead of reimplementing strict workflow behavior.
+    scenarios:
+      mcp-read-tools-delegate-to-strict-cli:
+        - GIVEN: a read-only MCP tool is called with valid typed arguments
+        - WHEN: the tool handler runs
+        - THEN: it invokes the mapped strict CLI command with repo-relative arguments
+        - AND: it uses the MCP server project root as the command working directory
+  cli-mcp-read-tool-output-envelope:
+    strength: MUST
+    statement: >-
+      Read-only MCP tools MUST return a deterministic JSON text envelope containing command name,
+      exit status, stdout, stderr, parsed JSON when stdout is parseable, and safety metadata.
+    scenarios:
+      mcp-read-tool-wraps-success-and-failure:
+        - GIVEN: a delegated strict command succeeds or fails
+        - WHEN: the MCP tool handler formats the result
+        - THEN: the returned text is parseable JSON
+        - AND: the JSON includes command, status, stdout, stderr, safety, and parsedJson fields
+  cli-mcp-read-tools-do-not-mutate:
+    strength: MUST
+    statement: >-
+      Read-only MCP tool calls MUST NOT mutate repository files and tests MUST prove representative
+      read tool calls preserve the workspace diff.
+    scenarios:
+      mcp-read-tool-preserves-workspace-diff:
+        - GIVEN: a strict workflow project has a captured workspace diff
+        - WHEN: representative read-only MCP tools are called
+        - THEN: the workspace diff after the calls matches the captured diff
+  cli-mcp-mutating-tool-inventory:
+    strength: MUST
+    statement: >-
+      The MCP server MUST expose guarded mutating tools for init, proposal creation, artifact
+      generation, task-state completion, roadmap sync, archive, harness lifecycle, and harness
+      session creation with explicit safety and mutation metadata.
+    scenarios:
+      mcp-mutating-tools-are-discoverable:
+        - GIVEN: the MCP tool inventory is inspected
+        - WHEN: mutating tool definitions are enumerated
+        - THEN: >-
+            init, propose, generate, apply-backed task completion, roadmap sync, archive, harness
+            lifecycle, and harness session creation tools are present
+        - THEN: each mutating tool reports mutates true and a conservative safety class
+  cli-mcp-mutating-tool-delegation:
+    strength: MUST
+    statement: >-
+      Each mutating MCP tool MUST delegate to the existing strict CLI command surface under the
+      configured project root and MUST preserve strict CLI preconditions and failure diagnostics.
+    scenarios:
+      mcp-mutating-tools-delegate-to-existing-cli:
+        - GIVEN: a mutating MCP tool is called with valid typed arguments
+        - WHEN: the tool handler runs
+        - THEN: it invokes the mapped strict CLI command in the MCP server project root
+        - THEN: >-
+            success and failure results preserve the delegated command exit status, stdout, and
+            stderr
+  cli-mcp-mutating-tool-input-validation:
+    strength: MUST
+    statement: >-
+      Mutating MCP tools MUST use typed input schemas and reject invalid inputs before invoking
+      delegated strict CLI commands.
+    scenarios:
+      mcp-mutating-tools-reject-invalid-input-before-delegation:
+        - GIVEN: a mutating MCP tool is called with invalid input
+        - WHEN: the MCP SDK validates the registered input schema
+        - THEN: the tool call is rejected before the strict CLI delegate runs
+        - AND: no project mutation is attempted by the MCP handler
+  cli-mcp-mutating-tool-safety-boundaries:
+    strength: MUST
+    statement: >-
+      Mutating MCP tool descriptions and envelopes MUST make project-state mutation explicit,
+      including write, lifecycle, and release safety classes, and the apply-backed tool MUST be
+      worded as task-state completion rather than implementation work.
+    scenarios:
+      mcp-mutating-tools-report-confirmation-metadata:
+        - GIVEN: MCP clients inspect mutating tool metadata and call results
+        - WHEN: mutating tools are registered or executed
+        - THEN: descriptions identify project-state mutation or lifecycle effects
+        - AND: returned envelopes include the tool safety class and mutates true
+        - AND: the apply-backed tool is named and described as marking the next task complete
+  cli-mcp-resource-inventory:
+    strength: MUST
+    statement: >-
+      The MCP server MUST expose bounded strict workflow resources for config, workflow state,
+      changes, change artifacts, specs, roadmap, tech standards, and harness declaration using
+      stable strict:// URI conventions.
+    scenarios:
+      mcp-resources-are-discoverable:
+        - GIVEN: the MCP resource inventory is inspected
+        - WHEN: resource definitions are enumerated
+        - THEN: the expected strict workflow resource URIs and URI templates are present
+        - THEN: resources are listed in stable order
+  cli-mcp-resource-reading:
+    strength: MUST
+    statement: >-
+      MCP resource reads MUST return deterministic text content for valid strict workflow artifacts
+      and generated strict summaries.
+    scenarios:
+      mcp-resources-return-deterministic-content:
+        - GIVEN: a valid strict workflow project
+        - WHEN: a known MCP resource URI is read
+        - THEN: the returned content includes the requested URI and deterministic text
+        - AND: repeated reads of the same resource produce stable content
+  cli-mcp-resource-bounds:
+    strength: MUST
+    statement: >-
+      MCP resource reads MUST reject unknown identifiers, missing artifacts, and parent-directory
+      traversal before exposing project files.
+    scenarios:
+      mcp-resources-reject-unbounded-file-access:
+        - GIVEN: a resource URI contains an unknown identifier or traversal segment
+        - WHEN: the MCP resource reader resolves the URI
+        - THEN: the read fails with a deterministic diagnostic
+        - AND: no arbitrary repository file is exposed
+  cli-mcp-prompt-inventory:
+    strength: MUST
+    statement: >-
+      The MCP server MUST expose stable prompt inventory entries for strict proposal, application,
+      review, archive, roadmap recommendation, and harness investigation workflows, including typed
+      argument schemas and user-facing descriptions.
+    scenarios:
+      mcp-prompts-are-discoverable:
+        - GIVEN: the MCP server prompt inventory is inspected
+        - WHEN: prompt entries are enumerated
+        - THEN: >-
+            strict_propose_change, strict_apply_change, strict_review_change, strict_archive_change,
+            strict_roadmap_recommend, and strict_harness_investigation are present
+        - AND: each prompt declares its expected typed arguments and description
+  cli-mcp-prompt-rendering:
+    strength: MUST
+    statement: >-
+      MCP prompts MUST render deterministic user messages derived from existing strict skill
+      workflow guidance and MUST preserve strict verification, review, archive, and safety
+      boundaries.
+    scenarios:
+      mcp-prompts-render-skill-backed-guidance:
+        - GIVEN: an MCP client requests a strict workflow prompt
+        - WHEN: the prompt is rendered with valid arguments
+        - THEN: >-
+            the returned prompt message references the relevant strict workflow command or skill
+            guidance
+        - AND: >-
+            the message preserves strict verification, code review, archive, and mutating-tool
+            confirmation expectations
+  cli-mcp-user-documentation:
+    strength: MUST
+    statement: >-
+      User documentation MUST describe local MCP server configuration, explicit project-root launch
+      arguments, representative resources, tools, prompts, read-only requests, and mutating
+      confirmation boundaries.
+    scenarios:
+      mcp-docs-cover-local-client-setup:
+        - GIVEN: a user reads the MCP documentation
+        - WHEN: setup and usage examples are inspected
+        - THEN: the docs include a local stdio MCP client JSON configuration
+        - AND: >-
+            the docs include read-only status, resource, prompt, and guarded mutating workflow
+            examples
+  cli-mcp-protocol-regression:
+    strength: MUST
+    statement: >-
+      The regression suite MUST cover MCP protocol smoke flows for listing tools, calling tools,
+      listing resources, reading resources, listing prompts, getting prompts, built-output launch
+      availability, and prompt drift against strict skill guidance.
+    scenarios:
+      mcp-protocol-smoke-coverage-exists:
+        - GIVEN: the project test suite is executed after build
+        - WHEN: MCP server regression tests run
+        - THEN: >-
+            tools/list, tools/call, resources/list, resources/read, prompts/list, and prompts/get
+            are exercised through the MCP protocol
+        - AND: built-output launch and skill-prompt drift checks are covered

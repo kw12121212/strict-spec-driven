@@ -1,0 +1,77 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/mcp/inventory.ts
+    - src/mcp/prompts.ts
+    - src/mcp/server.ts
+    - README.md
+    - QUICKSTART.md
+  tests:
+    - test/suites/mcp-server.ts
+operations:
+  ADDED:
+    cli-mcp-prompt-inventory:
+      strength: MUST
+      statement: >-
+        The MCP server MUST expose stable prompt inventory entries for strict proposal, application,
+        review, archive, roadmap recommendation, and harness investigation workflows, including
+        typed argument schemas and user-facing descriptions.
+      scenarios:
+        mcp-prompts-are-discoverable:
+          - GIVEN: the MCP server prompt inventory is inspected
+          - WHEN: prompt entries are enumerated
+          - THEN: >-
+              strict_propose_change, strict_apply_change, strict_review_change,
+              strict_archive_change, strict_roadmap_recommend, and strict_harness_investigation are
+              present
+          - AND: each prompt declares its expected typed arguments and description
+    cli-mcp-prompt-rendering:
+      strength: MUST
+      statement: >-
+        MCP prompts MUST render deterministic user messages derived from existing strict skill
+        workflow guidance and MUST preserve strict verification, review, archive, and safety
+        boundaries.
+      scenarios:
+        mcp-prompts-render-skill-backed-guidance:
+          - GIVEN: an MCP client requests a strict workflow prompt
+          - WHEN: the prompt is rendered with valid arguments
+          - THEN: >-
+              the returned prompt message references the relevant strict workflow command or skill
+              guidance
+          - AND: >-
+              the message preserves strict verification, code review, archive, and mutating-tool
+              confirmation expectations
+    cli-mcp-user-documentation:
+      strength: MUST
+      statement: >-
+        User documentation MUST describe local MCP server configuration, explicit project-root
+        launch arguments, representative resources, tools, prompts, read-only requests, and mutating
+        confirmation boundaries.
+      scenarios:
+        mcp-docs-cover-local-client-setup:
+          - GIVEN: a user reads the MCP documentation
+          - WHEN: setup and usage examples are inspected
+          - THEN: the docs include a local stdio MCP client JSON configuration
+          - AND: >-
+              the docs include read-only status, resource, prompt, and guarded mutating workflow
+              examples
+    cli-mcp-protocol-regression:
+      strength: MUST
+      statement: >-
+        The regression suite MUST cover MCP protocol smoke flows for listing tools, calling tools,
+        listing resources, reading resources, listing prompts, getting prompts, built-output launch
+        availability, and prompt drift against strict skill guidance.
+      scenarios:
+        mcp-protocol-smoke-coverage-exists:
+          - GIVEN: the project test suite is executed after build
+          - WHEN: MCP server regression tests run
+          - THEN: >-
+              tools/list, tools/call, resources/list, resources/read, prompts/list, and prompts/get
+              are exercised through the MCP protocol
+          - AND: built-output launch and skill-prompt drift checks are covered
+  MODIFIED: {}
+  REMOVED: {}

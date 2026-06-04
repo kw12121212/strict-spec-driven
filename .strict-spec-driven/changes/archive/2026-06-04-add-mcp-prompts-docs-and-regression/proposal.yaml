@@ -1,0 +1,48 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-mcp-prompts-docs-and-regression
+  status: proposed
+summary:
+  what:
+    - >-
+      Expose stable MCP prompt templates for strict proposal, apply, review, archive, roadmap
+      recommendation, and harness investigation workflows.
+    - >-
+      Document local MCP server configuration, launch arguments, resource/tool/prompt examples,
+      mutating confirmation boundaries, and strict verification evidence expectations.
+    - >-
+      Add regression coverage for MCP protocol list/get/call/read flows, built-output launch
+      availability, and prompt drift against strict skill guidance.
+  why:
+    - >-
+      The integrated MCP server needs a complete user-facing surface so MCP hosts can guide strict
+      workflows without replacing the existing CLI and skills.
+    - >-
+      Docs and protocol regression coverage keep the local stdio integration installable,
+      discoverable, and aligned with strict review and archive gates.
+scope:
+  in:
+    - Add MCP prompt inventory and prompt registration using the official TypeScript MCP server SDK.
+    - Add README and Quick Start MCP configuration and usage examples.
+    - >-
+      Extend MCP server tests for prompts/list, prompts/get, tools/list, tools/call, resources/list,
+      resources/read, built-output launch checks, and skill-prompt drift assertions.
+  out:
+    - >-
+      Do not add hosted HTTP transport, authentication, remote multi-project routing, or generic
+      repository file browsing.
+    - >-
+      Do not change strict CLI command semantics, skill package names, or mutating tool safety
+      classifications.
+unchanged_behavior:
+  - Existing strict CLI commands and Agent Skills remain authoritative for workflow behavior.
+  - >-
+    Existing MCP resources, read-only tools, and guarded mutating tools keep their names and output
+    envelopes.
+  - The MCP server remains local stdio-only and requires an explicit project root.
+roadmap:
+  milestone: 0015-mcp-server-integration
+  planned_change: add-mcp-prompts-docs-and-regression

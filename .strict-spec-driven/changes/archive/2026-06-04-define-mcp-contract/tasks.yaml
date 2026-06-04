@@ -1,0 +1,37 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: define-mcp-contract
+sections:
+  Implementation:
+    define-mcp-contract-spec:
+      text: Add the MCP server contract requirements to the cli-foundation delta spec.
+      status: complete
+    check-contract-scope:
+      text: >-
+        Confirm the proposal, design, and delta spec stay limited to contract definition and do not
+        add MCP runtime implementation.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+    validate-ready:
+      text: Validate the proposed strict change handoff.
+      status: complete
+      command: node scripts/strict-spec-driven.js ready define-mcp-contract
+  Verification:
+    verify-scope:
+      text: >-
+        Verify the MCP contract requirements match the roadmap planned change and milestone
+        boundaries.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

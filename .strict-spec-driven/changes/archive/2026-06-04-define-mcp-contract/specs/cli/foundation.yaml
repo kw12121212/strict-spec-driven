@@ -1,0 +1,117 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - package.json
+    - README.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-mcp-server-contract:
+      strength: MUST
+      statement: >-
+        The system MUST define one integrated local MCP server contract that uses stdio transport,
+        accepts an explicit project root from MCP client configuration, and preserves the existing
+        strict CLI and Agent Skills as authoritative workflow surfaces.
+      scenarios:
+        mcp-contract-defines-local-stdio-launch:
+          - GIVEN: the MCP server contract is reviewed
+          - WHEN: the launch and release boundary is inspected
+          - THEN: the contract identifies a local stdio server entrypoint for MCP-compatible clients
+          - AND: the contract requires explicit project root selection
+          - AND: >-
+              the contract does not define hosted HTTP transport, authentication, or multi-tenant
+              routing for the first integration
+        mcp-contract-preserves-existing-workflow-authority:
+          - GIVEN: an MCP client invokes strict workflow capabilities
+          - WHEN: the contract describes the relationship to existing strict workflow behavior
+          - THEN: >-
+              the CLI command surface, strict YAML artifacts, Agent Skills, verification, review,
+              and archive gates remain authoritative
+    cli-mcp-resource-contract:
+      strength: MUST
+      statement: >-
+        The MCP server contract MUST define stable strict-resource URI conventions for workflow
+        config, active and archived changes, change artifacts, specs, roadmap artifacts, tech
+        standards, harness declaration, and selected command summaries.
+      scenarios:
+        mcp-contract-lists-resource-uri-families:
+          - GIVEN: the MCP resource contract is reviewed
+          - WHEN: resource URI templates are inspected
+          - THEN: >-
+              the contract includes stable URI families for config, changes, specs, roadmap, tech
+              standards, harness declaration, and command summaries
+          - AND: each URI family identifies deterministic content for valid strict workflow projects
+    cli-mcp-tool-inventory-contract:
+      strength: MUST
+      statement: >-
+        The MCP server contract MUST define a server-owned tool inventory covering read-only
+        diagnostics and guarded mutating workflow actions with names, input schema fields, delegated
+        CLI or domain operation, success output shape, and representative failure diagnostics.
+      scenarios:
+        mcp-contract-lists-read-and-mutating-tool-inventory:
+          - GIVEN: the MCP tool inventory is reviewed
+          - WHEN: tool entries are inspected
+          - THEN: >-
+              read-only diagnostics and mutating workflow actions are both represented in one
+              inventory
+          - AND: each entry identifies its delegated strict CLI or domain operation
+          - AND: >-
+              each entry identifies input schema fields, success output shape, and representative
+              failure diagnostics
+    cli-mcp-tool-safety-contract:
+      strength: MUST
+      statement: >-
+        The MCP server contract MUST classify every MCP tool as read, write, lifecycle, release, or
+        destructive and MUST describe mutation behavior so MCP hosts can present appropriate
+        confirmation boundaries.
+      scenarios:
+        mcp-contract-classifies-tool-safety:
+          - GIVEN: the MCP tool inventory is reviewed
+          - WHEN: tool safety metadata is inspected
+          - THEN: >-
+              each tool has one of the read, write, lifecycle, release, or destructive safety
+              classes
+          - AND: >-
+              mutating, lifecycle, release, and destructive tools describe their project-state
+              mutation behavior
+    cli-mcp-prompt-contract:
+      strength: MUST
+      statement: >-
+        The MCP server contract MUST define MCP prompt inventory for proposal, apply or review,
+        archive, roadmap recommendation, and harness investigation workflows, with prompt text
+        derived from existing strict skill guidance or covered by drift tests.
+      scenarios:
+        mcp-contract-lists-skill-backed-prompts:
+          - GIVEN: the MCP prompt contract is reviewed
+          - WHEN: prompt inventory entries are inspected
+          - THEN: >-
+              proposal, apply or review, archive, roadmap recommendation, and harness investigation
+              workflows are represented
+          - AND: >-
+              the contract requires prompt content to reuse existing strict skill guidance or be
+              protected by drift tests
+    cli-mcp-sdk-package-contract:
+      strength: MUST
+      statement: >-
+        The MCP server contract MUST identify the official server-side MCP TypeScript SDK package as
+        `@modelcontextprotocol/server`, record the selected initial version range as
+        `^2.0.0-alpha.2`, and define local stdio registration in terms of `McpServer` and
+        `StdioServerTransport` without adding the runtime dependency in the contract-only change.
+      scenarios:
+        mcp-contract-pins-sdk-package-and-version-range:
+          - GIVEN: the MCP server contract is reviewed before runtime implementation
+          - WHEN: SDK package and transport guidance are inspected
+          - THEN: >-
+              the contract identifies `@modelcontextprotocol/server` as the server-side MCP
+              TypeScript SDK package
+          - AND: the contract records `^2.0.0-alpha.2` as the selected initial version range
+          - AND: >-
+              the contract names `McpServer` and `StdioServerTransport` as the local stdio server
+              registration APIs
+  MODIFIED: {}
+  REMOVED: {}

@@ -1,0 +1,42 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-mcp-prompts-docs-and-regression
+sections:
+  Implementation:
+    implement-prompt-inventory:
+      text: >-
+        Add MCP prompt inventory, typed argument schemas, deterministic prompt rendering, and SDK
+        prompt registration.
+      status: complete
+    update-mcp-docs:
+      text: >-
+        Document MCP local stdio client configuration, launch arguments, resources/tools/prompts
+        examples, and mutating confirmation boundaries.
+      status: complete
+    add-protocol-regression-tests:
+      text: Add MCP protocol smoke tests and skill-prompt drift checks.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify prompts, docs, and tests match proposal scope without adding HTTP transport, generic
+        repository browsing, or changed CLI semantics.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

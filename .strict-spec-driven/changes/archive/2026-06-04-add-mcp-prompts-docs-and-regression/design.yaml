@@ -1,0 +1,46 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-mcp-prompts-docs-and-regression
+approach:
+  - >-
+    Add a dedicated prompts module that owns prompt inventory, argument schemas, rendering, and MCP
+    SDK registration. Keep prompt text as workflow guidance derived from existing strict skills and
+    expose a direct renderer for deterministic drift tests.
+  - >-
+    Register prompts from createStrictMcpServer alongside existing resources and tools so server
+    inventory, SDK registration, and tests all describe one capability set.
+  - >-
+    Document MCP setup in README and QUICKSTART with a local stdio client JSON example,
+    representative read-only request flow, resource and prompt examples, and confirmation
+    expectations for mutating tools.
+  - >-
+    Extend MCP tests with a small in-memory transport protocol smoke harness plus direct
+    inventory/rendering assertions.
+decisions:
+  prompt-module:
+    decision: >-
+      Prompt definitions live in src/mcp/prompts.ts instead of being embedded in server.ts or
+      inventory-only metadata.
+    rationale: >-
+      A dedicated module keeps SDK registration, deterministic prompt rendering, argument
+      validation, and drift checks isolated while preserving the existing inventory module as the
+      server capability summary.
+  skill-guidance-derived:
+    decision: >-
+      Prompt output is concise workflow guidance derived from strict skill SKILL.md files and
+      checked with drift assertions for command names and safety phrases.
+    rationale: >-
+      The planned change requires prompt text to reuse existing strict skill guidance or be
+      protected by drift tests; drift assertions catch stale command and gate language without
+      duplicating complete skill files.
+  protocol-smoke:
+    decision: >-
+      Tests exercise MCP protocol methods through an in-memory transport instead of only direct
+      helper calls.
+    rationale: >-
+      Protocol smoke coverage proves the registered SDK server exposes list/get/call/read methods
+      from built output while keeping tests local and deterministic.
+alternatives: []
+risks: []

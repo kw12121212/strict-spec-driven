@@ -1,0 +1,61 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - package.json
+    - src/mcp/inventory.ts
+    - src/mcp/server.ts
+    - src/mcp/tools.ts
+  tests:
+    - test/suites/mcp-server.ts
+operations:
+  ADDED:
+    cli-mcp-read-tool-inventory:
+      strength: MUST
+      statement: >-
+        The MCP server MUST expose a read-only tool inventory for strict workflow diagnostics,
+        change guidance, verification, roadmap status and recommendation, mapping audits, tech
+        status, harness plan, harness status, and bounded harness logs.
+      scenarios:
+        mcp-read-tools-are-discoverable:
+          - GIVEN: the MCP server registers its tool inventory
+          - WHEN: read-only tool definitions are inspected
+          - THEN: the expected workflow, change, roadmap, mapping, tech, and harness diagnostic tools are present
+          - AND: every read-only tool reports safety class read
+    cli-mcp-read-tool-delegation:
+      strength: MUST
+      statement: >-
+        Each read-only MCP tool MUST delegate to the existing strict CLI command surface under the
+        configured project root instead of reimplementing strict workflow behavior.
+      scenarios:
+        mcp-read-tools-delegate-to-strict-cli:
+          - GIVEN: a read-only MCP tool is called with valid typed arguments
+          - WHEN: the tool handler runs
+          - THEN: it invokes the mapped strict CLI command with repo-relative arguments
+          - AND: it uses the MCP server project root as the command working directory
+    cli-mcp-read-tool-output-envelope:
+      strength: MUST
+      statement: >-
+        Read-only MCP tools MUST return a deterministic JSON text envelope containing command name,
+        exit status, stdout, stderr, parsed JSON when stdout is parseable, and safety metadata.
+      scenarios:
+        mcp-read-tool-wraps-success-and-failure:
+          - GIVEN: a delegated strict command succeeds or fails
+          - WHEN: the MCP tool handler formats the result
+          - THEN: the returned text is parseable JSON
+          - AND: the JSON includes command, status, stdout, stderr, safety, and parsedJson fields
+    cli-mcp-read-tools-do-not-mutate:
+      strength: MUST
+      statement: >-
+        Read-only MCP tool calls MUST NOT mutate repository files and tests MUST prove representative
+        read tool calls preserve the workspace diff.
+      scenarios:
+        mcp-read-tool-preserves-workspace-diff:
+          - GIVEN: a strict workflow project has a captured workspace diff
+          - WHEN: representative read-only MCP tools are called
+          - THEN: the workspace diff after the calls matches the captured diff
+  MODIFIED: {}
+  REMOVED: {}

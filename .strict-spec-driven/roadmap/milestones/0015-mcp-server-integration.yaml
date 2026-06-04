@@ -1,0 +1,153 @@
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+milestone:
+  0015-mcp-server-integration:
+    title: 15 MCP Server Integration
+goal: >-
+  Ship one cohesive MCP server integration that exposes strict-spec-driven workflow context,
+  read-only diagnostics, mutating workflow commands, and prompt templates to MCP-compatible AI
+  clients without replacing the existing CLI or Agent Skills.
+scope:
+  in:
+    - >-
+      Define the MCP server product contract as a single-version integration rather than separate
+      read-only and write-capable releases, including tool categories, resource URI conventions,
+      prompt names, safety classes, and expected client usage.
+    - >-
+      Add a Node/TypeScript MCP server entrypoint that can be launched by MCP clients with an
+      explicit project root and that delegates workflow behavior to the existing strict CLI/domain
+      modules instead of duplicating business logic.
+    - >-
+      Use the official MCP TypeScript SDK with stdio transport for the local server entrypoint,
+      register tools, resources, and prompts through SDK registration APIs, and keep HTTP or hosted
+      transports outside the first integration.
+    - >-
+      Expose strict workflow state as MCP resources for config, active and archived changes,
+      proposals, designs, tasks, questions, specs, roadmap, tech standards, harness declaration, and
+      selected command summaries.
+    - >-
+      Expose read-only MCP tools for workflow state checks, change listing, verification, roadmap
+      status and recommendation, spec and tech mapping audits, tech status, harness plan, harness
+      status, and bounded harness logs.
+    - >-
+      Expose mutating MCP tools for init, propose, artifact generation, roadmap sync, archive,
+      harness lifecycle, and related strict workflow actions with explicit safety metadata and
+      confirmation-oriented descriptions for client hosts.
+    - >-
+      Define a server-owned tool registry that records each tool's safety class, mutation behavior,
+      CLI/domain delegate, input schema, output shape, and expected failure diagnostics so
+      documentation and tests can be generated from the same inventory.
+    - >-
+      Expose MCP prompts derived from the existing strict skills so users can invoke proposal,
+      application, review, archive, roadmap, and harness workflows from MCP-compatible clients.
+    - >-
+      Document MCP installation, client configuration, safe operation boundaries, and example usage
+      for both agent-driven implementation work and human-guided planning.
+  out:
+    - >-
+      Replacing the existing `strict-spec-driven` CLI command surface, slash-command skill
+      packaging, or bundled strict YAML artifacts.
+    - >-
+      Building a remote hosted service, multi-tenant authentication model, or network transport
+      beyond the local MCP server process needed by common clients.
+    - >-
+      Treating MCP tool calls as proof that implementation work has been completed; code changes,
+      tests, review evidence, and archive gates remain governed by the strict workflow.
+    - >-
+      Adding model-specific logic or client-specific behavior that prevents the server from being
+      used by generic MCP-compatible hosts.
+done_criteria:
+  - >-
+    A documented MCP server entrypoint is available from the built package and can be configured by
+    an MCP client with a project root argument and stdio transport.
+  - >-
+    MCP resources expose the current strict workflow artifacts with stable URI conventions and
+    deterministic content for valid projects.
+  - >-
+    MCP tools cover both read-only diagnostics and guarded mutating workflow actions in one
+    integrated command set, with tests proving JSON inputs, success output, and failure diagnostics.
+  - >-
+    Mutating tools are classified as write, lifecycle, release, or destructive, and tests prove the
+    server reports that classification while existing strict preconditions still block unsafe state
+    changes.
+  - >-
+    MCP prompts cover the main strict workflows by reusing the intent and guardrails of the existing
+    skill guidance instead of inventing a second workflow language.
+  - >-
+    Documentation explains how a user configures the server, what commands an AI client can call,
+    which tools mutate project state, and how strict verification/review/archive gates still apply.
+  - >-
+    `bun run build`, `bun test/run.ts`, `validate-skills`, roadmap validation, and mapping
+    validation all pass after the MCP integration is complete.
+planned_changes: {}
+dependencies:
+  - >-
+    The strict CLI command handlers, domain modules, schema validation layer, roadmap workflow,
+    harness workflow, and skill packages remain the source of truth for behavior exposed through
+    MCP.
+  - >-
+    The MCP TypeScript SDK remains suitable for registering a local stdio server with tools,
+    resources, and prompts through typed schemas.
+  - >-
+    Local MCP clients can launch a Node process and pass a project root; remote transport and hosted
+    deployment are deferred until a concrete consumer requires them.
+  - >-
+    Existing strict workflow safety rules around task completion, review evidence, archive
+    preconditions, harness secrets, and stateful lifecycle operations continue to apply.
+risks:
+  - >-
+    Exposing mutating commands through MCP can make it too easy for an AI client to modify workflow
+    state without enough user intent, so tool names, descriptions, and safety classifications must
+    be explicit and conservative.
+  - >-
+    Duplicating CLI behavior inside the MCP server would create drift, so the server must delegate
+    to shared command/domain logic or the CLI wrapper rather than reimplementing workflow rules.
+  - >-
+    Resource discovery can expose too much repository context if URI templates are too broad, so the
+    initial resource surface should stay limited to strict workflow artifacts and command summaries.
+  - >-
+    MCP prompt templates can drift from Agent Skills if maintained separately, so prompt generation
+    should either reference existing skill files or be covered by packaging validation tests.
+  - >-
+    SDK package names and registration APIs can change, so the first planned change must pin the
+    selected SDK package and version range before code implementation begins.
+  - >-
+    A broad mutating tool surface can blur host-level confirmation expectations, so lifecycle and
+    release-class tools need stronger documentation and regression coverage than normal write tools.
+status: complete
+notes:
+  - >-
+    This milestone intentionally merges the earlier read-only MVP and write-capable follow-up into
+    one integrated release plan. The implementation can still sequence read-only tools before
+    mutating tools internally, but the product milestone ships a single coherent MCP server.
+  - >-
+    The MCP server is an integration layer, not a new workflow engine. Existing CLI behavior, strict
+    YAML schemas, skill guidance, and archive gates remain authoritative.
+  - >-
+    Tool naming should avoid implying that a command implemented code when it only advances workflow
+    state; for example, the existing apply behavior should be exposed with wording that makes
+    task-state mutation explicit.
+details: >-
+  The repository already has the right primitives for MCP: deterministic CLI commands map to MCP
+  tools, `.strict-spec-driven/` artifacts map to MCP resources, and strict skill guidance maps to
+  MCP prompts. The missing layer is a local server process that exposes these capabilities through
+  MCP so AI clients can discover and call the workflow without shell-command guessing.
+
+  The milestone should ship one coherent server rather than two public versions. It may still be
+  implemented in safe increments: define the contract, add the server entrypoint, expose resources,
+  expose read-only tools, add guarded mutating tools, then add prompts and documentation. This keeps
+  risk controlled while giving users one installation and one mental model.
+
+  The primary product boundary is safety. Read-only tools should be freely callable. Mutating tools
+  should be named and described so hosts can present confirmation prompts, and dangerous lifecycle
+  actions such as archive, harness start/stop, and future commit/push integration should preserve
+  the existing strict guardrails. The server must not claim that MCP invocation replaces tests,
+  review evidence, or strict archive verification.
+
+  The first implementation target is a local stdio server because common MCP hosts launch local
+  integrations as child processes. HTTP transport, remote hosting, authentication, and multi-project
+  routing remain deliberate follow-up work. The server should be organized around an inventory file
+  or module that lists resources, tools, prompts, safety class, CLI/domain delegate, and tests, so
+  new MCP capabilities do not drift from documentation or from the existing command surface.

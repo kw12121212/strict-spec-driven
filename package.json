@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "bun scripts/gen-templates-bundle.ts && tsc && rm -rf dist/templates dist/scripts && cp -r templates dist/templates && cp -r scripts dist/scripts && bun build --bundle --target node --format esm --outfile dist/scripts/strict-spec-driven.js src/strict-spec-cli.ts",
-    "bundle": "mkdir -p dist/scripts && bun build --bundle --target node --format esm --outfile dist/scripts/strict-spec-driven.js src/strict-spec-cli.ts",
+    "build": "bun scripts/gen-templates-bundle.ts && tsc && rm -rf dist/templates dist/scripts && cp -r templates dist/templates && cp -r scripts dist/scripts && bun build --bundle --target node --format esm --outfile dist/scripts/strict-spec-driven.js src/strict-spec-cli.ts && bun build --bundle --target node --format esm --outfile dist/scripts/strict-spec-driven-mcp.js src/mcp/entrypoint.ts",
+    "bundle": "mkdir -p dist/scripts && bun build --bundle --target node --format esm --outfile dist/scripts/strict-spec-driven.js src/strict-spec-cli.ts && bun build --bundle --target node --format esm --outfile dist/scripts/strict-spec-driven-mcp.js src/mcp/entrypoint.ts",
     "build:bundle": "bun run build",
     "install-strict-skills": "bash install.sh",
     "install-strict-skills:win": "powershell -ExecutionPolicy Bypass -File install.ps1",
@@ -22,8 +22,11 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@cfworker/json-schema": "^4.1.1",
+    "@modelcontextprotocol/server": "^2.0.0-alpha.2",
     "ajv": "8.18.0",
     "ajv-formats": "3.0.1",
-    "js-yaml": "4.1.1"
+    "js-yaml": "4.1.1",
+    "zod": "^4.0.0"
   }
 }

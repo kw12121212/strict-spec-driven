@@ -59,3 +59,7 @@ milestones:
     title: 14 Self Hosted Spec Coverage Backfill
     path: roadmap/milestones/0014-self-hosted-spec-coverage-backfill.yaml
     status: complete
+  0015-mcp-server-integration:
+    title: 15 MCP Server Integration
+    path: roadmap/milestones/0015-mcp-server-integration.yaml
+    status: complete

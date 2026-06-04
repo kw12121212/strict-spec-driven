@@ -1,0 +1,36 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: define-mcp-contract
+  milestone: 0015-mcp-server-integration
+status: complete
+summary: >-
+  Define the MCP server contract, including tool categories, resource URI conventions, prompt
+  inventory, safety classes, and client usage boundaries for one integrated release.
+details: >-
+  Specify the server capability model before implementation. The contract should describe which
+  existing CLI/domain behaviors become MCP tools, which strict workflow artifacts become resources,
+  which existing skill workflows become prompts, and how mutating or lifecycle operations are
+  labeled for host confirmation. The output should be a strict spec and/or design artifact that
+  makes the single-version release boundary explicit and prevents read-only and write-capable
+  surfaces from becoming divergent products.
+
+  The contract should pin the initial server shape to a local stdio transport using the selected
+  official MCP TypeScript SDK package and version range. It should include a tool inventory with
+  names, safety classes (`read`, `write`, `lifecycle`, `release`, `destructive`), mutation behavior,
+  input schema fields, delegated CLI/domain operation, success output shape, and representative
+  failure diagnostics. It should include a resource inventory with URI templates such as
+  `strict://config`, `strict://changes`, `strict://changes/{change}/proposal`,
+  `strict://specs/{specId}`, `strict://roadmap/index`, `strict://tech/{standardId}`, and
+  `strict://harness/declaration`. It should include a prompt inventory for propose, apply/review,
+  archive, roadmap recommendation, and harness investigation workflows, with a rule that prompt text
+  must reuse existing skill guidance or be covered by drift tests.
+depends_on: []
+team:
+  blocked:
+    status: false
+  labels:
+    - mcp
+    - architecture

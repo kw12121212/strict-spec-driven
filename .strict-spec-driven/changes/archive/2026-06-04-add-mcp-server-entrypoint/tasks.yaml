@@ -1,0 +1,46 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-mcp-server-entrypoint
+sections:
+  Implementation:
+    add-sdk-dependency:
+      text: Add the official MCP server SDK dependency and bundling peer dependency.
+      status: complete
+      command: bun add @modelcontextprotocol/server@^2.0.0-alpha.2 && bun add @cfworker/json-schema@^4.1.1
+    implement-entrypoint:
+      text: Implement the MCP inventory, server factory, project-root validation, and stdio entrypoint.
+      status: complete
+    update-build-output:
+      text: >-
+        Update package build scripts so the MCP entrypoint bundles to
+        dist/scripts/strict-spec-driven-mcp.js.
+      status: complete
+    add-entrypoint-tests:
+      text: >-
+        Add MCP entrypoint tests for metadata, project-root validation, dependency declaration, and
+        built output.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify the MCP entrypoint change implements launch/build behavior only and leaves resources,
+        tools, and prompts for later changes.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

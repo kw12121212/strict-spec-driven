@@ -103,6 +103,40 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 
 The roadmap docs describe the preferred split-file collaboration model: keep milestone files and `INDEX.yaml` low churn, store day-to-day roadmap work in `.strict-spec-driven/roadmap/planned-changes/`, rerun `roadmap-sync` after merges or archive handoff, and treat external tracker references as optional context rather than required source of truth.
 
+### MCP Server: `strict-spec-driven-mcp`
+
+The built package also includes a local MCP server for MCP-compatible clients. It is a stdio-only integration and always requires an explicit project root:
+
+```json
+{
+  "mcpServers": {
+    "strict-spec-driven": {
+      "command": "node",
+      "args": [
+        "/path/to/strict-spec-driven/dist/scripts/strict-spec-driven-mcp.js",
+        "--project",
+        "/path/to/your/project"
+      ]
+    }
+  }
+}
+```
+
+The MCP server preserves the CLI and Agent Skills as the authoritative workflow implementation. It exposes strict workflow artifacts as resources, delegates tools to the strict CLI under the configured project root, and provides prompts that guide existing strict skills.
+
+Representative resources:
+- `strict://workflow/state`
+- `strict://changes/{change}/proposal`
+- `strict://specs/{specId}`
+- `strict://roadmap/planned-changes/{plannedChangeId}`
+- `strict://harness/declaration`
+
+Representative read-only request: ask the MCP client to check strict workflow status. The expected tool call is `check_workflow_state`, which delegates to `strict-spec-driven check-workflow-state` and does not mutate project files.
+
+Representative prompt request: ask for `strict_review_change` with `{ "change": "my-change" }` to get review guidance that keeps verification, direct code review, and complete regression evidence in the workflow.
+
+Mutating tools require host-visible confirmation boundaries. Tools such as `propose_change`, `generate_change_artifact`, `mark_next_task_complete`, `roadmap_sync`, and `archive_change` write strict workflow state. `harness_start` and `harness_stop` are lifecycle actions, and `archive_change` is release-class because it merges specs and reconciles roadmap state.
+
 ## Schema and Example Assets
 
 Bundled strict YAML schema files live under `templates/strict-spec-driven/schemas/`. Minimal valid examples live under `examples/strict-spec-driven/` as repository reference assets. These are separate from `.strict-spec-driven/` workflow state.

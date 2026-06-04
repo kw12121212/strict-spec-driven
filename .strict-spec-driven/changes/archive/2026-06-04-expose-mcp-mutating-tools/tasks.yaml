@@ -1,0 +1,43 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: expose-mcp-mutating-tools
+sections:
+  Implementation:
+    implement-mutating-tool-inventory:
+      text: Add mutating MCP tool metadata with conservative safety classes and mutation flags.
+      status: complete
+    implement-mutating-tool-delegation:
+      text: >-
+        Register mutating MCP handlers that validate typed inputs and delegate to existing strict
+        CLI commands under the project root.
+      status: complete
+    add-mutating-tool-tests:
+      text: >-
+        Extend MCP tests for mutating tool metadata, delegation, invalid input rejection, failure
+        preconditions, and confirmation-oriented wording.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify mutating MCP tools only expose planned strict workflow and harness lifecycle
+        commands, with no destructive cancellation, commit, push, resource, prompt, or HTTP
+        transport surface added.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

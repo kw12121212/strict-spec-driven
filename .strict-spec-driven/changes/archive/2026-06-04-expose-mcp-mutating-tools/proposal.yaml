@@ -1,0 +1,47 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: expose-mcp-mutating-tools
+  status: proposed
+summary:
+  what:
+    - Expose guarded mutating MCP tools for strict workflow state changes.
+    - >-
+      Classify each mutating tool with conservative safety and mutation metadata for host
+      confirmation.
+  why:
+    - >-
+      MCP clients need discoverable workflow actions beyond read-only diagnostics while preserving
+      strict guardrails.
+scope:
+  in:
+    - >-
+      Add mutating tool inventory entries for init, propose, artifact generation, task-state
+      completion, roadmap sync, archive, harness start, harness stop, and harness session creation.
+    - >-
+      Register mutating tools through the MCP SDK with typed input schemas and confirmation-oriented
+      descriptions.
+    - Delegate every mutating MCP call to the existing strict CLI under the configured project root.
+    - >-
+      Add tests for safety metadata, invalid-input rejection, failed precondition preservation, and
+      representative successful delegation.
+  out:
+    - >-
+      Cancellation, commit, push, destructive filesystem wrappers, MCP resources, MCP prompts,
+      hosted HTTP transport, or documentation changes.
+    - >-
+      Changing strict CLI preconditions, archive gates, harness safety behavior, or task-completion
+      semantics.
+unchanged_behavior:
+  - Existing strict CLI commands remain authoritative for all workflow mutations and diagnostics.
+  - >-
+    Read-only MCP tools keep their existing names, output envelope, and non-mutating safety
+    metadata.
+  - >-
+    MCP tool calls do not count as code implementation, review evidence, or archive approval by
+    themselves.
+roadmap:
+  milestone: 0015-mcp-server-integration
+  planned_change: expose-mcp-mutating-tools

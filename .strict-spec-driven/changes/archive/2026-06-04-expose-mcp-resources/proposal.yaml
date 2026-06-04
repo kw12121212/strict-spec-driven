@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: expose-mcp-resources
+  status: proposed
+summary:
+  what:
+    - Expose bounded strict workflow MCP resources with stable strict:// URI conventions.
+  why:
+    - MCP clients need structured workflow context without arbitrary repository file browsing.
+scope:
+  in:
+    - >-
+      Add explicit resources for config, workflow state, changes, change artifacts, specs, roadmap,
+      tech standards, and harness declaration.
+    - Register resource readers through the MCP SDK and return deterministic text content.
+    - Reject unknown identifiers and parent-directory traversal before reading files.
+    - >-
+      Add tests for resource inventory, list/read behavior, stable ordering, missing artifacts, and
+      traversal rejection.
+  out:
+    - >-
+      Generic repository file browsing, MCP prompts, hosted HTTP transport, documentation changes,
+      or mutating tool changes.
+unchanged_behavior:
+  - Existing CLI, read tool, and mutating tool behavior remains authoritative and unchanged.
+  - Resources are limited to strict workflow artifacts and generated strict summaries.
+roadmap:
+  milestone: 0015-mcp-server-integration
+  planned_change: expose-mcp-resources

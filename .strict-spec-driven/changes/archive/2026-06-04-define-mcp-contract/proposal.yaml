@@ -1,0 +1,49 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: define-mcp-contract
+  status: proposed
+summary:
+  what:
+    - >-
+      Define the initial MCP server contract for strict-spec-driven as one integrated local stdio
+      release.
+    - >-
+      Document the tool, resource, prompt, safety, and client usage boundaries that later MCP
+      implementation changes must satisfy.
+  why:
+    - >-
+      The roadmap milestone needs a stable contract before runtime, resources, tools, prompts, and
+      docs are implemented.
+    - >-
+      A single contract prevents read-only and mutating MCP surfaces from becoming divergent
+      products.
+scope:
+  in:
+    - >-
+      Add strict spec requirements for the MCP server capability model, local stdio launch boundary,
+      resource URI conventions, tool inventory, prompt inventory, safety classes, and client usage
+      boundaries.
+    - >-
+      Map the contract to future implementation and regression-test surfaces without implementing
+      the MCP runtime in this change.
+  out:
+    - >-
+      Adding the MCP server entrypoint, SDK dependency, runtime tool/resource/prompt registration,
+      or client configuration docs.
+    - Replacing existing CLI or Agent Skill behavior with MCP-only workflows.
+    - >-
+      Adding hosted HTTP transport, authentication, multi-tenant routing, or model-specific MCP
+      behavior.
+unchanged_behavior:
+  - >-
+    Existing strict CLI commands, workflow artifacts, skill packaging, roadmap behavior, harness
+    behavior, and archive gates remain authoritative.
+  - >-
+    MCP invocation does not count as implementation, review evidence, verification, or archive
+    proof.
+roadmap:
+  milestone: 0015-mcp-server-integration
+  planned_change: define-mcp-contract

@@ -1,0 +1,40 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: expose-mcp-read-tools
+  status: proposed
+summary:
+  what:
+    - Expose the initial read-only MCP tool inventory for strict workflow diagnostics.
+    - >-
+      Register typed MCP tools that delegate to existing strict CLI behavior and return
+      deterministic JSON text results.
+  why:
+    - MCP clients need safe diagnostic access before mutating workflow actions are exposed.
+scope:
+  in:
+    - >-
+      Add read-only tool inventory entries for workflow state, change guidance, verification,
+      roadmap, mapping, tech, and harness diagnostics.
+    - Register read-only tools on the MCP server through the SDK using typed input schemas.
+    - >-
+      Delegate tool execution to the existing strict command surface under the configured project
+      root.
+    - >-
+      Add tests for tool inventory metadata, SDK registration, representative success and failure
+      outputs, and read-only workspace preservation.
+  out:
+    - >-
+      Mutating tools such as init, propose, generate, apply, roadmap sync, archive, harness start,
+      or harness stop.
+    - >-
+      MCP resources, prompts, hosted HTTP transport, or client documentation beyond test-only
+      fixtures.
+unchanged_behavior:
+  - Existing strict CLI commands remain authoritative for diagnostics and validation behavior.
+  - Read-only MCP tools must not modify project files.
+roadmap:
+  milestone: 0015-mcp-server-integration
+  planned_change: expose-mcp-read-tools

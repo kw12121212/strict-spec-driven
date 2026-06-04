@@ -1,0 +1,35 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: expose-mcp-mutating-tools
+  milestone: 0015-mcp-server-integration
+status: complete
+summary: >-
+  Expose guarded mutating workflow actions as MCP tools while preserving strict verification,
+  review, archive, and harness safety boundaries.
+details: >-
+  Add mutating tools for init, propose, artifact generation, roadmap sync, archive, harness
+  lifecycle, and similar strict workflow operations. Each tool should have conservative naming,
+  typed inputs, clear descriptions that hosts can present for confirmation, and tests proving that
+  existing preconditions still block unsafe state changes. Expose the existing apply behavior with
+  wording that makes task-state mutation explicit rather than implying code implementation.
+
+  The mutating tool inventory should start with `init_workflow`, `propose_change`,
+  `generate_change_artifact`, `mark_next_task_complete`, `roadmap_sync`, `archive_change`,
+  `harness_start`, `harness_stop`, and `harness_session_create`. Classify init, propose, generation,
+  task-state updates, and roadmap sync as `write`; harness lifecycle as `lifecycle`; archive as
+  `release`; and any future cancellation or commit/push wrapper as `destructive` or `release` rather
+  than normal write. Tests should prove each mutating tool reports its safety class, rejects invalid
+  inputs before changing files, preserves existing strict preconditions, and leaves partial-start or
+  archive failure recovery behavior consistent with the CLI.
+depends_on:
+  - expose-mcp-read-tools
+team:
+  blocked:
+    status: false
+  labels:
+    - mcp
+    - safety
+    - tools

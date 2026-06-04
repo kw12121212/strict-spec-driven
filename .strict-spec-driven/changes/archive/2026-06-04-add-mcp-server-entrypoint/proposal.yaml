@@ -1,0 +1,42 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-mcp-server-entrypoint
+  status: proposed
+summary:
+  what:
+    - Add the initial local MCP stdio server entrypoint and package build output.
+    - >-
+      Introduce the MCP server dependency, project-root validation, server metadata, and startup
+      tests without exposing workflow resources or tools yet.
+  why:
+    - >-
+      The MCP roadmap needs a runnable server process before resources, tools, prompts, and
+      documentation can be added safely.
+scope:
+  in:
+    - Add source files for the MCP entrypoint and inventory metadata.
+    - >-
+      Add the official server-side MCP TypeScript SDK dependency selected by the contract and the
+      peer package required for bundling that SDK.
+    - >-
+      Update package build scripts to emit a dedicated dist/scripts/strict-spec-driven-mcp.js
+      bundle.
+    - >-
+      Add tests for argument parsing, project root validation, server metadata, and built output
+      availability without requiring a real MCP host.
+  out:
+    - >-
+      Registering workflow resources, read-only tools, mutating tools, prompts, or MCP client
+      documentation beyond minimal launch output.
+    - Adding HTTP transport, hosted service behavior, authentication, or model-specific behavior.
+unchanged_behavior:
+  - Existing strict CLI behavior and command routing remain unchanged.
+  - >-
+    MCP server startup does not bypass strict workflow validation, review, archive, or harness
+    safety rules.
+roadmap:
+  milestone: 0015-mcp-server-integration
+  planned_change: add-mcp-server-entrypoint

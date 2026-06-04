@@ -1,0 +1,42 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: expose-mcp-read-tools
+sections:
+  Implementation:
+    implement-read-tool-inventory:
+      text: Add read-only MCP tool metadata and SDK registration.
+      status: complete
+    implement-read-tool-delegation:
+      text: >-
+        Implement read-only MCP handlers that delegate to existing strict CLI commands under the
+        project root.
+      status: complete
+    add-read-tool-tests:
+      text: >-
+        Extend MCP tests for tool inventory, command delegation, output envelopes, and no-mutation
+        behavior.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify only read-only MCP tools were added and mutating resources, tools, prompts, and
+        hosted transport remain out of scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

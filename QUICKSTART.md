@@ -43,6 +43,39 @@ bun run validate-skills
 
 `validate-skills` reports any packaging issues (missing metadata, stale command references, broken symlinks).
 
+## Configure the MCP Server
+
+After building this repository, MCP-compatible clients can use the local stdio server. Configure the client with an explicit project root:
+
+```json
+{
+  "mcpServers": {
+    "strict-spec-driven": {
+      "command": "node",
+      "args": [
+        "/path/to/strict-spec-driven/dist/scripts/strict-spec-driven-mcp.js",
+        "--project",
+        "/path/to/your/project"
+      ]
+    }
+  }
+}
+```
+
+Build output must exist before launching the server:
+
+```sh
+bun run build
+```
+
+Example user requests for an MCP client:
+- "Check whether this project has strict workflow state." Expected tool: `check_workflow_state`.
+- "Read the proposal for change `my-change`." Expected resource: `strict://changes/my-change/proposal`.
+- "Guide me through reviewing `my-change`." Expected prompt: `strict_review_change` with `{ "change": "my-change" }`.
+- "Archive `my-change`." Expected tool: `archive_change`, after host confirmation because it is release-class and mutates workflow state.
+
+The MCP server does not replace the CLI or skills. Read-only tools report diagnostics without changing files. Mutating tools such as `propose_change`, `mark_next_task_complete`, `roadmap_sync`, `harness_start`, and `archive_change` should be shown by the MCP host as write, lifecycle, or release actions before execution.
+
 ## Set Up a New Project
 
 Navigate to the project directory where you want to use the strict workflow, then initialize the `.strict-spec-driven/` scaffold:

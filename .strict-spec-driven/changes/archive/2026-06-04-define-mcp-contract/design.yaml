@@ -1,0 +1,53 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: define-mcp-contract
+approach:
+  - >-
+    Capture the first MCP integration as observable strict requirements under the CLI foundation
+    spec because it defines the public command/package surface and client-facing behavior.
+  - >-
+    Describe inventories and safety classifications as contract outputs that later implementation
+    changes must satisfy through code and tests.
+  - >-
+    Keep transport scope to local stdio and require future runtime work to delegate to existing
+    CLI/domain behavior instead of creating a second workflow engine.
+decisions:
+  contract-before-runtime:
+    decision: >-
+      Define MCP resources, tools, prompts, safety classes, and client boundaries before adding the
+      server runtime.
+    rationale: >-
+      The roadmap intentionally sequences contract definition first so later entrypoint, resource,
+      tool, and prompt changes can be validated against one stable product boundary.
+  single-integrated-release:
+    decision: >-
+      Specify one integrated MCP release containing read-only and guarded mutating capabilities
+      rather than separate public products.
+    rationale: >-
+      The milestone states that the server may be implemented incrementally but should present one
+      installation and one mental model to MCP clients.
+  local-stdio-only:
+    decision: >-
+      Constrain the initial MCP server contract to local stdio transport with explicit project root
+      selection.
+    rationale: >-
+      Common MCP hosts can launch local child processes, while hosted HTTP transport,
+      authentication, and multi-project routing require separate product decisions.
+alternatives:
+  - option: Implement the MCP server entrypoint in the contract change.
+    reason: >-
+      Runtime code would widen this planned change beyond contract definition and duplicate later
+      roadmap work.
+  - option: Define only read-only MCP capabilities first.
+    reason: >-
+      That would recreate the split product boundary the milestone explicitly merged into one
+      integrated release.
+risks:
+  - >-
+    The exact MCP SDK package/version range must be selected by the implementation change before
+    adding runtime dependencies.
+  - >-
+    Future implementation work must keep generated documentation, inventory, and registered SDK
+    capabilities synchronized.

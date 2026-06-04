@@ -1,0 +1,37 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-mcp-prompts-docs-and-regression
+  milestone: 0015-mcp-server-integration
+status: complete
+summary: >-
+  Add MCP prompts, user documentation, install examples, and regression coverage for the integrated
+  MCP server.
+details: >-
+  Expose prompt templates for proposal, application, review, archive, roadmap, and harness workflows
+  by reusing existing strict skill guidance. Document client configuration, server launch arguments,
+  resource and tool examples, mutating-tool safety expectations, and the continuing role of strict
+  verification and review evidence. Add build, test, packaging, and documentation smoke coverage so
+  the MCP entrypoint remains available from built output.
+
+  Prompt names should be stable and user-facing, such as `strict_propose_change`,
+  `strict_apply_change`, `strict_review_change`, `strict_archive_change`,
+  `strict_roadmap_recommend`, and `strict_harness_investigation`. Prompt arguments should use typed
+  schemas for change name, roadmap item, environment, or investigation id where applicable. The docs
+  should include at least one MCP client JSON configuration, example user requests, expected tool
+  calls for a read-only status check, and expected confirmation boundaries for mutating tools. The
+  regression suite should include MCP protocol smoke tests for tools/list, tools/call,
+  resources/list, resources/read, prompts/list, prompts/get, built-output launch, and skill-prompt
+  drift checks.
+depends_on:
+  - expose-mcp-resources
+  - expose-mcp-mutating-tools
+team:
+  blocked:
+    status: false
+  labels:
+    - mcp
+    - docs
+    - prompts

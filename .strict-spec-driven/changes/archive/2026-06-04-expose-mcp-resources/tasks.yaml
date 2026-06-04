@@ -1,0 +1,40 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: expose-mcp-resources
+sections:
+  Implementation:
+    implement-resource-inventory:
+      text: Add bounded MCP resource metadata and strict URI conventions.
+      status: complete
+    implement-resource-reading:
+      text: Implement deterministic MCP resource reads with safe identifier resolution.
+      status: complete
+    add-resource-tests:
+      text: >-
+        Extend MCP tests for resource inventory, reads, ordering, missing artifacts, and traversal
+        rejection.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: >-
+        Verify resources remain bounded to strict workflow artifacts and generated summaries, with
+        no generic repository file browsing, prompt, or HTTP transport surface added.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

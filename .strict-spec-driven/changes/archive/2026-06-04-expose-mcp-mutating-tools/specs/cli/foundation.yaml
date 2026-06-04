@@ -1,0 +1,68 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - package.json
+    - src/mcp/inventory.ts
+    - src/mcp/server.ts
+    - src/mcp/tools.ts
+  tests:
+    - test/suites/mcp-server.ts
+operations:
+  ADDED:
+    cli-mcp-mutating-tool-inventory:
+      strength: MUST
+      statement: >-
+        The MCP server MUST expose guarded mutating tools for init, proposal creation, artifact
+        generation, task-state completion, roadmap sync, archive, harness lifecycle, and harness
+        session creation with explicit safety and mutation metadata.
+      scenarios:
+        mcp-mutating-tools-are-discoverable:
+          - GIVEN: the MCP tool inventory is inspected
+          - WHEN: mutating tool definitions are enumerated
+          - THEN: >-
+              init, propose, generate, apply-backed task completion, roadmap sync, archive, harness
+              lifecycle, and harness session creation tools are present
+          - THEN: each mutating tool reports mutates true and a conservative safety class
+    cli-mcp-mutating-tool-delegation:
+      strength: MUST
+      statement: >-
+        Each mutating MCP tool MUST delegate to the existing strict CLI command surface under the
+        configured project root and MUST preserve strict CLI preconditions and failure diagnostics.
+      scenarios:
+        mcp-mutating-tools-delegate-to-existing-cli:
+          - GIVEN: a mutating MCP tool is called with valid typed arguments
+          - WHEN: the tool handler runs
+          - THEN: it invokes the mapped strict CLI command in the MCP server project root
+          - THEN: >-
+              success and failure results preserve the delegated command exit status, stdout, and
+              stderr
+    cli-mcp-mutating-tool-input-validation:
+      strength: MUST
+      statement: >-
+        Mutating MCP tools MUST use typed input schemas and reject invalid inputs before invoking
+        delegated strict CLI commands.
+      scenarios:
+        mcp-mutating-tools-reject-invalid-input-before-delegation:
+          - GIVEN: a mutating MCP tool is called with invalid input
+          - WHEN: the MCP SDK validates the registered input schema
+          - THEN: the tool call is rejected before the strict CLI delegate runs
+          - AND: no project mutation is attempted by the MCP handler
+    cli-mcp-mutating-tool-safety-boundaries:
+      strength: MUST
+      statement: >-
+        Mutating MCP tool descriptions and envelopes MUST make project-state mutation explicit,
+        including write, lifecycle, and release safety classes, and the apply-backed tool MUST be
+        worded as task-state completion rather than implementation work.
+      scenarios:
+        mcp-mutating-tools-report-confirmation-metadata:
+          - GIVEN: MCP clients inspect mutating tool metadata and call results
+          - WHEN: mutating tools are registered or executed
+          - THEN: descriptions identify project-state mutation or lifecycle effects
+          - AND: returned envelopes include the tool safety class and mutates true
+          - AND: the apply-backed tool is named and described as marking the next task complete
+  MODIFIED: {}
+  REMOVED: {}

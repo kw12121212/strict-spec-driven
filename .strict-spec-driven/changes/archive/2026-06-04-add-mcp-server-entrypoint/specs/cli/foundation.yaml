@@ -1,0 +1,86 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - package.json
+    - src/mcp/entrypoint.ts
+    - src/mcp/inventory.ts
+    - src/mcp/server.ts
+  tests:
+    - test/suites/mcp-server.ts
+operations:
+  ADDED:
+    cli-mcp-entrypoint-build-output:
+      strength: MUST
+      statement: >-
+        The system MUST build a dedicated local MCP server entrypoint at
+        `dist/scripts/strict-spec-driven-mcp.js` without removing or renaming the existing strict
+        CLI bundle.
+      scenarios:
+        mcp-build-emits-dedicated-entrypoint:
+          - GIVEN: the repository build command is executed
+          - WHEN: build output under dist/scripts is inspected
+          - THEN: >-
+              `strict-spec-driven-mcp.js` exists as a Node-executable bundled server entrypoint
+          - AND: the existing `strict-spec-driven.js` CLI bundle remains available
+    cli-mcp-entrypoint-project-root:
+      strength: MUST
+      statement: >-
+        The MCP server entrypoint MUST require an explicit `--project <path>` argument, resolve it
+        to a directory, and reject missing or non-directory project roots before connecting the
+        stdio transport.
+      scenarios:
+        mcp-entrypoint-rejects-missing-project-root:
+          - GIVEN: an MCP client or operator starts the server without `--project`
+          - WHEN: the entrypoint validates startup arguments
+          - THEN: startup fails before stdio transport connection
+          - AND: stderr reports that `--project <path>` is required
+        mcp-entrypoint-rejects-invalid-project-root:
+          - GIVEN: >-
+              an MCP client or operator starts the server with `--project` pointing at a missing
+              path or file
+          - WHEN: the entrypoint validates startup arguments
+          - THEN: startup fails before stdio transport connection
+          - AND: stderr identifies the invalid project root
+    cli-mcp-entrypoint-stdio-server:
+      strength: MUST
+      statement: >-
+        The MCP server entrypoint MUST create an SDK `McpServer` using strict-spec-driven server
+        metadata, connect it with `StdioServerTransport`, and expose startup code that tests can
+        exercise without a real MCP host.
+      scenarios:
+        mcp-entrypoint-creates-stdio-server:
+          - GIVEN: a valid project root is supplied
+          - WHEN: the entrypoint constructs the MCP server
+          - THEN: the server metadata identifies strict-spec-driven and the package version
+          - AND: the stdio transport connection path is available for the process entrypoint
+    cli-mcp-inventory-foundation:
+      strength: MUST
+      statement: >-
+        The MCP server entrypoint MUST load server metadata and initial capability registration from
+        a server-owned MCP inventory module so later resources, tools, and prompts can extend one
+        registry.
+      scenarios:
+        mcp-entrypoint-uses-inventory-module:
+          - GIVEN: the MCP server factory is exercised in tests
+          - WHEN: inventory-backed registration runs
+          - THEN: server metadata comes from the MCP inventory
+          - AND: >-
+              the initial inventory contains no workflow resources, tools, or prompts before their
+              planned changes implement them
+    cli-mcp-sdk-runtime-dependency:
+      strength: MUST
+      statement: >-
+        The package MUST include the official `@modelcontextprotocol/server` runtime dependency at
+        the selected `^2.0.0-alpha.2` range when the MCP entrypoint is implemented.
+      scenarios:
+        mcp-entrypoint-declares-sdk-dependency:
+          - GIVEN: package metadata is inspected after the entrypoint change
+          - WHEN: dependencies are reviewed
+          - THEN: >-
+              `@modelcontextprotocol/server` is declared with version range `^2.0.0-alpha.2`
+  MODIFIED: {}
+  REMOVED: {}
