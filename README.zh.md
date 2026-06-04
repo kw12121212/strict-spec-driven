@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-**文档：** [快速入门](QUICKSTART.zh.md) · [路线图快速入门](ROADMAP_QUICKSTART.zh.md) · [路线图指南](ROADMAP_GUIDE.zh.md) · [Harness](HARNESS.zh.md) · [RTK](RTK.md)
+**文档：** [快速入门](QUICKSTART.zh.md) · [路线图快速入门](ROADMAP_QUICKSTART.zh.md) · [路线图指南](ROADMAP_GUIDE.zh.md) · [开发会话](DEV_SESSIONS.zh.md) · [调试会话](DEBUG_SESSIONS.zh-CN.md) · [Harness](HARNESS.zh.md) · [RTK](RTK.md)
 
 `strict-spec-driven` 是一个 YAML 优先的规范驱动开发工作流。它提供规范驱动生命周期（提议 → 执行 → 验证 → Skill 驱动代码审查 → 归档）和 Agent Skills 集成，将工作流制品——规范、变更、路线图、任务、问题——转换为严格 YAML 模式，由确定性脚本强制执行。
 
@@ -16,6 +16,7 @@
 | `.strict-spec-driven/changes/` | 活跃的变更目录 |
 | `.strict-spec-driven/changes/archive/` | 已归档的变更 |
 | `.strict-spec-driven/roadmap/` | 严格 YAML 路线图制品 |
+| `.strict-spec-driven/roadmap/planned-changes/` | 首选的独立路线图工作项文件 |
 | `.strict-spec-driven/specs/` | 严格 YAML 主规范文件 |
 | `templates/strict-spec-driven/schemas/` | 捆绑的严格 YAML 模式文件 |
 | `examples/strict-spec-driven/` | 仓库参考用的最小有效 YAML 示例 |
@@ -54,6 +55,13 @@
 | `schema-show <name>` | 输出一个捆绑的严格 schema 资源 |
 | `template-list` | 列出捆绑的模板和 schema 资源键 |
 | `template-show <key>` | 输出一个捆绑的模板或 schema 资源 |
+| `harness-infer` | 从仓库元数据推断安全 harness 声明草稿 |
+| `harness-doctor` | 诊断 harness 声明、包装脚本、环境和安全问题 |
+| `harness-plan` | 验证并推导确定性 harness 计划 |
+| `harness-start` / `harness-stop` | 管理已声明的可执行 harness 组件 |
+| `harness-status` / `harness-logs` | 检查受管 harness 运行时状态和日志 |
+| `harness-scripts <generate\|verify>` | 生成或验证项目本地的 `scripts/harness-*` 包装脚本 |
+| `harness-session <create\|validate\|archive>` | 管理结构化 harness 调查会话 |
 
 ### Skills：`strict-spec-*` 和 `strict-roadmap-*`
 
@@ -75,6 +83,8 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-spec-brainstorm` | 在提议前对变更想法进行头脑风暴 |
 | `/strict-spec-modify` | 修改现有变更的制品 |
 | `/strict-spec-cancel` | 取消活跃变更 |
+| `/strict-spec-harness-init` | 创建或优化 `.strict-spec-driven/harness.yaml` 和生成脚本 |
+| `/strict-spec-harness-session` | 运行结构化 harness 调查 |
 | `/strict-spec-simple-task` | 不走完整生命周期的轻量级临时任务 |
 | `/strict-spec-spec-edit` | 直接编辑主规范文件 |
 | `/strict-spec-sync-specs` | 与代码漂移同步规范 |
@@ -90,6 +100,42 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-roadmap-milestone` | 完善路线图里程碑 |
 | `/strict-roadmap-plan` | 创建或重构路线图 |
 | `/strict-roadmap-sync` | 协调路线图里程碑和变更状态 |
+
+路线图文档描述了首选的拆分文件协作模型：保持里程碑文件和 `INDEX.yaml` 低变动率，将日常路线图工作存储在 `.strict-spec-driven/roadmap/planned-changes/` 中，在合并或归档交接后重新运行 `roadmap-sync`，并将外部跟踪器引用视为可选上下文而非必需的真实来源。
+
+### MCP Server：`strict-spec-driven-mcp`
+
+构建的包还包含一个用于兼容 MCP 客户端的本地 MCP 服务器。它是仅 stdio 的集成，始终需要显式的项目根目录：
+
+```json
+{
+  "mcpServers": {
+    "strict-spec-driven": {
+      "command": "node",
+      "args": [
+        "/path/to/strict-spec-driven/dist/scripts/strict-spec-driven-mcp.js",
+        "--project",
+        "/path/to/your/project"
+      ]
+    }
+  }
+}
+```
+
+MCP 服务器将 CLI 和 Agent Skills 保留为权威的工作流实现。它将严格工作流制品公开为资源，将工具委托给配置项目根目录下的严格 CLI，并提供指导现有严格 Skills 的提示。
+
+代表性资源：
+- `strict://workflow/state`
+- `strict://changes/{change}/proposal`
+- `strict://specs/{specId}`
+- `strict://roadmap/planned-changes/{plannedChangeId}`
+- `strict://harness/declaration`
+
+代表性只读请求：要求 MCP 客户端检查严格工作流状态。预期的工具调用是 `check_workflow_state`，它委托给 `strict-spec-driven check-workflow-state`，不会修改项目文件。
+
+代表性提示请求：使用 `{ "change": "my-change" }` 请求 `strict_review_change`，以获取将验证、直接代码审查和完整回归证据保留在工作流中的审查指导。
+
+变更工具需要宿主可见的确认边界。`propose_change`、`generate_change_artifact`、`mark_next_task_complete`、`roadmap_sync` 和 `archive_change` 等工具会写入严格工作流状态。`harness_start` 和 `harness_stop` 是生命周期操作，`archive_change` 属于发布级别，因为它会合并规范并协调路线图状态。
 
 ## 模式和示例资源
 

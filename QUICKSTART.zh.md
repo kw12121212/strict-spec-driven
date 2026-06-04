@@ -43,6 +43,39 @@ bun run validate-skills
 
 `validate-skills` 报告任何打包问题（缺失元数据、过时的命令引用、损坏的符号链接）。
 
+## 配置 MCP 服务器
+
+构建本仓库后，MCP 兼容客户端可以使用本地 stdio 服务器。配置客户端时需指定明确的项目根目录：
+
+```json
+{
+  "mcpServers": {
+    "strict-spec-driven": {
+      "command": "node",
+      "args": [
+        "/path/to/strict-spec-driven/dist/scripts/strict-spec-driven-mcp.js",
+        "--project",
+        "/path/to/your/project"
+      ]
+    }
+  }
+}
+```
+
+启动服务器之前必须先有构建输出：
+
+```sh
+bun run build
+```
+
+MCP 客户端的示例用户请求：
+- "检查此项目是否有严格工作流状态。" 预期工具：`check_workflow_state`。
+- "读取变更 `my-change` 的提案。" 预期资源：`strict://changes/my-change/proposal`。
+- "引导我审查 `my-change`。" 预期提示：`strict_review_change`，参数为 `{ "change": "my-change" }`。
+- "归档 `my-change`。" 预期工具：`archive_change`，由于属于发布类操作且会变更工作流状态，需在宿主确认后执行。
+
+MCP 服务器不替代 CLI 或 Skills。只读工具报告诊断信息而不修改文件。变更性工具如 `propose_change`、`mark_next_task_complete`、`roadmap_sync`、`harness_start` 和 `archive_change` 应由 MCP 宿主在执行前展示为写入、生命周期或发布类操作。
+
 ## 初始化新项目
 
 导航到要使用严格工作流的项目目录，然后初始化 `.strict-spec-driven/` 脚手架：
