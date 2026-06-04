@@ -122,6 +122,21 @@ The built package also includes a local MCP server for MCP-compatible clients. I
 }
 ```
 
+#### Registering the server with `mcp-install`
+
+Instead of editing client config by hand, the `mcp-install` command builds the package and registers the server into supported clients:
+
+```bash
+strict-spec-driven mcp-install --client claude-code --client codex --scope project
+strict-spec-driven mcp-install --client all --project /path/to/your/project
+strict-spec-driven mcp-install --client json --config ./.mcp.json
+```
+
+- `--client` accepts `claude-code`, `codex`, `opencode`, `copilot`, `json`, or `all`, and may be repeated. `all` expands to the four named clients; `json` is opt-in because it requires an explicit `--config` path.
+- `claude-code` and `codex` are registered through their official CLIs (`claude mcp add`, `codex mcp add`); when that CLI is not on `PATH` the client is skipped with a diagnostic rather than hand-writing its config.
+- `opencode` (`mcp` key), `copilot` (`.vscode/mcp.json` `servers` key), and `json` (`mcpServers` key, written to `--config`) are merged idempotently in each client's native format, preserving existing entries.
+- `--scope` selects `project` (default) or `user` config targets, `--project` sets the registered project root (defaults to the current directory), and `--name` overrides the entry name (default `strict-spec-driven`).
+
 The MCP server preserves the CLI and Agent Skills as the authoritative workflow implementation. It exposes strict workflow artifacts as resources, delegates tools to the strict CLI under the configured project root, and provides prompts that guide existing strict skills.
 
 Representative resources:

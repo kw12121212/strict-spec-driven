@@ -9,6 +9,7 @@ import { runApply, runVerify, runArchive, runList, runModify, runCancel } from "
 import { runCheckWorkflowState, runNext, runReady } from "./cli/cmd-workflow.js";
 import { runRoadmapOverview, runRoadmapRecommend, runRoadmapStatus, runRoadmapSync } from "./cli/cmd-roadmap.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
+import { runMcpInstall } from "./cli/cmd-mcp-install.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMappings, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
 import { runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
 import {
@@ -91,6 +92,7 @@ export const commands = createCliCommandTable({
   "harness-logs": (argv) => runHarnessLogs(argv),
   "harness-scripts": (argv) => runHarnessScripts(argv),
   "harness-session": (argv) => runHarnessSession(argv),
+  "mcp-install": (argv) => runMcpInstall(argv),
   migrate: (argv) => runMigrate(argv),
   "roadmap-status": (argv) => runRoadmapStatus(argv),
   "roadmap-overview": (argv) => runRoadmapOverview(argv),

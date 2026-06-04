@@ -1,0 +1,64 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-mcp-install-command
+approach:
+  - >-
+    Add a new cmd-mcp-install module to the strict CLI registry that builds the project, resolves
+    the dist MCP entrypoint and project root, then dispatches to per-client registrars selected by
+    --client and --scope.
+  - >-
+    Implement a hybrid registration strategy: delegate to official client CLIs (claude mcp add,
+    codex mcp add) where they exist, and perform idempotent native-format config merges (TOML for
+    Codex, JSON shapes for opencode, Copilot, and generic) where they do not.
+decisions:
+  subcommand-not-script:
+    decision: >-
+      Implement registration as a TypeScript ESM strict CLI subcommand rather than a standalone bash
+      script.
+    rationale: >-
+      The esm-typescript-only MUST standard requires TypeScript source, and a CLI subcommand is
+      unit-testable and reuses the existing CLI registry and packaging-smoke patterns, unlike the
+      bash install.sh exception.
+  hybrid-registration:
+    decision: Use official client CLIs where available and direct idempotent config-file writes otherwise.
+    rationale: >-
+      Client CLIs own their config schema and avoid format drift, while file writes are the only
+      option for clients without an install CLI; the mix gives the widest coverage per the confirmed
+      brainstorm.
+  native-format-per-client:
+    decision: Write each client entry in that client's native config format and merge idempotently.
+    rationale: >-
+      Codex uses TOML and the JSON clients use different keys (mcpServers, mcp, servers); a single
+      shared format would be invalid for most targets, so each registrar owns its format and
+      preserves existing entries.
+  auto-build-before-register:
+    decision: Run the project build before resolving and registering the dist MCP entrypoint.
+    rationale: >-
+      The entrypoint only exists under dist after a build; building first guarantees the registered
+      absolute path is valid instead of failing at client startup.
+  optional-scope:
+    decision: Expose --scope project|user defaulting to project.
+    rationale: >-
+      Different clients and teams need either a committable project-level config or a global user
+      install; defaulting to project keeps registration repo-local and shareable.
+  multi-client-and-all:
+    decision: Accept a repeatable --client plus an all value and report a per-client result.
+    rationale: >-
+      The change targets five clients, so single-client-per-run would be tedious; per-client
+      reporting keeps partial outcomes (including skips) visible.
+  missing-cli-skips:
+    decision: >-
+      When a CLI-backed client's official CLI is unavailable, skip it with an install diagnostic
+      instead of hand-writing its config.
+    rationale: >-
+      Hand-writing a CLI-owned config risks drift from the client's schema; a diagnostic keeps the
+      registered config authoritative and tells the operator how to proceed.
+  entry-name-override:
+    decision: Default the entry name to strict-spec-driven and allow overriding via --name.
+    rationale: >-
+      The entry name is the idempotency key; an override lets distinct project roots register into
+      one client without colliding.
+alternatives: []
+risks: []

@@ -1,0 +1,52 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: add-mcp-install-command
+open: []
+resolved:
+  - id: client-config-shapes
+    question: What are the exact config file paths and entry shapes for each target client at each scope?
+    context: >-
+      Codex uses ~/.codex/config.toml with [mcp_servers.*] (and a project-level location), opencode
+      uses an mcp key, Copilot uses .vscode/mcp.json with a servers key, the generic target uses
+      mcpServers via --config, and Claude Code registration via claude mcp add must confirm its
+      --scope flag. These must be verified before implementing each registrar.
+    answer: >-
+      Use the documented native shapes, verifying against current official docs during
+      implementation: Codex ~/.codex/config.toml [mcp_servers.<name>] (command + args), opencode
+      opencode.json mcp.<name> {type:local, command:[...], enabled:true}, Copilot .vscode/mcp.json
+      servers.<name> {type:stdio, command, args}, generic mcpServers.<name> via --config, Claude
+      Code via claude mcp add with --scope.
+    status: resolved
+  - id: missing-client-cli-fallback
+    question: >-
+      When a client's official CLI is not installed (e.g. no claude or codex on PATH), should the
+      command skip that client with a diagnostic or fall back to writing its config file directly?
+    context: >-
+      The hybrid strategy assumes claude and codex CLIs may be present; behavior when they are
+      absent is undecided and changes whether file-write fallbacks are required for those clients.
+    answer: >-
+      Skip the client with a clear diagnostic instructing the operator to install the missing
+      official CLI; do not hand-write a CLI-owned config as a fallback, to avoid format drift.
+    status: resolved
+  - id: multi-client-invocation
+    question: >-
+      Should a single invocation be able to target multiple clients (repeatable --client or an all
+      value), or strictly one client per run?
+    context: Affects the argument contract and idempotent-merge reporting across clients.
+    answer: >-
+      Support a repeatable --client plus an 'all' value, registering each selected client and
+      reporting per-client results.
+    status: resolved
+  - id: server-entry-name
+    question: >-
+      Should the registered MCP server entry name default to strict-spec-driven, and should it be
+      overridable via a flag?
+    context: >-
+      The entry name is the idempotency key inside each client config; the default and override
+      policy must be fixed before merge logic is written.
+    answer: >-
+      Default the registered entry name to strict-spec-driven and allow overriding it via a --name
+      flag so multiple project roots can register into one client.
+    status: resolved

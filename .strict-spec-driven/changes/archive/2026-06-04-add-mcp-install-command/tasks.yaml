@@ -1,0 +1,68 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-mcp-install-command
+sections:
+  Implementation:
+    add-mcp-install-command-module:
+      text: >-
+        Add src/cli/cmd-mcp-install.ts implementing the mcp-install subcommand and register it in
+        src/cli/registry.ts in canonical command order.
+      status: complete
+    build-and-resolve-entrypoint:
+      text: >-
+        Run the project build before registration and resolve the absolute dist MCP server
+        entrypoint path plus a --project root defaulting to the current directory.
+      status: complete
+    implement-client-selector:
+      text: >-
+        Implement the repeatable --client selector for claude-code, codex, opencode, copilot, json,
+        and an all value, rejecting unknown values with a diagnostic that names the supported
+        clients without modifying any client configuration, and report a per-client result.
+      status: complete
+    implement-entry-name:
+      text: >-
+        Implement the --name override defaulting to strict-spec-driven, using the resolved name as
+        both the registered entry name and the idempotency key.
+      status: complete
+    implement-hybrid-registrars:
+      text: >-
+        Implement per-client registration: delegate to official client CLIs where available (claude
+        mcp add, codex mcp add) and perform idempotent native-format config writes otherwise
+        (opencode mcp key, Copilot .vscode/mcp.json servers key, generic mcpServers via --config),
+        preserving unrelated existing entries and never duplicating the registered entry. When a
+        CLI-backed client's official CLI is unavailable, skip it with an install diagnostic and do
+        not write its configuration directly.
+      status: complete
+    implement-scope-selector:
+      text: >-
+        Implement the --scope selector for project and user scopes, defaulting to project, routing
+        each registrar to the correct scope-specific configuration target.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    add-mcp-install-tests:
+      text: >-
+        Add test/suites/mcp-install.ts covering command registration, build-and-resolve behavior,
+        client selection and unknown-client rejection, native-format idempotent merge for file-write
+        clients, and project/user scope selection.
+      status: complete
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope and delta-spec requirements.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

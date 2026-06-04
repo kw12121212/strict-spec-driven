@@ -14,6 +14,7 @@ mapping:
     - src/cli/changes.ts
     - src/cli/cmd-change.ts
     - src/cli/cmd-generation.ts
+    - src/cli/cmd-mcp-install.ts
     - src/cli/output.ts
     - src/cli/cmd-scaffold.ts
     - src/cli/cmd-templates.ts
@@ -58,6 +59,7 @@ mapping:
     - test/support/harness.ts
     - test/suites/entrypoint-and-skills.ts
     - test/suites/mcp-server.ts
+    - test/suites/mcp-install.ts
     - test/suites/foundation-and-fixtures.ts
     - test/suites/change-lifecycle.ts
     - test/fixtures/projects/todo-app/src/index.ts
@@ -2386,3 +2388,122 @@ requirements:
         - THEN: >-
             the listing includes concrete strict:// URIs for the existing change, spec, roadmap, and
             tech artifacts derived from template resources
+  cli-mcp-install-command-surface:
+    strength: MUST
+    statement: >-
+      The system MUST provide an mcp-install strict CLI subcommand, registered in canonical command
+      order, that registers the built strict-spec-driven MCP server into selected MCP clients.
+    scenarios:
+      mcp-install-is-a-registered-subcommand:
+        - GIVEN: the strict CLI command listing is inspected
+        - WHEN: registered subcommands are enumerated
+        - THEN: >-
+            mcp-install appears in canonical command order alongside the existing strict CLI
+            commands
+      mcp-install-registers-the-server:
+        - GIVEN: a supported client and a valid project root are provided
+        - WHEN: mcp-install runs to completion
+        - THEN: the strict-spec-driven MCP server is registered for that client
+        - AND: >-
+            the command reports the client, scope, entry name, and resolved entrypoint path it
+            registered
+  cli-mcp-install-builds-and-resolves-entrypoint:
+    strength: MUST
+    statement: >-
+      The mcp-install command MUST build the project before registration and resolve the absolute
+      dist MCP server entrypoint path together with a project root that defaults to the current
+      directory.
+    scenarios:
+      mcp-install-builds-before-registering:
+        - GIVEN: mcp-install is invoked
+        - WHEN: registration begins
+        - THEN: the project build runs first so the dist MCP server entrypoint exists
+        - AND: the registered server command uses the absolute resolved entrypoint path
+      mcp-install-defaults-project-root-to-cwd:
+        - GIVEN: mcp-install is invoked without an explicit project root
+        - WHEN: the project root is resolved
+        - THEN: the current working directory is used as the registered --project value
+  cli-mcp-install-client-selection:
+    strength: MUST
+    statement: >-
+      The mcp-install command MUST accept a client selector covering claude-code, codex, opencode,
+      copilot, and a generic json target, delegating to an official client CLI where one exists and
+      writing the client config file directly otherwise.
+    scenarios:
+      mcp-install-supports-each-client:
+        - GIVEN: the mcp-install client selector is inspected
+        - WHEN: the accepted client values are enumerated
+        - THEN: claude-code, codex, opencode, copilot, and json are accepted client targets
+      mcp-install-rejects-unknown-client:
+        - GIVEN: mcp-install is invoked with an unsupported client value
+        - WHEN: the client selector is validated
+        - THEN: the command fails with a diagnostic naming the supported client values
+        - AND: no client configuration is modified
+  cli-mcp-install-multi-client:
+    strength: MUST
+    statement: >-
+      The mcp-install command MUST accept a repeatable client selection and an all value,
+      registering each selected client and reporting a per-client result.
+    scenarios:
+      mcp-install-targets-multiple-clients:
+        - GIVEN: mcp-install is invoked with more than one selected client or the all value
+        - WHEN: registration runs
+        - THEN: each selected client is registered
+        - AND: the command reports an individual result for each client
+  cli-mcp-install-missing-cli-skips:
+    strength: MUST
+    statement: >-
+      When a selected client requires an official client CLI that is not available, the mcp-install
+      command MUST skip that client with a diagnostic instructing installation of the CLI and MUST
+      NOT write that client's configuration directly.
+    scenarios:
+      mcp-install-skips-client-without-cli:
+        - GIVEN: a CLI-backed client is selected but its official CLI is unavailable
+        - WHEN: mcp-install attempts to register that client
+        - THEN: that client is reported as skipped with a diagnostic to install its CLI
+        - AND: that client's configuration is not modified
+  cli-mcp-install-native-format-idempotent:
+    strength: MUST
+    statement: >-
+      The mcp-install command MUST register each file-written client entry in that client's native
+      configuration format and merge idempotently, preserving unrelated existing entries and never
+      duplicating the registered entry on repeated runs.
+    scenarios:
+      mcp-install-preserves-existing-entries:
+        - GIVEN: a target client config already contains unrelated server entries
+        - WHEN: mcp-install registers the strict-spec-driven server
+        - THEN: the unrelated entries remain unchanged
+        - AND: the registered entry is present in the client's native format
+      mcp-install-is-idempotent:
+        - GIVEN: mcp-install has already registered the server for a file-written client
+        - WHEN: mcp-install runs again for the same client, scope, and entry name
+        - THEN: the client config still contains exactly one entry for that name
+  cli-mcp-install-entry-name:
+    strength: MUST
+    statement: >-
+      The mcp-install command MUST default the registered MCP server entry name to
+      strict-spec-driven and MUST allow overriding it through a name argument so distinct project
+      roots can register into one client.
+    scenarios:
+      mcp-install-defaults-entry-name:
+        - GIVEN: mcp-install is invoked without a name override
+        - WHEN: the server entry is registered
+        - THEN: the entry name strict-spec-driven is used
+      mcp-install-honors-name-override:
+        - GIVEN: mcp-install is invoked with a name override
+        - WHEN: the server entry is registered
+        - THEN: the overridden name is used as the entry name and idempotency key
+  cli-mcp-install-scope-selection:
+    strength: MUST
+    statement: >-
+      The mcp-install command MUST accept a scope selector for project and user scopes, defaulting
+      to project scope when none is supplied.
+    scenarios:
+      mcp-install-defaults-to-project-scope:
+        - GIVEN: mcp-install is invoked without a scope selector
+        - WHEN: the registration scope is resolved
+        - THEN: project scope is used
+      mcp-install-honors-user-scope:
+        - GIVEN: mcp-install is invoked with the user scope selector
+        - WHEN: the registration scope is resolved
+        - THEN: the user-level client configuration target is used instead of the project-level target

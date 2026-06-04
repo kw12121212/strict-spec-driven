@@ -8,6 +8,7 @@ import { runHarnessInferDoctorSuite } from "./suites/harness-infer-doctor.js";
 import { runHarnessLifecycleSuite } from "./suites/harness-lifecycle.js";
 import { runHarnessPlanSuite } from "./suites/harness-plan.js";
 import { runHarnessSessionSuite } from "./suites/harness-session.js";
+import { runMcpInstallSuite } from "./suites/mcp-install.js";
 import { runMcpServerSuite } from "./suites/mcp-server.js";
 import { runOperationsSuite } from "./suites/operations.js";
 import { runRoadmapAndMigrationSuite } from "./suites/roadmap-and-migration.js";
@@ -26,6 +27,7 @@ async function main(): Promise<void> {
   await runRoadmapAndMigrationSuite(context);
   await runOperationsSuite(context);
   await runMcpServerSuite(context);
+  await runMcpInstallSuite(context);
 
   printFinalSummary(context);
 }

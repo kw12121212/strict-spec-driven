@@ -1,0 +1,46 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-mcp-install-command
+  status: proposed
+summary:
+  what:
+    - >-
+      Add a strict CLI subcommand that registers the built strict-spec-driven MCP server into
+      supported AI clients.
+    - >-
+      Build the dist MCP entrypoint automatically before registration and resolve its absolute path
+      together with the target project root.
+    - >-
+      Register the server idempotently into Claude Code, Codex, opencode, GitHub Copilot, or a
+      generic JSON config in each client's native format.
+  why:
+    - >-
+      MCP server registration is currently manual JSON editing with two hand-filled absolute paths,
+      which is error-prone and undocumented per client.
+    - >-
+      Operators need a single deterministic command to install the existing MCP server across the AI
+      clients they use.
+scope:
+  in:
+    - Add a TypeScript ESM CLI subcommand (mcp-install) registered in canonical command order.
+    - >-
+      Run the project build before registration and resolve the dist MCP entrypoint absolute path
+      plus a --project root defaulting to the current directory.
+    - >-
+      Support a --client selector for claude-code, codex, opencode, copilot, and json, using a
+      hybrid mechanism: official client CLIs where available and direct config-file writes
+      otherwise.
+    - >-
+      Write each client entry in its native config format and merge idempotently so existing entries
+      and repeated runs do not duplicate the strict-spec-driven entry.
+    - Support a --scope selector for project and user scopes, defaulting to project.
+  out:
+    - Add a matching MCP uninstall command.
+    - Modify the existing install.sh skill installation flow.
+    - Add remote or HTTP MCP transport beyond the existing stdio-only server.
+unchanged_behavior:
+  - The MCP server stays stdio-only and continues to require an explicit project root.
+  - The CLI and Agent Skills remain the authoritative workflow implementation.

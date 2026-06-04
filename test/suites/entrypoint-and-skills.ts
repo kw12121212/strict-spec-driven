@@ -46,6 +46,7 @@ const expectedCommandOrder = [
   "harness-logs",
   "harness-scripts",
   "harness-session",
+  "mcp-install",
   "migrate",
   "roadmap-status",
   "roadmap-overview",

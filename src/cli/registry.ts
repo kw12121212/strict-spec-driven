@@ -26,6 +26,7 @@ export const COMMAND_REGISTRATION_ORDER = [
   "harness-logs",
   "harness-scripts",
   "harness-session",
+  "mcp-install",
   "migrate",
   "roadmap-status",
   "roadmap-overview",
