@@ -1,0 +1,49 @@
+schema: strict-spec-driven/main-tech/v1
+schema_version: 1
+artifact_type: main_tech
+schema_file: ../schemas/main-tech.yaml
+standard:
+  id: workflow-regression-coverage
+  title: Workflow Regression Coverage
+  category: testing
+mapping:
+  implementation:
+    - src/validation.ts
+    - src/migrate.ts
+    - src/archive.ts
+  enforcement:
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/roadmap-and-migration.ts
+    - test/suites/change-lifecycle.ts
+rules:
+  cover-workflow-critical-behaviors:
+    strength: MUST
+    statement: >-
+      Changes that implement or alter YAML artifact support MUST add or update
+      tests covering the workflow-critical behaviors they touch: schema
+      validation, migration, archive and delta-merge behavior, and the error
+      messages surfaced on invalid input.
+    rationale: >-
+      These four behaviors are where a regression silently corrupts workflow
+      state or misleads the operator. Behavior-facing tests in the existing
+      suites are the only deterministic guard, since the project runs no CI and
+      validates on demand.
+    enforcement:
+      method: test
+      detail: >-
+        bun test/run.ts must exercise the affected behavior; the
+        foundation-and-fixtures, roadmap-and-migration, and change-lifecycle
+        suites hold the schema-validation, migration, and archive/merge cases.
+    examples:
+      good:
+        - >-
+          Adding an archive delta-merge case to change-lifecycle.ts when
+          changing how delta specs merge into main specs.
+      bad:
+        - >-
+          Changing migration conversion logic with no new or updated case in
+          roadmap-and-migration.ts.
+    exceptions:
+      - >-
+        Documentation-only or skill-prompt-only changes that touch no artifact
+        mechanics need no new test.

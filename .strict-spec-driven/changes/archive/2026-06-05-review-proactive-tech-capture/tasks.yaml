@@ -1,0 +1,33 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: review-proactive-tech-capture
+sections:
+  Implementation:
+    add-review-reflection-step:
+      text: Add a non-blocking tech-convention reflection step to skills/strict-spec-review/SKILL.md and to the inline review phase of skills/strict-spec-auto/SKILL.md, performed after functional review and before the archive recommendation, presenting the delta-tech-now vs /strict-tech-sync-later options and stating it must not block verification or archive.
+      status: complete
+    add-skill-content-test:
+      text: Add a deterministic assertion in test/suites/entrypoint-and-skills.ts that both the strict-spec-review and strict-spec-auto SKILL.md files contain the tech-convention reflection guidance, using a stable anchor rather than exact prose.
+      status: complete
+  Testing:
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: 'Verify the review guidance and delta-spec match proposal scope: the reflection is present, non-blocking, and no product code or live tech standard was changed.'
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: review-proactive-tech-capture
+approach:
+  - 'Add one additional, non-blocking review step to both review surfaces: skills/strict-spec-review/SKILL.md (its own numbered step before reporting) and skills/strict-spec-auto/SKILL.md (its inline ''Review code quality'' phase). The step instructs the AI to reflect on whether the reviewed change established a reusable engineering convention (coding, architecture, testing, tooling, security, performance, or API rule) not yet represented under .strict-spec-driven/tech/. When found, the guidance presents two options: carry it as a delta-tech in the current change so archive merges it, or record a follow-up to run /strict-tech-sync. When nothing is found or the operator declines, review proceeds unchanged. Capture the behavior as a delta-spec requirement under cli-foundation mapped to both skill files, and add a deterministic test asserting both skills contain the guidance via a stable anchor.'
+decisions:
+  cover-both-review-surfaces:
+    decision: Edit both strict-spec-review SKILL.md and strict-spec-auto's inline review phase, not the standalone review skill alone.
+    rationale: strict-spec-auto is the primary path and runs its own inline review without invoking strict-spec-review; covering only the standalone skill would miss most real review invocations. Resolved open question auto-review-mirror.
+  contract-first:
+    decision: Carry the behavior as a delta-spec requirement under cli-foundation mapped to both skill files, and edit the SKILL.md files to match.
+    rationale: The workflow-scope-discipline MUST rule (contract-first-scope-changes) requires the spec contract for review-guidance behavior to be updated alongside the skill edits; cli-foundation already governs review workflow guidance via cli-review-auto-fixes-and-retests.
+  non-blocking:
+    decision: The reflection step is strictly non-blocking and must not gate verification or archive.
+    rationale: Capturing standards is a sustaining-quality nudge, not a correctness gate; making it blocking would stall archive on judgment calls and conflict with existing review gating, which is reserved for regression evidence.
+  deterministic-test:
+    decision: Add a test asserting both review SKILL.md files contain the tech-convention reflection guidance via a stable anchor.
+    rationale: The project runs no CI and validates on demand; a presence assertion in the existing entrypoint-and-skills suite makes the spec requirement deterministically verifiable without coupling to exact prose.
+alternatives: []
+risks: []

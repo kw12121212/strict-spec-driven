@@ -11,3 +11,11 @@ standards:
     title: TypeScript ESM Baseline
     category: coding
     path: .strict-spec-driven/tech/typescript-esm-baseline.yaml
+  - id: workflow-scope-discipline
+    title: Workflow Scope Discipline
+    category: architecture
+    path: .strict-spec-driven/tech/workflow-scope-discipline.yaml
+  - id: workflow-regression-coverage
+    title: Workflow Regression Coverage
+    category: testing
+    path: .strict-spec-driven/tech/workflow-regression-coverage.yaml

@@ -107,7 +107,19 @@ run `init` from this skill.
    give the human actionable setup or waiting guidance instead of inferring a
    clean result.
 
-9. **Report the result** — include review evidence before findings:
+9. **Reflect on uncaptured engineering conventions (non-blocking)** — after the
+   review checklist, consider whether this change established a reusable
+   engineering convention not yet captured under `.strict-spec-driven/tech/` (a
+   coding, architecture, testing, tooling, security, performance, or API rule).
+   When it did, surface two options to the operator:
+   - carry it now as a delta tech artifact under `changes/<name>/tech/` so
+     archive merges it into the standards, or
+   - record a follow-up to run `/strict-tech-sync` later.
+   This reflection MUST NOT block strict verification or archive: when no such
+   convention exists or the operator declines to capture it, review proceeds
+   unchanged.
+
+10. **Report the result** — include review evidence before findings:
    - changed implementation and test files read
    - strict artifacts and delta specs read
    - verification and regression commands executed, including post-fix reruns

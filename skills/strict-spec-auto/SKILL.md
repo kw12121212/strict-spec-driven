@@ -196,6 +196,15 @@ run `init` from this skill.
    configured complete project regression command before continuing. Unsafe,
    ambiguous, blocked, or out-of-scope fixes must stop archive rather than being
    inferred or silently expanded.
+   After the review checklist, also reflect — non-blocking — on whether this
+   change established a reusable engineering convention not yet captured under
+   `.strict-spec-driven/tech/` (a coding, architecture, testing, tooling,
+   security, performance, or API rule). When it did, surface two options: carry
+   it now as a delta tech artifact under `changes/<change-name>/tech/` so
+   archive merges it into the standards, or record a follow-up to run
+   `/strict-tech-sync` later. This reflection MUST NOT block strict verification
+   or archive: when no such convention exists or the operator declines to
+   capture it, the workflow proceeds unchanged.
 
 10. **Re-check complete regression evidence** — inspect project workflow
    context, including `.strict-spec-driven/config.yaml` when available, for the

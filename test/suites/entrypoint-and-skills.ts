@@ -261,6 +261,17 @@ context.assert(
       && !autoSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>"),
     "strict-spec-auto runs proposal checkpoints, resumes populated scaffolds, and blocks archive without automatic safe fixes, complete regression, and direct code review evidence",
   );
+  const techConventionReflectionAnchor =
+    "reusable engineering convention not yet captured under `.strict-spec-driven/tech/`";
+  context.assert(
+    normalizedReviewSkillContent.includes(techConventionReflectionAnchor)
+      && normalizedReviewSkillContent.includes("/strict-tech-sync")
+      && normalizedReviewSkillContent.includes("MUST NOT block strict verification")
+      && normalizedAutoSkillContent.includes(techConventionReflectionAnchor)
+      && normalizedAutoSkillContent.includes("/strict-tech-sync")
+      && normalizedAutoSkillContent.includes("MUST NOT block strict verification"),
+    "strict-spec-review and strict-spec-auto prompt a non-blocking reflection to capture uncaptured tech conventions via delta-tech or /strict-tech-sync",
+  );
   context.assert(
     normalizedBrainstormSkillContent.includes("proposal checkpoint")
       && normalizedBrainstormSkillContent.includes("before validation")

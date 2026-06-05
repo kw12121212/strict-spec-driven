@@ -1,0 +1,12 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: review-proactive-tech-capture
+open: []
+resolved:
+  - id: auto-review-mirror
+    question: Should strict-spec-auto's inline review phase mirror this same tech-convention reflection step, or is editing strict-spec-review SKILL.md alone sufficient for this change?
+    context: auto runs its own review phase referencing review guidance. This change scopes to strict-spec-review only; surfacing whether auto should mirror it before implementation.
+    answer: 'Mirror the reflection into both review surfaces: strict-spec-review SKILL.md and strict-spec-auto''s inline review phase. auto is the primary path and runs its own inline review without invoking strict-spec-review, so covering only the standalone skill would miss most real invocations; the delta-spec phrasing ''review workflow guidance'' already spans both.'
+    status: resolved

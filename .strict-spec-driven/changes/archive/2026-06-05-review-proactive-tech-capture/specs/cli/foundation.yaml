@@ -1,0 +1,27 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - skills/strict-spec-review/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-review-surfaces-uncaptured-tech-conventions:
+      strength: MUST
+      statement: The system MUST require strict review workflow guidance — in both the strict-spec-review skill and strict-spec-auto's inline review phase — to prompt a non-blocking reflection on whether the reviewed change established a reusable engineering convention not yet captured under .strict-spec-driven/tech/, and when one is found to surface two follow-up options (add a delta-tech to the current change, or defer to /strict-tech-sync) without blocking strict verification or archive when nothing is captured or the operator declines.
+      scenarios:
+        review-prompts-tech-convention-reflection:
+          - GIVEN: a completed strict change has passed strict verification and enters strict review workflow guidance
+          - WHEN: the AI performs the review under either strict-spec-review or strict-spec-auto
+          - THEN: the review guidance requires reflecting on whether the change introduced a reusable engineering convention absent from .strict-spec-driven/tech/, and when such a convention is found offers adding a delta-tech to the current change or deferring it to /strict-tech-sync
+        tech-reflection-is-non-blocking:
+          - GIVEN: the review tech-convention reflection finds nothing to capture or the operator declines to capture it
+          - WHEN: review concludes
+          - THEN: the reflection does not block strict verification or archive recommendation
+  MODIFIED: {}
+  REMOVED: {}

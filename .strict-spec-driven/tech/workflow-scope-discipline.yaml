@@ -1,0 +1,46 @@
+schema: strict-spec-driven/main-tech/v1
+schema_version: 1
+artifact_type: main_tech
+schema_file: ../schemas/main-tech.yaml
+standard:
+  id: workflow-scope-discipline
+  title: Workflow Scope Discipline
+  category: architecture
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/registry.yaml
+    - .strict-spec-driven/specs/INDEX.yaml
+  enforcement: []
+rules:
+  contract-first-scope-changes:
+    strength: MUST
+    statement: >-
+      When a change alters a workflow contract — a registered schema, a main or
+      delta spec, or a technical standard — the corresponding strict artifact
+      MUST be updated first; implementation code MUST NOT silently widen
+      workflow scope ahead of the contract it depends on.
+    rationale: >-
+      The strict workflow's value is that deterministic, machine-validatable
+      artifacts describe the contract before code implements it. Letting code
+      lead the contract reintroduces the ad hoc drift the workflow exists to
+      prevent and breaks the audit trail that verify and archive rely on.
+    enforcement:
+      method: review
+      detail: >-
+        Reviewers reject code changes that broaden schema, spec, or tech
+        contracts without a matching delta-spec or delta-tech artifact updated
+        in the same strict change.
+    examples:
+      good:
+        - >-
+          A change that adds a new CLI flag first adds the delta-spec
+          requirement and (if it sets a new convention) a delta-tech rule, then
+          implements the flag to match.
+      bad:
+        - >-
+          Editing src/ to support a new artifact field while leaving the schema
+          and specs unchanged.
+    exceptions:
+      - >-
+        Non-contract refactors that preserve existing schema, spec, and tech
+        behavior need no artifact update.

@@ -1786,3 +1786,15 @@ requirements:
         - GIVEN: the packaged strict-spec-init skill prompt is inspected by strict skill packaging validation
         - WHEN: validate-skills runs against the strict skill packages
         - THEN: validation passes and the strict-spec-init prompt contains the AGENTS.md generation and non-overwrite guidance
+  cli-review-surfaces-uncaptured-tech-conventions:
+    strength: MUST
+    statement: The system MUST require strict review workflow guidance — in both the strict-spec-review skill and strict-spec-auto's inline review phase — to prompt a non-blocking reflection on whether the reviewed change established a reusable engineering convention not yet captured under .strict-spec-driven/tech/, and when one is found to surface two follow-up options (add a delta-tech to the current change, or defer to /strict-tech-sync) without blocking strict verification or archive when nothing is captured or the operator declines.
+    scenarios:
+      review-prompts-tech-convention-reflection:
+        - GIVEN: a completed strict change has passed strict verification and enters strict review workflow guidance
+        - WHEN: the AI performs the review under either strict-spec-review or strict-spec-auto
+        - THEN: the review guidance requires reflecting on whether the change introduced a reusable engineering convention absent from .strict-spec-driven/tech/, and when such a convention is found offers adding a delta-tech to the current change or deferring it to /strict-tech-sync
+      tech-reflection-is-non-blocking:
+        - GIVEN: the review tech-convention reflection finds nothing to capture or the operator declines to capture it
+        - WHEN: review concludes
+        - THEN: the reflection does not block strict verification or archive recommendation

@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: review-proactive-tech-capture
+  status: proposed
+summary:
+  what:
+    - 'Add a non-blocking reflection step to strict review workflow guidance — in both strict-spec-review SKILL.md and strict-spec-auto''s inline review phase — that asks whether the reviewed change established a reusable engineering convention not yet captured under .strict-spec-driven/tech/, and surfaces two follow-up options: add a delta-tech to the current change now, or defer the convention to /strict-tech-sync.'
+  why:
+    - Today review only asks the AI to read and comply with existing technical standards; delta-tech is generated only when a change is explicitly about altering a standard. Conventions that emerge organically during implementation are never captured proactively, so .strict-spec-driven/tech/ drifts behind real practice. A review-time reflection closes that gap at the natural point where the implemented change is freshly understood. Both review surfaces must carry it because strict-spec-auto runs its own inline review and does not invoke strict-spec-review.
+scope:
+  in:
+    - Editing skills/strict-spec-review/SKILL.md and skills/strict-spec-auto/SKILL.md review guidance to add the reflection step; adding a delta-spec requirement under cli-foundation describing the behavior; adding a deterministic test asserting the guidance is present in both skills.
+  out:
+    - Mirroring the step into other skills (brainstorm, apply); loosening the propose/design delta-tech gate; auto-running /strict-tech-sync; modifying CLI or product code logic; editing live technical standards.
+unchanged_behavior:
+  - Existing review auto-fix, rerun-verification, and regression-evidence gating before archive remain as-is; the reflection is non-blocking and never prevents verification or archive when nothing is captured or the operator declines.
