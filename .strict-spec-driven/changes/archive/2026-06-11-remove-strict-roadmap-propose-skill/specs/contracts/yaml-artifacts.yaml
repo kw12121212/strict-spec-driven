@@ -1,0 +1,33 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/marketplace.json
+    - src/skills/model.ts
+    - skills/strict-spec-auto/SKILL.md
+    - README.md
+    - ROADMAP_GUIDE.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    strict-roadmap-skill-command-contract:
+      strength: MUST
+      statement: 'The system MUST provide strict roadmap skill packages for `plan`, `milestone`, `recommend`, and `sync` with explicit command mappings that reference the strict roadmap command(s) and shared strict change commands those skills depend on, and MUST NOT package a separate `propose` roadmap skill: roadmap planned changes are converted into strict change scaffolds through the recommend skill''s proposal handoff.'
+      scenarios:
+        roadmap-skills-expose-concrete-strict-commands:
+          - GIVEN: a strict roadmap `SKILL.md` file is reviewed
+          - WHEN: its `## This Skill's Commands` section is inspected
+          - THEN: the command mapping identifies the specific strict command entry or entries the skill uses
+          - THEN: the command mapping is not limited to generic placeholder commands
+        roadmap-propose-skill-is-not-packaged:
+          - GIVEN: the repository skill packaging surfaces are reviewed
+          - WHEN: the skills directory and marketplace metadata are inspected
+          - THEN: no strict-roadmap-propose skill package or marketplace entry exists
+          - THEN: roadmap proposal handoff guidance points to the strict-roadmap-recommend skill
+  REMOVED: {}

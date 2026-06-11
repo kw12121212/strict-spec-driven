@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: remove-strict-spec-cancel-skill
+approach:
+  - 'Treat the removal as a packaging-surface contraction mirroring the strict-roadmap-propose removal: delete the skill directory and its marketplace entry together so validateStrictSkillPackaging keeps its skill-count-equals-marketplace-count invariant, and remove the now-dead expectation entry from CORE_STRICT_SKILL_EXPECTATIONS. Update the contracts-yaml-artifacts main spec mapping first and carry the strict-core-skill-command-contract requirement change as this change''s delta spec so it merges at archive. Keep the strict CLI cancel command, its lifecycle tests, and the confirm-gated cancel_change MCP tool untouched as the supported cancellation paths, then align the README skill tables and rebuild dist so compiled validation matches source.'
+decisions:
+  keep-cli-cancel-and-mcp-tool:
+    decision: The strict CLI cancel command and the cancel_change MCP tool are kept unchanged; only the skill package is removed.
+    rationale: 'The skill added no mechanics beyond a confirmation prompt around the CLI command, and the MCP tool already enforces an explicit confirm: true server-side gate for the same destructive action, so cancellation stays fully available without a dedicated skill.'
+  rename-cancel-test-tmpdir-prefixes:
+    decision: Rename the strict-spec-cancel-* mkdtemp prefixes in test/suites/change-lifecycle.ts to strict-cancel-* while keeping the CLI cancel assertions identical.
+    rationale: The prefixes are arbitrary tmpdir labels that happen to contain the removed skill name; renaming them keeps repository-wide scope verification clean without weakening any CLI cancel coverage.
+  keep-history-untouched:
+    decision: Archived changes that mention strict-spec-cancel are left as-is.
+    rationale: They are historical workflow records; rewriting them would falsify archive history without affecting current behavior.
+alternatives: []
+risks: []

@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import {
@@ -210,7 +210,6 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const modifySkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-modify", "SKILL.md"), "utf8");
   const roadmapPlanSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-plan", "SKILL.md"), "utf8");
   const roadmapRecommendSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
-  const roadmapProposeSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-propose", "SKILL.md"), "utf8");
   const roadmapReviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-review", "SKILL.md"), "utf8");
   const harnessInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-init", "SKILL.md"), "utf8");
   const harnessSessionSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-session", "SKILL.md"), "utf8");
@@ -224,7 +223,6 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedModifySkillContent = modifySkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapPlanSkillContent = roadmapPlanSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapRecommendSkillContent = roadmapRecommendSkillContent.replace(/\s+/g, " ");
-  const normalizedRoadmapProposeSkillContent = roadmapProposeSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapReviewSkillContent = roadmapReviewSkillContent.replace(/\s+/g, " ");
   const normalizedHarnessInitSkillContent = harnessInitSkillContent.replace(/\s+/g, " ");
   const normalizedHarnessSessionSkillContent = harnessSessionSkillContent.replace(/\s+/g, " ");
@@ -319,10 +317,8 @@ context.assert(
     "strict-roadmap-recommend requires scripted-first recommendation, proposal checkpoint, ready handoff, and populated auto resume guidance",
   );
   context.assert(
-    normalizedRoadmapProposeSkillContent.includes("proposal checkpoint")
-      && normalizedRoadmapProposeSkillContent.includes("Use `ready` for deterministic proposal-handoff blockers")
-      && !normalizedRoadmapProposeSkillContent.includes("proposal review"),
-    "strict-roadmap-propose runs a proposal checkpoint before ready/verify handoff",
+    !existsSync(path.join(ROOT, "skills", "strict-roadmap-propose")),
+    "strict-roadmap-propose skill package is not part of the repository",
   );
   context.assert(
     roadmapReviewSkillContent.includes("roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status")
@@ -442,6 +438,134 @@ try {
   );
 } finally {
   rmSync(noTemplateSymlinkRoot, { recursive: true, force: true });
+}
+
+const staleMarketplaceEntryRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-stale-marketplace-entry-"));
+try {
+  const staleMarketplaceSkillDir = path.join(staleMarketplaceEntryRoot, "skills", "strict-spec-demo");
+  mkdirSync(path.join(staleMarketplaceEntryRoot, "dist", "scripts"), { recursive: true });
+  mkdirSync(staleMarketplaceSkillDir, { recursive: true });
+  symlinkSync("../../dist/scripts", path.join(staleMarketplaceSkillDir, "scripts"));
+
+  writeFileSync(
+    path.join(staleMarketplaceSkillDir, "SKILL.md"),
+    [
+      "---",
+      "name: strict-spec-demo",
+      "description: demo",
+      "metadata:",
+      "  skill_id: strict_spec_demo",
+      "  author: strict-spec-driven",
+      "  type: agent_skill",
+      "  version: 1.0.0",
+      "---",
+      "",
+      "# strict-spec-demo",
+      "",
+      "## This Skill's Commands",
+      "",
+      "```yaml",
+      "check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state",
+      "demo: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify demo",
+      "```",
+      "",
+      "## Prerequisites",
+      "",
+      "Run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "",
+      "## Steps",
+      "",
+      "Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "",
+      "1. **Run the demo command** — inspect strict workflow artifacts under `.strict-spec-driven/`.",
+      "",
+      "## Rules",
+      "",
+      "- Use strict workflow artifacts under `.strict-spec-driven/`.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(staleMarketplaceEntryRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [
+          { name: "strict-spec-demo", family: "strict-spec" },
+          { name: "strict-roadmap-propose", family: "strict-roadmap" },
+          { name: "spec-driven-propose", family: "spec-driven" },
+          { family: "strict-spec" },
+          ["strict-spec-list-entry"],
+        ],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const staleMarketplaceResult = skillValidationModule.validateStrictSkillPackaging(staleMarketplaceEntryRoot);
+  context.assert(
+    !staleMarketplaceResult.valid,
+    "strict skill package validation fails when marketplace metadata lists a removed skill",
+  );
+  context.assert(
+    staleMarketplaceResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skills.marketplace.skills.mismatch"
+        && typeof diagnostic.actual === "string"
+        && diagnostic.actual.includes("strict-roadmap-propose"),
+    ),
+    "stale marketplace entry reports a marketplace/skill-directory mismatch diagnostic naming the removed skill",
+  );
+  context.assert(
+    staleMarketplaceResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skills.marketplace.skills.entry.name.legacy"
+        && diagnostic.actual === "spec-driven-propose",
+    ),
+    "legacy-prefixed marketplace entry reports a strict-name-prefix diagnostic",
+  );
+  context.assert(
+    staleMarketplaceResult.diagnostics.some(
+      (diagnostic) => diagnostic.code === "skills.marketplace.skills.entry.name.missing",
+    ),
+    "marketplace entry without a name reports a missing-name diagnostic",
+  );
+  context.assert(
+    staleMarketplaceResult.diagnostics.some(
+      (diagnostic) => diagnostic.code === "skills.marketplace.skills.entry.invalid",
+    ),
+    "non-object marketplace entry reports an invalid-entry diagnostic",
+  );
+
+  const staleMarketplaceCli = cli(["validate-skills"], { cwd: staleMarketplaceEntryRoot });
+  context.assert(
+    staleMarketplaceCli.status !== 0,
+    "validate-skills CLI exits non-zero when marketplace metadata lists a removed skill",
+  );
+  const staleMarketplaceCliJson = JSON.parse(staleMarketplaceCli.stdout.trim());
+  context.assert(
+    staleMarketplaceCliJson.valid === false
+      && Array.isArray(staleMarketplaceCliJson.diagnostics)
+      && staleMarketplaceCliJson.diagnostics.some(
+        (diagnostic: { code?: string }) => diagnostic.code === "skills.marketplace.skills.mismatch",
+      )
+      && staleMarketplaceCliJson.diagnostics.some(
+        (diagnostic: { code?: string }) => diagnostic.code === "skills.marketplace.skills.entry.name.legacy",
+      )
+      && staleMarketplaceCliJson.diagnostics.some(
+        (diagnostic: { code?: string }) => diagnostic.code === "skills.marketplace.skills.entry.name.missing",
+      )
+      && staleMarketplaceCliJson.diagnostics.some(
+        (diagnostic: { code?: string }) => diagnostic.code === "skills.marketplace.skills.entry.invalid",
+      ),
+    "validate-skills CLI surfaces marketplace mismatch and entry diagnostics for stale metadata",
+  );
+} finally {
+  rmSync(staleMarketplaceEntryRoot, { recursive: true, force: true });
 }
 
 const invalidSkillsRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-validation-invalid-"));

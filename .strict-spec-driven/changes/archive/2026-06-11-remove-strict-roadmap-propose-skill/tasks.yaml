@@ -1,0 +1,42 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: remove-strict-roadmap-propose-skill
+sections:
+  Implementation:
+    update-main-spec-contract:
+      text: Remove the stale skills/strict-roadmap-propose/SKILL.md entry from the contracts-yaml-artifacts main spec mapping; the strict-roadmap-skill-command-contract requirement change itself is carried by this change's delta spec and merges at archive.
+      status: complete
+    delete-skill-package:
+      text: Delete skills/strict-roadmap-propose/ and remove the strict-roadmap-propose entry from skills/marketplace.json.
+      status: complete
+    remove-model-expectation:
+      text: Remove the strict-roadmap-propose entry from ROADMAP_STRICT_SKILL_EXPECTATIONS in src/skills/model.ts.
+      status: complete
+    update-tests:
+      text: Update test/suites/entrypoint-and-skills.ts to drop the strict-roadmap-propose content assertions, and retarget the invalid-roadmap-details packaging fixture in test/suites/roadmap-and-migration.ts at a stub strict-roadmap-recommend skill so the same missing-guidance diagnostics stay covered.
+      status: complete
+    update-docs-and-prompts:
+      text: Remove strict-roadmap-propose references from README.md, README.zh.md, ROADMAP_GUIDE.md, ROADMAP_GUIDE.zh.md, ROADMAP_QUICKSTART.md, ROADMAP_QUICKSTART.zh.md, and skills/strict-spec-auto/SKILL.md, presenting strict-roadmap-recommend as the roadmap-to-change handoff path.
+      status: complete
+    rebuild-dist:
+      text: Rebuild compiled output with `bun run build` so dist/ no longer contains the removed skill expectation.
+      status: complete
+      command: bun run build
+  Testing:
+    run-lint:
+      text: Run the TypeScript lint gate.
+      status: complete
+      command: bun run lint
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: 'Verify implementation matches proposal scope: no repository source, packaging, test, doc, or live spec file still references strict-roadmap-propose outside archived changes and roadmap history, and remaining skills are unchanged.'
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-project-regression

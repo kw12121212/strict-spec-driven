@@ -1201,7 +1201,7 @@ try {
 
 const invalidRoadmapDetailsSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-roadmap-details-skill-invalid-"));
 try {
-  const invalidRoadmapDetailsSkillDir = path.join(invalidRoadmapDetailsSkillRoot, "skills", "strict-roadmap-propose");
+  const invalidRoadmapDetailsSkillDir = path.join(invalidRoadmapDetailsSkillRoot, "skills", "strict-roadmap-recommend");
   mkdirSync(path.join(invalidRoadmapDetailsSkillRoot, "dist", "scripts"), { recursive: true });
   mkdirSync(path.join(invalidRoadmapDetailsSkillRoot, "dist", "templates"), { recursive: true });
   mkdirSync(invalidRoadmapDetailsSkillDir, { recursive: true });
@@ -1213,10 +1213,10 @@ try {
     path.join(invalidRoadmapDetailsSkillDir, "SKILL.md"),
     [
       "---",
-      "name: strict-roadmap-propose",
+      "name: strict-roadmap-recommend",
       "description: stub",
       "metadata:",
-      "  skill_id: strict_roadmap_propose",
+      "  skill_id: strict_roadmap_recommend",
       "  author: strict-spec-driven",
       "  type: agent_skill",
       "  version: 1.0.0",
@@ -1253,7 +1253,7 @@ try {
       {
         schema: "strict-spec-driven/skill-marketplace/v1",
         namespace: "strict-spec-driven",
-        skills: [{ name: "strict-roadmap-propose", family: "strict-roadmap" }],
+        skills: [{ name: "strict-roadmap-recommend", family: "strict-roadmap" }],
       },
       null,
       2,
@@ -1262,12 +1262,12 @@ try {
   );
 
   const invalidRoadmapDetailsSkillResult = skillValidationModule.validateStrictSkillPackaging(invalidRoadmapDetailsSkillRoot);
-  context.assert(!invalidRoadmapDetailsSkillResult.valid, "strict skill validation fails when roadmap propose guidance omits details handling");
+  context.assert(!invalidRoadmapDetailsSkillResult.valid, "strict skill validation fails when roadmap recommend guidance omits details handling");
   context.assert(
     invalidRoadmapDetailsSkillResult.diagnostics.some(
       (diagnostic) =>
         diagnostic.code === "skill.roadmap.required_snippet.missing"
-        && diagnostic.path === "skills/strict-roadmap-propose/SKILL.md"
+        && diagnostic.path === "skills/strict-roadmap-recommend/SKILL.md"
         && diagnostic.expected === "`details` field",
     ),
     "roadmap skill validation requires details guidance for proposal handoff",
@@ -1276,7 +1276,7 @@ try {
     invalidRoadmapDetailsSkillResult.diagnostics.some(
       (diagnostic) =>
         diagnostic.code === "skill.roadmap.required_snippet.missing"
-        && diagnostic.path === "skills/strict-roadmap-propose/SKILL.md"
+        && diagnostic.path === "skills/strict-roadmap-recommend/SKILL.md"
         && diagnostic.expected === "standalone planned-change",
     ),
     "roadmap skill validation requires split planned-change handoff guidance",
@@ -1285,7 +1285,7 @@ try {
     invalidRoadmapDetailsSkillResult.diagnostics.some(
       (diagnostic) =>
         diagnostic.code === "skill.roadmap.required_snippet.missing"
-        && diagnostic.path === "skills/strict-roadmap-propose/SKILL.md"
+        && diagnostic.path === "skills/strict-roadmap-recommend/SKILL.md"
         && diagnostic.expected === "active strict change conflicts",
     ),
     "roadmap skill validation requires active conflict handoff guidance",

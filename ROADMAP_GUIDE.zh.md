@@ -166,14 +166,6 @@ node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
 
 脚手架验证通过后，默认的下一步是 `/strict-spec-auto`。如果推荐过程产生了开放问题，这些问题会记录在 `questions.yaml` 中，并在实现之前呈现给用户。
 
-### `/strict-roadmap-propose`
-
-将指定的计划变更条目转换为严格变更脚手架。适合已经知道要处理哪个路线图工作项的场景。
-
-```text
-/strict-roadmap-propose add-session-model
-```
-
 ### `/strict-roadmap-review`
 
 审查单个未完成里程碑的目标、范围、完成标准、依赖、风险和计划变更 `details`，直接修复里程碑与计划变更 YAML，然后重新运行 `roadmap-sync`。
@@ -240,7 +232,7 @@ depends_on: []
 
 计划变更的完成状态从已归档的严格工作流状态中派生。
 
-1. 使用 `/strict-roadmap-recommend` 或 `/strict-roadmap-propose` 搭建变更。
+1. 使用 `/strict-roadmap-recommend` 搭建变更。
 2. 使用 `/strict-spec-auto` 或手动严格生命周期命令实现变更。
 3. 归档严格变更。
 4. 运行 `/strict-roadmap-sync`。

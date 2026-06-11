@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: remove-strict-roadmap-propose-skill
+  status: proposed
+summary:
+  what:
+    - 'Remove the strict-roadmap-propose skill from the repository: delete skills/strict-roadmap-propose/, drop its marketplace.json entry, remove its content expectation from src/skills/model.ts, retarget tests that used it as a fixture or asserted its content, update user documentation and the strict-spec-auto skill prompt, and update the yaml-artifacts main spec so roadmap-backed proposals are handled by strict-roadmap-recommend going forward.'
+  why:
+    - The strict-roadmap-propose skill duplicates the proposal-handoff behavior that strict-roadmap-recommend already provides end to end; keeping both doubles skill maintenance, packaging validation, and documentation surface without adding workflow capability.
+scope:
+  in:
+    - Deleting skills/strict-roadmap-propose/; removing its skills/marketplace.json entry; removing the strict-roadmap-propose entry from ROADMAP_STRICT_SKILL_EXPECTATIONS in src/skills/model.ts; updating test/suites/entrypoint-and-skills.ts and test/suites/roadmap-and-migration.ts so no assertion or fixture depends on a repository strict-roadmap-propose skill; updating README.md, README.zh.md, ROADMAP_GUIDE.md, ROADMAP_GUIDE.zh.md, ROADMAP_QUICKSTART.md, ROADMAP_QUICKSTART.zh.md, and skills/strict-spec-auto/SKILL.md to stop referencing the removed skill; modifying the contracts-yaml-artifacts main spec requirement and file mappings accordingly; rebuilding dist output.
+  out:
+    - Removing or changing the strict CLI propose, generate, or ready commands; changing strict-roadmap-recommend or any other remaining skill behavior beyond deleting references to strict-roadmap-propose; rewriting archived changes or historical roadmap milestone records that mention the removed skill; renaming skills or changing the strict-roadmap-* naming family.
+unchanged_behavior:
+  - strict-roadmap-recommend continues to convert exactly one planned change into a populated strict change scaffold with ready-gated handoff to strict-spec-auto
+  - All remaining strict-spec-*, strict-roadmap-*, and strict-tech-* skills keep their current packaging, command mappings, and content validation behavior
+  - Skill packaging validation still fails when a present roadmap skill omits required details, split planned-change, or active-conflict guidance
+  - Archived change directories and roadmap history files remain untouched

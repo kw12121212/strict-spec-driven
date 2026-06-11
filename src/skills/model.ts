@@ -210,14 +210,6 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
     ],
   },
-  "strict-spec-cancel": {
-    requiredCommands: {
-      modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
-      cancel: `${COMMAND_PREFIX} cancel <change-name>`,
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/"],
-  },
   "strict-spec-ship": {
     requiredCommands: {
       ship: `${COMMAND_PREFIX} ship <change-name>`,
@@ -260,24 +252,6 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       ROADMAP_AUTO_POPULATED_HANDOFF_SNIPPET,
       PROPOSAL_CHECKPOINT_SNIPPET,
       "/strict-spec-auto",
-    ],
-    forbiddenSnippets: ["proposal review"],
-  },
-  "strict-roadmap-propose": {
-    requiredCommands: {
-      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
-      propose: `${COMMAND_PREFIX} propose <change-name>`,
-      generate: GENERATE_NAMED_ARGS_COMMAND,
-      ready: READY_COMMAND,
-      verify: `${COMMAND_PREFIX} verify <change-name>`,
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [
-      ".strict-spec-driven/roadmap/",
-      ROADMAP_DETAILS_GUIDANCE_SNIPPET,
-      ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
-      ROADMAP_ACTIVE_CONFLICT_SNIPPET,
-      PROPOSAL_CHECKPOINT_SNIPPET,
     ],
     forbiddenSnippets: ["proposal review"],
   },

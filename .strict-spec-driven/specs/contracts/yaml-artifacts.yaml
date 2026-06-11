@@ -46,7 +46,6 @@ mapping:
     - skills/strict-spec-apply/SKILL.md
     - skills/strict-spec-auto/SKILL.md
     - skills/strict-spec-brainstorm/SKILL.md
-    - skills/strict-spec-cancel/SKILL.md
     - skills/strict-spec-harness-init/SKILL.md
     - skills/strict-spec-harness-session/SKILL.md
     - skills/strict-spec-init/SKILL.md
@@ -64,7 +63,6 @@ mapping:
     - skills/strict-tech-sync/SKILL.md
     - skills/strict-roadmap-review/SKILL.md
     - skills/strict-roadmap-plan/SKILL.md
-    - skills/strict-roadmap-propose/SKILL.md
     - skills/strict-roadmap-recommend/SKILL.md
     - skills/strict-roadmap-sync/SKILL.md
     - README.md
@@ -469,13 +467,18 @@ requirements:
         - THEN: at least one planned change depends on an earlier planned change
   strict-roadmap-skill-command-contract:
     strength: MUST
-    statement: The system MUST provide strict roadmap skill packages for `plan`, `milestone`, `recommend`, `propose`, and `sync` with explicit command mappings that reference the strict roadmap command(s) and shared strict change commands those skills depend on.
+    statement: 'The system MUST provide strict roadmap skill packages for `plan`, `milestone`, `recommend`, and `sync` with explicit command mappings that reference the strict roadmap command(s) and shared strict change commands those skills depend on, and MUST NOT package a separate `propose` roadmap skill: roadmap planned changes are converted into strict change scaffolds through the recommend skill''s proposal handoff.'
     scenarios:
       roadmap-skills-expose-concrete-strict-commands:
         - GIVEN: a strict roadmap `SKILL.md` file is reviewed
         - WHEN: its `## This Skill's Commands` section is inspected
         - THEN: the command mapping identifies the specific strict command entry or entries the skill uses
-        - AND: the command mapping is not limited to generic placeholder commands
+        - THEN: the command mapping is not limited to generic placeholder commands
+      roadmap-propose-skill-is-not-packaged:
+        - GIVEN: the repository skill packaging surfaces are reviewed
+        - WHEN: the skills directory and marketplace metadata are inspected
+        - THEN: no strict-roadmap-propose skill package or marketplace entry exists
+        - THEN: roadmap proposal handoff guidance points to the strict-roadmap-recommend skill
   strict-roadmap-skill-guidance-contract:
     strength: MUST
     statement: The system MUST ensure strict roadmap skill packages describe .strict-spec-driven/roadmap/ YAML artifacts, canonical milestone ordering, declared and derived roadmap status rules, the prompt-vs-script split used by the strict workflow, and efficient handoff behavior that relies on deterministic CLI recommendation output before broad manual context reads.
@@ -896,13 +899,18 @@ requirements:
         - AND: diagnostics identify the package path and failing field or link target
   strict-core-skill-command-contract:
     strength: MUST
-    statement: The system MUST provide strict core lifecycle skill packages for `init`, `propose`, `apply`, `verify`, `review`, `archive`, `auto`, `modify`, and `cancel` with explicit command mappings that reference the strict bundled CLI subcommands those skills depend on.
+    statement: 'The system MUST provide strict core lifecycle skill packages for `init`, `propose`, `apply`, `verify`, `review`, `archive`, `auto`, and `modify` with explicit command mappings that reference the strict bundled CLI subcommands those skills depend on, and MUST NOT package a separate `cancel` skill: cancelling an active change is performed through the strict CLI cancel command or the confirm-gated cancel_change MCP tool.'
     scenarios:
       core-skills-expose-concrete-strict-commands:
-        - GIVEN: a strict core lifecycle `SKILL.md` file is reviewed
-        - WHEN: its `## This Skill's Commands` section is inspected
+        - GIVEN: a strict core lifecycle SKILL.md file is reviewed
+        - WHEN: its '## This Skill's Commands' section is inspected
         - THEN: the command mapping identifies the specific strict bundled CLI command entry or entries the skill uses
-        - AND: the command mapping is not limited to a generic placeholder command
+        - THEN: the command mapping is not limited to a generic placeholder command
+      cancel-skill-is-not-packaged:
+        - GIVEN: the repository skill packaging surfaces are reviewed
+        - WHEN: the skills directory and marketplace metadata are inspected
+        - THEN: no strict-spec-cancel skill package or marketplace entry exists
+        - THEN: the strict CLI cancel command and the cancel_change MCP tool remain the documented cancellation paths
   strict-core-skill-guidance-contract:
     strength: MUST
     statement: The system MUST ensure the strict-spec-apply skill includes a post-task-completion step that automatically detects non-source artifacts generated during task implementation and adds matching entries to .gitignore before suggesting strict-spec-verify.

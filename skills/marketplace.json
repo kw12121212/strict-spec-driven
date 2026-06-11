@@ -3,7 +3,6 @@
   "namespace": "strict-spec-driven",
   "skills": [
     { "name": "strict-roadmap-plan", "family": "strict-roadmap" },
-    { "name": "strict-roadmap-propose", "family": "strict-roadmap" },
     { "name": "strict-roadmap-recommend", "family": "strict-roadmap" },
     { "name": "strict-roadmap-review", "family": "strict-roadmap" },
     { "name": "strict-roadmap-sync", "family": "strict-roadmap" },
@@ -11,7 +10,6 @@
     { "name": "strict-spec-archive", "family": "strict-spec" },
     { "name": "strict-spec-auto", "family": "strict-spec" },
     { "name": "strict-spec-brainstorm", "family": "strict-spec" },
-    { "name": "strict-spec-cancel", "family": "strict-spec" },
     { "name": "strict-spec-harness-init", "family": "strict-spec" },
     { "name": "strict-spec-harness-session", "family": "strict-spec" },
     { "name": "strict-spec-init", "family": "strict-spec" },

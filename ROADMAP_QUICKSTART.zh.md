@@ -119,13 +119,7 @@ node scripts/strict-spec-driven.js roadmap-status
 /strict-roadmap-recommend
 ```
 
-如果你已经知道要处理哪个路线图工作项：
-
-```text
-/strict-roadmap-propose add-session-model
-```
-
-两条命令都会在 `.strict-spec-driven/changes/` 下搭建一个标准的严格变更。
+该命令会在 `.strict-spec-driven/changes/` 下搭建一个标准的严格变更。
 
 ## 第 6 步：作为标准严格变更实施
 
@@ -182,7 +176,6 @@ node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
 | `/strict-roadmap-plan` | 创建或重构路线图 |
 | `/strict-roadmap-review` | 审查单个未完成里程碑并直接修复 |
 | `/strict-roadmap-recommend` | 获取下一个变更的推荐 |
-| `/strict-roadmap-propose` | 直接搭建指定的计划变更 |
 | `/strict-roadmap-sync` | 将路线图状态与工作流同步 |
 
 完整的 YAML 模式和字段定义参考，请参阅 [ROADMAP_GUIDE.zh.md](ROADMAP_GUIDE.zh.md)。

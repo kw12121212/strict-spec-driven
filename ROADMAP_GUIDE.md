@@ -167,14 +167,6 @@ Reads roadmap state and recommends the best next planned change to work on from 
 
 After the scaffold validates, the default next step is `/strict-spec-auto`. If the recommendation produces open questions, those questions are recorded in `questions.yaml` and surfaced before implementation.
 
-### `/strict-roadmap-propose`
-
-Turns a specific planned change into a strict change scaffold. Use when you already know which roadmap work item you want.
-
-```text
-/strict-roadmap-propose add-session-model
-```
-
 ### `/strict-roadmap-review`
 
 Reviews one incomplete milestone's goal, scope, done criteria, dependencies, risks, and planned-change `details`, directly applies fixes to the milestone and planned-change YAML, then reruns `roadmap-sync`.
@@ -241,7 +233,7 @@ depends_on: []
 
 Planned-change completion is derived from archived strict workflow state.
 
-1. Scaffold the change with `/strict-roadmap-recommend` or `/strict-roadmap-propose`.
+1. Scaffold the change with `/strict-roadmap-recommend`.
 2. Implement it with `/strict-spec-auto` or the manual strict lifecycle commands.
 3. Archive the strict change.
 4. Run `/strict-roadmap-sync`.

@@ -120,13 +120,7 @@ Let the workflow recommend the best next change based on dependencies and curren
 /strict-roadmap-recommend
 ```
 
-If you already know which roadmap work item to start:
-
-```text
-/strict-roadmap-propose add-session-model
-```
-
-Both commands scaffold a normal strict change under `.strict-spec-driven/changes/`.
+The command scaffolds a normal strict change under `.strict-spec-driven/changes/`.
 
 ## Step 6: Implement as a Normal Strict Change
 
@@ -183,7 +177,6 @@ If you are running through an installed skill package, use the exact command for
 | `/strict-roadmap-plan` | Create or restructure the roadmap |
 | `/strict-roadmap-review` | Review one incomplete milestone and apply fixes |
 | `/strict-roadmap-recommend` | Get a recommendation for the next change |
-| `/strict-roadmap-propose` | Directly scaffold a specific planned change |
 | `/strict-roadmap-sync` | Reconcile roadmap state with workflow |
 
 For the full reference, including field definitions and legacy materialization guidance, see [ROADMAP_GUIDE.md](ROADMAP_GUIDE.md).

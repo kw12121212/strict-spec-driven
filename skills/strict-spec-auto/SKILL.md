@@ -77,7 +77,7 @@ run `init` from this skill.
 
 3. **Propose or resume the change** — if the strict change does not exist yet,
    scaffold with `propose`. If a prior workflow step such as
-   `/strict-roadmap-recommend` or `/strict-roadmap-propose` already created a
+   `/strict-roadmap-recommend` already created a
    populated change directory containing proposal, design, tasks, questions,
    and delta spec artifacts, resume the existing populated strict change
    scaffold without regenerating planning artifacts or running `propose` again.

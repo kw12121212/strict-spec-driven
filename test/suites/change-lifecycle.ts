@@ -2405,7 +2405,7 @@ try {
 }
 
 // 14h: cancel removes active changes
-const cancelActiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-cancel-active-"));
+const cancelActiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-cancel-active-"));
 try {
   const changeName = "cancel-me";
   writeValidChangeArtifacts(cancelActiveDir, changeName);
@@ -2426,7 +2426,7 @@ try {
 }
 
 // 14i: cancel rejects archived targets and preserves archive history
-const cancelArchiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-cancel-archive-"));
+const cancelArchiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-cancel-archive-"));
 try {
   const archiveDirName = `${formatLocalDateStamp()}-cancel-target`;
   const archivedPath = writeArchivedChangeArtifacts(cancelArchiveDir, archiveDirName);
@@ -2447,7 +2447,7 @@ try {
 }
 
 // 14j: cancel rejects missing targets
-const cancelMissingDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-cancel-missing-"));
+const cancelMissingDir = mkdtempSync(path.join(os.tmpdir(), "strict-cancel-missing-"));
 try {
   mkdirSync(path.join(cancelMissingDir, ".strict-spec-driven", "changes"), { recursive: true });
   const cancelMissingResult = cli(["cancel", "missing-change"], { cwd: cancelMissingDir });

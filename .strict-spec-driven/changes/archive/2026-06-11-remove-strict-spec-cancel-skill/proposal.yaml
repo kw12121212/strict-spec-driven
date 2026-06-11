@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: remove-strict-spec-cancel-skill
+  status: proposed
+summary:
+  what:
+    - 'Remove the strict-spec-cancel skill from the repository: delete skills/strict-spec-cancel/, drop its skills/marketplace.json entry, remove its content expectation from CORE_STRICT_SKILL_EXPECTATIONS in src/skills/model.ts, rename the cancel CLI test tmpdir prefixes in test/suites/change-lifecycle.ts so no test string carries the removed skill name, update README.md and README.zh.md skill tables, update the contracts-yaml-artifacts main spec so the core lifecycle skill contract no longer names cancel, and rebuild dist. The strict CLI cancel command and the cancel_change MCP tool remain the supported cancellation paths.'
+  why:
+    - The strict-spec-cancel skill only wraps the single-argument strict CLI cancel command behind a confirmation prompt; the CLI command and the confirm-gated cancel_change MCP tool already provide the same destructive-action protection, so keeping a dedicated skill doubles packaging validation, marketplace metadata, and documentation surface without adding workflow capability.
+scope:
+  in:
+    - Deleting skills/strict-spec-cancel/; removing its skills/marketplace.json entry; removing the strict-spec-cancel entry from CORE_STRICT_SKILL_EXPECTATIONS in src/skills/model.ts; renaming the strict-spec-cancel-* tmpdir prefixes in test/suites/change-lifecycle.ts cancel-command tests; updating README.md and README.zh.md to stop listing a /strict-spec-cancel skill; modifying the contracts-yaml-artifacts main spec strict-core-skill-command-contract requirement and file mappings accordingly; rebuilding dist output.
+  out:
+    - Removing or changing the strict CLI cancel command, its active-only and archived-target protections, or its tests; removing or changing the cancel_change MCP tool or its confirm gate; changing any other remaining skill's behavior or packaging; rewriting archived changes or roadmap history that mention strict-spec-cancel; renaming skills or changing the strict-spec-* naming family.
+unchanged_behavior:
+  - The strict CLI cancel command keeps deleting exactly one active change, rejecting archived and missing targets with the existing error messages
+  - 'The cancel_change MCP tool keeps requiring confirm: true before delegating to the strict CLI'
+  - All remaining strict-spec-*, strict-roadmap-*, and strict-tech-* skills keep their current packaging, command mappings, and content validation behavior
+  - Skill packaging validation keeps enforcing that marketplace metadata matches the discovered skill directories
+  - Archived change directories and roadmap history files remain untouched
