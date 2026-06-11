@@ -3,14 +3,15 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "build": "bun scripts/gen-templates-bundle.ts && tsc && rm -rf dist/templates dist/scripts && cp -r templates dist/templates && cp -r scripts dist/scripts && bun build --bundle --target node --format esm --outfile dist/scripts/strict-spec-driven.js src/strict-spec-cli.ts && bun build --bundle --target node --format esm --outfile dist/scripts/strict-spec-driven-mcp.js src/mcp/entrypoint.ts",
-    "bundle": "mkdir -p dist/scripts && bun build --bundle --target node --format esm --outfile dist/scripts/strict-spec-driven.js src/strict-spec-cli.ts && bun build --bundle --target node --format esm --outfile dist/scripts/strict-spec-driven-mcp.js src/mcp/entrypoint.ts",
+    "build": "bun scripts/gen-templates-bundle.ts && tsc && rm -rf dist/templates dist/scripts && cp -r templates dist/templates && cp -r scripts dist/scripts && bun build --bundle --sourcemap=inline --target node --format esm --outfile dist/scripts/strict-spec-driven.js src/strict-spec-cli.ts && bun build --bundle --sourcemap=inline --target node --format esm --outfile dist/scripts/strict-spec-driven-mcp.js src/mcp/entrypoint.ts",
+    "bundle": "mkdir -p dist/scripts && bun build --bundle --sourcemap=inline --target node --format esm --outfile dist/scripts/strict-spec-driven.js src/strict-spec-cli.ts && bun build --bundle --sourcemap=inline --target node --format esm --outfile dist/scripts/strict-spec-driven-mcp.js src/mcp/entrypoint.ts",
     "build:bundle": "bun run build",
     "install-strict-skills": "bash install.sh",
     "install-strict-skills:win": "powershell -ExecutionPolicy Bypass -File install.ps1",
     "install-strict-skills:project": "bash install.sh --project",
     "lint": "tsc --noEmit",
     "test": "bun test/run.ts",
+    "test:coverage": "bun scripts/coverage-gate.ts",
     "uninstall-strict-skills": "bash install.sh --uninstall",
     "uninstall-strict-skills:win": "powershell -ExecutionPolicy Bypass -File install.ps1 -Uninstall",
     "uninstall-strict-skills:project": "bash install.sh --uninstall --project",
@@ -19,6 +20,7 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.19.39",
+    "c8": "^11.0.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {

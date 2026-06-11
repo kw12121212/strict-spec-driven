@@ -1,0 +1,21 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-config-coverage-contract
+  milestone: 0016-test-coverage-enforcement
+status: complete
+summary: Extend the workflow config contract so review_evidence.project_regression can declare a structured coverage contract (threshold, metric, measurement scope) and add CLI validation that rejects malformed declarations with actionable diagnostics.
+details: |-
+  Today review_evidence.project_regression carries only a command string plus prose meaning, and config.yaml has no bundled schema at all, so nothing lets a project declare what coverage it requires and nothing validates such a declaration. This change introduces the structured coverage contract as optional config fields — threshold value, coverage metric (informed by the spike's metric recommendation), and measurement scope — and creates the validation surface those fields need.
+  Scope includes the contract field shape under review_evidence.project_regression, a bundled validation path (either a full config schema added to templates/strict-spec-driven/schemas/ and the schema registry, or a targeted deterministic config check if a full schema is judged too broad — record the decision in the change design), CLI diagnostics for malformed declarations (non-numeric or out-of-range thresholds, unknown metrics, empty scope), and tests covering valid declarations, each malformed-field diagnostic, and absence of the contract remaining valid for projects that have not opted in. The CLI validates the declaration only; it must not attempt to measure coverage itself — measurement stays in each project's toolchain and the gate stays the regression command's exit code.
+depends_on:
+  - spike-coverage-enforcement-path
+team:
+  blocked:
+    status: false
+  labels:
+    - testing
+    - coverage
+    - config

@@ -45,6 +45,15 @@ intended project root.
    - what the project does
    - the tech stack and languages
    - key conventions or constraints worth preserving
+   Then configure `review_evidence.project_regression.command` with the
+   project's real complete regression command (build plus full test run) for
+   the detected toolchain — the scaffold ships a REPLACE placeholder, not a
+   runnable command. Recommend declaring the commented coverage contract
+   (`coverage: threshold / metric / scope`) so minimum test coverage becomes a
+   blocking review-evidence gate; the regression command must then enforce that
+   threshold by exiting non-zero below it (for example via the test runner's
+   own coverage threshold support). The strict CLI validates the declaration
+   but never measures coverage itself.
 
 4. **Ensure AGENTS.md exists** — check the target project root for an `AGENTS.md`.
    If none exists, generate a concise `AGENTS.md` describing the project for future

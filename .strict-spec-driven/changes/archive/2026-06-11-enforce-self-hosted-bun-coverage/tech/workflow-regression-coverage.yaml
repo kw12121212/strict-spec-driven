@@ -1,0 +1,21 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: workflow-regression-coverage
+mapping:
+  implementation:
+    - .strict-spec-driven/config.yaml
+    - scripts/coverage-gate.ts
+  enforcement:
+    - test/suites/coverage-gate.ts
+operations:
+  ADDED:
+    enforce-minimum-coverage:
+      strength: MUST
+      statement: The complete project regression command recorded in review_evidence.project_regression MUST enforce the minimum src/** line coverage declared in the workflow config coverage contract, exiting non-zero below the declared threshold; the threshold MUST start at the measured baseline and only be raised deliberately, never silently lowered or removed.
+      rationale: Archive safety previously depended on human judgment about test sufficiency; a baseline-derived ratchet makes coverage loss a deterministic review-evidence failure while avoiding aspirational thresholds that invite exceptions or superficial tests.
+      enforcement:
+        method: test
+  MODIFIED: {}
+  REMOVED: {}

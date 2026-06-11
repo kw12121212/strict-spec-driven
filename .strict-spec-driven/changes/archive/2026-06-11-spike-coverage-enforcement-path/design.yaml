@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: spike-coverage-enforcement-path
+approach:
+  - 'Add an additive coverage tooling layer without touching existing workflow state. A new TypeScript entry script orchestrates the flow: build with source maps enabled on both compilation paths, run test/run.ts with NODE_V8_COVERAGE pointed at a temp directory so every spawned node subprocess emits V8 coverage JSON, then aggregate with c8 into a json-summary that the script reduces to a src/** line-coverage figure itself. The script exits non-zero when coverage is below the --threshold flag value, keeping the spike baseline-neutral. Findings below record the measured baseline and the contract recommendations for the follow-up changes.'
+decisions:
+  subprocess-v8-coverage-over-bun-native:
+    decision: Collect coverage via NODE_V8_COVERAGE from spawned node subprocesses aggregated by c8, not via bun test --coverage.
+    rationale: The harness runs the CLI as node child processes (test/support/harness.ts spawnSync), so bun-native coverage observes only the runner process and reports near-zero src/** coverage; V8 coverage from the actual node subprocesses is the only path that measures the code under test.
+  sourcemaps-on-both-compilation-paths:
+    decision: Enable tsc sourceMap output (tsconfig.json) for the unbundled dist/ tree that the test harness executes, and inline source maps on the bun build bundles (package.json) that the MCP suite executes.
+    rationale: 'Tests exercise two different compiled artifacts: the harness CLI constant points at tsc-compiled dist/strict-spec-cli.js (330 of 344 coverage files), while MCP tests spawn the bundled dist/scripts entrypoints. Without maps on both paths, coverage stays attributed to compiled files and the measured src/** denominator collapses; bun 1.3.13''s --sourcemap=linked ignores --outfile and writes next to the entrypoint, so inline is the working bundle option.'
+  gate-owns-scope-aggregation:
+    decision: The gate script reduces c8's unfiltered json-summary to a src/** line-coverage figure itself instead of using c8 --include filters.
+    rationale: c8 v11 applies --include to the pre-remap script path even with --exclude-after-remap, which drops every remapped src/** entry and reports zero coverage; owning the aggregation also normalizes the bundle remap artifact that places sources under dist/scripts/src/** and keeps the scope rule (src/** minus generated src/embedded-templates.ts) deterministic and unit-testable.
+  threshold-as-flag-not-config:
+    decision: The spike's threshold check takes its value from an explicit script flag; no threshold is written into workflow config yet.
+    rationale: The contract fields and the baseline-derived threshold belong to the follow-up changes add-config-coverage-contract and enforce-self-hosted-bun-coverage; the spike stays scoped to proving the mechanism and measuring the baseline.
+  finding-measured-baseline:
+    decision: 'Finding: the full-suite baseline measures 78.14% line coverage over src/** (12515/16017 lines) with all 1562 tests passing; the recommended contract metric is line coverage and the recommended measurement scope is src/** excluding generated src/embedded-templates.ts.'
+    rationale: Line coverage is the figure c8 derives most reliably through both source-map remap paths, and the measured baseline gives enforce-self-hosted-bun-coverage a ratchet starting point (initial threshold at or just below 78) instead of an aspirational number.
+  finding-inline-map-size-tradeoff:
+    decision: 'Finding: inline source maps grow the git-tracked distribution bundle dist/scripts/strict-spec-driven.js from 0.82MB to 2.84MB.'
+    rationale: The bundle is committed for distribution, so this inflates future diffs; acceptable for the spike, but a follow-up may restore a lean bundle via an outdir-plus-rename build step emitting external maps or a bun upgrade that fixes --sourcemap=linked with --outfile.
+alternatives: []
+risks: []

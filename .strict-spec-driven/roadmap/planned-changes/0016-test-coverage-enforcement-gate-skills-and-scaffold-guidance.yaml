@@ -1,0 +1,22 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: gate-skills-and-scaffold-guidance
+  milestone: 0016-test-coverage-enforcement
+status: complete
+summary: Make declared coverage contracts blocking review evidence in the review, verify, and auto skill contracts, and converge scaffold config, init and harness-infer guidance, change task scaffolds, and maintenance-generated tasks on coverage-aware regression commands.
+details: |-
+  With the structured coverage contract available in config, this change wires it through every user-facing workflow surface. The strict-spec-review, strict-spec-verify, and strict-spec-auto skill contracts must treat a declared coverage contract as blocking review evidence: a regression command failing on coverage blocks archive exactly like failing tests, surfaced through the command's exit code rather than AI judgment, and no surface may imply the strict CLI measures coverage itself.
+  Scope includes the skill prompt updates, replacing the scaffold config's hardcoded self-hosted command (bun run build && bun test/run.ts) with toolchain-appropriate guidance and an explicit pointer to declaring a coverage contract, init and harness-infer surfaces recommending or generating coverage-aware regression commands for the detected toolchain, and change task scaffolds plus maintenance-generated task lists emitting testing steps consistent with the declared contract instead of threshold-free unit-test steps. Add regression tests pinning the scaffold output, generated task surfaces, and skill guidance wording that encodes the coverage requirement, so future workflow edits cannot silently remove the gate. Skill behavior changes must stay within describing the YAML contract accurately per the repository's skill-update constraint.
+depends_on:
+  - add-config-coverage-contract
+team:
+  blocked:
+    status: false
+  labels:
+    - testing
+    - coverage
+    - skills
+    - scaffold

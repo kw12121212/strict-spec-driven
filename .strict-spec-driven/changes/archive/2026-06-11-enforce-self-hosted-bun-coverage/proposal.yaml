@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: enforce-self-hosted-bun-coverage
+  status: proposed
+summary:
+  what:
+    - 'Adopt the coverage contract in this repository: point review_evidence.project_regression at the coverage-aware regression command with a declared coverage contract whose threshold is the spike''s measured baseline (78, from 78.14%), extend the workflow-regression-coverage technical standard with a rule that the complete project regression command must enforce minimum src/** line coverage, and add regression tests that pin the self-hosted declaration so workflow edits cannot silently remove the gate.'
+  why:
+    - Milestone 0016 requires the repository to dogfood its own coverage contract as the reference implementation. The spike proved the enforcement mechanism and measured the baseline, and the config contract change added the declaration fields and validation; what remains is wiring this repository's own workflow gate to actually enforce coverage and recording the policy in the testing technical standard.
+scope:
+  in:
+    - Updating .strict-spec-driven/config.yaml review_evidence.project_regression to the coverage gate command with --threshold 78 and a coverage declaration (threshold 78, metric line, scope src/** excluding src/embedded-templates.ts); a delta tech rule on workflow-regression-coverage requiring coverage enforcement in the complete regression command with ratchet rationale; regression tests pinning the self-hosted config declaration and command wiring
+  out:
+    - Raising the threshold beyond the measured baseline; changing scaffold config content, skill prompts, init or harness-infer guidance, or generated task surfaces; altering the coverage gate script mechanics; broad test-suite quality work
+unchanged_behavior:
+  - The coverage gate script behavior, the config schema contract, all existing test suites, and the skills' review evidence semantics stay exactly as they are; the regression command still builds and runs the complete test suite before coverage is checked
+roadmap:
+  milestone: 0016-test-coverage-enforcement
+  planned_change: enforce-self-hosted-bun-coverage

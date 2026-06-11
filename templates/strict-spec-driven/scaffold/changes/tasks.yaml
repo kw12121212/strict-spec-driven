@@ -9,22 +9,14 @@ sections:
       text: Implement the scoped workflow behavior.
       status: pending
   Testing:
-    run-build:
-      text: Run build validation.
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
       status: pending
-      command: bun run build
-    run-lint:
-      text: Run lint checks.
-      status: pending
-      command: bun run lint
-    run-tests:
-      text: Run unit tests.
-      status: pending
-      command: bun test/run.ts
+      command: {{project_regression_command}}
   Verification:
     verify-scope:
       text: Verify implementation matches proposal scope.
       status: pending
 testing_gates:
-  validation_task: run-build
-  unit_test_task: run-tests
+  validation_task: run-project-regression
+  unit_test_task: run-project-regression

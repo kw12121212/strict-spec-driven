@@ -1,0 +1,81 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/config/v1
+artifact_type: workflow_config
+artifact_name: config
+description: Strict YAML workflow config artifact. Known top-level fields are typed and unknown fields stay allowed so user-edited configs do not break; the review_evidence.project_regression.coverage declaration subtree is strict.
+example_ref: ../../../examples/strict-spec-driven/config.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: true
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/config/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: workflow_config
+    context:
+      type: string
+    rules:
+      type: object
+      additionalProperties:
+        type: array
+        items:
+          type: string
+    review_evidence:
+      type: object
+      additionalProperties: true
+      properties:
+        project_regression:
+          type: object
+          additionalProperties: true
+          properties:
+            method:
+              type: string
+            command:
+              type: string
+            meaning:
+              type: string
+            unavailable_behavior:
+              type: string
+            coverage:
+              type: object
+              additionalProperties: false
+              required:
+                - threshold
+                - metric
+              properties:
+                threshold:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                metric:
+                  type: string
+                  enum:
+                    - line
+                scope:
+                  type: object
+                  additionalProperties: false
+                  required:
+                    - include
+                  properties:
+                    include:
+                      type: array
+                      minItems: 1
+                      items:
+                        type: string
+                        minLength: 1
+                    exclude:
+                      type: array
+                      items:
+                        type: string
+                        minLength: 1

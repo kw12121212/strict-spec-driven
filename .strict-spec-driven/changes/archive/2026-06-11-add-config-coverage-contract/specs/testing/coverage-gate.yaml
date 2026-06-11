@@ -1,0 +1,34 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: testing-coverage-gate
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/config.yaml
+    - templates/strict-spec-driven/schemas/registry.yaml
+    - examples/strict-spec-driven/config.yaml
+    - src/validation.ts
+    - src/cli/cmd-workflow.ts
+  tests:
+    - test/suites/coverage-gate.ts
+operations:
+  ADDED:
+    config-coverage-declaration:
+      strength: MUST
+      statement: The workflow config may declare a structured coverage contract at review_evidence.project_regression.coverage consisting of a required numeric threshold between 0 and 100, a required metric of line, and an optional scope with include and exclude glob lists; when the strict workflow preflight runs in a project whose config declares this contract malformed, it exits non-zero with path-aware diagnostics naming the offending field, and configs without a declaration remain valid.
+      scenarios:
+        accepts-valid-declaration:
+          - GIVEN: a project config declares coverage with a numeric threshold of 80 and metric line
+          - WHEN: the workflow-state preflight command runs
+          - THEN: it exits zero and reports the workflow state exists
+        rejects-malformed-declaration:
+          - GIVEN: a project config declares coverage with a threshold of 150 or an unknown metric
+          - WHEN: the workflow-state preflight command runs
+          - THEN: it exits non-zero with a diagnostic naming the offending coverage field
+        absent-declaration-stays-valid:
+          - GIVEN: a project config has review_evidence without a coverage declaration
+          - WHEN: the workflow-state preflight command runs
+          - THEN: it exits zero exactly as before the contract existed
+  MODIFIED: {}
+  REMOVED: {}

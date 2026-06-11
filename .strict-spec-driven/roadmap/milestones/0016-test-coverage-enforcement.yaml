@@ -1,0 +1,53 @@
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+milestone:
+  0016-test-coverage-enforcement:
+    title: 16 Test Coverage Enforcement
+goal: Make test coverage enforcement a first-class, user-controllable product contract of the strict workflow, so any project using the skills and CLI can declare a structured coverage requirement in its workflow config, have the CLI validate that declaration, and have review and archive deterministically block when the coverage-aware regression command fails, with this repository's own Bun-based enforcement serving as the self-hosted reference implementation.
+scope:
+  in:
+    - Extend the workflow config contract so review_evidence.project_regression can declare a structured coverage contract (threshold value, coverage metric, and measurement scope), and introduce CLI validation for that declaration; config.yaml currently has no bundled schema, so this includes adding the validation surface the contract needs rather than leaving coverage fields as unvalidated prose.
+    - Update the strict-spec-review, strict-spec-verify, and strict-spec-auto skill contracts so a declared coverage contract is blocking review evidence; insufficient coverage surfaces as a deterministic workflow failure through the regression command's exit code, not as advisory output or AI judgment.
+    - Replace the scaffold config's hardcoded self-hosted regression command with toolchain-appropriate guidance, and teach init and harness-infer surfaces to recommend or generate coverage-aware regression commands for the detected toolchain instead of threshold-free test steps.
+    - Propagate the coverage-aware regression expectation into new change task scaffolds and maintenance-generated task lists so generated artifacts stay consistent with the declared review-evidence contract.
+    - Adopt the contract in this repository itself by extending the workflow-regression-coverage technical standard, declaring the coverage contract in .strict-spec-driven/config.yaml, and establishing one deterministic Bun-compatible mechanism that exits non-zero when the configured threshold is missed, with the initial threshold derived from a measured coverage baseline.
+    - Add regression tests covering the coverage-contract validation, scaffold and template outputs, generated task surfaces, and the self-hosted gate so future workflow edits cannot silently remove enforcement.
+  out:
+    - Building a coverage measurement engine into the strict CLI itself; coverage is measured by each project's own toolchain, and the product enforces the declared contract plus the regression command's exit code.
+    - Third-party coverage SaaS integrations, badges, or hosted reporting services; this milestone is about local and workflow enforcement, not external dashboards.
+    - Raising this repository's threshold opportunistically release by release without first defining the enforcement contract and workflow wiring.
+    - Rewriting unrelated strict specs, roadmap milestones, or command-domain behavior contracts beyond the minimum mapping or wording updates needed to describe the coverage contract.
+    - Expanding this into broad test-suite quality work unrelated to coverage enforcement, such as redesigning every test fixture or backfilling unrelated behavioral gaps.
+done_criteria:
+  - The workflow config contract supports a structured coverage declaration (threshold, metric, measurement scope) under review_evidence.project_regression, and the CLI rejects malformed declarations with actionable diagnostics.
+  - strict-spec-review, strict-spec-verify, and strict-spec-auto treat a declared coverage contract as blocking review evidence, so a regression command failing on coverage blocks archive the same way failing tests do.
+  - The scaffold config and init or harness-infer guidance no longer hardcode this repository's own threshold-free command and instead produce or recommend coverage-aware regression commands appropriate to the user's toolchain.
+  - Scaffolded change tasks and maintenance-generated task lists emit testing steps consistent with the declared coverage contract instead of threshold-free unit-test steps.
+  - This repository declares its own coverage contract in .strict-spec-driven/config.yaml backed by one deterministic Bun-compatible mechanism that exits non-zero below the configured threshold, with the initial threshold derived from a measured baseline so the gate starts as a ratchet rather than an aspiration.
+  - The workflow-regression-coverage technical standard records the coverage contract, defines the coverage metric and measurement scope it applies to, and explains the enforcement mechanism and rationale.
+  - Regression tests cover the contract validation, scaffold and template outputs, generated task surfaces, and the self-hosted gate so future workflow edits cannot silently remove the coverage requirement.
+planned_changes: {}
+dependencies:
+  - The existing review_evidence.project_regression contract remains the single gate surface; the coverage contract extends it rather than introducing a parallel archive-only mechanism.
+  - Enforcement executes through skill contracts reading project config, so the coverage contract wording must be deterministic enough for skills to apply without judgment; the CLI validates the declaration, the project toolchain measures coverage, and the gate is the regression command's exit code.
+  - The workflow-regression-coverage technical standard is the policy surface to extend for the self-hosted adoption; do not introduce overlapping testing standards.
+  - The Bun plus TypeScript toolchain and the current custom test entrypoint define the self-hosted implementation constraints; the milestone must reconcile coverage enforcement with that existing runner architecture.
+risks:
+  - Self-hosted enforcement has a confirmed architectural constraint, not a maybe - the test harness runs the bundled CLI as node subprocesses via spawnSync, so Bun's native bun test coverage would measure the test-runner process and report near-zero coverage for src/**; the viable path is subprocess V8 coverage (NODE_V8_COVERAGE plus c8 aggregation) mapped back through the bundle's source maps, and choosing wrong yields a policy that is documented but not actually blocking.
+  - Coverage measurement is toolchain-specific, so the product contract can only enforce the declared contract plus the command's exit code; if skill contracts over-promise (for example claiming to independently verify threshold numbers), the contract becomes unverifiable and erodes trust in the gate.
+  - If the config contract, scaffold templates, skill prompts, generated maintenance tasks, and documentation are not updated together, the repository can self-host contradictory coverage commands and confuse future strict changes.
+  - An unrealistically high initial threshold could turn the gate into busywork and encourage threshold exceptions or superficial tests; the self-hosted threshold must be derived from the measured baseline and only ratcheted deliberately.
+status: complete
+notes:
+  - The current review gate is bun run build && bun test/run.ts, which requires tests to pass but does not require any minimum coverage threshold, and the scaffold config hardcodes that same self-hosted command, which is meaningless for external projects; fixing that scaffold leak is part of this milestone.
+  - The first planned change must be a self-hosted enforcement-path spike validating subprocess V8 coverage collection (NODE_V8_COVERAGE plus c8) and source-map back-mapping through the dist bundle before the contract wording and threshold are finalized.
+  - Enforcement philosophy across all surfaces - the CLI validates the declared contract, the project's own toolchain measures coverage, and skills gate on the regression command's exit code; no surface should imply the strict CLI measures coverage itself.
+  - A likely implementation split is the enforcement-path spike, config contract plus CLI validation, skill gating plus scaffold and init guidance, and self-hosted Bun enforcement plus regression backfill; those standalone planned changes can be proposed after the milestone contract is accepted.
+details: |-
+  The accepted direction is to turn coverage from a review preference into a user-controllable product contract. Today the workflow already gates review and archive on review_evidence.project_regression, but that contract carries only a command string: nothing lets a project declare what coverage it requires, nothing validates such a declaration, and the scaffold config even hardcodes this repository's own threshold-free Bun command, which is meaningless to external projects. A user who wants strict coverage control must hand-craft a command and hope future workflow edits keep honoring it.
+
+  This milestone makes coverage enforcement first-class at every product layer. The config contract gains a structured coverage declaration (threshold, metric, measurement scope) that the CLI validates - config.yaml currently has no bundled schema, so the validation surface is created as part of this work. The review, verify, and auto skill contracts treat a declared coverage contract as blocking evidence, with the regression command's exit code as the deterministic gate. Init, harness-infer, scaffold config, change task scaffolds, and maintenance-generated tasks all converge on coverage-aware commands appropriate to the user's toolchain instead of threshold-free test steps.
+
+  The repository then adopts its own contract as the self-hosted reference implementation. That side has a confirmed architectural constraint: the test harness spawns the bundled CLI as node subprocesses, so Bun-native test coverage cannot observe src/**; the enforcement path must be spiked first (subprocess V8 coverage aggregated by c8 and mapped back through the bundle's source maps) and the initial threshold derived from the measured baseline. Regression tests then pin the contract validation, scaffold outputs, generated task surfaces, and the self-hosted gate so future workflow refactors cannot silently remove the coverage requirement.

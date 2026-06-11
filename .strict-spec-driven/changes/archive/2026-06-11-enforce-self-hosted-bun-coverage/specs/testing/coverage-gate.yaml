@@ -1,0 +1,27 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: testing-coverage-gate
+mapping:
+  implementation:
+    - .strict-spec-driven/config.yaml
+  tests:
+    - test/suites/coverage-gate.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    self-hosted-coverage-contract:
+      strength: MUST
+      statement: This repository's workflow config declares the coverage contract (threshold 78, metric line, scope src/** excluding the generated embedded-templates module) and configures the complete project regression command as the coverage gate invocation with the same threshold, so review evidence fails deterministically when src/** line coverage regresses below the declared threshold.
+      scenarios:
+        declaration-and-command-agree:
+          - GIVEN: the repository workflow config at .strict-spec-driven/config.yaml
+          - WHEN: the coverage declaration and the project regression command are read
+          - THEN: the declaration is a valid coverage contract and the command invokes the coverage gate with a threshold equal to the declared threshold
+        gate-blocks-regression:
+          - GIVEN: the configured complete project regression command
+          - WHEN: measured src/** line coverage falls below the declared threshold
+          - THEN: the command exits non-zero so review and archive evidence fails
+  MODIFIED: {}
+  REMOVED: {}

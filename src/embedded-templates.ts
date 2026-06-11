@@ -69,25 +69,17 @@ sections:
       text: Implement the scoped workflow behavior.
       status: pending
   Testing:
-    run-build:
-      text: Run build validation.
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
       status: pending
-      command: bun run build
-    run-lint:
-      text: Run lint checks.
-      status: pending
-      command: bun run lint
-    run-tests:
-      text: Run unit tests.
-      status: pending
-      command: bun test/run.ts
+      command: {{project_regression_command}}
   Verification:
     verify-scope:
       text: Verify implementation matches proposal scope.
       status: pending
 testing_gates:
-  validation_task: run-build
-  unit_test_task: run-tests
+  validation_task: run-project-regression
+  unit_test_task: run-project-regression
 `,
   "strict-spec-driven/scaffold/config.yaml": `schema: strict-spec-driven/config/v1
 schema_version: 1
@@ -116,15 +108,31 @@ rules:
 review_evidence:
   project_regression:
     method: complete_project_regression
-    command: bun run build && bun test/run.ts
+    # Set this to your project's complete regression command (build plus full
+    # test run). When you declare a coverage contract below, this command must
+    # enforce it by exiting non-zero when coverage falls below the threshold.
+    command: REPLACE WITH the complete project regression command (build plus full test run)
     meaning: >-
       Passing this command is required review evidence before strict-spec-review recommends archive
       or strict-spec-auto performs archive. This command represents the complete project-level
-      regression suite, not only the Testing section tasks for an individual change.
+      regression suite, not only the Testing section tasks for an individual change. When a
+      coverage declaration is present, this command also enforces the minimum coverage threshold,
+      so insufficient coverage is a blocking workflow failure rather than advisory output.
     unavailable_behavior: >-
       If the command cannot run because required dependencies, services, credentials, fixtures, or
       other test conditions are unavailable, review or auto archive is blocked until a human
       prepares the environment or explicitly provides the missing evidence.
+    # Declare a coverage contract to make minimum test coverage a blocking
+    # review-evidence gate. The strict CLI validates this declaration; your
+    # regression command above is what measures and enforces it.
+    # coverage:
+    #   threshold: 80
+    #   metric: line
+    #   scope:
+    #     include:
+    #       - src/**
+    #     exclude:
+    #       - src/generated/**
 # maintenance:
 #   checks:
 #     - type: roadmap-sync-check
@@ -427,6 +435,88 @@ json_schema:
           type: string
         planned_change:
           type: string
+`,
+  "strict-spec-driven/schemas/config.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/config/v1
+artifact_type: workflow_config
+artifact_name: config
+description: Strict YAML workflow config artifact. Known top-level fields are typed and unknown fields stay allowed so user-edited configs do not break; the review_evidence.project_regression.coverage declaration subtree is strict.
+example_ref: ../../../examples/strict-spec-driven/config.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: true
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/config/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: workflow_config
+    context:
+      type: string
+    rules:
+      type: object
+      additionalProperties:
+        type: array
+        items:
+          type: string
+    review_evidence:
+      type: object
+      additionalProperties: true
+      properties:
+        project_regression:
+          type: object
+          additionalProperties: true
+          properties:
+            method:
+              type: string
+            command:
+              type: string
+            meaning:
+              type: string
+            unavailable_behavior:
+              type: string
+            coverage:
+              type: object
+              additionalProperties: false
+              required:
+                - threshold
+                - metric
+              properties:
+                threshold:
+                  type: number
+                  minimum: 0
+                  maximum: 100
+                metric:
+                  type: string
+                  enum:
+                    - line
+                scope:
+                  type: object
+                  additionalProperties: false
+                  required:
+                    - include
+                  properties:
+                    include:
+                      type: array
+                      minItems: 1
+                      items:
+                        type: string
+                        minLength: 1
+                    exclude:
+                      type: array
+                      items:
+                        type: string
+                        minLength: 1
 `,
   "strict-spec-driven/schemas/delta-spec.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -2095,6 +2185,19 @@ entries:
       supersedes: []
       compatible_with: []
       notes: []
+  - schema_id: strict-spec-driven/config/v1
+    schema_version: 1
+    artifact_type: workflow_config
+    artifact_name: config
+    schema_file: config.yaml
+    primary_example: ../../../examples/strict-spec-driven/config.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Known top-level fields are typed while unknown fields stay allowed; the review_evidence.project_regression.coverage declaration subtree is strict.
 migration:
   legacy_root: .spec-driven
   strict_root: .strict-spec-driven

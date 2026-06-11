@@ -255,6 +255,19 @@ entries:
       supersedes: []
       compatible_with: []
       notes: []
+  - schema_id: strict-spec-driven/config/v1
+    schema_version: 1
+    artifact_type: workflow_config
+    artifact_name: config
+    schema_file: config.yaml
+    primary_example: ../../../examples/strict-spec-driven/config.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Known top-level fields are typed while unknown fields stay allowed; the review_evidence.project_regression.coverage declaration subtree is strict.
 migration:
   legacy_root: .spec-driven
   strict_root: .strict-spec-driven

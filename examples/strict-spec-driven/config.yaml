@@ -1,0 +1,30 @@
+schema: strict-spec-driven/config/v1
+schema_version: 1
+artifact_type: workflow_config
+context: |
+  Example project using the strict spec-driven workflow.
+  Tech stack: TypeScript on Node.js, tests via npm test.
+rules:
+  specs:
+    - Describe observable behavior only.
+  test:
+    - Tests must verify observable behavior described in specs.
+review_evidence:
+  project_regression:
+    method: complete_project_regression
+    command: npm run build && npm test -- --coverage
+    meaning: >-
+      Passing this command is required review evidence before review recommends
+      archive or auto performs archive.
+    unavailable_behavior: >-
+      If the command cannot run, review or auto archive is blocked until a
+      human prepares the environment or explicitly provides the missing
+      evidence.
+    coverage:
+      threshold: 80
+      metric: line
+      scope:
+        include:
+          - src/**
+        exclude:
+          - src/generated/**

@@ -18,7 +18,20 @@ type MaintenanceConfig = {
 
 type WorkflowConfig = {
   maintenance?: MaintenanceConfig;
+  review_evidence?: {
+    project_regression?: {
+      command?: unknown;
+    };
+  };
 };
+
+const REGRESSION_COMMAND_FALLBACK =
+  "REPLACE WITH the complete project regression command (build plus full test run)";
+
+function configuredRegressionCommand(config: WorkflowConfig): string {
+  const command = config.review_evidence?.project_regression?.command;
+  return typeof command === "string" && command.trim().length > 0 ? command : REGRESSION_COMMAND_FALLBACK;
+}
 
 type MaintenanceFinding = {
   check: string;
@@ -91,7 +104,7 @@ function buildProposalYaml(changeName: string, findings: MaintenanceFinding[]): 
   };
 }
 
-function buildTasksYaml(changeName: string, findings: MaintenanceFinding[]): object {
+function buildTasksYaml(changeName: string, findings: MaintenanceFinding[], regressionCommand: string): object {
   const implementationTasks: Record<string, { text: string; status: string }> = {};
   for (const [i, f] of findings.entries()) {
     implementationTasks[`finding-${i + 1}`] = {
@@ -109,16 +122,19 @@ function buildTasksYaml(changeName: string, findings: MaintenanceFinding[]): obj
     sections: {
       Implementation: implementationTasks,
       Testing: {
-        "run-build": { text: "Run build validation.", status: "pending", command: "bun run build" },
-        "run-tests": { text: "Run unit tests.", status: "pending", command: "bun test/run.ts" },
+        "run-project-regression": {
+          text: "Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.",
+          status: "pending",
+          command: regressionCommand,
+        },
       },
       Verification: {
         "verify-scope": { text: "Verify maintenance scope matches findings.", status: "pending" },
       },
     },
     testing_gates: {
-      validation_task: "run-build",
-      unit_test_task: "run-tests",
+      validation_task: "run-project-regression",
+      unit_test_task: "run-project-regression",
     },
   };
 }
@@ -172,7 +188,7 @@ export function runMaintenance(rootDir: string): MaintenanceResult {
   );
   writeFileSync(
     path.join(changeDir, "tasks.yaml"),
-    stringifyYamlDocument(buildTasksYaml(changeName, findings)),
+    stringifyYamlDocument(buildTasksYaml(changeName, findings, configuredRegressionCommand(config))),
     "utf8",
   );
 

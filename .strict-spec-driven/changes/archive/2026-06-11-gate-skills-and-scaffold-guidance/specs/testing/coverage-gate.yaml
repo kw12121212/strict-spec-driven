@@ -1,0 +1,38 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: testing-coverage-gate
+mapping:
+  implementation:
+    - templates/strict-spec-driven/scaffold/config.yaml
+    - templates/strict-spec-driven/scaffold/changes/tasks.yaml
+    - src/scaffold.ts
+    - src/maintenance.ts
+    - skills/strict-spec-review/SKILL.md
+    - skills/strict-spec-verify/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-spec-init/SKILL.md
+  tests:
+    - test/suites/coverage-gate.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    coverage-consistent-generated-surfaces:
+      strength: MUST
+      statement: 'Workflow surfaces that generate or prescribe testing commands stay consistent with the project''s declared regression gate: scaffolded change task lists and maintenance-generated task lists carry the project''s configured complete regression command (or an explicit replace-me placeholder when none is configured) instead of hardcoded toolchain commands, the scaffolded workflow config carries toolchain-neutral regression guidance with a coverage declaration example instead of another project''s command, and the review, verify, auto, and init skill contracts state that a declared coverage contract is blocking review evidence enforced through the regression command''s exit code.'
+      scenarios:
+        scaffolded-tasks-carry-configured-command:
+          - GIVEN: a project whose workflow config declares a complete regression command
+          - WHEN: a new change scaffold or maintenance task list is generated
+          - THEN: the generated testing gate task carries that configured command rather than a hardcoded toolchain command
+        placeholder-when-unconfigured:
+          - GIVEN: a project whose workflow config has no regression command
+          - WHEN: a new change scaffold is generated
+          - THEN: the generated testing gate task carries an explicit placeholder telling the operator to configure the complete regression command
+        skills-state-blocking-coverage:
+          - GIVEN: the review, verify, auto, and init skill contracts
+          - WHEN: their guidance is read
+          - THEN: they state that a declared coverage contract is blocking review evidence enforced through the regression command exit code and that the CLI never measures coverage itself
+  MODIFIED: {}
+  REMOVED: {}

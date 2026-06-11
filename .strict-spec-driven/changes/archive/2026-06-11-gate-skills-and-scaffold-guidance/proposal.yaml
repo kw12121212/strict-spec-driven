@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: gate-skills-and-scaffold-guidance
+  status: proposed
+summary:
+  what:
+    - 'Converge every user-facing workflow surface on the coverage contract: the strict-spec-review, strict-spec-verify, and strict-spec-auto skill contracts treat a declared coverage contract as blocking review evidence; the scaffold config stops hardcoding this repository''s own threshold-free bun command and instead carries toolchain-neutral guidance plus a coverage declaration example; change task scaffolds and maintenance-generated task lists derive their regression testing command from the project''s configured review_evidence command; and the strict-spec-init skill guides declaring a coverage contract.'
+  why:
+    - The coverage contract and the self-hosted gate exist, but the product surfaces still leak this repository's own commands to external projects (scaffold config and change task scaffolds emit bun commands meaningless outside this repo) and the review, verify, and auto skill contracts never state that coverage failure is blocking, so a user's declared contract is not yet a workflow gate. This is the milestone's remaining user-facing layer.
+scope:
+  in:
+    - Skill prompt updates for review, verify, auto, and init describing coverage-contract gating through the regression command's exit code; replacing the scaffold config regression command with toolchain-neutral guidance and a commented coverage declaration example; rendering the change task scaffold's testing command from the project's configured regression command with a clear placeholder fallback; deriving maintenance-generated task list testing commands from the same configured command; regression tests pinning the new scaffold output, generated task commands, and skill guidance wording
+  out:
+    - Changing the coverage gate script or config schema; declaring or changing thresholds anywhere; adding toolchain auto-detection logic to init or harness-infer beyond guidance text; rewriting unrelated skill behavior; third-party coverage integrations
+unchanged_behavior:
+  - The config coverage contract schema and validation, this repository's own config declaration and regression command, the coverage gate script behavior, MCP prompt and skill drift phrases (complete project regression command wording stays present), and all existing workflow command behaviors outside change and maintenance task scaffolding
+roadmap:
+  milestone: 0016-test-coverage-enforcement
+  planned_change: gate-skills-and-scaffold-guidance

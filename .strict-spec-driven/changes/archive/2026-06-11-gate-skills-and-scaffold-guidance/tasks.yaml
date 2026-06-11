@@ -1,0 +1,46 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: gate-skills-and-scaffold-guidance
+sections:
+  Implementation:
+    render-task-scaffold-from-config:
+      text: Replace the change task scaffold's bun-specific Testing trio with one run-project-regression task whose command initializeStrictChangeScaffold renders from the project's configured review_evidence.project_regression.command, with an explicit REPLACE placeholder fallback when no command is configured.
+      status: complete
+    derive-maintenance-tasks-from-config:
+      text: Make maintenance task-list generation read the project's configured regression command for its testing gate task instead of hardcoded bun commands, with the same placeholder fallback.
+      status: complete
+    neutralize-scaffold-config:
+      text: Replace the scaffold config's hardcoded bun regression command with toolchain-neutral replace-me guidance and add a commented coverage declaration example consistent with the config schema.
+      status: complete
+    update-skill-contracts:
+      text: Update strict-spec-review, strict-spec-verify, and strict-spec-auto skill guidance to state that a declared coverage contract is blocking review evidence enforced through the regression command's exit code (never advisory, never measured by the CLI), and update strict-spec-init guidance to direct operators to configure the regression command and coverage declaration; preserve the MCP drift-pinned phrases.
+      status: complete
+  Testing:
+    add-surface-consistency-tests:
+      text: Add or update regression tests pinning the scaffolded config guidance, the config-derived change scaffold and maintenance task commands, the placeholder fallback, and the skills' coverage gating wording.
+      status: complete
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-regression-gate:
+      text: Run the configured complete project regression command (coverage gate at threshold 78) end to end and confirm it passes.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+    verify-scope:
+      text: Verify implementation matches proposal scope - no schema, gate script, or threshold changes, and drift-pinned skill phrases stay intact.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

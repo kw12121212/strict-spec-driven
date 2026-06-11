@@ -1,0 +1,42 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: spike-coverage-enforcement-path
+sections:
+  Implementation:
+    enable-bundle-sourcemaps:
+      text: Enable source-map emission on the bun build bundle steps in package.json (build and bundle scripts) so dist bundle coverage can be remapped to src/** files.
+      status: complete
+    add-coverage-gate-script:
+      text: Add a coverage gate entry script (scripts/coverage-gate.ts) that runs the full test suite with NODE_V8_COVERAGE pointed at a temp directory, aggregates the collected subprocess V8 coverage with c8 restricted to src/** include globs with source-map remapping, prints the measured coverage, and exits non-zero when a --threshold flag value is not met; add c8 as a devDependency and a package.json test:coverage script invoking the gate.
+      status: complete
+    measure-and-record-baseline:
+      text: Run the coverage gate against the full suite, verify the report names src/** files (not just the bundle), and record the measured baseline plus the recommended coverage metric and measurement scope as findings decisions in this change's design.yaml; if source-map back-mapping proves unreliable, record the fallback path and trade-offs instead.
+      status: complete
+  Testing:
+    add-threshold-check-tests:
+      text: Add regression tests for the coverage gate's threshold behavior using fixture coverage data — below-threshold input exits non-zero with an actionable message, at-or-above-threshold input exits zero — registered in test/run.ts without recursively re-running the full suite.
+      status: complete
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-coverage-command-blocks:
+      text: Demonstrate the gate end to end - run the coverage command with a threshold above the measured baseline and confirm non-zero exit, then with a threshold at or below baseline and confirm success.
+      status: complete
+    verify-scope:
+      text: Verify implementation matches proposal scope - no config, scaffold, or skill surfaces were modified.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

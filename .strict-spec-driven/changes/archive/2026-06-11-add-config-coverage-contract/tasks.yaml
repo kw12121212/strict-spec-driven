@@ -1,0 +1,36 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-config-coverage-contract
+sections:
+  Implementation:
+    add-config-schema-registry-example:
+      text: Add the bundled config schema (templates/strict-spec-driven/schemas/config.yaml) with typed known fields, lenient unknown top-level fields, and a strict review_evidence.project_regression.coverage subtree; register it in the schema registry and add a minimal example under examples/strict-spec-driven/.
+      status: complete
+    wire-config-validation-into-workflow-state:
+      text: Implement config declaration validation in the validation layer and wire it into check-workflow-state so that when .strict-spec-driven/config.yaml exists, a malformed coverage declaration exits non-zero with path-aware diagnostics while configs without a declaration stay valid.
+      status: complete
+  Testing:
+    add-config-validation-tests:
+      text: Add regression tests covering a valid declaration, an absent declaration, each malformed-field diagnostic (non-numeric and out-of-range threshold, unknown metric, empty scope include, unknown coverage subtree key), malformed YAML, and the unchanged missing-config and missing-directory behaviors.
+      status: complete
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope - scaffold config content, skill prompts, generated tasks, and this repository's own coverage declaration remain untouched.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

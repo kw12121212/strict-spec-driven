@@ -1,0 +1,71 @@
+schema: strict-spec-driven/main-spec/v1
+schema_version: 1
+artifact_type: main_spec
+schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
+spec:
+  id: testing-coverage-gate
+  title: Testing Coverage Gate
+mapping:
+  implementation:
+    - scripts/coverage-gate.ts
+    - package.json
+    - tsconfig.json
+  tests:
+    - test/suites/coverage-gate.ts
+requirements:
+  coverage-measurement-command:
+    strength: MUST
+    statement: The repository provides a coverage gate command that runs the complete build and test suite, measures test coverage of src/** source files including code executed in spawned subprocesses, reports the measured coverage deterministically, and exits non-zero when the measured coverage is below the threshold supplied to the command.
+    scenarios:
+      reports-src-coverage:
+        - GIVEN: the repository builds successfully and the full test suite passes
+        - WHEN: the coverage gate command runs with a threshold at or below the measured baseline
+        - THEN: it reports coverage attributed to src/** files and exits zero
+      blocks-below-threshold:
+        - GIVEN: the repository builds successfully and the full test suite passes
+        - WHEN: the coverage gate command runs with a threshold above the measured coverage
+        - THEN: it exits non-zero with a diagnostic naming the measured coverage and the required threshold
+  config-coverage-declaration:
+    strength: MUST
+    statement: The workflow config may declare a structured coverage contract at review_evidence.project_regression.coverage consisting of a required numeric threshold between 0 and 100, a required metric of line, and an optional scope with include and exclude glob lists; when the strict workflow preflight runs in a project whose config declares this contract malformed, it exits non-zero with path-aware diagnostics naming the offending field, and configs without a declaration remain valid.
+    scenarios:
+      accepts-valid-declaration:
+        - GIVEN: a project config declares coverage with a numeric threshold of 80 and metric line
+        - WHEN: the workflow-state preflight command runs
+        - THEN: it exits zero and reports the workflow state exists
+      rejects-malformed-declaration:
+        - GIVEN: a project config declares coverage with a threshold of 150 or an unknown metric
+        - WHEN: the workflow-state preflight command runs
+        - THEN: it exits non-zero with a diagnostic naming the offending coverage field
+      absent-declaration-stays-valid:
+        - GIVEN: a project config has review_evidence without a coverage declaration
+        - WHEN: the workflow-state preflight command runs
+        - THEN: it exits zero exactly as before the contract existed
+  self-hosted-coverage-contract:
+    strength: MUST
+    statement: This repository's workflow config declares the coverage contract (threshold 78, metric line, scope src/** excluding the generated embedded-templates module) and configures the complete project regression command as the coverage gate invocation with the same threshold, so review evidence fails deterministically when src/** line coverage regresses below the declared threshold.
+    scenarios:
+      declaration-and-command-agree:
+        - GIVEN: the repository workflow config at .strict-spec-driven/config.yaml
+        - WHEN: the coverage declaration and the project regression command are read
+        - THEN: the declaration is a valid coverage contract and the command invokes the coverage gate with a threshold equal to the declared threshold
+      gate-blocks-regression:
+        - GIVEN: the configured complete project regression command
+        - WHEN: measured src/** line coverage falls below the declared threshold
+        - THEN: the command exits non-zero so review and archive evidence fails
+  coverage-consistent-generated-surfaces:
+    strength: MUST
+    statement: 'Workflow surfaces that generate or prescribe testing commands stay consistent with the project''s declared regression gate: scaffolded change task lists and maintenance-generated task lists carry the project''s configured complete regression command (or an explicit replace-me placeholder when none is configured) instead of hardcoded toolchain commands, the scaffolded workflow config carries toolchain-neutral regression guidance with a coverage declaration example instead of another project''s command, and the review, verify, auto, and init skill contracts state that a declared coverage contract is blocking review evidence enforced through the regression command''s exit code.'
+    scenarios:
+      scaffolded-tasks-carry-configured-command:
+        - GIVEN: a project whose workflow config declares a complete regression command
+        - WHEN: a new change scaffold or maintenance task list is generated
+        - THEN: the generated testing gate task carries that configured command rather than a hardcoded toolchain command
+      placeholder-when-unconfigured:
+        - GIVEN: a project whose workflow config has no regression command
+        - WHEN: a new change scaffold is generated
+        - THEN: the generated testing gate task carries an explicit placeholder telling the operator to configure the complete regression command
+      skills-state-blocking-coverage:
+        - GIVEN: the review, verify, auto, and init skill contracts
+        - WHEN: their guidance is read
+        - THEN: they state that a declared coverage contract is blocking review evidence enforced through the regression command exit code and that the CLI never measures coverage itself

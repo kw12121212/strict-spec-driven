@@ -344,9 +344,9 @@ context.assert(
   );
   context.assert(
     normalizedWorkflowConfigContent.includes("review_evidence:")
-      && normalizedWorkflowConfigContent.includes("command: bun run build && bun test/run.ts")
+      && normalizedWorkflowConfigContent.includes("command: bun scripts/coverage-gate.ts --threshold 78")
     && normalizedWorkflowConfigContent.includes("complete project-level regression suite"),
-  "workflow config documents the complete project regression command and review meaning",
+  "workflow config documents the coverage-enforcing complete project regression command and review meaning",
 );
 
 const noTemplateSymlinkRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-no-template-symlink-"));

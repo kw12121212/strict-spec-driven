@@ -1,0 +1,36 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: enforce-self-hosted-bun-coverage
+sections:
+  Implementation:
+    declare-self-hosted-coverage-contract:
+      text: Update .strict-spec-driven/config.yaml so review_evidence.project_regression.command is the coverage gate invocation with --threshold 78, the meaning text describes the coverage enforcement, and a coverage declaration (threshold 78, metric line, scope src/** excluding src/embedded-templates.ts) is present and valid against the config schema.
+      status: complete
+  Testing:
+    pin-self-hosted-gate-with-tests:
+      text: Add regression tests that read this repository's .strict-spec-driven/config.yaml and assert the coverage declaration is a valid contract, the regression command invokes the coverage gate, and the command's --threshold value equals the declared threshold.
+      status: complete
+    run-build:
+      text: Run build validation.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run lint checks.
+      status: complete
+      command: bun run lint
+    run-tests:
+      text: Run unit tests.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-coverage-evidence:
+      text: Run the new configured complete project regression command end to end and confirm it passes at threshold 78, demonstrating the self-hosted gate is live.
+      status: complete
+    verify-scope:
+      text: Verify implementation matches proposal scope - threshold stays at the measured baseline, and scaffold config, skill prompts, and the gate script stay untouched.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

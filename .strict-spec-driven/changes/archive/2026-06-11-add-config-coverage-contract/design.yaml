@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-config-coverage-contract
+approach:
+  - 'Treat the coverage declaration as a registered schema contract plus one deterministic enforcement surface. A new bundled config schema (strict-spec-driven/config/v1) validates .strict-spec-driven/config.yaml: known top-level fields are typed but unknown fields stay allowed, while the review_evidence.project_regression.coverage subtree is strict. check-workflow-state - the preflight every strict skill runs first - loads config.yaml when present and validates it, so a malformed coverage declaration deterministically blocks workflow entry with the validation layer''s existing path-aware diagnostics. The CLI never measures coverage; it only validates the declaration.'
+decisions:
+  lenient-top-strict-coverage-subtree:
+    decision: The config schema types known fields (schema, schema_version, artifact_type, context, rules, review_evidence) but allows unknown top-level fields; the coverage subtree itself is strict with additionalProperties false.
+    rationale: config.yaml is user-edited and existing external configs must not start failing on unrelated fields when they upgrade; the new contract only needs to be strict about the subtree it owns.
+  check-workflow-state-as-enforcement-surface:
+    decision: Wire declaration validation into check-workflow-state rather than adding a new subcommand.
+    rationale: Every strict skill is contracted to run check-workflow-state before any workflow work, so it is the one deterministic surface that blocks all entry paths when the declared contract is malformed; a new subcommand would need every skill prompt updated to call it, which belongs to the follow-up gating change.
+  coverage-field-shape:
+    decision: The declaration is review_evidence.project_regression.coverage with required threshold (number, 0-100 inclusive) and metric (const line), plus an optional scope object holding include (non-empty string array, required when scope is present) and exclude (string array) globs.
+    rationale: 'These mirror the spike findings: line coverage is the metric the enforcement path derives reliably, and the spike''s gate already implements an src/** include with a generated-file exclude, so the declaration records exactly the knobs the command consumes without inventing speculative fields.'
+  validate-only-when-config-present:
+    decision: check-workflow-state validates config.yaml only when the file exists; a missing config.yaml keeps today's directory-presence behavior.
+    rationale: The unchanged-behavior contract keeps existing workspaces and fixtures valid; directory presence stays the only hard requirement for workflow state to exist, matching current behavior.
+alternatives: []
+risks: []

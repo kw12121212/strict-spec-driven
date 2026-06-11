@@ -62,6 +62,11 @@ run `init` from this skill.
    - unfinished work in `tasks.yaml` is a blocker
    - non-empty `questions.yaml.open` is a blocker
    - delta specs must match what was implemented
+   - when the workflow config declares a coverage contract under
+     `review_evidence.project_regression.coverage`, the configured regression
+     command enforces it through its exit code: a coverage failure is a blocker
+     exactly like failing tests, never advisory output, and verification never
+     measures coverage itself or second-guesses the declared threshold
 
 6. **Check unchanged behavior** — compare the implementation against
    `proposal.yaml.unchanged_behavior` and treat regressions as blockers.

@@ -31,9 +31,26 @@ const REQUIRED_CHANGE_TEMPLATE_ASSETS = [
   "changes/questions.yaml",
 ] as const;
 const CHANGE_TEMPLATE_NAME_PLACEHOLDER = "{{change_name}}";
+const CHANGE_TEMPLATE_REGRESSION_COMMAND_PLACEHOLDER = "{{project_regression_command}}";
+const REGRESSION_COMMAND_FALLBACK =
+  "REPLACE WITH the complete project regression command (build plus full test run)";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const LEGACY_WORKFLOW_DIR = ".spec-driven";
+
+function readConfiguredRegressionCommand(rootDir: string): string | null {
+  const configPath = path.join(rootDir, STRICT_WORKFLOW_DIR, "config.yaml");
+  if (!existsSync(configPath)) return null;
+  try {
+    const parsed = parseYamlDocument<{
+      review_evidence?: { project_regression?: { command?: unknown } };
+    }>(readFileSync(configPath, "utf8"));
+    const command = parsed?.review_evidence?.project_regression?.command;
+    return typeof command === "string" && command.trim().length > 0 ? command : null;
+  } catch {
+    return null;
+  }
+}
 
 export type StrictInitResult = {
   rootDir: string;
@@ -134,11 +151,14 @@ export function initializeStrictChangeScaffold(rootDir: string, changeName: stri
 
   mkdirSync(changeDir, { recursive: true });
   const planningArtifacts: string[] = [];
+  const regressionCommand = readConfiguredRegressionCommand(rootDir) ?? REGRESSION_COMMAND_FALLBACK;
   for (const templateAssetPath of getRequiredBundledChangeTemplateAssets()) {
     const outputFileName = path.basename(templateAssetPath);
     const outputPath = path.join(changeDir, outputFileName);
     const templateContent = readBundledScaffoldTemplate(templateAssetPath);
-    const outputContent = templateContent.replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, changeName);
+    const outputContent = templateContent
+      .replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, changeName)
+      .replaceAll(CHANGE_TEMPLATE_REGRESSION_COMMAND_PLACEHOLDER, JSON.stringify(regressionCommand));
     writeFileSync(outputPath, outputContent, "utf8");
     planningArtifacts.push(toRepoRelativePath(rootDir, outputPath));
   }

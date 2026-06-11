@@ -214,7 +214,12 @@ run `init` from this skill.
    command may satisfy the archive gate only when it exactly matches the
    configured complete project regression command and no implementation, test,
    strict artifact, or configuration files relevant to the change have changed
-   since that command passed. If the regression command cannot run because
+   since that command passed. When the config declares a coverage contract
+   under `review_evidence.project_regression.coverage`, the regression command
+   is the coverage gate: a non-zero exit because measured coverage fell below
+   the declared threshold blocks archive exactly like failing tests and is
+   never advisory output; you never measure coverage yourself or second-guess
+   the declared threshold. If the regression command cannot run because
    dependencies, services, credentials, fixtures, or other test conditions are
    unavailable, stop before archive and give the human actionable setup or
    waiting guidance.

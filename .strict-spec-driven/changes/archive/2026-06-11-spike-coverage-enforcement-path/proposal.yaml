@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: spike-coverage-enforcement-path
+  status: proposed
+summary:
+  what:
+    - 'Validate the self-hosted coverage enforcement path end to end: collect V8 coverage from the node subprocesses the test harness spawns (NODE_V8_COVERAGE), aggregate it with c8, map results back to src/** through source maps emitted by the bundle build, package the flow as a repeatable coverage regression command, and record the measured src/** coverage baseline plus a metric and measurement-scope recommendation for the coverage contract.'
+  why:
+    - 'Milestone 0016 makes coverage a user-controllable workflow contract, but the self-hosted gate has a confirmed architectural constraint: tests spawn the bundled CLI as node subprocesses, so bun test native coverage would measure the runner process and report near-zero src/** coverage. The enforcement path must be proven and the baseline measured before the contract fields, skill gating, and self-hosted threshold are finalized, otherwise the milestone risks shipping a documented-but-not-blocking policy.'
+scope:
+  in:
+    - A repeatable coverage measurement command that runs the full build and test suite with subprocess V8 coverage collection; c8 aggregation configured to map coverage back to src/** through bundle source maps; a deterministic threshold check that exits non-zero below a configured value; a recorded measured baseline and a findings note recommending the coverage metric and measurement scope; regression tests for the threshold-check behavior against fixture coverage data
+  out:
+    - Declaring coverage contract fields in config schemas or scaffold templates; updating skill prompts or generated task surfaces; changing review_evidence in .strict-spec-driven/config.yaml or any scaffold config; raising or committing to a final threshold beyond recording the measured baseline; broad test-suite quality work
+unchanged_behavior:
+  - The existing review gate command bun run build && bun test/run.ts remains the configured review evidence; all existing test suites, build outputs, CLI behavior, and workflow artifacts behave exactly as before; the coverage command is additive tooling
+roadmap:
+  milestone: 0016-test-coverage-enforcement
+  planned_change: spike-coverage-enforcement-path

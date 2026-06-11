@@ -517,13 +517,24 @@ const scaffoldReviewEvidence = scaffoldConfig.review_evidence as
   | { project_regression?: { command?: unknown; meaning?: unknown } }
   | undefined;
 context.assert(
-  scaffoldReviewEvidence?.project_regression?.command === "bun run build && bun test/run.ts",
-  "scaffold config template includes complete project regression command",
+  typeof scaffoldReviewEvidence?.project_regression?.command === "string"
+    && scaffoldReviewEvidence.project_regression.command.startsWith("REPLACE WITH")
+    && !scaffoldReviewEvidence.project_regression.command.includes("bun"),
+  "scaffold config template carries a toolchain-neutral regression command placeholder",
 );
 context.assert(
   typeof scaffoldReviewEvidence?.project_regression?.meaning === "string"
-    && scaffoldReviewEvidence.project_regression.meaning.includes("complete project-level regression suite"),
-  "scaffold config template documents regression evidence meaning",
+    && scaffoldReviewEvidence.project_regression.meaning.includes("complete project-level regression suite")
+    && scaffoldReviewEvidence.project_regression.meaning.includes("coverage"),
+  "scaffold config template documents regression evidence meaning including the coverage gate",
+);
+const scaffoldConfigText = readFileSync(
+  path.join(ROOT, "templates", "strict-spec-driven", "scaffold", "config.yaml"),
+  "utf8",
+);
+context.assert(
+  scaffoldConfigText.includes("# coverage:") && scaffoldConfigText.includes("#   threshold:"),
+  "scaffold config template includes a commented coverage declaration example",
 );
 
 const scaffoldSpecIndex = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("specs/INDEX.yaml");
@@ -579,9 +590,13 @@ try {
   const normalizedInitConfigContent = initConfigContent.replace(/\s+/g, " ");
   context.assert(
     normalizedInitConfigContent.includes("review_evidence:")
-      && normalizedInitConfigContent.includes("command: bun run build && bun test/run.ts")
+      && normalizedInitConfigContent.includes("command: REPLACE WITH the complete project regression command")
       && normalizedInitConfigContent.includes("complete project-level regression suite"),
-    "init scaffolded config includes project regression review evidence",
+    "init scaffolded config includes project regression review evidence with a neutral placeholder",
+  );
+  context.assert(
+    initConfigContent.includes("# coverage:") && initConfigContent.includes("#   threshold:"),
+    "init scaffolded config includes the commented coverage declaration example",
   );
 
   writeFileSync(configPath, "custom: keep-me\n", "utf8");
@@ -646,21 +661,51 @@ try {
   );
   const taskArtifact = readFileSync(path.join(changeDir, "tasks.yaml"), "utf8");
   context.assert(
-    taskArtifact.includes("    run-lint:\n")
-      && taskArtifact.includes("      text: Run lint checks.\n")
-      && taskArtifact.includes("      command: bun run lint\n"),
-    "propose scaffold includes an explicit lint Testing task",
+    taskArtifact.includes("    run-project-regression:\n")
+      && taskArtifact.includes("coverage contract")
+      && !taskArtifact.includes("bun run build"),
+    "propose scaffold carries a single project-regression Testing task instead of hardcoded toolchain commands",
   );
   context.assert(
-    taskArtifact.indexOf("    run-build:\n") < taskArtifact.indexOf("    run-lint:\n")
-      && taskArtifact.indexOf("    run-lint:\n") < taskArtifact.indexOf("    run-tests:\n"),
-    "propose scaffold orders lint after build validation and before unit tests",
+    taskArtifact.includes('command: "REPLACE WITH the complete project regression command'),
+    "propose scaffold without a configured regression command renders an explicit placeholder",
   );
   context.assert(
-    taskArtifact.includes("  validation_task: run-build\n")
-      && taskArtifact.includes("  unit_test_task: run-tests\n"),
-    "propose scaffold preserves existing testing gate references",
+    taskArtifact.includes("  validation_task: run-project-regression\n")
+      && taskArtifact.includes("  unit_test_task: run-project-regression\n"),
+    "propose scaffold testing gates reference the project-regression task",
   );
+
+  const configuredWorkspace = mkdtempSync(path.join(os.tmpdir(), "strict-spec-driven-propose-config-"));
+  try {
+    mkdirSync(path.join(configuredWorkspace, ".strict-spec-driven"), { recursive: true });
+    writeFileSync(
+      path.join(configuredWorkspace, ".strict-spec-driven", "config.yaml"),
+      [
+        "schema: strict-spec-driven/config/v1",
+        "schema_version: 1",
+        "artifact_type: workflow_config",
+        "review_evidence:",
+        "  project_regression:",
+        "    method: complete_project_regression",
+        "    command: npm run build && npm test -- --coverage",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+    const configuredPropose = cli(["propose", "configured-change"], { cwd: configuredWorkspace });
+    context.assert(configuredPropose.status === 0, "propose succeeds in a workspace with a configured regression command");
+    const configuredTasks = readFileSync(
+      path.join(configuredWorkspace, ".strict-spec-driven", "changes", "configured-change", "tasks.yaml"),
+      "utf8",
+    );
+    context.assert(
+      configuredTasks.includes('command: "npm run build && npm test -- --coverage"'),
+      "propose scaffold renders the project's configured regression command into the testing gate task",
+    );
+  } finally {
+    rmSync(configuredWorkspace, { recursive: true, force: true });
+  }
 
   const duplicatePropose = cli(["propose", changeName], { cwd: proposeTempDir });
   context.assert(duplicatePropose.status !== 0, "propose rejects duplicate changes", `got exit code ${duplicatePropose.status}`);

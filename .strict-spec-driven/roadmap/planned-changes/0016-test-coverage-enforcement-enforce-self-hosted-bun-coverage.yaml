@@ -1,0 +1,22 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: enforce-self-hosted-bun-coverage
+  milestone: 0016-test-coverage-enforcement
+status: complete
+summary: Adopt the coverage contract in this repository itself — declare it in .strict-spec-driven/config.yaml, productionize the spike's subprocess-coverage mechanism as the coverage-aware regression command, extend the workflow-regression-coverage technical standard, and backfill regression coverage for the self-hosted gate.
+details: |-
+  This is the self-hosted reference implementation of the product contract. Productionize the enforcement path validated by the spike: subprocess V8 coverage collection (NODE_V8_COVERAGE) aggregated by c8 with source-map back-mapping through the dist bundle, packaged as one deterministic regression command that builds, runs the full test suite, and exits non-zero when src/** coverage falls below the configured threshold.
+  Scope includes updating review_evidence.project_regression in .strict-spec-driven/config.yaml to the coverage-aware command with a declared coverage contract whose initial threshold is the spike's measured baseline (rounded down, so the gate starts as a ratchet rather than an aspiration), extending the workflow-regression-coverage technical standard with a rule that the complete project regression command must enforce minimum coverage — recording the metric, measurement scope, enforcement mechanism, and threshold-ratchet rationale — and adding regression tests that pin the self-hosted config declaration and prove the gate actually blocks (for example by checking the command wiring and exercising the threshold check against a known-low fixture). Do not raise the threshold beyond the measured baseline in this change, and do not expand into unrelated test-suite quality work.
+depends_on:
+  - spike-coverage-enforcement-path
+  - add-config-coverage-contract
+team:
+  blocked:
+    status: false
+  labels:
+    - testing
+    - coverage
+    - self-hosted

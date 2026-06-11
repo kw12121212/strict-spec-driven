@@ -65,12 +65,22 @@ rules:
 review_evidence:
   project_regression:
     method: complete_project_regression
-    command: bun run build && bun test/run.ts
+    command: bun scripts/coverage-gate.ts --threshold 78
     meaning: >-
       Passing this command is required review evidence before strict-spec-review recommends archive
-      or strict-spec-auto performs archive. This command represents the complete project-level
-      regression suite, not only the Testing section tasks for an individual change.
+      or strict-spec-auto performs archive. The command builds the project, runs the complete
+      project-level regression suite with subprocess coverage collection, and exits non-zero when
+      measured src/** line coverage falls below the declared threshold, so insufficient coverage is
+      a blocking workflow failure rather than advisory output.
     unavailable_behavior: >-
       If the command cannot run because required dependencies, services, credentials, fixtures, or
       other test conditions are unavailable, review or auto archive is blocked until a human
       prepares the environment or explicitly provides the missing evidence.
+    coverage:
+      threshold: 78
+      metric: line
+      scope:
+        include:
+          - src/**
+        exclude:
+          - src/embedded-templates.ts

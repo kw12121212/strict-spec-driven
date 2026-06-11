@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-config-coverage-contract
+  status: proposed
+summary:
+  what:
+    - 'Add a structured coverage declaration to the workflow config contract: a bundled strict-spec-driven/config/v1 schema validating .strict-spec-driven/config.yaml with a strict review_evidence.project_regression.coverage subtree (threshold, metric, scope), a registry entry and minimal example, and CLI validation wired into check-workflow-state so a malformed declaration blocks workflow entry with actionable path-aware diagnostics.'
+  why:
+    - Milestone 0016 makes coverage a user-controllable workflow contract, but config.yaml currently has no bundled schema and no validation, so nothing lets a project declare what coverage it requires and nothing catches malformed declarations. The contract fields and their validation surface must exist before skill gating and scaffold guidance can reference them.
+scope:
+  in:
+    - A bundled config schema artifact registered in the schema registry with a minimal example; a strict coverage subtree contract (required threshold number 0-100, required metric, optional include/exclude scope globs); validation of any coverage declaration present when check-workflow-state runs; actionable diagnostics for malformed declarations; regression tests for valid, malformed, and absent declarations
+  out:
+    - Changing scaffold config content or init guidance; updating skill prompts or generated task surfaces; declaring a coverage threshold in this repository's own config.yaml; measuring coverage inside the strict CLI; altering the coverage gate script behavior
+unchanged_behavior:
+  - Configs without a coverage declaration remain valid and check-workflow-state keeps its existing success and missing-directory messages and exit codes; the coverage gate script, scaffold templates, and skill prompts behave exactly as before
+roadmap:
+  milestone: 0016-test-coverage-enforcement
+  planned_change: add-config-coverage-contract

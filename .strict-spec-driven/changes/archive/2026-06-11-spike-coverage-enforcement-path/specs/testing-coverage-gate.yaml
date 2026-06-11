@@ -1,0 +1,28 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: testing-coverage-gate
+mapping:
+  implementation:
+    - scripts/coverage-gate.ts
+    - package.json
+    - tsconfig.json
+  tests:
+    - test/suites/coverage-gate.ts
+operations:
+  ADDED:
+    coverage-measurement-command:
+      strength: MUST
+      statement: The repository provides a coverage gate command that runs the complete build and test suite, measures test coverage of src/** source files including code executed in spawned subprocesses, reports the measured coverage deterministically, and exits non-zero when the measured coverage is below the threshold supplied to the command.
+      scenarios:
+        reports-src-coverage:
+          - GIVEN: the repository builds successfully and the full test suite passes
+          - WHEN: the coverage gate command runs with a threshold at or below the measured baseline
+          - THEN: it reports coverage attributed to src/** files and exits zero
+        blocks-below-threshold:
+          - GIVEN: the repository builds successfully and the full test suite passes
+          - WHEN: the coverage gate command runs with a threshold above the measured coverage
+          - THEN: it exits non-zero with a diagnostic naming the measured coverage and the required threshold
+  MODIFIED: {}
+  REMOVED: {}

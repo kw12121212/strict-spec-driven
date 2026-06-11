@@ -101,11 +101,17 @@ run `init` from this skill.
 8. **Confirm complete regression evidence** — inspect project workflow context,
    including `.strict-spec-driven/config.yaml` when available, for the complete
    project-level regression test method. Require evidence that the full project
-   regression command has passed before recommending archive. If the command
-   cannot run because dependencies, services, credentials, fixtures, or other
-   test conditions are unavailable, treat archive recommendation as blocked and
-   give the human actionable setup or waiting guidance instead of inferring a
-   clean result.
+   regression command has passed before recommending archive. When the config
+   declares a coverage contract under
+   `review_evidence.project_regression.coverage`, the regression command is the
+   coverage gate: a non-zero exit because measured coverage fell below the
+   declared threshold is blocking review evidence exactly like failing tests,
+   never advisory output. Do not measure coverage yourself or second-guess the
+   threshold — the project's configured command owns measurement and
+   enforcement. If the command cannot run because dependencies, services,
+   credentials, fixtures, or other test conditions are unavailable, treat
+   archive recommendation as blocked and give the human actionable setup or
+   waiting guidance instead of inferring a clean result.
 
 9. **Reflect on uncaptured engineering conventions (non-blocking)** — after the
    review checklist, consider whether this change established a reusable

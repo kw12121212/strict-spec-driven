@@ -1,0 +1,20 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: spike-coverage-enforcement-path
+  milestone: 0016-test-coverage-enforcement
+status: complete
+summary: Validate the self-hosted coverage enforcement path end to end — subprocess V8 coverage collection, c8 aggregation, source-map back-mapping through the dist bundle — and record the measured coverage baseline that the initial threshold will be derived from.
+details: |-
+  The test harness runs the bundled CLI as node subprocesses via spawnSync (test/support/harness.ts), so Bun-native `bun test --coverage` would measure the test-runner process and report near-zero coverage for src/**. This spike proves the viable alternative before any contract wording or threshold is finalized: set NODE_V8_COVERAGE for spawned node subprocesses, aggregate the per-process V8 coverage output with c8, and map results back to src/** through source maps emitted by the bun build bundle step.
+  Deliverables are a working proof-of-concept script or npm script that produces a deterministic coverage percentage for src/** from a full `bun run build && bun test/run.ts` run, a recorded measured baseline number, and a short findings note (in the change artifacts) stating which metric (lines, functions, branches) and measurement scope (src/** inclusion and exclusion globs) the contract should standardize on. The spike must confirm the gate can exit non-zero below a configured threshold using c8's check-coverage behavior or an equivalent deterministic check. If source-map back-mapping through the bundle proves unreliable, the spike must document the fallback (for example per-file compiled-output coverage with a mapping table, or running tests against unbundled compiled output) and its trade-offs so the follow-up changes build on a real, blocking mechanism rather than a documented-but-not-blocking policy.
+depends_on: []
+team:
+  blocked:
+    status: false
+  labels:
+    - testing
+    - coverage
+    - spike

@@ -25,15 +25,31 @@ rules:
 review_evidence:
   project_regression:
     method: complete_project_regression
-    command: bun run build && bun test/run.ts
+    # Set this to your project's complete regression command (build plus full
+    # test run). When you declare a coverage contract below, this command must
+    # enforce it by exiting non-zero when coverage falls below the threshold.
+    command: REPLACE WITH the complete project regression command (build plus full test run)
     meaning: >-
       Passing this command is required review evidence before strict-spec-review recommends archive
       or strict-spec-auto performs archive. This command represents the complete project-level
-      regression suite, not only the Testing section tasks for an individual change.
+      regression suite, not only the Testing section tasks for an individual change. When a
+      coverage declaration is present, this command also enforces the minimum coverage threshold,
+      so insufficient coverage is a blocking workflow failure rather than advisory output.
     unavailable_behavior: >-
       If the command cannot run because required dependencies, services, credentials, fixtures, or
       other test conditions are unavailable, review or auto archive is blocked until a human
       prepares the environment or explicitly provides the missing evidence.
+    # Declare a coverage contract to make minimum test coverage a blocking
+    # review-evidence gate. The strict CLI validates this declaration; your
+    # regression command above is what measures and enforces it.
+    # coverage:
+    #   threshold: 80
+    #   metric: line
+    #   scope:
+    #     include:
+    #       - src/**
+    #     exclude:
+    #       - src/generated/**
 # maintenance:
 #   checks:
 #     - type: roadmap-sync-check

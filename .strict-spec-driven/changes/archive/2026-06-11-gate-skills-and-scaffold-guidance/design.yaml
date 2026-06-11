@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: gate-skills-and-scaffold-guidance
+approach:
+  - 'Wire the existing coverage contract through every generated and prompted surface without inventing new mechanisms. Skill contracts gain explicit gating language: a regression command failing on a declared coverage contract is blocking review evidence exactly like failing tests, surfaced only through the command''s exit code. The scaffold config template and the change task scaffold stop carrying this repository''s own commands: the task scaffold gains a project-regression placeholder that initializeStrictChangeScaffold renders from the project''s configured review_evidence command, maintenance task generation derives its testing command the same way, and the scaffold config carries toolchain-neutral instructions plus a commented coverage declaration example that the init skill tells the operator to fill in.'
+decisions:
+  derive-generated-commands-from-config:
+    decision: Generated change task scaffolds and maintenance task lists take their testing command from the project's review_evidence.project_regression.command, with an explicit REPLACE placeholder when no command is configured.
+    rationale: The configured regression command is the single per-project source of truth that the coverage contract hardens; deriving generated tasks from it keeps implementation-time testing steps and review evidence on the same gate automatically, for this repository and for external projects alike.
+  single-regression-testing-task:
+    decision: The change task scaffold's Testing section becomes one run-project-regression task serving both testing gates, replacing the bun-specific run-build, run-lint, and run-tests trio.
+    rationale: Build and lint commands are not declared anywhere in workflow config, so scaffolding them can only hardcode some project's toolchain; the skills already instruct adding dedicated lint or build tasks per project during task editing, and the regression command is defined as the complete build-plus-test evidence.
+  gate-through-exit-code-only:
+    decision: Skill wording states the coverage gate operates through the regression command's exit code; skills never measure coverage or second-guess the threshold.
+    rationale: The product contract is deterministic only if enforcement stays in the project's own command; skill prompts that promised independent verification would be unverifiable and erode the gate's trustworthiness.
+  keep-drift-phrases-stable:
+    decision: Skill edits preserve the exact phrases the MCP prompt drift tests pin, including complete project regression command.
+    rationale: The MCP prompts reuse skill guidance under drift tests; coverage wording is added around the pinned phrases so prompt and skill stay synchronized without an MCP change.
+alternatives: []
+risks: []

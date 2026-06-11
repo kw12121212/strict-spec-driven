@@ -63,3 +63,7 @@ milestones:
     title: 15 MCP Server Integration
     path: roadmap/milestones/0015-mcp-server-integration.yaml
     status: complete
+  0016-test-coverage-enforcement:
+    title: 16 Test Coverage Enforcement
+    path: roadmap/milestones/0016-test-coverage-enforcement.yaml
+    status: complete
