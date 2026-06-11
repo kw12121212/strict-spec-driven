@@ -137,6 +137,31 @@ export function migrateLegacyWorkflow(
     );
   }
 
+  const strictChangesAbsolutePath = path.join(strictRootAbsolutePath, "changes");
+  const convertedActiveChangeNames = existsSync(strictChangesAbsolutePath)
+    ? readdirSync(strictChangesAbsolutePath, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory() && entry.name !== "archive")
+        .map((entry) => entry.name)
+        .sort((left, right) => left.localeCompare(right))
+    : [];
+  if (convertedActiveChangeNames.length > 1) {
+    const activeChangeList = convertedActiveChangeNames.map((name) => `'${name}'`).join(", ");
+    result.warnings.push(
+      makeDiagnostic(
+        "multiple_active_changes",
+        `Migration converted ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but the strict workflow allows only one active change at a time.`,
+        `${LEGACY_WORKFLOW_DIR}/changes`,
+        `${STRICT_WORKFLOW_DIR}/changes`,
+      ),
+    );
+    result.manualFollowUp.push({
+      sourcePath: `${LEGACY_WORKFLOW_DIR}/changes`,
+      reason: `The converted strict workflow state contains ${convertedActiveChangeNames.length} active changes (${activeChangeList}), and only one active change is allowed at a time.`,
+      recommendation:
+        "Archive or cancel converted active changes until only one remains before continuing strict workflow work.",
+    });
+  }
+
   options?.onProgress?.(
     `done: ${result.converted.length} converted, ${result.skipped.length} skipped, ${result.warnings.length} warnings, ${result.errors.length} errors`,
   );

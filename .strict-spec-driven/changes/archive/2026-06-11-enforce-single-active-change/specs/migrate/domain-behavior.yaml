@@ -1,0 +1,28 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: migrate-domain-behavior
+mapping:
+  implementation:
+    - src/migrate.ts
+    - src/migrate/reporting.ts
+    - src/migrate/converters/changes.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    migrate-multiple-active-change-warning:
+      strength: MUST
+      statement: The system MUST keep converting every supported legacy active change during migration, and when the converted output contains more than one active change the migration report MUST include a warning and a manual follow-up entry directing the operator to archive or cancel down to a single active change.
+      scenarios:
+        multiple-converted-active-changes-produce-warning-and-follow-up:
+          - GIVEN: a legacy .spec-driven workflow contains more than one supported active change
+          - WHEN: strict-spec-driven migrate runs
+          - THEN: every supported active change is converted to strict output, and the migration report includes a warning plus a manualFollowUp entry directing the operator to reduce the result to a single active change
+        single-converted-active-change-produces-no-warning:
+          - GIVEN: a legacy .spec-driven workflow contains at most one supported active change
+          - WHEN: strict-spec-driven migrate runs
+          - THEN: the migration report contains no multiple-active-change warning and no related manual follow-up entry
+  MODIFIED: {}
+  REMOVED: {}

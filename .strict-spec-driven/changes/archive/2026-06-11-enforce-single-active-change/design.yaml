@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: enforce-single-active-change
+approach:
+  - 'Add a single-active-change guard to the shared change-creation path used by the propose command so the check runs before any scaffold writes, then adjust maintenance seeding to consult the same active-change listing and skip seeding with an explicit report field, and extend the migrate report with a warning and manual follow-up entry when converted output contains more than one active change. Specs are updated first per contract-first scope discipline: delta specs target cli-foundation, operations-domain-behavior, and migrate-domain-behavior.'
+decisions:
+  unconditional-enforcement:
+    decision: The single-active-change rule is unconditional with no config.yaml switch and no force flag.
+    rationale: The workflow owner confirmed a hard single-focus constraint. A config switch would touch the config schema, scaffold templates, and migration for a capability nobody has asked for, violating YAGNI; the escape hatch is archiving or cancelling the existing change, which the error message points to.
+  maintenance-skips-seeding-zero-exit:
+    decision: When an active change exists, maintenance exits zero, still reports checksRun and findingsCount, returns generatedChange null, and explains that seeding was skipped because an active change exists.
+    rationale: Maintenance is a routine check; failing it because unrelated work is in flight would make scheduled runs red for reasons the findings do not cause. Findings stay visible so the operator can act after the current change is archived or cancelled.
+  migrate-preserves-multiple-active-changes:
+    decision: Migrate continues converting every supported legacy active change and adds a warning plus a manual follow-up entry to the migration report when more than one active change results.
+    rationale: Migration converts pre-existing state rather than creating new work; dropping convertible legacy changes would violate the migrate fidelity contract. The warning hands the single-active cleanup decision to the operator, and the existing verify exclusive-target diagnostic remains as a defensive backstop for this migrated state.
+  guard-runs-before-any-write:
+    decision: The propose guard evaluates the active changes directory and rejects with a non-zero exit before any scaffold file or directory is written, and the error message names the blocking active change and directs the operator to archive or cancel it.
+    rationale: Propose already promises that invalid names and duplicate collisions reject before writing scaffold files; the single-active guard joins the same preflight so a rejected propose never leaves partial state.
+alternatives: []
+risks: []

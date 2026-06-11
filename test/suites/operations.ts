@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import {
@@ -235,6 +235,10 @@ try {
   context.assert(mismatchJson.findingsCount > 0, "maintenance findingsCount > 0 when roadmap has mismatches");
   context.assert(typeof mismatchJson.generatedChange === "string", "maintenance generatedChange is a string when findings exist");
   context.assert(
+    "seedingSkippedReason" in mismatchJson && (mismatchJson as { seedingSkippedReason: string | null }).seedingSkippedReason === null,
+    "maintenance seedingSkippedReason is null when seeding proceeds",
+  );
+  context.assert(
     existsSync(path.join(strictDir, "changes", mismatchJson.generatedChange as string)),
     "maintenance change directory is created under .strict-spec-driven/changes/",
   );
@@ -247,6 +251,96 @@ try {
   context.assert(alignedJson.generatedChange === null, "maintenance generatedChange is null when no findings");
 } finally {
   rmSync(maintMismatchDir, { recursive: true, force: true });
+}
+
+// 22e: findings with a pre-existing active change → zero exit, findings reported, seeding skipped
+const maintActiveChangeDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-maint-active-"));
+try {
+  const strictDir = path.join(maintActiveChangeDir, ".strict-spec-driven");
+  mkdirSync(path.join(strictDir, "roadmap", "milestones"), { recursive: true });
+  mkdirSync(path.join(strictDir, "changes", "existing-active-change"), { recursive: true });
+
+  writeFileSync(
+    path.join(strictDir, "config.yaml"),
+    [
+      "schema: strict-spec-driven/config/v1",
+      "schema_version: 1",
+      "artifact_type: workflow_config",
+      "maintenance:",
+      "  checks:",
+      "    - type: roadmap-sync-check",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(strictDir, "roadmap", "INDEX.yaml"),
+    [
+      "schema: strict-spec-driven/roadmap-index/v2",
+      "schema_version: 2",
+      "artifact_type: roadmap_index",
+      "schema_file: ../schemas/roadmap-index.yaml",
+      "milestones:",
+      "  0001-test-maint-milestone:",
+      "    title: Test Maintenance Milestone",
+      "    path: roadmap/milestones/test-maint.yaml",
+      "    status: active",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(strictDir, "roadmap", "milestones", "test-maint.yaml"),
+    [
+      "schema: strict-spec-driven/roadmap-milestone/v2",
+      "schema_version: 2",
+      "artifact_type: roadmap_milestone",
+      "schema_file: templates/strict-spec-driven/schemas/roadmap-milestone.yaml",
+      "milestone:",
+      "  0001-test-maint-milestone:",
+      "    title: Test Maintenance Milestone",
+      "goal: Test milestone for maintenance checks.",
+      "scope:",
+      "  in: []",
+      "  out: []",
+      "done_criteria: []",
+      "planned_changes: {}",
+      "dependencies: []",
+      "risks: []",
+      "status: active",
+      "notes: []",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  const skippedResult = cli(["maintenance"], { cwd: maintActiveChangeDir });
+  context.assert(skippedResult.status === 0, "maintenance exits zero when seeding is skipped for an active change");
+  const skippedJson = JSON.parse(skippedResult.stdout.trim()) as {
+    valid: boolean;
+    checksRun: number;
+    findingsCount: number;
+    generatedChange: string | null;
+    seedingSkippedReason: string | null;
+  };
+  context.assert(skippedJson.valid === true, "maintenance stays valid when seeding is skipped for an active change");
+  context.assert(skippedJson.checksRun === 1, "maintenance still reports checksRun when seeding is skipped");
+  context.assert(skippedJson.findingsCount > 0, "maintenance keeps findings visible when seeding is skipped");
+  context.assert(skippedJson.generatedChange === null, "maintenance generatedChange is null when an active change exists");
+  context.assert(
+    typeof skippedJson.seedingSkippedReason === "string"
+      && skippedJson.seedingSkippedReason.includes("'existing-active-change'")
+      && skippedJson.seedingSkippedReason.includes("only one active change"),
+    "maintenance seedingSkippedReason names the blocking active change and the single-active rule",
+    `seedingSkippedReason: ${skippedJson.seedingSkippedReason}`,
+  );
+  const activeEntries = readdirSync(path.join(strictDir, "changes")).filter((name) => name !== "archive").sort();
+  context.assert(
+    activeEntries.join(",") === "existing-active-change",
+    "maintenance creates no maintenance change while an active change exists",
+    `active entries: ${activeEntries.join(",")}`,
+  );
+} finally {
+  rmSync(maintActiveChangeDir, { recursive: true, force: true });
 }
 
 context.section("[23] tech standards commands");

@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: enforce-single-active-change
+  status: proposed
+summary:
+  what:
+    - 'Enforce that at most one active strict change exists at any time: propose rejects creation when any active change directory already exists, maintenance reports findings without seeding a change when an active change exists, and migrate remains a fidelity-preserving exception that converts all legacy active changes while warning when more than one results.'
+  why:
+    - The workflow owner wants a single focus of work at all times. Today propose, maintenance seeding, and migration all allow multiple active changes to coexist, which dilutes focus and creates cross-change delta conflicts that currently need a dedicated verify diagnostic to catch.
+scope:
+  in:
+    - Unconditional single-active-change rejection in the propose command before any scaffold files are written, with an error message directing the operator to archive or cancel the existing active change; maintenance behavior change to exit zero, report checksRun and findingsCount, return generatedChange null, and explain skipped seeding when an active change exists; migrate warning plus manual follow-up report entries when conversion produces more than one active change; updated delta specs for cli-foundation, operations-domain-behavior, and migrate-domain-behavior; regression tests for each changed behavior
+  out:
+    - Any config.yaml policy switch or opt-out for the single-active rule; removing or weakening the existing cli-verify-enforces-exclusive-active-targets diagnostic; changing archive, cancel, list, modify, apply, or verify command behavior; restricting migrate from converting multiple legacy active changes; skill prompt content changes beyond what packaging validation requires
+unchanged_behavior:
+  - Propose name validation and duplicate-name collision rejection; maintenance behavior when no active change exists, including seeding a change for findings; migrate conversion fidelity for all supported legacy artifact families; verify cross-change exclusive-target diagnostics as a defensive backstop; archive and cancel as the only ways an active change leaves the active state

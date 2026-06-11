@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, statSync, writeFileSync } from "fs";
 import path from "path";
 import { parseYamlFile, stringifyYamlDocument } from "./yaml.js";
-import { initializeStrictChangeScaffold } from "./scaffold.js";
+import { initializeStrictChangeScaffold, listActiveChangeNames } from "./scaffold.js";
 import { syncRoadmap } from "./roadmap.js";
 import type { RoadmapSyncResult } from "./roadmap.js";
 
@@ -43,6 +43,7 @@ export type MaintenanceResult = {
   checksRun: number;
   findingsCount: number;
   generatedChange: string | null;
+  seedingSkippedReason: string | null;
 };
 
 function getChangesDir(rootDir: string): string {
@@ -142,19 +143,19 @@ function buildTasksYaml(changeName: string, findings: MaintenanceFinding[], regr
 export function runMaintenance(rootDir: string): MaintenanceResult {
   const configPath = path.join(rootDir, STRICT_WORKFLOW_DIR, "config.yaml");
   if (!existsSync(configPath)) {
-    return { valid: true, checksRun: 0, findingsCount: 0, generatedChange: null };
+    return { valid: true, checksRun: 0, findingsCount: 0, generatedChange: null, seedingSkippedReason: null };
   }
 
   let config: WorkflowConfig;
   try {
     config = parseYamlFile<WorkflowConfig>(configPath);
   } catch {
-    return { valid: false, checksRun: 0, findingsCount: 0, generatedChange: null };
+    return { valid: false, checksRun: 0, findingsCount: 0, generatedChange: null, seedingSkippedReason: null };
   }
 
   const maintenanceCfg = config.maintenance;
   if (!maintenanceCfg?.checks?.length) {
-    return { valid: true, checksRun: 0, findingsCount: 0, generatedChange: null };
+    return { valid: true, checksRun: 0, findingsCount: 0, generatedChange: null, seedingSkippedReason: null };
   }
 
   const findings: MaintenanceFinding[] = [];
@@ -172,7 +173,19 @@ export function runMaintenance(rootDir: string): MaintenanceResult {
   }
 
   if (findings.length === 0) {
-    return { valid: true, checksRun, findingsCount: 0, generatedChange: null };
+    return { valid: true, checksRun, findingsCount: 0, generatedChange: null, seedingSkippedReason: null };
+  }
+
+  const activeChanges = listActiveChangeNames(rootDir);
+  if (activeChanges.length > 0) {
+    const blockingList = activeChanges.map((name) => `'${name}'`).join(", ");
+    return {
+      valid: true,
+      checksRun,
+      findingsCount: findings.length,
+      generatedChange: null,
+      seedingSkippedReason: `seeding skipped because active change ${blockingList} already exists and only one active change is allowed at a time; archive or cancel it before maintenance can seed a change`,
+    };
   }
 
   const date = new Date().toISOString().slice(0, 10);
@@ -192,5 +205,5 @@ export function runMaintenance(rootDir: string): MaintenanceResult {
     "utf8",
   );
 
-  return { valid: true, checksRun, findingsCount: findings.length, generatedChange: changeName };
+  return { valid: true, checksRun, findingsCount: findings.length, generatedChange: changeName, seedingSkippedReason: null };
 }

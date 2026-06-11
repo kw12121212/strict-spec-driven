@@ -1,0 +1,22 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: enforce-single-active-change
+open: []
+resolved:
+  - id: enforcement-gating
+    question: Should the single-active-change rule be unconditional or controlled by a config.yaml switch?
+    context: An unconditional rule changes behavior for every project using the CLI, while a config switch would extend the workflow config schema, scaffold templates, and migration surface.
+    answer: Unconditional enforcement with no config switch and no force flag; the escape hatch is archiving or cancelling the existing active change.
+    status: resolved
+  - id: maintenance-blocked-seeding-behavior
+    question: When findings exist but an active change is already present, should maintenance fail non-zero or report without seeding?
+    context: Maintenance is a routine check that can run while unrelated change work is in flight, and its current contract exits zero whether or not it seeds a change.
+    answer: Maintenance exits zero, still reports checksRun and findingsCount, returns generatedChange null, and explains that seeding was skipped because an active change exists.
+    status: resolved
+  - id: migrate-multiple-active-handling
+    question: Should migrate refuse to produce more than one active change when converting a legacy project?
+    context: Migration converts pre-existing external state, and the migrate fidelity contract forbids dropping convertible legacy artifacts.
+    answer: Migrate keeps converting every supported legacy active change and adds a warning plus a manual follow-up entry when more than one active change results, leaving cleanup to the operator.
+    status: resolved

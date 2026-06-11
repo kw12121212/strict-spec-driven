@@ -1,0 +1,38 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: enforce-single-active-change
+sections:
+  Implementation:
+    add-propose-single-active-guard:
+      text: Add an unconditional single-active-change guard to the propose preflight so that when any active change directory exists under .strict-spec-driven/changes/, propose exits non-zero before writing any scaffold file or directory, and the error message names the blocking active change and directs the operator to archive or cancel it first.
+      status: complete
+    skip-maintenance-seeding-when-active-change-exists:
+      text: Change maintenance seeding so that when findings exist but an active change is already present, the command exits zero, still reports checksRun and findingsCount, returns generatedChange null, and emits an explicit explanation that seeding was skipped because an active change exists; seeding behavior when no active change exists is unchanged.
+      status: complete
+    warn-migrate-on-multiple-active-changes:
+      text: Extend the migrate report so that when conversion produces more than one active change under .strict-spec-driven/changes/, the report includes a warning and a manual follow-up entry telling the operator to archive or cancel down to a single active change, without dropping or skipping any convertible legacy change.
+      status: complete
+    rebuild-dist-artifacts:
+      text: Rebuild dist output after the TypeScript source changes so the packaged CLI reflects the single-active-change guard, maintenance seeding skip, and migrate warning behavior.
+      status: complete
+  Testing:
+    add-single-active-change-regression-tests:
+      text: Add or update tests covering propose rejection when an active change exists (non-zero exit, no partial scaffold state, error naming the blocking change and pointing to archive or cancel), propose success when no active change exists, maintenance zero-exit skip with generatedChange null and visible findings when an active change exists, unchanged maintenance seeding when none exists, and migrate warning plus manual follow-up entries when multiple active changes are converted.
+      status: complete
+    run-lint:
+      text: Run the project lint command and confirm the TypeScript sources type-check cleanly before running the full regression suite.
+      status: complete
+      command: bun run lint
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: 'Verify implementation matches proposal scope: the single-active rule is unconditional with no config switch or force flag, propose rejects before any write, maintenance keeps findings visible while skipping seeding with zero exit, migrate still converts every supported legacy active change and only warns, and archive, cancel, list, modify, apply, verify, and the cli-verify-enforces-exclusive-active-targets diagnostic remain unchanged.'
+      status: complete
+testing_gates:
+  validation_task: add-single-active-change-regression-tests
+  unit_test_task: run-project-regression

@@ -1022,11 +1022,31 @@ try {
     "propose duplicate-change failure preserves existing artifacts",
   );
 
+  const cancelProposeChange = cli(["cancel", changeName], { cwd: proposeTempDir });
+  context.assert(
+    cancelProposeChange.status === 0,
+    "cancel clears the active change so the single-active rule allows the next propose",
+    `stderr: ${cancelProposeChange.stderr.trim()}`,
+  );
+
+  mkdirSync(
+    path.join(proposeTempDir, ".strict-spec-driven", "changes", "archive", "2026-01-01-archived-change"),
+    { recursive: true },
+  );
+
   const emptyDirChangeName = "empty-existing-dir";
   const emptyDirChangePath = path.join(proposeTempDir, ".strict-spec-driven", "changes", emptyDirChangeName);
   mkdirSync(path.join(emptyDirChangePath, "nested", "still-empty"), { recursive: true });
   const emptyDirPropose = cli(["propose", emptyDirChangeName], { cwd: proposeTempDir });
-  context.assert(emptyDirPropose.status === 0, "propose reuses an existing empty change directory tree", `stderr: ${emptyDirPropose.stderr.trim()}`);
+  context.assert(
+    emptyDirPropose.status === 0,
+    "propose reuses an existing empty change directory tree",
+    `stderr: ${emptyDirPropose.stderr.trim()}`,
+  );
+  context.assert(
+    emptyDirPropose.status === 0,
+    "propose succeeds while only archived changes exist under changes/archive/",
+  );
   for (const artifact of expectedArtifacts) {
     context.assert(
       existsSync(path.join(emptyDirChangePath, artifact)),
@@ -1244,6 +1264,20 @@ try {
   context.assert(verifyGenerated.status === 0, "generated complete change passes verify", `stderr: ${verifyGenerated.stderr.trim()} stdout: ${verifyGenerated.stdout.trim()}`);
 
   const directChangeName = "argument-driven-change";
+  const blockedDirectPropose = cli(["propose", directChangeName], { cwd: generateTempDir });
+  context.assert(
+    blockedDirectPropose.status !== 0 &&
+      blockedDirectPropose.stderr.includes(`active change '${changeName}' already exists`) &&
+      blockedDirectPropose.stderr.includes("archive or cancel"),
+    "propose rejects a second active change and names the blocking change",
+    `status: ${blockedDirectPropose.status} stderr: ${blockedDirectPropose.stderr.trim()}`,
+  );
+  context.assert(
+    !existsSync(path.join(generateTempDir, ".strict-spec-driven", "changes", directChangeName)),
+    "blocked propose writes no scaffold state",
+  );
+  const cancelScripted = cli(["cancel", changeName], { cwd: generateTempDir });
+  context.assert(cancelScripted.status === 0, "single-active rule allows next propose after cancel", `stderr: ${cancelScripted.stderr.trim()}`);
   const directPropose = cli(["propose", directChangeName], { cwd: generateTempDir });
   context.assert(directPropose.status === 0, "argument-driven generate setup creates strict change scaffold", `stderr: ${directPropose.stderr.trim()}`);
   const directChangeDir = path.join(generateTempDir, ".strict-spec-driven", "changes", directChangeName);

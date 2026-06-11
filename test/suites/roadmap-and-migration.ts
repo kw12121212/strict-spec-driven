@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import {
@@ -2076,6 +2076,14 @@ function runCopiedSplitRoadmapHandoffScenario(): {
       "copied project handoff materializes legacy inline roadmap data before standalone handoff coverage",
       `stdout: ${materialize.stdout.trim()} stderr: ${materialize.stderr.trim()}`,
     );
+    for (const preexistingActiveChange of ["add-due-dates", "split-active"]) {
+      const cancelPreexisting = projectWorkspaceCli(workspaceRoot, ["cancel", preexistingActiveChange]);
+      context.assert(
+        cancelPreexisting.status === 0,
+        `copied project handoff cancels pre-existing active change '${preexistingActiveChange}' so the single-active rule allows handoff propose`,
+        `stderr: ${cancelPreexisting.stderr.trim()}`,
+      );
+    }
     writeStandalonePlannedChangeArtifact(workspaceRoot, "planned-changes/0003-copied-project-handoff.yaml", {
       id: handoffChangeName,
       milestone: "0001-core-todo-workflows",
@@ -2809,6 +2817,13 @@ try {
     ),
     "migrate converts legacy roadmap milestone into strict roadmap_milestone artifact",
   );
+  context.assert(
+    !migrateHappyJson.warnings.some((diagnostic: { code: string }) => diagnostic.code === "multiple_active_changes")
+      && !migrateHappyJson.manualFollowUp.some(
+        (entry: { reason: string }) => entry.reason.includes("only one active change"),
+      ),
+    "migrate emits no multiple-active-change warning when conversion yields a single active change",
+  );
 
   const migratedConfig = yamlModule.parseYamlFile<{
     schema: string;
@@ -3138,6 +3153,60 @@ try {
   context.assert(materializedMigratedRoadmap.status === 0, "roadmap-sync materializes migrated roadmap inline planned changes");
 } finally {
   rmSync(migrateHappyDir, { recursive: true, force: true });
+}
+
+const migrateMultiActiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-multi-active-"));
+try {
+  writeLegacyMigrationFixture(migrateMultiActiveDir);
+  cpSync(
+    path.join(migrateMultiActiveDir, ".spec-driven", "changes", "demo-change"),
+    path.join(migrateMultiActiveDir, ".spec-driven", "changes", "second-demo-change"),
+    { recursive: true },
+  );
+
+  const migrateMultiActive = cli(["migrate"], { cwd: migrateMultiActiveDir });
+  context.assert(
+    migrateMultiActive.status === 0,
+    "migrate exits zero when legacy state contains multiple active changes",
+    `stderr: ${migrateMultiActive.stderr.trim()}`,
+  );
+  const migrateMultiActiveJson = JSON.parse(migrateMultiActive.stdout.trim());
+  context.assert(migrateMultiActiveJson.valid === true, "multi-active migrate reports valid=true");
+  for (const convertedActiveChange of ["demo-change", "second-demo-change"]) {
+    context.assert(
+      migrateMultiActiveJson.converted.some(
+        (artifact: { targetPath: string; kind: string }) =>
+          artifact.kind === "change_proposal"
+          && artifact.targetPath === `.strict-spec-driven/changes/${convertedActiveChange}/proposal.yaml`,
+      ),
+      `multi-active migrate still converts active change '${convertedActiveChange}'`,
+    );
+  }
+  const multiActiveWarning = migrateMultiActiveJson.warnings.find(
+    (diagnostic: { code: string }) => diagnostic.code === "multiple_active_changes",
+  ) as { message: string; sourcePath?: string; targetPath?: string } | undefined;
+  context.assert(
+    multiActiveWarning !== undefined
+      && multiActiveWarning.message.includes("'demo-change'")
+      && multiActiveWarning.message.includes("'second-demo-change'")
+      && multiActiveWarning.message.includes("only one active change")
+      && multiActiveWarning.sourcePath === ".spec-driven/changes"
+      && multiActiveWarning.targetPath === ".strict-spec-driven/changes",
+    "multi-active migrate emits a multiple_active_changes warning naming the converted active changes",
+    `warnings: ${JSON.stringify(migrateMultiActiveJson.warnings)}`,
+  );
+  const multiActiveFollowUp = migrateMultiActiveJson.manualFollowUp.find(
+    (entry: { reason: string }) => entry.reason.includes("only one active change"),
+  ) as { sourcePath: string; recommendation: string } | undefined;
+  context.assert(
+    multiActiveFollowUp !== undefined
+      && multiActiveFollowUp.sourcePath === ".spec-driven/changes"
+      && multiActiveFollowUp.recommendation.includes("Archive or cancel"),
+    "multi-active migrate records a manual follow-up entry directing cleanup to a single active change",
+    `manualFollowUp: ${JSON.stringify(migrateMultiActiveJson.manualFollowUp)}`,
+  );
+} finally {
+  rmSync(migrateMultiActiveDir, { recursive: true, force: true });
 }
 
 const migratePartialDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-partial-"));

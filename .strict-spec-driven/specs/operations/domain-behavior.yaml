@@ -16,33 +16,24 @@ mapping:
 requirements:
   operations-list-contract:
     strength: MUST
-    statement: >-
-      The system MUST make list report active and archived strict changes with deterministic
-      headings, active status summaries, archived directory names, and an empty-state message when
-      no changes exist.
+    statement: The system MUST make list report active and archived strict changes with deterministic headings, active status summaries, archived directory names, and an empty-state message when no changes exist.
     scenarios:
       list-reports-active-and-archived:
         - GIVEN: active and archived strict changes exist
         - WHEN: strict-spec-driven list runs
-        - THEN: >-
-            the command exits zero and prints active and archived sections with the expected change
-            entries
+        - THEN: the command exits zero and prints active and archived sections with the expected change entries
       list-reports-empty-state:
         - GIVEN: no active or archived strict changes exist
         - WHEN: strict-spec-driven list runs
         - THEN: the command exits zero and reports that no changes exist
   operations-modify-contract:
     strength: MUST
-    statement: >-
-      The system MUST make modify list editable strict artifact paths for active changes and exact
-      archived change directories while rejecting missing targets and archived bare-name ambiguity.
+    statement: The system MUST make modify list editable strict artifact paths for active changes and exact archived change directories while rejecting missing targets and archived bare-name ambiguity.
     scenarios:
       modify-active-change:
         - GIVEN: an active strict change exists
         - WHEN: strict-spec-driven modify <name> runs
-        - THEN: >-
-            the command exits zero and reports proposal, design, tasks, questions, and delta spec
-            artifact paths
+        - THEN: the command exits zero and reports proposal, design, tasks, questions, and delta spec artifact paths
       modify-archived-exact-directory:
         - GIVEN: an archived strict change directory exists
         - WHEN: strict-spec-driven modify <archive-dir> runs with the exact directory name
@@ -53,9 +44,7 @@ requirements:
         - THEN: the command exits non-zero with diagnostics explaining the target problem
   operations-cancel-contract:
     strength: MUST
-    statement: >-
-      The system MUST make cancel remove active strict changes only, preserve archived changes,
-      reject missing targets, and confirm successful cancellation in command output.
+    statement: The system MUST make cancel remove active strict changes only, preserve archived changes, reject missing targets, and confirm successful cancellation in command output.
     scenarios:
       cancel-active-change:
         - GIVEN: an active strict change exists
@@ -64,40 +53,32 @@ requirements:
       cancel-protects-archives:
         - GIVEN: an archived strict change is targeted
         - WHEN: strict-spec-driven cancel <archive-dir> runs
-        - THEN: >-
-            the command exits non-zero, preserves the archived directory, and explains that cancel
-            is active-only
+        - THEN: the command exits non-zero, preserves the archived directory, and explains that cancel is active-only
   operations-ship-contract:
     strength: MUST
-    statement: >-
-      The system MUST make ship resolve archived changes by exact archive directory name or
-      unambiguous bare change name, reject missing or ambiguous targets, and emit deterministic JSON
-      with archive path, proposal summary, and roadmap snapshot data for valid archived changes.
+    statement: The system MUST make ship resolve archived changes by exact archive directory name or unambiguous bare change name, reject missing or ambiguous targets, and emit deterministic JSON with archive path, proposal summary, and roadmap snapshot data for valid archived changes.
     scenarios:
       ship-valid-archive:
         - GIVEN: a valid archived change exists
         - WHEN: strict-spec-driven ship <name> resolves that archive
-        - THEN: >-
-            the command exits zero and emits parseable JSON containing changeName, archivePath,
-            proposalSummary, and roadmapSnapshot
+        - THEN: the command exits zero and emits parseable JSON containing changeName, archivePath, proposalSummary, and roadmapSnapshot
       ship-rejects-missing-or-ambiguous:
         - GIVEN: the requested archive is missing or multiple date-prefixed archives match a bare name
         - WHEN: strict-spec-driven ship <name> runs
         - THEN: the command exits non-zero with a not found or ambiguous target diagnostic
   operations-maintenance-contract:
     strength: MUST
-    statement: >-
-      The system MUST make maintenance run configured maintenance checks when present, report
-      checksRun and findingsCount, seed a maintenance change when findings exist, and return no
-      generated change when no config or checks are configured.
+    statement: The system MUST make maintenance run configured maintenance checks when present, report checksRun and findingsCount, seed a maintenance change only when findings exist and no active change is present, skip seeding with generatedChange null and an explicit skipped-seeding explanation when an active change exists, and return no generated change when no config or checks are configured.
     scenarios:
       maintenance-no-config-or-checks:
         - GIVEN: no maintenance config or no maintenance checks are configured
         - WHEN: strict-spec-driven maintenance runs
         - THEN: the command exits zero with checksRun 0, findingsCount 0, and generatedChange null
       maintenance-seeds-change-for-findings:
-        - GIVEN: maintenance configuration has checks that produce roadmap drift findings
+        - GIVEN: maintenance configuration has checks that produce roadmap drift findings and no active change exists under .strict-spec-driven/changes/
         - WHEN: strict-spec-driven maintenance runs
-        - THEN: >-
-            the command exits zero, reports findings, and creates a generated maintenance change
-            under .strict-spec-driven/changes/
+        - THEN: the command exits zero, reports findings, and creates a generated maintenance change under .strict-spec-driven/changes/
+      maintenance-skips-seeding-when-active-change-exists:
+        - GIVEN: maintenance checks produce findings while an active change already exists under .strict-spec-driven/changes/
+        - WHEN: strict-spec-driven maintenance runs
+        - THEN: the command exits zero, still reports checksRun and findingsCount, returns generatedChange null, and explains that seeding was skipped because an active change exists

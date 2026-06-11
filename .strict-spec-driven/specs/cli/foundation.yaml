@@ -1862,3 +1862,15 @@ requirements:
         - GIVEN: a core strict skill that instructs agents to create or edit strict YAML artifacts
         - WHEN: strict skill packaging validation inspects the skill prompt
         - THEN: validation requires the prompt to mention ~/.strict-spec-schemas/ and schema_file-based schema lookup guidance alongside the existing schema-show reminder
+  cli-propose-enforces-single-active-change:
+    strength: MUST
+    statement: The system MUST reject propose with a non-zero exit before writing any scaffold file or directory when any active change directory already exists under .strict-spec-driven/changes/, and the rejection message MUST name the blocking active change and direct the operator to archive or cancel it first.
+    scenarios:
+      propose-rejects-when-active-change-exists:
+        - GIVEN: an active strict change directory already exists under .strict-spec-driven/changes/
+        - WHEN: strict-spec-driven propose <new-name> is executed with a valid kebab-case name
+        - THEN: the command exits non-zero before any scaffold file or directory is written, and the error message names the blocking active change and directs the operator to archive or cancel it first
+      propose-succeeds-when-only-archived-changes-exist:
+        - GIVEN: no active change directories exist under .strict-spec-driven/changes/ while archived changes may exist under changes/archive/
+        - WHEN: strict-spec-driven propose <name> is executed with a valid kebab-case name
+        - THEN: the change scaffold is created normally with all strict planning artifacts

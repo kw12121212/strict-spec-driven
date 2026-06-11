@@ -1,0 +1,27 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/cmd-scaffold.ts
+    - src/scaffold.ts
+  tests:
+    - test/suites/change-lifecycle.ts
+operations:
+  ADDED:
+    cli-propose-enforces-single-active-change:
+      strength: MUST
+      statement: The system MUST reject propose with a non-zero exit before writing any scaffold file or directory when any active change directory already exists under .strict-spec-driven/changes/, and the rejection message MUST name the blocking active change and direct the operator to archive or cancel it first.
+      scenarios:
+        propose-rejects-when-active-change-exists:
+          - GIVEN: an active strict change directory already exists under .strict-spec-driven/changes/
+          - WHEN: strict-spec-driven propose <new-name> is executed with a valid kebab-case name
+          - THEN: the command exits non-zero before any scaffold file or directory is written, and the error message names the blocking active change and directs the operator to archive or cancel it first
+        propose-succeeds-when-only-archived-changes-exist:
+          - GIVEN: no active change directories exist under .strict-spec-driven/changes/ while archived changes may exist under changes/archive/
+          - WHEN: strict-spec-driven propose <name> is executed with a valid kebab-case name
+          - THEN: the change scaffold is created normally with all strict planning artifacts
+  MODIFIED: {}
+  REMOVED: {}

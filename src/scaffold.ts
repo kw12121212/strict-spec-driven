@@ -136,10 +136,28 @@ export function findMissingRequiredChangeTemplateAssets(): string[] {
   );
 }
 
+export function listActiveChangeNames(rootDir: string): string[] {
+  const strictChangesRootDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "changes");
+  if (!existsSync(strictChangesRootDir) || !statSync(strictChangesRootDir).isDirectory()) {
+    return [];
+  }
+  return readdirSync(strictChangesRootDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name !== "archive")
+    .map((entry) => entry.name)
+    .sort((left, right) => left.localeCompare(right));
+}
+
 export function initializeStrictChangeScaffold(rootDir: string, changeName: string): StrictChangeScaffoldResult {
   const strictChangesRootDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "changes");
   const changeDir = path.join(strictChangesRootDir, changeName);
   const repoRelativeChangeDir = toRepoRelativePath(rootDir, changeDir);
+  const blockingActiveChanges = listActiveChangeNames(rootDir).filter((name) => name !== changeName);
+  if (blockingActiveChanges.length > 0) {
+    const blockingList = blockingActiveChanges.map((name) => `'${name}'`).join(", ");
+    throw new Error(
+      `cannot create change '${changeName}': active change ${blockingList} already exists and only one active change is allowed at a time; archive or cancel it first`,
+    );
+  }
   if (existsSync(changeDir)) {
     if (!statSync(changeDir).isDirectory()) {
       throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
