@@ -1,8 +1,9 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import {
   ROOT,
+  TEST_SHARED_SCHEMA_CACHE_DIR,
   TestContext,
   cli,
   createCopiedProjectWorkspace,
@@ -11,7 +12,6 @@ import {
   loadDistModule,
   projectFixturePath,
   projectWorkspaceCli,
-  runCommand,
   type MigrateConverterModule,
   type RoadmapConverterModule,
   type ScaffoldModule,
@@ -47,10 +47,12 @@ type SharedSchemaCacheManifest = {
 };
 
 type SharedSchemaCacheModule = {
-  getSharedSchemaCacheRoot(homeDir?: string): string;
+  getSharedSchemaCacheRoot(): string;
+  getSharedSchemaManifestPath(rootDir?: string): string;
   getBundledSharedSchemaCacheVersion(): string;
   getBundledSharedSchemaCacheFiles(): string[];
-  synchronizeSharedSchemaCache(options?: { homeDir?: string }): {
+  formatSharedSchemaCacheWarning(error: unknown, rootDir?: string): string;
+  synchronizeSharedSchemaCache(): {
     action: "synced" | "skipped";
     rootDir: string;
     manifestPath: string;
@@ -60,11 +62,7 @@ type SharedSchemaCacheModule = {
 };
 
 type McpServerModule = {
-  runMcpServer(
-    argv: string[],
-    connect?: (context: unknown) => Promise<void>,
-    cacheOptions?: { homeDir?: string },
-  ): Promise<void>;
+  runMcpServer(argv: string[], connect?: (context: unknown) => Promise<void>): Promise<void>;
 };
 
 export async function runFoundationAndFixtureSuite(context: TestContext): Promise<void> {
@@ -215,16 +213,35 @@ const mcpServerModule = await loadDistModule<McpServerModule>("mcp/server.js");
 
 context.section("[4] shared schema cache");
 
-const cliSharedSchemaHome = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-cli-"));
+const harnessIsolationProbe = cli(["schema-list"], { cwd: ROOT });
+context.assert(
+  harnessIsolationProbe.status === 0 && existsSync(path.join(TEST_SHARED_SCHEMA_CACHE_DIR, "manifest.yaml")),
+  "test harness CLI invocations write the shared schema cache to the per-run isolated directory by default",
+);
+
+const cliSharedSchemaTemp = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-cli-"));
 try {
+  const cliSharedSchemaHome = path.join(cliSharedSchemaTemp, "home");
+  const cliSharedSchemaCacheDir = path.join(cliSharedSchemaTemp, "cache-root");
+  mkdirSync(cliSharedSchemaHome, { recursive: true });
   const schemaListWithCache = cli(["schema-list"], {
     cwd: ROOT,
-    env: { ...process.env, HOME: cliSharedSchemaHome },
+    env: {
+      HOME: cliSharedSchemaHome,
+      USERPROFILE: cliSharedSchemaHome,
+      STRICT_SPEC_SCHEMA_CACHE_DIR: cliSharedSchemaCacheDir,
+    },
   });
   context.assert(schemaListWithCache.status === 0, "cli startup still succeeds while populating shared schema cache");
-  const sharedCacheRoot = sharedSchemaCacheModule.getSharedSchemaCacheRoot(cliSharedSchemaHome);
-  const sharedManifestPath = path.join(sharedCacheRoot, "manifest.yaml");
-  context.assert(existsSync(sharedManifestPath), "cli startup writes the shared schema cache manifest");
+  const sharedManifestPath = path.join(cliSharedSchemaCacheDir, "manifest.yaml");
+  context.assert(
+    existsSync(sharedManifestPath),
+    "cli startup writes the shared schema cache manifest under the STRICT_SPEC_SCHEMA_CACHE_DIR override",
+  );
+  context.assert(
+    !existsSync(path.join(cliSharedSchemaHome, ".strict-spec-schemas")),
+    "the STRICT_SPEC_SCHEMA_CACHE_DIR override keeps the user's home directory untouched",
+  );
   const sharedManifest = yamlModule.parseYamlFile<SharedSchemaCacheManifest>(sharedManifestPath);
   context.assert(
     sharedManifest.export_version === sharedSchemaCacheModule.getBundledSharedSchemaCacheVersion(),
@@ -234,37 +251,83 @@ try {
     JSON.stringify(sharedManifest.exported_files) === JSON.stringify(sharedSchemaCacheModule.getBundledSharedSchemaCacheFiles()),
     "shared schema cache manifest enumerates the exported schema files",
   );
-  const sharedRegistryPath = path.join(sharedCacheRoot, "templates", "strict-spec-driven", "schemas", "registry.yaml");
+  const sharedRegistryPath = path.join(cliSharedSchemaCacheDir, "templates", "strict-spec-driven", "schemas", "registry.yaml");
   context.assert(existsSync(sharedRegistryPath), "cli startup exports registry.yaml into the shared schema cache");
   context.assert(
     readFileSync(sharedRegistryPath, "utf8").includes("schema: strict-spec-driven/schema-registry/v1"),
     "shared schema cache preserves bundled schema file contents",
   );
 } finally {
-  rmSync(cliSharedSchemaHome, { recursive: true, force: true });
+  rmSync(cliSharedSchemaTemp, { recursive: true, force: true });
 }
 
-const skippedSharedSchemaHome = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-skip-"));
+const cliDefaultRootHome = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-default-"));
 try {
-  const firstSync = sharedSchemaCacheModule.synchronizeSharedSchemaCache({ homeDir: skippedSharedSchemaHome });
-  const secondSync = sharedSchemaCacheModule.synchronizeSharedSchemaCache({ homeDir: skippedSharedSchemaHome });
+  const defaultRootSchemaList = cli(["schema-list"], {
+    cwd: ROOT,
+    env: { HOME: cliDefaultRootHome, USERPROFILE: cliDefaultRootHome, STRICT_SPEC_SCHEMA_CACHE_DIR: "" },
+  });
+  context.assert(defaultRootSchemaList.status === 0, "cli startup succeeds with the default home-based cache root");
+  context.assert(
+    existsSync(path.join(cliDefaultRootHome, ".strict-spec-schemas", "manifest.yaml")),
+    "an empty STRICT_SPEC_SCHEMA_CACHE_DIR falls back to ~/.strict-spec-schemas/",
+  );
+} finally {
+  rmSync(cliDefaultRootHome, { recursive: true, force: true });
+}
+
+const helpSharedSchemaTemp = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-help-"));
+try {
+  const helpCacheDir = path.join(helpSharedSchemaTemp, "cache-root");
+  const helpResult = cli(["--help"], {
+    cwd: ROOT,
+    env: { STRICT_SPEC_SCHEMA_CACHE_DIR: helpCacheDir },
+  });
+  const shortHelpResult = cli(["-h"], {
+    cwd: ROOT,
+    env: { STRICT_SPEC_SCHEMA_CACHE_DIR: helpCacheDir },
+  });
+  context.assert(
+    helpResult.status === 0 && shortHelpResult.status === 0,
+    "cli help requests succeed without a shared schema cache",
+  );
+  context.assert(
+    !existsSync(helpCacheDir),
+    "cli help requests do not create or write the shared schema cache",
+  );
+} finally {
+  rmSync(helpSharedSchemaTemp, { recursive: true, force: true });
+}
+
+function withSharedSchemaCacheDir<T>(cacheDir: string, run: () => T): T {
+  const savedCacheDirEnv = process.env.STRICT_SPEC_SCHEMA_CACHE_DIR;
+  process.env.STRICT_SPEC_SCHEMA_CACHE_DIR = cacheDir;
+  try {
+    return run();
+  } finally {
+    process.env.STRICT_SPEC_SCHEMA_CACHE_DIR = savedCacheDirEnv;
+  }
+}
+
+const skippedSharedSchemaRoot = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-skip-"));
+try {
+  const firstSync = withSharedSchemaCacheDir(skippedSharedSchemaRoot, () => sharedSchemaCacheModule.synchronizeSharedSchemaCache());
+  const secondSync = withSharedSchemaCacheDir(skippedSharedSchemaRoot, () => sharedSchemaCacheModule.synchronizeSharedSchemaCache());
   context.assert(firstSync.action === "synced", "shared schema cache first sync writes files");
   context.assert(secondSync.action === "skipped", "shared schema cache skips rewrites when the manifest version matches");
 } finally {
-  rmSync(skippedSharedSchemaHome, { recursive: true, force: true });
+  rmSync(skippedSharedSchemaRoot, { recursive: true, force: true });
 }
 
-const refreshedSharedSchemaHome = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-refresh-"));
+const refreshedCacheRoot = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-refresh-"));
 try {
-  sharedSchemaCacheModule.synchronizeSharedSchemaCache({ homeDir: refreshedSharedSchemaHome });
-  const refreshedCacheRoot = sharedSchemaCacheModule.getSharedSchemaCacheRoot(refreshedSharedSchemaHome);
+  withSharedSchemaCacheDir(refreshedCacheRoot, () => sharedSchemaCacheModule.synchronizeSharedSchemaCache());
   const refreshedManifestPath = path.join(refreshedCacheRoot, "manifest.yaml");
   const staleManifest = yamlModule.parseYamlFile<SharedSchemaCacheManifest>(refreshedManifestPath);
   staleManifest.export_version = "sha256:stale";
   writeFileSync(refreshedManifestPath, yamlModule.stringifyYamlDocument(staleManifest), "utf8");
-  const refreshedAfterStaleManifest = sharedSchemaCacheModule.synchronizeSharedSchemaCache({
-    homeDir: refreshedSharedSchemaHome,
-  });
+  const refreshedAfterStaleManifest = withSharedSchemaCacheDir(refreshedCacheRoot, () =>
+    sharedSchemaCacheModule.synchronizeSharedSchemaCache());
   context.assert(
     refreshedAfterStaleManifest.action === "synced"
       && yamlModule.parseYamlFile<SharedSchemaCacheManifest>(refreshedManifestPath).export_version
@@ -274,9 +337,8 @@ try {
   const staleExportListManifest = yamlModule.parseYamlFile<SharedSchemaCacheManifest>(refreshedManifestPath);
   staleExportListManifest.exported_files = ["templates/strict-spec-driven/schemas/stale.yaml"];
   writeFileSync(refreshedManifestPath, yamlModule.stringifyYamlDocument(staleExportListManifest), "utf8");
-  const refreshedAfterStaleExportList = sharedSchemaCacheModule.synchronizeSharedSchemaCache({
-    homeDir: refreshedSharedSchemaHome,
-  });
+  const refreshedAfterStaleExportList = withSharedSchemaCacheDir(refreshedCacheRoot, () =>
+    sharedSchemaCacheModule.synchronizeSharedSchemaCache());
   context.assert(
     refreshedAfterStaleExportList.action === "synced"
       && JSON.stringify(yamlModule.parseYamlFile<SharedSchemaCacheManifest>(refreshedManifestPath).exported_files)
@@ -288,44 +350,140 @@ try {
     sharedSchemaCacheModule.getBundledSharedSchemaCacheFiles()[0]!,
   );
   rmSync(exportedSchemaPath, { force: true });
-  const refreshedAfterMissingSchema = sharedSchemaCacheModule.synchronizeSharedSchemaCache({
-    homeDir: refreshedSharedSchemaHome,
-  });
+  const refreshedAfterMissingSchema = withSharedSchemaCacheDir(refreshedCacheRoot, () =>
+    sharedSchemaCacheModule.synchronizeSharedSchemaCache());
   context.assert(
     refreshedAfterMissingSchema.action === "synced" && existsSync(exportedSchemaPath),
     "shared schema cache refreshes when expected exported schema files are missing",
   );
+  const originalSchemaContent = readFileSync(exportedSchemaPath, "utf8");
+  writeFileSync(exportedSchemaPath, "corrupted: true\n", "utf8");
+  const refreshedAfterCorruptedSchema = withSharedSchemaCacheDir(refreshedCacheRoot, () =>
+    sharedSchemaCacheModule.synchronizeSharedSchemaCache());
+  context.assert(
+    refreshedAfterCorruptedSchema.action === "synced"
+      && readFileSync(exportedSchemaPath, "utf8") === originalSchemaContent,
+    "shared schema cache self-heals cached schema files whose content was edited or corrupted",
+  );
+  const refreshedSchemasDir = path.join(refreshedCacheRoot, "templates", "strict-spec-driven", "schemas");
+  const straySchemaPath = path.join(refreshedSchemasDir, "stray.yaml");
+  writeFileSync(exportedSchemaPath, "corrupted: true\n", "utf8");
+  writeFileSync(straySchemaPath, "stray: true\n", "utf8");
+  withSharedSchemaCacheDir(refreshedCacheRoot, () => sharedSchemaCacheModule.synchronizeSharedSchemaCache());
+  context.assert(
+    !existsSync(straySchemaPath),
+    "shared schema cache refresh replaces the schemas directory wholesale via the staged swap",
+  );
+  context.assert(
+    readdirSync(path.dirname(refreshedSchemasDir)).every((entry) => entry === "schemas"),
+    "shared schema cache refresh leaves no staging or retired directories behind",
+  );
 } finally {
-  rmSync(refreshedSharedSchemaHome, { recursive: true, force: true });
+  rmSync(refreshedCacheRoot, { recursive: true, force: true });
 }
 
-const blockedSharedSchemaHome = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-blocked-"));
+const damagedCacheRoot = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-damaged-"));
 try {
-  writeFileSync(path.join(blockedSharedSchemaHome, ".strict-spec-schemas"), "blocked\n", "utf8");
+  const damagedCacheEnv = { STRICT_SPEC_SCHEMA_CACHE_DIR: damagedCacheRoot };
+  const damagedManifestPath = path.join(damagedCacheRoot, "manifest.yaml");
+  const populateDamagedCache = cli(["schema-list"], { cwd: ROOT, env: damagedCacheEnv });
+  context.assert(populateDamagedCache.status === 0, "cli startup populates the cache used for damage recovery checks");
+  const damagedSchemaPath = path.join(
+    damagedCacheRoot,
+    sharedSchemaCacheModule.getBundledSharedSchemaCacheFiles()[0]!,
+  );
+  const expectedSchemaContent = readFileSync(damagedSchemaPath, "utf8");
+
+  writeFileSync(damagedManifestPath, "{ not: [valid yaml\n", "utf8");
+  const recoverFromGarbageManifest = cli(["schema-list"], { cwd: ROOT, env: damagedCacheEnv });
+  context.assert(
+    recoverFromGarbageManifest.status === 0
+      && yamlModule.parseYamlFile<SharedSchemaCacheManifest>(damagedManifestPath).export_version
+        === sharedSchemaCacheModule.getBundledSharedSchemaCacheVersion(),
+    "cli startup rewrites the shared schema cache when the manifest is unparseable",
+  );
+
+  writeFileSync(damagedSchemaPath, "corrupted: true\n", "utf8");
+  const recoverFromCorruptedSchema = cli(["schema-list"], { cwd: ROOT, env: damagedCacheEnv });
+  context.assert(
+    recoverFromCorruptedSchema.status === 0 && readFileSync(damagedSchemaPath, "utf8") === expectedSchemaContent,
+    "cli startup self-heals a corrupted cached schema file",
+  );
+
+  rmSync(damagedSchemaPath, { force: true });
+  mkdirSync(damagedSchemaPath);
+  const recoverFromDirectoryShadow = cli(["schema-list"], { cwd: ROOT, env: damagedCacheEnv });
+  context.assert(
+    recoverFromDirectoryShadow.status === 0 && statSync(damagedSchemaPath).isFile(),
+    "cli startup refreshes when a cached schema file is shadowed by a directory",
+  );
+
+  chmodSync(damagedSchemaPath, 0o000);
+  const recoverFromUnreadableSchema = cli(["schema-list"], { cwd: ROOT, env: damagedCacheEnv });
+  context.assert(
+    recoverFromUnreadableSchema.status === 0 && readFileSync(damagedSchemaPath, "utf8") === expectedSchemaContent,
+    "cli startup refreshes when a cached schema file is unreadable",
+  );
+} finally {
+  rmSync(damagedCacheRoot, { recursive: true, force: true });
+}
+
+const explicitWarning = sharedSchemaCacheModule.formatSharedSchemaCacheWarning(new Error("disk full"), "/tmp/example-cache-root");
+context.assert(
+  explicitWarning.includes("'/tmp/example-cache-root'") && explicitWarning.includes("disk full"),
+  "shared schema cache warning names the provided cache root and error message",
+);
+const defaultRootWarning = sharedSchemaCacheModule.formatSharedSchemaCacheWarning("raw failure");
+context.assert(
+  defaultRootWarning.includes(`'${TEST_SHARED_SCHEMA_CACHE_DIR}'`) && defaultRootWarning.includes("raw failure"),
+  "shared schema cache warning resolves the env-overridden cache root and stringifies non-Error values",
+);
+context.assert(
+  sharedSchemaCacheModule.getSharedSchemaManifestPath() === path.join(TEST_SHARED_SCHEMA_CACHE_DIR, "manifest.yaml"),
+  "shared schema manifest path defaults to the resolved cache root",
+);
+const savedCacheDirEnvForFallback = process.env.STRICT_SPEC_SCHEMA_CACHE_DIR;
+try {
+  delete process.env.STRICT_SPEC_SCHEMA_CACHE_DIR;
+  context.assert(
+    sharedSchemaCacheModule.getSharedSchemaCacheRoot() === path.join(os.homedir(), ".strict-spec-schemas"),
+    "shared schema cache root falls back to ~/.strict-spec-schemas when no override is set",
+  );
+} finally {
+  process.env.STRICT_SPEC_SCHEMA_CACHE_DIR = savedCacheDirEnvForFallback;
+}
+
+const blockedSharedSchemaTemp = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-blocked-"));
+try {
+  const blockedCacheDir = path.join(blockedSharedSchemaTemp, "cache-root");
+  writeFileSync(blockedCacheDir, "blocked\n", "utf8");
   const blockedSchemaList = cli(["schema-list"], {
     cwd: ROOT,
-    env: { ...process.env, HOME: blockedSharedSchemaHome },
+    env: { STRICT_SPEC_SCHEMA_CACHE_DIR: blockedCacheDir },
   });
   context.assert(blockedSchemaList.status === 0, "cli startup continues when the shared schema cache cannot be written");
   context.assert(
-    blockedSchemaList.stderr.includes("Warning: shared schema cache at '~/.strict-spec-schemas/' could not be synchronized"),
-    "cli startup emits an explicit warning when the shared schema cache cannot be synchronized",
+    blockedSchemaList.stderr.includes(`Warning: shared schema cache at '${blockedCacheDir}' could not be synchronized`),
+    "cli startup warning names the resolved cache path when synchronization fails",
     `stderr: ${blockedSchemaList.stderr.trim()}`,
   );
 } finally {
-  rmSync(blockedSharedSchemaHome, { recursive: true, force: true });
+  rmSync(blockedSharedSchemaTemp, { recursive: true, force: true });
 }
 
-const mcpSharedSchemaHome = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-mcp-"));
+const mcpSharedSchemaTemp = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-mcp-"));
+const savedSharedSchemaCacheDirEnv = process.env.STRICT_SPEC_SCHEMA_CACHE_DIR;
 try {
-  await mcpServerModule.runMcpServer(["--project", ROOT], async () => {}, { homeDir: mcpSharedSchemaHome });
-  const mcpSharedCacheRoot = sharedSchemaCacheModule.getSharedSchemaCacheRoot(mcpSharedSchemaHome);
+  const mcpSharedCacheDir = path.join(mcpSharedSchemaTemp, "cache-root");
+  process.env.STRICT_SPEC_SCHEMA_CACHE_DIR = mcpSharedCacheDir;
+  await mcpServerModule.runMcpServer(["--project", ROOT], async () => {});
   context.assert(
-    existsSync(path.join(mcpSharedCacheRoot, "templates", "strict-spec-driven", "schemas", "registry.yaml")),
-    "mcp startup synchronizes the shared schema cache before connecting",
+    existsSync(path.join(mcpSharedCacheDir, "templates", "strict-spec-driven", "schemas", "registry.yaml")),
+    "mcp startup synchronizes the shared schema cache through the STRICT_SPEC_SCHEMA_CACHE_DIR override before connecting",
   );
 } finally {
-  rmSync(mcpSharedSchemaHome, { recursive: true, force: true });
+  process.env.STRICT_SPEC_SCHEMA_CACHE_DIR = savedSharedSchemaCacheDirEnv;
+  rmSync(mcpSharedSchemaTemp, { recursive: true, force: true });
 }
 
 const registrySchema = validationModule.loadBundledSchema<Record<string, unknown>>("registry.yaml");

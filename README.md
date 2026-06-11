@@ -167,6 +167,10 @@ node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show change-proposal
 node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/changes/proposal.yaml
 ```
 
+### Shared Schema Cache
+
+On startup, every `strict-spec-driven` CLI command (except `--help`/`-h`) and the MCP server export the bundled schema files to a shared on-disk cache at `~/.strict-spec-schemas/`, so agents can resolve an artifact's `schema_file` path against one well-known root without a per-project `templates` directory. The cache holds the schema files under `templates/strict-spec-driven/schemas/` plus a `manifest.yaml` recording the exported version; it is refreshed automatically when the bundled schemas change or a cached file is missing or modified, and it is always safe to delete — the next run recreates it. Set the `STRICT_SPEC_SCHEMA_CACHE_DIR` environment variable to relocate the cache root. If the cache cannot be written, the command continues with bundled schemas and prints a warning naming the resolved cache path.
+
 ## Harness
 
 A harness declaration at `.strict-spec-driven/harness.yaml` tells agents and humans how to plan, start, stop, inspect, and investigate mixed project environments. It covers local development and production observability, typed components, dependency order, readiness, logs, status, generated `scripts/harness-*` wrappers, lifecycle safety, evidence, replay, and secret-handling rules.

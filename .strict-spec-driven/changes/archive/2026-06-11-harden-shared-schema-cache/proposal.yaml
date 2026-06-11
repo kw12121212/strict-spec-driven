@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: harden-shared-schema-cache
+  status: proposed
+summary:
+  what:
+    - 'Harden the shared schema cache introduced by sync-shared-schema-cache: add a STRICT_SPEC_SCHEMA_CACHE_DIR environment-variable override for the cache root, make cache refresh atomic via temp-directory writes and renames, self-heal corrupted or hand-edited cached schema files by verifying content on the skip path, skip cache synchronization on the CLI help path, include the resolved cache path in the sync warning, isolate the test harness subprocess environment so tests never write the developer''s real home directory, and document the cache in README.md and README.zh.md.'
+  why:
+    - Code review of commit 8edd9f5 found that every test CLI invocation writes the developer's real ~/.strict-spec-schemas/, the HOME-based test isolation does not work on Windows, the rm-then-rewrite refresh lets concurrent readers observe missing schema files, corrupted cache files persist until the bundle version changes, the cache side effect is undocumented for users, and the warning message hides the actual cache location.
+scope:
+  in:
+    - STRICT_SPEC_SCHEMA_CACHE_DIR override in src/shared-schema-cache.ts; atomic refresh and content self-heal in src/shared-schema-cache.ts; CLI help-path skip in src/cli/entrypoint.ts; removal of the runMcpServer cacheOptions parameter in src/mcp/server.ts in favor of the env override; per-run temp HOME, USERPROFILE, and STRICT_SPEC_SCHEMA_CACHE_DIR defaults in test/support/harness.ts and test process env isolation; shared schema cache documentation in README.md and README.zh.md; regression tests for the new behaviors
+  out:
+    - Changing which schema assets are bundled or exported; changing the manifest schema or cache directory layout; changing skill guidance snippets about the cache root; adding a CLI flag to disable the cache; multi-process file locking
+unchanged_behavior:
+  - Cache root still defaults to ~/.strict-spec-schemas/ when the environment override is unset; CLI and MCP startup still synchronize the cache and continue with a stderr warning when synchronization fails; the manifest still records export_version, exported_files, and last_sync_time; unchanged caches with matching version and intact content are still skipped without rewrites; bundled schema export contents and ordering are unchanged

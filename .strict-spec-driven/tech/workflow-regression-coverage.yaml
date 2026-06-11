@@ -13,6 +13,7 @@ mapping:
     - src/archive.ts
     - .strict-spec-driven/config.yaml
     - scripts/coverage-gate.ts
+    - test/support/harness.ts
   enforcement:
     - test/suites/foundation-and-fixtures.ts
     - test/suites/roadmap-and-migration.ts
@@ -39,3 +40,9 @@ rules:
     rationale: Archive safety previously depended on human judgment about test sufficiency; a baseline-derived ratchet makes coverage loss a deterministic review-evidence failure while avoiding aspirational thresholds that invite exceptions or superficial tests.
     enforcement:
       method: test
+  test-helpers-isolate-developer-home:
+    strength: MUST
+    statement: Test helpers that spawn CLI subprocesses or exercise startup paths with home-directory side effects MUST redirect HOME, USERPROFILE, and recognized cache-root environment overrides to per-run temporary directories by default, with explicit per-call environment overrides still taking precedence, so the test suite never writes the developer's real home directory on any platform.
+    rationale: Startup-time home-directory side effects silently leak into developer machines through every spawned test subprocess unless isolation is the harness default rather than a per-test opt-in, and HOME-only isolation fails on Windows where os.homedir() reads USERPROFILE.
+    enforcement:
+      method: review

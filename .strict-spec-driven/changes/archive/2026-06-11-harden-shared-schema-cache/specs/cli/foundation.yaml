@@ -1,0 +1,58 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/shared-schema-cache.ts
+    - src/cli/entrypoint.ts
+    - src/mcp/server.ts
+    - README.md
+    - README.zh.md
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+    - test/support/harness.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    cli-shared-schema-cache-sync-on-startup:
+      strength: MUST
+      statement: The system MUST synchronize a shared schema cache during strict-spec-driven CLI command and MCP startup, resolving the cache root from the STRICT_SPEC_SCHEMA_CACHE_DIR environment variable when it is set and non-empty and from ~/.strict-spec-schemas/ otherwise; it MUST export the bundled strict schema assets plus a manifest when the cache is missing, records a different export version, or contains any cached schema file that is missing or differs from its bundled content; it MUST perform the refresh by building the new schema tree aside and swapping it into place with renames so concurrent readers never observe a partially written schemas directory; it MUST skip rewriting when the recorded version matches and all cached contents are intact; it MUST NOT synchronize the cache for CLI help requests; and when synchronization fails it MUST continue startup using bundled schemas and emit a warning that names the resolved cache path.
+      scenarios:
+        cli-startup-populates-shared-schema-cache:
+          - GIVEN: the bundled strict schema assets are available and the resolved cache root is missing
+          - WHEN: a strict-spec-driven CLI command starts
+          - THEN: the shared cache is created under <cache-root>/templates/strict-spec-driven/schemas/ together with a manifest describing the exported schema version and exported schema files
+        env-override-redirects-cache-root:
+          - GIVEN: STRICT_SPEC_SCHEMA_CACHE_DIR is set to a writable directory
+          - WHEN: a strict-spec-driven CLI or MCP process starts
+          - THEN: the shared schema cache and manifest are written under that directory
+          - AND: no ~/.strict-spec-schemas/ directory is created in the user's home directory
+        unchanged-version-skips-cache-rewrite:
+          - GIVEN: the resolved cache root already contains a manifest whose export version matches the current bundled schema export version and every cached schema file matches its bundled content
+          - WHEN: a strict-spec-driven CLI or MCP process starts
+          - THEN: the process skips rewriting unchanged shared schema files
+        changed-version-refreshes-shared-cache:
+          - GIVEN: the resolved cache root is missing, corrupted, or records a different export version than the current bundled schema export version
+          - WHEN: a strict-spec-driven CLI or MCP process starts
+          - THEN: the process rewrites the shared schema cache from the current bundled schema assets
+        corrupted-cache-content-self-heals:
+          - GIVEN: the manifest export version matches but a cached schema file was edited or corrupted on disk
+          - WHEN: a strict-spec-driven CLI or MCP process starts
+          - THEN: the process detects the content mismatch and rewrites the shared schema cache from the current bundled schema assets
+        refresh-swaps-directories-atomically:
+          - GIVEN: a cache refresh is required
+          - WHEN: the shared schema cache synchronizes
+          - THEN: the new schema tree is fully written to a temporary sibling directory before being swapped into place with renames
+          - AND: the manifest is replaced through a temp-file-plus-rename write after the schema tree swap
+        help-request-skips-cache-sync:
+          - GIVEN: the resolved cache root is missing
+          - WHEN: the strict-spec-driven CLI runs with --help or -h
+          - THEN: usage is printed without creating or writing the shared schema cache
+        cache-write-failure-warns-without-blocking-startup:
+          - GIVEN: the current process cannot write the resolved cache root
+          - WHEN: a strict-spec-driven CLI or MCP process starts
+          - THEN: the command or MCP startup continues using bundled schemas
+          - AND: an explicit warning reports that the shared schema cache could not be synchronized and names the resolved cache path
+  REMOVED: {}

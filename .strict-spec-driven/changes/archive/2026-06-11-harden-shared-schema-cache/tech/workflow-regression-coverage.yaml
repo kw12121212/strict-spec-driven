@@ -1,0 +1,19 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: workflow-regression-coverage
+mapping:
+  implementation:
+    - test/support/harness.ts
+  enforcement: []
+operations:
+  ADDED:
+    test-helpers-isolate-developer-home:
+      strength: MUST
+      statement: Test helpers that spawn CLI subprocesses or exercise startup paths with home-directory side effects MUST redirect HOME, USERPROFILE, and recognized cache-root environment overrides to per-run temporary directories by default, with explicit per-call environment overrides still taking precedence, so the test suite never writes the developer's real home directory on any platform.
+      rationale: Startup-time home-directory side effects silently leak into developer machines through every spawned test subprocess unless isolation is the harness default rather than a per-test opt-in, and HOME-only isolation fails on Windows where os.homedir() reads USERPROFILE.
+      enforcement:
+        method: review
+  MODIFIED: {}
+  REMOVED: {}

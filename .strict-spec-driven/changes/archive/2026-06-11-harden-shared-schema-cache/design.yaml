@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: harden-shared-schema-cache
+approach:
+  - Centralize cache-root resolution in src/shared-schema-cache.ts behind a STRICT_SPEC_SCHEMA_CACHE_DIR environment override so CLI, MCP, tests, and users share one redirection mechanism; replace the rm-then-rewrite refresh with build-aside-and-rename so readers never observe a partially written schemas directory; strengthen the skip-path check to verify cached file contents against the bundled assets; keep startup behavior otherwise identical and document the cache for users.
+decisions:
+  env-var-overrides-cache-root:
+    decision: Resolve the cache root from the STRICT_SPEC_SCHEMA_CACHE_DIR environment variable when set and non-empty, falling back to <homedir>/.strict-spec-schemas; remove both the runMcpServer cacheOptions parameter and the module-level homeDir option so the environment variable is the single redirection mechanism for production, tests, and users.
+    rationale: An environment variable works identically for CLI subprocesses, in-process MCP startup, test harnesses, and end users on every platform, which removes the Windows-only USERPROFILE gap of HOME-based isolation and all per-call-site injection seams; direct unit tests scope the variable with a save-and-restore helper instead of a dedicated option.
+  atomic-refresh-via-rename:
+    decision: Write refreshed schema assets into a unique temporary sibling directory, then swap it into place with renames (rename old aside, rename new in, delete old), and write the manifest through a temp-file-plus-rename as the final step.
+    rationale: rmSync followed by incremental writeFileSync leaves a window where concurrent CLI or MCP processes resolve schema_file paths against missing files; rename-based swaps shrink that window to a single atomic filesystem operation per directory without portability-hostile locking.
+  content-checked-skip-path:
+    decision: On the skip path, compare each cached schema file's content with the bundled asset content instead of only checking existence, and refresh when any file differs or cannot be read.
+    rationale: The schema set is small, so full content comparison is cheap and lets a corrupted, unreadable, or hand-edited cache self-heal immediately rather than persisting until the next bundle version change.
+  harness-isolates-subprocess-env:
+    decision: test/support/harness.ts points HOME, USERPROFILE, and STRICT_SPEC_SCHEMA_CACHE_DIR at a per-run temporary directory by default for spawned CLI processes and sets STRICT_SPEC_SCHEMA_CACHE_DIR for the in-process test environment, with explicit per-call env overrides still taking precedence.
+    rationale: Isolation must be the default rather than an opt-in so the dozens of existing cli() calls and any future tests can never write the developer's real home directory on any platform.
+  skip-sync-on-help:
+    decision: runCliEntrypoint synchronizes the shared schema cache only after the help request check, so --help and -h print usage without writing to the user's home directory.
+    rationale: Help output needs no schema assets, and a pure informational command should not create directories in the user's home as a side effect.
+alternatives: []
+risks: []

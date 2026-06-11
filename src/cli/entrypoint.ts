@@ -7,16 +7,16 @@ export type CliCommandHandler = (argv: string[]) => number | void;
 export type CliCommandTable = Record<string, CliCommandHandler>;
 
 export function runCliEntrypoint(argv: string[], commands: CliCommandTable): number {
-  try {
-    synchronizeSharedSchemaCache();
-  } catch (error) {
-    writeErr(`Warning: ${formatSharedSchemaCacheWarning(error)}\n`);
-  }
-
   const { subcommand, subcommandArgs } = normalizeCliInvocation(argv);
   if (isHelpRequest(argv)) {
     writeOut(formatCliUsage(commands));
     return 0;
+  }
+
+  try {
+    synchronizeSharedSchemaCache();
+  } catch (error) {
+    writeErr(`Warning: ${formatSharedSchemaCacheWarning(error)}\n`);
   }
   if (!subcommand || !(subcommand in commands)) {
     writeCliUsage(commands);

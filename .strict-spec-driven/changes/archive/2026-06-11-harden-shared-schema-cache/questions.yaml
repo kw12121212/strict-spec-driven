@@ -1,0 +1,17 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: harden-shared-schema-cache
+open: []
+resolved:
+  - id: scope-confirmed-by-review-acceptance
+    question: Should all six review findings from the 8edd9f5 code review be implemented in one change?
+    context: >-
+      The code review of the shared schema cache surfaced six findings of
+      mixed severity (test isolation, Windows isolation, atomic refresh,
+      content self-heal, documentation, small cleanups).
+    answer: >-
+      Yes. The operator explicitly accepted all review suggestions and asked
+      for them to be implemented together.
+    status: resolved

@@ -1,5 +1,5 @@
-import { createHash } from "crypto";
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "fs";
+import { createHash, randomBytes } from "crypto";
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { getEmbeddedTemplateKeys, readEmbeddedTemplate } from "./embedded-templates.js";
@@ -8,6 +8,8 @@ import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 const SHARED_SCHEMA_KEY_PREFIX = "strict-spec-driven/schemas/";
 const SHARED_SCHEMA_CACHE_DIRNAME = ".strict-spec-schemas";
 const SHARED_SCHEMA_MANIFEST_NAME = "manifest.yaml";
+const SHARED_SCHEMA_CACHE_DIR_ENV = "STRICT_SPEC_SCHEMA_CACHE_DIR";
+const SHARED_SCHEMA_EXPORT_SEGMENTS = ["templates", ...SHARED_SCHEMA_KEY_PREFIX.split("/").filter(Boolean)];
 
 type SharedSchemaCacheManifest = {
   export_version?: unknown;
@@ -23,12 +25,9 @@ export type SharedSchemaCacheSyncResult = {
   exportedFiles: string[];
 };
 
-export type SharedSchemaCacheSyncOptions = {
-  homeDir?: string;
-};
-
 type BundledSchemaAsset = {
   relativeCachePath: string;
+  schemaRelativePath: string;
   content: string;
 };
 
@@ -46,6 +45,7 @@ function getBundledSchemaAssets(): BundledSchemaAsset[] {
       }
       return {
         relativeCachePath: toPosix(path.join("templates", key)),
+        schemaRelativePath: key.slice(SHARED_SCHEMA_KEY_PREFIX.length),
         content,
       };
     })
@@ -80,6 +80,15 @@ function readManifest(manifestPath: string): SharedSchemaCacheManifest | undefin
   }
 }
 
+function cachedFileMatchesAsset(absolutePath: string, asset: BundledSchemaAsset): boolean {
+  if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return false;
+  try {
+    return readFileSync(absolutePath, "utf8") === asset.content;
+  } catch {
+    return false;
+  }
+}
+
 function cacheNeedsRefresh(
   rootDir: string,
   manifestPath: string,
@@ -97,14 +106,23 @@ function cacheNeedsRefresh(
     return true;
   }
 
-  return assets.some((asset) => {
-    const absolutePath = path.join(rootDir, asset.relativeCachePath);
-    return !existsSync(absolutePath) || !statSync(absolutePath).isFile();
-  });
+  return assets.some((asset) => !cachedFileMatchesAsset(path.join(rootDir, asset.relativeCachePath), asset));
 }
 
-export function getSharedSchemaCacheRoot(homeDir = os.homedir()): string {
-  return path.join(homeDir, SHARED_SCHEMA_CACHE_DIRNAME);
+function getExportedSchemasDir(rootDir: string): string {
+  return path.join(rootDir, ...SHARED_SCHEMA_EXPORT_SEGMENTS);
+}
+
+function uniqueSiblingPath(basePath: string, label: string): string {
+  return `${basePath}.${label}-${process.pid}-${randomBytes(6).toString("hex")}`;
+}
+
+export function getSharedSchemaCacheRoot(): string {
+  const overrideDir = process.env[SHARED_SCHEMA_CACHE_DIR_ENV];
+  if (overrideDir !== undefined && overrideDir.trim() !== "") {
+    return path.resolve(overrideDir);
+  }
+  return path.join(os.homedir(), SHARED_SCHEMA_CACHE_DIRNAME);
 }
 
 export function getSharedSchemaManifestPath(rootDir = getSharedSchemaCacheRoot()): string {
@@ -119,8 +137,48 @@ export function getBundledSharedSchemaCacheFiles(): string[] {
   return getBundledSchemaAssets().map((asset) => asset.relativeCachePath);
 }
 
-export function synchronizeSharedSchemaCache(options: SharedSchemaCacheSyncOptions = {}): SharedSchemaCacheSyncResult {
-  const rootDir = getSharedSchemaCacheRoot(options.homeDir);
+function swapInRefreshedSchemasDir(rootDir: string, assets: BundledSchemaAsset[]): void {
+  const schemasDir = getExportedSchemasDir(rootDir);
+  const stagingDir = uniqueSiblingPath(schemasDir, "staging");
+  try {
+    for (const asset of assets) {
+      const absolutePath = path.join(stagingDir, asset.schemaRelativePath);
+      mkdirSync(path.dirname(absolutePath), { recursive: true });
+      writeFileSync(absolutePath, asset.content, "utf8");
+    }
+
+    mkdirSync(path.dirname(schemasDir), { recursive: true });
+    const retiredDir = uniqueSiblingPath(schemasDir, "retired");
+    if (existsSync(schemasDir)) {
+      renameSync(schemasDir, retiredDir);
+    }
+    renameSync(stagingDir, schemasDir);
+    rmSync(retiredDir, { recursive: true, force: true });
+  } finally {
+    rmSync(stagingDir, { recursive: true, force: true });
+  }
+}
+
+function writeManifestAtomically(manifestPath: string, exportVersion: string, exportedFiles: string[]): void {
+  const manifestTempPath = uniqueSiblingPath(manifestPath, "tmp");
+  try {
+    writeFileSync(
+      manifestTempPath,
+      stringifyYamlDocument({
+        export_version: exportVersion,
+        exported_files: exportedFiles,
+        last_sync_time: new Date().toISOString(),
+      }),
+      "utf8",
+    );
+    renameSync(manifestTempPath, manifestPath);
+  } finally {
+    rmSync(manifestTempPath, { force: true });
+  }
+}
+
+export function synchronizeSharedSchemaCache(): SharedSchemaCacheSyncResult {
+  const rootDir = getSharedSchemaCacheRoot();
   const manifestPath = getSharedSchemaManifestPath(rootDir);
   const assets = getBundledSchemaAssets();
   const exportVersion = computeExportVersion(assets);
@@ -137,23 +195,8 @@ export function synchronizeSharedSchemaCache(options: SharedSchemaCacheSyncOptio
   }
 
   mkdirSync(rootDir, { recursive: true });
-  rmSync(path.join(rootDir, "templates", "strict-spec-driven", "schemas"), { recursive: true, force: true });
-
-  for (const asset of assets) {
-    const absolutePath = path.join(rootDir, asset.relativeCachePath);
-    mkdirSync(path.dirname(absolutePath), { recursive: true });
-    writeFileSync(absolutePath, asset.content, "utf8");
-  }
-
-  writeFileSync(
-    manifestPath,
-    stringifyYamlDocument({
-      export_version: exportVersion,
-      exported_files: exportedFiles,
-      last_sync_time: new Date().toISOString(),
-    }),
-    "utf8",
-  );
+  swapInRefreshedSchemasDir(rootDir, assets);
+  writeManifestAtomically(manifestPath, exportVersion, exportedFiles);
 
   return {
     action: "synced",
@@ -164,7 +207,7 @@ export function synchronizeSharedSchemaCache(options: SharedSchemaCacheSyncOptio
   };
 }
 
-export function formatSharedSchemaCacheWarning(error: unknown): string {
+export function formatSharedSchemaCacheWarning(error: unknown, rootDir = getSharedSchemaCacheRoot()): string {
   const message = error instanceof Error ? error.message : String(error);
-  return `shared schema cache at '~/.strict-spec-schemas/' could not be synchronized: ${message}`;
+  return `shared schema cache at '${rootDir}' could not be synchronized: ${message}`;
 }

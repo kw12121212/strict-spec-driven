@@ -12,6 +12,17 @@ const CLI = path.join(ROOT, "dist", "strict-spec-cli.js");
 const VALIDATION_FIXTURE_ROOT = path.join(ROOT, "test", "fixtures", "validation");
 const PROJECT_FIXTURE_ROOT = path.join(ROOT, "test", "fixtures", "projects");
 
+// Startup-time home-directory side effects (the shared schema cache) must
+// never leak into the developer's real home directory, so every spawned CLI
+// subprocess and the in-process test environment default to a per-run
+// isolated home and cache root. Explicit per-call env overrides still win.
+export const TEST_HOME_ROOT = mkdtempSync(path.join(os.tmpdir(), "strict-test-home-"));
+export const TEST_SHARED_SCHEMA_CACHE_DIR = path.join(TEST_HOME_ROOT, ".strict-spec-schemas");
+process.env.STRICT_SPEC_SCHEMA_CACHE_DIR = TEST_SHARED_SCHEMA_CACHE_DIR;
+process.on("exit", () => {
+  rmSync(TEST_HOME_ROOT, { recursive: true, force: true });
+});
+
 export type YamlModule = {
   getYamlParseDetails(error: unknown): {
     errorType: string;
@@ -242,7 +253,13 @@ export function runCommand(
   const result = spawnSync(command, args, {
     encoding: "utf8",
     cwd: options?.cwd,
-    env: options?.env,
+    env: {
+      ...process.env,
+      HOME: TEST_HOME_ROOT,
+      USERPROFILE: TEST_HOME_ROOT,
+      STRICT_SPEC_SCHEMA_CACHE_DIR: TEST_SHARED_SCHEMA_CACHE_DIR,
+      ...options?.env,
+    },
   });
   return {
     status: typeof result.status === "number" ? result.status : 1,

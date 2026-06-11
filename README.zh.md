@@ -150,6 +150,10 @@ node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show change-proposal
 node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/changes/proposal.yaml
 ```
 
+### 共享模式缓存
+
+每个 `strict-spec-driven` CLI 命令（`--help`/`-h` 除外）和 MCP 服务器在启动时会将捆绑的 schema 文件导出到共享的磁盘缓存 `~/.strict-spec-schemas/`，使 Agent 无需每个项目都带 `templates` 目录即可将制品的 `schema_file` 路径解析到一个固定的根目录。缓存包含 `templates/strict-spec-driven/schemas/` 下的 schema 文件和记录导出版本的 `manifest.yaml`；当捆绑 schema 变化或缓存文件缺失、被修改时会自动刷新，随时可以安全删除——下次运行会重建。设置 `STRICT_SPEC_SCHEMA_CACHE_DIR` 环境变量可重定向缓存根目录。若缓存不可写，命令会继续使用捆绑 schema 并打印包含解析后缓存路径的警告。
+
 ## Harness
 
 位于 `.strict-spec-driven/harness.yaml` 的 harness 声明文件告诉 Agent 和人类如何规划、启动、停止、检查和调查混合的项目环境。它涵盖了本地开发和生产环境的可观测性、类型化组件、依赖顺序、就绪性、日志、状态、生成的 `scripts/harness-*` 包装脚本、生命周期安全、证据、重放以及敏感信息处理规则。

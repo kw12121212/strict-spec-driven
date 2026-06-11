@@ -1,0 +1,41 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: harden-shared-schema-cache
+sections:
+  Implementation:
+    add-env-override-and-cache-hardening:
+      text: In src/shared-schema-cache.ts, resolve the cache root from the STRICT_SPEC_SCHEMA_CACHE_DIR environment variable when set and non-empty (falling back to <homedir>/.strict-spec-schemas), derive the exported schemas directory path from SHARED_SCHEMA_KEY_PREFIX instead of hardcoding it, verify cached file contents on the skip path so corrupted or hand-edited files trigger a refresh, replace the rm-then-rewrite refresh with build-aside-and-rename swaps including a temp-file-plus-rename manifest write, and include the resolved cache path in formatSharedSchemaCacheWarning.
+      status: complete
+    wire-entrypoints-to-env-override:
+      text: In src/cli/entrypoint.ts, run the shared schema cache sync only after the help-request check so --help and -h never write to the home directory; in src/mcp/server.ts, remove the runMcpServer cacheOptions parameter and rely on the STRICT_SPEC_SCHEMA_CACHE_DIR override.
+      status: complete
+    isolate-test-harness-environment:
+      text: In test/support/harness.ts, default HOME, USERPROFILE, and STRICT_SPEC_SCHEMA_CACHE_DIR to a per-run temporary directory for spawned CLI subprocesses (explicit per-call env overrides still win) and set STRICT_SPEC_SCHEMA_CACHE_DIR for the in-process test environment so direct module calls never touch the developer's real home directory.
+      status: complete
+    update-cache-regression-tests:
+      text: Update test/suites/foundation-and-fixtures.ts to cover the STRICT_SPEC_SCHEMA_CACHE_DIR override for CLI and MCP startup, the content self-heal refresh of a corrupted cached schema file, the help-path skip of cache synchronization, the resolved-path warning message, and the removal of the runMcpServer cacheOptions parameter.
+      status: complete
+    document-shared-schema-cache:
+      text: 'Document the shared schema cache in README.md and README.zh.md: location, purpose, that it is safe to delete, and the STRICT_SPEC_SCHEMA_CACHE_DIR override.'
+      status: complete
+    rebuild-dist:
+      text: Rebuild compiled output with bun run build after TypeScript source edits.
+      status: complete
+  Testing:
+    run-lint:
+      text: Type-check the TypeScript sources.
+      status: complete
+      command: bun run lint
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope and unchanged behavior.
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-project-regression
