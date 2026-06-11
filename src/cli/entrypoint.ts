@@ -1,11 +1,18 @@
 import { isHelpRequest, normalizeCliInvocation } from "./argv.js";
-import { writeOut } from "./output.js";
+import { writeErr, writeOut } from "./output.js";
+import { formatSharedSchemaCacheWarning, synchronizeSharedSchemaCache } from "../shared-schema-cache.js";
 import { formatCliUsage, writeCliUsage } from "./usage.js";
 
 export type CliCommandHandler = (argv: string[]) => number | void;
 export type CliCommandTable = Record<string, CliCommandHandler>;
 
 export function runCliEntrypoint(argv: string[], commands: CliCommandTable): number {
+  try {
+    synchronizeSharedSchemaCache();
+  } catch (error) {
+    writeErr(`Warning: ${formatSharedSchemaCacheWarning(error)}\n`);
+  }
+
   const { subcommand, subcommandArgs } = normalizeCliInvocation(argv);
   if (isHelpRequest(argv)) {
     writeOut(formatCliUsage(commands));

@@ -174,12 +174,12 @@ node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
 /strict-roadmap-propose add-session-model
 ```
 
-### `/strict-roadmap-milestone`
+### `/strict-roadmap-review`
 
-完善单个里程碑的目标、范围、完成标准、依赖、风险、备注和 `details`，不重构整个路线图。
+审查单个未完成里程碑的目标、范围、完成标准、依赖、风险和计划变更 `details`，直接修复里程碑与计划变更 YAML，然后重新运行 `roadmap-sync`。
 
 ```text
-/strict-roadmap-milestone 0001-user-auth
+/strict-roadmap-review 0001-user-auth
 ```
 
 ### `/strict-roadmap-plan`

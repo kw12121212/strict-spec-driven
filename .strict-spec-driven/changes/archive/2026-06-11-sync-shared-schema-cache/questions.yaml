@@ -1,0 +1,32 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: sync-shared-schema-cache
+open: []
+resolved:
+  - id: shared-cache-directory-name
+    question: What shared directory name should hold exported schemas?
+    context: The user proposed a home-directory cache but initially used two spellings, and the path becomes a documented contract for AI and skills.
+    answer: Use ~/.strict-spec-schemas/ as the shared export root.
+    status: resolved
+  - id: startup-sync-trigger
+    question: When should the shared schema cache synchronize?
+    context: Possible options were syncing on every CLI/MCP startup or only inside schema-related commands.
+    answer: Run a startup-time synchronization check for both CLI and MCP entrypoints.
+    status: resolved
+  - id: cache-layout-policy
+    question: Should the shared cache keep multiple versions or one global copy?
+    context: Versioned directories avoid overwrite conflicts, while a single global copy is simpler for AI discovery.
+    answer: Keep a single global shared cache and overwrite it when the exported schema version changes.
+    status: resolved
+  - id: sync-cost-control
+    question: How should repeated startup cost be controlled?
+    context: Always rewriting the cache on startup would add avoidable overhead after the shared schema files already match the current bundled assets.
+    answer: Use a manifest version check so unchanged versions skip rewriting the shared cache.
+    status: resolved
+  - id: cache-write-failure-behavior
+    question: What should happen if ~/.strict-spec-schemas/ cannot be written?
+    context: A hard failure would block all CLI and MCP use, while a warning preserves the existing workflow behavior but weakens the shared-cache guarantee for that run.
+    answer: Continue the command or MCP startup, but emit a clear warning that the shared schema cache could not be synchronized.
+    status: resolved

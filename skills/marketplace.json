@@ -2,10 +2,10 @@
   "schema": "strict-spec-driven/skill-marketplace/v1",
   "namespace": "strict-spec-driven",
   "skills": [
-    { "name": "strict-roadmap-milestone", "family": "strict-roadmap" },
     { "name": "strict-roadmap-plan", "family": "strict-roadmap" },
     { "name": "strict-roadmap-propose", "family": "strict-roadmap" },
     { "name": "strict-roadmap-recommend", "family": "strict-roadmap" },
+    { "name": "strict-roadmap-review", "family": "strict-roadmap" },
     { "name": "strict-roadmap-sync", "family": "strict-roadmap" },
     { "name": "strict-spec-apply", "family": "strict-spec" },
     { "name": "strict-spec-archive", "family": "strict-spec" },

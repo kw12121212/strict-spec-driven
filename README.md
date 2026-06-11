@@ -96,7 +96,7 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 |---|---|
 | `/strict-roadmap-recommend` | Recommend the next planned change from the roadmap |
 | `/strict-roadmap-propose` | Turn a roadmap planned change into a change scaffold |
-| `/strict-roadmap-milestone` | Refine a roadmap milestone |
+| `/strict-roadmap-review` | Review one incomplete roadmap milestone and apply fixes |
 | `/strict-roadmap-plan` | Create or restructure the roadmap |
 | `/strict-roadmap-sync` | Reconcile roadmap milestone and change state |
 

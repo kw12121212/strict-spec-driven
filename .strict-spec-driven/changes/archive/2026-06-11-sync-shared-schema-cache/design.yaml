@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: sync-shared-schema-cache
+approach:
+  - Keep repository-bundled schemas in templates/strict-spec-driven/schemas/ as the source of truth, add a startup-time shared-cache synchronizer that exports those bundled schemas into ~/.strict-spec-schemas/, and use a manifest version check so CLI and MCP entrypoints only rewrite the shared cache when the bundled schema export version changes or the cache is missing/corrupt.
+  - Preserve schema_file discoverability by mirroring bundled schema paths under ~/.strict-spec-schemas/templates/strict-spec-driven/schemas/, and update strict skill guidance plus skill-packaging expectations so agents know they can resolve schema_file values against that shared root instead of depending on per-project template directories.
+decisions:
+  shared-cache-root:
+    decision: Use ~/.strict-spec-schemas/ as the single shared schema cache root for strict-spec-driven schema exports.
+    rationale: The user wants one public location that AI can read across repositories without duplicating schema files into each project, and the correctly spelled directory name should become the stable documented contract.
+  startup-sync-is-version-gated:
+    decision: Run shared schema synchronization during CLI and MCP startup, but skip file rewrites when the cache manifest reports the same bundled schema export version as the current process.
+    rationale: Startup synchronization keeps the public cache fresh automatically, while the manifest gate addresses the user's performance concern about rewriting files on every invocation.
+  preserve-schema-file-relative-layout:
+    decision: Export schemas under ~/.strict-spec-schemas/templates/strict-spec-driven/schemas/ so schema_file values from strict YAML artifacts map directly into the shared cache.
+    rationale: Preserving the repository-relative schema path semantics lets agents resolve a YAML artifact's schema_file deterministically by anchoring it at the shared cache root, which is simpler than inventing a second naming scheme.
+  single-global-copy-with-manifest:
+    decision: Keep only one shared schema copy and record its export metadata in a manifest rather than storing versioned cache directories.
+    rationale: The user explicitly rejected versioned multi-copy caches; a single copy plus manifest keeps the layout simple while still exposing the currently exported version and sync timestamp for debugging.
+  warn-instead-of-failing-on-cache-write-errors:
+    decision: If startup cannot write ~/.strict-spec-schemas/, continue the CLI or MCP command but emit a clear warning that the shared schema cache is stale or unavailable.
+    rationale: The bundled schemas inside the repository and dist output remain authoritative, so cache export failure should not make the whole tool unusable; the failure still needs explicit visibility because the public AI-facing cache contract was not met.
+alternatives: []
+risks: []

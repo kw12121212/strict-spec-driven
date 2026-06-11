@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-roadmap-milestone-review-skill
+  status: proposed
+summary:
+  what:
+    - 'Add a strict-roadmap-review agent skill that reviews one incomplete strict roadmap milestone and directly applies fixes: it assesses definition quality (goal clarity, verifiable done_criteria, scope/dependency/risk coherence, planned-change coverage) and delivery state (derived planned-change status from roadmap-status and archived change evidence), then edits the milestone and its planned-change YAML files to make goals, done_criteria, and planned-change details concrete and executable, runs roadmap-sync afterward, and summarizes findings and applied fixes in conversation. The change also retires the strict-roadmap-milestone skill, which strict-roadmap-review supersedes: its package directory, marketplace entry, validate-skills expectations, documentation references, and stale spec mapping path are all removed or redirected.'
+  why:
+    - The strict-roadmap family has no skill that both evaluates an unfinished milestone and makes its definition concrete enough to execute; strict-roadmap-milestone only offered field-level refinement without a review contract, so keeping both skills would split milestone editing across two overlapping entry points.
+scope:
+  in:
+    - New skills/strict-roadmap-review/ package (SKILL.md plus scripts symlink) scoped to incomplete milestones with direct-fix and detail-elaboration guidance; marketplace.json registration in the strict-roadmap family; ROADMAP_STRICT_SKILL_EXPECTATIONS changes in src/skills/model.ts (add strict-roadmap-review entry, remove strict-roadmap-milestone entry); deletion of skills/strict-roadmap-milestone/; replacement of strict-roadmap-milestone references with strict-roadmap-review in README.md, README.zh.md, ROADMAP_GUIDE.md, ROADMAP_GUIDE.zh.md, ROADMAP_QUICKSTART.md, ROADMAP_QUICKSTART.zh.md; contracts-yaml-artifacts main-spec mapping update replacing the retired skill path; cli-foundation delta spec for the new validate-skills expectations; tests covering passing and failing packaging validation
+  out:
+    - No new CLI command (the skill reuses roadmap-status, roadmap-overview, and roadmap-sync); no persisted YAML review-report artifact or schema; no changes to roadmap-sync reconciliation logic or roadmap schemas; no review support for milestones already complete; no fabrication of completion status during review fixes
+unchanged_behavior:
+  - Existing roadmap CLI commands (roadmap-status, roadmap-overview, roadmap-sync, roadmap-recommend) keep their current contracts; strict-roadmap-plan, strict-roadmap-propose, strict-roadmap-recommend, and strict-roadmap-sync skills keep their current behavior; roadmap YAML artifact schemas and the packaging layout of all remaining skills are untouched

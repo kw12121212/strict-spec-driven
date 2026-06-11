@@ -1,0 +1,14 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-roadmap-review/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED: {}
+  MODIFIED: {}
+  REMOVED: {}

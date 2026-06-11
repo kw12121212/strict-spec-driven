@@ -5,6 +5,11 @@ import { MCP_INVENTORY, type McpCapabilityInventory } from "./inventory.js";
 import { registerStrictPrompts } from "./prompts.js";
 import { registerStrictResources } from "./resources.js";
 import { registerMutatingTools, registerReadOnlyTools, type StrictCliCommandRunner } from "./tools.js";
+import {
+  formatSharedSchemaCacheWarning,
+  synchronizeSharedSchemaCache,
+  type SharedSchemaCacheSyncOptions,
+} from "../shared-schema-cache.js";
 
 export class McpStartupError extends Error {
   readonly code: string;
@@ -84,8 +89,17 @@ export function formatMcpStartupError(error: unknown): string {
   return JSON.stringify({ valid: false, code: "startup_error", message });
 }
 
-export async function runMcpServer(argv: string[]): Promise<void> {
+export async function runMcpServer(
+  argv: string[],
+  connect: (context: StrictMcpServerContext) => Promise<void> = connectStrictMcpServer,
+  cacheOptions: SharedSchemaCacheSyncOptions = {},
+): Promise<void> {
   const args = parseMcpServerArgs(argv);
+  try {
+    synchronizeSharedSchemaCache(cacheOptions);
+  } catch (error) {
+    process.stderr.write(`Warning: ${formatSharedSchemaCacheWarning(error)}\n`);
+  }
   const context = createStrictMcpServer(args.projectRoot);
-  await connectStrictMcpServer(context);
+  await connect(context);
 }

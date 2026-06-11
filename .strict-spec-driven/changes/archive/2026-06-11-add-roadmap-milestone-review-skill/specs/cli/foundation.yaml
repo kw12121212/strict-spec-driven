@@ -1,0 +1,32 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - skills/strict-roadmap-review/SKILL.md
+    - skills/marketplace.json
+    - src/skills/model.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-roadmap-review-skill-packaging-validation:
+      strength: MUST
+      statement: The system MUST validate the strict-roadmap-review skill package through validate-skills, enforcing its marketplace registration, scripts symlink, required roadmap-status and roadmap-sync command references, required Steps and Rules headings, and required guidance snippets covering incomplete-milestone scope, direct fix application, and detail elaboration, and MUST report deterministic path-specific diagnostics when any expectation is broken; validate-skills MUST NOT require a strict-roadmap-milestone package after its retirement.
+      scenarios:
+        validate-skills-accepts-complete-roadmap-review-package:
+          - GIVEN: the strict-roadmap-review package is complete with marketplace registration, an intact scripts symlink, and the required command references, headings, and incomplete-scope, direct-fix, and detail-elaboration guidance snippets
+          - WHEN: strict-spec-driven validate-skills runs
+          - THEN: the command reports the strict-roadmap-review package as valid with no diagnostics
+        validate-skills-rejects-broken-roadmap-review-package:
+          - GIVEN: the strict-roadmap-review package is missing required guidance snippets, required command references, or its scripts symlink
+          - WHEN: strict-spec-driven validate-skills runs
+          - THEN: the command exits non-zero with deterministic, path-specific diagnostics identifying the strict-roadmap-review package failures
+        validate-skills-does-not-expect-retired-milestone-skill:
+          - GIVEN: the strict-roadmap-milestone package has been deleted from the repository
+          - WHEN: strict-spec-driven validate-skills runs
+          - THEN: the command reports no diagnostics about a missing strict-roadmap-milestone package
+  MODIFIED: {}
+  REMOVED: {}

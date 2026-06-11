@@ -180,7 +180,7 @@ node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
 | 命令 | 用途 |
 |---|---|
 | `/strict-roadmap-plan` | 创建或重构路线图 |
-| `/strict-roadmap-milestone` | 完善单个里程碑的细节 |
+| `/strict-roadmap-review` | 审查单个未完成里程碑并直接修复 |
 | `/strict-roadmap-recommend` | 获取下一个变更的推荐 |
 | `/strict-roadmap-propose` | 直接搭建指定的计划变更 |
 | `/strict-roadmap-sync` | 将路线图状态与工作流同步 |

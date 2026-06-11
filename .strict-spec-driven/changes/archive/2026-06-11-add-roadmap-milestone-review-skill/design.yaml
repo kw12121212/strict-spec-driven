@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-roadmap-milestone-review-skill
+approach:
+  - 'Implement the milestone review as a prompt-driven agent skill that both audits and repairs one incomplete milestone: deterministic facts come from existing CLI commands (roadmap-status for declared/derived state and planned-change paths, roadmap-overview for context), review judgment and direct YAML edits live in the SKILL.md prompt, and every editing session ends with roadmap-sync so canonical roadmap state stays valid. Package the skill like the other strict-roadmap skills (SKILL.md plus scripts symlink, marketplace entry) and enforce its content contract through ROADMAP_STRICT_SKILL_EXPECTATIONS. Retire strict-roadmap-milestone in the same change: delete its package, remove its marketplace and expectations entries, redirect documentation references to strict-roadmap-review, and replace its stale path in the contracts-yaml-artifacts main-spec mapping, since archive-time delta mapping merges are union-only and cannot remove paths.'
+decisions:
+  review-applies-fixes:
+    decision: The review skill directly edits the target milestone and its planned-change YAML files to fix definition-quality findings and make goals, done_criteria, and planned-change details concrete and executable, then runs roadmap-sync; it reports findings and applied fixes in conversation rather than producing a report-only result.
+    rationale: The user explicitly wants review to produce applied, detail-level improvements rather than a report; running roadmap-sync afterward keeps derived state canonical, and conversation output still documents what changed.
+  incomplete-milestones-only:
+    decision: The skill only reviews milestones whose status is not complete; when the requested milestone is already complete it stops and reports that the milestone is out of review scope instead of editing it.
+    rationale: Completed milestones are historical record reconciled against archived changes; editing them would rewrite delivered scope, so the user limited review to unfinished milestones.
+  no-fabricated-completion:
+    decision: Review fixes improve definitions and details but never mark planned changes or milestones complete by hand; completion state continues to flow only from roadmap-sync reconciliation against active and archived strict changes.
+    rationale: Derived status is owned by the deterministic sync contract; letting a review edit completion fields would create state that conflicts with the strict workflow.
+  retire-milestone-skill:
+    decision: 'strict-roadmap-milestone is deleted in this change: its package directory, marketplace entry, and ROADMAP_STRICT_SKILL_EXPECTATIONS entry are removed, documentation references point to strict-roadmap-review, and the stale SKILL.md path is replaced in the contracts-yaml-artifacts main-spec mapping by direct mapping edit because archive-time mapping merges are union-only.'
+    rationale: strict-roadmap-review supersedes the old refinement skill; keeping both would leave two overlapping milestone-editing entry points and a permanently stale mapping path.
+  skill-only-no-new-cli:
+    decision: The review skill reuses roadmap-status, roadmap-overview, and roadmap-sync instead of adding a roadmap-review CLI command.
+    rationale: Existing commands already expose declared status, derived status, planned changes, and source paths deterministically; per the scripts-own-mechanics standard the remaining judgment belongs in the skill prompt.
+  validate-skills-contract:
+    decision: The new skill's required commands (roadmap-status, roadmap-sync), headings, incomplete-milestone scope guidance, and detail-elaboration guidance are registered in ROADMAP_STRICT_SKILL_EXPECTATIONS so validate-skills enforces them deterministically.
+    rationale: This matches how every strict-roadmap skill is kept honest and gives the change verifiable observable behavior to spec in cli-foundation.
+alternatives: []
+risks: []

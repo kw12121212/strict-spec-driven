@@ -1,0 +1,52 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/entrypoint.ts
+    - src/mcp/server.ts
+    - src/shared-schema-cache.ts
+    - src/skills/model.ts
+    - skills/strict-spec-apply/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-spec-modify/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-shared-schema-cache-sync-on-startup:
+      strength: MUST
+      statement: The system MUST check a shared schema cache under ~/.strict-spec-schemas/ during strict-spec-driven CLI and MCP startup, export the bundled strict schema assets plus a manifest when the cache is missing or its recorded export version differs from the current bundled export version, and skip rewriting the cache when the recorded version already matches.
+      scenarios:
+        cli-startup-populates-shared-schema-cache:
+          - GIVEN: the bundled strict schema assets are available and ~/.strict-spec-schemas/ is missing
+          - WHEN: a strict-spec-driven CLI command starts
+          - THEN: the shared cache is created under ~/.strict-spec-schemas/templates/strict-spec-driven/schemas/
+          - AND: a manifest describing the exported schema version and exported schema files is written under ~/.strict-spec-schemas/
+        unchanged-version-skips-cache-rewrite:
+          - GIVEN: ~/.strict-spec-schemas/ already contains a manifest whose export version matches the current bundled schema export version
+          - WHEN: a strict-spec-driven CLI or MCP process starts
+          - THEN: the process skips rewriting unchanged shared schema files
+        changed-version-refreshes-shared-cache:
+          - GIVEN: ~/.strict-spec-schemas/ is missing, corrupted, or records a different export version than the current bundled schema export version
+          - WHEN: a strict-spec-driven CLI or MCP process starts
+          - THEN: the process rewrites the shared schema cache from the current bundled schema assets
+        cache-write-failure-warns-without-blocking-startup:
+          - GIVEN: the current process cannot write ~/.strict-spec-schemas/
+          - WHEN: a strict-spec-driven CLI or MCP process starts
+          - THEN: the command or MCP startup continues using bundled schemas
+          - AND: an explicit warning reports that the shared schema cache could not be synchronized
+    cli-skills-remind-shared-schema-cache-location:
+      strength: MUST
+      statement: Core strict skills that guide agents to author or modify strict YAML MUST mention ~/.strict-spec-schemas/ as the shared schema cache root and explain that an artifact's schema_file can be resolved against that root when installed skills do not carry a templates directory.
+      scenarios:
+        validate-skills-requires-shared-cache-guidance:
+          - GIVEN: a core strict skill that instructs agents to create or edit strict YAML artifacts
+          - WHEN: strict skill packaging validation inspects the skill prompt
+          - THEN: validation requires the prompt to mention ~/.strict-spec-schemas/ and schema_file-based schema lookup guidance alongside the existing schema-show reminder
+  MODIFIED: {}
+  REMOVED: {}

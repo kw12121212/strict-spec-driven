@@ -36,6 +36,7 @@ mapping:
     - src/propose-generation.ts
     - src/scaffold.ts
     - src/embedded-templates.ts
+    - src/shared-schema-cache.ts
     - src/validation.ts
     - src/workflow-state.ts
     - src/yaml.ts
@@ -1798,3 +1799,49 @@ requirements:
         - GIVEN: the review tech-convention reflection finds nothing to capture or the operator declines to capture it
         - WHEN: review concludes
         - THEN: the reflection does not block strict verification or archive recommendation
+  cli-roadmap-review-skill-packaging-validation:
+    strength: MUST
+    statement: The system MUST validate the strict-roadmap-review skill package through validate-skills, enforcing its marketplace registration, scripts symlink, required roadmap-status and roadmap-sync command references, required Steps and Rules headings, and required guidance snippets covering incomplete-milestone scope, direct fix application, and detail elaboration, and MUST report deterministic path-specific diagnostics when any expectation is broken; validate-skills MUST NOT require a strict-roadmap-milestone package after its retirement.
+    scenarios:
+      validate-skills-accepts-complete-roadmap-review-package:
+        - GIVEN: the strict-roadmap-review package is complete with marketplace registration, an intact scripts symlink, and the required command references, headings, and incomplete-scope, direct-fix, and detail-elaboration guidance snippets
+        - WHEN: strict-spec-driven validate-skills runs
+        - THEN: the command reports the strict-roadmap-review package as valid with no diagnostics
+      validate-skills-rejects-broken-roadmap-review-package:
+        - GIVEN: the strict-roadmap-review package is missing required guidance snippets, required command references, or its scripts symlink
+        - WHEN: strict-spec-driven validate-skills runs
+        - THEN: the command exits non-zero with deterministic, path-specific diagnostics identifying the strict-roadmap-review package failures
+      validate-skills-does-not-expect-retired-milestone-skill:
+        - GIVEN: the strict-roadmap-milestone package has been deleted from the repository
+        - WHEN: strict-spec-driven validate-skills runs
+        - THEN: the command reports no diagnostics about a missing strict-roadmap-milestone package
+  cli-shared-schema-cache-sync-on-startup:
+    strength: MUST
+    statement: The system MUST check a shared schema cache under ~/.strict-spec-schemas/ during strict-spec-driven CLI and MCP startup, export the bundled strict schema assets plus a manifest when the cache is missing or its recorded export version differs from the current bundled export version, and skip rewriting the cache when the recorded version already matches.
+    scenarios:
+      cli-startup-populates-shared-schema-cache:
+        - GIVEN: the bundled strict schema assets are available and ~/.strict-spec-schemas/ is missing
+        - WHEN: a strict-spec-driven CLI command starts
+        - THEN: the shared cache is created under ~/.strict-spec-schemas/templates/strict-spec-driven/schemas/
+        - AND: a manifest describing the exported schema version and exported schema files is written under ~/.strict-spec-schemas/
+      unchanged-version-skips-cache-rewrite:
+        - GIVEN: ~/.strict-spec-schemas/ already contains a manifest whose export version matches the current bundled schema export version
+        - WHEN: a strict-spec-driven CLI or MCP process starts
+        - THEN: the process skips rewriting unchanged shared schema files
+      changed-version-refreshes-shared-cache:
+        - GIVEN: ~/.strict-spec-schemas/ is missing, corrupted, or records a different export version than the current bundled schema export version
+        - WHEN: a strict-spec-driven CLI or MCP process starts
+        - THEN: the process rewrites the shared schema cache from the current bundled schema assets
+      cache-write-failure-warns-without-blocking-startup:
+        - GIVEN: the current process cannot write ~/.strict-spec-schemas/
+        - WHEN: a strict-spec-driven CLI or MCP process starts
+        - THEN: the command or MCP startup continues using bundled schemas
+        - AND: an explicit warning reports that the shared schema cache could not be synchronized
+  cli-skills-remind-shared-schema-cache-location:
+    strength: MUST
+    statement: Core strict skills that guide agents to author or modify strict YAML MUST mention ~/.strict-spec-schemas/ as the shared schema cache root and explain that an artifact's schema_file can be resolved against that root when installed skills do not carry a templates directory.
+    scenarios:
+      validate-skills-requires-shared-cache-guidance:
+        - GIVEN: a core strict skill that instructs agents to create or edit strict YAML artifacts
+        - WHEN: strict skill packaging validation inspects the skill prompt
+        - THEN: validation requires the prompt to mention ~/.strict-spec-schemas/ and schema_file-based schema lookup guidance alongside the existing schema-show reminder

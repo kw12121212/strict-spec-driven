@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: sync-shared-schema-cache
+  status: proposed
+summary:
+  what:
+    - Add a shared schema cache under ~/.strict-spec-schemas/ that the strict-spec-driven CLI and MCP entrypoints keep synchronized from bundled schema assets.
+    - Gate startup synchronization through a manifest version check so unchanged bundled schemas do not rewrite the shared cache on every invocation.
+    - Document the shared schema cache location in strict skills so agents can resolve each YAML artifact's schema_file to a concrete schema path outside per-project template directories.
+  why:
+    - AI agents currently have to discover schemas from repository templates or schema-show output, which is harder in installed skills and across repositories.
+    - A shared home-directory cache removes per-project schema duplication and gives agents one stable public location for validation assets.
+    - Version-gated synchronization keeps the cache current without paying repeated rewrite cost on every startup.
+scope:
+  in:
+    - CLI startup checks and synchronizes the shared schema cache before running subcommands, while continuing when cache writes fail with an explicit warning.
+    - MCP server startup performs the same manifest-gated shared schema cache synchronization and warning behavior.
+    - The shared cache mirrors bundled schema paths under ~/.strict-spec-schemas/templates/strict-spec-driven/schemas/ and writes a manifest describing export version, exported schemas, and last sync time.
+    - Core strict skill guidance and skill-validation expectations mention ~/.strict-spec-schemas/ and explain that schema_file values can be resolved against that shared root.
+    - Tests cover first-run export, unchanged-version skip behavior, refresh on version change or missing cache state, and warning behavior when the shared cache cannot be written.
+  out:
+    - Changing the semantic validation rules or field shapes of existing strict YAML schemas.
+    - Replacing or removing schema-list, schema-show, template-list, or template-show.
+    - Adding per-project exported schema copies inside repositories.
+    - Introducing versioned multi-copy caches under the shared home directory.
+unchanged_behavior:
+  - templates/strict-spec-driven/schemas/ remains the source of truth and bundled input for strict schema assets.
+  - Existing strict YAML artifact behavior and validation semantics remain unchanged unless explicitly covered by the shared-cache discoverability contract.
+  - Existing CLI and MCP commands keep their current functional contracts aside from the additive shared schema cache synchronization step.

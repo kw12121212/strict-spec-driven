@@ -203,23 +203,29 @@ const validateSkillsJson = validateSkillsDispatchJson;
 context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits valid=true JSON");
 
   const reviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-review", "SKILL.md"), "utf8");
+  const applySkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-apply", "SKILL.md"), "utf8");
   const proposeSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"), "utf8");
   const autoSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-auto", "SKILL.md"), "utf8");
   const brainstormSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-brainstorm", "SKILL.md"), "utf8");
+  const modifySkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-modify", "SKILL.md"), "utf8");
   const roadmapPlanSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-plan", "SKILL.md"), "utf8");
   const roadmapRecommendSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
   const roadmapProposeSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-propose", "SKILL.md"), "utf8");
+  const roadmapReviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-review", "SKILL.md"), "utf8");
   const harnessInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-init", "SKILL.md"), "utf8");
   const harnessSessionSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-session", "SKILL.md"), "utf8");
   const initSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-init", "SKILL.md"), "utf8");
   const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
+  const normalizedApplySkillContent = applySkillContent.replace(/\s+/g, " ");
   const normalizedReviewSkillContent = reviewSkillContent.replace(/\s+/g, " ");
   const normalizedProposeSkillContent = proposeSkillContent.replace(/\s+/g, " ");
   const normalizedAutoSkillContent = autoSkillContent.replace(/\s+/g, " ");
   const normalizedBrainstormSkillContent = brainstormSkillContent.replace(/\s+/g, " ");
+  const normalizedModifySkillContent = modifySkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapPlanSkillContent = roadmapPlanSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapRecommendSkillContent = roadmapRecommendSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapProposeSkillContent = roadmapProposeSkillContent.replace(/\s+/g, " ");
+  const normalizedRoadmapReviewSkillContent = roadmapReviewSkillContent.replace(/\s+/g, " ");
   const normalizedHarnessInitSkillContent = harnessInitSkillContent.replace(/\s+/g, " ");
   const normalizedHarnessSessionSkillContent = harnessSessionSkillContent.replace(/\s+/g, " ");
   const normalizedInitSkillContent = initSkillContent.replace(/\s+/g, " ");
@@ -235,7 +241,18 @@ context.assert(
   "strict-spec-review requires direct code review, automatic safe fixes, and regression evidence before archive recommendation",
 );
   context.assert(
-    normalizedProposeSkillContent.includes("proposal checkpoint")
+  normalizedApplySkillContent.includes("~/.strict-spec-schemas/")
+    && normalizedApplySkillContent.includes("When a YAML artifact already declares `schema_file`")
+    && normalizedProposeSkillContent.includes("~/.strict-spec-schemas/")
+    && normalizedProposeSkillContent.includes("When a YAML artifact already declares `schema_file`")
+    && normalizedAutoSkillContent.includes("~/.strict-spec-schemas/")
+    && normalizedAutoSkillContent.includes("When a YAML artifact already declares `schema_file`")
+    && normalizedModifySkillContent.includes("~/.strict-spec-schemas/")
+    && normalizedModifySkillContent.includes("When a YAML artifact already declares `schema_file`"),
+  "core YAML authoring skills mention the shared schema cache root and schema_file lookup guidance",
+);
+context.assert(
+  normalizedProposeSkillContent.includes("proposal checkpoint")
       && normalizedProposeSkillContent.includes("before validation")
       && normalizedProposeSkillContent.includes("semantic self-check")
       && normalizedProposeSkillContent.includes("Do not expand scope or answer unresolved human questions")
@@ -306,6 +323,14 @@ context.assert(
       && normalizedRoadmapProposeSkillContent.includes("Use `ready` for deterministic proposal-handoff blockers")
       && !normalizedRoadmapProposeSkillContent.includes("proposal review"),
     "strict-roadmap-propose runs a proposal checkpoint before ready/verify handoff",
+  );
+  context.assert(
+    roadmapReviewSkillContent.includes("roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status")
+      && roadmapReviewSkillContent.includes("roadmap-sync: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync")
+      && normalizedRoadmapReviewSkillContent.includes("only milestones whose status is not complete")
+      && normalizedRoadmapReviewSkillContent.includes("directly edit the milestone and its planned-change YAML files")
+      && normalizedRoadmapReviewSkillContent.includes("concrete and executable"),
+    "strict-roadmap-review validates with incomplete-milestone direct-fix guidance",
   );
   context.assert(
     harnessInitSkillContent.includes("check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state")
@@ -796,6 +821,194 @@ try {
   );
 } finally {
   rmSync(invalidRoadmapPlanGuidanceRoot, { recursive: true, force: true });
+}
+
+const invalidRoadmapReviewRoot = mkdtempSync(path.join(os.tmpdir(), "strict-roadmap-review-invalid-"));
+try {
+  const invalidRoadmapReviewSkillDir = path.join(invalidRoadmapReviewRoot, "skills", "strict-roadmap-review");
+  mkdirSync(invalidRoadmapReviewSkillDir, { recursive: true });
+
+  writeFileSync(
+    path.join(invalidRoadmapReviewSkillDir, "SKILL.md"),
+    [
+      "---",
+      "name: strict-roadmap-review",
+      "description: stub",
+      "metadata:",
+      "  skill_id: strict_roadmap_review",
+      "  author: strict-spec-driven",
+      "  type: agent_skill",
+      "  version: 1.0.0",
+      "---",
+      "",
+      "You are reviewing roadmap work under .strict-spec-driven/roadmap/.",
+      "",
+      "## This Skill's Commands",
+      "",
+      "```yaml",
+      "check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state",
+      "roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status",
+      "```",
+      "",
+      "## Prerequisites",
+      "",
+      "Run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "",
+      "## Steps",
+      "",
+      "Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "",
+      "1. Load roadmap context and summarize it.",
+      "",
+      "## Rules",
+      "",
+      "- Keep roadmap state under .strict-spec-driven/roadmap/.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(invalidRoadmapReviewRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [{ name: "strict-roadmap-review-broken", family: "strict-roadmap" }],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const invalidRoadmapReviewResultA = skillValidationModule.validateStrictSkillPackaging(invalidRoadmapReviewRoot);
+  const invalidRoadmapReviewResultB = skillValidationModule.validateStrictSkillPackaging(invalidRoadmapReviewRoot);
+  context.assert(!invalidRoadmapReviewResultA.valid, "strict skill validation fails for broken strict-roadmap-review packaging");
+  context.assert(
+    JSON.stringify(invalidRoadmapReviewResultA) === JSON.stringify(invalidRoadmapReviewResultB),
+    "strict-roadmap-review diagnostics stay deterministic across repeated invalid runs",
+  );
+  context.assert(
+    invalidRoadmapReviewResultA.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skills.marketplace.skills.mismatch"
+        && diagnostic.path === "skills/marketplace.json",
+    ),
+    "strict-roadmap-review invalid packaging reports marketplace metadata mismatch",
+  );
+  context.assert(
+    invalidRoadmapReviewResultA.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.scripts_symlink.missing"
+        && diagnostic.path === "skills/strict-roadmap-review/scripts",
+    ),
+    "strict-roadmap-review invalid packaging reports a path-specific scripts symlink diagnostic",
+  );
+  context.assert(
+    invalidRoadmapReviewResultA.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.command.missing"
+        && diagnostic.path === "skills/strict-roadmap-review/SKILL.md#commands.roadmap-sync",
+    ),
+    "strict-roadmap-review invalid packaging requires the roadmap-sync command mapping",
+  );
+  context.assert(
+    invalidRoadmapReviewResultA.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.required_snippet.missing"
+        && diagnostic.path === "skills/strict-roadmap-review/SKILL.md"
+        && diagnostic.expected === "only milestones whose status is not complete",
+    ),
+    "strict-roadmap-review invalid packaging requires incomplete-milestone scope guidance",
+  );
+  context.assert(
+    invalidRoadmapReviewResultA.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.required_snippet.missing"
+        && diagnostic.path === "skills/strict-roadmap-review/SKILL.md"
+        && diagnostic.expected === "directly edit the milestone and its planned-change YAML files",
+    ),
+    "strict-roadmap-review invalid packaging requires direct-fix guidance",
+  );
+
+  const invalidRoadmapReviewCliA = cli(["validate-skills"], { cwd: invalidRoadmapReviewRoot });
+  const invalidRoadmapReviewCliB = cli(["validate-skills"], { cwd: invalidRoadmapReviewRoot });
+  context.assert(invalidRoadmapReviewCliA.status !== 0, "validate-skills CLI exits non-zero for broken strict-roadmap-review packaging");
+  context.assert(
+    invalidRoadmapReviewCliA.stdout.trim() === invalidRoadmapReviewCliB.stdout.trim(),
+    "validate-skills CLI keeps strict-roadmap-review diagnostic ordering deterministic",
+  );
+} finally {
+  rmSync(invalidRoadmapReviewRoot, { recursive: true, force: true });
+}
+
+const invalidSharedSchemaGuidanceRoot = mkdtempSync(path.join(os.tmpdir(), "strict-shared-schema-guidance-invalid-"));
+try {
+  const invalidSharedSchemaSkillDir = path.join(invalidSharedSchemaGuidanceRoot, "skills", "strict-spec-propose");
+  mkdirSync(path.join(invalidSharedSchemaGuidanceRoot, "dist", "scripts"), { recursive: true });
+  mkdirSync(invalidSharedSchemaSkillDir, { recursive: true });
+
+  symlinkSync("../../dist/scripts", path.join(invalidSharedSchemaSkillDir, "scripts"));
+
+  const proposeSkillWithoutSharedCacheGuidance = readFileSync(
+    path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"),
+    "utf8",
+  )
+    .split("\n")
+    .filter((line) => !line.startsWith("- Shared schema cache root:"))
+    .join("\n") + "\n";
+
+  writeFileSync(
+    path.join(invalidSharedSchemaSkillDir, "SKILL.md"),
+    proposeSkillWithoutSharedCacheGuidance,
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(invalidSharedSchemaGuidanceRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [{ name: "strict-spec-propose", family: "strict-spec" }],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const invalidSharedSchemaGuidanceResult = skillValidationModule.validateStrictSkillPackaging(invalidSharedSchemaGuidanceRoot);
+  context.assert(
+    !invalidSharedSchemaGuidanceResult.valid,
+    "strict skill validation fails when core YAML authoring guidance omits the shared schema cache reminder",
+  );
+  context.assert(
+    invalidSharedSchemaGuidanceResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.required_snippet.missing"
+        && diagnostic.path === "skills/strict-spec-propose/SKILL.md"
+        && diagnostic.expected === "~/.strict-spec-schemas/",
+    ),
+    "validate-skills requires the shared schema cache root in core YAML authoring skills",
+  );
+  context.assert(
+    invalidSharedSchemaGuidanceResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.required_snippet.missing"
+        && diagnostic.path === "skills/strict-spec-propose/SKILL.md"
+        && diagnostic.expected === "When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root",
+    ),
+    "validate-skills requires schema_file-based shared cache lookup guidance in core YAML authoring skills",
+  );
+
+  const invalidSharedSchemaGuidanceCli = cli(["validate-skills"], { cwd: invalidSharedSchemaGuidanceRoot });
+  context.assert(
+    invalidSharedSchemaGuidanceCli.status !== 0,
+    "validate-skills CLI exits non-zero when shared schema cache guidance is missing from a core YAML authoring skill",
+  );
+} finally {
+  rmSync(invalidSharedSchemaGuidanceRoot, { recursive: true, force: true });
 }
 
 const invalidSemanticSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-core-skill-semantics-invalid-"));

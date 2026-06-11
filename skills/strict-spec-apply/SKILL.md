@@ -37,6 +37,7 @@ run `init` from this skill.
   Markdown prose.
 - If artifact fields are unclear, use `node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show <schema-name>`;
   installed skills do not carry a `templates` directory.
+- Shared schema cache root: `~/.strict-spec-schemas/`. When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root to inspect the concrete schema file without relying on a local templates directory.
 - Use block scalars only for free-text content. Prefer `>-` for wrapped prose
   such as longer `question`, `context`, `answer`, and spec `statement` values.
   Use `|` only when literal line breaks must be preserved as part of the value.

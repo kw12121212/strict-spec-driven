@@ -1,0 +1,51 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-roadmap-milestone-review-skill
+sections:
+  Implementation:
+    author-review-skill-package:
+      text: 'Create skills/strict-roadmap-review/SKILL.md describing the milestone review workflow scoped to incomplete milestones: load milestone context, run roadmap-status, refuse completed milestones, assess definition quality and delivery state, directly edit the milestone and its planned-change YAML files so goals, done_criteria, and planned-change details become concrete and executable, never hand-edit completion status, run roadmap-sync after edits, and summarize findings plus applied fixes. Add the scripts symlink to ../../dist/scripts matching the other strict-roadmap skill packages.'
+      status: complete
+    register-skill-in-marketplace:
+      text: Add a strict-roadmap-review entry with family strict-roadmap to skills/marketplace.json and remove the strict-roadmap-milestone entry.
+      status: complete
+    update-validate-skills-expectations:
+      text: In src/skills/model.ts, add a strict-roadmap-review entry to ROADMAP_STRICT_SKILL_EXPECTATIONS requiring the roadmap-status and roadmap-sync commands, the Steps and Rules headings, and snippets for incomplete-milestone scope, direct-fix behavior, and detail elaboration; remove the strict-roadmap-milestone entry; rebuild dist via bun run build.
+      status: complete
+    delete-milestone-skill-package:
+      text: Delete the skills/strict-roadmap-milestone/ package directory (SKILL.md and scripts symlink).
+      status: complete
+    redirect-documentation-references:
+      text: Replace strict-roadmap-milestone references with strict-roadmap-review in README.md, README.zh.md, ROADMAP_GUIDE.md, ROADMAP_GUIDE.zh.md, ROADMAP_QUICKSTART.md, and ROADMAP_QUICKSTART.zh.md, adjusting surrounding wording to describe the review-and-fix workflow.
+      status: complete
+    repair-contracts-spec-mapping:
+      text: Update the contracts-yaml-artifacts main-spec mapping to replace skills/strict-roadmap-milestone/SKILL.md with skills/strict-roadmap-review/SKILL.md (direct mapping edit, since archive-time delta mapping merges are union-only and cannot remove the stale path), then confirm verify-spec-mappings passes.
+      status: complete
+  Testing:
+    add-packaging-validation-tests:
+      text: Add or extend skill packaging tests so validate-skills passes for the complete strict-roadmap-review package, fails with deterministic path-specific diagnostics when its metadata, required snippets, or scripts symlink are broken, and no longer expects a strict-roadmap-milestone package anywhere in fixtures or assertions.
+      status: complete
+    run-lint:
+      text: Run the project lint command and confirm the TypeScript sources type-check cleanly before running the full regression suite.
+      status: complete
+      command: bun run lint
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-skill-validation:
+      text: Run node dist/scripts/strict-spec-driven.js validate-skills and confirm the output reports the strict-roadmap-review package as valid, with no diagnostics and no remaining strict-roadmap-milestone expectations.
+      status: complete
+      command: node dist/scripts/strict-spec-driven.js validate-skills
+    verify-no-stale-references:
+      text: Search the repository (excluding archives and node_modules) for remaining strict-roadmap-milestone references and confirm only historical archive material mentions the retired skill.
+      status: complete
+    verify-scope:
+      text: 'Verify the implementation matches proposal scope: no new CLI command, no persisted review-report artifact, review limited to incomplete milestones, completion status never hand-edited, and no behavior changes to the remaining roadmap skills or commands.'
+      status: complete
+testing_gates:
+  validation_task: add-packaging-validation-tests
+  unit_test_task: run-project-regression

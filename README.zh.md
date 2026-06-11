@@ -96,7 +96,7 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 |---|---|
 | `/strict-roadmap-recommend` | 从路线图推荐下一个计划变更 |
 | `/strict-roadmap-propose` | 将路线图计划变更转换为变更脚手架 |
-| `/strict-roadmap-milestone` | 完善路线图里程碑 |
+| `/strict-roadmap-review` | 审查未完成的路线图里程碑并直接修复 |
 | `/strict-roadmap-plan` | 创建或重构路线图 |
 | `/strict-roadmap-sync` | 协调路线图里程碑和变更状态 |
 

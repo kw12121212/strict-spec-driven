@@ -1,0 +1,32 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: add-roadmap-milestone-review-skill
+open: []
+resolved:
+  - id: review-output-mode
+    question: Should the milestone review only generate a report, or directly apply fixes?
+    context: A report-only review would route edits to other skills; a fixing review edits the milestone and planned-change YAML itself.
+    answer: Directly apply fixes, with emphasis on making details concrete and executable; user revised this at the checkpoint on 2026-06-11. The conversation summary documents findings and applied fixes, and roadmap-sync runs after edits.
+    status: resolved
+  - id: review-target-scope
+    question: Which milestones can be reviewed?
+    context: Milestones may be planned, in progress, or complete; completed milestones are reconciled historical record.
+    answer: Only incomplete milestones. When the requested milestone is already complete the skill stops and reports it as out of review scope; user confirmed on 2026-06-11.
+    status: resolved
+  - id: retire-old-skill
+    question: Should strict-roadmap-milestone be kept alongside the new review skill?
+    context: strict-roadmap-milestone offers field-level milestone refinement that overlaps with a review skill that applies fixes directly.
+    answer: No. Delete strict-roadmap-milestone in this change (package, marketplace entry, validate-skills expectations, documentation references, stale spec mapping path); strict-roadmap-review supersedes it. User directed this on 2026-06-11.
+    status: resolved
+  - id: report-persistence
+    question: Should the review result be persisted as a strict YAML artifact?
+    context: Persisting a report would require a new registered schema and lifecycle under the yaml-first MUST rule.
+    answer: No. Fixes land in the roadmap YAML files themselves; the findings summary stays in conversation output.
+    status: resolved
+  - id: new-cli-command
+    question: Does the review skill need a new roadmap-review CLI command?
+    context: roadmap-status, roadmap-overview, and roadmap-sync already expose declared status, derived status, planned changes, and source paths deterministically.
+    answer: No new CLI command. The skill reuses existing commands; review judgment stays in the skill prompt per the scripts-own-mechanics standard.
+    status: resolved

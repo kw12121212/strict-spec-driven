@@ -1,0 +1,42 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: sync-shared-schema-cache
+sections:
+  Implementation:
+    add-shared-schema-cache-sync:
+      text: Add a startup-time shared schema cache synchronizer that exports bundled strict schema assets into ~/.strict-spec-schemas/, writes a manifest with export version metadata, preserves schema_file-relative paths under templates/strict-spec-driven/schemas/, and skips rewrites when the manifest already matches the current bundled export version.
+      status: complete
+    wire-cli-and-mcp-startup-sync:
+      text: Invoke the shared schema cache synchronizer from both the CLI and MCP entrypoints before normal command handling, and on cache write failures continue startup while surfacing a clear warning that the shared schema cache could not be synchronized.
+      status: complete
+    update-skill-guidance-and-validation:
+      text: Update core strict skills that guide YAML authoring to mention ~/.strict-spec-schemas/ and schema_file-based lookup, and update skill validation expectations so validate-skills enforces that shared-cache guidance.
+      status: complete
+    rebuild-dist-artifacts:
+      text: Rebuild dist output after the TypeScript source changes so the packaged CLI and installed skills reflect the shared schema cache behavior.
+      status: complete
+  Testing:
+    add-shared-cache-and-skill-guidance-tests:
+      text: Add or update tests covering first-run shared cache export, unchanged-version skip behavior, refresh when the manifest version is stale or the cache is missing, warning behavior on cache write failures, and validate-skills enforcement of the shared cache guidance in core strict skills.
+      status: complete
+    run-lint:
+      text: Run the project lint command and confirm the TypeScript sources type-check cleanly before running the full regression suite.
+      status: complete
+      command: bun run lint
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-skill-validation:
+      text: Run node dist/scripts/strict-spec-driven.js validate-skills and confirm the updated core strict skills pass packaging validation with the shared schema cache guidance requirements.
+      status: complete
+      command: node dist/scripts/strict-spec-driven.js validate-skills
+    verify-scope:
+      text: 'Verify implementation matches proposal scope: shared cache lives under ~/.strict-spec-schemas/, startup sync is manifest-gated rather than unconditional rewrite, cache write failures warn without blocking CLI/MCP startup, schema_file-relative layout is preserved, and repository-bundled schemas plus schema-show/schema-list behavior remain unchanged.'
+      status: complete
+testing_gates:
+  validation_task: add-shared-cache-and-skill-guidance-tests
+  unit_test_task: run-project-regression

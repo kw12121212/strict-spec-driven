@@ -175,12 +175,12 @@ Turns a specific planned change into a strict change scaffold. Use when you alre
 /strict-roadmap-propose add-session-model
 ```
 
-### `/strict-roadmap-milestone`
+### `/strict-roadmap-review`
 
-Refines one milestone's goal, scope, done criteria, dependencies, risks, notes, and `details` without restructuring the entire roadmap.
+Reviews one incomplete milestone's goal, scope, done criteria, dependencies, risks, and planned-change `details`, directly applies fixes to the milestone and planned-change YAML, then reruns `roadmap-sync`.
 
 ```text
-/strict-roadmap-milestone 0001-user-auth
+/strict-roadmap-review 0001-user-auth
 ```
 
 ### `/strict-roadmap-plan`

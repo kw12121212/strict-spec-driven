@@ -56,6 +56,10 @@ const ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 const ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
 const ROADMAP_ACTIVE_CONFLICT_SNIPPET = "active strict change conflicts";
 const ROADMAP_PLAN_EXECUTABLE_DETAIL_SNIPPET = "executable planning context";
+const ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET = "only milestones whose status is not complete";
+const ROADMAP_REVIEW_DIRECT_FIX_SNIPPET =
+  "directly edit the milestone and its planned-change YAML files";
+const ROADMAP_REVIEW_DETAIL_ELABORATION_SNIPPET = "concrete and executable";
 const ROADMAP_PLAN_REVIEW_SNIPPET = "Review the roadmap plan before handoff";
 const ROADMAP_SCRIPTED_RECOMMEND_SNIPPET = "treat the command's selected planned change as authoritative";
 const ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET = "before reading broad roadmap context";
@@ -69,6 +73,9 @@ const PROPOSAL_CHECKPOINT_SNIPPET = "proposal checkpoint";
 const REVIEW_AUTO_FIX_SNIPPET = "Automatically fix safe in-scope review findings";
 const REVIEW_POST_FIX_REGRESSION_SNIPPET =
   "rerun strict verification plus the configured complete regression command after review-time changes";
+const SHARED_SCHEMA_CACHE_ROOT_SNIPPET = "~/.strict-spec-schemas/";
+const SHARED_SCHEMA_FILE_LOOKUP_SNIPPET =
+  "When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root";
 
 export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
   "strict-spec-init": {
@@ -90,7 +97,13 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/", "/strict-spec-auto", PROPOSAL_CHECKPOINT_SNIPPET],
+    requiredSnippets: [
+      ".strict-spec-driven/",
+      "/strict-spec-auto",
+      PROPOSAL_CHECKPOINT_SNIPPET,
+      SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
+      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+    ],
     forbiddenSnippets: [
       "Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/.",
       "proposal review",
@@ -103,7 +116,12 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
-    requiredSnippets: [".strict-spec-driven/", "harness-plan"],
+    requiredSnippets: [
+      ".strict-spec-driven/",
+      "harness-plan",
+      SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
+      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+    ],
   },
   "strict-spec-verify": {
     requiredCommands: {
@@ -170,6 +188,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
       "Do not call or rely on a `strict-spec-driven review` command",
+      SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
+      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
     ],
     forbiddenSnippets: [
       "empty-spec-impact decisions block progress",
@@ -184,7 +204,11 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       verify: `${COMMAND_PREFIX} verify <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/"],
+    requiredSnippets: [
+      ".strict-spec-driven/",
+      SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
+      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+    ],
   },
   "strict-spec-cancel": {
     requiredCommands: {
@@ -215,14 +239,6 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       ROADMAP_PLAN_EXECUTABLE_DETAIL_SNIPPET,
       ROADMAP_PLAN_REVIEW_SNIPPET,
     ],
-  },
-  "strict-roadmap-milestone": {
-    requiredCommands: {
-      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
-      "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
-    },
-    requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/roadmap/"],
   },
   "strict-roadmap-recommend": {
     requiredCommands: {
@@ -264,6 +280,19 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       PROPOSAL_CHECKPOINT_SNIPPET,
     ],
     forbiddenSnippets: ["proposal review"],
+  },
+  "strict-roadmap-review": {
+    requiredCommands: {
+      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [
+      ".strict-spec-driven/roadmap/",
+      ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET,
+      ROADMAP_REVIEW_DIRECT_FIX_SNIPPET,
+      ROADMAP_REVIEW_DETAIL_ELABORATION_SNIPPET,
+    ],
   },
   "strict-roadmap-sync": {
     requiredCommands: {

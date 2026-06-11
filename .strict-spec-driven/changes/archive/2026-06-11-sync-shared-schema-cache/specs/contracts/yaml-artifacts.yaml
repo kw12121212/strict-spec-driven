@@ -1,0 +1,27 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/shared-schema-cache.ts
+    - src/validation.ts
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    yaml-schema-file-paths-resolve-in-shared-cache:
+      strength: MUST
+      statement: The system MUST export bundled strict schema assets into ~/.strict-spec-schemas/ using path segments that preserve each strict YAML artifact's schema_file-relative schema location, so a schema_file value can be resolved against the shared cache root without requiring per-project template directories.
+      scenarios:
+        shared-cache-mirrors-schema-file-layout:
+          - GIVEN: a strict YAML artifact declares a schema_file under templates/strict-spec-driven/schemas/
+          - WHEN: the shared schema cache has been synchronized
+          - THEN: the corresponding schema file exists under ~/.strict-spec-schemas/ at the same relative schema_file path
+        shared-cache-keeps-schema-registry-discoverable:
+          - GIVEN: an agent or tool needs to discover supported strict workflow schemas from the shared cache
+          - WHEN: it inspects ~/.strict-spec-schemas/
+          - THEN: the shared cache includes the exported schema registry and enough metadata to enumerate the exported schema files
+  MODIFIED: {}
+  REMOVED: {}
