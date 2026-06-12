@@ -1,6 +1,6 @@
 ---
 name: strict-spec-propose
-description: Propose a new strict change, with optional roadmap-backed selection that can scaffold the next recommended planned change from .strict-spec-driven/roadmap/.
+description: Propose a new standalone strict change from a user request. Use when Codex should scaffold proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and optional delta artifacts under .strict-spec-driven/changes/<name>/ without sourcing work from the roadmap.
 metadata:
   skill_id: strict_spec_propose
   author: strict-spec-driven
@@ -24,8 +24,6 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
 tech-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js tech-status
-roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
-roadmap-recommend: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-recommend
 propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
 generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
 ready: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
@@ -37,16 +35,6 @@ verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
 Run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
-
-## Roadmap Linking Rules
-
-- Milestone ownership is defined by `planned_change.milestone`.
-- Use `roadmap-status` output only when you need diagnostic context or the
-  exact standalone planned-change source path after scripted recommendation.
-- Treat filenames as helpful conventions only. `planned_change.id` and
-  `planned_change.milestone` are the source of truth.
-- If `roadmap-status` reports legacy inline milestone `planned_changes`, stop
-  and materialize them before continuing with roadmap-backed proposal flow.
 
 ## YAML Writing Rules
 
@@ -75,20 +63,11 @@ Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js che
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
-1. **Determine the proposal source and change name** — use the user-provided
-   kebab-case name when it already exists. Otherwise derive one from the
-   request and scope. If the user provides a roadmap-backed parameter or asks
-   strict-spec-propose to source the next roadmap change, run
-   `node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-recommend` before
-   reading broad roadmap context, selecting work, or opening candidate
-   planned-change files, and treat the command's selected planned change as
-   authoritative. Branch on the returned `status`:
-   - `roadmap-error` — surface the JSON diagnostics and stop. Suggest
-    `roadmap-status` for additional context.
-   - `no-candidate` — surface the candidate `skipReasons`, explain which
-    blockers must clear, and stop.
-   - `recommended` — use the returned recommendation `changeName`, milestone,
-    and planned-change `path` as the roadmap-backed proposal source.
+1. **Determine the change name** — use the user-provided kebab-case name when it
+   already exists. Otherwise derive one from the request and scope. If the user
+   asks to source a change from the roadmap, stop and tell them to use
+   `/strict-spec-propose-from-roadmap` so standalone proposals and roadmap-backed
+   proposals stay separate.
 
 2. **Read project context, existing strict specs, and technical standards** — read:
    - `.strict-spec-driven/config.yaml`
@@ -104,30 +83,13 @@ run `init` from this skill.
      existing standards. If this change's intent is to *alter* a standard (add,
      modify, or retire a rule, or introduce a whole new standard), plan a delta
      tech artifact for it in step 8b instead of editing the live standard.
-   - For roadmap-backed proposal flow, also read only the targeted roadmap
-     context for the recommended standalone planned-change:
-     - `.strict-spec-driven/roadmap/INDEX.yaml`
-     - the owning milestone YAML file
-     - the recommended standalone planned-change YAML artifact reported by
-       the scripted recommendation result
-     - `roadmap-status` output only when needed to explain diagnostics or
-       legacy inline planned-change blockers
-     - any relevant milestone or standalone planned-change `details` field
-       content, extracting only the guidance needed for this one proposal
    - For user interface work, split it the same way: capture user-observable UI
      behavior as delta-spec requirements, capture UI engineering and design rules
      (design-system usage, styling, accessibility, i18n) as a `ui`-category
      technical standard, and govern pixel-level visual fidelity with
      visual-regression snapshots referenced from mappings rather than inlined.
 
-3. **For roadmap-backed proposals, present a checkpoint before scaffolding** —
-   summarize the proposed change name, milestone, standalone planned-change
-   file path, why it is the best next step, which strict specs are likely to
-   change, and any open questions that still need to land in `questions.yaml`.
-   Do not stop for human confirmation here; use the checkpoint only to explain
-   the recommendation before creating the scaffold.
-
-4. **Scaffold the change** — run:
+3. **Scaffold the change** — run:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
    ```
@@ -135,7 +97,7 @@ run `init` from this skill.
    below and edit the scaffolded `tasks.yaml` directly. Do not create JSON
    payload files.
 
-5. **Generate `proposal.yaml`** — run a direct CLI invocation with named
+4. **Generate `proposal.yaml`** — run a direct CLI invocation with named
    arguments:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."
@@ -146,12 +108,9 @@ run `init` from this skill.
    - `scope.in`
    - `scope.out`
    - `unchanged_behavior`
-   - when the proposal is roadmap-backed, also pass `--milestone <milestone-id>`
-     and `--planned-change <planned-change-id>` so `proposal.yaml` records the
-     selected roadmap source without copying the whole roadmap plan
    Keep the content observable and concrete.
 
-6. **Generate `design.yaml`** — run one direct CLI invocation with named
+5. **Generate `design.yaml`** — run one direct CLI invocation with named
    arguments:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."
@@ -168,7 +127,7 @@ run `init` from this skill.
    would violate a MUST rule, record an open question in `questions.yaml`
    instead of silently breaking the standard.
 
-7. **Edit `tasks.yaml` directly** — update the scaffolded
+6. **Edit `tasks.yaml` directly** — update the scaffolded
    `.strict-spec-driven/changes/<change-name>/tasks.yaml` according to the
    task-list schema. Keep concrete task sections for `Implementation`,
    `Testing`, and `Verification`.
@@ -178,7 +137,7 @@ run `init` from this skill.
      point at the corresponding Testing task IDs
    - keep YAML valid and structured; do not use Markdown prose inside the file
 
-8. **Generate `questions.yaml`** — run one direct CLI invocation for the full
+7. **Generate `questions.yaml`** — run one direct CLI invocation for the full
    artifact. Use `--reset` when intentionally replacing scaffold content:
     ```bash
     node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions --reset --open <question-id> --question "..." --context "..." --resolved <question-id> --question "..." --context "..." --answer "..."
@@ -187,7 +146,7 @@ run `init` from this skill.
    as `id`, `question`, and `context`; the script writes the status. If
    everything is clear, leave `open: []`.
 
-9. **Generate strict YAML delta specs** — run one direct CLI invocation per
+8. **Generate strict YAML delta specs** — run one direct CLI invocation per
    target spec and include all mapping paths and requirement operations needed
    for that target in the same command:
     ```bash
@@ -204,7 +163,7 @@ run `init` from this skill.
    - if the change has no observable spec impact, leave the `specs/` directory
      empty rather than inventing a prose-only file
 
-9b. **Generate strict YAML delta tech (only when the change alters a standard)** —
+8b. **Generate strict YAML delta tech (only when the change alters a standard)** —
     if step 2 identified that this change must add, modify, or retire a technical
     standard, generate delta tech artifacts under
     `.strict-spec-driven/changes/<change-name>/tech/` with one direct CLI
@@ -225,7 +184,7 @@ run `init` from this skill.
     you need the full contract. Leave the `tech/` directory absent when the
     change only complies with existing standards and changes none of them.
 
-10. **Run the proposal checkpoint over generated planning artifacts** — before
+9. **Run the proposal checkpoint over generated planning artifacts** — before
    validation, perform a semantic self-check of every generated or edited file under
    `.strict-spec-driven/changes/<change-name>/` against the user request, the
    relevant main specs, and the existing project constraints. Look for vague
@@ -238,7 +197,7 @@ run `init` from this skill.
    unresolved human questions during this checkpoint; record ambiguity in
    `questions.yaml`.
 
-11. **Validate proposal readiness and artifact structure** — run:
+10. **Validate proposal readiness and artifact structure** — run:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
    ```
@@ -254,7 +213,7 @@ run `init` from this skill.
    proposal off. Do not stop for human question resolution during
    `strict-spec-propose`; leave open questions in `questions.yaml`.
 
-12. **Hand off** — summarize the scope, key decisions, proposal checkpoint
+11. **Hand off** — summarize the scope, key decisions, proposal checkpoint
     refinements made, task count, unchanged behavior, and any open questions. Explicitly
     recommend `/strict-spec-auto` as the primary next step. If `questions.yaml`
     still has open entries, make clear that `/strict-spec-auto` or

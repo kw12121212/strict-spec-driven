@@ -228,11 +228,11 @@ export const MCP_RESOURCE_INVENTORY: McpCapabilityInventory["resources"] = [
 export const MCP_PROMPT_INVENTORY: McpCapabilityInventory["prompts"] = [
   {
     name: "strict_propose_change",
-    description: "Guide a strict change proposal using existing strict-spec-propose workflow rules, including optional roadmap-backed proposal flow.",
+    description: "Guide a strict change proposal using strict-spec-propose for standalone work or strict-spec-propose-from-roadmap for roadmap-backed work.",
     arguments: [
       { name: "change", description: "Optional kebab-case strict change name.", required: false },
       { name: "summary", description: "Optional short description of the requested change.", required: false },
-      { name: "roadmapItem", description: "Optional roadmap-backed hint; when present, source the proposal through roadmap-recommend.", required: false },
+      { name: "roadmapItem", description: "Optional roadmap-backed hint; when present, source the proposal through strict-spec-propose-from-roadmap and roadmap-recommend.", required: false },
     ],
   },
   {

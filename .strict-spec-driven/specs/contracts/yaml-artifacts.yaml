@@ -39,6 +39,7 @@ mapping:
     - src/shared-schema-cache.ts
     - src/validation.ts
     - src/yaml.ts
+    - src/skills/frontmatter.ts
     - install.sh
     - scripts/strict-spec-driven.js
     - skills/marketplace.json
@@ -53,6 +54,7 @@ mapping:
     - skills/strict-spec-maintenance/SKILL.md
     - skills/strict-spec-modify/SKILL.md
     - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-propose-from-roadmap/SKILL.md
     - skills/strict-spec-resync-code-mapping/SKILL.md
     - skills/strict-spec-review/SKILL.md
     - skills/strict-spec-ship/SKILL.md
@@ -467,7 +469,7 @@ requirements:
         - THEN: at least one planned change depends on an earlier planned change
   strict-roadmap-skill-command-contract:
     strength: MUST
-    statement: 'The system MUST provide strict roadmap skill packages for `plan`, `milestone`, `recommend`, and `sync` with explicit command mappings that reference the strict roadmap command(s) and shared strict change commands those skills depend on, and MUST NOT package a separate `propose` roadmap skill: roadmap planned changes are converted into strict change scaffolds through the recommend skill''s proposal handoff.'
+    statement: 'The system MUST provide strict roadmap skill packages for `plan`, `milestone`, `recommend`, and `sync` with explicit command mappings that reference the strict roadmap command(s) and shared strict change commands those skills depend on, and MUST keep roadmap-backed proposal-only handoff separate as the `strict-spec-propose-from-roadmap` skill rather than packaging a `strict-roadmap-propose` skill.'
     scenarios:
       roadmap-skills-expose-concrete-strict-commands:
         - GIVEN: a strict roadmap `SKILL.md` file is reviewed
@@ -478,7 +480,8 @@ requirements:
         - GIVEN: the repository skill packaging surfaces are reviewed
         - WHEN: the skills directory and marketplace metadata are inspected
         - THEN: no strict-roadmap-propose skill package or marketplace entry exists
-        - THEN: roadmap proposal handoff guidance points to the strict-roadmap-recommend skill
+        - THEN: roadmap proposal-only handoff guidance points to the strict-spec-propose-from-roadmap skill
+        - THEN: roadmap recommendation with automatic continuation remains owned by the strict-roadmap-recommend skill
   strict-roadmap-skill-guidance-contract:
     strength: MUST
     statement: The system MUST ensure strict roadmap skill packages describe .strict-spec-driven/roadmap/ YAML artifacts, canonical milestone ordering, declared and derived roadmap status rules, the prompt-vs-script split used by the strict workflow, and efficient handoff behavior that relies on deterministic CLI recommendation output before broad manual context reads.
@@ -490,7 +493,7 @@ requirements:
         - THEN: the skill uses the recommendation result path to open only the selected planned-change artifact, owning milestone guidance, and target specs needed for proposal generation
   strict-roadmap-proposal-handoff-contract:
     strength: MUST
-    statement: The system MUST ensure roadmap recommendation and roadmap proposal-handoff behavior convert exactly one planned change into a normal strict change scaffold without duplicating roadmap-only planning metadata inside the change artifacts, consume relevant details as targeted planning guidance, validate proposal handoff with the proposal readiness gate, and pass the populated scaffold to the automatic workflow without redundant full proposal verification.
+    statement: The system MUST ensure roadmap recommendation and roadmap proposal-handoff behavior convert exactly one planned change into a normal strict change scaffold without duplicating roadmap-only planning metadata inside the change artifacts, consume relevant details as targeted planning guidance, validate proposal handoff with the proposal readiness gate, and keep proposal-only handoff separate from automatic workflow continuation.
     scenarios:
       roadmap-recommend-validates-handoff-with-ready:
         - GIVEN: a strict roadmap recommendation has scaffolded and populated a strict change
@@ -501,6 +504,10 @@ requirements:
         - GIVEN: a strict roadmap recommendation has created populated proposal, design, tasks, questions, and delta spec artifacts
         - WHEN: the handoff invokes strict-spec-auto
         - THEN: the automatic workflow resumes the existing populated change instead of regenerating those planning artifacts
+      roadmap-propose-from-roadmap-stops-after-proposal-validation:
+        - GIVEN: the strict-spec-propose-from-roadmap skill has created populated proposal, design, tasks, questions, and delta spec artifacts
+        - WHEN: the handoff completes proposal validation
+        - THEN: the skill recommends strict-spec-auto as a next step without invoking it automatically
   yaml-task-testing-gates:
     strength: MUST
     statement: The system MUST represent validation and unit test task gates in task-list artifacts through structured fields, referencing task keys that exist within the Testing section.
@@ -1210,19 +1217,19 @@ requirements:
         - GIVEN: strict-spec-auto is preparing to archive a completed change
         - WHEN: direct code review evidence has not been gathered
         - THEN: the skill blocks archive instead of inferring review success from deterministic validation
-  strict-roadmap-recommend-scripted-selection:
+  strict-roadmap-scripted-selection:
     strength: MUST
-    statement: The strict-roadmap-recommend skill MUST obtain its next planned-change recommendation from the scripted roadmap-recommend command before scaffolding a strict change.
+    statement: The strict-roadmap-recommend and strict-spec-propose-from-roadmap skills MUST obtain the next planned-change recommendation from the scripted roadmap-recommend command before scaffolding a strict change.
     scenarios:
       skill-uses-scripted-recommendation:
-        - GIVEN: the strict-roadmap-recommend skill prompt is reviewed
+        - GIVEN: the strict-roadmap-recommend or strict-spec-propose-from-roadmap skill prompt is reviewed
         - WHEN: its recommend workflow instructions are inspected
         - THEN: the prompt instructs the agent to run the roadmap-recommend command before selecting work
         - AND: the prompt treats the command's selected planned change as authoritative for the recommendation step
         - AND: the prompt no longer requires the agent to manually choose among eligible roadmap planned changes
       skill-command-contract-includes-roadmap-recommend:
-        - GIVEN: strict roadmap skill command expectations are validated
-        - WHEN: the strict-roadmap-recommend skill package is checked
+        - GIVEN: strict roadmap-backed skill command expectations are validated
+        - WHEN: the strict-roadmap-recommend or strict-spec-propose-from-roadmap skill package is checked
         - THEN: the expected command mapping includes roadmap-recommend
         - AND: skill validation can reject recommend guidance that omits the scripted recommendation command
   strict-roadmap-plan-detail-and-review-guidance:

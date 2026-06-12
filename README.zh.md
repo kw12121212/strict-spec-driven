@@ -82,6 +82,7 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-spec-migrate` | 将引导状态迁移到严格 YAML |
 | `/strict-spec-brainstorm` | 在提议前对变更想法进行头脑风暴 |
 | `/strict-spec-modify` | 修改现有变更的制品 |
+| `/strict-spec-propose-from-roadmap` | 从路线图推荐项提议变更 |
 | `/strict-spec-harness-init` | 创建或优化 `.strict-spec-driven/harness.yaml` 和生成脚本 |
 | `/strict-spec-harness-session` | 运行结构化 harness 调查 |
 | `/strict-spec-spec-edit` | 直接编辑主规范文件 |

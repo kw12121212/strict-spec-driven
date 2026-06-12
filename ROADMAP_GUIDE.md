@@ -161,6 +161,12 @@ Recommended habits:
 
 Use these Claude Code slash commands to work with the roadmap:
 
+### `/strict-spec-propose-from-roadmap`
+
+Runs the scripted roadmap recommendation and turns the selected planned change
+into a normal strict change proposal. This command stops after proposal
+validation; it does not implement code or invoke `/strict-spec-auto`.
+
 ### `/strict-roadmap-recommend`
 
 Reads roadmap state and recommends the best next planned change to work on from standalone planned-change files. The command scaffolds one normal strict change under `.strict-spec-driven/changes/` without stopping for extra confirmation.

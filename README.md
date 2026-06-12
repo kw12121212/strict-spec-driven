@@ -82,6 +82,7 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-spec-migrate` | Migrate bootstrap state to strict YAML |
 | `/strict-spec-brainstorm` | Brainstorm a change idea before proposing |
 | `/strict-spec-modify` | Modify an existing change's artifacts |
+| `/strict-spec-propose-from-roadmap` | Propose a change from the next roadmap recommendation |
 | `/strict-spec-harness-init` | Create or refine `.strict-spec-driven/harness.yaml` and generated scripts |
 | `/strict-spec-harness-session` | Run a structured harness investigation |
 | `/strict-spec-spec-edit` | Edit main spec files directly |

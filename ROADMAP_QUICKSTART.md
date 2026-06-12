@@ -176,6 +176,7 @@ If you are running through an installed skill package, use the exact command for
 |---|---|
 | `/strict-roadmap-plan` | Create or restructure the roadmap |
 | `/strict-roadmap-review` | Review one incomplete milestone and apply fixes |
+| `/strict-spec-propose-from-roadmap` | Propose the next roadmap-recommended change without implementing |
 | `/strict-roadmap-recommend` | Get a recommendation for the next change |
 | `/strict-roadmap-sync` | Reconcile roadmap state with workflow |
 

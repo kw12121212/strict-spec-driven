@@ -205,6 +205,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const reviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-review", "SKILL.md"), "utf8");
   const applySkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-apply", "SKILL.md"), "utf8");
   const proposeSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"), "utf8");
+  const proposeFromRoadmapSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-propose-from-roadmap", "SKILL.md"), "utf8");
   const autoSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-auto", "SKILL.md"), "utf8");
   const brainstormSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-brainstorm", "SKILL.md"), "utf8");
   const modifySkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-modify", "SKILL.md"), "utf8");
@@ -218,6 +219,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedApplySkillContent = applySkillContent.replace(/\s+/g, " ");
   const normalizedReviewSkillContent = reviewSkillContent.replace(/\s+/g, " ");
   const normalizedProposeSkillContent = proposeSkillContent.replace(/\s+/g, " ");
+  const normalizedProposeFromRoadmapSkillContent = proposeFromRoadmapSkillContent.replace(/\s+/g, " ");
   const normalizedAutoSkillContent = autoSkillContent.replace(/\s+/g, " ");
   const normalizedBrainstormSkillContent = brainstormSkillContent.replace(/\s+/g, " ");
   const normalizedModifySkillContent = modifySkillContent.replace(/\s+/g, " ");
@@ -243,6 +245,8 @@ context.assert(
     && normalizedApplySkillContent.includes("When a YAML artifact already declares `schema_file`")
     && normalizedProposeSkillContent.includes("~/.strict-spec-schemas/")
     && normalizedProposeSkillContent.includes("When a YAML artifact already declares `schema_file`")
+    && normalizedProposeFromRoadmapSkillContent.includes("~/.strict-spec-schemas/")
+    && normalizedProposeFromRoadmapSkillContent.includes("When a YAML artifact already declares `schema_file`")
     && normalizedAutoSkillContent.includes("~/.strict-spec-schemas/")
     && normalizedAutoSkillContent.includes("When a YAML artifact already declares `schema_file`")
     && normalizedModifySkillContent.includes("~/.strict-spec-schemas/")
@@ -251,16 +255,32 @@ context.assert(
 );
 context.assert(
   normalizedProposeSkillContent.includes("proposal checkpoint")
-      && normalizedProposeSkillContent.includes("roadmap-recommend")
-      && normalizedProposeSkillContent.includes("treat the command's selected planned change as authoritative")
-      && normalizedProposeSkillContent.includes("before reading broad roadmap context")
+      && normalizedProposeSkillContent.includes("strict-spec-propose-from-roadmap")
       && normalizedProposeSkillContent.includes("Do not auto-invoke `/strict-spec-auto` during strict-spec-propose")
       && normalizedProposeSkillContent.includes("before validation")
       && normalizedProposeSkillContent.includes("semantic self-check")
       && normalizedProposeSkillContent.includes("Do not expand scope or answer unresolved human questions")
       && normalizedProposeSkillContent.includes("proposal checkpoint refinements made")
+      && !normalizedProposeSkillContent.includes("roadmap-recommend")
       && !normalizedProposeSkillContent.includes("proposal review"),
     "strict-spec-propose runs a proposal checkpoint over generated planning artifacts before ready/verify handoff",
+  );
+  context.assert(
+    normalizedProposeFromRoadmapSkillContent.includes("roadmap-recommend")
+      && normalizedProposeFromRoadmapSkillContent.includes("treat the command's selected planned change as authoritative")
+      && normalizedProposeFromRoadmapSkillContent.includes("before reading broad roadmap context")
+      && normalizedProposeFromRoadmapSkillContent.includes("candidates[].skipReasons")
+      && normalizedProposeFromRoadmapSkillContent.includes("recommendation.changeName")
+      && normalizedProposeFromRoadmapSkillContent.includes("`details` field")
+      && normalizedProposeFromRoadmapSkillContent.includes("active strict change conflicts")
+      && normalizedProposeFromRoadmapSkillContent.includes("standalone planned-change")
+      && normalizedProposeFromRoadmapSkillContent.includes("Do not auto-invoke `/strict-spec-auto` during strict-spec-propose-from-roadmap")
+      && normalizedProposeFromRoadmapSkillContent.includes("proposal checkpoint")
+      && normalizedProposeFromRoadmapSkillContent.includes("ready <change-name>")
+      && normalizedProposeFromRoadmapSkillContent.includes("verify <change-name>")
+      && !normalizedProposeFromRoadmapSkillContent.includes("immediately invoke the /strict-spec-auto <change-name> skill")
+      && !normalizedProposeFromRoadmapSkillContent.includes("proposal review"),
+    "strict-spec-propose-from-roadmap handles scripted roadmap recommendation as proposal-only handoff",
   );
   context.assert(
     normalizedAutoSkillContent.includes("complete project-level regression test evidence")
@@ -1141,7 +1161,7 @@ try {
 
 const invalidSemanticSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-core-skill-semantics-invalid-"));
 try {
-  const semanticSkillNames = ["strict-spec-propose", "strict-spec-archive", "strict-spec-review", "strict-spec-auto"];
+  const semanticSkillNames = ["strict-spec-propose", "strict-spec-propose-from-roadmap", "strict-spec-archive", "strict-spec-review", "strict-spec-auto"];
   mkdirSync(path.join(invalidSemanticSkillRoot, "dist", "scripts"), { recursive: true });
   mkdirSync(path.join(invalidSemanticSkillRoot, "dist", "templates"), { recursive: true });
 
@@ -1181,6 +1201,45 @@ try {
       "## Steps",
       "",
       "1. Draft the proposal.",
+      "",
+      "## Rules",
+      "",
+      "- Keep the proposal aligned with the strict CLI.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
+    path.join(invalidSemanticSkillRoot, "skills", "strict-spec-propose-from-roadmap", "SKILL.md"),
+    [
+      "---",
+      "name: strict-spec-propose-from-roadmap",
+      "description: Propose a strict change from roadmap work.",
+      "metadata:",
+      "  skill_id: strict_spec_propose_from_roadmap",
+      "  author: strict-spec-driven",
+      "  type: agent_skill",
+      "  version: 1.0.0",
+      "---",
+      "",
+      "You are helping the user create a strict YAML change proposal under .strict-spec-driven/roadmap/.",
+      "",
+      "## This Skill's Commands",
+      "",
+      "```yaml",
+      "propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>",
+      "generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>",
+      "ready: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>",
+      "verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>",
+      "```",
+      "",
+      "## Prerequisites",
+      "",
+      "Use strict workflow artifacts under .strict-spec-driven/.",
+      "",
+      "## Steps",
+      "",
+      "1. Read roadmap context and choose a planned change manually.",
       "",
       "## Rules",
       "",
@@ -1335,9 +1394,9 @@ try {
     invalidSemanticResult.diagnostics.some(
       (diagnostic) =>
         diagnostic.code === "skill.core.command.missing"
-        && diagnostic.path === "skills/strict-spec-propose/SKILL.md#commands.roadmap-recommend",
+        && diagnostic.path === "skills/strict-spec-propose-from-roadmap/SKILL.md#commands.roadmap-recommend",
     ),
-    "roadmap-backed propose guidance requires the roadmap-recommend command mapping",
+    "roadmap-backed propose-from-roadmap guidance requires the roadmap-recommend command mapping",
   );
   context.assert(
     invalidSemanticResult.diagnostics.some(

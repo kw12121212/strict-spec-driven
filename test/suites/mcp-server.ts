@@ -262,7 +262,8 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   const roadmapBackedProposePrompt =
     promptsModule.renderStrictPrompt("strict_propose_change", { roadmapItem: "next roadmap change" }).messages[0]?.content.text ?? "";
   context.assert(
-    roadmapBackedProposePrompt.includes("roadmap-recommend")
+    roadmapBackedProposePrompt.includes("strict-spec-propose-from-roadmap")
+      && roadmapBackedProposePrompt.includes("roadmap-recommend")
       && roadmapBackedProposePrompt.includes("do not auto-invoke strict-spec-auto"),
     "MCP propose prompt renders roadmap-backed proposal guidance when roadmapItem is supplied",
   );
@@ -585,6 +586,17 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
     });
     const promptMessages = promptGet.result?.messages as Array<{ content: { text: string } }> | undefined;
     context.assert(promptMessages?.[0]?.content.text.includes("strict-spec-review") === true, "MCP protocol prompts/get renders strict prompt");
+    const roadmapPromptGet = await transport.request("prompts/get", {
+      name: "strict_propose_change",
+      arguments: { roadmapItem: "next roadmap change" },
+    });
+    const roadmapPromptMessages = roadmapPromptGet.result?.messages as Array<{ content: { text: string } }> | undefined;
+    context.assert(
+      roadmapPromptMessages?.[0]?.content.text.includes("strict-spec-propose-from-roadmap") === true
+        && roadmapPromptMessages?.[0]?.content.text.includes("roadmap-recommend") === true
+        && roadmapPromptMessages?.[0]?.content.text.includes("generate proposal, design, questions, and delta-spec artifacts") === true,
+      "MCP protocol prompts/get renders roadmap-backed propose guidance",
+    );
     await transport.close();
 
     const missingProjectError = (() => {
@@ -654,6 +666,7 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   context.assert(quickstart.includes("confirm"), "Quick Start documents confirmation requirement");
 
   const proposeSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"), "utf8");
+  const proposeFromRoadmapSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-propose-from-roadmap", "SKILL.md"), "utf8");
   const applySkill = readFileSync(path.join(ROOT, "skills", "strict-spec-apply", "SKILL.md"), "utf8");
   const reviewSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-review", "SKILL.md"), "utf8");
   const roadmapSkill = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
@@ -662,7 +675,12 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   const roadmapBackedPrompt = promptsModule.renderStrictPrompt("strict_propose_change", { roadmapItem: "next roadmap change" }).messages[0]?.content.text ?? "";
   const applyPrompt = promptsModule.renderStrictPrompt("strict_apply_change", { change: "demo-change" }).messages[0]?.content.text ?? "";
   context.assert(proposeSkill.includes("check-workflow-state") && proposePrompt.includes("check-workflow-state"), "MCP propose prompt tracks skill workflow precheck");
-  context.assert(proposeSkill.includes("roadmap-recommend") && roadmapBackedPrompt.includes("roadmap-recommend"), "MCP propose roadmap prompt tracks roadmap-backed skill guidance");
+  context.assert(
+    proposeFromRoadmapSkill.includes("roadmap-recommend")
+      && roadmapBackedPrompt.includes("strict-spec-propose-from-roadmap")
+      && roadmapBackedPrompt.includes("roadmap-recommend"),
+    "MCP propose roadmap prompt tracks roadmap-backed skill guidance",
+  );
   context.assert(applySkill.includes("next pending task") && applyPrompt.includes("next pending task"), "MCP apply prompt tracks skill next-pending-task wording");
   context.assert(reviewSkill.includes("complete project regression command") && reviewPrompt.includes("complete project regression command"), "MCP review prompt tracks regression gate wording");
   context.assert(roadmapSkill.includes("roadmap-recommend") && roadmapPrompt.includes("roadmap-recommend"), "MCP roadmap prompt tracks recommendation command");

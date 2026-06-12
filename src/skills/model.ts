@@ -66,6 +66,8 @@ const ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET = "before reading broad roadmap c
 const ROADMAP_READY_HANDOFF_SNIPPET = "Use `ready` as the proposal handoff validation";
 const ROADMAP_AUTO_POPULATED_HANDOFF_SNIPPET = "populated change scaffold";
 const ROADMAP_PROPOSAL_ONLY_SNIPPET = "Do not auto-invoke `/strict-spec-auto` during strict-spec-propose";
+const ROADMAP_PROPOSE_FROM_ROADMAP_PROPOSAL_ONLY_SNIPPET =
+  "Do not auto-invoke `/strict-spec-auto` during strict-spec-propose-from-roadmap";
 const AUTO_TARGETED_CONTEXT_RESET_SNIPPET = "Reset context from targeted files";
 const AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET = "resume the existing populated strict change scaffold without regenerating planning artifacts";
 const AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET =
@@ -92,8 +94,6 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
   },
   "strict-spec-propose": {
     requiredCommands: {
-      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
-      "roadmap-recommend": `${COMMAND_PREFIX} roadmap-recommend`,
       propose: `${COMMAND_PREFIX} propose <change-name>`,
       generate: GENERATE_NAMED_ARGS_COMMAND,
       ready: READY_COMMAND,
@@ -103,9 +103,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
     requiredSnippets: [
       ".strict-spec-driven/",
       "/strict-spec-auto",
-      ROADMAP_SCRIPTED_RECOMMEND_SNIPPET,
-      ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET,
       ROADMAP_PROPOSAL_ONLY_SNIPPET,
+      "strict-spec-propose-from-roadmap",
       PROPOSAL_CHECKPOINT_SNIPPET,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
@@ -113,6 +112,34 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
     forbiddenSnippets: [
       "Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/.",
       "proposal review",
+    ],
+  },
+  "strict-spec-propose-from-roadmap": {
+    requiredCommands: {
+      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      "roadmap-recommend": `${COMMAND_PREFIX} roadmap-recommend`,
+      propose: `${COMMAND_PREFIX} propose <change-name>`,
+      generate: GENERATE_NAMED_ARGS_COMMAND,
+      ready: READY_COMMAND,
+      verify: `${COMMAND_PREFIX} verify <change-name>`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [
+      ".strict-spec-driven/roadmap/",
+      "/strict-spec-auto",
+      ROADMAP_DETAILS_GUIDANCE_SNIPPET,
+      ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
+      ROADMAP_ACTIVE_CONFLICT_SNIPPET,
+      ROADMAP_SCRIPTED_RECOMMEND_SNIPPET,
+      ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET,
+      ROADMAP_PROPOSE_FROM_ROADMAP_PROPOSAL_ONLY_SNIPPET,
+      PROPOSAL_CHECKPOINT_SNIPPET,
+      SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
+      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+    ],
+    forbiddenSnippets: [
+      "proposal review",
+      "immediately invoke the\n   `/strict-spec-auto <change-name>` skill",
     ],
   },
   "strict-spec-apply": {
