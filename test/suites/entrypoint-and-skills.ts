@@ -251,6 +251,10 @@ context.assert(
 );
 context.assert(
   normalizedProposeSkillContent.includes("proposal checkpoint")
+      && normalizedProposeSkillContent.includes("roadmap-recommend")
+      && normalizedProposeSkillContent.includes("treat the command's selected planned change as authoritative")
+      && normalizedProposeSkillContent.includes("before reading broad roadmap context")
+      && normalizedProposeSkillContent.includes("Do not auto-invoke `/strict-spec-auto` during strict-spec-propose")
       && normalizedProposeSkillContent.includes("before validation")
       && normalizedProposeSkillContent.includes("semantic self-check")
       && normalizedProposeSkillContent.includes("Do not expand scope or answer unresolved human questions")
@@ -1327,6 +1331,14 @@ try {
 
   const invalidSemanticResult = skillValidationModule.validateStrictSkillPackaging(invalidSemanticSkillRoot);
   context.assert(!invalidSemanticResult.valid, "strict skill package validation fails for misleading core skill claims");
+  context.assert(
+    invalidSemanticResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.command.missing"
+        && diagnostic.path === "skills/strict-spec-propose/SKILL.md#commands.roadmap-recommend",
+    ),
+    "roadmap-backed propose guidance requires the roadmap-recommend command mapping",
+  );
   context.assert(
     invalidSemanticResult.diagnostics.some(
       (diagnostic) =>

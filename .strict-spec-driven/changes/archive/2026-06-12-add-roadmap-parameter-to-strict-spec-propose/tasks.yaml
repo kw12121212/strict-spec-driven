@@ -1,0 +1,40 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-roadmap-parameter-to-strict-spec-propose
+sections:
+  Implementation:
+    update-propose-skill-guidance:
+      text: Update strict-spec-propose guidance to support a roadmap-backed proposal mode that starts from roadmap-recommend and stays in proposal stage.
+      status: complete
+    wire-mcp-roadmap-parameter:
+      text: Add the typed MCP proposal-prompt argument and rendered roadmap-backed guidance, then align skill-validation expectations with the new prompt contract.
+      status: complete
+    extend-regression-coverage:
+      text: Extend skill-packaging and MCP prompt regression coverage for the roadmap-backed propose flow.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run the TypeScript lint gate before full tests.
+      status: complete
+      command: bun run lint
+    run-skill-validation:
+      text: Validate packaged strict skill guidance after the propose skill changes.
+      status: complete
+      command: bun run validate-skills
+    run-project-tests:
+      text: Run the built test suite covering skill packaging, roadmap workflow, and MCP prompt behavior.
+      status: complete
+      command: bun run build && bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify the finished change still keeps strict-spec-propose proposal-only while exposing roadmap-backed entry guidance and MCP prompt support.
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-project-tests

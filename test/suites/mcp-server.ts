@@ -192,6 +192,10 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   context.assert(promptNames.includes("strict_roadmap_recommend"), "MCP prompts include roadmap recommendation guidance");
   context.assert(promptNames.includes("strict_harness_investigation"), "MCP prompts include harness investigation guidance");
   context.assert(
+    promptInventory.find((prompt) => prompt.name === "strict_propose_change")?.arguments.some((argument) => argument.name === "roadmapItem" && !argument.required),
+    "MCP propose prompt declares optional roadmap-backed argument",
+  );
+  context.assert(
     promptInventory.find((prompt) => prompt.name === "strict_review_change")?.arguments.some((argument) => argument.name === "change" && argument.required),
     "MCP review prompt declares typed change argument",
   );
@@ -255,6 +259,13 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   const reviewPrompt = promptsModule.renderStrictPrompt("strict_review_change", { change: "demo-change" }).messages[0]?.content.text ?? "";
   context.assert(reviewPrompt.includes("strict-spec-review"), "MCP review prompt renders skill guidance");
   context.assert(reviewPrompt.includes("complete project regression command"), "MCP review prompt preserves regression evidence boundary");
+  const roadmapBackedProposePrompt =
+    promptsModule.renderStrictPrompt("strict_propose_change", { roadmapItem: "next roadmap change" }).messages[0]?.content.text ?? "";
+  context.assert(
+    roadmapBackedProposePrompt.includes("roadmap-recommend")
+      && roadmapBackedProposePrompt.includes("do not auto-invoke strict-spec-auto"),
+    "MCP propose prompt renders roadmap-backed proposal guidance when roadmapItem is supplied",
+  );
   const archivePrompt = promptsModule.renderStrictPrompt("strict_archive_change", { change: "demo-change" }).messages[0]?.content.text ?? "";
   context.assert(archivePrompt.includes("verify-spec-mappings"), "MCP archive prompt renders mapping precondition");
   const roadmapPrompt = promptsModule.renderStrictPrompt("strict_roadmap_recommend", {}).messages[0]?.content.text ?? "";
@@ -648,8 +659,10 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   const roadmapSkill = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
   const harnessSkill = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-session", "SKILL.md"), "utf8");
   const proposePrompt = promptsModule.renderStrictPrompt("strict_propose_change", {}).messages[0]?.content.text ?? "";
+  const roadmapBackedPrompt = promptsModule.renderStrictPrompt("strict_propose_change", { roadmapItem: "next roadmap change" }).messages[0]?.content.text ?? "";
   const applyPrompt = promptsModule.renderStrictPrompt("strict_apply_change", { change: "demo-change" }).messages[0]?.content.text ?? "";
   context.assert(proposeSkill.includes("check-workflow-state") && proposePrompt.includes("check-workflow-state"), "MCP propose prompt tracks skill workflow precheck");
+  context.assert(proposeSkill.includes("roadmap-recommend") && roadmapBackedPrompt.includes("roadmap-recommend"), "MCP propose roadmap prompt tracks roadmap-backed skill guidance");
   context.assert(applySkill.includes("next pending task") && applyPrompt.includes("next pending task"), "MCP apply prompt tracks skill next-pending-task wording");
   context.assert(reviewSkill.includes("complete project regression command") && reviewPrompt.includes("complete project regression command"), "MCP review prompt tracks regression gate wording");
   context.assert(roadmapSkill.includes("roadmap-recommend") && roadmapPrompt.includes("roadmap-recommend"), "MCP roadmap prompt tracks recommendation command");

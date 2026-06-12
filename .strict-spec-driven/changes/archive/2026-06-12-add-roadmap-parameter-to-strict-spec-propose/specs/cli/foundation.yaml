@@ -1,0 +1,34 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - skills/strict-spec-propose/SKILL.md
+    - src/skills/model.ts
+    - src/mcp/inventory.ts
+    - src/mcp/prompts.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/mcp-server.ts
+operations:
+  ADDED:
+    cli-propose-roadmap-backed-guidance:
+      strength: MUST
+      statement: The system MUST let strict-spec-propose guidance enter a roadmap-backed proposal mode that obtains the next eligible standalone planned change through roadmap-recommend before proposal scaffolding, reads only the targeted roadmap context for the selected planned change, and still stops at proposal validation instead of auto-implementing the change.
+      scenarios:
+        roadmap-backed-propose-uses-scripted-recommendation:
+          - GIVEN: a user requests roadmap-backed proposal flow through strict-spec-propose
+          - WHEN: the skill guidance is followed
+          - THEN: the guidance requires roadmap-recommend as the authoritative selector, scaffolds exactly one recommended planned change as a normal strict proposal with milestone and planned_change links, and hands off after ready and verify
+    cli-propose-mcp-roadmap-backed-prompt:
+      strength: MUST
+      statement: The system MUST expose roadmap-backed proposal mode through the strict_propose_change MCP prompt with an optional roadmapItem argument and prompt text that switches from generic proposal guidance to roadmap-recommend-first guidance when that argument is supplied.
+      scenarios:
+        roadmap-backed-propose-prompt-renders-roadmap-guidance:
+          - GIVEN: an MCP client requests strict_propose_change with roadmapItem input
+          - WHEN: the prompt inventory and rendered message are inspected
+          - THEN: the inventory declares the optional roadmapItem argument and the rendered prompt instructs the agent to use roadmap-recommend while keeping the workflow in proposal stage
+  MODIFIED: {}
+  REMOVED: {}

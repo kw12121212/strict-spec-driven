@@ -22,6 +22,7 @@ type McpPromptDefinition = McpCapabilityInventory["prompts"][number] & {
 const optionalChangeSchema = z.strictObject({
   change: z.string().min(1).optional(),
   summary: z.string().min(1).optional(),
+  roadmapItem: z.string().min(1).optional(),
 });
 const changeSchema = z.strictObject({
   change: z.string().min(1),
@@ -53,14 +54,26 @@ function prompt(
 }
 
 export const MCP_PROMPT_DEFINITIONS: McpPromptDefinition[] = [
-  prompt("strict_propose_change", optionalChangeSchema, (args) => [
-    typeof args.change === "string"
-      ? `Use strict-spec-propose to create a strict YAML proposal for ${args.change}.`
-      : "Use strict-spec-propose to create a strict YAML proposal.",
-    args.summary ? `Requested change summary: ${args.summary}.` : "Derive the change name and scope from the user request when none is supplied.",
-    "Run check-workflow-state first, generate proposal, design, questions, and delta-spec artifacts with named arguments, and keep open questions in questions.yaml.",
-    "Run ready before implementation; do not treat proposal work as permission to change code.",
-  ].join("\n")),
+  prompt("strict_propose_change", optionalChangeSchema, (args) => {
+    const roadmapItem = typeof args.roadmapItem === "string" ? args.roadmapItem : undefined;
+    if (roadmapItem) {
+      return [
+        "Use strict-spec-propose to create a strict YAML proposal from roadmap-backed work.",
+        `Roadmap proposal hint: ${roadmapItem}. Start with roadmap-recommend and treat the scripted recommendation as authoritative.`,
+        args.summary ? `Requested change summary: ${args.summary}.` : "Derive proposal scope from the selected roadmap planned change when no extra summary is supplied.",
+        "Read only the selected milestone and standalone planned-change context, scaffold exactly one recommended planned change, and link milestone and planned_change metadata in proposal.yaml.",
+        "Run check-workflow-state first, then ready and verify; keep the workflow in proposal stage and do not auto-invoke strict-spec-auto.",
+      ].join("\n");
+    }
+    return [
+      typeof args.change === "string"
+        ? `Use strict-spec-propose to create a strict YAML proposal for ${args.change}.`
+        : "Use strict-spec-propose to create a strict YAML proposal.",
+      args.summary ? `Requested change summary: ${args.summary}.` : "Derive the change name and scope from the user request when none is supplied.",
+      "Run check-workflow-state first, generate proposal, design, questions, and delta-spec artifacts with named arguments, and keep open questions in questions.yaml.",
+      "Run ready before implementation; do not treat proposal work as permission to change code.",
+    ].join("\n");
+  }),
   prompt("strict_apply_change", changeSchema, (args) => [
     `Use strict-spec-apply for change ${String(args.change)}.`,
     "Read proposal.yaml, design.yaml, tasks.yaml, questions.yaml, delta specs, relevant main specs, and technical standards before editing.",

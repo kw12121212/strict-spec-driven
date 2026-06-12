@@ -1,0 +1,21 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-roadmap-parameter-to-strict-spec-propose
+approach:
+  - Extend strict-spec-propose guidance with a second entry path that uses the existing roadmap-recommend command as the authoritative selector before normal proposal scaffolding.
+  - 'Keep the roadmap-backed flow proposal-only: scaffold and populate proposal artifacts from the recommended planned change, but do not auto-invoke strict-spec-auto from strict-spec-propose.'
+  - Mirror the same contract in MCP prompt inventory and prompt rendering so typed integrations can request roadmap-backed proposal mode deterministically.
+decisions:
+  roadmap-backed-propose-reuses-scripted-selector:
+    decision: Use roadmap-recommend as the only source for selecting the next roadmap-backed planned change in strict-spec-propose roadmap mode.
+    rationale: This matches the existing roadmap recommendation contract and avoids duplicating roadmap eligibility logic inside skill guidance or MCP prompts.
+  roadmap-backed-propose-stays-proposal-only:
+    decision: Keep strict-spec-propose in proposal stage even when it enters through roadmap-backed mode.
+    rationale: strict-spec-propose must still stop after scaffolding, checkpoint, ready, and verify handoff instead of taking over strict-spec-auto's implementation and archive lifecycle.
+  typed-prompt-argument-drives-roadmap-mode:
+    decision: Add an optional roadmapItem argument to strict_propose_change and render roadmap-backed guidance only when that argument is present.
+    rationale: A typed optional argument gives MCP clients an explicit contract for requesting roadmap-backed proposal flow while preserving the existing non-roadmap prompt shape by default.
+alternatives: []
+risks: []

@@ -1,0 +1,27 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-roadmap-parameter-to-strict-spec-propose
+  status: proposed
+summary:
+  what:
+    - Add roadmap-backed mode to the strict-spec-propose skill and MCP proposal prompt.
+    - Let proposal guidance obtain the next eligible roadmap change before scaffolding when the user requests roadmap-backed proposal flow.
+  why:
+    - Users should be able to start proposal work from roadmap order without switching to a separate skill when they want strict-spec-propose to source the next change.
+    - The roadmap-backed flow should reuse the scripted roadmap recommendation contract instead of hand-selecting work.
+scope:
+  in:
+    - Update strict-spec-propose guidance to support a roadmap-backed parameter that starts with roadmap-recommend, reads targeted roadmap context, and scaffolds one recommended planned change as a normal strict proposal.
+    - Add the matching typed MCP prompt argument and rendered guidance for strict_propose_change.
+    - Cover the new behavior with validate-skills and MCP prompt regression tests.
+  out:
+    - Do not change the roadmap-recommend selection algorithm or roadmap status derivation.
+    - Do not change strict-spec-auto implementation or archive behavior beyond consuming the resulting populated proposal artifacts.
+    - Do not change the strict-spec-driven propose CLI subcommand syntax or scaffold file set.
+unchanged_behavior:
+  - Manual strict-spec-propose usage without roadmap-backed input still derives or uses a normal change name and creates the same planning scaffold.
+  - strict-roadmap-recommend remains the authoritative scripted selector for roadmap-backed work and still owns end-to-end recommend-plus-auto behavior.
+  - Proposal generation continues to store roadmap milestone and planned_change links only when the proposal is actually sourced from roadmap-backed work.
