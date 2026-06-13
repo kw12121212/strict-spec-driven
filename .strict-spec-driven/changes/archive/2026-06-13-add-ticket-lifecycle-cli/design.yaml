@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-ticket-lifecycle-cli
+approach:
+  - 'Add src/tickets.ts as the ticket domain module (mirroring src/roadmap.ts): functions createTicket, listTickets, showTicket, validateTickets, plus tickets-index maintenance, all using src/yaml.ts parse/stringify and src/validation.ts schema loading and validateArtifact. Add src/cli/cmd-tickets.ts with runTicketCreate/runTicketList/runTicketShow/runTicketValidate wrappers following the cmd-roadmap.ts JSON/help/usage pattern. Register the four commands in src/cli/registry.ts COMMAND_REGISTRATION_ORDER and the command table in src/strict-spec-cli.ts. Create the ticket-domain-behavior main spec shell with empty requirements plus mapping, register it in specs/INDEX.yaml, and carry requirements as a delta spec that merges on archive. Add a tickets test suite registered in test/run.ts.'
+decisions:
+  id-generation:
+    decision: ticket-create derives the id from a slug of the title plus a short hash suffix computed from the ticket's requirement content (title, problem, desired_outcome).
+    rationale: 'Content-derived ids are conflict-resistant for high-churn multi-author intake (per the contract decision) and make create idempotent: the same requirement yields the same id and file rather than a second ticket.'
+  idempotent-create:
+    decision: 'ticket-create is idempotent: if the derived id already exists, it does not clobber existing ticket state; it reports the existing path and leaves the file unchanged. The tickets index is rewritten deterministically from the on-disk tickets each create.'
+    rationale: Matches the contract's idempotency requirement and the workflow rule that scripts own deterministic format enforcement without destroying state on rerun.
+  behavior-spec-shell:
+    decision: Create the ticket-domain-behavior main spec as an empty-requirements shell registered in specs/INDEX.yaml; the delta spec ADDS the requirements which merge into the shell on archive.
+    rationale: This is the established pattern for introducing a new per-domain behavior spec (e.g. add-roadmap-domain-behavior-spec), avoiding duplicate-requirement archive conflicts while keeping the new domain under the coverage gate.
+alternatives: []
+risks: []

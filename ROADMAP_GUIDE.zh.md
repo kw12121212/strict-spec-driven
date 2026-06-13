@@ -257,3 +257,21 @@ node scripts/strict-spec-driven.js roadmap-status
 `roadmap-overview` 会先输出里程碑总览表，再按里程碑分组输出计划变更明细。
 
 `roadmap-status` 会以 JSON 输出每个里程碑的声明状态和派生状态、每个计划变更的来源文件路径和工作流状态，以及任何不匹配或跨文件校验问题。
+
+## 工单来源与接收流水线
+
+里程碑可以源自一个**工单**——存放于 `.strict-spec-driven/tickets/` 的纯需求（问题、期望的可观察结果、意图）严格 YAML 捕获，其 id 来自内容派生、具备冲突抵抗性，而非共享计数器。端到端路径为：
+
+```text
+工单 -> 分诊决定 -> 路线图里程碑 -> 计划变更 -> 严格变更 -> 规范 / 技术标准 / 代码
+```
+
+两个接收步骤都是 Skill：`/strict-spec-ticket` 捕获需求（不做方案设计），`/strict-spec-ticket-triage` 判断需求是否已实现并驱动 `ticket-resolve`。**判断属于 AI 工作，仅存在于分诊 Skill 提示中**；**CLI 只执行确定性的状态转换**并将决定记录到工单上。在 `not_implemented` 决定下，CLI 会：
+
+- 确定性地分配下一个里程碑编号，冲突时拒绝（绝不覆盖）；
+- 物化一个里程碑骨架，goal 取自工单的期望结果，scope 与 done criteria 留作明确的 `REFINEMENT NEEDED` 占位；
+- 在 `INDEX.yaml` 中登记，将工单置为 `promoted`，并写入双向链接：`ticket.promoted_to` 和里程碑的 `source_ticket` 反向引用。
+
+晋升是**幂等的**——对已晋升的工单重复分诊会返回既有里程碑，而不会创建第二个。
+
+`roadmap-status` 会为已晋升的里程碑呈现工单来源：输出来源工单 id（`sourceTicket`），并在里程碑仍带晋升占位时设置 `needsScopeRefinement`，提示审阅者运行 `/strict-roadmap-milestone` 定义真实的范围、完成标准与依赖，再将其视为可执行。`roadmap-sync` 会保留 `source_ticket` 反向引用，不丢弃、不重复、不重排。

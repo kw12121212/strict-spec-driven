@@ -1,0 +1,27 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: cover-ticket-workflow-with-regression
+  milestone: 0017-ticket-intake-and-triage
+status: complete
+summary: Add regression coverage for ticket schema validation, lifecycle commands, all three triage outcomes, promotion idempotency and collision refusal, behavior-spec mapping validity, and packaging validation for the two new skills, exercised against the repeatable real-project fixture.
+details: |-
+  Pin the ticket layer with deterministic regression tests so future workflow edits cannot silently break it. Coverage must include: schema validation positive and negative cases (valid ticket and tickets-index examples pass; malformed tickets — missing required fields, unknown status, bad references — produce actionable path-aware diagnostics); lifecycle commands (create generates a conflict-resistant id and maintains the index, list/show return deterministic output, validate behaves over one and all tickets); all three triage outcomes — not-implemented (a new numbered milestone skeleton is materialized with the goal seeded and scope left as the refinement stub, registered in the roadmap index, ticket status becomes promoted, and ticket.promoted_to plus the milestone source-ticket back-reference are both written and mutually consistent), implemented (ticket closed with recorded evidence links), and not-wanted (ticket rejected/deferred with recorded rationale); promotion idempotency and collision safety (re-running a promotion does not produce a second milestone, and a milestone-number collision is refused rather than overwriting an existing milestone); rerun idempotency of create; roadmap-status/roadmap-sync preserving the source-ticket back-reference and flagging unrefined promoted milestones; spec-to-code mapping validity for the new ticket behavior spec; and packaging validation for the two new skills (frontmatter, command references, symlink resolution).
+
+  Run the project-fixture scenarios against the shared copied real-project fixture so the ticket flow is validated in a repeatable project context, and ensure new src/** lines stay within the declared coverage gate.
+depends_on:
+  - define-ticket-artifact-contract
+  - add-ticket-lifecycle-cli
+  - add-ticket-triage-and-promotion-cli
+  - add-ticket-create-skill
+  - add-ticket-triage-skill
+  - link-ticket-origin-through-roadmap-and-docs
+team:
+  blocked:
+    status: false
+  labels:
+    - ticket
+    - testing
+    - regression

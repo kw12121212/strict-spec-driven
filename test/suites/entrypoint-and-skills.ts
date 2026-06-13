@@ -52,6 +52,11 @@ const expectedCommandOrder = [
   "roadmap-overview",
   "roadmap-sync",
   "roadmap-recommend",
+  "ticket-create",
+  "ticket-list",
+  "ticket-show",
+  "ticket-validate",
+  "ticket-resolve",
   "maintenance",
   "ship",
   "commit-and-push",
@@ -195,6 +200,34 @@ context.assert(packageValidation.summary.skillCount > 0, "strict skill package v
 context.assert(
   packageValidation.summary.skillCount === packageValidation.summary.marketplaceCount,
   "marketplace metadata count matches discovered strict skills",
+);
+
+const ticketSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-ticket", "SKILL.md"), "utf8");
+context.assert(
+  ticketSkillContent.includes("ticket-create") && ticketSkillContent.includes("pure intent"),
+  "ticket-creation skill drives ticket-create and captures pure intent",
+);
+context.assert(
+  ticketSkillContent.includes("never hand-write ticket YAML") || ticketSkillContent.includes("never hand-write"),
+  "ticket-creation skill delegates file creation to the CLI",
+);
+context.assert(
+  !packageValidation.diagnostics.some((diagnostic) => diagnostic.path.includes("strict-spec-ticket")),
+  "strict-spec-ticket skill passes packaging validation with no diagnostics",
+);
+
+const triageSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-ticket-triage", "SKILL.md"), "utf8");
+context.assert(
+  triageSkillContent.includes("ticket-resolve") && triageSkillContent.includes("/strict-roadmap-milestone"),
+  "ticket-triage skill drives ticket-resolve and hands off to milestone refinement",
+);
+context.assert(
+  triageSkillContent.toLowerCase().includes("defer to the user") && triageSkillContent.includes("never guess"),
+  "ticket-triage skill defers to the user on ambiguous evidence",
+);
+context.assert(
+  triageSkillContent.includes("judgment stays in this prompt") || triageSkillContent.includes("judgment is yours"),
+  "ticket-triage skill keeps the implemented-vs-not judgment in the prompt",
 );
 
 const validateSkillsCli = validateSkillsDispatch;

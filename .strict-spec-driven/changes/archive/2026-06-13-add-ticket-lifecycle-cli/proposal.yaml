@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-ticket-lifecycle-cli
+  status: proposed
+summary:
+  what:
+    - 'Add the ticket lifecycle CLI command surface: ticket-create (scaffold a new ticket from the bundled template with a conflict-resistant content-derived id and initial open status), ticket-list (enumerate tickets with status and key fields as deterministic JSON plus human output), ticket-show (print one ticket and its file path), and ticket-validate (run schema and reference validation over one or all tickets with path-aware diagnostics). Add a ticket command-domain behavior-contract main spec with spec-to-code mappings onto the new implementation and test files.'
+  why:
+    - The ticket artifact contract (define-ticket-artifact-contract) defined ticket state; this change makes it operable so all filesystem mechanics, parsing, validation, and format enforcement live in scripts rather than skill prompts. A behavior spec keeps the new command domain within the repository's per-domain coverage discipline so it does not land as uncovered code.
+scope:
+  in:
+    - New domain module src/tickets.ts owning ticket creation/listing/show/validation and tickets-index maintenance through the shared YAML and validation modules; new CLI wrapper src/cli/cmd-tickets.ts; registration of ticket-create/ticket-list/ticket-show/ticket-validate in the CLI command registry and table; conflict-resistant content-derived id generation; idempotent create that maintains .strict-spec-driven/tickets/INDEX.yaml canonically and never clobbers existing ticket state; a new ticket-domain-behavior main spec registered in specs/INDEX.yaml with mappings; a new test suite covering the four commands; build and coverage-gate evidence.
+  out:
+    - The triage-resolution transition command (ticket-resolve), milestone materialization/promotion, ticket-creation and ticket-triage skills, roadmap source-ticket back-references, documentation, and MCP exposure — all handled in later milestone 0017 changes.
+unchanged_behavior:
+  - All existing CLI commands and their behavior, the ticket and tickets-index schemas defined by the contract change, existing specs other than the new ticket domain spec and the specs index registration, and existing roadmap status/sync behavior.
+roadmap:
+  milestone: 0017-ticket-intake-and-triage
+  planned_change: add-ticket-lifecycle-cli

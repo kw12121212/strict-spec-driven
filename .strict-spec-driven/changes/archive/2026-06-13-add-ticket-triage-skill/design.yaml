@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-ticket-triage-skill
+approach:
+  - Create skills/strict-spec-ticket-triage/SKILL.md following the lightweight-skill structure with a This Skill's Commands block referencing check-workflow-state, ticket-show, ticket-list, ticket-validate, ticket-resolve, and roadmap-sync. Add the scripts symlink and the marketplace.json entry. The prompt drives evidence gathering and the CLI transition; it never writes YAML directly. Add a packaging/content test assertion.
+decisions:
+  skill-name:
+    decision: Name the skill strict-spec-ticket-triage in the strict-spec family.
+    rationale: The skill packaging validator only accepts strict-spec-*, strict-roadmap-*, and strict-tech-* prefixes, so the milestone's suggested strict-ticket-triage name is finalized as strict-spec-ticket-triage, consistent with the strict-spec-ticket capture skill.
+  judgment-in-prompt:
+    decision: The implemented-vs-not judgment lives entirely in the skill prompt; the skill passes the decided outcome, evidence, and rationale to ticket-resolve, which performs the deterministic transition.
+    rationale: 'Keeps the human/AI checkpoint: the CLI stays a verifiable state machine while the assessment that drove a transition is AI judgment recorded as a triage decision.'
+  defer-on-ambiguity:
+    decision: When evidence is ambiguous or spec coverage is too thin to decide confidently, the skill defers to the user and leaves the ticket open or in needs_input rather than guessing.
+    rationale: The judgment is only as reliable as current spec/mapping/doc coverage; deferring on ambiguity prevents wrongly closing a real requirement.
+  promotion-handoff:
+    decision: After a not-implemented promotion the skill runs roadmap-sync and hands off to /strict-roadmap-milestone for scope, done criteria, and dependencies; it never fabricates milestone scope or decomposes into changes.
+    rationale: The CLI seeds only the milestone goal and stubs scope; real scope definition belongs to the milestone workflow, not the triage skill.
+  no-delta-spec:
+    decision: This change carries no delta spec (an explicit empty-spec decision). It adds only a skill package and marketplace entry; the deterministic ticket-resolve behavior the skill drives is already specified by the ticket-domain-behavior spec.
+    rationale: The skill is an AI-judgment prompt, not new observable CLI behavior, and the milestone confines AI judgment to skill prompts rather than spec requirements.
+alternatives: []
+risks: []

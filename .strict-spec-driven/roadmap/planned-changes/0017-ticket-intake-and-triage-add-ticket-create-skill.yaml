@@ -1,0 +1,21 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-ticket-create-skill
+  milestone: 0017-ticket-intake-and-triage
+status: complete
+summary: Add a ticket-creation skill that captures a requirement as pure intent — problem, desired observable outcome, and acceptance notes, with no solutioning — and scaffolds the ticket through the CLI.
+details: |-
+  Create a strict skill package (suggested name strict-spec-ticket) following established skill packaging conventions — SKILL.md frontmatter, command-reference block, and the scripts/templates symlink behavior the packaging validator enforces. The skill guides a human or agent to articulate a requirement as pure intent and explicitly steers away from proposing a solution, technology choice, or design, mirroring the spec rule that specs capture observable behavior rather than implementation.
+
+  The skill must run the workflow-state check first and stop with an init instruction if .strict-spec-driven/ is missing, then collect the problem statement, the desired observable outcome, intent/acceptance notes, optional labels, and an optional external-tracker reference, then scaffold the ticket via the ticket-create CLI command (never by writing YAML by hand). It should confirm the captured requirement back to the user and report the created ticket id and path, and it must not perform triage, propose changes, or create milestones — that is the triage skill's job. Keep the AI judgment about how to phrase the requirement in the prompt; keep file creation in the CLI.
+depends_on:
+  - add-ticket-lifecycle-cli
+team:
+  blocked:
+    status: false
+  labels:
+    - ticket
+    - skill

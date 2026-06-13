@@ -469,7 +469,7 @@ requirements:
         - THEN: at least one planned change depends on an earlier planned change
   strict-roadmap-skill-command-contract:
     strength: MUST
-    statement: 'The system MUST provide strict roadmap skill packages for `plan`, `milestone`, `recommend`, and `sync` with explicit command mappings that reference the strict roadmap command(s) and shared strict change commands those skills depend on, and MUST keep roadmap-backed proposal-only handoff separate as the `strict-spec-propose-from-roadmap` skill rather than packaging a `strict-roadmap-propose` skill.'
+    statement: The system MUST provide strict roadmap skill packages for `plan`, `milestone`, `recommend`, and `sync` with explicit command mappings that reference the strict roadmap command(s) and shared strict change commands those skills depend on, and MUST keep roadmap-backed proposal-only handoff separate as the `strict-spec-propose-from-roadmap` skill rather than packaging a `strict-roadmap-propose` skill.
     scenarios:
       roadmap-skills-expose-concrete-strict-commands:
         - GIVEN: a strict roadmap `SKILL.md` file is reviewed
@@ -1398,3 +1398,42 @@ requirements:
         - GIVEN: an agent or tool needs to discover supported strict workflow schemas from the shared cache
         - WHEN: it inspects ~/.strict-spec-schemas/
         - THEN: the shared cache includes the exported schema registry and enough metadata to enumerate the exported schema files
+  yaml-ticket-artifact-family:
+    strength: MUST
+    statement: The system MUST define a strict YAML ticket artifact family that captures a pure requirement (problem statement, desired observable outcome, and intent/acceptance notes) separate from any solution, with a conflict-resistant ticket id and title, a lifecycle status enum, creation metadata, optional labels and an optional external-tracker reference, provenance links, and an embedded triage-decision record, represented through structured YAML fields.
+    scenarios:
+      ticket-captures-pure-requirement-and-triage-state:
+        - GIVEN: the strict YAML ticket schema is reviewed
+        - WHEN: the ticket artifact contract is checked
+        - THEN: problem statement, desired outcome, and intent are available as structured fields separate from any solution, a conflict-resistant id and lifecycle status enum are present, and an embedded triage-decision record with outcome, evidence, rationale, and timestamp is representable
+  yaml-ticket-conflict-resistant-ids-and-index:
+    strength: MUST
+    statement: The system MUST store tickets under a dedicated strict workflow tickets location with a tickets index artifact and per-ticket files identified by conflict-resistant ids derived from ticket content rather than a shared sequential counter.
+    scenarios:
+      tickets-use-conflict-resistant-ids:
+        - GIVEN: the strict YAML ticket and tickets-index contracts are reviewed
+        - WHEN: ticket identity and storage are checked
+        - THEN: tickets are stored as per-ticket files under a dedicated tickets location with a tickets index
+        - AND: ticket ids are derived from ticket content rather than allocated from a shared sequential counter so concurrent intake does not collide on a global number
+  yaml-ticket-schema-assets:
+    strength: MUST
+    statement: The system MUST provide concrete schema, schema registry, and minimal valid example assets for the ticket and tickets-index artifact families alongside the existing strict workflow schema and example assets.
+    scenarios:
+      ticket-schema-assets-are-discoverable:
+        - GIVEN: strict workflow schema assets are reviewed
+        - WHEN: the ticket and tickets-index artifact families are checked
+        - THEN: concrete ticket and tickets-index schema files are available under templates/strict-spec-driven/schemas/
+        - THEN: the schema registry lists the ticket and tickets-index schemas each with a primary example
+        - THEN: minimal valid ticket and tickets-index examples are available under examples/strict-spec-driven/
+      ticket-schema-assets-validate:
+        - GIVEN: the ticket and tickets-index schemas and their primary examples are loaded
+        - WHEN: validation is run through the shared strict YAML validation layer
+        - THEN: each example parses successfully and matches the schema identity and artifact type declared by its schema
+  yaml-milestone-source-ticket-backreference:
+    strength: MUST
+    statement: The system MUST allow a roadmap milestone artifact to carry an optional source-ticket back-reference identifying the ticket it was promoted from, so ticket-to-milestone provenance is recoverable from the roadmap side.
+    scenarios:
+      milestone-accepts-source-ticket:
+        - GIVEN: the roadmap milestone schema is reviewed
+        - WHEN: a milestone carries an optional source-ticket back-reference
+        - THEN: the milestone validates with the source-ticket field present and the field identifies the originating ticket by id

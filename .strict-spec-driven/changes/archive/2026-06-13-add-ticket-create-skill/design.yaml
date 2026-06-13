@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-ticket-create-skill
+approach:
+  - Create skills/strict-spec-ticket/SKILL.md following the established lightweight-skill structure (frontmatter with name/description/metadata, a This Skill's Commands yaml block referencing check-workflow-state and the ticket-create/ticket-list/ticket-show commands via the bundled script, Steps, Rules). Add the scripts symlink to ../../dist/scripts. Append the marketplace.json entry. Add a focused test assertion that validate-skills reports the new skill with no diagnostics.
+decisions:
+  skill-name:
+    decision: Name the skill strict-spec-ticket in the strict-spec family.
+    rationale: Follows the established strict-spec-* packaging naming the validator enforces and groups ticket capture with the other spec-workflow skills.
+  pure-intent-prompt:
+    decision: The SKILL.md prompt explicitly steers the author to capture problem, desired observable outcome, and intent only, and to avoid proposing a solution, technology, or design.
+    rationale: Keeps ticket capture free of solutioning, mirroring the spec rule that artifacts describe observable behavior; the judgment about phrasing stays in the prompt while file creation stays in the CLI.
+  cli-only-writes:
+    decision: The skill scaffolds tickets only through the ticket-create command and never hand-writes ticket YAML.
+    rationale: Honors the workflow rule that scripts own filesystem mechanics and format enforcement; the skill carries AI judgment, not file IO.
+  no-delta-spec:
+    decision: This change carries no delta spec (an explicit empty-spec decision). It adds only a skill package and marketplace entry; ticket command behavior is already specified by the ticket-domain-behavior spec and skill packaging is governed by the skill packaging validator.
+    rationale: The skill is an AI-judgment prompt, not new observable CLI behavior, and the milestone deliberately confines AI judgment to skill prompts rather than spec requirements; a behavior-spec requirement would misrepresent prompt guidance as deterministic system behavior.
+alternatives: []
+risks: []

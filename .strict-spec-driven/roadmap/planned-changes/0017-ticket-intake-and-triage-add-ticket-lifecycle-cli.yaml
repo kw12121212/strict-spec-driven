@@ -1,0 +1,23 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-ticket-lifecycle-cli
+  milestone: 0017-ticket-intake-and-triage
+status: complete
+summary: Add deterministic CLI lifecycle commands for tickets (create with conflict-resistant id generation, list, show, validate) that create, parse, validate, and maintain ticket YAML and the tickets index through structured APIs, and carry the ticket command-domain behavior spec and mappings.
+details: |-
+  Implement the ticket lifecycle command surface so all filesystem mechanics, parsing, validation, and format enforcement live in scripts rather than skill prompts. Suggested commands (finalize names against the existing CLI surface): ticket-create to scaffold a new ticket from the bundled template with a conflict-resistant generated id (slug- or content-derived per the contract, never from a shared sequential counter) and initial open status; ticket-list to enumerate tickets with status and key fields as deterministic JSON plus human output; ticket-show to print one ticket and its path for agent editing; and ticket-validate to run the schema and reference validation over one or all tickets with path-aware diagnostics.
+
+  Creating or updating a ticket must maintain the tickets index canonically and deterministically, must not clobber existing ticket state on rerun (idempotent create/init behavior), and must emit the created/affected file path so agents can edit it. Reuse the shared YAML parse/stringify, schema-loading, diagnostics, and deterministic-serialization modules already used by other artifacts; do not introduce ad hoc text manipulation.
+
+  To keep the repository's self-hosting discipline (every command domain has a behavior spec since M14, under the M16 coverage gate), this change also adds a ticket command-domain behavior-contract main spec (for example .strict-spec-driven/specs/ticket/domain-behavior.yaml) carried as a delta spec, with spec-to-code mappings onto the new lifecycle implementation and test files, so the ticket surface does not land as uncovered code. The triage/promotion transition and milestone materialization are intentionally out of scope here and handled in the next change.
+depends_on:
+  - define-ticket-artifact-contract
+team:
+  blocked:
+    status: false
+  labels:
+    - ticket
+    - cli

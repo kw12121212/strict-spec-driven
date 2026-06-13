@@ -264,3 +264,21 @@ node scripts/strict-spec-driven.js roadmap-status
 `roadmap-overview` prints a milestone summary table followed by per-milestone planned-change detail.
 
 `roadmap-status` reports each milestone's declared and derived status, each planned change's source file path and workflow state, and any mismatches or cross-file validation problems in JSON.
+
+## Ticket Origin and the Intake Pipeline
+
+Milestones can originate from a **ticket** — a strict YAML capture of a pure requirement (problem, desired observable outcome, intent) under `.strict-spec-driven/tickets/`, with a conflict-resistant content-derived id rather than a shared counter. The end-to-end path is:
+
+```text
+ticket -> triage decision -> roadmap milestone -> planned change -> strict change -> spec / tech / code
+```
+
+The two intake steps are skills: `/strict-spec-ticket` captures the requirement (no solutioning), and `/strict-spec-ticket-triage` judges whether the requirement is already implemented and drives `ticket-resolve`. The **judgment is AI work confined to the triage skill prompt**; the **CLI performs only the deterministic transition** and records the decision on the ticket. On a `not_implemented` decision the CLI:
+
+- allocates the next milestone number deterministically and refuses (never overwrites) on collision,
+- materializes a milestone skeleton with the goal copied from the ticket's desired outcome and scope / done criteria left as an explicit `REFINEMENT NEEDED` stub,
+- registers it in `INDEX.yaml`, sets the ticket to `promoted`, and writes bidirectional links: `ticket.promoted_to` and a milestone `source_ticket` back-reference.
+
+Promotion is **idempotent** — re-running triage on an already-promoted ticket returns the existing milestone instead of creating a second one.
+
+`roadmap-status` surfaces ticket provenance for promoted milestones: it reports the originating ticket id (`sourceTicket`) and sets `needsScopeRefinement` while the milestone still carries the promotion stub, so reviewers know to run `/strict-roadmap-milestone` to define real scope, done criteria, and dependencies before treating it as executable. `roadmap-sync` preserves the `source_ticket` back-reference without dropping, duplicating, or reordering it.

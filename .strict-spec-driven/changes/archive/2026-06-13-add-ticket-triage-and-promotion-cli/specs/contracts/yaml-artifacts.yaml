@@ -1,0 +1,22 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+  tests:
+    - test/suites/tickets.ts
+operations:
+  ADDED:
+    yaml-milestone-source-ticket-backreference:
+      strength: MUST
+      statement: The system MUST allow a roadmap milestone artifact to carry an optional source-ticket back-reference identifying the ticket it was promoted from, so ticket-to-milestone provenance is recoverable from the roadmap side.
+      scenarios:
+        milestone-accepts-source-ticket:
+          - GIVEN: the roadmap milestone schema is reviewed
+          - WHEN: a milestone carries an optional source-ticket back-reference
+          - THEN: the milestone validates with the source-ticket field present and the field identifies the originating ticket by id
+  MODIFIED: {}
+  REMOVED: {}

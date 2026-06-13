@@ -1,0 +1,38 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: link-ticket-origin-through-roadmap-and-docs
+sections:
+  Implementation:
+    parse-source-ticket:
+      text: Parse an optional source_ticket string when validating a milestone artifact (src/roadmap/validate.ts) and carry it on the in-memory artifact and the RoadmapMilestoneArtifact type (src/roadmap/model.ts).
+      status: complete
+    preserve-in-sync:
+      text: Preserve source_ticket in buildCanonicalMilestoneArtifact (src/roadmap/sync.ts) so roadmap-sync never drops the back-reference.
+      status: complete
+    surface-in-status:
+      text: Add sourceTicket and needsScopeRefinement to RoadmapMilestoneStatus and populate them in buildMilestoneStatus (src/roadmap/status.ts), flagging refinement when a source ticket is present and the scope/done_criteria still carry the REFINEMENT NEEDED stub.
+      status: complete
+    document-pipeline:
+      text: Document the ticket -> milestone -> change -> spec/tech/code pipeline and the AI-judgment vs CLI boundary in README, QUICKSTART, ROADMAP_GUIDE and their Chinese equivalents.
+      status: complete
+  Testing:
+    add-provenance-tests:
+      text: Add roadmap regression coverage (test/suites/roadmap-and-migration.ts) for roadmap-status surfacing sourceTicket and needsScopeRefinement and roadmap-sync preserving source_ticket.
+      status: complete
+    run-build:
+      text: Rebuild compiled output so dist reflects the roadmap changes.
+      status: complete
+      command: bun run build
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope (roadmap preservation/surfacing + docs only; no milestone-field or CLI authoring changes).
+      status: complete
+testing_gates:
+  validation_task: add-provenance-tests
+  unit_test_task: run-project-regression

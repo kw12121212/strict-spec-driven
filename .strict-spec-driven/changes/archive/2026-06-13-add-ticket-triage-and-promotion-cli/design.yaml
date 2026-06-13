@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-ticket-triage-and-promotion-cli
+approach:
+  - 'Add src/ticket-triage.ts with resolveTicket(rootDir, {ticketId, outcome, rationale, evidence}). It reads the ticket, records a structured triage_decision (outcome, evidence, rationale, decided_at), and branches by outcome. implemented: status=implemented, evidence -> provenance.implemented_by. not_wanted: status=rejected. not_implemented: idempotently promote by first looking for an existing milestone whose source_ticket equals the ticket id; if none, allocate the next 4-digit milestone number from the roadmap index and milestone files, refuse on collision, build a validated milestone skeleton (goal copied from the ticket desired outcome; scope/done_criteria as explicit REFINEMENT NEEDED stubs; status proposed; empty planned_changes; source_ticket back-reference), register it in the roadmap index, and set ticket.status=promoted plus provenance.promoted_to. Add ticket-resolve to cmd-tickets.ts and the registry. Add the optional source_ticket field to the roadmap-milestone schema.'
+decisions:
+  cli-records-not-judges:
+    decision: The CLI consumes a decision supplied as arguments (outcome, evidence, rationale) and only records it and applies the matching transition; it never determines whether the requirement is implemented.
+    rationale: Keeps the implemented-vs-not judgment in the triage skill prompt, preserving the human/AI checkpoint and keeping the CLI a deterministic, verifiable state machine.
+  deterministic-milestone-number:
+    decision: Promotion allocates the next milestone number from the max 4-digit prefix across both the roadmap index and milestone files, and refuses (errors) if the target milestone id already exists rather than overwriting.
+    rationale: Milestone ids are sequential and stable; concurrent promotions could race for the next number, so allocation must be deterministic and collision must be refused, not silently overwritten.
+  idempotent-promotion:
+    decision: 'Promotion is idempotent by keying on the milestone source_ticket back-reference: if a milestone already records this ticket as its source, no second milestone is created and the existing link is returned.'
+    rationale: Re-running a promotion must never create a duplicate milestone; keying idempotency on the roadmap-side back-reference makes it recoverable even if the ticket link write was interrupted.
+  seed-goal-only:
+    decision: The milestone skeleton seeds only the goal (copied from the ticket desired outcome) and leaves scope and done_criteria as explicit REFINEMENT NEEDED stubs.
+    rationale: The CLI cannot derive scope from requirement prose without judgment; seeding only the goal and stubbing the rest hands real scope definition to /strict-roadmap-milestone rather than fabricating misleading planning text.
+alternatives: []
+risks: []

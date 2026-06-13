@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-ticket-triage-skill
+  status: proposed
+summary:
+  what:
+    - 'Add a ticket-triage skill package (skills/strict-spec-ticket-triage) that performs the implemented-vs-not judgment the CLI deliberately omits: it reads a ticket, inspects the strict spec index, spec-to-code mappings, implementation code, and docs, forms a judgment, then drives the ticket-resolve CLI to close (implemented), promote (not_implemented), or reject/defer (not_wanted) the ticket, deferring to the user when evidence is ambiguous, and after a promotion runs roadmap-sync and hands off to /strict-roadmap-milestone for scope refinement. Register it in marketplace.json.'
+  why:
+    - 'Triage is where the value concentrates: the implemented-vs-not determination is AI judgment that must stay in a skill prompt, while the CLI performs only the deterministic transition. This skill completes the two-step intake (capture then triage) and the ticket -> milestone handoff.'
+scope:
+  in:
+    - New skill directory skills/strict-spec-ticket-triage with SKILL.md (frontmatter, This Skill's Commands block referencing check-workflow-state, ticket-show, ticket-list, ticket-validate, ticket-resolve, and roadmap-sync, Steps, Rules) and a scripts symlink; a marketplace.json entry in the strict-spec family; prompt guidance to gather evidence from specs/mappings/code/docs, record the evidence relied on through the CLI, defer to the user on ambiguous evidence or thin coverage, and after promotion run roadmap-sync and hand off to /strict-roadmap-milestone; a packaging/content test assertion.
+  out:
+    - Any CLI behavior change (ticket-resolve already exists), roadmap-status surfacing, sync preservation of source_ticket, user documentation, and MCP exposure — handled in other milestone 0017 changes. The skill never hand-writes ticket or milestone YAML and never fabricates milestone scope.
+unchanged_behavior:
+  - All existing skills and their packaging, the ticket CLI commands and schemas, roadmap behavior, and all specs.
+roadmap:
+  milestone: 0017-ticket-intake-and-triage
+  planned_change: add-ticket-triage-skill

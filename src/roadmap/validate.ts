@@ -511,6 +511,16 @@ export function validateMilestoneArtifact(
       })()
     : undefined;
 
+  const sourceTicket = "source_ticket" in artifact && artifact.source_ticket !== undefined
+    ? (() => {
+        if (typeof artifact.source_ticket !== "string") {
+          diagnostics.push(makeDiagnostic("schema", artifactPath, "$.source_ticket", "value must be a string", "string", typeof artifact.source_ticket));
+          return null;
+        }
+        return artifact.source_ticket;
+      })()
+    : undefined;
+
   const statusValue = artifact.status;
   if (!isDeclaredRoadmapStatus(statusValue)) {
     diagnostics.push(
@@ -685,5 +695,6 @@ export function validateMilestoneArtifact(
     status: statusValue,
     notes,
     details: details ?? undefined,
+    source_ticket: sourceTicket ?? undefined,
   };
 }

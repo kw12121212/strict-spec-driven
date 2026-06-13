@@ -1,0 +1,22 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: link-ticket-origin-through-roadmap-and-docs
+  milestone: 0017-ticket-intake-and-triage
+status: complete
+summary: Thread ticket provenance through the roadmap by preserving a milestone source-ticket back-reference in roadmap status and sync, and document the ticket -> milestone -> change -> spec/tech/code pipeline including the Chinese equivalents.
+details: |-
+  Make ticket origin recoverable from the roadmap side and explain the whole path to users. Add a milestone source-ticket back-reference field to the roadmap milestone contract (or confirm the field added during promotion) and ensure roadmap loading, status derivation, index regeneration, and sync preserve it without dropping, duplicating, or reordering it. roadmap-status should surface the originating ticket id for ticket-promoted milestones so the provenance link is visible in diagnostics, and should flag a freshly promoted milestone whose scope and done_criteria are still the promotion refinement stub so reviewers know it needs /strict-roadmap-milestone refinement before it is treated as executable.
+
+  Update user documentation — README, QUICKSTART, ROADMAP_GUIDE, and their Chinese equivalents — to describe the ticket layer and the end-to-end ticket -> roadmap milestone -> change -> spec/tech/code pipeline: how to file a ticket as a pure requirement, how triage decides implemented-vs-not, how a not-implemented ticket becomes a milestone, and the explicit boundary that AI judgment lives in the triage skill while the CLI performs only deterministic state transitions. Keep this change to the roadmap wiring and documentation needed for provenance; do not rework unrelated roadmap behavior.
+depends_on:
+  - add-ticket-triage-and-promotion-cli
+team:
+  blocked:
+    status: false
+  labels:
+    - ticket
+    - roadmap
+    - docs

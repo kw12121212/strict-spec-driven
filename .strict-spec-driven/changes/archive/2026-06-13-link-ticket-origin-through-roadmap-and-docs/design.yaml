@@ -1,0 +1,16 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: link-ticket-origin-through-roadmap-and-docs
+approach:
+  - Parse an optional source_ticket string when validating a milestone artifact and carry it on the in-memory artifact; preserve it in buildCanonicalMilestoneArtifact so sync never drops it; compute sourceTicket and needsScopeRefinement in buildMilestoneStatus, flagging refinement when a source ticket is present and the scope/done_criteria still contain the REFINEMENT NEEDED stub marker. Add roadmap regression tests. Add a concise ticket-pipeline section to README, QUICKSTART, and ROADMAP_GUIDE plus their Chinese equivalents.
+decisions:
+  refinement-detection:
+    decision: A promoted milestone is flagged as needing scope refinement when it has a source_ticket and any scope.in/scope.out/done_criteria entry still contains the REFINEMENT NEEDED stub marker written at promotion.
+    rationale: Detects the unrefined promotion stub deterministically without a separate flag field, so the signal clears automatically once a human refines the milestone scope.
+  preserve-not-author:
+    decision: This change preserves and surfaces the source_ticket field that the triage/promotion CLI authors; it does not itself create milestones or write the field.
+    rationale: Keeps milestone materialization owned by the triage change and confines this change to roadmap reconstruction, status surfacing, and documentation.
+alternatives: []
+risks: []

@@ -1,0 +1,16 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: cover-ticket-workflow-with-regression
+approach:
+  - 'Add a project-fixture ticket scenario to test/suites/roadmap-and-migration.ts: copy the todo-app fixture, run migrate to produce strict state, then create and promote a ticket and assert milestone materialization, registration, bidirectional links, roadmap-status surfacing/refinement flag, and roadmap-sync preservation. Strengthen test/suites/tickets.ts with additional negative ticket-validate cases and a no-overwrite assertion across two promotions.'
+decisions:
+  test-only-no-spec:
+    decision: This change adds regression coverage only and carries no delta spec (an explicit empty-spec decision); the ticket and roadmap behaviors it pins are already specified by the ticket-domain-behavior and roadmap-domain-behavior specs.
+    rationale: No observable behavior changes; the change exists to lock in existing behavior against regression, so adding spec requirements would be redundant.
+  reuse-real-project-fixture:
+    decision: The end-to-end ticket scenario runs against the shared copied todo-app project fixture after migration rather than a bespoke temp workspace.
+    rationale: The milestone requires validating the ticket flow in a repeatable real-project context, and the migrated todo-app fixture is the established shared real-project fixture.
+alternatives: []
+risks: []

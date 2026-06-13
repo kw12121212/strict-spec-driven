@@ -1,0 +1,38 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-ticket-triage-and-promotion-cli
+sections:
+  Implementation:
+    add-milestone-source-ticket-field:
+      text: Add the optional source_ticket back-reference field to templates/strict-spec-driven/schemas/roadmap-milestone.yaml.
+      status: complete
+    add-triage-module:
+      text: Add src/ticket-triage.ts with resolveTicket recording the triage decision and applying promote/close/reject transitions, including deterministic next-milestone-number allocation, collision refusal, promotion idempotency keyed on the milestone source_ticket, and bidirectional linking.
+      status: complete
+    add-resolve-cli:
+      text: Add the ticket-resolve handler to src/cli/cmd-tickets.ts and register it in src/cli/registry.ts and src/strict-spec-cli.ts.
+      status: complete
+    map-triage-implementation:
+      text: Add src/ticket-triage.ts to the ticket-domain-behavior spec mapping.
+      status: complete
+  Testing:
+    add-triage-tests:
+      text: Extend test/suites/tickets.ts with ticket-resolve coverage for all three outcomes, promotion idempotency, sequential milestone allocation, bidirectional linking, milestone source_ticket, and invalid-input rejection; update the canonical command-order expectation.
+      status: complete
+    run-build:
+      text: Rebuild compiled output and templates bundle so dist reflects the new command and schema.
+      status: complete
+      command: bun run build
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope (triage transition + milestone field only; no status surfacing, sync preservation, triage skill, or docs).
+      status: complete
+testing_gates:
+  validation_task: add-triage-tests
+  unit_test_task: run-project-regression

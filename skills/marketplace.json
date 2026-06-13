@@ -23,6 +23,8 @@
     { "name": "strict-spec-ship", "family": "strict-spec" },
     { "name": "strict-spec-spec-edit", "family": "strict-spec" },
     { "name": "strict-spec-sync-specs", "family": "strict-spec" },
+    { "name": "strict-spec-ticket", "family": "strict-spec" },
+    { "name": "strict-spec-ticket-triage", "family": "strict-spec" },
     { "name": "strict-spec-verify", "family": "strict-spec" },
     { "name": "strict-tech-edit", "family": "strict-tech" },
     { "name": "strict-tech-sync", "family": "strict-tech" }

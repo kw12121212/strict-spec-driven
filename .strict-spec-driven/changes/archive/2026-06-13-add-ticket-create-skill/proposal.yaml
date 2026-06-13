@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-ticket-create-skill
+  status: proposed
+summary:
+  what:
+    - Add a ticket-creation skill package (skills/strict-spec-ticket) that guides capturing a requirement as pure intent — problem, desired observable outcome, intent/acceptance notes, optional labels, optional external tracker — and scaffolds the ticket through the ticket-create CLI command, never by hand-writing YAML. Register it in skills/marketplace.json.
+  why:
+    - The ticket lifecycle CLI exists; this gives humans and agents a guided front door that keeps requirement capture free of solutioning (mirroring the spec rule that artifacts describe observable behavior) while delegating all file creation to the CLI. It is the capture half of the two-step intake; triage is a separate skill.
+scope:
+  in:
+    - New skill directory skills/strict-spec-ticket with SKILL.md (frontmatter, This Skill's Commands block, Steps, Rules) and a scripts symlink to ../../dist/scripts; a marketplace.json entry for strict-spec-ticket in the strict-spec family; the skill runs check-workflow-state first and stops with an init instruction when .strict-spec-driven/ is missing, collects pure-intent requirement fields, scaffolds via ticket-create, confirms back, and reports the ticket id and path; a packaging-validation test assertion for the new skill.
+  out:
+    - Triage, promotion, milestone creation, the triage skill, roadmap provenance wiring, documentation, and MCP exposure — handled in later milestone 0017 changes. No new CLI behavior; the skill only drives existing ticket-create.
+unchanged_behavior:
+  - All existing skills and their packaging, the ticket CLI command behavior, the ticket and tickets-index schemas, and all existing specs.
+roadmap:
+  milestone: 0017-ticket-intake-and-triage
+  planned_change: add-ticket-create-skill

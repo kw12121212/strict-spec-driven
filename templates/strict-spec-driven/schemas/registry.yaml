@@ -217,6 +217,33 @@ entries:
       notes:
         - Standalone planned changes are the normal roadmap work-item surface; materialize legacy inline milestone entries before running ordinary roadmap commands.
         - Optional team metadata is advisory coordination data and is not a locking or permission mechanism.
+  - schema_id: strict-spec-driven/ticket/v1
+    schema_version: 1
+    artifact_type: ticket
+    artifact_name: ticket
+    schema_file: ticket.yaml
+    primary_example: ../../../examples/strict-spec-driven/ticket.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Tickets capture a pure requirement (problem, desired outcome, intent) separate from any solution, with lifecycle status, provenance links, and an embedded triage-decision record.
+        - Ticket ids are conflict-resistant (slug- plus content-derived), not drawn from a shared sequential counter.
+  - schema_id: strict-spec-driven/tickets-index/v1
+    schema_version: 1
+    artifact_type: tickets_index
+    artifact_name: tickets-index
+    schema_file: tickets-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/tickets-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Tickets index is a keyed map keyed by conflict-resistant ticket id for merge-friendly multi-author intake.
   - schema_id: strict-spec-driven/harness/v1
     schema_version: 1
     artifact_type: harness

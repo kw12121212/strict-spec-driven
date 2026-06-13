@@ -1,0 +1,38 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-ticket-lifecycle-cli
+sections:
+  Implementation:
+    add-tickets-domain-module:
+      text: Add src/tickets.ts owning ticket creation (conflict-resistant content-derived id, idempotent), listing, show, validation, and deterministic tickets-index maintenance via the shared yaml and validation modules.
+      status: complete
+    add-tickets-cli:
+      text: Add src/cli/cmd-tickets.ts with ticket-create/ticket-list/ticket-show/ticket-validate handlers following the cmd-roadmap.ts JSON/help/usage pattern.
+      status: complete
+    register-ticket-commands:
+      text: Register the four ticket commands in src/cli/registry.ts COMMAND_REGISTRATION_ORDER and the command table in src/strict-spec-cli.ts.
+      status: complete
+    add-ticket-domain-spec:
+      text: Add the ticket-domain-behavior main spec shell (.strict-spec-driven/specs/ticket/domain-behavior.yaml) with mapping and empty requirements, and register it in .strict-spec-driven/specs/INDEX.yaml; requirements arrive via the change delta on archive.
+      status: complete
+  Testing:
+    add-tickets-suite:
+      text: Add test/suites/tickets.ts covering create (idempotent + rejection), list, show, validate, and conflict-resistant id derivation, and register it in test/run.ts.
+      status: complete
+    run-build:
+      text: Rebuild compiled output and templates bundle so dist reflects the new commands.
+      status: complete
+      command: bun run build
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope (lifecycle commands + behavior spec only; no triage/promotion, skills, roadmap wiring, or docs).
+      status: complete
+testing_gates:
+  validation_task: add-tickets-suite
+  unit_test_task: run-project-regression

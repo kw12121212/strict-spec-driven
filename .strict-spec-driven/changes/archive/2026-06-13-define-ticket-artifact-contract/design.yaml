@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: define-ticket-artifact-contract
+approach:
+  - Add two concrete schema files (ticket.yaml, tickets-index.yaml) under templates/strict-spec-driven/schemas/ following the existing nested-field schema dialect, two minimal valid example files under examples/strict-spec-driven/, a scaffold template for the tickets directory and its INDEX.yaml, and two schema-registry entries in templates/strict-spec-driven/schemas/registry.yaml. Add additive contract requirements to the contracts-yaml-artifacts main spec describing the ticket artifact family. Wire the new examples into the existing example-validation test path so they parse and validate through the shared strict YAML validation layer.
+decisions:
+  tickets-location:
+    decision: Tickets live under .strict-spec-driven/tickets/ with an INDEX.yaml (tickets-index artifact) and per-ticket YAML files.
+    rationale: Mirrors the specs/, roadmap/, and changes/ layout already used for strict workflow state, keeping tickets discoverable as their own artifact family separate from roadmap and change artifacts.
+  conflict-resistant-ids:
+    decision: Ticket ids are slug/content-derived per-ticket files (e.g. a short slug plus a content hash suffix), NOT drawn from a shared sequential counter.
+    rationale: Ticket intake is the highest-churn multi-author surface; a global counter would reintroduce the Git merge conflicts the M11 standalone planned-change model removed. The id scheme follows that precedent.
+  pure-requirement-shape:
+    decision: The ticket schema separates requirement intent (problem, desired_outcome, intent/acceptance notes) from any solution, and carries lifecycle status, provenance links, and an embedded triage_decision record the later resolve command writes.
+    rationale: Mirrors the spec rule that artifacts describe observable behavior rather than implementation, and makes the assessment that drove a transition auditable from the ticket itself.
+  status-enum:
+    decision: 'Lifecycle status enum is: open, needs_input, promoted, implemented, rejected.'
+    rationale: Covers the three triage outcomes (promoted/implemented/rejected) plus the initial open state and a deferred/needs-input state for ambiguous triage, matching the milestone's stated lifecycle.
+alternatives: []
+risks: []

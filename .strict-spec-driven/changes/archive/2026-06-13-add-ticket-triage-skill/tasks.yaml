@@ -1,0 +1,32 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-ticket-triage-skill
+sections:
+  Implementation:
+    add-skill-package:
+      text: Add skills/strict-spec-ticket-triage/SKILL.md (frontmatter, This Skill's Commands block referencing check-workflow-state, ticket-show, ticket-list, ticket-validate, ticket-resolve, roadmap-sync, Steps, Rules) performing the implemented-vs-not judgment and driving ticket-resolve, plus the scripts symlink to ../../dist/scripts.
+      status: complete
+    register-marketplace:
+      text: Add the strict-spec-ticket-triage entry to skills/marketplace.json in the strict-spec family.
+      status: complete
+  Testing:
+    add-skill-test:
+      text: Add packaging/content assertions for strict-spec-ticket-triage in test/suites/entrypoint-and-skills.ts (drives ticket-resolve, hands off to /strict-roadmap-milestone, defers on ambiguity, keeps judgment in the prompt).
+      status: complete
+    validate-skills:
+      text: Run strict skill packaging validation.
+      status: complete
+      command: node dist/scripts/strict-spec-driven.js validate-skills
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope (triage skill only; no CLI behavior, roadmap status surfacing, sync preservation, or docs).
+      status: complete
+testing_gates:
+  validation_task: validate-skills
+  unit_test_task: run-project-regression

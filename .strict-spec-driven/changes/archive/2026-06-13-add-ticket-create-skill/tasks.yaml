@@ -1,0 +1,32 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-ticket-create-skill
+sections:
+  Implementation:
+    add-skill-package:
+      text: Add skills/strict-spec-ticket/SKILL.md (frontmatter, This Skill's Commands block referencing check-workflow-state and ticket-create/ticket-list/ticket-show, Steps, Rules) capturing pure intent and scaffolding via the CLI, plus the scripts symlink to ../../dist/scripts.
+      status: complete
+    register-marketplace:
+      text: Add the strict-spec-ticket entry to skills/marketplace.json in the strict-spec family.
+      status: complete
+  Testing:
+    add-skill-test:
+      text: Add a packaging/content assertion for strict-spec-ticket in test/suites/entrypoint-and-skills.ts (validates cleanly, drives ticket-create, captures pure intent, delegates file creation to the CLI).
+      status: complete
+    validate-skills:
+      text: Run strict skill packaging validation.
+      status: complete
+      command: node dist/scripts/strict-spec-driven.js validate-skills
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope (capture skill only; no triage, promotion, CLI behavior, roadmap wiring, or docs).
+      status: complete
+testing_gates:
+  validation_task: validate-skills
+  unit_test_task: run-project-regression

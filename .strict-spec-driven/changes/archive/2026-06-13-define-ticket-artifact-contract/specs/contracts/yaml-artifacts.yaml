@@ -1,0 +1,50 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/ticket.yaml
+    - templates/strict-spec-driven/schemas/tickets-index.yaml
+    - templates/strict-spec-driven/schemas/registry.yaml
+    - templates/strict-spec-driven/scaffold/tickets/INDEX.yaml
+    - examples/strict-spec-driven/ticket.yaml
+    - examples/strict-spec-driven/tickets-index.yaml
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    yaml-ticket-artifact-family:
+      strength: MUST
+      statement: The system MUST define a strict YAML ticket artifact family that captures a pure requirement (problem statement, desired observable outcome, and intent/acceptance notes) separate from any solution, with a conflict-resistant ticket id and title, a lifecycle status enum, creation metadata, optional labels and an optional external-tracker reference, provenance links, and an embedded triage-decision record, represented through structured YAML fields.
+      scenarios:
+        ticket-captures-pure-requirement-and-triage-state:
+          - GIVEN: the strict YAML ticket schema is reviewed
+          - WHEN: the ticket artifact contract is checked
+          - THEN: problem statement, desired outcome, and intent are available as structured fields separate from any solution, a conflict-resistant id and lifecycle status enum are present, and an embedded triage-decision record with outcome, evidence, rationale, and timestamp is representable
+    yaml-ticket-conflict-resistant-ids-and-index:
+      strength: MUST
+      statement: The system MUST store tickets under a dedicated strict workflow tickets location with a tickets index artifact and per-ticket files identified by conflict-resistant ids derived from ticket content rather than a shared sequential counter.
+      scenarios:
+        tickets-use-conflict-resistant-ids:
+          - GIVEN: the strict YAML ticket and tickets-index contracts are reviewed
+          - WHEN: ticket identity and storage are checked
+          - THEN: tickets are stored as per-ticket files under a dedicated tickets location with a tickets index
+          - AND: ticket ids are derived from ticket content rather than allocated from a shared sequential counter so concurrent intake does not collide on a global number
+    yaml-ticket-schema-assets:
+      strength: MUST
+      statement: The system MUST provide concrete schema, schema registry, and minimal valid example assets for the ticket and tickets-index artifact families alongside the existing strict workflow schema and example assets.
+      scenarios:
+        ticket-schema-assets-are-discoverable:
+          - GIVEN: strict workflow schema assets are reviewed
+          - WHEN: the ticket and tickets-index artifact families are checked
+          - THEN: concrete ticket and tickets-index schema files are available under templates/strict-spec-driven/schemas/
+          - THEN: the schema registry lists the ticket and tickets-index schemas each with a primary example
+          - THEN: minimal valid ticket and tickets-index examples are available under examples/strict-spec-driven/
+        ticket-schema-assets-validate:
+          - GIVEN: the ticket and tickets-index schemas and their primary examples are loaded
+          - WHEN: validation is run through the shared strict YAML validation layer
+          - THEN: each example parses successfully and matches the schema identity and artifact type declared by its schema
+  MODIFIED: {}
+  REMOVED: {}

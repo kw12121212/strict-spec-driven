@@ -55,6 +55,7 @@ export type RoadmapMilestoneArtifact = {
   status: DeclaredRoadmapStatus;
   notes: string[];
   details?: string;
+  source_ticket?: string;
 };
 
 export type PlannedChangeTeamMetadata = {
@@ -154,6 +155,8 @@ export type RoadmapMilestoneStatus = {
   derivedStatus: Exclude<DeclaredRoadmapStatus, "blocked">;
   plannedChanges: RoadmapPlannedChangeStatus[];
   mismatches: string[];
+  sourceTicket?: string;
+  needsScopeRefinement?: boolean;
 };
 
 export type RoadmapRecommendationSkipCode =

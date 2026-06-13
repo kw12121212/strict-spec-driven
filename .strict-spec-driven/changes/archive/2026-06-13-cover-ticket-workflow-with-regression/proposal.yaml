@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: cover-ticket-workflow-with-regression
+  status: proposed
+summary:
+  what:
+    - 'Add regression coverage that pins the ticket layer end to end, including an end-to-end ticket flow exercised against the shared copied real-project (todo-app) fixture after migration: schema positive/negative cases, lifecycle commands, all three triage outcomes, promotion idempotency and overwrite safety, roadmap source-ticket preservation and refinement flagging, behavior-spec mapping validity, and skill packaging validation.'
+  why:
+    - The ticket layer spans schemas, CLI, skills, and roadmap wiring built across milestone 0017; deterministic regression against the repeatable real-project fixture ensures future workflow edits cannot silently break the ticket intake-to-roadmap pipeline.
+scope:
+  in:
+    - An end-to-end ticket scenario against the migrated todo-app project fixture (create a ticket, promote it, confirm the milestone is materialized and registered with bidirectional links, roadmap-status surfaces the source ticket and refinement flag, and roadmap-sync preserves the back-reference); additional negative ticket-validate cases; and an assertion that promoting a second ticket never overwrites the first milestone. Implementation already exists from earlier milestone 0017 changes; this change is test-only.
+  out:
+    - Any production code or schema change, new CLI behavior, skills, or documentation. No new spec requirements — the ticket and roadmap behaviors are already specified.
+unchanged_behavior:
+  - All ticket and roadmap production behavior, schemas, skills, and specs.
+roadmap:
+  milestone: 0017-ticket-intake-and-triage
+  planned_change: cover-ticket-workflow-with-regression

@@ -1,0 +1,9 @@
+schema: strict-spec-driven/tickets-index/v1
+schema_version: 1
+artifact_type: tickets_index
+schema_file: ../../templates/strict-spec-driven/schemas/tickets-index.yaml
+tickets:
+  export-changes-as-csv-7f3a9c:
+    title: Export changes as CSV
+    path: .strict-spec-driven/tickets/export-changes-as-csv-7f3a9c.yaml
+    status: open

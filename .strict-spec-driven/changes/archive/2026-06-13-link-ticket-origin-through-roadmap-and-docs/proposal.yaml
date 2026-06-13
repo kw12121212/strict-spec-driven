@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: link-ticket-origin-through-roadmap-and-docs
+  status: proposed
+summary:
+  what:
+    - 'Thread ticket provenance through the roadmap: parse and preserve the milestone source_ticket back-reference in roadmap loading, status derivation, and sync; surface the originating ticket id in roadmap-status for ticket-promoted milestones and flag a freshly promoted milestone (still carrying the refinement stub) as needing scope refinement. Document the ticket -> roadmap milestone -> change -> spec/tech/code pipeline in README, QUICKSTART, ROADMAP_GUIDE and their Chinese equivalents, including the boundary that AI judgment lives in the triage skill while the CLI performs only deterministic state transitions.'
+  why:
+    - The triage CLI writes the source_ticket back-reference, but roadmap reconstruction would otherwise drop it on sync, and roadmap-status did not surface ticket provenance. Preserving and surfacing it makes the ticket origin recoverable from the roadmap side, and documentation explains the whole intake-to-code pipeline to users.
+scope:
+  in:
+    - Parsing source_ticket on milestone load; preserving it through buildCanonicalMilestoneArtifact (sync); adding sourceTicket and needsScopeRefinement to milestone status and populating them in buildMilestoneStatus (refinement detected via the REFINEMENT NEEDED stub marker); roadmap regression tests for surfacing and sync preservation; and user documentation updates across README, QUICKSTART, ROADMAP_GUIDE and their Chinese equivalents.
+  out:
+    - Any change to ticket CLI behavior or the milestone schema field (already added in the triage change), the triage/creation skills, and MCP exposure. No reworking of unrelated roadmap behavior.
+unchanged_behavior:
+  - Existing roadmap status/sync behavior for milestones without a source ticket, the ticket CLI commands and schemas, and all other specs.
+roadmap:
+  milestone: 0017-ticket-intake-and-triage
+  planned_change: link-ticket-origin-through-roadmap-and-docs

@@ -46,6 +46,10 @@
 | `modify [<name>]` | 列出变更的可编辑制品路径 |
 | `cancel <name>` | 删除活跃变更（已归档变更受保护） |
 | `maintenance` | 运行已配置的仓库维护检查 |
+| `ticket-create` | 以冲突抵抗的 id 捕获一个纯需求工单 |
+| `ticket-list` / `ticket-show <id>` | 枚举工单或打印单个工单 |
+| `ticket-validate [<id>]` | 针对捆绑 schema 校验一个或全部工单 |
+| `ticket-resolve <id>` | 记录分诊决定并执行状态转换（晋升 / 关闭 / 拒绝） |
 | `roadmap-status` | 验证并报告严格路线图状态 |
 | `roadmap-overview` | 输出面向人的路线图总览表 |
 | `roadmap-sync` | 协调并重新生成严格路线图索引 |
@@ -89,6 +93,8 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-spec-sync-specs` | 与代码漂移同步规范 |
 | `/strict-spec-resync-code-mapping` | 修复规范实现和测试映射 |
 | `/strict-spec-maintenance` | 运行仓库维护工作流 |
+| `/strict-spec-ticket` | 将原始需求捕获为纯意图工单 |
+| `/strict-spec-ticket-triage` | 判断是否已实现并驱动工单状态转换 |
 
 **严格路线图 Skills**（`strict-roadmap-*`）：
 
@@ -100,6 +106,26 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-roadmap-sync` | 协调路线图里程碑和变更状态 |
 
 路线图文档描述了首选的拆分文件协作模型：保持里程碑文件和 `INDEX.yaml` 低变动率，将日常路线图工作存储在 `.strict-spec-driven/roadmap/planned-changes/` 中，在合并或归档交接后重新运行 `roadmap-sync`，并将外部跟踪器引用视为可选上下文而非必需的真实来源。
+
+## 工单接收与分诊
+
+工单是工作流的入口：工单将一个**纯需求**——问题、期望的可观察结果、意图——捕获为不含任何解决方案的严格 YAML 制品，存放于 `.strict-spec-driven/tickets/`，其 id 来自内容派生、具备冲突抵抗性（而非共享计数器）。接收分两步：
+
+1. **捕获** —— `/strict-spec-ticket`（或 `ticket-create`）将需求记录为纯意图并通过 CLI 创建工单。
+2. **分诊** —— `/strict-spec-ticket-triage` 阅读工单并检查现有规范、规范到代码的映射、代码与文档，判断需求是否已实现，然后以三种结果之一驱动 `ticket-resolve`：
+   - **implemented** —— 关闭工单并记录指向满足该需求的规范/代码/文档的证据链接；
+   - **not_implemented** —— 将工单晋升为新的路线图里程碑骨架（goal 取自期望结果；scope 与 done criteria 留作明确的细化占位），随后交接 `/strict-roadmap-milestone` 定义真实范围；
+   - **not_wanted** —— 以理由拒绝或推迟工单。
+
+边界是刻意设计的：**是否已实现的判断属于 AI 工作，仅存在于分诊 Skill 提示中**，而 **CLI 只执行确定性的状态转换**并将决定记录为工单上可审计的分诊记录。晋升是幂等的（重复运行绝不会创建第二个里程碑），并写入双向链接——`ticket.promoted_to` 和里程碑的 `source_ticket` 反向引用；`roadmap-status` 会呈现该来源工单（并将刚晋升、仍带细化占位的里程碑标记为需要细化范围），`roadmap-sync` 则会保留它。完整路径为：
+
+```text
+工单（纯需求）
+  -> 分诊决定（AI 判断，由 CLI 记录）
+  -> 路线图里程碑（当 not_implemented 时）
+  -> 计划变更 -> 严格变更
+  -> 规范 / 技术标准 / 代码
+```
 
 ### MCP Server：`strict-spec-driven-mcp`
 

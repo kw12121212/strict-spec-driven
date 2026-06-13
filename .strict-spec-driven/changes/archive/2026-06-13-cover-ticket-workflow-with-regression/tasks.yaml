@@ -1,0 +1,25 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: cover-ticket-workflow-with-regression
+sections:
+  Implementation:
+    add-fixture-scenario:
+      text: Add an end-to-end ticket scenario to test/suites/roadmap-and-migration.ts against the migrated todo-app real-project fixture (create, promote, milestone materialization + registration, bidirectional links, roadmap-status surfacing/refinement flag, roadmap-sync preservation, and second-promotion overwrite safety).
+      status: complete
+    strengthen-negative-cases:
+      text: Strengthen test/suites/tickets.ts with additional negative ticket-validate cases (path-aware diagnostics for malformed tickets and an unknown status enum).
+      status: complete
+  Testing:
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope (regression coverage only; no production code, schema, skill, or doc changes).
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: run-project-regression

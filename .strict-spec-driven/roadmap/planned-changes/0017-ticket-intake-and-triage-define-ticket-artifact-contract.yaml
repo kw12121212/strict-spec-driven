@@ -1,0 +1,23 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: define-ticket-artifact-contract
+  milestone: 0017-ticket-intake-and-triage
+status: complete
+summary: Define the strict YAML ticket artifact contract — schema, example, bundled template, schema-registry entry, and a tickets index — for capturing a pure requirement plus conflict-resistant ids, lifecycle status, provenance links, and an embedded triage-decision record the CLI consumes.
+details: |-
+  Introduce a new strict artifact family for tickets so a raw requirement becomes first-class validated state. Add a bundled schema under templates/strict-spec-driven/schemas/ (for example ticket.yaml and tickets-index.yaml), matching example files, a scaffold template, and a schema-registry entry so the CLI's schema-list/schema-show and template surfaces expose them like every other artifact.
+
+  The ticket schema must capture pure requirement intent — a problem statement, a desired observable outcome, and intent/acceptance notes — explicitly separate from any solution, mirroring the spec rule that artifacts describe observable behavior rather than implementation. It must also carry: a conflict-resistant ticket id and a title; a lifecycle status enum (open, promoted, implemented, rejected, and a deferred/needs-input state for ambiguous triage); creation metadata; optional labels and an optional external-tracker reference field reusing the planned-change team-metadata pattern; provenance links (promoted_to milestone id; implemented_by / evidence links); and an embedded triage-decision record (decision outcome, evidence references, rationale, and timestamp) shaped so the later triage-resolution command can write it and so the assessment that drove a transition is auditable from the ticket itself.
+
+  Decide and record in the change design: the tickets directory location (for example .strict-spec-driven/tickets/ with an INDEX.yaml and per-ticket files) and, critically, a conflict-resistant id scheme — slug- or content-derived per-ticket files in the spirit of the M11 standalone planned-change model, NOT a shared sequential counter, because ticket intake is the highest-churn multi-author surface and a global counter would reintroduce the Git merge conflicts M11 removed. Scope is the contract and registry only; CLI behavior and skills come in later changes. Validate that the schema and examples parse and that examples pass the validation layer.
+depends_on: []
+team:
+  blocked:
+    status: false
+  labels:
+    - ticket
+    - schema
+    - contract

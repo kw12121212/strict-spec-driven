@@ -1,0 +1,69 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: ticket-domain-behavior
+mapping:
+  implementation:
+    - src/tickets.ts
+    - src/cli/cmd-tickets.ts
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+  tests:
+    - test/suites/tickets.ts
+operations:
+  ADDED:
+    ticket-create-contract:
+      strength: MUST
+      statement: The system MUST provide a ticket-create command that scaffolds a new ticket from a pure requirement with a conflict-resistant content-derived id and initial open status, maintains the tickets index, emits the created file path, and is idempotent so rerunning with the same requirement does not clobber or duplicate existing ticket state.
+      scenarios:
+        create-generates-conflict-resistant-ticket:
+          - GIVEN: a strict workflow with the ticket contract is present
+          - WHEN: ticket-create runs with a title, problem, and desired outcome
+          - THEN: a ticket file is written under the tickets location with a content-derived id and open status, the tickets index is updated, and the created path is reported
+        create-is-idempotent-on-rerun:
+          - GIVEN: a ticket already exists for a given requirement
+          - WHEN: ticket-create runs again with the same title, problem, and desired outcome
+          - THEN: the existing ticket file is left unchanged, no second ticket is created, and the command reports the existing ticket as not newly created
+        create-rejects-incomplete-requirement:
+          - GIVEN: a strict workflow with the ticket contract is present
+          - WHEN: ticket-create runs without a problem or desired outcome
+          - THEN: no ticket file is written and the command exits non-zero with path-aware diagnostics naming the missing requirement field
+    ticket-list-contract:
+      strength: MUST
+      statement: The system MUST provide a ticket-list command that enumerates existing tickets with their id, title, status, and file path as deterministic structured output.
+      scenarios:
+        list-enumerates-tickets-deterministically:
+          - GIVEN: one or more tickets exist under the tickets location
+          - WHEN: ticket-list runs
+          - THEN: every ticket is reported with id, title, status, and path in a deterministic order
+        list-on-empty-state-succeeds:
+          - GIVEN: no tickets exist yet
+          - WHEN: ticket-list runs
+          - THEN: the command exits zero and reports an empty ticket collection
+    ticket-show-contract:
+      strength: MUST
+      statement: The system MUST provide a ticket-show command that prints a single ticket and its file path for an existing id and reports a deterministic not-found error for an unknown id.
+      scenarios:
+        show-prints-existing-ticket:
+          - GIVEN: a ticket with a known id exists
+          - WHEN: ticket-show runs with that id
+          - THEN: the ticket contents and its file path are reported
+        show-reports-missing-ticket:
+          - GIVEN: no ticket exists for a given id
+          - WHEN: ticket-show runs with that id
+          - THEN: the command exits non-zero with a deterministic not-found diagnostic
+    ticket-validate-contract:
+      strength: MUST
+      statement: The system MUST provide a ticket-validate command that validates one ticket or all tickets and the tickets index against the bundled ticket schemas, exiting non-zero with path-aware diagnostics when an artifact is malformed.
+      scenarios:
+        validate-passes-for-valid-tickets:
+          - GIVEN: the tickets and tickets index are schema-valid
+          - WHEN: ticket-validate runs
+          - THEN: the command exits zero and reports no diagnostics
+        validate-fails-for-malformed-ticket:
+          - GIVEN: a ticket artifact violates the ticket schema
+          - WHEN: ticket-validate runs
+          - THEN: the command exits non-zero with path-aware diagnostics identifying the offending artifact and field
+  MODIFIED: {}
+  REMOVED: {}

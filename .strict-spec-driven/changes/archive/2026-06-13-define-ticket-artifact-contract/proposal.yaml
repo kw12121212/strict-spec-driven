@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: define-ticket-artifact-contract
+  status: proposed
+summary:
+  what:
+    - 'Define a strict YAML ticket artifact family: a ticket schema and a tickets-index schema under templates/strict-spec-driven/schemas/, matching minimal valid examples under examples/strict-spec-driven/, a scaffold template, and schema-registry entries, plus contract requirements in the contracts-yaml-artifacts spec. The ticket schema captures pure requirement intent (problem, desired outcome, intent/acceptance notes) separate from any solution, a conflict-resistant id and title, a lifecycle status enum (open, needs_input, promoted, implemented, rejected), creation metadata, optional labels and optional external_tracker reference, provenance links (promoted_to, implemented_by/evidence), and an embedded triage_decision record (outcome, evidence, rationale, decided_at).'
+  why:
+    - Today the earliest formal artifact is a roadmap milestone or change proposal, both of which assume the work is already decided and not yet built. Raw requirements have nowhere to live as first-class validated state. This contract is the foundation the rest of milestone 0017 (lifecycle CLI, triage/promotion CLI, skills, roadmap provenance) builds on.
+scope:
+  in:
+    - Ticket schema file (ticket.yaml) and tickets-index schema file (tickets-index.yaml) under templates/strict-spec-driven/schemas/; minimal valid example files under examples/strict-spec-driven/; a scaffold template for the tickets directory; schema-registry entries for both new schemas; contract requirements added to the contracts-yaml-artifacts main spec describing the ticket artifact family, its pure-requirement/triage-decision shape, the conflict-resistant id scheme, the tickets index, and that schema plus examples parse and validate through the shared validation layer.
+  out:
+    - Any CLI command behavior (create/list/show/validate/resolve), ticket-creation or triage skills, roadmap source-ticket back-references, documentation of the pipeline, and regression test suites — all deferred to later milestone 0017 changes. No shared sequential ticket counter. No external tracker live integration; external_tracker stays an optional reference field. No MCP exposure.
+unchanged_behavior:
+  - All existing artifact schemas, the CLI command surface, existing skills, roadmap status/sync behavior, and existing specs other than the additive contract requirements in contracts-yaml-artifacts.
+roadmap:
+  milestone: 0017-ticket-intake-and-triage
+  planned_change: define-ticket-artifact-contract

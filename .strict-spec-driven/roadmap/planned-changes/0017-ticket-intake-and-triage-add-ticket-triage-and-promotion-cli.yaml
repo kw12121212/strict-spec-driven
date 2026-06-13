@@ -1,0 +1,24 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-ticket-triage-and-promotion-cli
+  milestone: 0017-ticket-intake-and-triage
+status: complete
+summary: Add a CLI triage-resolution command that records a supplied triage decision onto a ticket and performs the deterministic transition only — promoting a not-implemented ticket into a new milestone skeleton with bidirectional links, closing an implemented ticket with evidence, or rejecting/deferring a not-wanted ticket.
+details: |-
+  Implement the deterministic state transition that consumes a triage decision produced elsewhere (by the triage skill). The CLI must not judge whether a requirement is implemented. The decision is passed as command arguments — an outcome plus repeatable evidence references plus a rationale — and the command records it as the ticket's structured triage-decision record before applying the matching transition, so skills never hand-write ticket YAML.
+
+  On a "not implemented" decision: materialize a new roadmap milestone SKELETON seeded from the ticket. Allocate the next milestone number deterministically and refuse (error, do not overwrite) if that number already exists, so concurrent promotions cannot collide; write the milestone file under roadmap/milestones/. Seed only the milestone goal by copying the ticket's desired outcome — the CLI must NOT fabricate scope from prose — and leave scope and done_criteria as an explicitly marked refinement stub for the milestone workflow to fill. Set milestone status to proposed with empty planned_changes, register it in the roadmap index, set the ticket status to promoted, and write both links: ticket.promoted_to = milestone id and a milestone source-ticket back-reference to the ticket id. The link write and milestone/index registration must be consistent on success, must fail cleanly without leaving an orphaned milestone or a dangling promoted_to, and must be idempotent — re-running a promotion for an already-promoted ticket must not create a second milestone.
+
+  On an "implemented" decision: set the ticket status to implemented and record the supplied evidence links to the satisfying specs, code, or docs. On a "not wanted" decision: set the ticket status to rejected/deferred and record the rationale. Both preserve an auditable trail rather than discarding the ticket. Emit machine-readable JSON describing the transition (resulting ticket status and any created milestone id/path). Keep all judgment in the calling skill; keep all filesystem and index mechanics here.
+depends_on:
+  - add-ticket-lifecycle-cli
+team:
+  blocked:
+    status: false
+  labels:
+    - ticket
+    - cli
+    - roadmap

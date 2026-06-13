@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-ticket-triage-and-promotion-cli
+  status: proposed
+summary:
+  what:
+    - 'Add a ticket-resolve CLI command that records a supplied triage decision (outcome, evidence, rationale) onto a ticket and performs the deterministic state transition only: not_implemented promotes the ticket into a new roadmap milestone skeleton with bidirectional links; implemented closes the ticket with evidence; not_wanted rejects/defers the ticket with rationale. Add an optional milestone source_ticket back-reference field to the roadmap-milestone contract so promotion can write it.'
+  why:
+    - The triage skill needs a deterministic transition to drive. Keeping the implemented-vs-not judgment out of the CLI (it only applies a decision passed as arguments) preserves the human/AI checkpoint while scripts own all filesystem, milestone, and index mechanics. Promotion is the handoff from ticket intake to the roadmap.
+scope:
+  in:
+    - New src/ticket-triage.ts implementing resolveTicket (record triage_decision; promote/close/reject) with deterministic next-milestone-number allocation, collision refusal, and promotion idempotency keyed on the milestone source_ticket back-reference; ticket-resolve CLI handler in src/cli/cmd-tickets.ts registered in the command registry and table; an optional source_ticket field added to the roadmap-milestone schema; ticket-domain-behavior delta-spec requirements for the transition and contracts-yaml-artifacts delta-spec requirement for the milestone back-reference field; tests for all three outcomes, promotion idempotency, collision refusal, and bidirectional linking.
+  out:
+    - Roadmap-status surfacing of the originating ticket, the freshly-promoted refinement flag, roadmap-sync preservation of source_ticket, the triage skill, user documentation, and MCP exposure — handled in later milestone 0017 changes. The CLI never judges whether a requirement is implemented.
+unchanged_behavior:
+  - Existing ticket lifecycle commands (create/list/show/validate), the ticket and tickets-index schemas, existing roadmap commands and their behavior other than the additive optional milestone field, and all other specs.
+roadmap:
+  milestone: 0017-ticket-intake-and-triage
+  planned_change: add-ticket-triage-and-promotion-cli

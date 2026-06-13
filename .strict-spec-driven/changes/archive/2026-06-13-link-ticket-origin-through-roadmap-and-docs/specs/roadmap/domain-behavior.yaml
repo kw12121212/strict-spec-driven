@@ -1,0 +1,25 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+mapping:
+  implementation:
+    - src/roadmap/model.ts
+    - src/roadmap/validate.ts
+    - src/roadmap/status.ts
+    - src/roadmap/sync.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    roadmap-milestone-source-ticket-provenance:
+      strength: MUST
+      statement: The system MUST preserve a milestone source-ticket back-reference through roadmap loading, status derivation, and sync without dropping it, surface the originating ticket id in roadmap-status for ticket-promoted milestones, and flag a freshly promoted milestone whose scope and done criteria are still the promotion refinement stub as needing scope refinement.
+      scenarios:
+        roadmap-surfaces-and-preserves-source-ticket:
+          - GIVEN: a milestone was promoted from a ticket and carries a source-ticket back-reference and refinement-stub scope
+          - WHEN: roadmap-status and roadmap-sync run
+          - THEN: roadmap-status reports the originating ticket id and flags the milestone as needing scope refinement, and roadmap-sync rewrites the milestone without dropping the source-ticket back-reference
+  MODIFIED: {}
+  REMOVED: {}
