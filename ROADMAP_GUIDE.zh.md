@@ -266,7 +266,7 @@ node scripts/strict-spec-driven.js roadmap-status
 工单 -> 分诊决定 -> 路线图里程碑 -> 计划变更 -> 严格变更 -> 规范 / 技术标准 / 代码
 ```
 
-两个接收步骤都是 Skill：`/strict-spec-ticket` 捕获需求（不做方案设计），`/strict-spec-ticket-triage` 判断需求是否已实现并驱动 `ticket-resolve`。**判断属于 AI 工作，仅存在于分诊 Skill 提示中**；**CLI 只执行确定性的状态转换**并将决定记录到工单上。在 `not_implemented` 决定下，CLI 会：
+两个接收步骤都是 Skill：`/strict-ticket` 捕获需求（不做方案设计），`/strict-ticket-dispatch` 判断需求是否已实现并驱动 `ticket-resolve`。**判断属于 AI 工作，仅存在于分诊 Skill 提示中**；**CLI 只执行确定性的状态转换**并将决定记录到工单上。在 `not_implemented` 决定下，CLI 会：
 
 - 确定性地分配下一个里程碑编号，冲突时拒绝（绝不覆盖）；
 - 物化一个里程碑骨架，goal 取自工单的期望结果，scope 与 done criteria 留作明确的 `REFINEMENT NEEDED` 占位；

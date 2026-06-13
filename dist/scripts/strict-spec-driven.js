@@ -21089,8 +21089,8 @@ function validateMarketplaceMetadata(rootDir, skillNames, diagnostics) {
       continue;
     }
     marketplaceNames.push(entry.name);
-    if (!entry.name.startsWith("strict-spec-") && !entry.name.startsWith("strict-roadmap-") && !entry.name.startsWith("strict-tech-")) {
-      diagnostics.push(makeDiagnostic4("skills.marketplace.skills.entry.name.legacy", `${relativeMetadataPath}#skills[${index}].name`, "skills marketplace entries must use strict skill name prefixes", "strict-spec-*, strict-roadmap-*, or strict-tech-*", entry.name));
+    if (!entry.name.startsWith("strict-spec-") && !entry.name.startsWith("strict-roadmap-") && !entry.name.startsWith("strict-tech-") && entry.name !== "strict-ticket" && !entry.name.startsWith("strict-ticket-")) {
+      diagnostics.push(makeDiagnostic4("skills.marketplace.skills.entry.name.legacy", `${relativeMetadataPath}#skills[${index}].name`, "skills marketplace entries must use strict skill name prefixes", "strict-spec-*, strict-roadmap-*, strict-tech-*, or strict-ticket-*", entry.name));
     }
   }
   const normalizeList = (values2) => [...new Set(values2)].sort((a, b) => a.localeCompare(b));
@@ -21211,8 +21211,8 @@ function validateStrictSkillPackaging(rootDir) {
   for (const skillName of skillNames) {
     const skillDir = path31.join(skillsRoot, skillName);
     const skillPath = path31.join("skills", skillName, "SKILL.md");
-    if (!skillName.startsWith("strict-spec-") && !skillName.startsWith("strict-roadmap-") && !skillName.startsWith("strict-tech-")) {
-      diagnostics.push(makeDiagnostic4("skill.directory.legacy_name", path31.join("skills", skillName), "skill directory must use strict prefix", "strict-spec-*, strict-roadmap-*, or strict-tech-*", skillName));
+    if (!skillName.startsWith("strict-spec-") && !skillName.startsWith("strict-roadmap-") && !skillName.startsWith("strict-tech-") && skillName !== "strict-ticket" && !skillName.startsWith("strict-ticket-")) {
+      diagnostics.push(makeDiagnostic4("skill.directory.legacy_name", path31.join("skills", skillName), "skill directory must use strict prefix", "strict-spec-*, strict-roadmap-*, strict-tech-*, or strict-ticket-*", skillName));
     }
     const skillFilePath = path31.join(skillDir, "SKILL.md");
     if (!existsSync30(skillFilePath)) {

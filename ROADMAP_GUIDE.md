@@ -273,7 +273,7 @@ Milestones can originate from a **ticket** — a strict YAML capture of a pure r
 ticket -> triage decision -> roadmap milestone -> planned change -> strict change -> spec / tech / code
 ```
 
-The two intake steps are skills: `/strict-spec-ticket` captures the requirement (no solutioning), and `/strict-spec-ticket-triage` judges whether the requirement is already implemented and drives `ticket-resolve`. The **judgment is AI work confined to the triage skill prompt**; the **CLI performs only the deterministic transition** and records the decision on the ticket. On a `not_implemented` decision the CLI:
+The two intake steps are skills: `/strict-ticket` captures the requirement (no solutioning), and `/strict-ticket-dispatch` judges whether the requirement is already implemented and drives `ticket-resolve`. The **judgment is AI work confined to the triage skill prompt**; the **CLI performs only the deterministic transition** and records the decision on the ticket. On a `not_implemented` decision the CLI:
 
 - allocates the next milestone number deterministically and refuses (never overwrites) on collision,
 - materializes a milestone skeleton with the goal copied from the ticket's desired outcome and scope / done criteria left as an explicit `REFINEMENT NEEDED` stub,

@@ -93,8 +93,8 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-spec-sync-specs` | 与代码漂移同步规范 |
 | `/strict-spec-resync-code-mapping` | 修复规范实现和测试映射 |
 | `/strict-spec-maintenance` | 运行仓库维护工作流 |
-| `/strict-spec-ticket` | 将原始需求捕获为纯意图工单 |
-| `/strict-spec-ticket-triage` | 判断是否已实现并驱动工单状态转换 |
+| `/strict-ticket` | 将原始需求捕获为纯意图工单 |
+| `/strict-ticket-dispatch` | 判断是否已实现并驱动工单状态转换 |
 
 **严格路线图 Skills**（`strict-roadmap-*`）：
 
@@ -111,8 +111,8 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 
 工单是工作流的入口：工单将一个**纯需求**——问题、期望的可观察结果、意图——捕获为不含任何解决方案的严格 YAML 制品，存放于 `.strict-spec-driven/tickets/`，其 id 来自内容派生、具备冲突抵抗性（而非共享计数器）。接收分两步：
 
-1. **捕获** —— `/strict-spec-ticket`（或 `ticket-create`）将需求记录为纯意图并通过 CLI 创建工单。
-2. **分诊** —— `/strict-spec-ticket-triage` 阅读工单并检查现有规范、规范到代码的映射、代码与文档，判断需求是否已实现，然后以三种结果之一驱动 `ticket-resolve`：
+1. **捕获** —— `/strict-ticket`（或 `ticket-create`）将需求记录为纯意图并通过 CLI 创建工单。
+2. **分诊** —— `/strict-ticket-dispatch` 阅读工单并检查现有规范、规范到代码的映射、代码与文档，判断需求是否已实现，然后以三种结果之一驱动 `ticket-resolve`：
    - **implemented** —— 关闭工单并记录指向满足该需求的规范/代码/文档的证据链接；
    - **not_implemented** —— 将工单晋升为新的路线图里程碑骨架（goal 取自期望结果；scope 与 done criteria 留作明确的细化占位），随后交接 `/strict-roadmap-milestone` 定义真实范围；
    - **not_wanted** —— 以理由拒绝或推迟工单。

@@ -40,6 +40,8 @@ mapping:
     - src/validation.ts
     - src/yaml.ts
     - src/skills/frontmatter.ts
+    - src/skills.ts
+    - src/skills/fs-checks.ts
     - install.sh
     - scripts/strict-spec-driven.js
     - skills/marketplace.json
@@ -63,6 +65,8 @@ mapping:
     - skills/strict-spec-verify/SKILL.md
     - skills/strict-tech-edit/SKILL.md
     - skills/strict-tech-sync/SKILL.md
+    - skills/strict-ticket/SKILL.md
+    - skills/strict-ticket-dispatch/SKILL.md
     - skills/strict-roadmap-review/SKILL.md
     - skills/strict-roadmap-plan/SKILL.md
     - skills/strict-roadmap-recommend/SKILL.md
@@ -647,6 +651,14 @@ requirements:
         - GIVEN: a strict roadmap workflow skill or slash command name is reviewed
         - WHEN: its public prefix is checked
         - THEN: it uses the `strict-roadmap-*` naming family
+  strict-ticket-command-prefix:
+    strength: MUST
+    statement: The system MUST define `strict-ticket` and `strict-ticket-*` as the naming family for strict ticket intake and dispatch workflow skills and slash commands, where the bare `strict-ticket` name is the intake capture skill and `strict-ticket-*` names cover ticket dispatch and related ticket workflow skills.
+    scenarios:
+      strict-ticket-workflow-commands-are-distinguishable:
+        - GIVEN: a strict ticket workflow skill or slash command name is reviewed
+        - WHEN: its public prefix is checked
+        - THEN: it uses either the bare `strict-ticket` family-root name or the `strict-ticket-*` naming family
   strict-cli-entrypoint:
     strength: MUST
     statement: The system MUST define `strict-spec-driven` as the CLI entrypoint for strict YAML workflow commands.
@@ -882,12 +894,12 @@ requirements:
         - AND: the migrated archived change remains distinguishable from active strict changes without reconstructing that state from Markdown headings
   strict-skill-packaging-layout-contract:
     strength: MUST
-    statement: The system MUST provide strict skill packaging surfaces for both `strict-spec-*` and `strict-roadmap-*` families with installer-facing metadata that uses strict namespace names in non-migration contexts.
+    statement: The system MUST provide strict skill packaging surfaces for the `strict-spec-*`, `strict-roadmap-*`, `strict-tech-*`, and `strict-ticket-*` families with installer-facing metadata that uses strict namespace names in non-migration contexts.
     scenarios:
       strict-skill-families-are-packaged-with-strict-naming:
         - GIVEN: strict workflow skill packaging metadata is reviewed
-        - WHEN: spec workflow and roadmap workflow skill entries are checked
-        - THEN: skill package names use `strict-spec-*` and `strict-roadmap-*` families
+        - WHEN: spec, roadmap, tech, and ticket workflow skill entries are checked
+        - THEN: skill package names use the `strict-spec-*`, `strict-roadmap-*`, `strict-tech-*`, and `strict-ticket-*` families
         - AND: legacy `spec-driven-*` and `roadmap-*` names are not treated as default strict package names outside explicit migration compatibility behavior
         - AND: marketplace skill entries match strict skill directory names
   strict-skill-packaging-validation-contract:

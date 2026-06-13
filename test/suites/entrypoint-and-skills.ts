@@ -202,7 +202,7 @@ context.assert(
   "marketplace metadata count matches discovered strict skills",
 );
 
-const ticketSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-ticket", "SKILL.md"), "utf8");
+const ticketSkillContent = readFileSync(path.join(ROOT, "skills", "strict-ticket", "SKILL.md"), "utf8");
 context.assert(
   ticketSkillContent.includes("ticket-create") && ticketSkillContent.includes("pure intent"),
   "ticket-creation skill drives ticket-create and captures pure intent",
@@ -212,11 +212,11 @@ context.assert(
   "ticket-creation skill delegates file creation to the CLI",
 );
 context.assert(
-  !packageValidation.diagnostics.some((diagnostic) => diagnostic.path.includes("strict-spec-ticket")),
-  "strict-spec-ticket skill passes packaging validation with no diagnostics",
+  !packageValidation.diagnostics.some((diagnostic) => diagnostic.path.includes("strict-ticket")),
+  "strict-ticket skill passes packaging validation with no diagnostics",
 );
 
-const triageSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-ticket-triage", "SKILL.md"), "utf8");
+const triageSkillContent = readFileSync(path.join(ROOT, "skills", "strict-ticket-dispatch", "SKILL.md"), "utf8");
 context.assert(
   triageSkillContent.includes("ticket-resolve") && triageSkillContent.includes("/strict-roadmap-milestone"),
   "ticket-triage skill drives ticket-resolve and hands off to milestone refinement",

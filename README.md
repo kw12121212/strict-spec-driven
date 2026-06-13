@@ -93,8 +93,8 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-spec-sync-specs` | Synchronize specs with code drift |
 | `/strict-spec-resync-code-mapping` | Repair spec implementation and test mappings |
 | `/strict-spec-maintenance` | Run repository maintenance workflow |
-| `/strict-spec-ticket` | Capture a raw requirement as a pure-intent ticket |
-| `/strict-spec-ticket-triage` | Judge implemented-vs-not and drive the ticket transition |
+| `/strict-ticket` | Capture a raw requirement as a pure-intent ticket |
+| `/strict-ticket-dispatch` | Judge implemented-vs-not and drive the ticket transition |
 
 **Strict roadmap skills** (`strict-roadmap-*`):
 
@@ -111,8 +111,8 @@ The roadmap docs describe the preferred split-file collaboration model: keep mil
 
 Tickets are the front door to the workflow: a ticket captures a **pure requirement** — problem, desired observable outcome, and intent — with no solution, as a strict YAML artifact under `.strict-spec-driven/tickets/` with a conflict-resistant, content-derived id (never a shared counter). Intake is two steps:
 
-1. **Capture** — `/strict-spec-ticket` (or `ticket-create`) records the requirement as pure intent and scaffolds the ticket through the CLI.
-2. **Triage** — `/strict-spec-ticket-triage` reads the ticket and inspects existing specs, spec-to-code mappings, code, and docs to judge whether the requirement is already implemented, then drives `ticket-resolve` with one of three outcomes:
+1. **Capture** — `/strict-ticket` (or `ticket-create`) records the requirement as pure intent and scaffolds the ticket through the CLI.
+2. **Triage** — `/strict-ticket-dispatch` reads the ticket and inspects existing specs, spec-to-code mappings, code, and docs to judge whether the requirement is already implemented, then drives `ticket-resolve` with one of three outcomes:
    - **implemented** — closes the ticket with evidence links to the satisfying specs/code/docs
    - **not_implemented** — promotes the ticket into a new roadmap milestone skeleton (goal seeded from the desired outcome; scope and done criteria left as an explicit refinement stub), then hands off to `/strict-roadmap-milestone` for real scope definition
    - **not_wanted** — rejects or defers the ticket with a rationale

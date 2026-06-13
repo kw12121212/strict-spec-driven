@@ -200,13 +200,13 @@ Ship Skill 读取已归档的变更摘要，构建提交信息，并将 `git pus
 当你有一个原始需求、但还不确定它是否应当成为工作时，先建一个**工单**——把纯需求（问题、期望结果、意图）捕获下来，不含任何解决方案：
 
 ```
-/strict-spec-ticket
+/strict-ticket
 ```
 
 然后对它分诊，判断是否已经实现：
 
 ```
-/strict-spec-ticket-triage
+/strict-ticket-dispatch
 ```
 
 分诊会基于现有规范、代码与文档判断是否已实现，然后驱动 `ticket-resolve`：以证据**关闭**已实现的工单、把真正的新需求**晋升**为路线图里程碑骨架（再交接 `/strict-roadmap-milestone` 定义范围），或以理由**拒绝/推迟**不需要的工单。判断保留在 Skill 中；CLI 只执行确定性的状态转换并记录在工单上。这是整条流水线的起点：

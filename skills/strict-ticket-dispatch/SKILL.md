@@ -1,8 +1,8 @@
 ---
-name: strict-spec-ticket-triage
+name: strict-ticket-dispatch
 description: Triage a strict YAML ticket by judging whether its requirement is already implemented from specs, code, and docs, then drive the strict ticket CLI to close, promote, or reject it — keeping the judgment in this prompt and all state transitions in the CLI.
 metadata:
-  skill_id: strict_spec_ticket_triage
+  skill_id: strict_ticket_dispatch
   author: strict-spec-driven
   type: agent_skill
   version: 1.0.0

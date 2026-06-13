@@ -201,13 +201,13 @@ The skill pauses only when open questions require user input or when an unrecove
 When you have a raw requirement but are not yet sure it should become work, file a **ticket** first — a pure-requirement capture (problem, desired outcome, intent) with no solution:
 
 ```
-/strict-spec-ticket
+/strict-ticket
 ```
 
 Then triage it to decide whether it is already built:
 
 ```
-/strict-spec-ticket-triage
+/strict-ticket-dispatch
 ```
 
 Triage judges implemented-vs-not from existing specs, code, and docs, then drives `ticket-resolve` to **close** an already-implemented ticket with evidence, **promote** a genuinely new requirement into a roadmap milestone skeleton (handing off to `/strict-roadmap-milestone` for scope), or **reject/defer** an unwanted one. The judgment lives in the skill; the CLI only performs the deterministic transition and records it on the ticket. This is the front of the pipeline:

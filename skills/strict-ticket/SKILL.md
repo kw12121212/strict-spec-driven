@@ -1,8 +1,8 @@
 ---
-name: strict-spec-ticket
+name: strict-ticket
 description: Capture a raw requirement as a strict YAML ticket of pure intent — problem, desired observable outcome, and acceptance notes — and scaffold it through the strict ticket CLI without proposing any solution.
 metadata:
-  skill_id: strict_spec_ticket
+  skill_id: strict_ticket
   author: strict-spec-driven
   type: agent_skill
   version: 1.0.0
