@@ -216,6 +216,8 @@ Triage judges implemented-vs-not from existing specs, code, and docs, then drive
 ticket -> triage -> roadmap milestone -> planned change -> strict change -> spec / tech / code
 ```
 
+For the full ticket lifecycle — artifact structure, state machine, promotion mechanics, and copy-paste CLI examples — see the [Ticket Guide](TICKET_GUIDE.md).
+
 ## Harness (Optional)
 
 If your project has local services, production observability, or structured investigations, declare them in one harness:
