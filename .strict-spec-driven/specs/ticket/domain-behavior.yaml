@@ -96,6 +96,10 @@ requirements:
     strength: MUST
     statement: The system MUST, on an implemented decision, close the ticket and record evidence links to the satisfying specs/code/docs, and on a not-wanted decision, mark the ticket rejected/deferred with the recorded rationale, in both cases leaving an auditable dispatch-decision trail rather than discarding the ticket.
     scenarios:
+      implemented-closes-with-evidence:
+        - GIVEN: an open ticket
+        - WHEN: ticket-resolve runs with the implemented outcome and evidence references
+        - THEN: the ticket status becomes implemented and the supplied evidence is recorded on the ticket
       not-wanted-rejects-with-rationale:
         - GIVEN: an open ticket
         - WHEN: ticket-resolve runs with the not-wanted outcome and a rationale
