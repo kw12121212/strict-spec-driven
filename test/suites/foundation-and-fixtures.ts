@@ -705,8 +705,8 @@ context.assert(
   "ticket schema resolves by artifact type and exposes pure-requirement fields",
 );
 context.assert(
-  (ticketSchemaProps.triage_decision as Record<string, unknown>)?.properties !== undefined,
-  "ticket schema exposes an embedded triage-decision record",
+  (ticketSchemaProps.dispatch_decision as Record<string, unknown>)?.properties !== undefined,
+  "ticket schema exposes an embedded dispatch-decision record",
 );
 const ticketExample = yamlModule.parseYamlFile<{ status: string }>(
   path.join(ROOT, "examples", "strict-spec-driven", "ticket.yaml"),

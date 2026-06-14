@@ -1,0 +1,32 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: ticket-domain-behavior
+mapping:
+  implementation:
+    - src/tickets.ts
+    - src/ticket-dispatch.ts
+    - src/cli/cmd-tickets.ts
+  tests:
+    - test/suites/tickets.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    ticket-resolve-transition-contract:
+      strength: MUST
+      statement: The system MUST provide a ticket-resolve command that records a supplied dispatch decision (outcome, evidence, rationale, timestamp) onto the ticket and performs only the deterministic state transition for that outcome, without itself judging whether the requirement is implemented.
+      scenarios:
+        resolve-records-decision-and-transitions:
+          - GIVEN: an open ticket exists
+          - WHEN: ticket-resolve runs with an outcome, rationale, and optional evidence
+          - THEN: the ticket records a structured dispatch-decision with the outcome, rationale, evidence, and timestamp, and the ticket status transitions according to the supplied outcome
+    ticket-close-and-reject-transitions:
+      strength: MUST
+      statement: The system MUST, on an implemented decision, close the ticket and record evidence links to the satisfying specs/code/docs, and on a not-wanted decision, mark the ticket rejected/deferred with the recorded rationale, in both cases leaving an auditable dispatch-decision trail rather than discarding the ticket.
+      scenarios:
+        not-wanted-rejects-with-rationale:
+          - GIVEN: an open ticket
+          - WHEN: ticket-resolve runs with the not-wanted outcome and a rationale
+          - THEN: the ticket status becomes rejected and the rationale is preserved in the recorded dispatch-decision
+  REMOVED: {}

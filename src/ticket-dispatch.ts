@@ -6,9 +6,9 @@ import {
   readTicketArtifact,
   writeTicketArtifact,
   type TicketArtifact,
+  type TicketDispatchDecision,
   type TicketProvenance,
   type TicketReference,
-  type TicketTriageDecision,
 } from "./tickets.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
@@ -18,11 +18,11 @@ const MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v2";
 const ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v2";
 const REFINEMENT_STUB_PREFIX = "REFINEMENT NEEDED";
 
-export type TriageOutcome = "not_implemented" | "implemented" | "not_wanted";
+export type DispatchOutcome = "not_implemented" | "implemented" | "not_wanted";
 
 export type ResolveTicketInput = {
   ticketId: string;
-  outcome: TriageOutcome;
+  outcome: DispatchOutcome;
   rationale: string;
   evidence?: TicketReference[];
 };
@@ -31,7 +31,7 @@ export type ResolveTicketResult = {
   valid: boolean;
   ticketId: string;
   status: string | null;
-  outcome: TriageOutcome | null;
+  outcome: DispatchOutcome | null;
   milestoneId: string | null;
   milestonePath: string | null;
   milestoneCreated: boolean;
@@ -145,8 +145,8 @@ function buildMilestoneSkeleton(milestoneId: string, ticket: TicketArtifact): Re
   };
 }
 
-function applyTriageDecision(ticket: TicketArtifact, input: ResolveTicketInput): TicketTriageDecision {
-  const decision: TicketTriageDecision = {
+function applyDispatchDecision(ticket: TicketArtifact, input: ResolveTicketInput): TicketDispatchDecision {
+  const decision: TicketDispatchDecision = {
     outcome: input.outcome,
     rationale: input.rationale,
     decided_at: new Date().toISOString(),
@@ -154,7 +154,7 @@ function applyTriageDecision(ticket: TicketArtifact, input: ResolveTicketInput):
   if (input.evidence && input.evidence.length > 0) {
     decision.evidence = input.evidence;
   }
-  ticket.triage_decision = decision;
+  ticket.dispatch_decision = decision;
   return decision;
 }
 
@@ -172,7 +172,7 @@ function failure(ticketId: string, diagnostics: ValidationDiagnostic[]): Resolve
 }
 
 /**
- * Records a supplied triage decision onto a ticket and performs the deterministic
+ * Records a supplied dispatch decision onto a ticket and performs the deterministic
  * transition only. The CLI never judges whether a requirement is implemented; it
  * applies the outcome the caller decided:
  *   - not_implemented -> promote the ticket into a new roadmap milestone skeleton
@@ -185,11 +185,11 @@ export function resolveTicket(rootDir: string, input: ResolveTicketInput): Resol
     return failure(input.ticketId, [diagnostic(`ticket '${input.ticketId}' not found`, STRICT_WORKFLOW_DIR, "$.ticket.id")]);
   }
   if (!input.rationale || input.rationale.trim().length === 0) {
-    return failure(input.ticketId, [diagnostic("triage rationale is required", STRICT_WORKFLOW_DIR, "$.triage_decision.rationale")]);
+    return failure(input.ticketId, [diagnostic("dispatch rationale is required", STRICT_WORKFLOW_DIR, "$.dispatch_decision.rationale")]);
   }
 
   if (input.outcome === "implemented") {
-    applyTriageDecision(ticket, input);
+    applyDispatchDecision(ticket, input);
     ticket.status = "implemented";
     if (input.evidence && input.evidence.length > 0) {
       const provenance: TicketProvenance = ticket.provenance ?? {};
@@ -210,7 +210,7 @@ export function resolveTicket(rootDir: string, input: ResolveTicketInput): Resol
   }
 
   if (input.outcome === "not_wanted") {
-    applyTriageDecision(ticket, input);
+    applyDispatchDecision(ticket, input);
     ticket.status = "rejected";
     writeTicketArtifact(rootDir, ticket);
     return {
@@ -229,7 +229,7 @@ export function resolveTicket(rootDir: string, input: ResolveTicketInput): Resol
   const existing = findMilestoneBySourceTicket(rootDir, input.ticketId);
   if (existing) {
     // Idempotent: a milestone was already promoted from this ticket; do not create a second one.
-    applyTriageDecision(ticket, input);
+    applyDispatchDecision(ticket, input);
     ticket.status = "promoted";
     ticket.provenance = { ...(ticket.provenance ?? {}), promoted_to: existing.id };
     writeTicketArtifact(rootDir, ticket);
@@ -296,7 +296,7 @@ export function resolveTicket(rootDir: string, input: ResolveTicketInput): Resol
   writeFileSync(milestoneFile, stringifyYamlDocument(milestoneArtifact), "utf8");
   writeFileSync(indexPath, stringifyYamlDocument(nextIndex), "utf8");
 
-  applyTriageDecision(ticket, input);
+  applyDispatchDecision(ticket, input);
   ticket.status = "promoted";
   ticket.provenance = { ...(ticket.provenance ?? {}), promoted_to: milestoneId };
   writeTicketArtifact(rootDir, ticket);

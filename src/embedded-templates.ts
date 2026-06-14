@@ -2165,7 +2165,7 @@ entries:
       supersedes: []
       compatible_with: []
       notes:
-        - Tickets capture a pure requirement (problem, desired outcome, intent) separate from any solution, with lifecycle status, provenance links, and an embedded triage-decision record.
+        - Tickets capture a pure requirement (problem, desired outcome, intent) separate from any solution, with lifecycle status, provenance links, and an embedded dispatch-decision record.
         - Ticket ids are conflict-resistant (slug- plus content-derived), not drawn from a shared sequential counter.
   - schema_id: strict-spec-driven/tickets-index/v1
     schema_version: 1
@@ -2802,7 +2802,7 @@ schema_version: 1
 schema_id: strict-spec-driven/ticket/v1
 artifact_type: ticket
 artifact_name: ticket
-description: Strict YAML ticket artifact capturing a pure requirement (problem, desired outcome, intent) with lifecycle status, provenance links, and an embedded triage-decision record.
+description: Strict YAML ticket artifact capturing a pure requirement (problem, desired outcome, intent) with lifecycle status, provenance links, and an embedded dispatch-decision record.
 example_ref: ../../../examples/strict-spec-driven/ticket.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
@@ -2909,7 +2909,7 @@ json_schema:
               target:
                 type: string
                 minLength: 1
-    triage_decision:
+    dispatch_decision:
       type: object
       additionalProperties: false
       required:

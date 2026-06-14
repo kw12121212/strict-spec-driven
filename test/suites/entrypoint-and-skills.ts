@@ -216,18 +216,18 @@ context.assert(
   "strict-ticket skill passes packaging validation with no diagnostics",
 );
 
-const triageSkillContent = readFileSync(path.join(ROOT, "skills", "strict-ticket-dispatch", "SKILL.md"), "utf8");
+const dispatchSkillContent = readFileSync(path.join(ROOT, "skills", "strict-ticket-dispatch", "SKILL.md"), "utf8");
 context.assert(
-  triageSkillContent.includes("ticket-resolve") && triageSkillContent.includes("/strict-roadmap-milestone"),
-  "ticket-triage skill drives ticket-resolve and hands off to milestone refinement",
+  dispatchSkillContent.includes("ticket-resolve") && dispatchSkillContent.includes("/strict-roadmap-milestone"),
+  "ticket-dispatch skill drives ticket-resolve and hands off to milestone refinement",
 );
 context.assert(
-  triageSkillContent.toLowerCase().includes("defer to the user") && triageSkillContent.includes("never guess"),
-  "ticket-triage skill defers to the user on ambiguous evidence",
+  dispatchSkillContent.toLowerCase().includes("defer to the user") && dispatchSkillContent.includes("never guess"),
+  "ticket-dispatch skill defers to the user on ambiguous evidence",
 );
 context.assert(
-  triageSkillContent.includes("judgment stays in this prompt") || triageSkillContent.includes("judgment is yours"),
-  "ticket-triage skill keeps the implemented-vs-not judgment in the prompt",
+  dispatchSkillContent.includes("judgment stays in this prompt") || dispatchSkillContent.includes("judgment is yours"),
+  "ticket-dispatch skill keeps the implemented-vs-not judgment in the prompt",
 );
 
 const validateSkillsCli = validateSkillsDispatch;

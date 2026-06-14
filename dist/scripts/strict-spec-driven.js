@@ -8712,7 +8712,7 @@ entries:
       supersedes: []
       compatible_with: []
       notes:
-        - Tickets capture a pure requirement (problem, desired outcome, intent) separate from any solution, with lifecycle status, provenance links, and an embedded triage-decision record.
+        - Tickets capture a pure requirement (problem, desired outcome, intent) separate from any solution, with lifecycle status, provenance links, and an embedded dispatch-decision record.
         - Ticket ids are conflict-resistant (slug- plus content-derived), not drawn from a shared sequential counter.
   - schema_id: strict-spec-driven/tickets-index/v1
     schema_version: 1
@@ -9349,7 +9349,7 @@ schema_version: 1
 schema_id: strict-spec-driven/ticket/v1
 artifact_type: ticket
 artifact_name: ticket
-description: Strict YAML ticket artifact capturing a pure requirement (problem, desired outcome, intent) with lifecycle status, provenance links, and an embedded triage-decision record.
+description: Strict YAML ticket artifact capturing a pure requirement (problem, desired outcome, intent) with lifecycle status, provenance links, and an embedded dispatch-decision record.
 example_ref: ../../../examples/strict-spec-driven/ticket.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
@@ -9456,7 +9456,7 @@ json_schema:
               target:
                 type: string
                 minLength: 1
-    triage_decision:
+    dispatch_decision:
       type: object
       additionalProperties: false
       required:
@@ -17962,7 +17962,7 @@ function validateTickets(rootDir, ticketId) {
   return { valid: diagnostics.length === 0, checkedCount, diagnostics };
 }
 
-// src/ticket-triage.ts
+// src/ticket-dispatch.ts
 import { existsSync as existsSync20, mkdirSync as mkdirSync7, readdirSync as readdirSync9, statSync as statSync13, writeFileSync as writeFileSync8 } from "fs";
 import path21 from "path";
 var STRICT_WORKFLOW_DIR10 = ".strict-spec-driven";
@@ -18047,7 +18047,7 @@ function buildMilestoneSkeleton(milestoneId, ticket) {
     source_ticket: ticket.ticket.id
   };
 }
-function applyTriageDecision(ticket, input) {
+function applyDispatchDecision(ticket, input) {
   const decision = {
     outcome: input.outcome,
     rationale: input.rationale,
@@ -18056,7 +18056,7 @@ function applyTriageDecision(ticket, input) {
   if (input.evidence && input.evidence.length > 0) {
     decision.evidence = input.evidence;
   }
-  ticket.triage_decision = decision;
+  ticket.dispatch_decision = decision;
   return decision;
 }
 function failure(ticketId, diagnostics) {
@@ -18077,10 +18077,10 @@ function resolveTicket(rootDir, input) {
     return failure(input.ticketId, [diagnostic(`ticket '${input.ticketId}' not found`, STRICT_WORKFLOW_DIR10, "$.ticket.id")]);
   }
   if (!input.rationale || input.rationale.trim().length === 0) {
-    return failure(input.ticketId, [diagnostic("triage rationale is required", STRICT_WORKFLOW_DIR10, "$.triage_decision.rationale")]);
+    return failure(input.ticketId, [diagnostic("dispatch rationale is required", STRICT_WORKFLOW_DIR10, "$.dispatch_decision.rationale")]);
   }
   if (input.outcome === "implemented") {
-    applyTriageDecision(ticket, input);
+    applyDispatchDecision(ticket, input);
     ticket.status = "implemented";
     if (input.evidence && input.evidence.length > 0) {
       const provenance = ticket.provenance ?? {};
@@ -18100,7 +18100,7 @@ function resolveTicket(rootDir, input) {
     };
   }
   if (input.outcome === "not_wanted") {
-    applyTriageDecision(ticket, input);
+    applyDispatchDecision(ticket, input);
     ticket.status = "rejected";
     writeTicketArtifact(rootDir, ticket);
     return {
@@ -18116,7 +18116,7 @@ function resolveTicket(rootDir, input) {
   }
   const existing = findMilestoneBySourceTicket(rootDir, input.ticketId);
   if (existing) {
-    applyTriageDecision(ticket, input);
+    applyDispatchDecision(ticket, input);
     ticket.status = "promoted";
     ticket.provenance = { ...ticket.provenance ?? {}, promoted_to: existing.id };
     writeTicketArtifact(rootDir, ticket);
@@ -18175,7 +18175,7 @@ function resolveTicket(rootDir, input) {
   mkdirSync7(milestonesDir(rootDir), { recursive: true });
   writeFileSync8(milestoneFile, stringifyYamlDocument(milestoneArtifact), "utf8");
   writeFileSync8(indexPath, stringifyYamlDocument(nextIndex), "utf8");
-  applyTriageDecision(ticket, input);
+  applyDispatchDecision(ticket, input);
   ticket.status = "promoted";
   ticket.provenance = { ...ticket.provenance ?? {}, promoted_to: milestoneId };
   writeTicketArtifact(rootDir, ticket);
@@ -18192,7 +18192,7 @@ function resolveTicket(rootDir, input) {
 }
 
 // src/cli/cmd-tickets.ts
-var TRIAGE_OUTCOMES = new Set(["not_implemented", "implemented", "not_wanted"]);
+var DISPATCH_OUTCOMES = new Set(["not_implemented", "implemented", "not_wanted"]);
 function parseFlagMap2(argv) {
   const flags = {};
   for (let index = 0;index < argv.length; index += 1) {
@@ -18353,7 +18353,7 @@ function runTicketResolve(argv) {
   }
   const outcome = singleValue(flags, "outcome");
   const rationale = singleValue(flags, "rationale");
-  if (outcome === undefined || !TRIAGE_OUTCOMES.has(outcome)) {
+  if (outcome === undefined || !DISPATCH_OUTCOMES.has(outcome)) {
     writeUsage(`Error: --outcome must be one of not_implemented, implemented, not_wanted
 `);
     return 1;

@@ -1412,12 +1412,12 @@ requirements:
         - THEN: the shared cache includes the exported schema registry and enough metadata to enumerate the exported schema files
   yaml-ticket-artifact-family:
     strength: MUST
-    statement: The system MUST define a strict YAML ticket artifact family that captures a pure requirement (problem statement, desired observable outcome, and intent/acceptance notes) separate from any solution, with a conflict-resistant ticket id and title, a lifecycle status enum, creation metadata, optional labels and an optional external-tracker reference, provenance links, and an embedded triage-decision record, represented through structured YAML fields.
+    statement: The system MUST define a strict YAML ticket artifact family that captures a pure requirement (problem statement, desired observable outcome, and intent/acceptance notes) separate from any solution, with a conflict-resistant ticket id and title, a lifecycle status enum, creation metadata, optional labels and an optional external-tracker reference, provenance links, and an embedded dispatch-decision record, represented through structured YAML fields.
     scenarios:
-      ticket-captures-pure-requirement-and-triage-state:
+      ticket-captures-pure-requirement-and-dispatch-state:
         - GIVEN: the strict YAML ticket schema is reviewed
         - WHEN: the ticket artifact contract is checked
-        - THEN: problem statement, desired outcome, and intent are available as structured fields separate from any solution, a conflict-resistant id and lifecycle status enum are present, and an embedded triage-decision record with outcome, evidence, rationale, and timestamp is representable
+        - THEN: problem statement, desired outcome, and intent are available as structured fields separate from any solution, a conflict-resistant id and lifecycle status enum are present, and an embedded dispatch-decision record with outcome, evidence, rationale, and timestamp is representable
   yaml-ticket-conflict-resistant-ids-and-index:
     strength: MUST
     statement: The system MUST store tickets under a dedicated strict workflow tickets location with a tickets index artifact and per-ticket files identified by conflict-resistant ids derived from ticket content rather than a shared sequential counter.

@@ -229,7 +229,7 @@ entries:
       supersedes: []
       compatible_with: []
       notes:
-        - Tickets capture a pure requirement (problem, desired outcome, intent) separate from any solution, with lifecycle status, provenance links, and an embedded triage-decision record.
+        - Tickets capture a pure requirement (problem, desired outcome, intent) separate from any solution, with lifecycle status, provenance links, and an embedded dispatch-decision record.
         - Ticket ids are conflict-resistant (slug- plus content-derived), not drawn from a shared sequential counter.
   - schema_id: strict-spec-driven/tickets-index/v1
     schema_version: 1

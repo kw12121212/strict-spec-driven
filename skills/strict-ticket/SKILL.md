@@ -10,7 +10,7 @@ metadata:
 
 You are helping the user capture a raw requirement as a strict YAML ticket. A
 ticket records pure intent only — the problem, the desired observable outcome,
-and acceptance notes — with no solution, technology choice, or design. Triage
+and acceptance notes — with no solution, technology choice, or design. Dispatch
 (deciding whether the requirement is already implemented, and promoting it into
 a roadmap milestone) is a separate skill; this skill only captures the
 requirement and scaffolds the ticket through the CLI.
@@ -70,8 +70,8 @@ run `init` from this skill.
 
 5. **Report the result** — tell the user the created ticket id and file path
    (use `ticket-show <ticket-id>` to display it), and explain that the next step
-   is triage to decide whether the requirement is already implemented or should
-   become a roadmap milestone. Do not perform that triage here.
+   is dispatch to decide whether the requirement is already implemented or should
+   become a roadmap milestone. Do not perform that dispatch here.
 
 ## Rules
 
@@ -79,7 +79,7 @@ run `init` from this skill.
   never a solution, technology choice, or design
 - Create and modify tickets only through the ticket CLI commands; never
   hand-write ticket YAML or the tickets index
-- Do not triage, close, promote, or reject the ticket, and do not create
-  milestones or propose changes — that is the triage skill's responsibility
+- Do not dispatch, close, promote, or reject the ticket, and do not create
+  milestones or propose changes — that is the dispatch skill's responsibility
 - Keep the judgment about how to phrase the requirement in this prompt; keep all
   file creation and format enforcement in the CLI

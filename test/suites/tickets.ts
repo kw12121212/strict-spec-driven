@@ -191,7 +191,7 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   context.assert(validateUnknownStatus.status !== 0, "ticket-validate rejects a ticket with an unknown status enum");
   rmSync(unknownStatusRoot, { recursive: true, force: true });
 
-  context.section("[tickets] ticket-resolve triage transitions");
+  context.section("[tickets] ticket-resolve dispatch transitions");
 
   const roadmapRoot = makeRoadmapWorkspace();
   const promoteTicket = createTicketViaCli(roadmapRoot, "Add CSV export", "no tabular export", "a CSV export exists");
@@ -228,7 +228,7 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   context.assert(milestoneId in roadmapIndex.milestones, "promotion registers the milestone in the roadmap index");
 
   const promoteAgain = cli(
-    ["ticket-resolve", promoteTicket, "--outcome", "not_implemented", "--rationale", "re-running triage"],
+    ["ticket-resolve", promoteTicket, "--outcome", "not_implemented", "--rationale", "re-running dispatch"],
     { cwd: roadmapRoot },
   );
   const promoteAgainJson = parseJson(promoteAgain.stdout);
@@ -279,8 +279,8 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   const rejectedShow = parseJson(cli(["ticket-show", rejectedTicket], { cwd: roadmapRoot }).stdout);
   const rejectedArtifact = rejectedShow.ticket as Record<string, unknown>;
   context.assert(
-    (rejectedArtifact.triage_decision as Record<string, unknown>)?.rationale === "out of product scope",
-    "not-wanted decision preserves the rationale in the triage-decision record",
+    (rejectedArtifact.dispatch_decision as Record<string, unknown>)?.rationale === "out of product scope",
+    "not-wanted decision preserves the rationale in the dispatch-decision record",
   );
 
   const resolveMissing = cli(["ticket-resolve", "nope-000000", "--outcome", "implemented", "--rationale", "x"], { cwd: roadmapRoot });

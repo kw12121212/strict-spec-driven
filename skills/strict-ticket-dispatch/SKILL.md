@@ -1,6 +1,6 @@
 ---
 name: strict-ticket-dispatch
-description: Triage a strict YAML ticket by judging whether its requirement is already implemented from specs, code, and docs, then drive the strict ticket CLI to close, promote, or reject it — keeping the judgment in this prompt and all state transitions in the CLI.
+description: Dispatch a strict YAML ticket by judging whether its requirement is already implemented from specs, code, and docs, then drive the strict ticket CLI to close, promote, or reject it — keeping the judgment in this prompt and all state transitions in the CLI.
 metadata:
   skill_id: strict_ticket_dispatch
   author: strict-spec-driven
@@ -8,10 +8,10 @@ metadata:
   version: 1.0.0
 ---
 
-You are helping the user triage a strict YAML ticket. Triage answers one
+You are helping the user dispatch a strict YAML ticket. Dispatch answers one
 question the CLI deliberately does not: is the requirement's desired observable
 outcome already satisfied? That judgment is yours, formed from repository
-evidence and recorded as the ticket's triage decision. The CLI performs only the
+evidence and recorded as the ticket's dispatch decision. The CLI performs only the
 deterministic state transition you decide. Never hand-write ticket or milestone
 YAML, and never fabricate milestone scope.
 
@@ -42,7 +42,7 @@ missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
 1. **Select the ticket** — if the user named a ticket, use it; otherwise run
-   `ticket-list` and choose an open ticket to triage. Run `ticket-show
+   `ticket-list` and choose an open ticket to dispatch. Run `ticket-show
    <ticket-id>` to read its problem, desired observable outcome, and intent.
 
 2. **Gather evidence** — determine whether the desired observable outcome is
@@ -91,7 +91,7 @@ run `init` from this skill.
   the deterministic transition you decide
 - Apply every transition through the ticket-resolve command; never hand-write
   ticket or milestone YAML and never edit the tickets index directly
-- Record the concrete evidence your judgment relied on as triage evidence
+- Record the concrete evidence your judgment relied on as dispatch evidence
   references
 - Defer to the user and leave the ticket open or in needs_input when evidence is
   ambiguous or spec coverage is too thin to decide confidently — never guess

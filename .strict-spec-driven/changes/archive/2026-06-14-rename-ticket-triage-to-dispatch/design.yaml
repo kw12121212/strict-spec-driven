@@ -1,0 +1,13 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: rename-ticket-triage-to-dispatch
+approach:
+  - Rename the active ticket workflow contract and implementation from triage wording to dispatch wording without changing the ticket-resolve state machine. Update the ticket main spec and contracts spec to require a dispatch-decision record and dispatch terminology, rename src/ticket-triage.ts to src/ticket-dispatch.ts and the exported outcome/decision types accordingly, update the ticket schema/template/embedded bundle field name to dispatch_decision, keep ticket-resolve and its outcomes stable, and refresh skill copy plus regression assertions to match the renamed terminology.
+decisions:
+  dispatch-contract-no-alias:
+    decision: The active ticket contract will use only dispatch terminology, including dispatch_decision and DispatchOutcome, rather than preserving triage aliases in the current schema or code.
+    rationale: The user explicitly wants triage comprehensively renamed on the active workflow surface to avoid confusion; keeping triage aliases in current contracts would preserve the ambiguity the change is meant to remove.
+alternatives: []
+risks: []

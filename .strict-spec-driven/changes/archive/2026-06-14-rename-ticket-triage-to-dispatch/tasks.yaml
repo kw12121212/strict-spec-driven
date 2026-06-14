@@ -1,0 +1,44 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: rename-ticket-triage-to-dispatch
+sections:
+  Implementation:
+    rename-ticket-contract-and-spec-terms:
+      text: Update the active ticket-domain and contracts specs plus the ticket schema assets so the ticket workflow uses dispatch terminology and the ticket decision field is dispatch_decision.
+      status: complete
+    rename-ticket-dispatch-implementation:
+      text: Rename the active ticket dispatch implementation module and exported types, wire the ticket-resolve CLI handler to the renamed module, and update the ticket artifact writer/reader to use dispatch_decision without changing resolve behavior.
+      status: complete
+    rename-ticket-skill-and-regression-wording:
+      text: Update the active strict-ticket and strict-ticket-dispatch skills plus regression assertions so current workflow wording consistently uses dispatch instead of triage.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run the TypeScript no-emit lint/typecheck for the renamed ticket dispatch surface.
+      status: complete
+      command: bun run lint
+    run-build:
+      text: Rebuild compiled output and embedded templates so dist reflects the dispatch terminology rename.
+      status: complete
+      command: bun run build
+    validate-skills:
+      text: Run strict skill packaging validation after updating the active ticket skills.
+      status: complete
+      command: node dist/scripts/strict-spec-driven.js validate-skills
+    run-test-suite:
+      text: Run the repository test suite covering the renamed ticket dispatch contract, skills, and bundled schema assets.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope (active workflow terminology rename only; no archive/history rewrites and no ticket-resolve behavior changes).
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-project-regression

@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: rename-ticket-triage-to-dispatch
+  status: proposed
+summary:
+  what:
+    - Rename the current ticket triage terminology across the active workflow surface to dispatch, including the ticket decision field, ticket dispatch implementation module/types, skill wording, and the related strict main specs, schema assets, and regression assertions, while keeping the existing ticket-resolve command behavior unchanged.
+  why:
+    - The repository currently mixes dispatch naming with leftover triage terminology in the active ticket workflow, which makes the contract and skill boundary harder to understand. Unifying the active workflow surface on dispatch removes that ambiguity without changing the underlying ticket lifecycle behavior.
+scope:
+  in:
+    - Update the active ticket-domain and contracts main specs plus delta specs for the dispatch terminology, rename the ticket decision field from triage_decision to dispatch_decision in the active ticket contract and implementation, rename the active ticket dispatch module/types and current skill/test wording to dispatch, rebuild generated bundled templates, and update regression coverage for the renamed field and wording.
+  out:
+    - Archive history and historical roadmap/archive identifiers; changing ticket-resolve behavior, outcomes, milestone creation rules, or the ticket command surface beyond the terminology rename.
+unchanged_behavior:
+  - ticket-create, ticket-list, ticket-show, ticket-validate, and ticket-resolve behavior, exit codes, and outcome semantics remain unchanged apart from dispatch terminology in emitted ticket data and workflow text.

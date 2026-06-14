@@ -1,9 +1,9 @@
 import { createTicket, listTickets, showTicket, validateTickets, type CreateTicketInput, type TicketReference } from "../tickets.js";
-import { resolveTicket, type ResolveTicketInput, type TriageOutcome } from "../ticket-triage.js";
+import { resolveTicket, type DispatchOutcome, type ResolveTicketInput } from "../ticket-dispatch.js";
 import { isHelpRequest } from "./argv.js";
 import { writeHelp, writeJson, writeUsage } from "./output.js";
 
-const TRIAGE_OUTCOMES = new Set<TriageOutcome>(["not_implemented", "implemented", "not_wanted"]);
+const DISPATCH_OUTCOMES = new Set<DispatchOutcome>(["not_implemented", "implemented", "not_wanted"]);
 
 type FlagMap = Record<string, string[]>;
 
@@ -177,7 +177,7 @@ export function runTicketResolve(argv: string[]): number {
 
   const outcome = singleValue(flags, "outcome");
   const rationale = singleValue(flags, "rationale");
-  if (outcome === undefined || !TRIAGE_OUTCOMES.has(outcome as TriageOutcome)) {
+  if (outcome === undefined || !DISPATCH_OUTCOMES.has(outcome as DispatchOutcome)) {
     writeUsage("Error: --outcome must be one of not_implemented, implemented, not_wanted\n");
     return 1;
   }
@@ -188,7 +188,7 @@ export function runTicketResolve(argv: string[]): number {
 
   const input: ResolveTicketInput = {
     ticketId,
-    outcome: outcome as TriageOutcome,
+    outcome: outcome as DispatchOutcome,
     rationale,
     evidence,
   };
