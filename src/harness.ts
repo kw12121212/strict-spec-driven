@@ -1182,6 +1182,17 @@ function runTcpReadinessCheck(port: number): boolean {
   return spawnSync(process.execPath, ["-e", script, String(port)], { stdio: "ignore" }).status === 0;
 }
 
+function findPortConflict(
+  ports: number[],
+  ignoredPorts: Set<number>,
+): number | null {
+  for (const port of ports) {
+    if (ignoredPorts.has(port)) continue;
+    if (runTcpReadinessCheck(port)) return port;
+  }
+  return null;
+}
+
 function waitForReadiness(record: RuntimeComponentRecord): { ok: true } | { ok: false; message: string } {
   if (record.readiness.type === "manual") return { ok: true };
   const deadline = Date.now() + record.readiness.timeoutSeconds * 1000;
@@ -1248,6 +1259,11 @@ export function startHarness(rootDir: string, options: { environment?: string; c
     }
   }
 
+  const occupiedPorts = new Set<number>(
+    Object.values(existing.state?.components ?? {})
+      .filter((record) => record.status === "running")
+      .flatMap((record) => record.ports),
+  );
   clearRuntimeState(rootDir);
   const writablePaths = ensureRuntimeDirectories(rootDir);
   const state: RuntimeState = {
@@ -1298,6 +1314,34 @@ export function startHarness(rootDir: string, options: { environment?: string; c
       };
     }
 
+    const inUsePort = findPortConflict(component.ports, occupiedPorts);
+    if (inUsePort !== null) {
+      const failureReason = `declared port ${inUsePort} is already in use by a process outside the managed harness runtime`;
+      const record = createRuntimeRecord(component, component.operations.start.command ?? "", logPath, null);
+      record.status = "failed";
+      record.failureReason = failureReason;
+      state.components[component.id] = record;
+      writeRuntimeState(rootDir, state);
+      const diagnostics = [createDiagnostic(planResult.artifactPath, `$.harness.environments.${planResult.environment.id}.components.${component.id}.ports`, "declared component port is already in use", {
+        source: "spawn",
+        phase: "spawn",
+        componentId: component.id,
+        expected: `declared port ${inUsePort} must be free for this harness start`,
+        actual: `in-use`,
+      })];
+      const recovery = createPartialStartRecoveryDiagnostic(planResult.artifactPath, state);
+      if (recovery !== null) diagnostics.push(recovery);
+      return {
+        ok: false,
+        artifactPath: planResult.artifactPath,
+        runtimeStatePath: writablePaths.relativeStatePath,
+        harnessId: planResult.harness.id,
+        environmentId: planResult.environment.id,
+        components: summarizeRuntimeState(state),
+        diagnostics,
+      };
+    }
+
     writeFileSync(logAbsolutePath, "", "utf8");
     const logDescriptor = openSync(logAbsolutePath, "a");
     const child = spawn(component.operations.start.command ?? "", [], {
@@ -1312,6 +1356,7 @@ export function startHarness(rootDir: string, options: { environment?: string; c
 
     const record = createRuntimeRecord(component, component.operations.start.command ?? "", logPath, typeof child.pid === "number" ? child.pid : null);
     state.components[component.id] = record;
+    component.ports.forEach((port) => occupiedPorts.add(port));
     writeRuntimeState(rootDir, state);
     const readiness = waitForReadiness(record);
     if (!readiness.ok) {

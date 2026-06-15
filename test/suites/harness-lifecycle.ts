@@ -31,6 +31,27 @@ async function reservePort(): Promise<number> {
   });
 }
 
+async function reservePortWithServer(): Promise<{ port: number; close: () => Promise<void> }> {
+  return await new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (!address || typeof address !== "object") {
+        reject(new Error("failed to reserve port with server"));
+        return;
+      }
+      const port = address.port;
+      resolve({
+        port,
+        close: () => new Promise<void>((resolveClose, rejectClose) => {
+          server.close((error) => error ? rejectClose(error) : resolveClose());
+        }),
+      });
+    });
+  });
+}
+
 function buildHarness(
   command: string,
   port: number,
@@ -442,5 +463,56 @@ export async function runHarnessLifecycleSuite(context: TestContext): Promise<vo
   } finally {
     cli(["harness-stop"], { cwd: partialFailureWorkspace.workspaceRoot, env: partialFailureEnv });
     partialFailureWorkspace.cleanup();
+  }
+
+  const occupiedPortServer = await reservePortWithServer();
+  const portConflictWorkspace = createWorkspace(
+    buildHarness("node server.cjs", occupiedPortServer.port),
+    {
+      "server.cjs": [
+        "const http = require('http');",
+        "const fs = require('fs');",
+        "const port = Number(process.env.PORT);",
+        "const server = http.createServer((req, res) => {",
+        "  if (req.url === '/health') { res.writeHead(200); res.end('ok'); return; }",
+        "  res.writeHead(200); res.end('hello');",
+        "});",
+        "server.listen(port, '127.0.0.1', () => { fs.writeFileSync('server.pid', String(process.pid)); });",
+        "process.on('SIGTERM', () => server.close(() => process.exit(0)));",
+        "setInterval(() => {}, 1000);",
+        "",
+      ].join("\n"),
+      "stop.cjs": "const fs = require('fs'); process.kill(Number(fs.readFileSync('server.pid', 'utf8')), 'SIGTERM');\n",
+    },
+  );
+  const portConflictEnv = { ...process.env, PORT: String(occupiedPortServer.port) };
+  try {
+    const start = cli(["harness-start", "--environment", "development"], {
+      cwd: portConflictWorkspace.workspaceRoot,
+      env: portConflictEnv,
+    });
+    context.assert(start.status !== 0, "harness-start reports a non-zero exit when declared port is already in use", start.stderr.trim());
+    const startJson = JSON.parse(start.stdout.trim()) as {
+      ok: boolean;
+      components: Array<{ id: string; status: string; message?: string }>;
+      diagnostics: Array<{ source: string; message?: string; expected?: string; actual?: string; componentId?: string }>;
+    };
+    const component = startJson.components.find((entry) => entry.id === "web");
+    const conflictDiagnostic = startJson.diagnostics.find((diagnostic) => diagnostic.source === "spawn");
+    context.assert(
+      startJson.ok === false
+        && component?.status === "failed"
+        && component?.message?.includes("already in use")
+        && conflictDiagnostic?.message === "declared component port is already in use"
+        && conflictDiagnostic?.componentId === "web"
+        && conflictDiagnostic?.expected === `declared port ${occupiedPortServer.port} must be free for this harness start`
+        && conflictDiagnostic?.actual === "in-use"
+        && component?.message?.includes("outside the managed harness runtime"),
+      "harness-start reports a clear port-conflict diagnostic for a pre-bound port",
+      start.stdout.trim(),
+    );
+  } finally {
+    portConflictWorkspace.cleanup();
+    await occupiedPortServer.close();
   }
 }
