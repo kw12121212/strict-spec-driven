@@ -1,6 +1,69 @@
-import { formatRoadmapOverview, getRoadmapStatus, recommendRoadmapChange, syncRoadmap } from "../roadmap.js";
+import {
+  formatRoadmapOverview,
+  getRoadmapStatus,
+  recommendRoadmapChange,
+  syncRoadmap,
+  type RoadmapRecommendResult,
+} from "../roadmap.js";
 import { isHelpRequest } from "./argv.js";
 import { writeHelp, writeJson, writeOut, writeUsage } from "./output.js";
+
+const ROADMAP_RECOMMEND_USAGE = "Usage: strict-spec-driven roadmap-recommend [--details]\n";
+const ACTIONABLE_BLOCKER_LIMIT = 10;
+
+function summarizeRoadmapRecommendation(result: RoadmapRecommendResult): unknown {
+  const skippedByCode: Record<string, number> = {};
+  let eligible = 0;
+  for (const candidate of result.candidates) {
+    if (candidate.eligible) {
+      eligible += 1;
+      continue;
+    }
+    for (const reason of candidate.skipReasons) {
+      skippedByCode[reason.code] = (skippedByCode[reason.code] ?? 0) + 1;
+    }
+  }
+
+  const blockers = result.candidates
+    .filter((candidate) =>
+      !candidate.eligible
+      && !candidate.skipReasons.some((reason) => reason.code === "workflow-state-archived")
+      && candidate.skipReasons.some((reason) => reason.code !== "workflow-state-archived")
+    )
+    .slice(0, ACTIONABLE_BLOCKER_LIMIT)
+    .map((candidate) => ({
+      id: candidate.id,
+      path: candidate.path,
+      milestone: candidate.milestone,
+      skipReasons: candidate.skipReasons,
+    }));
+
+  const recommendation = result.recommendation === null
+    ? null
+    : {
+      id: result.recommendation.id,
+      changeName: result.recommendation.changeName,
+      path: result.recommendation.path,
+      milestone: result.recommendation.milestone,
+      reason: result.recommendation.reason,
+    };
+
+  return {
+    valid: result.valid,
+    status: result.status,
+    warnings: result.warnings,
+    diagnostics: result.diagnostics,
+    recommendation,
+    candidateSummary: {
+      total: result.candidates.length,
+      eligible,
+      skipped: result.candidates.length - eligible,
+      skippedByCode,
+    },
+    blockers,
+    detailsCommand: "strict-spec-driven roadmap-recommend --details",
+  };
+}
 
 export function runRoadmapStatus(argv: string[]): number {
   if (isHelpRequest(argv)) {
@@ -50,15 +113,16 @@ export function runRoadmapSync(argv: string[]): number {
 
 export function runRoadmapRecommend(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven roadmap-recommend\n");
+    writeHelp(ROADMAP_RECOMMEND_USAGE);
     return 0;
   }
-  if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven roadmap-recommend\n");
+  const includeDetails = argv.length === 1 && argv[0] === "--details";
+  if (argv.length > 0 && !includeDetails) {
+    writeUsage(ROADMAP_RECOMMEND_USAGE);
     return 1;
   }
 
   const result = recommendRoadmapChange(process.cwd());
-  writeJson(result);
+  writeJson(includeDetails ? result : summarizeRoadmapRecommendation(result));
   return result.status === "recommended" ? 0 : 1;
 }

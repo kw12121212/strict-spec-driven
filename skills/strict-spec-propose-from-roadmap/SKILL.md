@@ -84,8 +84,11 @@ Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js che
    authoritative. Branch on the returned `status`:
    - `roadmap-error` — surface the JSON diagnostics and stop. Suggest
      `roadmap-status` for additional context.
-   - `no-candidate` — surface the `candidates[].skipReasons`, explain which
-     blockers must clear, and stop.
+   - `no-candidate` — surface `candidateSummary` and the actionable
+     `blockers[].skipReasons`, explain which blockers must clear, and stop.
+     If the concise output does not explain the blockage, rerun
+     `node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-recommend --details`
+     and surface the full `candidates[].skipReasons`.
    - `recommended` — use the returned `recommendation.changeName`,
      `recommendation.milestone`, and `recommendation.path` as the roadmap-backed
      proposal source.

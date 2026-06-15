@@ -257,11 +257,26 @@ try {
       && roadmapRecommendJson.status === "recommended"
       && roadmapRecommendJson.recommendation?.id === "next-change"
       && roadmapRecommendJson.recommendation?.path === "roadmap/planned-changes/0004-next-change.yaml"
-      && roadmapRecommendJson.recommendation?.milestone?.id === "0001-roadmap",
-    "roadmap-recommend returns the first eligible standalone planned change in roadmap order",
+      && roadmapRecommendJson.recommendation?.milestone?.id === "0001-roadmap"
+      && roadmapRecommendJson.recommendation?.summary === undefined,
+    "roadmap-recommend returns a concise first eligible standalone planned change in roadmap order",
   );
   context.assert(
-    roadmapRecommendJson.candidates.some(
+    roadmapRecommendJson.candidates === undefined
+      && roadmapRecommendJson.candidateSummary?.total === 4
+      && roadmapRecommendJson.candidateSummary?.eligible === 1
+      && roadmapRecommendJson.candidateSummary?.skippedByCode?.["dependency-incomplete"] === 2,
+    "roadmap-recommend summarizes candidates without emitting the full candidate list by default",
+  );
+  const roadmapRecommendDetails = cli(["roadmap-recommend", "--details"], { cwd: roadmapHappyDir });
+  context.assert(roadmapRecommendDetails.status === 0, "roadmap-recommend --details exits zero when an eligible candidate exists");
+  const roadmapRecommendDetailsJson = JSON.parse(roadmapRecommendDetails.stdout.trim());
+  context.assert(
+    roadmapRecommendDetailsJson.recommendation?.summary === "Ready work depends only on archived strict history.",
+    "roadmap-recommend --details preserves the full recommendation summary",
+  );
+  context.assert(
+    roadmapRecommendDetailsJson.candidates.some(
       (candidate: {
         id: string;
         eligible: boolean;
@@ -273,7 +288,7 @@ try {
           (reason) => reason.code === "dependency-incomplete" && reason.message.includes("active-change"),
         ),
     ),
-    "roadmap-recommend reports deterministic skip reasons for dependency-blocked planned changes",
+    "roadmap-recommend --details reports deterministic skip reasons for dependency-blocked planned changes",
   );
 
   const roadmapSync = cli(["roadmap-sync"], { cwd: roadmapHappyDir });
@@ -365,11 +380,24 @@ try {
     "roadmap-recommend reports a valid roadmap with no selected recommendation when all candidates are ineligible",
   );
   context.assert(
-    roadmapNoCandidateJson.candidates.some(
+    roadmapNoCandidateJson.candidates === undefined
+      && roadmapNoCandidateJson.candidateSummary?.total === 2
+      && roadmapNoCandidateJson.candidateSummary?.eligible === 0
+      && roadmapNoCandidateJson.blockers.some(
+        (candidate: { id: string; skipReasons: Array<{ code: string }> }) =>
+          candidate.id === "blocked-change" && candidate.skipReasons.some((reason) => reason.code === "dependency-incomplete"),
+      ),
+    "roadmap-recommend keeps actionable blockers in concise no-candidate output",
+  );
+  const roadmapNoCandidateDetails = cli(["roadmap-recommend", "--details"], { cwd: roadmapNoCandidateDir });
+  context.assert(roadmapNoCandidateDetails.status !== 0, "roadmap-recommend --details exits non-zero when no eligible candidate exists");
+  const roadmapNoCandidateDetailsJson = JSON.parse(roadmapNoCandidateDetails.stdout.trim());
+  context.assert(
+    roadmapNoCandidateDetailsJson.candidates.some(
       (candidate: { id: string; skipReasons: Array<{ code: string }> }) =>
         candidate.id === "blocked-change" && candidate.skipReasons.some((reason) => reason.code === "dependency-incomplete"),
     ),
-    "roadmap-recommend keeps inspected candidate skip reasons when no eligible recommendation exists",
+    "roadmap-recommend --details keeps inspected candidate skip reasons when no eligible recommendation exists",
   );
 } finally {
   rmSync(roadmapNoCandidateDir, { recursive: true, force: true });
