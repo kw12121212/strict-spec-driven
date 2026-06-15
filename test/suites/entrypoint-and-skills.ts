@@ -226,6 +226,12 @@ context.assert(
   "ticket-dispatch skill drives ticket-resolve and completes promoted milestone refinement before handoff",
 );
 context.assert(
+  normalizedDispatchSkillContent.includes("milestone `details`")
+    && normalizedDispatchSkillContent.includes("at least one standalone planned-change")
+    && normalizedDispatchSkillContent.includes("actionable `summary` and `details`"),
+  "ticket-dispatch skill requires promoted milestones to include details and standalone planned-change detail",
+);
+context.assert(
   normalizedDispatchSkillContent.includes("spec coverage is too thin")
     && normalizedDispatchSkillContent.includes("leaving the ticket open")
     && normalizedDispatchSkillContent.includes("Do not invent scope"),

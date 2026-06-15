@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: require-ticket-dispatch-planned-change-details
+  status: proposed
+summary:
+  what:
+    - Tighten strict-ticket-dispatch guidance so a promoted ticket milestone is completed with explicit milestone details and at least one standalone planned-change artifact before handoff when evidence is sufficient.
+  why:
+    - The current guidance allows promoted milestones to be refined but does not state strongly enough that executable roadmap handoff requires both milestone details and concrete planned-change detail.
+scope:
+  in:
+    - Update the strict-ticket-dispatch skill prompt; update README ticket triage wording; update skill validation tests; update the YAML artifact contract spec for promoted milestone handoff behavior.
+  out:
+    - CLI ticket-resolve mechanics, roadmap schema behavior, roadmap recommendation/proposal commands, and unrelated skills.
+unchanged_behavior:
+  - ticket-resolve remains the only mechanism that archives tickets and creates the initial linked milestone skeleton.

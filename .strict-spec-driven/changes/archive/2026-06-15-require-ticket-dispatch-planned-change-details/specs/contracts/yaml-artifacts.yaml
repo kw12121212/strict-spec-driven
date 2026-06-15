@@ -1,0 +1,27 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-ticket-dispatch/SKILL.md
+    - README.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    strict-ticket-dispatch-completes-milestones-when-sufficient:
+      strength: MUST
+      statement: The system MUST ensure the strict-ticket-dispatch skill, after promoting a not-implemented ticket, either completes the promoted roadmap milestone with concrete executable planning fields including milestone details and at least one standalone planned-change artifact with actionable details when ticket intent and gathered evidence are sufficient, or preserves a valid explicit handoff with the human decision needed when the evidence is ambiguous or incomplete.
+      scenarios:
+        dispatch-completes-sufficient-milestone-with-planned-change-details:
+          - GIVEN: a not-implemented ticket is promoted and the ticket intent plus gathered repository evidence provide enough concrete milestone scope, done criteria, dependencies, risks, and planned changes
+          - WHEN: strict-ticket-dispatch continues after ticket-resolve and roadmap-sync
+          - THEN: the skill guidance directs the agent to replace the promoted milestone refinement stub, write milestone details, create at least one standalone planned-change artifact with actionable summary and details, run roadmap-sync again, and report the completed milestone and planned-change files
+        dispatch-defers-insufficient-milestone:
+          - GIVEN: a not-yet-built ticket requirement lacks enough evidence to define concrete milestone scope, milestone details, or a standalone planned change
+          - WHEN: strict-ticket-dispatch forms its dispatch judgment
+          - THEN: the skill guidance directs the agent not to promote yet, to leave the ticket open, and to ask for the concrete missing planning detail instead of inventing scope or planned changes
+  REMOVED: {}

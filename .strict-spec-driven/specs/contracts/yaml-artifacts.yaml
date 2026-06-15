@@ -1452,16 +1452,16 @@ requirements:
         - THEN: the milestone validates with the source-ticket field present and the field identifies the originating ticket by id
   strict-ticket-dispatch-completes-milestones-when-sufficient:
     strength: MUST
-    statement: The system MUST ensure the strict-ticket-dispatch skill promotes a not-implemented ticket only when the ticket intent and gathered evidence are sufficient to immediately replace the promoted roadmap milestone refinement stub with concrete executable planning fields, then performs a second-pass review and applies reasonable corrections before handoff.
+    statement: The system MUST ensure the strict-ticket-dispatch skill, after promoting a not-implemented ticket, either completes the promoted roadmap milestone with concrete executable planning fields including milestone details and at least one standalone planned-change artifact with actionable details when ticket intent and gathered evidence are sufficient, or preserves a valid explicit handoff with the human decision needed when the evidence is ambiguous or incomplete.
     scenarios:
-      dispatch-completes-sufficient-milestone:
+      dispatch-completes-sufficient-milestone-with-planned-change-details:
         - GIVEN: a not-implemented ticket is promoted and the ticket intent plus gathered repository evidence provide enough concrete milestone scope, done criteria, dependencies, risks, and planned changes
         - WHEN: strict-ticket-dispatch continues after ticket-resolve and roadmap-sync
-        - THEN: the skill guidance directs the agent to replace the promoted milestone refinement stub with a complete milestone definition, run roadmap-sync, run roadmap-status, review the source ticket and edited roadmap artifacts again, apply reasonable corrections, run roadmap-sync again, and report the reviewed milestone
+        - THEN: the skill guidance directs the agent to replace the promoted milestone refinement stub, write milestone details, create at least one standalone planned-change artifact with actionable summary and details, run roadmap-sync again, and report the completed milestone and planned-change files
       dispatch-defers-insufficient-milestone:
-        - GIVEN: a not-implemented ticket is promoted but the evidence is too thin or ambiguous to define executable milestone planning fields
+        - GIVEN: a not-yet-built ticket requirement lacks enough evidence to define concrete milestone scope, milestone details, or a standalone planned change
         - WHEN: strict-ticket-dispatch forms its dispatch judgment
-        - THEN: the skill guidance directs the agent not to promote yet, to leave the ticket open, and to ask for the concrete missing planning detail instead of inventing scope
+        - THEN: the skill guidance directs the agent not to promote yet, to leave the ticket open, and to ask for the concrete missing planning detail instead of inventing scope or planned changes
   strict-ticket-archive-uses-resolve-command:
     strength: MUST
     statement: The system MUST provide a strict-ticket-archive skill that archives tickets only through the existing ticket-resolve CLI transition, preserves existing dispatch evidence, verifies archived ticket readability, and refuses to invent a dispatch outcome for an undecided ticket.

@@ -1,0 +1,32 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: require-ticket-dispatch-planned-change-details
+sections:
+  Implementation:
+    update-dispatch-skill:
+      text: Update skills/strict-ticket-dispatch/SKILL.md so promoted ticket milestones require milestone details plus at least one standalone planned-change artifact with actionable summary and details when evidence is sufficient.
+      status: complete
+    update-user-docs:
+      text: Update README ticket triage wording so not_implemented promotion no longer describes handoff before roadmap detail and planned-change creation.
+      status: complete
+    update-skill-test:
+      text: Update the skill packaging regression assertion to require the stronger planned-change detail guidance.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run TypeScript lint without emitting output.
+      status: complete
+      command: bun run lint
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-project-regression

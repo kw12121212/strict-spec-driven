@@ -1,6 +1,6 @@
 ---
 name: strict-ticket-dispatch
-description: Dispatch a strict YAML ticket by judging whether its requirement is already implemented from specs, code, and docs, then drive the strict ticket CLI to close, promote, or reject it. For promoted tickets, refine the created milestone into executable roadmap detail and review it again before handoff.
+description: Dispatch a strict YAML ticket by judging whether its requirement is already implemented from specs, code, and docs, then drive the strict ticket CLI to close, promote, or reject it. For promoted tickets, refine the created milestone into executable roadmap detail, add planned-change detail, and review it again before handoff.
 metadata:
   skill_id: strict_ticket_dispatch
   author: strict-spec-driven
@@ -14,9 +14,11 @@ outcome already satisfied? That judgment is yours, formed from repository
 evidence and recorded as the ticket's dispatch decision. The CLI performs only the
 deterministic state transition you decide. Never hand-write ticket YAML or the
 tickets index. For promoted milestones, do not leave the generated refinement
-stub behind: refine the created milestone into concrete roadmap scope, review it
-again against the source ticket and repository evidence, and apply reasonable
-corrections before reporting completion. Resolved tickets are moved to
+stub behind: refine the created milestone into concrete roadmap scope, add
+milestone `details`, create at least one standalone planned-change artifact with
+actionable `summary` and `details`, review the milestone and planned-change
+files again against the source ticket and repository evidence, and apply
+reasonable corrections before reporting completion. Resolved tickets are moved to
 `.strict-spec-driven/tickets/archive/` by `ticket-resolve`; never move ticket
 files by hand.
 
@@ -65,14 +67,16 @@ run `init` from this skill.
      specs, code, or docs
    - **not_implemented** — the requirement is real, not yet built, and the
      ticket plus repository evidence are sufficient to create an executable
-     milestone definition immediately after promotion
+     milestone definition with milestone `details` and at least one standalone
+     planned-change artifact immediately after promotion
    - **not_wanted** — the requirement should be rejected or deferred
    If the evidence is ambiguous, contradictory, the spec coverage is too thin to
    decide confidently, or a not-yet-built requirement lacks enough detail to
-   produce a concrete promoted milestone, do not guess: explain what is unclear
-   and defer to the user, leaving the ticket open. Only proceed to a transition
-   once you can justify the outcome and, for `not_implemented`, can also refine
-   the created milestone with concrete planning detail.
+   produce a concrete promoted milestone plus planned change, do not guess:
+   explain what is unclear and defer to the user, leaving the ticket open. Only
+   proceed to a transition once you can justify the outcome and, for
+   `not_implemented`, can also refine the created milestone with concrete
+   planning detail and a concrete standalone planned change.
 
 4. **Drive the CLI transition** — apply the decision only through
    `ticket-resolve`, never by editing ticket YAML. The command records the
@@ -96,12 +100,15 @@ run `init` from this skill.
      roadmap work
    - fill `scope.in` and `scope.out` with concrete boundaries
    - write verifiable `done_criteria`
-   - capture known `dependencies`, `risks`, `notes`, and optional `details`
+   - capture known `dependencies`, `risks`, and `notes`
+   - write a `details` field with the concrete planning context an agent will
+     need when turning the milestone into strict changes
    - keep the `source_ticket` back-reference
    - keep milestone `planned_changes` empty unless you are intentionally
-     materializing legacy inline data; create standalone
-     `.strict-spec-driven/roadmap/planned-changes/*.yaml` artifacts for any
-     initial planned changes needed to make the milestone actionable, with
+     materializing legacy inline data
+   - create at least one standalone
+     `.strict-spec-driven/roadmap/planned-changes/*.yaml` artifact for the
+     initial executable work needed to make the milestone actionable, with
      actionable `summary`, `details`, `depends_on`, and `status`
 
    After editing, run `roadmap-sync`, then run `roadmap-status` and perform a
@@ -113,8 +120,9 @@ run `init` from this skill.
    missing risks, weak planned-change details, status mismatches, missing
    `source_ticket`, missing archived ticket access, and roadmap diagnostics.
    Apply reasonable corrections immediately, then run `roadmap-sync` again. Do
-   not report completion until this second-pass review is done and the safe
-   fixes have been applied.
+   not report completion until this second-pass review is done, the safe fixes
+   have been applied, the milestone has `details`, and at least one standalone
+   planned-change file with actionable `details` exists.
 
    Do not invent scope, dependencies, or planned changes that are not supported
    by the ticket, user context, or repository evidence. If the second-pass review
@@ -143,9 +151,12 @@ run `init` from this skill.
 - Defer to the user and leave the ticket open or in needs_input when evidence is
   ambiguous or spec coverage is too thin to decide confidently — never guess
 - After a promotion, run roadmap-sync, refine the created milestone into
-  executable roadmap detail, run roadmap-status, review the milestone again, and
-  apply reasonable corrections before reporting completion
+  executable roadmap detail, create at least one standalone planned-change file
+  with actionable details, run roadmap-status, review the milestone and
+  planned-change files again, and apply reasonable corrections before reporting
+  completion
 - Do not promote a ticket unless you can immediately replace the generated
-  refinement stub with concrete milestone detail supported by the ticket, user
-  context, or repository evidence
+  refinement stub with concrete milestone detail and at least one concrete
+  standalone planned change supported by the ticket, user context, or repository
+  evidence
 - Do not fabricate milestone scope or decompose unsupported work into changes
