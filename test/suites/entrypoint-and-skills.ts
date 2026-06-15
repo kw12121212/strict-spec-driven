@@ -222,14 +222,19 @@ context.assert(
   dispatchSkillContent.includes("ticket-resolve")
     && dispatchSkillContent.includes("replace the generated")
     && dispatchSkillContent.includes("refinement stub")
-    && dispatchSkillContent.includes("/strict-roadmap-plan"),
-  "ticket-dispatch skill drives ticket-resolve and conditionally completes or hands off milestone refinement",
+    && dispatchSkillContent.includes("second-pass review"),
+  "ticket-dispatch skill drives ticket-resolve and completes promoted milestone refinement before handoff",
 );
 context.assert(
-  normalizedDispatchSkillContent.includes("evidence is too thin")
-    && normalizedDispatchSkillContent.includes("leave the refinement stub in place")
+  normalizedDispatchSkillContent.includes("spec coverage is too thin")
+    && normalizedDispatchSkillContent.includes("leaving the ticket open")
     && normalizedDispatchSkillContent.includes("Do not invent scope"),
-  "ticket-dispatch skill preserves handoff behavior when milestone planning evidence is insufficient",
+  "ticket-dispatch skill defers promotion when milestone planning evidence is insufficient",
+);
+context.assert(
+  dispatchSkillContent.includes(".strict-spec-driven/tickets/archive/")
+    && normalizedDispatchSkillContent.includes("as the only mechanism that archives resolved tickets"),
+  "ticket-dispatch skill relies on ticket-resolve to archive resolved tickets",
 );
 context.assert(
   dispatchSkillContent.toLowerCase().includes("defer to the user") && dispatchSkillContent.includes("never guess"),
@@ -238,6 +243,26 @@ context.assert(
 context.assert(
   dispatchSkillContent.includes("judgment stays in this prompt") || dispatchSkillContent.includes("judgment is yours"),
   "ticket-dispatch skill keeps the implemented-vs-not judgment in the prompt",
+);
+
+const ticketArchiveSkillContent = readFileSync(path.join(ROOT, "skills", "strict-ticket-archive", "SKILL.md"), "utf8");
+const normalizedTicketArchiveSkillContent = ticketArchiveSkillContent.replace(/\s+/g, " ");
+context.assert(
+  ticketArchiveSkillContent.includes("ticket-resolve")
+    && ticketArchiveSkillContent.includes("ticket-show")
+    && ticketArchiveSkillContent.includes("ticket-validate")
+    && ticketArchiveSkillContent.includes(".strict-spec-driven/tickets/archive/"),
+  "ticket-archive skill uses existing ticket CLI commands and checks the archive path",
+);
+context.assert(
+  normalizedTicketArchiveSkillContent.includes("as the only archive mechanism")
+    && normalizedTicketArchiveSkillContent.includes("never move or edit ticket YAML files manually"),
+  "ticket-archive skill forbids manual ticket file moves",
+);
+context.assert(
+  normalizedTicketArchiveSkillContent.includes("Do not make dispatch judgments in this skill")
+    && normalizedTicketArchiveSkillContent.includes("/strict-ticket-dispatch"),
+  "ticket-archive skill defers undecided tickets to dispatch",
 );
 
 const validateSkillsCli = validateSkillsDispatch;

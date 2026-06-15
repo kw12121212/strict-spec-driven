@@ -27,6 +27,7 @@
     { "name": "strict-tech-edit", "family": "strict-tech" },
     { "name": "strict-tech-sync", "family": "strict-tech" },
     { "name": "strict-ticket", "family": "strict-ticket" },
+    { "name": "strict-ticket-archive", "family": "strict-ticket" },
     { "name": "strict-ticket-dispatch", "family": "strict-ticket" }
   ]
 }

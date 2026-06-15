@@ -203,6 +203,15 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   const promoteJson = parseJson(promote.stdout);
   context.assert(promoteJson.status === "promoted", "promote sets ticket status to promoted");
   context.assert(promoteJson.milestoneCreated === true, "promote creates a milestone");
+  context.assert(
+    promoteJson.ticketPath === `.strict-spec-driven/tickets/archive/${promoteTicket}.yaml`
+      && existsSync(path.join(roadmapRoot, promoteJson.ticketPath as string)),
+    "promote archives the resolved ticket",
+  );
+  context.assert(
+    !existsSync(path.join(roadmapRoot, ".strict-spec-driven", "tickets", `${promoteTicket}.yaml`)),
+    "promote removes the ticket from the active tickets directory",
+  );
   const milestoneId = promoteJson.milestoneId as string;
   context.assert(/^\d{4}-/.test(milestoneId), "promote allocates a 4-digit milestone id");
   const milestoneFile = path.join(roadmapRoot, ".strict-spec-driven", "roadmap", "milestones", `${milestoneId}.yaml`);
@@ -221,6 +230,13 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   context.assert(
     (promotedTicketArtifact.provenance as Record<string, unknown>)?.promoted_to === milestoneId,
     "ticket records promoted_to pointing at the milestone",
+  );
+  const promotedTicketValidate = cli(["ticket-validate", promoteTicket], { cwd: roadmapRoot });
+  context.assert(promotedTicketValidate.status === 0, "ticket-validate can validate an archived promoted ticket by id");
+  const activeTicketsAfterPromote = parseJson(cli(["ticket-list"], { cwd: roadmapRoot }).stdout).tickets as unknown[];
+  context.assert(
+    activeTicketsAfterPromote.every((entry) => (entry as { id: string }).id !== promoteTicket),
+    "ticket-list omits archived promoted tickets from active ticket state",
   );
   const roadmapIndex = yamlParse(
     readFileSync(path.join(roadmapRoot, ".strict-spec-driven", "roadmap", "INDEX.yaml"), "utf8"),
@@ -244,6 +260,10 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
       && /^\d{4}-/.test(secondPromote.milestoneId as string),
     "a second promotion allocates a distinct sequential milestone number",
   );
+  context.assert(
+    existsSync(path.join(roadmapRoot, ".strict-spec-driven", "tickets", "archive", `${secondTicket}.yaml`)),
+    "a second promotion archives the second resolved ticket",
+  );
 
   const implementedTicket = createTicketViaCli(roadmapRoot, "Already done feature", "thought it was missing", "it works");
   const implemented = parseJson(
@@ -264,6 +284,15 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
     ).stdout,
   );
   context.assert(implemented.status === "implemented", "implemented decision closes the ticket");
+  context.assert(
+    implemented.ticketPath === `.strict-spec-driven/tickets/archive/${implementedTicket}.yaml`
+      && existsSync(path.join(roadmapRoot, implemented.ticketPath as string)),
+    "implemented decision archives the resolved ticket",
+  );
+  context.assert(
+    !existsSync(path.join(roadmapRoot, ".strict-spec-driven", "tickets", `${implementedTicket}.yaml`)),
+    "implemented decision removes the active ticket file",
+  );
   const implementedShow = parseJson(cli(["ticket-show", implementedTicket], { cwd: roadmapRoot }).stdout);
   const implementedArtifact = implementedShow.ticket as Record<string, unknown>;
   context.assert(
@@ -276,11 +305,31 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
     cli(["ticket-resolve", rejectedTicket, "--outcome", "not_wanted", "--rationale", "out of product scope"], { cwd: roadmapRoot }).stdout,
   );
   context.assert(rejected.status === "rejected", "not-wanted decision rejects the ticket");
+  context.assert(
+    rejected.ticketPath === `.strict-spec-driven/tickets/archive/${rejectedTicket}.yaml`
+      && existsSync(path.join(roadmapRoot, rejected.ticketPath as string)),
+    "not-wanted decision archives the resolved ticket",
+  );
+  context.assert(
+    !existsSync(path.join(roadmapRoot, ".strict-spec-driven", "tickets", `${rejectedTicket}.yaml`)),
+    "not-wanted decision removes the active ticket file",
+  );
   const rejectedShow = parseJson(cli(["ticket-show", rejectedTicket], { cwd: roadmapRoot }).stdout);
   const rejectedArtifact = rejectedShow.ticket as Record<string, unknown>;
   context.assert(
     (rejectedArtifact.dispatch_decision as Record<string, unknown>)?.rationale === "out of product scope",
     "not-wanted decision preserves the rationale in the dispatch-decision record",
+  );
+  const recreateArchived = cli(
+    ["ticket-create", "--title", "Unwanted feature", "--problem", "someone asked", "--desired-outcome", "not pursued"],
+    { cwd: roadmapRoot },
+  );
+  const recreateArchivedJson = parseJson(recreateArchived.stdout);
+  context.assert(
+    recreateArchived.status === 0
+      && recreateArchivedJson.created === false
+      && recreateArchivedJson.path === `.strict-spec-driven/tickets/archive/${rejectedTicket}.yaml`,
+    "ticket-create remains idempotent when the matching ticket is archived",
   );
 
   const resolveMissing = cli(["ticket-resolve", "nope-000000", "--outcome", "implemented", "--rationale", "x"], { cwd: roadmapRoot });

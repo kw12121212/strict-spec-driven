@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "fs";
 import path from "path";
 import { createHash } from "crypto";
 import { parseYamlFile, stringifyYamlDocument } from "./yaml.js";
@@ -6,6 +6,7 @@ import { loadBundledSchemaBySchemaId, validateArtifact, type ValidationDiagnosti
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const TICKETS_DIR = `${STRICT_WORKFLOW_DIR}/tickets`;
+const TICKETS_ARCHIVE_DIR = `${TICKETS_DIR}/archive`;
 const TICKETS_INDEX_PATH = `${TICKETS_DIR}/INDEX.yaml`;
 const TICKET_SCHEMA_ID = "strict-spec-driven/ticket/v1";
 const TICKETS_INDEX_SCHEMA_ID = "strict-spec-driven/tickets-index/v1";
@@ -87,8 +88,25 @@ function ticketsIndexPath(rootDir: string): string {
   return path.join(rootDir, TICKETS_INDEX_PATH);
 }
 
+function ticketsArchiveDir(rootDir: string): string {
+  return path.join(rootDir, TICKETS_ARCHIVE_DIR);
+}
+
 function ticketFilePath(rootDir: string, ticketId: string): string {
   return path.join(ticketsDir(rootDir), `${ticketId}.yaml`);
+}
+
+function archivedTicketFilePath(rootDir: string, ticketId: string): string {
+  return path.join(ticketsArchiveDir(rootDir), `${ticketId}.yaml`);
+}
+
+function findTicketFilePath(rootDir: string, ticketId: string): string | null {
+  const activePath = ticketFilePath(rootDir, ticketId);
+  if (existsSync(activePath)) {
+    return activePath;
+  }
+  const archivePath = archivedTicketFilePath(rootDir, ticketId);
+  return existsSync(archivePath) ? archivePath : null;
 }
 
 function repoRelative(rootDir: string, absolutePath: string): string {
@@ -133,6 +151,17 @@ function makeDiagnostic(message: string, fieldPath = "$"): ValidationDiagnostic 
 
 function listTicketFiles(rootDir: string): string[] {
   const dir = ticketsDir(rootDir);
+  if (!existsSync(dir) || !statSync(dir).isDirectory()) {
+    return [];
+  }
+  return readdirSync(dir)
+    .filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml")
+    .map((name) => path.join(dir, name))
+    .sort();
+}
+
+function listArchivedTicketFiles(rootDir: string): string[] {
+  const dir = ticketsArchiveDir(rootDir);
   if (!existsSync(dir) || !statSync(dir).isDirectory()) {
     return [];
   }
@@ -227,13 +256,14 @@ export function createTicket(rootDir: string, input: CreateTicketInput): CreateT
 
   const ticketId = deriveTicketId(input);
   const filePath = ticketFilePath(rootDir, ticketId);
+  const existingPath = findTicketFilePath(rootDir, ticketId);
 
-  if (existsSync(filePath)) {
+  if (existingPath) {
     return {
       valid: true,
       created: false,
       ticketId,
-      path: repoRelative(rootDir, filePath),
+      path: repoRelative(rootDir, existingPath),
       diagnostics: [],
     };
   }
@@ -278,12 +308,12 @@ export function listTickets(rootDir: string): ListTicketsResult {
 }
 
 export function ticketPath(rootDir: string, ticketId: string): string {
-  return ticketFilePath(rootDir, ticketId);
+  return findTicketFilePath(rootDir, ticketId) ?? ticketFilePath(rootDir, ticketId);
 }
 
 export function readTicketArtifact(rootDir: string, ticketId: string): TicketArtifact | null {
-  const filePath = ticketFilePath(rootDir, ticketId);
-  if (!existsSync(filePath)) {
+  const filePath = findTicketFilePath(rootDir, ticketId);
+  if (!filePath) {
     return null;
   }
   return parseYamlFile<TicketArtifact>(filePath);
@@ -298,9 +328,22 @@ export function writeTicketArtifact(rootDir: string, artifact: TicketArtifact): 
   return repoRelative(rootDir, filePath);
 }
 
+/** Writes a resolved ticket to archive and removes it from active ticket state. */
+export function archiveTicketArtifact(rootDir: string, artifact: TicketArtifact): string {
+  const archivePath = archivedTicketFilePath(rootDir, artifact.ticket.id);
+  const activePath = ticketFilePath(rootDir, artifact.ticket.id);
+  mkdirSync(ticketsArchiveDir(rootDir), { recursive: true });
+  writeFileSync(archivePath, stringifyYamlDocument(artifact), "utf8");
+  if (existsSync(activePath)) {
+    rmSync(activePath, { force: true });
+  }
+  rebuildTicketsIndex(rootDir);
+  return repoRelative(rootDir, archivePath);
+}
+
 export function showTicket(rootDir: string, ticketId: string): ShowTicketResult {
-  const filePath = ticketFilePath(rootDir, ticketId);
-  if (!existsSync(filePath)) {
+  const filePath = findTicketFilePath(rootDir, ticketId);
+  if (!filePath) {
     return {
       valid: false,
       ticketId,
@@ -328,9 +371,10 @@ export function validateTickets(rootDir: string, ticketId?: string): ValidateTic
   const diagnostics: ValidationDiagnostic[] = [];
   let checkedCount = 0;
 
+  const foundTicketPath = ticketId ? findTicketFilePath(rootDir, ticketId) : null;
   const targetFiles = ticketId
-    ? [ticketFilePath(rootDir, ticketId)]
-    : listTicketFiles(rootDir);
+    ? [foundTicketPath ?? ticketFilePath(rootDir, ticketId)]
+    : [...listTicketFiles(rootDir), ...listArchivedTicketFiles(rootDir)];
 
   for (const filePath of targetFiles) {
     if (!existsSync(filePath)) {
@@ -356,4 +400,4 @@ export function validateTickets(rootDir: string, ticketId?: string): ValidateTic
   return { valid: diagnostics.length === 0, checkedCount, diagnostics };
 }
 
-export { TICKET_STATUSES, TICKETS_DIR, TICKETS_INDEX_PATH };
+export { TICKET_STATUSES, TICKETS_ARCHIVE_DIR, TICKETS_DIR, TICKETS_INDEX_PATH };

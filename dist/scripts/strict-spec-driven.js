@@ -17786,11 +17786,12 @@ function runRoadmapRecommend(argv) {
 }
 
 // src/tickets.ts
-import { existsSync as existsSync19, mkdirSync as mkdirSync6, readdirSync as readdirSync8, statSync as statSync12, writeFileSync as writeFileSync7 } from "fs";
+import { existsSync as existsSync19, mkdirSync as mkdirSync6, readdirSync as readdirSync8, rmSync as rmSync3, statSync as statSync12, writeFileSync as writeFileSync7 } from "fs";
 import path20 from "path";
 import { createHash as createHash2 } from "crypto";
 var STRICT_WORKFLOW_DIR9 = ".strict-spec-driven";
 var TICKETS_DIR = `${STRICT_WORKFLOW_DIR9}/tickets`;
+var TICKETS_ARCHIVE_DIR = `${TICKETS_DIR}/archive`;
 var TICKETS_INDEX_PATH = `${TICKETS_DIR}/INDEX.yaml`;
 var TICKET_SCHEMA_ID = "strict-spec-driven/ticket/v1";
 var TICKETS_INDEX_SCHEMA_ID = "strict-spec-driven/tickets-index/v1";
@@ -17800,8 +17801,22 @@ function ticketsDir(rootDir) {
 function ticketsIndexPath(rootDir) {
   return path20.join(rootDir, TICKETS_INDEX_PATH);
 }
+function ticketsArchiveDir(rootDir) {
+  return path20.join(rootDir, TICKETS_ARCHIVE_DIR);
+}
 function ticketFilePath(rootDir, ticketId) {
   return path20.join(ticketsDir(rootDir), `${ticketId}.yaml`);
+}
+function archivedTicketFilePath(rootDir, ticketId) {
+  return path20.join(ticketsArchiveDir(rootDir), `${ticketId}.yaml`);
+}
+function findTicketFilePath(rootDir, ticketId) {
+  const activePath = ticketFilePath(rootDir, ticketId);
+  if (existsSync19(activePath)) {
+    return activePath;
+  }
+  const archivePath = archivedTicketFilePath(rootDir, ticketId);
+  return existsSync19(archivePath) ? archivePath : null;
 }
 function repoRelative(rootDir, absolutePath) {
   return path20.relative(rootDir, absolutePath).split(path20.sep).join("/");
@@ -17826,6 +17841,13 @@ function makeDiagnostic2(message, fieldPath = "$") {
 }
 function listTicketFiles(rootDir) {
   const dir = ticketsDir(rootDir);
+  if (!existsSync19(dir) || !statSync12(dir).isDirectory()) {
+    return [];
+  }
+  return readdirSync8(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path20.join(dir, name)).sort();
+}
+function listArchivedTicketFiles(rootDir) {
+  const dir = ticketsArchiveDir(rootDir);
   if (!existsSync19(dir) || !statSync12(dir).isDirectory()) {
     return [];
   }
@@ -17900,12 +17922,13 @@ function createTicket(rootDir, input) {
   }
   const ticketId = deriveTicketId(input);
   const filePath = ticketFilePath(rootDir, ticketId);
-  if (existsSync19(filePath)) {
+  const existingPath = findTicketFilePath(rootDir, ticketId);
+  if (existingPath) {
     return {
       valid: true,
       created: false,
       ticketId,
-      path: repoRelative(rootDir, filePath),
+      path: repoRelative(rootDir, existingPath),
       diagnostics: []
     };
   }
@@ -17945,22 +17968,26 @@ function listTickets(rootDir) {
   return { valid: true, tickets: entries, diagnostics: [] };
 }
 function readTicketArtifact(rootDir, ticketId) {
-  const filePath = ticketFilePath(rootDir, ticketId);
-  if (!existsSync19(filePath)) {
+  const filePath = findTicketFilePath(rootDir, ticketId);
+  if (!filePath) {
     return null;
   }
   return parseYamlFile(filePath);
 }
-function writeTicketArtifact(rootDir, artifact) {
-  const filePath = ticketFilePath(rootDir, artifact.ticket.id);
-  mkdirSync6(ticketsDir(rootDir), { recursive: true });
-  writeFileSync7(filePath, stringifyYamlDocument(artifact), "utf8");
+function archiveTicketArtifact(rootDir, artifact) {
+  const archivePath = archivedTicketFilePath(rootDir, artifact.ticket.id);
+  const activePath = ticketFilePath(rootDir, artifact.ticket.id);
+  mkdirSync6(ticketsArchiveDir(rootDir), { recursive: true });
+  writeFileSync7(archivePath, stringifyYamlDocument(artifact), "utf8");
+  if (existsSync19(activePath)) {
+    rmSync3(activePath, { force: true });
+  }
   rebuildTicketsIndex(rootDir);
-  return repoRelative(rootDir, filePath);
+  return repoRelative(rootDir, archivePath);
 }
 function showTicket(rootDir, ticketId) {
-  const filePath = ticketFilePath(rootDir, ticketId);
-  if (!existsSync19(filePath)) {
+  const filePath = findTicketFilePath(rootDir, ticketId);
+  if (!filePath) {
     return {
       valid: false,
       ticketId,
@@ -17982,7 +18009,8 @@ function validateTickets(rootDir, ticketId) {
   const ticketSchema = loadBundledSchemaBySchemaId(TICKET_SCHEMA_ID);
   const diagnostics = [];
   let checkedCount = 0;
-  const targetFiles = ticketId ? [ticketFilePath(rootDir, ticketId)] : listTicketFiles(rootDir);
+  const foundTicketPath = ticketId ? findTicketFilePath(rootDir, ticketId) : null;
+  const targetFiles = ticketId ? [foundTicketPath ?? ticketFilePath(rootDir, ticketId)] : [...listTicketFiles(rootDir), ...listArchivedTicketFiles(rootDir)];
   for (const filePath of targetFiles) {
     if (!existsSync19(filePath)) {
       diagnostics.push(makeDiagnostic2(`ticket '${ticketId}' not found`, "$.ticket.id"));
@@ -18108,6 +18136,7 @@ function failure(ticketId, diagnostics) {
     ticketId,
     status: null,
     outcome: null,
+    ticketPath: null,
     milestoneId: null,
     milestonePath: null,
     milestoneCreated: false,
@@ -18130,12 +18159,13 @@ function resolveTicket(rootDir, input) {
       provenance.implemented_by = input.evidence;
       ticket.provenance = provenance;
     }
-    writeTicketArtifact(rootDir, ticket);
+    const ticketPath2 = archiveTicketArtifact(rootDir, ticket);
     return {
       valid: true,
       ticketId: input.ticketId,
       status: "implemented",
       outcome: input.outcome,
+      ticketPath: ticketPath2,
       milestoneId: null,
       milestonePath: null,
       milestoneCreated: false,
@@ -18145,12 +18175,13 @@ function resolveTicket(rootDir, input) {
   if (input.outcome === "not_wanted") {
     applyDispatchDecision(ticket, input);
     ticket.status = "rejected";
-    writeTicketArtifact(rootDir, ticket);
+    const ticketPath2 = archiveTicketArtifact(rootDir, ticket);
     return {
       valid: true,
       ticketId: input.ticketId,
       status: "rejected",
       outcome: input.outcome,
+      ticketPath: ticketPath2,
       milestoneId: null,
       milestonePath: null,
       milestoneCreated: false,
@@ -18162,12 +18193,13 @@ function resolveTicket(rootDir, input) {
     applyDispatchDecision(ticket, input);
     ticket.status = "promoted";
     ticket.provenance = { ...ticket.provenance ?? {}, promoted_to: existing.id };
-    writeTicketArtifact(rootDir, ticket);
+    const ticketPath2 = archiveTicketArtifact(rootDir, ticket);
     return {
       valid: true,
       ticketId: input.ticketId,
       status: "promoted",
       outcome: input.outcome,
+      ticketPath: ticketPath2,
       milestoneId: existing.id,
       milestonePath: existing.path,
       milestoneCreated: false,
@@ -18221,12 +18253,13 @@ function resolveTicket(rootDir, input) {
   applyDispatchDecision(ticket, input);
   ticket.status = "promoted";
   ticket.provenance = { ...ticket.provenance ?? {}, promoted_to: milestoneId };
-  writeTicketArtifact(rootDir, ticket);
+  const ticketPath = archiveTicketArtifact(rootDir, ticket);
   return {
     valid: true,
     ticketId: input.ticketId,
     status: "promoted",
     outcome: input.outcome,
+    ticketPath,
     milestoneId,
     milestonePath: milestoneRepoPath,
     milestoneCreated: true,
@@ -21934,7 +21967,7 @@ function runSchemaShow(argv) {
 }
 
 // src/harness.ts
-import { closeSync, existsSync as existsSync34, mkdirSync as mkdirSync10, openSync, readFileSync as readFileSync26, renameSync as renameSync3, rmSync as rmSync3, statSync as statSync27, writeFileSync as writeFileSync13, appendFileSync } from "fs";
+import { closeSync, existsSync as existsSync34, mkdirSync as mkdirSync10, openSync, readFileSync as readFileSync26, renameSync as renameSync3, rmSync as rmSync4, statSync as statSync27, writeFileSync as writeFileSync13, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
 import path35 from "path";
 var HARNESS_DECLARATION_PATH = ".strict-spec-driven/harness.yaml";
@@ -22057,7 +22090,7 @@ function writeRuntimeState(rootDir, state) {
 `, "utf8");
 }
 function clearRuntimeState(rootDir) {
-  rmSync3(getRuntimePaths(rootDir).absoluteRuntimeDir, { recursive: true, force: true });
+  rmSync4(getRuntimePaths(rootDir).absoluteRuntimeDir, { recursive: true, force: true });
 }
 function snapshot(record) {
   const alive = isProcessAlive(record.pid);

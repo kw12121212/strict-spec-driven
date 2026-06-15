@@ -3,8 +3,8 @@ import path from "path";
 import { parseYamlFile, stringifyYamlDocument } from "./yaml.js";
 import { loadBundledSchemaBySchemaId, validateArtifact, type ValidationDiagnostic } from "./validation.js";
 import {
+  archiveTicketArtifact,
   readTicketArtifact,
-  writeTicketArtifact,
   type TicketArtifact,
   type TicketDispatchDecision,
   type TicketProvenance,
@@ -32,6 +32,7 @@ export type ResolveTicketResult = {
   ticketId: string;
   status: string | null;
   outcome: DispatchOutcome | null;
+  ticketPath: string | null;
   milestoneId: string | null;
   milestonePath: string | null;
   milestoneCreated: boolean;
@@ -164,6 +165,7 @@ function failure(ticketId: string, diagnostics: ValidationDiagnostic[]): Resolve
     ticketId,
     status: null,
     outcome: null,
+    ticketPath: null,
     milestoneId: null,
     milestonePath: null,
     milestoneCreated: false,
@@ -178,6 +180,7 @@ function failure(ticketId: string, diagnostics: ValidationDiagnostic[]): Resolve
  *   - not_implemented -> promote the ticket into a new roadmap milestone skeleton
  *   - implemented     -> close the ticket with evidence links
  *   - not_wanted      -> reject/defer the ticket with the recorded rationale
+ * Resolved tickets are archived after their dispatch decision is recorded.
  */
 export function resolveTicket(rootDir: string, input: ResolveTicketInput): ResolveTicketResult {
   const ticket = readTicketArtifact(rootDir, input.ticketId);
@@ -196,12 +199,13 @@ export function resolveTicket(rootDir: string, input: ResolveTicketInput): Resol
       provenance.implemented_by = input.evidence;
       ticket.provenance = provenance;
     }
-    writeTicketArtifact(rootDir, ticket);
+    const ticketPath = archiveTicketArtifact(rootDir, ticket);
     return {
       valid: true,
       ticketId: input.ticketId,
       status: "implemented",
       outcome: input.outcome,
+      ticketPath,
       milestoneId: null,
       milestonePath: null,
       milestoneCreated: false,
@@ -212,12 +216,13 @@ export function resolveTicket(rootDir: string, input: ResolveTicketInput): Resol
   if (input.outcome === "not_wanted") {
     applyDispatchDecision(ticket, input);
     ticket.status = "rejected";
-    writeTicketArtifact(rootDir, ticket);
+    const ticketPath = archiveTicketArtifact(rootDir, ticket);
     return {
       valid: true,
       ticketId: input.ticketId,
       status: "rejected",
       outcome: input.outcome,
+      ticketPath,
       milestoneId: null,
       milestonePath: null,
       milestoneCreated: false,
@@ -225,19 +230,20 @@ export function resolveTicket(rootDir: string, input: ResolveTicketInput): Resol
     };
   }
 
-  // not_implemented -> promote into a new roadmap milestone skeleton.
+  // not_implemented -> promote into a new roadmap milestone skeleton, then archive the ticket.
   const existing = findMilestoneBySourceTicket(rootDir, input.ticketId);
   if (existing) {
     // Idempotent: a milestone was already promoted from this ticket; do not create a second one.
     applyDispatchDecision(ticket, input);
     ticket.status = "promoted";
     ticket.provenance = { ...(ticket.provenance ?? {}), promoted_to: existing.id };
-    writeTicketArtifact(rootDir, ticket);
+    const ticketPath = archiveTicketArtifact(rootDir, ticket);
     return {
       valid: true,
       ticketId: input.ticketId,
       status: "promoted",
       outcome: input.outcome,
+      ticketPath,
       milestoneId: existing.id,
       milestonePath: existing.path,
       milestoneCreated: false,
@@ -299,13 +305,14 @@ export function resolveTicket(rootDir: string, input: ResolveTicketInput): Resol
   applyDispatchDecision(ticket, input);
   ticket.status = "promoted";
   ticket.provenance = { ...(ticket.provenance ?? {}), promoted_to: milestoneId };
-  writeTicketArtifact(rootDir, ticket);
+  const ticketPath = archiveTicketArtifact(rootDir, ticket);
 
   return {
     valid: true,
     ticketId: input.ticketId,
     status: "promoted",
     outcome: input.outcome,
+    ticketPath,
     milestoneId,
     milestonePath: milestoneRepoPath,
     milestoneCreated: true,

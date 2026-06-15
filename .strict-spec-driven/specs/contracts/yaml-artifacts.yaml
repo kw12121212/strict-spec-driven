@@ -66,6 +66,7 @@ mapping:
     - skills/strict-tech-edit/SKILL.md
     - skills/strict-tech-sync/SKILL.md
     - skills/strict-ticket/SKILL.md
+    - skills/strict-ticket-archive/SKILL.md
     - skills/strict-ticket-dispatch/SKILL.md
     - skills/strict-roadmap-review/SKILL.md
     - skills/strict-roadmap-plan/SKILL.md
@@ -653,7 +654,7 @@ requirements:
         - THEN: it uses the `strict-roadmap-*` naming family
   strict-ticket-command-prefix:
     strength: MUST
-    statement: The system MUST define `strict-ticket` and `strict-ticket-*` as the naming family for strict ticket intake and dispatch workflow skills and slash commands, where the bare `strict-ticket` name is the intake capture skill and `strict-ticket-*` names cover ticket dispatch and related ticket workflow skills.
+    statement: The system MUST define `strict-ticket` and `strict-ticket-*` as the naming family for strict ticket intake, archive, and dispatch workflow skills and slash commands, where the bare `strict-ticket` name is the intake capture skill and `strict-ticket-*` names cover ticket archive, dispatch, and related ticket workflow skills.
     scenarios:
       strict-ticket-workflow-commands-are-distinguishable:
         - GIVEN: a strict ticket workflow skill or slash command name is reviewed
@@ -1451,13 +1452,25 @@ requirements:
         - THEN: the milestone validates with the source-ticket field present and the field identifies the originating ticket by id
   strict-ticket-dispatch-completes-milestones-when-sufficient:
     strength: MUST
-    statement: The system MUST ensure the strict-ticket-dispatch skill, after promoting a not-implemented ticket, either completes the promoted roadmap milestone with concrete executable planning fields when ticket intent and gathered evidence are sufficient, or preserves the refinement-stub handoff when the evidence is ambiguous or incomplete.
+    statement: The system MUST ensure the strict-ticket-dispatch skill promotes a not-implemented ticket only when the ticket intent and gathered evidence are sufficient to immediately replace the promoted roadmap milestone refinement stub with concrete executable planning fields, then performs a second-pass review and applies reasonable corrections before handoff.
     scenarios:
       dispatch-completes-sufficient-milestone:
         - GIVEN: a not-implemented ticket is promoted and the ticket intent plus gathered repository evidence provide enough concrete milestone scope, done criteria, dependencies, risks, and planned changes
         - WHEN: strict-ticket-dispatch continues after ticket-resolve and roadmap-sync
-        - THEN: the skill guidance directs the agent to replace the promoted milestone refinement stub with a complete milestone definition, run roadmap-sync again, and report the completed milestone
-      dispatch-hands-off-insufficient-milestone:
+        - THEN: the skill guidance directs the agent to replace the promoted milestone refinement stub with a complete milestone definition, run roadmap-sync, run roadmap-status, review the source ticket and edited roadmap artifacts again, apply reasonable corrections, run roadmap-sync again, and report the reviewed milestone
+      dispatch-defers-insufficient-milestone:
         - GIVEN: a not-implemented ticket is promoted but the evidence is too thin or ambiguous to define executable milestone planning fields
-        - WHEN: strict-ticket-dispatch continues after ticket-resolve and roadmap-sync
-        - THEN: the skill guidance directs the agent to leave the refinement stub in place and hand off to roadmap planning instead of inventing scope
+        - WHEN: strict-ticket-dispatch forms its dispatch judgment
+        - THEN: the skill guidance directs the agent not to promote yet, to leave the ticket open, and to ask for the concrete missing planning detail instead of inventing scope
+  strict-ticket-archive-uses-resolve-command:
+    strength: MUST
+    statement: The system MUST provide a strict-ticket-archive skill that archives tickets only through the existing ticket-resolve CLI transition, preserves existing dispatch evidence, verifies archived ticket readability, and refuses to invent a dispatch outcome for an undecided ticket.
+    scenarios:
+      archive-skill-uses-existing-cli:
+        - GIVEN: a ticket already has a dispatch decision or the user supplies the exact outcome and rationale
+        - WHEN: strict-ticket-archive is used
+        - THEN: the skill guidance directs the agent to run ticket-resolve, then ticket-show and ticket-validate, rather than manually moving ticket YAML
+      archive-skill-defers-undecided-ticket:
+        - GIVEN: a ticket is open or needs input and has no explicit dispatch decision
+        - WHEN: strict-ticket-archive is used
+        - THEN: the skill guidance directs the agent to hand off to strict-ticket-dispatch instead of inventing an outcome
