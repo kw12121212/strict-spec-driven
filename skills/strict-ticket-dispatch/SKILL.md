@@ -19,7 +19,7 @@ milestone `details`, create at least one standalone planned-change artifact with
 actionable `summary` and `details`, review the milestone and planned-change
 files again against the source ticket and repository evidence, and apply
 reasonable corrections before reporting completion. Resolved tickets are moved to
-`.strict-spec-driven/tickets/archive/` by `ticket-resolve`; never move ticket
+`.strict-spec-driven/tickets/archived/` by `ticket-resolve`; never move ticket
 files by hand.
 
 ## This Skill's Commands
@@ -81,7 +81,7 @@ run `init` from this skill.
 4. **Drive the CLI transition** — apply the decision only through
    `ticket-resolve`, never by editing ticket YAML. The command records the
    dispatch decision and moves the resolved ticket artifact into
-   `.strict-spec-driven/tickets/archive/`; keep the returned `ticketPath` as the
+   `.strict-spec-driven/tickets/archived/`; keep the returned `ticketPath` as the
    auditable ticket location.
    - implemented: `ticket-resolve <id> --outcome implemented --rationale <why>`
      with `--evidence-label`/`--evidence-target` pairs pointing at the
@@ -145,7 +145,7 @@ run `init` from this skill.
 - Treat `ticket-resolve` as the only mechanism that archives resolved tickets;
   after implemented, not_wanted, or not_implemented outcomes, the active ticket
   file should be gone and the auditable artifact should live under
-  `.strict-spec-driven/tickets/archive/`
+  `.strict-spec-driven/tickets/archived/`
 - Record the concrete evidence your judgment relied on as dispatch evidence
   references
 - Defer to the user and leave the ticket open or in needs_input when evidence is

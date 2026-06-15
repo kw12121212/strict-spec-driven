@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: archive-tickets-under-archived
+  status: proposed
+summary:
+  what:
+    - Change strict ticket dispatch and archive behavior so resolved ticket artifacts are stored under .strict-spec-driven/tickets/archived/ instead of .strict-spec-driven/tickets/archive/.
+  why:
+    - The ticket dispatch workflow should move resolved ticket artifacts into an archived directory and must not describe or expose archive as the ticket archive location.
+scope:
+  in:
+    - Update ticket-domain behavior contract, ticket CLI filesystem behavior, ticket dispatch and archive skill guidance, and ticket regression coverage for the archived directory.
+  out:
+    - Change history archives under .strict-spec-driven/changes/archive/ and unrelated harness/session archive behavior.
+unchanged_behavior:
+  - ticket-resolve still records structured dispatch decisions, sets the deterministic outcome status, removes resolved tickets from active ticket-list output, and keeps ticket-show and ticket-validate access by id.

@@ -6,7 +6,7 @@ import { loadBundledSchemaBySchemaId, validateArtifact, type ValidationDiagnosti
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const TICKETS_DIR = `${STRICT_WORKFLOW_DIR}/tickets`;
-const TICKETS_ARCHIVE_DIR = `${TICKETS_DIR}/archive`;
+const TICKETS_ARCHIVE_DIR = `${TICKETS_DIR}/archived`;
 const TICKETS_INDEX_PATH = `${TICKETS_DIR}/INDEX.yaml`;
 const TICKET_SCHEMA_ID = "strict-spec-driven/ticket/v1";
 const TICKETS_INDEX_SCHEMA_ID = "strict-spec-driven/tickets-index/v1";
@@ -328,7 +328,7 @@ export function writeTicketArtifact(rootDir: string, artifact: TicketArtifact): 
   return repoRelative(rootDir, filePath);
 }
 
-/** Writes a resolved ticket to archive and removes it from active ticket state. */
+/** Writes a resolved ticket to the archived directory and removes it from active ticket state. */
 export function archiveTicketArtifact(rootDir: string, artifact: TicketArtifact): string {
   const archivePath = archivedTicketFilePath(rootDir, artifact.ticket.id);
   const activePath = ticketFilePath(rootDir, artifact.ticket.id);

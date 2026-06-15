@@ -1,6 +1,6 @@
 ---
 name: strict-ticket-archive
-description: Archive a strict YAML ticket through existing strict ticket CLI commands. Use when a ticket already has an explicit dispatch decision or the user provides the exact outcome and rationale, and Codex should move the ticket into `.strict-spec-driven/tickets/archive/` without manually editing ticket YAML.
+description: Archive a strict YAML ticket through existing strict ticket CLI commands. Use when a ticket already has an explicit dispatch decision or the user provides the exact outcome and rationale, and Codex should move the ticket into `.strict-spec-driven/tickets/archived/` without manually editing ticket YAML.
 metadata:
   skill_id: strict_ticket_archive
   author: strict-spec-driven
@@ -45,7 +45,7 @@ run `init` from this skill.
    ticket artifact and path.
 
 2. **Stop if already archived** — if `ticket-show` reports a path under
-   `.strict-spec-driven/tickets/archive/`, run `ticket-validate <ticket-id>` and
+   `.strict-spec-driven/tickets/archived/`, run `ticket-validate <ticket-id>` and
    report that the ticket is already archived. Do not rerun `ticket-resolve`.
 
 3. **Confirm an existing decision** — archive only when one of these is true:
@@ -67,11 +67,11 @@ run `init` from this skill.
    `--evidence-label`/`--evidence-target` pairs when present. This command is
    the archive mechanism: it records or refreshes the dispatch decision, removes
    the active ticket file, rebuilds the active tickets index, and writes the
-   auditable ticket artifact under `.strict-spec-driven/tickets/archive/`.
+   auditable ticket artifact under `.strict-spec-driven/tickets/archived/`.
 
 5. **Verify archive access** — run `ticket-show <ticket-id>` and
    `ticket-validate <ticket-id>` after `ticket-resolve`. Confirm that
-   `ticket-show` now reports a path under `.strict-spec-driven/tickets/archive/`
+   `ticket-show` now reports a path under `.strict-spec-driven/tickets/archived/`
    and that validation succeeds.
 
 6. **Report the result** — tell the user the ticket id, final status, archived

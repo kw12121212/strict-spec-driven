@@ -1,0 +1,36 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: archive-tickets-under-archived
+sections:
+  Implementation:
+    update-ticket-contract:
+      text: Update the ticket-domain delta spec to make `.strict-spec-driven/tickets/archived/` the canonical resolved-ticket archive location.
+      status: complete
+    update-ticket-archive-location:
+      text: Change ticket CLI mechanics so resolved tickets are written and read from `.strict-spec-driven/tickets/archived/` while active ticket listing remains unchanged.
+      status: complete
+    update-ticket-skill-guidance:
+      text: Update ticket dispatch and ticket archive skill prompts to describe `ticket-resolve` moving resolved ticket artifacts into `.strict-spec-driven/tickets/archived/`.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run TypeScript validation after source edits.
+      status: complete
+      command: bun run lint
+    run-ticket-tests:
+      text: Rebuild dist output, then run the ticket and skill regression coverage affected by the archive directory rename.
+      status: complete
+      command: bun run build && bun test/run.ts --suite tickets --suite entrypoint-and-skills
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-ticket-tests

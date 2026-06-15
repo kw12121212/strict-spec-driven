@@ -1,0 +1,60 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: ticket-domain-behavior
+mapping:
+  implementation:
+    - src/tickets.ts
+    - src/ticket-dispatch.ts
+    - src/cli/cmd-tickets.ts
+    - skills/strict-ticket-dispatch/SKILL.md
+    - skills/strict-ticket-archive/SKILL.md
+  tests:
+    - test/suites/tickets.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    ticket-resolve-transition-contract:
+      strength: MUST
+      statement: The system MUST provide a ticket-resolve command that records a supplied dispatch decision (outcome, evidence, rationale, timestamp) onto the ticket and performs only the deterministic state transition for that outcome, without itself judging whether the requirement is implemented, then moves the resolved ticket artifact from active tickets into the ticket archived directory while preserving ticket-show and ticket-validate access by id.
+      scenarios:
+        resolve-records-decision-and-transitions:
+          - GIVEN: an open ticket exists
+          - WHEN: ticket-resolve runs with an outcome, rationale, and optional evidence
+          - THEN: the ticket records a structured dispatch-decision with the outcome, rationale, evidence, and timestamp, the ticket status transitions according to the supplied outcome, and the ticket artifact is moved under .strict-spec-driven/tickets/archived/
+        resolved-tickets-remain-auditable:
+          - GIVEN: a ticket has been resolved and moved to the ticket archived directory
+          - WHEN: ticket-show or ticket-validate is run with that ticket id
+          - THEN: the command reads the archived ticket artifact and preserves access to its dispatch decision and provenance
+    ticket-promote-on-not-implemented:
+      strength: MUST
+      statement: The system MUST, on a not-implemented decision, materialize a new roadmap milestone skeleton seeded only with the goal copied from the ticket's desired outcome, leave scope and done_criteria as an explicit refinement stub, allocate the next milestone number deterministically and refuse rather than overwrite on collision, register the milestone in the roadmap index, set the ticket status to promoted, write bidirectional links (ticket promoted_to and a milestone source-ticket back-reference), and move the promoted ticket artifact to the ticket archived directory.
+      scenarios:
+        promote-materializes-linked-milestone:
+          - GIVEN: an open ticket and a valid roadmap
+          - WHEN: ticket-resolve runs with the not-implemented outcome
+          - THEN: a new milestone skeleton is written with status proposed, its goal copied from the ticket desired outcome, scope and done_criteria left as an explicit refinement stub, and a source-ticket back-reference
+          - AND: the milestone is registered in the roadmap index, the ticket status becomes promoted, the ticket records promoted_to pointing at the milestone, and the promoted ticket is moved under .strict-spec-driven/tickets/archived/
+        promote-allocates-and-refuses-collision:
+          - GIVEN: existing milestones occupy a contiguous range of milestone numbers
+          - WHEN: a not-implemented ticket is promoted
+          - THEN: the new milestone takes the next deterministic milestone number, and if that milestone id already exists the command refuses rather than overwriting it
+        promote-is-idempotent:
+          - GIVEN: a ticket has already been promoted to a milestone
+          - WHEN: ticket-resolve runs again with the not-implemented outcome for that ticket
+          - THEN: no second milestone is created and the existing milestone link is returned
+    ticket-close-and-reject-transitions:
+      strength: MUST
+      statement: The system MUST, on an implemented decision, close the ticket and record evidence links to the satisfying specs/code/docs, and on a not-wanted decision, mark the ticket rejected/deferred with the recorded rationale, in both cases moving the resolved ticket artifact to the ticket archived directory and leaving an auditable dispatch-decision trail rather than discarding the ticket.
+      scenarios:
+        implemented-closes-with-evidence:
+          - GIVEN: an open ticket
+          - WHEN: ticket-resolve runs with the implemented outcome and evidence references
+          - THEN: the ticket status becomes implemented, the supplied evidence is recorded on the ticket, and the ticket is moved under .strict-spec-driven/tickets/archived/
+        not-wanted-rejects-with-rationale:
+          - GIVEN: an open ticket
+          - WHEN: ticket-resolve runs with the not-wanted outcome and a rationale
+          - THEN: the ticket status becomes rejected, the rationale is preserved in the recorded dispatch-decision, and the ticket is moved under .strict-spec-driven/tickets/archived/
+  REMOVED: {}

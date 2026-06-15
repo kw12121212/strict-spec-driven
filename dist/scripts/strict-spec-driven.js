@@ -17791,7 +17791,7 @@ import path20 from "path";
 import { createHash as createHash2 } from "crypto";
 var STRICT_WORKFLOW_DIR9 = ".strict-spec-driven";
 var TICKETS_DIR = `${STRICT_WORKFLOW_DIR9}/tickets`;
-var TICKETS_ARCHIVE_DIR = `${TICKETS_DIR}/archive`;
+var TICKETS_ARCHIVE_DIR = `${TICKETS_DIR}/archived`;
 var TICKETS_INDEX_PATH = `${TICKETS_DIR}/INDEX.yaml`;
 var TICKET_SCHEMA_ID = "strict-spec-driven/ticket/v1";
 var TICKETS_INDEX_SCHEMA_ID = "strict-spec-driven/tickets-index/v1";

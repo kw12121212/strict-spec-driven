@@ -204,7 +204,7 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   context.assert(promoteJson.status === "promoted", "promote sets ticket status to promoted");
   context.assert(promoteJson.milestoneCreated === true, "promote creates a milestone");
   context.assert(
-    promoteJson.ticketPath === `.strict-spec-driven/tickets/archive/${promoteTicket}.yaml`
+    promoteJson.ticketPath === `.strict-spec-driven/tickets/archived/${promoteTicket}.yaml`
       && existsSync(path.join(roadmapRoot, promoteJson.ticketPath as string)),
     "promote archives the resolved ticket",
   );
@@ -261,7 +261,7 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
     "a second promotion allocates a distinct sequential milestone number",
   );
   context.assert(
-    existsSync(path.join(roadmapRoot, ".strict-spec-driven", "tickets", "archive", `${secondTicket}.yaml`)),
+    existsSync(path.join(roadmapRoot, ".strict-spec-driven", "tickets", "archived", `${secondTicket}.yaml`)),
     "a second promotion archives the second resolved ticket",
   );
 
@@ -285,7 +285,7 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   );
   context.assert(implemented.status === "implemented", "implemented decision closes the ticket");
   context.assert(
-    implemented.ticketPath === `.strict-spec-driven/tickets/archive/${implementedTicket}.yaml`
+    implemented.ticketPath === `.strict-spec-driven/tickets/archived/${implementedTicket}.yaml`
       && existsSync(path.join(roadmapRoot, implemented.ticketPath as string)),
     "implemented decision archives the resolved ticket",
   );
@@ -306,7 +306,7 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   );
   context.assert(rejected.status === "rejected", "not-wanted decision rejects the ticket");
   context.assert(
-    rejected.ticketPath === `.strict-spec-driven/tickets/archive/${rejectedTicket}.yaml`
+    rejected.ticketPath === `.strict-spec-driven/tickets/archived/${rejectedTicket}.yaml`
       && existsSync(path.join(roadmapRoot, rejected.ticketPath as string)),
     "not-wanted decision archives the resolved ticket",
   );
@@ -328,7 +328,7 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   context.assert(
     recreateArchived.status === 0
       && recreateArchivedJson.created === false
-      && recreateArchivedJson.path === `.strict-spec-driven/tickets/archive/${rejectedTicket}.yaml`,
+      && recreateArchivedJson.path === `.strict-spec-driven/tickets/archived/${rejectedTicket}.yaml`,
     "ticket-create remains idempotent when the matching ticket is archived",
   );
 

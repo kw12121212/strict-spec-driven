@@ -238,7 +238,7 @@ context.assert(
   "ticket-dispatch skill defers promotion when milestone planning evidence is insufficient",
 );
 context.assert(
-  dispatchSkillContent.includes(".strict-spec-driven/tickets/archive/")
+  dispatchSkillContent.includes(".strict-spec-driven/tickets/archived/")
     && normalizedDispatchSkillContent.includes("as the only mechanism that archives resolved tickets"),
   "ticket-dispatch skill relies on ticket-resolve to archive resolved tickets",
 );
@@ -257,7 +257,7 @@ context.assert(
   ticketArchiveSkillContent.includes("ticket-resolve")
     && ticketArchiveSkillContent.includes("ticket-show")
     && ticketArchiveSkillContent.includes("ticket-validate")
-    && ticketArchiveSkillContent.includes(".strict-spec-driven/tickets/archive/"),
+    && ticketArchiveSkillContent.includes(".strict-spec-driven/tickets/archived/"),
   "ticket-archive skill uses existing ticket CLI commands and checks the archive path",
 );
 context.assert(
