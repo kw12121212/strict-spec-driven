@@ -1,0 +1,33 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: review-all-incomplete-roadmap-milestones
+sections:
+  Implementation:
+    update-roadmap-review-skill:
+      text: Update strict-roadmap-review/SKILL.md metadata and workflow guidance so the skill reviews all roadmap milestones whose status is not complete rather than a single requested milestone.
+      status: complete
+    update-skill-validation:
+      text: Update strict roadmap skill validation expectations so strict-roadmap-review requires all-incomplete-milestone scope guidance and rejects stale single-milestone guidance.
+      status: complete
+  Testing:
+    run-entrypoint-skills-test:
+      text: Run the focused skill packaging and content regression suite.
+      status: complete
+      command: bun test/run.ts --suite entrypoint-and-skills
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+    verify-strict-change:
+      text: Run strict change verification and spec mapping verification before archive.
+      status: complete
+      command: node /home/code/.agents/skills/strict-spec-auto/scripts/strict-spec-driven.js verify review-all-incomplete-roadmap-milestones && node /home/code/.agents/skills/strict-spec-auto/scripts/strict-spec-driven.js verify-spec-mappings
+testing_gates:
+  validation_task: run-entrypoint-skills-test
+  unit_test_task: run-project-regression

@@ -380,10 +380,10 @@ context.assert(
   context.assert(
     roadmapReviewSkillContent.includes("roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status")
       && roadmapReviewSkillContent.includes("roadmap-sync: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync")
-      && normalizedRoadmapReviewSkillContent.includes("only milestones whose status is not complete")
-      && normalizedRoadmapReviewSkillContent.includes("directly edit the milestone and its planned-change YAML files")
+      && normalizedRoadmapReviewSkillContent.includes("all milestones whose status is not complete")
+      && normalizedRoadmapReviewSkillContent.includes("directly edit each incomplete milestone and its planned-change YAML files")
       && normalizedRoadmapReviewSkillContent.includes("concrete and executable"),
-    "strict-roadmap-review validates with incomplete-milestone direct-fix guidance",
+    "strict-roadmap-review validates with all-incomplete-milestones direct-fix guidance",
   );
   context.assert(
     harnessInitSkillContent.includes("check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state")
@@ -1098,16 +1098,16 @@ try {
       (diagnostic) =>
         diagnostic.code === "skill.roadmap.required_snippet.missing"
         && diagnostic.path === "skills/strict-roadmap-review/SKILL.md"
-        && diagnostic.expected === "only milestones whose status is not complete",
+        && diagnostic.expected === "all milestones whose status is not complete",
     ),
-    "strict-roadmap-review invalid packaging requires incomplete-milestone scope guidance",
+    "strict-roadmap-review invalid packaging requires all-incomplete-milestones scope guidance",
   );
   context.assert(
     invalidRoadmapReviewResultA.diagnostics.some(
       (diagnostic) =>
         diagnostic.code === "skill.roadmap.required_snippet.missing"
         && diagnostic.path === "skills/strict-roadmap-review/SKILL.md"
-        && diagnostic.expected === "directly edit the milestone and its planned-change YAML files",
+        && diagnostic.expected === "directly edit each incomplete milestone and its planned-change YAML files",
     ),
     "strict-roadmap-review invalid packaging requires direct-fix guidance",
   );

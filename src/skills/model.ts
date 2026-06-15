@@ -56,9 +56,9 @@ const ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 const ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
 const ROADMAP_ACTIVE_CONFLICT_SNIPPET = "active strict change conflicts";
 const ROADMAP_PLAN_EXECUTABLE_DETAIL_SNIPPET = "executable planning context";
-const ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET = "only milestones whose status is not complete";
+const ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET = "all milestones whose status is not complete";
 const ROADMAP_REVIEW_DIRECT_FIX_SNIPPET =
-  "directly edit the milestone and its planned-change YAML files";
+  "directly edit each incomplete milestone and its planned-change YAML files";
 const ROADMAP_REVIEW_DETAIL_ELABORATION_SNIPPET = "concrete and executable";
 const ROADMAP_PLAN_REVIEW_SNIPPET = "Review the roadmap plan before handoff";
 const ROADMAP_SCRIPTED_RECOMMEND_SNIPPET = "treat the command's selected planned change as authoritative";

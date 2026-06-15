@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: review-all-incomplete-roadmap-milestones
+  status: proposed
+summary:
+  what:
+    - Make strict-roadmap-review review every incomplete roadmap milestone in one run instead of targeting a single incomplete milestone.
+  why:
+    - The roadmap review skill should clean up the whole active roadmap backlog, so operators do not need to invoke it milestone by milestone.
+scope:
+  in:
+    - Update strict-roadmap-review skill guidance, metadata, and validation expectations to require all milestones whose status is not complete.
+    - Update automated skill-content tests and diagnostics so stale single-milestone guidance fails validation.
+  out:
+    - Do not change roadmap-status or roadmap-sync CLI semantics.
+    - Do not edit active roadmap milestone content as part of this skill behavior change.
+unchanged_behavior:
+  - Completed milestones remain historical record and remain out of review scope.
+  - Roadmap completion state continues to flow only from roadmap sync reconciliation against active and archived strict changes.

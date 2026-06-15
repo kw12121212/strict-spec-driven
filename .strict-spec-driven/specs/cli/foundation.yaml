@@ -1801,20 +1801,17 @@ requirements:
         - THEN: the reflection does not block strict verification or archive recommendation
   cli-roadmap-review-skill-packaging-validation:
     strength: MUST
-    statement: The system MUST validate the strict-roadmap-review skill package through validate-skills, enforcing its marketplace registration, scripts symlink, required roadmap-status and roadmap-sync command references, required Steps and Rules headings, and required guidance snippets covering incomplete-milestone scope, direct fix application, and detail elaboration, and MUST report deterministic path-specific diagnostics when any expectation is broken; validate-skills MUST NOT require a strict-roadmap-milestone package after its retirement.
+    statement: The system MUST validate the strict-roadmap-review skill package through validate-skills, enforcing guidance that reviews every roadmap milestone whose status is not complete, applies direct YAML definition fixes, elaborates planned-change detail, keeps completed milestones out of scope as historical record, and reports deterministic path-specific diagnostics when the all-incomplete scope guidance is missing.
     scenarios:
-      validate-skills-accepts-complete-roadmap-review-package:
-        - GIVEN: the strict-roadmap-review package is complete with marketplace registration, an intact scripts symlink, and the required command references, headings, and incomplete-scope, direct-fix, and detail-elaboration guidance snippets
-        - WHEN: strict-spec-driven validate-skills runs
-        - THEN: the command reports the strict-roadmap-review package as valid with no diagnostics
-      validate-skills-rejects-broken-roadmap-review-package:
-        - GIVEN: the strict-roadmap-review package is missing required guidance snippets, required command references, or its scripts symlink
-        - WHEN: strict-spec-driven validate-skills runs
-        - THEN: the command exits non-zero with deterministic, path-specific diagnostics identifying the strict-roadmap-review package failures
-      validate-skills-does-not-expect-retired-milestone-skill:
-        - GIVEN: the strict-roadmap-milestone package has been deleted from the repository
-        - WHEN: strict-spec-driven validate-skills runs
-        - THEN: the command reports no diagnostics about a missing strict-roadmap-milestone package
+      validate-skills-requires-all-incomplete-roadmap-review-scope:
+        - GIVEN: the strict-roadmap-review package is inspected by validate-skills
+        - WHEN: the package contains complete command mappings and direct-fix guidance
+        - THEN: validation requires guidance that the skill reviews all milestones whose status is not complete
+        - THEN: validation rejects stale guidance that limits review to a single requested milestone
+      roadmap-review-skill-documents-all-incomplete-workflow:
+        - GIVEN: an operator invokes strict-roadmap-review without naming a target milestone
+        - WHEN: the skill prompt is followed
+        - THEN: the prompt directs the agent to load roadmap status, identify every incomplete milestone, review owned planned-change files for each one, apply definition fixes directly, and run roadmap-sync after edits
   cli-shared-schema-cache-sync-on-startup:
     strength: MUST
     statement: The system MUST synchronize a shared schema cache during strict-spec-driven CLI command and MCP startup, resolving the cache root from the STRICT_SPEC_SCHEMA_CACHE_DIR environment variable when it is set and non-empty and from ~/.strict-spec-schemas/ otherwise; it MUST export the bundled strict schema assets plus a manifest when the cache is missing, records a different export version, or contains any cached schema file that is missing or differs from its bundled content; it MUST perform the refresh by building the new schema tree aside and swapping it into place with renames so concurrent readers never observe a partially written schemas directory; it MUST skip rewriting when the recorded version matches and all cached contents are intact; it MUST NOT synchronize the cache for CLI help requests; and when synchronization fails it MUST continue startup using bundled schemas and emit a warning that names the resolved cache path.
