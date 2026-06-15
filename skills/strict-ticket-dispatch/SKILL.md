@@ -12,8 +12,10 @@ You are helping the user dispatch a strict YAML ticket. Dispatch answers one
 question the CLI deliberately does not: is the requirement's desired observable
 outcome already satisfied? That judgment is yours, formed from repository
 evidence and recorded as the ticket's dispatch decision. The CLI performs only the
-deterministic state transition you decide. Never hand-write ticket or milestone
-YAML, and never fabricate milestone scope.
+deterministic state transition you decide. Never hand-write ticket YAML or the
+tickets index. For promoted milestones, define concrete roadmap scope only when
+the ticket intent and gathered evidence are sufficient; otherwise leave the
+generated refinement stub and hand off planning.
 
 ## This Skill's Commands
 
@@ -74,27 +76,39 @@ run `init` from this skill.
      from the requirement and scope left as a refinement stub
    - not_wanted: `ticket-resolve <id> --outcome not_wanted --rationale <why>`
 
-5. **Hand off after a promotion** — when you promoted the ticket
-   (not_implemented), run `roadmap-sync` to reconcile roadmap state, then hand
-   off to `/strict-roadmap-milestone` (or `/strict-roadmap-plan`) so a human or
-   planning skill defines the milestone's real scope, done criteria, and
-   dependencies. Do not fabricate that scope yourself and do not decompose the
-   milestone into changes here.
+5. **Complete or hand off the promoted milestone** — when you promoted the
+   ticket (not_implemented), keep the milestone path returned by
+   `ticket-resolve`, run `roadmap-sync` to reconcile roadmap state, then inspect
+   that milestone file.
+   - If the ticket intent, user context, and evidence you gathered are concrete
+     enough to define executable roadmap planning, replace the generated
+     refinement stub with a complete milestone definition directly in the
+     milestone YAML: specific `goal`, `scope.in`, `scope.out`, `done_criteria`,
+     `dependencies`, `risks`, `notes`, and any initial `planned_changes` needed
+     to make the milestone actionable. Keep the `source_ticket` back-reference,
+     preserve strict YAML structure, and run `roadmap-sync` again after editing.
+   - If the evidence is too thin, ambiguous, or missing planning detail, leave
+     the refinement stub in place and hand off to `/strict-roadmap-plan` so a
+     human or planning skill defines the milestone's real scope, done criteria,
+     dependencies, risks, and planned changes.
+   Do not invent scope, dependencies, or planned changes that are not supported
+   by the ticket, user context, or repository evidence.
 
 6. **Report the outcome** — tell the user the decision, the evidence it relied
    on, the resulting ticket status, and (for a promotion) the created milestone
-   id and the refinement handoff.
+   id plus whether you completed the milestone definition or left it for
+   refinement handoff.
 
 ## Rules
 
 - The implemented-vs-not judgment stays in this prompt; the CLI performs only
   the deterministic transition you decide
-- Apply every transition through the ticket-resolve command; never hand-write
-  ticket or milestone YAML and never edit the tickets index directly
+- Apply every ticket transition through the ticket-resolve command; never
+  hand-write ticket YAML and never edit the tickets index directly
 - Record the concrete evidence your judgment relied on as dispatch evidence
   references
 - Defer to the user and leave the ticket open or in needs_input when evidence is
   ambiguous or spec coverage is too thin to decide confidently — never guess
-- After a promotion, run roadmap-sync and hand off scope definition to
-  /strict-roadmap-milestone; do not fabricate milestone scope or decompose it
-  into changes
+- After a promotion, run roadmap-sync and either complete the milestone YAML
+  when evidence is sufficient or hand off to /strict-roadmap-plan when it is not;
+  do not fabricate milestone scope or decompose unsupported work into changes

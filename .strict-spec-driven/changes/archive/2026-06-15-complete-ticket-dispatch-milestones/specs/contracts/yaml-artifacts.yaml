@@ -1,0 +1,26 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-ticket-dispatch/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    strict-ticket-dispatch-completes-milestones-when-sufficient:
+      strength: MUST
+      statement: The system MUST ensure the strict-ticket-dispatch skill, after promoting a not-implemented ticket, either completes the promoted roadmap milestone with concrete executable planning fields when ticket intent and gathered evidence are sufficient, or preserves the refinement-stub handoff when the evidence is ambiguous or incomplete.
+      scenarios:
+        dispatch-completes-sufficient-milestone:
+          - GIVEN: a not-implemented ticket is promoted and the ticket intent plus gathered repository evidence provide enough concrete milestone scope, done criteria, dependencies, risks, and planned changes
+          - WHEN: strict-ticket-dispatch continues after ticket-resolve and roadmap-sync
+          - THEN: the skill guidance directs the agent to replace the promoted milestone refinement stub with a complete milestone definition, run roadmap-sync again, and report the completed milestone
+        dispatch-hands-off-insufficient-milestone:
+          - GIVEN: a not-implemented ticket is promoted but the evidence is too thin or ambiguous to define executable milestone planning fields
+          - WHEN: strict-ticket-dispatch continues after ticket-resolve and roadmap-sync
+          - THEN: the skill guidance directs the agent to leave the refinement stub in place and hand off to roadmap planning instead of inventing scope
+  MODIFIED: {}
+  REMOVED: {}

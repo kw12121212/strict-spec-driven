@@ -1,0 +1,21 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: complete-ticket-dispatch-milestones
+  status: proposed
+summary:
+  what:
+    - Update the strict-ticket-dispatch skill so a not-implemented dispatch can, when repository evidence and ticket intent provide enough concrete planning detail, refine the newly promoted roadmap milestone into a complete executable milestone instead of always stopping at a refinement handoff.
+  why:
+    - The current dispatch guidance always hands off after ticket promotion, even when the ticket and gathered evidence are already sufficient for the dispatching agent to produce complete milestone scope, done criteria, dependencies, risks, and planned changes. That creates unnecessary handoff friction while the strict workflow already has roadmap planning conventions for safe milestone refinement.
+scope:
+  in:
+    - skills/strict-ticket-dispatch/SKILL.md guidance; skill packaging/content assertions for ticket dispatch; strict YAML spec delta for the ticket-dispatch skill behavior contract.
+  out:
+    - Changing ticket-resolve CLI behavior, roadmap schemas, roadmap sync semantics, ticket schemas, or automatic implementation of planned changes generated from a ticket.
+unchanged_behavior:
+  - ticket-resolve remains a deterministic transition command that creates only a linked milestone skeleton with refinement stubs for not_implemented outcomes.
+  - When evidence is ambiguous or insufficient to define a complete milestone, strict-ticket-dispatch still leaves the promoted milestone as a refinement stub and hands off to roadmap planning.
+  - The skill still records dispatch evidence through ticket-resolve and does not hand-write ticket YAML or tickets index files.

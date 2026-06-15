@@ -1,0 +1,13 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: complete-ticket-dispatch-milestones
+approach:
+  - Keep deterministic state transitions in ticket-resolve unchanged. Update only the strict-ticket-dispatch prompt so after a not_implemented ticket-resolve promotion and roadmap-sync, the agent evaluates whether the ticket, gathered evidence, and repository context are enough to replace the generated refinement stub with a complete milestone definition. When they are enough, the prompt directs the agent to follow strict roadmap planning standards and edit the milestone YAML directly with concrete scope, done criteria, dependencies, risks, notes, and planned_changes, then run roadmap-sync. When they are not enough, it keeps the current handoff behavior. Update the skill-content regression assertion so the repository fails validation if the dispatch prompt regresses to unconditional handoff-only guidance.
+decisions:
+  conditional-milestone-refinement:
+    decision: strict-ticket-dispatch may complete the promoted milestone only when the dispatch evidence is concrete enough to define executable roadmap planning fields; otherwise it must preserve the refinement handoff.
+    rationale: The CLI cannot judge milestone scope because that is AI planning judgment, but the skill prompt can. Making refinement conditional preserves safety for ambiguous tickets while avoiding a needless handoff when the operator has already supplied enough detail.
+alternatives: []
+risks: []

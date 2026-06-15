@@ -217,9 +217,19 @@ context.assert(
 );
 
 const dispatchSkillContent = readFileSync(path.join(ROOT, "skills", "strict-ticket-dispatch", "SKILL.md"), "utf8");
+const normalizedDispatchSkillContent = dispatchSkillContent.replace(/\s+/g, " ");
 context.assert(
-  dispatchSkillContent.includes("ticket-resolve") && dispatchSkillContent.includes("/strict-roadmap-milestone"),
-  "ticket-dispatch skill drives ticket-resolve and hands off to milestone refinement",
+  dispatchSkillContent.includes("ticket-resolve")
+    && dispatchSkillContent.includes("replace the generated")
+    && dispatchSkillContent.includes("refinement stub")
+    && dispatchSkillContent.includes("/strict-roadmap-plan"),
+  "ticket-dispatch skill drives ticket-resolve and conditionally completes or hands off milestone refinement",
+);
+context.assert(
+  normalizedDispatchSkillContent.includes("evidence is too thin")
+    && normalizedDispatchSkillContent.includes("leave the refinement stub in place")
+    && normalizedDispatchSkillContent.includes("Do not invent scope"),
+  "ticket-dispatch skill preserves handoff behavior when milestone planning evidence is insufficient",
 );
 context.assert(
   dispatchSkillContent.toLowerCase().includes("defer to the user") && dispatchSkillContent.includes("never guess"),
