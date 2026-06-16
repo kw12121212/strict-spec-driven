@@ -149,6 +149,11 @@ export function runTechStatus(argv: string[]): number {
 
 const ARCHIVE_DATE_PATTERN = /^(\d{4}-\d{2}-\d{2})-(.+)$/;
 
+function getDirectoryCreationTimeMs(directoryPath: string): number {
+  const stats = statSync(directoryPath);
+  return stats.birthtimeMs > 0 ? stats.birthtimeMs : stats.ctimeMs;
+}
+
 export function runCommitAndPush(argv: string[]): number {
   if (isHelpRequest(argv)) {
     writeHelp("Usage: strict-spec-driven commit-and-push\n");
@@ -160,6 +165,7 @@ export function runCommitAndPush(argv: string[]): number {
   }
 
   const rootDir = process.cwd();
+  const archiveRoot = getArchiveDir(rootDir);
   const archived = listArchivedChanges(rootDir);
 
   if (archived.length === 0) {
@@ -170,10 +176,16 @@ export function runCommitAndPush(argv: string[]): number {
   const dated = archived
     .map((name) => {
       const match = ARCHIVE_DATE_PATTERN.exec(name);
-      return match ? { dirName: name, date: match[1], bareName: match[2] } : null;
+      return match
+        ? {
+            dirName: name,
+            createdAtMs: getDirectoryCreationTimeMs(path.join(archiveRoot, name)),
+            bareName: match[2],
+          }
+        : null;
     })
     .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
-    .sort((a, b) => b.date.localeCompare(a.date) || b.dirName.localeCompare(a.dirName));
+    .sort((a, b) => b.createdAtMs - a.createdAtMs || b.dirName.localeCompare(a.dirName));
 
   if (dated.length === 0) {
     writeError("no date-prefixed archived changes found under .strict-spec-driven/changes/archive/");

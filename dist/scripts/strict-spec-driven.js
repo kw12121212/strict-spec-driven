@@ -21829,6 +21829,10 @@ function runTechStatus(argv) {
   return 0;
 }
 var ARCHIVE_DATE_PATTERN = /^(\d{4}-\d{2}-\d{2})-(.+)$/;
+function getDirectoryCreationTimeMs(directoryPath) {
+  const stats = statSync26(directoryPath);
+  return stats.birthtimeMs > 0 ? stats.birthtimeMs : stats.ctimeMs;
+}
 function runCommitAndPush(argv) {
   if (isHelpRequest(argv)) {
     writeHelp(`Usage: strict-spec-driven commit-and-push
@@ -21841,6 +21845,7 @@ function runCommitAndPush(argv) {
     return 1;
   }
   const rootDir = process.cwd();
+  const archiveRoot = getArchiveDir(rootDir);
   const archived = listArchivedChanges(rootDir);
   if (archived.length === 0) {
     writeError("no archived changes found under .strict-spec-driven/changes/archive/");
@@ -21848,8 +21853,12 @@ function runCommitAndPush(argv) {
   }
   const dated = archived.map((name) => {
     const match = ARCHIVE_DATE_PATTERN.exec(name);
-    return match ? { dirName: name, date: match[1], bareName: match[2] } : null;
-  }).filter((entry) => entry !== null).sort((a, b) => b.date.localeCompare(a.date) || b.dirName.localeCompare(a.dirName));
+    return match ? {
+      dirName: name,
+      createdAtMs: getDirectoryCreationTimeMs(path34.join(archiveRoot, name)),
+      bareName: match[2]
+    } : null;
+  }).filter((entry) => entry !== null).sort((a, b) => b.createdAtMs - a.createdAtMs || b.dirName.localeCompare(a.dirName));
   if (dated.length === 0) {
     writeError("no date-prefixed archived changes found under .strict-spec-driven/changes/archive/");
     return 1;

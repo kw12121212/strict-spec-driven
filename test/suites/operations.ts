@@ -119,6 +119,69 @@ try {
   rmSync(shipRoot, { recursive: true, force: true });
 }
 
+context.section("[21b] commit-and-push command");
+
+const commitPushRoot = mkdtempSync(path.join(os.tmpdir(), "strict-commit-push-"));
+const commitPushRemote = mkdtempSync(path.join(os.tmpdir(), "strict-commit-push-remote-"));
+try {
+  const gitInit = runCommand("git", ["init"], { cwd: commitPushRoot });
+  context.assert(gitInit.status === 0, "commit-and-push fixture git init succeeds", gitInit.stderr.trim());
+  const gitConfigEmail = runCommand("git", ["config", "user.email", "test@example.invalid"], { cwd: commitPushRoot });
+  context.assert(gitConfigEmail.status === 0, "commit-and-push fixture git user.email configured", gitConfigEmail.stderr.trim());
+  const gitConfigName = runCommand("git", ["config", "user.name", "Strict Test"], { cwd: commitPushRoot });
+  context.assert(gitConfigName.status === 0, "commit-and-push fixture git user.name configured", gitConfigName.stderr.trim());
+  const remoteInit = runCommand("git", ["init", "--bare", commitPushRemote]);
+  context.assert(remoteInit.status === 0, "commit-and-push fixture bare remote init succeeds", remoteInit.stderr.trim());
+
+  writeFileSync(path.join(commitPushRoot, "README.md"), "fixture\n", "utf8");
+  const initialAdd = runCommand("git", ["add", "README.md"], { cwd: commitPushRoot });
+  context.assert(initialAdd.status === 0, "commit-and-push fixture initial add succeeds", initialAdd.stderr.trim());
+  const initialCommit = runCommand("git", ["commit", "-m", "chore: initial"], { cwd: commitPushRoot });
+  context.assert(initialCommit.status === 0, "commit-and-push fixture initial commit succeeds", initialCommit.stderr.trim());
+  const addRemote = runCommand("git", ["remote", "add", "origin", commitPushRemote], { cwd: commitPushRoot });
+  context.assert(addRemote.status === 0, "commit-and-push fixture remote configured", addRemote.stderr.trim());
+  const initialPush = runCommand("git", ["push", "-u", "origin", "HEAD"], { cwd: commitPushRoot });
+  context.assert(initialPush.status === 0, "commit-and-push fixture upstream push succeeds", initialPush.stderr.trim());
+
+  const archiveDir = path.join(commitPushRoot, ".strict-spec-driven", "changes", "archive");
+  const olderCreatedDirName = "2026-05-01-older-created";
+  const newerCreatedDirName = "2026-04-01-newer-created";
+  const olderCreatedDir = path.join(archiveDir, olderCreatedDirName);
+  mkdirSync(olderCreatedDir, { recursive: true });
+  writeFileSync(path.join(olderCreatedDir, "proposal.yaml"), "change: older-created\n", "utf8");
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  const newerCreatedDir = path.join(archiveDir, newerCreatedDirName);
+  mkdirSync(newerCreatedDir, { recursive: true });
+  writeFileSync(path.join(newerCreatedDir, "proposal.yaml"), "change: newer-created\n", "utf8");
+
+  const commitAndPush = cli(["commit-and-push"], { cwd: commitPushRoot });
+  context.assert(commitAndPush.status === 0, "commit-and-push exits zero with local upstream remote", commitAndPush.stderr.trim());
+  const commitAndPushJson = JSON.parse(commitAndPush.stdout.trim()) as {
+    changeName: string;
+    archiveDir: string;
+    commitMessage: string;
+    pushed: boolean;
+  };
+  context.assert(
+    commitAndPushJson.archiveDir === newerCreatedDirName
+      && commitAndPushJson.changeName === "newer-created"
+      && commitAndPushJson.commitMessage === "feat: newer-created"
+      && commitAndPushJson.pushed === true,
+    "commit-and-push selects latest archive directory by creation time",
+    commitAndPush.stdout.trim(),
+  );
+
+  const latestCommitMessage = runCommand("git", ["log", "-1", "--pretty=%B"], { cwd: commitPushRoot });
+  context.assert(
+    latestCommitMessage.status === 0 && latestCommitMessage.stdout.trim() === "feat: newer-created",
+    "commit-and-push creates commit for latest-created archived change",
+    latestCommitMessage.stdout.trim() || latestCommitMessage.stderr.trim(),
+  );
+} finally {
+  rmSync(commitPushRoot, { recursive: true, force: true });
+  rmSync(commitPushRemote, { recursive: true, force: true });
+}
+
 context.section("[22] maintenance command");
 
 // 22a: no config.yaml → clean exit with zero findings
