@@ -1,0 +1,55 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - src/archive.ts
+    - src/verify.ts
+    - src/cli/cmd-generation.ts
+    - templates/strict-spec-driven/schemas/delta-spec.yaml
+    - src/embedded-templates.ts
+    - examples/strict-spec-driven/delta-spec.yaml
+    - examples/strict-spec-driven/delta-spec.operations.yaml
+  tests:
+    - test/suites/change-lifecycle.ts
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    yaml-delta-new-spec-creation:
+      strength: MUST
+      statement: The system MUST create a new strict YAML main spec on archive when a delta spec targets a spec identifier that does not match any existing main spec and supplies an explicit new-spec block with a title and a repo-relative target path under the specs directory; when the target spec identifier is missing and no new-spec block is supplied, archive MUST still fail with the existing missing-target error.
+      scenarios:
+        delta-creates-new-main-spec:
+          - GIVEN: a delta spec targets a spec id that matches no existing main spec and supplies a new-spec block with a title and a repo-relative target path under the specs directory, with ADDED requirements and empty MODIFIED and REMOVED maps
+          - WHEN: the change is archived
+          - THEN: a new strict YAML main spec file is created at the target path from the target spec id, the block title, the delta mapping, and the ADDED requirements
+          - AND: the created spec is listed in the regenerated spec index
+        missing-target-without-new-spec-block-still-fails:
+          - GIVEN: a delta spec targets a spec id that matches no existing main spec and supplies no new-spec block
+          - WHEN: the change is archived
+          - THEN: archive fails with the existing missing-target main spec error rather than creating a spec
+        new-spec-block-with-modified-or-removed-is-rejected:
+          - GIVEN: a delta spec supplies a new-spec block but its MODIFIED or REMOVED operation map is non-empty
+          - WHEN: verify is run against the change
+          - THEN: the non-empty modify or remove operation on a new-spec delta is reported as a deterministic validation failure
+        new-spec-block-colliding-with-existing-spec-is-rejected:
+          - GIVEN: a delta spec supplies a new-spec block whose target spec id or target path matches an existing main spec
+          - WHEN: verify is run against the change
+          - THEN: the colliding new-spec id or path is reported as a deterministic validation failure before archive writes any file
+  MODIFIED:
+    yaml-delta-operation-model:
+      strength: MUST
+      statement: The system MUST represent strict YAML delta specs with structured schema identity, target spec identity, explicit ADDED, MODIFIED, and REMOVED operation keyed-map collections where the map key is the requirement identifier, and an optional structured new-spec block carrying a title and a repo-relative target path used only when the delta creates a brand-new main spec.
+      scenarios:
+        delta-operation-groups-are-structured:
+          - GIVEN: a strict YAML delta spec is reviewed
+          - WHEN: the requested spec changes are inspected
+          - THEN: the schema identity, target spec identity, and the ADDED, MODIFIED, and REMOVED keyed maps are available as structured fields
+          - AND: an optional new-spec block with title and target path is available as a structured field when the delta creates a new main spec
+        empty-operation-groups-remain-explicit:
+          - GIVEN: a strict YAML delta spec has no entries for one operation kind
+          - WHEN: the operation groups are inspected
+          - THEN: the empty operation kind remains identifiable as an empty keyed map without relying on an omitted Markdown heading
+  REMOVED: {}

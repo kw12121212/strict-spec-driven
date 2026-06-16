@@ -538,6 +538,7 @@ description: Strict YAML delta spec artifact.
 example_ref: ../../../examples/strict-spec-driven/delta-spec.yaml
 coverage_examples:
   - ../../../examples/strict-spec-driven/delta-spec.operations.yaml
+  - ../../../examples/strict-spec-driven/delta-spec.new-spec.yaml
 merge_rules:
   exclusive_active_target: |
     A requirement ID that appears as a MODIFIED or REMOVED target in one active change
@@ -554,6 +555,17 @@ merge_rules:
     If a REMOVED entry targets a requirement ID that does not exist in the main spec at
     archive time, the entry is silently skipped and recorded as a skipped removal in the
     archive merge report.
+  new_spec_creation: |
+    If target_spec does not match any existing main spec id at archive time, the delta is a
+    new-spec creation only when it provides a spec block with title and a repo-relative path
+    under .strict-spec-driven/specs/. Archive creates a new main_spec file at that path from
+    target_spec (spec id), the spec block title, the delta mapping, and the ADDED requirements,
+    then regenerates the spec index. A new-spec delta MUST supply at least one ADDED requirement
+    and MUST keep MODIFIED and REMOVED empty. The path MUST be a repo-relative .yaml file under
+    .strict-spec-driven/specs/, MUST NOT be INDEX.yaml, MUST NOT use parent traversal, and MUST
+    NOT collide with an existing main spec id or path. When target_spec is missing and no spec
+    block is present, archive fails with the existing missing-target error rather than creating
+    a spec. Verify must enforce these constraints as deterministic validation failures.
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   definitions:
@@ -614,6 +626,21 @@ json_schema:
       type: string
     target_spec:
       type: string
+    spec:
+      type: object
+      description: >-
+        Optional new-spec block. Present only when this delta creates a brand-new main spec
+        whose id (target_spec) does not yet exist. Archive materializes the main spec at path
+        from target_spec, title, the delta mapping, and the ADDED requirements.
+      additionalProperties: false
+      required:
+        - title
+        - path
+      properties:
+        title:
+          type: string
+        path:
+          type: string
     mapping:
       type: object
       additionalProperties: false

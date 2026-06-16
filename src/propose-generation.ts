@@ -326,26 +326,34 @@ function buildDeltaSpecArtifact(rootDir: string, input: GenerationInputRecord): 
   const mapping = asRecord(input.mapping, "$.mapping");
   const operations = asRecord(input.operations ?? {}, "$.operations");
   const relativePath = resolveDeltaSpecRelativePath(rootDir, targetSpec, input);
+  const specBlock = asOptionalRecord(input.spec, "$.spec");
 
-  return {
-    relativePath,
-    artifact: {
-      schema: "strict-spec-driven/delta-spec/v1",
-      schema_version: 1,
-      artifact_type: "delta_spec",
-      schema_file: "templates/strict-spec-driven/schemas/delta-spec.yaml",
-      target_spec: targetSpec,
-      mapping: {
-        implementation: asStringArray(mapping.implementation ?? [], "$.mapping.implementation"),
-        tests: asStringArray(mapping.tests ?? [], "$.mapping.tests"),
-      },
-      operations: {
-        ADDED: asRecord(operations.ADDED ?? {}, "$.operations.ADDED"),
-        MODIFIED: asRecord(operations.MODIFIED ?? {}, "$.operations.MODIFIED"),
-        REMOVED: asRecord(operations.REMOVED ?? {}, "$.operations.REMOVED"),
-      },
-    },
+  const artifact: GenerationInputRecord = {
+    schema: "strict-spec-driven/delta-spec/v1",
+    schema_version: 1,
+    artifact_type: "delta_spec",
+    schema_file: "templates/strict-spec-driven/schemas/delta-spec.yaml",
+    target_spec: targetSpec,
   };
+
+  if (specBlock) {
+    artifact.spec = {
+      title: asString(specBlock.title, "$.spec.title"),
+      path: asString(specBlock.path, "$.spec.path"),
+    };
+  }
+
+  artifact.mapping = {
+    implementation: asStringArray(mapping.implementation ?? [], "$.mapping.implementation"),
+    tests: asStringArray(mapping.tests ?? [], "$.mapping.tests"),
+  };
+  artifact.operations = {
+    ADDED: asRecord(operations.ADDED ?? {}, "$.operations.ADDED"),
+    MODIFIED: asRecord(operations.MODIFIED ?? {}, "$.operations.MODIFIED"),
+    REMOVED: asRecord(operations.REMOVED ?? {}, "$.operations.REMOVED"),
+  };
+
+  return { relativePath, artifact };
 }
 
 function normalizeDeltaTechRelativePath(relativePath: string): string {

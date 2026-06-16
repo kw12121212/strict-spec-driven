@@ -1,0 +1,22 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: delta-spec-new-main-spec-creation
+open: []
+resolved:
+  - id: new-spec-block-field-name
+    question: 'What should the new-spec block field be named and shaped: a top-level ''spec'' object with { title, path } parallel to delta-tech''s ''standard'' { title, category }, or should it reuse the generator''s existing spec_path concept for the path and add only a title?'
+    context: delta-tech uses a top-level 'standard' block with title+category and derives the file path from the id. The generate CLI already accepts --spec-path, but that currently only places the delta file within the change's specs/ directory and is stripped from the final delta artifact (delta-spec schema has additionalProperties:false and no spec_path). The created main spec needs both a title (new) and an explicit target path. Implementation should confirm whether path lives inside the new 'spec' block or is promoted from the existing spec-path mechanism before editing the schema.
+    answer: Use a top-level optional 'spec' block on the delta artifact with { title, path } (path repo-relative under .strict-spec-driven/specs/), parallel to delta-tech's 'standard' { title, category }. The path lives inside this block, not the generator's existing --spec-path (which only places the delta file). Generate delta-spec gains --title to populate it.
+    status: resolved
+  - id: empty-added-on-new-spec
+    question: Should a new-spec delta be required to supply at least one ADDED requirement, or is creating a main spec with an empty requirements map permitted?
+    context: The main-spec schema requires the 'requirements' key but accepts an empty map. A new spec with zero requirements is structurally valid but observably useless. Decide whether verify treats an empty-ADDED new-spec delta as a deterministic failure or allows it.
+    answer: A new-spec delta MUST supply at least one ADDED requirement; verify reports an empty-ADDED new-spec delta as a deterministic validation failure so archive never creates an observably useless empty main spec.
+    status: resolved
+  - id: path-domain-constraints
+    question: What exact constraints must the new-spec target path satisfy beyond being repo-relative under .strict-spec-driven/specs/ and non-colliding (e.g., must it be a .yaml file, must it not be INDEX.yaml, must its directory already exist or be created)?
+    context: regenerateSpecIndex scans specs/ and skips INDEX.yaml; archive currently never creates nested spec directories. Implementation must decide path validation rules and whether to mkdir parent directories when writing the new main spec.
+    answer: 'Full safe set: the target path MUST be a repo-relative .yaml file under .strict-spec-driven/specs/, MUST NOT be INDEX.yaml, MUST NOT use parent-directory traversal, and MUST NOT collide with an existing main spec id or path; archive auto-creates parent directories when writing the new main spec.'
+    status: resolved

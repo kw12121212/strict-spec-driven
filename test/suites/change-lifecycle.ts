@@ -1420,6 +1420,39 @@ function writeDeltaSpecArtifact(
   );
 }
 
+function writeNewSpecDeltaArtifact(
+  rootDir: string,
+  changeName: string,
+  fileName: string,
+  targetSpec: string,
+  spec: { title: string; path: string } | undefined,
+  operations: {
+    ADDED?: Record<string, { strength: string; statement: string; scenarios: Record<string, unknown[]> }>;
+    MODIFIED?: Record<string, { strength: string; statement: string; scenarios: Record<string, unknown[]> }>;
+    REMOVED?: Record<string, { reason: string }>;
+  },
+): void {
+  const deltaPath = path.join(rootDir, ".strict-spec-driven", "changes", changeName, "specs", fileName);
+  mkdirSync(path.dirname(deltaPath), { recursive: true });
+  const artifact: Record<string, unknown> = {
+    schema: "strict-spec-driven/delta-spec/v1",
+    schema_version: 1,
+    artifact_type: "delta_spec",
+    schema_file: "test",
+    target_spec: targetSpec,
+  };
+  if (spec) {
+    artifact.spec = { title: spec.title, path: spec.path };
+  }
+  artifact.mapping = { implementation: [], tests: [] };
+  artifact.operations = {
+    ADDED: operations.ADDED ?? {},
+    MODIFIED: operations.MODIFIED ?? {},
+    REMOVED: operations.REMOVED ?? {},
+  };
+  writeFileSync(deltaPath, yamlModule.stringifyYamlDocument(artifact), "utf8");
+}
+
 function writeRoadmapIndexArtifact(
   rootDir: string,
   milestones: Array<{ id: string; title: string; path: string; status: string }>,
@@ -2141,6 +2174,193 @@ try {
   );
 } finally {
   rmSync(verifyTechCollisionDir, { recursive: true, force: true });
+}
+
+// 13w: archive creates a new main spec from a delta spec block
+const archiveNewSpecDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-new-spec-"));
+try {
+  const changeName = "archive-new-spec";
+  mkdirSync(path.join(archiveNewSpecDir, ".strict-spec-driven", "specs"), { recursive: true });
+  writeFileSync(
+    path.join(archiveNewSpecDir, ".strict-spec-driven", "specs", "INDEX.yaml"),
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/spec-index/v1",
+      schema_version: 1,
+      artifact_type: "spec_index",
+      schema_file: "test",
+      specs: [],
+    }),
+    "utf8",
+  );
+  writeValidChangeArtifacts(archiveNewSpecDir, changeName);
+  writeNewSpecDeltaArtifact(
+    archiveNewSpecDir,
+    changeName,
+    "new.yaml",
+    "brand-new-spec",
+    { title: "Brand New Spec", path: ".strict-spec-driven/specs/new/brand-new-spec.yaml" },
+    {
+      ADDED: {
+        "req-one": { strength: "MUST", statement: "First requirement of new spec", scenarios: {} },
+      },
+    },
+  );
+
+  const archiveResult = cli(["archive", changeName], { cwd: archiveNewSpecDir });
+  context.assert(archiveResult.status === 0, "archive exits zero when creating a main spec via delta spec block", `got ${archiveResult.status}: ${archiveResult.stderr}`);
+  const archiveJson = JSON.parse(archiveResult.stdout.trim());
+  context.assert(archiveJson.mergeSummary.specsCreated === 1, "archive merge summary reports one created spec");
+  context.assert(archiveJson.mergeSummary.added === 1, "archive merge summary reports created spec ADDED count");
+
+  const createdPath = path.join(archiveNewSpecDir, ".strict-spec-driven", "specs", "new", "brand-new-spec.yaml");
+  context.assert(existsSync(createdPath), "archive creates a new main spec file from delta spec block");
+  const createdSpec = yamlModule.parseYamlDocument<{ artifact_type: string; spec: { id: string; title: string }; requirements: Record<string, unknown> }>(
+    readFileSync(createdPath, "utf8"),
+  );
+  context.assert(createdSpec.artifact_type === "main_spec", "created spec has main_spec artifact_type");
+  context.assert(createdSpec.spec.id === "brand-new-spec", "created spec id comes from target_spec");
+  context.assert(createdSpec.spec.title === "Brand New Spec", "created spec title comes from delta spec block");
+  context.assert(createdSpec.requirements["req-one"] !== undefined, "created spec includes delta ADDED requirements");
+
+  const regeneratedIndex = yamlModule.parseYamlDocument<{ specs: Array<{ id: string }> }>(
+    readFileSync(path.join(archiveNewSpecDir, ".strict-spec-driven", "specs", "INDEX.yaml"), "utf8"),
+  );
+  context.assert(
+    regeneratedIndex.specs.some((entry) => entry.id === "brand-new-spec"),
+    "archive regenerates specs index including the created spec",
+  );
+} finally {
+  rmSync(archiveNewSpecDir, { recursive: true, force: true });
+}
+
+// 13x: missing target without a spec block still fails archive with the existing error
+const archiveMissingNoBlockDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-missing-no-block-"));
+try {
+  const changeName = "archive-missing-no-block";
+  mkdirSync(path.join(archiveMissingNoBlockDir, ".strict-spec-driven", "specs"), { recursive: true });
+  writeFileSync(
+    path.join(archiveMissingNoBlockDir, ".strict-spec-driven", "specs", "INDEX.yaml"),
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/spec-index/v1",
+      schema_version: 1,
+      artifact_type: "spec_index",
+      schema_file: "test",
+      specs: [],
+    }),
+    "utf8",
+  );
+  writeValidChangeArtifacts(archiveMissingNoBlockDir, changeName);
+  writeNewSpecDeltaArtifact(
+    archiveMissingNoBlockDir,
+    changeName,
+    "missing.yaml",
+    "absent-spec",
+    undefined,
+    {
+      ADDED: {
+        "req-one": { strength: "MUST", statement: "Requirement targeting a missing spec", scenarios: {} },
+      },
+    },
+  );
+
+  const result = cli(["archive", changeName], { cwd: archiveMissingNoBlockDir });
+  context.assert(result.status !== 0, "archive exits non-zero when target spec is missing and no spec block is present");
+  context.assert(
+    result.stderr.includes("targets missing main spec"),
+    "archive missing-target failure preserves the existing error message",
+    `stderr: ${result.stderr.trim()}`,
+  );
+} finally {
+  rmSync(archiveMissingNoBlockDir, { recursive: true, force: true });
+}
+
+// 13y: verify rejects invalid new-spec deltas (operations, collision, empty ADDED)
+const verifyNewSpecDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-verify-new-spec-"));
+try {
+  writeMainSpecArtifact(
+    verifyNewSpecDir,
+    "cli/foundation.yaml",
+    "cli-foundation",
+    "CLI Foundation",
+    [{ id: "req-base", statement: "Base requirement" }],
+  );
+
+  // non-empty MODIFIED on a new-spec delta
+  const modChange = "verify-new-spec-mod";
+  writeValidChangeArtifacts(verifyNewSpecDir, modChange);
+  writeNewSpecDeltaArtifact(
+    verifyNewSpecDir,
+    modChange,
+    "new.yaml",
+    "fresh-spec",
+    { title: "Fresh Spec", path: ".strict-spec-driven/specs/fresh/fresh-spec.yaml" },
+    {
+      ADDED: { "req-one": { strength: "MUST", statement: "Added requirement", scenarios: {} } },
+      MODIFIED: { "req-x": { strength: "MUST", statement: "Should not be here", scenarios: {} } },
+    },
+  );
+  const modResult = verifyModule.verifyChange(verifyNewSpecDir, modChange);
+  context.assert(!modResult.valid, "verify rejects a new-spec delta with non-empty MODIFIED");
+  context.assert(
+    modResult.diagnostics.some((d) => d.source === "new_spec_operations" && d.message.includes("MODIFIED and REMOVED")),
+    "verify reports new_spec_operations for non-empty MODIFIED on a new-spec delta",
+  );
+
+  // id collision with an existing main spec
+  const collideChange = "verify-new-spec-collide";
+  writeValidChangeArtifacts(verifyNewSpecDir, collideChange);
+  writeNewSpecDeltaArtifact(
+    verifyNewSpecDir,
+    collideChange,
+    "new.yaml",
+    "cli-foundation",
+    { title: "Duplicate", path: ".strict-spec-driven/specs/dup/cli-foundation.yaml" },
+    { ADDED: { "req-one": { strength: "MUST", statement: "Added requirement", scenarios: {} } } },
+  );
+  const collideResult = verifyModule.verifyChange(verifyNewSpecDir, collideChange);
+  context.assert(!collideResult.valid, "verify rejects a new-spec delta whose id collides with an existing main spec");
+  context.assert(
+    collideResult.diagnostics.some((d) => d.source === "new_spec_collision"),
+    "verify reports new_spec_collision for an id that already exists",
+  );
+
+  // empty ADDED on a new-spec delta
+  const emptyChange = "verify-new-spec-empty";
+  writeValidChangeArtifacts(verifyNewSpecDir, emptyChange);
+  writeNewSpecDeltaArtifact(
+    verifyNewSpecDir,
+    emptyChange,
+    "new.yaml",
+    "empty-spec",
+    { title: "Empty Spec", path: ".strict-spec-driven/specs/empty/empty-spec.yaml" },
+    {},
+  );
+  const emptyResult = verifyModule.verifyChange(verifyNewSpecDir, emptyChange);
+  context.assert(!emptyResult.valid, "verify rejects a new-spec delta with no ADDED requirements");
+  context.assert(
+    emptyResult.diagnostics.some((d) => d.source === "new_spec_operations" && d.message.includes("at least one ADDED")),
+    "verify reports new_spec_operations for an empty-ADDED new-spec delta",
+  );
+
+  // invalid target path (INDEX.yaml) on a new-spec delta
+  const pathChange = "verify-new-spec-path";
+  writeValidChangeArtifacts(verifyNewSpecDir, pathChange);
+  writeNewSpecDeltaArtifact(
+    verifyNewSpecDir,
+    pathChange,
+    "new.yaml",
+    "indexish-spec",
+    { title: "Indexish", path: ".strict-spec-driven/specs/INDEX.yaml" },
+    { ADDED: { "req-one": { strength: "MUST", statement: "Added requirement", scenarios: {} } } },
+  );
+  const pathResult = verifyModule.verifyChange(verifyNewSpecDir, pathChange);
+  context.assert(!pathResult.valid, "verify rejects a new-spec delta whose path is INDEX.yaml");
+  context.assert(
+    pathResult.diagnostics.some((d) => d.source === "new_spec_path"),
+    "verify reports new_spec_path for an invalid target path",
+  );
+} finally {
+  rmSync(verifyNewSpecDir, { recursive: true, force: true });
 }
 
 context.section("[14] list/modify/cancel commands");

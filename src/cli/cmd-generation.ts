@@ -23,7 +23,7 @@ function usage(): string {
     "  strict-spec-driven generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
     "  strict-spec-driven generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
     "  strict-spec-driven generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
-    "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
+    "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
     "  strict-spec-driven generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]...",
   ].join("\n") + "\n";
 }
@@ -424,12 +424,16 @@ function existingDeltaInput(rootDir: string, changeName: string, targetSpec: str
   if (!artifact) {
     return emptyDeltaInput(targetSpec, relativeSpecPath);
   }
-  return {
+  const input: GenerationInputRecord = {
     target_spec: artifact.target_spec ?? targetSpec,
     spec_path: relativeSpecPath,
     mapping: isRecord(artifact.mapping) ? artifact.mapping : { implementation: [], tests: [] },
     operations: isRecord(artifact.operations) ? artifact.operations : { ADDED: {}, MODIFIED: {}, REMOVED: {} },
   };
+  if (isRecord(artifact.spec)) {
+    input.spec = artifact.spec;
+  }
+  return input;
 }
 
 function emptyDeltaInput(targetSpec: string, specPath: string): GenerationInputRecord {
@@ -459,6 +463,8 @@ type DeltaCommandInput = {
   reset: boolean;
   targetSpec?: string;
   specPath?: string;
+  title?: string;
+  newSpecPath?: string;
   implementation: string[];
   tests: string[];
   requirements: DeltaRequirementGroup[];
@@ -536,6 +542,18 @@ function parseDeltaCommandInput(argv: string[], rootDir: string): DeltaCommandIn
     if (name === "spec-path") {
       if (input.specPath !== undefined) throw new Error("--spec-path may only be supplied once");
       input.specPath = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "title") {
+      if (input.title !== undefined) throw new Error("--title may only be supplied once");
+      input.title = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "new-spec-path") {
+      if (input.newSpecPath !== undefined) throw new Error("--new-spec-path may only be supplied once");
+      input.newSpecPath = readValue(name, index);
       index += 1;
       continue;
     }
@@ -618,6 +636,14 @@ function buildDeltaInputFromArgs(rootDir: string, changeName: string, argv: stri
     throw new Error("missing required argument --target-spec");
   }
   const input = existingDeltaInput(rootDir, changeName, targetSpec, commandInput.specPath, commandInput.reset);
+
+  if (commandInput.title !== undefined || commandInput.newSpecPath !== undefined) {
+    if (commandInput.title === undefined || commandInput.newSpecPath === undefined) {
+      throw new Error("--title and --new-spec-path must be supplied together to create a new main spec");
+    }
+    input.spec = { title: commandInput.title, path: commandInput.newSpecPath };
+  }
+
   const mapping = isRecord(input.mapping) ? input.mapping : {};
   mapping.implementation = uniqueStrings([
     ...(Array.isArray(mapping.implementation) ? mapping.implementation as string[] : []),

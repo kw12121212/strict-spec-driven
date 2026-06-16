@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: delta-spec-new-main-spec-creation
+approach:
+  - 'Mirror the established delta-tech new-standard-creation design for observable-behavior specs. Add an optional ''spec'' block to the delta-spec artifact: { title: string, path: repo-relative string under .strict-spec-driven/specs/ }. The presence of this block is the explicit, intentional signal that the delta creates a new main spec; its absence preserves today''s typo-protecting hard error. Unlike delta-tech, whose new standard file path is derivable as tech/<id>.yaml, main specs live in nested domain directories (specs/cli/foundation.yaml) and a spec id (cli-foundation) is not path-derivable, so the target path must be supplied explicitly in the block. At archive, when target_spec resolves to no existing main spec: if a spec block is present, construct a main_spec artifact from { spec.id = target_spec, spec.title = block.title }, mapping = delta.mapping, requirements = ADDED entries, write it to the block path, then let the existing regenerateSpecIndex scan pick it up; if absent, throw the existing ''targets missing main spec'' error. Carry the contract change as a delta spec against contracts-yaml-artifacts and update the main spec first per contract-first scope discipline.'
+decisions:
+  new-spec-signal:
+    decision: Use the presence of an explicit 'spec' block (title + path) on the delta as the new-spec signal rather than silently creating a spec whenever target_spec is missing.
+    rationale: A missing target_spec is far more often a typo than an intentional new spec. An explicit block preserves the existing typo-protecting error for the common case and makes new-spec intent reviewable, exactly as delta-tech requires a standard block with title and category.
+  explicit-target-path:
+    decision: The new-spec block carries an explicit repo-relative target path under .strict-spec-driven/specs/ instead of deriving the file path from the spec id.
+    rationale: Main specs live in nested domain directories and the id is not path-derivable (cli-foundation lives at specs/cli/foundation.yaml), unlike flat tech standards at tech/<id>.yaml; an explicit path keeps creation deterministic and reviewable.
+  empty-mod-rem:
+    decision: A new-spec delta must keep MODIFIED and REMOVED empty; only ADDED requirements seed the new main spec.
+    rationale: A spec that does not yet exist has no prior requirements to modify or remove, so non-empty MODIFIED/REMOVED indicates an authoring error and must be a deterministic verify failure rather than a silent no-op.
+  contract-first:
+    decision: Update the contracts-yaml-artifacts main spec and schema assets before changing archive/verify code, carrying the spec change as this change's delta spec.
+    rationale: The workflow-scope-discipline MUST rule requires the contract artifact to be updated first when a registered schema or spec changes; implementation must not widen scope ahead of the contract.
+alternatives:
+  - option: Silently create a new main spec whenever target_spec is missing, with no explicit new-spec block (infer intent).
+    reason: A missing target_spec is overwhelmingly a typo or stale id rather than a deliberate new spec; inferring creation would turn a loud, recoverable archive error into a silent wrong-file write and lose the typo protection the current behavior provides.
+  - option: Derive the new main spec file path from the spec id like delta-tech derives tech/<id>.yaml, instead of carrying an explicit path.
+    reason: Main specs live in nested domain directories and the id is not path-derivable (cli-foundation lives at specs/cli/foundation.yaml), so id-based derivation would either force a flat specs layout or guess the domain directory, neither of which is deterministic or acceptable.
+  - option: Keep delta specs modify-only and require authors to hand-create the new main spec file directly under .strict-spec-driven/specs/ as a change task.
+    reason: This is the current supported path, but it keeps new-spec content outside the delta audit trail and inconsistent with delta-tech, which already materializes brand-new standards on archive; the request is specifically to close that asymmetry.
+risks:
+  - A new-spec block whose path collides with an existing or concurrently created main spec could overwrite or duplicate a spec id; verify must reject id and path collisions before archive writes anything.
+  - Allowing archive to create files broadens archive's write surface beyond rewriting known main specs; the creation path must reuse the same validation and serializer guarantees as existing main spec writes so created files always validate against the main-spec schema.
+  - The new optional block adds a second authoring shape to delta specs; schema docs, the minimal example, and the generate CLI must make new-spec vs modify-existing intent obvious to avoid authors half-populating the block.

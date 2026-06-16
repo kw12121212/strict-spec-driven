@@ -33,6 +33,14 @@ type MainSpecArtifact = {
 
 type DeltaSpecArtifact = {
   target_spec: string;
+  spec?: {
+    title: string;
+    path: string;
+  };
+  mapping?: {
+    implementation?: string[];
+    tests?: string[];
+  };
   operations?: {
     ADDED?: Record<string, RequirementValue>;
     MODIFIED?: Record<string, RequirementValue>;
@@ -103,6 +111,7 @@ type TechIndexArtifact = {
 export type ArchiveMergedSpecResult = {
   targetSpec: string;
   specPath: string;
+  created: boolean;
   added: number;
   modified: number;
   removed: number;
@@ -127,6 +136,7 @@ export type ArchiveResult = {
   archiveDestination: string;
   mergeSummary: {
     specsUpdated: number;
+    specsCreated: number;
     added: number;
     modified: number;
     removed: number;
@@ -216,6 +226,30 @@ function formatVerificationFailure(result: VerifyResult): string {
     .join("; ");
   const suffix = diagnosticSummary.length > 0 ? `: ${diagnosticSummary}` : "";
   return `change '${result.changeName}' failed verification (${result.diagnostics.length} diagnostic(s))${suffix}`;
+}
+
+function buildNewMainSpec(deltaSpec: DeltaSpecArtifact): MainSpecArtifact {
+  if (!deltaSpec.spec) {
+    throw new Error(
+      `delta spec for new main spec '${deltaSpec.target_spec}' must provide a spec block with title and path`,
+    );
+  }
+
+  return {
+    schema: "strict-spec-driven/main-spec/v1",
+    schema_version: 1,
+    artifact_type: "main_spec",
+    schema_file: "templates/strict-spec-driven/schemas/main-spec.yaml",
+    spec: {
+      id: deltaSpec.target_spec,
+      title: deltaSpec.spec.title,
+    },
+    mapping: {
+      implementation: [...(deltaSpec.mapping?.implementation ?? [])],
+      tests: [...(deltaSpec.mapping?.tests ?? [])],
+    },
+    requirements: {},
+  };
 }
 
 function collectMainSpecPathsById(rootDir: string): Map<string, string> {
@@ -700,6 +734,7 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
   const deltaSpecPaths = listYamlFiles(deltaSpecsDir);
 
   const mainSpecCache = new Map<string, MainSpecArtifact>();
+  const newSpecPaths = new Map<string, string>();
   const mergeReports = new Map<string, ArchiveMergedSpecResult>();
 
   for (const deltaSpecPath of deltaSpecPaths) {
@@ -708,27 +743,39 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
       throw new Error(`delta spec '${deltaSpecPath}' is missing target_spec`);
     }
 
-    const targetSpecPath = mainSpecPathsById.get(deltaSpec.target_spec);
-    if (!targetSpecPath) {
+    const existingSpecPath = mainSpecPathsById.get(deltaSpec.target_spec);
+    let cacheKey: string;
+    let created = false;
+
+    if (existingSpecPath) {
+      cacheKey = existingSpecPath;
+      if (!mainSpecCache.has(cacheKey)) {
+        const loaded = readYamlFile<MainSpecArtifact>(existingSpecPath);
+        if (loaded.artifact_type !== "main_spec") {
+          throw new Error(`target spec '${existingSpecPath}' is not a main_spec artifact`);
+        }
+        mainSpecCache.set(cacheKey, loaded);
+      }
+    } else if (newSpecPaths.has(deltaSpec.target_spec)) {
+      cacheKey = newSpecPaths.get(deltaSpec.target_spec)!;
+      created = true;
+    } else if (deltaSpec.spec) {
+      cacheKey = path.join(rootDir, deltaSpec.spec.path);
+      mainSpecCache.set(cacheKey, buildNewMainSpec(deltaSpec));
+      newSpecPaths.set(deltaSpec.target_spec, cacheKey);
+      created = true;
+    } else {
       throw new Error(
         `delta spec '${deltaSpecPath}' targets missing main spec '${deltaSpec.target_spec}'`,
       );
-    }
-
-    let mainSpec = mainSpecCache.get(targetSpecPath);
-    if (!mainSpec) {
-      mainSpec = readYamlFile<MainSpecArtifact>(targetSpecPath);
-      if (mainSpec.artifact_type !== "main_spec") {
-        throw new Error(`target spec '${targetSpecPath}' is not a main_spec artifact`);
-      }
-      mainSpecCache.set(targetSpecPath, mainSpec);
     }
 
     let report = mergeReports.get(deltaSpec.target_spec);
     if (!report) {
       report = {
         targetSpec: deltaSpec.target_spec,
-        specPath: normalizeRepoRelativePath(rootDir, targetSpecPath),
+        specPath: normalizeRepoRelativePath(rootDir, cacheKey),
+        created,
         added: 0,
         modified: 0,
         removed: 0,
@@ -738,10 +785,12 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
       mergeReports.set(deltaSpec.target_spec, report);
     }
 
-    applyDeltaToMainSpec(mainSpec, deltaSpec, report, targetSpecPath);
+    const mainSpec = mainSpecCache.get(cacheKey)!;
+    applyDeltaToMainSpec(mainSpec, deltaSpec, report, cacheKey);
   }
 
   for (const [mainSpecPath, mainSpecArtifact] of mainSpecCache) {
+    mkdirSync(path.dirname(mainSpecPath), { recursive: true });
     writeYamlFile(mainSpecPath, mainSpecArtifact);
   }
 
@@ -763,7 +812,11 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
 
   const mergeSummary = mergedSpecs.reduce(
     (summary, report) => {
-      summary.specsUpdated += 1;
+      if (report.created) {
+        summary.specsCreated += 1;
+      } else {
+        summary.specsUpdated += 1;
+      }
       summary.added += report.added;
       summary.modified += report.modified;
       summary.removed += report.removed;
@@ -773,6 +826,7 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
     },
     {
       specsUpdated: 0,
+      specsCreated: 0,
       added: 0,
       modified: 0,
       removed: 0,

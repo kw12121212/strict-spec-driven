@@ -645,6 +645,21 @@ const deltaTechOperationsValidation = validationModule.validateArtifact(
 );
 context.assert(deltaTechOperationsValidation.valid, "delta-tech operations example validates against delta-tech schema");
 
+const deltaSpecSchema = validationModule.loadBundledSchemaByArtifactType("delta_spec") as Record<string, unknown>;
+const deltaSpecNewSpecExample = yamlModule.parseYamlFile<{ spec?: { title?: unknown; path?: unknown } }>(
+  path.join(ROOT, "examples", "strict-spec-driven", "delta-spec.new-spec.yaml"),
+);
+const deltaSpecNewSpecValidation = validationModule.validateArtifact(
+  deltaSpecSchema,
+  deltaSpecNewSpecExample,
+  "examples/strict-spec-driven/delta-spec.new-spec.yaml",
+);
+context.assert(deltaSpecNewSpecValidation.valid, "delta-spec new-spec coverage example validates against delta-spec schema");
+context.assert(
+  typeof deltaSpecNewSpecExample.spec?.title === "string" && typeof deltaSpecNewSpecExample.spec?.path === "string",
+  "delta-spec new-spec coverage example carries a spec block with title and path",
+);
+
 const harnessSchema = validationModule.loadBundledSchemaByArtifactType("harness") as Record<string, unknown>;
 context.assert(
   (harnessSchema.properties as Record<string, unknown>)?.harness !== undefined,

@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: delta-spec-new-main-spec-creation
+  status: proposed
+summary:
+  what:
+    - When a delta spec's target_spec does not match any existing main spec at archive time, archive can materialize a brand-new main spec from the delta instead of failing with 'targets missing main spec', provided the delta carries an explicit new-spec block (title + target file path). This mirrors the existing delta-tech new-standard-creation capability for observable-behavior specs.
+  why:
+    - Today a change that introduces a new spec must hand-create the main spec file directly under .strict-spec-driven/specs/ because delta specs can only merge into pre-existing main specs. Delta tech already supports creating a brand-new standard on archive; observable-behavior specs lack the parallel capability, so new-spec work cannot flow through the delta audit path and authors hit a hard archive error.
+scope:
+  in:
+    - Add an optional new-spec block (title plus repo-relative target path under .strict-spec-driven/specs/) to the delta-spec schema (templates + embedded copy); make archive create a valid main_spec from that block, the delta mapping, and ADDED requirements when target_spec is missing; extend verify with new-spec rules (block requires title and path, id must not collide with an existing main spec, path must be repo-relative under specs/ and not collide, MODIFIED and REMOVED must be empty for a new-spec delta); preserve the existing 'targets missing main spec' error when target_spec is missing AND no new-spec block is present; update the contracts-yaml-artifacts main spec, schema docs, the minimal/coverage delta examples, the generate delta-spec CLI to populate the block, regression tests, and rebuilt dist.
+  out:
+    - Delta-tech new-standard creation behavior; the existing per-requirement modified-missing-target and removed-missing-target merge rules for deltas that target an existing main spec; spec index regeneration mechanics beyond picking up the newly created file; roadmap, migration, ticket, and harness behavior; any change to how delta files are placed within a change's specs/ directory.
+unchanged_behavior:
+  - Delta specs that target an existing main spec merge exactly as before; a delta whose target_spec is missing and which carries no new-spec block still fails archive with the existing 'targets missing main spec' error; main spec, spec index, proposal, design, tasks, and questions schemas are otherwise unchanged; archive still regenerates specs/INDEX.yaml by scanning the specs directory.

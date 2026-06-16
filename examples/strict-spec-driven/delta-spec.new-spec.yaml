@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: ../../templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: example-new-spec
+spec:
+  title: Example New Spec
+  path: .strict-spec-driven/specs/example/new-spec.yaml
+mapping:
+  implementation: []
+  tests: []
+operations:
+  ADDED:
+    example-new-requirement:
+      strength: MUST
+      statement: The system MUST expose one observable behavior introduced by a brand-new spec.
+      scenarios:
+        success:
+          - GIVEN: an example precondition
+          - WHEN: the example action occurs
+          - THEN: the observable result is available
+  MODIFIED: {}
+  REMOVED: {}

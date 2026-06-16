@@ -7085,6 +7085,7 @@ description: Strict YAML delta spec artifact.
 example_ref: ../../../examples/strict-spec-driven/delta-spec.yaml
 coverage_examples:
   - ../../../examples/strict-spec-driven/delta-spec.operations.yaml
+  - ../../../examples/strict-spec-driven/delta-spec.new-spec.yaml
 merge_rules:
   exclusive_active_target: |
     A requirement ID that appears as a MODIFIED or REMOVED target in one active change
@@ -7101,6 +7102,17 @@ merge_rules:
     If a REMOVED entry targets a requirement ID that does not exist in the main spec at
     archive time, the entry is silently skipped and recorded as a skipped removal in the
     archive merge report.
+  new_spec_creation: |
+    If target_spec does not match any existing main spec id at archive time, the delta is a
+    new-spec creation only when it provides a spec block with title and a repo-relative path
+    under .strict-spec-driven/specs/. Archive creates a new main_spec file at that path from
+    target_spec (spec id), the spec block title, the delta mapping, and the ADDED requirements,
+    then regenerates the spec index. A new-spec delta MUST supply at least one ADDED requirement
+    and MUST keep MODIFIED and REMOVED empty. The path MUST be a repo-relative .yaml file under
+    .strict-spec-driven/specs/, MUST NOT be INDEX.yaml, MUST NOT use parent traversal, and MUST
+    NOT collide with an existing main spec id or path. When target_spec is missing and no spec
+    block is present, archive fails with the existing missing-target error rather than creating
+    a spec. Verify must enforce these constraints as deterministic validation failures.
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
   definitions:
@@ -7161,6 +7173,21 @@ json_schema:
       type: string
     target_spec:
       type: string
+    spec:
+      type: object
+      description: >-
+        Optional new-spec block. Present only when this delta creates a brand-new main spec
+        whose id (target_spec) does not yet exist. Archive materializes the main spec at path
+        from target_spec, title, the delta mapping, and the ADDED requirements.
+      additionalProperties: false
+      required:
+        - title
+        - path
+      properties:
+        title:
+          type: string
+        path:
+          type: string
     mapping:
       type: object
       additionalProperties: false
@@ -13456,25 +13483,30 @@ function buildDeltaSpecArtifact(rootDir, input) {
   const mapping = asRecord(input.mapping, "$.mapping");
   const operations = asRecord(input.operations ?? {}, "$.operations");
   const relativePath = resolveDeltaSpecRelativePath(rootDir, targetSpec, input);
-  return {
-    relativePath,
-    artifact: {
-      schema: "strict-spec-driven/delta-spec/v1",
-      schema_version: 1,
-      artifact_type: "delta_spec",
-      schema_file: "templates/strict-spec-driven/schemas/delta-spec.yaml",
-      target_spec: targetSpec,
-      mapping: {
-        implementation: asStringArray(mapping.implementation ?? [], "$.mapping.implementation"),
-        tests: asStringArray(mapping.tests ?? [], "$.mapping.tests")
-      },
-      operations: {
-        ADDED: asRecord(operations.ADDED ?? {}, "$.operations.ADDED"),
-        MODIFIED: asRecord(operations.MODIFIED ?? {}, "$.operations.MODIFIED"),
-        REMOVED: asRecord(operations.REMOVED ?? {}, "$.operations.REMOVED")
-      }
-    }
+  const specBlock = asOptionalRecord(input.spec, "$.spec");
+  const artifact = {
+    schema: "strict-spec-driven/delta-spec/v1",
+    schema_version: 1,
+    artifact_type: "delta_spec",
+    schema_file: "templates/strict-spec-driven/schemas/delta-spec.yaml",
+    target_spec: targetSpec
   };
+  if (specBlock) {
+    artifact.spec = {
+      title: asString(specBlock.title, "$.spec.title"),
+      path: asString(specBlock.path, "$.spec.path")
+    };
+  }
+  artifact.mapping = {
+    implementation: asStringArray(mapping.implementation ?? [], "$.mapping.implementation"),
+    tests: asStringArray(mapping.tests ?? [], "$.mapping.tests")
+  };
+  artifact.operations = {
+    ADDED: asRecord(operations.ADDED ?? {}, "$.operations.ADDED"),
+    MODIFIED: asRecord(operations.MODIFIED ?? {}, "$.operations.MODIFIED"),
+    REMOVED: asRecord(operations.REMOVED ?? {}, "$.operations.REMOVED")
+  };
+  return { relativePath, artifact };
 }
 function normalizeDeltaTechRelativePath(relativePath) {
   let normalized = relativePath.replaceAll("\\", "/");
@@ -13624,7 +13656,7 @@ function usage() {
     "  strict-spec-driven generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
     "  strict-spec-driven generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
     "  strict-spec-driven generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
-    "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
+    "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
     "  strict-spec-driven generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
   ].join(`
 `) + `
@@ -13961,12 +13993,16 @@ function existingDeltaInput(rootDir, changeName, targetSpec, specPath, reset) {
   if (!artifact) {
     return emptyDeltaInput(targetSpec, relativeSpecPath);
   }
-  return {
+  const input = {
     target_spec: artifact.target_spec ?? targetSpec,
     spec_path: relativeSpecPath,
     mapping: isRecord2(artifact.mapping) ? artifact.mapping : { implementation: [], tests: [] },
     operations: isRecord2(artifact.operations) ? artifact.operations : { ADDED: {}, MODIFIED: {}, REMOVED: {} }
   };
+  if (isRecord2(artifact.spec)) {
+    input.spec = artifact.spec;
+  }
+  return input;
 }
 function emptyDeltaInput(targetSpec, specPath) {
   return {
@@ -14037,6 +14073,20 @@ function parseDeltaCommandInput(argv, rootDir) {
       if (input.specPath !== undefined)
         throw new Error("--spec-path may only be supplied once");
       input.specPath = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "title") {
+      if (input.title !== undefined)
+        throw new Error("--title may only be supplied once");
+      input.title = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "new-spec-path") {
+      if (input.newSpecPath !== undefined)
+        throw new Error("--new-spec-path may only be supplied once");
+      input.newSpecPath = readValue(name, index);
       index += 1;
       continue;
     }
@@ -14116,6 +14166,12 @@ function buildDeltaInputFromArgs(rootDir, changeName, argv) {
     throw new Error("missing required argument --target-spec");
   }
   const input = existingDeltaInput(rootDir, changeName, targetSpec, commandInput.specPath, commandInput.reset);
+  if (commandInput.title !== undefined || commandInput.newSpecPath !== undefined) {
+    if (commandInput.title === undefined || commandInput.newSpecPath === undefined) {
+      throw new Error("--title and --new-spec-path must be supplied together to create a new main spec");
+    }
+    input.spec = { title: commandInput.title, path: commandInput.newSpecPath };
+  }
   const mapping = isRecord2(input.mapping) ? input.mapping : {};
   mapping.implementation = uniqueStrings([
     ...Array.isArray(mapping.implementation) ? mapping.implementation : [],
@@ -16213,6 +16269,112 @@ function checkAddedRequirementCollisions(rootDir, changeDir) {
   }
   return diagnostics;
 }
+function checkNewSpecDeltaRules(rootDir, changeDir) {
+  const diagnostics = [];
+  const { specsById } = buildMainSpecRequirementIndex(rootDir);
+  const existingPaths = new Set;
+  for (const entry of specsById.values()) {
+    existingPaths.add(entry.artifactPath);
+  }
+  const specsDir = path13.join(changeDir, "specs");
+  for (const deltaSpecPath of listYamlFiles2(specsDir)) {
+    const artifactPath = path13.relative(rootDir, deltaSpecPath).split(path13.sep).join("/");
+    const content = readFileSync11(deltaSpecPath, "utf8");
+    let artifact;
+    try {
+      artifact = parseYamlDocument(content, { source: artifactPath });
+    } catch {
+      continue;
+    }
+    const specBlock = artifact.spec;
+    const hasSpecBlock = specBlock !== null && typeof specBlock === "object" && !Array.isArray(specBlock);
+    if (!hasSpecBlock) {
+      continue;
+    }
+    if (typeof artifact.target_spec !== "string" || artifact.target_spec.length === 0) {
+      continue;
+    }
+    const targetSpec = artifact.target_spec;
+    const block = specBlock;
+    const title = block.title;
+    const targetPath = block.path;
+    if (typeof title !== "string" || title.length === 0 || typeof targetPath !== "string" || targetPath.length === 0) {
+      diagnostics.push({
+        source: "new_spec_metadata",
+        artifactPath,
+        fieldPath: "$.spec",
+        message: `delta spec creates new main spec '${targetSpec}' and must provide spec.title and spec.path`,
+        expected: "spec block with non-empty title and path",
+        actual: "incomplete spec block"
+      });
+    }
+    const existingById = specsById.get(targetSpec);
+    if (existingById) {
+      diagnostics.push({
+        source: "new_spec_collision",
+        artifactPath,
+        fieldPath: "$.target_spec",
+        message: `new-spec delta target '${targetSpec}' already exists as a main spec`,
+        expected: "new-spec target id absent from existing main specs",
+        actual: `existing main spec '${targetSpec}' in ${existingById.artifactPath}`
+      });
+    }
+    if (typeof targetPath === "string" && targetPath.length > 0) {
+      const normalized = targetPath.split(path13.sep).join("/");
+      const specsPrefix = `${STRICT_WORKFLOW_DIR5}/specs/`;
+      const isUnderSpecs = normalized.startsWith(specsPrefix);
+      const isYaml = normalized.endsWith(".yaml");
+      const hasTraversal = normalized.split("/").includes("..");
+      const isIndex = path13.basename(normalized) === "INDEX.yaml";
+      if (!isUnderSpecs || !isYaml || hasTraversal || isIndex) {
+        diagnostics.push({
+          source: "new_spec_path",
+          artifactPath,
+          fieldPath: "$.spec.path",
+          message: `new-spec delta path '${targetPath}' must be a repo-relative .yaml file under ${specsPrefix}, not INDEX.yaml, and must not use parent traversal`,
+          expected: `repo-relative .yaml path under ${specsPrefix}`,
+          actual: normalized
+        });
+      } else if (existingPaths.has(normalized)) {
+        diagnostics.push({
+          source: "new_spec_path",
+          artifactPath,
+          fieldPath: "$.spec.path",
+          message: `new-spec delta path '${targetPath}' collides with an existing main spec file`,
+          expected: "new-spec path absent from existing main spec files",
+          actual: normalized
+        });
+      }
+    }
+    const modified = artifact.operations?.MODIFIED;
+    const removed = artifact.operations?.REMOVED;
+    const modifiedCount = modified && typeof modified === "object" && !Array.isArray(modified) ? Object.keys(modified).length : 0;
+    const removedCount = removed && typeof removed === "object" && !Array.isArray(removed) ? Object.keys(removed).length : 0;
+    if (modifiedCount > 0 || removedCount > 0) {
+      diagnostics.push({
+        source: "new_spec_operations",
+        artifactPath,
+        fieldPath: "$.operations",
+        message: `new-spec delta '${targetSpec}' must keep MODIFIED and REMOVED empty`,
+        expected: "empty MODIFIED and REMOVED on a new-spec delta",
+        actual: `${modifiedCount} modified, ${removedCount} removed`
+      });
+    }
+    const added = artifact.operations?.ADDED;
+    const addedCount = added && typeof added === "object" && !Array.isArray(added) ? Object.keys(added).length : 0;
+    if (addedCount === 0) {
+      diagnostics.push({
+        source: "new_spec_operations",
+        artifactPath,
+        fieldPath: "$.operations.ADDED",
+        message: `new-spec delta '${targetSpec}' must supply at least one ADDED requirement`,
+        expected: "at least one ADDED requirement",
+        actual: "no ADDED requirements"
+      });
+    }
+  }
+  return diagnostics;
+}
 function buildMainTechRuleIndex(rootDir) {
   const techRoot = path13.join(rootDir, STRICT_WORKFLOW_DIR5, "tech");
   const diagnostics = [];
@@ -16513,6 +16675,7 @@ function verifyChange(rootDir, changeName) {
   const specsPrefix = `.strict-spec-driven/changes/${changeName}/specs`;
   allDiagnostics.push(...validateDeltaSpecs(changeDir, specsPrefix));
   allDiagnostics.push(...checkAddedRequirementCollisions(rootDir, changeDir));
+  allDiagnostics.push(...checkNewSpecDeltaRules(rootDir, changeDir));
   allDiagnostics.push(...checkExclusiveActiveTargets(rootDir, changeName));
   const techPrefix = `.strict-spec-driven/changes/${changeName}/tech`;
   allDiagnostics.push(...validateDeltaTech(changeDir, techPrefix));
@@ -16587,6 +16750,26 @@ function formatVerificationFailure(result) {
   const diagnosticSummary = result.diagnostics.slice(0, 5).map(formatVerifyDiagnostic).join("; ");
   const suffix = diagnosticSummary.length > 0 ? `: ${diagnosticSummary}` : "";
   return `change '${result.changeName}' failed verification (${result.diagnostics.length} diagnostic(s))${suffix}`;
+}
+function buildNewMainSpec(deltaSpec) {
+  if (!deltaSpec.spec) {
+    throw new Error(`delta spec for new main spec '${deltaSpec.target_spec}' must provide a spec block with title and path`);
+  }
+  return {
+    schema: "strict-spec-driven/main-spec/v1",
+    schema_version: 1,
+    artifact_type: "main_spec",
+    schema_file: "templates/strict-spec-driven/schemas/main-spec.yaml",
+    spec: {
+      id: deltaSpec.target_spec,
+      title: deltaSpec.spec.title
+    },
+    mapping: {
+      implementation: [...deltaSpec.mapping?.implementation ?? []],
+      tests: [...deltaSpec.mapping?.tests ?? []]
+    },
+    requirements: {}
+  };
 }
 function collectMainSpecPathsById(rootDir) {
   const specsRoot = path14.join(rootDir, STRICT_WORKFLOW_DIR6, "specs");
@@ -16965,29 +17148,42 @@ function archiveChange(rootDir, changeName) {
   const deltaSpecsDir = path14.join(changeDir, "specs");
   const deltaSpecPaths = listYamlFiles3(deltaSpecsDir);
   const mainSpecCache = new Map;
+  const newSpecPaths = new Map;
   const mergeReports = new Map;
   for (const deltaSpecPath of deltaSpecPaths) {
     const deltaSpec = readYamlFile2(deltaSpecPath);
     if (typeof deltaSpec.target_spec !== "string" || deltaSpec.target_spec.length === 0) {
       throw new Error(`delta spec '${deltaSpecPath}' is missing target_spec`);
     }
-    const targetSpecPath = mainSpecPathsById.get(deltaSpec.target_spec);
-    if (!targetSpecPath) {
-      throw new Error(`delta spec '${deltaSpecPath}' targets missing main spec '${deltaSpec.target_spec}'`);
-    }
-    let mainSpec = mainSpecCache.get(targetSpecPath);
-    if (!mainSpec) {
-      mainSpec = readYamlFile2(targetSpecPath);
-      if (mainSpec.artifact_type !== "main_spec") {
-        throw new Error(`target spec '${targetSpecPath}' is not a main_spec artifact`);
+    const existingSpecPath = mainSpecPathsById.get(deltaSpec.target_spec);
+    let cacheKey;
+    let created = false;
+    if (existingSpecPath) {
+      cacheKey = existingSpecPath;
+      if (!mainSpecCache.has(cacheKey)) {
+        const loaded = readYamlFile2(existingSpecPath);
+        if (loaded.artifact_type !== "main_spec") {
+          throw new Error(`target spec '${existingSpecPath}' is not a main_spec artifact`);
+        }
+        mainSpecCache.set(cacheKey, loaded);
       }
-      mainSpecCache.set(targetSpecPath, mainSpec);
+    } else if (newSpecPaths.has(deltaSpec.target_spec)) {
+      cacheKey = newSpecPaths.get(deltaSpec.target_spec);
+      created = true;
+    } else if (deltaSpec.spec) {
+      cacheKey = path14.join(rootDir, deltaSpec.spec.path);
+      mainSpecCache.set(cacheKey, buildNewMainSpec(deltaSpec));
+      newSpecPaths.set(deltaSpec.target_spec, cacheKey);
+      created = true;
+    } else {
+      throw new Error(`delta spec '${deltaSpecPath}' targets missing main spec '${deltaSpec.target_spec}'`);
     }
     let report = mergeReports.get(deltaSpec.target_spec);
     if (!report) {
       report = {
         targetSpec: deltaSpec.target_spec,
-        specPath: normalizeRepoRelativePath3(rootDir, targetSpecPath),
+        specPath: normalizeRepoRelativePath3(rootDir, cacheKey),
+        created,
         added: 0,
         modified: 0,
         removed: 0,
@@ -16996,9 +17192,11 @@ function archiveChange(rootDir, changeName) {
       };
       mergeReports.set(deltaSpec.target_spec, report);
     }
-    applyDeltaToMainSpec(mainSpec, deltaSpec, report, targetSpecPath);
+    const mainSpec = mainSpecCache.get(cacheKey);
+    applyDeltaToMainSpec(mainSpec, deltaSpec, report, cacheKey);
   }
   for (const [mainSpecPath, mainSpecArtifact] of mainSpecCache) {
+    mkdirSync5(path14.dirname(mainSpecPath), { recursive: true });
     writeYamlFile(mainSpecPath, mainSpecArtifact);
   }
   regenerateSpecIndex(rootDir);
@@ -17014,7 +17212,11 @@ function archiveChange(rootDir, changeName) {
     return left.targetSpec.localeCompare(right.targetSpec);
   });
   const mergeSummary = mergedSpecs.reduce((summary, report) => {
-    summary.specsUpdated += 1;
+    if (report.created) {
+      summary.specsCreated += 1;
+    } else {
+      summary.specsUpdated += 1;
+    }
     summary.added += report.added;
     summary.modified += report.modified;
     summary.removed += report.removed;
@@ -17023,6 +17225,7 @@ function archiveChange(rootDir, changeName) {
     return summary;
   }, {
     specsUpdated: 0,
+    specsCreated: 0,
     added: 0,
     modified: 0,
     removed: 0,

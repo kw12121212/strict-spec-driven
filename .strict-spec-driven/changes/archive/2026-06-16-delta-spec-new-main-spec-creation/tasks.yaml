@@ -1,0 +1,44 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: delta-spec-new-main-spec-creation
+sections:
+  Implementation:
+    extend-delta-spec-schema:
+      text: Add the optional new-spec block (title plus repo-relative target path under the specs directory) to the delta-spec JSON schema in templates/strict-spec-driven/schemas/delta-spec.yaml and document the new-spec creation rule in its merge_rules block, mirroring delta-tech's new_standard_creation rule.
+      status: complete
+    sync-embedded-delta-spec-schema:
+      text: Mirror the delta-spec schema change into the embedded copy in src/embedded-templates.ts so the bundled schema and the on-disk template stay identical.
+      status: complete
+    archive-creates-new-main-spec:
+      text: In src/archive.ts, when a delta's target_spec resolves to no existing main spec, construct a valid main_spec from the new-spec block (spec.id = target_spec, spec.title = block title), the delta mapping, and the ADDED requirements, write it to the block target path (creating parent directories as needed) through the shared YAML writer, and let regenerateSpecIndex pick it up; preserve the existing missing-target error when no new-spec block is present.
+      status: complete
+    verify-new-spec-rules:
+      text: In src/verify.ts, add deterministic new-spec delta validation - new-spec block requires title and path, MODIFIED and REMOVED must be empty, the new spec id and target path must not collide with an existing main spec, and the path must be a repo-relative .yaml file under the specs directory and not INDEX.yaml.
+      status: complete
+    extend-generate-cli:
+      text: Extend the generate delta-spec CLI in src/cli/cmd-generation.ts to populate the new-spec block (title plus target path) and update its usage text, keeping new-spec vs modify-existing authoring intent explicit.
+      status: complete
+    update-examples:
+      text: Update the delta-spec examples under examples/strict-spec-driven/ so the contract has a minimal valid new-spec delta covered by the shared example-validation path.
+      status: complete
+    rebuild-dist:
+      text: Rebuild compiled output (bun run build) so dist/ reflects the archive, verify, schema, and CLI changes.
+      status: complete
+  Testing:
+    add-regression-tests:
+      text: Add or update tests covering archive new-spec creation, the preserved missing-target error without a block, verify rejection of non-empty MODIFIED/REMOVED on a new-spec delta, id/path collision rejection, and the generate CLI new-spec block output.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope, the contract spec was updated before code, and no out-of-scope behavior changed.
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: add-regression-tests

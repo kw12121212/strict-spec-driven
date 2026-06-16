@@ -26,6 +26,7 @@ type QuestionListArtifact = {
 
 type DeltaSpecArtifact = {
   target_spec?: unknown;
+  spec?: unknown;
   operations?: {
     ADDED?: Record<string, unknown>;
     MODIFIED?: Record<string, unknown>;
@@ -429,6 +430,140 @@ function checkAddedRequirementCollisions(
   return diagnostics;
 }
 
+function checkNewSpecDeltaRules(
+  rootDir: string,
+  changeDir: string,
+): VerifyDiagnostic[] {
+  const diagnostics: VerifyDiagnostic[] = [];
+  const { specsById } = buildMainSpecRequirementIndex(rootDir);
+
+  const existingPaths = new Set<string>();
+  for (const entry of specsById.values()) {
+    existingPaths.add(entry.artifactPath);
+  }
+
+  const specsDir = path.join(changeDir, "specs");
+  for (const deltaSpecPath of listYamlFiles(specsDir)) {
+    const artifactPath = path.relative(rootDir, deltaSpecPath).split(path.sep).join("/");
+    const content = readFileSync(deltaSpecPath, "utf8");
+    let artifact: DeltaSpecArtifact;
+    try {
+      artifact = parseYamlDocument<DeltaSpecArtifact>(content, { source: artifactPath });
+    } catch {
+      continue;
+    }
+
+    const specBlock = artifact.spec;
+    const hasSpecBlock =
+      specBlock !== null && typeof specBlock === "object" && !Array.isArray(specBlock);
+    if (!hasSpecBlock) {
+      // Not a new-spec delta; modify-existing rules are enforced elsewhere.
+      continue;
+    }
+
+    if (typeof artifact.target_spec !== "string" || artifact.target_spec.length === 0) {
+      continue;
+    }
+    const targetSpec = artifact.target_spec;
+    const block = specBlock as Record<string, unknown>;
+    const title = block.title;
+    const targetPath = block.path;
+
+    if (
+      typeof title !== "string" ||
+      title.length === 0 ||
+      typeof targetPath !== "string" ||
+      targetPath.length === 0
+    ) {
+      diagnostics.push({
+        source: "new_spec_metadata",
+        artifactPath,
+        fieldPath: "$.spec",
+        message: `delta spec creates new main spec '${targetSpec}' and must provide spec.title and spec.path`,
+        expected: "spec block with non-empty title and path",
+        actual: "incomplete spec block",
+      });
+    }
+
+    const existingById = specsById.get(targetSpec);
+    if (existingById) {
+      diagnostics.push({
+        source: "new_spec_collision",
+        artifactPath,
+        fieldPath: "$.target_spec",
+        message: `new-spec delta target '${targetSpec}' already exists as a main spec`,
+        expected: "new-spec target id absent from existing main specs",
+        actual: `existing main spec '${targetSpec}' in ${existingById.artifactPath}`,
+      });
+    }
+
+    if (typeof targetPath === "string" && targetPath.length > 0) {
+      const normalized = targetPath.split(path.sep).join("/");
+      const specsPrefix = `${STRICT_WORKFLOW_DIR}/specs/`;
+      const isUnderSpecs = normalized.startsWith(specsPrefix);
+      const isYaml = normalized.endsWith(".yaml");
+      const hasTraversal = normalized.split("/").includes("..");
+      const isIndex = path.basename(normalized) === "INDEX.yaml";
+      if (!isUnderSpecs || !isYaml || hasTraversal || isIndex) {
+        diagnostics.push({
+          source: "new_spec_path",
+          artifactPath,
+          fieldPath: "$.spec.path",
+          message: `new-spec delta path '${targetPath}' must be a repo-relative .yaml file under ${specsPrefix}, not INDEX.yaml, and must not use parent traversal`,
+          expected: `repo-relative .yaml path under ${specsPrefix}`,
+          actual: normalized,
+        });
+      } else if (existingPaths.has(normalized)) {
+        diagnostics.push({
+          source: "new_spec_path",
+          artifactPath,
+          fieldPath: "$.spec.path",
+          message: `new-spec delta path '${targetPath}' collides with an existing main spec file`,
+          expected: "new-spec path absent from existing main spec files",
+          actual: normalized,
+        });
+      }
+    }
+
+    const modified = artifact.operations?.MODIFIED;
+    const removed = artifact.operations?.REMOVED;
+    const modifiedCount =
+      modified && typeof modified === "object" && !Array.isArray(modified)
+        ? Object.keys(modified).length
+        : 0;
+    const removedCount =
+      removed && typeof removed === "object" && !Array.isArray(removed)
+        ? Object.keys(removed).length
+        : 0;
+    if (modifiedCount > 0 || removedCount > 0) {
+      diagnostics.push({
+        source: "new_spec_operations",
+        artifactPath,
+        fieldPath: "$.operations",
+        message: `new-spec delta '${targetSpec}' must keep MODIFIED and REMOVED empty`,
+        expected: "empty MODIFIED and REMOVED on a new-spec delta",
+        actual: `${modifiedCount} modified, ${removedCount} removed`,
+      });
+    }
+
+    const added = artifact.operations?.ADDED;
+    const addedCount =
+      added && typeof added === "object" && !Array.isArray(added) ? Object.keys(added).length : 0;
+    if (addedCount === 0) {
+      diagnostics.push({
+        source: "new_spec_operations",
+        artifactPath,
+        fieldPath: "$.operations.ADDED",
+        message: `new-spec delta '${targetSpec}' must supply at least one ADDED requirement`,
+        expected: "at least one ADDED requirement",
+        actual: "no ADDED requirements",
+      });
+    }
+  }
+
+  return diagnostics;
+}
+
 function buildMainTechRuleIndex(rootDir: string): {
   diagnostics: VerifyDiagnostic[];
   standardsById: Map<string, MainTechRuleIndex>;
@@ -797,6 +932,7 @@ export function verifyChange(
   const specsPrefix = `.strict-spec-driven/changes/${changeName}/specs`;
   allDiagnostics.push(...validateDeltaSpecs(changeDir, specsPrefix));
   allDiagnostics.push(...checkAddedRequirementCollisions(rootDir, changeDir));
+  allDiagnostics.push(...checkNewSpecDeltaRules(rootDir, changeDir));
 
   allDiagnostics.push(...checkExclusiveActiveTargets(rootDir, changeName));
 
