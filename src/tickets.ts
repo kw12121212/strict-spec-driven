@@ -80,6 +80,28 @@ export type ValidateTicketsResult = {
   diagnostics: ValidationDiagnostic[];
 };
 
+export type EditTicketInput = {
+  ticketId: string;
+  title?: string;
+  problem?: string;
+  desiredOutcome?: string;
+  intent?: string;
+  clearIntent?: boolean;
+  labels?: string[];
+  clearLabels?: boolean;
+  externalTracker?: TicketReference;
+  clearExternalTracker?: boolean;
+};
+
+export type EditTicketResult = {
+  valid: boolean;
+  edited: boolean;
+  ticketId: string;
+  path: string | null;
+  ticket: TicketArtifact | null;
+  diagnostics: ValidationDiagnostic[];
+};
+
 function ticketsDir(rootDir: string): string {
   return path.join(rootDir, TICKETS_DIR);
 }
@@ -326,6 +348,63 @@ export function writeTicketArtifact(rootDir: string, artifact: TicketArtifact): 
   writeFileSync(filePath, stringifyYamlDocument(artifact), "utf8");
   rebuildTicketsIndex(rootDir);
   return repoRelative(rootDir, filePath);
+}
+
+/**
+ * Edits the editable fields of an existing active ticket. Operates only on the
+ * active ticket file: a ticket that resolves only to the archived directory is a
+ * resolved audit record and is refused rather than edited. The ticket id,
+ * created_at, status, provenance, and dispatch_decision are never touched — the
+ * content-derived id is allocated once at creation and is not re-derived here, so
+ * edits never rename the file or break promotion/evidence links. The resulting
+ * artifact is validated against the ticket schema before it is written, and the
+ * tickets index is rebuilt so a changed title stays in sync.
+ */
+export function editTicket(rootDir: string, input: EditTicketInput): EditTicketResult {
+  const activePath = ticketFilePath(rootDir, input.ticketId);
+  if (!existsSync(activePath)) {
+    const archivePath = archivedTicketFilePath(rootDir, input.ticketId);
+    const message = existsSync(archivePath)
+      ? `ticket '${input.ticketId}' is resolved and archived; it cannot be edited`
+      : `ticket '${input.ticketId}' not found`;
+    return { valid: false, edited: false, ticketId: input.ticketId, path: null, ticket: null, diagnostics: [makeDiagnostic(message, "$.ticket.id")] };
+  }
+
+  const artifact = parseYamlFile<TicketArtifact>(activePath);
+
+  if (input.title !== undefined) {
+    artifact.ticket.title = input.title;
+  }
+  if (input.problem !== undefined) {
+    artifact.requirement.problem = input.problem;
+  }
+  if (input.desiredOutcome !== undefined) {
+    artifact.requirement.desired_outcome = input.desiredOutcome;
+  }
+  if (input.clearIntent) {
+    delete artifact.requirement.intent;
+  } else if (input.intent !== undefined) {
+    artifact.requirement.intent = input.intent;
+  }
+  if (input.clearLabels) {
+    delete artifact.labels;
+  } else if (input.labels !== undefined) {
+    artifact.labels = [...input.labels];
+  }
+  if (input.clearExternalTracker) {
+    delete artifact.external_tracker;
+  } else if (input.externalTracker !== undefined) {
+    artifact.external_tracker = input.externalTracker;
+  }
+
+  const schema = loadBundledSchemaBySchemaId(TICKET_SCHEMA_ID);
+  const validation = validateArtifact(schema, artifact, repoRelative(rootDir, activePath));
+  if (!validation.valid) {
+    return { valid: false, edited: false, ticketId: input.ticketId, path: null, ticket: null, diagnostics: validation.diagnostics };
+  }
+
+  const writtenPath = writeTicketArtifact(rootDir, artifact);
+  return { valid: true, edited: true, ticketId: input.ticketId, path: writtenPath, ticket: artifact, diagnostics: [] };
 }
 
 /** Writes a resolved ticket to the archived directory and removes it from active ticket state. */

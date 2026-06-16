@@ -1,4 +1,4 @@
-import { createTicket, listTickets, showTicket, validateTickets, type CreateTicketInput, type TicketReference } from "../tickets.js";
+import { createTicket, editTicket, listTickets, showTicket, validateTickets, type CreateTicketInput, type EditTicketInput, type TicketReference } from "../tickets.js";
 import { resolveTicket, type DispatchOutcome, type ResolveTicketInput } from "../ticket-dispatch.js";
 import { isHelpRequest } from "./argv.js";
 import { writeHelp, writeJson, writeUsage } from "./output.js";
@@ -7,7 +7,7 @@ const DISPATCH_OUTCOMES = new Set<DispatchOutcome>(["not_implemented", "implemen
 
 type FlagMap = Record<string, string[]>;
 
-function parseFlagMap(argv: string[]): FlagMap {
+function parseFlagMap(argv: string[], booleanFlags: Set<string> = new Set()): FlagMap {
   const flags: FlagMap = {};
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
@@ -15,6 +15,11 @@ function parseFlagMap(argv: string[]): FlagMap {
       throw new Error(`unexpected argument '${token}'`);
     }
     const name = token.slice(2);
+    if (booleanFlags.has(name)) {
+      flags[name] ??= [];
+      flags[name].push("true");
+      continue;
+    }
     const value = argv[index + 1];
     if (value === undefined || value.startsWith("--")) {
       throw new Error(`missing value for --${name}`);
@@ -122,6 +127,104 @@ export function runTicketShow(argv: string[]): number {
   }
 
   const result = showTicket(process.cwd(), argv[0]);
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+
+const EDIT_BOOLEAN_FLAGS = new Set(["clear-intent", "clear-labels", "clear-external-tracker"]);
+const EDIT_USAGE =
+  "Usage: strict-spec-driven ticket-edit <ticket-id> [--title <text>] [--problem <text>] [--desired-outcome <text>] [--intent <text> | --clear-intent] [--label <text>]... | --clear-labels [--external-label <text> --external-target <text> | --clear-external-tracker]\n";
+
+export function runTicketEdit(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp(EDIT_USAGE);
+    return 0;
+  }
+  if (argv.length === 0 || argv[0].startsWith("--")) {
+    writeUsage(EDIT_USAGE);
+    return 1;
+  }
+  const ticketId = argv[0];
+
+  let flags: FlagMap;
+  try {
+    flags = parseFlagMap(argv.slice(1), EDIT_BOOLEAN_FLAGS);
+    ensureAllowedFlags(flags, [
+      "title",
+      "problem",
+      "desired-outcome",
+      "intent",
+      "clear-intent",
+      "label",
+      "clear-labels",
+      "external-label",
+      "external-target",
+      "clear-external-tracker",
+    ]);
+  } catch (error) {
+    writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}\n`);
+    return 1;
+  }
+
+  const hasFlag = (name: string): boolean => name in flags;
+  if (Object.keys(flags).length === 0) {
+    writeUsage("Error: ticket-edit requires at least one editable field\n");
+    return 1;
+  }
+
+  if (hasFlag("intent") && hasFlag("clear-intent")) {
+    writeUsage("Error: --intent and --clear-intent cannot be combined\n");
+    return 1;
+  }
+  if (hasFlag("label") && hasFlag("clear-labels")) {
+    writeUsage("Error: --label and --clear-labels cannot be combined\n");
+    return 1;
+  }
+  if ((hasFlag("external-label") || hasFlag("external-target")) && hasFlag("clear-external-tracker")) {
+    writeUsage("Error: --external-label/--external-target and --clear-external-tracker cannot be combined\n");
+    return 1;
+  }
+
+  for (const flag of ["title", "problem", "desired-outcome", "intent"]) {
+    const value = singleValue(flags, flag);
+    if (value !== undefined && value.trim().length === 0) {
+      writeUsage(`Error: --${flag} must not be blank\n`);
+      return 1;
+    }
+  }
+
+  const input: EditTicketInput = { ticketId };
+  if (hasFlag("title")) {
+    input.title = singleValue(flags, "title");
+  }
+  if (hasFlag("problem")) {
+    input.problem = singleValue(flags, "problem");
+  }
+  if (hasFlag("desired-outcome")) {
+    input.desiredOutcome = singleValue(flags, "desired-outcome");
+  }
+  if (hasFlag("clear-intent")) {
+    input.clearIntent = true;
+  } else if (hasFlag("intent")) {
+    input.intent = singleValue(flags, "intent");
+  }
+  if (hasFlag("clear-labels")) {
+    input.clearLabels = true;
+  } else if (hasFlag("label")) {
+    input.labels = flags.label;
+  }
+  if (hasFlag("clear-external-tracker")) {
+    input.clearExternalTracker = true;
+  } else {
+    try {
+      input.externalTracker = parseExternalTracker(flags);
+    } catch (error) {
+      writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}\n`);
+      return 1;
+    }
+  }
+
+  const result = editTicket(process.cwd(), input);
   writeJson(result);
   return result.valid ? 0 : 1;
 }

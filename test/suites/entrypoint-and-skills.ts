@@ -55,6 +55,7 @@ const expectedCommandOrder = [
   "ticket-create",
   "ticket-list",
   "ticket-show",
+  "ticket-edit",
   "ticket-validate",
   "ticket-resolve",
   "maintenance",

@@ -35,6 +35,7 @@ export const COMMAND_REGISTRATION_ORDER = [
   "ticket-create",
   "ticket-list",
   "ticket-show",
+  "ticket-edit",
   "ticket-validate",
   "ticket-resolve",
   "maintenance",

@@ -25,6 +25,7 @@ check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-wor
 ticket-create: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ticket-create --title <text> --problem <text> --desired-outcome <text> [--intent <text>] [--label <text>]... [--external-label <text> --external-target <text>]
 ticket-list: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ticket-list
 ticket-show: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ticket-show <ticket-id>
+ticket-edit: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ticket-edit <ticket-id> [--title <text>] [--problem <text>] [--desired-outcome <text>] [--intent <text> | --clear-intent] [--label <text>]... | --clear-labels [--external-label <text> --external-target <text> | --clear-external-tracker]
 ```
 
 ## Prerequisites
@@ -82,12 +83,26 @@ run `init` from this skill.
    is dispatch to decide whether the requirement is already implemented or should
    become a roadmap milestone. Do not perform that dispatch here.
 
+6. **Refine an existing ticket** — when the user wants to correct or sharpen an
+   already-captured ticket that is still active (not yet dispatched), update it
+   only through `ticket-edit <ticket-id>`; never hand-edit the ticket YAML. Pass
+   only the fields that change — `--title`, `--problem`, `--desired-outcome`,
+   `--intent`, `--label` (repeatable, replaces the label set), and the external
+   tracker flags — and use the value-less clear flags (`--clear-intent`,
+   `--clear-labels`, `--clear-external-tracker`) to remove an optional field. The
+   command keeps the ticket id, creation time, and status stable, so refining the
+   wording never renames the ticket or breaks its links, and it re-validates the
+   ticket before saving. Apply the same pure-intent discipline to edits: keep the
+   requirement free of solutions. `ticket-edit` refuses to touch a resolved
+   ticket, so do not use it to revise dispatch decisions.
+
 ## Rules
 
 - Capture pure intent only — problem, desired outcome, and acceptance notes;
   never a solution, technology choice, or design
-- Create and modify tickets only through the ticket CLI commands; never
-  hand-write ticket YAML or the tickets index
+- Create and modify tickets only through the ticket CLI commands (`ticket-create`
+  to capture, `ticket-edit` to refine an active ticket); never hand-write ticket
+  YAML or the tickets index
 - Do not dispatch, close, promote, or reject the ticket, and do not create
   milestones or propose changes — that is the dispatch skill's responsibility
 - Keep the judgment about how to phrase the requirement in this prompt; keep all

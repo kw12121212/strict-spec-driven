@@ -1,0 +1,37 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: ticket-domain-behavior
+mapping:
+  implementation:
+    - src/tickets.ts
+    - src/cli/cmd-tickets.ts
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+  tests:
+    - test/suites/tickets.ts
+operations:
+  ADDED:
+    ticket-edit-contract:
+      strength: MUST
+      statement: The system MUST provide a ticket-edit command that updates the editable fields (title, problem, desired outcome, intent, labels, external tracker) of an existing active ticket, keeping the ticket id, created_at, status, provenance, and dispatch decision unchanged, refusing to edit a resolved/archived ticket or an unknown id, requiring at least one edit and rejecting conflicting set-and-clear flags for the same field, validating the result against the ticket schema before writing, and rebuilding the tickets index.
+      scenarios:
+        edit-updates-active-ticket-fields:
+          - GIVEN: an active ticket exists
+          - WHEN: ticket-edit runs with new values for editable fields such as title, problem, desired outcome, or intent
+          - THEN: the ticket file is rewritten with the new field values, its id, created_at, and status are unchanged, the tickets index is refreshed, and the updated ticket is reported
+        edit-clears-optional-fields:
+          - GIVEN: an active ticket carries optional intent, labels, or an external tracker
+          - WHEN: ticket-edit runs with the corresponding value-less clear flag for an optional field
+          - THEN: that optional field is removed from the ticket while the remaining fields are preserved
+        edit-rejects-resolved-or-unknown-ticket:
+          - GIVEN: a ticket id resolves only to the archived tickets directory or to no ticket at all
+          - WHEN: ticket-edit runs with that id
+          - THEN: no ticket file is modified and the command exits non-zero with a deterministic diagnostic distinguishing a resolved ticket from an unknown id
+        edit-rejects-invalid-or-empty-request:
+          - GIVEN: an active ticket exists
+          - WHEN: ticket-edit runs with no edit flags, with both a set value and a clear flag for the same field, or with a blank value for a required field
+          - THEN: the ticket file is left unchanged and the command exits non-zero with a diagnostic naming the offending input
+  MODIFIED: {}
+  REMOVED: {}

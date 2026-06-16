@@ -12663,6 +12663,7 @@ var COMMAND_REGISTRATION_ORDER = [
   "ticket-create",
   "ticket-list",
   "ticket-show",
+  "ticket-edit",
   "ticket-validate",
   "ticket-resolve",
   "maintenance",
@@ -18173,6 +18174,53 @@ function readTicketArtifact(rootDir, ticketId) {
   }
   return parseYamlFile(filePath);
 }
+function writeTicketArtifact(rootDir, artifact) {
+  const filePath = ticketFilePath(rootDir, artifact.ticket.id);
+  mkdirSync6(ticketsDir(rootDir), { recursive: true });
+  writeFileSync7(filePath, stringifyYamlDocument(artifact), "utf8");
+  rebuildTicketsIndex(rootDir);
+  return repoRelative(rootDir, filePath);
+}
+function editTicket(rootDir, input) {
+  const activePath = ticketFilePath(rootDir, input.ticketId);
+  if (!existsSync19(activePath)) {
+    const archivePath = archivedTicketFilePath(rootDir, input.ticketId);
+    const message = existsSync19(archivePath) ? `ticket '${input.ticketId}' is resolved and archived; it cannot be edited` : `ticket '${input.ticketId}' not found`;
+    return { valid: false, edited: false, ticketId: input.ticketId, path: null, ticket: null, diagnostics: [makeDiagnostic2(message, "$.ticket.id")] };
+  }
+  const artifact = parseYamlFile(activePath);
+  if (input.title !== undefined) {
+    artifact.ticket.title = input.title;
+  }
+  if (input.problem !== undefined) {
+    artifact.requirement.problem = input.problem;
+  }
+  if (input.desiredOutcome !== undefined) {
+    artifact.requirement.desired_outcome = input.desiredOutcome;
+  }
+  if (input.clearIntent) {
+    delete artifact.requirement.intent;
+  } else if (input.intent !== undefined) {
+    artifact.requirement.intent = input.intent;
+  }
+  if (input.clearLabels) {
+    delete artifact.labels;
+  } else if (input.labels !== undefined) {
+    artifact.labels = [...input.labels];
+  }
+  if (input.clearExternalTracker) {
+    delete artifact.external_tracker;
+  } else if (input.externalTracker !== undefined) {
+    artifact.external_tracker = input.externalTracker;
+  }
+  const schema2 = loadBundledSchemaBySchemaId(TICKET_SCHEMA_ID);
+  const validation = validateArtifact(schema2, artifact, repoRelative(rootDir, activePath));
+  if (!validation.valid) {
+    return { valid: false, edited: false, ticketId: input.ticketId, path: null, ticket: null, diagnostics: validation.diagnostics };
+  }
+  const writtenPath = writeTicketArtifact(rootDir, artifact);
+  return { valid: true, edited: true, ticketId: input.ticketId, path: writtenPath, ticket: artifact, diagnostics: [] };
+}
 function archiveTicketArtifact(rootDir, artifact) {
   const archivePath = archivedTicketFilePath(rootDir, artifact.ticket.id);
   const activePath = ticketFilePath(rootDir, artifact.ticket.id);
@@ -18468,7 +18516,7 @@ function resolveTicket(rootDir, input) {
 
 // src/cli/cmd-tickets.ts
 var DISPATCH_OUTCOMES = new Set(["not_implemented", "implemented", "not_wanted"]);
-function parseFlagMap2(argv) {
+function parseFlagMap2(argv, booleanFlags = new Set) {
   const flags = {};
   for (let index = 0;index < argv.length; index += 1) {
     const token = argv[index];
@@ -18476,6 +18524,11 @@ function parseFlagMap2(argv) {
       throw new Error(`unexpected argument '${token}'`);
     }
     const name = token.slice(2);
+    if (booleanFlags.has(name)) {
+      flags[name] ??= [];
+      flags[name].push("true");
+      continue;
+    }
     const value = argv[index + 1];
     if (value === undefined || value.startsWith("--")) {
       throw new Error(`missing value for --${name}`);
@@ -18577,6 +18630,103 @@ function runTicketShow(argv) {
     return 1;
   }
   const result = showTicket(process.cwd(), argv[0]);
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+var EDIT_BOOLEAN_FLAGS = new Set(["clear-intent", "clear-labels", "clear-external-tracker"]);
+var EDIT_USAGE = `Usage: strict-spec-driven ticket-edit <ticket-id> [--title <text>] [--problem <text>] [--desired-outcome <text>] [--intent <text> | --clear-intent] [--label <text>]... | --clear-labels [--external-label <text> --external-target <text> | --clear-external-tracker]
+`;
+function runTicketEdit(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(EDIT_USAGE);
+    return 0;
+  }
+  if (argv.length === 0 || argv[0].startsWith("--")) {
+    writeUsage(EDIT_USAGE);
+    return 1;
+  }
+  const ticketId = argv[0];
+  let flags;
+  try {
+    flags = parseFlagMap2(argv.slice(1), EDIT_BOOLEAN_FLAGS);
+    ensureAllowedFlags2(flags, [
+      "title",
+      "problem",
+      "desired-outcome",
+      "intent",
+      "clear-intent",
+      "label",
+      "clear-labels",
+      "external-label",
+      "external-target",
+      "clear-external-tracker"
+    ]);
+  } catch (error) {
+    writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}
+`);
+    return 1;
+  }
+  const hasFlag2 = (name) => (name in flags);
+  if (Object.keys(flags).length === 0) {
+    writeUsage(`Error: ticket-edit requires at least one editable field
+`);
+    return 1;
+  }
+  if (hasFlag2("intent") && hasFlag2("clear-intent")) {
+    writeUsage(`Error: --intent and --clear-intent cannot be combined
+`);
+    return 1;
+  }
+  if (hasFlag2("label") && hasFlag2("clear-labels")) {
+    writeUsage(`Error: --label and --clear-labels cannot be combined
+`);
+    return 1;
+  }
+  if ((hasFlag2("external-label") || hasFlag2("external-target")) && hasFlag2("clear-external-tracker")) {
+    writeUsage(`Error: --external-label/--external-target and --clear-external-tracker cannot be combined
+`);
+    return 1;
+  }
+  for (const flag of ["title", "problem", "desired-outcome", "intent"]) {
+    const value = singleValue(flags, flag);
+    if (value !== undefined && value.trim().length === 0) {
+      writeUsage(`Error: --${flag} must not be blank
+`);
+      return 1;
+    }
+  }
+  const input = { ticketId };
+  if (hasFlag2("title")) {
+    input.title = singleValue(flags, "title");
+  }
+  if (hasFlag2("problem")) {
+    input.problem = singleValue(flags, "problem");
+  }
+  if (hasFlag2("desired-outcome")) {
+    input.desiredOutcome = singleValue(flags, "desired-outcome");
+  }
+  if (hasFlag2("clear-intent")) {
+    input.clearIntent = true;
+  } else if (hasFlag2("intent")) {
+    input.intent = singleValue(flags, "intent");
+  }
+  if (hasFlag2("clear-labels")) {
+    input.clearLabels = true;
+  } else if (hasFlag2("label")) {
+    input.labels = flags.label;
+  }
+  if (hasFlag2("clear-external-tracker")) {
+    input.clearExternalTracker = true;
+  } else {
+    try {
+      input.externalTracker = parseExternalTracker(flags);
+    } catch (error) {
+      writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}
+`);
+      return 1;
+    }
+  }
+  const result = editTicket(process.cwd(), input);
   writeJson(result);
   return result.valid ? 0 : 1;
 }
@@ -23926,6 +24076,7 @@ var commands = createCliCommandTable({
   "ticket-create": (argv) => runTicketCreate(argv),
   "ticket-list": (argv) => runTicketList(argv),
   "ticket-show": (argv) => runTicketShow(argv),
+  "ticket-edit": (argv) => runTicketEdit(argv),
   "ticket-validate": (argv) => runTicketValidate(argv),
   "ticket-resolve": (argv) => runTicketResolve(argv),
   maintenance: (argv) => runMaintenanceCommand(argv),

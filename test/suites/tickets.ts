@@ -337,6 +337,120 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   const resolveBadOutcome = cli(["ticket-resolve", promoteTicket, "--outcome", "maybe", "--rationale", "x"], { cwd: roadmapRoot });
   context.assert(resolveBadOutcome.status !== 0, "ticket-resolve rejects an invalid outcome");
 
+  context.section("[tickets] ticket-edit");
+
+  const editRoot = makeWorkspace();
+  const editCreate = parseJson(
+    cli(
+      [
+        "ticket-create",
+        "--title",
+        "Initial title",
+        "--problem",
+        "initial problem",
+        "--desired-outcome",
+        "initial outcome",
+        "--intent",
+        "initial intent",
+        "--label",
+        "alpha",
+        "--label",
+        "beta",
+        "--external-label",
+        "gh",
+        "--external-target",
+        "https://example.com/1",
+      ],
+      { cwd: editRoot },
+    ).stdout,
+  );
+  const editId = editCreate.ticketId as string;
+  const beforeEdit = (parseJson(cli(["ticket-show", editId], { cwd: editRoot }).stdout).ticket as Record<string, unknown>);
+  const originalCreatedAt = beforeEdit.created_at as string;
+
+  const edited = cli(
+    [
+      "ticket-edit",
+      editId,
+      "--title",
+      "Refined title",
+      "--problem",
+      "refined problem",
+      "--desired-outcome",
+      "refined outcome",
+      "--intent",
+      "refined intent",
+    ],
+    { cwd: editRoot },
+  );
+  context.assert(edited.status === 0, "ticket-edit exits zero for a valid edit");
+  const editedJson = parseJson(edited.stdout);
+  context.assert(editedJson.edited === true, "ticket-edit reports the ticket as edited");
+  const editedTicket = editedJson.ticket as Record<string, any>;
+  context.assert(editedTicket.ticket.title === "Refined title", "ticket-edit updates the title");
+  context.assert(editedTicket.requirement.problem === "refined problem", "ticket-edit updates the problem");
+  context.assert(editedTicket.requirement.desired_outcome === "refined outcome", "ticket-edit updates the desired outcome");
+  context.assert(editedTicket.requirement.intent === "refined intent", "ticket-edit updates the intent");
+  context.assert(editedTicket.ticket.id === editId, "ticket-edit keeps the ticket id stable");
+  context.assert(editedTicket.status === "open", "ticket-edit keeps the ticket status unchanged");
+  context.assert(editedTicket.created_at === originalCreatedAt, "ticket-edit preserves created_at");
+
+  const showAfterEdit = parseJson(cli(["ticket-show", editId], { cwd: editRoot }).stdout).ticket as Record<string, any>;
+  context.assert(showAfterEdit.ticket.title === "Refined title", "ticket-edit persists the updated title to disk");
+
+  const editIndex = yamlParse(
+    readFileSync(path.join(editRoot, ".strict-spec-driven", "tickets", "INDEX.yaml"), "utf8"),
+  ) as { tickets: Record<string, { title: string }> };
+  context.assert(editIndex.tickets[editId].title === "Refined title", "ticket-edit refreshes the tickets index with the new title");
+
+  const cleared = parseJson(
+    cli(["ticket-edit", editId, "--clear-intent", "--clear-labels", "--clear-external-tracker"], { cwd: editRoot }).stdout,
+  ).ticket as Record<string, any>;
+  context.assert(cleared.requirement.intent === undefined, "--clear-intent removes the intent");
+  context.assert(cleared.labels === undefined, "--clear-labels removes the labels");
+  context.assert(cleared.external_tracker === undefined, "--clear-external-tracker removes the external tracker");
+  context.assert(cleared.requirement.problem === "refined problem", "clearing optional fields leaves the required fields intact");
+
+  const relabeled = parseJson(cli(["ticket-edit", editId, "--label", "gamma"], { cwd: editRoot }).stdout).ticket as Record<string, any>;
+  context.assert(
+    JSON.stringify(relabeled.labels) === JSON.stringify(["gamma"]),
+    "ticket-edit replaces the label set with the provided labels",
+  );
+
+  const editUnknown = cli(["ticket-edit", "does-not-exist-000000", "--title", "x"], { cwd: editRoot });
+  context.assert(editUnknown.status !== 0, "ticket-edit exits non-zero for an unknown ticket id");
+  context.assert(
+    /not found/.test(JSON.stringify(parseJson(editUnknown.stdout).diagnostics)),
+    "ticket-edit reports a not-found diagnostic for an unknown id",
+  );
+
+  const noopEdit = cli(["ticket-edit", editId], { cwd: editRoot });
+  context.assert(noopEdit.status !== 0, "ticket-edit requires at least one editable field");
+
+  const conflictEdit = cli(["ticket-edit", editId, "--intent", "x", "--clear-intent"], { cwd: editRoot });
+  context.assert(conflictEdit.status !== 0, "ticket-edit rejects combining a set value with its clear flag");
+
+  const blankEdit = cli(["ticket-edit", editId, "--title", ""], { cwd: editRoot });
+  context.assert(blankEdit.status !== 0, "ticket-edit rejects a blank required field");
+
+  const persistedAfterRejections = parseJson(cli(["ticket-show", editId], { cwd: editRoot }).stdout).ticket as Record<string, any>;
+  context.assert(
+    persistedAfterRejections.ticket.title === "Refined title",
+    "rejected ticket-edit invocations leave the ticket file unchanged",
+  );
+
+  const archRoot = makeWorkspace();
+  const archTicket = createTicketViaCli(archRoot, "Done already", "thought missing", "it works");
+  cli(["ticket-resolve", archTicket, "--outcome", "not_wanted", "--rationale", "out of scope"], { cwd: archRoot });
+  const editArchived = cli(["ticket-edit", archTicket, "--title", "new"], { cwd: archRoot });
+  context.assert(editArchived.status !== 0, "ticket-edit refuses to edit a resolved/archived ticket");
+  context.assert(
+    /archived/.test(JSON.stringify(parseJson(editArchived.stdout).diagnostics)),
+    "ticket-edit distinguishes a resolved ticket from an unknown id",
+  );
+
+  rmSync(editRoot, { recursive: true, force: true });
+  rmSync(archRoot, { recursive: true, force: true });
   rmSync(createRoot, { recursive: true, force: true });
   rmSync(malformedRoot, { recursive: true, force: true });
   rmSync(roadmapRoot, { recursive: true, force: true });

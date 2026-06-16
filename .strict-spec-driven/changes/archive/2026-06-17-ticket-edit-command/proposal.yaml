@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: ticket-edit-command
+  status: proposed
+summary:
+  what:
+    - Add a ticket-edit CLI command and editTicket function that lets an operator modify the editable fields (title, problem, desired_outcome, intent, labels, external_tracker) of an existing active ticket, and update the strict-ticket skill to use it.
+  why:
+    - The strict-ticket skill already instructs operators to create and modify tickets only through ticket CLI commands, but no edit command exists, so refining a captured requirement (fixing wording, adjusting labels/tracker) is impossible without hand-editing ticket YAML, which the workflow forbids.
+scope:
+  in:
+    - New ticket-edit command in src/cli/cmd-tickets.ts; editTicket function in src/tickets.ts; command registration in registry.ts and strict-spec-cli.ts; tests in test/suites/tickets.ts; ticket-edit command documented in skills/strict-ticket/SKILL.md; new ticket-edit-contract requirement in the ticket main spec.
+  out:
+    - Changes to the ticket schema; editing of resolved/archived tickets; re-deriving or renaming the ticket id when content changes; editing status, provenance, dispatch_decision, created_at, or schema fields; dispatch/triage behavior; other skills.
+unchanged_behavior:
+  - ticket-create idempotency and content-derived id allocation; ticket-list, ticket-show, ticket-validate, ticket-resolve behavior; the tickets index rebuild contract; the ticket schema and its required fields; archived tickets remaining auditable.

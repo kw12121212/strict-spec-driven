@@ -1,0 +1,45 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: ticket-edit-command
+sections:
+  Implementation:
+    add-edit-ticket-function:
+      text: Add an editTicket(rootDir, input) function plus EditTicketInput and EditTicketResult types to src/tickets.ts. Resolve only the active ticket file for the id; if the id resolves only to the archived directory return a deterministic resolved-ticket diagnostic, and if it resolves to nothing return a not-found diagnostic. Apply the supplied edits (title, problem, desired_outcome, intent, labels, external_tracker) and explicit clears for the optional fields, keep id, created_at, status, provenance, and dispatch_decision unchanged, validate the result against the bundled ticket schema before writing, then persist via writeTicketArtifact so the tickets index is rebuilt.
+      status: complete
+    extend-flag-parser:
+      text: Extend parseFlagMap in src/cli/cmd-tickets.ts to accept an optional set of known value-less boolean flag names so clear flags parse without consuming the next argument, keeping the default behavior (every flag takes a value) unchanged for existing commands.
+      status: complete
+    add-edit-cli-command:
+      text: Add runTicketEdit(argv) to src/cli/cmd-tickets.ts. Parse the ticket id positional, the set flags (--title, --problem, --desired-outcome, --intent, --label repeatable, --external-label, --external-target) and value-less clear flags (--clear-intent, --clear-labels, --clear-external-tracker). Enforce external-tracker pairing, set/clear mutual exclusion per field, and at-least-one-edit; reject blank required values. Call editTicket and emit JSON, exiting non-zero on failure. Include a --help usage string.
+      status: complete
+    register-edit-command:
+      text: Register ticket-edit in COMMAND_REGISTRATION_ORDER in src/cli/registry.ts (after ticket-show) and wire the runTicketEdit handler with its import in src/strict-spec-cli.ts.
+      status: complete
+    document-skill:
+      text: 'Document the ticket-edit command in skills/strict-ticket/SKILL.md: add it to the commands block and describe editing an existing active ticket (and the stable-id behavior) in the steps and rules, keeping all ticket mutation through the CLI.'
+      status: complete
+    rebuild-dist:
+      text: Rebuild compiled output with `bun run build` so dist/ and the strict-ticket skill scripts symlink reflect the new ticket-edit command.
+      status: complete
+  Testing:
+    lint:
+      text: Run the TypeScript type-check lint gate over the sources.
+      status: complete
+      command: bun run lint
+    add-edit-tests:
+      text: 'Add a ticket-edit section to test/suites/tickets.ts covering: editing active-ticket fields and index refresh while preserving id/created_at/status, clearing optional fields, refusing a resolved/archived ticket and an unknown id with distinct diagnostics, rejecting a no-op edit, set-and-clear conflict, and a blank required value.'
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope, the ticket main-spec contract was carried as a delta spec, and no out-of-scope ticket behavior changed.
+      status: complete
+testing_gates:
+  validation_task: lint
+  unit_test_task: add-edit-tests

@@ -8,7 +8,7 @@ import { runGenerate } from "./cli/cmd-generation.js";
 import { runApply, runVerify, runArchive, runList, runModify, runCancel } from "./cli/cmd-change.js";
 import { runCheckWorkflowState, runNext, runReady } from "./cli/cmd-workflow.js";
 import { runRoadmapOverview, runRoadmapRecommend, runRoadmapStatus, runRoadmapSync } from "./cli/cmd-roadmap.js";
-import { runTicketCreate, runTicketList, runTicketResolve, runTicketShow, runTicketValidate } from "./cli/cmd-tickets.js";
+import { runTicketCreate, runTicketEdit, runTicketList, runTicketResolve, runTicketShow, runTicketValidate } from "./cli/cmd-tickets.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runMcpInstall } from "./cli/cmd-mcp-install.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMappings, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
@@ -102,6 +102,7 @@ export const commands = createCliCommandTable({
   "ticket-create": (argv) => runTicketCreate(argv),
   "ticket-list": (argv) => runTicketList(argv),
   "ticket-show": (argv) => runTicketShow(argv),
+  "ticket-edit": (argv) => runTicketEdit(argv),
   "ticket-validate": (argv) => runTicketValidate(argv),
   "ticket-resolve": (argv) => runTicketResolve(argv),
   maintenance: (argv) => runMaintenanceCommand(argv),

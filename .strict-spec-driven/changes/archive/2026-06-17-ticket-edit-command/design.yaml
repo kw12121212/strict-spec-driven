@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: ticket-edit-command
+approach:
+  - Add an editTicket(rootDir, input) function in src/tickets.ts that loads only the active ticket file for the given id, applies the supplied field edits, validates the result against the bundled ticket schema, and writes via the existing writeTicketArtifact path so the tickets index is rebuilt. Add a ticket-edit CLI subcommand in src/cli/cmd-tickets.ts that parses set flags and value-less clear flags, enforces mutual exclusion and at-least-one-edit, then calls editTicket. Register the command and update the strict-ticket skill commands block and steps. Capture the behavior as a new ticket-edit-contract requirement in the ticket main spec via delta-spec.
+decisions:
+  keep-id-stable:
+    decision: ticket-edit keeps the ticket id, created_at, status, provenance, and dispatch_decision unchanged; it never re-derives the content-hash id or renames the file when title/problem/desired_outcome change.
+    rationale: The content-derived id is allocated once at creation; re-deriving on edit would rename files and break promoted_to/source_ticket and evidence links. A stable id keeps edits predictable and preserves the audit trail, matching the idempotent-create contract.
+  active-only:
+    decision: ticket-edit operates only on active tickets; if the id resolves only to the archived directory it refuses with a deterministic diagnostic rather than editing a resolved ticket.
+    rationale: Resolved tickets are an audit record of a dispatch decision; allowing edits would corrupt that trail. Active-directory presence is the existing signal that a ticket is still open for refinement.
+  clear-flags:
+    decision: Optional fields (intent, labels, external_tracker) are cleared with explicit value-less --clear-* flags; passing both a set value and its clear flag for the same field is rejected.
+    rationale: Set-only edits cannot express removal of an optional field; explicit clear flags make removal intentional and keep set/clear mutually exclusive so the resulting artifact is unambiguous.
+alternatives: []
+risks: []
