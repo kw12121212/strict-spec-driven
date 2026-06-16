@@ -56,7 +56,7 @@ try {
   const firstJson = JSON.parse(applyFirst.stdout.trim());
   context.assert(firstJson.sectionName === "Implementation", "apply json includes completed section name");
   context.assert(firstJson.taskId === "task-a", "apply json includes completed task id");
-  context.assert(firstJson.taskText === "First task", "apply json includes completed task text");
+  context.assert(!("taskText" in firstJson), "apply json omits completed task text");
   context.assert(firstJson.totalTasks === 3, "apply json includes total task count");
   context.assert(firstJson.remainingPending === 2, "apply json includes remaining pending count");
 
@@ -149,7 +149,7 @@ try {
     context.assert(result.status === 0, `apply determinism run ${i + 1} exits zero`);
     const parsed = JSON.parse(result.stdout.trim());
     context.assert(
-      parsed.sectionName === "Build" && parsed.taskId === "build" && parsed.taskText === "Build step",
+      parsed.sectionName === "Build" && parsed.taskId === "build" && !("taskText" in parsed),
       `apply determinism run ${i + 1} output matches expected fields`,
     );
   }

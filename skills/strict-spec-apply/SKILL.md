@@ -115,7 +115,7 @@ run `init` from this skill.
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js apply <change-name>
    ```
-   and confirm the returned `taskId` and `taskText` match the task you just
+   and confirm the returned `sectionName` and `taskId` match the task you just
    completed.
 
 6. **Do not use `apply` as a read-only status command** — the strict apply

@@ -5,7 +5,6 @@ import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 export type ApplyResult = {
   sectionName: string;
   taskId: string;
-  taskText: string;
   totalTasks: number;
   remainingPending: number;
 };
@@ -17,7 +16,6 @@ export function applyTask(tasksYamlContent: string): { result: ApplyResult; upda
   let totalTasks = 0;
   let targetSectionName = "";
   let targetTaskId = "";
-  let targetTaskText = "";
 
   for (const [sectionName, taskMap] of Object.entries(artifact.sections)) {
     for (const [taskId, task] of Object.entries(taskMap)) {
@@ -25,7 +23,6 @@ export function applyTask(tasksYamlContent: string): { result: ApplyResult; upda
       if (!targetTaskId && task.status === "pending") {
         targetSectionName = sectionName;
         targetTaskId = taskId;
-        targetTaskText = task.text;
         task.status = "complete";
       }
     }
@@ -46,7 +43,6 @@ export function applyTask(tasksYamlContent: string): { result: ApplyResult; upda
     result: {
       sectionName: targetSectionName,
       taskId: targetTaskId,
-      taskText: targetTaskText,
       totalTasks,
       remainingPending: totalTasks - complete,
     },

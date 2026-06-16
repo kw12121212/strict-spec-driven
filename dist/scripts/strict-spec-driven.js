@@ -14487,14 +14487,12 @@ function applyTask(tasksYamlContent) {
   let totalTasks = 0;
   let targetSectionName = "";
   let targetTaskId = "";
-  let targetTaskText = "";
   for (const [sectionName, taskMap] of Object.entries(artifact.sections)) {
     for (const [taskId, task] of Object.entries(taskMap)) {
       totalTasks += 1;
       if (!targetTaskId && task.status === "pending") {
         targetSectionName = sectionName;
         targetTaskId = taskId;
-        targetTaskText = task.text;
         task.status = "complete";
       }
     }
@@ -14513,7 +14511,6 @@ function applyTask(tasksYamlContent) {
     result: {
       sectionName: targetSectionName,
       taskId: targetTaskId,
-      taskText: targetTaskText,
       totalTasks,
       remainingPending: totalTasks - complete
     },
