@@ -869,6 +869,10 @@ context.assert(missingAssets.length === 0, "required scaffold assets are all pre
 
 const scaffoldConfig = scaffoldModule.loadBundledScaffoldYaml<Record<string, unknown>>("config.yaml");
 context.assert(scaffoldConfig.artifact_type === "workflow_config", "scaffold config template is loadable YAML");
+context.assert(
+  scaffoldConfig.preferred_human_language === "English",
+  "scaffold config template defaults preferred_human_language to English",
+);
 const scaffoldReviewEvidence = scaffoldConfig.review_evidence as
   | { project_regression?: { command?: unknown; meaning?: unknown } }
   | undefined;
@@ -946,9 +950,10 @@ try {
   const normalizedInitConfigContent = initConfigContent.replace(/\s+/g, " ");
   context.assert(
     normalizedInitConfigContent.includes("review_evidence:")
+      && normalizedInitConfigContent.includes("preferred_human_language: English")
       && normalizedInitConfigContent.includes("command: REPLACE WITH the complete project regression command")
       && normalizedInitConfigContent.includes("complete project-level regression suite"),
-    "init scaffolded config includes project regression review evidence with a neutral placeholder",
+    "init scaffolded config includes preferred human language and project regression review evidence with a neutral placeholder",
   );
   context.assert(
     initConfigContent.includes("# coverage:") && initConfigContent.includes("#   threshold:"),

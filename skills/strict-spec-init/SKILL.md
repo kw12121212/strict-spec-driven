@@ -26,6 +26,15 @@ The target project directory must be accessible from the current environment.
 Before proceeding, verify the path you plan to initialize exists and is the
 intended project root.
 
+## Preferred Human Language
+
+Before user-facing work, read `.strict-spec-driven/config.yaml` when it exists.
+Use the `preferred_human_language` field as the user's common human
+language for natural-language responses, questions, summaries, and generated
+operator-facing text. This field is a human-language preference, not a
+programming language. Comply with that configured common human language unless
+the active user message explicitly asks for a different language.
+
 ## Steps
 
 1. **Confirm the target project** — ask which project to initialize. If the user
@@ -41,7 +50,11 @@ intended project root.
 
 3. **Draft context** — read project files that describe the system
    (`README.md`, `AGENTS.md`, `package.json`, and similar) and draft a concise
-   `context` value for `.strict-spec-driven/config.yaml`. Cover:
+   `context` value for `.strict-spec-driven/config.yaml`. Also set or preserve
+   `preferred_human_language`, which records the user's common human language
+   for AI interaction (for example English or Chinese) and is not a programming
+   language field. Use `English` when no stronger project or user preference is
+   known. Cover:
    - what the project does
    - the tech stack and languages
    - key conventions or constraints worth preserving

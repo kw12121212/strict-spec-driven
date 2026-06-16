@@ -1,0 +1,13 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-all-skill-language-guidance
+approach:
+  - Insert one concise, consistently worded section into each bundled strict skill after Prerequisites or before Steps. The section names .strict-spec-driven/config.yaml, names preferred_human_language, states it is a human-language preference rather than a programming language, and instructs agents to comply with it for user-facing natural-language responses and questions unless the active user message explicitly directs another language.
+decisions:
+  common-skill-section:
+    decision: Use a shared Markdown guidance section in every SKILL.md instead of relying on only init guidance or hidden validation logic.
+    rationale: Skill prompts are what installed agents read at runtime, so the instruction must be present at the point of use and not only in config schema prose or tests.
+alternatives: []
+risks: []

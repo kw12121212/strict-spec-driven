@@ -1,0 +1,31 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/config.yaml
+    - templates/strict-spec-driven/scaffold/config.yaml
+    - examples/strict-spec-driven/config.yaml
+    - skills/strict-spec-init/SKILL.md
+    - src/embedded-templates.ts
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/coverage-gate.ts
+operations:
+  ADDED:
+    config-preferred-human-language:
+      strength: MUST
+      statement: The workflow config contract MUST support an optional top-level preferred_human_language string that records the user's common human language, scaffolded configs MUST default it to English, and initialization guidance MUST tell AI agents to treat it as a human-language preference rather than a programming language.
+      scenarios:
+        scaffold-defaults-to-english:
+          - GIVEN: a project is initialized from the bundled strict scaffold
+          - WHEN: the generated .strict-spec-driven/config.yaml is read
+          - THEN: preferred_human_language is present with the value English
+        init-guidance-reminds-human-language:
+          - GIVEN: an agent follows the strict-spec-init skill
+          - WHEN: it drafts or updates .strict-spec-driven/config.yaml
+          - THEN: the guidance tells the agent to preserve or set preferred_human_language and reminds it this field is for the user's human language, not computer languages
+  MODIFIED: {}
+  REMOVED: {}

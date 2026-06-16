@@ -44,6 +44,15 @@ The change must already be archived under `.strict-spec-driven/changes/archive/`
 before this skill runs. Run `/strict-spec-archive` first if the change is not
 yet archived.
 
+## Preferred Human Language
+
+Before user-facing work, read `.strict-spec-driven/config.yaml` when it exists.
+Use the `preferred_human_language` field as the user's common human
+language for natural-language responses, questions, summaries, and generated
+operator-facing text. This field is a human-language preference, not a
+programming language. Comply with that configured common human language unless
+the active user message explicitly asks for a different language.
+
 ## Steps
 
 Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is

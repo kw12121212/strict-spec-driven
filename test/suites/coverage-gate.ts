@@ -176,6 +176,7 @@ export async function runCoverageGateSuite(context: TestContext): Promise<void> 
   const validationModule = await loadDistModule<ValidationModule>("validation.js");
   const selfConfigPath = path.join(ROOT, ".strict-spec-driven", "config.yaml");
   const selfConfig = yamlModule.parseYamlDocument<{
+    preferred_human_language?: string;
     review_evidence?: {
       project_regression?: {
         command?: string;
@@ -187,6 +188,10 @@ export async function runCoverageGateSuite(context: TestContext): Promise<void> 
   const configSchema = validationModule.loadBundledSchemaByArtifactType("workflow_config");
   const selfValidation = validationModule.validateArtifact(configSchema, selfConfig, ".strict-spec-driven/config.yaml");
   context.assert(selfValidation.valid, "self-hosted config validates against the bundled config schema");
+  context.assert(
+    selfConfig.preferred_human_language === "English",
+    "self-hosted workflow config declares the default preferred human language",
+  );
 
   const regression = selfConfig.review_evidence?.project_regression;
   const declaration = regression?.coverage;
@@ -278,5 +283,13 @@ export async function runCoverageGateSuite(context: TestContext): Promise<void> 
   context.assert(
     initSkillText.includes("coverage contract") && initSkillText.includes("review_evidence.project_regression.command"),
     "strict-spec-init guidance directs configuring the regression command and coverage contract",
+  );
+  const normalizedInitSkillText = initSkillText.replace(/\s+/g, " ");
+  context.assert(
+    normalizedInitSkillText.includes("preferred_human_language")
+      && normalizedInitSkillText.includes("human language")
+      && normalizedInitSkillText.includes("not a programming language")
+      && normalizedInitSkillText.includes("English"),
+    "strict-spec-init guidance directs configuring the preferred human language field",
   );
 }

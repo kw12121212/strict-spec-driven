@@ -23,6 +23,10 @@ json_schema:
     artifact_type:
       type: string
       const: workflow_config
+    preferred_human_language:
+      type: string
+      minLength: 1
+      description: User's common human language for AI interaction, such as English or Chinese; this is not a programming language field.
     context:
       type: string
     rules:

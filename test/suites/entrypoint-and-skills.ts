@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import {
@@ -201,6 +201,28 @@ context.assert(
   packageValidation.summary.skillCount === packageValidation.summary.marketplaceCount,
   "marketplace metadata count matches discovered strict skills",
 );
+
+const strictSkillNames = readdirSync(path.join(ROOT, "skills"), { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .sort((left, right) => left.localeCompare(right));
+context.assert(
+  strictSkillNames.length === packageValidation.summary.skillCount,
+  "skill directory count matches validation summary",
+);
+for (const skillName of strictSkillNames) {
+  const skillContent = readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8");
+  const normalizedSkillContent = skillContent.replace(/\s+/g, " ");
+  context.assert(
+    normalizedSkillContent.includes("## Preferred Human Language")
+      && normalizedSkillContent.includes("`.strict-spec-driven/config.yaml`")
+      && normalizedSkillContent.includes("`preferred_human_language`")
+      && normalizedSkillContent.includes("common human language")
+      && normalizedSkillContent.includes("not a programming language")
+      && normalizedSkillContent.includes("Comply with that configured common human language"),
+    `${skillName} skill names and enforces preferred_human_language guidance`,
+  );
+}
 
 const ticketSkillContent = readFileSync(path.join(ROOT, "skills", "strict-ticket", "SKILL.md"), "utf8");
 context.assert(

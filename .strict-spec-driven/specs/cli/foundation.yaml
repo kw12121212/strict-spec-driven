@@ -1887,3 +1887,27 @@ requirements:
         - GIVEN: an MCP client requests strict_propose_change with roadmapItem input
         - WHEN: the prompt inventory and rendered message are inspected
         - THEN: the inventory declares the optional roadmapItem argument and the rendered prompt instructs the agent to use roadmap-recommend while keeping the workflow in proposal stage
+  config-preferred-human-language:
+    strength: MUST
+    statement: The workflow config contract MUST support an optional top-level preferred_human_language string that records the user's common human language, scaffolded configs MUST default it to English, and initialization guidance MUST tell AI agents to treat it as a human-language preference rather than a programming language.
+    scenarios:
+      scaffold-defaults-to-english:
+        - GIVEN: a project is initialized from the bundled strict scaffold
+        - WHEN: the generated .strict-spec-driven/config.yaml is read
+        - THEN: preferred_human_language is present with the value English
+      init-guidance-reminds-human-language:
+        - GIVEN: an agent follows the strict-spec-init skill
+        - WHEN: it drafts or updates .strict-spec-driven/config.yaml
+        - THEN: the guidance tells the agent to preserve or set preferred_human_language and reminds it this field is for the user's human language, not computer languages
+  all-skills-preferred-human-language-guidance:
+    strength: MUST
+    statement: Every bundled strict skill MUST explicitly instruct agents to read .strict-spec-driven/config.yaml, use the preferred_human_language field as the user's common human language, treat it as a human-language preference rather than a programming language, and comply with it for user-facing natural-language interaction unless the active user instruction says otherwise.
+    scenarios:
+      every-skill-names-file-and-field:
+        - GIVEN: the bundled strict skill directory
+        - WHEN: skill packaging validation inspects each SKILL.md
+        - THEN: every skill names .strict-spec-driven/config.yaml and preferred_human_language
+      every-skill-requires-compliance:
+        - GIVEN: an agent follows any bundled strict skill
+        - WHEN: the skill describes preferred human language handling
+        - THEN: the guidance requires complying with the configured common human language and distinguishes it from programming languages

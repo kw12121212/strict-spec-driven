@@ -43,6 +43,15 @@ run `init` from this skill.
 - If `roadmap-status` reports legacy inline milestone `planned_changes`, stop
   and materialize them before recommending work.
 
+## Preferred Human Language
+
+Before user-facing work, read `.strict-spec-driven/config.yaml` when it exists.
+Use the `preferred_human_language` field as the user's common human
+language for natural-language responses, questions, summaries, and generated
+operator-facing text. This field is a human-language preference, not a
+programming language. Comply with that configured common human language unless
+the active user message explicitly asks for a different language.
+
 ## Steps
 
 Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is

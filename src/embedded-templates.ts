@@ -84,6 +84,7 @@ testing_gates:
   "strict-spec-driven/scaffold/config.yaml": `schema: strict-spec-driven/config/v1
 schema_version: 1
 artifact_type: workflow_config
+preferred_human_language: English
 context: |
   [Project context — populated by user, injected into skill prompts]
 rules:
@@ -467,6 +468,10 @@ json_schema:
     artifact_type:
       type: string
       const: workflow_config
+    preferred_human_language:
+      type: string
+      minLength: 1
+      description: User's common human language for AI interaction, such as English or Chinese; this is not a programming language field.
     context:
       type: string
     rules:
@@ -2230,7 +2235,7 @@ entries:
       supersedes: []
       compatible_with: []
       notes:
-        - Known top-level fields are typed while unknown fields stay allowed; the review_evidence.project_regression.coverage declaration subtree is strict.
+        - Known top-level fields are typed while unknown fields stay allowed; preferred_human_language records the user's human-language preference, and the review_evidence.project_regression.coverage declaration subtree is strict.
 migration:
   legacy_root: .spec-driven
   strict_root: .strict-spec-driven

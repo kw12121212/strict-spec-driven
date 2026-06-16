@@ -1,6 +1,7 @@
 schema: strict-spec-driven/config/v1
 schema_version: 1
 artifact_type: workflow_config
+preferred_human_language: English
 context: |
   strict-spec-driven is a YAML-first spec-driven development workflow.
   It keeps the existing Agent Skills workflow concept intact, converting all

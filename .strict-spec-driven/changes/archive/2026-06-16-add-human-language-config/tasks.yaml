@@ -1,0 +1,40 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-human-language-config
+sections:
+  Implementation:
+    update-config-contract:
+      text: Update the workflow config schema, scaffold, example, and self-hosted config to support preferred_human_language with English as the scaffold default.
+      status: complete
+    update-init-guidance:
+      text: Update strict-spec-init guidance so agents preserve or set preferred_human_language and treat it as the user's human language, not a programming language.
+      status: complete
+    update-tests:
+      text: Add focused assertions for preferred_human_language schema, scaffold, init output, and init skill guidance.
+      status: complete
+    rebuild-generated-output:
+      text: Rebuild generated embedded templates and dist output after source/template changes.
+      status: complete
+      command: bun run build
+  Testing:
+    run-lint:
+      text: Run the TypeScript no-emit lint gate.
+      status: complete
+      command: bun run lint
+    run-focused-tests:
+      text: Run focused tests covering config schema, scaffold, and init skill guidance.
+      status: complete
+      command: bun test/run.ts foundation-and-fixtures coverage-gate
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-project-regression

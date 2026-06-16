@@ -1,0 +1,52 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - skills/strict-roadmap-plan/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+    - skills/strict-roadmap-review/SKILL.md
+    - skills/strict-roadmap-sync/SKILL.md
+    - skills/strict-spec-apply/SKILL.md
+    - skills/strict-spec-archive/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-harness-init/SKILL.md
+    - skills/strict-spec-harness-session/SKILL.md
+    - skills/strict-spec-init/SKILL.md
+    - skills/strict-spec-maintenance/SKILL.md
+    - skills/strict-spec-migrate/SKILL.md
+    - skills/strict-spec-modify/SKILL.md
+    - skills/strict-spec-propose-from-roadmap/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-resync-code-mapping/SKILL.md
+    - skills/strict-spec-review/SKILL.md
+    - skills/strict-spec-ship/SKILL.md
+    - skills/strict-spec-spec-edit/SKILL.md
+    - skills/strict-spec-sync-specs/SKILL.md
+    - skills/strict-spec-verify/SKILL.md
+    - skills/strict-tech-edit/SKILL.md
+    - skills/strict-tech-sync/SKILL.md
+    - skills/strict-ticket-archive/SKILL.md
+    - skills/strict-ticket-dispatch/SKILL.md
+    - skills/strict-ticket/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    all-skills-preferred-human-language-guidance:
+      strength: MUST
+      statement: Every bundled strict skill MUST explicitly instruct agents to read .strict-spec-driven/config.yaml, use the preferred_human_language field as the user's common human language, treat it as a human-language preference rather than a programming language, and comply with it for user-facing natural-language interaction unless the active user instruction says otherwise.
+      scenarios:
+        every-skill-names-file-and-field:
+          - GIVEN: the bundled strict skill directory
+          - WHEN: skill packaging validation inspects each SKILL.md
+          - THEN: every skill names .strict-spec-driven/config.yaml and preferred_human_language
+        every-skill-requires-compliance:
+          - GIVEN: an agent follows any bundled strict skill
+          - WHEN: the skill describes preferred human language handling
+          - THEN: the guidance requires complying with the configured common human language and distinguishes it from programming languages
+  MODIFIED: {}
+  REMOVED: {}

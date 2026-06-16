@@ -1,6 +1,7 @@
 schema: strict-spec-driven/config/v1
 schema_version: 1
 artifact_type: workflow_config
+preferred_human_language: English
 context: |
   [Project context — populated by user, injected into skill prompts]
 rules:

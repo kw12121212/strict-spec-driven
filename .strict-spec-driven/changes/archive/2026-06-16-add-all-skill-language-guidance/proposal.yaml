@@ -1,0 +1,20 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-all-skill-language-guidance
+  status: proposed
+summary:
+  what:
+    - Add explicit preferred-human-language guidance to every bundled strict skill, naming .strict-spec-driven/config.yaml and the preferred_human_language field and requiring agents to comply with that common human language for natural-language interaction.
+  why:
+    - The preferred_human_language field is now part of the workflow config contract, but most skills do not yet tell agents where to read it, which field to use, or that they must follow it.
+scope:
+  in:
+    - All bundled skill SKILL.md files; skill packaging validation tests that ensure every skill carries the guidance; generated distribution output if the build refreshes it.
+  out:
+    - No automatic translation engine, no programming-language selection, no changes to marketplace metadata, and no changes to non-strict external skills.
+unchanged_behavior:
+  - Existing workflow commands, schemas, and preferred_human_language default remain unchanged.
+  - Direct user instructions in the active conversation continue to take precedence over the configured preference.

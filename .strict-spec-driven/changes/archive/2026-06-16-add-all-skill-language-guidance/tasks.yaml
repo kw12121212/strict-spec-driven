@@ -1,0 +1,37 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-all-skill-language-guidance
+sections:
+  Implementation:
+    update-skill-guidance:
+      text: Add a common preferred-human-language section to every bundled strict skill naming .strict-spec-driven/config.yaml and preferred_human_language and requiring compliance with that common human language.
+      status: complete
+    update-tests:
+      text: Add skill packaging assertions that every bundled strict skill carries the file, field, human-language, and compliance guidance.
+      status: complete
+    rebuild-generated-output:
+      text: Rebuild dist output after skill and test changes.
+      status: complete
+      command: bun run build
+  Testing:
+    run-lint:
+      text: Run the TypeScript no-emit lint gate.
+      status: complete
+      command: bun run lint
+    run-focused-tests:
+      text: Run focused skill packaging tests.
+      status: complete
+      command: bun test/run.ts entrypoint-and-skills
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-project-regression

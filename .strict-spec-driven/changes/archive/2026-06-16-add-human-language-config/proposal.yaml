@@ -1,0 +1,20 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-human-language-config
+  status: proposed
+summary:
+  what:
+    - Add a human preferred-language field to the strict workflow config contract and initialization surfaces, defaulting scaffolded configs to English and guiding init agents to use the configured human language when prompting users.
+  why:
+    - Strict workflow agents currently receive project context and rules but no explicit human-language preference, which makes multilingual projects rely on ad hoc chat context instead of durable config.
+scope:
+  in:
+    - Config schema and examples; scaffolded config.yaml default; strict-spec-init skill guidance; generated embedded template bundle; tests that validate the schema, scaffold, and init guidance.
+  out:
+    - No automatic translation of existing artifacts, no locale negotiation, no programming-language detection, and no changes to unrelated skills beyond surfaces needed to remind agents during initialization.
+unchanged_behavior:
+  - Existing configs without the new field remain valid because config.yaml allows unknown and optional top-level fields.
+  - review_evidence.project_regression and coverage behavior remain unchanged.
