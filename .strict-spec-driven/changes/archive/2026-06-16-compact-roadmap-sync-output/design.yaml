@@ -1,0 +1,13 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: compact-roadmap-sync-output
+approach:
+  - 'Treat roadmap-sync output as another consumer of compact roadmap status projection: keep the persisted artifact data unchanged, but ensure sync results only expose compact milestone and planned-change status fields.'
+decisions:
+  compact-sync-status-projection:
+    decision: roadmap-sync should return updatedFiles plus compact milestone status data and omit milestone file, milestone goal, and planned-change summary text from its command output.
+    rationale: archive and other workflow commands can include roadmap-sync results, so compact sync output prevents large roadmap summaries from expanding unrelated script output.
+alternatives: []
+risks: []

@@ -382,7 +382,6 @@ export function buildMilestoneStatus(
       id,
       source,
       path: plannedChangePath,
-      summary: entry.summary,
       declaredStatus: entry.status,
       derivedStatus,
       state,
@@ -405,11 +404,9 @@ export function buildMilestoneStatus(
   const needsScopeRefinement = sourceTicket != null && stillStubbed;
 
   return {
-    file: milestone.file,
     path: toPosix(path.join("roadmap", "milestones", milestone.relativeMilestonePath)),
     id: milestone.artifact.milestone.id,
     title: milestone.artifact.milestone.title,
-    goal: milestone.artifact.goal,
     declaredStatus: milestone.artifact.status,
     derivedStatus,
     plannedChanges,

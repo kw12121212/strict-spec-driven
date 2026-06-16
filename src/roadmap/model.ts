@@ -138,7 +138,6 @@ export type RoadmapPlannedChangeStatus = {
   id: string;
   source: "inline" | "standalone";
   path: string;
-  summary: string;
   declaredStatus: DeclaredPlannedChangeStatus;
   derivedStatus: DeclaredPlannedChangeStatus;
   state: PlannedChangeState;
@@ -146,11 +145,9 @@ export type RoadmapPlannedChangeStatus = {
 };
 
 export type RoadmapMilestoneStatus = {
-  file: string;
   path: string;
   id: string;
   title: string;
-  goal: string;
   declaredStatus: DeclaredRoadmapStatus;
   derivedStatus: Exclude<DeclaredRoadmapStatus, "blocked">;
   plannedChanges: RoadmapPlannedChangeStatus[];

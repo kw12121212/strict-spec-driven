@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: compact-roadmap-script-output
+  status: proposed
+summary:
+  what:
+    - Make default roadmap script outputs compact enough for large roadmaps.
+  why:
+    - Roadmaps can now contain many milestones and planned changes, so default command output should avoid large summary/detail fields and unrelated bulky data unless explicitly requested.
+scope:
+  in:
+    - roadmap-status JSON output for milestone and planned-change records
+    - roadmap-overview human-readable planned-change detail
+    - roadmap-recommend default JSON output
+  out:
+    - roadmap artifact schemas or persisted roadmap YAML content
+    - roadmap-recommend --details full diagnostic output
+unchanged_behavior:
+  - roadmap commands keep deterministic ordering, exit codes, warnings, diagnostics, and sync behavior
+  - roadmap-sync continues preserving summary and details fields in roadmap files

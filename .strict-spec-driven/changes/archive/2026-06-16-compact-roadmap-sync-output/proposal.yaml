@@ -1,0 +1,20 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: compact-roadmap-sync-output
+  status: proposed
+summary:
+  what:
+    - Make roadmap-sync command output compact enough for large roadmaps.
+  why:
+    - roadmap-sync output can be embedded in other script outputs such as archive, so it should not emit large roadmap summary or goal fields by default.
+scope:
+  in:
+    - roadmap-sync JSON output milestone and planned-change records
+  out:
+    - roadmap-sync persisted rewrites and roadmap YAML fields
+    - roadmap-status, roadmap-overview, and roadmap-recommend behavior already covered by the prior compact output change
+unchanged_behavior:
+  - roadmap-sync keeps deterministic validation, updatedFiles reporting, status reconciliation, and summary/details preservation in files

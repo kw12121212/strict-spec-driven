@@ -1,0 +1,29 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: compact-roadmap-sync-output
+sections:
+  Implementation:
+    declare-compact-sync-output:
+      text: Declare roadmap-sync default output as compact status data without bulky milestone goal, milestone file, or planned-change summary text.
+      status: complete
+    test-compact-sync-output:
+      text: Add roadmap-sync regression coverage proving command output omits bulky roadmap fields while persisted files keep summary and details data.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run TypeScript lint/type checking.
+      status: complete
+      command: bun run lint
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-project-regression

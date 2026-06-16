@@ -1,0 +1,32 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: compact-roadmap-script-output
+sections:
+  Implementation:
+    compact-status-and-overview-output:
+      text: Remove bulky planned-change summary text from default roadmap-status JSON and roadmap-overview text while preserving deterministic state, path, status, mismatch, warning, and diagnostic fields.
+      status: complete
+    compact-recommend-output:
+      text: Keep roadmap-recommend default output compact for large roadmaps while preserving full recommendation and candidate details for roadmap-recommend --details.
+      status: complete
+    update-roadmap-regressions:
+      text: Update roadmap workflow regression tests to cover compact default output and retained --details output.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run TypeScript lint/type checking.
+      status: complete
+      command: bun run lint
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-project-regression

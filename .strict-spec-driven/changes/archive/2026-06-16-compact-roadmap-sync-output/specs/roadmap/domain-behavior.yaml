@@ -1,0 +1,28 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+mapping:
+  implementation:
+    - src/roadmap.ts
+    - src/roadmap/model.ts
+    - src/roadmap/status.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    roadmap-sync-contract:
+      strength: MUST
+      statement: The system MUST make roadmap-sync reconcile declared roadmap statuses with active and archived strict workflow state, regenerate canonical roadmap index entries, preserve details fields, update standalone planned-change files when reconciliation is valid, and report compact sync result status without bulky milestone goal or planned-change summary text.
+      scenarios:
+        sync-reconciles-valid-roadmap:
+          - GIVEN: roadmap artifacts are structurally valid and have reconcilable mismatch state with milestone goals and planned-change summaries
+          - WHEN: strict-spec-driven roadmap-sync runs
+          - THEN: the command exits zero, reports updated files, rewrites derived statuses, omits milestone goal, milestone file, and planned-change summary text from output status, and leaves roadmap-status valid afterward
+        sync-preserves-details:
+          - GIVEN: a milestone or standalone planned change contains details
+          - WHEN: roadmap-sync rewrites the artifact
+          - THEN: the details field is preserved in the roadmap file
+  REMOVED: {}

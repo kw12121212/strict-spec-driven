@@ -109,7 +109,6 @@ function appendPlannedChangeDetail(lines: string[], plannedChange: RoadmapPlanne
   lines.push(
     `  - ${plannedChange.id} | state=${plannedChange.state} | declared=${plannedChange.declaredStatus} | derived=${plannedChange.derivedStatus} | path=${plannedChange.path}`,
   );
-  lines.push(`    summary: ${plannedChange.summary}`);
   if (plannedChange.mismatches.length === 0) return;
   for (const mismatch of plannedChange.mismatches) {
     lines.push(`    issue: ${mismatch}`);
@@ -178,7 +177,6 @@ export function formatRoadmapOverview(result: RoadmapStatusResult): string {
     for (const milestone of result.milestones) {
       lines.push(`[${milestone.id}] ${milestone.title}`);
       lines.push(`path: ${milestone.path}`);
-      lines.push(`goal: ${milestone.goal}`);
       lines.push(`status: declared=${milestone.declaredStatus} derived=${milestone.derivedStatus}`);
       if (milestone.mismatches.length > 0) {
         for (const mismatch of milestone.mismatches) {

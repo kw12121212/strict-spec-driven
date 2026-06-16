@@ -35,7 +35,7 @@ function summarizeRoadmapRecommendation(result: RoadmapRecommendResult): unknown
       id: candidate.id,
       path: candidate.path,
       milestone: candidate.milestone,
-      skipReasons: candidate.skipReasons,
+      skipReasonCodes: candidate.skipReasons.map((reason) => reason.code),
     }));
 
   const recommendation = result.recommendation === null
@@ -45,7 +45,6 @@ function summarizeRoadmapRecommendation(result: RoadmapRecommendResult): unknown
       changeName: result.recommendation.changeName,
       path: result.recommendation.path,
       milestone: result.recommendation.milestone,
-      reason: result.recommendation.reason,
     };
 
   return {

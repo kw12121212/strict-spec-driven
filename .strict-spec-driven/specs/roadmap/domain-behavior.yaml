@@ -21,40 +21,40 @@ mapping:
 requirements:
   roadmap-status-contract:
     strength: MUST
-    statement: The system MUST make roadmap-status validate roadmap artifacts, report declared and derived milestone and planned-change state, expose standalone planned-change source paths, and surface mismatches or diagnostics deterministically.
+    statement: The system MUST make roadmap-status validate roadmap artifacts, report compact declared and derived milestone and planned-change state, expose standalone planned-change source paths, omit bulky descriptive and redundant milestone or planned-change fields from default status output, and surface mismatches or diagnostics deterministically.
     scenarios:
-      status-reports-valid-roadmap-state:
-        - GIVEN: a structurally valid roadmap exists
+      status-reports-compact-valid-roadmap-state:
+        - GIVEN: a structurally valid roadmap exists with milestone goals and planned-change summaries
         - WHEN: strict-spec-driven roadmap-status runs
-        - THEN: the command exits zero and reports valid=true, milestone order, declared status, derived status, planned changes, and source paths
+        - THEN: the command exits zero and reports valid=true, milestone order, declared status, derived status, planned changes, source paths, and state without emitting milestone goal, milestone file, or planned-change summary text
       status-reports-invalid-artifacts:
         - GIVEN: roadmap artifacts are malformed or contain cross-file conflicts
         - WHEN: strict-spec-driven roadmap-status runs
         - THEN: the command exits non-zero with deterministic diagnostics including artifact path and field path context
   roadmap-overview-contract:
     strength: MUST
-    statement: The system MUST make roadmap-overview render a deterministic human-readable milestone and planned-change summary for valid roadmap state, and emit actionable diagnostics for invalid roadmap artifacts.
+    statement: The system MUST make roadmap-overview render a deterministic compact human-readable milestone and planned-change summary for valid roadmap state without emitting bulky milestone goal or planned-change summary text, and emit actionable diagnostics for invalid roadmap artifacts.
     scenarios:
-      overview-renders-valid-roadmap:
-        - GIVEN: a valid roadmap has milestones and planned changes
+      overview-renders-compact-valid-roadmap:
+        - GIVEN: a valid roadmap has milestones and planned changes with goals and summaries
         - WHEN: strict-spec-driven roadmap-overview runs
-        - THEN: the command exits zero and prints milestone table content plus planned-change detail in deterministic order
+        - THEN: the command exits zero and prints milestone table content plus compact planned-change detail in deterministic order without milestone goal or planned-change summary text
       overview-rejects-invalid-roadmap:
         - GIVEN: roadmap artifacts are invalid
         - WHEN: strict-spec-driven roadmap-overview runs
         - THEN: the command exits non-zero and prints actionable diagnostics
   roadmap-sync-contract:
     strength: MUST
-    statement: The system MUST make roadmap-sync reconcile declared roadmap statuses with active and archived strict workflow state, regenerate canonical roadmap index entries, preserve details fields, and update standalone planned-change files when reconciliation is valid.
+    statement: The system MUST make roadmap-sync reconcile declared roadmap statuses with active and archived strict workflow state, regenerate canonical roadmap index entries, preserve details fields, update standalone planned-change files when reconciliation is valid, and report compact sync result status without bulky milestone goal or planned-change summary text.
     scenarios:
       sync-reconciles-valid-roadmap:
-        - GIVEN: roadmap artifacts are structurally valid and have reconcilable mismatch state
+        - GIVEN: roadmap artifacts are structurally valid and have reconcilable mismatch state with milestone goals and planned-change summaries
         - WHEN: strict-spec-driven roadmap-sync runs
-        - THEN: the command exits zero, reports updated files, rewrites derived statuses, and leaves roadmap-status valid afterward
+        - THEN: the command exits zero, reports updated files, rewrites derived statuses, omits milestone goal, milestone file, and planned-change summary text from output status, and leaves roadmap-status valid afterward
       sync-preserves-details:
         - GIVEN: a milestone or standalone planned change contains details
         - WHEN: roadmap-sync rewrites the artifact
-        - THEN: the details field is preserved
+        - THEN: the details field is preserved in the roadmap file
   roadmap-split-file-contract:
     strength: MUST
     statement: The system MUST handle standalone planned-change files as the source of planned-change identity and report legacy inline planned changes, cross-file conflicts, dependency errors, duplicate identities, active-change conflicts, and dependency cycles with deterministic diagnostics.
@@ -69,16 +69,20 @@ requirements:
         - THEN: the command exits non-zero with deterministic cross-file diagnostics
   roadmap-recommend-contract:
     strength: MUST
-    statement: The system MUST make roadmap-recommend select the first eligible standalone planned change in roadmap order, return deterministic skip reasons for ineligible candidates, and report no-candidate or roadmap-error states without manual selection.
+    statement: The system MUST make roadmap-recommend select the first eligible standalone planned change in roadmap order, return compact deterministic default output with skip reason summaries rather than full candidate or planned-change summary text, preserve full candidate detail behind --details, and report no-candidate or roadmap-error states without manual selection.
     scenarios:
       recommend-selects-first-eligible:
         - GIVEN: the roadmap contains eligible and ineligible standalone planned changes
-        - WHEN: roadmap-recommend runs
-        - THEN: the command exits zero with status recommended and returns the first eligible planned change in roadmap order
+        - WHEN: roadmap-recommend runs without --details
+        - THEN: the command exits zero with status recommended and returns the first eligible planned change in roadmap order without planned-change summary text
       recommend-reports-no-candidate:
         - GIVEN: all roadmap candidates are complete, active, dependency-blocked, or otherwise ineligible
-        - WHEN: roadmap-recommend runs
-        - THEN: the command reports status no-candidate with candidate skip reasons
+        - WHEN: roadmap-recommend runs without --details
+        - THEN: the command reports status no-candidate with compact candidate counts and bounded actionable blockers
+      recommend-details-preserves-full-data:
+        - GIVEN: roadmap-recommend has candidate summary text and skip reasons
+        - WHEN: roadmap-recommend runs with --details
+        - THEN: the command returns the full recommendation, candidates, summaries, and skip reasons for inspection
   roadmap-milestone-source-ticket-provenance:
     strength: MUST
     statement: The system MUST preserve a milestone source-ticket back-reference through roadmap loading, status derivation, and sync without dropping it, surface the originating ticket id in roadmap-status for ticket-promoted milestones, and flag a freshly promoted milestone whose scope and done criteria are still the promotion refinement stub as needing scope refinement.

@@ -15426,7 +15426,6 @@ function buildMilestoneStatus(milestone, changeStates, plannedChangeEntries = ge
       id,
       source,
       path: plannedChangePath,
-      summary: entry.summary,
       declaredStatus: entry.status,
       derivedStatus: derivedStatus2,
       state,
@@ -15446,11 +15445,9 @@ function buildMilestoneStatus(milestone, changeStates, plannedChangeEntries = ge
   ].some((entry) => entry.includes("REFINEMENT NEEDED"));
   const needsScopeRefinement = sourceTicket != null && stillStubbed;
   return {
-    file: milestone.file,
     path: toPosix2(path10.join("roadmap", "milestones", milestone.relativeMilestonePath)),
     id: milestone.artifact.milestone.id,
     title: milestone.artifact.milestone.title,
-    goal: milestone.artifact.goal,
     declaredStatus: milestone.artifact.status,
     derivedStatus,
     plannedChanges,
@@ -15665,7 +15662,6 @@ function milestoneIssueCount(milestone) {
 }
 function appendPlannedChangeDetail(lines, plannedChange) {
   lines.push(`  - ${plannedChange.id} | state=${plannedChange.state} | declared=${plannedChange.declaredStatus} | derived=${plannedChange.derivedStatus} | path=${plannedChange.path}`);
-  lines.push(`    summary: ${plannedChange.summary}`);
   if (plannedChange.mismatches.length === 0)
     return;
   for (const mismatch of plannedChange.mismatches) {
@@ -15723,7 +15719,6 @@ function formatRoadmapOverview(result) {
     for (const milestone of result.milestones) {
       lines.push(`[${milestone.id}] ${milestone.title}`);
       lines.push(`path: ${milestone.path}`);
-      lines.push(`goal: ${milestone.goal}`);
       lines.push(`status: declared=${milestone.declaredStatus} derived=${milestone.derivedStatus}`);
       if (milestone.mismatches.length > 0) {
         for (const mismatch of milestone.mismatches) {
@@ -17699,14 +17694,13 @@ function summarizeRoadmapRecommendation(result) {
     id: candidate.id,
     path: candidate.path,
     milestone: candidate.milestone,
-    skipReasons: candidate.skipReasons
+    skipReasonCodes: candidate.skipReasons.map((reason) => reason.code)
   }));
   const recommendation = result.recommendation === null ? null : {
     id: result.recommendation.id,
     changeName: result.recommendation.changeName,
     path: result.recommendation.path,
-    milestone: result.recommendation.milestone,
-    reason: result.recommendation.reason
+    milestone: result.recommendation.milestone
   };
   return {
     valid: result.valid,
