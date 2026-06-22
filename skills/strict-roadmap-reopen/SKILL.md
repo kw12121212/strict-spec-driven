@@ -1,6 +1,6 @@
 ---
 name: strict-roadmap-reopen
-description: Reopen a completed strict roadmap milestone when gaps are discovered, preserving completed planned changes and adding follow-up work as new planned changes.
+description: Reopen a completed strict roadmap milestone when gaps are discovered, preserving completed planned changes and seeding a pending follow-up planned change so the milestone re-enters the pipeline.
 metadata:
   skill_id: strict_roadmap_reopen
   author: strict-spec-driven
@@ -41,18 +41,24 @@ run `init` from this skill.
 
 ## Reopen Semantics
 
-- A reopen flips the milestone's declared `status` from `complete` to `active`
-  and appends a dated reopen note recording the reason.
+- A reopen appends a dated reopen note recording the reason, seeds one pending
+  follow-up planned change for the discovered gap, and rewrites the milestone to
+  the status derived from its planned-change state. With only the not-yet-started
+  follow-up pending, that derived status is `proposed`; the milestone becomes
+  `active` once a strict change starts for the follow-up and `complete` again
+  once all its planned changes are archived. Milestone status is never held
+  sticky — it always follows structured planned-change state.
 - Completed planned changes are immutable. The reopen never edits, rewrites, or
   reorders a planned change whose derived state is `archived`/`complete`. They
   stay frozen as the historical record of what shipped.
-- Follow-up work for the discovered gaps is added as NEW standalone
-  planned-change artifacts under `.strict-spec-driven/roadmap/planned-changes/`,
-  each owned by the same milestone via `planned_change.milestone`. Never fold
-  follow-up work back into an existing completed planned change.
+- The reopen seeds the first follow-up planned change automatically (a pending
+  `status: planned` standalone artifact owned by the milestone). Additional
+  follow-up work is added as MORE new standalone planned-change artifacts under
+  `.strict-spec-driven/roadmap/planned-changes/`, each owned by the same
+  milestone via `planned_change.milestone`. Never fold follow-up work back into
+  an existing completed planned change.
 - The milestone status `planned` is an accepted alias of `proposed`; the two are
-  interchangeable for incomplete milestones. Reopen targets `active`, not
-  `planned` or `proposed`.
+  interchangeable for incomplete milestones.
 
 ## Preferred Human Language
 
@@ -90,20 +96,22 @@ run `init` from this skill.
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-reopen <milestone-id> --reason "<concrete gap description>"
    ```
-   Confirm the returned `reopened.newStatus` is `active`, the reopen note was
-   appended, and `frozenPlannedChanges` lists every completed planned change
-   that must remain untouched.
+   Confirm the returned `reopened.newStatus` is the derived status (`proposed`
+   when only the seeded follow-up is pending), the reopen note was appended,
+   `frozenPlannedChanges` lists every completed planned change that must remain
+   untouched, and `seededFollowUp` reports the new pending follow-up planned
+   change file the command created.
 
-4. **Add follow-up planned changes as new work** — for each gap discovered, add a
-   NEW standalone planned-change artifact under
-   `.strict-spec-driven/roadmap/planned-changes/` named
-   `<milestone-id>-<new-planned-change-id>.yaml`. Populate `summary`,
-   `details`, `depends_on`, and `status: planned` so the follow-up work is
-   executable without re-deriving intent. Prefer `/strict-roadmap-plan` or
-   direct structured YAML edits for this step. Never edit an existing completed
-   planned-change file; create new ones only.
+4. **Refine the seeded follow-up and add more as needed** — the reopen already
+   created one pending follow-up planned change (`seededFollowUp.path`). Refine
+   its `summary`, `details`, and `depends_on` to describe the real gap work, and
+   add further NEW standalone planned-change artifacts under
+   `.strict-spec-driven/roadmap/planned-changes/` (each with `status: planned`)
+   for additional gaps. Prefer `/strict-roadmap-plan` or direct structured YAML
+   edits for this step. Never edit an existing completed planned-change file;
+   create or refine pending ones only.
 
-5. **Resync the roadmap** — after adding the new planned changes, run:
+5. **Resync the roadmap** — after refining or adding planned changes, run:
    ```bash
    node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync
    ```

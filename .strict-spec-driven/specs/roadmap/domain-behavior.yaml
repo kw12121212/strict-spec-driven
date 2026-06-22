@@ -16,6 +16,7 @@ mapping:
     - src/roadmap/load.ts
     - src/roadmap/status.ts
     - src/roadmap/sync.ts
+    - src/roadmap/reopen.ts
   tests:
     - test/suites/roadmap-and-migration.ts
 requirements:
@@ -91,3 +92,28 @@ requirements:
         - GIVEN: a milestone was promoted from a ticket and carries a source-ticket back-reference and refinement-stub scope
         - WHEN: roadmap-status and roadmap-sync run
         - THEN: roadmap-status reports the originating ticket id and flags the milestone as needing scope refinement, and roadmap-sync rewrites the milestone without dropping the source-ticket back-reference
+  roadmap-reopen-contract:
+    strength: MUST
+    statement: >-
+      The system MUST make roadmap-reopen append a dated reopen note to a
+      completed milestone, leave already-archived planned changes immutable, seed
+      a pending follow-up standalone planned change linked to the milestone, and
+      rewrite the milestone to the status derived from its planned-change state
+      (proposed when only not-yet-started follow-up work exists), which a
+      subsequent roadmap-sync preserves because the seeded follow-up is pending
+      non-archived work; roadmap-sync MUST re-derive a milestone whose planned
+      changes are all archived back to complete rather than preserving a declared
+      active status.
+    scenarios:
+      reopen-seeds-pending-followup:
+        - GIVEN: a completed milestone whose only planned change is archived
+        - WHEN: strict-spec-driven roadmap-reopen runs for that milestone
+        - THEN: the command exits zero, the milestone file becomes proposed with a dated reopen note, the archived planned change is byte-identical, and a new pending follow-up standalone planned change linked to the milestone is created
+      reopened-milestone-survives-sync:
+        - GIVEN: a milestone reopened by roadmap-reopen with its seeded pending follow-up planned change present
+        - WHEN: strict-spec-driven roadmap-sync runs before any further edits
+        - THEN: the milestone stays proposed because it has pending non-archived planned work rather than reverting to complete
+      sync-rederives-complete-from-fully-archived:
+        - GIVEN: a milestone declared active whose planned changes are all archived and that has no pending planned work
+        - WHEN: strict-spec-driven roadmap-sync or archive-triggered sync runs
+        - THEN: the canonical milestone and index status are rewritten to complete

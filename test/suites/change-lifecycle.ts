@@ -1641,6 +1641,134 @@ try {
   rmSync(archiveHappyDir, { recursive: true, force: true });
 }
 
+// 13a2: archive unions a delta-spec mapping into the existing main spec mapping
+const archiveMappingDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-mapping-"));
+try {
+  const changeName = "archive-mapping-merge";
+  const foundationPath = path.join(archiveMappingDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml");
+  mkdirSync(path.dirname(foundationPath), { recursive: true });
+  writeFileSync(
+    foundationPath,
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/main-spec/v1",
+      schema_version: 1,
+      artifact_type: "main_spec",
+      schema_file: "test",
+      spec: { id: "cli-foundation", title: "CLI Foundation" },
+      mapping: { implementation: ["src/archive.ts"], tests: ["test/suites/change-lifecycle.ts"] },
+      requirements: { "req-base": { strength: "MUST", statement: "Base requirement", scenarios: {} } },
+    }),
+    "utf8",
+  );
+  writeFileSync(
+    path.join(archiveMappingDir, ".strict-spec-driven", "specs", "INDEX.yaml"),
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/spec-index/v1",
+      schema_version: 1,
+      artifact_type: "spec_index",
+      schema_file: "test",
+      specs: [],
+    }),
+    "utf8",
+  );
+  writeValidChangeArtifacts(archiveMappingDir, changeName);
+  // The delta repeats the pre-existing implementation path (to exercise dedup),
+  // adds a new implementation path, and adds a new test path.
+  writeFileSync(
+    path.join(archiveMappingDir, ".strict-spec-driven", "changes", changeName, "specs", "cli.yaml"),
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/delta-spec/v1",
+      schema_version: 1,
+      artifact_type: "delta_spec",
+      schema_file: "test",
+      target_spec: "cli-foundation",
+      mapping: {
+        implementation: ["src/archive.ts", "src/roadmap/sync.ts"],
+        tests: ["test/suites/operations.ts"],
+      },
+      operations: {
+        ADDED: {},
+        MODIFIED: { "req-base": { strength: "MUST", statement: "Updated requirement", scenarios: {} } },
+        REMOVED: {},
+      },
+    }),
+    "utf8",
+  );
+
+  const archiveResult = cli(["archive", changeName], { cwd: archiveMappingDir });
+  context.assert(
+    archiveResult.status === 0,
+    "archive exits zero when unioning a delta mapping",
+    `got ${archiveResult.status}: ${archiveResult.stdout}`,
+  );
+  const mergedMainSpec = yamlModule.parseYamlFile<{ mapping: { implementation: string[]; tests: string[] } }>(foundationPath);
+  context.assert(
+    JSON.stringify(mergedMainSpec.mapping.implementation) === JSON.stringify(["src/archive.ts", "src/roadmap/sync.ts"]),
+    "archive unions delta implementation mapping into the main spec, deduped and order-stable",
+    `got ${JSON.stringify(mergedMainSpec.mapping.implementation)}`,
+  );
+  context.assert(
+    JSON.stringify(mergedMainSpec.mapping.tests) === JSON.stringify(["test/suites/change-lifecycle.ts", "test/suites/operations.ts"]),
+    "archive unions delta test mapping into the main spec, deduped and order-stable",
+    `got ${JSON.stringify(mergedMainSpec.mapping.tests)}`,
+  );
+} finally {
+  rmSync(archiveMappingDir, { recursive: true, force: true });
+}
+
+// 13a3: an empty delta mapping leaves the existing main spec mapping unchanged
+const archiveMappingPreserveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-mapping-preserve-"));
+try {
+  const changeName = "archive-mapping-preserve";
+  const foundationPath = path.join(archiveMappingPreserveDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml");
+  mkdirSync(path.dirname(foundationPath), { recursive: true });
+  writeFileSync(
+    foundationPath,
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/main-spec/v1",
+      schema_version: 1,
+      artifact_type: "main_spec",
+      schema_file: "test",
+      spec: { id: "cli-foundation", title: "CLI Foundation" },
+      mapping: { implementation: ["src/archive.ts"], tests: ["test/suites/change-lifecycle.ts"] },
+      requirements: { "req-base": { strength: "MUST", statement: "Base requirement", scenarios: {} } },
+    }),
+    "utf8",
+  );
+  writeFileSync(
+    path.join(archiveMappingPreserveDir, ".strict-spec-driven", "specs", "INDEX.yaml"),
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/spec-index/v1",
+      schema_version: 1,
+      artifact_type: "spec_index",
+      schema_file: "test",
+      specs: [],
+    }),
+    "utf8",
+  );
+  writeValidChangeArtifacts(archiveMappingPreserveDir, changeName);
+  // writeDeltaSpecArtifact writes empty implementation/test mapping arrays.
+  writeDeltaSpecArtifact(archiveMappingPreserveDir, changeName, "cli.yaml", "cli-foundation", {
+    MODIFIED: { "req-base": { strength: "MUST", statement: "Updated requirement", scenarios: {} } },
+  });
+
+  const archiveResult = cli(["archive", changeName], { cwd: archiveMappingPreserveDir });
+  context.assert(
+    archiveResult.status === 0,
+    "archive exits zero with an empty delta mapping",
+    `got ${archiveResult.status}: ${archiveResult.stdout}`,
+  );
+  const mergedMainSpec = yamlModule.parseYamlFile<{ mapping: { implementation: string[]; tests: string[] } }>(foundationPath);
+  context.assert(
+    JSON.stringify(mergedMainSpec.mapping.implementation) === JSON.stringify(["src/archive.ts"])
+      && JSON.stringify(mergedMainSpec.mapping.tests) === JSON.stringify(["test/suites/change-lifecycle.ts"]),
+    "archive leaves the existing main spec mapping unchanged when the delta mapping is empty",
+    `got ${JSON.stringify(mergedMainSpec.mapping)}`,
+  );
+} finally {
+  rmSync(archiveMappingPreserveDir, { recursive: true, force: true });
+}
+
 // 13b: invalid preconditions block archive
 const archiveBlockedDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-blocked-"));
 try {

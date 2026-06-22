@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: archive-merges-delta-spec-mappings
+  status: proposed
+summary:
+  what:
+    - Make archive union a delta-spec's mapping.implementation and mapping.tests into the target main spec's existing mapping, mirroring the tech delta-merge, so new implementation/test paths declared by a delta spec are added on archive instead of being silently dropped.
+  why:
+    - applyDeltaToMainSpec merges only requirements; the delta-spec mapping is ignored for existing main specs (only buildNewMainSpec seeds mapping, for brand-new specs). New mapped files declared in a delta spec are therefore lost on archive, forcing manual main-spec mapping edits (as the fix-reopen-active-derivation change had to do for src/roadmap/reopen.ts). The tech merge already unions mappings via unionStringArrays; spec merge should match.
+scope:
+  in:
+    - src/archive.ts applyDeltaToMainSpec mapping union; cli-foundation main spec requirement cli-archive-merges-delta-specs-into-main-specs; archive/delta-merge tests in test/suites/change-lifecycle.ts; rebuilt dist bundle.
+  out:
+    - Requirement ADDED/MODIFIED/REMOVED merge behavior; missing-target merge rules; archive move and spec-index regeneration; tech delta-merge; buildNewMainSpec brand-new-spec mapping seeding; the immutable archived delta-spec of the previous change.
+unchanged_behavior:
+  - Requirement merge by stable identifier and missing-target rules are unchanged; archive still moves the change to a date-prefixed directory and regenerates the spec index; an absent or empty delta mapping never wipes or reorders an existing main spec mapping; tech delta-merge behavior is unchanged.

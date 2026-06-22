@@ -1,0 +1,33 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: archive-merges-delta-spec-mappings
+sections:
+  Implementation:
+    union-delta-spec-mapping-on-merge:
+      text: In src/archive.ts applyDeltaToMainSpec, after the requirement merge, union the delta-spec mapping into the target main spec mapping when the delta declares one, using unionStringArrays for implementation and tests. Skip when deltaSpec.mapping is undefined so an absent mapping preserves the existing one; empty arrays append nothing. Keep buildNewMainSpec unchanged.
+      status: complete
+    add-archive-mapping-merge-tests:
+      text: 'In test/suites/change-lifecycle.ts add archive/delta-merge coverage: (a) a delta spec targeting an existing main spec that adds a new implementation path archives a main spec whose mapping.implementation contains the pre-existing and the new path, deduped and order-stable; (b) a delta spec with an empty or absent mapping leaves the existing main spec mapping unchanged.'
+      status: complete
+  Testing:
+    rebuild-compiled-output:
+      text: Rebuild compiled dist output and the committed bundle so dist-based tests and dist/scripts/strict-spec-driven.js reflect the source edits.
+      status: complete
+      command: bun run build
+    lint-typecheck:
+      text: Run the TypeScript typecheck/lint gate with no errors.
+      status: complete
+      command: bun run lint
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: 'Verify implementation matches proposal scope and that every unchanged_behavior item holds: requirement merge and missing-target rules unchanged, archive move and index regeneration unchanged, an absent/empty delta mapping never wipes the existing main spec mapping, and tech delta-merge unchanged.'
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: run-project-regression

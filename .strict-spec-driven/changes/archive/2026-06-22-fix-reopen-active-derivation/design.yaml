@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: fix-reopen-active-derivation
+approach:
+  - Drive milestone status from structured planned-change state. In src/roadmap/sync.ts resolveCanonicalMilestoneStatus, remove the unconditional active branch so a milestone whose planned changes are all archived re-derives complete; keep the planned/proposed alias branch that preserves declared spelling when it normalizes to the derived status. In src/roadmap/reopen.ts, append the dated reopen note and seed a new pending standalone planned-change artifact (status planned) linked to the milestone with a deterministic non-colliding id and a numeric filename prefix after the current max, depending on the most recent archived planned change; then reload, recompute the milestone status, and write the derived status. A reopened milestone with only not-yet-started follow-up work derives proposed and becomes active when a strict change starts. Archived planned changes are never read-modified. Update the strict-roadmap-reopen skill doc and the reopen/sync regression tests; rebuild dist.
+decisions:
+  drop-sticky-active:
+    decision: Remove the unconditional 'declared===active' preservation from resolveCanonicalMilestoneStatus; milestone status is derived from planned-change state.
+    rationale: A sticky active status overloads one enum value and silently disabled archive auto-completion for all active milestones. One source of truth (derived status) restores auto-completion and needs no schema migration.
+  seed-followup-planned-change:
+    decision: On reopen, create a pending standalone planned-change artifact so the milestone has real non-archived work, instead of forcing or holding a status value.
+    rationale: Reopen exists because new gap work is needed; materializing a pending follow-up makes the milestone's post-reopen status a derivable fact rather than a special case, so roadmap-sync needs no sticky rule.
+  target-derived-proposed:
+    decision: Reopen writes the status derived after seeding (proposed when only not-yet-started follow-up work exists) rather than forcing active, since deriveMilestoneStatus yields active only when an in-progress strict change exists.
+    rationale: Claiming active for a milestone with no in-progress strict change would reintroduce a declared/derived mismatch and the sticky problem; proposed is the honest, mismatch-free state and the milestone naturally becomes active when work starts.
+alternatives: []
+risks: []

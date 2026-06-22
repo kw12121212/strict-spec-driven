@@ -1,0 +1,31 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+mapping:
+  implementation:
+    - src/roadmap/reopen.ts
+    - src/roadmap/sync.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    roadmap-reopen-contract:
+      strength: MUST
+      statement: The system MUST make roadmap-reopen flip a completed milestone to active, append a dated reopen note, leave already-archived planned changes immutable, and seed a pending follow-up standalone planned change so the reopened milestone derives active and remains active across a subsequent roadmap-sync; roadmap-sync MUST re-derive a milestone whose planned changes are all archived back to complete rather than preserving a declared active status.
+      scenarios:
+        reopen-seeds-pending-followup:
+          - GIVEN: a completed milestone whose only planned change is archived
+          - WHEN: strict-spec-driven roadmap-reopen runs for that milestone
+          - THEN: the command exits zero, the milestone file becomes active with a dated reopen note, the archived planned change is byte-identical, and a new pending follow-up standalone planned change linked to the milestone is created
+        reopened-milestone-survives-sync:
+          - GIVEN: a milestone reopened by roadmap-reopen with its seeded pending follow-up planned change present
+          - WHEN: strict-spec-driven roadmap-sync runs before any further edits
+          - THEN: the milestone remains active because it has pending non-archived planned work
+        sync-rederives-complete-from-fully-archived:
+          - GIVEN: a milestone declared active whose planned changes are all archived and that has no pending planned work
+          - WHEN: strict-spec-driven roadmap-sync or archive-triggered sync runs
+          - THEN: the canonical milestone and index status are rewritten to complete
+  MODIFIED: {}
+  REMOVED: {}

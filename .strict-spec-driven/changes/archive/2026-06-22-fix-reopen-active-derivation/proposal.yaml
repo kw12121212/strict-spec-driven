@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: fix-reopen-active-derivation
+  status: proposed
+summary:
+  what:
+    - Make a reopened roadmap milestone's status a function of structured planned-change state instead of a sticky declared status. Remove the unconditional active-status preservation in resolveCanonicalMilestoneStatus, make roadmap-reopen seed a pending follow-up standalone planned change so the milestone re-derives off complete, and have reopen write the derived status (proposed when only not-yet-started follow-up work exists) rather than forcing active. Update the strict-roadmap-reopen skill doc to match.
+  why:
+    - The roadmap-reopen feature added an unconditional 'if declared===active return declared' branch to resolveCanonicalMilestoneStatus, making every active milestone permanently sticky against canonical rewrite. This broke the established behavior where archiving the last planned change auto-completes an active milestone, failing archive-completion tests in change-lifecycle and aborting the operations maintenance suite with a null generatedChange crash. Deriving milestone status purely from planned-change state restores auto-completion; seeding a pending follow-up keeps a reopened milestone in the pipeline (proposed) until a strict change starts.
+scope:
+  in:
+    - src/roadmap/sync.ts resolveCanonicalMilestoneStatus active-status handling; src/roadmap/reopen.ts follow-up planned-change seeding and derived-status write; reopen and sync regression tests in test/suites/roadmap-and-migration.ts; skills/strict-roadmap-reopen/SKILL.md behavior description; rebuilt dist bundle.
+  out:
+    - Roadmap schema changes; the planned/proposed status alias behavior; roadmap-status output shape; ticket, harness, migrate, or unrelated CLI behavior; change-lifecycle and operations test assertions, which already encode the correct contract and must pass unchanged.
+unchanged_behavior:
+  - Completed (archived) planned-change files remain byte-identical and immutable across reopen; planned and proposed remain interchangeable milestone-status aliases with declared spelling preserved; roadmap-sync continues to regenerate canonical index entries, preserve details fields, and emit compact output; reopen still appends a dated reopen note when reopening a completed milestone.

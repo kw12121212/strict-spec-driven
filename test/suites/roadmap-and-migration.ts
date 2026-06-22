@@ -423,8 +423,8 @@ try {
   context.assert(
     roadmapReopenJson.reopened.id === "0001-reopen"
       && roadmapReopenJson.reopened.previousStatus === "complete"
-      && roadmapReopenJson.reopened.newStatus === "active",
-    "roadmap-reopen flips the milestone status from complete to active",
+      && roadmapReopenJson.reopened.newStatus === "proposed",
+    "roadmap-reopen moves the milestone from complete to its derived proposed status",
   );
   context.assert(
     roadmapReopenJson.reopened.frozenPlannedChanges.length === 1
@@ -433,8 +433,32 @@ try {
     "roadmap-reopen reports the archived planned change as frozen",
   );
   context.assert(
-    roadmapReopenJson.updatedFiles.some((file: string) => file.endsWith("roadmap/milestones/0001-reopen.yaml")),
-    "roadmap-reopen records the milestone file as updated",
+    roadmapReopenJson.reopened.seededFollowUp
+      && roadmapReopenJson.reopened.seededFollowUp.id === "0001-reopen-followup"
+      && roadmapReopenJson.reopened.seededFollowUp.path.startsWith("roadmap/planned-changes/")
+      && roadmapReopenJson.reopened.seededFollowUp.path.endsWith("-0001-reopen-followup.yaml"),
+    "roadmap-reopen reports the seeded pending follow-up planned change",
+    `seededFollowUp: ${JSON.stringify(roadmapReopenJson.reopened.seededFollowUp)}`,
+  );
+  context.assert(
+    roadmapReopenJson.updatedFiles.some((file: string) => file.endsWith("roadmap/milestones/0001-reopen.yaml"))
+      && roadmapReopenJson.updatedFiles.some((file: string) => file === `.strict-spec-driven/${roadmapReopenJson.reopened.seededFollowUp.path}`),
+    "roadmap-reopen records the milestone file and the seeded follow-up as updated",
+    `updatedFiles: ${JSON.stringify(roadmapReopenJson.updatedFiles)}`,
+  );
+
+  // The seeded follow-up exists as a pending standalone planned change.
+  const seededFollowUpArtifact = yamlModule.parseYamlFile<{
+    status: string;
+    planned_change: { id: string; milestone: string };
+    depends_on: string[];
+  }>(path.join(roadmapReopenDir, ".strict-spec-driven", roadmapReopenJson.reopened.seededFollowUp.path));
+  context.assert(
+    seededFollowUpArtifact.status === "planned"
+      && seededFollowUpArtifact.planned_change.id === "0001-reopen-followup"
+      && seededFollowUpArtifact.planned_change.milestone === "0001-reopen"
+      && seededFollowUpArtifact.depends_on.includes("archived-change"),
+    "roadmap-reopen seeds a pending follow-up planned change linked to the milestone and the latest archived change",
   );
 
   // The archived planned-change file must be byte-identical after reopen.
@@ -444,11 +468,13 @@ try {
     "roadmap-reopen leaves archived planned-change files byte-identical (immutable)",
   );
 
-  // The milestone file now declares active and carries the reopen note.
+  // The milestone file now declares its derived proposed status and carries the
+  // reopen note. It is proposed (not active) because the seeded follow-up is
+  // pending, not yet an in-progress strict change.
   const reopenedMilestoneArtifact = yamlModule.parseYamlFile<{ status: string; notes: string[] }>(
     path.join(roadmapReopenDir, ".strict-spec-driven", "roadmap", "milestones", "0001-reopen.yaml"),
   );
-  context.assert(reopenedMilestoneArtifact.status === "active", "roadmap-reopen writes status=active to the milestone file");
+  context.assert(reopenedMilestoneArtifact.status === "proposed", "roadmap-reopen writes the derived proposed status to the milestone file");
   context.assert(
     reopenedMilestoneArtifact.notes.some((note: string) => note.startsWith("Reopened on ") && note.includes("missing edge-case coverage discovered in production")),
     "roadmap-reopen appends a dated reopen note carrying the reason",
@@ -458,30 +484,36 @@ try {
   context.assert(reopenStatusAfter.status === 0, "roadmap-status stays zero after reopen");
   const reopenStatusAfterJson = JSON.parse(reopenStatusAfter.stdout.trim());
   context.assert(
-    reopenStatusAfterJson.milestones[0].declaredStatus === "active",
-    "roadmap-status reports the reopened milestone as declared active",
+    reopenStatusAfterJson.milestones[0].declaredStatus === "proposed"
+      && reopenStatusAfterJson.milestones[0].derivedStatus === "proposed",
+    "roadmap-status reports the reopened milestone as proposed with no declared/derived mismatch",
   );
   context.assert(
-    reopenStatusAfterJson.milestones[0].plannedChanges[0].state === "archived"
-      && reopenStatusAfterJson.milestones[0].plannedChanges[0].derivedStatus === "complete",
-    "roadmap-status keeps the archived planned change complete after reopen",
+    reopenStatusAfterJson.milestones[0].plannedChanges.some(
+      (pc: { id: string; state: string; derivedStatus: string }) => pc.id === "archived-change" && pc.state === "archived" && pc.derivedStatus === "complete",
+    )
+      && reopenStatusAfterJson.milestones[0].plannedChanges.some(
+        (pc: { id: string; derivedStatus: string }) => pc.id === "0001-reopen-followup" && pc.derivedStatus === "planned",
+      ),
+    "roadmap-status keeps the archived planned change complete and shows the seeded pending follow-up after reopen",
   );
 
-  // An intermediate roadmap-sync must NOT silently revert the reopen. The
-  // declared `active` survives because reopened milestones are an explicit
-  // user override of the all-planned-changes-archived derivation.
+  // An intermediate roadmap-sync must NOT revert the reopen. The milestone stays
+  // proposed because it has pending non-archived planned work (the seeded
+  // follow-up), not because any declared status is held sticky.
   const intermediateSync = cli(["roadmap-sync"], { cwd: roadmapReopenDir });
-  context.assert(intermediateSync.status === 0, "roadmap-sync exits zero after reopen without follow-up work");
+  context.assert(intermediateSync.status === 0, "roadmap-sync exits zero after reopen");
   const intermediateMilestone = yamlModule.parseYamlFile<{ status: string }>(
     path.join(roadmapReopenDir, ".strict-spec-driven", "roadmap", "milestones", "0001-reopen.yaml"),
   );
   context.assert(
-    intermediateMilestone.status === "active",
-    "roadmap-sync preserves the reopened active status instead of reverting to complete",
+    intermediateMilestone.status === "proposed",
+    "roadmap-sync keeps the reopened milestone proposed instead of reverting to complete",
   );
 
-  // Adding a new follow-up planned change after reopen is the documented path.
-  writeStandalonePlannedChangeArtifact(roadmapReopenDir, "planned-changes/0002-followup-change.yaml", {
+  // Adding another follow-up planned change after reopen keeps the milestone in
+  // its pending-work derived state.
+  writeStandalonePlannedChangeArtifact(roadmapReopenDir, "planned-changes/0003-followup-change.yaml", {
     id: "followup-change",
     milestone: "0001-reopen",
     status: "planned",
@@ -493,7 +525,7 @@ try {
   context.assert(followupSync.status === 0, "roadmap-sync accepts a new follow-up planned change after reopen");
   const followupStatus = JSON.parse(cli(["roadmap-status"], { cwd: roadmapReopenDir }).stdout.trim());
   context.assert(
-    followupStatus.milestones[0].declaredStatus === "active"
+    followupStatus.milestones[0].declaredStatus === "proposed"
       && followupStatus.milestones[0].plannedChanges.some((pc: { id: string }) => pc.id === "followup-change")
       && followupStatus.milestones[0].plannedChanges.some((pc: { id: string; derivedStatus: string }) => pc.id === "archived-change" && pc.derivedStatus === "complete"),
     "roadmap-status shows the new follow-up change alongside the still-complete archived change after reopen",

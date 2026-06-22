@@ -28,19 +28,20 @@ export function writeFileIfChanged(filePath: string, nextContent: string, update
  * - `planned` and `proposed` are interchangeable aliases: when the declared
  *   status normalizes to the derived status, preserve the user's declared
  *   spelling instead of rewriting it.
- * - A declared `active` status is a forward-looking user intent. A reopened
- *   milestone is declared `active` even while its planned changes are still
- *   archived or merely planned (not yet an active strict change). Preserve the
- *   declared `active` across the full proposed/active/complete derived range so
- *   an intermediate `roadmap-sync` does not silently revert a reopen.
  * - Otherwise fall back to the derived status when the declared value drifted.
+ *
+ * Milestone status is otherwise a function of structured planned-change state:
+ * a milestone is `active` when it has an in-progress strict change, `proposed`
+ * when it only has not-yet-started planned work, and `complete` once all its
+ * planned changes are archived. A reopened milestone re-enters this derivation
+ * (typically as `proposed`) because `roadmap-reopen` seeds a pending follow-up
+ * planned change, not because any declared status is held sticky here.
  */
 function resolveCanonicalMilestoneStatus(
   declared: RoadmapMilestoneArtifact["status"],
   derived: RoadmapMilestoneStatus["derivedStatus"],
 ): RoadmapMilestoneArtifact["status"] {
   if (normalizeMilestoneStatus(declared) === derived) return declared;
-  if (declared === "active") return declared;
   return derived;
 }
 

@@ -1,0 +1,24 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: fix-reopen-active-derivation
+# open questions block the change — keep empty until real questions arise.
+# Sample entry shape: { id: kebab-id, question: "...", context: "...", status: open }
+open: []
+resolved:
+  - id: distinguish-reopened-from-autocomplete-active
+    question: >-
+      How should a reopened active milestone be distinguished from an active
+      milestone that should auto-complete, given both are identical at the
+      planned-change-state level?
+    context: >-
+      The reopen feature made declared active sticky in
+      resolveCanonicalMilestoneStatus, which broke archive auto-completion.
+      Options were narrowing the sticky-active rule, a structured reopened
+      marker field, or seeding a pending follow-up planned change.
+    answer: >-
+      Seed a pending follow-up planned change on reopen and drop the
+      sticky-active rule, so the reopened milestone derives active from real
+      pending work with no schema change. Confirmed by the user.
+    status: resolved

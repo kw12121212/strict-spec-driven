@@ -1,0 +1,13 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: archive-merges-delta-spec-mappings
+approach:
+  - 'In src/archive.ts applyDeltaToMainSpec, after the existing requirement merge, union the delta-spec mapping into the target main spec''s mapping when the delta declares one: implementation = unionStringArrays(existing.implementation, delta.implementation) and tests = unionStringArrays(existing.tests, delta.tests). Skip entirely when deltaSpec.mapping is undefined so an absent mapping preserves the existing one; an empty array likewise preserves existing paths because unionStringArrays appends nothing. buildNewMainSpec keeps seeding new-spec mappings; the extra union over a just-built spec is idempotent. Add change-lifecycle tests for additive union (order-stable, deduped) and empty/absent mapping preservation, and a delta-spec MODIFYing cli-archive-merges-delta-specs-into-main-specs plus a new scenario.'
+decisions:
+  union-spec-mapping-on-merge:
+    decision: Union delta-spec implementation/test mappings into the existing main spec mapping in applyDeltaToMainSpec using unionStringArrays, the same helper and union semantics as the tech delta-merge.
+    rationale: Spec and tech delta-merges should treat mapping additively and consistently; reusing unionStringArrays guarantees dedup, order stability, and that an empty or partial delta mapping never wipes untouched paths, eliminating the need for manual main-spec mapping edits after a change.
+alternatives: []
+risks: []

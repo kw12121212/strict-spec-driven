@@ -1,0 +1,30 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/archive.ts
+  tests:
+    - test/suites/change-lifecycle.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    cli-archive-merges-delta-specs-into-main-specs:
+      strength: MUST
+      statement: The system MUST merge delta specs from the archived change into their corresponding main strict specs using stable requirement identifiers and explicit ADDED, MODIFIED, and REMOVED operations, and MUST union each delta spec's implementation and test mapping into the target main spec's mapping without dropping, reordering, or duplicating untouched paths, while an absent or empty delta mapping leaves the existing main spec mapping unchanged.
+      scenarios:
+        archive-applies-added-and-modified-operations:
+          - GIVEN: a strict change includes delta specs with ADDED and MODIFIED entries targeting existing strict main specs
+          - WHEN: '`strict-spec-driven archive <name>` is executed'
+          - THEN: ADDED requirements are appended to the target specs and MODIFIED requirements replace the targeted requirements by stable requirement identifier
+        archive-applies-removed-operations:
+          - GIVEN: a strict change includes delta specs with REMOVED entries targeting existing requirements
+          - WHEN: '`strict-spec-driven archive <name>` is executed'
+          - THEN: targeted requirements are removed from the target main specs
+        archive-unions-delta-mapping-into-existing-main-spec:
+          - GIVEN: a delta spec targeting an existing main spec declares an implementation or test path not already in that main spec's mapping
+          - WHEN: '`strict-spec-driven archive <name>` is executed'
+          - THEN: the archived main spec mapping contains both the pre-existing and the newly declared paths, deduped and order-stable, and a delta spec with an absent or empty mapping leaves the existing mapping unchanged
+  REMOVED: {}

@@ -1,10 +1,13 @@
+import { existsSync, mkdirSync } from "fs";
 import path from "path";
 import { stringifyYamlDocument } from "../yaml.js";
 import {
+  PLANNED_CHANGE_SCHEMA_ID,
   ROADMAP_INDEX_PATH,
   type DeclaredRoadmapStatus,
   type LoadedMilestone,
   type RoadmapDiagnostic,
+  type StandalonePlannedChangeArtifact,
 } from "./model.js";
 import { makeDiagnostic, normalizeMilestoneStatus, sortDiagnostics, toPosix } from "./shared.js";
 import { loadRoadmap } from "./load.js";
@@ -28,6 +31,11 @@ export type RoadmapReopenFrozenPlannedChange = {
   state: "archived";
 };
 
+export type RoadmapReopenSeededFollowUp = {
+  id: string;
+  path: string;
+};
+
 export type RoadmapReopenResult = {
   valid: boolean;
   reopened: {
@@ -37,13 +45,15 @@ export type RoadmapReopenResult = {
     previousStatus: DeclaredRoadmapStatus;
     newStatus: DeclaredRoadmapStatus;
     frozenPlannedChanges: RoadmapReopenFrozenPlannedChange[];
+    seededFollowUp: RoadmapReopenSeededFollowUp | null;
   };
   updatedFiles: string[];
   diagnostics: RoadmapDiagnostic[];
 };
 
 const DEFAULT_REOPEN_REASON = "gaps discovered after completion";
-const REOPEN_TARGET_STATUS: DeclaredRoadmapStatus = "active";
+const PLANNED_CHANGES_DIRNAME = "planned-changes";
+const FOLLOWUP_SCHEMA_FILE = "../../templates/strict-spec-driven/schemas/planned-change.yaml";
 
 function buildReopenNote(reason: string): string {
   const date = new Date().toISOString().slice(0, 10);
@@ -62,12 +72,79 @@ function findMilestoneById(roadmap: ReturnType<typeof loadRoadmap>, milestoneId:
 }
 
 /**
- * Reopen a previously completed milestone by flipping its status to `active`
- * and appending a dated reopen note. Completed (archived) planned changes are
- * immutable: this function never modifies a planned-change file or an inline
- * planned_changes entry — only the milestone's top-level `status` and `notes`
- * fields change. New follow-up planned changes are added separately via the
- * normal roadmap planning workflow after reopen.
+ * Seed a pending follow-up standalone planned change for a reopened milestone so
+ * the milestone has genuine non-archived work and re-derives off `complete`
+ * instead of relying on any sticky status. The seeded file uses a deterministic,
+ * non-colliding id and filename, depends on the most recent archived planned
+ * change when one exists, and is a normal editable planned change the operator
+ * refines next. Existing (archived) planned-change files are never modified.
+ */
+function seedFollowUpPlannedChange(
+  roadmap: ReturnType<typeof loadRoadmap>,
+  rootDir: string,
+  milestone: LoadedMilestone,
+  frozenPlannedChanges: RoadmapReopenFrozenPlannedChange[],
+  reason: string,
+  updatedFiles: string[],
+): RoadmapReopenSeededFollowUp {
+  const plannedChangesDir = path.join(rootDir, ".strict-spec-driven", "roadmap", PLANNED_CHANGES_DIRNAME);
+  mkdirSync(plannedChangesDir, { recursive: true });
+
+  const milestoneId = milestone.artifact.milestone.id;
+  const existingIds = new Set(roadmap.plannedChanges.map((plannedChange) => plannedChange.artifact.planned_change.id));
+
+  // Deterministic id derived from the milestone, disambiguated on collision.
+  const baseId = `${milestoneId}-followup`;
+  let id = baseId;
+  let suffix = 2;
+  while (existingIds.has(id)) {
+    id = `${baseId}-${suffix}`;
+    suffix += 1;
+  }
+
+  // Numeric filename prefix after the current maximum so ordering is stable.
+  let maxPrefix = 0;
+  for (const plannedChange of roadmap.plannedChanges) {
+    const match = /^(\d+)-/.exec(path.basename(plannedChange.relativeRoadmapPath));
+    if (match) maxPrefix = Math.max(maxPrefix, Number.parseInt(match[1], 10));
+  }
+  let prefix = maxPrefix + 1;
+  let fileName = `${String(prefix).padStart(4, "0")}-${id}.yaml`;
+  while (existsSync(path.join(plannedChangesDir, fileName))) {
+    prefix += 1;
+    fileName = `${String(prefix).padStart(4, "0")}-${id}.yaml`;
+  }
+
+  const latestArchived = frozenPlannedChanges[frozenPlannedChanges.length - 1];
+  const artifact: StandalonePlannedChangeArtifact = {
+    schema: PLANNED_CHANGE_SCHEMA_ID,
+    schema_version: 1,
+    artifact_type: "planned_change",
+    schema_file: FOLLOWUP_SCHEMA_FILE,
+    planned_change: {
+      id,
+      milestone: milestoneId,
+    },
+    status: "planned",
+    summary: `Follow-up work for reopened milestone ${milestoneId}: ${reason}`,
+    details: `Scope and plan the follow-up work discovered when reopening milestone ${milestoneId}. Reason: ${reason}. Refine this placeholder into concrete planned-change detail.`,
+    depends_on: latestArchived ? [latestArchived.id] : [],
+  };
+
+  const absolutePath = path.join(plannedChangesDir, fileName);
+  writeFileIfChanged(absolutePath, stringifyYamlDocument(artifact), updatedFiles, rootDir);
+  return { id, path: toPosix(path.join("roadmap", PLANNED_CHANGES_DIRNAME, fileName)) };
+}
+
+/**
+ * Reopen a previously completed milestone by appending a dated reopen note and
+ * seeding a pending follow-up planned change, then rewriting the milestone and
+ * index to the status derived from structured planned-change state. A reopened
+ * milestone with only not-yet-started follow-up work derives `proposed`; it
+ * becomes `active` once a strict change starts and `complete` once all planned
+ * changes are archived again. Completed (archived) planned changes are
+ * immutable: this function never modifies an existing planned-change file or an
+ * inline planned_changes entry.
  */
 export function reopenMilestone(
   rootDir: string,
@@ -143,32 +220,48 @@ export function reopenMilestone(
     }));
 
   const reopenNote = buildReopenNote(reason);
-  const reopenNotes = [...milestone.artifact.notes];
-  const lastNote = reopenNotes[reopenNotes.length - 1];
-  if (lastNote !== reopenNote) {
+  const updatedFiles: string[] = [];
+
+  // Seed a pending follow-up so the milestone has real non-archived work. The
+  // reopened milestone then derives its status from structured planned-change
+  // state rather than from a sticky declared status.
+  const seededFollowUp = seedFollowUpPlannedChange(roadmap, rootDir, milestone, frozenPlannedChanges, reason, updatedFiles);
+
+  // Reload so the freshly seeded follow-up participates in status derivation,
+  // then rewrite the milestone with its derived status plus the reopen note.
+  const reloaded = loadReopenContext(rootDir);
+  const reloadedMilestone = findMilestoneById(reloaded.roadmap, milestoneId);
+  if (reloaded.roadmap.diagnostics.length > 0 || !reloadedMilestone) {
+    return {
+      valid: false,
+      reopened: { ...emptyReopened(milestoneId), id: milestoneIdResolved, title: milestoneTitleResolved, path: milestonePathResolved, previousStatus, frozenPlannedChanges, seededFollowUp },
+      updatedFiles,
+      diagnostics: sortDiagnostics([...diagnostics, ...reloaded.roadmap.diagnostics]),
+    };
+  }
+
+  const reloadedStandalone = getStandalonePlannedChangesForMilestone(reloaded.roadmap, reloadedMilestone);
+  const reloadedEntries = getMergedPlannedChangesForMilestone(reloadedMilestone, reloadedStandalone);
+  const reloadedStatus = buildMilestoneStatus(reloadedMilestone, reloaded.changeStates, reloadedEntries);
+
+  const reopenNotes = [...reloadedMilestone.artifact.notes];
+  if (reopenNotes[reopenNotes.length - 1] !== reopenNote) {
     reopenNotes.push(reopenNote);
   }
 
-  const nextMilestoneArtifact = buildCanonicalMilestoneArtifact(milestone, status);
-  nextMilestoneArtifact.status = REOPEN_TARGET_STATUS;
+  const nextMilestoneArtifact = buildCanonicalMilestoneArtifact(reloadedMilestone, reloadedStatus);
   nextMilestoneArtifact.notes = reopenNotes;
 
-  const updatedFiles: string[] = [];
   const nextContent = stringifyYamlDocument(nextMilestoneArtifact);
-  writeFileIfChanged(milestone.absolutePath, nextContent, updatedFiles, rootDir);
+  writeFileIfChanged(reloadedMilestone.absolutePath, nextContent, updatedFiles, rootDir);
 
-  // Reflect the rewritten artifact on the loaded milestone so the canonical
-  // index rebuild below picks up the new `active` status and the reopen note.
-  milestone.artifact = nextMilestoneArtifact;
-  milestone.raw = nextContent;
+  // Reflect the rewritten artifact on the loaded milestone so the index rebuild
+  // below picks up the derived status and the reopen note.
+  reloadedMilestone.artifact = nextMilestoneArtifact;
+  reloadedMilestone.raw = nextContent;
 
-  // Rebuild the roadmap index from the reopened milestone state. We deliberately
-  // do NOT call `syncRoadmap` here: full sync re-derives the milestone status
-  // from planned-change completion state, which would flip a reopened milestone
-  // (whose planned changes are all archived) back to `complete`. Reopen is an
-  // explicit user override of that derivation; the index must reflect it.
   const indexPath = path.join(rootDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
-  const nextIndex = buildRoadmapIndexArtifact(roadmap.milestones);
+  const nextIndex = buildRoadmapIndexArtifact(reloaded.roadmap.milestones);
   writeFileIfChanged(indexPath, stringifyYamlDocument(nextIndex), updatedFiles, rootDir);
 
   const reopenedSummary = {
@@ -176,8 +269,9 @@ export function reopenMilestone(
     title: milestoneTitleResolved,
     path: milestonePathResolved,
     previousStatus,
-    newStatus: REOPEN_TARGET_STATUS,
+    newStatus: nextMilestoneArtifact.status,
     frozenPlannedChanges,
+    seededFollowUp,
   };
 
   // Validate the reopened roadmap state without re-deriving statuses.
@@ -206,7 +300,8 @@ function emptyReopened(milestoneId: string): RoadmapReopenResult["reopened"] {
     title: "",
     path: "",
     previousStatus: "complete",
-    newStatus: REOPEN_TARGET_STATUS,
+    newStatus: "proposed",
     frozenPlannedChanges: [],
+    seededFollowUp: null,
   };
 }

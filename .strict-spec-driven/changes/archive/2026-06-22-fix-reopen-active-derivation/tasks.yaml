@@ -1,0 +1,39 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: fix-reopen-active-derivation
+sections:
+  Implementation:
+    drop-sticky-active-status:
+      text: In src/roadmap/sync.ts resolveCanonicalMilestoneStatus, remove the unconditional `if (declared === "active") return declared;` branch so a milestone whose planned changes are all archived re-derives complete. Keep the planned/proposed alias branch that preserves declared spelling when it normalizes to the derived status.
+      status: complete
+    seed-followup-planned-change-on-reopen:
+      text: In src/roadmap/reopen.ts, after flipping the milestone to active and appending the dated reopen note, write a new pending standalone planned-change artifact (status planned) linked to the milestone with a deterministic non-colliding id and depends_on referencing the latest archived planned change, so the milestone derives active. Never read-modify archived planned-change files. Surface the seeded follow-up in the reopen result and updatedFiles.
+      status: complete
+    update-reopen-regression-tests:
+      text: Update the reopen tests in test/suites/roadmap-and-migration.ts to assert the seeded pending follow-up planned change is created, that the pre-existing archived planned change stays byte-identical, and that an intermediate roadmap-sync keeps the milestone in its derived proposed status because of the pending follow-up rather than a sticky status.
+      status: complete
+    update-reopen-skill-doc:
+      text: 'Update skills/strict-roadmap-reopen/SKILL.md so it describes the new behavior: reopen seeds a pending follow-up planned change and writes the derived status (proposed when only not-yet-started follow-up work exists), rather than forcing or targeting active. Keep the immutability and YAML guidance accurate.'
+      status: complete
+  Testing:
+    rebuild-compiled-output:
+      text: Rebuild compiled dist output and the committed bundle so dist-based tests and dist/scripts/strict-spec-driven.js reflect the source edits.
+      status: complete
+      command: bun run build
+    lint-typecheck:
+      text: Run the TypeScript typecheck/lint gate with no errors.
+      status: complete
+      command: bun run lint
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it. Confirms the previously broken change-lifecycle and operations suites pass and the reopen suite is green.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: 'Verify implementation matches proposal scope and that every unchanged_behavior item holds: archived planned changes immutable, planned/proposed alias preserved, reopen note appended, compact sync output, canonical index regeneration.'
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: run-project-regression

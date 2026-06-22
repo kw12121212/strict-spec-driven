@@ -327,6 +327,17 @@ function applyDeltaToMainSpec(
   }
 
   assertUniqueRequirementIds(mainSpec.requirements, specPath);
+
+  // Union the delta's implementation/test mapping into the main spec mapping,
+  // mirroring the tech delta-merge. An absent delta mapping is skipped so it
+  // never wipes the existing mapping, and empty delta arrays append nothing.
+  if (deltaSpec.mapping) {
+    const existingMapping = (mainSpec.mapping as { implementation?: string[]; tests?: string[] } | undefined) ?? {};
+    mainSpec.mapping = {
+      implementation: unionStringArrays(existingMapping.implementation, deltaSpec.mapping.implementation),
+      tests: unionStringArrays(existingMapping.tests, deltaSpec.mapping.tests),
+    };
+  }
 }
 
 function buildArchiveDestination(rootDir: string, changeName: string): string {
