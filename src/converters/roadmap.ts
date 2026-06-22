@@ -3,7 +3,7 @@ const ROADMAP_MILESTONE_SCHEMA_FILE = "templates/strict-spec-driven/schemas/road
 const SPEC_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/spec-index.yaml";
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 
-const DECLARED_ROADMAP_STATUSES = ["proposed", "active", "blocked", "complete"] as const;
+const DECLARED_ROADMAP_STATUSES = ["proposed", "planned", "active", "blocked", "complete"] as const;
 type DeclaredRoadmapStatus = (typeof DECLARED_ROADMAP_STATUSES)[number];
 type DeclaredPlannedChangeStatus = "planned" | "complete";
 
@@ -298,7 +298,7 @@ export function convertRoadmapMilestone(
         ok: false,
         reason: `Milestone '${filename}' has a '## Status' section with no recognizable '- Declared: <status>' line.`,
         recommendation:
-          "Add a '- Declared: <proposed|active|blocked|complete>' line to the Status section and rerun migration.",
+          "Add a '- Declared: <proposed|planned|active|blocked|complete>' line to the Status section and rerun migration.",
       };
     }
 

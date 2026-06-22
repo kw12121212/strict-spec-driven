@@ -166,7 +166,7 @@ export function validateRoadmapIndexArtifact(
           artifactPath,
           `$.milestones.${key}.status`,
           "unsupported milestone status",
-          "proposed, active, blocked, complete",
+          "proposed, planned, active, blocked, complete",
           String(statusValue),
         ),
       );
@@ -529,7 +529,7 @@ export function validateMilestoneArtifact(
         artifactPath,
         "$.status",
         "unsupported milestone status",
-        "proposed, active, blocked, complete",
+        "proposed, planned, active, blocked, complete",
         String(statusValue),
       ),
     );

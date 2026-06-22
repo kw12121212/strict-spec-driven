@@ -5,10 +5,12 @@ import {
   syncRoadmap,
   type RoadmapRecommendResult,
 } from "../roadmap.js";
+import { reopenMilestone } from "../roadmap/reopen.js";
 import { isHelpRequest } from "./argv.js";
 import { writeHelp, writeJson, writeOut, writeUsage } from "./output.js";
 
 const ROADMAP_RECOMMEND_USAGE = "Usage: strict-spec-driven roadmap-recommend [--details]\n";
+const ROADMAP_REOPEN_USAGE = "Usage: strict-spec-driven roadmap-reopen <milestone-id> [--reason \"...\"]\n";
 const ACTIONABLE_BLOCKER_LIMIT = 10;
 
 function summarizeRoadmapRecommendation(result: RoadmapRecommendResult): unknown {
@@ -124,4 +126,46 @@ export function runRoadmapRecommend(argv: string[]): number {
   const result = recommendRoadmapChange(process.cwd());
   writeJson(includeDetails ? result : summarizeRoadmapRecommendation(result));
   return result.status === "recommended" ? 0 : 1;
+}
+
+export function runRoadmapReopen(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp(ROADMAP_REOPEN_USAGE);
+    return 0;
+  }
+  if (argv.length === 0) {
+    writeUsage(ROADMAP_REOPEN_USAGE);
+    return 1;
+  }
+
+  const milestoneId = argv[0];
+  const reasonArgs: string[] = [];
+  let reason: string | undefined;
+  for (let index = 1; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === "--reason") {
+      const next = argv[index + 1];
+      if (typeof next !== "string") {
+        writeUsage(ROADMAP_REOPEN_USAGE);
+        return 1;
+      }
+      reason = next;
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--reason=")) {
+      reason = token.slice("--reason=".length);
+      continue;
+    }
+    reasonArgs.push(token);
+  }
+
+  if (reasonArgs.length > 0) {
+    writeUsage(ROADMAP_REOPEN_USAGE);
+    return 1;
+  }
+
+  const result = reopenMilestone(process.cwd(), milestoneId, reason !== undefined ? { reason } : {});
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }

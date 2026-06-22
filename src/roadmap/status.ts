@@ -12,7 +12,7 @@ import {
   type RoadmapDiagnostic,
   type RoadmapMilestoneStatus,
 } from "./model.js";
-import { makeDiagnostic, resolveStrictWorkflowPath, toPosix } from "./shared.js";
+import { makeDiagnostic, normalizeMilestoneStatus, resolveStrictWorkflowPath, toPosix } from "./shared.js";
 
 export function getChangeStateIndex(rootDir: string): ChangeStateIndex {
   const changesDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "changes");
@@ -391,7 +391,7 @@ export function buildMilestoneStatus(
 
   const derivedStatus = deriveMilestoneStatus(plannedChanges.map((entry) => entry.state));
   const mismatches: string[] = [];
-  if (milestone.artifact.status !== derivedStatus) {
+  if (normalizeMilestoneStatus(milestone.artifact.status) !== derivedStatus) {
     mismatches.push(`declared status '${milestone.artifact.status}' does not match derived status '${derivedStatus}'`);
   }
 
