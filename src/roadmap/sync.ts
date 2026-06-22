@@ -12,7 +12,7 @@ import {
   type RoadmapMilestoneStatus,
   type StandalonePlannedChangeArtifact,
 } from "./model.js";
-import { ensureTrailingNewline, normalizeRepoRelativePath, toPosix } from "./shared.js";
+import { ensureTrailingNewline, normalizeMilestoneStatus, normalizeRepoRelativePath, toPosix } from "./shared.js";
 
 export function writeFileIfChanged(filePath: string, nextContent: string, updatedFiles: string[], rootDir: string): void {
   const normalized = ensureTrailingNewline(nextContent);
@@ -20,6 +20,28 @@ export function writeFileIfChanged(filePath: string, nextContent: string, update
   if (current === normalized) return;
   writeFileSync(filePath, normalized, "utf8");
   updatedFiles.push(normalizeRepoRelativePath(rootDir, filePath));
+}
+
+/**
+ * Resolve the milestone status to persist during canonical rewrite.
+ *
+ * - `planned` and `proposed` are interchangeable aliases: when the declared
+ *   status normalizes to the derived status, preserve the user's declared
+ *   spelling instead of rewriting it.
+ * - A declared `active` status is a forward-looking user intent. A reopened
+ *   milestone is declared `active` even while its planned changes are still
+ *   archived or merely planned (not yet an active strict change). Preserve the
+ *   declared `active` across the full proposed/active/complete derived range so
+ *   an intermediate `roadmap-sync` does not silently revert a reopen.
+ * - Otherwise fall back to the derived status when the declared value drifted.
+ */
+function resolveCanonicalMilestoneStatus(
+  declared: RoadmapMilestoneArtifact["status"],
+  derived: RoadmapMilestoneStatus["derivedStatus"],
+): RoadmapMilestoneArtifact["status"] {
+  if (normalizeMilestoneStatus(declared) === derived) return declared;
+  if (declared === "active") return declared;
+  return derived;
 }
 
 export function buildCanonicalMilestoneArtifact(
@@ -57,7 +79,7 @@ export function buildCanonicalMilestoneArtifact(
     planned_changes: plannedChanges,
     dependencies: [...milestone.artifact.dependencies],
     risks: [...milestone.artifact.risks],
-    status: status.derivedStatus,
+    status: resolveCanonicalMilestoneStatus(milestone.artifact.status, status.derivedStatus),
     notes: [...milestone.artifact.notes],
     ...(milestone.artifact.details != null ? { details: milestone.artifact.details } : {}),
     ...(milestone.artifact.source_ticket != null ? { source_ticket: milestone.artifact.source_ticket } : {}),

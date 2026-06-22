@@ -2466,6 +2466,7 @@ json_schema:
       type: string
       enum:
         - proposed
+        - planned
         - active
         - blocked
         - complete

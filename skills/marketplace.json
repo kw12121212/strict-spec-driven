@@ -4,6 +4,7 @@
   "skills": [
     { "name": "strict-roadmap-plan", "family": "strict-roadmap" },
     { "name": "strict-roadmap-recommend", "family": "strict-roadmap" },
+    { "name": "strict-roadmap-reopen", "family": "strict-roadmap" },
     { "name": "strict-roadmap-review", "family": "strict-roadmap" },
     { "name": "strict-roadmap-sync", "family": "strict-roadmap" },
     { "name": "strict-spec-apply", "family": "strict-spec" },

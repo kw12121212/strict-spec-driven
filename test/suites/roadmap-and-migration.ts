@@ -357,6 +357,217 @@ try {
   rmSync(roadmapHappyDir, { recursive: true, force: true });
 }
 
+const roadmapReopenDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-reopen-"));
+try {
+  // A milestone whose single planned change is archived → milestone derives complete.
+  mkdirSync(
+    path.join(roadmapReopenDir, ".strict-spec-driven", "changes", "archive", `${formatLocalDateStamp()}-archived-change`),
+    { recursive: true },
+  );
+
+  writeRoadmapMilestoneArtifact(roadmapReopenDir, "0001-reopen.yaml", {
+    id: "0001-reopen",
+    title: "Reopen Workflow",
+    goal: "Reopen a completed milestone when gaps are discovered.",
+    status: "complete",
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapReopenDir, "planned-changes/0001-archived-change.yaml", {
+    id: "archived-change",
+    milestone: "0001-reopen",
+    status: "complete",
+    summary: "Work that already shipped.",
+    details: "Standalone details for archived-change.",
+    depends_on: [],
+  });
+
+  writeRoadmapIndexArtifact(roadmapReopenDir, [
+    {
+      id: "0001-reopen",
+      title: "Reopen Workflow",
+      path: "roadmap/milestones/0001-reopen.yaml",
+      status: "complete",
+    },
+  ]);
+
+  const archivedPlannedChangePath = path.join(
+    roadmapReopenDir,
+    ".strict-spec-driven",
+    "roadmap",
+    "planned-changes",
+    "0001-archived-change.yaml",
+  );
+  const archivedPlannedChangeBefore = readFileSync(archivedPlannedChangePath, "utf8");
+
+  const reopenStatusBefore = cli(["roadmap-status"], { cwd: roadmapReopenDir });
+  context.assert(reopenStatusBefore.status === 0, "roadmap-status exits zero for a completed milestone before reopen");
+  const reopenStatusBeforeJson = JSON.parse(reopenStatusBefore.stdout.trim());
+  context.assert(
+    reopenStatusBeforeJson.milestones[0].declaredStatus === "complete"
+      && reopenStatusBeforeJson.milestones[0].derivedStatus === "complete",
+    "roadmap-status reports a complete milestone before reopen",
+  );
+  context.assert(
+    reopenStatusBeforeJson.milestones[0].plannedChanges[0].state === "archived"
+      && reopenStatusBeforeJson.milestones[0].plannedChanges[0].derivedStatus === "complete",
+    "roadmap-status reports the single planned change as archived/complete before reopen",
+  );
+
+  const roadmapReopen = cli(
+    ["roadmap-reopen", "0001-reopen", "--reason", "missing edge-case coverage discovered in production"],
+    { cwd: roadmapReopenDir },
+  );
+  context.assert(roadmapReopen.status === 0, "roadmap-reopen exits zero for a completed milestone", `got ${roadmapReopen.status}: ${roadmapReopen.stdout}`);
+  const roadmapReopenJson = JSON.parse(roadmapReopen.stdout.trim());
+  context.assert(roadmapReopenJson.valid === true, "roadmap-reopen reports valid=true");
+  context.assert(
+    roadmapReopenJson.reopened.id === "0001-reopen"
+      && roadmapReopenJson.reopened.previousStatus === "complete"
+      && roadmapReopenJson.reopened.newStatus === "active",
+    "roadmap-reopen flips the milestone status from complete to active",
+  );
+  context.assert(
+    roadmapReopenJson.reopened.frozenPlannedChanges.length === 1
+      && roadmapReopenJson.reopened.frozenPlannedChanges[0].id === "archived-change"
+      && roadmapReopenJson.reopened.frozenPlannedChanges[0].state === "archived",
+    "roadmap-reopen reports the archived planned change as frozen",
+  );
+  context.assert(
+    roadmapReopenJson.updatedFiles.some((file: string) => file.endsWith("roadmap/milestones/0001-reopen.yaml")),
+    "roadmap-reopen records the milestone file as updated",
+  );
+
+  // The archived planned-change file must be byte-identical after reopen.
+  const archivedPlannedChangeAfter = readFileSync(archivedPlannedChangePath, "utf8");
+  context.assert(
+    archivedPlannedChangeAfter === archivedPlannedChangeBefore,
+    "roadmap-reopen leaves archived planned-change files byte-identical (immutable)",
+  );
+
+  // The milestone file now declares active and carries the reopen note.
+  const reopenedMilestoneArtifact = yamlModule.parseYamlFile<{ status: string; notes: string[] }>(
+    path.join(roadmapReopenDir, ".strict-spec-driven", "roadmap", "milestones", "0001-reopen.yaml"),
+  );
+  context.assert(reopenedMilestoneArtifact.status === "active", "roadmap-reopen writes status=active to the milestone file");
+  context.assert(
+    reopenedMilestoneArtifact.notes.some((note: string) => note.startsWith("Reopened on ") && note.includes("missing edge-case coverage discovered in production")),
+    "roadmap-reopen appends a dated reopen note carrying the reason",
+  );
+
+  const reopenStatusAfter = cli(["roadmap-status"], { cwd: roadmapReopenDir });
+  context.assert(reopenStatusAfter.status === 0, "roadmap-status stays zero after reopen");
+  const reopenStatusAfterJson = JSON.parse(reopenStatusAfter.stdout.trim());
+  context.assert(
+    reopenStatusAfterJson.milestones[0].declaredStatus === "active",
+    "roadmap-status reports the reopened milestone as declared active",
+  );
+  context.assert(
+    reopenStatusAfterJson.milestones[0].plannedChanges[0].state === "archived"
+      && reopenStatusAfterJson.milestones[0].plannedChanges[0].derivedStatus === "complete",
+    "roadmap-status keeps the archived planned change complete after reopen",
+  );
+
+  // An intermediate roadmap-sync must NOT silently revert the reopen. The
+  // declared `active` survives because reopened milestones are an explicit
+  // user override of the all-planned-changes-archived derivation.
+  const intermediateSync = cli(["roadmap-sync"], { cwd: roadmapReopenDir });
+  context.assert(intermediateSync.status === 0, "roadmap-sync exits zero after reopen without follow-up work");
+  const intermediateMilestone = yamlModule.parseYamlFile<{ status: string }>(
+    path.join(roadmapReopenDir, ".strict-spec-driven", "roadmap", "milestones", "0001-reopen.yaml"),
+  );
+  context.assert(
+    intermediateMilestone.status === "active",
+    "roadmap-sync preserves the reopened active status instead of reverting to complete",
+  );
+
+  // Adding a new follow-up planned change after reopen is the documented path.
+  writeStandalonePlannedChangeArtifact(roadmapReopenDir, "planned-changes/0002-followup-change.yaml", {
+    id: "followup-change",
+    milestone: "0001-reopen",
+    status: "planned",
+    summary: "New follow-up work for the discovered gap.",
+    details: "Standalone details for followup-change.",
+    depends_on: ["archived-change"],
+  });
+  const followupSync = cli(["roadmap-sync"], { cwd: roadmapReopenDir });
+  context.assert(followupSync.status === 0, "roadmap-sync accepts a new follow-up planned change after reopen");
+  const followupStatus = JSON.parse(cli(["roadmap-status"], { cwd: roadmapReopenDir }).stdout.trim());
+  context.assert(
+    followupStatus.milestones[0].declaredStatus === "active"
+      && followupStatus.milestones[0].plannedChanges.some((pc: { id: string }) => pc.id === "followup-change")
+      && followupStatus.milestones[0].plannedChanges.some((pc: { id: string; derivedStatus: string }) => pc.id === "archived-change" && pc.derivedStatus === "complete"),
+    "roadmap-status shows the new follow-up change alongside the still-complete archived change after reopen",
+  );
+
+  // nonexistent milestone id is rejected.
+  const reopenMissing = cli(["roadmap-reopen", "does-not-exist"], { cwd: roadmapReopenDir });
+  context.assert(reopenMissing.status !== 0, "roadmap-reopen exits non-zero for an unknown milestone id");
+  const reopenMissingJson = JSON.parse(reopenMissing.stdout.trim());
+  context.assert(
+    reopenMissingJson.valid === false
+      && reopenMissingJson.diagnostics.some((d: { message: string }) => d.message.includes("was not found in the roadmap")),
+    "roadmap-reopen reports a not-found diagnostic for an unknown milestone id",
+  );
+
+  // missing milestone-id argument prints usage.
+  const reopenNoArg = cli(["roadmap-reopen"], { cwd: roadmapReopenDir });
+  context.assert(reopenNoArg.status !== 0, "roadmap-reopen exits non-zero when no milestone id is supplied");
+} finally {
+  rmSync(roadmapReopenDir, { recursive: true, force: true });
+}
+
+const roadmapPlannedAliasDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-planned-alias-"));
+try {
+  // `planned` is an accepted alias of `proposed` for an incomplete milestone.
+  writeRoadmapMilestoneArtifact(roadmapPlannedAliasDir, "0001-planned-alias.yaml", {
+    id: "0001-planned-alias",
+    title: "Planned Alias",
+    goal: "Verify the planned status alias is accepted.",
+    status: "planned",
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapPlannedAliasDir, "planned-changes/0001-pending-change.yaml", {
+    id: "pending-change",
+    milestone: "0001-planned-alias",
+    status: "planned",
+    summary: "Pending work with no strict change yet.",
+    details: "Standalone details for pending-change.",
+    depends_on: [],
+  });
+  writeRoadmapIndexArtifact(roadmapPlannedAliasDir, [
+    {
+      id: "0001-planned-alias",
+      title: "Planned Alias",
+      path: "roadmap/milestones/0001-planned-alias.yaml",
+      status: "planned",
+    },
+  ]);
+
+  const plannedAliasStatus = cli(["roadmap-status"], { cwd: roadmapPlannedAliasDir });
+  context.assert(plannedAliasStatus.status === 0, "roadmap-status accepts a milestone with the planned status alias");
+  const plannedAliasStatusJson = JSON.parse(plannedAliasStatus.stdout.trim());
+  context.assert(
+    plannedAliasStatusJson.valid === true
+      && plannedAliasStatusJson.milestones[0].declaredStatus === "planned"
+      && plannedAliasStatusJson.milestones[0].derivedStatus === "proposed"
+      && plannedAliasStatusJson.milestones[0].mismatches.length === 0,
+    "roadmap-status treats planned as equivalent to proposed without a mismatch",
+  );
+
+  // roadmap-sync preserves the declared `planned` spelling (alias is stable).
+  const plannedAliasSync = cli(["roadmap-sync"], { cwd: roadmapPlannedAliasDir });
+  context.assert(plannedAliasSync.status === 0, "roadmap-sync exits zero for a planned-status milestone");
+  const plannedAliasMilestoneAfter = yamlModule.parseYamlFile<{ status: string }>(
+    path.join(roadmapPlannedAliasDir, ".strict-spec-driven", "roadmap", "milestones", "0001-planned-alias.yaml"),
+  );
+  context.assert(
+    plannedAliasMilestoneAfter.status === "planned",
+    "roadmap-sync preserves the declared planned status spelling instead of rewriting to proposed",
+  );
+} finally {
+  rmSync(roadmapPlannedAliasDir, { recursive: true, force: true });
+}
+
 const roadmapNoCandidateDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-no-candidate-"));
 try {
   mkdirSync(path.join(roadmapNoCandidateDir, ".strict-spec-driven", "changes", "active-change"), { recursive: true });

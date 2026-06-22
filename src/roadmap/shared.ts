@@ -93,6 +93,16 @@ export function isDeclaredRoadmapStatus(value: unknown): value is DeclaredRoadma
   return typeof value === "string" && DECLARED_ROADMAP_STATUSES.includes(value as DeclaredRoadmapStatus);
 }
 
+/**
+ * Normalize a milestone status by treating `planned` as equivalent to `proposed`.
+ * The two values are interchangeable aliases; downstream comparisons use the
+ * canonical `proposed` form so derived-status reconciliation does not flag a
+ * mismatch when a milestone declares `planned`.
+ */
+export function normalizeMilestoneStatus(status: DeclaredRoadmapStatus): DeclaredRoadmapStatus {
+  return status === "planned" ? "proposed" : status;
+}
+
 export function isDeclaredPlannedChangeStatus(value: unknown): value is DeclaredPlannedChangeStatus {
   return typeof value === "string" && DECLARED_PLANNED_CHANGE_STATUSES.includes(value as DeclaredPlannedChangeStatus);
 }

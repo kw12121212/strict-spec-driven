@@ -5,7 +5,7 @@ export const ROADMAP_DIR = `${STRICT_WORKFLOW_DIR}/roadmap`;
 export const ROADMAP_INDEX_PATH = `${ROADMAP_DIR}/INDEX.yaml`;
 export const ROADMAP_MILESTONES_DIR = `${ROADMAP_DIR}/milestones`;
 
-export const DECLARED_ROADMAP_STATUSES = ["proposed", "active", "blocked", "complete"] as const;
+export const DECLARED_ROADMAP_STATUSES = ["proposed", "planned", "active", "blocked", "complete"] as const;
 export const DECLARED_PLANNED_CHANGE_STATUSES = ["planned", "complete"] as const;
 export const ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v2";
 export const ROADMAP_MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v2";
