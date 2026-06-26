@@ -1,0 +1,34 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+    - src/cli/cmd-roadmap.ts
+    - src/skills/model.ts
+    - skills/strict-roadmap-archive/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-roadmap-archive-command-and-skill:
+      strength: MUST
+      statement: The system MUST expose roadmap-archive as a canonical strict CLI subcommand with help and usage handling, and package a strict-roadmap-archive skill whose documented command mapping matches the bundled CLI command.
+      scenarios:
+        cli-lists-roadmap-archive:
+          - GIVEN: the strict CLI command table is inspected or root help is rendered
+          - WHEN: available commands are listed
+          - THEN: roadmap-archive is included as a canonical command
+        roadmap-archive-help-and-usage:
+          - GIVEN: the roadmap-archive command is invoked with --help or invalid extra arguments
+          - WHEN: the command router handles the invocation
+          - THEN: help exits zero with command usage and invalid arguments exit non-zero with usage
+        skill-documents-roadmap-archive:
+          - GIVEN: skill packaging validation reads bundled strict skills
+          - WHEN: validate-skills runs
+          - THEN: strict-roadmap-archive is validated with a roadmap-archive command mapping and required roadmap archive guidance
+  MODIFIED: {}
+  REMOVED: {}

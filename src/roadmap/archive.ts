@@ -1,0 +1,250 @@
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs";
+import path from "path";
+import { stringifyYamlDocument } from "../yaml.js";
+import { loadRoadmap } from "./load.js";
+import {
+  ROADMAP_ARCHIVE_MILESTONES_DIR,
+  ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR,
+  ROADMAP_INDEX_PATH,
+  type LoadedMilestone,
+  type LoadedPlannedChange,
+  type RoadmapArchivedMilestone,
+  type RoadmapArchiveResult,
+  type RoadmapArchiveSkippedMilestone,
+  type RoadmapDiagnostic,
+  type RoadmapMilestoneStatus,
+} from "./model.js";
+import { makeDiagnostic, normalizeRepoRelativePath, sortDiagnostics, toPosix } from "./shared.js";
+import {
+  appendRoadmapCrossFileDiagnostics,
+  buildMilestoneStatus,
+  getChangeStateIndex,
+  getMergedPlannedChangesForMilestone,
+  getStandalonePlannedChangesForMilestone,
+  orderMilestoneStatuses,
+} from "./status.js";
+import {
+  buildCanonicalMilestoneArtifact,
+  buildCanonicalPlannedChangeArtifact,
+  buildRoadmapIndexArtifact,
+} from "./sync.js";
+
+type ArchiveTarget = {
+  milestone: LoadedMilestone;
+  status: RoadmapMilestoneStatus;
+  milestoneArchivePath: string;
+  plannedChanges: Array<{
+    plannedChange: LoadedPlannedChange;
+    archivePath: string;
+  }>;
+};
+
+function archivePlannedChangePath(rootDir: string, plannedChange: LoadedPlannedChange): string {
+  const relative = plannedChange.relativeRoadmapPath.startsWith("planned-changes/")
+    ? plannedChange.relativeRoadmapPath.slice("planned-changes/".length)
+    : plannedChange.relativeRoadmapPath;
+  return path.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR, relative);
+}
+
+function archiveMilestonePath(rootDir: string, milestone: LoadedMilestone): string {
+  return path.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR, milestone.relativeMilestonePath);
+}
+
+function writeYamlFile(filePath: string, value: unknown): void {
+  mkdirSync(path.dirname(filePath), { recursive: true });
+  writeFileSync(filePath, stringifyYamlDocument(value), "utf8");
+}
+
+function buildSkippedMilestone(status: RoadmapMilestoneStatus): RoadmapArchiveSkippedMilestone {
+  return {
+    id: status.id,
+    path: status.path,
+    reason: `derived status is ${status.derivedStatus}, not complete`,
+    declaredStatus: status.declaredStatus,
+    derivedStatus: status.derivedStatus,
+    plannedChangeStates: status.plannedChanges.map((plannedChange) => ({
+      id: plannedChange.id,
+      state: plannedChange.state,
+      declaredStatus: plannedChange.declaredStatus,
+      derivedStatus: plannedChange.derivedStatus,
+    })),
+  };
+}
+
+function appendCollisionDiagnostics(targets: ArchiveTarget[], diagnostics: RoadmapDiagnostic[], rootDir: string): void {
+  for (const target of targets) {
+    if (existsSync(target.milestoneArchivePath)) {
+      diagnostics.push(
+        makeDiagnostic(
+          "semantic",
+          target.milestone.repoRelativePath,
+          "$",
+          "roadmap milestone archive destination already exists",
+          "available archive destination",
+          normalizeRepoRelativePath(rootDir, target.milestoneArchivePath),
+        ),
+      );
+    }
+    for (const plannedChange of target.plannedChanges) {
+      if (!existsSync(plannedChange.archivePath)) continue;
+      diagnostics.push(
+        makeDiagnostic(
+          "semantic",
+          plannedChange.plannedChange.repoRelativePath,
+          "$",
+          "roadmap planned-change archive destination already exists",
+          "available archive destination",
+          normalizeRepoRelativePath(rootDir, plannedChange.archivePath),
+        ),
+      );
+    }
+  }
+}
+
+export function archiveRoadmapMilestones(rootDir: string, milestoneId?: string): RoadmapArchiveResult {
+  const roadmap = loadRoadmap(rootDir);
+  const changeStates = getChangeStateIndex(rootDir);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
+
+  const statusMap = new Map<string, RoadmapMilestoneStatus>();
+  for (const milestone of roadmap.milestones) {
+    const milestonePath = `roadmap/milestones/${milestone.relativeMilestonePath}`;
+    const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);
+    const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
+    statusMap.set(milestonePath, buildMilestoneStatus(milestone, changeStates, plannedChangeEntries));
+  }
+
+  const milestones = orderMilestoneStatuses(rootDir, roadmap, statusMap, ROADMAP_INDEX_PATH);
+  let diagnostics = sortDiagnostics(roadmap.diagnostics);
+  if (diagnostics.length > 0) {
+    return {
+      valid: false,
+      warnings: roadmap.warnings,
+      diagnostics,
+      updatedFiles: [],
+      archivedMilestones: [],
+      skippedMilestones: [],
+    };
+  }
+
+  const selectedStatuses = milestoneId === undefined
+    ? milestones
+    : milestones.filter((milestone) => milestone.id === milestoneId);
+  if (milestoneId !== undefined && selectedStatuses.length === 0) {
+    diagnostics = [
+      makeDiagnostic(
+        "reference",
+        ROADMAP_INDEX_PATH,
+        "$.milestones",
+        "roadmap-archive milestone id was not found in the active roadmap",
+        "active roadmap milestone id",
+        milestoneId,
+      ),
+    ];
+    return {
+      valid: false,
+      warnings: roadmap.warnings,
+      diagnostics,
+      updatedFiles: [],
+      archivedMilestones: [],
+      skippedMilestones: [],
+    };
+  }
+
+  const milestonesByStatusPath = new Map(
+    roadmap.milestones.map((milestone) => [`roadmap/milestones/${milestone.relativeMilestonePath}`, milestone]),
+  );
+  const targets: ArchiveTarget[] = [];
+  const skippedMilestones: RoadmapArchiveSkippedMilestone[] = [];
+
+  for (const status of selectedStatuses) {
+    const milestone = milestonesByStatusPath.get(status.path);
+    if (!milestone) continue;
+    if (status.derivedStatus !== "complete") {
+      skippedMilestones.push(buildSkippedMilestone(status));
+      continue;
+    }
+
+    const completedStandalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone)
+      .filter((plannedChange) =>
+        status.plannedChanges.some(
+          (candidate) =>
+            candidate.id === plannedChange.artifact.planned_change.id
+            && candidate.source === "standalone"
+            && candidate.derivedStatus === "complete",
+        )
+      );
+
+    targets.push({
+      milestone,
+      status,
+      milestoneArchivePath: archiveMilestonePath(rootDir, milestone),
+      plannedChanges: completedStandalonePlannedChanges.map((plannedChange) => ({
+        plannedChange,
+        archivePath: archivePlannedChangePath(rootDir, plannedChange),
+      })),
+    });
+  }
+
+  const collisionDiagnostics: RoadmapDiagnostic[] = [];
+  appendCollisionDiagnostics(targets, collisionDiagnostics, rootDir);
+  if (collisionDiagnostics.length > 0) {
+    return {
+      valid: false,
+      warnings: roadmap.warnings,
+      diagnostics: sortDiagnostics(collisionDiagnostics),
+      updatedFiles: [],
+      archivedMilestones: [],
+      skippedMilestones,
+    };
+  }
+
+  const updatedFiles: string[] = [];
+  const archivedMilestones: RoadmapArchivedMilestone[] = [];
+  for (const target of targets) {
+    writeYamlFile(target.milestoneArchivePath, buildCanonicalMilestoneArtifact(target.milestone, target.status));
+    unlinkSync(target.milestone.absolutePath);
+    updatedFiles.push(target.milestone.repoRelativePath);
+    updatedFiles.push(normalizeRepoRelativePath(rootDir, target.milestoneArchivePath));
+
+    const archivedPlannedChanges = [];
+    for (const plannedChangeTarget of target.plannedChanges) {
+      writeYamlFile(
+        plannedChangeTarget.archivePath,
+        buildCanonicalPlannedChangeArtifact(plannedChangeTarget.plannedChange, target.status),
+      );
+      unlinkSync(plannedChangeTarget.plannedChange.absolutePath);
+      updatedFiles.push(plannedChangeTarget.plannedChange.repoRelativePath);
+      updatedFiles.push(normalizeRepoRelativePath(rootDir, plannedChangeTarget.archivePath));
+      archivedPlannedChanges.push({
+        id: plannedChangeTarget.plannedChange.artifact.planned_change.id,
+        sourcePath: toPosix(path.join("roadmap", plannedChangeTarget.plannedChange.relativeRoadmapPath)),
+        archivePath: normalizeRepoRelativePath(rootDir, plannedChangeTarget.archivePath).replace(/^\.strict-spec-driven\//, ""),
+      });
+    }
+
+    archivedMilestones.push({
+      id: target.status.id,
+      title: target.status.title,
+      sourcePath: target.status.path,
+      archivePath: normalizeRepoRelativePath(rootDir, target.milestoneArchivePath).replace(/^\.strict-spec-driven\//, ""),
+      plannedChanges: archivedPlannedChanges.sort((left, right) => left.id.localeCompare(right.id)),
+    });
+  }
+
+  if (targets.length > 0) {
+    const archivedMilestonePaths = new Set(targets.map((target) => target.milestone.absolutePath));
+    const remainingMilestones = roadmap.milestones.filter((milestone) => !archivedMilestonePaths.has(milestone.absolutePath));
+    writeYamlFile(path.join(rootDir, ROADMAP_INDEX_PATH), buildRoadmapIndexArtifact(remainingMilestones));
+    updatedFiles.push(ROADMAP_INDEX_PATH);
+  }
+
+  return {
+    valid: true,
+    warnings: roadmap.warnings,
+    diagnostics: [],
+    updatedFiles: Array.from(new Set(updatedFiles)).sort((left, right) => left.localeCompare(right)),
+    archivedMilestones: archivedMilestones.sort((left, right) => left.id.localeCompare(right.id)),
+    skippedMilestones: skippedMilestones.sort((left, right) => left.id.localeCompare(right.id)),
+  };
+}

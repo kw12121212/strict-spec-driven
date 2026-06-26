@@ -55,6 +55,8 @@ mapping:
     - templates/strict-spec-driven/scaffold/changes/questions.yaml
     - templates/strict-spec-driven/scaffold/specs/INDEX.yaml
     - templates/strict-spec-driven/scaffold/roadmap/INDEX.yaml
+    - src/cli/cmd-roadmap.ts
+    - skills/strict-roadmap-archive/SKILL.md
   tests:
     - test/run.ts
     - test/support/harness.ts
@@ -1914,3 +1916,19 @@ requirements:
         - GIVEN: an agent follows any bundled strict skill
         - WHEN: the skill describes preferred human language handling
         - THEN: the guidance requires complying with the configured common human language and distinguishes it from programming languages
+  cli-roadmap-archive-command-and-skill:
+    strength: MUST
+    statement: The system MUST expose roadmap-archive as a canonical strict CLI subcommand with help and usage handling, and package a strict-roadmap-archive skill whose documented command mapping matches the bundled CLI command.
+    scenarios:
+      cli-lists-roadmap-archive:
+        - GIVEN: the strict CLI command table is inspected or root help is rendered
+        - WHEN: available commands are listed
+        - THEN: roadmap-archive is included as a canonical command
+      roadmap-archive-help-and-usage:
+        - GIVEN: the roadmap-archive command is invoked with --help or invalid extra arguments
+        - WHEN: the command router handles the invocation
+        - THEN: help exits zero with command usage and invalid arguments exit non-zero with usage
+      skill-documents-roadmap-archive:
+        - GIVEN: skill packaging validation reads bundled strict skills
+        - WHEN: validate-skills runs
+        - THEN: strict-roadmap-archive is validated with a roadmap-archive command mapping and required roadmap archive guidance

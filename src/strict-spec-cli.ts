@@ -7,7 +7,7 @@ import { runInit, runPropose } from "./cli/cmd-scaffold.js";
 import { runGenerate } from "./cli/cmd-generation.js";
 import { runApply, runVerify, runArchive, runList, runModify, runCancel } from "./cli/cmd-change.js";
 import { runCheckWorkflowState, runNext, runReady } from "./cli/cmd-workflow.js";
-import { runRoadmapOverview, runRoadmapRecommend, runRoadmapReopen, runRoadmapStatus, runRoadmapSync } from "./cli/cmd-roadmap.js";
+import { runRoadmapArchive, runRoadmapOverview, runRoadmapRecommend, runRoadmapReopen, runRoadmapStatus, runRoadmapSync } from "./cli/cmd-roadmap.js";
 import { runTicketCreate, runTicketEdit, runTicketList, runTicketResolve, runTicketShow, runTicketValidate } from "./cli/cmd-tickets.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runMcpInstall } from "./cli/cmd-mcp-install.js";
@@ -64,6 +64,7 @@ export { verifyChange };
 export { checkProposalReadiness, getWorkflowState };
 export { archiveChange };
 export { getRoadmapStatus, recommendRoadmapChange, syncRoadmap };
+export { archiveRoadmapMilestones } from "./roadmap/archive.js";
 export { reopenMilestone } from "./roadmap/reopen.js";
 export { migrateLegacyWorkflow };
 export { runMaintenance };
@@ -100,6 +101,7 @@ export const commands = createCliCommandTable({
   "roadmap-overview": (argv) => runRoadmapOverview(argv),
   "roadmap-sync": (argv) => runRoadmapSync(argv),
   "roadmap-recommend": (argv) => runRoadmapRecommend(argv),
+  "roadmap-archive": (argv) => runRoadmapArchive(argv),
   "roadmap-reopen": (argv) => runRoadmapReopen(argv),
   "ticket-create": (argv) => runTicketCreate(argv),
   "ticket-list": (argv) => runTicketList(argv),

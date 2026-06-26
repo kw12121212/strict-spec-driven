@@ -1,0 +1,41 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-roadmap-milestone-archive
+sections:
+  Implementation:
+    update-roadmap-contract:
+      text: Add the roadmap milestone archive contract to the roadmap main spec and map the new implementation, skill, and tests.
+      status: complete
+    implement-roadmap-archive-command:
+      text: Implement deterministic roadmap milestone archiving, wire the roadmap-archive CLI command, and export any public helper needed by the bundled script entrypoint.
+      status: complete
+    add-roadmap-archive-skill:
+      text: Add the strict-roadmap-archive skill and update skill packaging expectations so validate-skills enforces the new command guidance.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run TypeScript validation.
+      status: complete
+      command: bun run lint
+    run-focused-tests:
+      text: Run the project test suite covering roadmap archive behavior and skill packaging validation.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-strict-change:
+      text: Run strict verification for this change.
+      status: complete
+      command: node /home/code/.agents/skills/strict-spec-auto/scripts/strict-spec-driven.js verify add-roadmap-milestone-archive
+    verify-spec-mappings:
+      text: Run main spec mapping verification.
+      status: complete
+      command: node /home/code/.agents/skills/strict-spec-auto/scripts/strict-spec-driven.js verify-spec-mappings
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-focused-tests

@@ -4,6 +4,9 @@ export const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 export const ROADMAP_DIR = `${STRICT_WORKFLOW_DIR}/roadmap`;
 export const ROADMAP_INDEX_PATH = `${ROADMAP_DIR}/INDEX.yaml`;
 export const ROADMAP_MILESTONES_DIR = `${ROADMAP_DIR}/milestones`;
+export const ROADMAP_ARCHIVE_DIR = `${ROADMAP_DIR}/archive`;
+export const ROADMAP_ARCHIVE_MILESTONES_DIR = `${ROADMAP_ARCHIVE_DIR}/milestones`;
+export const ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR = `${ROADMAP_ARCHIVE_DIR}/planned-changes`;
 
 export const DECLARED_ROADMAP_STATUSES = ["proposed", "planned", "active", "blocked", "complete"] as const;
 export const DECLARED_PLANNED_CHANGE_STATUSES = ["planned", "complete"] as const;
@@ -219,6 +222,43 @@ export type RoadmapSyncResult = {
   diagnostics: RoadmapDiagnostic[];
   updatedFiles: string[];
   milestones: RoadmapMilestoneStatus[];
+};
+
+export type RoadmapArchiveSkippedMilestone = {
+  id: string;
+  path: string;
+  reason: string;
+  declaredStatus: DeclaredRoadmapStatus;
+  derivedStatus: Exclude<DeclaredRoadmapStatus, "blocked">;
+  plannedChangeStates: Array<{
+    id: string;
+    state: PlannedChangeState;
+    declaredStatus: DeclaredPlannedChangeStatus;
+    derivedStatus: DeclaredPlannedChangeStatus;
+  }>;
+};
+
+export type RoadmapArchivedPlannedChange = {
+  id: string;
+  sourcePath: string;
+  archivePath: string;
+};
+
+export type RoadmapArchivedMilestone = {
+  id: string;
+  title: string;
+  sourcePath: string;
+  archivePath: string;
+  plannedChanges: RoadmapArchivedPlannedChange[];
+};
+
+export type RoadmapArchiveResult = {
+  valid: boolean;
+  warnings: string[];
+  diagnostics: RoadmapDiagnostic[];
+  updatedFiles: string[];
+  archivedMilestones: RoadmapArchivedMilestone[];
+  skippedMilestones: RoadmapArchiveSkippedMilestone[];
 };
 
 export type ChangeStateIndex = {

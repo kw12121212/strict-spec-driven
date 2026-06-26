@@ -32,6 +32,7 @@ export const COMMAND_REGISTRATION_ORDER = [
   "roadmap-overview",
   "roadmap-sync",
   "roadmap-recommend",
+  "roadmap-archive",
   "roadmap-reopen",
   "ticket-create",
   "ticket-list",

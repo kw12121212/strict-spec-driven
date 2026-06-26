@@ -2,6 +2,7 @@ import { existsSync, readFileSync, statSync } from "fs";
 import path from "path";
 import {
   ROADMAP_DIR,
+  ROADMAP_ARCHIVE_DIR,
   ROADMAP_INDEX_PATH,
   ROADMAP_MILESTONES_DIR,
   type RoadmapDiagnostic,
@@ -30,10 +31,16 @@ function isInsideDirectory(filePath: string, directoryPath: string): boolean {
   return relativePath.length > 0 && !relativePath.startsWith("..") && !path.isAbsolute(relativePath);
 }
 
-function listStandalonePlannedChangeFiles(roadmapDir: string, indexPath: string, milestonesDir: string): string[] {
+function listStandalonePlannedChangeFiles(
+  roadmapDir: string,
+  indexPath: string,
+  milestonesDir: string,
+  archiveDir: string,
+): string[] {
   return listYamlFiles(roadmapDir).filter((filePath) => {
     if (filePath === indexPath) return false;
     if (isInsideDirectory(filePath, milestonesDir)) return false;
+    if (isInsideDirectory(filePath, archiveDir)) return false;
     return true;
   });
 }
@@ -59,6 +66,7 @@ export function loadRoadmap(rootDir: string, options: LoadRoadmapOptions = {}): 
   const warnings: string[] = [];
   const diagnostics: RoadmapDiagnostic[] = [];
   const roadmapDir = path.join(rootDir, ROADMAP_DIR);
+  const archiveDir = path.join(rootDir, ROADMAP_ARCHIVE_DIR);
   const indexPath = path.join(rootDir, ROADMAP_INDEX_PATH);
   const milestonesDir = path.join(rootDir, ROADMAP_MILESTONES_DIR);
 
@@ -142,7 +150,7 @@ export function loadRoadmap(rootDir: string, options: LoadRoadmapOptions = {}): 
   }
 
   const plannedChanges: LoadedPlannedChange[] = [];
-  for (const absolutePath of listStandalonePlannedChangeFiles(roadmapDir, indexPath, milestonesDir)) {
+  for (const absolutePath of listStandalonePlannedChangeFiles(roadmapDir, indexPath, milestonesDir, archiveDir)) {
     const artifactPath = normalizeRepoRelativePath(rootDir, absolutePath);
     try {
       const raw = readFileSync(absolutePath, "utf8");

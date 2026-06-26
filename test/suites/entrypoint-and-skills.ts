@@ -52,6 +52,7 @@ const expectedCommandOrder = [
   "roadmap-overview",
   "roadmap-sync",
   "roadmap-recommend",
+  "roadmap-archive",
   "roadmap-reopen",
   "ticket-create",
   "ticket-list",
@@ -114,6 +115,18 @@ for (const commandName of expectedCommandOrder) {
   );
   context.assert(commandHelp.stderr.length === 0, `${commandName} --help keeps stderr empty`, `stderr: ${commandHelp.stderr.trim()}`);
 }
+
+const roadmapArchiveInvalidArgs = cli(["roadmap-archive", "one", "two"], { cwd: ROOT });
+context.assert(
+  roadmapArchiveInvalidArgs.status !== 0,
+  "roadmap-archive rejects extra positional arguments",
+  `stdout: ${roadmapArchiveInvalidArgs.stdout.trim()} stderr: ${roadmapArchiveInvalidArgs.stderr.trim()}`,
+);
+context.assert(
+  roadmapArchiveInvalidArgs.stderr.includes("Usage: strict-spec-driven roadmap-archive [milestone-id]"),
+  "roadmap-archive invalid arguments print command usage",
+  `stderr: ${roadmapArchiveInvalidArgs.stderr.trim()}`,
+);
 
 const workflowStateSuccess = cli(["check-workflow-state"], { cwd: ROOT });
 context.assert(
@@ -308,6 +321,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const brainstormSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-brainstorm", "SKILL.md"), "utf8");
   const modifySkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-modify", "SKILL.md"), "utf8");
   const roadmapPlanSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-plan", "SKILL.md"), "utf8");
+  const roadmapArchiveSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-archive", "SKILL.md"), "utf8");
   const roadmapRecommendSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
   const roadmapReviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-review", "SKILL.md"), "utf8");
   const harnessInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-init", "SKILL.md"), "utf8");
@@ -322,6 +336,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedBrainstormSkillContent = brainstormSkillContent.replace(/\s+/g, " ");
   const normalizedModifySkillContent = modifySkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapPlanSkillContent = roadmapPlanSkillContent.replace(/\s+/g, " ");
+  const normalizedRoadmapArchiveSkillContent = roadmapArchiveSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapRecommendSkillContent = roadmapRecommendSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapReviewSkillContent = roadmapReviewSkillContent.replace(/\s+/g, " ");
   const normalizedHarnessInitSkillContent = harnessInitSkillContent.replace(/\s+/g, " ");
@@ -427,6 +442,14 @@ context.assert(
       && normalizedRoadmapPlanSkillContent.includes("Review the roadmap plan before handoff")
       && !roadmapPlanSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js init"),
     "strict-roadmap-plan requires existing strict workflow state, executable detail guidance, and review guidance",
+  );
+  context.assert(
+    roadmapArchiveSkillContent.includes("roadmap-archive: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-archive [milestone-id]")
+      && normalizedRoadmapArchiveSkillContent.includes("default to all unarchived milestones")
+      && normalizedRoadmapArchiveSkillContent.includes("only milestones whose derived status is complete")
+      && normalizedRoadmapArchiveSkillContent.includes("completed standalone planned-change")
+      && !roadmapArchiveSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js init"),
+    "strict-roadmap-archive validates default-all completed milestone guidance",
   );
   context.assert(
     roadmapRecommendSkillContent.includes("roadmap-recommend: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-recommend")

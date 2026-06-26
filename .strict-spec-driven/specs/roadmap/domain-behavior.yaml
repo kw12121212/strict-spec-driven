@@ -16,9 +16,15 @@ mapping:
     - src/roadmap/load.ts
     - src/roadmap/status.ts
     - src/roadmap/sync.ts
+    - src/roadmap/archive.ts
     - src/roadmap/reopen.ts
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+    - src/skills/model.ts
+    - skills/strict-roadmap-archive/SKILL.md
   tests:
     - test/suites/roadmap-and-migration.ts
+    - test/suites/entrypoint-and-skills.ts
 requirements:
   roadmap-status-contract:
     strength: MUST
@@ -94,16 +100,7 @@ requirements:
         - THEN: roadmap-status reports the originating ticket id and flags the milestone as needing scope refinement, and roadmap-sync rewrites the milestone without dropping the source-ticket back-reference
   roadmap-reopen-contract:
     strength: MUST
-    statement: >-
-      The system MUST make roadmap-reopen append a dated reopen note to a
-      completed milestone, leave already-archived planned changes immutable, seed
-      a pending follow-up standalone planned change linked to the milestone, and
-      rewrite the milestone to the status derived from its planned-change state
-      (proposed when only not-yet-started follow-up work exists), which a
-      subsequent roadmap-sync preserves because the seeded follow-up is pending
-      non-archived work; roadmap-sync MUST re-derive a milestone whose planned
-      changes are all archived back to complete rather than preserving a declared
-      active status.
+    statement: The system MUST make roadmap-reopen append a dated reopen note to a completed milestone, leave already-archived planned changes immutable, seed a pending follow-up standalone planned change linked to the milestone, and rewrite the milestone to the status derived from its planned-change state (proposed when only not-yet-started follow-up work exists), which a subsequent roadmap-sync preserves because the seeded follow-up is pending non-archived work; roadmap-sync MUST re-derive a milestone whose planned changes are all archived back to complete rather than preserving a declared active status.
     scenarios:
       reopen-seeds-pending-followup:
         - GIVEN: a completed milestone whose only planned change is archived
@@ -117,3 +114,23 @@ requirements:
         - GIVEN: a milestone declared active whose planned changes are all archived and that has no pending planned work
         - WHEN: strict-spec-driven roadmap-sync or archive-triggered sync runs
         - THEN: the canonical milestone and index status are rewritten to complete
+  roadmap-archive-contract:
+    strength: MUST
+    statement: The system MUST make roadmap-archive validate roadmap artifacts, default to inspecting all unarchived milestones when no milestone id is supplied, archive only milestones whose derived status is complete, move each archived milestone and its completed standalone planned-change YAML files into the roadmap archive area, leave incomplete roadmap work in active locations, rewrite the active roadmap index, and report archived and skipped items deterministically.
+    scenarios:
+      archive-defaults-to-all-complete-milestones:
+        - GIVEN: a valid roadmap contains multiple unarchived milestones, some with all planned changes archived and some with pending or active planned changes
+        - WHEN: strict-spec-driven roadmap-archive runs without a milestone id
+        - THEN: the command exits zero, archives every complete milestone and its completed standalone planned-change files, leaves incomplete milestones and planned changes active, rewrites the roadmap index without archived milestones, and reports archived plus skipped items in deterministic order
+      archive-explicit-complete-milestone:
+        - GIVEN: a valid roadmap contains an explicit unarchived milestone whose derived status is complete
+        - WHEN: strict-spec-driven roadmap-archive <milestone-id> runs
+        - THEN: the command exits zero, archives that milestone and completed standalone planned-change files for that milestone only, and reports the archived milestone
+      archive-skips-incomplete-work:
+        - GIVEN: a valid roadmap contains a selected milestone with pending or active planned changes
+        - WHEN: strict-spec-driven roadmap-archive runs
+        - THEN: the command leaves the milestone and its planned changes in active roadmap locations and reports the milestone as skipped because it is not complete
+      archive-rejects-invalid-roadmap:
+        - GIVEN: roadmap artifacts are malformed or contain cross-file conflicts
+        - WHEN: strict-spec-driven roadmap-archive runs
+        - THEN: the command exits non-zero with deterministic diagnostics and does not move milestone or planned-change files

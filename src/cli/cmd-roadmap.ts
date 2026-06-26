@@ -5,11 +5,13 @@ import {
   syncRoadmap,
   type RoadmapRecommendResult,
 } from "../roadmap.js";
+import { archiveRoadmapMilestones } from "../roadmap/archive.js";
 import { reopenMilestone } from "../roadmap/reopen.js";
 import { isHelpRequest } from "./argv.js";
 import { writeHelp, writeJson, writeOut, writeUsage } from "./output.js";
 
 const ROADMAP_RECOMMEND_USAGE = "Usage: strict-spec-driven roadmap-recommend [--details]\n";
+const ROADMAP_ARCHIVE_USAGE = "Usage: strict-spec-driven roadmap-archive [milestone-id]\n";
 const ROADMAP_REOPEN_USAGE = "Usage: strict-spec-driven roadmap-reopen <milestone-id> [--reason \"...\"]\n";
 const ACTIONABLE_BLOCKER_LIMIT = 10;
 
@@ -126,6 +128,21 @@ export function runRoadmapRecommend(argv: string[]): number {
   const result = recommendRoadmapChange(process.cwd());
   writeJson(includeDetails ? result : summarizeRoadmapRecommendation(result));
   return result.status === "recommended" ? 0 : 1;
+}
+
+export function runRoadmapArchive(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp(ROADMAP_ARCHIVE_USAGE);
+    return 0;
+  }
+  if (argv.length > 1) {
+    writeUsage(ROADMAP_ARCHIVE_USAGE);
+    return 1;
+  }
+
+  const result = archiveRoadmapMilestones(process.cwd(), argv[0]);
+  writeJson(result);
+  return result.valid ? 0 : 1;
 }
 
 export function runRoadmapReopen(argv: string[]): number {

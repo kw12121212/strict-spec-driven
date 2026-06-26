@@ -60,6 +60,9 @@ const ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET = "all milestones whose status is 
 const ROADMAP_REVIEW_DIRECT_FIX_SNIPPET =
   "directly edit each incomplete milestone and its planned-change YAML files";
 const ROADMAP_REVIEW_DETAIL_ELABORATION_SNIPPET = "concrete and executable";
+const ROADMAP_ARCHIVE_DEFAULT_ALL_SNIPPET = "default to all unarchived milestones";
+const ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET = "only milestones whose derived status is complete";
+const ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET = "completed standalone planned-change";
 const ROADMAP_PLAN_REVIEW_SNIPPET = "Review the roadmap plan before handoff";
 const ROADMAP_SCRIPTED_RECOMMEND_SNIPPET = "treat the command's selected planned change as authoritative";
 const ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET = "before reading broad roadmap context";
@@ -308,6 +311,19 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
     },
     requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [".strict-spec-driven/roadmap/"],
+  },
+  "strict-roadmap-archive": {
+    requiredCommands: {
+      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      "roadmap-archive": `${COMMAND_PREFIX} roadmap-archive [milestone-id]`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [
+      ".strict-spec-driven/roadmap/",
+      ROADMAP_ARCHIVE_DEFAULT_ALL_SNIPPET,
+      ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET,
+      ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET,
+    ],
   },
 };
 

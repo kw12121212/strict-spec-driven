@@ -1,0 +1,21 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-roadmap-milestone-archive
+  status: proposed
+summary:
+  what:
+    - Add a roadmap milestone archive workflow with a new CLI command and matching skill guidance. The command archives completed roadmap milestones and their completed planned-change YAML artifacts, defaulting to all unarchived milestones when no milestone id is supplied.
+  why:
+    - Operators need a deterministic way to move completed roadmap milestone files and completed standalone planned-change files out of the active roadmap without manually editing YAML or accidentally archiving incomplete work.
+scope:
+  in:
+    - New roadmap archive CLI command and command routing; milestone archive mechanics for completed milestones; default scan of all unarchived roadmap milestones; optional explicit milestone id selection; archival of completed standalone planned-change files belonging to archived milestones; compact JSON result with archived and skipped items; new strict-roadmap-archive skill and skill packaging expectations; roadmap behavior specs and tests.
+  out:
+    - Strict change archive behavior; roadmap recommendation scoring beyond seeing archived planned changes as archived workflow state; migration converters; roadmap reopen semantics except preserving existing archived planned-change immutability.
+unchanged_behavior:
+  - roadmap-status, roadmap-overview, roadmap-sync, roadmap-recommend, and roadmap-reopen keep their existing contracts unless they observe files that roadmap-archive moved into the roadmap archive area
+  - strict change archive continues to archive .strict-spec-driven/changes/<change> and may still trigger roadmap-sync afterward
+  - incomplete milestones and planned changes remain in their current active roadmap locations and are not silently modified beyond canonical status sync behavior already owned by roadmap-sync

@@ -150,12 +150,14 @@ export function ensurePlannedChangeDirectory(filePath: string): void {
 
 function extractMilestoneId(artifact: RoadmapMilestoneArtifact): string {
   const milestoneField = artifact.milestone as unknown as Record<string, unknown>;
+  if (typeof milestoneField.id === "string") return milestoneField.id;
   const key = Object.keys(milestoneField)[0];
   return typeof key === "string" ? key : (artifact.milestone as { id: string }).id;
 }
 
 function extractMilestoneTitle(artifact: RoadmapMilestoneArtifact): string {
   const milestoneField = artifact.milestone as unknown as Record<string, unknown>;
+  if (typeof milestoneField.title === "string") return milestoneField.title;
   const key = Object.keys(milestoneField)[0];
   if (key) {
     const value = milestoneField[key] as Record<string, unknown>;

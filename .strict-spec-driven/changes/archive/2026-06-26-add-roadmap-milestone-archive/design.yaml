@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-roadmap-milestone-archive
+approach:
+  - Implement milestone archiving as deterministic roadmap filesystem mechanics separate from strict change archive. Add a roadmap/archive module that loads and validates the roadmap, derives current milestone and planned-change state from strict change state, selects either all active roadmap milestones by default or one explicit milestone id, rejects invalid roadmap state, archives only milestones whose derived status is complete, moves their milestone YAML under .strict-spec-driven/roadmap/archive/milestones/, moves completed standalone planned-change YAML under .strict-spec-driven/roadmap/archive/planned-changes/, rewrites the roadmap index for remaining active milestones, and returns a compact JSON report. Wire the module through a new roadmap-archive CLI command and document it in a new strict-roadmap-archive skill with packaging validation.
+decisions:
+  milestone-archive-separate-from-change-archive:
+    decision: Use a dedicated roadmap-archive command instead of overloading strict change archive.
+    rationale: Milestone archive operates on roadmap artifacts, can process multiple milestones by default, and must skip incomplete roadmap work, while strict change archive moves one verified strict change and merges delta specs. Separate commands keep the contracts explicit and testable.
+  default-all-unarchived:
+    decision: When no milestone id is provided, roadmap-archive scans every non-archived milestone and archives only those whose derived status is complete.
+    rationale: This matches the operator request and makes the common cleanup operation deterministic while preserving incomplete milestones by reporting them as skipped.
+  preserve-incomplete-roadmap-work:
+    decision: Incomplete milestones and incomplete planned changes are never moved by roadmap-archive.
+    rationale: Archiving incomplete roadmap work would hide actionable planning state. The command should be safe to run repeatedly and only move completed artifacts.
+alternatives: []
+risks: []

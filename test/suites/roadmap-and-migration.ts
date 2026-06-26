@@ -357,6 +357,274 @@ try {
   rmSync(roadmapHappyDir, { recursive: true, force: true });
 }
 
+const roadmapArchiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-archive-"));
+try {
+  for (const changeName of ["complete-one", "complete-two", "skipped-complete"]) {
+    mkdirSync(
+      path.join(roadmapArchiveDir, ".strict-spec-driven", "changes", "archive", `${formatLocalDateStamp()}-${changeName}`),
+      { recursive: true },
+    );
+  }
+  mkdirSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "changes", "active-change"), { recursive: true });
+
+  writeRoadmapMilestoneArtifact(roadmapArchiveDir, "0001-complete.yaml", {
+    id: "0001-complete",
+    title: "Complete Milestone",
+    goal: "Archive completed roadmap work.",
+    status: "complete",
+    plannedChanges: [],
+  });
+  writeRoadmapMilestoneArtifact(roadmapArchiveDir, "0002-active.yaml", {
+    id: "0002-active",
+    title: "Active Milestone",
+    goal: "Keep active roadmap work visible.",
+    status: "active",
+    plannedChanges: [],
+  });
+  writeRoadmapMilestoneArtifact(roadmapArchiveDir, "0003-pending.yaml", {
+    id: "0003-pending",
+    title: "Pending Milestone",
+    goal: "Keep pending roadmap work visible.",
+    status: "planned",
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0001-complete-one.yaml", {
+    id: "complete-one",
+    milestone: "0001-complete",
+    status: "planned",
+    summary: "Completed work one.",
+    details: "Completed standalone planned change one.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0002-complete-two.yaml", {
+    id: "complete-two",
+    milestone: "0001-complete",
+    status: "planned",
+    summary: "Completed work two.",
+    details: "Completed standalone planned change two.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0003-active-change.yaml", {
+    id: "active-change",
+    milestone: "0002-active",
+    status: "planned",
+    summary: "Active work.",
+    details: "Active standalone planned change.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0004-skipped-complete.yaml", {
+    id: "skipped-complete",
+    milestone: "0002-active",
+    status: "complete",
+    summary: "Completed work in an active milestone.",
+    details: "This must stay active because its milestone is not complete.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0005-pending-change.yaml", {
+    id: "pending-change",
+    milestone: "0003-pending",
+    status: "planned",
+    summary: "Pending work.",
+    details: "Pending standalone planned change.",
+    depends_on: [],
+  });
+  writeRoadmapIndexArtifact(roadmapArchiveDir, [
+    {
+      id: "0001-complete",
+      title: "Complete Milestone",
+      path: "roadmap/milestones/0001-complete.yaml",
+      status: "complete",
+    },
+    {
+      id: "0002-active",
+      title: "Active Milestone",
+      path: "roadmap/milestones/0002-active.yaml",
+      status: "active",
+    },
+    {
+      id: "0003-pending",
+      title: "Pending Milestone",
+      path: "roadmap/milestones/0003-pending.yaml",
+      status: "planned",
+    },
+  ]);
+
+  const archiveDefault = cli(["roadmap-archive"], { cwd: roadmapArchiveDir });
+  context.assert(archiveDefault.status === 0, "roadmap-archive defaults to all unarchived milestones", archiveDefault.stderr);
+  const archiveDefaultJson = JSON.parse(archiveDefault.stdout.trim());
+  context.assert(
+    archiveDefaultJson.valid === true
+      && archiveDefaultJson.archivedMilestones.length === 1
+      && archiveDefaultJson.archivedMilestones[0].id === "0001-complete"
+      && archiveDefaultJson.archivedMilestones[0].plannedChanges.length === 2,
+    "roadmap-archive archives only the complete milestone by default",
+    archiveDefault.stdout,
+  );
+  context.assert(
+    archiveDefaultJson.skippedMilestones.map((milestone: { id: string }) => milestone.id).join(",") === "0002-active,0003-pending",
+    "roadmap-archive reports incomplete milestones as skipped in deterministic order",
+    archiveDefault.stdout,
+  );
+
+  const archivedMilestonePath = path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "archive", "milestones", "0001-complete.yaml");
+  const archivedPlannedChangePath = path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "archive", "planned-changes", "0001-complete-one.yaml");
+  context.assert(
+    existsSync(archivedMilestonePath)
+      && existsSync(archivedPlannedChangePath)
+      && !existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "milestones", "0001-complete.yaml"))
+      && !existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-complete-one.yaml")),
+    "roadmap-archive moves completed milestone and its completed planned changes into roadmap archive",
+  );
+  context.assert(
+    existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes", "0003-active-change.yaml"))
+      && existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes", "0004-skipped-complete.yaml"))
+      && existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes", "0005-pending-change.yaml")),
+    "roadmap-archive leaves active and pending planned changes in active roadmap locations",
+  );
+  const archivedPlannedChange = yamlModule.parseYamlFile<{ status: string }>(archivedPlannedChangePath);
+  context.assert(archivedPlannedChange.status === "complete", "roadmap-archive writes archived planned changes with complete status");
+
+  const indexAfterArchive = yamlModule.parseYamlFile<{
+    milestones: Record<string, { path: string; status: string }>;
+  }>(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "INDEX.yaml"));
+  context.assert(
+    !("0001-complete" in indexAfterArchive.milestones)
+      && indexAfterArchive.milestones["0002-active"]?.path === "roadmap/milestones/0002-active.yaml"
+      && indexAfterArchive.milestones["0003-pending"]?.path === "roadmap/milestones/0003-pending.yaml",
+    "roadmap-archive rewrites the active roadmap index without archived milestones",
+  );
+  const statusAfterArchive = JSON.parse(cli(["roadmap-status"], { cwd: roadmapArchiveDir }).stdout.trim());
+  context.assert(
+    statusAfterArchive.valid === true
+      && statusAfterArchive.milestones.length === 2
+      && statusAfterArchive.milestones.every((milestone: { id: string }) => milestone.id !== "0001-complete"),
+    "roadmap-status ignores roadmap archive files after milestone archive",
+  );
+} finally {
+  rmSync(roadmapArchiveDir, { recursive: true, force: true });
+}
+
+const roadmapArchiveExplicitDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-archive-explicit-"));
+try {
+  for (const changeName of ["first-complete", "second-complete"]) {
+    mkdirSync(
+      path.join(roadmapArchiveExplicitDir, ".strict-spec-driven", "changes", "archive", `${formatLocalDateStamp()}-${changeName}`),
+      { recursive: true },
+    );
+  }
+  writeRoadmapMilestoneArtifact(roadmapArchiveExplicitDir, "0001-first.yaml", {
+    id: "0001-first",
+    title: "First Complete",
+    goal: "Remain active until explicitly archived.",
+    status: "complete",
+    plannedChanges: [],
+  });
+  writeRoadmapMilestoneArtifact(roadmapArchiveExplicitDir, "0002-second.yaml", {
+    id: "0002-second",
+    title: "Second Complete",
+    goal: "Archive explicitly.",
+    status: "complete",
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapArchiveExplicitDir, "planned-changes/0001-first-complete.yaml", {
+    id: "first-complete",
+    milestone: "0001-first",
+    status: "complete",
+    summary: "First complete work.",
+    details: "First complete details.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapArchiveExplicitDir, "planned-changes/0002-second-complete.yaml", {
+    id: "second-complete",
+    milestone: "0002-second",
+    status: "complete",
+    summary: "Second complete work.",
+    details: "Second complete details.",
+    depends_on: [],
+  });
+  writeRoadmapIndexArtifact(roadmapArchiveExplicitDir, [
+    {
+      id: "0001-first",
+      title: "First Complete",
+      path: "roadmap/milestones/0001-first.yaml",
+      status: "complete",
+    },
+    {
+      id: "0002-second",
+      title: "Second Complete",
+      path: "roadmap/milestones/0002-second.yaml",
+      status: "complete",
+    },
+  ]);
+
+  const archiveExplicit = cli(["roadmap-archive", "0002-second"], { cwd: roadmapArchiveExplicitDir });
+  context.assert(archiveExplicit.status === 0, "roadmap-archive accepts an explicit complete milestone id", archiveExplicit.stderr);
+  const archiveExplicitJson = JSON.parse(archiveExplicit.stdout.trim());
+  context.assert(
+    archiveExplicitJson.archivedMilestones.length === 1
+      && archiveExplicitJson.archivedMilestones[0].id === "0002-second"
+      && existsSync(path.join(roadmapArchiveExplicitDir, ".strict-spec-driven", "roadmap", "milestones", "0001-first.yaml"))
+      && !existsSync(path.join(roadmapArchiveExplicitDir, ".strict-spec-driven", "roadmap", "milestones", "0002-second.yaml")),
+    "roadmap-archive archives only the explicitly selected complete milestone",
+    archiveExplicit.stdout,
+  );
+} finally {
+  rmSync(roadmapArchiveExplicitDir, { recursive: true, force: true });
+}
+
+const roadmapArchiveInvalidDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-archive-invalid-"));
+try {
+  mkdirSync(
+    path.join(roadmapArchiveInvalidDir, ".strict-spec-driven", "changes", "archive", `${formatLocalDateStamp()}-duplicate-work`),
+    { recursive: true },
+  );
+  writeRoadmapMilestoneArtifact(roadmapArchiveInvalidDir, "0001-invalid.yaml", {
+    id: "0001-invalid",
+    title: "Invalid Roadmap",
+    goal: "Reject malformed archive input.",
+    status: "complete",
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapArchiveInvalidDir, "planned-changes/0001-duplicate-a.yaml", {
+    id: "duplicate-work",
+    milestone: "0001-invalid",
+    status: "complete",
+    summary: "Duplicate A.",
+    details: "Duplicate planned change A.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapArchiveInvalidDir, "planned-changes/0002-duplicate-b.yaml", {
+    id: "duplicate-work",
+    milestone: "0001-invalid",
+    status: "complete",
+    summary: "Duplicate B.",
+    details: "Duplicate planned change B.",
+    depends_on: [],
+  });
+  writeRoadmapIndexArtifact(roadmapArchiveInvalidDir, [
+    {
+      id: "0001-invalid",
+      title: "Invalid Roadmap",
+      path: "roadmap/milestones/0001-invalid.yaml",
+      status: "complete",
+    },
+  ]);
+
+  const archiveInvalid = cli(["roadmap-archive"], { cwd: roadmapArchiveInvalidDir });
+  context.assert(archiveInvalid.status !== 0, "roadmap-archive rejects invalid roadmap artifacts");
+  const archiveInvalidJson = JSON.parse(archiveInvalid.stdout.trim());
+  context.assert(
+    archiveInvalidJson.valid === false
+      && archiveInvalidJson.diagnostics.some((diagnostic: { message: string }) => diagnostic.message.includes("duplicate planned change id"))
+      && existsSync(path.join(roadmapArchiveInvalidDir, ".strict-spec-driven", "roadmap", "milestones", "0001-invalid.yaml"))
+      && existsSync(path.join(roadmapArchiveInvalidDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-duplicate-a.yaml")),
+    "roadmap-archive reports diagnostics and does not move files for invalid roadmap input",
+    archiveInvalid.stdout,
+  );
+} finally {
+  rmSync(roadmapArchiveInvalidDir, { recursive: true, force: true });
+}
+
 const roadmapReopenDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-reopen-"));
 try {
   // A milestone whose single planned change is archived → milestone derives complete.

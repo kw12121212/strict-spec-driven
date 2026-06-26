@@ -1,0 +1,41 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+mapping:
+  implementation:
+    - src/cli/cmd-roadmap.ts
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+    - src/roadmap/archive.ts
+    - src/roadmap/model.ts
+    - src/skills/model.ts
+    - skills/strict-roadmap-archive/SKILL.md
+  tests:
+    - test/suites/roadmap-and-migration.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    roadmap-archive-contract:
+      strength: MUST
+      statement: The system MUST make roadmap-archive validate roadmap artifacts, default to inspecting all unarchived milestones when no milestone id is supplied, archive only milestones whose derived status is complete, move each archived milestone and its completed standalone planned-change YAML files into the roadmap archive area, leave incomplete roadmap work in active locations, rewrite the active roadmap index, and report archived and skipped items deterministically.
+      scenarios:
+        archive-defaults-to-all-complete-milestones:
+          - GIVEN: a valid roadmap contains multiple unarchived milestones, some with all planned changes archived and some with pending or active planned changes
+          - WHEN: strict-spec-driven roadmap-archive runs without a milestone id
+          - THEN: the command exits zero, archives every complete milestone and its completed standalone planned-change files, leaves incomplete milestones and planned changes active, rewrites the roadmap index without archived milestones, and reports archived plus skipped items in deterministic order
+        archive-explicit-complete-milestone:
+          - GIVEN: a valid roadmap contains an explicit unarchived milestone whose derived status is complete
+          - WHEN: strict-spec-driven roadmap-archive <milestone-id> runs
+          - THEN: the command exits zero, archives that milestone and completed standalone planned-change files for that milestone only, and reports the archived milestone
+        archive-skips-incomplete-work:
+          - GIVEN: a valid roadmap contains a selected milestone with pending or active planned changes
+          - WHEN: strict-spec-driven roadmap-archive runs
+          - THEN: the command leaves the milestone and its planned changes in active roadmap locations and reports the milestone as skipped because it is not complete
+        archive-rejects-invalid-roadmap:
+          - GIVEN: roadmap artifacts are malformed or contain cross-file conflicts
+          - WHEN: strict-spec-driven roadmap-archive runs
+          - THEN: the command exits non-zero with deterministic diagnostics and does not move milestone or planned-change files
+  MODIFIED: {}
+  REMOVED: {}

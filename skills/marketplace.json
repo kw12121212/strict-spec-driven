@@ -3,6 +3,7 @@
   "namespace": "strict-spec-driven",
   "skills": [
     { "name": "strict-roadmap-plan", "family": "strict-roadmap" },
+    { "name": "strict-roadmap-archive", "family": "strict-roadmap" },
     { "name": "strict-roadmap-recommend", "family": "strict-roadmap" },
     { "name": "strict-roadmap-reopen", "family": "strict-roadmap" },
     { "name": "strict-roadmap-review", "family": "strict-roadmap" },
