@@ -357,6 +357,319 @@ try {
   rmSync(roadmapHappyDir, { recursive: true, force: true });
 }
 
+const roadmapGenerateDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-generate-"));
+try {
+  const createMilestone = cli([
+    "roadmap-generate",
+    "milestone",
+    "--id",
+    "0001-authoring",
+    "--title",
+    "Authoring Milestone",
+    "--goal",
+    "Create milestone artifacts through the roadmap authoring command.",
+    "--scope-in",
+    "Milestone YAML shape is command-authored.",
+    "--scope-out",
+    "Standalone planned-change generation.",
+    "--done",
+    "The milestone artifact validates after command generation.",
+    "--dependency",
+    "Existing roadmap schema.",
+    "--risk",
+    "Accidental field replacement.",
+    "--note",
+    "Created by roadmap-generate milestone.",
+  ], { cwd: roadmapGenerateDir });
+  context.assert(createMilestone.status === 0, "roadmap-generate milestone creates a valid milestone", createMilestone.stderr);
+  const createMilestoneJson = JSON.parse(createMilestone.stdout.trim());
+  context.assert(
+    createMilestoneJson.valid === true
+      && createMilestoneJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/0001-authoring.yaml")
+      && createMilestoneJson.updatedFiles.includes(".strict-spec-driven/roadmap/INDEX.yaml"),
+    "roadmap-generate milestone reports created milestone and synced index files",
+    createMilestone.stdout,
+  );
+
+  const generatedMilestonePath = path.join(
+    roadmapGenerateDir,
+    ".strict-spec-driven",
+    "roadmap",
+    "milestones",
+    "0001-authoring.yaml",
+  );
+  const generatedMilestone = yamlModule.parseYamlFile<{
+    milestone: Record<string, { title: string }>;
+    goal: string;
+    scope: { in: string[]; out: string[] };
+    done_criteria: string[];
+    planned_changes: Record<string, unknown>;
+    dependencies: string[];
+    risks: string[];
+    status: string;
+    notes: string[];
+    details?: string;
+    source_ticket?: string;
+  }>(generatedMilestonePath);
+  context.assert(
+    generatedMilestone.milestone["0001-authoring"]?.title === "Authoring Milestone"
+      && generatedMilestone.status === "proposed"
+      && Object.keys(generatedMilestone.planned_changes).length === 0,
+    "roadmap-generate milestone writes keyed milestone identity, proposed status, and empty planned_changes",
+  );
+  context.assert(
+    generatedMilestone.scope.in.includes("Milestone YAML shape is command-authored.")
+      && generatedMilestone.scope.out.includes("Standalone planned-change generation.")
+      && generatedMilestone.done_criteria.includes("The milestone artifact validates after command generation."),
+    "roadmap-generate milestone writes structured planning fields from named arguments",
+  );
+
+  const generatedIndex = yamlModule.parseYamlFile<{
+    milestones: Record<string, { title: string; path: string; status: string }>;
+  }>(path.join(roadmapGenerateDir, ".strict-spec-driven", "roadmap", "INDEX.yaml"));
+  context.assert(
+    generatedIndex.milestones["0001-authoring"]?.path === "roadmap/milestones/0001-authoring.yaml"
+      && generatedIndex.milestones["0001-authoring"]?.status === "proposed",
+    "roadmap-generate milestone synchronizes the roadmap index",
+  );
+
+  writeStandalonePlannedChangeArtifact(roadmapGenerateDir, "planned-changes/0001-existing-work.yaml", {
+    id: "existing-work",
+    milestone: "0001-authoring",
+    status: "planned",
+    summary: "Existing standalone planned change stays on its current authoring path.",
+    details: "Existing standalone planned-change details must not be rewritten by milestone authoring.",
+    depends_on: [],
+  });
+  const standalonePath = path.join(
+    roadmapGenerateDir,
+    ".strict-spec-driven",
+    "roadmap",
+    "planned-changes",
+    "0001-existing-work.yaml",
+  );
+  const standaloneBeforeUpdate = readFileSync(standalonePath, "utf8");
+  const milestoneWithSourceTicket = yamlModule.parseYamlFile<Record<string, unknown>>(generatedMilestonePath);
+  milestoneWithSourceTicket.source_ticket = "captured-ticket";
+  writeFileSync(generatedMilestonePath, yamlModule.stringifyYamlDocument(milestoneWithSourceTicket), "utf8");
+
+  const appendMilestone = cli([
+    "roadmap-generate",
+    "milestone",
+    "--id",
+    "0001-authoring",
+    "--scope-in",
+    "Additional milestone scope.",
+    "--details",
+    "Long-form milestone guidance added by the authoring command.",
+  ], { cwd: roadmapGenerateDir });
+  context.assert(appendMilestone.status === 0, "roadmap-generate milestone appends list fields and fills absent scalar fields", appendMilestone.stderr);
+  const appendedMilestone = yamlModule.parseYamlFile<{
+    scope: { in: string[] };
+    details?: string;
+    source_ticket?: string;
+  }>(generatedMilestonePath);
+  context.assert(
+    appendedMilestone.scope.in.includes("Milestone YAML shape is command-authored.")
+      && appendedMilestone.scope.in.includes("Additional milestone scope.")
+      && appendedMilestone.details === "Long-form milestone guidance added by the authoring command."
+      && appendedMilestone.source_ticket === "captured-ticket",
+    "roadmap-generate milestone preserves existing milestone metadata while applying safe updates",
+  );
+  context.assert(
+    readFileSync(standalonePath, "utf8") === standaloneBeforeUpdate,
+    "roadmap-generate milestone does not rewrite standalone planned-change files",
+  );
+
+  const beforeConflict = readFileSync(generatedMilestonePath, "utf8");
+  const conflictingMilestone = cli([
+    "roadmap-generate",
+    "milestone",
+    "--id",
+    "0001-authoring",
+    "--goal",
+    "Replace the goal without reset.",
+  ], { cwd: roadmapGenerateDir });
+  context.assert(conflictingMilestone.status !== 0, "roadmap-generate milestone rejects conflicting scalar updates without --reset");
+  context.assert(
+    conflictingMilestone.stdout.includes("conflicting content")
+      && readFileSync(generatedMilestonePath, "utf8") === beforeConflict,
+    "roadmap-generate milestone reports the conflict and leaves the milestone unchanged before write",
+    conflictingMilestone.stdout,
+  );
+
+  const resetMilestone = cli([
+    "roadmap-generate",
+    "milestone",
+    "--id",
+    "0001-authoring",
+    "--reset",
+    "--goal",
+    "Replace the goal with explicit reset.",
+    "--scope-in",
+    "Reset milestone scope.",
+    "--done",
+    "Reset done criterion.",
+    "--note",
+    "Reset note.",
+  ], { cwd: roadmapGenerateDir });
+  context.assert(resetMilestone.status === 0, "roadmap-generate milestone replaces supplied fields with --reset", resetMilestone.stderr);
+  const resetArtifact = yamlModule.parseYamlFile<{
+    goal: string;
+    scope: { in: string[] };
+    done_criteria: string[];
+    notes: string[];
+    source_ticket?: string;
+  }>(generatedMilestonePath);
+  context.assert(
+    resetArtifact.goal === "Replace the goal with explicit reset."
+      && resetArtifact.scope.in.join("\n") === "Reset milestone scope."
+      && resetArtifact.done_criteria.join("\n") === "Reset done criterion."
+      && resetArtifact.notes.join("\n") === "Reset note."
+      && resetArtifact.source_ticket === "captured-ticket",
+    "roadmap-generate milestone reset replaces supplied list fields and preserves source_ticket",
+  );
+  context.assert(
+    readFileSync(standalonePath, "utf8") === standaloneBeforeUpdate,
+    "roadmap-generate milestone reset still does not rewrite standalone planned-change files",
+  );
+
+  const invalidMilestone = cli(["roadmap-generate", "planned-change", "--id", "not-supported"], { cwd: roadmapGenerateDir });
+  context.assert(invalidMilestone.status !== 0, "roadmap-generate rejects planned-change generation selector");
+  context.assert(
+    invalidMilestone.stderr.includes("Usage: strict-spec-driven roadmap-generate milestone"),
+    "roadmap-generate invalid selector prints milestone-only usage",
+  );
+} finally {
+  rmSync(roadmapGenerateDir, { recursive: true, force: true });
+}
+
+const roadmapGenerateInlineDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-generate-inline-"));
+try {
+  writeRoadmapMilestoneArtifact(roadmapGenerateInlineDir, "0001-inline.yaml", {
+    id: "0001-inline",
+    title: "Inline Legacy",
+    goal: "Keep legacy inline planned-change data on the existing materialization path.",
+    status: "proposed",
+    plannedChanges: [
+      {
+        id: "inline-work",
+        status: "planned",
+        summary: "Legacy inline planned change.",
+        depends_on: [],
+      },
+    ],
+  });
+  writeRoadmapIndexArtifact(roadmapGenerateInlineDir, [
+    {
+      id: "0001-inline",
+      title: "Inline Legacy",
+      path: "roadmap/milestones/0001-inline.yaml",
+      status: "proposed",
+    },
+  ]);
+  const inlineMilestonePath = path.join(
+    roadmapGenerateInlineDir,
+    ".strict-spec-driven",
+    "roadmap",
+    "milestones",
+    "0001-inline.yaml",
+  );
+  const inlineBefore = readFileSync(inlineMilestonePath, "utf8");
+  const inlineUpdate = cli([
+    "roadmap-generate",
+    "milestone",
+    "--id",
+    "0001-inline",
+    "--scope-in",
+    "Do not partially update inline legacy roadmap data.",
+  ], { cwd: roadmapGenerateInlineDir });
+  context.assert(inlineUpdate.status !== 0, "roadmap-generate milestone rejects legacy inline planned changes");
+  const inlineUpdateJson = JSON.parse(inlineUpdate.stdout.trim());
+  context.assert(
+    inlineUpdateJson.valid === false
+      && inlineUpdateJson.updatedFiles.length === 0
+      && inlineUpdateJson.diagnostics.some(
+        (diagnostic: { fieldPath: string; message: string }) =>
+          diagnostic.fieldPath === "$.planned_changes"
+          && diagnostic.message.includes("roadmap-sync --materialize-planned-changes"),
+      )
+      && readFileSync(inlineMilestonePath, "utf8") === inlineBefore,
+    "roadmap-generate milestone leaves inline legacy milestone bytes unchanged and reports the materialization path",
+    inlineUpdate.stdout,
+  );
+} finally {
+  rmSync(roadmapGenerateInlineDir, { recursive: true, force: true });
+}
+
+const roadmapGenerateStandaloneDriftDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-generate-standalone-drift-"));
+try {
+  writeRoadmapMilestoneArtifact(roadmapGenerateStandaloneDriftDir, "0001-drift.yaml", {
+    id: "0001-drift",
+    title: "Standalone Drift",
+    goal: "Keep standalone planned-change reconciliation outside milestone authoring.",
+    status: "proposed",
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapGenerateStandaloneDriftDir, "planned-changes/0001-drifted-work.yaml", {
+    id: "drifted-work",
+    milestone: "0001-drift",
+    status: "complete",
+    summary: "A standalone planned change whose status needs roadmap-sync reconciliation.",
+    details: "The milestone command must not fix this planned-change artifact as a side effect.",
+    depends_on: [],
+  });
+  writeRoadmapIndexArtifact(roadmapGenerateStandaloneDriftDir, [
+    {
+      id: "0001-drift",
+      title: "Standalone Drift",
+      path: "roadmap/milestones/0001-drift.yaml",
+      status: "proposed",
+    },
+  ]);
+  const driftMilestonePath = path.join(
+    roadmapGenerateStandaloneDriftDir,
+    ".strict-spec-driven",
+    "roadmap",
+    "milestones",
+    "0001-drift.yaml",
+  );
+  const driftPlannedChangePath = path.join(
+    roadmapGenerateStandaloneDriftDir,
+    ".strict-spec-driven",
+    "roadmap",
+    "planned-changes",
+    "0001-drifted-work.yaml",
+  );
+  const driftMilestoneBefore = readFileSync(driftMilestonePath, "utf8");
+  const driftPlannedChangeBefore = readFileSync(driftPlannedChangePath, "utf8");
+  const driftUpdate = cli([
+    "roadmap-generate",
+    "milestone",
+    "--id",
+    "0001-drift",
+    "--scope-in",
+    "Do not rewrite standalone planned-change drift.",
+  ], { cwd: roadmapGenerateStandaloneDriftDir });
+  context.assert(driftUpdate.status !== 0, "roadmap-generate milestone rejects updates that would rewrite standalone planned-change artifacts");
+  const driftUpdateJson = JSON.parse(driftUpdate.stdout.trim());
+  context.assert(
+    driftUpdateJson.valid === false
+      && driftUpdateJson.updatedFiles.length === 0
+      && driftUpdateJson.diagnostics.some(
+        (diagnostic: { message: string; artifactPath: string }) =>
+          diagnostic.message.includes("would rewrite a standalone planned-change artifact")
+          && diagnostic.artifactPath.endsWith("0001-drifted-work.yaml"),
+      )
+      && readFileSync(driftMilestonePath, "utf8") === driftMilestoneBefore
+      && readFileSync(driftPlannedChangePath, "utf8") === driftPlannedChangeBefore,
+    "roadmap-generate milestone reports standalone planned-change drift and leaves both files unchanged",
+    driftUpdate.stdout,
+  );
+} finally {
+  rmSync(roadmapGenerateStandaloneDriftDir, { recursive: true, force: true });
+}
+
 const roadmapArchiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-archive-"));
 try {
   for (const changeName of ["complete-one", "complete-two", "skipped-complete"]) {
@@ -1757,6 +2070,24 @@ try {
         && diagnostic.expected === "proposal checkpoint",
     ),
     "roadmap skill validation requires proposal checkpoint guidance",
+  );
+  context.assert(
+    invalidRoadmapRecommendSkillResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.required_snippet.missing"
+        && diagnostic.path === "skills/strict-roadmap-recommend/SKILL.md"
+        && diagnostic.expected === "decision-ready detail",
+    ),
+    "roadmap skill validation requires decision-ready checkpoint detail guidance",
+  );
+  context.assert(
+    invalidRoadmapRecommendSkillResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.required_snippet.missing"
+        && diagnostic.path === "skills/strict-roadmap-recommend/SKILL.md"
+        && diagnostic.expected === "scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields",
+    ),
+    "roadmap skill validation requires concrete checkpoint criteria guidance",
   );
 } finally {
   rmSync(invalidRoadmapRecommendSkillRoot, { recursive: true, force: true });

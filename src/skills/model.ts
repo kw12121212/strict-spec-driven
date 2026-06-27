@@ -54,11 +54,13 @@ export type SkillContentExpectation = {
 
 const ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 const ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
+const ROADMAP_GENERATE_MILESTONE_SNIPPET = "roadmap-generate milestone";
+const ROADMAP_PLANNED_CHANGE_DIRECT_EDIT_SNIPPET = "standalone planned-change files remain edited directly";
 const ROADMAP_ACTIVE_CONFLICT_SNIPPET = "active strict change conflicts";
 const ROADMAP_PLAN_EXECUTABLE_DETAIL_SNIPPET = "executable planning context";
 const ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET = "all milestones whose status is not complete";
 const ROADMAP_REVIEW_DIRECT_FIX_SNIPPET =
-  "directly edit each incomplete milestone and its planned-change YAML files";
+  "use roadmap-generate milestone for milestone YAML shape";
 const ROADMAP_REVIEW_DETAIL_ELABORATION_SNIPPET = "concrete and executable";
 const ROADMAP_ARCHIVE_DEFAULT_ALL_SNIPPET = "default to all unarchived milestones";
 const ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET = "only milestones whose derived status is complete";
@@ -76,6 +78,10 @@ const AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET = "resume the existing populated st
 const AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET =
   "exactly matches the configured complete project regression command";
 const PROPOSAL_CHECKPOINT_SNIPPET = "proposal checkpoint";
+const PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET = "decision-ready detail";
+const PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET =
+  "scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields";
+const PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET = "fix safe, in-scope documentation gaps";
 const REVIEW_AUTO_FIX_SNIPPET = "Automatically fix safe in-scope review findings";
 const REVIEW_POST_FIX_REGRESSION_SNIPPET =
   "rerun strict verification plus the configured complete regression command after review-time changes";
@@ -109,6 +115,9 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       ROADMAP_PROPOSAL_ONLY_SNIPPET,
       "strict-spec-propose-from-roadmap",
       PROPOSAL_CHECKPOINT_SNIPPET,
+      PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET,
+      PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
+      PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
     ],
@@ -137,6 +146,9 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET,
       ROADMAP_PROPOSE_FROM_ROADMAP_PROPOSAL_ONLY_SNIPPET,
       PROPOSAL_CHECKPOINT_SNIPPET,
+      PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET,
+      PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
+      PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
     ],
@@ -219,6 +231,9 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       AUTO_RESUME_POPULATED_SCAFFOLD_SNIPPET,
       AUTO_REUSE_REGRESSION_EVIDENCE_SNIPPET,
       PROPOSAL_CHECKPOINT_SNIPPET,
+      PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET,
+      PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
+      PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       "harness-plan",
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
@@ -258,12 +273,15 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
 export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
   "strict-roadmap-plan": {
     requiredCommands: {
+      "roadmap-generate": `${COMMAND_PREFIX} roadmap-generate milestone --<named-args>`,
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [
       ".strict-spec-driven/roadmap/",
+      ROADMAP_GENERATE_MILESTONE_SNIPPET,
+      ROADMAP_PLANNED_CHANGE_DIRECT_EDIT_SNIPPET,
       ROADMAP_PLAN_EXECUTABLE_DETAIL_SNIPPET,
       ROADMAP_PLAN_REVIEW_SNIPPET,
     ],
@@ -287,18 +305,24 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       ROADMAP_READY_HANDOFF_SNIPPET,
       ROADMAP_AUTO_POPULATED_HANDOFF_SNIPPET,
       PROPOSAL_CHECKPOINT_SNIPPET,
+      PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET,
+      PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
+      PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       "/strict-spec-auto",
     ],
     forbiddenSnippets: ["proposal review"],
   },
   "strict-roadmap-review": {
     requiredCommands: {
+      "roadmap-generate": `${COMMAND_PREFIX} roadmap-generate milestone --<named-args>`,
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
     requiredSnippets: [
       ".strict-spec-driven/roadmap/",
+      ROADMAP_GENERATE_MILESTONE_SNIPPET,
+      ROADMAP_PLANNED_CHANGE_DIRECT_EDIT_SNIPPET,
       ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET,
       ROADMAP_REVIEW_DIRECT_FIX_SNIPPET,
       ROADMAP_REVIEW_DETAIL_ELABORATION_SNIPPET,
@@ -341,6 +365,9 @@ export const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpe
       "proposal.yaml",
       "questions.yaml",
       PROPOSAL_CHECKPOINT_SNIPPET,
+      PROPOSAL_CHECKPOINT_DECISION_READY_SNIPPET,
+      PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
+      PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
     ],
     forbiddenSnippets: ["proposal review"],
   },

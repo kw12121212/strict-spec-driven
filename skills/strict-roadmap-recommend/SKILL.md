@@ -136,11 +136,13 @@ run `init` from this skill.
 5. **Run the proposal checkpoint and validate the proposed strict change** —
    before running `ready`, perform a proposal checkpoint over the populated
    change artifacts against the selected roadmap planned change, relevant main
-   specs, and project constraints. Check scope consistency, design decisions,
-   task coverage, unresolved questions, delta spec quality, unchanged behavior,
-   and structured mapping fields. Fix safe in-scope issues immediately, and
-   record real ambiguity in `questions.yaml` without expanding scope or
-   answering unresolved human questions.
+   specs, technical standards, and project constraints. Check for decision-ready
+   detail in scope, unchanged behavior, design decisions, task coverage,
+   unresolved-question impact, delta spec scenarios, delta tech use when
+   applicable, and structured mapping fields. The checkpoint should fix safe,
+   in-scope documentation gaps immediately, and record real ambiguity in
+   `questions.yaml` without expanding scope or answering unresolved human
+   questions.
 
    Then run:
    ```bash

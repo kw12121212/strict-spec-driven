@@ -112,14 +112,14 @@ run `init` from this skill.
 8. **Run the proposal checkpoint over generated planning artifacts** — before
    validation, perform a semantic self-check of every generated or edited file under
    `.strict-spec-driven/changes/<change-name>/` against the confirmed brainstorm
-   summary, the relevant main specs, and the existing project constraints. Look
-   for vague requirements, inconsistent in-scope/out-of-scope/unchanged behavior,
-   missing implementation or testing tasks, misplaced open questions, weak
-   delta-spec scenarios, and prose that should be represented in structured
-   mapping fields. Fix safe, in-scope issues immediately by rerunning the
-   supported `generate` commands for script-owned artifacts and by directly
-   editing `tasks.yaml` for task-list structure. Do not expand scope or answer
-   unresolved human questions during this checkpoint; record ambiguity in
+   summary, the relevant main specs, technical standards, and the existing
+   project constraints. Check for decision-ready detail in scope, unchanged
+   behavior, design decisions, task coverage, unresolved-question impact, delta
+   spec scenarios, delta tech use when applicable, and structured mapping fields.
+   The checkpoint should fix safe, in-scope documentation gaps immediately by
+   rerunning the supported `generate` commands for script-owned artifacts and by
+   directly editing `tasks.yaml` for task-list structure. Do not expand scope or
+   answer unresolved human questions during this checkpoint; record ambiguity in
    `questions.yaml` or return to the user checkpoint when the scope changes.
 
 9. **Validate proposal readiness and artifact structure** — run:

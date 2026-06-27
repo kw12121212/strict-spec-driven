@@ -48,6 +48,7 @@ const expectedCommandOrder = [
   "harness-session",
   "mcp-install",
   "migrate",
+  "roadmap-generate",
   "roadmap-status",
   "roadmap-overview",
   "roadmap-sync",
@@ -372,6 +373,9 @@ context.assert(
       && normalizedProposeSkillContent.includes("Do not auto-invoke `/strict-spec-auto` during strict-spec-propose")
       && normalizedProposeSkillContent.includes("before validation")
       && normalizedProposeSkillContent.includes("semantic self-check")
+      && normalizedProposeSkillContent.includes("decision-ready detail")
+      && normalizedProposeSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields")
+      && normalizedProposeSkillContent.includes("fix safe, in-scope documentation gaps")
       && normalizedProposeSkillContent.includes("Do not expand scope or answer unresolved human questions")
       && normalizedProposeSkillContent.includes("proposal checkpoint refinements made")
       && !normalizedProposeSkillContent.includes("roadmap-recommend")
@@ -389,6 +393,9 @@ context.assert(
       && normalizedProposeFromRoadmapSkillContent.includes("standalone planned-change")
       && normalizedProposeFromRoadmapSkillContent.includes("Do not auto-invoke `/strict-spec-auto` during strict-spec-propose-from-roadmap")
       && normalizedProposeFromRoadmapSkillContent.includes("proposal checkpoint")
+      && normalizedProposeFromRoadmapSkillContent.includes("decision-ready detail")
+      && normalizedProposeFromRoadmapSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields")
+      && normalizedProposeFromRoadmapSkillContent.includes("fix safe, in-scope documentation gaps")
       && normalizedProposeFromRoadmapSkillContent.includes("ready <change-name>")
       && normalizedProposeFromRoadmapSkillContent.includes("verify <change-name>")
       && !normalizedProposeFromRoadmapSkillContent.includes("immediately invoke the /strict-spec-auto <change-name> skill")
@@ -409,6 +416,9 @@ context.assert(
       && normalizedAutoSkillContent.includes("exactly matches the configured complete project regression command")
       && normalizedAutoSkillContent.includes("proposal checkpoint")
       && normalizedAutoSkillContent.includes("semantic self-check")
+      && normalizedAutoSkillContent.includes("decision-ready detail")
+      && normalizedAutoSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields")
+      && normalizedAutoSkillContent.includes("fix safe, in-scope documentation gaps")
       && normalizedAutoSkillContent.includes("Do not expand scope or answer unresolved human questions")
       && !autoSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js review <change-name>"),
     "strict-spec-auto runs proposal checkpoints, resumes populated scaffolds, and blocks archive without automatic safe fixes, complete regression, and direct code review evidence",
@@ -429,6 +439,9 @@ context.assert(
       && normalizedBrainstormSkillContent.includes("before validation")
       && normalizedBrainstormSkillContent.includes("semantic self-check")
       && normalizedBrainstormSkillContent.includes("confirmed brainstorm summary")
+      && normalizedBrainstormSkillContent.includes("decision-ready detail")
+      && normalizedBrainstormSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields")
+      && normalizedBrainstormSkillContent.includes("fix safe, in-scope documentation gaps")
       && normalizedBrainstormSkillContent.includes("Do not expand scope or answer unresolved human questions")
       && normalizedBrainstormSkillContent.includes("proposal checkpoint refinements made")
       && !normalizedBrainstormSkillContent.includes("proposal review"),
@@ -436,8 +449,11 @@ context.assert(
   );
   context.assert(
     roadmapPlanSkillContent.includes("check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state")
+      && roadmapPlanSkillContent.includes("roadmap-generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-generate milestone --<named-args>")
       && normalizedRoadmapPlanSkillContent.includes("Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`")
       && normalizedRoadmapPlanSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
+      && normalizedRoadmapPlanSkillContent.includes("roadmap-generate milestone")
+      && normalizedRoadmapPlanSkillContent.includes("standalone planned-change files remain edited directly")
       && normalizedRoadmapPlanSkillContent.includes("executable planning context")
       && normalizedRoadmapPlanSkillContent.includes("Review the roadmap plan before handoff")
       && !roadmapPlanSkillContent.includes("node {{SKILL_DIR}}/scripts/strict-spec-driven.js init"),
@@ -458,6 +474,9 @@ context.assert(
       && normalizedRoadmapRecommendSkillContent.includes("Use `ready` as the proposal handoff validation")
       && normalizedRoadmapRecommendSkillContent.includes("populated change scaffold")
       && normalizedRoadmapRecommendSkillContent.includes("proposal checkpoint")
+      && normalizedRoadmapRecommendSkillContent.includes("decision-ready detail")
+      && normalizedRoadmapRecommendSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields")
+      && normalizedRoadmapRecommendSkillContent.includes("fix safe, in-scope documentation gaps")
       && normalizedRoadmapRecommendSkillContent.includes("instead of manually choosing among planned changes"),
     "strict-roadmap-recommend requires scripted-first recommendation, proposal checkpoint, ready handoff, and populated auto resume guidance",
   );
@@ -467,11 +486,13 @@ context.assert(
   );
   context.assert(
     roadmapReviewSkillContent.includes("roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status")
+      && roadmapReviewSkillContent.includes("roadmap-generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-generate milestone --<named-args>")
       && roadmapReviewSkillContent.includes("roadmap-sync: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync")
       && normalizedRoadmapReviewSkillContent.includes("all milestones whose status is not complete")
-      && normalizedRoadmapReviewSkillContent.includes("directly edit each incomplete milestone and its planned-change YAML files")
+      && normalizedRoadmapReviewSkillContent.includes("use roadmap-generate milestone for milestone YAML shape")
+      && normalizedRoadmapReviewSkillContent.includes("standalone planned-change files remain edited directly")
       && normalizedRoadmapReviewSkillContent.includes("concrete and executable"),
-    "strict-roadmap-review validates with all-incomplete-milestones direct-fix guidance",
+    "strict-roadmap-review validates with all-incomplete-milestones milestone command guidance",
   );
   context.assert(
     harnessInitSkillContent.includes("check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state")
@@ -1195,9 +1216,9 @@ try {
       (diagnostic) =>
         diagnostic.code === "skill.roadmap.required_snippet.missing"
         && diagnostic.path === "skills/strict-roadmap-review/SKILL.md"
-        && diagnostic.expected === "directly edit each incomplete milestone and its planned-change YAML files",
+        && diagnostic.expected === "use roadmap-generate milestone for milestone YAML shape",
     ),
-    "strict-roadmap-review invalid packaging requires direct-fix guidance",
+    "strict-roadmap-review invalid packaging requires milestone command guidance",
   );
 
   const invalidRoadmapReviewCliA = cli(["validate-skills"], { cwd: invalidRoadmapReviewRoot });

@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: harden-proposal-checkpoint
+  status: proposed
+summary:
+  what:
+    - Strengthen the proposal checkpoint so change planning artifacts are reviewed for decision-ready detail before implementation handoff.
+  why:
+    - Change documents can currently pass handoff with structurally valid but under-specified content, which delays discovery of vague scope, weak scenarios, missing tasks, or misplaced questions until implementation or review.
+scope:
+  in:
+    - Update strict workflow specs and skill guidance so proposal-generating and proposal-handoff paths require a detailed semantic checkpoint over proposal.yaml, design.yaml, tasks.yaml, questions.yaml, delta specs, and delta tech when present.
+    - Define decision-ready detail expectations for scope, unchanged behavior, design decisions, implementation/testing/verification tasks, open-question impact, scenario specificity, structured mappings, and fixes for safe, in-scope documentation gaps.
+    - Add deterministic skill-content validation so the required checkpoint detail guidance cannot be removed from bundled skills without a failing diagnostic.
+  out:
+    - Do not add a strict-spec-driven review CLI command or reuse strict-spec-review for planning-stage checks.
+    - Do not add a separate checkpoint YAML artifact unless a future change explicitly chooses persistent checkpoint evidence.
+    - Do not make scripts judge product correctness or answer unresolved human questions; scripts only enforce deterministic guidance and structure.
+unchanged_behavior:
+  - strict-spec-review remains reserved for completed-change direct code review, safe in-scope fixes, verification, and complete regression evidence.
+  - ready remains the deterministic proposal handoff check for missing structure and blockers, not a semantic product-quality judge.
+  - verify remains the strict YAML schema and artifact-shape validator, with pending tasks expected before implementation.

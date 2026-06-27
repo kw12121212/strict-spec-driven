@@ -1,0 +1,33 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/skills/model.ts
+    - src/skills/content.ts
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-propose-from-roadmap/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    cli-validate-skills-enforces-detailed-proposal-checkpoint:
+      strength: MUST
+      statement: The system MUST validate bundled proposal-generating and proposal-handoff skill packages through validate-skills, enforcing guidance that the proposal checkpoint checks change documents for decision-ready detail while preserving the planning-stage name proposal checkpoint and rejecting stale guidance that calls the gate proposal review.
+      scenarios:
+        validate-skills-requires-detailed-checkpoint-guidance:
+          - GIVEN: validate-skills inspects bundled proposal-generating and proposal-handoff skill packages
+          - WHEN: a required skill omits concrete decision-ready proposal checkpoint criteria for change planning artifacts
+          - THEN: validate-skills reports deterministic path-specific diagnostics for the missing checkpoint detail guidance
+        validate-skills-rejects-proposal-review-wording:
+          - GIVEN: validate-skills inspects bundled proposal-generating and proposal-handoff skill packages
+          - WHEN: a required skill names the planning-stage gate proposal review or points agents to a strict-spec-driven review command
+          - THEN: validate-skills reports deterministic diagnostics that preserve proposal checkpoint as the planning-stage terminology
+  MODIFIED: {}
+  REMOVED: {}

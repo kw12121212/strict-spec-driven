@@ -1,0 +1,17 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: roadmap-authoring-commands
+open: []
+resolved:
+  - id: command-shape
+    question: Should roadmap authoring be exposed as a roadmap-generate milestone command or as broader milestone and planned-change generation commands?
+    context: The user clarified that planned-change authoring should keep the existing workflow and CLI should only manage milestone artifacts.
+    answer: Use roadmap-generate milestone only; do not add planned-change generation or update commands in this change.
+    status: resolved
+  - id: update-semantics
+    question: Should milestone update behavior patch existing artifacts by default or require explicit replacement semantics?
+    context: Milestone planning fields include arrays and long-form details where accidental replacement or duplication would be costly.
+    answer: Use safe upsert and deduplication by default, reject conflicting scalar edits before writing, and require --reset for wholesale replacement of existing list-like milestone planning fields.
+    status: resolved

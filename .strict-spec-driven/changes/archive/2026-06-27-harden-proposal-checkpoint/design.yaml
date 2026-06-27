@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: harden-proposal-checkpoint
+approach:
+  - Treat the planning-stage quality gate as an expanded proposal checkpoint, not as review. The checkpoint remains AI-performed skill guidance because it evaluates semantic adequacy, while validate-skills enforces that bundled skills contain concrete decision-ready detail criteria. Update specs first, then adjust skill prompts and skill-content expectations to require the detailed criteria across proposal-generating and proposal-handoff paths.
+decisions:
+  keep-checkpoint-name:
+    decision: Keep the planning-stage gate named proposal checkpoint rather than proposal review.
+    rationale: The existing workflow reserves strict-spec-review for completed-change code review and regression evidence. Keeping a distinct name prevents operators and agents from expecting a deterministic review command or treating planning validation as completed implementation review.
+  detail-criteria-in-skill-guidance:
+    decision: Put decision-ready detail criteria in skill guidance and validate their presence with skill-content checks.
+    rationale: The detail criteria require semantic judgment about sufficiency, consistency, and ambiguity. That belongs in skill prompts under the yaml-first-artifacts standard, while scripts can deterministically enforce that the guidance is present.
+  no-new-checkpoint-artifact:
+    decision: Do not introduce a persistent checkpoint artifact in this change.
+    rationale: The user's goal is earlier problem discovery and richer change documents. Strengthening existing artifacts and skill validation delivers that without adding a new artifact lifecycle, schema, or archive contract.
+alternatives: []
+risks:
+  - >-
+    If the checkpoint criteria are too generic, agents may still produce
+    structurally valid but implementation-poor change documents. The skill
+    guidance and validate-skills snippets must therefore name the concrete
+    artifact fields and detail expectations.
+  - >-
+    If validation becomes too semantic, scripts could start judging product
+    correctness. The implementation must keep deterministic checks limited to
+    required guidance, forbidden terminology, and artifact structure.
+  - >-
+    Strengthening multiple skills can drift if only one proposal path is
+    updated. Tests must cover standalone proposal, brainstorm, roadmap-backed
+    handoff, and auto creation or resume guidance where applicable.

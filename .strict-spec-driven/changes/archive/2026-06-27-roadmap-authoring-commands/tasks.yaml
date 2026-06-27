@@ -1,0 +1,38 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: roadmap-authoring-commands
+sections:
+  Implementation:
+    implement-roadmap-generate-milestone:
+      text: Implement roadmap-generate milestone CLI parsing, help, usage, safe create/update behavior, validation, deterministic diagnostics, and sync-after-write reporting.
+      status: complete
+    preserve-planned-change-workflow:
+      text: Ensure milestone authoring preserves source_ticket metadata, leaves standalone planned-change artifacts on the existing direct-edit workflow, and rejects legacy inline planned_changes without partially rewriting milestone files.
+      status: complete
+    update-roadmap-skill-guidance:
+      text: Update strict roadmap planning and review skill guidance so milestone artifact shape is routed through roadmap-generate milestone while standalone planned-change authoring remains on the existing direct roadmap editing path.
+      status: complete
+  Testing:
+    add-roadmap-command-tests:
+      text: Add regression tests for milestone creation, milestone update, conflicting argument rejection before write, sync/index updates, and preservation of planned-change artifacts.
+      status: complete
+    add-skill-guidance-tests:
+      text: Add or update skill-content validation covering the roadmap-generate milestone guidance and the explicit planned-change out-of-scope boundary.
+      status: complete
+    run-build:
+      text: Run the TypeScript build.
+      status: complete
+      command: bun run build
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches the milestone-only proposal scope and does not add planned-change generation.
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: run-project-regression

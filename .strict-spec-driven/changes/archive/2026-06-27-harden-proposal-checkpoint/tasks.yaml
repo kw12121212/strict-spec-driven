@@ -1,0 +1,40 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: harden-proposal-checkpoint
+sections:
+  Implementation:
+    update-spec-contract:
+      text: Update the strict specs so proposal checkpoint guidance requires decision-ready detail across change planning artifacts before implementation handoff.
+      status: complete
+    strengthen-skill-guidance:
+      text: Update proposal-generating and proposal-handoff skill prompts to run the detailed proposal checkpoint and fix safe, in-scope documentation gaps before ready, verify, auto implementation, or handoff.
+      status: complete
+    enforce-skill-validation:
+      text: Extend skill-content validation expectations so bundled skills must retain concrete decision-ready checkpoint criteria and must not rename the gate to proposal review.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run the TypeScript lint check.
+      status: complete
+      command: bun run lint
+    run-validate-skills:
+      text: Run skill packaging and guidance validation to prove the detailed checkpoint criteria are enforced.
+      status: complete
+      command: bun run validate-skills
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify strict specs, skill guidance, validation expectations, and tests match the confirmed scope without adding a planning-stage review command or checkpoint artifact.
+      status: complete
+    verify-change:
+      text: Run strict change verification after implementation tasks are complete.
+      status: complete
+      command: node scripts/strict-spec-driven.js verify harden-proposal-checkpoint
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-project-regression

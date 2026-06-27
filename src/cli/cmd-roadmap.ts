@@ -6,14 +6,25 @@ import {
   type RoadmapRecommendResult,
 } from "../roadmap.js";
 import { archiveRoadmapMilestones } from "../roadmap/archive.js";
+import { generateRoadmapMilestone, type RoadmapMilestoneAuthorInput } from "../roadmap/author.js";
 import { reopenMilestone } from "../roadmap/reopen.js";
 import { isHelpRequest } from "./argv.js";
-import { writeHelp, writeJson, writeOut, writeUsage } from "./output.js";
+import { writeError, writeHelp, writeJson, writeOut, writeUsage } from "./output.js";
 
 const ROADMAP_RECOMMEND_USAGE = "Usage: strict-spec-driven roadmap-recommend [--details]\n";
 const ROADMAP_ARCHIVE_USAGE = "Usage: strict-spec-driven roadmap-archive [milestone-id]\n";
 const ROADMAP_REOPEN_USAGE = "Usage: strict-spec-driven roadmap-reopen <milestone-id> [--reason \"...\"]\n";
+const ROADMAP_GENERATE_USAGE = [
+  "Usage: strict-spec-driven roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset]",
+  "",
+  "Notes:",
+  "  Existing scalar fields with different values require --reset.",
+  "  List fields append unique values by default; with --reset, supplied list fields replace existing values.",
+].join("\n") + "\n";
 const ACTIONABLE_BLOCKER_LIMIT = 10;
+const ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set(["reset"]);
+
+type FlagMap = Record<string, string[]>;
 
 function summarizeRoadmapRecommendation(result: RoadmapRecommendResult): unknown {
   const skippedByCode: Record<string, number> = {};
@@ -110,6 +121,115 @@ export function runRoadmapSync(argv: string[]): number {
   }
 
   const result = syncRoadmap(process.cwd(), { materializePlannedChanges });
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+
+function parseRoadmapGenerateFlags(argv: string[]): FlagMap {
+  const flags: FlagMap = {};
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token?.startsWith("--") || token.length === 2) {
+      throw new Error(`expected named argument, got '${token ?? ""}'`);
+    }
+
+    const name = token.slice(2);
+    flags[name] ??= [];
+    if (ROADMAP_GENERATE_BOOLEAN_FLAGS.has(name)) {
+      flags[name].push("true");
+      continue;
+    }
+
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith("--")) {
+      throw new Error(`missing value for --${name}`);
+    }
+    flags[name].push(value);
+    index += 1;
+  }
+  return flags;
+}
+
+function ensureAllowedRoadmapGenerateFlags(flags: FlagMap, allowed: string[]): void {
+  const allowedSet = new Set(allowed);
+  const unsupported = Object.keys(flags).filter((flag) => !allowedSet.has(flag));
+  if (unsupported.length > 0) {
+    throw new Error(`unsupported argument(s): ${unsupported.map((flag) => `--${flag}`).join(", ")}`);
+  }
+}
+
+function values(flags: FlagMap, name: string): string[] {
+  return flags[name] ?? [];
+}
+
+function optionalOne(flags: FlagMap, name: string): string | undefined {
+  const all = values(flags, name);
+  if (all.length > 1) {
+    throw new Error(`--${name} may only be supplied once`);
+  }
+  return all[0];
+}
+
+function requiredOne(flags: FlagMap, name: string): string {
+  const value = optionalOne(flags, name);
+  if (!value) {
+    throw new Error(`missing required argument --${name}`);
+  }
+  return value;
+}
+
+function buildRoadmapMilestoneAuthorInput(argv: string[]): RoadmapMilestoneAuthorInput {
+  const flags = parseRoadmapGenerateFlags(argv);
+  ensureAllowedRoadmapGenerateFlags(flags, [
+    "id",
+    "title",
+    "goal",
+    "scope-in",
+    "scope-out",
+    "done",
+    "dependency",
+    "risk",
+    "note",
+    "details",
+    "reset",
+  ]);
+
+  return {
+    id: requiredOne(flags, "id"),
+    title: optionalOne(flags, "title"),
+    goal: optionalOne(flags, "goal"),
+    scopeIn: values(flags, "scope-in"),
+    scopeOut: values(flags, "scope-out"),
+    doneCriteria: values(flags, "done"),
+    dependencies: values(flags, "dependency"),
+    risks: values(flags, "risk"),
+    notes: values(flags, "note"),
+    details: optionalOne(flags, "details"),
+    reset: values(flags, "reset").length > 0,
+  };
+}
+
+export function runRoadmapGenerate(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp(ROADMAP_GENERATE_USAGE);
+    return 0;
+  }
+  const [selector, ...rest] = argv;
+  if (selector !== "milestone") {
+    writeUsage(ROADMAP_GENERATE_USAGE);
+    return 1;
+  }
+
+  let input: RoadmapMilestoneAuthorInput;
+  try {
+    input = buildRoadmapMilestoneAuthorInput(rest);
+  } catch (error) {
+    writeError(error instanceof Error ? error.message : String(error));
+    writeUsage(ROADMAP_GENERATE_USAGE);
+    return 1;
+  }
+
+  const result = generateRoadmapMilestone(process.cwd(), input);
   writeJson(result);
   return result.valid ? 0 : 1;
 }

@@ -28,6 +28,7 @@ export const COMMAND_REGISTRATION_ORDER = [
   "harness-session",
   "mcp-install",
   "migrate",
+  "roadmap-generate",
   "roadmap-status",
   "roadmap-overview",
   "roadmap-sync",

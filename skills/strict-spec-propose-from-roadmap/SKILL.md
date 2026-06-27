@@ -197,10 +197,12 @@ Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js che
     validation, perform a semantic self-check of every generated or edited file
     under `.strict-spec-driven/changes/<change-name>/` against the recommended
     planned change, relevant main specs, technical standards, and project
-    constraints. Check scope consistency, design decisions, task coverage,
-    unresolved questions, delta spec quality, unchanged behavior, and structured
-    mapping fields. Fix safe, in-scope issues immediately. Do not expand scope
-    or answer unresolved human questions; record ambiguity in `questions.yaml`.
+    constraints. Check for decision-ready detail in scope, unchanged behavior,
+    design decisions, task coverage, unresolved-question impact, delta spec
+    scenarios, delta tech use when applicable, and structured mapping fields.
+    The checkpoint should fix safe, in-scope documentation gaps immediately. Do
+    not expand scope or answer unresolved human questions; record ambiguity in
+    `questions.yaml`.
 
 11. **Validate proposal readiness and artifact structure** — run:
    ```bash

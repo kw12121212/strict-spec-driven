@@ -1,0 +1,31 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-propose-from-roadmap/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+    - src/skills/model.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    proposal-generating-skills-run-proposal-checkpoint:
+      strength: MUST
+      statement: Proposal-generating and proposal-handoff skills MUST guide agents to run a proposal checkpoint over generated planning artifacts after population and before ready/verify validation, ready handoff, auto implementation, or handoff to another strict workflow skill so semantic quality issues and insufficient change-document detail are corrected without naming the planning-stage gate a review.
+      scenarios:
+        proposal-checkpoint-requires-decision-ready-detail:
+          - GIVEN: strict-spec-brainstorm, strict-spec-propose, a strict roadmap handoff skill, or the creation path of strict-spec-auto has populated proposal, design, task, question, and delta artifacts for a change
+          - WHEN: the skill workflow proceeds toward proposal handoff, ready validation, verify validation, auto implementation, or another strict workflow skill
+          - THEN: the skill requires a proposal checkpoint over generated artifacts against the confirmed request or brainstorm summary, relevant main specs, technical standards, and project constraints before that handoff
+          - THEN: the checkpoint criteria require decision-ready detail in scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields
+          - THEN: the checkpoint guidance tells agents to fix safe, in-scope documentation gaps without expanding scope or answering unresolved human questions
+          - THEN: unresolved ambiguity remains recorded in questions.yaml with enough context and impact to block implementation deliberately
+  REMOVED: {}

@@ -18,6 +18,7 @@ before running anything. Do not guess.
 
 ```yaml
 check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
+roadmap-generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-generate milestone --<named-args>
 roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
 roadmap-overview: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-overview
 roadmap-sync: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync
@@ -80,10 +81,15 @@ run `init` from this skill.
    reported by `roadmap-status`, including archived strict change evidence,
    and identify gaps between definition and delivery.
 
-5. **Apply fixes directly** — directly edit each incomplete milestone and its
-   planned-change YAML files under `.strict-spec-driven/roadmap/` so goals,
-   `done_criteria`, scope, dependencies, risks, and planned-change `details`
-   become concrete and executable. Tighten vague wording into verifiable
+5. **Apply fixes directly** — use roadmap-generate milestone for milestone YAML
+   shape and milestone-field fixes under `.strict-spec-driven/roadmap/`:
+   ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-generate milestone --id <milestone-id> --title "..." --goal "..." --scope-in "..." --scope-out "..." --done "..." --dependency "..." --risk "..." --note "..." --details "..."
+   ```
+   Use `--reset` only when you intentionally replace existing milestone
+   planning fields. Standalone planned-change files remain edited directly by
+   this skill, so planned-change `details` can be tightened without introducing
+   planned-change CLI generation. Tighten vague wording into verifiable
    statements; elaborate planned-change details until each one carries enough
    executable planning context to propose without re-deriving intent. Never
    hand-edit completion status: milestone and planned-change completion flows
@@ -109,8 +115,11 @@ run `init` from this skill.
 - Keep all roadmap state under `.strict-spec-driven/roadmap/`
 - Review all milestones whose status is not complete; refuse completed
   milestones as out of review scope
-- Apply definition fixes by direct YAML edits, then resync the roadmap; never
+- Apply milestone definition fixes through `roadmap-generate milestone`, edit
+  standalone planned-change detail directly, then resync the roadmap; never
   leave the roadmap unsynced after edits
+- Use `roadmap-generate milestone` for milestone YAML shape; standalone
+  planned-change files remain edited directly
 - Never mark planned changes or milestones complete by hand; completion state
   is owned by roadmap sync reconciliation
 - Do not invent planned change state that conflicts with the strict workflow

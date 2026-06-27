@@ -17,6 +17,7 @@ before running anything. Do not guess.
 
 ```yaml
 check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
+roadmap-generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-generate milestone --<named-args>
 roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
 roadmap-sync: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync
 ```
@@ -64,10 +65,19 @@ run `init` from this skill.
    the returned `plannedChanges[].path` values when you need to inspect or move
    existing standalone roadmap items.
 
-3. **Create or revise executable roadmap YAML artifacts** — update:
+3. **Create or revise executable roadmap YAML artifacts** — create or update
+   milestone files with:
+   ```bash
+   node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-generate milestone --id <milestone-id> --title "..." --goal "..." --scope-in "..." --scope-out "..." --done "..." --dependency "..." --risk "..." --note "..." --details "..."
+   ```
+   Use `--reset` only when you intentionally replace existing milestone
+   planning fields. Use `roadmap-generate milestone` for milestone YAML shape
+   and milestone-field changes; do not hand-roll milestone schema structure.
+   Continue to update:
     - `.strict-spec-driven/roadmap/INDEX.yaml`
-    - `.strict-spec-driven/roadmap/milestones/*.yaml`
     - `.strict-spec-driven/roadmap/planned-changes/*.yaml`
+    Milestone index state is normalized by `roadmap-sync`; standalone
+    planned-change files remain edited directly by this skill.
     Keep milestone planning in structured YAML fields such as `goal`, `scope`,
     `done_criteria`, `dependencies`, `risks`, `status`, `notes`, and
     `details`. Refine each milestone until its goal, scope, done criteria,
@@ -107,3 +117,5 @@ run `init` from this skill.
 - Keep planned changes owned by exactly one milestone
 - Keep milestone files numbered and stable once the roadmap exists
 - Keep each milestone to ten planned changes or fewer
+- Use `roadmap-generate milestone` for milestone YAML shape; standalone
+  planned-change files remain edited directly
