@@ -781,9 +781,11 @@ try {
 
   const archivedMilestonePath = path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "archive", "milestones", "0001-complete.yaml");
   const archivedPlannedChangePath = path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "archive", "planned-changes", "0001-complete-one.yaml");
+  const archivedSecondPlannedChangePath = path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "archive", "planned-changes", "0002-complete-two.yaml");
   context.assert(
     existsSync(archivedMilestonePath)
       && existsSync(archivedPlannedChangePath)
+      && existsSync(archivedSecondPlannedChangePath)
       && !existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "milestones", "0001-complete.yaml"))
       && !existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-complete-one.yaml")),
     "roadmap-archive moves completed milestone and its completed planned changes into roadmap archive",
@@ -812,6 +814,37 @@ try {
       && statusAfterArchive.milestones.length === 2
       && statusAfterArchive.milestones.every((milestone: { id: string }) => milestone.id !== "0001-complete"),
     "roadmap-status ignores roadmap archive files after milestone archive",
+  );
+
+  const syncAfterArchive = cli(["roadmap-sync"], { cwd: roadmapArchiveDir });
+  context.assert(syncAfterArchive.status === 0, "roadmap-sync exits zero after roadmap-archive", syncAfterArchive.stderr);
+  const syncAfterArchiveJson = JSON.parse(syncAfterArchive.stdout.trim());
+  context.assert(
+    syncAfterArchiveJson.valid === true
+      && syncAfterArchiveJson.milestones.length === 2
+      && syncAfterArchiveJson.milestones.every((milestone: { id: string }) => milestone.id !== "0001-complete"),
+    "roadmap-sync keeps archived milestones out of active sync status after roadmap-archive",
+    syncAfterArchive.stdout,
+  );
+
+  const indexAfterSync = yamlModule.parseYamlFile<{
+    milestones: Record<string, { path: string; status: string }>;
+  }>(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "INDEX.yaml"));
+  context.assert(
+    !("0001-complete" in indexAfterSync.milestones)
+      && indexAfterSync.milestones["0002-active"]?.path === "roadmap/milestones/0002-active.yaml"
+      && indexAfterSync.milestones["0003-pending"]?.path === "roadmap/milestones/0003-pending.yaml",
+    "roadmap-sync preserves the active roadmap index boundary after roadmap-archive",
+  );
+  const statusAfterSyncArchive = JSON.parse(cli(["roadmap-status"], { cwd: roadmapArchiveDir }).stdout.trim());
+  context.assert(
+    statusAfterSyncArchive.valid === true
+      && statusAfterSyncArchive.milestones.length === 2
+      && statusAfterSyncArchive.milestones.every((milestone: { id: string }) => milestone.id !== "0001-complete")
+      && existsSync(archivedMilestonePath)
+      && existsSync(archivedPlannedChangePath)
+      && existsSync(archivedSecondPlannedChangePath),
+    "roadmap-status and archived files preserve the archive boundary after roadmap-sync",
   );
 } finally {
   rmSync(roadmapArchiveDir, { recursive: true, force: true });

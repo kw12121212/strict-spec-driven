@@ -1,0 +1,24 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+mapping:
+  implementation:
+    - src/roadmap/load.ts
+    - src/roadmap/sync.ts
+    - src/roadmap/archive.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    roadmap-sync-archive-boundary:
+      strength: MUST
+      statement: The system MUST make roadmap-sync preserve the active roadmap boundary after roadmap-archive has moved completed milestones and completed standalone planned-change files into roadmap/archive, excluding archived roadmap milestone and planned-change artifacts from active index regeneration, active status output, and active planned-change reconciliation.
+      scenarios:
+        sync-after-archive-keeps-archived-milestones-out-of-active-roadmap:
+          - GIVEN: roadmap-archive has archived a complete milestone and its completed standalone planned-change files while leaving other incomplete milestones active
+          - WHEN: strict-spec-driven roadmap-sync runs in the same workspace after the archive
+          - THEN: the command exits zero, keeps the archived milestone and archived planned-change files under roadmap/archive, leaves the active roadmap index without the archived milestone, and roadmap-status continues to report only active unarchived milestones
+  MODIFIED: {}
+  REMOVED: {}

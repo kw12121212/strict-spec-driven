@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: roadmap-sync-archive-boundary
+  status: proposed
+summary:
+  what:
+    - Make roadmap-sync preserve the active roadmap boundary after roadmap-archive moves completed milestones and their completed planned-change files into roadmap/archive/.
+    - Keep archived roadmap milestone and planned-change artifacts out of active roadmap reconciliation, index regeneration, and post-sync status output.
+  why:
+    - The roadmap-archive command introduces archived milestone files, and sync must not treat those archived files as active roadmap work or re-add them to the active index.
+scope:
+  in:
+    - Clarify the roadmap sync/archive contract for archived roadmap artifacts.
+    - Add behavior-facing regression coverage that runs roadmap-sync after roadmap-archive and verifies archived milestones stay archived and absent from active status/index output.
+    - Inspect and, if the regression exposes a defect, adjust roadmap loading or synchronization so active sync ignores roadmap/archive artifacts.
+  out:
+    - Change the roadmap archive storage layout or archived artifact schemas.
+    - Add new roadmap CLI flags or commands.
+    - Modify unrelated change archive, ticket, migrate, or recommendation behavior beyond preserving the active roadmap boundary.
+unchanged_behavior:
+  - roadmap-archive still archives only complete milestones and completed standalone planned-change files.
+  - roadmap-status and roadmap-recommend keep their existing compact output contracts.
+  - Legacy inline planned_change materialization behavior remains unchanged.

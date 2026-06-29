@@ -1,0 +1,12 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: roadmap-sync-archive-boundary
+open: []
+resolved:
+  - id: archive-boundary-scope
+    question: Should archived roadmap milestone files participate in active roadmap-sync reconciliation?
+    context: Resolved during brainstorm for the roadmap archive boundary.
+    answer: No. Archived roadmap files are historical output and active sync must keep them outside active index, status, and standalone planned-change reconciliation.
+    status: resolved

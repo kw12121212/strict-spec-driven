@@ -1,0 +1,33 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: roadmap-sync-archive-boundary
+sections:
+  Implementation:
+    inspect-roadmap-archive-boundary:
+      text: Inspect roadmap loading, status derivation, sync canonicalization, and archive movement paths to confirm where archived roadmap artifacts can leak into active synchronization.
+      status: complete
+    implement-boundary-fix-if-needed:
+      text: If the regression test exposes archived roadmap artifacts leaking into active sync, adjust the roadmap loader or sync boundary so roadmap/archive milestone and planned-change files remain historical and excluded from active reconciliation.
+      status: complete
+  Testing:
+    add-sync-after-archive-regression:
+      text: Add a behavior-facing roadmap regression where roadmap-archive archives a complete milestone, roadmap-sync then runs, and the active index/status still exclude the archived milestone while archived files remain in roadmap/archive.
+      status: complete
+      command: bun test/run.ts
+    build-after-source-edits:
+      text: Rebuild compiled output after any TypeScript source edits before relying on dist-based behavior.
+      status: complete
+      command: bun run build
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify the completed change matches the roadmap sync/archive boundary proposal, leaves archive layout and unrelated workflow behavior unchanged, and keeps strict artifact mappings accurate.
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: add-sync-after-archive-regression
