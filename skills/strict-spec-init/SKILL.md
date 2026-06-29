@@ -17,7 +17,7 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-init: node {{SKILL_DIR}}/scripts/strict-spec-driven.js init
+init: strict-spec-driven init
 ```
 
 ## Prerequisites
@@ -42,7 +42,7 @@ the active user message explicitly asks for a different language.
 
 2. **Run init** — run:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js init
+   strict-spec-driven init
    ```
    - If `.strict-spec-driven/` does not exist, this bootstraps it from scratch.
    - If `.strict-spec-driven/` already exists, this repairs missing scaffold

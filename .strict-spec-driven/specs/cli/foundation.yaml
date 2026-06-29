@@ -64,6 +64,31 @@ mapping:
     - skills/strict-spec-propose-from-roadmap/SKILL.md
     - skills/strict-spec-auto/SKILL.md
     - skills/strict-roadmap-recommend/SKILL.md
+    - README.md
+    - install.ps1
+    - scripts/build-native-cli.ts
+    - skills/strict-roadmap-reopen/SKILL.md
+    - skills/strict-roadmap-sync/SKILL.md
+    - skills/strict-spec-apply/SKILL.md
+    - skills/strict-spec-archive/SKILL.md
+    - skills/strict-spec-harness-init/SKILL.md
+    - skills/strict-spec-harness-session/SKILL.md
+    - skills/strict-spec-init/SKILL.md
+    - skills/strict-spec-maintenance/SKILL.md
+    - skills/strict-spec-migrate/SKILL.md
+    - skills/strict-spec-modify/SKILL.md
+    - skills/strict-spec-resync-code-mapping/SKILL.md
+    - skills/strict-spec-review/SKILL.md
+    - skills/strict-spec-ship/SKILL.md
+    - skills/strict-spec-spec-edit/SKILL.md
+    - skills/strict-spec-sync-specs/SKILL.md
+    - skills/strict-spec-verify/SKILL.md
+    - skills/strict-tech-edit/SKILL.md
+    - skills/strict-tech-sync/SKILL.md
+    - skills/strict-ticket-archive/SKILL.md
+    - skills/strict-ticket-dispatch/SKILL.md
+    - skills/strict-ticket/SKILL.md
+    - README.zh.md
   tests:
     - test/run.ts
     - test/support/harness.ts
@@ -1968,3 +1993,60 @@ requirements:
         - GIVEN: validate-skills inspects bundled proposal-generating and proposal-handoff skill packages
         - WHEN: a required skill names the planning-stage gate proposal review or points agents to a strict-spec-driven review command
         - THEN: validate-skills reports deterministic diagnostics that preserve proposal checkpoint as the planning-stage terminology
+  cli-installer-compiles-native-executable:
+    strength: MUST
+    statement: The system MUST compile a native strict-spec-driven executable during installation for Unix and Windows installer flows.
+    scenarios:
+      unix-installer-compiles-native-command:
+        - GIVEN: the Unix installer is run on a supported host with Bun available
+        - WHEN: installation prepares the strict-spec-driven command
+        - THEN: the installer invokes Bun executable compilation for the strict CLI entrypoint
+        - THEN: the installer installs the resulting native executable as strict-spec-driven
+      windows-installer-compiles-native-command:
+        - GIVEN: the Windows PowerShell installer is run on a supported Windows host with Bun available
+        - WHEN: installation prepares the strict-spec-driven command
+        - THEN: the installer invokes Bun executable compilation for the strict CLI entrypoint
+        - THEN: the installer installs the resulting native executable as strict-spec-driven.exe
+  cli-installed-path-command:
+    strength: MUST
+    statement: The system MUST provide an installation path that makes a native command named strict-spec-driven invocable from PATH for strict workflow subcommands.
+    scenarios:
+      installed-command-runs-subcommand:
+        - GIVEN: the strict skills package has been installed by the repository installer
+        - WHEN: strict-spec-driven check-workflow-state is invoked from a repository with .strict-spec-driven/
+        - THEN: the command routes to the existing strict workflow CLI behavior
+        - THEN: the command exits with the same status and diagnostics as the equivalent compiled CLI invocation
+  cli-installer-user-bin-path-diagnostics:
+    strength: MUST
+    statement: The installer MUST target a user-level bin directory for the strict-spec-driven command and report deterministic diagnostics when that directory is not available on PATH.
+    scenarios:
+      installer-reports-missing-path-entry:
+        - GIVEN: the installer selects a user-level bin directory for the strict-spec-driven command
+        - WHEN: that directory is not present on PATH
+        - THEN: installation reports an actionable warning naming the selected bin directory
+        - THEN: installation does not claim that the command is available from PATH
+  cli-skills-use-bare-command:
+    strength: MUST
+    statement: Bundled strict skill prompts MUST document strict CLI invocations with the bare strict-spec-driven command instead of {{SKILL_DIR}}-relative Node script paths or hard-coded user bin paths.
+    scenarios:
+      skill-command-snippets-are-path-independent:
+        - GIVEN: bundled strict skill SKILL.md files are validated
+        - WHEN: their command snippets and workflow prerequisite snippets are inspected
+        - THEN: strict CLI subcommands are expressed as strict-spec-driven <subcommand>
+        - THEN: the snippets do not contain node {{SKILL_DIR}}/scripts/strict-spec-driven.js or ~/.local/bin/strict-spec-driven
+  cli-windows-installer-user-path-update:
+    strength: MUST
+    statement: The Windows installer MUST add the resolved native strict-spec-driven bin directory to the current user's PATH during installation when PATH updates are not disabled, and MUST remove that directory during uninstall unless removal is disabled.
+    scenarios:
+      windows-installer-adds-user-path:
+        - GIVEN: the Windows installer resolves a native strict-spec-driven bin directory that is absent from the current user's PATH
+        - WHEN: installation completes with PATH updates enabled
+        - THEN: the installer appends that directory to the current user's PATH and reports that a new shell may be required
+      windows-installer-can-skip-path-update:
+        - GIVEN: the Windows installer is run with PATH updates disabled
+        - WHEN: installation or uninstallation completes
+        - THEN: the current user's PATH value is left unchanged
+      windows-uninstall-removes-user-path:
+        - GIVEN: the resolved native strict-spec-driven bin directory is present in the current user's PATH
+        - WHEN: uninstallation completes with PATH cleanup enabled
+        - THEN: the installer removes that directory from the current user's PATH

@@ -67,6 +67,12 @@
 | `harness-scripts <generate\|verify>` | 生成或验证项目本地的 `scripts/harness-*` 包装脚本 |
 | `harness-session <create\|validate\|archive>` | 管理结构化 harness 调查会话 |
 
+### 安装
+
+类 Unix 主机运行 `install.sh`，Windows 运行 `install.ps1`。安装器会构建原生 `strict-spec-driven` 可执行文件、安装 strict skills 包，并把可执行文件放到用户级 bin 目录。
+
+在 Windows 上，`install.ps1` 默认会把所选 bin 目录加入当前用户的 `PATH`。在安装器会话之外用 `strict-spec-driven` 命令名前，请重新打开一个终端。使用 `-NoPathUpdate` 可跳过 PATH 变更，使用 `-KeepPathOnUninstall` 可在卸载时保留 PATH 条目。
+
 ### Skills：`strict-spec-*` 和 `strict-roadmap-*`
 
 Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中使用斜杠命令名称调用它们：

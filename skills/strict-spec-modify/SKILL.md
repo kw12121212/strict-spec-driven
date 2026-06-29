@@ -16,14 +16,14 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
-modify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js modify [change-name|archive-dir]
-verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
+check-workflow-state: strict-spec-driven check-workflow-state
+modify: strict-spec-driven modify [change-name|archive-dir]
+verify: strict-spec-driven verify <change-name>
 ```
 
 ## Prerequisites
 
-Run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -31,7 +31,7 @@ run `init` from this skill.
 
 - Keep updated artifacts in valid strict YAML structures. Do not replace
   structured fields with Markdown prose or side notes.
-- If artifact fields are unclear, use `node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show <schema-name>`;
+- If artifact fields are unclear, use `strict-spec-driven schema-show <schema-name>`;
   installed skills do not carry a `templates` directory.
 - Shared schema cache root: `~/.strict-spec-schemas/`. When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root to inspect the concrete schema file without relying on a local templates directory.
 - Use block scalars only for free-text content. Prefer `>-` for wrapped prose
@@ -59,7 +59,7 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -92,7 +92,7 @@ run `init` from this skill.
 5. **Validate after editing** — when the edited change is implementation-complete,
    run:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
+   strict-spec-driven verify <change-name>
    ```
    If the change still has pending tasks or open questions, use the output only
    as a strict YAML structure check and treat those lifecycle diagnostics as

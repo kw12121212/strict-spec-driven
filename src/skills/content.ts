@@ -343,12 +343,25 @@ export function validateCommandSection(
       continue;
     }
     normalizedCommands[name] = value;
-    if (!value.includes(COMMAND_PREFIX)) {
+    if (value.includes("{{SKILL_DIR}}") || value.includes("~/.local/bin/strict-spec-driven")) {
+      diagnostics.push(
+        makeDiagnostic(
+          "skill.commands_section.command.machine_path",
+          `${skillPath}#commands.${name}`,
+          "command entries must use the PATH-resolved strict CLI command, not skill-relative or hard-coded user bin paths",
+          `${COMMAND_PREFIX} <explicit-subcommand>`,
+          value,
+        ),
+      );
+      continue;
+    }
+    const trimmedValue = value.trim();
+    if (trimmedValue !== COMMAND_PREFIX && !trimmedValue.startsWith(`${COMMAND_PREFIX} `)) {
       diagnostics.push(
         makeDiagnostic(
           "skill.commands_section.command.reference",
           `${skillPath}#commands.${name}`,
-          "command entries must reference the strict bundled script",
+          "command entries must reference the PATH-resolved strict CLI command",
           COMMAND_PREFIX,
           value,
         ),
@@ -356,7 +369,7 @@ export function validateCommandSection(
       continue;
     }
 
-    const commandSuffix = value.slice(value.indexOf(COMMAND_PREFIX) + COMMAND_PREFIX.length).trim();
+    const commandSuffix = trimmedValue.slice(COMMAND_PREFIX.length).trim();
     if (commandSuffix.length === 0 || commandSuffix === "<command>" || value.includes(GENERIC_COMMAND_PLACEHOLDER)) {
       diagnostics.push(
         makeDiagnostic(

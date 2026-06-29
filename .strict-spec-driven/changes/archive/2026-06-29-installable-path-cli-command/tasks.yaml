@@ -1,0 +1,43 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: installable-path-cli-command
+sections:
+  Implementation:
+    install-path-command:
+      text: Add Unix and Windows installer behavior that compiles a native strict-spec-driven executable with Bun, installs it into a user-level bin directory, and reports deterministic PATH diagnostics.
+      status: complete
+    update-skill-command-contract:
+      text: Update skill packaging constants, validation rules, and bundled strict skill command snippets to use strict-spec-driven <subcommand> instead of {{SKILL_DIR}}-relative Node script paths.
+      status: complete
+    preserve-existing-cli-behavior:
+      text: Keep existing CLI subcommand routing, dist template/schema resolution, MCP server behavior, and strict workflow lifecycle semantics unchanged.
+      status: complete
+  Testing:
+    add-install-command-tests:
+      text: Add focused tests for native compile command construction, installed command behavior, Windows installer behavior, user bin PATH diagnostics, and command equivalence with the compiled CLI invocation.
+      status: complete
+    add-skill-packaging-tests:
+      text: Update skill packaging tests so valid skills use the bare strict-spec-driven command and invalid skills reject {{SKILL_DIR}}-relative or hard-coded user bin command forms.
+      status: complete
+      command: bun test/run.ts
+    build-project:
+      text: Rebuild compiled output after TypeScript source edits.
+      status: complete
+      command: bun run build
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-generated-artifacts:
+      text: Verify the strict change artifacts and main spec mappings after implementation.
+      status: complete
+      command: strict-spec-driven verify installable-path-cli-command && strict-spec-driven verify-spec-mappings
+    verify-scope:
+      text: Verify implementation matches proposal scope, especially that skills do not hard-code ~/.local/bin and native executable compilation is handled inside the installation scripts for Unix and Windows.
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: add-skill-packaging-tests

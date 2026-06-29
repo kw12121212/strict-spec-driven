@@ -1,0 +1,17 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: installable-path-cli-command
+open: []
+resolved:
+  - id: hardcode-user-bin-path
+    question: Should skill prompts call ~/.local/bin/strict-spec-driven directly?
+    context: The brainstorm considered installing into ~/.local/bin and referencing that directory from SKILL.md.
+    answer: No. The installer may default to a user bin directory, but skill prompts should call the bare strict-spec-driven command and rely on PATH.
+    status: resolved
+  - id: native-binary-now
+    question: Should this change compile the CLI into a native single-file binary now?
+    context: Bun supports standalone executable compilation, but this project currently relies on dist scripts and dist/templates resolution.
+    answer: Yes. The installer should compile a native strict-spec-driven executable during installation, including Windows support through the PowerShell installer, while avoiding a separate prebuilt release matrix.
+    status: resolved

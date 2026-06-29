@@ -21685,7 +21685,7 @@ import path34 from "node:path";
 // src/skills/model.ts
 var REQUIRED_METADATA_FIELDS = ["skill_id", "author", "type", "version"];
 var EXPECTED_SCRIPT_SYMLINK = "../../dist/scripts";
-var COMMAND_PREFIX = "node {{SKILL_DIR}}/scripts/strict-spec-driven.js";
+var COMMAND_PREFIX = "strict-spec-driven";
 var GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
 var GENERATE_NAMED_ARGS_COMMAND = `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>`;
 var READY_COMMAND = `${COMMAND_PREFIX} ready <change-name>`;
@@ -22153,11 +22153,16 @@ function validateCommandSection(skillName, content, skillPath, diagnostics) {
       continue;
     }
     normalizedCommands[name] = value;
-    if (!value.includes(COMMAND_PREFIX)) {
-      diagnostics.push(makeDiagnostic4("skill.commands_section.command.reference", `${skillPath}#commands.${name}`, "command entries must reference the strict bundled script", COMMAND_PREFIX, value));
+    if (value.includes("{{SKILL_DIR}}") || value.includes("~/.local/bin/strict-spec-driven")) {
+      diagnostics.push(makeDiagnostic4("skill.commands_section.command.machine_path", `${skillPath}#commands.${name}`, "command entries must use the PATH-resolved strict CLI command, not skill-relative or hard-coded user bin paths", `${COMMAND_PREFIX} <explicit-subcommand>`, value));
       continue;
     }
-    const commandSuffix = value.slice(value.indexOf(COMMAND_PREFIX) + COMMAND_PREFIX.length).trim();
+    const trimmedValue = value.trim();
+    if (trimmedValue !== COMMAND_PREFIX && !trimmedValue.startsWith(`${COMMAND_PREFIX} `)) {
+      diagnostics.push(makeDiagnostic4("skill.commands_section.command.reference", `${skillPath}#commands.${name}`, "command entries must reference the PATH-resolved strict CLI command", COMMAND_PREFIX, value));
+      continue;
+    }
+    const commandSuffix = trimmedValue.slice(COMMAND_PREFIX.length).trim();
     if (commandSuffix.length === 0 || commandSuffix === "<command>" || value.includes(GENERIC_COMMAND_PLACEHOLDER)) {
       diagnostics.push(makeDiagnostic4("skill.commands_section.command.placeholder", `${skillPath}#commands.${name}`, "command entries must replace the generic strict CLI placeholder with an explicit subcommand and parameters", `${COMMAND_PREFIX} <explicit-subcommand>`, value));
     }
@@ -22312,7 +22317,7 @@ function validateFrontmatterFields(frontmatter, skillName, skillPath, diagnostic
   }
 }
 function validateLegacyReferences(skillName, content, skillPath, diagnostics) {
-  const contentWithoutStrictRoadmapCommands = content.replace(/node \{\{SKILL_DIR\}\}\/scripts\/strict-spec-driven\.js\s+roadmap-(?:status|sync|plan|milestone|recommend|propose)\b/g, "node {{SKILL_DIR}}/scripts/strict-spec-driven.js <roadmap-command>");
+  const contentWithoutStrictRoadmapCommands = content.replace(/strict-spec-driven\s+roadmap-(?:status|sync|plan|milestone|recommend|propose)\b/g, "strict-spec-driven <roadmap-command>");
   const checks = [
     {
       code: "skill.reference.legacy_spec_prefix",
@@ -24819,7 +24824,16 @@ var commands = createCliCommandTable({
 function run(argv) {
   return runCliEntrypoint(argv, commands);
 }
-if (realpathSync(process.argv[1]) === realpathSync(fileURLToPath4(import.meta.url))) {
+function isDirectInvocation(argvPath, moduleUrl) {
+  if (!argvPath)
+    return false;
+  try {
+    return realpathSync(argvPath) === realpathSync(fileURLToPath4(moduleUrl));
+  } catch {
+    return moduleUrl.includes("/$bunfs/");
+  }
+}
+if (isDirectInvocation(process.argv[1], import.meta.url)) {
   exitCliEntrypoint(process.argv.slice(2), commands);
 }
 export {

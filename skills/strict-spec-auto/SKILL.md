@@ -16,21 +16,21 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
-tech-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js tech-status
-propose: node {{SKILL_DIR}}/scripts/strict-spec-driven.js propose <change-name>
-generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
-apply: node {{SKILL_DIR}}/scripts/strict-spec-driven.js apply <change-name>
-verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
-ready: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ready <change-name>
-next: node {{SKILL_DIR}}/scripts/strict-spec-driven.js next <change-name>
-verify-spec-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings
-archive: node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>
+check-workflow-state: strict-spec-driven check-workflow-state
+tech-status: strict-spec-driven tech-status
+propose: strict-spec-driven propose <change-name>
+generate: strict-spec-driven generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
+apply: strict-spec-driven apply <change-name>
+verify: strict-spec-driven verify <change-name>
+ready: strict-spec-driven ready <change-name>
+next: strict-spec-driven next <change-name>
+verify-spec-mappings: strict-spec-driven verify-spec-mappings
+archive: strict-spec-driven archive <change-name>
 ```
 
 ## Prerequisites
 
-Run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -38,7 +38,7 @@ run `init` from this skill.
 
 - Keep strict artifacts in valid YAML structures at every stage. Do not replace
   structured fields with Markdown prose.
-- If artifact fields are unclear, use `node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show <schema-name>`;
+- If artifact fields are unclear, use `strict-spec-driven schema-show <schema-name>`;
   installed skills do not carry a `templates` directory.
 - Shared schema cache root: `~/.strict-spec-schemas/`. When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root to inspect the concrete schema file without relying on a local templates directory.
 - Use block scalars only for free-text content. Prefer `>-` for wrapped prose
@@ -67,14 +67,14 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
 1. **Reset context from targeted files** — treat prior chat context as stale
    unless it has been revalidated from the current change artifacts, relevant
    main specs, the applicable technical standards (run
-   `node {{SKILL_DIR}}/scripts/strict-spec-driven.js tech-status` and read the
+   `strict-spec-driven tech-status` and read the
    relevant files under `.strict-spec-driven/tech/`), mapped implementation and
    test files, repository status, and regression configuration when needed. Do
    not reread unrelated roadmap, archive, or spec files just because they exist.
@@ -96,15 +96,15 @@ run `init` from this skill.
    For new or empty scaffolds, populate artifacts in this exact order. Generate
    supported artifacts with direct CLI invocations, edit scaffolded
    `tasks.yaml` directly, and do not create JSON payload files.
-    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."`
-    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
+    - `strict-spec-driven generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."`
+    - `strict-spec-driven generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
     - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema
-    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
-    - `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."`
+    - `strict-spec-driven generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
+    - `strict-spec-driven generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."`
     - when this change must alter a technical standard (add, modify, or retire a
       rule, or introduce a new standard), generate strict YAML delta tech
       artifacts under `.strict-spec-driven/changes/<change-name>/tech/`:
-      `node {{SKILL_DIR}}/scripts/strict-spec-driven.js generate <change-name> delta-tech --target-standard <standard-id> [--title "..." --category <category>] [--implementation "src/file.ts"] [--enforcement "config"] --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review`
+      `strict-spec-driven generate <change-name> delta-tech --target-standard <standard-id> [--title "..." --category <category>] [--implementation "src/file.ts"] [--enforcement "config"] --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review`
       (use `--title`/`--category` to create a new standard; `REMOVED` rules take
       only `--reason`). Leave `tech/` absent when the change only complies with
       existing standards.
@@ -159,7 +159,7 @@ run `init` from this skill.
 5. **Use strict apply only after completing a task** — after each completed task,
    run:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js apply <change-name>
+   strict-spec-driven apply <change-name>
    ```
    and confirm the returned task matches the work you just finished. Never run
    `apply` only to inspect status because it mutates `tasks.yaml`.
@@ -180,8 +180,8 @@ run `init` from this skill.
 
 8. **Verify the finished change** — run:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings
+   strict-spec-driven verify <change-name>
+   strict-spec-driven verify-spec-mappings
    ```
    Fix safe blockers automatically, then rerun verification.
 
@@ -237,7 +237,7 @@ run `init` from this skill.
 11. **Archive cleanly** — if the change verifies, reviews cleanly, and has
    passing complete project-level regression test evidence, run:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>
+   strict-spec-driven archive <change-name>
    ```
    Then summarize the result, including any roadmap files or milestone statuses
    the archive step reconciled, and recommend `/strict-spec-ship <change-name>`

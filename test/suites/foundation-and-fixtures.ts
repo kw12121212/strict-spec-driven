@@ -12,6 +12,7 @@ import {
   loadDistModule,
   projectFixturePath,
   projectWorkspaceCli,
+  runCommand,
   type MigrateConverterModule,
   type RoadmapConverterModule,
   type ScaffoldModule,
@@ -19,6 +20,7 @@ import {
   type ValidationModule,
   type YamlModule,
 } from "../support/harness.js";
+import { pathToFileURL } from "url";
 
 function listFilesRecursive(rootDir: string): string[] {
   const files: string[] = [];
@@ -2169,7 +2171,132 @@ context.assert(
   "copied workspace list output stays stable across repeated copied-fixture CLI flows",
 );
 
-context.section("[8] bundled template assets in dist");
+context.section("[8] native CLI executable build planning");
+
+const nativeBuildModule = await import(pathToFileURL(path.join(ROOT, "scripts", "build-native-cli.ts")).href) as {
+  resolveNativeTarget(platform: NodeJS.Platform, arch: NodeJS.Architecture): string;
+  executableNameForTarget(target: string): string;
+  defaultUserBinDir(platform: NodeJS.Platform, env: NodeJS.ProcessEnv): string;
+  createNativePlan(options: {
+    platform?: NodeJS.Platform;
+    arch?: NodeJS.Architecture;
+    target?: string;
+    binDir?: string | null;
+    env?: NodeJS.ProcessEnv;
+  }): {
+    target: string;
+    executableName: string;
+    outputPath: string;
+    installPath: string | null;
+    buildArgs: string[];
+    binDirOnPath: boolean | null;
+  };
+};
+
+context.assert(
+  nativeBuildModule.resolveNativeTarget("win32", "x64") === "bun-windows-x64"
+    && nativeBuildModule.executableNameForTarget("bun-windows-x64") === "strict-spec-driven.exe",
+  "native build helper plans a Windows x64 executable target",
+);
+context.assert(
+  nativeBuildModule.resolveNativeTarget("linux", "arm64") === "bun-linux-arm64"
+    && nativeBuildModule.executableNameForTarget("bun-linux-arm64") === "strict-spec-driven",
+  "native build helper plans a Linux ARM64 executable target",
+);
+const plannedWindowsInstall = nativeBuildModule.createNativePlan({
+  platform: "win32",
+  arch: "x64",
+  binDir: path.join(os.tmpdir(), "strict-native-bin"),
+  env: { PATH: "" },
+});
+context.assert(
+  plannedWindowsInstall.buildArgs.includes("--compile")
+    && plannedWindowsInstall.buildArgs.includes("--target=bun-windows-x64")
+    && plannedWindowsInstall.installPath?.endsWith("strict-spec-driven.exe") === true
+    && plannedWindowsInstall.binDirOnPath === false,
+  "native build helper reports Windows compile args, .exe install path, and PATH miss diagnostics",
+  JSON.stringify(plannedWindowsInstall),
+);
+const defaultWindowsBinDir = nativeBuildModule.defaultUserBinDir("win32", {
+  LOCALAPPDATA: "C:\\Users\\tester\\AppData\\Local",
+});
+context.assert(
+  defaultWindowsBinDir.endsWith(path.join("strict-spec-driven", "bin")),
+  "native build helper defaults Windows installs to a user-level strict-spec-driven bin directory",
+  defaultWindowsBinDir,
+);
+const dryRunNativeBuild = runCommand("bun", [
+  "scripts/build-native-cli.ts",
+  "--dry-run",
+  "--platform",
+  "win32",
+  "--arch",
+  "x64",
+  "--bin-dir",
+  path.join(os.tmpdir(), "strict-native-dry-run-bin"),
+], { cwd: ROOT });
+context.assert(dryRunNativeBuild.status === 0, "native build helper dry-run exits zero", dryRunNativeBuild.stderr.trim());
+const dryRunNativeBuildJson = JSON.parse(dryRunNativeBuild.stdout) as { target: string; executableName: string; buildArgs: string[] };
+context.assert(
+  dryRunNativeBuildJson.target === "bun-windows-x64"
+    && dryRunNativeBuildJson.executableName === "strict-spec-driven.exe"
+    && dryRunNativeBuildJson.buildArgs.includes("--compile"),
+  "native build helper dry-run emits parseable Windows compile plan",
+  dryRunNativeBuild.stdout,
+);
+const nativeSmokeRoot = mkdtempSync(path.join(os.tmpdir(), "strict-native-smoke-"));
+try {
+  const nativeSmokeBuild = runCommand("bun", ["scripts/build-native-cli.ts", "--output-root", nativeSmokeRoot], { cwd: ROOT });
+  context.assert(nativeSmokeBuild.status === 0, "native build helper compiles the current-platform executable", nativeSmokeBuild.stderr.trim());
+  const nativeSmokePlan = nativeBuildModule.createNativePlan({
+    outputRoot: nativeSmokeRoot,
+  });
+  const nativeSmokeCli = runCommand(nativeSmokePlan.outputPath, ["check-workflow-state"], { cwd: ROOT });
+  context.assert(
+    nativeSmokeCli.status === 0 && nativeSmokeCli.stdout.includes("strict workflow state exists"),
+    "current-platform native executable runs the strict CLI entrypoint",
+    `stdout: ${nativeSmokeCli.stdout.trim()} stderr: ${nativeSmokeCli.stderr.trim()}`,
+  );
+} finally {
+  rmSync(nativeSmokeRoot, { recursive: true, force: true });
+}
+const installShContent = readFileSync(path.join(ROOT, "install.sh"), "utf8");
+const installPsContent = readFileSync(path.join(ROOT, "install.ps1"), "utf8");
+context.assert(
+  installShContent.includes("bun scripts/build-native-cli.ts --install --bin-dir")
+    && installShContent.includes("bun run build"),
+  "Unix installer builds and installs the native CLI executable",
+);
+context.assert(
+  installPsContent.includes("bun scripts/build-native-cli.ts --install --bin-dir")
+    && installPsContent.includes("bun run build"),
+  "Windows installer builds and installs the native CLI executable",
+);
+context.assert(
+  installPsContent.includes("[System.Environment]::SetEnvironmentVariable('Path', $newPath, 'User')")
+    && installPsContent.includes("Add-UserPathEntry $ResolvedBinDir")
+    && installPsContent.includes("[switch]$NoPathUpdate"),
+  "Windows installer adds the native CLI bin directory to the user PATH by default with an opt-out switch",
+);
+context.assert(
+  installPsContent.includes("Remove-UserPathEntry $ResolvedBinDir")
+    && installPsContent.includes("[switch]$KeepPathOnUninstall")
+    && installPsContent.includes("Leaving user PATH unchanged because -KeepPathOnUninstall was provided"),
+  "Windows installer removes the native CLI bin directory from user PATH on uninstall unless kept",
+);
+context.assert(
+  installPsContent.includes("Open a new terminal before invoking strict-spec-driven by name outside this session."),
+  "Windows installer reports that a new terminal may be needed after PATH updates",
+);
+const installerReadmeContent = readFileSync(path.join(ROOT, "README.md"), "utf8");
+context.assert(
+  installerReadmeContent.includes("install.ps1` adds the selected bin directory to the current user's `PATH` by default")
+    && installerReadmeContent.includes("-NoPathUpdate")
+    && installerReadmeContent.includes("-KeepPathOnUninstall"),
+  "README documents Windows installer PATH update controls",
+);
+
+context.section("[9] bundled template assets in dist");
 
 const distTemplatesRoot = path.join(ROOT, "dist", "templates", "strict-spec-driven");
 const distScaffoldDir = path.join(distTemplatesRoot, "scaffold");
@@ -2214,7 +2341,7 @@ context.assert(statSync(distHarnessSessionScaffoldPath).isFile(), "dist harness-
 
 context.assert(!existsSync(distExamplesDir), "dist/templates/strict-spec-driven/examples is not bundled after build");
 
-context.section("[9] init from dist-only environment");
+context.section("[10] init from dist-only environment");
 
 const distOnlyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-dist-only-init-"));
 try {
@@ -2233,7 +2360,7 @@ try {
   rmSync(distOnlyDir, { recursive: true, force: true });
 }
 
-context.section("[10] propose from dist-only environment");
+context.section("[11] propose from dist-only environment");
 
 const distOnlyProposeDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-dist-only-propose-"));
 try {
@@ -2249,7 +2376,7 @@ try {
   rmSync(distOnlyProposeDir, { recursive: true, force: true });
 }
 
-context.section("[11] harness user documentation smoke coverage");
+context.section("[12] harness user documentation smoke coverage");
 
 const harnessGuidePath = path.join(ROOT, "HARNESS.md");
 context.assert(existsSync(harnessGuidePath), "HARNESS.md guide exists");

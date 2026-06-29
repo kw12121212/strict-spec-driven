@@ -28,18 +28,18 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
-ticket-list: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ticket-list
-ticket-show: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ticket-show <ticket-id>
-ticket-validate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ticket-validate <ticket-id>
-ticket-resolve: node {{SKILL_DIR}}/scripts/strict-spec-driven.js ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...
-roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
-roadmap-sync: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync
+check-workflow-state: strict-spec-driven check-workflow-state
+ticket-list: strict-spec-driven ticket-list
+ticket-show: strict-spec-driven ticket-show <ticket-id>
+ticket-validate: strict-spec-driven ticket-validate <ticket-id>
+ticket-resolve: strict-spec-driven ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...
+roadmap-status: strict-spec-driven roadmap-status
+roadmap-sync: strict-spec-driven roadmap-sync
 ```
 
 ## Prerequisites
 
-Run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -54,7 +54,7 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 

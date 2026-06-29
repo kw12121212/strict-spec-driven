@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: installable-path-cli-command
+  status: proposed
+summary:
+  what:
+    - Compile a native strict-spec-driven executable during installation, install the resulting command on PATH, and update strict skill command guidance to invoke that command directly instead of using node {{SKILL_DIR}}/scripts/strict-spec-driven.js.
+  why:
+    - Strict skill prompts currently repeat a long path-based Node invocation and depend on per-skill scripts symlinks. A native PATH command makes skill instructions shorter, removes the Node wrapper from normal skill usage, and keeps installation responsible for platform-specific command resolution.
+scope:
+  in:
+    - Add an installation contract for a strict-spec-driven native executable that resolves from PATH. The Unix and Windows installers compile the CLI with Bun executable compilation during installation, install the platform-appropriate executable name, and report deterministic diagnostics when the selected user bin directory is not on PATH. Update strict skill packaging expectations and bundled skill command snippets to use strict-spec-driven <subcommand>. Preserve deterministic validation and tests for command availability, native compile command construction, Windows installer behavior, and skill packaging.
+  out:
+    - Do not hard-code ~/.local/bin in skill prompts. Do not create a release artifact publishing workflow or prebuilt binary matrix outside the install scripts. Do not change the strict YAML artifact schemas except where delta specs describe observable CLI and skill packaging behavior. Do not remove MCP server behavior.
+unchanged_behavior:
+  - The existing CLI subcommands, YAML-first artifacts, schema/template lookup behavior, dist-based JavaScript build output, and strict workflow lifecycle semantics remain unchanged.

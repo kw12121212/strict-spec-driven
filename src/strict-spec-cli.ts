@@ -131,6 +131,15 @@ export function run(argv: string[]): number {
   return runCliEntrypoint(argv, commands);
 }
 
-if (realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
+function isDirectInvocation(argvPath: string | undefined, moduleUrl: string): boolean {
+  if (!argvPath) return false;
+  try {
+    return realpathSync(argvPath) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return moduleUrl.includes("/$bunfs/");
+  }
+}
+
+if (isDirectInvocation(process.argv[1], import.meta.url)) {
   exitCliEntrypoint(process.argv.slice(2), commands);
 }

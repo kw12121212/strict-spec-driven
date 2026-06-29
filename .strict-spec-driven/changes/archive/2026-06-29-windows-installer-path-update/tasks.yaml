@@ -1,0 +1,37 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: windows-installer-path-update
+sections:
+  Implementation:
+    update-windows-installer-path:
+      text: Update install.ps1 so installation adds the resolved native CLI bin directory to the current user's PATH by default, supports skipping PATH updates, and uninstall removes that entry unless told to keep it.
+      status: complete
+    update-docs:
+      text: Document the Windows PATH update behavior and opt-out switches.
+      status: complete
+  Testing:
+    run-build:
+      text: Rebuild compiled output after script and source-adjacent changes.
+      status: complete
+      command: bun run build
+    run-unit-regression:
+      text: Run the project test suite covering installer script expectations.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Review the changed installer, documentation, tests, and strict artifacts against the proposal scope before archive.
+      status: complete
+    verify-strict-change:
+      text: Verify the strict change artifacts and spec mappings after implementation, tests, and scope review pass.
+      status: complete
+      command: node /home/code/.agents/skills/strict-spec-auto/scripts/strict-spec-driven.js verify windows-installer-path-update && node /home/code/.agents/skills/strict-spec-auto/scripts/strict-spec-driven.js verify-spec-mappings
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-unit-regression

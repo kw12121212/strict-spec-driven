@@ -7,6 +7,7 @@
     "bundle": "mkdir -p dist/scripts && bun build --bundle --target node --format esm --outfile dist/scripts/strict-spec-driven.js src/strict-spec-cli.ts && bun build --bundle --target node --format esm --outfile dist/scripts/strict-spec-driven-mcp.js src/mcp/entrypoint.ts",
     "bundle:debug": "mkdir -p dist/scripts && bun build --bundle --sourcemap=external --target node --format esm --outfile dist/scripts/strict-spec-driven.js src/strict-spec-cli.ts && bun build --bundle --sourcemap=external --target node --format esm --outfile dist/scripts/strict-spec-driven-mcp.js src/mcp/entrypoint.ts",
     "build:bundle": "bun run build",
+    "build:native": "bun scripts/build-native-cli.ts",
     "install-strict-skills": "bash install.sh",
     "install-strict-skills:win": "powershell -ExecutionPolicy Bypass -File install.ps1",
     "install-strict-skills:project": "bash install.sh --project",

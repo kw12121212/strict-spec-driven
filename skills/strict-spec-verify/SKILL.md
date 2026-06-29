@@ -16,15 +16,15 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
-modify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js modify [change-name|archive-dir]
-verify: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
-verify-spec-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings
+check-workflow-state: strict-spec-driven check-workflow-state
+modify: strict-spec-driven modify [change-name|archive-dir]
+verify: strict-spec-driven verify <change-name>
+verify-spec-mappings: strict-spec-driven verify-spec-mappings
 ```
 
 ## Prerequisites
 
-Run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -39,7 +39,7 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -48,13 +48,13 @@ run `init` from this skill.
 
 2. **Run strict verification first** — run:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
+   strict-spec-driven verify <change-name>
    ```
    Treat the returned diagnostics as lifecycle blockers until resolved.
 
 3. **Check main-spec mappings** — run:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings
+   strict-spec-driven verify-spec-mappings
    ```
    Treat invalid or missing main-spec mappings as blockers for affected specs.
 

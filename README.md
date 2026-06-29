@@ -67,6 +67,12 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 | `harness-scripts <generate\|verify>` | Generate or verify project-local `scripts/harness-*` wrappers |
 | `harness-session <create\|validate\|archive>` | Manage structured harness investigation sessions |
 
+### Installation
+
+Run `install.sh` on Unix-like hosts or `install.ps1` on Windows. The installer builds the native `strict-spec-driven` executable, installs the strict skills package, and places the executable in a user-level bin directory.
+
+On Windows, `install.ps1` adds the selected bin directory to the current user's `PATH` by default. Open a new terminal before invoking `strict-spec-driven` by name outside the installer session. Use `-NoPathUpdate` to skip PATH changes, or `-KeepPathOnUninstall` to leave the PATH entry in place when uninstalling.
+
 ### Skills: `strict-spec-*` and `strict-roadmap-*`
 
 Skills are Agent Skills packages installed via `install.sh`. Invoke them in Claude Code using their slash-command names:
@@ -187,9 +193,9 @@ The schema registry at `templates/strict-spec-driven/schemas/schema-registry.yam
 The CLI also embeds bundled schema and scaffold assets so installed skills do not need a per-skill `templates` symlink. Agents can inspect embedded contracts with:
 
 ```sh
-node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-list
-node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show change-proposal
-node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/changes/proposal.yaml
+strict-spec-driven schema-list
+strict-spec-driven schema-show change-proposal
+strict-spec-driven template-show scaffold/changes/proposal.yaml
 ```
 
 ### Shared Schema Cache

@@ -1,0 +1,32 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - install.ps1
+    - README.md
+    - README.zh.md
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    cli-windows-installer-user-path-update:
+      strength: MUST
+      statement: The Windows installer MUST add the resolved native strict-spec-driven bin directory to the current user's PATH during installation when PATH updates are not disabled, and MUST remove that directory during uninstall unless removal is disabled.
+      scenarios:
+        windows-installer-adds-user-path:
+          - GIVEN: the Windows installer resolves a native strict-spec-driven bin directory that is absent from the current user's PATH
+          - WHEN: installation completes with PATH updates enabled
+          - THEN: the installer appends that directory to the current user's PATH and reports that a new shell may be required
+        windows-installer-can-skip-path-update:
+          - GIVEN: the Windows installer is run with PATH updates disabled
+          - WHEN: installation or uninstallation completes
+          - THEN: the current user's PATH value is left unchanged
+        windows-uninstall-removes-user-path:
+          - GIVEN: the resolved native strict-spec-driven bin directory is present in the current user's PATH
+          - WHEN: uninstallation completes with PATH cleanup enabled
+          - THEN: the installer removes that directory from the current user's PATH
+  MODIFIED: {}
+  REMOVED: {}

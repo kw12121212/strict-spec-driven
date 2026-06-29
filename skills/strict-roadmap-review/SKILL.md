@@ -17,16 +17,16 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
-roadmap-generate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-generate milestone --<named-args>
-roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
-roadmap-overview: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-overview
-roadmap-sync: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync
+check-workflow-state: strict-spec-driven check-workflow-state
+roadmap-generate: strict-spec-driven roadmap-generate milestone --<named-args>
+roadmap-status: strict-spec-driven roadmap-status
+roadmap-overview: strict-spec-driven roadmap-overview
+roadmap-sync: strict-spec-driven roadmap-sync
 ```
 
 ## Prerequisites
 
-Run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -50,7 +50,7 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -61,7 +61,7 @@ run `init` from this skill.
 
 2. **Check current roadmap state** — run:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
+   strict-spec-driven roadmap-status
    ```
    and, when wider context helps, `roadmap-overview`. Use each milestone's
    declared status, derived status, planned change state, planned-change
@@ -84,7 +84,7 @@ run `init` from this skill.
 5. **Apply fixes directly** — use roadmap-generate milestone for milestone YAML
    shape and milestone-field fixes under `.strict-spec-driven/roadmap/`:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-generate milestone --id <milestone-id> --title "..." --goal "..." --scope-in "..." --scope-out "..." --done "..." --dependency "..." --risk "..." --note "..." --details "..."
+   strict-spec-driven roadmap-generate milestone --id <milestone-id> --title "..." --goal "..." --scope-in "..." --scope-out "..." --done "..." --dependency "..." --risk "..." --note "..." --details "..."
    ```
    Use `--reset` only when you intentionally replace existing milestone
    planning fields. Standalone planned-change files remain edited directly by
@@ -98,7 +98,7 @@ run `init` from this skill.
 
 6. **Resync the roadmap** — after edits, run:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-sync
+   strict-spec-driven roadmap-sync
    ```
    Confirm every reviewed milestone still participates in a canonical
    `.strict-spec-driven/roadmap/` index and that planned change state is

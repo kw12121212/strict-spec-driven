@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: windows-installer-path-update
+  status: proposed
+summary:
+  what:
+    - Make the Windows installer add the selected native CLI bin directory to the current user's PATH so strict-spec-driven is invocable after opening a new shell.
+  why:
+    - Windows users should not have to manually edit PATH after running the installer.
+scope:
+  in:
+    - Update install.ps1 to maintain the user-level PATH entry for the resolved native CLI bin directory during install and uninstall.
+    - Document the Windows PATH behavior and opt-out controls.
+    - Add automated tests covering the PowerShell installer PATH behavior.
+  out:
+    - Do not change Unix installer PATH behavior.
+    - Do not introduce prebuilt binary distribution or release packaging.
+unchanged_behavior:
+  - Native CLI compilation and skill registration behavior remain unchanged except for Windows PATH maintenance.
+  - Explicit BinDir and STRICT_SPEC_BIN_DIR overrides continue to select the native executable install directory.

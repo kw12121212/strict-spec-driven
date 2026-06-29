@@ -32,7 +32,7 @@ export type SkillFrontmatter = {
 
 export const REQUIRED_METADATA_FIELDS = ["skill_id", "author", "type", "version"] as const;
 export const EXPECTED_SCRIPT_SYMLINK = "../../dist/scripts";
-export const COMMAND_PREFIX = "node {{SKILL_DIR}}/scripts/strict-spec-driven.js";
+export const COMMAND_PREFIX = "strict-spec-driven";
 export const GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
 export const GENERATE_NAMED_ARGS_COMMAND =
   `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>`;

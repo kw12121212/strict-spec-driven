@@ -6,13 +6,25 @@ Registers or removes the strict skill package from this repository (Windows).
 .PARAMETER Uninstall
 Remove the strict skill registration instead of installing it.
 
+.PARAMETER BinDir
+Override the user bin directory for the native CLI.
+
+.PARAMETER NoPathUpdate
+Do not add or remove the native CLI bin directory from the current user's PATH.
+
+.PARAMETER KeepPathOnUninstall
+Leave the native CLI bin directory in the current user's PATH during uninstall.
+
 .EXAMPLE
 .\install.ps1
 .\install.ps1 -Uninstall
 #>
 
 param(
-    [switch]$Uninstall
+    [switch]$Uninstall,
+    [string]$BinDir = $env:STRICT_SPEC_BIN_DIR,
+    [switch]$NoPathUpdate,
+    [switch]$KeepPathOnUninstall
 )
 
 $ErrorActionPreference = 'Stop'
@@ -89,21 +101,137 @@ function New-StagingDir {
     return $stageDir
 }
 
+function Resolve-DefaultBinDir {
+    if ($BinDir) {
+        return $BinDir
+    }
+    if ($env:LOCALAPPDATA) {
+        return (Join-Path $env:LOCALAPPDATA 'strict-spec-driven\bin')
+    }
+    if ($env:USERPROFILE) {
+        return (Join-Path $env:USERPROFILE '.strict-spec-driven\bin')
+    }
+    return (Join-Path $HOME '.strict-spec-driven\bin')
+}
+
+function Normalize-PathEntry {
+    param([string]$Path)
+
+    $fullPath = [System.IO.Path]::GetFullPath($Path)
+    $root = [System.IO.Path]::GetPathRoot($fullPath)
+    if ($fullPath -eq $root) {
+        return $fullPath
+    }
+    return $fullPath.TrimEnd([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+}
+
+function Split-PathEntries {
+    param([string]$PathValue)
+
+    if (-not $PathValue) {
+        return @()
+    }
+    return @($PathValue -split ';' | Where-Object { $_ -and $_.Trim().Length -gt 0 })
+}
+
+function Test-PathContainsEntry {
+    param(
+        [string]$PathValue,
+        [string]$Directory
+    )
+
+    $wanted = Normalize-PathEntry $Directory
+    foreach ($entry in (Split-PathEntries $PathValue)) {
+        if ((Normalize-PathEntry $entry) -ieq $wanted) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Add-UserPathEntry {
+    param([string]$Directory)
+
+    $entry = Normalize-PathEntry $Directory
+    $userPath = [System.Environment]::GetEnvironmentVariable('Path', 'User')
+    if (Test-PathContainsEntry $userPath $entry) {
+        Write-Host "User PATH already contains: $entry"
+    } else {
+        $entries = Split-PathEntries $userPath
+        $newPath = (@($entries) + $entry) -join ';'
+        [System.Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
+        Write-Host "Added to user PATH: $entry"
+    }
+
+    if (-not (Test-PathContainsEntry $env:PATH $entry)) {
+        $env:PATH = (@(Split-PathEntries $env:PATH) + $entry) -join ';'
+    }
+    Write-Host 'Open a new terminal before invoking strict-spec-driven by name outside this session.'
+}
+
+function Remove-UserPathEntry {
+    param([string]$Directory)
+
+    $entry = Normalize-PathEntry $Directory
+    $userPath = [System.Environment]::GetEnvironmentVariable('Path', 'User')
+    if (-not (Test-PathContainsEntry $userPath $entry)) {
+        Write-Host "User PATH does not contain: $entry"
+        return
+    }
+
+    $remaining = @()
+    foreach ($pathEntry in (Split-PathEntries $userPath)) {
+        if ((Normalize-PathEntry $pathEntry) -ine $entry) {
+            $remaining += $pathEntry
+        }
+    }
+    [System.Environment]::SetEnvironmentVariable('Path', ($remaining -join ';'), 'User')
+    Write-Host "Removed from user PATH: $entry"
+}
+
 # Resolve script directory, following any symlinks / junctions
 $ScriptDir = if ($PSScriptRoot) {
     (Resolve-RealPath $PSScriptRoot)
 } else {
     $PWD.Path
 }
+$ResolvedBinDir = Resolve-DefaultBinDir
 
 if ($Uninstall) {
     Write-Host "Uninstalling strict skills from: $ScriptDir"
-    & npx skills remove --all -g -y
+    & npm exec skills@1.5.9 -- remove -g
+    Remove-Item -LiteralPath (Join-Path $ResolvedBinDir 'strict-spec-driven.exe') -Force -ErrorAction SilentlyContinue
+    if ($NoPathUpdate) {
+        Write-Host 'Skipping user PATH cleanup because -NoPathUpdate was provided'
+    } elseif ($KeepPathOnUninstall) {
+        Write-Host 'Leaving user PATH unchanged because -KeepPathOnUninstall was provided'
+    } else {
+        Remove-UserPathEntry $ResolvedBinDir
+    }
 } else {
+    if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
+        throw 'bun is required to build the native strict-spec-driven executable'
+    }
+    Write-Host 'Building strict-spec-driven native executable'
+    Push-Location $ScriptDir
+    try {
+        & bun run build
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        & bun scripts/build-native-cli.ts --install --bin-dir "$ResolvedBinDir"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    } finally {
+        Pop-Location
+    }
+    if ($NoPathUpdate) {
+        Write-Host 'Skipping user PATH update because -NoPathUpdate was provided'
+    } else {
+        Add-UserPathEntry $ResolvedBinDir
+    }
+
     $stageDir = New-StagingDir $ScriptDir
     try {
         Write-Host "Installing strict skills from: $ScriptDir"
-        & npx skills add "$stageDir" -g -y
+        & npm exec skills@1.5.9 -- add "$stageDir" -g -y
     } finally {
         Remove-Item -LiteralPath $stageDir -Recurse -Force -ErrorAction SilentlyContinue
         Write-Host "Cleaned up staging directory"

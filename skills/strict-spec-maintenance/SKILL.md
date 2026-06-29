@@ -13,16 +13,16 @@ metadata:
 ## This Skill's Commands
 
 ```yaml
-check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
-run-maintenance: node {{SKILL_DIR}}/scripts/strict-spec-driven.js maintenance
-list-changes: node {{SKILL_DIR}}/scripts/strict-spec-driven.js list
-verify-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <change-name>
-archive-change: node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <change-name>
+check-workflow-state: strict-spec-driven check-workflow-state
+run-maintenance: strict-spec-driven maintenance
+list-changes: strict-spec-driven list
+verify-change: strict-spec-driven verify <change-name>
+archive-change: strict-spec-driven archive <change-name>
 ```
 
 ## Prerequisites
 
-Run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -50,13 +50,13 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
 1. **Run maintenance checks** — execute:
     ```
-    node {{SKILL_DIR}}/scripts/strict-spec-driven.js maintenance
+    strict-spec-driven maintenance
    ```
    Parse the JSON output. Fields: `valid`, `checksRun`, `findingsCount`, `generatedChange`.
 
@@ -71,8 +71,8 @@ run `init` from this skill.
 
 5. **Verify and archive** — once all tasks are complete:
    ```
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify <generatedChange>
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js archive <generatedChange>
+   strict-spec-driven verify <generatedChange>
+   strict-spec-driven archive <generatedChange>
    ```
 
 ## Notes

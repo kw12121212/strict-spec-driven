@@ -1,0 +1,9 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: windows-installer-path-update
+# open questions block the change — keep empty until real questions arise.
+# Sample entry shape: { id: kebab-id, question: "...", context: "...", status: open }
+open: []
+resolved: []

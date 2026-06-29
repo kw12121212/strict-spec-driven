@@ -17,9 +17,9 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-migrate: node {{SKILL_DIR}}/scripts/strict-spec-driven.js migrate
-roadmap-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
-verify-spec-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings
+migrate: strict-spec-driven migrate
+roadmap-status: strict-spec-driven roadmap-status
+verify-spec-mappings: strict-spec-driven verify-spec-mappings
 ```
 
 ## Prerequisites
@@ -52,7 +52,7 @@ the active user message explicitly asks for a different language.
 
 3. **Run migration with the strict CLI** — execute:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js migrate
+   strict-spec-driven migrate
    ```
 
 4. **Review the structured migration report** — inspect converted entries,
@@ -61,8 +61,8 @@ the active user message explicitly asks for a different language.
 
 5. **Validate the migrated strict state** — after a successful migration, run:
    ```bash
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js roadmap-status
-   node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-spec-mappings
+   strict-spec-driven roadmap-status
+   strict-spec-driven verify-spec-mappings
    ```
    Use those checks to confirm the generated `.strict-spec-driven/` state is
    structurally usable, especially for roadmap references and spec mappings.

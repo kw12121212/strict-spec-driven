@@ -31,15 +31,15 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
-tech-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js tech-status
-verify-tech-mappings: node {{SKILL_DIR}}/scripts/strict-spec-driven.js verify-tech-mappings
-schema-show: node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show main-tech
+check-workflow-state: strict-spec-driven check-workflow-state
+tech-status: strict-spec-driven tech-status
+verify-tech-mappings: strict-spec-driven verify-tech-mappings
+schema-show: strict-spec-driven schema-show main-tech
 ```
 
 ## Prerequisites
 
-Run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -54,7 +54,7 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 

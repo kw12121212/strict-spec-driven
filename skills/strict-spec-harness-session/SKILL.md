@@ -13,18 +13,18 @@ You are running a harness investigation session.
 ## This Skill's Commands
 
 ```yaml
-check-workflow-state: node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state
-harness-plan: node {{SKILL_DIR}}/scripts/strict-spec-driven.js harness-plan
-harness-start: node {{SKILL_DIR}}/scripts/strict-spec-driven.js harness-start
-harness-status: node {{SKILL_DIR}}/scripts/strict-spec-driven.js harness-status
-harness-logs: node {{SKILL_DIR}}/scripts/strict-spec-driven.js harness-logs
-harness-stop: node {{SKILL_DIR}}/scripts/strict-spec-driven.js harness-stop
-harness-session: node {{SKILL_DIR}}/scripts/strict-spec-driven.js harness-session
+check-workflow-state: strict-spec-driven check-workflow-state
+harness-plan: strict-spec-driven harness-plan
+harness-start: strict-spec-driven harness-start
+harness-status: strict-spec-driven harness-status
+harness-logs: strict-spec-driven harness-logs
+harness-stop: strict-spec-driven harness-stop
+harness-session: strict-spec-driven harness-session
 ```
 
 ## Prerequisites
 
-Run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.
+Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.
 
 ## Preferred Human Language
 
@@ -37,7 +37,7 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `node {{SKILL_DIR}}/scripts/strict-spec-driven.js check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.
+Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.
 
 1. **Create or select a session** — use `harness-session create <session-id>` for a new investigation, or validate an existing active session with `harness-session validate <session-id>`.
 2. **Record selected scope** — keep the session tied to a harness environment and selected components.
