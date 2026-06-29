@@ -69,7 +69,7 @@
 
 ### 安装
 
-类 Unix 主机运行 `install.sh`，Windows 运行 `install.ps1`。安装器会构建原生 `strict-spec-cli` 可执行文件、安装 strict skills 包，并把可执行文件放到用户级 bin 目录。
+类 Unix 主机运行 `install.sh`，Windows 运行 `install.ps1`。安装器会构建原生 `strict-spec-cli` 可执行文件、安装 strict skills 包，并把可执行文件放到用户级 bin 目录。它还会自动引导自身依赖：缺失时自动安装 `bun`，`node_modules` 缺失时用 `bun install` 安装项目依赖，并通过 `bunx` 运行全局 `skills` CLI——因此安装过程不再需要 Node.js/`npm`。
 
 在 Windows 上，`install.ps1` 默认会把所选 bin 目录加入当前用户的 `PATH`。在安装器会话之外用 `strict-spec-cli` 命令名前，请重新打开一个终端。使用 `-NoPathUpdate` 可跳过 PATH 变更，使用 `-KeepPathOnUninstall` 可在卸载时保留 PATH 条目。
 
@@ -203,7 +203,7 @@ node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/changes/
 
 ## 开发
 
-**前置条件：** [Bun](https://bun.sh)（运行时和包管理器），Node.js（用于 `npx`）
+**前置条件：** [Bun](https://bun.sh) 是运行时和包管理器（安装器会在缺失时自动安装）。Node.js 仅用于 `node` 相关命令（`bun run validate-skills`、MCP 服务器），安装过程不需要。
 
 **构建：**
 ```sh

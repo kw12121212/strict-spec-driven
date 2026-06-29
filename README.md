@@ -69,7 +69,7 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 
 ### Installation
 
-Run `install.sh` on Unix-like hosts or `install.ps1` on Windows. The installer builds the native `strict-spec-cli` executable, installs the strict skills package, and places the executable in a user-level bin directory.
+Run `install.sh` on Unix-like hosts or `install.ps1` on Windows. The installer builds the native `strict-spec-cli` executable, installs the strict skills package, and places the executable in a user-level bin directory. It also bootstraps its own dependencies: `bun` is installed automatically when missing, project dependencies are installed with `bun install` when `node_modules` is absent, and the global `skills` CLI runs through `bunx` — so Node.js/`npm` are no longer required to install.
 
 On Windows, `install.ps1` adds the selected bin directory to the current user's `PATH` by default. Open a new terminal before invoking `strict-spec-cli` by name outside the installer session. Use `-NoPathUpdate` to skip PATH changes, or `-KeepPathOnUninstall` to leave the PATH entry in place when uninstalling.
 
@@ -220,7 +220,7 @@ This repository is self-hosted on the strict workflow. `.strict-spec-driven/` is
 
 ## Development
 
-**Prerequisites:** [Bun](https://bun.sh) (runtime and package manager), Node.js (for `npx`)
+**Prerequisites:** [Bun](https://bun.sh) is the runtime and package manager (the installer installs it automatically when missing). Node.js is only needed for the `node`-based commands (`bun run validate-skills`, the MCP server) — not for installation.
 
 **Build:**
 ```sh

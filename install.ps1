@@ -2,6 +2,9 @@
 <#
 .SYNOPSIS
 Registers or removes the strict skill package from this repository (Windows).
+The install path bootstraps its own dependencies: bun is auto-installed if
+missing, project deps are installed with `bun install`, and the global `skills`
+CLI runs via bunx (npm exec / npx are kept as uninstall fallbacks).
 
 .PARAMETER Uninstall
 Remove the strict skill registration instead of installing it.
@@ -189,6 +192,71 @@ function Remove-UserPathEntry {
     Write-Host "Removed from user PATH: $entry"
 }
 
+# The global `skills` package, pinned to 1.5.9 to avoid an upstream bug where
+# the PromptScript agent (which does not support global installation) is
+# incorrectly included in global install targets. bunx runs the package's bin
+# directly and, unlike npx, is immune to a colliding `npm run skills` script.
+# npm exec / npx remain as uninstall fallbacks for when bun is already removed.
+function Invoke-Skills {
+    param([Parameter(Mandatory = $true)][string[]]$CommandArgs)
+
+    if (Get-Command bun -ErrorAction SilentlyContinue) {
+        $prefix = @('bunx', 'skills@1.5.9', '--')
+    } elseif (Get-Command npm -ErrorAction SilentlyContinue) {
+        $prefix = @('npm', 'exec', 'skills@1.5.9', '--')
+    } elseif (Get-Command npx -ErrorAction SilentlyContinue) {
+        $prefix = @('npx', 'skills@1.5.9', '--')
+    } else {
+        throw 'No runtime available to run the skills CLI (need bun, npm, or npx).'
+    }
+
+    & $prefix[0] @($prefix[1..($prefix.Length - 1)] + $CommandArgs)
+}
+
+# Install bun from the official Windows installer when it is not already on PATH.
+function Ensure-Bun {
+    if (Get-Command bun -ErrorAction SilentlyContinue) { return }
+
+    Write-Host 'bun not found; installing bun from https://bun.sh/install.ps1'
+    # Windows PowerShell 5.1 may default to legacy TLS; require TLS 1.2 for irm.
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    try {
+        irm https://bun.sh/install.ps1 | iex
+    } catch {
+        throw "bun installer failed: $($_.Exception.Message)"
+    }
+
+    # The installer updates the persistent user PATH but not this session; expose
+    # bun now so the build and bunx resolve it without opening a new terminal.
+    $bunInstall = if ($env:BUN_INSTALL) { $env:BUN_INSTALL } else { Join-Path $HOME '.bun' }
+    $bunBin = Join-Path $bunInstall 'bin'
+    if (-not (Test-PathContainsEntry $env:PATH $bunBin)) {
+        $env:PATH = "$bunBin;$env:PATH"
+    }
+
+    if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
+        throw "bun was installed but is not on PATH; add $bunBin to PATH and rerun."
+    }
+}
+
+# node_modules is gitignored while bun.lock is tracked, so a fresh checkout must
+# install project dependencies before building the native CLI.
+function Ensure-ProjectDeps {
+    $nodeModules = Join-Path $ScriptDir 'node_modules'
+    if ((Test-Path $nodeModules) -and (Get-ChildItem -LiteralPath $nodeModules -Force -ErrorAction SilentlyContinue)) {
+        return
+    }
+
+    Write-Host 'Installing project dependencies (bun install)'
+    Push-Location $ScriptDir
+    try {
+        & bun install
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    } finally {
+        Pop-Location
+    }
+}
+
 # Resolve script directory, following any symlinks / junctions
 $ScriptDir = if ($PSScriptRoot) {
     (Resolve-RealPath $PSScriptRoot)
@@ -199,7 +267,8 @@ $ResolvedBinDir = Resolve-DefaultBinDir
 
 if ($Uninstall) {
     Write-Host "Uninstalling strict skills from: $ScriptDir"
-    & npm exec skills@1.5.9 -- remove -g
+    Invoke-Skills -CommandArgs @('remove', '-g')
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Remove-Item -LiteralPath (Join-Path $ResolvedBinDir 'strict-spec-cli.exe') -Force -ErrorAction SilentlyContinue
     if ($NoPathUpdate) {
         Write-Host 'Skipping user PATH cleanup because -NoPathUpdate was provided'
@@ -209,9 +278,8 @@ if ($Uninstall) {
         Remove-UserPathEntry $ResolvedBinDir
     }
 } else {
-    if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
-        throw 'bun is required to build the native strict-spec-cli executable'
-    }
+    Ensure-Bun
+    Ensure-ProjectDeps
     Write-Host 'Building strict-spec-cli native executable'
     Push-Location $ScriptDir
     try {
@@ -231,7 +299,8 @@ if ($Uninstall) {
     $stageDir = New-StagingDir $ScriptDir
     try {
         Write-Host "Installing strict skills from: $ScriptDir"
-        & npm exec skills@1.5.9 -- add "$stageDir" -g -y
+        Invoke-Skills -CommandArgs @('add', $stageDir, '-g', '-y')
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     } finally {
         Remove-Item -LiteralPath $stageDir -Recurse -Force -ErrorAction SilentlyContinue
         Write-Host "Cleaned up staging directory"

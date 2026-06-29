@@ -11,8 +11,17 @@ Usage: bash install.sh [--uninstall]
 Registers or removes the strict skill package from this repository.
   --uninstall      Remove the strict skill registration instead of installing it.
 
+The install path bootstraps its own dependencies, so bun is the only runtime
+that must already be present (and it is auto-installed if missing):
+  * bun is installed from https://bun.sh/install when not on PATH.
+  * project dependencies are installed with `bun install` when node_modules
+    is absent.
+  * the global `skills` CLI is run through bunx, falling back to npm exec / npx
+    on uninstall (when bun may already have been removed).
+
 Environment:
   STRICT_SPEC_BIN_DIR  Override the user bin directory for the native CLI.
+  BUN_INSTALL          Override the bun install prefix (default ~/.bun).
 EOF
 }
 
@@ -37,23 +46,77 @@ done
 DEFAULT_BIN_DIR="${XDG_BIN_HOME:-${HOME:-}/.local/bin}"
 BIN_DIR="${STRICT_SPEC_BIN_DIR:-$DEFAULT_BIN_DIR}"
 
-# Use npm exec instead of npx to avoid npm interpreting "skills" as a local
-# package.json script (npm run skills) in projects that have a package.json.
-# Pin to 1.5.9 to avoid upstream bug where PromptScript agent (which does not
-# support global installation) is incorrectly included in global install targets.
-SKILLS_CMD="npm exec skills@1.5.9 --"
+# The global `skills` package, pinned to 1.5.9 to avoid an upstream bug where
+# the PromptScript agent (which does not support global installation) is
+# incorrectly included in global install targets.
+SKILLS_PKG="skills@1.5.9"
+
+# Pick a runtime that can execute the pinned skills package. bunx is preferred
+# and, unlike npx, runs the package's bin directly instead of a colliding
+# `npm run skills` script. npm exec / npx are kept as uninstall fallbacks so
+# `skills remove -g` still works after bun has been removed.
+resolve_skills_cmd() {
+  if command -v bun >/dev/null 2>&1; then
+    printf 'bunx %s --\n' "$SKILLS_PKG"
+  elif command -v npm >/dev/null 2>&1; then
+    printf 'npm exec %s --\n' "$SKILLS_PKG"
+  elif command -v npx >/dev/null 2>&1; then
+    printf 'npx %s --\n' "$SKILLS_PKG"
+  else
+    return 1
+  fi
+}
+
+# Install bun from the official installer when it is not already on PATH.
+ensure_bun() {
+  if command -v bun >/dev/null 2>&1; then
+    return 0
+  fi
+
+  printf 'bun not found; installing bun from https://bun.sh/install\n' >&2
+  if ! { command -v curl >/dev/null 2>&1 && curl -fsSL https://bun.sh/install | bash; }; then
+    if ! { command -v wget >/dev/null 2>&1 && wget -qO- https://bun.sh/install | bash; }; then
+      printf 'curl or wget is required to install bun\n' >&2
+      return 1
+    fi
+  fi
+
+  # The installer updates shell rc files but not this process; expose bun now so
+  # the build and bunx resolve it without restarting the shell.
+  local bun_install="${BUN_INSTALL:-${HOME:-}/.bun}"
+  export BUN_INSTALL="$bun_install"
+  export PATH="$bun_install/bin:$PATH"
+
+  if ! command -v bun >/dev/null 2>&1; then
+    printf 'bun was installed but is not on PATH; add %s/bin to PATH and rerun.\n' "$bun_install" >&2
+    return 1
+  fi
+}
+
+# node_modules is gitignored while bun.lock is tracked, so a fresh checkout must
+# install project dependencies before building the native CLI.
+ensure_project_deps() {
+  if [ -d "$SCRIPT_DIR/node_modules" ] && [ -n "$(ls -A "$SCRIPT_DIR/node_modules" 2>/dev/null)" ]; then
+    return 0
+  fi
+  printf 'Installing project dependencies (bun install)\n'
+  ( cd "$SCRIPT_DIR" && bun install )
+}
 
 if $UNINSTALL; then
+  if ! SKILLS_CMD="$(resolve_skills_cmd)"; then
+    printf 'No runtime available to run the skills CLI (need bun, npm, or npx).\n' >&2
+    exit 1
+  fi
   echo "Uninstalling strict skills from: $SCRIPT_DIR"
   $SKILLS_CMD remove -g
   rm -f "$BIN_DIR/strict-spec-cli"
 else
-  if ! command -v bun >/dev/null 2>&1; then
-    printf 'bun is required to build the native strict-spec-cli executable\n' >&2
-    exit 1
-  fi
+  ensure_bun
+  ensure_project_deps
   echo "Building strict-spec-cli native executable"
-  (cd "$SCRIPT_DIR" && bun run build && bun scripts/build-native-cli.ts --install --bin-dir "$BIN_DIR")
+  ( cd "$SCRIPT_DIR" && bun run build && bun scripts/build-native-cli.ts --install --bin-dir "$BIN_DIR" )
   echo "Installing strict skills from: $SCRIPT_DIR"
+  SKILLS_CMD="$(resolve_skills_cmd)" # bun is guaranteed present here -> bunx
   $SKILLS_CMD add "$SCRIPT_DIR" -g -y
 fi
