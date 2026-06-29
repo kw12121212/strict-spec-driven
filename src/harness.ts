@@ -481,11 +481,11 @@ function createPartialStartRecoveryDiagnostic(artifactPath: string, state: Runti
   return createDiagnostic(
     artifactPath,
     "$",
-    `harness-start left already-started managed ${componentLabel} running after a later startup failure: ${runningSummary}; run strict-spec-driven harness-stop to clean them up`,
+    `harness-start left already-started managed ${componentLabel} running after a later startup failure: ${runningSummary}; run strict-spec-cli harness-stop to clean them up`,
     {
       source: "runtime_state",
       phase: "cleanup",
-      expected: "strict-spec-driven harness-stop",
+      expected: "strict-spec-cli harness-stop",
       actual: runningSummary,
     },
   );
@@ -1645,12 +1645,12 @@ export function fixHarnessDiagnostics(rootDir: string, diagnostics: HarnessDiagn
         }
         anyFixed = true;
       } else if (step.action === "run_cli") {
-        const key = `run_cli::${step.args.join(" ")}`;
+        const key = `run_cli::${step.args.join("\0")}`;
         if (executedKeys.has(key)) continue;
         executedKeys.add(key);
 
         const cliPath = path.resolve(process.argv[1]);
-        const display = ["strict-spec-driven", ...step.args].join(" ");
+        const display = ["strict-spec-cli", ...step.args].join(" ");
         const result = spawnSync(process.execPath, [cliPath, ...step.args], { cwd: rootDir, encoding: "utf8" });
         if (result.error) {
           throw new Error(`Failed to execute recovery command: ${display}. Error: ${result.error.message}`);
@@ -1677,10 +1677,10 @@ function wrapperContent(scriptName: (typeof SCRIPT_NAMES)[number]): string {
     "if [ -f \"$CLI\" ]; then",
     `  exec node "$CLI" ${command} "$@"`,
     "fi",
-    "if command -v strict-spec-driven >/dev/null 2>&1; then",
-    `  exec strict-spec-driven ${command} "$@"`,
+    "if command -v strict-spec-cli >/dev/null 2>&1; then",
+    `  exec strict-spec-cli ${command} "$@"`,
     "fi",
-    "echo \"strict-spec-driven CLI not found; build this project or install the CLI\" >&2",
+    "echo \"strict-spec-cli CLI not found; build this project or install the CLI\" >&2",
     "exit 1",
     "",
   ].join("\n");

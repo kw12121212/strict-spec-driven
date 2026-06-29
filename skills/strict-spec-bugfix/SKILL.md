@@ -16,21 +16,21 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: strict-spec-driven check-workflow-state
-tech-status: strict-spec-driven tech-status
-propose: strict-spec-driven propose <change-name>
-generate: strict-spec-driven generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
-ready: strict-spec-driven ready <change-name>
-next: strict-spec-driven next <change-name>
-apply: strict-spec-driven apply <change-name>
-verify: strict-spec-driven verify <change-name>
-verify-spec-mappings: strict-spec-driven verify-spec-mappings
-archive: strict-spec-driven archive <change-name>
+check-workflow-state: strict-spec-cli check-workflow-state
+tech-status: strict-spec-cli tech-status
+propose: strict-spec-cli propose <change-name>
+generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
+ready: strict-spec-cli ready <change-name>
+next: strict-spec-cli next <change-name>
+apply: strict-spec-cli apply <change-name>
+verify: strict-spec-cli verify <change-name>
+verify-spec-mappings: strict-spec-cli verify-spec-mappings
+archive: strict-spec-cli archive <change-name>
 ```
 
 ## Prerequisites
 
-Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -38,7 +38,7 @@ run `init` from this skill.
 
 - Keep strict artifacts in valid YAML structures at every stage. Do not replace
   structured fields with Markdown prose.
-- If artifact fields are unclear, use `strict-spec-driven schema-show <schema-name>`;
+- If artifact fields are unclear, use `strict-spec-cli schema-show <schema-name>`;
   installed skills do not carry a `templates` directory.
 - Shared schema cache root: `~/.strict-spec-schemas/`. When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root to inspect the concrete schema file without relying on a local templates directory.
 - Use block scalars only for free-text content. Prefer `>-` for wrapped prose
@@ -67,7 +67,7 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -87,7 +87,7 @@ run `init` from this skill.
    - every strict YAML main spec the bug appears to violate or touch
    - the relevant implementation and test files
    - the applicable technical standards by running
-     `strict-spec-driven tech-status` and reading the relevant files under
+     `strict-spec-cli tech-status` and reading the relevant files under
      `.strict-spec-driven/tech/`
 
 3. **Reproduce before fixing** — prove the failure before making production
@@ -104,7 +104,7 @@ run `init` from this skill.
    name from the defect, usually starting with `fix-`. If the change does not
    exist, run:
    ```bash
-   strict-spec-driven propose <change-name>
+   strict-spec-cli propose <change-name>
    ```
    If a populated change already exists, resume it without regenerating
    planning artifacts.
@@ -140,7 +140,7 @@ run `init` from this skill.
 
 7. **Validate readiness** — run:
    ```bash
-   strict-spec-driven ready <change-name>
+   strict-spec-cli ready <change-name>
    ```
    If you use `verify` before implementation, treat pending-task diagnostics as
    expected. If `questions.yaml.open` is not empty, explain each blocker,
@@ -160,7 +160,7 @@ run `init` from this skill.
 9. **Mark tasks only after completion** — after each task is actually complete,
    run:
    ```bash
-   strict-spec-driven apply <change-name>
+   strict-spec-cli apply <change-name>
    ```
    Confirm the returned task matches the work just completed. Never run
    `apply` as a read-only status command because it mutates `tasks.yaml`.
@@ -172,21 +172,21 @@ run `init` from this skill.
 
 11. **Verify and review before archive** — run:
     ```bash
-    strict-spec-driven verify <change-name>
-    strict-spec-driven verify-spec-mappings
+    strict-spec-cli verify <change-name>
+    strict-spec-cli verify-spec-mappings
     ```
     Read the changed implementation, tests, strict artifacts, relevant main
     specs, and tracked diff yourself. Check correctness, spec alignment,
     unchanged behavior, regression assertions, error handling, and technical
     standard compliance. Automatically fix safe in-scope review findings and
     rerun strict verification plus the configured complete regression command
-    after review-time changes. Do not call or rely on a `strict-spec-driven review` command.
+    after review-time changes. Do not call or rely on a `strict-spec-cli review` command.
 
 12. **Archive only when clean** — archive only after strict verification,
     mapping verification, direct review, targeted regression, and complete
     regression evidence pass:
     ```bash
-    strict-spec-driven archive <change-name>
+    strict-spec-cli archive <change-name>
     ```
     Summarize the fixed bug, regression evidence, updated specs, archive
     destination, and any follow-up that remains outside the bugfix scope.

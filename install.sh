@@ -46,13 +46,13 @@ SKILLS_CMD="npm exec skills@1.5.9 --"
 if $UNINSTALL; then
   echo "Uninstalling strict skills from: $SCRIPT_DIR"
   $SKILLS_CMD remove -g
-  rm -f "$BIN_DIR/strict-spec-driven"
+  rm -f "$BIN_DIR/strict-spec-cli"
 else
   if ! command -v bun >/dev/null 2>&1; then
-    printf 'bun is required to build the native strict-spec-driven executable\n' >&2
+    printf 'bun is required to build the native strict-spec-cli executable\n' >&2
     exit 1
   fi
-  echo "Building strict-spec-driven native executable"
+  echo "Building strict-spec-cli native executable"
   (cd "$SCRIPT_DIR" && bun run build && bun scripts/build-native-cli.ts --install --bin-dir "$BIN_DIR")
   echo "Installing strict skills from: $SCRIPT_DIR"
   $SKILLS_CMD add "$SCRIPT_DIR" -g -y

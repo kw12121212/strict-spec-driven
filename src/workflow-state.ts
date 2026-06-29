@@ -89,7 +89,7 @@ function suggestionsForDiagnostics(rootDir: string, changeName: string, diagnost
   const openQuestionIds = readOpenQuestionIds(rootDir, changeName);
   for (const questionId of openQuestionIds) {
     suggestions.push({
-      command: `strict-spec-driven generate ${changeName} questions --resolve ${questionId} --answer <answer>`,
+      command: `strict-spec-cli generate ${changeName} questions --resolve ${questionId} --answer <answer>`,
       reason: `Resolve open question '${questionId}' after a human supplies the answer.`,
     });
   }
@@ -103,14 +103,14 @@ function suggestionsForDiagnostics(rootDir: string, changeName: string, diagnost
       });
     }
     suggestions.push({
-      command: `strict-spec-driven apply ${changeName}`,
+      command: `strict-spec-cli apply ${changeName}`,
       reason: `Mark pending task '${firstPendingTask.taskId}' complete after the work is done.`,
     });
   }
 
   if (diagnostics.some((diagnostic) => diagnostic.source !== "task_completion" && diagnostic.source !== "open_questions")) {
     suggestions.push({
-      command: `strict-spec-driven verify ${changeName}`,
+      command: `strict-spec-cli verify ${changeName}`,
       reason: "Rerun strict verification after fixing reported artifact or workflow diagnostics.",
     });
   }
@@ -161,7 +161,7 @@ export function checkProposalReadiness(rootDir: string, changeName: string): Pro
   const suggestions = suggestionsForDiagnostics(rootDir, changeName, diagnostics);
   if (diagnostics.some((diagnostic) => diagnostic.source === "proposal_readiness")) {
     suggestions.push({
-      command: `strict-spec-driven generate ${changeName} delta-spec --target-spec <spec-id> ...`,
+      command: `strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> ...`,
       reason: "Create a target-spec-scoped delta spec when the change has strict spec impact.",
     });
   }

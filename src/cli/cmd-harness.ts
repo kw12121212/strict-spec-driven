@@ -16,15 +16,15 @@ import {
 import { CHANGE_NAME_PATTERN, isHelpRequest } from "./argv.js";
 import { writeError, writeHelp, writeJson, writeOut, writeUsage } from "./output.js";
 
-const HARNESS_PLAN_USAGE = "Usage: strict-spec-driven harness-plan [--environment <id>] [--component <id> ...]\n";
-const HARNESS_INFER_USAGE = "Usage: strict-spec-driven harness-infer [--write] [--force]\n";
-const HARNESS_DOCTOR_USAGE = "Usage: strict-spec-driven harness-doctor [--fix]\n";
-const HARNESS_START_USAGE = "Usage: strict-spec-driven harness-start [--environment <id>] [--component <id> ...] [--confirm]\n";
-const HARNESS_STOP_USAGE = "Usage: strict-spec-driven harness-stop [--confirm]\n";
-const HARNESS_STATUS_USAGE = "Usage: strict-spec-driven harness-status\n";
-const HARNESS_LOGS_USAGE = "Usage: strict-spec-driven harness-logs [component-id] [--tail <n> | --all]\n";
-const HARNESS_SCRIPTS_USAGE = "Usage: strict-spec-driven harness-scripts <generate|verify>\n";
-const HARNESS_SESSION_USAGE = "Usage: strict-spec-driven harness-session <create|validate|archive> <session-id|session.yaml>\n";
+const HARNESS_PLAN_USAGE = "Usage: strict-spec-cli harness-plan [--environment <id>] [--component <id> ...]\n";
+const HARNESS_INFER_USAGE = "Usage: strict-spec-cli harness-infer [--write] [--force]\n";
+const HARNESS_DOCTOR_USAGE = "Usage: strict-spec-cli harness-doctor [--fix]\n";
+const HARNESS_START_USAGE = "Usage: strict-spec-cli harness-start [--environment <id>] [--component <id> ...] [--confirm]\n";
+const HARNESS_STOP_USAGE = "Usage: strict-spec-cli harness-stop [--confirm]\n";
+const HARNESS_STATUS_USAGE = "Usage: strict-spec-cli harness-status\n";
+const HARNESS_LOGS_USAGE = "Usage: strict-spec-cli harness-logs [component-id] [--tail <n> | --all]\n";
+const HARNESS_SCRIPTS_USAGE = "Usage: strict-spec-cli harness-scripts <generate|verify>\n";
+const HARNESS_SESSION_USAGE = "Usage: strict-spec-cli harness-session <create|validate|archive> <session-id|session.yaml>\n";
 
 type SelectionArgs = {
   environment?: string;

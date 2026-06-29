@@ -110,7 +110,7 @@ for (const commandName of expectedCommandOrder) {
   const commandHelp = cli([commandName, "--help"], { cwd: ROOT });
   context.assert(commandHelp.status === 0, `${commandName} --help exits zero`, `stderr: ${commandHelp.stderr.trim()}`);
   context.assert(
-    commandHelp.stdout.includes(`Usage: strict-spec-driven ${commandName}`),
+    commandHelp.stdout.includes(`Usage: strict-spec-cli ${commandName}`),
     `${commandName} --help prints command usage to stdout`,
     `stdout: ${commandHelp.stdout.trim()}`,
   );
@@ -124,7 +124,7 @@ context.assert(
   `stdout: ${roadmapArchiveInvalidArgs.stdout.trim()} stderr: ${roadmapArchiveInvalidArgs.stderr.trim()}`,
 );
 context.assert(
-  roadmapArchiveInvalidArgs.stderr.includes("Usage: strict-spec-driven roadmap-archive [milestone-id]"),
+  roadmapArchiveInvalidArgs.stderr.includes("Usage: strict-spec-cli roadmap-archive [milestone-id]"),
   "roadmap-archive invalid arguments print command usage",
   `stderr: ${roadmapArchiveInvalidArgs.stderr.trim()}`,
 );
@@ -352,8 +352,8 @@ context.assert(
     && normalizedReviewSkillContent.includes("direct code review evidence")
     && normalizedReviewSkillContent.includes("Automatically fix safe in-scope review findings")
     && normalizedReviewSkillContent.includes("rerun strict verification plus the configured complete regression command after review-time changes")
-    && normalizedReviewSkillContent.includes("Do not call or rely on a `strict-spec-driven review` command")
-    && !reviewSkillContent.includes("strict-spec-driven review <change-name>"),
+    && normalizedReviewSkillContent.includes("Do not call or rely on a `strict-spec-cli review` command")
+    && !reviewSkillContent.includes("strict-spec-cli review <change-name>"),
   "strict-spec-review requires direct code review, automatic safe fixes, and regression evidence before archive recommendation",
 );
   context.assert(
@@ -422,7 +422,7 @@ context.assert(
       && normalizedAutoSkillContent.includes("scope, unchanged behavior, design decisions, task coverage, unresolved-question impact, delta spec scenarios, delta tech use when applicable, and structured mapping fields")
       && normalizedAutoSkillContent.includes("fix safe, in-scope documentation gaps")
       && normalizedAutoSkillContent.includes("Do not expand scope or answer unresolved human questions")
-      && !autoSkillContent.includes("strict-spec-driven review <change-name>"),
+      && !autoSkillContent.includes("strict-spec-cli review <change-name>"),
     "strict-spec-auto runs proposal checkpoints, resumes populated scaffolds, and blocks archive without automatic safe fixes, complete regression, and direct code review evidence",
   );
   const techConventionReflectionAnchor =
@@ -461,32 +461,32 @@ context.assert(
       && normalizedBugfixSkillContent.includes("direct review")
       && normalizedBugfixSkillContent.includes("Automatically fix safe in-scope review findings")
       && normalizedBugfixSkillContent.includes("rerun strict verification plus the configured complete regression command after review-time changes")
-      && normalizedBugfixSkillContent.includes("Do not call or rely on a `strict-spec-driven review` command")
-      && !bugfixSkillContent.includes("strict-spec-driven review <change-name>"),
+      && normalizedBugfixSkillContent.includes("Do not call or rely on a `strict-spec-cli review` command")
+      && !bugfixSkillContent.includes("strict-spec-cli review <change-name>"),
     "strict-spec-bugfix is constrained to known bugs with reproduction, regression coverage, minimal fixes, and debug-session handoff for unclear issues",
   );
   context.assert(
-    roadmapPlanSkillContent.includes("check-workflow-state: strict-spec-driven check-workflow-state")
-      && roadmapPlanSkillContent.includes("roadmap-generate: strict-spec-driven roadmap-generate milestone --<named-args>")
-      && normalizedRoadmapPlanSkillContent.includes("Before any other step, run `strict-spec-driven check-workflow-state`")
+    roadmapPlanSkillContent.includes("check-workflow-state: strict-spec-cli check-workflow-state")
+      && roadmapPlanSkillContent.includes("roadmap-generate: strict-spec-cli roadmap-generate milestone --<named-args>")
+      && normalizedRoadmapPlanSkillContent.includes("Before any other step, run `strict-spec-cli check-workflow-state`")
       && normalizedRoadmapPlanSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
       && normalizedRoadmapPlanSkillContent.includes("roadmap-generate milestone")
       && normalizedRoadmapPlanSkillContent.includes("standalone planned-change files remain edited directly")
       && normalizedRoadmapPlanSkillContent.includes("executable planning context")
       && normalizedRoadmapPlanSkillContent.includes("Review the roadmap plan before handoff")
-      && !roadmapPlanSkillContent.includes("strict-spec-driven init"),
+      && !roadmapPlanSkillContent.includes("strict-spec-cli init"),
     "strict-roadmap-plan requires existing strict workflow state, executable detail guidance, and review guidance",
   );
   context.assert(
-    roadmapArchiveSkillContent.includes("roadmap-archive: strict-spec-driven roadmap-archive [milestone-id]")
+    roadmapArchiveSkillContent.includes("roadmap-archive: strict-spec-cli roadmap-archive [milestone-id]")
       && normalizedRoadmapArchiveSkillContent.includes("default to all unarchived milestones")
       && normalizedRoadmapArchiveSkillContent.includes("only milestones whose derived status is complete")
       && normalizedRoadmapArchiveSkillContent.includes("completed standalone planned-change")
-      && !roadmapArchiveSkillContent.includes("strict-spec-driven init"),
+      && !roadmapArchiveSkillContent.includes("strict-spec-cli init"),
     "strict-roadmap-archive validates default-all completed milestone guidance",
   );
   context.assert(
-    roadmapRecommendSkillContent.includes("roadmap-recommend: strict-spec-driven roadmap-recommend")
+    roadmapRecommendSkillContent.includes("roadmap-recommend: strict-spec-cli roadmap-recommend")
       && normalizedRoadmapRecommendSkillContent.includes("treat the command's selected planned change as authoritative")
       && normalizedRoadmapRecommendSkillContent.includes("before reading broad roadmap context")
       && normalizedRoadmapRecommendSkillContent.includes("Use `ready` as the proposal handoff validation")
@@ -503,9 +503,9 @@ context.assert(
     "strict-roadmap-propose skill package is not part of the repository",
   );
   context.assert(
-    roadmapReviewSkillContent.includes("roadmap-status: strict-spec-driven roadmap-status")
-      && roadmapReviewSkillContent.includes("roadmap-generate: strict-spec-driven roadmap-generate milestone --<named-args>")
-      && roadmapReviewSkillContent.includes("roadmap-sync: strict-spec-driven roadmap-sync")
+    roadmapReviewSkillContent.includes("roadmap-status: strict-spec-cli roadmap-status")
+      && roadmapReviewSkillContent.includes("roadmap-generate: strict-spec-cli roadmap-generate milestone --<named-args>")
+      && roadmapReviewSkillContent.includes("roadmap-sync: strict-spec-cli roadmap-sync")
       && normalizedRoadmapReviewSkillContent.includes("all milestones whose status is not complete")
       && normalizedRoadmapReviewSkillContent.includes("use roadmap-generate milestone for milestone YAML shape")
       && normalizedRoadmapReviewSkillContent.includes("standalone planned-change files remain edited directly")
@@ -513,15 +513,15 @@ context.assert(
     "strict-roadmap-review validates with all-incomplete-milestones milestone command guidance",
   );
   context.assert(
-    harnessInitSkillContent.includes("check-workflow-state: strict-spec-driven check-workflow-state")
-      && normalizedHarnessInitSkillContent.includes("Before any other step, run `strict-spec-driven check-workflow-state`")
+    harnessInitSkillContent.includes("check-workflow-state: strict-spec-cli check-workflow-state")
+      && normalizedHarnessInitSkillContent.includes("Before any other step, run `strict-spec-cli check-workflow-state`")
       && normalizedHarnessInitSkillContent.includes("template-show scaffold/harness.yaml")
       && normalizedHarnessInitSkillContent.includes("harness-infer")
       && normalizedHarnessInitSkillContent.includes("harness-doctor")
       && normalizedHarnessInitSkillContent.includes("harness-scripts generate")
       && normalizedHarnessInitSkillContent.includes("Treat `harness-infer` output as a draft")
       && normalizedHarnessInitSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
-      && !harnessInitSkillContent.includes("strict-spec-driven init"),
+      && !harnessInitSkillContent.includes("strict-spec-cli init"),
     "strict-spec-harness-init requires existing strict workflow state and generates harness scripts",
   );
   context.assert(
@@ -579,17 +579,17 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
-      "check-workflow-state: strict-spec-driven check-workflow-state",
-      "demo: strict-spec-driven verify demo",
+      "check-workflow-state: strict-spec-cli check-workflow-state",
+      "demo: strict-spec-cli verify demo",
       "```",
       "",
       "## Prerequisites",
       "",
-      "Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
       "",
       "## Steps",
       "",
-      "Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
       "",
       "1. **Run the demo command** — inspect strict workflow artifacts under `.strict-spec-driven/`.",
       "",
@@ -649,17 +649,17 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
-      "check-workflow-state: strict-spec-driven check-workflow-state",
-      "demo: strict-spec-driven verify demo",
+      "check-workflow-state: strict-spec-cli check-workflow-state",
+      "demo: strict-spec-cli verify demo",
       "```",
       "",
       "## Prerequisites",
       "",
-      "Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
       "",
       "## Steps",
       "",
-      "Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
       "",
       "1. **Run the demo command** — inspect strict workflow artifacts under `.strict-spec-driven/`.",
       "",
@@ -775,8 +775,8 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
-      "init: strict-spec-driven init",
-      "demo: strict-spec-driven verify demo",
+      "init: strict-spec-cli init",
+      "demo: strict-spec-cli verify demo",
       "```",
       "",
       "## Notes",
@@ -867,7 +867,7 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
-      "demo: strict-spec-driven verify demo",
+      "demo: strict-spec-cli verify demo",
       "```",
     ].join("\n") + "\n",
     "utf8",
@@ -939,7 +939,7 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
-      "cli: strict-spec-driven <command>",
+      "cli: strict-spec-cli <command>",
       "```",
       "",
       "## Prerequisites",
@@ -1005,7 +1005,7 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
-      "cli: strict-spec-driven <command>",
+      "cli: strict-spec-cli <command>",
       "```",
       "",
       "## Prerequisites",
@@ -1135,8 +1135,8 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
-      "roadmap-status: strict-spec-driven roadmap-status",
-      "roadmap-sync: strict-spec-driven roadmap-sync",
+      "roadmap-status: strict-spec-cli roadmap-status",
+      "roadmap-sync: strict-spec-cli roadmap-sync",
       "```",
       "",
       "## Prerequisites",
@@ -1218,17 +1218,17 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
-      "check-workflow-state: strict-spec-driven check-workflow-state",
-      "roadmap-status: strict-spec-driven roadmap-status",
+      "check-workflow-state: strict-spec-cli check-workflow-state",
+      "roadmap-status: strict-spec-cli roadmap-status",
       "```",
       "",
       "## Prerequisites",
       "",
-      "Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
       "",
       "## Steps",
       "",
-      "Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
+      "Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
       "",
       "1. Load roadmap context and summarize it.",
       "",
@@ -1414,8 +1414,8 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
-      "propose: strict-spec-driven propose <change-name>",
-      "verify: strict-spec-driven verify <change-name>",
+      "propose: strict-spec-cli propose <change-name>",
+      "verify: strict-spec-cli verify <change-name>",
       "```",
       "",
       "## Prerequisites",
@@ -1451,10 +1451,10 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
-      "propose: strict-spec-driven propose <change-name>",
-      "generate: strict-spec-driven generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>",
-      "ready: strict-spec-driven ready <change-name>",
-      "verify: strict-spec-driven verify <change-name>",
+      "propose: strict-spec-cli propose <change-name>",
+      "generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>",
+      "ready: strict-spec-cli ready <change-name>",
+      "verify: strict-spec-cli verify <change-name>",
       "```",
       "",
       "## Prerequisites",
@@ -1490,10 +1490,10 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
-      "modify: strict-spec-driven modify [change-name|archive-dir]",
-      "verify: strict-spec-driven verify <change-name>",
-      "verify-spec-mappings: strict-spec-driven verify-spec-mappings",
-      "archive: strict-spec-driven archive <change-name>",
+      "modify: strict-spec-cli modify [change-name|archive-dir]",
+      "verify: strict-spec-cli verify <change-name>",
+      "verify-spec-mappings: strict-spec-cli verify-spec-mappings",
+      "archive: strict-spec-cli archive <change-name>",
       "```",
       "",
       "## Prerequisites",
@@ -1530,8 +1530,8 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
-      "modify: strict-spec-driven modify [change-name|archive-dir]",
-      "verify: strict-spec-driven verify <change-name>",
+      "modify: strict-spec-cli modify [change-name|archive-dir]",
+      "verify: strict-spec-cli verify <change-name>",
       "```",
       "",
       "## Prerequisites",
@@ -1543,7 +1543,7 @@ try {
       "Before any other step, confirm `.strict-spec-driven/` exists. If it is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.",
       "1. Read every changed file and require direct code review evidence.",
       "2. Confirm harness-plan guidance when harness evidence exists.",
-      "3. Do not call or rely on a `strict-spec-driven review` command.",
+      "3. Do not call or rely on a `strict-spec-cli review` command.",
       "",
       "## Harness Guidance",
       "",
@@ -1574,12 +1574,12 @@ try {
       "## This Skill's Commands",
       "",
       "```yaml",
-      "propose: strict-spec-driven propose <change-name>",
-      "apply: strict-spec-driven apply <change-name>",
-      "verify: strict-spec-driven verify <change-name>",
-      "review: strict-spec-driven review <change-name>",
-      "verify-spec-mappings: strict-spec-driven verify-spec-mappings",
-      "archive: strict-spec-driven archive <change-name>",
+      "propose: strict-spec-cli propose <change-name>",
+      "apply: strict-spec-cli apply <change-name>",
+      "verify: strict-spec-cli verify <change-name>",
+      "review: strict-spec-cli review <change-name>",
+      "verify-spec-mappings: strict-spec-cli verify-spec-mappings",
+      "archive: strict-spec-cli archive <change-name>",
       "```",
       "",
       "## Prerequisites",

@@ -17,9 +17,9 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-migrate: strict-spec-driven migrate
-roadmap-status: strict-spec-driven roadmap-status
-verify-spec-mappings: strict-spec-driven verify-spec-mappings
+migrate: strict-spec-cli migrate
+roadmap-status: strict-spec-cli roadmap-status
+verify-spec-mappings: strict-spec-cli verify-spec-mappings
 ```
 
 ## Prerequisites
@@ -52,7 +52,7 @@ the active user message explicitly asks for a different language.
 
 3. **Run migration with the strict CLI** — execute:
    ```bash
-   strict-spec-driven migrate
+   strict-spec-cli migrate
    ```
 
 4. **Review the structured migration report** — inspect converted entries,
@@ -61,8 +61,8 @@ the active user message explicitly asks for a different language.
 
 5. **Validate the migrated strict state** — after a successful migration, run:
    ```bash
-   strict-spec-driven roadmap-status
-   strict-spec-driven verify-spec-mappings
+   strict-spec-cli roadmap-status
+   strict-spec-cli verify-spec-mappings
    ```
    Use those checks to confirm the generated `.strict-spec-driven/` state is
    structurally usable, especially for roadmap references and spec mappings.

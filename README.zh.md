@@ -69,9 +69,9 @@
 
 ### 安装
 
-类 Unix 主机运行 `install.sh`，Windows 运行 `install.ps1`。安装器会构建原生 `strict-spec-driven` 可执行文件、安装 strict skills 包，并把可执行文件放到用户级 bin 目录。
+类 Unix 主机运行 `install.sh`，Windows 运行 `install.ps1`。安装器会构建原生 `strict-spec-cli` 可执行文件、安装 strict skills 包，并把可执行文件放到用户级 bin 目录。
 
-在 Windows 上，`install.ps1` 默认会把所选 bin 目录加入当前用户的 `PATH`。在安装器会话之外用 `strict-spec-driven` 命令名前，请重新打开一个终端。使用 `-NoPathUpdate` 可跳过 PATH 变更，使用 `-KeepPathOnUninstall` 可在卸载时保留 PATH 条目。
+在 Windows 上，`install.ps1` 默认会把所选 bin 目录加入当前用户的 `PATH`。在安装器会话之外用 `strict-spec-cli` 命令名前，请重新打开一个终端。使用 `-NoPathUpdate` 可跳过 PATH 变更，使用 `-KeepPathOnUninstall` 可在卸载时保留 PATH 条目。
 
 ### Skills：`strict-spec-*` 和 `strict-roadmap-*`
 
@@ -161,7 +161,7 @@ MCP 服务器将 CLI 和 Agent Skills 保留为权威的工作流实现。它将
 - `strict://roadmap/planned-changes/{plannedChangeId}`
 - `strict://harness/declaration`
 
-代表性只读请求：要求 MCP 客户端检查严格工作流状态。预期的工具调用是 `check_workflow_state`，它委托给 `strict-spec-driven check-workflow-state`，不会修改项目文件。
+代表性只读请求：要求 MCP 客户端检查严格工作流状态。预期的工具调用是 `check_workflow_state`，它委托给 `strict-spec-cli check-workflow-state`，不会修改项目文件。
 
 代表性提示请求：使用 `{ "change": "my-change" }` 请求 `strict_review_change`，以获取将验证、直接代码审查和完整回归证据保留在工作流中的审查指导。
 

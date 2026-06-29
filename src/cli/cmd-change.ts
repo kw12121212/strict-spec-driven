@@ -37,11 +37,11 @@ export function printChangeArtifacts(rootDir: string, name: string, changeDir: s
 export function runApply(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven apply <change-name>\n");
+    writeHelp("Usage: strict-spec-cli apply <change-name>\n");
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-driven apply <change-name>\n");
+    writeUsage("Usage: strict-spec-cli apply <change-name>\n");
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(changeName)) {
@@ -65,11 +65,11 @@ export function runApply(argv: string[]): number {
 export function runVerify(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven verify <change-name>\n");
+    writeHelp("Usage: strict-spec-cli verify <change-name>\n");
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-driven verify <change-name>\n");
+    writeUsage("Usage: strict-spec-cli verify <change-name>\n");
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(changeName)) {
@@ -91,11 +91,11 @@ export function runVerify(argv: string[]): number {
 export function runArchive(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven archive <change-name>\n");
+    writeHelp("Usage: strict-spec-cli archive <change-name>\n");
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-driven archive <change-name>\n");
+    writeUsage("Usage: strict-spec-cli archive <change-name>\n");
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(changeName)) {
@@ -116,11 +116,11 @@ export function runArchive(argv: string[]): number {
 
 export function runList(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven list\n");
+    writeHelp("Usage: strict-spec-cli list\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven list\n");
+    writeUsage("Usage: strict-spec-cli list\n");
     return 1;
   }
 
@@ -157,11 +157,11 @@ export function runList(argv: string[]): number {
 export function runModify(argv: string[]): number {
   const [target, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven modify [change-name|archive-dir]\n");
+    writeHelp("Usage: strict-spec-cli modify [change-name|archive-dir]\n");
     return 0;
   }
   if (extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-driven modify [change-name|archive-dir]\n");
+    writeUsage("Usage: strict-spec-cli modify [change-name|archive-dir]\n");
     return 1;
   }
 
@@ -208,11 +208,11 @@ export function runModify(argv: string[]): number {
 export function runCancel(argv: string[]): number {
   const [target, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven cancel <change-name>\n");
+    writeHelp("Usage: strict-spec-cli cancel <change-name>\n");
     return 0;
   }
   if (!target || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-driven cancel <change-name>\n");
+    writeUsage("Usage: strict-spec-cli cancel <change-name>\n");
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(target)) {

@@ -32,11 +32,11 @@ function showKey(key: string, usage: string): number {
 
 export function runTemplateList(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven template-list\n");
+    writeHelp("Usage: strict-spec-cli template-list\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven template-list\n");
+    writeUsage("Usage: strict-spec-cli template-list\n");
     return 1;
   }
 
@@ -45,7 +45,7 @@ export function runTemplateList(argv: string[]): number {
 
 export function runTemplateShow(argv: string[]): number {
   const [key, ...extraArgs] = argv;
-  const usage = "Usage: strict-spec-driven template-show <template-key>\n";
+  const usage = "Usage: strict-spec-cli template-show <template-key>\n";
   if (isHelpRequest(argv)) {
     writeHelp(usage);
     return 0;
@@ -60,11 +60,11 @@ export function runTemplateShow(argv: string[]): number {
 
 export function runSchemaList(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven schema-list\n");
+    writeHelp("Usage: strict-spec-cli schema-list\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven schema-list\n");
+    writeUsage("Usage: strict-spec-cli schema-list\n");
     return 1;
   }
 
@@ -73,7 +73,7 @@ export function runSchemaList(argv: string[]): number {
 
 export function runSchemaShow(argv: string[]): number {
   const [name, ...extraArgs] = argv;
-  const usage = "Usage: strict-spec-driven schema-show <schema-name|schema-key>\n";
+  const usage = "Usage: strict-spec-cli schema-show <schema-name|schema-key>\n";
   if (isHelpRequest(argv)) {
     writeHelp(usage);
     return 0;

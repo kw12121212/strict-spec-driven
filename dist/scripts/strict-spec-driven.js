@@ -6702,20 +6702,20 @@ issue:
 selected_components: []
 lifecycle_evidence:
   plan:
-    command: strict-spec-driven harness-plan --environment development
+    command: strict-spec-cli harness-plan --environment development
     status: not_run
     evidence: []
   start:
-    command: strict-spec-driven harness-start --environment development
+    command: strict-spec-cli harness-start --environment development
     status: not_run
     evidence: []
   status:
-    command: strict-spec-driven harness-status
+    command: strict-spec-cli harness-status
     status: not_run
     evidence: []
   logs: []
   stop:
-    command: strict-spec-driven harness-stop
+    command: strict-spec-cli harness-stop
     status: not_run
     evidence: []
 reproduction:
@@ -12590,13 +12590,13 @@ function getRegisteredCommandNames(commands) {
 }
 function formatCliUsage(commands) {
   const commandNames = getRegisteredCommandNames(commands);
-  let usage = `Usage: strict-spec-driven <command>
+  let usage = `Usage: strict-spec-cli <command>
 `;
   if (commandNames.length > 0) {
     usage += `Commands: ${commandNames.join(", ")}
 `;
   }
-  usage += `Run 'strict-spec-driven <command> --help' for command usage.
+  usage += `Run 'strict-spec-cli <command> --help' for command usage.
 `;
   return usage;
 }
@@ -12865,12 +12865,12 @@ function initializeStrictScaffold(rootDir) {
 // src/cli/cmd-scaffold.ts
 function runInit(argv = []) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven init
+    writeHelp(`Usage: strict-spec-cli init
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven init
+    writeUsage(`Usage: strict-spec-cli init
 `);
     return 1;
   }
@@ -12899,12 +12899,12 @@ function runInit(argv = []) {
 function runPropose(argv) {
   const [changeName, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven propose <change-name>
+    writeHelp(`Usage: strict-spec-cli propose <change-name>
 `);
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage(`Usage: strict-spec-driven propose <change-name>
+    writeUsage(`Usage: strict-spec-cli propose <change-name>
 `);
     return 1;
   }
@@ -13655,14 +13655,14 @@ var STRICT_WORKFLOW_DIR3 = ".strict-spec-driven";
 var BOOLEAN_FLAGS = new Set(["reset"]);
 function usage() {
   return [
-    "Usage: strict-spec-driven generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>",
+    "Usage: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>",
     "",
     "Examples:",
-    "  strict-spec-driven generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
-    "  strict-spec-driven generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
-    "  strict-spec-driven generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
-    "  strict-spec-driven generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
-    "  strict-spec-driven generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
+    "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
+    "  strict-spec-cli generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
+    "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
+    "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
+    "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
   ].join(`
 `) + `
 `;
@@ -17443,12 +17443,12 @@ function printChangeArtifacts(rootDir, name, changeDir) {
 function runApply(argv) {
   const [changeName, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven apply <change-name>
+    writeHelp(`Usage: strict-spec-cli apply <change-name>
 `);
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage(`Usage: strict-spec-driven apply <change-name>
+    writeUsage(`Usage: strict-spec-cli apply <change-name>
 `);
     return 1;
   }
@@ -17471,12 +17471,12 @@ function runApply(argv) {
 function runVerify(argv) {
   const [changeName, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven verify <change-name>
+    writeHelp(`Usage: strict-spec-cli verify <change-name>
 `);
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage(`Usage: strict-spec-driven verify <change-name>
+    writeUsage(`Usage: strict-spec-cli verify <change-name>
 `);
     return 1;
   }
@@ -17497,12 +17497,12 @@ function runVerify(argv) {
 function runArchive(argv) {
   const [changeName, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven archive <change-name>
+    writeHelp(`Usage: strict-spec-cli archive <change-name>
 `);
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage(`Usage: strict-spec-driven archive <change-name>
+    writeUsage(`Usage: strict-spec-cli archive <change-name>
 `);
     return 1;
   }
@@ -17522,12 +17522,12 @@ function runArchive(argv) {
 }
 function runList(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven list
+    writeHelp(`Usage: strict-spec-cli list
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven list
+    writeUsage(`Usage: strict-spec-cli list
 `);
     return 1;
   }
@@ -17565,12 +17565,12 @@ function runList(argv) {
 function runModify(argv) {
   const [target, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven modify [change-name|archive-dir]
+    writeHelp(`Usage: strict-spec-cli modify [change-name|archive-dir]
 `);
     return 0;
   }
   if (extraArgs.length > 0) {
-    writeUsage(`Usage: strict-spec-driven modify [change-name|archive-dir]
+    writeUsage(`Usage: strict-spec-cli modify [change-name|archive-dir]
 `);
     return 1;
   }
@@ -17612,12 +17612,12 @@ function runModify(argv) {
 function runCancel(argv) {
   const [target, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven cancel <change-name>
+    writeHelp(`Usage: strict-spec-cli cancel <change-name>
 `);
     return 0;
   }
   if (!target || extraArgs.length > 0) {
-    writeUsage(`Usage: strict-spec-driven cancel <change-name>
+    writeUsage(`Usage: strict-spec-cli cancel <change-name>
 `);
     return 1;
   }
@@ -17719,7 +17719,7 @@ function suggestionsForDiagnostics(rootDir, changeName, diagnostics) {
   const openQuestionIds = readOpenQuestionIds(rootDir, changeName);
   for (const questionId of openQuestionIds) {
     suggestions.push({
-      command: `strict-spec-driven generate ${changeName} questions --resolve ${questionId} --answer <answer>`,
+      command: `strict-spec-cli generate ${changeName} questions --resolve ${questionId} --answer <answer>`,
       reason: `Resolve open question '${questionId}' after a human supplies the answer.`
     });
   }
@@ -17732,13 +17732,13 @@ function suggestionsForDiagnostics(rootDir, changeName, diagnostics) {
       });
     }
     suggestions.push({
-      command: `strict-spec-driven apply ${changeName}`,
+      command: `strict-spec-cli apply ${changeName}`,
       reason: `Mark pending task '${firstPendingTask.taskId}' complete after the work is done.`
     });
   }
   if (diagnostics.some((diagnostic) => diagnostic.source !== "task_completion" && diagnostic.source !== "open_questions")) {
     suggestions.push({
-      command: `strict-spec-driven verify ${changeName}`,
+      command: `strict-spec-cli verify ${changeName}`,
       reason: "Rerun strict verification after fixing reported artifact or workflow diagnostics."
     });
   }
@@ -17784,7 +17784,7 @@ function checkProposalReadiness(rootDir, changeName) {
   const suggestions = suggestionsForDiagnostics(rootDir, changeName, diagnostics);
   if (diagnostics.some((diagnostic) => diagnostic.source === "proposal_readiness")) {
     suggestions.push({
-      command: `strict-spec-driven generate ${changeName} delta-spec --target-spec <spec-id> ...`,
+      command: `strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> ...`,
       reason: "Create a target-spec-scoped delta spec when the change has strict spec impact."
     });
   }
@@ -17834,12 +17834,12 @@ function checkWorkflowConfig(workflowStatePath) {
 }
 function runCheckWorkflowState(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven check-workflow-state
+    writeHelp(`Usage: strict-spec-cli check-workflow-state
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven check-workflow-state
+    writeUsage(`Usage: strict-spec-cli check-workflow-state
 `);
     return 1;
   }
@@ -17860,12 +17860,12 @@ function runCheckWorkflowState(argv) {
 function runReady(argv) {
   const [changeName, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven ready <change-name>
+    writeHelp(`Usage: strict-spec-cli ready <change-name>
 `);
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage(`Usage: strict-spec-driven ready <change-name>
+    writeUsage(`Usage: strict-spec-cli ready <change-name>
 `);
     return 1;
   }
@@ -17886,12 +17886,12 @@ function runReady(argv) {
 function runNext(argv) {
   const [changeName, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven next <change-name>
+    writeHelp(`Usage: strict-spec-cli next <change-name>
 `);
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage(`Usage: strict-spec-driven next <change-name>
+    writeUsage(`Usage: strict-spec-cli next <change-name>
 `);
     return 1;
   }
@@ -18404,14 +18404,14 @@ function emptyReopened(milestoneId) {
 }
 
 // src/cli/cmd-roadmap.ts
-var ROADMAP_RECOMMEND_USAGE = `Usage: strict-spec-driven roadmap-recommend [--details]
+var ROADMAP_RECOMMEND_USAGE = `Usage: strict-spec-cli roadmap-recommend [--details]
 `;
-var ROADMAP_ARCHIVE_USAGE = `Usage: strict-spec-driven roadmap-archive [milestone-id]
+var ROADMAP_ARCHIVE_USAGE = `Usage: strict-spec-cli roadmap-archive [milestone-id]
 `;
-var ROADMAP_REOPEN_USAGE = `Usage: strict-spec-driven roadmap-reopen <milestone-id> [--reason "..."]
+var ROADMAP_REOPEN_USAGE = `Usage: strict-spec-cli roadmap-reopen <milestone-id> [--reason "..."]
 `;
 var ROADMAP_GENERATE_USAGE = [
-  "Usage: strict-spec-driven roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset]",
+  "Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset]",
   "",
   "Notes:",
   "  Existing scalar fields with different values require --reset.",
@@ -18458,17 +18458,17 @@ function summarizeRoadmapRecommendation(result) {
       skippedByCode
     },
     blockers,
-    detailsCommand: "strict-spec-driven roadmap-recommend --details"
+    detailsCommand: "strict-spec-cli roadmap-recommend --details"
   };
 }
 function runRoadmapStatus(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven roadmap-status
+    writeHelp(`Usage: strict-spec-cli roadmap-status
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven roadmap-status
+    writeUsage(`Usage: strict-spec-cli roadmap-status
 `);
     return 1;
   }
@@ -18478,12 +18478,12 @@ function runRoadmapStatus(argv) {
 }
 function runRoadmapOverview(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven roadmap-overview
+    writeHelp(`Usage: strict-spec-cli roadmap-overview
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven roadmap-overview
+    writeUsage(`Usage: strict-spec-cli roadmap-overview
 `);
     return 1;
   }
@@ -18493,13 +18493,13 @@ function runRoadmapOverview(argv) {
 }
 function runRoadmapSync(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven roadmap-sync [--materialize-planned-changes]
+    writeHelp(`Usage: strict-spec-cli roadmap-sync [--materialize-planned-changes]
 `);
     return 0;
   }
   const materializePlannedChanges = argv.length === 1 && argv[0] === "--materialize-planned-changes";
   if (argv.length > 0 && !materializePlannedChanges) {
-    writeUsage(`Usage: strict-spec-driven roadmap-sync [--materialize-planned-changes]
+    writeUsage(`Usage: strict-spec-cli roadmap-sync [--materialize-planned-changes]
 `);
     return 1;
   }
@@ -19248,7 +19248,7 @@ function parseExternalTracker(flags) {
 }
 function runTicketCreate(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven ticket-create --title <text> --problem <text> --desired-outcome <text> [--intent <text>] [--label <text>]... [--external-label <text> --external-target <text>]
+    writeHelp(`Usage: strict-spec-cli ticket-create --title <text> --problem <text> --desired-outcome <text> [--intent <text>] [--label <text>]... [--external-label <text> --external-target <text>]
 `);
     return 0;
   }
@@ -19290,12 +19290,12 @@ function runTicketCreate(argv) {
 }
 function runTicketList(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven ticket-list
+    writeHelp(`Usage: strict-spec-cli ticket-list
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven ticket-list
+    writeUsage(`Usage: strict-spec-cli ticket-list
 `);
     return 1;
   }
@@ -19305,12 +19305,12 @@ function runTicketList(argv) {
 }
 function runTicketShow(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven ticket-show <ticket-id>
+    writeHelp(`Usage: strict-spec-cli ticket-show <ticket-id>
 `);
     return 0;
   }
   if (argv.length !== 1 || argv[0].startsWith("--")) {
-    writeUsage(`Usage: strict-spec-driven ticket-show <ticket-id>
+    writeUsage(`Usage: strict-spec-cli ticket-show <ticket-id>
 `);
     return 1;
   }
@@ -19319,7 +19319,7 @@ function runTicketShow(argv) {
   return result.valid ? 0 : 1;
 }
 var EDIT_BOOLEAN_FLAGS = new Set(["clear-intent", "clear-labels", "clear-external-tracker"]);
-var EDIT_USAGE = `Usage: strict-spec-driven ticket-edit <ticket-id> [--title <text>] [--problem <text>] [--desired-outcome <text>] [--intent <text> | --clear-intent] [--label <text>]... | --clear-labels [--external-label <text> --external-target <text> | --clear-external-tracker]
+var EDIT_USAGE = `Usage: strict-spec-cli ticket-edit <ticket-id> [--title <text>] [--problem <text>] [--desired-outcome <text>] [--intent <text> | --clear-intent] [--label <text>]... | --clear-labels [--external-label <text> --external-target <text> | --clear-external-tracker]
 `;
 function runTicketEdit(argv) {
   if (isHelpRequest(argv)) {
@@ -19417,12 +19417,12 @@ function runTicketEdit(argv) {
 }
 function runTicketValidate(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven ticket-validate [<ticket-id>]
+    writeHelp(`Usage: strict-spec-cli ticket-validate [<ticket-id>]
 `);
     return 0;
   }
   if (argv.length > 1 || argv.length === 1 && argv[0].startsWith("--")) {
-    writeUsage(`Usage: strict-spec-driven ticket-validate [<ticket-id>]
+    writeUsage(`Usage: strict-spec-cli ticket-validate [<ticket-id>]
 `);
     return 1;
   }
@@ -19440,12 +19440,12 @@ function parseEvidence(flags) {
 }
 function runTicketResolve(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...
+    writeHelp(`Usage: strict-spec-cli ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...
 `);
     return 0;
   }
   if (argv.length === 0 || argv[0].startsWith("--")) {
-    writeUsage(`Usage: strict-spec-driven ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...
+    writeUsage(`Usage: strict-spec-cli ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...
 `);
     return 1;
   }
@@ -21361,12 +21361,12 @@ function migrateLegacyWorkflow(rootDir, options) {
 // src/cli/cmd-migration.ts
 function runMigrate(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven migrate
+    writeHelp(`Usage: strict-spec-cli migrate
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven migrate
+    writeUsage(`Usage: strict-spec-cli migrate
 `);
     return 1;
   }
@@ -21385,12 +21385,12 @@ function runMigrate(argv) {
 }
 function runMaintenanceCommand(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven maintenance
+    writeHelp(`Usage: strict-spec-cli maintenance
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven maintenance
+    writeUsage(`Usage: strict-spec-cli maintenance
 `);
     return 1;
   }
@@ -21410,7 +21410,7 @@ var MCP_INSTALL_ALL_CLIENTS = MCP_INSTALL_CLIENTS.filter((client) => client !== 
 var MCP_INSTALL_SCOPES = ["project", "user"];
 var DEFAULT_ENTRY_NAME = "strict-spec-driven";
 var ENTRY_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
-var USAGE = "Usage: strict-spec-driven mcp-install --client <claude-code|codex|opencode|copilot|json|all> " + `[--client <...>] [--scope <project|user>] [--name <entry-name>] [--project <path>] [--config <path>]
+var USAGE = "Usage: strict-spec-cli mcp-install --client <claude-code|codex|opencode|copilot|json|all> " + `[--client <...>] [--scope <project|user>] [--name <entry-name>] [--project <path>] [--config <path>]
 `;
 function parseMcpInstallArgs(argv) {
   const selected = [];
@@ -21685,7 +21685,7 @@ import path34 from "node:path";
 // src/skills/model.ts
 var REQUIRED_METADATA_FIELDS = ["skill_id", "author", "type", "version"];
 var EXPECTED_SCRIPT_SYMLINK = "../../dist/scripts";
-var COMMAND_PREFIX = "strict-spec-driven";
+var COMMAND_PREFIX = "strict-spec-cli";
 var GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
 var GENERATE_NAMED_ARGS_COMMAND = `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>`;
 var READY_COMMAND = `${COMMAND_PREFIX} ready <change-name>`;
@@ -21832,7 +21832,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
-      "Do not call or rely on a `strict-spec-driven review` command"
+      `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`
     ],
     forbiddenSnippets: [
       `${COMMAND_PREFIX} review <change-name>`
@@ -21878,7 +21878,7 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
-      "Do not call or rely on a `strict-spec-driven review` command",
+      `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET
     ],
@@ -22190,7 +22190,7 @@ function validateCommandSection(skillName, content, skillPath, diagnostics) {
       continue;
     }
     normalizedCommands[name] = value;
-    if (value.includes("{{SKILL_DIR}}") || value.includes("~/.local/bin/strict-spec-driven")) {
+    if (value.includes("{{SKILL_DIR}}") || value.includes("~/.local/bin/strict-spec-driven") || value.includes("~/.local/bin/strict-spec-cli")) {
       diagnostics.push(makeDiagnostic4("skill.commands_section.command.machine_path", `${skillPath}#commands.${name}`, "command entries must use the PATH-resolved strict CLI command, not skill-relative or hard-coded user bin paths", `${COMMAND_PREFIX} <explicit-subcommand>`, value));
       continue;
     }
@@ -22354,7 +22354,7 @@ function validateFrontmatterFields(frontmatter, skillName, skillPath, diagnostic
   }
 }
 function validateLegacyReferences(skillName, content, skillPath, diagnostics) {
-  const contentWithoutStrictRoadmapCommands = content.replace(/strict-spec-driven\s+roadmap-(?:status|sync|plan|milestone|recommend|propose)\b/g, "strict-spec-driven <roadmap-command>");
+  const contentWithoutStrictRoadmapCommands = content.replace(/strict-spec-cli\s+roadmap-(?:status|sync|plan|milestone|recommend|propose)\b/g, "strict-spec-cli <roadmap-command>");
   const checks = [
     {
       code: "skill.reference.legacy_spec_prefix",
@@ -22828,12 +22828,12 @@ function getTechStatus(rootDir) {
 function runShip(argv) {
   const [target, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven ship <change-name>
+    writeHelp(`Usage: strict-spec-cli ship <change-name>
 `);
     return 0;
   }
   if (!target || extraArgs.length > 0) {
-    writeUsage(`Usage: strict-spec-driven ship <change-name>
+    writeUsage(`Usage: strict-spec-cli ship <change-name>
 `);
     return 1;
   }
@@ -22889,12 +22889,12 @@ function runShip(argv) {
 }
 function runValidateSkills(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven validate-skills
+    writeHelp(`Usage: strict-spec-cli validate-skills
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven validate-skills
+    writeUsage(`Usage: strict-spec-cli validate-skills
 `);
     return 1;
   }
@@ -22904,12 +22904,12 @@ function runValidateSkills(argv) {
 }
 function runVerifySpecMappings(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven verify-spec-mappings
+    writeHelp(`Usage: strict-spec-cli verify-spec-mappings
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven verify-spec-mappings
+    writeUsage(`Usage: strict-spec-cli verify-spec-mappings
 `);
     return 1;
   }
@@ -22919,12 +22919,12 @@ function runVerifySpecMappings(argv) {
 }
 function runVerifyTechMappings(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven verify-tech-mappings
+    writeHelp(`Usage: strict-spec-cli verify-tech-mappings
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven verify-tech-mappings
+    writeUsage(`Usage: strict-spec-cli verify-tech-mappings
 `);
     return 1;
   }
@@ -22934,12 +22934,12 @@ function runVerifyTechMappings(argv) {
 }
 function runTechStatus(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven tech-status
+    writeHelp(`Usage: strict-spec-cli tech-status
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven tech-status
+    writeUsage(`Usage: strict-spec-cli tech-status
 `);
     return 1;
   }
@@ -22953,12 +22953,12 @@ function getDirectoryCreationTimeMs(directoryPath) {
 }
 function runCommitAndPush(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven commit-and-push
+    writeHelp(`Usage: strict-spec-cli commit-and-push
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven commit-and-push
+    writeUsage(`Usage: strict-spec-cli commit-and-push
 `);
     return 1;
   }
@@ -23040,12 +23040,12 @@ function showKey(key, usage2) {
 }
 function runTemplateList(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven template-list
+    writeHelp(`Usage: strict-spec-cli template-list
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven template-list
+    writeUsage(`Usage: strict-spec-cli template-list
 `);
     return 1;
   }
@@ -23053,7 +23053,7 @@ function runTemplateList(argv) {
 }
 function runTemplateShow(argv) {
   const [key, ...extraArgs] = argv;
-  const usage2 = `Usage: strict-spec-driven template-show <template-key>
+  const usage2 = `Usage: strict-spec-cli template-show <template-key>
 `;
   if (isHelpRequest(argv)) {
     writeHelp(usage2);
@@ -23067,12 +23067,12 @@ function runTemplateShow(argv) {
 }
 function runSchemaList(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-driven schema-list
+    writeHelp(`Usage: strict-spec-cli schema-list
 `);
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage(`Usage: strict-spec-driven schema-list
+    writeUsage(`Usage: strict-spec-cli schema-list
 `);
     return 1;
   }
@@ -23080,7 +23080,7 @@ function runSchemaList(argv) {
 }
 function runSchemaShow(argv) {
   const [name, ...extraArgs] = argv;
-  const usage2 = `Usage: strict-spec-driven schema-show <schema-name|schema-key>
+  const usage2 = `Usage: strict-spec-cli schema-show <schema-name|schema-key>
 `;
   if (isHelpRequest(argv)) {
     writeHelp(usage2);
@@ -23270,10 +23270,10 @@ function createPartialStartRecoveryDiagnostic(artifactPath, state) {
     return null;
   const componentLabel = runningComponentIds.length === 1 ? "component remains" : "components remain";
   const runningSummary = runningComponentIds.join(", ");
-  return createDiagnostic(artifactPath, "$", `harness-start left already-started managed ${componentLabel} running after a later startup failure: ${runningSummary}; run strict-spec-driven harness-stop to clean them up`, {
+  return createDiagnostic(artifactPath, "$", `harness-start left already-started managed ${componentLabel} running after a later startup failure: ${runningSummary}; run strict-spec-cli harness-stop to clean them up`, {
     source: "runtime_state",
     phase: "cleanup",
-    expected: "strict-spec-driven harness-stop",
+    expected: "strict-spec-cli harness-stop",
     actual: runningSummary
   });
 }
@@ -24365,7 +24365,7 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
           continue;
         executedKeys.add(key);
         const cliPath = path38.resolve(process.argv[1]);
-        const display = ["strict-spec-driven", ...step.args].join(" ");
+        const display = ["strict-spec-cli", ...step.args].join(" ");
         const result = spawnSync(process.execPath, [cliPath, ...step.args], { cwd: rootDir, encoding: "utf8" });
         if (result.error) {
           throw new Error(`Failed to execute recovery command: ${display}. Error: ${result.error.message}`);
@@ -24393,10 +24393,10 @@ function wrapperContent(scriptName) {
     'if [ -f "$CLI" ]; then',
     `  exec node "$CLI" ${command} "$@"`,
     "fi",
-    "if command -v strict-spec-driven >/dev/null 2>&1; then",
-    `  exec strict-spec-driven ${command} "$@"`,
+    "if command -v strict-spec-cli >/dev/null 2>&1; then",
+    `  exec strict-spec-cli ${command} "$@"`,
     "fi",
-    'echo "strict-spec-driven CLI not found; build this project or install the CLI" >&2',
+    'echo "strict-spec-cli CLI not found; build this project or install the CLI" >&2',
     "exit 1",
     ""
   ].join(`
@@ -24556,23 +24556,23 @@ function archiveHarnessSession(rootDir, target) {
 }
 
 // src/cli/cmd-harness.ts
-var HARNESS_PLAN_USAGE = `Usage: strict-spec-driven harness-plan [--environment <id>] [--component <id> ...]
+var HARNESS_PLAN_USAGE = `Usage: strict-spec-cli harness-plan [--environment <id>] [--component <id> ...]
 `;
-var HARNESS_INFER_USAGE = `Usage: strict-spec-driven harness-infer [--write] [--force]
+var HARNESS_INFER_USAGE = `Usage: strict-spec-cli harness-infer [--write] [--force]
 `;
-var HARNESS_DOCTOR_USAGE = `Usage: strict-spec-driven harness-doctor [--fix]
+var HARNESS_DOCTOR_USAGE = `Usage: strict-spec-cli harness-doctor [--fix]
 `;
-var HARNESS_START_USAGE = `Usage: strict-spec-driven harness-start [--environment <id>] [--component <id> ...] [--confirm]
+var HARNESS_START_USAGE = `Usage: strict-spec-cli harness-start [--environment <id>] [--component <id> ...] [--confirm]
 `;
-var HARNESS_STOP_USAGE = `Usage: strict-spec-driven harness-stop [--confirm]
+var HARNESS_STOP_USAGE = `Usage: strict-spec-cli harness-stop [--confirm]
 `;
-var HARNESS_STATUS_USAGE = `Usage: strict-spec-driven harness-status
+var HARNESS_STATUS_USAGE = `Usage: strict-spec-cli harness-status
 `;
-var HARNESS_LOGS_USAGE = `Usage: strict-spec-driven harness-logs [component-id] [--tail <n> | --all]
+var HARNESS_LOGS_USAGE = `Usage: strict-spec-cli harness-logs [component-id] [--tail <n> | --all]
 `;
-var HARNESS_SCRIPTS_USAGE = `Usage: strict-spec-driven harness-scripts <generate|verify>
+var HARNESS_SCRIPTS_USAGE = `Usage: strict-spec-cli harness-scripts <generate|verify>
 `;
-var HARNESS_SESSION_USAGE = `Usage: strict-spec-driven harness-session <create|validate|archive> <session-id|session.yaml>
+var HARNESS_SESSION_USAGE = `Usage: strict-spec-cli harness-session <create|validate|archive> <session-id|session.yaml>
 `;
 function parseSelectionArgs(argv, usage2, allowConfirm) {
   const parsed = { components: [], confirm: false };

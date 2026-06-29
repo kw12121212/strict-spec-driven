@@ -6,11 +6,11 @@ export function getRegisteredCommandNames(commands: CommandTable): string[] {
 
 export function formatCliUsage(commands: CommandTable): string {
   const commandNames = getRegisteredCommandNames(commands);
-  let usage = "Usage: strict-spec-driven <command>\n";
+  let usage = "Usage: strict-spec-cli <command>\n";
   if (commandNames.length > 0) {
     usage += `Commands: ${commandNames.join(", ")}\n`;
   }
-  usage += "Run 'strict-spec-driven <command> --help' for command usage.\n";
+  usage += "Run 'strict-spec-cli <command> --help' for command usage.\n";
   return usage;
 }
 

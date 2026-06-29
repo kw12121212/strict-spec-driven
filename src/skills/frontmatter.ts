@@ -151,8 +151,8 @@ export function validateLegacyReferences(
   diagnostics: SkillPackagingDiagnostic[],
 ): void {
   const contentWithoutStrictRoadmapCommands = content.replace(
-    /strict-spec-driven\s+roadmap-(?:status|sync|plan|milestone|recommend|propose)\b/g,
-    "strict-spec-driven <roadmap-command>",
+    /strict-spec-cli\s+roadmap-(?:status|sync|plan|milestone|recommend|propose)\b/g,
+    "strict-spec-cli <roadmap-command>",
   );
   const checks: Array<{ code: string; regex: RegExp; message: string }> = [
     {

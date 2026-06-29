@@ -13,18 +13,18 @@ You are creating or refining a project harness declaration.
 ## This Skill's Commands
 
 ```yaml
-check-workflow-state: strict-spec-driven check-workflow-state
-template-show-harness: strict-spec-driven template-show scaffold/harness.yaml
-harness-infer: strict-spec-driven harness-infer
-harness-doctor: strict-spec-driven harness-doctor
-harness-plan: strict-spec-driven harness-plan
-harness-scripts-generate: strict-spec-driven harness-scripts generate
-harness-scripts-verify: strict-spec-driven harness-scripts verify
+check-workflow-state: strict-spec-cli check-workflow-state
+template-show-harness: strict-spec-cli template-show scaffold/harness.yaml
+harness-infer: strict-spec-cli harness-infer
+harness-doctor: strict-spec-cli harness-doctor
+harness-plan: strict-spec-cli harness-plan
+harness-scripts-generate: strict-spec-cli harness-scripts generate
+harness-scripts-verify: strict-spec-cli harness-scripts verify
 ```
 
 ## Prerequisites
 
-Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.
+Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.
 
 ## Preferred Human Language
 
@@ -37,7 +37,7 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.
+Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.
 
 1. **Infer a safe draft first** — run `harness-infer` to inspect repository metadata and review the generated draft before hand-editing `.strict-spec-driven/harness.yaml`.
 2. **Present the draft for human review** — display the full inferred harness declaration draft to the user in a readable format. Do not proceed past this step without user engagement.

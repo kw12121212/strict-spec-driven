@@ -17,15 +17,15 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: strict-spec-driven check-workflow-state
-roadmap-status: strict-spec-driven roadmap-status
-roadmap-reopen: strict-spec-driven roadmap-reopen <milestone-id> [--reason "..."]
-roadmap-sync: strict-spec-driven roadmap-sync
+check-workflow-state: strict-spec-cli check-workflow-state
+roadmap-status: strict-spec-cli roadmap-status
+roadmap-reopen: strict-spec-cli roadmap-reopen <milestone-id> [--reason "..."]
+roadmap-sync: strict-spec-cli roadmap-sync
 ```
 
 ## Prerequisites
 
-Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -71,7 +71,7 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -82,7 +82,7 @@ run `init` from this skill.
 
 2. **Confirm the milestone is complete** — run:
    ```bash
-   strict-spec-driven roadmap-status
+   strict-spec-cli roadmap-status
    ```
    Use the milestone's `declaredStatus` and `derivedStatus`, plus each owned
    planned change's `state`, to confirm the milestone is actually `complete`
@@ -94,7 +94,7 @@ run `init` from this skill.
 3. **Capture the reason and reopen** — collect a short, concrete reason for the
    reopen from the user if not already provided, then run:
    ```bash
-   strict-spec-driven roadmap-reopen <milestone-id> --reason "<concrete gap description>"
+   strict-spec-cli roadmap-reopen <milestone-id> --reason "<concrete gap description>"
    ```
    Confirm the returned `reopened.newStatus` is the derived status (`proposed`
    when only the seeded follow-up is pending), the reopen note was appended,
@@ -113,7 +113,7 @@ run `init` from this skill.
 
 5. **Resync the roadmap** — after refining or adding planned changes, run:
    ```bash
-   strict-spec-driven roadmap-sync
+   strict-spec-cli roadmap-sync
    ```
    Confirm the milestone participates in the canonical
    `.strict-spec-driven/roadmap/` index, the new planned changes are owned by

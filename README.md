@@ -69,9 +69,9 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 
 ### Installation
 
-Run `install.sh` on Unix-like hosts or `install.ps1` on Windows. The installer builds the native `strict-spec-driven` executable, installs the strict skills package, and places the executable in a user-level bin directory.
+Run `install.sh` on Unix-like hosts or `install.ps1` on Windows. The installer builds the native `strict-spec-cli` executable, installs the strict skills package, and places the executable in a user-level bin directory.
 
-On Windows, `install.ps1` adds the selected bin directory to the current user's `PATH` by default. Open a new terminal before invoking `strict-spec-driven` by name outside the installer session. Use `-NoPathUpdate` to skip PATH changes, or `-KeepPathOnUninstall` to leave the PATH entry in place when uninstalling.
+On Windows, `install.ps1` adds the selected bin directory to the current user's `PATH` by default. Open a new terminal before invoking `strict-spec-cli` by name outside the installer session. Use `-NoPathUpdate` to skip PATH changes, or `-KeepPathOnUninstall` to leave the PATH entry in place when uninstalling.
 
 ### Skills: `strict-spec-*` and `strict-roadmap-*`
 
@@ -157,9 +157,9 @@ The built package also includes a local MCP server for MCP-compatible clients. I
 Instead of editing client config by hand, the `mcp-install` command builds the package and registers the server into supported clients:
 
 ```bash
-strict-spec-driven mcp-install --client claude-code --client codex --scope project
-strict-spec-driven mcp-install --client all --project /path/to/your/project
-strict-spec-driven mcp-install --client json --config ./.mcp.json
+strict-spec-cli mcp-install --client claude-code --client codex --scope project
+strict-spec-cli mcp-install --client all --project /path/to/your/project
+strict-spec-cli mcp-install --client json --config ./.mcp.json
 ```
 
 - `--client` accepts `claude-code`, `codex`, `opencode`, `copilot`, `json`, or `all`, and may be repeated. `all` expands to the four named clients; `json` is opt-in because it requires an explicit `--config` path.
@@ -176,7 +176,7 @@ Representative resources:
 - `strict://roadmap/planned-changes/{plannedChangeId}`
 - `strict://harness/declaration`
 
-Representative read-only request: ask the MCP client to check strict workflow status. The expected tool call is `check_workflow_state`, which delegates to `strict-spec-driven check-workflow-state` and does not mutate project files.
+Representative read-only request: ask the MCP client to check strict workflow status. The expected tool call is `check_workflow_state`, which delegates to `strict-spec-cli check-workflow-state` and does not mutate project files.
 
 Representative prompt request: ask for `strict_review_change` with `{ "change": "my-change" }` to get review guidance that keeps verification, direct code review, and complete regression evidence in the workflow.
 
@@ -193,9 +193,9 @@ The schema registry at `templates/strict-spec-driven/schemas/schema-registry.yam
 The CLI also embeds bundled schema and scaffold assets so installed skills do not need a per-skill `templates` symlink. Agents can inspect embedded contracts with:
 
 ```sh
-strict-spec-driven schema-list
-strict-spec-driven schema-show change-proposal
-strict-spec-driven template-show scaffold/changes/proposal.yaml
+strict-spec-cli schema-list
+strict-spec-cli schema-show change-proposal
+strict-spec-cli template-show scaffold/changes/proposal.yaml
 ```
 
 ### Shared Schema Cache

@@ -22,17 +22,17 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: strict-spec-driven check-workflow-state
-tech-status: strict-spec-driven tech-status
-propose: strict-spec-driven propose <change-name>
-generate: strict-spec-driven generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
-ready: strict-spec-driven ready <change-name>
-verify: strict-spec-driven verify <change-name>
+check-workflow-state: strict-spec-cli check-workflow-state
+tech-status: strict-spec-cli tech-status
+propose: strict-spec-cli propose <change-name>
+generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
+ready: strict-spec-cli ready <change-name>
+verify: strict-spec-cli verify <change-name>
 ```
 
 ## Prerequisites
 
-Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -40,7 +40,7 @@ run `init` from this skill.
 
 - Keep artifacts in valid strict YAML structures. Do not switch to Markdown
   prose or freeform notes inside YAML files.
-- If artifact fields are unclear, use `strict-spec-driven schema-show <schema-name>`;
+- If artifact fields are unclear, use `strict-spec-cli schema-show <schema-name>`;
   installed skills do not carry a `templates` directory.
 - Shared schema cache root: `~/.strict-spec-schemas/`. When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root to inspect the concrete schema file without relying on a local templates directory.
 - Use block scalars only for free-text content. Prefer `>-` for wrapped prose
@@ -68,7 +68,7 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -83,7 +83,7 @@ run `init` from this skill.
    - `.strict-spec-driven/specs/INDEX.yaml`
    - every strict YAML main spec the change is likely to touch
    - the technical standards that govern the code this change will touch by
-     running `strict-spec-driven tech-status` and
+     running `strict-spec-cli tech-status` and
      reading the relevant files under `.strict-spec-driven/tech/`. Treat every
      applicable MUST rule as a binding design constraint and every SHOULD rule
      as the default the proposal follows unless it records an explicit
@@ -100,7 +100,7 @@ run `init` from this skill.
 
 3. **Scaffold the change** — run:
    ```bash
-   strict-spec-driven propose <change-name>
+   strict-spec-cli propose <change-name>
    ```
    After scaffolding, generate supported artifacts in the exact ordered steps
    below and edit the scaffolded `tasks.yaml` directly. Do not create JSON
@@ -109,7 +109,7 @@ run `init` from this skill.
 4. **Generate `proposal.yaml`** — run a direct CLI invocation with named
    arguments:
    ```bash
-   strict-spec-driven generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."
+   strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."
    ```
    Populate:
    - `summary.what`
@@ -122,7 +122,7 @@ run `init` from this skill.
 5. **Generate `design.yaml`** — run one direct CLI invocation with named
    arguments:
    ```bash
-   strict-spec-driven generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."
+   strict-spec-cli generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."
    ```
    Populate:
    - `approach`
@@ -149,7 +149,7 @@ run `init` from this skill.
 7. **Generate `questions.yaml`** — run one direct CLI invocation for the full
    artifact. Use `--reset` when intentionally replacing scaffold content:
     ```bash
-    strict-spec-driven generate <change-name> questions --reset --open <question-id> --question "..." --context "..." --resolved <question-id> --question "..." --context "..." --answer "..."
+    strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..." --resolved <question-id> --question "..." --context "..." --answer "..."
     ```
    Record open questions as structured entries under `open` using fields such
    as `id`, `question`, and `context`; the script writes the status. If
@@ -159,7 +159,7 @@ run `init` from this skill.
    target spec and include all mapping paths and requirement operations needed
    for that target in the same command:
     ```bash
-    strict-spec-driven generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..." --operation MODIFIED --requirement <requirement-id> --strength MUST --statement "..."
+    strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..." --operation MODIFIED --requirement <requirement-id> --strength MUST --statement "..."
     ```
    The generated files under `.strict-spec-driven/changes/<name>/specs/` should
    mirror the target main spec paths.
@@ -178,7 +178,7 @@ run `init` from this skill.
     `.strict-spec-driven/changes/<change-name>/tech/` with one direct CLI
     invocation per target standard:
     ```bash
-    strict-spec-driven generate <change-name> delta-tech --target-standard <standard-id> --implementation "src/file.ts" --enforcement "eslint.config.js" --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review --operation REMOVED --rule <rule-id> --reason "..."
+    strict-spec-cli generate <change-name> delta-tech --target-standard <standard-id> --implementation "src/file.ts" --enforcement "eslint.config.js" --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review --operation REMOVED --rule <rule-id> --reason "..."
     ```
     `ADDED`/`MODIFIED` rules require `--strength`, `--statement`, `--rationale`,
     and `--method` (one of lint, ci, test, review, manual), with optional
@@ -189,7 +189,7 @@ run `init` from this skill.
     `--implementation`/`--enforcement`) is additive: archive unions these paths
     into the standard's existing mapping, so list only the paths this change adds
     rather than restating the whole set. Run
-    `strict-spec-driven schema-show delta-tech` if
+    `strict-spec-cli schema-show delta-tech` if
     you need the full contract. Leave the `tech/` directory absent when the
     change only complies with existing standards and changes none of them.
 
@@ -208,13 +208,13 @@ run `init` from this skill.
 
 10. **Validate proposal readiness and artifact structure** — run:
    ```bash
-   strict-spec-driven ready <change-name>
+   strict-spec-cli ready <change-name>
    ```
    Use this as the deterministic proposal-handoff check. It reports missing
    planning artifacts, open questions, delta-spec gaps, and schema issues
    without deciding product scope. Then run:
    ```bash
-   strict-spec-driven verify <change-name>
+   strict-spec-cli verify <change-name>
    ```
    Use the command as a strict YAML schema and artifact-shape sanity check. At
    proposal time, pending-task diagnostics are expected because implementation

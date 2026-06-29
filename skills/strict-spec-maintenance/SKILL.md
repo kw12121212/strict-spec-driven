@@ -13,16 +13,16 @@ metadata:
 ## This Skill's Commands
 
 ```yaml
-check-workflow-state: strict-spec-driven check-workflow-state
-run-maintenance: strict-spec-driven maintenance
-list-changes: strict-spec-driven list
-verify-change: strict-spec-driven verify <change-name>
-archive-change: strict-spec-driven archive <change-name>
+check-workflow-state: strict-spec-cli check-workflow-state
+run-maintenance: strict-spec-cli maintenance
+list-changes: strict-spec-cli list
+verify-change: strict-spec-cli verify <change-name>
+archive-change: strict-spec-cli archive <change-name>
 ```
 
 ## Prerequisites
 
-Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -50,13 +50,13 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
 1. **Run maintenance checks** — execute:
     ```
-    strict-spec-driven maintenance
+    strict-spec-cli maintenance
    ```
    Parse the JSON output. Fields: `valid`, `checksRun`, `findingsCount`, `generatedChange`.
 
@@ -71,8 +71,8 @@ run `init` from this skill.
 
 5. **Verify and archive** — once all tasks are complete:
    ```
-   strict-spec-driven verify <generatedChange>
-   strict-spec-driven archive <generatedChange>
+   strict-spec-cli verify <generatedChange>
+   strict-spec-cli archive <generatedChange>
    ```
 
 ## Notes

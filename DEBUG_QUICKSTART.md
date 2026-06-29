@@ -3,14 +3,14 @@
 English | [中文](DEBUG_QUICKSTART.zh-CN.md)
 
 A condensed getting-started guide for setting up local services and running
-structured debug investigations in a strict-spec-driven project.
+structured debug investigations in a strict-spec-cli project.
 
 ---
 
 ## 1. Initialize the Project
 
 ```sh
-strict-spec-driven init
+strict-spec-cli init
 ```
 
 This creates `.strict-spec-driven/` with the dev-session scaffold. If the
@@ -48,7 +48,7 @@ session:
 Validate the declaration before proceeding:
 
 ```sh
-strict-spec-driven dev-session-plan
+strict-spec-cli dev-session-plan
 ```
 
 ---
@@ -56,7 +56,7 @@ strict-spec-driven dev-session-plan
 ## 3. Start Services
 
 ```sh
-strict-spec-driven dev-session-start
+strict-spec-cli dev-session-start
 ```
 
 This starts declared services in order, waits for readiness, and records PIDs
@@ -65,14 +65,14 @@ under `.strict-spec-driven/.runtime/dev-session/`.
 Check status at any time:
 
 ```sh
-strict-spec-driven dev-session-status
-strict-spec-driven dev-session-logs web
+strict-spec-cli dev-session-status
+strict-spec-cli dev-session-logs web
 ```
 
 Stop when done:
 
 ```sh
-strict-spec-driven dev-session-stop
+strict-spec-cli dev-session-stop
 ```
 
 For convenience, use the lifecycle CLI commands directly:
@@ -88,7 +88,7 @@ node dist/strict-spec-cli.js dev-session-stop
 When something breaks, start a structured investigation:
 
 ```sh
-strict-spec-driven debug-session-create my-bug
+strict-spec-cli debug-session-create my-bug
 ```
 
 This creates `.strict-spec-driven/debug-sessions/my-bug/session.yaml` and an
@@ -189,15 +189,15 @@ dev_session:
     - web
   lifecycle:
     plan:
-      command: strict-spec-driven dev-session-plan
+      command: strict-spec-cli dev-session-plan
       status: passed
       evidence: [dev-session-plan]
     start:
-      command: strict-spec-driven dev-session-start
+      command: strict-spec-cli dev-session-start
       status: passed
       evidence: [dev-session-start]
     stop:
-      command: strict-spec-driven dev-session-stop
+      command: strict-spec-cli dev-session-stop
       status: not_run
       evidence: []
     cleanup_status: pending
@@ -263,7 +263,7 @@ verification:
 Validate the completed artifact:
 
 ```sh
-strict-spec-driven debug-session-validate my-bug
+strict-spec-cli debug-session-validate my-bug
 ```
 
 ---
@@ -292,7 +292,7 @@ init ──► dev-session-plan ──► dev-session-start
 
 | Command | Purpose |
 |---|---|
-| `strict-spec-driven init` | Create `.strict-spec-driven/` scaffold |
+| `strict-spec-cli init` | Create `.strict-spec-driven/` scaffold |
 | `dev-session-plan` | Validate declaration, dry-run plan |
 | `dev-session-start` | Start declared services with readiness checks |
 | `dev-session-status` | Report managed service lifecycle state |

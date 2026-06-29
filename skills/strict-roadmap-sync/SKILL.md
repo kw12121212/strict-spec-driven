@@ -17,15 +17,15 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: strict-spec-driven check-workflow-state
-roadmap-status: strict-spec-driven roadmap-status
-roadmap-sync: strict-spec-driven roadmap-sync
-roadmap-sync-materialize: strict-spec-driven roadmap-sync --materialize-planned-changes
+check-workflow-state: strict-spec-cli check-workflow-state
+roadmap-status: strict-spec-cli roadmap-status
+roadmap-sync: strict-spec-cli roadmap-sync
+roadmap-sync-materialize: strict-spec-cli roadmap-sync --materialize-planned-changes
 ```
 
 ## Prerequisites
 
-Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -49,13 +49,13 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
 1. **Inspect current roadmap state** — run:
    ```bash
-   strict-spec-driven roadmap-status
+   strict-spec-cli roadmap-status
    ```
    Read diagnostics, milestone ordering, declared statuses, derived statuses,
    planned change state, and planned-change file `path` values under
@@ -67,14 +67,14 @@ run `init` from this skill.
 
 3. **Run sync** — run:
    ```bash
-   strict-spec-driven roadmap-sync
+   strict-spec-cli roadmap-sync
    ```
    Use this to regenerate canonical roadmap index state and reconcile milestone
    and planned change completion against active and archived strict changes.
 
    If diagnostics report legacy inline milestone `planned_changes`, switch to:
    ```bash
-   strict-spec-driven roadmap-sync --materialize-planned-changes
+   strict-spec-cli roadmap-sync --materialize-planned-changes
    ```
    This converts the inline entries into standalone planned-change files before
    reconciliation.

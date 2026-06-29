@@ -2195,12 +2195,12 @@ const nativeBuildModule = await import(pathToFileURL(path.join(ROOT, "scripts", 
 
 context.assert(
   nativeBuildModule.resolveNativeTarget("win32", "x64") === "bun-windows-x64"
-    && nativeBuildModule.executableNameForTarget("bun-windows-x64") === "strict-spec-driven.exe",
+    && nativeBuildModule.executableNameForTarget("bun-windows-x64") === "strict-spec-cli.exe",
   "native build helper plans a Windows x64 executable target",
 );
 context.assert(
   nativeBuildModule.resolveNativeTarget("linux", "arm64") === "bun-linux-arm64"
-    && nativeBuildModule.executableNameForTarget("bun-linux-arm64") === "strict-spec-driven",
+    && nativeBuildModule.executableNameForTarget("bun-linux-arm64") === "strict-spec-cli",
   "native build helper plans a Linux ARM64 executable target",
 );
 const plannedWindowsInstall = nativeBuildModule.createNativePlan({
@@ -2212,7 +2212,7 @@ const plannedWindowsInstall = nativeBuildModule.createNativePlan({
 context.assert(
   plannedWindowsInstall.buildArgs.includes("--compile")
     && plannedWindowsInstall.buildArgs.includes("--target=bun-windows-x64")
-    && plannedWindowsInstall.installPath?.endsWith("strict-spec-driven.exe") === true
+    && plannedWindowsInstall.installPath?.endsWith("strict-spec-cli.exe") === true
     && plannedWindowsInstall.binDirOnPath === false,
   "native build helper reports Windows compile args, .exe install path, and PATH miss diagnostics",
   JSON.stringify(plannedWindowsInstall),
@@ -2222,7 +2222,7 @@ const defaultWindowsBinDir = nativeBuildModule.defaultUserBinDir("win32", {
 });
 context.assert(
   defaultWindowsBinDir.endsWith(path.join("strict-spec-driven", "bin")),
-  "native build helper defaults Windows installs to a user-level strict-spec-driven bin directory",
+  "native build helper defaults Windows installs to a user-level strict-spec-cli bin directory",
   defaultWindowsBinDir,
 );
 const dryRunNativeBuild = runCommand("bun", [
@@ -2239,7 +2239,7 @@ context.assert(dryRunNativeBuild.status === 0, "native build helper dry-run exit
 const dryRunNativeBuildJson = JSON.parse(dryRunNativeBuild.stdout) as { target: string; executableName: string; buildArgs: string[] };
 context.assert(
   dryRunNativeBuildJson.target === "bun-windows-x64"
-    && dryRunNativeBuildJson.executableName === "strict-spec-driven.exe"
+    && dryRunNativeBuildJson.executableName === "strict-spec-cli.exe"
     && dryRunNativeBuildJson.buildArgs.includes("--compile"),
   "native build helper dry-run emits parseable Windows compile plan",
   dryRunNativeBuild.stdout,
@@ -2285,7 +2285,7 @@ context.assert(
   "Windows installer removes the native CLI bin directory from user PATH on uninstall unless kept",
 );
 context.assert(
-  installPsContent.includes("Open a new terminal before invoking strict-spec-driven by name outside this session."),
+  installPsContent.includes("Open a new terminal before invoking strict-spec-cli by name outside this session."),
   "Windows installer reports that a new terminal may be needed after PATH updates",
 );
 const installerReadmeContent = readFileSync(path.join(ROOT, "README.md"), "utf8");

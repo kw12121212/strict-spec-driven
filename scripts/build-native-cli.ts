@@ -60,7 +60,7 @@ export function resolveNativeTarget(platform: Platform = process.platform, arch:
 }
 
 export function executableNameForTarget(target: string): string {
-  return target.startsWith("bun-windows-") ? "strict-spec-driven.exe" : "strict-spec-driven";
+  return target.startsWith("bun-windows-") ? "strict-spec-cli.exe" : "strict-spec-cli";
 }
 
 export function defaultUserBinDir(platform: Platform = process.platform, env: NodeJS.ProcessEnv = process.env): string {
@@ -184,7 +184,7 @@ function run(): number {
       console.log(`Installed ${plan.executableName} to ${plan.installPath}`);
     } else {
       console.log(`Installed ${plan.executableName} to ${plan.installPath}`);
-      console.warn(`Warning: ${path.dirname(plan.installPath)} is not on PATH; add it before invoking strict-spec-driven by name.`);
+      console.warn(`Warning: ${path.dirname(plan.installPath)} is not on PATH; add it before invoking strict-spec-cli by name.`);
     }
   } else {
     console.log(`Built ${plan.executableName} at ${plan.outputPath}`);

@@ -16,11 +16,11 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: strict-spec-driven check-workflow-state
-modify: strict-spec-driven modify [change-name|archive-dir]
-verify: strict-spec-driven verify <change-name>
-verify-spec-mappings: strict-spec-driven verify-spec-mappings
-archive: strict-spec-driven archive <change-name>
+check-workflow-state: strict-spec-cli check-workflow-state
+modify: strict-spec-cli modify [change-name|archive-dir]
+verify: strict-spec-cli verify <change-name>
+verify-spec-mappings: strict-spec-cli verify-spec-mappings
+archive: strict-spec-cli archive <change-name>
 ```
 
 ## Responsibility Split
@@ -38,7 +38,7 @@ archive: strict-spec-driven archive <change-name>
 
 ## Prerequisites
 
-Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -53,7 +53,7 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -62,8 +62,8 @@ run `init` from this skill.
 
 2. **Confirm readiness** — run:
    ```bash
-   strict-spec-driven verify <change-name>
-   strict-spec-driven verify-spec-mappings
+   strict-spec-cli verify <change-name>
+   strict-spec-cli verify-spec-mappings
    ```
    Stop if either command reports blockers.
 
@@ -75,7 +75,7 @@ run `init` from this skill.
 
 4. **Archive the change** — run:
    ```bash
-   strict-spec-driven archive <change-name>
+   strict-spec-cli archive <change-name>
    ```
 
 5. **Confirm the result** — summarize:

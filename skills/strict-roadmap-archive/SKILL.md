@@ -16,14 +16,14 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: strict-spec-driven check-workflow-state
-roadmap-status: strict-spec-driven roadmap-status
-roadmap-archive: strict-spec-driven roadmap-archive [milestone-id]
+check-workflow-state: strict-spec-cli check-workflow-state
+roadmap-status: strict-spec-cli roadmap-status
+roadmap-archive: strict-spec-cli roadmap-archive [milestone-id]
 ```
 
 ## Prerequisites
 
-Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -49,13 +49,13 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
 1. **Inspect roadmap state** — run:
    ```bash
-   strict-spec-driven roadmap-status
+   strict-spec-cli roadmap-status
    ```
    Confirm the roadmap is valid, read milestone `declaredStatus` and
    `derivedStatus`, and identify any planned changes that are still missing,
@@ -63,11 +63,11 @@ run `init` from this skill.
 
 2. **Archive completed milestones** — if the user named a milestone, run:
    ```bash
-   strict-spec-driven roadmap-archive <milestone-id>
+   strict-spec-cli roadmap-archive <milestone-id>
    ```
    Otherwise run:
    ```bash
-   strict-spec-driven roadmap-archive
+   strict-spec-cli roadmap-archive
    ```
    With no milestone id, the command must default to all unarchived milestones
    and archive only milestones whose derived status is complete.
@@ -79,7 +79,7 @@ run `init` from this skill.
 
 4. **Confirm active roadmap state** — rerun:
    ```bash
-   strict-spec-driven roadmap-status
+   strict-spec-cli roadmap-status
    ```
    Confirm the active roadmap no longer lists archived milestones and that
    remaining milestones still report valid state.

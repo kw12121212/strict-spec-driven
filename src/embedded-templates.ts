@@ -155,20 +155,20 @@ issue:
 selected_components: []
 lifecycle_evidence:
   plan:
-    command: strict-spec-driven harness-plan --environment development
+    command: strict-spec-cli harness-plan --environment development
     status: not_run
     evidence: []
   start:
-    command: strict-spec-driven harness-start --environment development
+    command: strict-spec-cli harness-start --environment development
     status: not_run
     evidence: []
   status:
-    command: strict-spec-driven harness-status
+    command: strict-spec-cli harness-status
     status: not_run
     evidence: []
   logs: []
   stop:
-    command: strict-spec-driven harness-stop
+    command: strict-spec-cli harness-stop
     status: not_run
     evidence: []
 reproduction:

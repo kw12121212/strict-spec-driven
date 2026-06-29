@@ -265,7 +265,7 @@ export async function runHarnessLifecycleSuite(context: TestContext): Promise<vo
     const help = cli(["harness-logs", "--help"], { cwd: workspace.workspaceRoot, env });
     context.assert(help.status === 0, "harness-logs help exits zero", help.stderr.trim());
     context.assert(
-      help.stdout.includes("Usage: strict-spec-driven harness-logs [component-id] [--tail <n> | --all]"),
+      help.stdout.includes("Usage: strict-spec-cli harness-logs [component-id] [--tail <n> | --all]"),
       "harness-logs help documents the tail and full-output flags",
       help.stdout.trim(),
     );
@@ -454,8 +454,8 @@ export async function runHarnessLifecycleSuite(context: TestContext): Promise<vo
         && apiComponent?.status === "running"
         && brokenComponent?.status === "failed"
         && recoveryDiagnostic?.message?.includes("api")
-        && recoveryDiagnostic?.message?.includes("strict-spec-driven harness-stop")
-        && recoveryDiagnostic?.expected === "strict-spec-driven harness-stop"
+        && recoveryDiagnostic?.message?.includes("strict-spec-cli harness-stop")
+        && recoveryDiagnostic?.expected === "strict-spec-cli harness-stop"
         && recoveryDiagnostic?.actual === "api",
       "harness-start partial failures report the running component and the harness-stop recovery instruction",
       start.stdout.trim(),

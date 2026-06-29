@@ -21,11 +21,11 @@ export type ShipResult = {
 export function runShip(argv: string[]): number {
   const [target, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven ship <change-name>\n");
+    writeHelp("Usage: strict-spec-cli ship <change-name>\n");
     return 0;
   }
   if (!target || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-driven ship <change-name>\n");
+    writeUsage("Usage: strict-spec-cli ship <change-name>\n");
     return 1;
   }
 
@@ -90,11 +90,11 @@ export function runShip(argv: string[]): number {
 
 export function runValidateSkills(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven validate-skills\n");
+    writeHelp("Usage: strict-spec-cli validate-skills\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven validate-skills\n");
+    writeUsage("Usage: strict-spec-cli validate-skills\n");
     return 1;
   }
 
@@ -105,11 +105,11 @@ export function runValidateSkills(argv: string[]): number {
 
 export function runVerifySpecMappings(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven verify-spec-mappings\n");
+    writeHelp("Usage: strict-spec-cli verify-spec-mappings\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven verify-spec-mappings\n");
+    writeUsage("Usage: strict-spec-cli verify-spec-mappings\n");
     return 1;
   }
 
@@ -120,11 +120,11 @@ export function runVerifySpecMappings(argv: string[]): number {
 
 export function runVerifyTechMappings(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven verify-tech-mappings\n");
+    writeHelp("Usage: strict-spec-cli verify-tech-mappings\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven verify-tech-mappings\n");
+    writeUsage("Usage: strict-spec-cli verify-tech-mappings\n");
     return 1;
   }
 
@@ -135,11 +135,11 @@ export function runVerifyTechMappings(argv: string[]): number {
 
 export function runTechStatus(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven tech-status\n");
+    writeHelp("Usage: strict-spec-cli tech-status\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven tech-status\n");
+    writeUsage("Usage: strict-spec-cli tech-status\n");
     return 1;
   }
 
@@ -156,11 +156,11 @@ function getDirectoryCreationTimeMs(directoryPath: string): number {
 
 export function runCommitAndPush(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven commit-and-push\n");
+    writeHelp("Usage: strict-spec-cli commit-and-push\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven commit-and-push\n");
+    writeUsage("Usage: strict-spec-cli commit-and-push\n");
     return 1;
   }
 

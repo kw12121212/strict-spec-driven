@@ -11,11 +11,11 @@ import { reopenMilestone } from "../roadmap/reopen.js";
 import { isHelpRequest } from "./argv.js";
 import { writeError, writeHelp, writeJson, writeOut, writeUsage } from "./output.js";
 
-const ROADMAP_RECOMMEND_USAGE = "Usage: strict-spec-driven roadmap-recommend [--details]\n";
-const ROADMAP_ARCHIVE_USAGE = "Usage: strict-spec-driven roadmap-archive [milestone-id]\n";
-const ROADMAP_REOPEN_USAGE = "Usage: strict-spec-driven roadmap-reopen <milestone-id> [--reason \"...\"]\n";
+const ROADMAP_RECOMMEND_USAGE = "Usage: strict-spec-cli roadmap-recommend [--details]\n";
+const ROADMAP_ARCHIVE_USAGE = "Usage: strict-spec-cli roadmap-archive [milestone-id]\n";
+const ROADMAP_REOPEN_USAGE = "Usage: strict-spec-cli roadmap-reopen <milestone-id> [--reason \"...\"]\n";
 const ROADMAP_GENERATE_USAGE = [
-  "Usage: strict-spec-driven roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset]",
+  "Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset]",
   "",
   "Notes:",
   "  Existing scalar fields with different values require --reset.",
@@ -75,17 +75,17 @@ function summarizeRoadmapRecommendation(result: RoadmapRecommendResult): unknown
       skippedByCode,
     },
     blockers,
-    detailsCommand: "strict-spec-driven roadmap-recommend --details",
+    detailsCommand: "strict-spec-cli roadmap-recommend --details",
   };
 }
 
 export function runRoadmapStatus(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven roadmap-status\n");
+    writeHelp("Usage: strict-spec-cli roadmap-status\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven roadmap-status\n");
+    writeUsage("Usage: strict-spec-cli roadmap-status\n");
     return 1;
   }
 
@@ -96,11 +96,11 @@ export function runRoadmapStatus(argv: string[]): number {
 
 export function runRoadmapOverview(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven roadmap-overview\n");
+    writeHelp("Usage: strict-spec-cli roadmap-overview\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven roadmap-overview\n");
+    writeUsage("Usage: strict-spec-cli roadmap-overview\n");
     return 1;
   }
 
@@ -111,12 +111,12 @@ export function runRoadmapOverview(argv: string[]): number {
 
 export function runRoadmapSync(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven roadmap-sync [--materialize-planned-changes]\n");
+    writeHelp("Usage: strict-spec-cli roadmap-sync [--materialize-planned-changes]\n");
     return 0;
   }
   const materializePlannedChanges = argv.length === 1 && argv[0] === "--materialize-planned-changes";
   if (argv.length > 0 && !materializePlannedChanges) {
-    writeUsage("Usage: strict-spec-driven roadmap-sync [--materialize-planned-changes]\n");
+    writeUsage("Usage: strict-spec-cli roadmap-sync [--materialize-planned-changes]\n");
     return 1;
   }
 

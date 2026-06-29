@@ -20,16 +20,16 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: strict-spec-driven check-workflow-state
-ticket-list: strict-spec-driven ticket-list
-ticket-show: strict-spec-driven ticket-show <ticket-id>
-ticket-validate: strict-spec-driven ticket-validate <ticket-id>
-ticket-resolve: strict-spec-driven ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...
+check-workflow-state: strict-spec-cli check-workflow-state
+ticket-list: strict-spec-cli ticket-list
+ticket-show: strict-spec-cli ticket-show <ticket-id>
+ticket-validate: strict-spec-cli ticket-validate <ticket-id>
+ticket-resolve: strict-spec-cli ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...
 ```
 
 ## Prerequisites
 
-Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -44,7 +44,7 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 

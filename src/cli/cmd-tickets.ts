@@ -59,7 +59,7 @@ function parseExternalTracker(flags: FlagMap): TicketReference | undefined {
 export function runTicketCreate(argv: string[]): number {
   if (isHelpRequest(argv)) {
     writeHelp(
-      "Usage: strict-spec-driven ticket-create --title <text> --problem <text> --desired-outcome <text> [--intent <text>] [--label <text>]... [--external-label <text> --external-target <text>]\n",
+      "Usage: strict-spec-cli ticket-create --title <text> --problem <text> --desired-outcome <text> [--intent <text>] [--label <text>]... [--external-label <text> --external-target <text>]\n",
     );
     return 0;
   }
@@ -103,11 +103,11 @@ export function runTicketCreate(argv: string[]): number {
 
 export function runTicketList(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven ticket-list\n");
+    writeHelp("Usage: strict-spec-cli ticket-list\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven ticket-list\n");
+    writeUsage("Usage: strict-spec-cli ticket-list\n");
     return 1;
   }
 
@@ -118,11 +118,11 @@ export function runTicketList(argv: string[]): number {
 
 export function runTicketShow(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven ticket-show <ticket-id>\n");
+    writeHelp("Usage: strict-spec-cli ticket-show <ticket-id>\n");
     return 0;
   }
   if (argv.length !== 1 || argv[0].startsWith("--")) {
-    writeUsage("Usage: strict-spec-driven ticket-show <ticket-id>\n");
+    writeUsage("Usage: strict-spec-cli ticket-show <ticket-id>\n");
     return 1;
   }
 
@@ -133,7 +133,7 @@ export function runTicketShow(argv: string[]): number {
 
 const EDIT_BOOLEAN_FLAGS = new Set(["clear-intent", "clear-labels", "clear-external-tracker"]);
 const EDIT_USAGE =
-  "Usage: strict-spec-driven ticket-edit <ticket-id> [--title <text>] [--problem <text>] [--desired-outcome <text>] [--intent <text> | --clear-intent] [--label <text>]... | --clear-labels [--external-label <text> --external-target <text> | --clear-external-tracker]\n";
+  "Usage: strict-spec-cli ticket-edit <ticket-id> [--title <text>] [--problem <text>] [--desired-outcome <text>] [--intent <text> | --clear-intent] [--label <text>]... | --clear-labels [--external-label <text> --external-target <text> | --clear-external-tracker]\n";
 
 export function runTicketEdit(argv: string[]): number {
   if (isHelpRequest(argv)) {
@@ -231,11 +231,11 @@ export function runTicketEdit(argv: string[]): number {
 
 export function runTicketValidate(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven ticket-validate [<ticket-id>]\n");
+    writeHelp("Usage: strict-spec-cli ticket-validate [<ticket-id>]\n");
     return 0;
   }
   if (argv.length > 1 || (argv.length === 1 && argv[0].startsWith("--"))) {
-    writeUsage("Usage: strict-spec-driven ticket-validate [<ticket-id>]\n");
+    writeUsage("Usage: strict-spec-cli ticket-validate [<ticket-id>]\n");
     return 1;
   }
 
@@ -256,13 +256,13 @@ function parseEvidence(flags: FlagMap): TicketReference[] {
 export function runTicketResolve(argv: string[]): number {
   if (isHelpRequest(argv)) {
     writeHelp(
-      "Usage: strict-spec-driven ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...\n",
+      "Usage: strict-spec-cli ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...\n",
     );
     return 0;
   }
 
   if (argv.length === 0 || argv[0].startsWith("--")) {
-    writeUsage("Usage: strict-spec-driven ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...\n");
+    writeUsage("Usage: strict-spec-cli ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...\n");
     return 1;
   }
   const ticketId = argv[0];

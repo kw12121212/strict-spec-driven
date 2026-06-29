@@ -178,7 +178,7 @@ function findCliEntrypoint(): string | null {
 
 export const defaultStrictCliCommandRunner: StrictCliCommandRunner = (args, options) => {
   const cliEntrypoint = findCliEntrypoint();
-  const executable = cliEntrypoint ? process.execPath : "strict-spec-driven";
+  const executable = cliEntrypoint ? process.execPath : "strict-spec-cli";
   const commandArgs = cliEntrypoint ? [cliEntrypoint, ...args] : args;
   const result = spawnSync(executable, commandArgs, {
     cwd: options.cwd,

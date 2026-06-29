@@ -48,11 +48,11 @@ function checkWorkflowConfig(workflowStatePath: string): number {
 
 export function runCheckWorkflowState(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven check-workflow-state\n");
+    writeHelp("Usage: strict-spec-cli check-workflow-state\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven check-workflow-state\n");
+    writeUsage("Usage: strict-spec-cli check-workflow-state\n");
     return 1;
   }
 
@@ -73,11 +73,11 @@ export function runCheckWorkflowState(argv: string[]): number {
 export function runReady(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven ready <change-name>\n");
+    writeHelp("Usage: strict-spec-cli ready <change-name>\n");
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-driven ready <change-name>\n");
+    writeUsage("Usage: strict-spec-cli ready <change-name>\n");
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(changeName)) {
@@ -99,11 +99,11 @@ export function runReady(argv: string[]): number {
 export function runNext(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven next <change-name>\n");
+    writeHelp("Usage: strict-spec-cli next <change-name>\n");
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-driven next <change-name>\n");
+    writeUsage("Usage: strict-spec-cli next <change-name>\n");
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(changeName)) {

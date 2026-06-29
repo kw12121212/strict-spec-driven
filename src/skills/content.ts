@@ -343,7 +343,7 @@ export function validateCommandSection(
       continue;
     }
     normalizedCommands[name] = value;
-    if (value.includes("{{SKILL_DIR}}") || value.includes("~/.local/bin/strict-spec-driven")) {
+    if (value.includes("{{SKILL_DIR}}") || value.includes("~/.local/bin/strict-spec-driven") || value.includes("~/.local/bin/strict-spec-cli")) {
       diagnostics.push(
         makeDiagnostic(
           "skill.commands_section.command.machine_path",

@@ -16,8 +16,8 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: strict-spec-driven check-workflow-state
-ship: strict-spec-driven ship <change-name>
+check-workflow-state: strict-spec-cli check-workflow-state
+ship: strict-spec-cli ship <change-name>
 ```
 
 ## Responsibility Split
@@ -36,7 +36,7 @@ ship: strict-spec-driven ship <change-name>
 
 ## Prerequisites
 
-Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -55,13 +55,13 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
 1. **Run the ship command** to get verification JSON:
    ```bash
-   strict-spec-driven ship <change-name>
+   strict-spec-cli ship <change-name>
    ```
    Stop if the command exits non-zero. The output includes `changeName`,
    `archivePath`, `proposalSummary`, and `roadmapSnapshot`.

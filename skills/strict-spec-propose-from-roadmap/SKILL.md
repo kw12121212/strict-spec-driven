@@ -22,19 +22,19 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: strict-spec-driven check-workflow-state
-tech-status: strict-spec-driven tech-status
-roadmap-status: strict-spec-driven roadmap-status
-roadmap-recommend: strict-spec-driven roadmap-recommend
-propose: strict-spec-driven propose <change-name>
-generate: strict-spec-driven generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
-ready: strict-spec-driven ready <change-name>
-verify: strict-spec-driven verify <change-name>
+check-workflow-state: strict-spec-cli check-workflow-state
+tech-status: strict-spec-cli tech-status
+roadmap-status: strict-spec-cli roadmap-status
+roadmap-recommend: strict-spec-cli roadmap-recommend
+propose: strict-spec-cli propose <change-name>
+generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
+ready: strict-spec-cli ready <change-name>
+verify: strict-spec-cli verify <change-name>
 ```
 
 ## Prerequisites
 
-Run `strict-spec-driven check-workflow-state`
+Run `strict-spec-cli check-workflow-state`
 before any workflow work. If `.strict-spec-driven/` is missing, stop
 immediately and tell the user to run `/strict-spec-init`. Do not run `init`
 from this skill.
@@ -53,7 +53,7 @@ from this skill.
 
 - Keep artifacts in valid strict YAML structures. Do not switch to Markdown
   prose or freeform notes inside YAML files.
-- If artifact fields are unclear, use `strict-spec-driven schema-show <schema-name>`;
+- If artifact fields are unclear, use `strict-spec-cli schema-show <schema-name>`;
   installed skills do not carry a `templates` directory.
 - Shared schema cache root: `~/.strict-spec-schemas/`. When a YAML artifact
   already declares `schema_file`, resolve that relative path under the shared
@@ -84,10 +84,10 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.
+Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.
 
 1. **Obtain the scripted recommendation first** — run
-   `strict-spec-driven roadmap-recommend` before
+   `strict-spec-cli roadmap-recommend` before
    reading broad roadmap context, selecting work, or opening candidate
    planned-change files, and treat the command's selected planned change as
    authoritative. Branch on the returned `status`:
@@ -96,7 +96,7 @@ Before any other step, run `strict-spec-driven check-workflow-state`. If `.stric
    - `no-candidate` — surface `candidateSummary` and the actionable
      `blockers[].skipReasons`, explain which blockers must clear, and stop.
      If the concise output does not explain the blockage, rerun
-     `strict-spec-driven roadmap-recommend --details`
+     `strict-spec-cli roadmap-recommend --details`
      and surface the full `candidates[].skipReasons`.
    - `recommended` — use the returned `recommendation.changeName`,
      `recommendation.milestone`, and `recommendation.path` as the roadmap-backed
@@ -108,7 +108,7 @@ Before any other step, run `strict-spec-driven check-workflow-state`. If `.stric
    - `.strict-spec-driven/specs/INDEX.yaml`
    - every strict YAML main spec the recommended change is likely to touch
    - the technical standards that govern the code this change will touch by
-     running `strict-spec-driven tech-status` and
+     running `strict-spec-cli tech-status` and
      reading the relevant files under `.strict-spec-driven/tech/`
    - `.strict-spec-driven/roadmap/INDEX.yaml`
    - the owning milestone YAML file
@@ -132,7 +132,7 @@ Before any other step, run `strict-spec-driven check-workflow-state`. If `.stric
 
 4. **Scaffold the change** — run:
    ```bash
-   strict-spec-driven propose <change-name>
+   strict-spec-cli propose <change-name>
    ```
    Use `recommendation.changeName` as `<change-name>`. Generate supported
    artifacts in the exact ordered steps below and edit scaffolded `tasks.yaml`
@@ -141,7 +141,7 @@ Before any other step, run `strict-spec-driven check-workflow-state`. If `.stric
 5. **Generate `proposal.yaml`** — run a direct CLI invocation with named
    arguments, including roadmap linkage:
    ```bash
-   strict-spec-driven generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..." --milestone <milestone-id> --planned-change <planned-change-id>
+   strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..." --milestone <milestone-id> --planned-change <planned-change-id>
    ```
    Populate `summary.what`, `summary.why`, `scope.in`, `scope.out`, and
    `unchanged_behavior`. Keep the content observable and concrete. Do not copy
@@ -151,7 +151,7 @@ Before any other step, run `strict-spec-driven check-workflow-state`. If `.stric
 6. **Generate `design.yaml`** — run one direct CLI invocation with named
    arguments:
    ```bash
-   strict-spec-driven generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."
+   strict-spec-cli generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."
    ```
    Populate `approach`, `decisions`, `alternatives`, and `risks`. Make the
    design conform to applicable technical standards. Record any SHOULD-rule
@@ -171,7 +171,7 @@ Before any other step, run `strict-spec-driven check-workflow-state`. If `.stric
 8. **Generate `questions.yaml`** — run one direct CLI invocation for the full
    artifact. Use `--reset` when intentionally replacing scaffold content:
    ```bash
-   strict-spec-driven generate <change-name> questions --reset --open <question-id> --question "..." --context "..." --resolved <question-id> --question "..." --context "..." --answer "..."
+   strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..." --resolved <question-id> --question "..." --context "..." --answer "..."
    ```
    Record open questions as structured entries under `open`; if everything is
    clear, leave `open: []`.
@@ -180,7 +180,7 @@ Before any other step, run `strict-spec-driven check-workflow-state`. If `.stric
    target spec and include all mapping paths and requirement operations needed
    for that target in the same command:
    ```bash
-   strict-spec-driven generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."
+   strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."
    ```
    The generated files under `.strict-spec-driven/changes/<name>/specs/` should
    mirror target main spec paths. If the change has no observable spec impact,
@@ -206,11 +206,11 @@ Before any other step, run `strict-spec-driven check-workflow-state`. If `.stric
 
 11. **Validate proposal readiness and artifact structure** — run:
    ```bash
-   strict-spec-driven ready <change-name>
+   strict-spec-cli ready <change-name>
    ```
    Use this as the deterministic proposal-handoff check. Then run:
    ```bash
-   strict-spec-driven verify <change-name>
+   strict-spec-cli verify <change-name>
    ```
    Pending-task diagnostics are expected at proposal time. Repair schema or
    structure issues before handing the proposal off.

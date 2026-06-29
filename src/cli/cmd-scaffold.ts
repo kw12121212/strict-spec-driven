@@ -9,11 +9,11 @@ import { writeErr, writeError, writeHelp, writeOut, writeUsage } from "./output.
 
 export function runInit(argv: string[] = []): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven init\n");
+    writeHelp("Usage: strict-spec-cli init\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven init\n");
+    writeUsage("Usage: strict-spec-cli init\n");
     return 1;
   }
 
@@ -40,11 +40,11 @@ export function runInit(argv: string[] = []): number {
 export function runPropose(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven propose <change-name>\n");
+    writeHelp("Usage: strict-spec-cli propose <change-name>\n");
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-driven propose <change-name>\n");
+    writeUsage("Usage: strict-spec-cli propose <change-name>\n");
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(changeName)) {

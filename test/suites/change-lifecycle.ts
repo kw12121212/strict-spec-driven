@@ -247,7 +247,7 @@ try {
   context.assert(
     nextJson.blockers.some((diagnostic: { source: string }) => diagnostic.source === "open_questions") &&
       nextJson.suggestions.some((suggestion: { command: string }) => suggestion.command.includes("questions --resolve scope --answer <answer>")) &&
-      nextJson.suggestions.some((suggestion: { command: string }) => suggestion.command === `strict-spec-driven apply ${changeName}`),
+      nextJson.suggestions.some((suggestion: { command: string }) => suggestion.command === `strict-spec-cli apply ${changeName}`),
     "next reports open questions, pending tasks, and script-owned command suggestions",
   );
 
@@ -3147,7 +3147,7 @@ context.assert(
   `stdout: ${removedReviewResult.stdout.trim()} stderr: ${removedReviewResult.stderr.trim()}`,
 );
 context.assert(
-  removedReviewResult.stderr.includes("Usage: strict-spec-driven"),
+  removedReviewResult.stderr.includes("Usage: strict-spec-cli"),
   "removed review command reports top-level usage",
   `stderr: ${removedReviewResult.stderr.trim()}`,
 );

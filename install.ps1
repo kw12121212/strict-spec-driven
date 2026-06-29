@@ -166,7 +166,7 @@ function Add-UserPathEntry {
     if (-not (Test-PathContainsEntry $env:PATH $entry)) {
         $env:PATH = (@(Split-PathEntries $env:PATH) + $entry) -join ';'
     }
-    Write-Host 'Open a new terminal before invoking strict-spec-driven by name outside this session.'
+    Write-Host 'Open a new terminal before invoking strict-spec-cli by name outside this session.'
 }
 
 function Remove-UserPathEntry {
@@ -200,7 +200,7 @@ $ResolvedBinDir = Resolve-DefaultBinDir
 if ($Uninstall) {
     Write-Host "Uninstalling strict skills from: $ScriptDir"
     & npm exec skills@1.5.9 -- remove -g
-    Remove-Item -LiteralPath (Join-Path $ResolvedBinDir 'strict-spec-driven.exe') -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path $ResolvedBinDir 'strict-spec-cli.exe') -Force -ErrorAction SilentlyContinue
     if ($NoPathUpdate) {
         Write-Host 'Skipping user PATH cleanup because -NoPathUpdate was provided'
     } elseif ($KeepPathOnUninstall) {
@@ -210,9 +210,9 @@ if ($Uninstall) {
     }
 } else {
     if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
-        throw 'bun is required to build the native strict-spec-driven executable'
+        throw 'bun is required to build the native strict-spec-cli executable'
     }
-    Write-Host 'Building strict-spec-driven native executable'
+    Write-Host 'Building strict-spec-cli native executable'
     Push-Location $ScriptDir
     try {
         & bun run build

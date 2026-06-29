@@ -18,17 +18,17 @@ If you cannot remember the exact command used by this skill, look it up here
 before running anything. Do not guess.
 
 ```yaml
-check-workflow-state: strict-spec-driven check-workflow-state
-roadmap-status: strict-spec-driven roadmap-status
-roadmap-recommend: strict-spec-driven roadmap-recommend
-propose: strict-spec-driven propose <change-name>
-generate: strict-spec-driven generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
-ready: strict-spec-driven ready <change-name>
+check-workflow-state: strict-spec-cli check-workflow-state
+roadmap-status: strict-spec-cli roadmap-status
+roadmap-recommend: strict-spec-cli roadmap-recommend
+propose: strict-spec-cli propose <change-name>
+generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
+ready: strict-spec-cli ready <change-name>
 ```
 
 ## Prerequisites
 
-Run `strict-spec-driven check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
+Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -54,7 +54,7 @@ the active user message explicitly asks for a different language.
 
 ## Steps
 
-Before any other step, run `strict-spec-driven check-workflow-state`. If `.strict-spec-driven/` is
+Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
@@ -72,7 +72,7 @@ run `init` from this skill.
      right now. Surface `candidateSummary` and the actionable `blockers[]`
      entries with their `skipReasons`, then stop. If the concise output is not
      enough to explain the blockers, rerun
-     `strict-spec-driven roadmap-recommend --details`
+     `strict-spec-cli roadmap-recommend --details`
      and surface the full `candidates[].skipReasons`.
    - `"recommended"` — proceed to step 2 with the returned recommendation.
    Do not manually choose among planned changes; branch on `status`
@@ -109,17 +109,17 @@ run `init` from this skill.
 
 4. **Scaffold the recommended change immediately** — run:
    ```bash
-   strict-spec-driven propose <change-name>
+   strict-spec-cli propose <change-name>
    ```
    Then populate normal strict change artifacts under
    `.strict-spec-driven/changes/<change-name>/` in this exact order. Generate
    supported artifacts with direct named arguments, edit scaffolded
    `tasks.yaml` directly, and do not create JSON payload files.
-   - `strict-spec-driven generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..." --milestone <milestone-id> --planned-change <planned-change-id>`
-   - `strict-spec-driven generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
+   - `strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..." --milestone <milestone-id> --planned-change <planned-change-id>`
+   - `strict-spec-cli generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
    - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema
-   - `strict-spec-driven generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
-   - `strict-spec-driven generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` for each target spec
+   - `strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
+   - `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` for each target spec
    - when the change alters a technical standard, generate delta tech under `.strict-spec-driven/changes/<change-name>/tech/` with `generate <change-name> delta-tech --target-standard <id> ...`; for user interface work, capture observable UI behavior as delta-spec requirements and UI engineering and design rules as a `ui`-category technical standard, with visual fidelity governed by visual-regression snapshots rather than inlined
    Prefer one invocation per supported generated artifact (or per target spec
    for delta specs).
@@ -146,7 +146,7 @@ run `init` from this skill.
 
    Then run:
    ```bash
-   strict-spec-driven ready <change-name>
+   strict-spec-cli ready <change-name>
    ```
    Use `ready` as the proposal handoff validation for deterministic blockers.
    Do not run a separate full verify command at proposal time solely to

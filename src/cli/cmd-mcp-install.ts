@@ -20,7 +20,7 @@ export const DEFAULT_ENTRY_NAME = "strict-spec-driven";
 const ENTRY_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 
 const USAGE =
-  "Usage: strict-spec-driven mcp-install --client <claude-code|codex|opencode|copilot|json|all> " +
+  "Usage: strict-spec-cli mcp-install --client <claude-code|codex|opencode|copilot|json|all> " +
   "[--client <...>] [--scope <project|user>] [--name <entry-name>] [--project <path>] [--config <path>]\n";
 
 export type ParsedMcpInstallArgs = {

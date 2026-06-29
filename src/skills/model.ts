@@ -32,7 +32,7 @@ export type SkillFrontmatter = {
 
 export const REQUIRED_METADATA_FIELDS = ["skill_id", "author", "type", "version"] as const;
 export const EXPECTED_SCRIPT_SYMLINK = "../../dist/scripts";
-export const COMMAND_PREFIX = "strict-spec-driven";
+export const COMMAND_PREFIX = "strict-spec-cli";
 export const GENERIC_COMMAND_PLACEHOLDER = `${COMMAND_PREFIX} <command>`;
 export const GENERATE_NAMED_ARGS_COMMAND =
   `${COMMAND_PREFIX} generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>`;
@@ -197,7 +197,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
-      "Do not call or rely on a `strict-spec-driven review` command",
+      `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`,
     ],
     forbiddenSnippets: [
       `${COMMAND_PREFIX} review <change-name>`,
@@ -243,7 +243,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
-      "Do not call or rely on a `strict-spec-driven review` command",
+      `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
     ],

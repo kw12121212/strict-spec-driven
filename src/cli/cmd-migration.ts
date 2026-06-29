@@ -5,11 +5,11 @@ import { writeErr, writeError, writeHelp, writeJson, writeUsage } from "./output
 
 export function runMigrate(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven migrate\n");
+    writeHelp("Usage: strict-spec-cli migrate\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven migrate\n");
+    writeUsage("Usage: strict-spec-cli migrate\n");
     return 1;
   }
 
@@ -28,11 +28,11 @@ export function runMigrate(argv: string[]): number {
 
 export function runMaintenanceCommand(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-driven maintenance\n");
+    writeHelp("Usage: strict-spec-cli maintenance\n");
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-driven maintenance\n");
+    writeUsage("Usage: strict-spec-cli maintenance\n");
     return 1;
   }
   const result = runMaintenance(process.cwd());
