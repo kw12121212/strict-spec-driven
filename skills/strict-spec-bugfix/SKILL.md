@@ -91,14 +91,17 @@ run `init` from this skill.
      `.strict-spec-driven/tech/`
 
 3. **Reproduce before fixing** — prove the failure before making production
-   code changes whenever feasible.
-   - Prefer an existing failing test, a new minimal failing regression test, or
-     a deterministic command that demonstrates the defect.
+   code changes. Reading code and inferring a likely defect is not enough to
+   edit production code.
+   - Use an existing failing test, a new minimal failing regression test, or a
+     deterministic command that demonstrates the defect.
    - If reproduction is impossible in the local environment because of missing
-     dependencies, credentials, fixtures, services, or platform state, record
-     the blocker in `questions.yaml` and stop before implementation.
-   - Do not use this skill for unclear or unreproduced issues unless the user
-     explicitly accepts a source-level fix based on a precise failing condition.
+     dependencies, credentials, fixtures, services, platform state, or unclear
+     reproduction steps, record the blocker in `questions.yaml` and stop before
+     implementation.
+   - Do not use this skill for unclear or unreproduced issues. Route evidence
+     gathering to `strict-spec-debug-session` instead of making a source-level
+     fix from code inspection alone.
 
 4. **Propose or resume a narrow change** — derive a short kebab-case change
    name from the defect, usually starting with `fix-`. If the change does not
@@ -118,9 +121,9 @@ run `init` from this skill.
    - `design.yaml`: record the minimal fix strategy, why the fix belongs at the
      selected layer, and any risk to unchanged behavior.
    - `tasks.yaml`: use concrete sections for Reproduction, Implementation,
-     Testing, and Verification. Include a failing-regression-test task before
-     the production fix when feasible. Testing tasks must include runnable
-     `command` fields.
+     Testing, and Verification. Include a failing-regression-test or equivalent
+     deterministic reproduction task before the production fix. Testing tasks
+     must include runnable `command` fields.
    - `questions.yaml`: leave `open: []` only when reproduction, scope, expected
      behavior, and regression validation are all clear. Otherwise record the
      missing decision and stop before implementation.
@@ -147,8 +150,7 @@ run `init` from this skill.
    recommend concrete answers or options with tradeoffs, and stop.
 
 8. **Implement the minimal fix** — work through `tasks.yaml` in order.
-   - Create or confirm the failing regression evidence before production edits
-     when feasible.
+   - Create or confirm the failing regression evidence before production edits.
    - Read the relevant code before editing it.
    - Make the smallest production change that satisfies the expected behavior.
    - Preserve every `proposal.yaml.unchanged_behavior` item.
@@ -166,8 +168,10 @@ run `init` from this skill.
    `apply` as a read-only status command because it mutates `tasks.yaml`.
 
 10. **Run regression evidence** — complete every Testing task by running its
-    `command`. The targeted regression must fail before the fix when practical
-    and pass after the fix. Then run the configured complete project-level
+    `command`. The targeted regression must fail before the fix and pass after
+    the fix. If the before/after evidence cannot be produced locally, leave the
+    implementation unstarted or unarchived and record the blocker instead of
+    claiming the bug is fixed. Then run the configured complete project-level
     regression command from `.strict-spec-driven/config.yaml` before archive.
 
 11. **Verify and review before archive** — run:
@@ -208,8 +212,9 @@ requires starting declared components:
 ## Rules
 
 - Use this skill for known bug fixes, not open-ended design or investigation.
-- Reproduce before fixing whenever feasible.
-- Prefer regression tests that fail before the fix and pass after it.
+- Reproduce before fixing; code inspection alone is not sufficient evidence to
+  modify production code.
+- Use regression evidence that fails before the fix and passes after it.
 - Keep the change narrow and preserve documented unchanged behavior.
 - Do not implement adjacent fixes or refactors unless required for the target bug.
 - Stop for explicit human input when reproduction, expected behavior, or scope is ambiguous.
