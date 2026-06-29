@@ -88,6 +88,11 @@ const REVIEW_POST_FIX_REGRESSION_SNIPPET =
 const SHARED_SCHEMA_CACHE_ROOT_SNIPPET = "~/.strict-spec-schemas/";
 const SHARED_SCHEMA_FILE_LOOKUP_SNIPPET =
   "When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root";
+const BUGFIX_KNOWN_BUG_SNIPPET = "known bug";
+const BUGFIX_REPRODUCE_BEFORE_FIXING_SNIPPET = "Reproduce before fixing";
+const BUGFIX_REGRESSION_TEST_SNIPPET = "failing regression";
+const BUGFIX_MINIMAL_FIX_SNIPPET = "minimal fix";
+const BUGFIX_DEBUG_SESSION_SNIPPET = "strict-spec-debug-session";
 
 export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
   "strict-spec-init": {
@@ -245,6 +250,38 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
     forbiddenSnippets: [
       "empty-spec-impact decisions block progress",
       "empty-spec-impact decision has been explicitly confirmed",
+      `${COMMAND_PREFIX} review <change-name>`,
+      "proposal review",
+    ],
+  },
+  "strict-spec-bugfix": {
+    requiredCommands: {
+      propose: `${COMMAND_PREFIX} propose <change-name>`,
+      generate: GENERATE_NAMED_ARGS_COMMAND,
+      ready: READY_COMMAND,
+      next: NEXT_COMMAND,
+      apply: `${COMMAND_PREFIX} apply <change-name>`,
+      verify: `${COMMAND_PREFIX} verify <change-name>`,
+      "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
+      archive: `${COMMAND_PREFIX} archive <change-name>`,
+    },
+    requiredHeadings: ["## Steps", "## Rules", "## Harness Guidance"],
+    requiredSnippets: [
+      ".strict-spec-driven/",
+      BUGFIX_KNOWN_BUG_SNIPPET,
+      BUGFIX_REPRODUCE_BEFORE_FIXING_SNIPPET,
+      BUGFIX_REGRESSION_TEST_SNIPPET,
+      BUGFIX_MINIMAL_FIX_SNIPPET,
+      BUGFIX_DEBUG_SESSION_SNIPPET,
+      PROPOSAL_CHECKPOINT_SNIPPET,
+      PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
+      "direct review",
+      REVIEW_AUTO_FIX_SNIPPET,
+      REVIEW_POST_FIX_REGRESSION_SNIPPET,
+      SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
+      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+    ],
+    forbiddenSnippets: [
       `${COMMAND_PREFIX} review <change-name>`,
       "proposal review",
     ],

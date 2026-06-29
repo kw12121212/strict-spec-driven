@@ -60,6 +60,7 @@ mapping:
     - skills/strict-roadmap-plan/SKILL.md
     - skills/strict-roadmap-review/SKILL.md
     - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-bugfix/SKILL.md
     - skills/strict-spec-propose/SKILL.md
     - skills/strict-spec-propose-from-roadmap/SKILL.md
     - skills/strict-spec-auto/SKILL.md
@@ -1993,6 +1994,18 @@ requirements:
         - GIVEN: validate-skills inspects bundled proposal-generating and proposal-handoff skill packages
         - WHEN: a required skill names the planning-stage gate proposal review or points agents to a strict-spec-driven review command
         - THEN: validate-skills reports deterministic diagnostics that preserve proposal checkpoint as the planning-stage terminology
+  cli-bugfix-skill-packaging-validation:
+    strength: MUST
+    statement: The system MUST package a strict-spec-bugfix skill and validate that its guidance is limited to known bugs with reproduction evidence, regression coverage, minimal fixes, strict verification, direct review, and handoff to strict-spec-debug-session when an issue is unclear or unreproduced.
+    scenarios:
+      validate-skills-requires-bugfix-boundaries:
+        - GIVEN: validate-skills inspects the bundled strict-spec-bugfix skill
+        - WHEN: the skill omits known-bug, reproduce-before-fixing, failing-regression, minimal-fix, or debug-session handoff guidance
+        - THEN: validate-skills reports deterministic diagnostics for the missing bugfix guidance
+      bugfix-skill-documents-narrow-fix-workflow:
+        - GIVEN: an agent follows the strict-spec-bugfix skill for a known defect
+        - WHEN: the workflow creates or resumes a strict change
+        - THEN: the skill requires narrow strict artifacts, a regression-oriented task flow, strict verification, direct review, and complete regression evidence before archive
   cli-installer-compiles-native-executable:
     strength: MUST
     statement: The system MUST compile a native strict-spec-driven executable during installation for Unix and Windows installer flows.

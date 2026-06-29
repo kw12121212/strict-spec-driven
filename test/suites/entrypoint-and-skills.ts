@@ -320,6 +320,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const proposeFromRoadmapSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-propose-from-roadmap", "SKILL.md"), "utf8");
   const autoSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-auto", "SKILL.md"), "utf8");
   const brainstormSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-brainstorm", "SKILL.md"), "utf8");
+  const bugfixSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-bugfix", "SKILL.md"), "utf8");
   const modifySkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-modify", "SKILL.md"), "utf8");
   const roadmapPlanSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-plan", "SKILL.md"), "utf8");
   const roadmapArchiveSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-archive", "SKILL.md"), "utf8");
@@ -335,6 +336,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedProposeFromRoadmapSkillContent = proposeFromRoadmapSkillContent.replace(/\s+/g, " ");
   const normalizedAutoSkillContent = autoSkillContent.replace(/\s+/g, " ");
   const normalizedBrainstormSkillContent = brainstormSkillContent.replace(/\s+/g, " ");
+  const normalizedBugfixSkillContent = bugfixSkillContent.replace(/\s+/g, " ");
   const normalizedModifySkillContent = modifySkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapPlanSkillContent = roadmapPlanSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapArchiveSkillContent = roadmapArchiveSkillContent.replace(/\s+/g, " ");
@@ -446,6 +448,22 @@ context.assert(
       && normalizedBrainstormSkillContent.includes("proposal checkpoint refinements made")
       && !normalizedBrainstormSkillContent.includes("proposal review"),
     "strict-spec-brainstorm runs a proposal checkpoint over generated planning artifacts before ready/verify handoff",
+  );
+  context.assert(
+    normalizedBugfixSkillContent.includes("known bug")
+      && normalizedBugfixSkillContent.includes("Reproduce before fixing")
+      && normalizedBugfixSkillContent.includes("failing regression")
+      && normalizedBugfixSkillContent.includes("minimal fix")
+      && normalizedBugfixSkillContent.includes("strict-spec-debug-session")
+      && normalizedBugfixSkillContent.includes("strict-spec-brainstorm")
+      && normalizedBugfixSkillContent.includes("proposal checkpoint")
+      && normalizedBugfixSkillContent.includes("fix safe, in-scope documentation gaps")
+      && normalizedBugfixSkillContent.includes("direct review")
+      && normalizedBugfixSkillContent.includes("Automatically fix safe in-scope review findings")
+      && normalizedBugfixSkillContent.includes("rerun strict verification plus the configured complete regression command after review-time changes")
+      && normalizedBugfixSkillContent.includes("Do not call or rely on a `strict-spec-driven review` command")
+      && !bugfixSkillContent.includes("strict-spec-driven review <change-name>"),
+    "strict-spec-bugfix is constrained to known bugs with reproduction, regression coverage, minimal fixes, and debug-session handoff for unclear issues",
   );
   context.assert(
     roadmapPlanSkillContent.includes("check-workflow-state: strict-spec-driven check-workflow-state")
