@@ -55,9 +55,14 @@ SKILLS_PKG="skills@1.5.9"
 # and, unlike npx, runs the package's bin directly instead of a colliding
 # `npm run skills` script. npm exec / npx are kept as uninstall fallbacks so
 # `skills remove -g` still works after bun has been removed.
+#
+# The trailing `--` is needed for npm exec / npx to separate their own flags
+# from the package's args, but bun passes `--` through to the skills CLI, which
+# then rejects it as an unknown command ("Unknown command: --"), so the bunx
+# invocation must omit it.
 resolve_skills_cmd() {
   if command -v bun >/dev/null 2>&1; then
-    printf 'bunx %s --\n' "$SKILLS_PKG"
+    printf 'bunx %s\n' "$SKILLS_PKG"
   elif command -v npm >/dev/null 2>&1; then
     printf 'npm exec %s --\n' "$SKILLS_PKG"
   elif command -v npx >/dev/null 2>&1; then
@@ -94,11 +99,12 @@ ensure_bun() {
 }
 
 # node_modules is gitignored while bun.lock is tracked, so a fresh checkout must
-# install project dependencies before building the native CLI.
+# install project dependencies before building the native CLI. A non-empty
+# node_modules can still be incomplete (a partially-resolved install, or deps
+# added since the last install), so run `bun install` unconditionally: it is
+# idempotent and fast against the tracked lockfile and guarantees the build
+# sees every dependency.
 ensure_project_deps() {
-  if [ -d "$SCRIPT_DIR/node_modules" ] && [ -n "$(ls -A "$SCRIPT_DIR/node_modules" 2>/dev/null)" ]; then
-    return 0
-  fi
   printf 'Installing project dependencies (bun install)\n'
   ( cd "$SCRIPT_DIR" && bun install )
 }

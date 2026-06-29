@@ -197,11 +197,16 @@ function Remove-UserPathEntry {
 # incorrectly included in global install targets. bunx runs the package's bin
 # directly and, unlike npx, is immune to a colliding `npm run skills` script.
 # npm exec / npx remain as uninstall fallbacks for when bun is already removed.
+#
+# The trailing `--` is needed for npm exec / npx to separate their own flags
+# from the package's args, but bun passes `--` through to the skills CLI, which
+# then rejects it as an unknown command ("Unknown command: --"), so the bunx
+# invocation must omit it.
 function Invoke-Skills {
     param([Parameter(Mandatory = $true)][string[]]$CommandArgs)
 
     if (Get-Command bun -ErrorAction SilentlyContinue) {
-        $prefix = @('bunx', 'skills@1.5.9', '--')
+        $prefix = @('bunx', 'skills@1.5.9')
     } elseif (Get-Command npm -ErrorAction SilentlyContinue) {
         $prefix = @('npm', 'exec', 'skills@1.5.9', '--')
     } elseif (Get-Command npx -ErrorAction SilentlyContinue) {
@@ -240,13 +245,12 @@ function Ensure-Bun {
 }
 
 # node_modules is gitignored while bun.lock is tracked, so a fresh checkout must
-# install project dependencies before building the native CLI.
+# install project dependencies before building the native CLI. A non-empty
+# node_modules can still be incomplete (a partially-resolved install, or deps
+# added since the last install), so run `bun install` unconditionally: it is
+# idempotent and fast against the tracked lockfile and guarantees the build
+# sees every dependency.
 function Ensure-ProjectDeps {
-    $nodeModules = Join-Path $ScriptDir 'node_modules'
-    if ((Test-Path $nodeModules) -and (Get-ChildItem -LiteralPath $nodeModules -Force -ErrorAction SilentlyContinue)) {
-        return
-    }
-
     Write-Host 'Installing project dependencies (bun install)'
     Push-Location $ScriptDir
     try {
