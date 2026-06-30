@@ -24,6 +24,9 @@ specs:
   - id: sessions-domain-behavior
     title: Sessions Domain Behavior
     path: .strict-spec-driven/specs/sessions/domain-behavior.yaml
+  - id: sop-domain-behavior
+    title: SOP Domain Behavior
+    path: .strict-spec-driven/specs/sop/domain-behavior.yaml
   - id: testing-coverage-gate
     title: Testing Coverage Gate
     path: .strict-spec-driven/specs/testing/coverage-gate.yaml

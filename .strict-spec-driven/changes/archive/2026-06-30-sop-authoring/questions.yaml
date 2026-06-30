@@ -1,0 +1,22 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: sop-authoring
+open: []
+resolved:
+  - id: incident-severity-scale
+    question: Should the incident-response category enforce a fixed severity enum (e.g. SEV1-SEV4) or treat the severity scale as category-configurable free text?
+    context: 'Affects the incident-response category constraints and whether sop-validate hard-codes a severity vocabulary. Default leaning: category-configurable, but needs confirmation before implementing the validator rule.'
+    answer: 'Category-configurable: the severity vocabulary is declared in the incident-response category''s constraints, and sop-validate enforces whatever the category declares rather than a hard-coded enum, consistent with the category-as-data decision.'
+    status: resolved
+  - id: interview-prompt-language
+    question: Should category question prompts be authored in the config preferred_human_language (English) or rendered in the active session language at interview time?
+    context: config.yaml preferred_human_language is English while this brainstorm ran in Chinese; the bundled category YAML stores prompt text, so the storage language must be decided before authoring category definitions.
+    answer: Store category question prompts in the config preferred_human_language (English); the strict-sop skill renders them into the active session language at interview time, keeping bundled YAML portable and config-consistent.
+    status: resolved
+  - id: link-target-validation
+    question: Should optional SOP links to spec/change/roadmap be free-text references or validated against existing targets at create/validate time?
+    context: Determines whether sop-validate must resolve and verify linked artifact existence or only check shape. Scope says optional links are in; validation strictness is unresolved.
+    answer: 'Validate target existence: when a SOP declares optional links to a spec/change/roadmap target, sop-create and sop-validate resolve and verify the target exists, reporting a path-aware diagnostic for a dangling reference.'
+    status: resolved

@@ -244,6 +244,45 @@ entries:
       compatible_with: []
       notes:
         - Tickets index is a keyed map keyed by conflict-resistant ticket id for merge-friendly multi-author intake.
+  - schema_id: strict-spec-driven/sop/v1
+    schema_version: 1
+    artifact_type: sop
+    artifact_name: sop
+    schema_file: sop.yaml
+    primary_example: ../../../examples/strict-spec-driven/sop.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - SOP is a categorized operator-facing procedure; the category drives the interview question list and the deterministic constraints enforced over the SOP.
+  - schema_id: strict-spec-driven/sop-category/v1
+    schema_version: 1
+    artifact_type: sop_category
+    artifact_name: sop-category
+    schema_file: sop-category.yaml
+    primary_example: ../../../examples/strict-spec-driven/sop-category.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Category definitions are bundled data declaring questions and constraints so categories can be added or tuned without code changes.
+  - schema_id: strict-spec-driven/sops-index/v1
+    schema_version: 1
+    artifact_type: sops_index
+    artifact_name: sops-index
+    schema_file: sops-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/sops-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - SOPs index is a keyed map keyed by conflict-resistant SOP id for merge-friendly multi-author authoring.
   - schema_id: strict-spec-driven/harness/v1
     schema_version: 1
     artifact_type: harness

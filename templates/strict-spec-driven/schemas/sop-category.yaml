@@ -1,0 +1,126 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/sop-category/v1
+artifact_type: sop_category
+artifact_name: sop-category
+description: Strict YAML SOP category definition declaring a category's interview question list and the deterministic process constraints that sop-validate enforces over a SOP of that category.
+example_ref: ../../../examples/strict-spec-driven/sop-category.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - category
+    - questions
+    - constraints
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/sop-category/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: sop_category
+    schema_file:
+      type: string
+    category:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - description
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          minLength: 1
+    questions:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - prompt
+          - maps_to
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          prompt:
+            type: string
+            minLength: 1
+          maps_to:
+            type: string
+            minLength: 1
+          required:
+            type: boolean
+    constraints:
+      type: object
+      additionalProperties: false
+      required:
+        - required_sections
+      properties:
+        required_sections:
+          type: array
+          items:
+            type: string
+            enum:
+              - roles
+              - prerequisites
+              - classification
+              - escalation
+              - exceptions
+              - outputs
+              - references
+        min_steps:
+          type: integer
+          minimum: 1
+        required_step_fields:
+          type: array
+          items:
+            type: string
+            enum:
+              - inputs
+              - outputs
+              - branches
+        allowed_classifications:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        rules:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - id
+              - strength
+              - statement
+            properties:
+              id:
+                type: string
+                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+              strength:
+                type: string
+                enum:
+                  - MUST
+                  - SHOULD
+                  - MAY
+              statement:
+                type: string
+                minLength: 1

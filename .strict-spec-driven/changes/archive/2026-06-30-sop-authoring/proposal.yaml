@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: sop-authoring
+  status: proposed
+summary:
+  what:
+    - Add a categorized SOP artifact type whose strict YAML is created and validated by scripts after a category-driven AI interview.
+    - Provide SOP CLI commands (sop-create, sop-list, sop-show, sop-validate, sop-edit) plus category discovery (sop-category-list, sop-category-show).
+    - Ship four bundled SOP category definitions (generic, operational, incident-response, release), each declaring its own interview question list and process constraints.
+  why:
+    - Operators need a guided, repeatable way to capture standard operating procedures as schema-validated strict YAML instead of ad hoc prose.
+    - Different procedure kinds require different questions and constraints, so categories must drive both the interview and validation.
+scope:
+  in:
+    - Define sop, sop-category, and sops-index schemas and register them in the schema registry.
+    - Implement create/list/show/validate/edit SOP commands with content-derived ids, idempotent create, INDEX maintenance, and category-overlay validation.
+    - Bundle generic, operational, incident-response, and release category definitions with question lists and constraints.
+    - Support simple in-step branches (condition, goto_step) with exhaustiveness validation and optional links to spec/change/roadmap.
+  out:
+    - SOP status transitions beyond draft/active, archival lifecycle, standalone multi-path decision nodes, additional categories, SOP-to-SOP orchestration, and execution/run tracking.
+unchanged_behavior:
+  - All existing strict workflow artifacts, commands, and skills remain unchanged; SOP support is additive.

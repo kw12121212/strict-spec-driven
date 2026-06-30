@@ -1,0 +1,54 @@
+schema: strict-spec-driven/sop-category/v1
+schema_version: 1
+artifact_type: sop_category
+schema_file: templates/strict-spec-driven/schemas/sop-category.yaml
+category:
+  id: operational
+  title: Operational procedure
+  description: Routine operations such as deployment, maintenance, and on-call tasks, emphasizing prerequisites, ordered steps, rollback, and exception handling.
+questions:
+  - id: purpose
+    prompt: What operational outcome does this procedure achieve?
+    maps_to: purpose
+    required: true
+  - id: trigger
+    prompt: What event, schedule, or condition triggers this operation?
+    maps_to: trigger
+    required: true
+  - id: roles
+    prompt: Which roles perform this operation, and what is each responsible for?
+    maps_to: roles
+    required: true
+  - id: scope
+    prompt: What is in scope, and what is explicitly out of scope (for example, no schema changes)?
+    maps_to: scope
+    required: true
+  - id: prerequisites
+    prompt: What must be in place before starting (access, tools, inputs, approvals)?
+    maps_to: prerequisites
+    required: true
+  - id: steps
+    prompt: List the operation steps in order — for each, who performs it, the action, and the expected result.
+    maps_to: steps
+    required: true
+  - id: exceptions
+    prompt: What can go wrong, and how is each failure handled or rolled back?
+    maps_to: exceptions
+    required: true
+  - id: success
+    prompt: How do you confirm the operation succeeded and the system is healthy?
+    maps_to: success_criteria
+    required: true
+constraints:
+  required_sections:
+    - prerequisites
+    - exceptions
+  min_steps: 1
+  required_step_fields: []
+  rules:
+    - id: rollback-on-failure
+      strength: MUST
+      statement: At least one exception path describes how to roll back or recover when a step fails.
+    - id: prerequisites-before-action
+      strength: MUST
+      statement: Required access, tools, and inputs are listed as prerequisites before any step that depends on them.

@@ -1,0 +1,54 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/sops-index/v1
+artifact_type: sops_index
+artifact_name: sops-index
+description: Strict YAML SOP index artifact (keyed SOP map keyed by conflict-resistant SOP id) describing each authored SOP's title, category, status, and path.
+example_ref: ../../../examples/strict-spec-driven/sops-index.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - sops
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/sops-index/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: sops_index
+    schema_file:
+      type: string
+    sops:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+          - category
+          - status
+          - path
+        properties:
+          title:
+            type: string
+            minLength: 1
+          category:
+            type: string
+            minLength: 1
+          status:
+            type: string
+            enum:
+              - draft
+              - active
+          path:
+            type: string
+            minLength: 1

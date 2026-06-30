@@ -1,0 +1,62 @@
+schema: strict-spec-driven/sop-category/v1
+schema_version: 1
+artifact_type: sop_category
+schema_file: templates/strict-spec-driven/schemas/sop-category.yaml
+category:
+  id: incident-response
+  title: Incident response procedure
+  description: Detection-to-resolution handling of incidents, emphasizing severity classification, escalation paths, communication, and post-incident review.
+questions:
+  - id: purpose
+    prompt: What kind of incident does this procedure respond to, and what is the response goal?
+    maps_to: purpose
+    required: true
+  - id: trigger
+    prompt: How is the incident detected or reported (the trigger source)?
+    maps_to: trigger
+    required: true
+  - id: classification
+    prompt: What severity level applies, drawn from this category's severity scale?
+    maps_to: classification
+    required: true
+  - id: roles
+    prompt: Which on-call roles are involved, and what is each responsible for?
+    maps_to: roles
+    required: true
+  - id: escalation
+    prompt: What is the escalation path — when and to whom does the incident escalate?
+    maps_to: escalation
+    required: true
+  - id: steps
+    prompt: List the mitigation steps in order — for each, who performs it, the action, and the expected result.
+    maps_to: steps
+    required: true
+  - id: exceptions
+    prompt: What happens when mitigation fails or the incident worsens?
+    maps_to: exceptions
+    required: true
+  - id: success
+    prompt: How is recovery verified, and what closes the incident?
+    maps_to: success_criteria
+    required: true
+constraints:
+  required_sections:
+    - classification
+    - escalation
+    - exceptions
+  min_steps: 1
+  allowed_classifications:
+    - SEV1
+    - SEV2
+    - SEV3
+    - SEV4
+  rules:
+    - id: severity-from-scale
+      strength: MUST
+      statement: The incident classification is one of the severity levels declared by this category's severity scale.
+    - id: escalation-path-defined
+      strength: MUST
+      statement: An escalation path defines when the incident escalates and to which role or contact.
+    - id: post-incident-review
+      strength: SHOULD
+      statement: A closing step records a post-incident review or follow-up action.

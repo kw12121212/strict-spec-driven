@@ -1,0 +1,52 @@
+schema: strict-spec-driven/sop-category/v1
+schema_version: 1
+artifact_type: sop_category
+schema_file: templates/strict-spec-driven/schemas/sop-category.yaml
+category:
+  id: release
+  title: Release and deployment procedure
+  description: Shipping a release to an environment, emphasizing pre-release checks, an approval gate, verification, a rollback plan, and post-release monitoring.
+questions:
+  - id: purpose
+    prompt: What is being released, and to which environment?
+    maps_to: purpose
+    required: true
+  - id: trigger
+    prompt: What triggers a release (cadence, milestone, or approval)?
+    maps_to: trigger
+    required: true
+  - id: roles
+    prompt: Which roles drive and approve the release, and what is each responsible for?
+    maps_to: roles
+    required: true
+  - id: prerequisites
+    prompt: What pre-release checks and approval gates must pass before deploying?
+    maps_to: prerequisites
+    required: true
+  - id: steps
+    prompt: List the deployment steps in order — for each, who performs it, the action, and the expected result.
+    maps_to: steps
+    required: true
+  - id: exceptions
+    prompt: What is the rollback plan if the release fails verification or monitoring?
+    maps_to: exceptions
+    required: true
+  - id: success
+    prompt: How is the release verified, and what post-release monitoring confirms success?
+    maps_to: success_criteria
+    required: true
+constraints:
+  required_sections:
+    - prerequisites
+    - exceptions
+  min_steps: 1
+  rules:
+    - id: approval-gate
+      strength: MUST
+      statement: A prerequisite records the approval gate that must pass before deployment begins.
+    - id: rollback-plan
+      strength: MUST
+      statement: An exception path describes the rollback plan when the release fails verification or monitoring.
+    - id: post-release-verification
+      strength: MUST
+      statement: A success criterion describes the verification or monitoring that confirms the release is healthy.

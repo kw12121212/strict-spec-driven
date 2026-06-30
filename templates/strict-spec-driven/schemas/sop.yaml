@@ -1,0 +1,248 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/sop/v1
+artifact_type: sop
+artifact_name: sop
+description: Strict YAML standard operating procedure artifact capturing a categorized, operator-facing procedure with ordered steps, responsible roles, in-step branches, optional cross-artifact links, and a draft/active lifecycle status.
+example_ref: ../../../examples/strict-spec-driven/sop.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - sop
+    - category
+    - status
+    - created_at
+    - updated_at
+    - purpose
+    - scope
+    - trigger
+    - steps
+    - success_criteria
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/sop/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: sop
+    schema_file:
+      type: string
+    sop:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        title:
+          type: string
+          minLength: 1
+    category:
+      type: string
+      minLength: 1
+    status:
+      type: string
+      enum:
+        - draft
+        - active
+    created_at:
+      type: string
+      minLength: 1
+    updated_at:
+      type: string
+      minLength: 1
+    purpose:
+      type: string
+      minLength: 1
+    scope:
+      type: object
+      additionalProperties: false
+      required:
+        - in
+      properties:
+        in:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+        out:
+          type: array
+          items:
+            type: string
+            minLength: 1
+    trigger:
+      type: string
+      minLength: 1
+    roles:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - name
+          - responsibility
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          name:
+            type: string
+            minLength: 1
+          responsibility:
+            type: string
+            minLength: 1
+    prerequisites:
+      type: array
+      items:
+        type: string
+        minLength: 1
+    classification:
+      type: string
+      minLength: 1
+    steps:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - order
+          - actor
+          - action
+          - expected_result
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          order:
+            type: integer
+            minimum: 1
+          actor:
+            type: string
+            minLength: 1
+          action:
+            type: string
+            minLength: 1
+          inputs:
+            type: array
+            items:
+              type: string
+              minLength: 1
+          outputs:
+            type: array
+            items:
+              type: string
+              minLength: 1
+          expected_result:
+            type: string
+            minLength: 1
+          branches:
+            type: array
+            items:
+              type: object
+              additionalProperties: false
+              required:
+                - condition
+                - goto_step
+              properties:
+                condition:
+                  type: string
+                  minLength: 1
+                goto_step:
+                  type: string
+                  minLength: 1
+    escalation:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - trigger
+          - to
+        properties:
+          trigger:
+            type: string
+            minLength: 1
+          to:
+            type: string
+            minLength: 1
+          action:
+            type: string
+            minLength: 1
+    exceptions:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - condition
+          - handling
+        properties:
+          condition:
+            type: string
+            minLength: 1
+          handling:
+            type: string
+            minLength: 1
+    outputs:
+      type: array
+      items:
+        type: string
+        minLength: 1
+    success_criteria:
+      type: array
+      minItems: 1
+      items:
+        type: string
+        minLength: 1
+    references:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - label
+          - target
+        properties:
+          label:
+            type: string
+            minLength: 1
+          target:
+            type: string
+            minLength: 1
+    links:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - kind
+          - target
+        properties:
+          kind:
+            type: string
+            enum:
+              - spec
+              - change
+              - roadmap
+          target:
+            type: string
+            minLength: 1
+    extensions:
+      type: object
+      additionalProperties: true

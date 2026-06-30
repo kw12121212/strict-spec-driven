@@ -2212,6 +2212,45 @@ entries:
       compatible_with: []
       notes:
         - Tickets index is a keyed map keyed by conflict-resistant ticket id for merge-friendly multi-author intake.
+  - schema_id: strict-spec-driven/sop/v1
+    schema_version: 1
+    artifact_type: sop
+    artifact_name: sop
+    schema_file: sop.yaml
+    primary_example: ../../../examples/strict-spec-driven/sop.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - SOP is a categorized operator-facing procedure; the category drives the interview question list and the deterministic constraints enforced over the SOP.
+  - schema_id: strict-spec-driven/sop-category/v1
+    schema_version: 1
+    artifact_type: sop_category
+    artifact_name: sop-category
+    schema_file: sop-category.yaml
+    primary_example: ../../../examples/strict-spec-driven/sop-category.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Category definitions are bundled data declaring questions and constraints so categories can be added or tuned without code changes.
+  - schema_id: strict-spec-driven/sops-index/v1
+    schema_version: 1
+    artifact_type: sops_index
+    artifact_name: sops-index
+    schema_file: sops-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/sops-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - SOPs index is a keyed map keyed by conflict-resistant SOP id for merge-friendly multi-author authoring.
   - schema_id: strict-spec-driven/harness/v1
     schema_version: 1
     artifact_type: harness
@@ -2625,6 +2664,437 @@ fields:
           manual_follow_up_field:
             type: string
             required: true
+`,
+  "strict-spec-driven/schemas/sop-category.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/sop-category/v1
+artifact_type: sop_category
+artifact_name: sop-category
+description: Strict YAML SOP category definition declaring a category's interview question list and the deterministic process constraints that sop-validate enforces over a SOP of that category.
+example_ref: ../../../examples/strict-spec-driven/sop-category.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - category
+    - questions
+    - constraints
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/sop-category/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: sop_category
+    schema_file:
+      type: string
+    category:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - description
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          minLength: 1
+    questions:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - prompt
+          - maps_to
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          prompt:
+            type: string
+            minLength: 1
+          maps_to:
+            type: string
+            minLength: 1
+          required:
+            type: boolean
+    constraints:
+      type: object
+      additionalProperties: false
+      required:
+        - required_sections
+      properties:
+        required_sections:
+          type: array
+          items:
+            type: string
+            enum:
+              - roles
+              - prerequisites
+              - classification
+              - escalation
+              - exceptions
+              - outputs
+              - references
+        min_steps:
+          type: integer
+          minimum: 1
+        required_step_fields:
+          type: array
+          items:
+            type: string
+            enum:
+              - inputs
+              - outputs
+              - branches
+        allowed_classifications:
+          type: array
+          items:
+            type: string
+            minLength: 1
+        rules:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - id
+              - strength
+              - statement
+            properties:
+              id:
+                type: string
+                pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+              strength:
+                type: string
+                enum:
+                  - MUST
+                  - SHOULD
+                  - MAY
+              statement:
+                type: string
+                minLength: 1
+`,
+  "strict-spec-driven/schemas/sop.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/sop/v1
+artifact_type: sop
+artifact_name: sop
+description: Strict YAML standard operating procedure artifact capturing a categorized, operator-facing procedure with ordered steps, responsible roles, in-step branches, optional cross-artifact links, and a draft/active lifecycle status.
+example_ref: ../../../examples/strict-spec-driven/sop.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - sop
+    - category
+    - status
+    - created_at
+    - updated_at
+    - purpose
+    - scope
+    - trigger
+    - steps
+    - success_criteria
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/sop/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: sop
+    schema_file:
+      type: string
+    sop:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        title:
+          type: string
+          minLength: 1
+    category:
+      type: string
+      minLength: 1
+    status:
+      type: string
+      enum:
+        - draft
+        - active
+    created_at:
+      type: string
+      minLength: 1
+    updated_at:
+      type: string
+      minLength: 1
+    purpose:
+      type: string
+      minLength: 1
+    scope:
+      type: object
+      additionalProperties: false
+      required:
+        - in
+      properties:
+        in:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            minLength: 1
+        out:
+          type: array
+          items:
+            type: string
+            minLength: 1
+    trigger:
+      type: string
+      minLength: 1
+    roles:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - name
+          - responsibility
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          name:
+            type: string
+            minLength: 1
+          responsibility:
+            type: string
+            minLength: 1
+    prerequisites:
+      type: array
+      items:
+        type: string
+        minLength: 1
+    classification:
+      type: string
+      minLength: 1
+    steps:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - order
+          - actor
+          - action
+          - expected_result
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          order:
+            type: integer
+            minimum: 1
+          actor:
+            type: string
+            minLength: 1
+          action:
+            type: string
+            minLength: 1
+          inputs:
+            type: array
+            items:
+              type: string
+              minLength: 1
+          outputs:
+            type: array
+            items:
+              type: string
+              minLength: 1
+          expected_result:
+            type: string
+            minLength: 1
+          branches:
+            type: array
+            items:
+              type: object
+              additionalProperties: false
+              required:
+                - condition
+                - goto_step
+              properties:
+                condition:
+                  type: string
+                  minLength: 1
+                goto_step:
+                  type: string
+                  minLength: 1
+    escalation:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - trigger
+          - to
+        properties:
+          trigger:
+            type: string
+            minLength: 1
+          to:
+            type: string
+            minLength: 1
+          action:
+            type: string
+            minLength: 1
+    exceptions:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - condition
+          - handling
+        properties:
+          condition:
+            type: string
+            minLength: 1
+          handling:
+            type: string
+            minLength: 1
+    outputs:
+      type: array
+      items:
+        type: string
+        minLength: 1
+    success_criteria:
+      type: array
+      minItems: 1
+      items:
+        type: string
+        minLength: 1
+    references:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - label
+          - target
+        properties:
+          label:
+            type: string
+            minLength: 1
+          target:
+            type: string
+            minLength: 1
+    links:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - kind
+          - target
+        properties:
+          kind:
+            type: string
+            enum:
+              - spec
+              - change
+              - roadmap
+          target:
+            type: string
+            minLength: 1
+    extensions:
+      type: object
+      additionalProperties: true
+`,
+  "strict-spec-driven/schemas/sops-index.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/sops-index/v1
+artifact_type: sops_index
+artifact_name: sops-index
+description: Strict YAML SOP index artifact (keyed SOP map keyed by conflict-resistant SOP id) describing each authored SOP's title, category, status, and path.
+example_ref: ../../../examples/strict-spec-driven/sops-index.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - sops
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/sops-index/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: sops_index
+    schema_file:
+      type: string
+    sops:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+          - category
+          - status
+          - path
+        properties:
+          title:
+            type: string
+            minLength: 1
+          category:
+            type: string
+            minLength: 1
+          status:
+            type: string
+            enum:
+              - draft
+              - active
+          path:
+            type: string
+            minLength: 1
 `,
   "strict-spec-driven/schemas/spec-index.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -3040,6 +3510,218 @@ json_schema:
                 - promoted
                 - implemented
                 - rejected
+`,
+  "strict-spec-driven/sop-categories/generic.yaml": `schema: strict-spec-driven/sop-category/v1
+schema_version: 1
+artifact_type: sop_category
+schema_file: templates/strict-spec-driven/schemas/sop-category.yaml
+category:
+  id: generic
+  title: Generic procedure
+  description: Fallback category for any operator-facing procedure that does not fit a more specific category.
+questions:
+  - id: purpose
+    prompt: What is this procedure and why does it exist (the goal it achieves)?
+    maps_to: purpose
+    required: true
+  - id: scope
+    prompt: What is in scope, and what is explicitly out of scope?
+    maps_to: scope
+    required: true
+  - id: trigger
+    prompt: What event or condition starts this procedure?
+    maps_to: trigger
+    required: true
+  - id: roles
+    prompt: Which roles are involved, and what is each responsible for?
+    maps_to: roles
+    required: false
+  - id: steps
+    prompt: Walk through the procedure in order — for each step, who does it, what they do, and the expected result.
+    maps_to: steps
+    required: true
+  - id: success
+    prompt: What is the deliverable, and how do you know the procedure is complete?
+    maps_to: success_criteria
+    required: true
+constraints:
+  required_sections: []
+  min_steps: 1
+  rules:
+    - id: observable-steps
+      strength: MUST
+      statement: Every step describes an observable action performed by a single responsible role and states its expected result.
+`,
+  "strict-spec-driven/sop-categories/incident-response.yaml": `schema: strict-spec-driven/sop-category/v1
+schema_version: 1
+artifact_type: sop_category
+schema_file: templates/strict-spec-driven/schemas/sop-category.yaml
+category:
+  id: incident-response
+  title: Incident response procedure
+  description: Detection-to-resolution handling of incidents, emphasizing severity classification, escalation paths, communication, and post-incident review.
+questions:
+  - id: purpose
+    prompt: What kind of incident does this procedure respond to, and what is the response goal?
+    maps_to: purpose
+    required: true
+  - id: trigger
+    prompt: How is the incident detected or reported (the trigger source)?
+    maps_to: trigger
+    required: true
+  - id: classification
+    prompt: What severity level applies, drawn from this category's severity scale?
+    maps_to: classification
+    required: true
+  - id: roles
+    prompt: Which on-call roles are involved, and what is each responsible for?
+    maps_to: roles
+    required: true
+  - id: escalation
+    prompt: What is the escalation path — when and to whom does the incident escalate?
+    maps_to: escalation
+    required: true
+  - id: steps
+    prompt: List the mitigation steps in order — for each, who performs it, the action, and the expected result.
+    maps_to: steps
+    required: true
+  - id: exceptions
+    prompt: What happens when mitigation fails or the incident worsens?
+    maps_to: exceptions
+    required: true
+  - id: success
+    prompt: How is recovery verified, and what closes the incident?
+    maps_to: success_criteria
+    required: true
+constraints:
+  required_sections:
+    - classification
+    - escalation
+    - exceptions
+  min_steps: 1
+  allowed_classifications:
+    - SEV1
+    - SEV2
+    - SEV3
+    - SEV4
+  rules:
+    - id: severity-from-scale
+      strength: MUST
+      statement: The incident classification is one of the severity levels declared by this category's severity scale.
+    - id: escalation-path-defined
+      strength: MUST
+      statement: An escalation path defines when the incident escalates and to which role or contact.
+    - id: post-incident-review
+      strength: SHOULD
+      statement: A closing step records a post-incident review or follow-up action.
+`,
+  "strict-spec-driven/sop-categories/operational.yaml": `schema: strict-spec-driven/sop-category/v1
+schema_version: 1
+artifact_type: sop_category
+schema_file: templates/strict-spec-driven/schemas/sop-category.yaml
+category:
+  id: operational
+  title: Operational procedure
+  description: Routine operations such as deployment, maintenance, and on-call tasks, emphasizing prerequisites, ordered steps, rollback, and exception handling.
+questions:
+  - id: purpose
+    prompt: What operational outcome does this procedure achieve?
+    maps_to: purpose
+    required: true
+  - id: trigger
+    prompt: What event, schedule, or condition triggers this operation?
+    maps_to: trigger
+    required: true
+  - id: roles
+    prompt: Which roles perform this operation, and what is each responsible for?
+    maps_to: roles
+    required: true
+  - id: scope
+    prompt: What is in scope, and what is explicitly out of scope (for example, no schema changes)?
+    maps_to: scope
+    required: true
+  - id: prerequisites
+    prompt: What must be in place before starting (access, tools, inputs, approvals)?
+    maps_to: prerequisites
+    required: true
+  - id: steps
+    prompt: List the operation steps in order — for each, who performs it, the action, and the expected result.
+    maps_to: steps
+    required: true
+  - id: exceptions
+    prompt: What can go wrong, and how is each failure handled or rolled back?
+    maps_to: exceptions
+    required: true
+  - id: success
+    prompt: How do you confirm the operation succeeded and the system is healthy?
+    maps_to: success_criteria
+    required: true
+constraints:
+  required_sections:
+    - prerequisites
+    - exceptions
+  min_steps: 1
+  required_step_fields: []
+  rules:
+    - id: rollback-on-failure
+      strength: MUST
+      statement: At least one exception path describes how to roll back or recover when a step fails.
+    - id: prerequisites-before-action
+      strength: MUST
+      statement: Required access, tools, and inputs are listed as prerequisites before any step that depends on them.
+`,
+  "strict-spec-driven/sop-categories/release.yaml": `schema: strict-spec-driven/sop-category/v1
+schema_version: 1
+artifact_type: sop_category
+schema_file: templates/strict-spec-driven/schemas/sop-category.yaml
+category:
+  id: release
+  title: Release and deployment procedure
+  description: Shipping a release to an environment, emphasizing pre-release checks, an approval gate, verification, a rollback plan, and post-release monitoring.
+questions:
+  - id: purpose
+    prompt: What is being released, and to which environment?
+    maps_to: purpose
+    required: true
+  - id: trigger
+    prompt: What triggers a release (cadence, milestone, or approval)?
+    maps_to: trigger
+    required: true
+  - id: roles
+    prompt: Which roles drive and approve the release, and what is each responsible for?
+    maps_to: roles
+    required: true
+  - id: prerequisites
+    prompt: What pre-release checks and approval gates must pass before deploying?
+    maps_to: prerequisites
+    required: true
+  - id: steps
+    prompt: List the deployment steps in order — for each, who performs it, the action, and the expected result.
+    maps_to: steps
+    required: true
+  - id: exceptions
+    prompt: What is the rollback plan if the release fails verification or monitoring?
+    maps_to: exceptions
+    required: true
+  - id: success
+    prompt: How is the release verified, and what post-release monitoring confirms success?
+    maps_to: success_criteria
+    required: true
+constraints:
+  required_sections:
+    - prerequisites
+    - exceptions
+  min_steps: 1
+  rules:
+    - id: approval-gate
+      strength: MUST
+      statement: A prerequisite records the approval gate that must pass before deployment begins.
+    - id: rollback-plan
+      strength: MUST
+      statement: An exception path describes the rollback plan when the release fails verification or monitoring.
+    - id: post-release-verification
+      strength: MUST
+      statement: A success criterion describes the verification or monitoring that confirms the release is healthy.
 `,
 };
 

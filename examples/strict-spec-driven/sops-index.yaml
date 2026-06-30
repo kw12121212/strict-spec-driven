@@ -1,0 +1,10 @@
+schema: strict-spec-driven/sops-index/v1
+schema_version: 1
+artifact_type: sops_index
+schema_file: ../../templates/strict-spec-driven/schemas/sops-index.yaml
+sops:
+  restart-web-frontend-abc123:
+    title: Restart the web frontend
+    category: operational
+    status: draft
+    path: .strict-spec-driven/sops/restart-web-frontend-abc123.yaml

@@ -1,0 +1,88 @@
+schema: strict-spec-driven/main-spec/v1
+schema_version: 1
+artifact_type: main_spec
+schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
+spec:
+  id: sop-domain-behavior
+  title: SOP Domain Behavior
+mapping:
+  implementation:
+    - src/sops.ts
+    - src/sop-categories.ts
+    - src/cli/cmd-sops.ts
+    - src/cli/registry.ts
+  tests:
+    - test/suites/sops.ts
+requirements:
+  sop-create-contract:
+    strength: MUST
+    statement: The system MUST provide a sop-create command that, given a valid category and the category-required content, scaffolds a new SOP with a conflict-resistant content-derived id and draft status, maintains the SOP index, emits the created file path, and is idempotent so rerunning with identical content does not clobber or duplicate existing SOP state.
+    scenarios:
+      create-generates-categorized-sop:
+        - GIVEN: a strict workflow with the SOP contract is present and a known category id
+        - WHEN: sop-create runs with that category and the category-required content
+        - THEN: a SOP file is written under the SOP location with a content-derived id, draft status, and the chosen category, the SOP index is updated, and the created path is reported
+      create-is-idempotent-on-rerun:
+        - GIVEN: a SOP already exists for identical category and content
+        - WHEN: sop-create runs again with the same category and content
+        - THEN: the existing SOP file is left unchanged, no second SOP is created, and the command reports the existing SOP as not newly created
+      create-rejects-incomplete-or-unknown-category:
+        - GIVEN: a strict workflow with the SOP contract is present
+        - WHEN: sop-create runs with an unknown category or omits a category-required section
+        - THEN: no SOP file is written and the command exits non-zero with path-aware diagnostics naming the unknown category or the missing required section
+  sop-category-discovery-contract:
+    strength: MUST
+    statement: The system MUST provide sop-category-list and sop-category-show commands that enumerate the bundled SOP categories and print a single category's interview question list and process constraints, returning a deterministic not-found error for an unknown category id.
+    scenarios:
+      category-list-enumerates-bundled-categories:
+        - GIVEN: the bundled SOP category definitions are present
+        - WHEN: sop-category-list runs
+        - THEN: every bundled category is reported with its id and title in a deterministic order
+      category-show-prints-questions-and-constraints:
+        - GIVEN: a category with a known id exists
+        - WHEN: sop-category-show runs with that id
+        - THEN: the category's question list and constraints are reported
+      category-show-reports-unknown:
+        - GIVEN: no category exists for a given id
+        - WHEN: sop-category-show runs with that id
+        - THEN: the command exits non-zero with a deterministic not-found diagnostic
+  sop-validate-category-overlay:
+    strength: MUST
+    statement: The system MUST provide a sop-validate command that validates a SOP against the base SOP schema and additionally enforces the selected category's required sections and rules and in-step branch exhaustiveness, exiting non-zero with path-aware diagnostics when the base schema, a category constraint, or a branch target is violated.
+    scenarios:
+      validate-passes-for-compliant-categorized-sop:
+        - GIVEN: a SOP satisfies the base schema and all of its category's required sections, rules, and branch targets
+        - WHEN: sop-validate runs
+        - THEN: the command exits zero and reports no diagnostics
+      validate-fails-on-category-constraint:
+        - GIVEN: a SOP omits a section its category marks required or violates a category rule
+        - WHEN: sop-validate runs
+        - THEN: the command exits non-zero with path-aware diagnostics identifying the offending category constraint and field
+      validate-fails-on-unreachable-or-missing-branch-target:
+        - GIVEN: a SOP step branch references a non-existent goto_step or leaves a decision branch unhandled
+        - WHEN: sop-validate runs
+        - THEN: the command exits non-zero with a diagnostic naming the offending step and branch
+  sop-link-target-validation:
+    strength: MUST
+    statement: The system MUST, when a SOP declares an optional link to a spec, change, or roadmap target, resolve and verify that the target exists at sop-create and sop-validate time, exiting non-zero with a path-aware diagnostic that names the dangling link and its unresolved target.
+    scenarios:
+      validate-passes-for-resolvable-links:
+        - GIVEN: a SOP declares links whose spec, change, or roadmap targets all exist
+        - WHEN: sop-validate runs
+        - THEN: the links are accepted and the command reports no link diagnostics
+      validate-fails-for-dangling-link:
+        - GIVEN: a SOP declares a link to a spec, change, or roadmap target that does not exist
+        - WHEN: sop-create or sop-validate runs
+        - THEN: the command exits non-zero with a path-aware diagnostic naming the dangling link and its unresolved target
+  sop-read-and-edit-contract:
+    strength: MUST
+    statement: The system MUST provide sop-list, sop-show, and sop-edit commands that enumerate SOPs with id, title, category, status, and path, print a single SOP for a known id with a deterministic not-found error otherwise, and update editable SOP fields while preserving id, created_at, and status, validating the result before writing and rebuilding the SOP index.
+    scenarios:
+      list-and-show-report-sops:
+        - GIVEN: one or more SOPs exist
+        - WHEN: sop-list and sop-show run
+        - THEN: sop-list reports each SOP with id, title, category, status, and path in deterministic order, and sop-show prints the requested SOP or a not-found diagnostic for an unknown id
+      edit-updates-fields-preserving-identity:
+        - GIVEN: an existing SOP
+        - WHEN: sop-edit runs with new values for editable fields
+        - THEN: the SOP file is rewritten with the new values, its id, created_at, and status are unchanged, the result is schema-valid, and the SOP index is rebuilt

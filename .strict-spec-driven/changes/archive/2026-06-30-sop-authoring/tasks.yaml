@@ -1,0 +1,53 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: sop-authoring
+sections:
+  Implementation:
+    define-sop-schemas:
+      text: Author the sop, sop-category, and sops-index strict YAML schemas under templates/strict-spec-driven/schemas/ with minimal valid examples under examples/strict-spec-driven/, and register all three in the schema registry. Contract-first before any code.
+      status: complete
+    add-sop-main-spec-stub:
+      text: Pre-create the sop domain main spec stub (.strict-spec-driven/specs/sop/domain-behavior.yaml) with empty requirements and the implementation/test mapping, and register it in specs/INDEX.yaml so spec mappings resolve before archive merges the delta requirements into it.
+      status: complete
+    bundle-category-definitions:
+      text: Author the four bundled category definition files (generic, operational, incident-response, release) under templates/strict-spec-driven/sop-categories/, each declaring its questions[] list and constraints{required_sections, rules}, validating against the sop-category schema.
+      status: complete
+    implement-category-discovery:
+      text: Implement sop-category-list and sop-category-show in new scripts (src/sop-categories.ts, src/cli/cmd-sops.ts) that read bundled category definitions, returning deterministic structured output and a path-aware not-found error for unknown ids.
+      status: complete
+    implement-sop-create:
+      text: Implement sop-create in src/sops.ts that requires a valid category, derives a conflict-resistant content-derived id, writes the SOP under .strict-spec-driven/sops/, maintains INDEX.yaml, is idempotent on rerun, and rejects incomplete input with path-aware diagnostics.
+      status: complete
+    implement-sop-validate:
+      text: Implement sop-validate that layers the selected category's required_sections and rules over base sop schema validation, enforces in-step branch exhaustiveness and goto_step target existence, resolves and verifies optional spec/change/roadmap link targets exist, and exits non-zero with path-aware diagnostics naming the offending artifact and field.
+      status: complete
+    implement-sop-crud:
+      text: Implement sop-list, sop-show, and sop-edit with deterministic output, not-found diagnostics, editable-field updates that preserve id/created_at/status, schema validation before write, and INDEX rebuild.
+      status: complete
+    register-cli-and-build:
+      text: Register all sop and sop-category commands in src/cli/registry.ts and usage, then rebuild compiled dist output from TypeScript sources.
+      status: complete
+    author-strict-sop-skill:
+      text: Add the strict-sop skill (skills/strict-sop/SKILL.md) that selects a category, reads its question list via sop-category-show, runs the interview, generates compliant YAML through parameterized CLI calls, and finishes with sop-validate.
+      status: complete
+    write-delta-spec:
+      text: Author the delta spec under .strict-spec-driven/changes/sop-authoring/specs/ reflecting the SOP behavior actually built, with implementation and test mappings.
+      status: complete
+  Testing:
+    unit-test-sop-behavior:
+      text: Add unit tests covering sop schema validation, category-overlay validation, idempotent create, branch exhaustiveness enforcement, link-target validation, category discovery, CRUD, and path-aware error diagnostics.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope, all four categories validate, and no out-of-scope lifecycle or decision-node behavior was added.
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: unit-test-sop-behavior

@@ -17,6 +17,7 @@ import {
   runRoadmapSync,
 } from "./cli/cmd-roadmap.js";
 import { runTicketCreate, runTicketEdit, runTicketList, runTicketResolve, runTicketShow, runTicketValidate } from "./cli/cmd-tickets.js";
+import { runSopCategoryList, runSopCategoryShow, runSopCreate, runSopEdit, runSopList, runSopShow, runSopValidate } from "./cli/cmd-sops.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runMcpInstall } from "./cli/cmd-mcp-install.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMappings, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
@@ -118,6 +119,13 @@ export const commands = createCliCommandTable({
   "ticket-edit": (argv) => runTicketEdit(argv),
   "ticket-validate": (argv) => runTicketValidate(argv),
   "ticket-resolve": (argv) => runTicketResolve(argv),
+  "sop-create": (argv) => runSopCreate(argv),
+  "sop-list": (argv) => runSopList(argv),
+  "sop-show": (argv) => runSopShow(argv),
+  "sop-edit": (argv) => runSopEdit(argv),
+  "sop-validate": (argv) => runSopValidate(argv),
+  "sop-category-list": (argv) => runSopCategoryList(argv),
+  "sop-category-show": (argv) => runSopCategoryShow(argv),
   maintenance: (argv) => runMaintenanceCommand(argv),
   ship: (argv) => runShip(argv),
   "commit-and-push": (argv) => runCommitAndPush(argv),

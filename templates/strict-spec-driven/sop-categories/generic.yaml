@@ -1,0 +1,40 @@
+schema: strict-spec-driven/sop-category/v1
+schema_version: 1
+artifact_type: sop_category
+schema_file: templates/strict-spec-driven/schemas/sop-category.yaml
+category:
+  id: generic
+  title: Generic procedure
+  description: Fallback category for any operator-facing procedure that does not fit a more specific category.
+questions:
+  - id: purpose
+    prompt: What is this procedure and why does it exist (the goal it achieves)?
+    maps_to: purpose
+    required: true
+  - id: scope
+    prompt: What is in scope, and what is explicitly out of scope?
+    maps_to: scope
+    required: true
+  - id: trigger
+    prompt: What event or condition starts this procedure?
+    maps_to: trigger
+    required: true
+  - id: roles
+    prompt: Which roles are involved, and what is each responsible for?
+    maps_to: roles
+    required: false
+  - id: steps
+    prompt: Walk through the procedure in order — for each step, who does it, what they do, and the expected result.
+    maps_to: steps
+    required: true
+  - id: success
+    prompt: What is the deliverable, and how do you know the procedure is complete?
+    maps_to: success_criteria
+    required: true
+constraints:
+  required_sections: []
+  min_steps: 1
+  rules:
+    - id: observable-steps
+      strength: MUST
+      statement: Every step describes an observable action performed by a single responsible role and states its expected result.

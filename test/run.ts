@@ -13,6 +13,7 @@ import { runMcpInstallSuite } from "./suites/mcp-install.js";
 import { runMcpServerSuite } from "./suites/mcp-server.js";
 import { runOperationsSuite } from "./suites/operations.js";
 import { runRoadmapAndMigrationSuite } from "./suites/roadmap-and-migration.js";
+import { runSopsSuite } from "./suites/sops.js";
 import { runTicketsSuite } from "./suites/tickets.js";
 
 async function main(): Promise<void> {
@@ -28,6 +29,7 @@ async function main(): Promise<void> {
   await runChangeLifecycleSuite(context);
   await runRoadmapAndMigrationSuite(context);
   await runTicketsSuite(context);
+  await runSopsSuite(context);
   await runOperationsSuite(context);
   await runMcpServerSuite(context);
   await runMcpInstallSuite(context);

@@ -1,0 +1,43 @@
+schema: strict-spec-driven/sop/v1
+schema_version: 1
+artifact_type: sop
+schema_file: ../../templates/strict-spec-driven/schemas/sop.yaml
+sop:
+  id: restart-web-frontend-abc123
+  title: Restart the web frontend
+category: operational
+status: draft
+created_at: "2026-06-30T00:00:00.000Z"
+updated_at: "2026-06-30T00:00:00.000Z"
+purpose: Restore the web frontend to a healthy serving state after an unhealthy deployment.
+scope:
+  in:
+    - Restarting the running web frontend process.
+  out:
+    - Database migrations or schema changes.
+trigger: A health check reports the web frontend as unhealthy.
+roles:
+  - id: on-call
+    name: On-call engineer
+    responsibility: Executes the restart and confirms recovery.
+prerequisites:
+  - Access to the deployment control plane.
+steps:
+  - id: drain-traffic
+    order: 1
+    actor: on-call
+    action: Drain inbound traffic from the unhealthy instance.
+    expected_result: The instance no longer receives new requests.
+  - id: restart-process
+    order: 2
+    actor: on-call
+    action: Restart the web frontend process.
+    expected_result: The process reports a healthy status.
+    branches:
+      - condition: The process does not return to healthy within five minutes.
+        goto_step: drain-traffic
+exceptions:
+  - condition: The restart fails twice in a row.
+    handling: Roll back to the previous known-good deployment.
+success_criteria:
+  - The web frontend health check reports healthy.

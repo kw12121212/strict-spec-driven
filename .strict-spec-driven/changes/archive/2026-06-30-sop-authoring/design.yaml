@@ -1,0 +1,35 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: sop-authoring
+approach:
+  - 'Add three registered strict YAML schemas: sop (a field-superset main artifact with required category), sop-category (declares questions[] and constraints{required_sections, rules}), and sops-index. Bundle four category definitions under templates/strict-spec-driven/sop-categories/ so categories are data, not code.'
+  - 'Scripts own all mechanics in new src modules (sops.ts, sop-categories.ts, src/cli/cmd-sops.ts) registered in the CLI registry: sop-create derives a conflict-resistant id from the title, writes under .strict-spec-driven/sops/, maintains INDEX.yaml, and is idempotent; sop-validate layers category constraints over base schema validation; sop-list/show/edit and sop-category-list/show round out CRUD and discovery.'
+  - 'A new strict-sop skill conducts the interview: it reads the chosen category via sop-category-show, asks that category''s question list, then calls parameterized CLI commands (one invocation per step/role) to emit compliant YAML and finishes with sop-validate. AI judgment stays in the skill; the script never does ad hoc text manipulation.'
+  - Optional SOP links to a spec, change, or roadmap target are resolved and verified to exist at sop-create and sop-validate time, emitting a path-aware diagnostic for a dangling reference.
+  - Add a sop domain main spec and delta-spec for this change, plus tests covering schema validation, category-overlay validation, idempotent create, branch exhaustiveness, link-target validation, and path-aware error diagnostics.
+decisions:
+  category-as-data:
+    decision: Model SOP categories as bundled strict YAML definition files that declare their own question list and constraints, validated by a sop-category schema.
+    rationale: Adding or tuning a category becomes a YAML edit rather than a code change, matching the project's yaml-first and scripts-own-mechanics standards, and keeps per-category questions/constraints in one auditable place.
+  single-superset-schema:
+    decision: Use one sop schema holding a superset of optional sections; each category declares required_sections and extra rules that the validator enforces as an overlay.
+    rationale: Keeps one artifact-per-schema convention and a single validation path while still letting categories impose different process constraints, avoiding a proliferation of near-duplicate per-category schemas.
+  in-step-branches:
+    decision: Represent decision branching as step.branches[]{condition, goto_step} with script-enforced exhaustiveness and target-step existence, rather than standalone decision nodes.
+    rationale: Covers the common branching needs of the seeded categories with the simplest schema for v1; standalone multi-path decision nodes are explicitly out of scope and can be added later without breaking linear SOPs.
+  minimal-lifecycle:
+    decision: Limit v1 status to draft/active with no archival transitions, exposing create/list/show/validate/edit only.
+    rationale: Bounds v1 scope to guided authoring and validation, mirroring a slimmer subset of the ticket lifecycle that can be extended once the authoring flow proves out.
+  configurable-severity:
+    decision: The incident-response category declares its severity vocabulary in its own constraints; sop-validate enforces the declared vocabulary instead of a hard-coded enum.
+    rationale: 'Resolves the incident-severity-scale question consistently with category-as-data: severity scales differ between organizations and must be tunable without code changes.'
+  english-prompt-storage:
+    decision: Bundled category question prompts are authored in the config preferred_human_language (English); the strict-sop skill renders them into the active session language at interview time.
+    rationale: 'Resolves the interview-prompt-language question: storage stays portable and config-consistent while the operator still experiences the interview in their own language.'
+  validated-links:
+    decision: Optional SOP links to spec/change/roadmap targets are resolved and verified to exist at create and validate time rather than stored as unchecked free text.
+    rationale: 'Resolves the link-target-validation question toward stricter integrity: dangling cross-artifact references are surfaced as path-aware diagnostics instead of silently rotting.'
+alternatives: []
+risks: []

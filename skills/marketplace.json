@@ -24,6 +24,7 @@
     { "name": "strict-spec-resync-code-mapping", "family": "strict-spec" },
     { "name": "strict-spec-review", "family": "strict-spec" },
     { "name": "strict-spec-ship", "family": "strict-spec" },
+    { "name": "strict-spec-sop", "family": "strict-spec" },
     { "name": "strict-spec-spec-edit", "family": "strict-spec" },
     { "name": "strict-spec-sync-specs", "family": "strict-spec" },
     { "name": "strict-spec-verify", "family": "strict-spec" },

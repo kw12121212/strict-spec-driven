@@ -1,0 +1,20 @@
+schema: strict-spec-driven/sop-category/v1
+schema_version: 1
+artifact_type: sop_category
+schema_file: ../../templates/strict-spec-driven/schemas/sop-category.yaml
+category:
+  id: generic
+  title: Generic procedure
+  description: A fallback category for any operator-facing procedure that does not fit a more specific category.
+questions:
+  - id: purpose
+    prompt: What is this procedure and why does it exist?
+    maps_to: purpose
+    required: true
+  - id: trigger
+    prompt: What event or condition starts this procedure?
+    maps_to: trigger
+    required: true
+constraints:
+  required_sections: []
+  min_steps: 1
