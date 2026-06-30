@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: ticket-timestamps-created-order
+approach:
+  - Extend the ticket artifact contract with updated_at and make all deterministic ticket writers own lifecycle timestamp maintenance. The index and list flows should sort active tickets by parsed/lexicographic ISO created_at ascending and use ticket id only as a stable tie-breaker, while schema validation keeps both timestamp fields required for current v1 ticket artifacts.
+decisions:
+  ticket-lifecycle-timestamps:
+    decision: created_at remains the immutable creation timestamp and updated_at records the last time a command rewrote the ticket artifact.
+    rationale: This preserves existing audit meaning for created_at while adding a single machine-readable lifecycle field for edits, dispatch decisions, status changes, provenance links, and archive writes.
+  chronological-active-ticket-order:
+    decision: Active ticket INDEX.yaml and ticket-list output are ordered by created_at from oldest to newest, with ticket id as the deterministic tie-breaker when timestamps match.
+    rationale: Creation time matches operator review flow better than content-derived id ordering, while the tie-breaker keeps output stable for tests and repeated rebuilds.
+  schema-first-required-field:
+    decision: updated_at is added as a required field to the existing ticket schema and reflected in examples and embedded templates.
+    rationale: The repository is YAML-first and the workflow-scope-discipline standard requires artifact contract changes to lead implementation changes.
+alternatives: []
+risks: []

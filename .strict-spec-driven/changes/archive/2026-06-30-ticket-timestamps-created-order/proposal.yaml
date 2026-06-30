@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: ticket-timestamps-created-order
+  status: proposed
+summary:
+  what:
+    - Require tickets to record both creation time and last update time, and order active ticket index/list output by creation time from oldest to newest.
+  why:
+    - Operators need auditable ticket lifecycle timestamps and stable chronological ticket review order instead of id-based ordering.
+scope:
+  in:
+    - Require ticket artifacts to carry created_at and updated_at.
+    - Set created_at and updated_at to the same timestamp when ticket-create creates a new ticket.
+    - Refresh updated_at whenever ticket-edit or ticket-resolve rewrites a ticket artifact.
+    - Rebuild tickets INDEX.yaml in ascending created_at order with ticket id as a deterministic tie-breaker.
+    - Return ticket-list results in ascending created_at order with ticket id as a deterministic tie-breaker.
+    - Update ticket schemas, examples, embedded templates, and behavior-facing tests for the timestamp and ordering contract.
+  out:
+    - Do not change ticket id derivation or idempotent create semantics.
+    - Do not include archived tickets in ticket-list output beyond existing behavior.
+    - Do not change dispatch_decision.decided_at semantics.
+unchanged_behavior:
+  - ticket-show and ticket-validate continue to read archived tickets by id; ticket-list remains active-ticket-only; created_at remains stable after creation.

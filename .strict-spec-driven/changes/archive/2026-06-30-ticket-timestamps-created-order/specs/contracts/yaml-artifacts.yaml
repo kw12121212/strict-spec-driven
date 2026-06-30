@@ -1,0 +1,29 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/ticket.yaml
+    - examples/strict-spec-driven/ticket.yaml
+    - src/embedded-templates.ts
+  tests:
+    - test/suites/tickets.ts
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    yaml-ticket-lifecycle-timestamp-contract:
+      strength: MUST
+      statement: The system MUST define the strict ticket YAML artifact schema and minimal valid example with required created_at and updated_at timestamp fields so ticket lifecycle times are machine-validated rather than implied by command behavior.
+      scenarios:
+        ticket-schema-requires-lifecycle-timestamps:
+          - GIVEN: the strict YAML ticket artifact schema is reviewed
+          - WHEN: required ticket fields are inspected
+          - THEN: created_at and updated_at are both required top-level string fields
+        ticket-example-demonstrates-lifecycle-timestamps:
+          - GIVEN: the minimal valid ticket YAML example is inspected
+          - WHEN: timestamp fields are reviewed
+          - THEN: the example includes both created_at and updated_at fields
+  MODIFIED: {}
+  REMOVED: {}

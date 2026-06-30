@@ -48,6 +48,15 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   const ticketsModule = await loadDistModule<TicketsModule>("tickets.js");
   const yamlModule = await loadDistModule<YamlModule>("yaml.js");
   const yamlParse = (text: string): Record<string, unknown> => yamlModule.parseYamlDocument<Record<string, unknown>>(text);
+  const ticketFilePath = (root: string, ticketId: string): string =>
+    path.join(root, ".strict-spec-driven", "tickets", `${ticketId}.yaml`);
+  const rewriteTicketTimes = (root: string, ticketId: string, createdAt: string, updatedAt = createdAt): void => {
+    const filePath = ticketFilePath(root, ticketId);
+    const artifact = yamlParse(readFileSync(filePath, "utf8")) as Record<string, unknown>;
+    artifact.created_at = createdAt;
+    artifact.updated_at = updatedAt;
+    writeFileSync(filePath, yamlModule.stringifyYamlDocument(artifact), "utf8");
+  };
 
   context.section("[tickets] conflict-resistant content-derived ids");
 
@@ -100,6 +109,15 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
     existsSync(path.join(createRoot, ".strict-spec-driven", "tickets", "INDEX.yaml")),
     "ticket-create maintains the tickets index",
   );
+  const createdTicketArtifact = yamlParse(readFileSync(path.join(createRoot, createdJson.path as string), "utf8"));
+  context.assert(
+    typeof createdTicketArtifact.created_at === "string" && createdTicketArtifact.created_at.length > 0,
+    "ticket-create records created_at",
+  );
+  context.assert(
+    createdTicketArtifact.updated_at === createdTicketArtifact.created_at,
+    "ticket-create initializes updated_at to the creation timestamp",
+  );
 
   const recreated = cli(
     [
@@ -132,6 +150,7 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   const listTickets = listJson.tickets as Array<{ id: string; status: string; title: string; path: string }>;
   context.assert(Array.isArray(listTickets) && listTickets.length === 1, "ticket-list enumerates the created ticket");
   context.assert(listTickets[0].status === "open", "ticket-list reports the open status");
+  context.assert(!("createdAt" in listTickets[0]), "ticket-list does not expose its internal created_at sort key");
 
   const emptyList = cli(["ticket-list"], { cwd: makeWorkspace() });
   context.assert(emptyList.status === 0, "ticket-list on empty state exits zero");
@@ -183,6 +202,7 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
       "  desired_outcome: o",
       "status: not_a_real_status",
       'created_at: "2026-06-13T00:00:00Z"',
+      'updated_at: "2026-06-13T00:00:00Z"',
       "",
     ].join("\n"),
     "utf8",
@@ -195,6 +215,7 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
 
   const roadmapRoot = makeRoadmapWorkspace();
   const promoteTicket = createTicketViaCli(roadmapRoot, "Add CSV export", "no tabular export", "a CSV export exists");
+  rewriteTicketTimes(roadmapRoot, promoteTicket, "2026-06-01T00:00:00.000Z", "2026-06-01T00:00:00.000Z");
   const promote = cli(
     ["ticket-resolve", promoteTicket, "--outcome", "not_implemented", "--rationale", "not found in specs, code, or docs"],
     { cwd: roadmapRoot },
@@ -227,6 +248,11 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   );
   const promotedTicketShow = parseJson(cli(["ticket-show", promoteTicket], { cwd: roadmapRoot }).stdout);
   const promotedTicketArtifact = promotedTicketShow.ticket as Record<string, unknown>;
+  context.assert(promotedTicketArtifact.created_at === "2026-06-01T00:00:00.000Z", "ticket-resolve preserves created_at");
+  context.assert(
+    typeof promotedTicketArtifact.updated_at === "string" && promotedTicketArtifact.updated_at !== "2026-06-01T00:00:00.000Z",
+    "ticket-resolve refreshes updated_at on the archived ticket",
+  );
   context.assert(
     (promotedTicketArtifact.provenance as Record<string, unknown>)?.promoted_to === milestoneId,
     "ticket records promoted_to pointing at the milestone",
@@ -365,8 +391,10 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
     ).stdout,
   );
   const editId = editCreate.ticketId as string;
+  rewriteTicketTimes(editRoot, editId, "2026-06-10T00:00:00.000Z", "2026-06-10T00:00:00.000Z");
   const beforeEdit = (parseJson(cli(["ticket-show", editId], { cwd: editRoot }).stdout).ticket as Record<string, unknown>);
   const originalCreatedAt = beforeEdit.created_at as string;
+  const originalUpdatedAt = beforeEdit.updated_at as string;
 
   const edited = cli(
     [
@@ -394,6 +422,7 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   context.assert(editedTicket.ticket.id === editId, "ticket-edit keeps the ticket id stable");
   context.assert(editedTicket.status === "open", "ticket-edit keeps the ticket status unchanged");
   context.assert(editedTicket.created_at === originalCreatedAt, "ticket-edit preserves created_at");
+  context.assert(editedTicket.updated_at !== originalUpdatedAt, "ticket-edit refreshes updated_at");
 
   const showAfterEdit = parseJson(cli(["ticket-show", editId], { cwd: editRoot }).stdout).ticket as Record<string, any>;
   context.assert(showAfterEdit.ticket.title === "Refined title", "ticket-edit persists the updated title to disk");
@@ -402,6 +431,29 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
     readFileSync(path.join(editRoot, ".strict-spec-driven", "tickets", "INDEX.yaml"), "utf8"),
   ) as { tickets: Record<string, { title: string }> };
   context.assert(editIndex.tickets[editId].title === "Refined title", "ticket-edit refreshes the tickets index with the new title");
+
+  const orderRoot = makeWorkspace();
+  const laterTicket = createTicketViaCli(orderRoot, "Later ticket", "later problem", "later outcome");
+  const sameTimeB = createTicketViaCli(orderRoot, "Same time B", "same b problem", "same b outcome");
+  const sameTimeA = createTicketViaCli(orderRoot, "Same time A", "same a problem", "same a outcome");
+  rewriteTicketTimes(orderRoot, laterTicket, "2026-06-12T00:00:00.000Z");
+  rewriteTicketTimes(orderRoot, sameTimeB, "2026-06-11T00:00:00.000Z");
+  rewriteTicketTimes(orderRoot, sameTimeA, "2026-06-11T00:00:00.000Z");
+  const expectedChronologicalIds = [sameTimeA, sameTimeB].sort().concat(laterTicket);
+  const rebuildOrder = cli(["ticket-edit", laterTicket, "--title", "Later ticket"], { cwd: orderRoot });
+  context.assert(rebuildOrder.status === 0, "ticket-edit rebuilds the tickets index after manual fixture timestamp setup");
+  const orderedIndex = yamlParse(readFileSync(path.join(orderRoot, ".strict-spec-driven", "tickets", "INDEX.yaml"), "utf8")) as {
+    tickets: Record<string, unknown>;
+  };
+  context.assert(
+    JSON.stringify(Object.keys(orderedIndex.tickets)) === JSON.stringify(expectedChronologicalIds),
+    "tickets INDEX.yaml is ordered by created_at with ticket id as the tie-breaker",
+  );
+  const orderedList = parseJson(cli(["ticket-list"], { cwd: orderRoot }).stdout).tickets as Array<{ id: string }>;
+  context.assert(
+    JSON.stringify(orderedList.map((entry) => entry.id)) === JSON.stringify(expectedChronologicalIds),
+    "ticket-list output is ordered by created_at with ticket id as the tie-breaker",
+  );
 
   const cleared = parseJson(
     cli(["ticket-edit", editId, "--clear-intent", "--clear-labels", "--clear-external-tracker"], { cwd: editRoot }).stdout,
@@ -450,6 +502,7 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   );
 
   rmSync(editRoot, { recursive: true, force: true });
+  rmSync(orderRoot, { recursive: true, force: true });
   rmSync(archRoot, { recursive: true, force: true });
   rmSync(createRoot, { recursive: true, force: true });
   rmSync(malformedRoot, { recursive: true, force: true });

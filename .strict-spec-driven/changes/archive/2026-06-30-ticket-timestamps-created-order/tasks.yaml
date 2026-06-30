@@ -1,0 +1,40 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: ticket-timestamps-created-order
+sections:
+  Implementation:
+    update-ticket-artifact-contract:
+      text: Update ticket schema/example/template artifacts so ticket artifacts require updated_at while tickets-index remains an active-ticket index whose entry order is produced by the rebuild logic.
+      status: complete
+    implement-ticket-timestamp-maintenance:
+      text: Update ticket create, edit, resolve, archive/write helpers, and related types so created_at is stable and updated_at is refreshed whenever a command rewrites a ticket artifact.
+      status: complete
+    implement-chronological-ticket-ordering:
+      text: Update tickets index rebuild and ticket-list behavior so active tickets are ordered by created_at oldest-to-newest with ticket id as the deterministic tie-breaker.
+      status: complete
+  Testing:
+    update-ticket-tests:
+      text: Add or update ticket suite coverage for required updated_at validation, create timestamps, edit/resolve timestamp refresh, chronological INDEX.yaml ordering, and chronological ticket-list output.
+      status: complete
+      command: bun test/run.ts
+    build-typescript:
+      text: Rebuild compiled output after TypeScript source edits.
+      status: complete
+      command: bun run build
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-strict-change:
+      text: Run strict change verification for ticket-timestamps-created-order and fix artifact-shape issues before implementation handoff.
+      status: complete
+      command: strict-spec-cli verify ticket-timestamps-created-order
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: update-ticket-tests

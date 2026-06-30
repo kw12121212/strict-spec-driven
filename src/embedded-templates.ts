@@ -2850,6 +2850,7 @@ json_schema:
     - requirement
     - status
     - created_at
+    - updated_at
   properties:
     schema:
       type: string
@@ -2900,6 +2901,9 @@ json_schema:
         - implemented
         - rejected
     created_at:
+      type: string
+      minLength: 1
+    updated_at:
       type: string
       minLength: 1
     labels:

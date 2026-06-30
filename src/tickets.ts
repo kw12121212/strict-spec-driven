@@ -44,6 +44,7 @@ export type TicketArtifact = {
   requirement: { problem: string; desired_outcome: string; intent?: string };
   status: string;
   created_at: string;
+  updated_at: string;
   labels?: string[];
   external_tracker?: TicketReference;
   provenance?: TicketProvenance;
@@ -59,6 +60,7 @@ export type CreateTicketResult = {
 };
 
 export type TicketListEntry = { id: string; title: string; status: string; path: string };
+type ChronologicalTicketEntry = { id: string; createdAt: string };
 
 export type ListTicketsResult = {
   valid: boolean;
@@ -193,7 +195,13 @@ function listArchivedTicketFiles(rootDir: string): string[] {
     .sort();
 }
 
+function compareChronologicalTickets(left: ChronologicalTicketEntry, right: ChronologicalTicketEntry): number {
+  const createdAtOrder = left.createdAt.localeCompare(right.createdAt);
+  return createdAtOrder !== 0 ? createdAtOrder : left.id.localeCompare(right.id);
+}
+
 function buildTicketArtifact(input: CreateTicketInput, ticketId: string): TicketArtifact {
+  const now = new Date().toISOString();
   const artifact: TicketArtifact = {
     schema: TICKET_SCHEMA_ID,
     schema_version: 1,
@@ -205,7 +213,8 @@ function buildTicketArtifact(input: CreateTicketInput, ticketId: string): Ticket
       desired_outcome: input.desiredOutcome,
     },
     status: "open",
-    created_at: new Date().toISOString(),
+    created_at: now,
+    updated_at: now,
   };
   if (input.intent && input.intent.length > 0) {
     artifact.requirement.intent = input.intent;
@@ -219,29 +228,41 @@ function buildTicketArtifact(input: CreateTicketInput, ticketId: string): Ticket
   return artifact;
 }
 
+export function touchTicketUpdatedAt(artifact: TicketArtifact): void {
+  artifact.updated_at = new Date().toISOString();
+}
+
 /**
  * Rebuilds .strict-spec-driven/tickets/INDEX.yaml deterministically from the
  * tickets on disk, so the index always reflects canonical ticket state and is
  * stable across reruns regardless of creation order.
  */
 export function rebuildTicketsIndex(rootDir: string): void {
-  const tickets: Record<string, { title: string; path: string; status: string }> = {};
+  const tickets: Array<{
+    id: string;
+    createdAt: string;
+    indexEntry: { title: string; path: string; status: string };
+  }> = [];
   for (const filePath of listTicketFiles(rootDir)) {
     const artifact = parseYamlFile<TicketArtifact>(filePath);
     const ticketId = artifact?.ticket?.id;
     if (typeof ticketId !== "string" || ticketId.length === 0) {
       continue;
     }
-    tickets[ticketId] = {
-      title: artifact.ticket.title,
-      path: repoRelative(rootDir, filePath),
-      status: artifact.status,
-    };
+    tickets.push({
+      id: ticketId,
+      createdAt: String(artifact.created_at ?? ""),
+      indexEntry: {
+        title: artifact.ticket.title,
+        path: repoRelative(rootDir, filePath),
+        status: artifact.status,
+      },
+    });
   }
 
   const sorted: Record<string, { title: string; path: string; status: string }> = {};
-  for (const ticketId of Object.keys(tickets).sort()) {
-    sorted[ticketId] = tickets[ticketId];
+  for (const ticket of tickets.sort(compareChronologicalTickets)) {
+    sorted[ticket.id] = ticket.indexEntry;
   }
 
   const indexArtifact = {
@@ -311,7 +332,7 @@ export function createTicket(rootDir: string, input: CreateTicketInput): CreateT
 }
 
 export function listTickets(rootDir: string): ListTicketsResult {
-  const entries: TicketListEntry[] = [];
+  const entries: Array<TicketListEntry & { createdAt: string }> = [];
   for (const filePath of listTicketFiles(rootDir)) {
     const artifact = parseYamlFile<TicketArtifact>(filePath);
     const ticketId = artifact?.ticket?.id;
@@ -323,10 +344,18 @@ export function listTickets(rootDir: string): ListTicketsResult {
       title: artifact.ticket.title,
       status: artifact.status,
       path: repoRelative(rootDir, filePath),
+      createdAt: String(artifact.created_at ?? ""),
     });
   }
-  entries.sort((left, right) => left.id.localeCompare(right.id));
-  return { valid: true, tickets: entries, diagnostics: [] };
+  const tickets = entries
+    .sort(compareChronologicalTickets)
+    .map((entry): TicketListEntry => ({
+      id: entry.id,
+      title: entry.title,
+      status: entry.status,
+      path: entry.path,
+    }));
+  return { valid: true, tickets, diagnostics: [] };
 }
 
 export function ticketPath(rootDir: string, ticketId: string): string {
@@ -354,7 +383,8 @@ export function writeTicketArtifact(rootDir: string, artifact: TicketArtifact): 
  * Edits the editable fields of an existing active ticket. Operates only on the
  * active ticket file: a ticket that resolves only to the archived directory is a
  * resolved audit record and is refused rather than edited. The ticket id,
- * created_at, status, provenance, and dispatch_decision are never touched — the
+ * created_at, status, provenance, and dispatch_decision are never touched. The
+ * updated_at timestamp is refreshed for the successful rewrite. The
  * content-derived id is allocated once at creation and is not re-derived here, so
  * edits never rename the file or break promotion/evidence links. The resulting
  * artifact is validated against the ticket schema before it is written, and the
@@ -396,6 +426,7 @@ export function editTicket(rootDir: string, input: EditTicketInput): EditTicketR
   } else if (input.externalTracker !== undefined) {
     artifact.external_tracker = input.externalTracker;
   }
+  touchTicketUpdatedAt(artifact);
 
   const schema = loadBundledSchemaBySchemaId(TICKET_SCHEMA_ID);
   const validation = validateArtifact(schema, artifact, repoRelative(rootDir, activePath));
@@ -411,6 +442,7 @@ export function editTicket(rootDir: string, input: EditTicketInput): EditTicketR
 export function archiveTicketArtifact(rootDir: string, artifact: TicketArtifact): string {
   const archivePath = archivedTicketFilePath(rootDir, artifact.ticket.id);
   const activePath = ticketFilePath(rootDir, artifact.ticket.id);
+  touchTicketUpdatedAt(artifact);
   mkdirSync(ticketsArchiveDir(rootDir), { recursive: true });
   writeFileSync(archivePath, stringifyYamlDocument(artifact), "utf8");
   if (existsSync(activePath)) {

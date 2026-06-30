@@ -9397,6 +9397,7 @@ json_schema:
     - requirement
     - status
     - created_at
+    - updated_at
   properties:
     schema:
       type: string
@@ -9447,6 +9448,9 @@ json_schema:
         - implemented
         - rejected
     created_at:
+      type: string
+      minLength: 1
+    updated_at:
       type: string
       minLength: 1
     labels:
@@ -18738,7 +18742,12 @@ function listArchivedTicketFiles(rootDir) {
   }
   return readdirSync8(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path23.join(dir, name)).sort();
 }
+function compareChronologicalTickets(left, right) {
+  const createdAtOrder = left.createdAt.localeCompare(right.createdAt);
+  return createdAtOrder !== 0 ? createdAtOrder : left.id.localeCompare(right.id);
+}
 function buildTicketArtifact(input, ticketId) {
+  const now = new Date().toISOString();
   const artifact = {
     schema: TICKET_SCHEMA_ID,
     schema_version: 1,
@@ -18750,7 +18759,8 @@ function buildTicketArtifact(input, ticketId) {
       desired_outcome: input.desiredOutcome
     },
     status: "open",
-    created_at: new Date().toISOString()
+    created_at: now,
+    updated_at: now
   };
   if (input.intent && input.intent.length > 0) {
     artifact.requirement.intent = input.intent;
@@ -18763,23 +18773,30 @@ function buildTicketArtifact(input, ticketId) {
   }
   return artifact;
 }
+function touchTicketUpdatedAt(artifact) {
+  artifact.updated_at = new Date().toISOString();
+}
 function rebuildTicketsIndex(rootDir) {
-  const tickets = {};
+  const tickets = [];
   for (const filePath of listTicketFiles(rootDir)) {
     const artifact = parseYamlFile(filePath);
     const ticketId = artifact?.ticket?.id;
     if (typeof ticketId !== "string" || ticketId.length === 0) {
       continue;
     }
-    tickets[ticketId] = {
-      title: artifact.ticket.title,
-      path: repoRelative(rootDir, filePath),
-      status: artifact.status
-    };
+    tickets.push({
+      id: ticketId,
+      createdAt: String(artifact.created_at ?? ""),
+      indexEntry: {
+        title: artifact.ticket.title,
+        path: repoRelative(rootDir, filePath),
+        status: artifact.status
+      }
+    });
   }
   const sorted = {};
-  for (const ticketId of Object.keys(tickets).sort()) {
-    sorted[ticketId] = tickets[ticketId];
+  for (const ticket of tickets.sort(compareChronologicalTickets)) {
+    sorted[ticket.id] = ticket.indexEntry;
   }
   const indexArtifact = {
     schema: TICKETS_INDEX_SCHEMA_ID,
@@ -18846,11 +18863,17 @@ function listTickets(rootDir) {
       id: ticketId,
       title: artifact.ticket.title,
       status: artifact.status,
-      path: repoRelative(rootDir, filePath)
+      path: repoRelative(rootDir, filePath),
+      createdAt: String(artifact.created_at ?? "")
     });
   }
-  entries.sort((left, right) => left.id.localeCompare(right.id));
-  return { valid: true, tickets: entries, diagnostics: [] };
+  const tickets = entries.sort(compareChronologicalTickets).map((entry) => ({
+    id: entry.id,
+    title: entry.title,
+    status: entry.status,
+    path: entry.path
+  }));
+  return { valid: true, tickets, diagnostics: [] };
 }
 function readTicketArtifact(rootDir, ticketId) {
   const filePath = findTicketFilePath(rootDir, ticketId);
@@ -18898,6 +18921,7 @@ function editTicket(rootDir, input) {
   } else if (input.externalTracker !== undefined) {
     artifact.external_tracker = input.externalTracker;
   }
+  touchTicketUpdatedAt(artifact);
   const schema2 = loadBundledSchemaBySchemaId(TICKET_SCHEMA_ID);
   const validation = validateArtifact(schema2, artifact, repoRelative(rootDir, activePath));
   if (!validation.valid) {
@@ -18909,6 +18933,7 @@ function editTicket(rootDir, input) {
 function archiveTicketArtifact(rootDir, artifact) {
   const archivePath = archivedTicketFilePath(rootDir, artifact.ticket.id);
   const activePath = ticketFilePath(rootDir, artifact.ticket.id);
+  touchTicketUpdatedAt(artifact);
   mkdirSync9(ticketsArchiveDir(rootDir), { recursive: true });
   writeFileSync9(archivePath, stringifyYamlDocument(artifact), "utf8");
   if (existsSync22(activePath)) {

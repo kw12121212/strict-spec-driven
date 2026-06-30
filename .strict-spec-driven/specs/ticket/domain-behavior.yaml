@@ -128,3 +128,31 @@ requirements:
         - GIVEN: an active ticket exists
         - WHEN: ticket-edit runs with no edit flags, with both a set value and a clear flag for the same field, or with a blank value for a required field
         - THEN: the ticket file is left unchanged and the command exits non-zero with a diagnostic naming the offending input
+  ticket-lifecycle-updated-at:
+    strength: MUST
+    statement: The system MUST require ticket artifacts to record both created_at and updated_at, set both fields to the same timestamp when a new ticket is created, preserve created_at after creation, and refresh updated_at whenever ticket-edit or ticket-resolve rewrites the ticket artifact.
+    scenarios:
+      ticket-create-initializes-lifecycle-timestamps:
+        - GIVEN: a strict workflow with the ticket contract is present
+        - WHEN: ticket-create creates a new ticket
+        - THEN: the ticket artifact includes created_at and updated_at with the same creation timestamp
+      ticket-edit-refreshes-updated-at:
+        - GIVEN: an active ticket exists with created_at and updated_at
+        - WHEN: ticket-edit successfully rewrites editable ticket fields
+        - THEN: created_at remains unchanged and updated_at is later than or different from the previous updated_at value
+      ticket-resolve-refreshes-updated-at:
+        - GIVEN: an active ticket exists with created_at and updated_at
+        - WHEN: ticket-resolve records a dispatch decision and archives the ticket
+        - THEN: the archived ticket preserves created_at and records an updated_at timestamp for the resolve rewrite
+  ticket-created-at-ordering:
+    strength: MUST
+    statement: The system MUST order active ticket INDEX.yaml entries and ticket-list output by ticket created_at from oldest to newest, using ticket id as the deterministic tie-breaker when created_at values match.
+    scenarios:
+      index-rebuild-orders-by-created-at:
+        - GIVEN: multiple active tickets exist with different created_at values
+        - WHEN: the tickets index is rebuilt
+        - THEN: INDEX.yaml lists tickets from oldest created_at to newest created_at, with ticket id ordering tickets that share the same created_at
+      ticket-list-orders-by-created-at:
+        - GIVEN: multiple active tickets exist with different created_at values
+        - WHEN: ticket-list runs
+        - THEN: the returned ticket collection is ordered from oldest created_at to newest created_at, with ticket id ordering tickets that share the same created_at
