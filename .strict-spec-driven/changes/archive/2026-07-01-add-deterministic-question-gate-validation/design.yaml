@@ -1,0 +1,16 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-deterministic-question-gate-validation
+approach:
+  - Add narrowly scoped proposal-readiness helpers that read existing strict YAML artifacts and emit proposal_readiness diagnostics for missing deterministic checklist evidence. Keep semantic judgment in skills and humans.
+decisions:
+  readiness-checks-existing-fields:
+    decision: Use existing proposal scope, unchanged_behavior, design decisions, questions, delta-spec, and mapping fields instead of adding a new checklist-audit schema field.
+    rationale: The planned change permits validation against existing artifacts when no explicit audit field exists, and this avoids schema churn while enforcing the machine-checkable parts of the intake contract.
+  no-product-judgment:
+    decision: Limit CLI checks to presence and structure of evidence rather than evaluating whether product, compatibility, data, security, or risk answers are correct.
+    rationale: The roadmap explicitly keeps product judgment out of the validator; deterministic diagnostics should only require explicit recording where artifacts already make that determinable.
+alternatives: []
+risks: []

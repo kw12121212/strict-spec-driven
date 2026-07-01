@@ -115,6 +115,16 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 
 路线图文档描述了首选的拆分文件协作模型：保持里程碑文件和 `INDEX.yaml` 低变动率，将日常路线图工作存储在 `.strict-spec-driven/roadmap/planned-changes/` 中，在合并或归档交接后重新运行 `roadmap-sync`，并将外部跟踪器引用视为可选上下文而非必需的真实来源。
 
+## 变更接收问题门
+
+面向提案的 Skills 会在实现前运行一个简短的变更接收问题门。它们会先用可用证据回答检查清单：当前请求、路线图 planned-change 详情、工单来源、严格规范、技术标准、已有变更制品、仓库搜索结果以及确定性 CLI 输出。如果这些证据已经回答了清单项，工作流不会再向人重复提问。
+
+检查清单覆盖：要改什么、为什么值得做、包含什么、不包含什么、哪些既有行为必须保持不变、工作可能位于哪里、如何证明它有效、相关风险或依赖是什么，以及适用哪些技术规则。
+
+如果发现后仍缺少必需答案，Skill 会在 `questions.yaml.open` 中记录条目，包含具体上下文、影响和推荐答案或选项。当 `questions.yaml.open` 还有必需条目时，实现交接会刻意停止；必须先把答案解析到 `questions.yaml.resolved`，`/strict-spec-auto` 或 `/strict-spec-apply` 才能继续。
+
+面向人的问题文本、上下文、建议、选项和摘要会使用 `.strict-spec-driven/config.yaml` 中的 `preferred_human_language`，除非当前用户消息明确要求另一种语言。问题 id、制品字段、schema 名称、命令名和文件路径等稳定技术值保持为不随语言变化的标识符。
+
 ## 工单接收与分诊
 
 工单是工作流的入口：工单将一个**纯需求**——问题、期望的可观察结果、意图——捕获为不含任何解决方案的严格 YAML 制品，存放于 `.strict-spec-driven/tickets/`，其 id 来自内容派生、具备冲突抵抗性（而非共享计数器）。接收分两步：

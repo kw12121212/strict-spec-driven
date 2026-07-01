@@ -1,0 +1,18 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: update-proposal-skills-for-question-gate
+approach:
+  - Add a shared intake-checklist section to the affected proposal-oriented skill prompts, tuned for each workflow's timing, and keep enforcement as skill-content regression assertions rather than CLI schema changes.
+decisions:
+  skill-guidance-only:
+    decision: Implement the change by updating packaged skill prompt text and self-hosted validation tests.
+    rationale: The planned change is about agent workflow behavior; the deterministic CLI readiness checks already exist and no new artifact schema is required.
+  existing-artifacts-for-questions:
+    decision: Require missing required answers to be written to questions.yaml.open and resolved into questions.yaml.resolved before implementation continues.
+    rationale: This uses the existing questions artifact contract and preserves stable language-neutral IDs while localizing human-facing question text through preferred_human_language.
+alternatives:
+  - option: Add a new checklist-audit artifact field
+    reason: Rejected because the roadmap item explicitly avoids schema churn and the prior contract did not add such a field.
+risks: []

@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: cover-question-gate-docs-and-regression
+  status: proposed
+summary:
+  what:
+    - Document and regress the full change-intake question gate across user docs, packaged skills, self-hosted workflow state, and a copied real-project fixture.
+  why:
+    - The milestone needs end-to-end proof that the plain checklist is visible to users, shipped with skills/templates, respects preferred_human_language, blocks implementation when required answers are missing, and proceeds without duplicate questions when evidence answers the checklist.
+scope:
+  in:
+    - Update README.md, README.zh.md, ROADMAP_GUIDE.md, and ROADMAP_GUIDE.zh.md with the change-intake gate behavior.
+    - Add regression assertions covering self-hosted and copied-fixture no-question, blocked-question, roadmap-backed evidence, insufficient-roadmap-detail, and question-resolution paths.
+    - Add packaged documentation assertions so published installs carry the same guidance and localization boundary.
+  out:
+    - Do not change question-list schema shape or add a new interactive chat system.
+    - Do not change roadmap candidate selection or active-change lifecycle semantics.
+unchanged_behavior:
+  - questions.yaml.open continues to block implementation until entries are resolved.
+  - Stable internal ids, artifact fields, commands, and file paths remain language-neutral technical values.
+roadmap:
+  milestone: 0018-change-intake-question-gates
+  planned_change: cover-question-gate-docs-and-regression

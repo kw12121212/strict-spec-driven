@@ -19186,6 +19186,18 @@ function listDeltaSpecFiles(rootDir, changeName) {
   walk(specsDir);
   return files;
 }
+function readChangeArtifact(rootDir, changeName, artifactName) {
+  const artifactPath = path18.join(changeDir(rootDir, changeName), artifactName);
+  if (!existsSync17(artifactPath))
+    return;
+  try {
+    return parseYamlDocument(readFileSync14(artifactPath, "utf8"), {
+      source: toRepoPath(rootDir, artifactPath)
+    });
+  } catch {
+    return;
+  }
+}
 function readOpenQuestionIds(rootDir, changeName) {
   const questionsPath = path18.join(changeDir(rootDir, changeName), "questions.yaml");
   if (!existsSync17(questionsPath))
@@ -19201,6 +19213,60 @@ function readFirstPendingTask(rootDir, changeName) {
     return;
   const artifact = parseYamlDocument(readFileSync14(tasksPath, "utf8"), { source: toRepoPath(rootDir, tasksPath) });
   return flattenTasks(artifact).find((task) => task.status !== "complete");
+}
+function hasEntries(value) {
+  return Array.isArray(value) && value.length > 0;
+}
+function proposalReadinessDiagnostic(changeName, artifactPath, fieldPath, message, expected, actual) {
+  return {
+    source: "proposal_readiness",
+    artifactPath: `.strict-spec-driven/changes/${changeName}/${artifactPath}`,
+    fieldPath,
+    message,
+    expected,
+    actual
+  };
+}
+function checkDeterministicQuestionGateEvidence(rootDir, changeName) {
+  const diagnostics = [];
+  const proposal = readChangeArtifact(rootDir, changeName, "proposal.yaml");
+  if (proposal) {
+    if (!hasEntries(proposal.scope?.in)) {
+      diagnostics.push(proposalReadinessDiagnostic(changeName, "proposal.yaml", "$.scope.in", "proposal must record what is included before implementation handoff", "at least one included scope item", "empty or missing scope.in"));
+    }
+    if (!hasEntries(proposal.scope?.out)) {
+      diagnostics.push(proposalReadinessDiagnostic(changeName, "proposal.yaml", "$.scope.out", "proposal must record what is left out before implementation handoff", "at least one out-of-scope item", "empty or missing scope.out"));
+    }
+    if (!hasEntries(proposal.unchanged_behavior)) {
+      diagnostics.push(proposalReadinessDiagnostic(changeName, "proposal.yaml", "$.unchanged_behavior", "proposal must record behavior that must stay the same before implementation handoff", "at least one unchanged behavior item", "empty or missing unchanged_behavior"));
+    }
+  }
+  const design = readChangeArtifact(rootDir, changeName, "design.yaml");
+  if (design && (!design.decisions || Object.keys(design.decisions).length === 0)) {
+    diagnostics.push(proposalReadinessDiagnostic(changeName, "design.yaml", "$.decisions", "design must record at least one decision before implementation handoff", "at least one design decision", "empty or missing decisions"));
+  }
+  for (const deltaSpecPath of listDeltaSpecFiles(rootDir, changeName)) {
+    const absolutePath = path18.join(rootDir, deltaSpecPath);
+    let artifact;
+    try {
+      artifact = parseYamlDocument(readFileSync14(absolutePath, "utf8"), { source: deltaSpecPath });
+    } catch {
+      continue;
+    }
+    const implementationCount = Array.isArray(artifact.mapping?.implementation) ? artifact.mapping.implementation.length : 0;
+    const testCount = Array.isArray(artifact.mapping?.tests) ? artifact.mapping.tests.length : 0;
+    if (implementationCount === 0 && testCount === 0) {
+      diagnostics.push({
+        source: "proposal_readiness",
+        artifactPath: deltaSpecPath,
+        fieldPath: "$.mapping",
+        message: "delta spec must map implementation or test evidence before implementation handoff",
+        expected: "at least one mapping.implementation or mapping.tests entry",
+        actual: "empty delta spec mapping"
+      });
+    }
+  }
+  return diagnostics;
 }
 function suggestionsForDiagnostics(rootDir, changeName, diagnostics) {
   const suggestions = [];
@@ -19254,6 +19320,7 @@ function getWorkflowState(rootDir, changeName) {
 function checkProposalReadiness(rootDir, changeName) {
   const verification = verifyChange(rootDir, changeName);
   const diagnostics = verification.diagnostics.filter((diagnostic) => diagnostic.source !== "task_completion");
+  diagnostics.push(...checkDeterministicQuestionGateEvidence(rootDir, changeName));
   if (listDeltaSpecFiles(rootDir, changeName).length === 0) {
     diagnostics.push({
       source: "proposal_readiness",

@@ -91,6 +91,8 @@ mapping:
     - skills/strict-ticket/SKILL.md
     - README.zh.md
     - scripts/gen-templates-bundle.ts
+    - ROADMAP_GUIDE.md
+    - ROADMAP_GUIDE.zh.md
   tests:
     - test/run.ts
     - test/support/harness.ts
@@ -2101,3 +2103,39 @@ requirements:
         - WHEN: an agent reads the rules before editing strict YAML
         - THEN: the rules mention sample-show as the supported way to inspect valid examples
         - AND: the rules state that installed skills do not rely on a local examples directory
+  cli-change-intake-question-gate-contract:
+    strength: MUST
+    statement: Strict proposal creation guidance MUST answer a short evidence-backed change-intake checklist from the active request and available project context before implementation, ask only required unanswered checklist items in preferred_human_language, record unresolved required answers in questions.yaml.open with impact and recommended answers or options, stop implementation handoff while required open questions remain, and keep stable technical identifiers distinct from localized human-facing question, context, recommendation, and summary text.
+    scenarios:
+      change-intake-uses-evidence-before-asking:
+        - GIVEN: A strict proposal workflow has an active request, optional roadmap planned-change or ticket provenance, main specs, technical standards, existing change artifacts, repository search results, and deterministic CLI output available for discovery
+        - WHEN: the workflow prepares a strict change proposal
+        - THEN: the workflow answers the change-intake checklist from that evidence where possible, does not ask the human for answers that discovery already proves, and writes any still-missing required answer to questions.yaml.open with impact and recommended answer or options in the configured preferred_human_language
+      open-required-questions-block-implementation:
+        - GIVEN: a generated strict change has one or more required unresolved checklist answers recorded in questions.yaml.open
+        - WHEN: implementation handoff or automatic implementation is considered
+        - THEN: the workflow stops before implementation until the required open questions are resolved while preserving stable technical identifiers such as question ids, artifact fields, schema names, and command names
+  cli-question-gate-readiness-validation:
+    strength: MUST
+    statement: The ready proposal-handoff command MUST emit deterministic proposal_readiness diagnostics when machine-checkable change-intake evidence is missing from existing proposal, design, question, delta-spec, or mapping artifacts, including empty included scope, empty out-of-scope scope, empty unchanged behavior, missing design decisions, missing delta specs, or delta specs without implementation or test mappings, while leaving semantic product judgment outside CLI validation.
+    scenarios:
+      readiness-rejects-missing-checklist-evidence:
+        - GIVEN: a strict change has valid YAML planning artifacts but missing deterministic change-intake evidence such as empty scope lists, no unchanged behavior, no design decisions, no delta spec, or empty delta mappings
+        - WHEN: strict-spec-driven ready <change-name> runs
+        - THEN: the command exits non-zero and emits proposal_readiness diagnostics that point to the missing artifact field or delta-spec mapping
+      readiness-allows-complete-deterministic-evidence:
+        - GIVEN: a strict change has no open questions and records included scope, out-of-scope scope, unchanged behavior, at least one design decision, and at least one delta spec with implementation or test mappings
+        - WHEN: strict-spec-driven ready <change-name> runs
+        - THEN: the command exits zero without proposal_readiness diagnostics, regardless of whether remaining product-risk answers require human semantic review outside deterministic validation
+  cli-change-intake-docs-and-regression-coverage:
+    strength: MUST
+    statement: The system MUST document and regress the change-intake question gate across user documentation, packaged skill guidance, self-hosted workflow artifacts, and at least one copied real-project fixture, covering evidence-sufficient no-question paths, evidence-insufficient blocking-question paths in preferred_human_language, roadmap-backed planned-change evidence, roadmap-backed thin-detail blockers, and question resolution before implementation proceeds.
+    scenarios:
+      documented-question-gate-user-surface:
+        - GIVEN: a user reads the repository README, localized README, roadmap guide, or localized roadmap guide
+        - WHEN: the change-intake question gate is described
+        - THEN: the documentation explains the plain checklist, accepted evidence sources, when the agent asks, why questions.yaml.open blocks implementation, preferred_human_language for human-facing questions, and stable language-neutral technical identifiers
+      fixture-and-self-hosted-regression-covers-gate:
+        - GIVEN: the self-hosted repository and a copied real-project fixture both contain strict workflow artifacts
+        - WHEN: regression tests exercise ready, roadmap-backed guidance, blocked questions, and question resolution
+        - THEN: the tests prove that complete evidence proceeds without duplicate questions, missing evidence records a localized open question, roadmap planned-change detail can answer checklist items, thin roadmap detail blocks implementation, and resolved answers allow readiness to proceed

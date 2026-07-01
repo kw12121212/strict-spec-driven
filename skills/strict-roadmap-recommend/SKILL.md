@@ -52,6 +52,27 @@ operator-facing text. This field is a human-language preference, not a
 programming language. Comply with that configured common human language unless
 the active user message explicitly asks for a different language.
 
+## Roadmap-Backed Intake Evidence
+
+Apply the same plain change-intake checklist used by proposal skills, but treat
+the selected roadmap data as first-class evidence. The selected standalone
+planned-change `summary`, `details`, `depends_on`, labels, `source_ticket`, and
+owning milestone `details` can answer checklist items. Carry those answers into
+generated proposal, design, task, question, and delta artifacts instead of
+asking the human again.
+
+Preserve the existing rule that `roadmap-recommend` chooses exactly one eligible
+planned change through the scripted command; do not manually select another
+candidate. Do not mutate roadmap planned-change files during proposal creation
+except through the existing roadmap workflows.
+
+When roadmap detail is thin or focused spec/code search fails to identify
+affected behavior, create `questions.yaml.open` entries before implementation.
+Human-facing question text, context, impact, recommendations, options, and
+summaries must use `preferred_human_language`. The open-question impact must
+name whether the uncertainty affects proposal scope, spec delta, implementation
+files, tests, dependencies, or technical standards.
+
 ## Steps
 
 Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
@@ -96,6 +117,10 @@ run `init` from this skill.
      planning guidance for the recommended change
    - the selected standalone planned-change artifact's `details` field, if the
      planned change comes from a split-file artifact
+   Use the selected roadmap fields as change-intake evidence before generating
+   artifacts. If the roadmap data and focused repository search do not identify
+   scope, specs, implementation, tests, dependencies, or technical standards,
+   record blocking questions rather than guessing.
 
 3. **Present a checkpoint before scaffolding** — summarize:
    - the proposed change name
@@ -104,6 +129,9 @@ run `init` from this skill.
    - why it is the best next step
    - which strict specs are likely to change
    - any open questions that would need to go into the strict change proposal
+   Include any intake questions that result from thin roadmap details, missing
+   implementation/test/spec impact, dependency uncertainty, or technical
+   standard uncertainty.
    Do not stop for human confirmation here — use the checkpoint only to explain
    the recommendation before creating the scaffold.
 

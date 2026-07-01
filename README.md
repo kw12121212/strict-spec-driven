@@ -115,6 +115,33 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 
 The roadmap docs describe the preferred split-file collaboration model: keep milestone files and `INDEX.yaml` low churn, store day-to-day roadmap work in `.strict-spec-driven/roadmap/planned-changes/`, rerun `roadmap-sync` after merges or archive handoff, and treat external tracker references as optional context rather than required source of truth.
 
+## Change Intake Question Gate
+
+Proposal-oriented skills run a short change-intake gate before implementation.
+They first answer the checklist from available evidence: the active request,
+roadmap planned-change details, ticket provenance, strict specs, technical
+standards, existing change artifacts, repository search results, and
+deterministic CLI output. If that evidence answers the checklist, the workflow
+does not ask the human again.
+
+The checklist covers what is changing, why it matters, what is included, what is
+left out, what existing behavior must stay the same, where the work likely
+lives, how it will be proven, relevant risks or dependencies, and which
+technical rules apply.
+
+When a required answer is still missing after discovery, the skill records an
+entry in `questions.yaml.open` with concrete context, impact, and a recommended
+answer or options. Implementation handoff intentionally stops while
+`questions.yaml.open` contains required entries; the answers must be resolved
+into `questions.yaml.resolved` before `/strict-spec-auto` or
+`/strict-spec-apply` continues.
+
+Human-facing question text, context, recommendations, options, and summaries
+use `.strict-spec-driven/config.yaml` `preferred_human_language` unless the
+active user message asks for a different language. Stable technical values such
+as question ids, artifact fields, schema names, command names, and file paths
+remain language-neutral identifiers.
+
 ## Ticket Intake and Triage
 
 Tickets are the front door to the workflow: a ticket captures a **pure requirement** — problem, desired observable outcome, and intent — with no solution, as a strict YAML artifact under `.strict-spec-driven/tickets/` with a conflict-resistant, content-derived id (never a shared counter). Intake is two steps:

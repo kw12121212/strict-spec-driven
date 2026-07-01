@@ -1,0 +1,30 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - README.md
+    - README.zh.md
+    - ROADMAP_GUIDE.md
+    - ROADMAP_GUIDE.zh.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/change-lifecycle.ts
+operations:
+  ADDED:
+    cli-change-intake-docs-and-regression-coverage:
+      strength: MUST
+      statement: The system MUST document and regress the change-intake question gate across user documentation, packaged skill guidance, self-hosted workflow artifacts, and at least one copied real-project fixture, covering evidence-sufficient no-question paths, evidence-insufficient blocking-question paths in preferred_human_language, roadmap-backed planned-change evidence, roadmap-backed thin-detail blockers, and question resolution before implementation proceeds.
+      scenarios:
+        documented-question-gate-user-surface:
+          - GIVEN: a user reads the repository README, localized README, roadmap guide, or localized roadmap guide
+          - WHEN: the change-intake question gate is described
+          - THEN: the documentation explains the plain checklist, accepted evidence sources, when the agent asks, why questions.yaml.open blocks implementation, preferred_human_language for human-facing questions, and stable language-neutral technical identifiers
+        fixture-and-self-hosted-regression-covers-gate:
+          - GIVEN: the self-hosted repository and a copied real-project fixture both contain strict workflow artifacts
+          - WHEN: regression tests exercise ready, roadmap-backed guidance, blocked questions, and question resolution
+          - THEN: the tests prove that complete evidence proceeds without duplicate questions, missing evidence records a localized open question, roadmap planned-change detail can answer checklist items, thin roadmap detail blocks implementation, and resolved answers allow readiness to proceed
+  MODIFIED: {}
+  REMOVED: {}

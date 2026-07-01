@@ -52,6 +52,23 @@ operator-facing text. This field is a human-language preference, not a
 programming language. Comply with that configured common human language unless
 the active user message explicitly asks for a different language.
 
+## Ticket-Promoted Intake Evidence
+
+When a ticket is promoted into roadmap work, treat the archived ticket problem,
+desired outcome, intent, dispatch rationale, evidence links, created milestone
+`source_ticket`, milestone `details`, and standalone planned-change `summary`,
+`details`, `depends_on`, and labels as future change-intake evidence. Write the
+promoted roadmap detail so a later roadmap-backed proposal can answer checklist
+items from that evidence instead of re-asking the human.
+
+If ticket or repository evidence does not identify affected proposal scope, spec
+delta, implementation files, tests, dependencies, or technical standards, record
+that uncertainty explicitly in the promoted milestone or planned-change
+`details`, `risks`, or `notes` using `preferred_human_language`. Do not guess
+unsupported implementation boundaries. The later roadmap-backed proposal flow
+will turn unresolved implementation questions into `questions.yaml.open`
+blockers before coding.
+
 ## Steps
 
 Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
@@ -112,6 +129,9 @@ run `init` from this skill.
    - capture known `dependencies`, `risks`, and `notes`
    - write a `details` field with the concrete planning context an agent will
      need when turning the milestone into strict changes
+   - include the ticket provenance, evidence links, and any known spec delta,
+     implementation, test, dependency, or technical-standard impact in
+     `details` so roadmap-backed proposal skills can use it as intake evidence
    - keep the `source_ticket` back-reference
    - keep milestone `planned_changes` empty unless you are intentionally
      materializing legacy inline data
@@ -119,6 +139,9 @@ run `init` from this skill.
      `.strict-spec-driven/roadmap/planned-changes/*.yaml` artifact for the
      initial executable work needed to make the milestone actionable, with
      actionable `summary`, `details`, `depends_on`, and `status`
+   - when implementation, test, spec, dependency, or technical-standard impact
+     remains unknown after evidence gathering, state that uncertainty explicitly
+     in the milestone or planned-change detail instead of inventing scope
 
    After editing, run `roadmap-sync`, then run `roadmap-status` and perform a
    second-pass review before handoff. Re-read the source ticket with

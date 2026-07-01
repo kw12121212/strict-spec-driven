@@ -173,6 +173,51 @@ Reads roadmap state and recommends the best next planned change to work on from 
 
 After the scaffold validates, the default next step is `/strict-spec-auto`. If the recommendation produces open questions, those questions are recorded in `questions.yaml` and surfaced before implementation.
 
+## Change Intake Question Gate
+
+Proposal-oriented workflows must answer a short checklist before implementation.
+Agents should use the active request, selected roadmap planned-change details,
+ticket provenance, main specs, technical standards, existing change artifacts,
+repository search results, and deterministic CLI output as evidence before
+asking the human anything.
+
+The checklist intents are:
+
+- What do you want changed?
+- Why is this worth doing?
+- What should be included?
+- What should be left out?
+- What existing behavior must stay the same?
+- Where does this likely live: code, specs, templates, skills, docs, config, or another named repository artifact family found during discovery?
+- How will we prove it works?
+- Could this affect existing users, saved data, APIs, security, privacy, performance, release, or rollback?
+- Is anything blocked by a roadmap item, ticket, active change, service, credential, or outside dependency?
+- Which existing technical rules apply, or do we need a new rule for this change?
+
+If discovery answers a checklist item, the agent uses that evidence and does not
+ask again. If a required answer is still unknown, proposal creation records it
+in `questions.yaml.open` with what is unknown, why it matters, the affected
+scope or testing decision, and the recommended answer or options.
+
+Roadmap-backed proposal flows treat the selected standalone planned-change
+`summary`, `details`, `depends_on`, labels, `source_ticket`, and owning
+milestone `details` as valid evidence for the same checklist. Complete roadmap
+detail should be carried into generated proposal artifacts instead of becoming a
+duplicate human question. Thin roadmap detail, missing implementation/test/spec
+impact, dependency uncertainty, or technical-standard uncertainty should become
+localized `questions.yaml.open` blockers before implementation.
+
+Human-facing question text, context, recommendations, options, and summaries
+must use the `preferred_human_language` from `.strict-spec-driven/config.yaml`
+unless the active user message explicitly asks for a different language. Stable
+technical values such as question ids, artifact fields, schema names, command
+names, and file paths remain stable identifiers and are not localized.
+
+Implementation handoff stops while required entries remain in
+`questions.yaml.open`. The unresolved questions must be resolved and moved into
+the resolved question state before `/strict-spec-auto`, `/strict-spec-apply`, or
+another implementation workflow continues.
+
 ### `/strict-roadmap-review`
 
 Reviews one incomplete milestone's goal, scope, done criteria, dependencies, risks, and planned-change `details`, directly applies fixes to the milestone and planned-change YAML, then reruns `roadmap-sync`.

@@ -1,0 +1,32 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: cover-question-gate-docs-and-regression
+  milestone: 0018-change-intake-question-gates
+status: complete
+summary: Add end-to-end regression coverage and user documentation for the plain checklist across standalone and roadmap-backed change creation.
+details: |-
+  Complete the milestone by adding regression and documentation coverage for the full question-gate workflow. Tests should exercise the self-hosted project and at least one real fixture project so the behavior is proven against packaged templates, bundled skills, and compiled CLI output.
+
+  Required coverage:
+  - Standalone proposal creation where the request and code/spec discovery are sufficient and no human question is needed.
+  - Standalone proposal creation where one required answer is missing and questions.yaml.open blocks implementation with human-facing text in the configured preferred_human_language.
+  - Roadmap-backed proposal creation where planned-change details answer the plain checklist intents.
+  - Roadmap-backed proposal creation where planned-change detail plus code/spec search is insufficient and a localized blocking question is produced.
+  - User-answer resolution path, proving the resolved answer is recorded and implementation can proceed afterward.
+  - Packaged skill and embedded template checks so published installs carry the same question-gate guidance and do not hard-code English user-interaction text where preferred_human_language requires another language.
+
+  Update README, ROADMAP_GUIDE, strict workflow skill docs, and localized README counterparts when the changed behavior is user-facing there. Documentation must explain the plain checklist, accepted evidence sources, when agents should ask, why open questions intentionally block implementation, and that human-facing questions follow config.yaml preferred_human_language while internal ids remain stable technical values.
+depends_on:
+  - add-deterministic-question-gate-validation
+  - update-proposal-skills-for-question-gate
+  - align-roadmap-backed-intake-flows
+team:
+  blocked:
+    status: false
+  labels:
+    - change-intake
+    - regression
+    - documentation

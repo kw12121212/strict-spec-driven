@@ -68,6 +68,39 @@ operator-facing text. This field is a human-language preference, not a
 programming language. Comply with that configured common human language unless
 the active user message explicitly asks for a different language.
 
+## Change Intake Question Gate
+
+Before implementation handoff or automatic implementation, perform the required
+plain change-intake checklist from the strict workflow contract. First use
+project evidence to answer every recoverable item: `.strict-spec-driven/config.yaml`,
+relevant strict specs, technical standards, existing change artifacts, mapped
+implementation and test files, `git status`, and focused code search for the
+affected behavior.
+
+When resuming a roadmap-backed scaffold, also read the proposal's roadmap links
+and use the selected standalone planned-change `summary`, `details`,
+`depends_on`, labels, `source_ticket`, owning milestone `details`, and ticket
+provenance as valid intake evidence. Carry answers already present in that
+roadmap or ticket evidence forward instead of re-asking.
+
+- Do not ask the human for information already recoverable from the request or
+  repository evidence.
+- Do ask when a required answer remains absent after discovery, even if you have
+  a plausible guess.
+- Record missing required answers in `questions.yaml.open` with stable
+  language-neutral ids, `preferred_human_language` question text, concrete
+  context, impact analysis, and a recommended answer or options.
+- For roadmap-backed scaffolds, make the impact say whether the uncertainty
+  affects proposal scope, spec delta, implementation files, tests,
+  dependencies, or technical standards.
+- Stop before implementation while `questions.yaml.open` is non-empty.
+- When the user answers, resolve the item into `questions.yaml.resolved` before
+  continuing implementation or automatic workflow execution.
+
+Keep the proposal checkpoint focused on what changes, what stays the same,
+where the work likely lives, how it will be tested, and which technical rules
+apply.
+
 ## Steps
 
 Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
@@ -81,6 +114,8 @@ run `init` from this skill.
    relevant files under `.strict-spec-driven/tech/`), mapped implementation and
    test files, repository status, and regression configuration when needed. Do
    not reread unrelated roadmap, archive, or spec files just because they exist.
+   Use this evidence for the change-intake question gate before asking the
+   human or continuing into implementation.
 
 2. **Assess complexity** — proceed automatically only when the change is clearly
    scoped inside this repository with a concrete definition of done. If the
@@ -93,6 +128,9 @@ run `init` from this skill.
    populated change directory containing proposal, design, tasks, questions,
    and delta spec artifacts, resume the existing populated strict change
    scaffold without regenerating planning artifacts or running `propose` again.
+   For roadmap-backed scaffolds, preserve selected planned-change and ticket
+   provenance as intake evidence and inspect `questions.yaml.open` before
+   implementation.
    Run `ready <change-name>` or `next <change-name>` to surface deterministic
    blockers before implementation. If the target change directory already
    exists but only contains empty subdirectories, `propose` may safely reuse it.

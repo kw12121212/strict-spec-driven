@@ -304,6 +304,16 @@ context.assert(
   "ticket-dispatch skill requires promoted milestones to include details and standalone planned-change detail",
 );
 context.assert(
+  normalizedDispatchSkillContent.includes("Ticket-Promoted Intake Evidence")
+    && normalizedDispatchSkillContent.includes("archived ticket problem")
+    && normalizedDispatchSkillContent.includes("source_ticket")
+    && normalizedDispatchSkillContent.includes("future change-intake evidence")
+    && normalizedDispatchSkillContent.includes("affected proposal scope, spec delta, implementation files, tests, dependencies, or technical standards")
+    && normalizedDispatchSkillContent.includes("preferred_human_language")
+    && normalizedDispatchSkillContent.includes("questions.yaml.open"),
+  "ticket-dispatch skill preserves promoted ticket evidence for roadmap-backed intake",
+);
+context.assert(
   normalizedDispatchSkillContent.includes("spec coverage is too thin")
     && normalizedDispatchSkillContent.includes("leaving the ticket open")
     && normalizedDispatchSkillContent.includes("Do not invent scope"),
@@ -343,6 +353,63 @@ context.assert(
   "ticket-archive skill defers undecided tickets to dispatch",
 );
 
+const roadmapGuideContent = readFileSync(path.join(ROOT, "ROADMAP_GUIDE.md"), "utf8");
+const normalizedRoadmapGuideContent = roadmapGuideContent.replace(/\s+/g, " ");
+context.assert(
+  normalizedRoadmapGuideContent.includes("## Change Intake Question Gate")
+    && normalizedRoadmapGuideContent.includes("What do you want changed?")
+    && normalizedRoadmapGuideContent.includes("What existing behavior must stay the same?")
+    && normalizedRoadmapGuideContent.includes("Which existing technical rules apply, or do we need a new rule for this change?")
+    && normalizedRoadmapGuideContent.includes("use the active request, selected roadmap planned-change details, ticket provenance, main specs, technical standards, existing change artifacts, repository search results, and deterministic CLI output as evidence")
+    && normalizedRoadmapGuideContent.includes("records it in `questions.yaml.open`")
+    && normalizedRoadmapGuideContent.includes("Human-facing question text, context, recommendations, options, and summaries must use the `preferred_human_language`")
+    && normalizedRoadmapGuideContent.includes("Stable technical values such as question ids, artifact fields, schema names, command names, and file paths remain stable identifiers")
+    && normalizedRoadmapGuideContent.includes("Implementation handoff stops while required entries remain in `questions.yaml.open`")
+    && normalizedRoadmapGuideContent.includes("Roadmap-backed proposal flows treat the selected standalone planned-change")
+    && normalizedRoadmapGuideContent.includes("Complete roadmap detail should be carried into generated proposal artifacts instead of becoming a duplicate human question")
+    && normalizedRoadmapGuideContent.includes("Thin roadmap detail, missing implementation/test/spec impact, dependency uncertainty, or technical-standard uncertainty should become localized `questions.yaml.open` blockers"),
+  "roadmap guide documents the change-intake question gate checklist, evidence rule, localization rule, and handoff stop",
+);
+
+const readmeContent = readFileSync(path.join(ROOT, "README.md"), "utf8");
+const readmeZhContent = readFileSync(path.join(ROOT, "README.zh.md"), "utf8");
+const roadmapGuideZhContent = readFileSync(path.join(ROOT, "ROADMAP_GUIDE.zh.md"), "utf8");
+const normalizedReadmeContent = readmeContent.replace(/\s+/g, " ");
+const normalizedReadmeZhContent = readmeZhContent.replace(/\s+/g, " ");
+const normalizedRoadmapGuideZhContent = roadmapGuideZhContent.replace(/\s+/g, " ");
+context.assert(
+  normalizedReadmeContent.includes("## Change Intake Question Gate")
+    && normalizedReadmeContent.includes("does not ask the human again")
+    && normalizedReadmeContent.includes("questions.yaml.open")
+    && normalizedReadmeContent.includes("questions.yaml.resolved")
+    && normalizedReadmeContent.includes("preferred_human_language")
+    && normalizedReadmeContent.includes("Stable technical values such as question ids, artifact fields, schema names, command names, and file paths remain language-neutral identifiers"),
+  "README documents the change-intake question gate, blocking behavior, resolution path, localization rule, and stable technical identifiers",
+);
+context.assert(
+  normalizedReadmeZhContent.includes("## 变更接收问题门")
+    && normalizedReadmeZhContent.includes("不会再向人重复提问")
+    && normalizedReadmeZhContent.includes("questions.yaml.open")
+    && normalizedReadmeZhContent.includes("questions.yaml.resolved")
+    && normalizedReadmeZhContent.includes("preferred_human_language")
+    && normalizedReadmeZhContent.includes("稳定技术值保持为不随语言变化的标识符"),
+  "localized README documents the change-intake question gate and localization boundary",
+);
+context.assert(
+  normalizedRoadmapGuideZhContent.includes("## 变更接收问题门")
+    && normalizedRoadmapGuideZhContent.includes("检查清单意图包括")
+    && normalizedRoadmapGuideZhContent.includes("选中的独立 planned-change `summary`")
+    && normalizedRoadmapGuideZhContent.includes("`details`")
+    && normalizedRoadmapGuideZhContent.includes("`depends_on`")
+    && normalizedRoadmapGuideZhContent.includes("labels")
+    && normalizedRoadmapGuideZhContent.includes("`source_ticket`")
+    && normalizedRoadmapGuideZhContent.includes("本地化的 `questions.yaml.open` 阻塞项")
+    && normalizedRoadmapGuideZhContent.includes("面向人的问题文本、上下文、建议、选项和摘要必须使用")
+    && normalizedRoadmapGuideZhContent.includes("稳定技术值保持为稳定标识符，不做本地化")
+    && normalizedRoadmapGuideZhContent.includes("resolved question 状态"),
+  "localized roadmap guide documents roadmap-backed question-gate evidence and blockers",
+);
+
 const validateSkillsCli = validateSkillsDispatch;
 context.assert(validateSkillsCli.status === 0, "validate-skills CLI exits zero for valid strict skill packaging");
 const validateSkillsJson = validateSkillsDispatchJson;
@@ -380,6 +447,58 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedHarnessSessionSkillContent = harnessSessionSkillContent.replace(/\s+/g, " ");
   const normalizedInitSkillContent = initSkillContent.replace(/\s+/g, " ");
   const normalizedWorkflowConfigContent = workflowConfigContent.replace(/\s+/g, " ");
+const questionGateSkillChecks: Array<[string, string]> = [
+  [normalizedProposeSkillContent, "strict-spec-propose"],
+  [normalizedAutoSkillContent, "strict-spec-auto"],
+  [normalizedBugfixSkillContent, "strict-spec-bugfix"],
+  [normalizedBrainstormSkillContent, "strict-spec-brainstorm"],
+];
+for (const [normalizedSkillContent, skillName] of questionGateSkillChecks) {
+  context.assert(
+    normalizedSkillContent.includes("Change Intake Question Gate")
+      && normalizedSkillContent.includes("plain change-intake checklist")
+      && normalizedSkillContent.includes("Do not ask the human for information already recoverable from the request or repository evidence")
+      && normalizedSkillContent.includes("Do ask when a required answer remains absent after discovery")
+      && normalizedSkillContent.includes("mapped implementation and test files")
+      && normalizedSkillContent.includes("focused code search")
+      && normalizedSkillContent.includes("questions.yaml.open")
+      && normalizedSkillContent.includes("stable language-neutral ids")
+      && normalizedSkillContent.includes("`preferred_human_language` question text")
+      && normalizedSkillContent.includes("concrete context, impact analysis, and a recommended answer or options")
+      && normalizedSkillContent.includes("Stop before implementation while `questions.yaml.open` is non-empty")
+      && normalizedSkillContent.includes("questions.yaml.resolved")
+      && normalizedSkillContent.includes("where the work likely lives, how it will be tested, and which technical rules apply"),
+    `${skillName} runs the change-intake question gate before implementation handoff`,
+  );
+}
+const roadmapBackedIntakeSkillChecks: Array<[string, string]> = [
+  [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
+  [normalizedProposeFromRoadmapSkillContent, "strict-spec-propose-from-roadmap"],
+];
+for (const [normalizedSkillContent, skillName] of roadmapBackedIntakeSkillChecks) {
+  context.assert(
+    normalizedSkillContent.includes("Roadmap-Backed Intake Evidence")
+      && normalizedSkillContent.includes("planned-change `summary`, `details`, `depends_on`, labels, `source_ticket`")
+      && normalizedSkillContent.includes("owning milestone `details`")
+      && normalizedSkillContent.includes("Carry those answers into generated proposal, design, task, question, and delta artifacts instead of asking the human again")
+      && normalizedSkillContent.includes("chooses exactly one eligible planned change through the scripted command")
+      && normalizedSkillContent.includes("Do not mutate roadmap planned-change files during proposal creation")
+      && normalizedSkillContent.includes("questions.yaml.open")
+      && normalizedSkillContent.includes("preferred_human_language")
+      && normalizedSkillContent.includes("proposal scope, spec delta, implementation files, tests, dependencies, or technical standards")
+      && normalizedSkillContent.includes("thin roadmap details")
+      && normalizedSkillContent.includes("missing implementation/test/spec impact"),
+    `${skillName} uses roadmap-backed detail as change-intake evidence`,
+  );
+}
+context.assert(
+  normalizedAutoSkillContent.includes("When resuming a roadmap-backed scaffold")
+    && normalizedAutoSkillContent.includes("selected standalone planned-change `summary`, `details`, `depends_on`, labels, `source_ticket`")
+    && normalizedAutoSkillContent.includes("ticket provenance as valid intake evidence")
+    && normalizedAutoSkillContent.includes("For roadmap-backed scaffolds, make the impact say whether the uncertainty affects proposal scope, spec delta, implementation files, tests, dependencies, or technical standards")
+    && normalizedAutoSkillContent.includes("preserve selected planned-change and ticket provenance as intake evidence"),
+  "strict-spec-auto preserves roadmap-backed intake evidence when resuming populated scaffolds",
+);
 context.assert(
   normalizedReviewSkillContent.includes("complete project-level regression test evidence")
     && normalizedReviewSkillContent.includes("actionable setup or waiting guidance")

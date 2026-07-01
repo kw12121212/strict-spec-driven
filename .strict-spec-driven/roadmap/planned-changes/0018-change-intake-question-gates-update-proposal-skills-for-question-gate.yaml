@@ -1,0 +1,31 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: update-proposal-skills-for-question-gate
+  milestone: 0018-change-intake-question-gates
+status: complete
+summary: Teach standalone and automatic proposal skills to ask the plain checklist before implementation and to stop when required answers are unresolved.
+details: |-
+  Update the standalone and automatic proposal entry skills: strict-spec-propose, strict-spec-auto, strict-spec-bugfix, and strict-spec-brainstorm. These skills must perform a required intake pass before implementation or proposal handoff. They must first read .strict-spec-driven/config.yaml when it exists and treat preferred_human_language as the language for natural-language questions, question context, recommendations, summaries, and other operator-facing text. They must then search the available project context: config, relevant specs, technical standards, existing change artifacts, mapped implementation and test files, repository status, and focused code search for the affected behavior. They must answer the plain checklist from the contract using project evidence before asking the human.
+
+  Skill behavior must be explicit:
+  - Do not ask the human for information already recoverable from the request or repository evidence.
+  - Do ask when a required answer is absent after discovery, even if the agent has a plausible guess.
+  - Record missing answers in questions.yaml.open using stable language-neutral ids plus preferred_human_language question text, concrete context, impact analysis, and a recommended answer or options.
+  - Stop before implementation while questions.yaml.open is non-empty.
+  - When the user answers, resolve the question into questions.yaml.resolved before continuing.
+  - Keep the proposal checkpoint focused on what changes, what stays the same, where the work likely lives, how it will be tested, and which technical rules apply.
+
+  Include self-hosted regression coverage that inspects packaged skill content so the required snippets do not regress. Preserve existing strict-spec-auto behavior that runs automatically only when open questions do not block progress.
+depends_on:
+  - define-change-intake-question-contract
+  - add-deterministic-question-gate-validation
+team:
+  blocked:
+    status: false
+  labels:
+    - change-intake
+    - skills
+    - auto

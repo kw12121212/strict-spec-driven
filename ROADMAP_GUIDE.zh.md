@@ -166,6 +166,31 @@ node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
 
 脚手架验证通过后，默认的下一步是 `/strict-spec-auto`。如果推荐过程产生了开放问题，这些问题会记录在 `questions.yaml` 中，并在实现之前呈现给用户。
 
+## 变更接收问题门
+
+面向提案的工作流必须在实现前回答一组简短检查清单。Agent 应先使用当前请求、选中的路线图 planned-change 详情、工单来源、主规范、技术标准、已有变更制品、仓库搜索结果以及确定性 CLI 输出作为证据，再决定是否需要向人提问。
+
+检查清单意图包括：
+
+- 要改什么？
+- 为什么值得做？
+- 应包含什么？
+- 应排除什么？
+- 哪些既有行为必须保持不变？
+- 这项工作可能位于哪里：代码、规范、模板、Skills、文档、配置，还是发现到的其他仓库制品？
+- 如何证明它有效？
+- 是否可能影响现有用户、已保存数据、API、安全、隐私、性能、发布或回滚？
+- 是否被路线图项、工单、活跃变更、服务、凭据或外部依赖阻塞？
+- 适用哪些已有技术规则，或这个变更是否需要新的技术规则？
+
+如果发现过程已经回答某个清单项，Agent 使用该证据，不再重复提问。如果必需答案仍然未知，提案创建会在 `questions.yaml.open` 中记录它，说明未知内容、为什么重要、受影响的范围或测试决定，以及推荐答案或选项。
+
+路线图支持的提案流程会把选中的独立 planned-change `summary`、`details`、`depends_on`、labels、`source_ticket` 和所属里程碑 `details` 视为同一清单的有效证据。完整的路线图细节应被带入生成的提案制品，而不是变成重复的人类问题。稀薄的路线图细节、缺少实现/测试/规范影响、依赖不确定性或技术标准不确定性，都应在实现前成为本地化的 `questions.yaml.open` 阻塞项。
+
+面向人的问题文本、上下文、建议、选项和摘要必须使用 `.strict-spec-driven/config.yaml` 中的 `preferred_human_language`，除非当前用户消息明确要求另一种语言。问题 id、制品字段、schema 名称、命令名和文件路径等稳定技术值保持为稳定标识符，不做本地化。
+
+当 `questions.yaml.open` 中仍有必需条目时，实现交接会停止。这些未解决问题必须被解析并移动到 resolved question 状态后，`/strict-spec-auto`、`/strict-spec-apply` 或其他实现工作流才能继续。
+
 ### `/strict-roadmap-review`
 
 审查单个未完成里程碑的目标、范围、完成标准、依赖、风险和计划变更 `details`，直接修复里程碑与计划变更 YAML，然后重新运行 `roadmap-sync`。

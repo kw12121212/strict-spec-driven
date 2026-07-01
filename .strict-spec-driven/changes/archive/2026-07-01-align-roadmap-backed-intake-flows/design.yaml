@@ -1,0 +1,18 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: align-roadmap-backed-intake-flows
+approach:
+  - Update roadmap-backed and ticket-promoted skill prompts to treat selected planned-change detail, milestone detail, dependencies, labels, source-ticket provenance, and focused repository discovery as intake evidence, then pin that guidance with packaged-skill tests.
+decisions:
+  prompt-guidance-over-cli-change:
+    decision: Implement this as skill guidance and packaged-skill regression assertions, not as a roadmap CLI behavior change.
+    rationale: The planned change concerns agent proposal workflow behavior; the existing roadmap CLI already owns deterministic recommendation selection and roadmap state mutation.
+  thin-roadmap-detail-blocks:
+    decision: When planned-change or ticket-derived detail does not identify scope, spec delta, implementation files, tests, dependencies, or technical standards, the skills must create questions.yaml.open entries before implementation.
+    rationale: This preserves the question gate's evidence-before-asking rule while preventing plausible guesses from becoming implementation plans.
+alternatives:
+  - option: Recreate strict-roadmap-propose
+    reason: Rejected because the repository intentionally keeps roadmap-backed proposal-only handoff in strict-spec-propose-from-roadmap and validates that strict-roadmap-propose is absent.
+risks: []

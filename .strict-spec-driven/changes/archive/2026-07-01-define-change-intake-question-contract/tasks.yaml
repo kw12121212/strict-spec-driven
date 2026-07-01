@@ -1,0 +1,33 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: define-change-intake-question-contract
+sections:
+  Implementation:
+    document-question-gate-contract:
+      text: Document the change-intake checklist, evidence rule, localization rule, stable identifier distinction, and implementation handoff stop in the roadmap/workflow guide.
+      status: complete
+    add-question-gate-spec-contract:
+      text: Add the user-observable question-gate behavior contract to the cli-foundation delta spec with implementation and test mappings.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run the TypeScript no-emit lint check.
+      status: complete
+      command: bun run lint
+    run-entrypoint-skills-suite:
+      text: Run the focused entrypoint and skills regression suite covering the guide contract assertion.
+      status: complete
+      command: bun test/run.ts --suite entrypoint-and-skills
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-entrypoint-skills-suite

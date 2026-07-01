@@ -1,0 +1,29 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-roadmap-recommend/SKILL.md
+    - skills/strict-spec-propose-from-roadmap/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-ticket-dispatch/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    roadmap-backed-intake-question-gate:
+      strength: MUST
+      statement: Roadmap-backed and ticket-promoted proposal guidance MUST treat selected standalone planned-change summary, details, dependencies, labels, source-ticket provenance, milestone details, and ticket evidence as valid change-intake evidence, carry answered checklist items into generated proposal artifacts instead of re-asking, create preferred_human_language questions.yaml.open blockers when affected scope, spec delta, implementation, test, dependency, or technical-standard impact remains unknown, and preserve existing roadmap selection and mutation boundaries.
+      scenarios:
+        complete-roadmap-detail-avoids-open-questions:
+          - GIVEN: a roadmap-backed planned change includes enough summary, details, dependency, label, milestone, ticket, spec, code, and test evidence to answer the intake checklist
+          - WHEN: a roadmap-backed proposal skill creates strict change artifacts
+          - THEN: the guidance tells the agent to carry that evidence into proposal, design, task, question, and delta artifacts without re-asking the human
+        thin-roadmap-detail-creates-blocking-questions:
+          - GIVEN: a roadmap-backed or ticket-promoted item lacks implementation, test, spec, dependency, or technical-standard impact after focused discovery
+          - WHEN: the proposal handoff reaches the question gate
+          - THEN: the guidance tells the agent to write questions.yaml.open entries whose impact identifies the affected proposal scope, spec delta, implementation files, tests, dependencies, or technical standards before implementation
+  MODIFIED: {}
+  REMOVED: {}

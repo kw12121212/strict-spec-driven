@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: update-proposal-skills-for-question-gate
+  status: proposed
+summary:
+  what:
+    - Teach proposal entry skills to run the change-intake question gate before implementation or handoff.
+  why:
+    - The archived intake contract and deterministic readiness checks need matching skill guidance so agents answer recoverable checklist items from evidence, ask only missing required items, and stop while questions.yaml.open is non-empty.
+scope:
+  in:
+    - Update strict-spec-propose, strict-spec-auto, strict-spec-bugfix, and strict-spec-brainstorm guidance for intake discovery, preferred_human_language usage, open-question recording, resolution, and handoff stops.
+    - Add packaged skill regression coverage that pins the required intake snippets.
+  out:
+    - Do not change CLI schema behavior or add new checklist-audit fields.
+    - Do not modify roadmap-backed proposal skill behavior in this change.
+    - Do not localize stable IDs, schema fields, command names, or file paths.
+unchanged_behavior:
+  - strict-spec-auto continues automatically only after readiness passes and open questions are resolved.
+  - Existing proposal checkpoint, ready, verify, review, and archive gates remain in force.
+roadmap:
+  milestone: 0018-change-intake-question-gates
+  planned_change: update-proposal-skills-for-question-gate

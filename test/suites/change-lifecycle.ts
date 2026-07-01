@@ -240,6 +240,13 @@ try {
       readyJson.diagnostics.some((diagnostic: { source: string }) => diagnostic.source === "proposal_readiness"),
     "ready reports missing delta specs as deterministic readiness diagnostics",
   );
+  context.assert(
+    readyJson.diagnostics.some((diagnostic: { fieldPath: string }) => diagnostic.fieldPath === "$.scope.in")
+      && readyJson.diagnostics.some((diagnostic: { fieldPath: string }) => diagnostic.fieldPath === "$.scope.out")
+      && readyJson.diagnostics.some((diagnostic: { fieldPath: string }) => diagnostic.fieldPath === "$.unchanged_behavior")
+      && readyJson.diagnostics.some((diagnostic: { fieldPath: string }) => diagnostic.fieldPath === "$.decisions"),
+    "ready reports missing deterministic question-gate evidence for proposal scope, unchanged behavior, and design decisions",
+  );
 
   const nextResult = cli(["next", changeName], { cwd: workflowGuidanceDir });
   context.assert(nextResult.status === 0, "next exits zero while reporting workflow blockers");
@@ -271,8 +278,312 @@ try {
     "generate tasks failure keeps task-list editing outside scripted generation",
     rejectedTasksGenerate.stderr.trim(),
   );
+
+  const readyChangeName = "workflow-ready";
+  const readyChangeDir = path.join(workflowGuidanceDir, ".strict-spec-driven", "changes", readyChangeName);
+  mkdirSync(path.join(readyChangeDir, "specs", "cli"), { recursive: true });
+  writeFileSync(path.join(readyChangeDir, "proposal.yaml"), [
+    "schema: strict-spec-driven/change-proposal/v1",
+    "schema_version: 1",
+    "artifact_type: change_proposal",
+    "schema_file: test",
+    "change:",
+    `  id: ${readyChangeName}`,
+    "  status: proposed",
+    "summary:",
+    "  what:",
+    "    - Test complete deterministic workflow guidance",
+    "  why:",
+    "    - Testing",
+    "scope:",
+    "  in:",
+    "    - Include readiness checks",
+    "  out:",
+    "    - Do not judge product semantics",
+    "unchanged_behavior:",
+    "  - Existing open-question blocking remains unchanged",
+  ].join("\n") + "\n", "utf8");
+  writeFileSync(path.join(readyChangeDir, "design.yaml"), [
+    "schema: strict-spec-driven/change-design/v1",
+    "schema_version: 1",
+    "artifact_type: change_design",
+    "schema_file: test",
+    `change: ${readyChangeName}`,
+    "approach:",
+    "  - Test approach",
+    "decisions:",
+    "  deterministic-evidence:",
+    "    decision: Use existing artifacts for deterministic readiness checks.",
+    "    rationale: The CLI can check recorded fields without judging their semantics.",
+    "alternatives: []",
+  ].join("\n") + "\n", "utf8");
+  writeFileSync(path.join(readyChangeDir, "tasks.yaml"), [
+    "schema: strict-spec-driven/task-list/v2",
+    "schema_version: 2",
+    "artifact_type: task_list",
+    "schema_file: test",
+    `change: ${readyChangeName}`,
+    "sections:",
+    "  Implementation:",
+    "    impl-1:",
+    "      text: Implement",
+    "      status: pending",
+    "  Testing:",
+    "    run-tests:",
+    "      text: Run tests",
+    "      status: pending",
+    "      command: bun test/run.ts",
+    "  Verification:",
+    "    verify-1:",
+    "      text: Verify",
+    "      status: pending",
+    "testing_gates:",
+    "  validation_task: run-tests",
+    "  unit_test_task: run-tests",
+  ].join("\n") + "\n", "utf8");
+  writeFileSync(path.join(readyChangeDir, "questions.yaml"), [
+    "schema: strict-spec-driven/question-list/v1",
+    "schema_version: 1",
+    "artifact_type: question_list",
+    "schema_file: test",
+    `change: ${readyChangeName}`,
+    "open: []",
+    "resolved: []",
+  ].join("\n") + "\n", "utf8");
+  writeFileSync(path.join(readyChangeDir, "specs", "cli", "foundation.yaml"), [
+    "schema: strict-spec-driven/delta-spec/v1",
+    "schema_version: 1",
+    "artifact_type: delta_spec",
+    "schema_file: test",
+    "target_spec: cli-foundation",
+    "mapping:",
+    "  implementation:",
+    "    - src/workflow-state.ts",
+    "  tests:",
+    "    - test/suites/change-lifecycle.ts",
+    "operations:",
+    "  ADDED:",
+    "    workflow-ready-contract:",
+    "      strength: MUST",
+    "      statement: The system MUST have complete deterministic readiness evidence.",
+    "      scenarios:",
+    "        ready-evidence-exists:",
+    "          - GIVEN: complete evidence exists",
+    "          - WHEN: ready runs",
+    "          - THEN: readiness passes",
+    "  MODIFIED: {}",
+    "  REMOVED: {}",
+  ].join("\n") + "\n", "utf8");
+  const readyComplete = cli(["ready", readyChangeName], { cwd: workflowGuidanceDir });
+  context.assert(readyComplete.status === 0, "ready exits zero when deterministic question-gate evidence is complete", readyComplete.stdout.trim());
+  const readyCompleteJson = JSON.parse(readyComplete.stdout.trim());
+  context.assert(
+    readyCompleteJson.ready === true
+      && !readyCompleteJson.diagnostics.some((diagnostic: { source: string }) => diagnostic.source === "proposal_readiness"),
+    "ready emits no proposal_readiness diagnostics for complete deterministic question-gate evidence",
+  );
 } finally {
   rmSync(workflowGuidanceDir, { recursive: true, force: true });
+}
+
+context.section("[11b] change-intake question gate fixture regression");
+
+function generateReadyFixtureChange(workspaceRoot: string, changeName: string): void {
+  const proposeResult = projectWorkspaceCli(workspaceRoot, ["propose", changeName]);
+  context.assert(
+    proposeResult.status === 0,
+    `${changeName} fixture propose exits zero`,
+    `stdout: ${proposeResult.stdout.trim()} stderr: ${proposeResult.stderr.trim()}`,
+  );
+  context.assert(
+    projectWorkspaceCli(workspaceRoot, [
+      "generate",
+      changeName,
+      "proposal",
+      "--what",
+      "Document fixture todo filtering behavior",
+      "--why",
+      "The copied fixture needs complete proposal evidence for readiness coverage",
+      "--in",
+      "Update the todo domain spec evidence",
+      "--out",
+      "Do not change persistence behavior",
+      "--unchanged",
+      "Existing todo creation and completion behavior remains unchanged",
+    ]).status === 0,
+    `${changeName} fixture proposal generation exits zero`,
+  );
+  context.assert(
+    projectWorkspaceCli(workspaceRoot, [
+      "generate",
+      changeName,
+      "design",
+      "--reset",
+      "--approach",
+      "Reuse the existing todo fixture files and record complete evidence.",
+      "--decision",
+      "fixture-evidence",
+      "--decision-text",
+      "Use copied fixture code and tests as the implementation and validation evidence.",
+      "--rationale",
+      "The copied project proves the question gate works outside the self-hosted workflow state.",
+    ]).status === 0,
+    `${changeName} fixture design generation exits zero`,
+  );
+  context.assert(
+    projectWorkspaceCli(workspaceRoot, ["generate", changeName, "questions", "--reset"]).status === 0,
+    `${changeName} fixture empty questions generation exits zero`,
+  );
+  context.assert(
+    projectWorkspaceCli(workspaceRoot, [
+      "generate",
+      changeName,
+      "delta-spec",
+      "--target-spec",
+      "todo-management",
+      "--implementation",
+      "src/todos.ts",
+      "--test",
+      "test/todos.test.ts",
+      "--operation",
+      "ADDED",
+      "--requirement",
+      `${changeName}-evidence`,
+      "--strength",
+      "MUST",
+      "--statement",
+      "The copied fixture MUST carry complete question-gate evidence for this strict change.",
+      "--scenario",
+      "fixture-evidence-complete",
+      "--given",
+      "complete proposal, design, question, delta, implementation, and test evidence exists",
+      "--when",
+      "ready runs",
+      "--then",
+      "the change is ready without human questions",
+    ]).status === 0,
+    `${changeName} fixture delta generation exits zero`,
+  );
+}
+
+const questionGateFixture = createCopiedProjectWorkspace("todo-app");
+try {
+  const { workspaceRoot } = questionGateFixture;
+  const migrateResult = projectWorkspaceCli(workspaceRoot, ["migrate"]);
+  context.assert(
+    migrateResult.status === 0,
+    "question-gate fixture migrate succeeds",
+    `stdout: ${migrateResult.stdout.trim()} stderr: ${migrateResult.stderr.trim()}`,
+  );
+  const cancelSeededChange = projectWorkspaceCli(workspaceRoot, ["cancel", "add-due-dates"]);
+  context.assert(
+    cancelSeededChange.status === 0,
+    "question-gate fixture removes seeded active change before proposal coverage",
+    `stdout: ${cancelSeededChange.stdout.trim()} stderr: ${cancelSeededChange.stderr.trim()}`,
+  );
+  const strictConfigPath = path.join(workspaceRoot, ".strict-spec-driven", "config.yaml");
+  const strictConfigContent = readFileSync(strictConfigPath, "utf8");
+  writeFileSync(
+    strictConfigPath,
+    strictConfigContent.replace("preferred_human_language: English", "preferred_human_language: Chinese"),
+    "utf8",
+  );
+
+  generateReadyFixtureChange(workspaceRoot, "fixture-ready");
+  const readyNoQuestion = projectWorkspaceCli(workspaceRoot, ["ready", "fixture-ready"]);
+  context.assert(
+    readyNoQuestion.status === 0,
+    "copied fixture ready path passes when evidence answers the question gate",
+    `stdout: ${readyNoQuestion.stdout.trim()} stderr: ${readyNoQuestion.stderr.trim()}`,
+  );
+  const readyNoQuestionJson = JSON.parse(readyNoQuestion.stdout.trim());
+  context.assert(
+    readyNoQuestionJson.ready === true && readyNoQuestionJson.diagnostics.length === 0,
+    "copied fixture no-question path emits no readiness diagnostics",
+  );
+  context.assert(
+    projectWorkspaceCli(workspaceRoot, ["cancel", "fixture-ready"]).status === 0,
+    "copied fixture cancels ready path change before blocked path coverage",
+  );
+
+  generateReadyFixtureChange(workspaceRoot, "fixture-blocked");
+  const openQuestionResult = projectWorkspaceCli(workspaceRoot, [
+    "generate",
+    "fixture-blocked",
+    "questions",
+    "--reset",
+    "--open",
+    "data-compatibility",
+    "--question",
+    "是否必须保留现有待办事项的完成状态？",
+    "--context",
+    "preferred_human_language 为 Chinese；仓库证据不足以确认兼容性影响。",
+  ]);
+  context.assert(
+    openQuestionResult.status === 0,
+    "copied fixture writes localized open question",
+    `stdout: ${openQuestionResult.stdout.trim()} stderr: ${openQuestionResult.stderr.trim()}`,
+  );
+  const blockedQuestionsPath = path.join(
+    workspaceRoot,
+    ".strict-spec-driven",
+    "changes",
+    "fixture-blocked",
+    "questions.yaml",
+  );
+  const blockedQuestions = yamlModule.parseYamlDocument<{
+    open: Array<{ id: string; question: string; context: string }>;
+    resolved: Array<{ id: string; answer: string }>;
+  }>(readFileSync(blockedQuestionsPath, "utf8"));
+  context.assert(
+    blockedQuestions.open[0]?.id === "data-compatibility"
+      && blockedQuestions.open[0]?.question.includes("是否必须保留")
+      && blockedQuestions.open[0]?.context.includes("preferred_human_language 为 Chinese"),
+    "copied fixture stores localized human-facing text with a stable technical question id",
+  );
+  const blockedNext = projectWorkspaceCli(workspaceRoot, ["next", "fixture-blocked"]);
+  const blockedNextJson = JSON.parse(blockedNext.stdout.trim());
+  context.assert(
+    blockedNext.status === 0
+      && blockedNextJson.blockers.some((diagnostic: { source: string }) => diagnostic.source === "open_questions"),
+    "copied fixture open question blocks implementation handoff",
+  );
+  const resolveBlocked = projectWorkspaceCli(workspaceRoot, [
+    "generate",
+    "fixture-blocked",
+    "questions",
+    "--resolve",
+    "data-compatibility",
+    "--answer",
+    "必须保留现有完成状态。",
+  ]);
+  context.assert(
+    resolveBlocked.status === 0,
+    "copied fixture resolves localized open question",
+    `stdout: ${resolveBlocked.stdout.trim()} stderr: ${resolveBlocked.stderr.trim()}`,
+  );
+  const resolvedQuestions = yamlModule.parseYamlDocument<{
+    open: unknown[];
+    resolved: Array<{ id: string; answer: string }>;
+  }>(readFileSync(blockedQuestionsPath, "utf8"));
+  context.assert(
+    resolvedQuestions.open.length === 0
+      && resolvedQuestions.resolved[0]?.id === "data-compatibility"
+      && resolvedQuestions.resolved[0]?.answer === "必须保留现有完成状态。",
+    "copied fixture question resolution moves the answer to resolved state",
+  );
+  const readyAfterResolution = projectWorkspaceCli(workspaceRoot, ["ready", "fixture-blocked"]);
+  context.assert(
+    readyAfterResolution.status === 0,
+    "copied fixture readiness passes after localized question resolution",
+    `stdout: ${readyAfterResolution.stdout.trim()} stderr: ${readyAfterResolution.stderr.trim()}`,
+  );
+} finally {
+  questionGateFixture.cleanup();
+  context.assert(
+    !existsSync(questionGateFixture.workspaceRoot),
+    "question-gate fixture cleanup removes copied workspace",
+  );
 }
 
 context.section("[12] verify command");

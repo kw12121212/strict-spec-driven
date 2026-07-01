@@ -1,0 +1,33 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-deterministic-question-gate-validation
+sections:
+  Implementation:
+    add-readiness-checks:
+      text: Add deterministic proposal_readiness checks for proposal scope, unchanged behavior, design decisions, delta spec presence, and delta mapping evidence.
+      status: complete
+    update-readiness-regressions:
+      text: Add focused ready command regression coverage for complete proposal evidence, open-question blocking, and missing deterministic evidence.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run the TypeScript no-emit lint check.
+      status: complete
+      command: bun run lint
+    run-change-lifecycle-suite:
+      text: Run the focused change lifecycle regression suite for ready and verify behavior.
+      status: complete
+      command: bun test/run.ts --suite change-lifecycle
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-change-lifecycle-suite

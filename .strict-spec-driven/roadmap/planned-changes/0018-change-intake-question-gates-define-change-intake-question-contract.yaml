@@ -1,0 +1,36 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: define-change-intake-question-contract
+  milestone: 0018-change-intake-question-gates
+status: complete
+summary: 'Define a localized plain-language change intake checklist: what should change, what must not change, how to prove it works, what might block it, and when unanswered items must become blocking questions.'
+details: |-
+  Add a user-observable workflow requirement, and any necessary operator-facing documentation, that defines the mandatory question gate for creating a strict change. The checklist must be expressed as plain question intents, then rendered for user interaction in the human language declared by .strict-spec-driven/config.yaml preferred_human_language:
+
+  - What do you want changed?
+  - Why is this worth doing?
+  - What should be included?
+  - What should be left out?
+  - What existing behavior must stay the same?
+  - Where does this likely live: code, specs, templates, skills, docs, config, or another named repo artifact family found during discovery?
+  - How will we prove it works?
+  - Could this affect existing users, saved data, APIs, security, privacy, performance, release, or rollback?
+  - Is anything blocked by a roadmap item, ticket, active change, service, credential, or outside dependency?
+  - Which existing technical rules apply, or do we need a new rule for this change?
+
+  Define the evidence rule precisely: if the answer is already clear from the active user request, selected roadmap planned-change details, ticket provenance, main specs, technical standards, existing change artifacts, repository code search, or deterministic CLI output, the agent should use that evidence and not ask again. If a required answer is still missing after discovery, proposal creation must write an entry to questions.yaml.open in preferred_human_language that says what is unknown, why it matters, what part of the change it affects, and the recommended answer or options. Implementation handoff must stop while any required open question remains.
+
+  The contract must distinguish stable internal identifiers from human-facing language. Question ids, artifact fields, schema names, and command names remain stable technical values; question text, context, recommendation text, and operator-facing summaries must follow preferred_human_language unless an active user message explicitly asks for a different language.
+
+  Keep the first change focused on the contract and examples. Do not yet update every skill; later planned changes apply this contract to proposal entry points and tests.
+depends_on: []
+team:
+  blocked:
+    status: false
+  labels:
+    - change-intake
+    - contract
+    - questions

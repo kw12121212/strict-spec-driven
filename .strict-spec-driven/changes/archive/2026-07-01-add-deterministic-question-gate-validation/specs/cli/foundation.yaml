@@ -1,0 +1,26 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/workflow-state.ts
+  tests:
+    - test/suites/change-lifecycle.ts
+operations:
+  ADDED:
+    cli-question-gate-readiness-validation:
+      strength: MUST
+      statement: The ready proposal-handoff command MUST emit deterministic proposal_readiness diagnostics when machine-checkable change-intake evidence is missing from existing proposal, design, question, delta-spec, or mapping artifacts, including empty included scope, empty out-of-scope scope, empty unchanged behavior, missing design decisions, missing delta specs, or delta specs without implementation or test mappings, while leaving semantic product judgment outside CLI validation.
+      scenarios:
+        readiness-rejects-missing-checklist-evidence:
+          - GIVEN: a strict change has valid YAML planning artifacts but missing deterministic change-intake evidence such as empty scope lists, no unchanged behavior, no design decisions, no delta spec, or empty delta mappings
+          - WHEN: strict-spec-driven ready <change-name> runs
+          - THEN: the command exits non-zero and emits proposal_readiness diagnostics that point to the missing artifact field or delta-spec mapping
+        readiness-allows-complete-deterministic-evidence:
+          - GIVEN: a strict change has no open questions and records included scope, out-of-scope scope, unchanged behavior, at least one design decision, and at least one delta spec with implementation or test mappings
+          - WHEN: strict-spec-driven ready <change-name> runs
+          - THEN: the command exits zero without proposal_readiness diagnostics, regardless of whether remaining product-risk answers require human semantic review outside deterministic validation
+  MODIFIED: {}
+  REMOVED: {}

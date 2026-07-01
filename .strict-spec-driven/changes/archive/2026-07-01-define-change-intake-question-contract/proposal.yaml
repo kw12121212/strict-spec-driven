@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: define-change-intake-question-contract
+  status: proposed
+summary:
+  what:
+    - Define the strict change-intake question gate contract as a user-observable workflow requirement and operator-facing examples.
+  why:
+    - Proposal workflows need a short evidence-backed checklist that prevents unnecessary questions, blocks unresolved required answers before implementation, and localizes human-facing questions through preferred_human_language.
+scope:
+  in:
+    - Add the plain question-intent checklist, evidence rule, open-question recording rule, implementation handoff stop rule, and stable identifier versus localized text distinction to strict workflow behavior documentation and specs.
+  out:
+    - Do not update every proposal or roadmap-backed skill implementation in this change; later planned changes apply and validate the contract across entry points.
+unchanged_behavior:
+  - Existing strict YAML artifact schemas remain the recording surface unless a later planned change explicitly changes them.
+  - Stable technical identifiers such as question ids, schema names, artifact fields, and command names remain stable technical values.
+roadmap:
+  milestone: 0018-change-intake-question-gates
+  planned_change: define-change-intake-question-contract

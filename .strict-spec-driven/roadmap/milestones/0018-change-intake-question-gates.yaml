@@ -1,0 +1,37 @@
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: ../schemas/roadmap-milestone.yaml
+milestone:
+  0018-change-intake-question-gates:
+    title: 18 Change Intake Question Gates
+goal: Make strict change creation answer a short plain-language checklist before implementation, and render every human-facing question and explanation in the preferred_human_language declared by .strict-spec-driven/config.yaml.
+scope:
+  in:
+    - Define a reusable change-intake checklist written as plain questions that agents can answer from the request, roadmap context, specs, technical standards, and code search.
+    - Require proposal and roadmap-backed skills to read .strict-spec-driven/config.yaml and use preferred_human_language for all human-facing questions, question context, recommended options, summaries, and generated operator-facing text.
+    - Update proposal and roadmap-backed skills so they ask only the plain questions that remain unanswered after project discovery, then record those unresolved answers in questions.yaml with impact and recommendations.
+    - Add deterministic validation, regression coverage, and documentation for the question-gate behavior without weakening existing YAML artifact contracts.
+  out:
+    - Do not implement a new interactive chat system or replace the existing questions.yaml artifact family.
+    - Do not make users answer questions when the answer is already clear from the request, strict specs, roadmap planned-change details, technical standards, or repository code search.
+    - Do not let agents guess the answer to unclear product, compatibility, data, security, or testing questions after discovery fails to answer them.
+    - Do not hard-code English question text for user interaction when config.yaml declares a different preferred_human_language.
+done_criteria:
+  - 'The documented checklist is written as simple question intents: what is changing, why it matters, what is included, what is not included, what must stay the same, where it likely lives, how to prove it works, what risks or dependencies could block it, and which technical rules apply.'
+  - Proposal-oriented skills search available project context first, ask only unresolved required questions, render those questions in preferred_human_language, and stop before implementation while questions.yaml.open is non-empty.
+  - Roadmap-backed proposal workflows use planned-change details as evidence, but still ask in preferred_human_language when the simple checklist cannot be answered from roadmap context and code/spec discovery.
+  - Automated or scripted validation catches incomplete question-gate artifacts where deterministic checks are possible, and tests cover both no-question and blocked-question paths, including a non-English preferred_human_language fixture.
+planned_changes: {}
+dependencies:
+  - Existing change proposal, design, task-list, and question-list YAML schemas remain the recording surface unless a later planned change explicitly justifies a schema extension.
+  - Existing strict-spec-propose, strict-spec-propose-from-roadmap, strict-spec-auto, strict-spec-bugfix, and roadmap recommendation skills remain the primary human-facing proposal entry points.
+  - The workflow config's preferred_human_language field is the source of truth for natural-language interaction unless an active user message explicitly requests a different language.
+risks:
+  - Over-asking low-value questions would slow routine changes; the checklist must stay short and only ask what cannot be found from project context.
+  - Purely skill-level guidance may be too weak for automation; deterministic validation should enforce every part that can be checked without product judgment.
+  - Hard-coded English examples could leak into user interaction; tests and skill guidance must distinguish stable internal identifiers from localized human-facing text.
+status: complete
+notes:
+  - Keep the checklist short, concrete, and phrased like questions a teammate would naturally ask in the configured human language.
+details: 'This milestone hardens strict change intake around a mandatory evidence-backed question gate. The checklist should be plain question intents, then rendered in the language declared by .strict-spec-driven/config.yaml preferred_human_language for all user-facing interaction. The intents are: What do you want changed? Why is this worth doing? What should be included? What should be left out? What existing behavior must not change? Where does this likely live in the code, specs, templates, skills, docs, or config? How will we prove the change works? Are there compatibility, data, security, privacy, performance, release, or rollback risks? Is anything blocked by a roadmap item, ticket, active change, service, credential, or external dependency? Which existing technical rules apply, or does this change need a new technical rule? A proposal may proceed without asking the human only when each required answer is present in the request, roadmap planned-change details, strict specs, technical standards, or repository code search. Otherwise the unresolved item must be written to questions.yaml.open in preferred_human_language with impact analysis and a recommended answer or options, and implementation must stop until resolved.'

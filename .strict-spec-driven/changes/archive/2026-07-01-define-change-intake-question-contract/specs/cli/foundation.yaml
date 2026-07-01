@@ -1,0 +1,26 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - ROADMAP_GUIDE.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-change-intake-question-gate-contract:
+      strength: MUST
+      statement: Strict proposal creation guidance MUST answer a short evidence-backed change-intake checklist from the active request and available project context before implementation, ask only required unanswered checklist items in preferred_human_language, record unresolved required answers in questions.yaml.open with impact and recommended answers or options, stop implementation handoff while required open questions remain, and keep stable technical identifiers distinct from localized human-facing question, context, recommendation, and summary text.
+      scenarios:
+        change-intake-uses-evidence-before-asking:
+          - GIVEN: A strict proposal workflow has an active request, optional roadmap planned-change or ticket provenance, main specs, technical standards, existing change artifacts, repository search results, and deterministic CLI output available for discovery
+          - WHEN: the workflow prepares a strict change proposal
+          - THEN: the workflow answers the change-intake checklist from that evidence where possible, does not ask the human for answers that discovery already proves, and writes any still-missing required answer to questions.yaml.open with impact and recommended answer or options in the configured preferred_human_language
+        open-required-questions-block-implementation:
+          - GIVEN: a generated strict change has one or more required unresolved checklist answers recorded in questions.yaml.open
+          - WHEN: implementation handoff or automatic implementation is considered
+          - THEN: the workflow stops before implementation until the required open questions are resolved while preserving stable technical identifiers such as question ids, artifact fields, schema names, and command names
+  MODIFIED: {}
+  REMOVED: {}

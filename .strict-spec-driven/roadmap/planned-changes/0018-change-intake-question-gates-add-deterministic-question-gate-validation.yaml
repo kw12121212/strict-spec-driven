@@ -1,0 +1,30 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: add-deterministic-question-gate-validation
+  milestone: 0018-change-intake-question-gates
+status: complete
+summary: Add deterministic readiness checks for the plain checklist items that can be verified without making product judgments.
+details: |-
+  Extend the proposal handoff validation path so deterministic checks reinforce the plain checklist. The implementation should inspect the current proposal, design, tasks, questions, delta specs, and mappings and report actionable blockers when machine-checkable proposal readiness is missing.
+
+  Required validation behavior:
+  - Existing questions.yaml.open entries continue to block readiness and implementation handoff.
+  - A generated or reviewed proposal must make it clear what is included, what is left out, and what must stay the same.
+  - Design decisions must state how required checklist questions were answered or why they are not applicable when this can be represented through existing design/proposal fields without schema churn.
+  - Human-facing unresolved-question text, context, recommendations, and handoff summaries must be checked where deterministic fixture evidence can prove they follow .strict-spec-driven/config.yaml preferred_human_language; stable ids and schema fields must remain language-neutral technical values.
+  - Delta specs and mapping fields must be present when observable spec behavior is changed, and readiness diagnostics must point to the missing artifact rather than allowing an untraceable change.
+  - If the prior contract change added an explicit checklist-audit field, validate that field and update examples; otherwise implement the readiness checks against existing proposal, design, questions, delta-spec, and mapping fields without broad schema churn.
+
+  Keep product judgment out of the validator. The CLI should not guess whether a security or data-risk answer is semantically correct; it should enforce explicit recording where the artifacts already make that determinable. Add focused tests for ready/verify behavior on a complete proposal, a proposal with open questions, and a proposal missing deterministic scope or mapping evidence.
+depends_on:
+  - define-change-intake-question-contract
+team:
+  blocked:
+    status: false
+  labels:
+    - change-intake
+    - validation
+    - ready

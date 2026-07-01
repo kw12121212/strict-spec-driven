@@ -71,3 +71,7 @@ milestones:
     title: 17 Ticket Intake And Triage
     path: roadmap/milestones/0017-ticket-intake-and-triage.yaml
     status: complete
+  0018-change-intake-question-gates:
+    title: 18 Change Intake Question Gates
+    path: roadmap/milestones/0018-change-intake-question-gates.yaml
+    status: complete

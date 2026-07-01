@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-deterministic-question-gate-validation
+  status: proposed
+summary:
+  what:
+    - Add deterministic proposal-readiness checks for machine-checkable change-intake question gate evidence.
+  why:
+    - The archived intake contract needs CLI enforcement for missing scope, unchanged behavior, design-decision, delta-spec, mapping, and open-question evidence before implementation handoff.
+scope:
+  in:
+    - Extend ready/proposal handoff validation to inspect proposal, design, questions, and delta specs for checklist evidence that can be checked without product judgment, and add focused regression coverage.
+  out:
+    - Do not add a new checklist-audit schema field, do not localize stable technical identifiers, and do not make the CLI judge whether risk, security, or product answers are semantically correct.
+unchanged_behavior:
+  - Existing questions.yaml.open entries continue to block readiness and implementation handoff.
+  - Existing verify behavior remains the archive gate for completed changes and continues to report task completion separately from proposal readiness.
+roadmap:
+  milestone: 0018-change-intake-question-gates
+  planned_change: add-deterministic-question-gate-validation

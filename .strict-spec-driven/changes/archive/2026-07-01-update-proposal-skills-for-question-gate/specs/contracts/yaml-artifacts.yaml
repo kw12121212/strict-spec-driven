@@ -1,0 +1,29 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-spec-bugfix/SKILL.md
+    - skills/strict-spec-brainstorm/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    proposal-skills-change-intake-question-gate:
+      strength: MUST
+      statement: Proposal-oriented skill guidance MUST run a required evidence-backed change-intake pass before implementation or proposal handoff, answer recoverable checklist items from project evidence, write missing required answers to questions.yaml.open with stable language-neutral ids and preferred_human_language human-facing text, stop while open questions remain, and resolve answered items into questions.yaml.resolved before implementation continues.
+      scenarios:
+        proposal-skills-answer-before-asking:
+          - GIVEN: a standalone, automatic, bugfix, or brainstorm proposal skill has enough request or repository evidence to answer a required intake checklist item
+          - WHEN: the skill prepares proposal artifacts or implementation handoff
+          - THEN: the guidance tells the agent to use the evidence instead of asking the human for that item
+        proposal-skills-block-on-open-questions:
+          - GIVEN: a required intake checklist answer remains absent after focused discovery
+          - WHEN: the skill records the missing answer
+          - THEN: the guidance tells the agent to write it to questions.yaml.open with context, impact, and a recommendation or options, and to stop before implementation until it is resolved
+  MODIFIED: {}
+  REMOVED: {}

@@ -40,6 +40,30 @@ operator-facing text. This field is a human-language preference, not a
 programming language. Comply with that configured common human language unless
 the active user message explicitly asks for a different language.
 
+## Change Intake Question Gate
+
+Before proposal confirmation or implementation handoff, perform the required
+plain change-intake checklist from the strict workflow contract. First use
+project evidence to answer every recoverable item: `.strict-spec-driven/config.yaml`,
+relevant strict specs, technical standards, existing change artifacts, mapped
+implementation and test files, `git status`, and focused code search for the
+affected behavior.
+
+- Do not ask the human for information already recoverable from the request or
+  repository evidence.
+- Do ask when a required answer remains absent after discovery, even if you have
+  a plausible guess.
+- Record missing required answers in `questions.yaml.open` with stable
+  language-neutral ids, `preferred_human_language` question text, concrete
+  context, impact analysis, and a recommended answer or options.
+- Stop before implementation while `questions.yaml.open` is non-empty.
+- When the user answers, resolve the item into `questions.yaml.resolved` before
+  continuing implementation or automatic workflow execution.
+
+Keep the proposal checkpoint focused on what changes, what stays the same,
+where the work likely lives, how it will be tested, and which technical rules
+apply.
+
 ## Steps
 
 Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
@@ -58,6 +82,8 @@ run `init` from this skill.
    - run `strict-spec-cli tech-status` and read
      the relevant files under `.strict-spec-driven/tech/` so the brainstorm
      stays inside the project's technical standards from the start
+   Use this evidence for the change-intake question gate before asking the
+   human for details the repository already answers.
 
 3. **Brainstorm until the change is decision-ready** — use the discussion to
    converge on:

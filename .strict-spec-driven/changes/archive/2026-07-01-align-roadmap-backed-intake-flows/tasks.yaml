@@ -1,0 +1,33 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: align-roadmap-backed-intake-flows
+sections:
+  Implementation:
+    update-roadmap-backed-intake-guidance:
+      text: Update strict-roadmap-recommend, strict-spec-propose-from-roadmap, strict-spec-auto roadmap-backed resume guidance, and strict-ticket-dispatch promotion guidance to treat roadmap and ticket provenance as intake evidence and to create blocking questions for thin detail.
+      status: complete
+    update-roadmap-backed-regression:
+      text: Add packaged-skill assertions for complete roadmap evidence avoiding duplicate questions, thin roadmap or ticket evidence creating questions.yaml.open blockers, preferred_human_language impact text, and roadmap mutation boundaries.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run the TypeScript no-emit lint check.
+      status: complete
+      command: bun run lint
+    run-entrypoint-and-skills-suite:
+      text: Run the focused packaged-skill regression suite.
+      status: complete
+      command: bun test/run.ts --suite entrypoint-and-skills
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-entrypoint-and-skills-suite
