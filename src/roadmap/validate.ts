@@ -8,6 +8,7 @@ import {
   type RoadmapIndexEntry,
   type RoadmapMilestoneArtifact,
   type MilestoneIdentity,
+  type MilestoneIntakeQuestion,
   type MilestoneScope,
   type PlannedChangeTeamMetadata,
   type StandalonePlannedChangeArtifact,
@@ -21,6 +22,7 @@ import {
 } from "./shared.js";
 
 const MILESTONE_ID_PATTERN = /^\d{4}-/;
+const QUESTION_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
 
 function validateString(
   parent: Record<string, unknown>,
@@ -100,6 +102,61 @@ function validateOptionalStringArray(
 function extractKeyedMapKey(obj: Record<string, unknown>): string | null {
   const keys = Object.keys(obj);
   return keys.length === 1 ? keys[0] : null;
+}
+
+function validateMilestoneIntakeQuestions(
+  artifact: Record<string, unknown>,
+  artifactPath: string,
+  diagnostics: RoadmapDiagnostic[],
+): MilestoneIntakeQuestion[] | null {
+  const value = artifact.intake_questions;
+  if (!Array.isArray(value)) {
+    diagnostics.push(
+      makeDiagnostic("schema", artifactPath, "$.intake_questions", "intake_questions must be a non-empty sequence", "non-empty sequence", String(value)),
+    );
+    return null;
+  }
+  if (value.length === 0) {
+    diagnostics.push(
+      makeDiagnostic("schema", artifactPath, "$.intake_questions", "intake_questions must contain at least one question", "one or more intake question entries", "empty sequence"),
+    );
+    return null;
+  }
+
+  const result: MilestoneIntakeQuestion[] = [];
+  const seenIds = new Set<string>();
+  for (const [index, entry] of value.entries()) {
+    const fieldPath = `$.intake_questions[${index}]`;
+    if (!isRecord(entry)) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "intake question must be a mapping", "mapping", typeof entry));
+      continue;
+    }
+
+    const id = validateString(entry, "id", artifactPath, `${fieldPath}.id`, diagnostics);
+    const question = validateString(entry, "question", artifactPath, `${fieldPath}.question`, diagnostics);
+    const context = validateString(entry, "context", artifactPath, `${fieldPath}.context`, diagnostics);
+    const impact = validateString(entry, "impact", artifactPath, `${fieldPath}.impact`, diagnostics);
+    const recommendation = validateString(entry, "recommendation", artifactPath, `${fieldPath}.recommendation`, diagnostics);
+
+    if (id) {
+      if (!QUESTION_ID_PATTERN.test(id)) {
+        diagnostics.push(
+          makeDiagnostic("schema", artifactPath, `${fieldPath}.id`, "intake question id must be kebab-case", "kebab-case id", id),
+        );
+      } else if (seenIds.has(id)) {
+        diagnostics.push(
+          makeDiagnostic("schema", artifactPath, `${fieldPath}.id`, "duplicate intake question id", "unique intake question id", id),
+        );
+      }
+      seenIds.add(id);
+    }
+
+    if (id && question && context && impact && recommendation && QUESTION_ID_PATTERN.test(id)) {
+      result.push({ id, question, context, impact, recommendation });
+    }
+  }
+
+  return result.length > 0 ? result : null;
 }
 
 export function validateRoadmapIndexArtifact(
@@ -497,6 +554,7 @@ export function validateMilestoneArtifact(
   const schemaFile = validateString(artifact, "schema_file", artifactPath, "$.schema_file", diagnostics);
   const goal = validateString(artifact, "goal", artifactPath, "$.goal", diagnostics);
   const doneCriteria = validateStringArray(artifact, "done_criteria", artifactPath, "$.done_criteria", diagnostics);
+  const intakeQuestions = validateMilestoneIntakeQuestions(artifact, artifactPath, diagnostics);
   const dependencies = validateStringArray(artifact, "dependencies", artifactPath, "$.dependencies", diagnostics);
   const risks = validateStringArray(artifact, "risks", artifactPath, "$.risks", diagnostics);
   const notes = validateStringArray(artifact, "notes", artifactPath, "$.notes", diagnostics);
@@ -676,7 +734,7 @@ export function validateMilestoneArtifact(
     visit(changeKey, []);
   }
 
-  if (!schemaFile || !milestone || !goal || !scope || !doneCriteria || !dependencies || !risks || !notes || !isDeclaredRoadmapStatus(statusValue)) {
+  if (!schemaFile || !milestone || !goal || !scope || !doneCriteria || !intakeQuestions || !dependencies || !risks || !notes || !isDeclaredRoadmapStatus(statusValue)) {
     return null;
   }
 
@@ -689,6 +747,7 @@ export function validateMilestoneArtifact(
     goal,
     scope,
     done_criteria: doneCriteria,
+    intake_questions: intakeQuestions,
     planned_changes: plannedChanges,
     dependencies,
     risks,

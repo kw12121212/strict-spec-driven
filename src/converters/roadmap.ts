@@ -1,3 +1,5 @@
+import { cloneDefaultMilestoneIntakeQuestions, type MilestoneIntakeQuestion } from "../roadmap/model.js";
+
 const ROADMAP_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/roadmap-index.yaml";
 const ROADMAP_MILESTONE_SCHEMA_FILE = "templates/strict-spec-driven/schemas/roadmap-milestone.yaml";
 const SPEC_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/spec-index.yaml";
@@ -37,6 +39,7 @@ export type StrictRoadmapMilestoneArtifact = {
   goal: string;
   scope: { in: string[]; out: string[] };
   done_criteria: string[];
+  intake_questions: MilestoneIntakeQuestion[];
   planned_changes: Record<string, StrictPlannedChangeEntry>;
   dependencies: string[];
   risks: string[];
@@ -325,6 +328,7 @@ export function convertRoadmapMilestone(
         goal,
         scope: { in: scopeIn, out: scopeOut },
         done_criteria: doneCriteria,
+        intake_questions: cloneDefaultMilestoneIntakeQuestions(),
         planned_changes: plannedChanges,
         dependencies,
         risks,

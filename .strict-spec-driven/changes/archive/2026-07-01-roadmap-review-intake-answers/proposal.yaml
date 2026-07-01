@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: roadmap-review-intake-answers
+  status: proposed
+summary:
+  what:
+    - Integrate milestone intake-answer review into strict-roadmap-review.
+  why:
+    - Milestone intake_questions now identify required planning questions, but roadmap review does not yet require checking that those questions are answerable from milestone and planned-change evidence.
+scope:
+  in:
+    - Update strict-roadmap-review guidance to assess every incomplete milestone's intake_questions against milestone fields and owned planned-change details.
+    - Update skill packaging validation so missing intake-answer review guidance is caught deterministically.
+    - Add regression coverage for the required guidance and diagnostics.
+  out:
+    - Do not add a separate milestone-intake skill or command.
+    - Do not extend the roadmap milestone schema with answer/status fields in this change.
+    - Do not change completed milestone review scope.
+unchanged_behavior:
+  - Completed milestones remain historical record and out of strict-roadmap-review scope.
+  - roadmap-generate remains the writer for milestone YAML shape, while standalone planned-change detail remains directly edited by the skill.
+  - questions.yaml remains the change-level blocker artifact and is not reused for milestone-level intake review.

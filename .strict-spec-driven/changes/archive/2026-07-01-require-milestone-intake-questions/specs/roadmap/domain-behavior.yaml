@@ -1,0 +1,27 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+mapping:
+  implementation:
+    - src/cli/cmd-roadmap.ts
+    - src/roadmap/author.ts
+    - src/roadmap/model.ts
+    - src/roadmap/validate.ts
+    - src/roadmap/sync.ts
+    - src/ticket-dispatch.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    roadmap-milestone-authoring-command-contract:
+      strength: MUST
+      statement: The system MUST make roadmap-generate milestone create and safely update strict roadmap milestone artifacts using structured YAML fields, require explicit structured milestone intake questions when creating a milestone, preserve source-ticket metadata unless explicitly addressed by milestone arguments, reject conflicting edits before writing, run roadmap synchronization after successful writes, and report updated files deterministically without adding CLI authoring support for standalone planned-change artifacts.
+      scenarios:
+        milestone-command-creates-canonical-roadmap-state-with-intake-questions:
+          - GIVEN: a strict workflow project has roadmap state and no milestone with a requested milestone id
+          - WHEN: strict-spec-driven roadmap-generate milestone is invoked with valid milestone title, goal, scope, done criteria, dependency, risk, note, optional details, and at least one structured intake question argument
+          - THEN: the command writes a valid roadmap milestone artifact with empty planned_changes and the supplied intake_questions, synchronizes the roadmap index, exits zero, and reports the updated milestone and index files
+  REMOVED: {}

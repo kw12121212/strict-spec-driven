@@ -8961,6 +8961,7 @@ json_schema:
     - goal
     - scope
     - done_criteria
+    - intake_questions
     - planned_changes
     - dependencies
     - risks
@@ -9013,6 +9014,34 @@ json_schema:
       type: array
       items:
         type: string
+    intake_questions:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - question
+          - context
+          - impact
+          - recommendation
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          question:
+            type: string
+            minLength: 1
+          context:
+            type: string
+            minLength: 1
+          impact:
+            type: string
+            minLength: 1
+          recommendation:
+            type: string
+            minLength: 1
     planned_changes:
       type: object
       additionalProperties: false
@@ -10814,6 +10843,22 @@ scope:
 done_criteria:
   - The roadmap contract is implemented and verified.
   - Roadmap validation can inspect milestone and planned change structure.
+intake_questions:
+  - id: objective
+    question: What observable outcome should this milestone deliver?
+    context: Roadmap behavior spans validation, recommendation, and proposal handoff, so the milestone needs one testable outcome.
+    impact: Unclear objective affects milestone scope and every roadmap-backed planned change.
+    recommendation: Treat valid roadmap status plus deterministic recommendation behavior as the observable milestone outcome.
+  - id: work-decomposition
+    question: What standalone planned changes are needed to deliver this milestone?
+    context: Roadmap recommendation consumes planned-change artifacts rather than hidden milestone prose.
+    impact: Missing decomposition blocks roadmap-backed proposal generation.
+    recommendation: Keep validation and recommendation work as separate planned changes with explicit dependency order.
+  - id: verification-evidence
+    question: How will milestone work be verified across implementation, tests, docs, and workflow artifacts?
+    context: Roadmap behavior must stay aligned with the strict YAML schema contract.
+    impact: Missing verification affects archive confidence for roadmap-backed changes.
+    recommendation: Use roadmap-and-migration regression tests plus schema validation checks as milestone evidence.
 planned_changes:
   validate-roadmap-contract:
     status: planned
@@ -10857,6 +10902,12 @@ scope:
     - Unrelated behavior.
 done_criteria:
   - The planned behavior is implemented and verified.
+intake_questions:
+  - id: objective
+    question: What observable outcome should this milestone deliver?
+    context: Milestone goal text can be broad; this question keeps the outcome testable before work is decomposed.
+    impact: Unclear objective affects milestone scope, planned-change summaries, and proposal scope for every child change.
+    recommendation: Answer with one user- or operator-observable outcome that can be checked after the milestone is complete.
 planned_changes:
   example-change:
     status: planned
@@ -16106,6 +16157,67 @@ var DECLARED_PLANNED_CHANGE_STATUSES = ["planned", "complete"];
 var ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v2";
 var ROADMAP_MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v2";
 var PLANNED_CHANGE_SCHEMA_ID = "strict-spec-driven/planned-change/v1";
+var DEFAULT_MILESTONE_INTAKE_QUESTIONS = [
+  {
+    id: "objective",
+    question: "What observable outcome should this milestone deliver?",
+    context: "Milestone goal text can be broad; this question keeps the outcome testable before work is decomposed.",
+    impact: "Unclear objective affects milestone scope, planned-change summaries, and proposal scope for every child change.",
+    recommendation: "Answer with one user- or operator-observable outcome that can be checked after the milestone is complete."
+  },
+  {
+    id: "scope-boundary",
+    question: "What is included in this milestone, and what is explicitly out of scope?",
+    context: "The roadmap already has scope.in and scope.out fields, but the boundary decision must be called out as a required clarification.",
+    impact: "Unclear scope affects planned-change ownership, milestone splitting, and whether later changes silently expand scope.",
+    recommendation: "Use the milestone scope fields as evidence and keep unrelated work out of this milestone."
+  },
+  {
+    id: "done-criteria",
+    question: "What concrete evidence proves this milestone is done?",
+    context: "Done criteria need to be verifiable rather than aspirational.",
+    impact: "Weak done criteria affect roadmap review, archive readiness, and follow-up change prioritization.",
+    recommendation: "Name the observable behavior, validation command, documentation, or archived planned changes that prove completion."
+  },
+  {
+    id: "work-decomposition",
+    question: "What standalone planned changes are needed to deliver this milestone?",
+    context: "Roadmap recommendation works from planned-change artifacts, not from hidden prose inside the milestone.",
+    impact: "Missing decomposition affects proposal generation and can block roadmap-backed automatic implementation.",
+    recommendation: "Create focused standalone planned-change files with actionable summary, details, dependencies, and status."
+  },
+  {
+    id: "dependencies-and-blockers",
+    question: "What dependencies or blockers must be resolved before this milestone can progress?",
+    context: "Dependencies may come from other milestones, active changes, tickets, services, credentials, or external decisions.",
+    impact: "Unknown blockers affect ordering, roadmap recommendation eligibility, and implementation handoff.",
+    recommendation: "Record known dependencies in dependencies and preserve unresolved blockers in milestone notes or planned-change detail."
+  },
+  {
+    id: "risks",
+    question: "What compatibility, data, security, privacy, performance, release, or rollback risks could change the plan?",
+    context: "Roadmap milestones often establish the risk surface before individual strict changes are proposed.",
+    impact: "Unidentified risks affect scope, technical standards, tests, release sequencing, and rollback planning.",
+    recommendation: "Record concrete risks in risks and keep mitigations small enough to map into planned changes."
+  },
+  {
+    id: "verification-evidence",
+    question: "How will milestone work be verified across implementation, tests, docs, and workflow artifacts?",
+    context: "The change-intake gate requires a proof plan before implementation begins.",
+    impact: "Missing verification affects planned-change testing tasks and archive confidence.",
+    recommendation: "Identify the relevant test suite, validation command, documentation check, or manual evidence expected for child changes."
+  },
+  {
+    id: "technical-standards",
+    question: "Which existing technical standards apply, or does this milestone require a new standard?",
+    context: "Technical rules live under .strict-spec-driven/tech/ and must be known before changes are implemented.",
+    impact: "Unclear standards affect implementation files, tests, and whether a child change needs a delta-tech artifact.",
+    recommendation: "List applicable standards or record a follow-up to add or update a technical standard when the milestone needs one."
+  }
+];
+function cloneDefaultMilestoneIntakeQuestions() {
+  return DEFAULT_MILESTONE_INTAKE_QUESTIONS.map((question) => ({ ...question }));
+}
 
 // src/roadmap/shared.ts
 import { existsSync as existsSync7, readdirSync as readdirSync2, statSync as statSync4 } from "fs";
@@ -16205,6 +16317,7 @@ import path9 from "path";
 
 // src/roadmap/validate.ts
 var MILESTONE_ID_PATTERN = /^\d{4}-/;
+var QUESTION_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
 function validateString(parent, key, artifactPath, fieldPath, diagnostics) {
   const value = parent[key];
   if (typeof value !== "string" || value.length === 0) {
@@ -16242,6 +16355,43 @@ function validateOptionalStringArray(parent, key, artifactPath, fieldPath, diagn
 function extractKeyedMapKey(obj) {
   const keys = Object.keys(obj);
   return keys.length === 1 ? keys[0] : null;
+}
+function validateMilestoneIntakeQuestions(artifact, artifactPath, diagnostics) {
+  const value = artifact.intake_questions;
+  if (!Array.isArray(value)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.intake_questions", "intake_questions must be a non-empty sequence", "non-empty sequence", String(value)));
+    return null;
+  }
+  if (value.length === 0) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.intake_questions", "intake_questions must contain at least one question", "one or more intake question entries", "empty sequence"));
+    return null;
+  }
+  const result = [];
+  const seenIds = new Set;
+  for (const [index, entry] of value.entries()) {
+    const fieldPath = `$.intake_questions[${index}]`;
+    if (!isRecord3(entry)) {
+      diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "intake question must be a mapping", "mapping", typeof entry));
+      continue;
+    }
+    const id = validateString(entry, "id", artifactPath, `${fieldPath}.id`, diagnostics);
+    const question = validateString(entry, "question", artifactPath, `${fieldPath}.question`, diagnostics);
+    const context = validateString(entry, "context", artifactPath, `${fieldPath}.context`, diagnostics);
+    const impact = validateString(entry, "impact", artifactPath, `${fieldPath}.impact`, diagnostics);
+    const recommendation = validateString(entry, "recommendation", artifactPath, `${fieldPath}.recommendation`, diagnostics);
+    if (id) {
+      if (!QUESTION_ID_PATTERN.test(id)) {
+        diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.id`, "intake question id must be kebab-case", "kebab-case id", id));
+      } else if (seenIds.has(id)) {
+        diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}.id`, "duplicate intake question id", "unique intake question id", id));
+      }
+      seenIds.add(id);
+    }
+    if (id && question && context && impact && recommendation && QUESTION_ID_PATTERN.test(id)) {
+      result.push({ id, question, context, impact, recommendation });
+    }
+  }
+  return result.length > 0 ? result : null;
 }
 function validateRoadmapIndexArtifact(artifact, artifactPath, diagnostics) {
   if (!isRecord3(artifact)) {
@@ -16489,6 +16639,7 @@ function validateMilestoneArtifact(artifact, artifactPath, diagnostics) {
   const schemaFile = validateString(artifact, "schema_file", artifactPath, "$.schema_file", diagnostics);
   const goal = validateString(artifact, "goal", artifactPath, "$.goal", diagnostics);
   const doneCriteria = validateStringArray(artifact, "done_criteria", artifactPath, "$.done_criteria", diagnostics);
+  const intakeQuestions = validateMilestoneIntakeQuestions(artifact, artifactPath, diagnostics);
   const dependencies = validateStringArray(artifact, "dependencies", artifactPath, "$.dependencies", diagnostics);
   const risks = validateStringArray(artifact, "risks", artifactPath, "$.risks", diagnostics);
   const notes = validateStringArray(artifact, "notes", artifactPath, "$.notes", diagnostics);
@@ -16606,7 +16757,7 @@ function validateMilestoneArtifact(artifact, artifactPath, diagnostics) {
   for (const changeKey of plannedChangeKeys) {
     visit(changeKey, []);
   }
-  if (!schemaFile || !milestone || !goal || !scope || !doneCriteria || !dependencies || !risks || !notes || !isDeclaredRoadmapStatus(statusValue)) {
+  if (!schemaFile || !milestone || !goal || !scope || !doneCriteria || !intakeQuestions || !dependencies || !risks || !notes || !isDeclaredRoadmapStatus(statusValue)) {
     return null;
   }
   return {
@@ -16618,6 +16769,7 @@ function validateMilestoneArtifact(artifact, artifactPath, diagnostics) {
     goal,
     scope,
     done_criteria: doneCriteria,
+    intake_questions: intakeQuestions,
     planned_changes: plannedChanges,
     dependencies,
     risks,
@@ -17101,6 +17253,7 @@ function buildCanonicalMilestoneArtifact(milestone, status, options = {}) {
       out: [...milestone.artifact.scope.out]
     },
     done_criteria: [...milestone.artifact.done_criteria],
+    intake_questions: milestone.artifact.intake_questions.map((question) => ({ ...question })),
     planned_changes: plannedChanges,
     dependencies: [...milestone.artifact.dependencies],
     risks: [...milestone.artifact.risks],
@@ -19635,13 +19788,33 @@ function uniqueStrings2(values2) {
   return result;
 }
 function hasAnyField(input) {
-  return Boolean(input.title) || Boolean(input.goal) || input.scopeIn.length > 0 || input.scopeOut.length > 0 || input.doneCriteria.length > 0 || input.dependencies.length > 0 || input.risks.length > 0 || input.notes.length > 0 || input.details !== undefined;
+  return Boolean(input.title) || Boolean(input.goal) || input.scopeIn.length > 0 || input.scopeOut.length > 0 || input.doneCriteria.length > 0 || input.intakeQuestions.length > 0 || input.dependencies.length > 0 || input.risks.length > 0 || input.notes.length > 0 || input.details !== undefined;
 }
 function conflictDiagnostic(artifactPath, fieldPath, expected, actual) {
   return makeDiagnostic("semantic", artifactPath, fieldPath, "existing milestone field has conflicting content; rerun with --reset to replace it", expected, actual);
 }
 function appendUnique(existing, additions) {
   return uniqueStrings2([...existing, ...additions]);
+}
+function sameIntakeQuestion(left, right) {
+  return left.id === right.id && left.question === right.question && left.context === right.context && left.impact === right.impact && left.recommendation === right.recommendation;
+}
+function mergeIntakeQuestions(existing, additions, reset, artifactPath, diagnostics) {
+  const source = reset && additions.length > 0 ? additions : [...existing, ...additions];
+  const result = [];
+  const byId = new Map;
+  for (const question of source) {
+    const current = byId.get(question.id);
+    if (!current) {
+      byId.set(question.id, question);
+      result.push(question);
+      continue;
+    }
+    if (sameIntakeQuestion(current, question))
+      continue;
+    diagnostics.push(conflictDiagnostic(artifactPath, `$.intake_questions.${question.id}`, `${current.question} | ${current.context} | ${current.impact} | ${current.recommendation}`, `${question.question} | ${question.context} | ${question.impact} | ${question.recommendation}`));
+  }
+  return result;
 }
 function nextScalar(existing, incoming, reset, artifactPath, fieldPath, diagnostics) {
   if (incoming === undefined)
@@ -19659,9 +19832,14 @@ function buildArtifact(input, existing, artifactPath, diagnostics) {
     diagnostics.push(makeDiagnostic("schema", artifactPath, "$", "new roadmap milestones require --title and --goal", "--title and --goal", "missing"));
     return null;
   }
+  if (!existing && input.intakeQuestions.length === 0) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$.intake_questions", "new roadmap milestones require at least one --intake-question", "--intake-question id|question|context|impact|recommendation", "missing"));
+    return null;
+  }
   const title = nextScalar(existing?.artifact.milestone.title, input.title, input.reset, artifactPath, "$.milestone.<id>.title", diagnostics);
   const goal = nextScalar(existing?.artifact.goal, input.goal, input.reset, artifactPath, "$.goal", diagnostics);
   const details = nextScalar(existing?.artifact.details, input.details, input.reset, artifactPath, "$.details", diagnostics);
+  const intakeQuestions = mergeIntakeQuestions(existing?.artifact.intake_questions ?? [], input.intakeQuestions, input.reset, artifactPath, diagnostics);
   if (!title || !goal)
     return null;
   return {
@@ -19676,6 +19854,7 @@ function buildArtifact(input, existing, artifactPath, diagnostics) {
       out: input.reset && input.scopeOut.length > 0 ? uniqueStrings2(input.scopeOut) : appendUnique(existing?.artifact.scope.out ?? [], input.scopeOut)
     },
     done_criteria: input.reset && input.doneCriteria.length > 0 ? uniqueStrings2(input.doneCriteria) : appendUnique(existing?.artifact.done_criteria ?? [], input.doneCriteria),
+    intake_questions: intakeQuestions,
     planned_changes: existing?.artifact.planned_changes ?? {},
     dependencies: input.reset && input.dependencies.length > 0 ? uniqueStrings2(input.dependencies) : appendUnique(existing?.artifact.dependencies ?? [], input.dependencies),
     risks: input.reset && input.risks.length > 0 ? uniqueStrings2(input.risks) : appendUnique(existing?.artifact.risks ?? [], input.risks),
@@ -19966,9 +20145,11 @@ var ROADMAP_ARCHIVE_USAGE = `Usage: strict-spec-cli roadmap-archive [milestone-i
 var ROADMAP_REOPEN_USAGE = `Usage: strict-spec-cli roadmap-reopen <milestone-id> [--reason "..."]
 `;
 var ROADMAP_GENERATE_USAGE = [
-  "Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset]",
+  'Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> --intake-question "id|question|context|impact|recommendation" [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset]',
   "",
   "Notes:",
+  "  New milestones require at least one --intake-question value.",
+  "  Repeat --intake-question to append structured milestone clarification questions.",
   "  Existing scalar fields with different values require --reset.",
   "  List fields append unique values by default; with --reset, supplied list fields replace existing values."
 ].join(`
@@ -20108,6 +20289,14 @@ function requiredOne(flags, name) {
   }
   return value;
 }
+function parseIntakeQuestion(value) {
+  const parts = value.split("|").map((part) => part.trim());
+  if (parts.length !== 5 || parts.some((part) => part.length === 0)) {
+    throw new Error("--intake-question must use id|question|context|impact|recommendation");
+  }
+  const [id, question, context, impact, recommendation] = parts;
+  return { id, question, context, impact, recommendation };
+}
 function buildRoadmapMilestoneAuthorInput(argv) {
   const flags = parseRoadmapGenerateFlags(argv);
   ensureAllowedRoadmapGenerateFlags(flags, [
@@ -20117,6 +20306,7 @@ function buildRoadmapMilestoneAuthorInput(argv) {
     "scope-in",
     "scope-out",
     "done",
+    "intake-question",
     "dependency",
     "risk",
     "note",
@@ -20130,6 +20320,7 @@ function buildRoadmapMilestoneAuthorInput(argv) {
     scopeIn: values2(flags, "scope-in"),
     scopeOut: values2(flags, "scope-out"),
     doneCriteria: values2(flags, "done"),
+    intakeQuestions: values2(flags, "intake-question").map(parseIntakeQuestion),
     dependencies: values2(flags, "dependency"),
     risks: values2(flags, "risk"),
     notes: values2(flags, "note"),
@@ -20618,6 +20809,7 @@ function buildMilestoneSkeleton(milestoneId, ticket) {
       out: [stub]
     },
     done_criteria: [stub],
+    intake_questions: cloneDefaultMilestoneIntakeQuestions(),
     planned_changes: {},
     dependencies: [],
     risks: [],
@@ -23247,6 +23439,7 @@ function convertRoadmapMilestone(markdown, filename) {
         goal,
         scope: { in: scopeIn, out: scopeOut },
         done_criteria: doneCriteria,
+        intake_questions: cloneDefaultMilestoneIntakeQuestions(),
         planned_changes: plannedChanges,
         dependencies,
         risks,
@@ -24032,6 +24225,7 @@ var ROADMAP_PLAN_EXECUTABLE_DETAIL_SNIPPET = "executable planning context";
 var ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET = "all milestones whose status is not complete";
 var ROADMAP_REVIEW_DIRECT_FIX_SNIPPET = "use roadmap-generate milestone for milestone YAML shape";
 var ROADMAP_REVIEW_DETAIL_ELABORATION_SNIPPET = "concrete and executable";
+var ROADMAP_REVIEW_INTAKE_ANSWER_SNIPPET = "check milestone intake_questions for answer evidence";
 var ROADMAP_ARCHIVE_DEFAULT_ALL_SNIPPET = "default to all unarchived milestones";
 var ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET = "only milestones whose derived status is complete";
 var ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET = "completed standalone planned-change";
@@ -24339,7 +24533,8 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
       ROADMAP_PLANNED_CHANGE_DIRECT_EDIT_SNIPPET,
       ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET,
       ROADMAP_REVIEW_DIRECT_FIX_SNIPPET,
-      ROADMAP_REVIEW_DETAIL_ELABORATION_SNIPPET
+      ROADMAP_REVIEW_DETAIL_ELABORATION_SNIPPET,
+      ROADMAP_REVIEW_INTAKE_ANSWER_SNIPPET
     ]
   },
   "strict-roadmap-sync": {

@@ -15,6 +15,22 @@ scope:
 done_criteria:
   - The roadmap contract is implemented and verified.
   - Roadmap validation can inspect milestone and planned change structure.
+intake_questions:
+  - id: objective
+    question: What observable outcome should this milestone deliver?
+    context: Roadmap behavior spans validation, recommendation, and proposal handoff, so the milestone needs one testable outcome.
+    impact: Unclear objective affects milestone scope and every roadmap-backed planned change.
+    recommendation: Treat valid roadmap status plus deterministic recommendation behavior as the observable milestone outcome.
+  - id: work-decomposition
+    question: What standalone planned changes are needed to deliver this milestone?
+    context: Roadmap recommendation consumes planned-change artifacts rather than hidden milestone prose.
+    impact: Missing decomposition blocks roadmap-backed proposal generation.
+    recommendation: Keep validation and recommendation work as separate planned changes with explicit dependency order.
+  - id: verification-evidence
+    question: How will milestone work be verified across implementation, tests, docs, and workflow artifacts?
+    context: Roadmap behavior must stay aligned with the strict YAML schema contract.
+    impact: Missing verification affects archive confidence for roadmap-backed changes.
+    recommendation: Use roadmap-and-migration regression tests plus schema validation checks as milestone evidence.
 planned_changes:
   validate-roadmap-contract:
     status: planned

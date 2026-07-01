@@ -157,11 +157,17 @@ const roadmapMilestoneExample = yamlModule.parseYamlFile<{
   dependencies: string[];
   risks: string[];
   notes: string[];
+  intake_questions: Array<{ id: string; question: string; context: string; impact: string; recommendation: string }>;
   planned_changes: Record<string, { depends_on: string[] }>;
 }>(path.join(ROOT, "examples", "strict-spec-driven", "roadmap-milestone.yaml"));
 context.assert(roadmapMilestoneExample.dependencies.length === 0, "primary roadmap milestone example keeps dependencies minimal");
 context.assert(roadmapMilestoneExample.risks.length === 0, "primary roadmap milestone example keeps risks minimal");
 context.assert(roadmapMilestoneExample.notes.length === 0, "primary roadmap milestone example keeps notes minimal");
+context.assert(
+  roadmapMilestoneExample.intake_questions.length === 1
+    && roadmapMilestoneExample.intake_questions[0]?.id === "objective",
+  "primary roadmap milestone example includes a minimal structured intake question",
+);
 const milestonePlannedChangeEntries = Object.entries(roadmapMilestoneExample.planned_changes);
 context.assert(
   milestonePlannedChangeEntries.length === 1 &&
@@ -192,11 +198,16 @@ const roadmapMilestonePlanningExample = yamlModule.parseYamlFile<{
   dependencies: string[];
   risks: string[];
   notes: string[];
+  intake_questions: Array<{ id: string }>;
   planned_changes: Record<string, { status: string; depends_on: string[] }>;
 }>(path.join(ROOT, "examples", "strict-spec-driven", "roadmap-milestone.planning.yaml"));
 context.assert(roadmapMilestonePlanningExample.dependencies.length >= 1, "roadmap milestone coverage example includes milestone dependencies");
 context.assert(roadmapMilestonePlanningExample.risks.length >= 1, "roadmap milestone coverage example includes milestone risks");
 context.assert(roadmapMilestonePlanningExample.notes.length >= 1, "roadmap milestone coverage example includes milestone notes");
+context.assert(
+  roadmapMilestonePlanningExample.intake_questions.length >= 3,
+  "roadmap milestone coverage example includes multiple intake question categories",
+);
 const planningChangeEntries = Object.entries(roadmapMilestonePlanningExample.planned_changes);
 context.assert(planningChangeEntries.length >= 2, "roadmap milestone coverage example includes multiple planned changes");
 const [, firstChange] = planningChangeEntries[0] ?? [];
@@ -547,6 +558,10 @@ context.assert(
 context.assert(
   (milestoneSchemaProps.planned_changes as Record<string, unknown>)?.patternProperties !== undefined,
   "roadmap milestone schema uses patternProperties for keyed planned changes",
+);
+context.assert(
+  (milestoneSchemaProps.intake_questions as Record<string, unknown>)?.minItems === 1,
+  "roadmap milestone schema requires at least one structured intake question",
 );
 const roadmapIndexEntryValues = Object.values(roadmapIndexExample.milestones);
 context.assert(

@@ -18,6 +18,7 @@ json_schema:
     - goal
     - scope
     - done_criteria
+    - intake_questions
     - planned_changes
     - dependencies
     - risks
@@ -70,6 +71,34 @@ json_schema:
       type: array
       items:
         type: string
+    intake_questions:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - question
+          - context
+          - impact
+          - recommendation
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          question:
+            type: string
+            minLength: 1
+          context:
+            type: string
+            minLength: 1
+          impact:
+            type: string
+            minLength: 1
+          recommendation:
+            type: string
+            minLength: 1
     planned_changes:
       type: object
       additionalProperties: false

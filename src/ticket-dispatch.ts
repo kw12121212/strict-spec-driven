@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "fs";
 import path from "path";
 import { parseYamlFile, stringifyYamlDocument } from "./yaml.js";
+import { cloneDefaultMilestoneIntakeQuestions } from "./roadmap/model.js";
 import { loadBundledSchemaBySchemaId, validateArtifact, type ValidationDiagnostic } from "./validation.js";
 import {
   archiveTicketArtifact,
@@ -137,6 +138,7 @@ function buildMilestoneSkeleton(milestoneId: string, ticket: TicketArtifact): Re
       out: [stub],
     },
     done_criteria: [stub],
+    intake_questions: cloneDefaultMilestoneIntakeQuestions(),
     planned_changes: {},
     dependencies: [],
     risks: [],

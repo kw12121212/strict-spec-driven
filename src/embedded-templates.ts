@@ -2414,6 +2414,7 @@ json_schema:
     - goal
     - scope
     - done_criteria
+    - intake_questions
     - planned_changes
     - dependencies
     - risks
@@ -2466,6 +2467,34 @@ json_schema:
       type: array
       items:
         type: string
+    intake_questions:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+          - question
+          - context
+          - impact
+          - recommendation
+        properties:
+          id:
+            type: string
+            pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+          question:
+            type: string
+            minLength: 1
+          context:
+            type: string
+            minLength: 1
+          impact:
+            type: string
+            minLength: 1
+          recommendation:
+            type: string
+            minLength: 1
     planned_changes:
       type: object
       additionalProperties: false
@@ -4267,6 +4296,22 @@ scope:
 done_criteria:
   - The roadmap contract is implemented and verified.
   - Roadmap validation can inspect milestone and planned change structure.
+intake_questions:
+  - id: objective
+    question: What observable outcome should this milestone deliver?
+    context: Roadmap behavior spans validation, recommendation, and proposal handoff, so the milestone needs one testable outcome.
+    impact: Unclear objective affects milestone scope and every roadmap-backed planned change.
+    recommendation: Treat valid roadmap status plus deterministic recommendation behavior as the observable milestone outcome.
+  - id: work-decomposition
+    question: What standalone planned changes are needed to deliver this milestone?
+    context: Roadmap recommendation consumes planned-change artifacts rather than hidden milestone prose.
+    impact: Missing decomposition blocks roadmap-backed proposal generation.
+    recommendation: Keep validation and recommendation work as separate planned changes with explicit dependency order.
+  - id: verification-evidence
+    question: How will milestone work be verified across implementation, tests, docs, and workflow artifacts?
+    context: Roadmap behavior must stay aligned with the strict YAML schema contract.
+    impact: Missing verification affects archive confidence for roadmap-backed changes.
+    recommendation: Use roadmap-and-migration regression tests plus schema validation checks as milestone evidence.
 planned_changes:
   validate-roadmap-contract:
     status: planned
@@ -4310,6 +4355,12 @@ scope:
     - Unrelated behavior.
 done_criteria:
   - The planned behavior is implemented and verified.
+intake_questions:
+  - id: objective
+    question: What observable outcome should this milestone deliver?
+    context: Milestone goal text can be broad; this question keeps the outcome testable before work is decomposed.
+    impact: Unclear objective affects milestone scope, planned-change summaries, and proposal scope for every child change.
+    recommendation: Answer with one user- or operator-observable outcome that can be checked after the milestone is complete.
 planned_changes:
   example-change:
     status: planned

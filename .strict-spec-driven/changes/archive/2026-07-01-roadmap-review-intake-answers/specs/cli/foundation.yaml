@@ -1,0 +1,27 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - skills/strict-roadmap-review/SKILL.md
+    - src/skills/model.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    cli-roadmap-review-skill-packaging-validation:
+      strength: MUST
+      statement: The system MUST validate the strict-roadmap-review skill package through validate-skills, enforcing guidance that reviews every roadmap milestone whose status is not complete, applies direct YAML definition fixes, elaborates planned-change detail, checks milestone intake_questions for answer evidence in milestone fields and owned planned-change details, keeps completed milestones out of scope as historical record, and reports deterministic path-specific diagnostics when all-incomplete scope guidance, direct-fix guidance, or intake-answer review guidance is missing.
+      scenarios:
+        validate-skills-requires-roadmap-review-intake-answer-guidance:
+          - GIVEN: The strict-roadmap-review package is inspected by validate-skills.
+          - WHEN: The package contains complete command mappings and direct-fix guidance but omits guidance to check milestone intake_questions for answer evidence.
+          - THEN: Validation rejects the package with a deterministic required-snippet diagnostic for the missing intake-answer review guidance.
+        roadmap-review-skill-documents-intake-answer-review:
+          - GIVEN: An operator invokes strict-roadmap-review and at least one roadmap milestone is incomplete.
+          - WHEN: The skill prompt is followed.
+          - THEN: The prompt directs the agent to inspect each incomplete milestone's intake_questions, use goal, scope, done_criteria, dependencies, risks, details, notes, source_ticket, and owned planned-change details as answer evidence, apply safe definition fixes directly, and surface unresolved human decisions instead of inventing answers.
+  REMOVED: {}

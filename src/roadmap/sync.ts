@@ -77,6 +77,7 @@ export function buildCanonicalMilestoneArtifact(
       out: [...milestone.artifact.scope.out],
     },
     done_criteria: [...milestone.artifact.done_criteria],
+    intake_questions: milestone.artifact.intake_questions.map((question) => ({ ...question })),
     planned_changes: plannedChanges,
     dependencies: [...milestone.artifact.dependencies],
     risks: [...milestone.artifact.risks],

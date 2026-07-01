@@ -7,6 +7,7 @@ import {
   ROADMAP_MILESTONE_SCHEMA_ID,
   ROADMAP_INDEX_PATH,
   type LoadedMilestone,
+  type MilestoneIntakeQuestion,
   type RoadmapDiagnostic,
   type RoadmapMilestoneStatus,
 } from "./model.js";
@@ -31,6 +32,7 @@ export type RoadmapMilestoneAuthorInput = {
   scopeIn: string[];
   scopeOut: string[];
   doneCriteria: string[];
+  intakeQuestions: MilestoneIntakeQuestion[];
   dependencies: string[];
   risks: string[];
   notes: string[];
@@ -68,6 +70,7 @@ function hasAnyField(input: RoadmapMilestoneAuthorInput): boolean {
     || input.scopeIn.length > 0
     || input.scopeOut.length > 0
     || input.doneCriteria.length > 0
+    || input.intakeQuestions.length > 0
     || input.dependencies.length > 0
     || input.risks.length > 0
     || input.notes.length > 0
@@ -92,6 +95,44 @@ function conflictDiagnostic(
 
 function appendUnique(existing: string[], additions: string[]): string[] {
   return uniqueStrings([...existing, ...additions]);
+}
+
+function sameIntakeQuestion(left: MilestoneIntakeQuestion, right: MilestoneIntakeQuestion): boolean {
+  return left.id === right.id
+    && left.question === right.question
+    && left.context === right.context
+    && left.impact === right.impact
+    && left.recommendation === right.recommendation;
+}
+
+function mergeIntakeQuestions(
+  existing: MilestoneIntakeQuestion[],
+  additions: MilestoneIntakeQuestion[],
+  reset: boolean,
+  artifactPath: string,
+  diagnostics: RoadmapDiagnostic[],
+): MilestoneIntakeQuestion[] {
+  const source = reset && additions.length > 0 ? additions : [...existing, ...additions];
+  const result: MilestoneIntakeQuestion[] = [];
+  const byId = new Map<string, MilestoneIntakeQuestion>();
+  for (const question of source) {
+    const current = byId.get(question.id);
+    if (!current) {
+      byId.set(question.id, question);
+      result.push(question);
+      continue;
+    }
+    if (sameIntakeQuestion(current, question)) continue;
+    diagnostics.push(
+      conflictDiagnostic(
+        artifactPath,
+        `$.intake_questions.${question.id}`,
+        `${current.question} | ${current.context} | ${current.impact} | ${current.recommendation}`,
+        `${question.question} | ${question.context} | ${question.impact} | ${question.recommendation}`,
+      ),
+    );
+  }
+  return result;
 }
 
 function nextScalar(
@@ -131,6 +172,19 @@ function buildArtifact(
     );
     return null;
   }
+  if (!existing && input.intakeQuestions.length === 0) {
+    diagnostics.push(
+      makeDiagnostic(
+        "schema",
+        artifactPath,
+        "$.intake_questions",
+        "new roadmap milestones require at least one --intake-question",
+        "--intake-question id|question|context|impact|recommendation",
+        "missing",
+      ),
+    );
+    return null;
+  }
 
   const title = nextScalar(
     existing?.artifact.milestone.title,
@@ -142,6 +196,13 @@ function buildArtifact(
   );
   const goal = nextScalar(existing?.artifact.goal, input.goal, input.reset, artifactPath, "$.goal", diagnostics);
   const details = nextScalar(existing?.artifact.details, input.details, input.reset, artifactPath, "$.details", diagnostics);
+  const intakeQuestions = mergeIntakeQuestions(
+    existing?.artifact.intake_questions ?? [],
+    input.intakeQuestions,
+    input.reset,
+    artifactPath,
+    diagnostics,
+  );
 
   if (!title || !goal) return null;
 
@@ -163,6 +224,7 @@ function buildArtifact(
     done_criteria: input.reset && input.doneCriteria.length > 0
       ? uniqueStrings(input.doneCriteria)
       : appendUnique(existing?.artifact.done_criteria ?? [], input.doneCriteria),
+    intake_questions: intakeQuestions,
     planned_changes: existing?.artifact.planned_changes ?? {},
     dependencies: input.reset && input.dependencies.length > 0
       ? uniqueStrings(input.dependencies)

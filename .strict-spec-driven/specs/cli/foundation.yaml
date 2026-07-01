@@ -1843,17 +1843,16 @@ requirements:
         - THEN: the reflection does not block strict verification or archive recommendation
   cli-roadmap-review-skill-packaging-validation:
     strength: MUST
-    statement: The system MUST validate the strict-roadmap-review skill package through validate-skills, enforcing guidance that reviews every roadmap milestone whose status is not complete, applies direct YAML definition fixes, elaborates planned-change detail, keeps completed milestones out of scope as historical record, and reports deterministic path-specific diagnostics when the all-incomplete scope guidance is missing.
+    statement: The system MUST validate the strict-roadmap-review skill package through validate-skills, enforcing guidance that reviews every roadmap milestone whose status is not complete, applies direct YAML definition fixes, elaborates planned-change detail, checks milestone intake_questions for answer evidence in milestone fields and owned planned-change details, keeps completed milestones out of scope as historical record, and reports deterministic path-specific diagnostics when all-incomplete scope guidance, direct-fix guidance, or intake-answer review guidance is missing.
     scenarios:
-      validate-skills-requires-all-incomplete-roadmap-review-scope:
-        - GIVEN: the strict-roadmap-review package is inspected by validate-skills
-        - WHEN: the package contains complete command mappings and direct-fix guidance
-        - THEN: validation requires guidance that the skill reviews all milestones whose status is not complete
-        - THEN: validation rejects stale guidance that limits review to a single requested milestone
-      roadmap-review-skill-documents-all-incomplete-workflow:
-        - GIVEN: an operator invokes strict-roadmap-review without naming a target milestone
-        - WHEN: the skill prompt is followed
-        - THEN: the prompt directs the agent to load roadmap status, identify every incomplete milestone, review owned planned-change files for each one, apply definition fixes directly, and run roadmap-sync after edits
+      validate-skills-requires-roadmap-review-intake-answer-guidance:
+        - GIVEN: The strict-roadmap-review package is inspected by validate-skills.
+        - WHEN: The package contains complete command mappings and direct-fix guidance but omits guidance to check milestone intake_questions for answer evidence.
+        - THEN: Validation rejects the package with a deterministic required-snippet diagnostic for the missing intake-answer review guidance.
+      roadmap-review-skill-documents-intake-answer-review:
+        - GIVEN: An operator invokes strict-roadmap-review and at least one roadmap milestone is incomplete.
+        - WHEN: The skill prompt is followed.
+        - THEN: The prompt directs the agent to inspect each incomplete milestone's intake_questions, use goal, scope, done_criteria, dependencies, risks, details, notes, source_ticket, and owned planned-change details as answer evidence, apply safe definition fixes directly, and surface unresolved human decisions instead of inventing answers.
   cli-shared-schema-cache-sync-on-startup:
     strength: MUST
     statement: The system MUST synchronize a shared schema cache during strict-spec-driven CLI command and MCP startup, resolving the cache root from the STRICT_SPEC_SCHEMA_CACHE_DIR environment variable when it is set and non-empty and from ~/.strict-spec-schemas/ otherwise; it MUST export the bundled strict schema assets plus a manifest when the cache is missing, records a different export version, or contains any cached schema file that is missing or differs from its bundled content; it MUST perform the refresh by building the new schema tree aside and swapping it into place with renames so concurrent readers never observe a partially written schemas directory; it MUST skip rewriting when the recorded version matches and all cached contents are intact; it MUST NOT synchronize the cache for CLI help requests; and when synchronization fails it MUST continue startup using bundled schemas and emit a warning that names the resolved cache path.

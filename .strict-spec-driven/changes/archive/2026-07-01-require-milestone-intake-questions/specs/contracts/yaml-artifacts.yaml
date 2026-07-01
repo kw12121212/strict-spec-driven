@@ -1,0 +1,31 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+    - examples/strict-spec-driven/roadmap-milestone.yaml
+    - examples/strict-spec-driven/roadmap-milestone.planning.yaml
+    - src/embedded-templates.ts
+    - src/converters/roadmap.ts
+    - src/ticket-dispatch.ts
+    - src/roadmap/model.ts
+    - src/roadmap/validate.ts
+    - src/roadmap/sync.ts
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    yaml-roadmap-milestone-planning-model:
+      strength: MUST
+      statement: The system MUST represent roadmap milestone planning state through a keyed map where the key is a 4-digit numeric-prefixed milestone ID, with structured YAML fields for goal, scope, done criteria, dependencies, risks, status, notes, required structured intake_questions entries, a keyed planned_changes map where each entry requires status, summary, details, and depends_on fields, and an optional top-level details field for long-form planning guidance.
+      scenarios:
+        roadmap-milestone-requires-structured-intake-questions:
+          - GIVEN: a strict roadmap milestone artifact is validated
+          - WHEN: its intake_questions field is inspected
+          - THEN: the artifact requires at least one intake question entry, and every entry exposes id, question, context, impact, and recommendation as non-empty strings
+  REMOVED: {}

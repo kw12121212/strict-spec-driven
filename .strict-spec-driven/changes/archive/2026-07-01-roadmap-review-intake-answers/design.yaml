@@ -1,0 +1,16 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: roadmap-review-intake-answers
+approach:
+  - Treat milestone intake-answer review as part of definition-quality review. The skill must inspect each intake question for incomplete milestones and determine whether milestone fields or owned planned-change details already provide answer evidence. When evidence is missing, the skill should directly tighten existing milestone fields or planned-change details when safe, otherwise report the human decision needed without inventing answers.
+decisions:
+  extend-roadmap-review:
+    decision: Add intake-answer evidence review to strict-roadmap-review instead of creating a separate skill.
+    rationale: Roadmap review already owns checking that incomplete milestones are concrete and executable, so intake answer evidence is another definition-quality criterion rather than a separate workflow.
+  validate-guidance:
+    decision: Make validate-skills require the new roadmap-review intake guidance snippet.
+    rationale: The repository already validates critical skill guidance through deterministic snippets, and this keeps packaged skill drift visible in tests.
+alternatives: []
+risks: []

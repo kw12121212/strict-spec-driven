@@ -20,6 +20,14 @@ import {
   type YamlModule,
 } from "../support/harness.js";
 
+const TEST_MILESTONE_INTAKE_QUESTION = {
+  id: "objective",
+  question: "What observable outcome should this milestone deliver?",
+  context: "Test milestones need explicit planning questions before child changes are proposed.",
+  impact: "Missing intake questions would make milestone planning ambiguous.",
+  recommendation: "Keep at least one structured intake question on every milestone artifact.",
+};
+
 export async function runRoadmapAndMigrationSuite(context: TestContext): Promise<void> {
   const yamlModule = await loadDistModule<YamlModule>("yaml.js");
   const skillValidationModule = await loadDistModule<SkillValidationModule>("skills.js");
@@ -82,6 +90,7 @@ function writeRoadmapMilestoneArtifact(
         out: ["Unrelated behavior."],
       },
       done_criteria: ["The roadmap workflow is implemented and verified."],
+      intake_questions: [{ ...TEST_MILESTONE_INTAKE_QUESTION }],
       planned_changes: plannedChangesMap,
       dependencies: [],
       risks: [],
@@ -374,6 +383,10 @@ try {
     "Standalone planned-change generation.",
     "--done",
     "The milestone artifact validates after command generation.",
+    "--intake-question",
+    "objective|What observable outcome should this milestone deliver?|Milestone creation needs explicit planning questions.|Missing questions affect proposal scope for child changes.|Use one observable milestone outcome as the first answer.",
+    "--intake-question",
+    "scope-boundary|What is in and out of scope?|Milestone scope fields must be turned into explicit clarification questions.|Unclear scope affects planned-change ownership.|Keep scope-in and scope-out aligned with this answer.",
     "--dependency",
     "Existing roadmap schema.",
     "--risk",
@@ -403,6 +416,7 @@ try {
     goal: string;
     scope: { in: string[]; out: string[] };
     done_criteria: string[];
+    intake_questions: Array<{ id: string; question: string; context: string; impact: string; recommendation: string }>;
     planned_changes: Record<string, unknown>;
     dependencies: string[];
     risks: string[];
@@ -414,8 +428,10 @@ try {
   context.assert(
     generatedMilestone.milestone["0001-authoring"]?.title === "Authoring Milestone"
       && generatedMilestone.status === "proposed"
+      && generatedMilestone.intake_questions.length === 2
+      && generatedMilestone.intake_questions[0]?.id === "objective"
       && Object.keys(generatedMilestone.planned_changes).length === 0,
-    "roadmap-generate milestone writes keyed milestone identity, proposed status, and empty planned_changes",
+    "roadmap-generate milestone writes keyed milestone identity, intake questions, proposed status, and empty planned_changes",
   );
   context.assert(
     generatedMilestone.scope.in.includes("Milestone YAML shape is command-authored.")
@@ -462,19 +478,23 @@ try {
     "Additional milestone scope.",
     "--details",
     "Long-form milestone guidance added by the authoring command.",
+    "--intake-question",
+    "verification-evidence|How will the milestone be verified?|Updates can append missing milestone questions.|Missing verification affects testing tasks.|Name the command or evidence that proves completion.",
   ], { cwd: roadmapGenerateDir });
   context.assert(appendMilestone.status === 0, "roadmap-generate milestone appends list fields and fills absent scalar fields", appendMilestone.stderr);
   const appendedMilestone = yamlModule.parseYamlFile<{
     scope: { in: string[] };
+    intake_questions: Array<{ id: string }>;
     details?: string;
     source_ticket?: string;
   }>(generatedMilestonePath);
   context.assert(
     appendedMilestone.scope.in.includes("Milestone YAML shape is command-authored.")
       && appendedMilestone.scope.in.includes("Additional milestone scope.")
+      && appendedMilestone.intake_questions.map((question) => question.id).join(",") === "objective,scope-boundary,verification-evidence"
       && appendedMilestone.details === "Long-form milestone guidance added by the authoring command."
       && appendedMilestone.source_ticket === "captured-ticket",
-    "roadmap-generate milestone preserves existing milestone metadata while applying safe updates",
+    "roadmap-generate milestone preserves existing milestone metadata and appends intake questions while applying safe updates",
   );
   context.assert(
     readFileSync(standalonePath, "utf8") === standaloneBeforeUpdate,
@@ -510,6 +530,8 @@ try {
     "Reset milestone scope.",
     "--done",
     "Reset done criterion.",
+    "--intake-question",
+    "risks|What milestone risks could change the plan?|Reset can intentionally replace milestone questions.|Missing risk review affects dependencies and tests.|Record concrete compatibility, data, security, or release risks.",
     "--note",
     "Reset note.",
   ], { cwd: roadmapGenerateDir });
@@ -518,6 +540,7 @@ try {
     goal: string;
     scope: { in: string[] };
     done_criteria: string[];
+    intake_questions: Array<{ id: string }>;
     notes: string[];
     source_ticket?: string;
   }>(generatedMilestonePath);
@@ -525,13 +548,31 @@ try {
     resetArtifact.goal === "Replace the goal with explicit reset."
       && resetArtifact.scope.in.join("\n") === "Reset milestone scope."
       && resetArtifact.done_criteria.join("\n") === "Reset done criterion."
+      && resetArtifact.intake_questions.map((question) => question.id).join("\n") === "risks"
       && resetArtifact.notes.join("\n") === "Reset note."
       && resetArtifact.source_ticket === "captured-ticket",
-    "roadmap-generate milestone reset replaces supplied list fields and preserves source_ticket",
+    "roadmap-generate milestone reset replaces supplied list fields and intake questions while preserving source_ticket",
   );
   context.assert(
     readFileSync(standalonePath, "utf8") === standaloneBeforeUpdate,
     "roadmap-generate milestone reset still does not rewrite standalone planned-change files",
+  );
+
+  const missingIntakeQuestionMilestone = cli([
+    "roadmap-generate",
+    "milestone",
+    "--id",
+    "0002-missing-intake",
+    "--title",
+    "Missing Intake",
+    "--goal",
+    "Reject milestone creation without explicit intake questions.",
+  ], { cwd: roadmapGenerateDir });
+  context.assert(
+    missingIntakeQuestionMilestone.status !== 0
+      && missingIntakeQuestionMilestone.stdout.includes("new roadmap milestones require at least one --intake-question"),
+    "roadmap-generate milestone rejects new milestones without intake questions",
+    missingIntakeQuestionMilestone.stdout,
   );
 
   const invalidMilestone = cli(["roadmap-generate", "planned-change", "--id", "not-supported"], { cwd: roadmapGenerateDir });

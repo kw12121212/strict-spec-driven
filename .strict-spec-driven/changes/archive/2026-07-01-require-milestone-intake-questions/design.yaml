@@ -1,0 +1,15 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: require-milestone-intake-questions
+approach:
+  - Add a required milestone-level intake_questions field with structured entries owned by the roadmap milestone schema. Each entry has a stable id plus question, context, impact, and recommendation strings so the planning uncertainty is explicit and reviewable without embedding change questions.yaml state in roadmap files.
+  - Teach roadmap-generate milestone to parse repeated --intake-question values in the form id|question|context|impact|recommendation, require at least one entry for new milestones, append unique entries on ordinary updates, and replace supplied entries under --reset. Preserve source_ticket and existing intake_questions during sync and archive-style canonicalization.
+  - Update examples and roadmap regression tests to cover create, update, reset, schema rejection, sync preservation, and ticket-promoted skeletons.
+decisions:
+  milestone-intake-question-shape:
+    decision: Use a required top-level intake_questions sequence of objects with id, question, context, impact, and recommendation.
+    rationale: The existing milestone schema already uses structured top-level planning fields; a sequence of explicit question records is machine-validatable, human-readable, and can carry the planning impact required by the current intake gate without overloading notes or details.
+alternatives: []
+risks: []

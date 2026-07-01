@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: require-milestone-intake-questions
+  status: proposed
+summary:
+  what:
+    - Require roadmap milestone artifacts to carry explicit structured intake questions.
+    - Make roadmap-generate milestone require at least one --intake-question entry when creating a milestone, and preserve or append those entries on updates.
+  why:
+    - Milestones currently record goal, scope, done criteria, dependencies, risks, and details, but they do not expose the mandatory questions that must be clarified before roadmap work is treated as executable.
+scope:
+  in:
+    - Extend the roadmap milestone contract, schema, authoring command, validation, sync, examples, and regression tests for structured milestone intake questions.
+    - 'Define reasonable default question categories from the current change-intake checklist and milestone planning model: objective, scope boundary, done criteria, work decomposition, dependencies or blockers, risks, verification evidence, and applicable technical standards.'
+  out:
+    - Do not add roadmap-generate support for standalone planned-change artifacts.
+    - Do not replace questions.yaml for strict changes or change roadmap recommendation selection behavior.
+unchanged_behavior:
+  - Existing milestone identity, status derivation, planned_changes compatibility, source_ticket provenance, details preservation, and standalone planned-change boundaries remain unchanged.

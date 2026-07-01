@@ -1,0 +1,33 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: require-milestone-intake-questions
+sections:
+  Implementation:
+    update-contract-and-schema:
+      text: Update roadmap milestone schema assets, examples, model types, validation, sync, and conversion/promotion paths so milestone intake_questions are required and preserved.
+      status: complete
+    update-roadmap-generate:
+      text: Add roadmap-generate milestone --intake-question parsing, create-time requirement enforcement, update append/reset behavior, and usage text.
+      status: complete
+  Testing:
+    run-build:
+      text: Rebuild TypeScript and regenerated embedded template output after source and template edits.
+      status: complete
+      command: bun run build
+    run-roadmap-tests:
+      text: Run the project regression suite with roadmap and schema cases that cover milestone intake question behavior.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-roadmap-tests

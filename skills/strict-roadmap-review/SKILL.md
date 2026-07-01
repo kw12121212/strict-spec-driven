@@ -38,6 +38,9 @@ run `init` from this skill.
   `planned_change.milestone`. Use `roadmap-status` output to locate
   planned-change source files; each `plannedChanges[]` entry reports its
   `path`. Treat filenames as helpful conventions only.
+- Milestone `intake_questions` are part of definition quality. Review them as
+  planning checks whose answers must be recoverable from milestone fields or
+  owned planned-change detail before the milestone is treated as executable.
 
 ## Preferred Human Language
 
@@ -73,8 +76,14 @@ run `init` from this skill.
 3. **Assess definition quality** — for each incomplete milestone, review the
    milestone for goal clarity, verifiable `done_criteria`, coherent `scope`,
    `dependencies`, and `risks`, and planned-change coverage of the milestone
-   goal. Review each owned planned change for missing or vague `details` that
-   would block turning it into an executable strict change proposal.
+   goal. Also check milestone `intake_questions` for answer evidence in
+   `goal`, `scope`, `done_criteria`, `dependencies`, `risks`, `details`,
+   `notes`, `source_ticket`, and owned planned-change `summary`, `details`,
+   `depends_on`, and metadata. Treat an intake question as answered only when
+   the answer is explicit enough to guide proposal scope, implementation
+   boundaries, tests, dependencies, risks, or technical standards. Review each
+   owned planned change for missing or vague `details` that would block turning
+   it into an executable strict change proposal.
 
 4. **Assess delivery state** — for each incomplete milestone, compare its
    declared status with the derived status and per-planned-change state
@@ -91,10 +100,16 @@ run `init` from this skill.
    this skill, so planned-change `details` can be tightened without introducing
    planned-change CLI generation. Tighten vague wording into verifiable
    statements; elaborate planned-change details until each one carries enough
-   executable planning context to propose without re-deriving intent. Never
-   hand-edit completion status: milestone and planned-change completion flows
-   only from roadmap sync reconciliation against active and archived strict
-   changes.
+   executable planning context to propose without re-deriving intent. When an
+   intake answer is missing but can be safely derived from existing roadmap,
+   spec, ticket, or planned-change evidence, update the relevant milestone
+   field or planned-change detail so the answer evidence is explicit. When an
+   intake answer needs a human product, compatibility, risk, dependency, or
+   technical-standard decision, report the unresolved decision and impact in
+   the final summary instead of inventing an answer or writing a change-level
+   `questions.yaml` blocker. Never hand-edit completion status: milestone and
+   planned-change completion flows only from roadmap sync reconciliation
+   against active and archived strict changes.
 
 6. **Resync the roadmap** — after edits, run:
    ```bash
@@ -120,8 +135,12 @@ run `init` from this skill.
   leave the roadmap unsynced after edits
 - Use `roadmap-generate milestone` for milestone YAML shape; standalone
   planned-change files remain edited directly
+- check milestone intake_questions for answer evidence during definition
+  review, using milestone fields and owned planned-change details before
+  asking the human for missing decisions
 - Never mark planned changes or milestones complete by hand; completion state
   is owned by roadmap sync reconciliation
+- Do not record milestone-level intake gaps in change-level `questions.yaml`
 - Do not invent planned change state that conflicts with the strict workflow
 - Keep milestone scope focused; surface boundary changes to the user instead
   of silently moving work across milestones

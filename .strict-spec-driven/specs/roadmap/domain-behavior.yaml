@@ -26,6 +26,7 @@ mapping:
     - src/yaml.ts
     - skills/strict-roadmap-plan/SKILL.md
     - skills/strict-roadmap-review/SKILL.md
+    - src/ticket-dispatch.ts
   tests:
     - test/suites/roadmap-and-migration.ts
     - test/suites/entrypoint-and-skills.ts
@@ -140,12 +141,12 @@ requirements:
         - THEN: the command exits non-zero with deterministic diagnostics and does not move milestone or planned-change files
   roadmap-milestone-authoring-command-contract:
     strength: MUST
-    statement: The system MUST make roadmap-generate milestone create and safely update strict roadmap milestone artifacts using structured YAML fields, preserve source-ticket metadata unless explicitly addressed by milestone arguments, reject conflicting edits before writing, run roadmap synchronization after successful writes, and report updated files deterministically without adding CLI authoring support for standalone planned-change artifacts.
+    statement: The system MUST make roadmap-generate milestone create and safely update strict roadmap milestone artifacts using structured YAML fields, require explicit structured milestone intake questions when creating a milestone, preserve source-ticket metadata unless explicitly addressed by milestone arguments, reject conflicting edits before writing, run roadmap synchronization after successful writes, and report updated files deterministically without adding CLI authoring support for standalone planned-change artifacts.
     scenarios:
-      milestone-command-creates-canonical-roadmap-state:
+      milestone-command-creates-canonical-roadmap-state-with-intake-questions:
         - GIVEN: a strict workflow project has roadmap state and no milestone with a requested milestone id
-        - WHEN: strict-spec-driven roadmap-generate milestone is invoked with valid milestone title, goal, scope, done criteria, dependency, risk, note, and optional details arguments
-        - THEN: the command writes a valid roadmap milestone artifact with empty planned_changes, synchronizes the roadmap index, exits zero, and reports the updated milestone and index files
+        - WHEN: strict-spec-driven roadmap-generate milestone is invoked with valid milestone title, goal, scope, done criteria, dependency, risk, note, optional details, and at least one structured intake question argument
+        - THEN: the command writes a valid roadmap milestone artifact with empty planned_changes and the supplied intake_questions, synchronizes the roadmap index, exits zero, and reports the updated milestone and index files
   roadmap-milestone-update-preserves-work-items:
     strength: MUST
     statement: The system MUST make roadmap-generate milestone update milestone planning fields without creating, modifying, deleting, or moving standalone planned-change artifacts, MUST preserve source_ticket metadata unless an explicitly supported milestone-field operation addresses it, and MUST reject legacy inline planned_changes without partially rewriting the milestone because inline planned-change migration remains on the existing materialization workflow.

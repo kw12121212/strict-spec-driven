@@ -62,6 +62,7 @@ const ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET = "all milestones whose status is 
 const ROADMAP_REVIEW_DIRECT_FIX_SNIPPET =
   "use roadmap-generate milestone for milestone YAML shape";
 const ROADMAP_REVIEW_DETAIL_ELABORATION_SNIPPET = "concrete and executable";
+const ROADMAP_REVIEW_INTAKE_ANSWER_SNIPPET = "check milestone intake_questions for answer evidence";
 const ROADMAP_ARCHIVE_DEFAULT_ALL_SNIPPET = "default to all unarchived milestones";
 const ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET = "only milestones whose derived status is complete";
 const ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET = "completed standalone planned-change";
@@ -377,6 +378,7 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET,
       ROADMAP_REVIEW_DIRECT_FIX_SNIPPET,
       ROADMAP_REVIEW_DETAIL_ELABORATION_SNIPPET,
+      ROADMAP_REVIEW_INTAKE_ANSWER_SNIPPET,
     ],
   },
   "strict-roadmap-sync": {

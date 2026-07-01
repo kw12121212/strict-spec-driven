@@ -85,6 +85,10 @@ mapping:
     - scripts/gen-templates-bundle.ts
     - examples/strict-spec-driven/change-proposal.yaml
     - skills/strict-spec-bugfix/SKILL.md
+    - src/ticket-dispatch.ts
+    - src/roadmap/model.ts
+    - src/roadmap/validate.ts
+    - src/roadmap/sync.ts
   tests:
     - test/run.ts
     - test/suites/entrypoint-and-skills.ts
@@ -401,54 +405,12 @@ requirements:
         - THEN: milestone order remains recoverable from the key sequence
   yaml-roadmap-milestone-planning-model:
     strength: MUST
-    statement: The system MUST represent roadmap milestone planning state through a keyed map where the key is a 4-digit numeric-prefixed milestone ID, with structured YAML fields for goal, scope, done criteria, dependencies, risks, status, notes, a keyed planned_changes map where each entry requires status, summary, details, and depends_on fields, and an optional top-level details field for long-form planning guidance.
+    statement: The system MUST represent roadmap milestone planning state through a keyed map where the key is a 4-digit numeric-prefixed milestone ID, with structured YAML fields for goal, scope, done criteria, dependencies, risks, status, notes, required structured intake_questions entries, a keyed planned_changes map where each entry requires status, summary, details, and depends_on fields, and an optional top-level details field for long-form planning guidance.
     scenarios:
-      roadmap-milestone-uses-keyed-identity:
-        - GIVEN: a strict roadmap milestone artifact is reviewed
-        - WHEN: its milestone field is inspected
-        - THEN: the milestone field is a single-entry keyed map
-        - AND: the key matches the pattern for 4-digit numeric prefix
-        - AND: the value exposes a title field
-        - AND: no separate id field exists within the value
-      roadmap-milestone-planned-changes-are-keyed:
-        - GIVEN: a strict roadmap milestone artifact is reviewed
-        - WHEN: its planned_changes field is inspected
-        - THEN: planned_changes is a keyed map
-        - AND: each key is a stable change identifier
-        - AND: each value exposes status, summary, details, and depends_on fields
-        - AND: no separate id field exists within the entry value
-      planned-change-details-are-required:
+      roadmap-milestone-requires-structured-intake-questions:
         - GIVEN: a strict roadmap milestone artifact is validated
-        - WHEN: a planned change entry is inspected
-        - THEN: the entry includes a details field
-        - AND: the details field contains technical and design context as a non-empty string
-        - AND: the absence of details is reported as a validation failure
-      milestone-id-uses-four-digit-prefix:
-        - GIVEN: a strict roadmap milestone artifact is validated
-        - WHEN: the milestone keyed map key is checked
-        - THEN: the key matches the pattern of exactly four digits followed by a hyphen
-        - AND: keys not matching this pattern are reported as validation failures
-      milestone-declared-status-uses-roadmap-enums:
-        - GIVEN: a strict roadmap milestone artifact is validated
-        - WHEN: the milestone status is inspected
-        - THEN: the declared status is limited to proposed, active, blocked, or complete
-      roadmap-milestone-exposes-details-as-optional-long-form-field:
-        - GIVEN: a strict roadmap milestone artifact is reviewed
-        - WHEN: its details field is inspected
-        - THEN: the details content is available as an optional string field
-        - AND: the details content is freeform text suitable for YAML block scalar representation
-      milestones-without-details-remain-valid:
-        - GIVEN: a strict roadmap milestone artifact omits the details field
-        - WHEN: the artifact is validated
-        - THEN: no validation failure is emitted for the missing details field
-      sync-preserves-details-when-present:
-        - GIVEN: a strict roadmap milestone artifact includes a details field
-        - WHEN: the roadmap sync operation builds the canonical milestone artifact
-        - THEN: the output milestone artifact includes the same details content
-      sync-omits-details-when-absent:
-        - GIVEN: a strict roadmap milestone artifact omits the details field
-        - WHEN: the roadmap sync operation builds the canonical milestone artifact
-        - THEN: the output milestone artifact omits the details field
+        - WHEN: its intake_questions field is inspected
+        - THEN: the artifact requires at least one intake question entry, and every entry exposes id, question, context, impact, and recommendation as non-empty strings
   yaml-planned-change-entry-dependency-model:
     strength: MUST
     statement: The system MUST represent roadmap planned changes as stable planned-change identities that remain valid as inline milestone planned_changes entries during compatibility windows and can also be represented as standalone planned-change YAML artifacts under the roadmap directory, with each representation exposing status, summary, details, dependency references, and exactly one owning milestone relationship.

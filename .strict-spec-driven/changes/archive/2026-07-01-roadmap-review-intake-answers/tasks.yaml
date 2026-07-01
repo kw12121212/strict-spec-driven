@@ -1,0 +1,33 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: roadmap-review-intake-answers
+sections:
+  Implementation:
+    update-roadmap-review-guidance:
+      text: Update strict-roadmap-review guidance so definition-quality review checks each incomplete milestone intake question for answer evidence in milestone fields and owned planned-change details, applies safe fixes directly, and surfaces unresolved human decisions without inventing answers.
+      status: complete
+    update-skill-validation:
+      text: Update strict skill packaging expectations so validate-skills deterministically rejects strict-roadmap-review guidance that omits milestone intake-answer review.
+      status: complete
+  Testing:
+    run-build:
+      text: Rebuild generated templates and compiled output after TypeScript and skill edits.
+      status: complete
+      command: bun run build
+    run-skill-tests:
+      text: Run the skill packaging and guidance regression suite.
+      status: complete
+      command: bun test/run.ts --suite entrypoint-and-skills
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-skill-tests
+  unit_test_task: run-project-regression

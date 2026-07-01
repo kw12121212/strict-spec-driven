@@ -15,9 +15,11 @@ const ROADMAP_RECOMMEND_USAGE = "Usage: strict-spec-cli roadmap-recommend [--det
 const ROADMAP_ARCHIVE_USAGE = "Usage: strict-spec-cli roadmap-archive [milestone-id]\n";
 const ROADMAP_REOPEN_USAGE = "Usage: strict-spec-cli roadmap-reopen <milestone-id> [--reason \"...\"]\n";
 const ROADMAP_GENERATE_USAGE = [
-  "Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset]",
+  "Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> --intake-question \"id|question|context|impact|recommendation\" [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset]",
   "",
   "Notes:",
+  "  New milestones require at least one --intake-question value.",
+  "  Repeat --intake-question to append structured milestone clarification questions.",
   "  Existing scalar fields with different values require --reset.",
   "  List fields append unique values by default; with --reset, supplied list fields replace existing values.",
 ].join("\n") + "\n";
@@ -178,6 +180,15 @@ function requiredOne(flags: FlagMap, name: string): string {
   return value;
 }
 
+function parseIntakeQuestion(value: string): RoadmapMilestoneAuthorInput["intakeQuestions"][number] {
+  const parts = value.split("|").map((part) => part.trim());
+  if (parts.length !== 5 || parts.some((part) => part.length === 0)) {
+    throw new Error("--intake-question must use id|question|context|impact|recommendation");
+  }
+  const [id, question, context, impact, recommendation] = parts;
+  return { id, question, context, impact, recommendation };
+}
+
 function buildRoadmapMilestoneAuthorInput(argv: string[]): RoadmapMilestoneAuthorInput {
   const flags = parseRoadmapGenerateFlags(argv);
   ensureAllowedRoadmapGenerateFlags(flags, [
@@ -187,6 +198,7 @@ function buildRoadmapMilestoneAuthorInput(argv: string[]): RoadmapMilestoneAutho
     "scope-in",
     "scope-out",
     "done",
+    "intake-question",
     "dependency",
     "risk",
     "note",
@@ -201,6 +213,7 @@ function buildRoadmapMilestoneAuthorInput(argv: string[]): RoadmapMilestoneAutho
     scopeIn: values(flags, "scope-in"),
     scopeOut: values(flags, "scope-out"),
     doneCriteria: values(flags, "done"),
+    intakeQuestions: values(flags, "intake-question").map(parseIntakeQuestion),
     dependencies: values(flags, "dependency"),
     risks: values(flags, "risk"),
     notes: values(flags, "note"),

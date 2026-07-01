@@ -672,8 +672,12 @@ context.assert(
       && normalizedRoadmapReviewSkillContent.includes("all milestones whose status is not complete")
       && normalizedRoadmapReviewSkillContent.includes("use roadmap-generate milestone for milestone YAML shape")
       && normalizedRoadmapReviewSkillContent.includes("standalone planned-change files remain edited directly")
-      && normalizedRoadmapReviewSkillContent.includes("concrete and executable"),
-    "strict-roadmap-review validates with all-incomplete-milestones milestone command guidance",
+      && normalizedRoadmapReviewSkillContent.includes("concrete and executable")
+      && normalizedRoadmapReviewSkillContent.includes("check milestone intake_questions for answer evidence")
+      && normalizedRoadmapReviewSkillContent.includes("goal`, `scope`, `done_criteria`, `dependencies`, `risks`, `details`, `notes`, `source_ticket`")
+      && normalizedRoadmapReviewSkillContent.includes("owned planned-change `summary`, `details`, `depends_on`, and metadata")
+      && normalizedRoadmapReviewSkillContent.includes("Do not record milestone-level intake gaps in change-level `questions.yaml`"),
+    "strict-roadmap-review validates all-incomplete milestone, direct-fix, and intake-answer guidance",
   );
   context.assert(
     harnessInitSkillContent.includes("check-workflow-state: strict-spec-cli check-workflow-state")
@@ -1464,6 +1468,15 @@ try {
         && diagnostic.expected === "use roadmap-generate milestone for milestone YAML shape",
     ),
     "strict-roadmap-review invalid packaging requires milestone command guidance",
+  );
+  context.assert(
+    invalidRoadmapReviewResultA.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.roadmap.required_snippet.missing"
+        && diagnostic.path === "skills/strict-roadmap-review/SKILL.md"
+        && diagnostic.expected === "check milestone intake_questions for answer evidence",
+    ),
+    "strict-roadmap-review invalid packaging requires intake-answer review guidance",
   );
 
   const invalidRoadmapReviewCliA = cli(["validate-skills"], { cwd: invalidRoadmapReviewRoot });

@@ -1833,6 +1833,15 @@ function writeRoadmapMilestoneArtifact(
         out: ["Unrelated behavior."],
       },
       done_criteria: ["The roadmap milestone stays aligned with archived change state."],
+      intake_questions: [
+        {
+          id: "objective",
+          question: "What observable outcome should this milestone deliver?",
+          context: "Archive lifecycle tests need valid roadmap milestone artifacts.",
+          impact: "Missing intake questions would make the milestone schema invalid before archive behavior is exercised.",
+          recommendation: "Keep a minimal structured intake question on fixture milestones.",
+        },
+      ],
       planned_changes: plannedChangesMap,
       dependencies: [],
       risks: [],

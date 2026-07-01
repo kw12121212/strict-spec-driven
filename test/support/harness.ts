@@ -144,6 +144,7 @@ export type RoadmapMilestoneArtifact = {
   goal: string;
   scope: { in: string[]; out: string[] };
   done_criteria: string[];
+  intake_questions: Array<{ id: string; question: string; context: string; impact: string; recommendation: string }>;
   planned_changes: Array<{ id: string; status: string; summary: string; depends_on: string[] }>;
   dependencies: string[];
   risks: string[];

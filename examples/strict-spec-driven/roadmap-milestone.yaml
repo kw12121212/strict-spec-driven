@@ -13,6 +13,12 @@ scope:
     - Unrelated behavior.
 done_criteria:
   - The planned behavior is implemented and verified.
+intake_questions:
+  - id: objective
+    question: What observable outcome should this milestone deliver?
+    context: Milestone goal text can be broad; this question keeps the outcome testable before work is decomposed.
+    impact: Unclear objective affects milestone scope, planned-change summaries, and proposal scope for every child change.
+    recommendation: Answer with one user- or operator-observable outcome that can be checked after the milestone is complete.
 planned_changes:
   example-change:
     status: planned
