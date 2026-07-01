@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: verify-unresolvable-delta-target
+approach:
+  - 'Add a new verify check that mirrors checkNewSpecDeltaRules but targets modify-existing deltas: for each delta with no spec seed block, resolve its target_spec against the union of existing main spec ids and target_spec ids introduced by sibling deltas that carry a valid new-spec seed block; when it resolves to neither, emit a deterministic diagnostic (source unresolvable_delta_target). The diagnostic and the reworded archive throw in src/archive.ts must both be self-sufficient remediation instructions: they name the repo-relative delta spec file path, the failing field path, the unresolvable target_spec id, and two labeled remedies — (A) create a new main spec by adding a spec seed block, quoting the exact ''strict-spec-cli generate <change> delta-spec --target-spec <id> --title <title> --new-spec-path .strict-spec-driven/specs/<id>.yaml'' command with the change name and a convention-derived path filled in; (B) correct the target_spec in that delta file, pointing at .strict-spec-driven/specs/INDEX.yaml for the valid ids. Wire the check into the verify aggregate so ready and workflow-state surface it.'
+decisions:
+  message-is-actionable-to-field-and-command-level:
+    decision: 'The verify diagnostic and archive error must carry concrete remediation: exact delta file path, failing field path, target id, a ready-to-run generate command for the new-spec remedy with change name and suggested path substituted, and the INDEX.yaml path for the correct-target remedy — never generic guidance the reader must resolve by guessing.'
+    rationale: The whole point of moving this earlier is to let an operator or AI apply the fix directly; a vague 'targets missing main spec' message forces guessing about which file, which field, and which of the two fixes applies, which is what caused the original confusion.
+  resolution-parity-with-archive:
+    decision: Resolve a delta target at verify time against existing main specs plus sibling new-spec deltas in the same change, matching archive's resolution order.
+    rationale: Archive already treats a target as resolvable when a sibling delta carries a spec seed block for that id; verify must use the same resolution so it never reports a false positive for a change that archives cleanly.
+  no-silent-autofix:
+    decision: Do not auto-create the missing main spec or auto-correct the target id; block with the actionable message instead.
+    rationale: The system cannot distinguish an intended-new spec from a typo or drifted id; auto-creating an empty-titled spec or fuzzy-matching a different spec would split requirements and corrupt the spec set. The safe remedy is explicit operator action guided by a precise message.
+  blocking-must-parity:
+    decision: Treat the unresolvable target as a blocking verify diagnostic and keep archive exiting non-zero, at MUST strength.
+    rationale: Consistent with cli-archive-rejects-added-requirement-collisions, which reports at verify and blocks at archive; a mere warning would let the change reach archive and fail there again.
+alternatives: []
+risks: []

@@ -18039,6 +18039,62 @@ function checkNewSpecDeltaRules(rootDir, changeDir) {
   }
   return diagnostics;
 }
+function formatUnresolvableDeltaTargetMessage(changeName, deltaArtifactPath, targetSpec) {
+  return `delta spec '${deltaArtifactPath}' sets target_spec '${targetSpec}', which resolves to no existing main spec ` + `and to no sibling delta that creates it in this change, so archive cannot merge it. Fix one of the following: ` + `(A) If '${targetSpec}' should be a NEW main spec, add a new-spec seed block by running: ` + `strict-spec-cli generate ${changeName} delta-spec --target-spec ${targetSpec} ` + `--title "<Spec Title>" --new-spec-path .strict-spec-driven/specs/${targetSpec}.yaml. ` + `(B) If the target is wrong, correct the 'target_spec' field in '${deltaArtifactPath}' ` + `to an existing spec id listed in .strict-spec-driven/specs/INDEX.yaml.`;
+}
+function checkUnresolvableDeltaTargets(rootDir, changeDir) {
+  const diagnostics = [];
+  const { specsById } = buildMainSpecRequirementIndex(rootDir);
+  const changeName = path13.basename(changeDir);
+  const specsDir = path13.join(changeDir, "specs");
+  const deltas = [];
+  const introducedIds = new Set;
+  for (const deltaSpecPath of listYamlFiles2(specsDir)) {
+    const artifactPath = path13.relative(rootDir, deltaSpecPath).split(path13.sep).join("/");
+    const content = readFileSync11(deltaSpecPath, "utf8");
+    let artifact;
+    try {
+      artifact = parseYamlDocument(content, { source: artifactPath });
+    } catch {
+      continue;
+    }
+    deltas.push({ artifactPath, artifact });
+    const specBlock = artifact.spec;
+    const hasSpecBlock = specBlock !== null && typeof specBlock === "object" && !Array.isArray(specBlock);
+    if (!hasSpecBlock)
+      continue;
+    if (typeof artifact.target_spec !== "string" || artifact.target_spec.length === 0)
+      continue;
+    const block = specBlock;
+    const title = block.title;
+    const targetPath = block.path;
+    if (typeof title === "string" && title.length > 0 && typeof targetPath === "string" && targetPath.length > 0) {
+      introducedIds.add(artifact.target_spec);
+    }
+  }
+  for (const { artifactPath, artifact } of deltas) {
+    const specBlock = artifact.spec;
+    const hasSpecBlock = specBlock !== null && typeof specBlock === "object" && !Array.isArray(specBlock);
+    if (hasSpecBlock)
+      continue;
+    if (typeof artifact.target_spec !== "string" || artifact.target_spec.length === 0)
+      continue;
+    const targetSpec = artifact.target_spec;
+    if (specsById.has(targetSpec))
+      continue;
+    if (introducedIds.has(targetSpec))
+      continue;
+    diagnostics.push({
+      source: "unresolvable_delta_target",
+      artifactPath,
+      fieldPath: "$.target_spec",
+      message: formatUnresolvableDeltaTargetMessage(changeName, artifactPath, targetSpec),
+      expected: "target_spec resolves to an existing main spec or a sibling new-spec delta",
+      actual: `no main spec '${targetSpec}' and no sibling new-spec delta creates it`
+    });
+  }
+  return diagnostics;
+}
 function buildMainTechRuleIndex(rootDir) {
   const techRoot = path13.join(rootDir, STRICT_WORKFLOW_DIR5, "tech");
   const diagnostics = [];
@@ -18340,6 +18396,7 @@ function verifyChange(rootDir, changeName) {
   allDiagnostics.push(...validateDeltaSpecs(changeDir, specsPrefix));
   allDiagnostics.push(...checkAddedRequirementCollisions(rootDir, changeDir));
   allDiagnostics.push(...checkNewSpecDeltaRules(rootDir, changeDir));
+  allDiagnostics.push(...checkUnresolvableDeltaTargets(rootDir, changeDir));
   allDiagnostics.push(...checkExclusiveActiveTargets(rootDir, changeName));
   const techPrefix = `.strict-spec-driven/changes/${changeName}/tech`;
   allDiagnostics.push(...validateDeltaTech(changeDir, techPrefix));
@@ -18847,7 +18904,7 @@ function archiveChange(rootDir, changeName) {
       newSpecPaths.set(deltaSpec.target_spec, cacheKey);
       created = true;
     } else {
-      throw new Error(`delta spec '${deltaSpecPath}' targets missing main spec '${deltaSpec.target_spec}'`);
+      throw new Error(formatUnresolvableDeltaTargetMessage(changeName, normalizeRepoRelativePath3(rootDir, deltaSpecPath), deltaSpec.target_spec));
     }
     let report = mergeReports.get(deltaSpec.target_spec);
     if (!report) {

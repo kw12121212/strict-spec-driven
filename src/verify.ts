@@ -564,6 +564,98 @@ function checkNewSpecDeltaRules(
   return diagnostics;
 }
 
+// Shared remediation message for a delta spec whose target_spec cannot be
+// resolved at verify or archive time. It names the delta file, the failing
+// field, the unresolvable id, and the two concrete fixes with a ready-to-run
+// command and the index to consult, so the reader never has to guess.
+export function formatUnresolvableDeltaTargetMessage(
+  changeName: string,
+  deltaArtifactPath: string,
+  targetSpec: string,
+): string {
+  return (
+    `delta spec '${deltaArtifactPath}' sets target_spec '${targetSpec}', which resolves to no existing main spec ` +
+    `and to no sibling delta that creates it in this change, so archive cannot merge it. Fix one of the following: ` +
+    `(A) If '${targetSpec}' should be a NEW main spec, add a new-spec seed block by running: ` +
+    `strict-spec-cli generate ${changeName} delta-spec --target-spec ${targetSpec} ` +
+    `--title "<Spec Title>" --new-spec-path .strict-spec-driven/specs/${targetSpec}.yaml. ` +
+    `(B) If the target is wrong, correct the 'target_spec' field in '${deltaArtifactPath}' ` +
+    `to an existing spec id listed in .strict-spec-driven/specs/INDEX.yaml.`
+  );
+}
+
+// Flags a modify-existing delta (no new-spec seed block) whose target_spec
+// resolves to neither an existing main spec nor a sibling delta that creates it
+// with a valid seed block, mirroring archive's resolution order. Without this
+// the failure would surface only at archive time.
+function checkUnresolvableDeltaTargets(
+  rootDir: string,
+  changeDir: string,
+): VerifyDiagnostic[] {
+  const diagnostics: VerifyDiagnostic[] = [];
+  const { specsById } = buildMainSpecRequirementIndex(rootDir);
+  const changeName = path.basename(changeDir);
+
+  const specsDir = path.join(changeDir, "specs");
+  const deltas: { artifactPath: string; artifact: DeltaSpecArtifact }[] = [];
+  const introducedIds = new Set<string>();
+
+  for (const deltaSpecPath of listYamlFiles(specsDir)) {
+    const artifactPath = path.relative(rootDir, deltaSpecPath).split(path.sep).join("/");
+    const content = readFileSync(deltaSpecPath, "utf8");
+    let artifact: DeltaSpecArtifact;
+    try {
+      artifact = parseYamlDocument<DeltaSpecArtifact>(content, { source: artifactPath });
+    } catch {
+      continue;
+    }
+    deltas.push({ artifactPath, artifact });
+
+    const specBlock = artifact.spec;
+    const hasSpecBlock =
+      specBlock !== null && typeof specBlock === "object" && !Array.isArray(specBlock);
+    if (!hasSpecBlock) continue;
+    if (typeof artifact.target_spec !== "string" || artifact.target_spec.length === 0) continue;
+    const block = specBlock as Record<string, unknown>;
+    const title = block.title;
+    const targetPath = block.path;
+    if (
+      typeof title === "string" &&
+      title.length > 0 &&
+      typeof targetPath === "string" &&
+      targetPath.length > 0
+    ) {
+      // A sibling delta introduces this id as a new main spec.
+      introducedIds.add(artifact.target_spec);
+    }
+  }
+
+  for (const { artifactPath, artifact } of deltas) {
+    const specBlock = artifact.spec;
+    const hasSpecBlock =
+      specBlock !== null && typeof specBlock === "object" && !Array.isArray(specBlock);
+    // New-spec deltas are governed by checkNewSpecDeltaRules; schema validation
+    // handles a missing target_spec.
+    if (hasSpecBlock) continue;
+    if (typeof artifact.target_spec !== "string" || artifact.target_spec.length === 0) continue;
+
+    const targetSpec = artifact.target_spec;
+    if (specsById.has(targetSpec)) continue;
+    if (introducedIds.has(targetSpec)) continue;
+
+    diagnostics.push({
+      source: "unresolvable_delta_target",
+      artifactPath,
+      fieldPath: "$.target_spec",
+      message: formatUnresolvableDeltaTargetMessage(changeName, artifactPath, targetSpec),
+      expected: "target_spec resolves to an existing main spec or a sibling new-spec delta",
+      actual: `no main spec '${targetSpec}' and no sibling new-spec delta creates it`,
+    });
+  }
+
+  return diagnostics;
+}
+
 function buildMainTechRuleIndex(rootDir: string): {
   diagnostics: VerifyDiagnostic[];
   standardsById: Map<string, MainTechRuleIndex>;
@@ -933,6 +1025,7 @@ export function verifyChange(
   allDiagnostics.push(...validateDeltaSpecs(changeDir, specsPrefix));
   allDiagnostics.push(...checkAddedRequirementCollisions(rootDir, changeDir));
   allDiagnostics.push(...checkNewSpecDeltaRules(rootDir, changeDir));
+  allDiagnostics.push(...checkUnresolvableDeltaTargets(rootDir, changeDir));
 
   allDiagnostics.push(...checkExclusiveActiveTargets(rootDir, changeName));
 

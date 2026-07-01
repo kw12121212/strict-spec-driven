@@ -9,7 +9,12 @@ import {
 import path from "path";
 import { syncRoadmap, type RoadmapSyncResult } from "./roadmap.js";
 import { ROADMAP_DIR } from "./roadmap/model.js";
-import { verifyChange, type VerifyDiagnostic, type VerifyResult } from "./verify.js";
+import {
+  formatUnresolvableDeltaTargetMessage,
+  verifyChange,
+  type VerifyDiagnostic,
+  type VerifyResult,
+} from "./verify.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
@@ -777,7 +782,11 @@ export function archiveChange(rootDir: string, changeName: string): ArchiveResul
       created = true;
     } else {
       throw new Error(
-        `delta spec '${deltaSpecPath}' targets missing main spec '${deltaSpec.target_spec}'`,
+        formatUnresolvableDeltaTargetMessage(
+          changeName,
+          normalizeRepoRelativePath(rootDir, deltaSpecPath),
+          deltaSpec.target_spec,
+        ),
       );
     }
 

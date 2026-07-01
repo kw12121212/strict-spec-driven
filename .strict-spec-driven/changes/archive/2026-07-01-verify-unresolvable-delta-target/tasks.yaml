@@ -1,0 +1,36 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: verify-unresolvable-delta-target
+sections:
+  Implementation:
+    add-verify-unresolvable-target-diagnostic:
+      text: Add a verify check in src/verify.ts that, for each delta spec with no new-spec seed block, resolves its target_spec against the union of existing main spec ids and target_spec ids introduced by sibling deltas carrying a valid new-spec seed block, and emits a deterministic diagnostic (source unresolvable_delta_target) naming the delta path, the unresolvable target id, and the two remedies when it resolves to neither. Wire it into the verify aggregate so ready and workflow-state surface it.
+      status: complete
+    reword-archive-unresolvable-target-error:
+      text: Reword the missing-main-spec throw in src/archive.ts so the blocking error names the delta path, the unresolvable target_spec id, and both remedies (add a new-spec seed block via --title/--new-spec-path, or correct the target_spec), while preserving its non-destructive, exit-non-zero behavior.
+      status: complete
+  Testing:
+    add-unresolvable-target-regression:
+      text: Add change-lifecycle regression asserting that verify emits the unresolvable_delta_target diagnostic for a seedless delta targeting a missing spec, that both the verify diagnostic and the archive error carry the concrete remediation (delta file path, failing field path, target id, remedy A generate command with change name and .strict-spec-driven/specs/<id>.yaml path, and remedy B INDEX.yaml path), that archive still exits non-zero and preserves the active change, and that a sibling new-spec delta resolves the target with no diagnostic.
+      status: complete
+    run-lint:
+      text: Run the TypeScript no-emit lint check.
+      status: complete
+      command: bun run lint
+    run-change-lifecycle-suite:
+      text: Run the focused change-lifecycle regression suite covering verify and archive delta-target behavior.
+      status: complete
+      command: bun test/run.ts --suite change-lifecycle
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-change-lifecycle-suite

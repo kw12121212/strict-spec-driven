@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: verify-unresolvable-delta-target
+  status: proposed
+summary:
+  what:
+    - 'Add a deterministic verify/ready diagnostic and reword the equivalent archive-time error for a delta spec whose target_spec resolves to no existing main spec and carries no new-spec seed block. Both messages must be concrete enough to act on without guessing: they must name the exact delta spec file path, the field path at fault, the unresolvable target_spec id, and for each remedy the exact field to set or ready-to-run command and the index file to consult. The failure moves from archive time to verify time, mirroring the existing ADDED-collision precedent.'
+  why:
+    - Today such a delta passes verify and ready and only aborts at archive with 'delta spec ... targets missing main spec ...', which is the worst moment to discover it and gives no guidance on how to fix it. Silent auto-repair is unsafe because the system cannot distinguish an intended-new spec missing its seed block from a typo or drifted target id, and fabricating a spec would corrupt the spec set. The safe fix is to surface the failure early with remediation detailed to the file, field, and command level so an operator or AI can apply the correct fix directly.
+scope:
+  in:
+    - A new verify diagnostic in src/verify.ts for delta specs whose target_spec is unresolvable and lack a spec seed block; a reworded blocking archive error in src/archive.ts; both messages naming the delta spec file path, the field path (target_spec, and spec.title/spec.path for the new-spec remedy), the unresolvable target id, a convention-derived suggested new-spec path (.strict-spec-driven/specs/<id>.yaml), the exact strict-spec-cli generate delta-spec command with the change name filled in for the new-spec remedy, and the specs INDEX.yaml path to consult for the correct-target remedy; one new MUST requirement in the cli-foundation main spec; unit tests asserting the concrete message content and the still-blocking archive behavior.
+  out:
+    - Silent auto-creation of missing main specs at archive; fuzzy-matching or auto-correcting typo/drifted target_spec ids; any change to deltas that already carry a valid spec seed block; changes to added-requirement-collision handling.
+unchanged_behavior:
+  - Delta specs that provide a valid spec seed block still create new main specs on archive; deltas targeting existing main specs merge unchanged; archive still exits non-zero and preserves the active change on an unresolvable target; ADDED/MODIFIED/REMOVED merge semantics and the specs index regeneration are untouched.

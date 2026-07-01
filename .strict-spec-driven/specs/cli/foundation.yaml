@@ -2138,3 +2138,21 @@ requirements:
         - GIVEN: the self-hosted repository and a copied real-project fixture both contain strict workflow artifacts
         - WHEN: regression tests exercise ready, roadmap-backed guidance, blocked questions, and question resolution
         - THEN: the tests prove that complete evidence proceeds without duplicate questions, missing evidence records a localized open question, roadmap planned-change detail can answer checklist items, thin roadmap detail blocks implementation, and resolved answers allow readiness to proceed
+  cli-verify-reports-unresolvable-delta-target:
+    strength: MUST
+    statement: 'The system MUST report a deterministic verify diagnostic when a strict change contains a delta spec that carries no new-spec seed block and whose target_spec resolves to neither an existing main spec nor a sibling delta introducing that spec, and MUST keep archive blocking such a change non-destructively. Both the verify diagnostic and the archive error MUST carry remediation concrete enough to apply without guessing: the repo-relative delta spec file path, the failing field path, the unresolvable target_spec id, and two labeled remedies — (A) add a new-spec seed block, quoting the exact generate delta-spec command with the change name and a convention-derived .strict-spec-driven/specs/<id>.yaml path filled in; (B) correct the target_spec in that delta file, naming .strict-spec-driven/specs/INDEX.yaml as the source of valid ids.'
+    scenarios:
+      verify-diagnostic-names-file-field-and-both-remedies:
+        - GIVEN: a strict change contains a delta spec with no new-spec seed block whose target_spec matches no existing main spec and no sibling new-spec delta in the same change
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: a deterministic diagnostic is emitted naming the repo-relative delta spec file path, the failing field path, and the unresolvable target_spec id
+        - AND: the diagnostic states remedy A with the exact generate delta-spec command carrying the change name and a .strict-spec-driven/specs/<id>.yaml path, and remedy B naming .strict-spec-driven/specs/INDEX.yaml as the source of valid target ids
+      archive-error-names-file-field-and-both-remedies:
+        - GIVEN: the same unresolvable-target delta spec in an otherwise complete strict change
+        - WHEN: '`strict-spec-driven archive <name>` is executed'
+        - THEN: the command exits non-zero before rewriting any main spec and the active change remains in the active changes directory
+        - AND: 'the error output carries the same concrete remediation as the verify diagnostic: delta file path, failing field path, target id, remedy A command, and remedy B index path'
+      sibling-new-spec-delta-resolves-target:
+        - GIVEN: a delta spec with no seed block targets an id that a sibling delta in the same change introduces with a valid new-spec seed block
+        - WHEN: '`strict-spec-driven verify <name>` is executed'
+        - THEN: no unresolvable-target diagnostic is emitted for that delta because the target resolves through its sibling

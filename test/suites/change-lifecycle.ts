@@ -350,6 +350,9 @@ try {
     "open: []",
     "resolved: []",
   ].join("\n") + "\n", "utf8");
+  // The ready delta targets cli-foundation, so that main spec must exist for
+  // the change to resolve at ready/verify time.
+  writeMainSpecArtifact(workflowGuidanceDir, "cli/foundation.yaml", "cli-foundation", "CLI Foundation", []);
   writeFileSync(path.join(readyChangeDir, "specs", "cli", "foundation.yaml"), [
     "schema: strict-spec-driven/delta-spec/v1",
     "schema_version: 1",
@@ -708,6 +711,10 @@ try {
     "  MODIFIED: {}",
     "  REMOVED: {}",
   ].join("\n") + "\n", "utf8");
+
+  // The delta targets cli-foundation, so that main spec must exist for the
+  // change to resolve (and to be archivable) at verify time.
+  writeMainSpecArtifact(verifyValidDir, "cli/foundation.yaml", "cli-foundation", "CLI Foundation", []);
 
   const validResult = verifyModule.verifyChange(verifyValidDir, "valid-change");
   context.assert(validResult.valid, "valid fully-complete change passes verification", `diagnostics: ${JSON.stringify(validResult.diagnostics)}`);
@@ -2184,6 +2191,137 @@ try {
   rmSync(archiveAddedCollisionDir, { recursive: true, force: true });
 }
 
+// 13c-bis: a seedless delta targeting a missing main spec is flagged at verify
+// time with concrete remediation, and archive stays blocking and non-destructive
+const archiveUnresolvableDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-unresolvable-"));
+try {
+  const changeName = "archive-unresolvable-target";
+  writeValidChangeArtifacts(archiveUnresolvableDir, changeName);
+  writeDeltaSpecArtifact(archiveUnresolvableDir, changeName, "cli-interface.yaml", "cli-interface", {
+    ADDED: {
+      "req-new": {
+        strength: "MUST",
+        statement: "A new requirement",
+        scenarios: {},
+      },
+    },
+  });
+
+  const verifyUnresolvable = verifyModule.verifyChange(archiveUnresolvableDir, changeName);
+  context.assert(
+    !verifyUnresolvable.valid,
+    "verify rejects a seedless delta targeting a missing main spec",
+  );
+  const unresolvableDiagnostic = verifyUnresolvable.diagnostics.find(
+    (diagnostic) => diagnostic.source === "unresolvable_delta_target",
+  );
+  context.assert(
+    unresolvableDiagnostic !== undefined,
+    "verify emits an unresolvable_delta_target diagnostic",
+  );
+  context.assert(
+    unresolvableDiagnostic?.artifactPath.endsWith("specs/cli-interface.yaml") === true &&
+      unresolvableDiagnostic?.fieldPath === "$.target_spec",
+    "unresolvable_delta_target diagnostic names the delta file path and target_spec field",
+  );
+  const remediation = unresolvableDiagnostic?.message ?? "";
+  context.assert(
+    remediation.includes("cli-interface") &&
+      remediation.includes(
+        "generate archive-unresolvable-target delta-spec --target-spec cli-interface --title",
+      ) &&
+      remediation.includes("--new-spec-path .strict-spec-driven/specs/cli-interface.yaml") &&
+      remediation.includes(".strict-spec-driven/specs/INDEX.yaml"),
+    "verify remediation names the target id, remedy A generate command with change name and convention path, and remedy B INDEX.yaml",
+    `message: ${remediation}`,
+  );
+
+  const beforeArchiveExists = existsSync(
+    path.join(archiveUnresolvableDir, ".strict-spec-driven", "changes", changeName),
+  );
+  const unresolvableArchive = cli(["archive", changeName], { cwd: archiveUnresolvableDir });
+  context.assert(
+    unresolvableArchive.status !== 0,
+    "archive exits non-zero for an unresolvable delta target",
+  );
+  context.assert(
+    unresolvableArchive.stderr.includes("unresolvable_delta_target") &&
+      unresolvableArchive.stderr.includes("cli-interface") &&
+      unresolvableArchive.stderr.includes(".strict-spec-driven/specs/INDEX.yaml"),
+    "archive failure carries the concrete unresolvable-target remediation",
+    `stderr: ${unresolvableArchive.stderr.trim()}`,
+  );
+  context.assert(
+    beforeArchiveExists &&
+      existsSync(path.join(archiveUnresolvableDir, ".strict-spec-driven", "changes", changeName)),
+    "archive keeps the unresolvable-target change in the active changes directory",
+  );
+} finally {
+  rmSync(archiveUnresolvableDir, { recursive: true, force: true });
+}
+
+// 13c-ter: a sibling delta that creates the target with a valid seed block
+// resolves a seedless delta, so no unresolvable-target diagnostic is emitted
+const archiveSiblingResolveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-sibling-resolve-"));
+try {
+  const changeName = "archive-sibling-resolve";
+  writeValidChangeArtifacts(archiveSiblingResolveDir, changeName);
+  // Seedless delta relying on its sibling to introduce the target spec.
+  writeDeltaSpecArtifact(archiveSiblingResolveDir, changeName, "brand-new-iface.yaml", "brand-new-iface", {
+    ADDED: {
+      "req-added": {
+        strength: "MUST",
+        statement: "An added requirement on the sibling-created spec",
+        scenarios: {},
+      },
+    },
+  });
+  // Sibling new-spec delta that creates the same target with a valid seed block.
+  writeFileSync(
+    path.join(
+      archiveSiblingResolveDir,
+      ".strict-spec-driven",
+      "changes",
+      changeName,
+      "specs",
+      "brand-new-iface-seed.yaml",
+    ),
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/delta-spec/v1",
+      schema_version: 1,
+      artifact_type: "delta_spec",
+      schema_file: "test",
+      target_spec: "brand-new-iface",
+      spec: {
+        title: "Brand New Interface",
+        path: ".strict-spec-driven/specs/brand-new-iface.yaml",
+      },
+      mapping: { implementation: [], tests: [] },
+      operations: {
+        ADDED: {
+          "req-seed": {
+            strength: "MUST",
+            statement: "The seed requirement for the new spec",
+            scenarios: {},
+          },
+        },
+        MODIFIED: {},
+        REMOVED: {},
+      },
+    }),
+    "utf8",
+  );
+
+  const verifySibling = verifyModule.verifyChange(archiveSiblingResolveDir, changeName);
+  context.assert(
+    !verifySibling.diagnostics.some((diagnostic) => diagnostic.source === "unresolvable_delta_target"),
+    "a sibling new-spec delta resolves the target so no unresolvable-target diagnostic is emitted",
+    `diagnostics: ${JSON.stringify(verifySibling.diagnostics.map((d) => d.source))}`,
+  );
+} finally {
+  rmSync(archiveSiblingResolveDir, { recursive: true, force: true });
+}
+
 // 13d: MODIFIED missing target falls back to ADDED
 const archiveModifiedFallbackDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-archive-modfallback-"));
 try {
@@ -2714,8 +2852,10 @@ try {
   const result = cli(["archive", changeName], { cwd: archiveMissingNoBlockDir });
   context.assert(result.status !== 0, "archive exits non-zero when target spec is missing and no spec block is present");
   context.assert(
-    result.stderr.includes("targets missing main spec"),
-    "archive missing-target failure preserves the existing error message",
+    result.stderr.includes("unresolvable_delta_target") &&
+      result.stderr.includes("absent-spec") &&
+      result.stderr.includes(".strict-spec-driven/specs/INDEX.yaml"),
+    "archive missing-target failure carries the concrete unresolvable-target remediation",
     `stderr: ${result.stderr.trim()}`,
   );
 } finally {

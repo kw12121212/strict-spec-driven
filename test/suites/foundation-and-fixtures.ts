@@ -1181,6 +1181,27 @@ try {
   const proposalPath = path.join(changeDir, "proposal.yaml");
   const originalDesign = readFileSync(path.join(changeDir, "design.yaml"), "utf8");
 
+  // The generated deltas target cli-foundation, so that main spec must exist in
+  // the workspace for the changes to resolve at verify time.
+  mkdirSync(path.join(generateTempDir, ".strict-spec-driven", "specs", "cli"), { recursive: true });
+  writeFileSync(
+    path.join(generateTempDir, ".strict-spec-driven", "specs", "cli", "foundation.yaml"),
+    [
+      "schema: strict-spec-driven/main-spec/v1",
+      "schema_version: 1",
+      "artifact_type: main_spec",
+      "schema_file: test",
+      "spec:",
+      "  id: cli-foundation",
+      "  title: CLI Foundation",
+      "mapping:",
+      "  implementation: []",
+      "  tests: []",
+      "requirements: {}",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
   function writeCompleteTasksArtifact(targetChangeDir: string, targetChangeName: string): void {
     writeFileSync(
       path.join(targetChangeDir, "tasks.yaml"),
