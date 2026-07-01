@@ -88,6 +88,8 @@ const REVIEW_POST_FIX_REGRESSION_SNIPPET =
 const SHARED_SCHEMA_CACHE_ROOT_SNIPPET = "~/.strict-spec-schemas/";
 const SHARED_SCHEMA_FILE_LOOKUP_SNIPPET =
   "When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root";
+const SAMPLE_SHOW_LOOKUP_SNIPPET = "sample-show";
+const LOCAL_EXAMPLES_DIRECTORY_SNIPPET = "do not rely on a local `examples` directory";
 const BUGFIX_KNOWN_BUG_SNIPPET = "known bug";
 const BUGFIX_REPRODUCE_BEFORE_FIXING_SNIPPET = "Reproduce before fixing";
 const BUGFIX_REGRESSION_TEST_SNIPPET = "failing regression";
@@ -125,6 +127,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+      SAMPLE_SHOW_LOOKUP_SNIPPET,
+      LOCAL_EXAMPLES_DIRECTORY_SNIPPET,
     ],
     forbiddenSnippets: [
       "Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/.",
@@ -156,6 +160,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+      SAMPLE_SHOW_LOOKUP_SNIPPET,
+      LOCAL_EXAMPLES_DIRECTORY_SNIPPET,
     ],
     forbiddenSnippets: [
       "proposal review",
@@ -174,6 +180,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "harness-plan",
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+      SAMPLE_SHOW_LOOKUP_SNIPPET,
+      LOCAL_EXAMPLES_DIRECTORY_SNIPPET,
     ],
   },
   "strict-spec-verify": {
@@ -246,6 +254,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+      SAMPLE_SHOW_LOOKUP_SNIPPET,
+      LOCAL_EXAMPLES_DIRECTORY_SNIPPET,
     ],
     forbiddenSnippets: [
       "empty-spec-impact decisions block progress",
@@ -280,6 +290,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+      SAMPLE_SHOW_LOOKUP_SNIPPET,
+      LOCAL_EXAMPLES_DIRECTORY_SNIPPET,
     ],
     forbiddenSnippets: [
       `${COMMAND_PREFIX} review <change-name>`,
@@ -296,6 +308,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       ".strict-spec-driven/",
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+      SAMPLE_SHOW_LOOKUP_SNIPPET,
+      LOCAL_EXAMPLES_DIRECTORY_SNIPPET,
     ],
   },
   "strict-spec-ship": {

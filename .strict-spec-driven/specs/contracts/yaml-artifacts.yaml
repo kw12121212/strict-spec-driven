@@ -82,6 +82,8 @@ mapping:
     - templates/strict-spec-driven/schemas/ticket.yaml
     - examples/strict-spec-driven/ticket.yaml
     - src/embedded-templates.ts
+    - scripts/gen-templates-bundle.ts
+    - examples/strict-spec-driven/change-proposal.yaml
   tests:
     - test/run.ts
     - test/suites/entrypoint-and-skills.ts
@@ -1498,3 +1500,25 @@ requirements:
         - GIVEN: the minimal valid ticket YAML example is inspected
         - WHEN: timestamp fields are reviewed
         - THEN: the example includes both created_at and updated_at fields
+  yaml-sample-assets-shared-cache-export:
+    strength: MUST
+    statement: The system MUST export bundled strict YAML sample assets into the shared cache using path segments that preserve each sample asset's repository-relative location, so schema example references and agent sample lookups can resolve without requiring per-skill examples directories.
+    scenarios:
+      shared-cache-contains-sample-assets:
+        - GIVEN: bundled strict YAML sample assets exist under examples/strict-spec-driven/
+        - WHEN: the shared cache has been synchronized
+        - THEN: the corresponding sample files exist under the shared cache at their preserved repository-relative paths
+        - AND: the shared cache manifest includes the exported sample file paths
+      sample-cache-refreshes-on-sample-change:
+        - GIVEN: a cached sample file is missing or differs from the bundled sample asset
+        - WHEN: the shared cache synchronizes
+        - THEN: the process refreshes the exported sample files from bundled assets
+  yaml-sample-assets-schema-association:
+    strength: MUST
+    statement: The system MUST keep bundled strict YAML sample assets associated with their demonstrated schemas through structured schema example references, coverage example references, or schema registry primary example paths.
+    scenarios:
+      sample-association-is-machine-readable:
+        - GIVEN: a strict YAML schema, schema registry entry, or sample asset is reviewed
+        - WHEN: its sample relationship is inspected
+        - THEN: the primary or coverage sample path is available through structured YAML data or repository-defined sample organization
+        - AND: the referenced sample is parseable as YAML and identifies the schema or artifact type it demonstrates

@@ -1,0 +1,42 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: shared-yaml-samples
+sections:
+  Implementation:
+    extend-shared-cache-assets:
+      text: Export bundled strict YAML sample assets through the shared cache synchronization path while preserving repository-relative sample paths in the cache manifest.
+      status: complete
+    add-sample-cli:
+      text: Add read-only sample-list and sample-show CLI commands that list deterministic sample asset keys and print selected sample YAML content with schema-style normalization and errors.
+      status: complete
+    update-skill-guidance:
+      text: Update core strict skill YAML writing rules and packaging expectations so agents are told to use sample-show and shared cached samples without relying on local examples directories.
+      status: complete
+    update-documentation:
+      text: Update user-facing command and shared-cache documentation to describe sample-list, sample-show, and automatic sample cache export.
+      status: complete
+  Testing:
+    build-project:
+      text: Build TypeScript sources so dist output reflects the source changes.
+      status: complete
+      command: bun run build
+    run-test-suite:
+      text: Run the project test suite covering CLI, cache, skill packaging, and strict artifact behavior.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression coverage gate declared by workflow config.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+    verify-strict-change:
+      text: Run strict change verification and spec mapping verification before archive.
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: run-test-suite

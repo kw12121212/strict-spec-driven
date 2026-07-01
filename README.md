@@ -57,6 +57,8 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 | `validate-skills` | Validate strict skill packaging metadata and command symlinks |
 | `schema-list` | List bundled strict schema asset keys |
 | `schema-show <name>` | Print a bundled strict schema asset |
+| `sample-list` | List bundled strict YAML sample asset keys |
+| `sample-show <name>` | Print a bundled strict YAML sample asset |
 | `template-list` | List bundled template and schema asset keys |
 | `template-show <key>` | Print a bundled template or schema asset |
 | `harness-infer` | Draft a safe harness declaration from repository metadata |
@@ -195,12 +197,13 @@ The CLI also embeds bundled schema and scaffold assets so installed skills do no
 ```sh
 strict-spec-cli schema-list
 strict-spec-cli schema-show change-proposal
+strict-spec-cli sample-show change-proposal
 strict-spec-cli template-show scaffold/changes/proposal.yaml
 ```
 
 ### Shared Schema Cache
 
-On startup, every `strict-spec-driven` CLI command (except `--help`/`-h`) and the MCP server export the bundled schema files to a shared on-disk cache at `~/.strict-spec-schemas/`, so agents can resolve an artifact's `schema_file` path against one well-known root without a per-project `templates` directory. The cache holds the schema files under `templates/strict-spec-driven/schemas/` plus a `manifest.yaml` recording the exported version; it is refreshed automatically when the bundled schemas change or a cached file is missing or modified, and it is always safe to delete — the next run recreates it. Set the `STRICT_SPEC_SCHEMA_CACHE_DIR` environment variable to relocate the cache root. If the cache cannot be written, the command continues with bundled schemas and prints a warning naming the resolved cache path.
+On startup, every `strict-spec-driven` CLI command (except `--help`/`-h`) and the MCP server export the bundled schema files and strict YAML sample files to a shared on-disk cache at `~/.strict-spec-schemas/`, so agents can resolve an artifact's `schema_file` path and schema `example_ref` paths against one well-known root without per-project `templates` or `examples` directories. The cache holds the schema files under `templates/strict-spec-driven/schemas/`, the sample files under `examples/strict-spec-driven/`, and a `manifest.yaml` recording the exported version; it is refreshed automatically when bundled schemas or samples change or a cached file is missing or modified, and it is always safe to delete — the next run recreates it. Set the `STRICT_SPEC_SCHEMA_CACHE_DIR` environment variable to relocate the cache root. If the cache cannot be written, the command continues with bundled assets and prints a warning naming the resolved cache path.
 
 ## Harness
 

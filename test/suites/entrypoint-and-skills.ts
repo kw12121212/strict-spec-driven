@@ -35,6 +35,8 @@ const expectedCommandOrder = [
   "validate-skills",
   "schema-list",
   "schema-show",
+  "sample-list",
+  "sample-show",
   "template-list",
   "template-show",
   "harness-infer",
@@ -192,6 +194,31 @@ context.assert(
   schemaShow.stdout.includes("schema_id: strict-spec-driven/change-proposal/v1"),
   "schema-show prints embedded schema content",
   `stdout: ${schemaShow.stdout.trim()}`,
+);
+
+const sampleList = cli(["sample-list"], { cwd: ROOT });
+context.assert(sampleList.status === 0, "sample-list exits zero", `stderr: ${sampleList.stderr.trim()}`);
+context.assert(
+  sampleList.stdout.includes("examples/strict-spec-driven/change-proposal.yaml"),
+  "sample-list includes bundled sample asset keys",
+  `stdout: ${sampleList.stdout.trim()}`,
+);
+
+const sampleShow = cli(["sample-show", "change-proposal"], { cwd: ROOT });
+context.assert(sampleShow.status === 0, "sample-show exits zero for sample name", `stderr: ${sampleShow.stderr.trim()}`);
+context.assert(
+  sampleShow.stdout.includes("schema: strict-spec-driven/change-proposal/v1"),
+  "sample-show prints embedded sample content",
+  `stdout: ${sampleShow.stdout.trim()}`,
+);
+
+const unknownSampleShow = cli(["sample-show", "not-a-sample"], { cwd: ROOT });
+context.assert(unknownSampleShow.status !== 0, "sample-show rejects unknown samples");
+context.assert(
+  unknownSampleShow.stderr.includes("embedded template asset 'examples/strict-spec-driven/not-a-sample.yaml' not found")
+    && unknownSampleShow.stderr.includes("Usage: strict-spec-cli sample-show <sample-name|sample-key>"),
+  "sample-show prints deterministic not-found diagnostics and usage",
+  `stderr: ${unknownSampleShow.stderr.trim()}`,
 );
 
 const templateShow = cli(["template-show", "scaffold/changes/proposal.yaml"], { cwd: ROOT });
@@ -366,15 +393,25 @@ context.assert(
   context.assert(
   normalizedApplySkillContent.includes("~/.strict-spec-schemas/")
     && normalizedApplySkillContent.includes("When a YAML artifact already declares `schema_file`")
+    && normalizedApplySkillContent.includes("sample-show")
+    && normalizedApplySkillContent.includes("do not rely on a local `examples` directory")
     && normalizedProposeSkillContent.includes("~/.strict-spec-schemas/")
     && normalizedProposeSkillContent.includes("When a YAML artifact already declares `schema_file`")
+    && normalizedProposeSkillContent.includes("sample-show")
+    && normalizedProposeSkillContent.includes("do not rely on a local `examples` directory")
     && normalizedProposeFromRoadmapSkillContent.includes("~/.strict-spec-schemas/")
     && normalizedProposeFromRoadmapSkillContent.includes("When a YAML artifact already declares `schema_file`")
+    && normalizedProposeFromRoadmapSkillContent.includes("sample-show")
+    && normalizedProposeFromRoadmapSkillContent.includes("do not rely on a local `examples` directory")
     && normalizedAutoSkillContent.includes("~/.strict-spec-schemas/")
     && normalizedAutoSkillContent.includes("When a YAML artifact already declares `schema_file`")
+    && normalizedAutoSkillContent.includes("sample-show")
+    && normalizedAutoSkillContent.includes("do not rely on a local `examples` directory")
     && normalizedModifySkillContent.includes("~/.strict-spec-schemas/")
-    && normalizedModifySkillContent.includes("When a YAML artifact already declares `schema_file`"),
-  "core YAML authoring skills mention the shared schema cache root and schema_file lookup guidance",
+    && normalizedModifySkillContent.includes("When a YAML artifact already declares `schema_file`")
+    && normalizedModifySkillContent.includes("sample-show")
+    && normalizedModifySkillContent.includes("do not rely on a local `examples` directory"),
+  "core YAML authoring skills mention shared schema cache and sample lookup guidance",
 );
 context.assert(
   normalizedProposeSkillContent.includes("proposal checkpoint")
@@ -1334,7 +1371,11 @@ try {
     "utf8",
   )
     .split("\n")
-    .filter((line) => !line.startsWith("- Shared schema cache root:"))
+    .filter((line) =>
+      !line.startsWith("- Shared schema cache root:")
+      && !line.includes("sample-show")
+      && !line.includes("local `examples` directory")
+    )
     .join("\n") + "\n";
 
   writeFileSync(
@@ -1379,6 +1420,24 @@ try {
         && diagnostic.expected === "When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root",
     ),
     "validate-skills requires schema_file-based shared cache lookup guidance in core YAML authoring skills",
+  );
+  context.assert(
+    invalidSharedSchemaGuidanceResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.required_snippet.missing"
+        && diagnostic.path === "skills/strict-spec-propose/SKILL.md"
+        && diagnostic.expected === "sample-show",
+    ),
+    "validate-skills requires sample-show guidance in core YAML authoring skills",
+  );
+  context.assert(
+    invalidSharedSchemaGuidanceResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.required_snippet.missing"
+        && diagnostic.path === "skills/strict-spec-propose/SKILL.md"
+        && diagnostic.expected === "do not rely on a local `examples` directory",
+    ),
+    "validate-skills requires local examples directory guidance in core YAML authoring skills",
   );
 
   const invalidSharedSchemaGuidanceCli = cli(["validate-skills"], { cwd: invalidSharedSchemaGuidanceRoot });

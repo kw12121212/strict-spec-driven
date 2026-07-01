@@ -1,0 +1,12 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: shared-yaml-samples
+open: []
+resolved:
+  - id: sample-scope-confirmed
+    question: Should bundled YAML samples be automatically installed like schemas and mentioned in strict skill guidance?
+    context: The confirmed brainstorm scope asked for samples to be installed automatically like schemas and for skills to tell AI agents they can inspect samples.
+    answer: Yes. Export samples through the shared cache, add sample inspection commands, and update skill YAML writing guidance.
+    status: resolved

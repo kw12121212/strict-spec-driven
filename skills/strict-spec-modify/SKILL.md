@@ -34,6 +34,9 @@ run `init` from this skill.
 - If artifact fields are unclear, use `strict-spec-cli schema-show <schema-name>`;
   installed skills do not carry a `templates` directory.
 - Shared schema cache root: `~/.strict-spec-schemas/`. When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root to inspect the concrete schema file without relying on a local templates directory.
+- If a valid artifact example would clarify the shape, use
+  `strict-spec-cli sample-show <sample-name>`; installed skills do not rely on a
+  local `examples` directory.
 - Use block scalars only for free-text content. Prefer `>-` for wrapped prose
   such as longer `summary`, `approach`, `decision`, `rationale`, `question`,
   `context`, `answer`, and spec `statement` values. Use `|` only when literal

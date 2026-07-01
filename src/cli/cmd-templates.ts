@@ -12,6 +12,13 @@ function normalizeSchemaKey(name: string): string {
   return `strict-spec-driven/schemas/${name.endsWith(".yaml") ? name : `${name}.yaml`}`;
 }
 
+function normalizeSampleKey(name: string): string {
+  if (name.startsWith("examples/strict-spec-driven/")) return name;
+  if (name.startsWith("strict-spec-driven/")) return `examples/${name.endsWith(".yaml") ? name : `${name}.yaml`}`;
+  if (name.startsWith("examples/")) return name;
+  return `examples/strict-spec-driven/${name.endsWith(".yaml") ? name : `${name}.yaml`}`;
+}
+
 function listKeys(prefix: string): number {
   const keys = getEmbeddedTemplateKeys().filter((key) => key.startsWith(prefix));
   writeOut(keys.join("\n") + (keys.length > 0 ? "\n" : ""));
@@ -84,4 +91,32 @@ export function runSchemaShow(argv: string[]): number {
   }
 
   return showKey(normalizeSchemaKey(name), usage);
+}
+
+export function runSampleList(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp("Usage: strict-spec-cli sample-list\n");
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage("Usage: strict-spec-cli sample-list\n");
+    return 1;
+  }
+
+  return listKeys("examples/strict-spec-driven/");
+}
+
+export function runSampleShow(argv: string[]): number {
+  const [name, ...extraArgs] = argv;
+  const usage = "Usage: strict-spec-cli sample-show <sample-name|sample-key>\n";
+  if (isHelpRequest(argv)) {
+    writeHelp(usage);
+    return 0;
+  }
+  if (!name || extraArgs.length > 0) {
+    writeUsage(usage);
+    return 1;
+  }
+
+  return showKey(normalizeSampleKey(name), usage);
 }

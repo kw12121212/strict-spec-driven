@@ -57,6 +57,8 @@
 | `validate-skills` | 验证严格 Skill 打包元数据和命令脚本符号链接 |
 | `schema-list` | 列出捆绑的严格 schema 资源键 |
 | `schema-show <name>` | 输出一个捆绑的严格 schema 资源 |
+| `sample-list` | 列出捆绑的严格 YAML sample 资源键 |
+| `sample-show <name>` | 输出一个捆绑的严格 YAML sample 资源 |
 | `template-list` | 列出捆绑的模板和 schema 资源键 |
 | `template-show <key>` | 输出一个捆绑的模板或 schema 资源 |
 | `harness-infer` | 从仓库元数据推断安全 harness 声明草稿 |
@@ -178,12 +180,13 @@ CLI 也会内置捆绑的 schema 和脚手架资源，因此已安装的 Skills 
 ```sh
 node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-list
 node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show change-proposal
+node {{SKILL_DIR}}/scripts/strict-spec-driven.js sample-show change-proposal
 node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/changes/proposal.yaml
 ```
 
 ### 共享模式缓存
 
-每个 `strict-spec-driven` CLI 命令（`--help`/`-h` 除外）和 MCP 服务器在启动时会将捆绑的 schema 文件导出到共享的磁盘缓存 `~/.strict-spec-schemas/`，使 Agent 无需每个项目都带 `templates` 目录即可将制品的 `schema_file` 路径解析到一个固定的根目录。缓存包含 `templates/strict-spec-driven/schemas/` 下的 schema 文件和记录导出版本的 `manifest.yaml`；当捆绑 schema 变化或缓存文件缺失、被修改时会自动刷新，随时可以安全删除——下次运行会重建。设置 `STRICT_SPEC_SCHEMA_CACHE_DIR` 环境变量可重定向缓存根目录。若缓存不可写，命令会继续使用捆绑 schema 并打印包含解析后缓存路径的警告。
+每个 `strict-spec-driven` CLI 命令（`--help`/`-h` 除外）和 MCP 服务器在启动时会将捆绑的 schema 文件和严格 YAML sample 文件导出到共享的磁盘缓存 `~/.strict-spec-schemas/`，使 Agent 无需每个项目都带 `templates` 或 `examples` 目录即可将制品的 `schema_file` 路径和 schema 的 `example_ref` 路径解析到一个固定的根目录。缓存包含 `templates/strict-spec-driven/schemas/` 下的 schema 文件、`examples/strict-spec-driven/` 下的 sample 文件，以及记录导出版本的 `manifest.yaml`；当捆绑 schema 或 sample 变化，或缓存文件缺失、被修改时会自动刷新，随时可以安全删除——下次运行会重建。设置 `STRICT_SPEC_SCHEMA_CACHE_DIR` 环境变量可重定向缓存根目录。若缓存不可写，命令会继续使用捆绑资源并打印包含解析后缓存路径的警告。
 
 ## Harness
 

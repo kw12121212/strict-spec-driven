@@ -21,7 +21,7 @@ import { runSopCategoryList, runSopCategoryShow, runSopCreate, runSopEdit, runSo
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runMcpInstall } from "./cli/cmd-mcp-install.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMappings, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
-import { runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
+import { runSampleList, runSampleShow, runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
 import {
   runHarnessDoctor,
   runHarnessInfer,
@@ -93,6 +93,8 @@ export const commands = createCliCommandTable({
   "validate-skills": (argv) => runValidateSkills(argv),
   "schema-list": (argv) => runSchemaList(argv),
   "schema-show": (argv) => runSchemaShow(argv),
+  "sample-list": (argv) => runSampleList(argv),
+  "sample-show": (argv) => runSampleShow(argv),
   "template-list": (argv) => runTemplateList(argv),
   "template-show": (argv) => runTemplateShow(argv),
   "harness-infer": (argv) => runHarnessInfer(argv),

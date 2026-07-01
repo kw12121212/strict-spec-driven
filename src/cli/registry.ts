@@ -15,6 +15,8 @@ export const COMMAND_REGISTRATION_ORDER = [
   "validate-skills",
   "schema-list",
   "schema-show",
+  "sample-list",
+  "sample-show",
   "template-list",
   "template-show",
   "harness-infer",

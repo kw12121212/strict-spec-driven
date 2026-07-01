@@ -1,0 +1,66 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - scripts/gen-templates-bundle.ts
+    - src/cli/cmd-templates.ts
+    - src/cli/registry.ts
+    - src/embedded-templates.ts
+    - src/strict-spec-cli.ts
+    - src/shared-schema-cache.ts
+    - src/skills/model.ts
+    - skills/strict-spec-apply/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-spec-bugfix/SKILL.md
+    - skills/strict-spec-modify/SKILL.md
+    - skills/strict-spec-propose-from-roadmap/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+    - README.md
+    - README.zh.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    cli-sample-inspection-commands:
+      strength: MUST
+      statement: The system MUST provide read-only CLI commands that list bundled strict YAML sample asset keys and print a selected sample asset, with deterministic output and diagnostics parallel to schema inspection commands.
+      scenarios:
+        sample-list-emits-deterministic-keys:
+          - GIVEN: bundled strict YAML sample assets are available
+          - WHEN: strict-spec-cli sample-list is executed
+          - THEN: the command exits zero and emits deterministic sample asset keys
+        sample-show-prints-selected-sample:
+          - GIVEN: a bundled strict YAML sample asset matches a requested sample name or key
+          - WHEN: strict-spec-cli sample-show is executed for that sample
+          - THEN: the command exits zero and writes the selected sample YAML content
+        sample-show-rejects-unknown-sample:
+          - GIVEN: no bundled sample asset matches a requested sample name or key
+          - WHEN: strict-spec-cli sample-show is executed
+          - THEN: the command exits non-zero with a deterministic not-found diagnostic and usage hint
+    cli-shared-cache-syncs-samples-on-startup:
+      strength: MUST
+      statement: The system MUST synchronize bundled strict YAML sample assets together with schema assets during strict CLI command and MCP startup, skip synchronization for help requests, and continue startup with a warning when cache synchronization fails.
+      scenarios:
+        startup-populates-shared-cache-with-samples:
+          - GIVEN: a CLI command that is not a help request starts with an empty shared cache root
+          - WHEN: startup synchronization runs
+          - THEN: schema assets, sample assets, and a manifest covering both asset families are written under the shared cache root
+        help-skips-sample-cache-sync:
+          - GIVEN: a CLI help request is executed
+          - WHEN: startup dispatch handles the request
+          - THEN: usage is printed without creating or writing the shared cache
+    cli-skills-remind-sample-lookup:
+      strength: SHOULD
+      statement: Core strict skills that guide agents to author or modify strict YAML SHOULD mention sample-show and shared cached samples in their YAML writing rules so installed skills can inspect valid examples without local examples directories.
+      scenarios:
+        yaml-rules-mention-sample-lookup:
+          - GIVEN: a core strict skill includes a YAML Writing Rules section
+          - WHEN: an agent reads the rules before editing strict YAML
+          - THEN: the rules mention sample-show as the supported way to inspect valid examples
+          - AND: the rules state that installed skills do not rely on a local examples directory
+  MODIFIED: {}
+  REMOVED: {}

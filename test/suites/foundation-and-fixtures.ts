@@ -259,6 +259,12 @@ try {
     readFileSync(sharedRegistryPath, "utf8").includes("schema: strict-spec-driven/schema-registry/v1"),
     "shared schema cache preserves bundled schema file contents",
   );
+  const sharedSamplePath = path.join(cliSharedSchemaCacheDir, "examples", "strict-spec-driven", "change-proposal.yaml");
+  context.assert(existsSync(sharedSamplePath), "cli startup exports sample YAML into the shared schema cache");
+  context.assert(
+    readFileSync(sharedSamplePath, "utf8").includes("schema: strict-spec-driven/change-proposal/v1"),
+    "shared schema cache preserves bundled sample file contents",
+  );
 } finally {
   rmSync(cliSharedSchemaTemp, { recursive: true, force: true });
 }
@@ -426,6 +432,15 @@ try {
     recoverFromUnreadableSchema.status === 0 && readFileSync(damagedSchemaPath, "utf8") === expectedSchemaContent,
     "cli startup refreshes when a cached schema file is unreadable",
   );
+
+  const damagedSamplePath = path.join(damagedCacheRoot, "examples", "strict-spec-driven", "change-proposal.yaml");
+  const expectedSampleContent = readFileSync(damagedSamplePath, "utf8");
+  writeFileSync(damagedSamplePath, "corrupted: true\n", "utf8");
+  const recoverFromCorruptedSample = cli(["sample-list"], { cwd: ROOT, env: damagedCacheEnv });
+  context.assert(
+    recoverFromCorruptedSample.status === 0 && readFileSync(damagedSamplePath, "utf8") === expectedSampleContent,
+    "cli startup self-heals a corrupted cached sample file",
+  );
 } finally {
   rmSync(damagedCacheRoot, { recursive: true, force: true });
 }
@@ -482,6 +497,10 @@ try {
   context.assert(
     existsSync(path.join(mcpSharedCacheDir, "templates", "strict-spec-driven", "schemas", "registry.yaml")),
     "mcp startup synchronizes the shared schema cache through the STRICT_SPEC_SCHEMA_CACHE_DIR override before connecting",
+  );
+  context.assert(
+    existsSync(path.join(mcpSharedCacheDir, "examples", "strict-spec-driven", "change-proposal.yaml")),
+    "mcp startup synchronizes bundled samples through the STRICT_SPEC_SCHEMA_CACHE_DIR override before connecting",
   );
 } finally {
   process.env.STRICT_SPEC_SCHEMA_CACHE_DIR = savedSharedSchemaCacheDirEnv;

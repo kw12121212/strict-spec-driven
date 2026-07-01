@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: shared-yaml-samples
+approach:
+  - Treat existing examples/strict-spec-driven/ YAML files as the authoritative bundled sample asset family rather than introducing a separate AI-only sample tree.
+  - Extend the shared cache synchronization model so startup exports both schema assets and sample assets, with the manifest covering every exported file and refreshing when any bundled sample changes.
+  - Add a read-only sample inspection CLI surface that mirrors schema-list/schema-show normalization and deterministic error behavior.
+  - Update core strict skill YAML writing rules and packaging expectations so installed skills guide agents to sample-show and the shared cache instead of local examples directories.
+decisions:
+  reuse-existing-examples:
+    decision: Use examples/strict-spec-driven/ as the sample source of truth.
+    rationale: Those files already validate against the artifact schemas and are referenced by schema example_ref and coverage_examples fields, so reusing them prevents sample drift and keeps AI-facing examples tied to the same contract tested by the project.
+  shared-cache-includes-samples:
+    decision: Export sample assets through the existing shared cache startup path.
+    rationale: Agents already receive schema cache guidance; adding samples to the same root lets schema example references resolve without requiring installed skills to carry templates or examples directories.
+  sample-cli-mirrors-schema-cli:
+    decision: Provide sample-list and sample-show as read-only inspection commands parallel to schema-list and schema-show.
+    rationale: A dedicated sample surface is easier for agents to discover than template-show keys and keeps schema inspection separate from example inspection.
+alternatives: []
+risks: []

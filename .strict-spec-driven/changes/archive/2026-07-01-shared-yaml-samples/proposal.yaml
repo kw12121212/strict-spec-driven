@@ -1,0 +1,29 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: shared-yaml-samples
+  status: proposed
+summary:
+  what:
+    - Expose bundled strict YAML sample assets so AI agents can inspect valid artifact examples alongside schemas.
+    - Synchronize repository sample assets into the shared schema cache during CLI and MCP startup.
+    - Update core strict skill guidance to tell agents how to query samples when authoring YAML.
+  why:
+    - Agents currently receive schema lookup guidance but sample discovery depends on repository paths or embedded schema references, which is fragile after skill installation.
+    - Sharing samples through the same startup cache and CLI inspection surface keeps YAML authoring guidance deterministic and independent of per-skill templates directories.
+scope:
+  in:
+    - Export examples/strict-spec-driven/ sample assets into the shared cache together with bundled schemas while preserving their repo-relative paths.
+    - Add read-only sample-list and sample-show CLI behavior for deterministic sample discovery and inspection.
+    - Update strict YAML artifact contracts and CLI foundation behavior to require cache export, CLI inspection, and sample validation coverage.
+    - Update core strict skills that author or modify YAML to mention sample-show and shared cached samples in their YAML writing rules.
+  out:
+    - Changing the business shape of existing strict YAML artifacts.
+    - Storing repository sample assets under .strict-spec-driven/ active workflow state.
+    - Adding Markdown-based samples or per-skill bundled sample directories.
+unchanged_behavior:
+  - Existing schema-list, schema-show, template-list, and template-show behavior remains available.
+  - Existing minimal and coverage examples remain strict YAML reference assets under examples/strict-spec-driven/.
+  - Strict workflow artifacts continue to resolve schema_file values against bundled schemas and the shared cache.

@@ -10269,6 +10269,791 @@ constraints:
     - id: post-release-verification
       strength: MUST
       statement: A success criterion describes the verification or monitoring that confirms the release is healthy.
+`,
+  "examples/strict-spec-driven/change-design.yaml": `schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: ../../templates/strict-spec-driven/schemas/change-design.yaml
+change: example-change
+approach:
+  - Update the relevant workflow artifact.
+decisions:
+  use-structured-yaml:
+    decision: Represent workflow meaning with structured YAML fields.
+    rationale: Structured fields can be parsed deterministically, unlike prose headings.
+alternatives:
+  - option: Keep prose-only Markdown conventions.
+    reason: Rejected because strict validation needs structured data, not implicit heading semantics.
+risks: []
+`,
+  "examples/strict-spec-driven/change-proposal.yaml": `schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: ../../templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: example-change
+  status: proposed
+summary:
+  what:
+    - Add one observable workflow behavior.
+  why:
+    - The behavior is needed by the strict workflow.
+scope:
+  in:
+    - Add the specified behavior.
+  out:
+    - Implement unrelated workflow behavior.
+unchanged_behavior:
+  - Existing workflow semantics remain unchanged.
+roadmap:
+  milestone: example-milestone
+  planned_change: example-change
+`,
+  "examples/strict-spec-driven/config.yaml": `schema: strict-spec-driven/config/v1
+schema_version: 1
+artifact_type: workflow_config
+preferred_human_language: English
+context: |
+  Example project using the strict spec-driven workflow.
+  Tech stack: TypeScript on Node.js, tests via npm test.
+rules:
+  specs:
+    - Describe observable behavior only.
+  test:
+    - Tests must verify observable behavior described in specs.
+review_evidence:
+  project_regression:
+    method: complete_project_regression
+    command: npm run build && npm test -- --coverage
+    meaning: >-
+      Passing this command is required review evidence before review recommends
+      archive or auto performs archive.
+    unavailable_behavior: >-
+      If the command cannot run, review or auto archive is blocked until a
+      human prepares the environment or explicitly provides the missing
+      evidence.
+    coverage:
+      threshold: 80
+      metric: line
+      scope:
+        include:
+          - src/**
+        exclude:
+          - src/generated/**
+`,
+  "examples/strict-spec-driven/delta-spec.new-spec.yaml": `schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: ../../templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: example-new-spec
+spec:
+  title: Example New Spec
+  path: .strict-spec-driven/specs/example/new-spec.yaml
+mapping:
+  implementation: []
+  tests: []
+operations:
+  ADDED:
+    example-new-requirement:
+      strength: MUST
+      statement: The system MUST expose one observable behavior introduced by a brand-new spec.
+      scenarios:
+        success:
+          - GIVEN: an example precondition
+          - WHEN: the example action occurs
+          - THEN: the observable result is available
+  MODIFIED: {}
+  REMOVED: {}
+`,
+  "examples/strict-spec-driven/delta-spec.operations.yaml": `schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: ../../templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: example-spec
+mapping:
+  implementation: []
+  tests: []
+operations:
+  ADDED:
+    added-requirement:
+      strength: MUST
+      statement: The system MUST expose an added observable behavior.
+      scenarios:
+        added-success:
+          - GIVEN: an added precondition
+          - WHEN: the added action occurs
+          - THEN: the added result is available
+  MODIFIED:
+    existing-requirement:
+      strength: MUST
+      statement: The system MUST expose the modified observable behavior.
+      scenarios: {}
+  REMOVED:
+    removed-requirement:
+      reason: The behavior is superseded by the replacement requirement.
+`,
+  "examples/strict-spec-driven/delta-spec.yaml": `schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: ../../templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: example-spec
+mapping:
+  implementation: []
+  tests: []
+operations:
+  ADDED: {}
+  MODIFIED: {}
+  REMOVED: {}
+`,
+  "examples/strict-spec-driven/delta-tech.operations.yaml": `schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: ../../templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: example-standard
+standard:
+  title: Example Standard
+  category: coding
+mapping:
+  implementation: []
+  enforcement: []
+operations:
+  ADDED:
+    added-rule:
+      strength: MUST
+      statement: Modules MUST follow the added engineering rule.
+      rationale: The added rule keeps implementation consistent with the standard.
+      enforcement:
+        method: review
+        detail: Reviewers reject code that violates the added rule.
+  MODIFIED:
+    existing-rule:
+      strength: SHOULD
+      statement: Modules SHOULD follow the modified engineering rule.
+      rationale: The modified rule clarifies the previous guidance.
+      enforcement:
+        method: ci
+        detail: A lint rule fails the build on violations.
+  REMOVED:
+    retired-rule:
+      reason: The rule is superseded by the modified rule.
+`,
+  "examples/strict-spec-driven/delta-tech.yaml": `schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: ../../templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: example-standard
+mapping:
+  implementation: []
+  enforcement: []
+operations:
+  ADDED: {}
+  MODIFIED: {}
+  REMOVED: {}
+`,
+  "examples/strict-spec-driven/harness-session.yaml": `schema: strict-spec-driven/harness-session/v1
+schema_version: 1
+artifact_type: harness_session
+schema_file: templates/strict-spec-driven/schemas/harness-session.yaml
+harness_session:
+  id: checkout-investigation
+  status: proposed
+  owner: agent
+harness:
+  declaration: .strict-spec-driven/harness.yaml
+  environment: development
+issue:
+  summary: Checkout page fails to load.
+  observed_behavior: The checkout route returns an empty page.
+  expected_behavior: The checkout route renders the checkout form.
+selected_components:
+  - web
+lifecycle_evidence:
+  plan:
+    command: strict-spec-driven harness-plan --environment development --component web
+    status: not_run
+    evidence: []
+  start:
+    command: strict-spec-driven harness-start --environment development --component web
+    status: not_run
+    evidence: []
+  status:
+    command: strict-spec-driven harness-status
+    status: not_run
+    evidence: []
+  logs: []
+  stop:
+    command: strict-spec-driven harness-stop
+    status: not_run
+    evidence: []
+reproduction:
+  preconditions:
+    - Dependencies are installed.
+  steps:
+    - id: open-checkout
+      target: web
+      action: Open the checkout route.
+      expected: The checkout failure is visible.
+  expected_failure: Checkout page is empty.
+evidence:
+  directory: evidence/
+  entries:
+    - id: initial-status
+      kind: status
+      path: evidence/status.json
+      description: Initial harness status output.
+      contains_secrets: false
+hypotheses:
+  - id: route-handler
+    statement: The checkout route handler exits before rendering.
+    status: open
+    evidence:
+      - initial-status
+findings: []
+human_checkpoints: []
+manual_actions:
+  - id: human-login
+    actor: human
+    summary: Human completed login without exposing credentials.
+    secrets_recorded: false
+    status: completed
+    evidence: []
+replay:
+  commands:
+    - strict-spec-driven harness-plan --environment development --component web
+verification:
+  status: not_started
+  steps: []
+  evidence: []
+`,
+  "examples/strict-spec-driven/harness.yaml": `schema: strict-spec-driven/harness/v1
+schema_version: 1
+artifact_type: harness
+schema_file: templates/strict-spec-driven/schemas/harness.yaml
+harness:
+  id: local-web-app
+  description: Example mixed harness declaration with local and production environments.
+  environments:
+    development:
+      kind: development
+      description: Local development environment.
+      components:
+        web:
+          type: backend
+          description: Local web server.
+          working_directory: "."
+          depends_on: []
+          environment:
+            required:
+              - PORT
+            optional:
+              - FEATURE_FLAG
+          urls:
+            - "http://127.0.0.1:3000"
+          ports:
+            - 3000
+          readiness:
+            type: http
+            url: "http://127.0.0.1:3000/health"
+            timeout_seconds: 60
+            interval_seconds: 5
+            notes: []
+          operations:
+            start:
+              mode: script
+              command: bun run dev
+            stop:
+              mode: script
+              command: pkill -f "bun run dev"
+          evidence_labels:
+            - homepage-loaded
+          unavailable_conditions:
+            - Install dependencies before starting the harness.
+        browser:
+          type: browser
+          description: Browser target for smoke evidence.
+          working_directory: "."
+          depends_on:
+            - web
+          environment:
+            required: []
+            optional: []
+          urls:
+            - "http://127.0.0.1:3000"
+          ports: []
+          readiness:
+            type: manual
+            timeout_seconds: 60
+            interval_seconds: 5
+            notes:
+              - Use the declared URL for browser automation.
+          operations:
+            start:
+              mode: manual
+            stop:
+              mode: manual
+            status:
+              mode: readonly
+            logs:
+              mode: disabled
+          evidence_labels:
+            - browser-smoke
+          unavailable_conditions: []
+    production:
+      kind: production
+      description: Read-only production observability.
+      components:
+        web:
+          type: external_resource
+          description: Production web service documented with descriptive read-only status markers.
+          working_directory: "."
+          depends_on: []
+          environment:
+            required:
+              - PROD_STATUS_TOKEN
+            optional: []
+          urls:
+            - "https://example.com"
+          ports: []
+          readiness:
+            type: manual
+            timeout_seconds: 60
+            interval_seconds: 5
+            notes:
+              - Production readiness is verified through runbook status checks.
+          operations:
+            start:
+              mode: disabled
+              requires_confirmation: true
+            stop:
+              mode: disabled
+              requires_confirmation: true
+            status:
+              mode: readonly
+            logs:
+              mode: readonly
+          evidence_labels:
+            - production-status
+          unavailable_conditions:
+            - Production credentials must remain outside YAML.
+`,
+  "examples/strict-spec-driven/main-spec.yaml": `schema: strict-spec-driven/main-spec/v1
+schema_version: 1
+artifact_type: main_spec
+schema_file: ../../templates/strict-spec-driven/schemas/main-spec.yaml
+spec:
+  id: example-spec
+  title: Example Spec
+mapping:
+  implementation: []
+  tests: []
+requirements:
+  example-requirement:
+    strength: MUST
+    statement: The system MUST expose one observable behavior.
+    scenarios:
+      success:
+        - GIVEN: an example precondition
+        - WHEN: the example action occurs
+        - AND: additional context is available
+        - THEN: the observable result is available
+`,
+  "examples/strict-spec-driven/main-tech-ui.yaml": `schema: strict-spec-driven/main-tech/v1
+schema_version: 1
+artifact_type: main_tech
+schema_file: ../../templates/strict-spec-driven/schemas/main-tech.yaml
+standard:
+  id: ui-foundations
+  title: UI Foundations
+  category: ui
+mapping:
+  implementation:
+    - src/components
+    - src/pages
+  enforcement:
+    - eslint.config.js
+    - playwright.config.ts
+rules:
+  use-design-system-components:
+    strength: MUST
+    statement: >-
+      Interactive UI elements MUST use the shared design-system components rather
+      than raw HTML interactive elements.
+    rationale: >-
+      Design-system components centralize accessibility, theming, and interaction
+      behavior; raw elements silently drift from those guarantees.
+    enforcement:
+      method: lint
+      detail: An eslint no-restricted-syntax rule bans raw interactive HTML elements.
+    examples:
+      good:
+        - "<Button onPress={save}>Save</Button>"
+      bad:
+        - "<button onclick=\\"save()\\">Save</button>"
+  meet-wcag-aa:
+    strength: MUST
+    statement: Every screen MUST pass automated WCAG 2.1 AA accessibility checks.
+    rationale: Accessibility is a baseline usability and legal requirement, not an optional feature.
+    enforcement:
+      method: ci
+      detail: Automated accessibility assertions run against each route in CI.
+  visual-regression-for-ui-changes:
+    strength: SHOULD
+    statement: UI changes SHOULD include updated visual-regression snapshots.
+    rationale: >-
+      Behavior tests do not catch unintended visual drift; snapshots make visual
+      changes explicit and reviewable rather than silent.
+    enforcement:
+      method: ci
+      detail: A visual-regression snapshot job runs in CI on UI changes.
+    exceptions:
+      - Non-visual refactors that cannot change rendered output are exempt.
+`,
+  "examples/strict-spec-driven/main-tech.yaml": `schema: strict-spec-driven/main-tech/v1
+schema_version: 1
+artifact_type: main_tech
+schema_file: ../../templates/strict-spec-driven/schemas/main-tech.yaml
+standard:
+  id: example-standard
+  title: Example Technical Standard
+  category: coding
+mapping:
+  implementation: []
+  enforcement: []
+rules:
+  example-rule:
+    strength: MUST
+    statement: All source modules MUST be authored as ESM TypeScript.
+    rationale: >-
+      A single module system keeps build output, imports, and tooling
+      consistent across the codebase and avoids dual-package hazards.
+    enforcement:
+      method: ci
+      detail: tsc with module NodeNext fails the build on non-ESM modules.
+    examples:
+      good:
+        - import { thing } from "./thing.js";
+      bad:
+        - const thing = require("./thing");
+    exceptions:
+      - Generated bundle output under dist/ is exempt.
+`,
+  "examples/strict-spec-driven/planned-change.yaml": `schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: example-change
+  milestone: 0001-example-milestone
+status: planned
+summary: Add one standalone planned roadmap change.
+details: |
+  Technical and design context for this planned change,
+  including approach considerations and key constraints.
+depends_on: []
+team:
+  owner: alice
+  reviewers:
+    - bob
+  blocked:
+    status: false
+  labels:
+    - roadmap
+  external_refs:
+    - label: Tracking issue
+      target: https://example.com/issues/123
+`,
+  "examples/strict-spec-driven/question-list.open.yaml": `schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: ../../templates/strict-spec-driven/schemas/question-list.yaml
+change: example-change
+open:
+  - id: choose-example
+    question: Which valid option should be used?
+    context: The answer determines the implementation choice.
+    status: open
+resolved:
+  - id: confirmed-example
+    question: Is the example valid?
+    context: The answer confirms the contract.
+    answer: Yes.
+    status: resolved
+`,
+  "examples/strict-spec-driven/question-list.yaml": `schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: ../../templates/strict-spec-driven/schemas/question-list.yaml
+change: example-change
+open: []
+resolved: []
+`,
+  "examples/strict-spec-driven/roadmap-index.yaml": `schema: strict-spec-driven/roadmap-index/v2
+schema_version: 2
+artifact_type: roadmap_index
+schema_file: ../../templates/strict-spec-driven/schemas/roadmap-index.yaml
+milestones:
+  0001-example-milestone:
+    title: Example Milestone
+    path: roadmap/milestones/0001-example-milestone.yaml
+    status: proposed
+`,
+  "examples/strict-spec-driven/roadmap-milestone.planning.yaml": `schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: ../../templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+milestone:
+  0002-roadmap-workflow:
+    title: Roadmap Workflow
+goal: Define strict roadmap workflow behavior.
+scope:
+  in:
+    - Strict roadmap validation and recommendation behavior.
+    - Structured roadmap proposal handoff behavior.
+  out:
+    - Migration of legacy Markdown roadmap artifacts.
+done_criteria:
+  - The roadmap contract is implemented and verified.
+  - Roadmap validation can inspect milestone and planned change structure.
+planned_changes:
+  validate-roadmap-contract:
+    status: planned
+    summary: Validate roadmap milestone and planned change structure.
+    details: |
+      The roadmap validator checks milestone fields, inline planned change fields,
+      and dependency references before roadmap-backed changes are proposed.
+    depends_on: []
+  recommend-roadmap-change:
+    status: planned
+    summary: Recommend the next roadmap-backed strict change.
+    details: |
+      The recommendation flow selects a planned change and prepares it for strict
+      proposal handoff while preserving roadmap dependency order.
+    depends_on:
+      - validate-roadmap-contract
+dependencies:
+  - 0001-foundation
+risks:
+  - Roadmap behavior could drift from the schema contract if validation is incomplete.
+status: active
+notes:
+  - Roadmap skills should consume the same structured artifact contract as CLI validation.
+details: |
+  The roadmap workflow must enforce the same schema contract that CLI validation
+  checks, so that skill-driven proposal handoff and programmatic validation stay
+  consistent. Any divergence between skill behavior and CLI validation is a bug.
+`,
+  "examples/strict-spec-driven/roadmap-milestone.yaml": `schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: ../../templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+milestone:
+  0001-example-milestone:
+    title: Example Milestone
+goal: Define one milestone goal.
+scope:
+  in:
+    - Planned strict workflow behavior.
+  out:
+    - Unrelated behavior.
+done_criteria:
+  - The planned behavior is implemented and verified.
+planned_changes:
+  example-change:
+    status: planned
+    summary: Add the planned strict workflow behavior.
+    details: This inline entry demonstrates the legacy-compatible planned change shape.
+    depends_on: []
+dependencies: []
+risks: []
+status: proposed
+notes: []
+`,
+  "examples/strict-spec-driven/schema-registry.yaml": `schema: strict-spec-driven/schema-registry/v1
+schema_version: 1
+artifact_type: schema_registry
+schema_file: ../../templates/strict-spec-driven/schemas/schema-registry.yaml
+registry:
+  id: example-schema-registry
+  status: current
+entries:
+  - schema_id: strict-spec-driven/main-spec/v1
+    schema_version: 1
+    artifact_type: main_spec
+    artifact_name: main-spec
+    schema_file: ../../templates/strict-spec-driven/schemas/main-spec.yaml
+    primary_example: main-spec.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes: []
+migration:
+  legacy_root: .spec-driven
+  strict_root: .strict-spec-driven
+  role_mappings:
+    - legacy_role: main_spec_markdown
+      artifact_type: main_spec
+      schema_id: strict-spec-driven/main-spec/v1
+  unsupported_shape_reporting:
+    warning_fields:
+      - source_path
+      - legacy_role
+      - reason
+      - manual_follow_up
+    manual_follow_up_field: manual_follow_up
+`,
+  "examples/strict-spec-driven/sop-category.yaml": `schema: strict-spec-driven/sop-category/v1
+schema_version: 1
+artifact_type: sop_category
+schema_file: ../../templates/strict-spec-driven/schemas/sop-category.yaml
+category:
+  id: generic
+  title: Generic procedure
+  description: A fallback category for any operator-facing procedure that does not fit a more specific category.
+questions:
+  - id: purpose
+    prompt: What is this procedure and why does it exist?
+    maps_to: purpose
+    required: true
+  - id: trigger
+    prompt: What event or condition starts this procedure?
+    maps_to: trigger
+    required: true
+constraints:
+  required_sections: []
+  min_steps: 1
+`,
+  "examples/strict-spec-driven/sop.yaml": `schema: strict-spec-driven/sop/v1
+schema_version: 1
+artifact_type: sop
+schema_file: ../../templates/strict-spec-driven/schemas/sop.yaml
+sop:
+  id: restart-web-frontend-abc123
+  title: Restart the web frontend
+category: operational
+status: draft
+created_at: "2026-06-30T00:00:00.000Z"
+updated_at: "2026-06-30T00:00:00.000Z"
+purpose: Restore the web frontend to a healthy serving state after an unhealthy deployment.
+scope:
+  in:
+    - Restarting the running web frontend process.
+  out:
+    - Database migrations or schema changes.
+trigger: A health check reports the web frontend as unhealthy.
+roles:
+  - id: on-call
+    name: On-call engineer
+    responsibility: Executes the restart and confirms recovery.
+prerequisites:
+  - Access to the deployment control plane.
+steps:
+  - id: drain-traffic
+    order: 1
+    actor: on-call
+    action: Drain inbound traffic from the unhealthy instance.
+    expected_result: The instance no longer receives new requests.
+  - id: restart-process
+    order: 2
+    actor: on-call
+    action: Restart the web frontend process.
+    expected_result: The process reports a healthy status.
+    branches:
+      - condition: The process does not return to healthy within five minutes.
+        goto_step: drain-traffic
+exceptions:
+  - condition: The restart fails twice in a row.
+    handling: Roll back to the previous known-good deployment.
+success_criteria:
+  - The web frontend health check reports healthy.
+`,
+  "examples/strict-spec-driven/sops-index.yaml": `schema: strict-spec-driven/sops-index/v1
+schema_version: 1
+artifact_type: sops_index
+schema_file: ../../templates/strict-spec-driven/schemas/sops-index.yaml
+sops:
+  restart-web-frontend-abc123:
+    title: Restart the web frontend
+    category: operational
+    status: draft
+    path: .strict-spec-driven/sops/restart-web-frontend-abc123.yaml
+`,
+  "examples/strict-spec-driven/spec-index.yaml": `schema: strict-spec-driven/spec-index/v1
+schema_version: 1
+artifact_type: spec_index
+schema_file: ../../templates/strict-spec-driven/schemas/spec-index.yaml
+specs:
+  - id: example-spec
+    title: Example Spec
+    path: specs/example-spec.yaml
+`,
+  "examples/strict-spec-driven/task-list.yaml": `schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: ../../templates/strict-spec-driven/schemas/task-list.yaml
+change: example-change
+sections:
+  Implementation:
+    implement-example:
+      text: Implement the example behavior.
+      status: pending
+  Testing:
+    validate-example:
+      text: Run validation for the example behavior.
+      status: pending
+      command: npm run build
+    unit-test-example:
+      text: Run unit tests for the example behavior.
+      status: pending
+      command: npm test
+  Verification:
+    verify-example:
+      text: Verify implementation matches proposal scope.
+      status: pending
+testing_gates:
+  validation_task: validate-example
+  unit_test_task: unit-test-example
+`,
+  "examples/strict-spec-driven/tech-index.yaml": `schema: strict-spec-driven/tech-index/v1
+schema_version: 1
+artifact_type: tech_index
+schema_file: ../../templates/strict-spec-driven/schemas/tech-index.yaml
+standards:
+  - id: example-standard
+    title: Example Technical Standard
+    category: coding
+    path: tech/example-standard.yaml
+`,
+  "examples/strict-spec-driven/ticket.yaml": `schema: strict-spec-driven/ticket/v1
+schema_version: 1
+artifact_type: ticket
+schema_file: ../../templates/strict-spec-driven/schemas/ticket.yaml
+ticket:
+  id: export-changes-as-csv-7f3a9c
+  title: Export changes as CSV
+requirement:
+  problem: Operators cannot get a tabular snapshot of strict changes for sharing outside the tool.
+  desired_outcome: A user can obtain a CSV listing of strict changes with their status and milestone.
+  intent: Capture the requirement only; the export format, command surface, and implementation are decided downstream.
+status: open
+created_at: "2026-06-13T00:00:00Z"
+updated_at: "2026-06-13T00:00:00Z"
+labels:
+  - reporting
+external_tracker:
+  label: GitHub
+  target: "https://example.com/org/repo/issues/42"
+`,
+  "examples/strict-spec-driven/tickets-index.yaml": `schema: strict-spec-driven/tickets-index/v1
+schema_version: 1
+artifact_type: tickets_index
+schema_file: ../../templates/strict-spec-driven/schemas/tickets-index.yaml
+tickets:
+  export-changes-as-csv-7f3a9c:
+    title: Export changes as CSV
+    path: .strict-spec-driven/tickets/export-changes-as-csv-7f3a9c.yaml
+    status: open
 `
 };
 function hasEmbeddedTemplate(key) {
@@ -13128,22 +13913,21 @@ function parseYamlFile(path) {
 
 // src/shared-schema-cache.ts
 var SHARED_SCHEMA_KEY_PREFIX = "strict-spec-driven/schemas/";
+var SHARED_SAMPLE_KEY_PREFIX = "examples/strict-spec-driven/";
 var SHARED_SCHEMA_CACHE_DIRNAME = ".strict-spec-schemas";
 var SHARED_SCHEMA_MANIFEST_NAME = "manifest.yaml";
 var SHARED_SCHEMA_CACHE_DIR_ENV = "STRICT_SPEC_SCHEMA_CACHE_DIR";
-var SHARED_SCHEMA_EXPORT_SEGMENTS = ["templates", ...SHARED_SCHEMA_KEY_PREFIX.split("/").filter(Boolean)];
 function toPosix(value) {
   return value.replaceAll("\\", "/");
 }
-function getBundledSchemaAssets() {
-  return getEmbeddedTemplateKeys().filter((key) => key.startsWith(SHARED_SCHEMA_KEY_PREFIX)).map((key) => {
+function getBundledSharedCacheAssets() {
+  return getEmbeddedTemplateKeys().filter((key) => key.startsWith(SHARED_SCHEMA_KEY_PREFIX) || key.startsWith(SHARED_SAMPLE_KEY_PREFIX)).map((key) => {
     const content = readEmbeddedTemplate(key);
     if (content === undefined) {
-      throw new Error(`embedded schema asset '${key}' is not available`);
+      throw new Error(`embedded shared cache asset '${key}' is not available`);
     }
     return {
-      relativeCachePath: toPosix(path.join("templates", key)),
-      schemaRelativePath: key.slice(SHARED_SCHEMA_KEY_PREFIX.length),
+      relativeCachePath: toPosix(key.startsWith(SHARED_SCHEMA_KEY_PREFIX) ? path.join("templates", key) : key),
       content
     };
   }).sort((left, right) => left.relativeCachePath.localeCompare(right.relativeCachePath));
@@ -13190,9 +13974,6 @@ function cacheNeedsRefresh(rootDir, manifestPath, exportVersion, assets) {
   }
   return assets.some((asset) => !cachedFileMatchesAsset(path.join(rootDir, asset.relativeCachePath), asset));
 }
-function getExportedSchemasDir(rootDir) {
-  return path.join(rootDir, ...SHARED_SCHEMA_EXPORT_SEGMENTS);
-}
 function uniqueSiblingPath(basePath, label) {
   return `${basePath}.${label}-${process.pid}-${randomBytes(6).toString("hex")}`;
 }
@@ -13206,24 +13987,36 @@ function getSharedSchemaCacheRoot() {
 function getSharedSchemaManifestPath(rootDir = getSharedSchemaCacheRoot()) {
   return path.join(rootDir, SHARED_SCHEMA_MANIFEST_NAME);
 }
-function swapInRefreshedSchemasDir(rootDir, assets) {
-  const schemasDir = getExportedSchemasDir(rootDir);
-  const stagingDir = uniqueSiblingPath(schemasDir, "staging");
+function swapInRefreshedAssets(rootDir, assets) {
+  const stagingDir = uniqueSiblingPath(path.join(rootDir, "shared-assets"), "staging");
+  const retiredDirs = [];
   try {
     for (const asset of assets) {
-      const absolutePath = path.join(stagingDir, asset.schemaRelativePath);
+      const absolutePath = path.join(stagingDir, asset.relativeCachePath);
       mkdirSync(path.dirname(absolutePath), { recursive: true });
       writeFileSync(absolutePath, asset.content, "utf8");
     }
-    mkdirSync(path.dirname(schemasDir), { recursive: true });
-    const retiredDir = uniqueSiblingPath(schemasDir, "retired");
-    if (existsSync(schemasDir)) {
-      renameSync(schemasDir, retiredDir);
+    mkdirSync(rootDir, { recursive: true });
+    for (const topLevelDir of ["templates", "examples"]) {
+      const targetDir = path.join(rootDir, topLevelDir);
+      const stagingTopLevelDir = path.join(stagingDir, topLevelDir);
+      const retiredDir = uniqueSiblingPath(targetDir, "retired");
+      if (existsSync(targetDir)) {
+        renameSync(targetDir, retiredDir);
+        retiredDirs.push(retiredDir);
+      }
+      if (existsSync(stagingTopLevelDir)) {
+        renameSync(stagingTopLevelDir, targetDir);
+      }
     }
-    renameSync(stagingDir, schemasDir);
-    rmSync(retiredDir, { recursive: true, force: true });
+    for (const retiredDir of retiredDirs) {
+      rmSync(retiredDir, { recursive: true, force: true });
+    }
   } finally {
     rmSync(stagingDir, { recursive: true, force: true });
+    for (const retiredDir of retiredDirs) {
+      rmSync(retiredDir, { recursive: true, force: true });
+    }
   }
 }
 function writeManifestAtomically(manifestPath, exportVersion, exportedFiles) {
@@ -13242,7 +14035,7 @@ function writeManifestAtomically(manifestPath, exportVersion, exportedFiles) {
 function synchronizeSharedSchemaCache() {
   const rootDir = getSharedSchemaCacheRoot();
   const manifestPath = getSharedSchemaManifestPath(rootDir);
-  const assets = getBundledSchemaAssets();
+  const assets = getBundledSharedCacheAssets();
   const exportVersion = computeExportVersion(assets);
   const exportedFiles = assets.map((asset) => asset.relativeCachePath);
   if (!cacheNeedsRefresh(rootDir, manifestPath, exportVersion, assets)) {
@@ -13255,7 +14048,7 @@ function synchronizeSharedSchemaCache() {
     };
   }
   mkdirSync(rootDir, { recursive: true });
-  swapInRefreshedSchemasDir(rootDir, assets);
+  swapInRefreshedAssets(rootDir, assets);
   writeManifestAtomically(manifestPath, exportVersion, exportedFiles);
   return {
     action: "synced",
@@ -13330,6 +14123,8 @@ var COMMAND_REGISTRATION_ORDER = [
   "validate-skills",
   "schema-list",
   "schema-show",
+  "sample-list",
+  "sample-show",
   "template-list",
   "template-show",
   "harness-infer",
@@ -23191,6 +23986,8 @@ var REVIEW_AUTO_FIX_SNIPPET = "Automatically fix safe in-scope review findings";
 var REVIEW_POST_FIX_REGRESSION_SNIPPET = "rerun strict verification plus the configured complete regression command after review-time changes";
 var SHARED_SCHEMA_CACHE_ROOT_SNIPPET = "~/.strict-spec-schemas/";
 var SHARED_SCHEMA_FILE_LOOKUP_SNIPPET = "When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root";
+var SAMPLE_SHOW_LOOKUP_SNIPPET = "sample-show";
+var LOCAL_EXAMPLES_DIRECTORY_SNIPPET = "do not rely on a local `examples` directory";
 var BUGFIX_KNOWN_BUG_SNIPPET = "known bug";
 var BUGFIX_REPRODUCE_BEFORE_FIXING_SNIPPET = "Reproduce before fixing";
 var BUGFIX_REGRESSION_TEST_SNIPPET = "failing regression";
@@ -23226,7 +24023,9 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
-      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET
+      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+      SAMPLE_SHOW_LOOKUP_SNIPPET,
+      LOCAL_EXAMPLES_DIRECTORY_SNIPPET
     ],
     forbiddenSnippets: [
       "Scaffolds proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and strict YAML delta specs under .strict-spec-driven/changes/<name>/.",
@@ -23257,7 +24056,9 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET,
       PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
-      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET
+      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+      SAMPLE_SHOW_LOOKUP_SNIPPET,
+      LOCAL_EXAMPLES_DIRECTORY_SNIPPET
     ],
     forbiddenSnippets: [
       "proposal review",
@@ -23275,7 +24076,9 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       ".strict-spec-driven/",
       "harness-plan",
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
-      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET
+      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+      SAMPLE_SHOW_LOOKUP_SNIPPET,
+      LOCAL_EXAMPLES_DIRECTORY_SNIPPET
     ]
   },
   "strict-spec-verify": {
@@ -23347,7 +24150,9 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
       `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
-      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET
+      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+      SAMPLE_SHOW_LOOKUP_SNIPPET,
+      LOCAL_EXAMPLES_DIRECTORY_SNIPPET
     ],
     forbiddenSnippets: [
       "empty-spec-impact decisions block progress",
@@ -23381,7 +24186,9 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
-      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET
+      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+      SAMPLE_SHOW_LOOKUP_SNIPPET,
+      LOCAL_EXAMPLES_DIRECTORY_SNIPPET
     ],
     forbiddenSnippets: [
       `${COMMAND_PREFIX} review <change-name>`,
@@ -23397,7 +24204,9 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
     requiredSnippets: [
       ".strict-spec-driven/",
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
-      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET
+      SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
+      SAMPLE_SHOW_LOOKUP_SNIPPET,
+      LOCAL_EXAMPLES_DIRECTORY_SNIPPET
     ]
   },
   "strict-spec-ship": {
@@ -24488,6 +25297,15 @@ function normalizeSchemaKey(name) {
     return `strict-spec-driven/${name}`;
   return `strict-spec-driven/schemas/${name.endsWith(".yaml") ? name : `${name}.yaml`}`;
 }
+function normalizeSampleKey(name) {
+  if (name.startsWith("examples/strict-spec-driven/"))
+    return name;
+  if (name.startsWith("strict-spec-driven/"))
+    return `examples/${name.endsWith(".yaml") ? name : `${name}.yaml`}`;
+  if (name.startsWith("examples/"))
+    return name;
+  return `examples/strict-spec-driven/${name.endsWith(".yaml") ? name : `${name}.yaml`}`;
+}
 function listKeys(prefix) {
   const keys = getEmbeddedTemplateKeys().filter((key) => key.startsWith(prefix));
   writeOut(keys.join(`
@@ -24558,6 +25376,33 @@ function runSchemaShow(argv) {
     return 1;
   }
   return showKey(normalizeSchemaKey(name), usage2);
+}
+function runSampleList(argv) {
+  if (isHelpRequest(argv)) {
+    writeHelp(`Usage: strict-spec-cli sample-list
+`);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(`Usage: strict-spec-cli sample-list
+`);
+    return 1;
+  }
+  return listKeys("examples/strict-spec-driven/");
+}
+function runSampleShow(argv) {
+  const [name, ...extraArgs] = argv;
+  const usage2 = `Usage: strict-spec-cli sample-show <sample-name|sample-key>
+`;
+  if (isHelpRequest(argv)) {
+    writeHelp(usage2);
+    return 0;
+  }
+  if (!name || extraArgs.length > 0) {
+    writeUsage(usage2);
+    return 1;
+  }
+  return showKey(normalizeSampleKey(name), usage2);
 }
 
 // src/harness.ts
@@ -26291,6 +27136,8 @@ var commands = createCliCommandTable({
   "validate-skills": (argv) => runValidateSkills(argv),
   "schema-list": (argv) => runSchemaList(argv),
   "schema-show": (argv) => runSchemaShow(argv),
+  "sample-list": (argv) => runSampleList(argv),
+  "sample-show": (argv) => runSampleShow(argv),
   "template-list": (argv) => runTemplateList(argv),
   "template-show": (argv) => runTemplateShow(argv),
   "harness-infer": (argv) => runHarnessInfer(argv),
