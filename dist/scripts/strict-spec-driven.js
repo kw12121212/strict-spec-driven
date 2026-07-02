@@ -27507,7 +27507,8 @@ function isDirectInvocation(argvPath, moduleUrl) {
   try {
     return realpathSync(argvPath) === realpathSync(fileURLToPath5(moduleUrl));
   } catch {
-    return moduleUrl.includes("/$bunfs/");
+    const modulePath = fileURLToPath5(moduleUrl);
+    return modulePath.includes("~BUN") || modulePath.includes("$bunfs");
   }
 }
 if (isDirectInvocation(process.argv[1], import.meta.url)) {

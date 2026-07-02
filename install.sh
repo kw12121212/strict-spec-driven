@@ -46,10 +46,10 @@ done
 DEFAULT_BIN_DIR="${XDG_BIN_HOME:-${HOME:-}/.local/bin}"
 BIN_DIR="${STRICT_SPEC_BIN_DIR:-$DEFAULT_BIN_DIR}"
 
-# The global `skills` package, pinned to 1.5.9 to avoid an upstream bug where
-# the PromptScript agent (which does not support global installation) is
-# incorrectly included in global install targets.
-SKILLS_PKG="skills@1.5.9"
+# The global `skills` package. PromptScript emits a non-fatal "does not support
+# global skill installation" warning per skill (exit code stays 0) and does not
+# block installation, so it is safe to ignore.
+SKILLS_PKG="skills@1.5.14"
 
 # Pick a runtime that can execute the pinned skills package. bunx is preferred
 # and, unlike npx, runs the package's bin directly instead of a colliding

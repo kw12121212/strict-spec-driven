@@ -192,30 +192,38 @@ function Remove-UserPathEntry {
     Write-Host "Removed from user PATH: $entry"
 }
 
-# The global `skills` package, pinned to 1.5.9 to avoid an upstream bug where
-# the PromptScript agent (which does not support global installation) is
-# incorrectly included in global install targets. bunx runs the package's bin
-# directly and, unlike npx, is immune to a colliding `npm run skills` script.
-# npm exec / npx remain as uninstall fallbacks for when bun is already removed.
+# The global `skills` package. `bun x` runs the package's bin directly and,
+# unlike npx, is immune to a colliding `npm run skills` script. npm exec / npx
+# remain as uninstall fallbacks for when bun is already removed.
+#
+# PromptScript emits a non-fatal "does not support global skill installation"
+# warning per skill (exit code stays 0) and does not block installation, so it
+# is safe to ignore.
 #
 # The trailing `--` is needed for npm exec / npx to separate their own flags
 # from the package's args, but bun passes `--` through to the skills CLI, which
 # then rejects it as an unknown command ("Unknown command: --"), so the bunx
 # invocation must omit it.
+#
+# We use `bun x` rather than `bunx` because the npm-installed `bunx.exe` shim
+# panics ("reached unreachable code") on Windows 11 / bun 1.3.x when handed the
+# package name and its args together; `bun x` invokes the same resolver via the
+# stable `bun` binary and avoids the crash.
 function Invoke-Skills {
     param([Parameter(Mandatory = $true)][string[]]$CommandArgs)
 
     if (Get-Command bun -ErrorAction SilentlyContinue) {
-        $prefix = @('bunx', 'skills@1.5.9')
+        $prefix = @('bun', 'x', 'skills@1.5.14')
     } elseif (Get-Command npm -ErrorAction SilentlyContinue) {
-        $prefix = @('npm', 'exec', 'skills@1.5.9', '--')
+        $prefix = @('npm', 'exec', 'skills@1.5.14', '--')
     } elseif (Get-Command npx -ErrorAction SilentlyContinue) {
-        $prefix = @('npx', 'skills@1.5.9', '--')
+        $prefix = @('npx', 'skills@1.5.14', '--')
     } else {
         throw 'No runtime available to run the skills CLI (need bun, npm, or npx).'
     }
 
-    & $prefix[0] @($prefix[1..($prefix.Length - 1)] + $CommandArgs)
+    $skillsArgs = $prefix[1..($prefix.Length - 1)] + $CommandArgs
+    & $prefix[0] @skillsArgs
 }
 
 # Install bun from the official Windows installer when it is not already on PATH.
@@ -269,10 +277,41 @@ $ScriptDir = if ($PSScriptRoot) {
 }
 $ResolvedBinDir = Resolve-DefaultBinDir
 
+# npm/Node is the preferred install channel on Windows: `npm install -g .` puts
+# the CLI shim into npm's global bin directory, which is already on PATH, so the
+# command is usable immediately in every terminal with no PATH edits and no
+# 95MB native executable. When npm is unavailable we fall back to the bun
+# `--compile` native executable installed into a user bin directory (with PATH
+# management), which keeps Node.js unrequired.
+function Test-NpmAvailable {
+    [bool](Get-Command npm -ErrorAction SilentlyContinue)
+}
+
+# Build the CLI bundle. Both the npm and the bun-native install paths need a
+# current dist/scripts/strict-spec-driven.js, so this is shared up front.
+function Build-CliBundle {
+    Ensure-Bun
+    Ensure-ProjectDeps
+    Write-Host 'Building strict-spec-cli bundle'
+    Push-Location $ScriptDir
+    try {
+        & bun run build
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    } finally {
+        Pop-Location
+    }
+}
+
 if ($Uninstall) {
     Write-Host "Uninstalling strict skills from: $ScriptDir"
     Invoke-Skills -CommandArgs @('remove', '-g')
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    if (Test-NpmAvailable) {
+        Write-Host 'Uninstalling strict-spec-cli via npm'
+        & npm uninstall -g strict-spec-driven
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    }
+    # Always clean up a native executable left by a prior bun-fallback install.
     Remove-Item -LiteralPath (Join-Path $ResolvedBinDir 'strict-spec-cli.exe') -Force -ErrorAction SilentlyContinue
     if ($NoPathUpdate) {
         Write-Host 'Skipping user PATH cleanup because -NoPathUpdate was provided'
@@ -282,22 +321,32 @@ if ($Uninstall) {
         Remove-UserPathEntry $ResolvedBinDir
     }
 } else {
-    Ensure-Bun
-    Ensure-ProjectDeps
-    Write-Host 'Building strict-spec-cli native executable'
-    Push-Location $ScriptDir
-    try {
-        & bun run build
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-        & bun scripts/build-native-cli.ts --install --bin-dir "$ResolvedBinDir"
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-    } finally {
-        Pop-Location
-    }
-    if ($NoPathUpdate) {
-        Write-Host 'Skipping user PATH update because -NoPathUpdate was provided'
+    Build-CliBundle
+    if (Test-NpmAvailable) {
+        Write-Host 'Installing strict-spec-cli via npm (global)'
+        Push-Location $ScriptDir
+        try {
+            & npm install -g .
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        } finally {
+            Pop-Location
+        }
+        Write-Host 'strict-spec-cli installed via npm; available immediately on PATH (npm global bin).'
     } else {
-        Add-UserPathEntry $ResolvedBinDir
+        Write-Host 'npm not found; falling back to bun native executable'
+        Write-Host 'Building strict-spec-cli native executable'
+        Push-Location $ScriptDir
+        try {
+            & bun scripts/build-native-cli.ts --install --bin-dir "$ResolvedBinDir"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        } finally {
+            Pop-Location
+        }
+        if ($NoPathUpdate) {
+            Write-Host 'Skipping user PATH update because -NoPathUpdate was provided'
+        } else {
+            Add-UserPathEntry $ResolvedBinDir
+        }
     }
 
     $stageDir = New-StagingDir $ScriptDir

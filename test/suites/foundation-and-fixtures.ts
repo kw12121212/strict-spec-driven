@@ -2325,7 +2325,13 @@ context.assert(
 context.assert(
   installPsContent.includes("bun scripts/build-native-cli.ts --install --bin-dir")
     && installPsContent.includes("bun run build"),
-  "Windows installer builds and installs the native CLI executable",
+  "Windows installer builds and installs the native CLI executable when npm is unavailable",
+);
+context.assert(
+  installPsContent.includes("npm install -g .")
+    && installPsContent.includes("npm uninstall -g strict-spec-driven")
+    && installPsContent.includes("Test-NpmAvailable"),
+  "Windows installer installs/uninstalls the CLI via npm global when npm is available",
 );
 context.assert(
   installPsContent.includes("[System.Environment]::SetEnvironmentVariable('Path', $newPath, 'User')")
@@ -2343,12 +2349,19 @@ context.assert(
   installPsContent.includes("Open a new terminal before invoking strict-spec-cli by name outside this session."),
   "Windows installer reports that a new terminal may be needed after PATH updates",
 );
+const rootPackageJson = JSON.parse(readFileSync(path.join(ROOT, "package.json"), "utf8")) as { bin?: Record<string, string> };
+context.assert(
+  typeof rootPackageJson.bin === "object"
+    && rootPackageJson.bin !== null
+    && rootPackageJson.bin["strict-spec-cli"] === "dist/scripts/strict-spec-driven.js",
+  "package.json declares a strict-spec-cli bin entry pointing at the bundled CLI",
+);
 const installerReadmeContent = readFileSync(path.join(ROOT, "README.md"), "utf8");
 context.assert(
-  installerReadmeContent.includes("install.ps1` adds the selected bin directory to the current user's `PATH` by default")
+  installerReadmeContent.includes("npm install -g")
     && installerReadmeContent.includes("-NoPathUpdate")
     && installerReadmeContent.includes("-KeepPathOnUninstall"),
-  "README documents Windows installer PATH update controls",
+  "README documents the npm global install path and the native-exe PATH controls",
 );
 
 context.section("[9] bundled template assets in dist");

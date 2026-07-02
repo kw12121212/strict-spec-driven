@@ -71,9 +71,9 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 
 ### Installation
 
-Run `install.sh` on Unix-like hosts or `install.ps1` on Windows. The installer builds the native `strict-spec-cli` executable, installs the strict skills package, and places the executable in a user-level bin directory. It also bootstraps its own dependencies: `bun` is installed automatically when missing, project dependencies are installed with `bun install` when `node_modules` is absent, and the global `skills` CLI runs through `bunx` — so Node.js/`npm` are no longer required to install.
+Run `install.sh` on Unix-like hosts or `install.ps1` on Windows. The installer installs the strict skills package and the `strict-spec-cli` command, and bootstraps its own dependencies: `bun` is installed automatically when missing, project dependencies are installed with `bun install` when `node_modules` is absent, and the global `skills` CLI runs through `bunx`.
 
-On Windows, `install.ps1` adds the selected bin directory to the current user's `PATH` by default. Open a new terminal before invoking `strict-spec-cli` by name outside the installer session. Use `-NoPathUpdate` to skip PATH changes, or `-KeepPathOnUninstall` to leave the PATH entry in place when uninstalling.
+On Windows, `install.ps1` installs `strict-spec-cli` via `npm install -g .` when npm/Node is available — the command lands in npm's global bin directory (already on `PATH`), so it is usable immediately in any terminal with no PATH edits. When npm is unavailable, it falls back to building a native `strict-spec-cli` executable and placing it in a user-level bin directory; in that case it adds the bin directory to the current user's `PATH` by default, so open a new terminal before invoking `strict-spec-cli` by name outside the installer session. Use `-NoPathUpdate` to skip PATH changes, or `-KeepPathOnUninstall` to leave the PATH entry in place when uninstalling.
 
 ### Skills: `strict-spec-*` and `strict-roadmap-*`
 

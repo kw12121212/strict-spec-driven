@@ -71,9 +71,9 @@
 
 ### 安装
 
-类 Unix 主机运行 `install.sh`，Windows 运行 `install.ps1`。安装器会构建原生 `strict-spec-cli` 可执行文件、安装 strict skills 包，并把可执行文件放到用户级 bin 目录。它还会自动引导自身依赖：缺失时自动安装 `bun`，`node_modules` 缺失时用 `bun install` 安装项目依赖，并通过 `bunx` 运行全局 `skills` CLI——因此安装过程不再需要 Node.js/`npm`。
+类 Unix 主机运行 `install.sh`，Windows 运行 `install.ps1`。安装器会安装 strict skills 包和 `strict-spec-cli` 命令，并自动引导自身依赖：缺失时自动安装 `bun`，`node_modules` 缺失时用 `bun install` 安装项目依赖，并通过 `bunx` 运行全局 `skills` CLI。
 
-在 Windows 上，`install.ps1` 默认会把所选 bin 目录加入当前用户的 `PATH`。在安装器会话之外用 `strict-spec-cli` 命令名前，请重新打开一个终端。使用 `-NoPathUpdate` 可跳过 PATH 变更，使用 `-KeepPathOnUninstall` 可在卸载时保留 PATH 条目。
+在 Windows 上，当 npm/Node 可用时，`install.ps1` 通过 `npm install -g .` 安装 `strict-spec-cli`——命令进入 npm 全局 bin 目录（已在 `PATH` 上），因此装完即可在任意终端直接使用，无需改 PATH。当 npm 不可用时，回落到构建原生 `strict-spec-cli` 可执行文件并放入用户级 bin 目录；此情况下默认把该目录加入当前用户的 `PATH`，在安装器会话之外用 `strict-spec-cli` 命令名前请重新打开一个终端。使用 `-NoPathUpdate` 可跳过 PATH 变更，使用 `-KeepPathOnUninstall` 可在卸载时保留 PATH 条目。
 
 ### Skills：`strict-spec-*` 和 `strict-roadmap-*`
 

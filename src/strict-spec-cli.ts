@@ -146,7 +146,13 @@ function isDirectInvocation(argvPath: string | undefined, moduleUrl: string): bo
   try {
     return realpathSync(argvPath) === realpathSync(fileURLToPath(moduleUrl));
   } catch {
-    return moduleUrl.includes("/$bunfs/");
+    // When compiled with `bun build --compile`, the entrypoint lives in Bun's
+    // virtual filesystem. The realpath comparison above fails (the synthetic
+    // drive does not exist on disk), so detect the embedded root instead. Bun
+    // 1.3+ serves compiled modules under "/~BUN/" (URL-encoded "%7EBUN"); older
+    // builds used "/$bunfs/". Decode the URL so the encoded form matches.
+    const modulePath = fileURLToPath(moduleUrl);
+    return modulePath.includes("~BUN") || modulePath.includes("$bunfs");
   }
 }
 
