@@ -1,0 +1,22 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: unix-installer-npm-global
+open: []
+resolved:
+  - id: permission-fallback-strategy
+    question: How should install.sh handle a Unix npm global prefix that requires write elevation?
+    context: On Unix, npm install -g frequently targets a system-managed global prefix such as /usr/local that needs sudo, unlike the current ~/.local/bin native-executable path which never needs elevation.
+    answer: Prefer npm-global install and automatically fall back to the bun native executable when npm is absent or the global install fails on permissions, preserving zero-sudo for system-Node users.
+    status: resolved
+  - id: spec-delta-scope
+    question: How wide should the strict delta spec be given the conflict with the MUST requirement cli-installer-compiles-native-executable?
+    context: The requirement spans Unix and Windows installer flows, and commit 66820f4 already left Windows spec drift by making install.ps1 npm-first without updating the spec.
+    answer: Rewrite the installer requirements for both Unix and Windows, also closing the pre-existing Windows drift.
+    status: resolved
+  - id: stale-native-cleanup-scope
+    question: Should the npm-success stale-native-executable cleanup apply to one installer or both?
+    context: A prior fallback install can leave a native executable whose bin directory is on PATH on both Unix and Windows, conflicting with the npm shim.
+    answer: Apply the cleanup to both install.sh and install.ps1 for cross-platform parity.
+    status: resolved

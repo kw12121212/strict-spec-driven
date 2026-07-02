@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: unix-installer-npm-global
+  status: proposed
+summary:
+  what:
+    - 'Align install.sh with install.ps1: install strict-spec-cli into npm''s global bin via ''npm install -g .'' when npm is available and writable, falling back to the existing bun native executable when npm is absent or the global install fails on permissions (EACCES); on npm success remove any stale native executable left by a prior fallback install; mirror the same install-success cleanup in install.ps1; uninstall mirrors install.'
+  why:
+    - Cross-platform install parity (install.ps1 has been npm-first since commit 66820f4 while install.sh remained the lone native-only installer), zero-PATH-edit UX through npm's already-on-PATH global bin, and no ~95MB native binary for the common case, while preserving zero-sudo for system-Node Unix users via the permission fallback and avoiding duplicate strict-spec-cli commands on PATH via stale-executable cleanup.
+scope:
+  in:
+    - install.sh npm-first install and uninstall with permission-fallback and stale-executable cleanup; install.ps1 stale-executable cleanup on npm install success; strict delta spec on cli-foundation rewriting the installer requirements for the npm-first plus fallback model across Unix and Windows; install and packaging regression assertions; README and README.zh documentation.
+  out:
+    - The install.ps1 install and uninstall mechanism itself (already npm-first, unchanged apart from the cleanup line); the --project flag that package.json scripts reference but install.sh rejects as unknown (pre-existing, separate change); the strict-spec-driven (spec) versus strict-spec-cli (bin/exe) command-name mismatch (pre-existing).
+unchanged_behavior:
+  - bun remains a hard build requirement on every install path because dist/scripts/strict-spec-driven.js must be built before 'npm install -g .' packages it; the package.json bin field; skills CLI registration through bunx/npm-exec/npx; ensure_bun and ensure_project_deps; the mcp-install command; all other strict CLI behavior.

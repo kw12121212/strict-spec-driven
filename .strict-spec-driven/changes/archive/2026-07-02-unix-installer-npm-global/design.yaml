@@ -1,0 +1,22 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: unix-installer-npm-global
+approach:
+  - Make install.sh detect npm availability with command -v npm; when present, build the dist bundle with bun run build then run 'npm install -g .' from the repository root. Detect permission failure (non-zero exit indicating EACCES) and fall back to the existing bun native-executable path. On npm install success, remove any stale native executable at the resolved bin directory left by a prior fallback install. For uninstall, prefer 'npm uninstall -g strict-spec-driven' and always remove a leftover native executable. Add the same stale-executable removal to install.ps1's npm-success branch. Carry a strict delta spec on cli-foundation that rewrites cli-installer-compiles-native-executable for the npm-first plus fallback model, scopes cli-installer-user-bin-path-diagnostics and cli-windows-installer-user-path-update to the fallback path, reframes cli-installed-path-command to PATH-invocable via npm global bin, and adds cli-installer-avoids-duplicate-command.
+decisions:
+  d1-npm-first-with-permission-fallback:
+    decision: npm-global is the primary install channel; when npm is absent or 'npm install -g .' fails on permissions, fall back to the bun native executable in the user bin directory.
+    rationale: Delivers zero-PATH-edit UX for version-manager users while preserving zero-sudo for system-Node Unix users whose npm global prefix is system-managed.
+  d2-spec-delta-covers-both-platforms:
+    decision: The strict delta spec rewrites the installer requirements for both Unix and Windows rather than Unix alone.
+    rationale: The MUST requirement cli-installer-compiles-native-executable spans both installer flows, so updating one platform cleanly requires addressing both; this also closes the pre-existing Windows spec drift left by commit 66820f4.
+  d3-cleanup-stale-native-on-npm-success:
+    decision: On successful npm-global install the installer removes any strict-spec-cli native executable left by a prior fallback install, applied to both install.sh and install.ps1.
+    rationale: Without cleanup the npm shim and native executable both resolve as strict-spec-cli on PATH, so the active command depends on PATH order; removing the stale executable guarantees a single command.
+  d4-bun-remains-build-requirement:
+    decision: ensure_bun and bun run build stay mandatory on every install path, including the npm-success path, before 'npm install -g .' runs.
+    rationale: npm install -g . packages dist/scripts/strict-spec-driven.js declared as the package bin target, so the bundle must be built first; npm install does not run the project build.
+alternatives: []
+risks: []

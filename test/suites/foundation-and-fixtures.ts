@@ -2320,7 +2320,7 @@ const installPsContent = readFileSync(path.join(ROOT, "install.ps1"), "utf8");
 context.assert(
   installShContent.includes("bun scripts/build-native-cli.ts --install --bin-dir")
     && installShContent.includes("bun run build"),
-  "Unix installer builds and installs the native CLI executable",
+  "Unix installer builds and installs the native CLI executable when npm is unavailable or the npm-global install fails on permissions",
 );
 context.assert(
   installPsContent.includes("bun scripts/build-native-cli.ts --install --bin-dir")
@@ -2332,6 +2332,20 @@ context.assert(
     && installPsContent.includes("npm uninstall -g strict-spec-driven")
     && installPsContent.includes("Test-NpmAvailable"),
   "Windows installer installs/uninstalls the CLI via npm global when npm is available",
+);
+context.assert(
+  installShContent.includes("npm install -g .")
+    && installShContent.includes("npm uninstall -g strict-spec-driven")
+    && installShContent.includes("command -v npm"),
+  "Unix installer installs/uninstalls the CLI via npm global when npm is available",
+);
+context.assert(
+  installShContent.includes("supersedes any native executable"),
+  "Unix installer removes a stale native executable when npm-global install succeeds",
+);
+context.assert(
+  installPsContent.includes("supersedes any native executable"),
+  "Windows installer removes a stale native executable when npm-global install succeeds",
 );
 context.assert(
   installPsContent.includes("[System.Environment]::SetEnvironmentVariable('Path', $newPath, 'User')")

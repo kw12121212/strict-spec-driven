@@ -1,0 +1,41 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: unix-installer-npm-global
+sections:
+  Implementation:
+    install-sh-npm-first-install:
+      text: Modify the install.sh install flow so that when npm is available it builds the dist bundle with bun run build and runs npm install -g . from the repository root; when that fails on permissions or npm is absent, fall back to the existing bun native-executable build path; on npm success remove a stale strict-spec-cli native executable at the resolved bin directory left by a prior fallback install.
+      status: complete
+    install-sh-npm-uninstall:
+      text: Modify the install.sh uninstall flow to run npm uninstall -g strict-spec-driven when npm is available, while always removing any leftover strict-spec-cli native executable at the resolved bin directory, mirroring install.ps1 uninstall cleanup.
+      status: complete
+    install-ps1-cleanup-on-npm-success:
+      text: In install.ps1's npm-success install branch, remove a stale strict-spec-cli.exe at the resolved bin directory left by a prior native-fallback install, so only the npm-global command resolves on PATH.
+      status: complete
+    add-install-regression-assertions:
+      text: Add install.sh assertions mirroring install.ps1 (npm install -g ., npm uninstall -g strict-spec-driven, npm availability detection, and stale-executable cleanup), soften the existing Unix native-compile assertion to the fallback path, and add an install.ps1 stale-exe-cleanup assertion in test/suites/foundation-and-fixtures.ts.
+      status: complete
+    update-readme-install-docs:
+      text: Update README.md and README.zh.md to document install.sh npm-first install with the permission fallback and stale-executable cleanup, parallel to the install.ps1 documentation.
+      status: complete
+  Testing:
+    run-build:
+      text: Build the project so the dist bundle exists for installer and test assertions.
+      status: complete
+      command: bun run build
+    run-project-regression:
+      text: Run the complete project regression command; it builds, runs the regression suite with subprocess coverage, and exits non-zero when measured src/** line coverage falls below the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope — install.sh is npm-first with permission fallback and stale-executable cleanup, install.ps1 gains only the npm-success cleanup, and no other installer behavior, package.json bin, or skills registration changed.
+      status: complete
+    verify-installer-spec-parity:
+      text: Confirm the implemented install.sh and install.ps1 behavior satisfies every cli-foundation delta scenario (npm-first, fallback on absence and permission failure, stale-executable cleanup, and PATH handling scoped to the fallback).
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-project-regression

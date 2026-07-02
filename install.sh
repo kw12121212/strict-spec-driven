@@ -109,6 +109,14 @@ ensure_project_deps() {
   ( cd "$SCRIPT_DIR" && bun install )
 }
 
+# Build and install the native strict-spec-cli executable into the user bin
+# directory. Used as the fallback when npm is unavailable or the npm-global
+# install fails on permissions.
+install_native() {
+  echo "Building strict-spec-cli native executable"
+  ( cd "$SCRIPT_DIR" && bun scripts/build-native-cli.ts --install --bin-dir "$BIN_DIR" )
+}
+
 if $UNINSTALL; then
   if ! SKILLS_CMD="$(resolve_skills_cmd)"; then
     printf 'No runtime available to run the skills CLI (need bun, npm, or npx).\n' >&2
@@ -116,12 +124,42 @@ if $UNINSTALL; then
   fi
   echo "Uninstalling strict skills from: $SCRIPT_DIR"
   $SKILLS_CMD remove -g
+  # npm/Node is the preferred install channel; remove the npm-global CLI when
+  # npm is available. The native executable is always cleaned up because a
+  # prior fallback install may have left it.
+  if command -v npm >/dev/null 2>&1; then
+    echo "Uninstalling strict-spec-cli via npm"
+    npm uninstall -g strict-spec-driven
+  fi
   rm -f "$BIN_DIR/strict-spec-cli"
 else
   ensure_bun
   ensure_project_deps
-  echo "Building strict-spec-cli native executable"
-  ( cd "$SCRIPT_DIR" && bun run build && bun scripts/build-native-cli.ts --install --bin-dir "$BIN_DIR" )
+  echo "Building strict-spec-cli bundle"
+  ( cd "$SCRIPT_DIR" && bun run build )
+  # npm/Node is the preferred install channel on Unix: `npm install -g .` puts
+  # the CLI shim into npm's global bin directory, which is already on PATH, so
+  # the command is usable immediately with no PATH edits and no ~95MB native
+  # executable. Fall back to the bun native executable when npm is unavailable
+  # or the npm-global install fails on permissions (a system-managed global
+  # prefix that would need sudo).
+  if command -v npm >/dev/null 2>&1; then
+    echo "Installing strict-spec-cli via npm (global)"
+    if ( cd "$SCRIPT_DIR" && npm install -g . ); then
+      # npm-global install supersedes any native executable from a prior fallback install.
+      if [ -f "$BIN_DIR/strict-spec-cli" ]; then
+        rm -f "$BIN_DIR/strict-spec-cli"
+        echo "Removed stale native executable at: $BIN_DIR/strict-spec-cli"
+      fi
+      echo "strict-spec-cli installed via npm; available immediately on PATH (npm global bin)."
+    else
+      echo "npm global install failed (possible permission error); falling back to native executable"
+      install_native
+    fi
+  else
+    echo "npm not found; installing native executable"
+    install_native
+  fi
   echo "Installing strict skills from: $SCRIPT_DIR"
   SKILLS_CMD="$(resolve_skills_cmd)" # bun is guaranteed present here -> bunx
   $SKILLS_CMD add "$SCRIPT_DIR" -g -y

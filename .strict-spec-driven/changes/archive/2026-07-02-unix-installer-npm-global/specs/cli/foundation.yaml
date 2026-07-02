@@ -1,0 +1,100 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - install.sh
+    - install.ps1
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    cli-installer-avoids-duplicate-command:
+      strength: MUST
+      statement: When npm-global install succeeds the installer MUST remove any strict-spec-driven native executable left by a prior fallback install from the resolved user bin directory, so that a single strict-spec-driven command resolves on PATH on both Unix and Windows.
+      scenarios:
+        npm-success-removes-prior-unix-native-executable:
+          - GIVEN: a prior native-fallback install left a strict-spec-driven native executable in the Unix installer resolved user bin directory
+          - WHEN: npm install -g . succeeds
+          - THEN: the installer removes that stale native executable
+          - AND: only the npm-global strict-spec-driven command resolves on PATH
+        npm-success-removes-prior-windows-native-executable:
+          - GIVEN: a prior native-fallback install left a strict-spec-driven native executable in the Windows installer resolved user bin directory
+          - WHEN: npm install -g . succeeds
+          - THEN: the installer removes that stale native executable
+          - AND: only the npm-global strict-spec-driven command resolves on PATH
+  MODIFIED:
+    cli-installer-compiles-native-executable:
+      strength: MUST
+      statement: The system MUST install the strict-spec-driven command through npm global bin via npm install -g . when npm is available and the global prefix is writable, and MUST fall back to compiling a native strict-spec-driven executable with Bun only when npm is unavailable or the npm-global install fails on permissions, for both Unix and Windows installer flows.
+      scenarios:
+        unix-installer-prefers-npm-global:
+          - GIVEN: the Unix installer is run on a supported host with Bun and npm available and a writable npm global prefix
+          - WHEN: installation prepares the strict-spec-driven command
+          - THEN: the installer builds the dist bundle and runs npm install -g .
+          - AND: the strict-spec-driven command is installed into the npm global bin directory
+        unix-installer-compiles-native-command:
+          - GIVEN: the Unix installer is run on a supported host with Bun available but npm is not on PATH or the npm-global install failed on permissions
+          - WHEN: installation prepares the strict-spec-driven command
+          - THEN: the installer invokes Bun executable compilation for the strict CLI entrypoint
+          - AND: installs the resulting native executable for the strict-spec-driven command
+        windows-installer-prefers-npm-global:
+          - GIVEN: the Windows PowerShell installer is run on a supported Windows host with Bun and npm available
+          - WHEN: installation prepares the strict-spec-driven command
+          - THEN: the installer builds the dist bundle and runs npm install -g .
+          - AND: the strict-spec-driven command is installed into the npm global bin directory
+        windows-installer-compiles-native-command:
+          - GIVEN: the Windows PowerShell installer is run with Bun available but npm is not on PATH
+          - WHEN: installation prepares the strict-spec-driven command
+          - THEN: the installer invokes Bun executable compilation for the strict CLI entrypoint
+          - AND: installs the resulting native executable for the strict-spec-driven command
+    cli-installer-user-bin-path-diagnostics:
+      strength: MUST
+      statement: When the installer falls back to a native executable it MUST target a user-level bin directory for the strict-spec-driven command and report deterministic diagnostics when that directory is not available on PATH; the npm-global install path targets npm global bin instead and requires no user bin directory.
+      scenarios:
+        native-fallback-targets-user-bin-directory:
+          - GIVEN: the installer falls back to the native executable because npm is unavailable or the npm-global install failed
+          - WHEN: installation selects the install location for the native executable
+          - THEN: the installer targets a user-level bin directory for the strict-spec-driven command
+        native-fallback-reports-missing-path-entry:
+          - GIVEN: the native fallback selects a user-level bin directory that is not present on PATH
+          - WHEN: installation completes
+          - THEN: installation reports an actionable warning naming the selected bin directory
+          - AND: installation does not claim that the command is available from PATH
+        npm-global-requires-no-user-bin:
+          - GIVEN: the installer installs via npm install -g . into the npm global bin
+          - WHEN: installation completes
+          - THEN: the installer does not require or create a user-level bin directory
+          - AND: does not emit a missing-PATH warning for a user bin directory
+    cli-windows-installer-user-path-update:
+      strength: MUST
+      statement: When the Windows installer falls back to a native executable it MUST add the resolved native strict-spec-driven bin directory to the current user PATH during installation when PATH updates are not disabled, and MUST remove that directory during uninstall unless removal is disabled; the npm-global install path does not modify the user PATH because npm global bin is already on PATH.
+      scenarios:
+        native-fallback-adds-user-path:
+          - GIVEN: the Windows installer falls back to a native executable and resolves a bin directory absent from the current user PATH
+          - WHEN: installation completes with PATH updates enabled
+          - THEN: the installer appends that directory to the current user PATH and reports that a new shell may be required
+        native-fallback-can-skip-path-update:
+          - GIVEN: the Windows native fallback is run with PATH updates disabled
+          - WHEN: installation or uninstallation completes
+          - THEN: the current user PATH value is left unchanged
+        native-uninstall-removes-user-path:
+          - GIVEN: the resolved native strict-spec-driven bin directory is present in the current user PATH after a fallback install
+          - WHEN: uninstallation completes with PATH cleanup enabled
+          - THEN: the installer removes that directory from the current user PATH
+        npm-global-leaves-user-path-untouched:
+          - GIVEN: the Windows installer installs via npm install -g .
+          - WHEN: installation or uninstallation completes
+          - THEN: the installer does not add or remove a user-level bin directory from the current user PATH
+    cli-installed-path-command:
+      strength: MUST
+      statement: The system MUST provide an installation path that makes the strict-spec-driven command invocable from PATH for strict workflow subcommands, whether installed into the npm global bin via npm install -g . or as a native executable in a user bin directory.
+      scenarios:
+        installed-command-runs-subcommand:
+          - GIVEN: the strict skills package has been installed by the repository installer
+          - WHEN: strict-spec-driven check-workflow-state is invoked from a repository with .strict-spec-driven/
+          - THEN: the command routes to the existing strict workflow CLI behavior
+          - AND: the command exits with the same status and diagnostics as the equivalent compiled CLI invocation
+  REMOVED: {}

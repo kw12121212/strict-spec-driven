@@ -331,6 +331,8 @@ if ($Uninstall) {
         } finally {
             Pop-Location
         }
+        # npm-global install supersedes any native executable from a prior fallback install.
+        Remove-Item -LiteralPath (Join-Path $ResolvedBinDir 'strict-spec-cli.exe') -Force -ErrorAction SilentlyContinue
         Write-Host 'strict-spec-cli installed via npm; available immediately on PATH (npm global bin).'
     } else {
         Write-Host 'npm not found; falling back to bun native executable'
