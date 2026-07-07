@@ -6,7 +6,12 @@ import {
   type RoadmapRecommendResult,
 } from "../roadmap.js";
 import { archiveRoadmapMilestones } from "../roadmap/archive.js";
-import { generateRoadmapMilestone, type RoadmapMilestoneAuthorInput } from "../roadmap/author.js";
+import {
+  generateRoadmapMilestone,
+  generateRoadmapPlannedChange,
+  type RoadmapMilestoneAuthorInput,
+  type RoadmapPlannedChangeAuthorInput,
+} from "../roadmap/author.js";
 import { reopenMilestone } from "../roadmap/reopen.js";
 import { isHelpRequest } from "./argv.js";
 import { writeError, writeHelp, writeJson, writeOut, writeUsage } from "./output.js";
@@ -16,12 +21,14 @@ const ROADMAP_ARCHIVE_USAGE = "Usage: strict-spec-cli roadmap-archive [milestone
 const ROADMAP_REOPEN_USAGE = "Usage: strict-spec-cli roadmap-reopen <milestone-id> [--reason \"...\"]\n";
 const ROADMAP_GENERATE_USAGE = [
   "Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> --intake-question \"id|question|context|impact|recommendation\" [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset]",
+  "       strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary <text> --details <text> [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]",
   "",
   "Notes:",
   "  New milestones require at least one --intake-question value.",
   "  Repeat --intake-question to append structured milestone clarification questions.",
   "  Existing scalar fields with different values require --reset.",
   "  List fields append unique values by default; with --reset, supplied list fields replace existing values.",
+  "  planned-change writes the artifact at its canonical filename <milestone-id>-<planned-change-id>.yaml under roadmap/planned-changes/ (the milestone prefix is not duplicated when the id already starts with it); callers never choose filenames.",
 ].join("\n") + "\n";
 const ACTIONABLE_BLOCKER_LIMIT = 10;
 const ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set(["reset"]);
@@ -118,18 +125,29 @@ export function runRoadmapOverview(argv: string[]): number {
   return result.valid ? 0 : 1;
 }
 
+const ROADMAP_SYNC_USAGE = "Usage: strict-spec-cli roadmap-sync [--materialize-planned-changes] [--fix-names]\n";
+
 export function runRoadmapSync(argv: string[]): number {
   if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli roadmap-sync [--materialize-planned-changes]\n");
+    writeHelp(ROADMAP_SYNC_USAGE);
     return 0;
   }
-  const materializePlannedChanges = argv.length === 1 && argv[0] === "--materialize-planned-changes";
-  if (argv.length > 0 && !materializePlannedChanges) {
-    writeUsage("Usage: strict-spec-cli roadmap-sync [--materialize-planned-changes]\n");
+  let materializePlannedChanges = false;
+  let fixNames = false;
+  for (const token of argv) {
+    if (token === "--materialize-planned-changes" && !materializePlannedChanges) {
+      materializePlannedChanges = true;
+      continue;
+    }
+    if (token === "--fix-names" && !fixNames) {
+      fixNames = true;
+      continue;
+    }
+    writeUsage(ROADMAP_SYNC_USAGE);
     return 1;
   }
 
-  const result = syncRoadmap(process.cwd(), { materializePlannedChanges });
+  const result = syncRoadmap(process.cwd(), { materializePlannedChanges, fixNames });
   writeJson(result);
   return result.valid ? 0 : 1;
 }
@@ -229,15 +247,52 @@ function buildRoadmapMilestoneAuthorInput(argv: string[]): RoadmapMilestoneAutho
   };
 }
 
+function buildRoadmapPlannedChangeAuthorInput(argv: string[]): RoadmapPlannedChangeAuthorInput {
+  const flags = parseRoadmapGenerateFlags(argv);
+  ensureAllowedRoadmapGenerateFlags(flags, [
+    "milestone",
+    "id",
+    "summary",
+    "details",
+    "depends-on",
+    "status",
+    "reset",
+  ]);
+
+  return {
+    id: requiredOne(flags, "id"),
+    milestone: requiredOne(flags, "milestone"),
+    summary: optionalOne(flags, "summary"),
+    details: optionalOne(flags, "details"),
+    dependsOn: values(flags, "depends-on"),
+    status: optionalOne(flags, "status"),
+    reset: values(flags, "reset").length > 0,
+  };
+}
+
 export function runRoadmapGenerate(argv: string[]): number {
   if (isHelpRequest(argv)) {
     writeHelp(ROADMAP_GENERATE_USAGE);
     return 0;
   }
   const [selector, ...rest] = argv;
-  if (selector !== "milestone") {
+  if (selector !== "milestone" && selector !== "planned-change") {
     writeUsage(ROADMAP_GENERATE_USAGE);
     return 1;
+  }
+
+  if (selector === "planned-change") {
+    let plannedChangeInput: RoadmapPlannedChangeAuthorInput;
+    try {
+      plannedChangeInput = buildRoadmapPlannedChangeAuthorInput(rest);
+    } catch (error) {
+      writeError(error instanceof Error ? error.message : String(error));
+      writeUsage(ROADMAP_GENERATE_USAGE);
+      return 1;
+    }
+    const plannedChangeResult = generateRoadmapPlannedChange(process.cwd(), plannedChangeInput);
+    writeJson(plannedChangeResult);
+    return plannedChangeResult.valid ? 0 : 1;
   }
 
   let input: RoadmapMilestoneAuthorInput;

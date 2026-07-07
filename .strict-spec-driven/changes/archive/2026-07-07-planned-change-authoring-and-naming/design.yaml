@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: planned-change-authoring-and-naming
+approach:
+  - Keep filename mechanics entirely in scripts per the scripts-own-mechanics MUST rule. Introduce a canonical-filename helper shared by the new roadmap-generate planned-change authoring command, the roadmap-reopen follow-up seeder, and roadmap validation, so one function defines the naming rule. Validation surfaces mismatches as blocking diagnostics; repair is explicit via roadmap-sync --fix-names. Skills switch from direct file editing to parameterized CLI invocations.
+decisions:
+  canonical-filename-rule:
+    decision: Canonical planned-change filename is <milestone-id>-<planned-change-id>.yaml; when the planned-change id already starts with '<milestone-id>-', the filename is <planned-change-id>.yaml to avoid duplicated milestone prefixes.
+    rationale: Milestone ids embed a numeric ordering prefix, so milestone-prefixed filenames keep filename sort order aligned with roadmap order, which roadmap-recommend depends on. The collapse rule keeps reopen-style ids like <milestone-id>-followup readable without double prefixes.
+  blocking-validation:
+    decision: A misnamed active standalone planned-change file is a blocking validation diagnostic in roadmap loading, not a warning.
+    rationale: Filename order is semantically load-bearing for recommendation ordering; user confirmed blocking enforcement consistent with strict-YAML philosophy. Archived planned-change files are exempt to keep archives immutable.
+  explicit-fix-flag:
+    decision: roadmap-sync gains an explicit --fix-names flag that renames misnamed active planned-change files to canonical names; default roadmap-sync only reports.
+    rationale: User confirmed repair should exist but only on explicit request, keeping default sync non-destructive while keeping the repair deterministic and script-owned.
+  cli-authoring-command:
+    decision: Add roadmap-generate planned-change with --milestone, --id, --summary, --details, --depends-on, --status, and --reset parameters that creates or updates the artifact at its canonical path.
+    rationale: The existing spec excluded planned-change CLI authoring, which forced AI hand-authoring and caused the naming defect; contract-first delta spec revises that requirement so scripts own creation.
+  reopen-alignment:
+    decision: roadmap-reopen names seeded follow-up files with the canonical convention instead of a new global numeric prefix.
+    rationale: The global-prefix scheme interleaves ambiguously with milestone-prefixed names and breaks the one-rule naming model; follow-up ids already start with the milestone id so the collapse rule yields stable ordering.
+  explicit-rule-visibility:
+    decision: 'The canonical filename rule and the exact CLI invocations are stated explicitly in skill instructions and user documentation: bundled skills that touch planned-change artifacts list roadmap-generate planned-change and roadmap-sync --fix-names in their ''This Skill''s Commands'' sections and state the naming rule in their steps or rules, and README.md documents the command, the flag, and the naming rule.'
+    rationale: Script enforcement catches violations after the fact, but agents and humans still need the rule and command syntax visible where they work; undocumented conventions were the original cause of the misnamed files.
+alternatives: []
+risks: []

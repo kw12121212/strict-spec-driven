@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import {
+  canonicalPlannedChangeFileName,
   PLANNED_CHANGE_SCHEMA_ID,
   ROADMAP_DIR,
   ROADMAP_INDEX_SCHEMA_ID,
@@ -141,7 +142,7 @@ export function materializedPlannedChangePath(rootDir: string, milestone: Loaded
     rootDir,
     ROADMAP_DIR,
     "planned-changes",
-    `${milestone.artifact.milestone.id}-${plannedChangeId}.yaml`,
+    canonicalPlannedChangeFileName(milestone.artifact.milestone.id, plannedChangeId),
   );
 }
 

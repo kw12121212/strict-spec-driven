@@ -33,6 +33,47 @@ done_criteria:
   - A ticket-creation skill captures pure requirement intent without solutioning and scaffolds the ticket through the CLI, and a ticket-triage skill performs the implemented-vs-not analysis against specs, code, and docs, drives the CLI to close, promote, or reject, defers to the user on ambiguous evidence, and after a promotion hands off to /strict-roadmap-milestone for scope refinement, with all AI judgment confined to the skill prompts.
   - roadmap-status and roadmap-sync preserve the milestone source-ticket back-reference without dropping or duplicating it, roadmap-status surfaces the originating ticket and flags a freshly promoted milestone as needing scope refinement, and user documentation (including Chinese equivalents) explains the ticket -> milestone -> change -> spec/tech/code pipeline and the boundary between AI judgment and CLI state transitions.
   - Regression tests cover ticket schema validation, lifecycle commands, all three triage outcomes, promotion idempotency and bidirectional linking, behavior-spec mapping validity, and skill packaging validation, exercised against the repeatable real-project fixture so future edits cannot silently break the ticket layer.
+intake_questions:
+  - id: objective
+    question: What observable outcome should this milestone deliver?
+    context: Milestone goal text can be broad; this question keeps the outcome testable before work is decomposed.
+    impact: Unclear objective affects milestone scope, planned-change summaries, and proposal scope for every child change.
+    recommendation: Answer with one user- or operator-observable outcome that can be checked after the milestone is complete.
+  - id: scope-boundary
+    question: What is included in this milestone, and what is explicitly out of scope?
+    context: The roadmap already has scope.in and scope.out fields, but the boundary decision must be called out as a required clarification.
+    impact: Unclear scope affects planned-change ownership, milestone splitting, and whether later changes silently expand scope.
+    recommendation: Use the milestone scope fields as evidence and keep unrelated work out of this milestone.
+  - id: done-criteria
+    question: What concrete evidence proves this milestone is done?
+    context: Done criteria need to be verifiable rather than aspirational.
+    impact: Weak done criteria affect roadmap review, archive readiness, and follow-up change prioritization.
+    recommendation: Name the observable behavior, validation command, documentation, or archived planned changes that prove completion.
+  - id: work-decomposition
+    question: What standalone planned changes are needed to deliver this milestone?
+    context: Roadmap recommendation works from planned-change artifacts, not from hidden prose inside the milestone.
+    impact: Missing decomposition affects proposal generation and can block roadmap-backed automatic implementation.
+    recommendation: Create focused standalone planned-change files with actionable summary, details, dependencies, and status.
+  - id: dependencies-and-blockers
+    question: What dependencies or blockers must be resolved before this milestone can progress?
+    context: Dependencies may come from other milestones, active changes, tickets, services, credentials, or external decisions.
+    impact: Unknown blockers affect ordering, roadmap recommendation eligibility, and implementation handoff.
+    recommendation: Record known dependencies in dependencies and preserve unresolved blockers in milestone notes or planned-change detail.
+  - id: risks
+    question: What compatibility, data, security, privacy, performance, release, or rollback risks could change the plan?
+    context: Roadmap milestones often establish the risk surface before individual strict changes are proposed.
+    impact: Unidentified risks affect scope, technical standards, tests, release sequencing, and rollback planning.
+    recommendation: Record concrete risks in risks and keep mitigations small enough to map into planned changes.
+  - id: verification-evidence
+    question: How will milestone work be verified across implementation, tests, docs, and workflow artifacts?
+    context: The change-intake gate requires a proof plan before implementation begins.
+    impact: Missing verification affects planned-change testing tasks and archive confidence.
+    recommendation: Identify the relevant test suite, validation command, documentation check, or manual evidence expected for child changes.
+  - id: technical-standards
+    question: Which existing technical standards apply, or does this milestone require a new standard?
+    context: Technical rules live under .strict-spec-driven/tech/ and must be known before changes are implemented.
+    impact: Unclear standards affect implementation files, tests, and whether a child change needs a delta-tech artifact.
+    recommendation: List applicable standards or record a follow-up to add or update a technical standard when the milestone needs one.
 planned_changes: {}
 dependencies:
   - The roadmap milestone and roadmap index v2 contracts are the integration surface; the ticket layer adds a milestone source-ticket back-reference and reuses milestone materialization rather than introducing a parallel planning structure.

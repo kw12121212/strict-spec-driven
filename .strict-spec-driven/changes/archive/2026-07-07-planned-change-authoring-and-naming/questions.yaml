@@ -1,0 +1,22 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: planned-change-authoring-and-naming
+open: []
+resolved:
+  - id: misnamed-file-strictness
+    question: Should a wrongly named planned-change file be a blocking validation error or a warning?
+    context: Filename order is semantically load-bearing because roadmap-recommend selects the first eligible planned change in filename order, so a misnamed file corrupts roadmap ordering. External projects migrating to strict workflow may already contain misnamed files.
+    answer: Blocking error. roadmap-status and roadmap-sync report invalid state until the file is renamed; archived planned-change files stay exempt to keep archives immutable.
+    status: resolved
+  - id: auto-rename-repair
+    question: Should the CLI be able to rename existing misnamed planned-change files automatically?
+    context: Repair could run silently during roadmap-sync, behind an explicit flag, or be left to manual renames guided by diagnostics.
+    answer: 'Yes, behind an explicit flag: roadmap-sync --fix-names renames misnamed active planned-change files to their canonical names deterministically. Default roadmap-sync only reports.'
+    status: resolved
+  - id: scaffold-confirmation
+    question: Confirm scaffolding the change planned-change-authoring-and-naming with the agreed scope?
+    context: Scope covers the roadmap-generate planned-change authoring command, blocking filename validation, roadmap-sync --fix-names, roadmap-reopen naming alignment, skill updates, and a contract-first roadmap domain delta spec.
+    answer: Confirmed by the user.
+    status: resolved

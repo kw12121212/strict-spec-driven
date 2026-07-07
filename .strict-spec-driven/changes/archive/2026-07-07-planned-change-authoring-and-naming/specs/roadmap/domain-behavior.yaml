@@ -1,0 +1,80 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+mapping:
+  implementation:
+    - src/cli/cmd-roadmap.ts
+    - src/cli/cmd-generation.ts
+    - src/roadmap/author.ts
+    - src/roadmap/load.ts
+    - src/roadmap/sync.ts
+    - src/roadmap/reopen.ts
+    - src/roadmap/model.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    roadmap-planned-change-authoring-command-contract:
+      strength: MUST
+      statement: The system MUST provide a roadmap-generate planned-change command that creates and safely updates standalone planned-change artifacts using structured YAML fields, requires an existing declared milestone, computes the canonical milestone-prefixed filename itself so callers never choose filenames, rejects conflicting edits before writing, runs roadmap synchronization after successful writes, and reports updated files deterministically.
+      scenarios:
+        authoring-command-creates-canonical-file:
+          - GIVEN: a valid roadmap milestone exists and no planned change with the requested id exists
+          - WHEN: roadmap-generate planned-change runs with milestone, id, summary, details, and status arguments
+          - THEN: the command writes a valid standalone planned-change artifact at the canonical milestone-prefixed path, synchronizes the roadmap, exits zero, and reports the updated files
+        authoring-command-rejects-unknown-milestone:
+          - GIVEN: no roadmap milestone with the requested milestone id exists
+          - WHEN: roadmap-generate planned-change runs referencing that milestone
+          - THEN: the command exits non-zero with a deterministic diagnostic and writes no planned-change file
+    roadmap-planned-change-canonical-filename-contract:
+      strength: MUST
+      statement: The system MUST treat an active standalone planned-change file whose basename does not match the canonical filename for its declared milestone (milestone id prefix plus planned-change id, collapsing the duplicate prefix when the id already starts with the milestone id) as a blocking validation diagnostic while leaving archived planned-change files exempt, and MUST make roadmap-sync rename misnamed active planned-change files to their canonical names deterministically only when the explicit fix-names flag is supplied.
+      scenarios:
+        misnamed-active-file-blocks-validation:
+          - GIVEN: an active standalone planned-change file exists whose basename lacks its declared milestone id prefix
+          - WHEN: roadmap-status runs
+          - THEN: the command reports invalid roadmap state with a deterministic diagnostic naming the expected canonical filename
+        fix-names-repairs-misnamed-files:
+          - GIVEN: an active standalone planned-change file exists under a non-canonical basename
+          - WHEN: roadmap-sync runs with the fix-names flag
+          - THEN: the file is renamed to its canonical basename, the rename is reported deterministically, and roadmap-status is valid afterward
+        default-sync-does-not-rename:
+          - GIVEN: an active standalone planned-change file exists under a non-canonical basename
+          - WHEN: roadmap-sync runs without the fix-names flag
+          - THEN: the file is not renamed and the misnaming is surfaced as a diagnostic
+  MODIFIED:
+    roadmap-milestone-authoring-command-contract:
+      strength: MUST
+      statement: The system MUST make roadmap-generate milestone create and safely update strict roadmap milestone artifacts using structured YAML fields, require explicit structured milestone intake questions when creating a milestone, preserve source-ticket metadata unless explicitly addressed by milestone arguments, reject conflicting edits before writing, run roadmap synchronization after successful writes, and report updated files deterministically, while standalone planned-change authoring remains on the dedicated roadmap-generate planned-change command rather than the milestone command.
+      scenarios:
+        milestone-command-creates-canonical-roadmap-state-with-intake-questions:
+          - GIVEN: a strict workflow project has roadmap state and no milestone with a requested milestone id
+          - WHEN: strict-spec-driven roadmap-generate milestone is invoked with valid milestone title, goal, scope, done criteria, dependency, risk, note, optional details, and at least one structured intake question argument
+          - THEN: the command writes a valid roadmap milestone artifact with empty planned_changes and the supplied intake_questions, synchronizes the roadmap index, exits zero, and reports the updated milestone and index files
+        milestone-command-still-excludes-planned-change-authoring:
+          - GIVEN: a strict roadmap milestone exists with standalone planned-change files referencing it
+          - WHEN: roadmap-generate milestone updates milestone planning fields
+          - THEN: milestone fields are updated and no standalone planned-change artifact is created, modified, deleted, or moved by the milestone command
+    roadmap-reopen-contract:
+      strength: MUST
+      statement: The system MUST make roadmap-reopen append a dated reopen note to a completed milestone, leave already-archived planned changes immutable, seed a pending follow-up standalone planned change linked to the milestone under the canonical milestone-prefixed filename convention, and rewrite the milestone to the status derived from its planned-change state (proposed when only not-yet-started follow-up work exists), which a subsequent roadmap-sync preserves because the seeded follow-up is pending non-archived work; roadmap-sync MUST re-derive a milestone whose planned changes are all archived back to complete rather than preserving a declared active status.
+      scenarios:
+        reopen-seeds-pending-followup:
+          - GIVEN: a completed milestone whose only planned change is archived
+          - WHEN: strict-spec-driven roadmap-reopen runs for that milestone
+          - THEN: the command exits zero, the milestone file becomes proposed with a dated reopen note, the archived planned change is byte-identical, and a new pending follow-up standalone planned change linked to the milestone is created
+        reopened-milestone-survives-sync:
+          - GIVEN: a milestone reopened by roadmap-reopen with its seeded pending follow-up planned change present
+          - WHEN: strict-spec-driven roadmap-sync runs before any further edits
+          - THEN: the milestone stays proposed because it has pending non-archived planned work rather than reverting to complete
+        sync-rederives-complete-from-fully-archived:
+          - GIVEN: a milestone declared active whose planned changes are all archived and that has no pending planned work
+          - WHEN: strict-spec-driven roadmap-sync or archive-triggered sync runs
+          - THEN: the canonical milestone and index status are rewritten to complete
+        reopen-seeds-canonically-named-follow-up:
+          - GIVEN: a completed milestone whose only planned change is archived
+          - WHEN: roadmap-reopen runs for that milestone
+          - THEN: the seeded follow-up standalone planned-change file uses the canonical milestone-prefixed basename and roadmap-status is valid afterward
+  REMOVED: {}

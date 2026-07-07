@@ -34,7 +34,8 @@ ticket-show: strict-spec-cli ticket-show <ticket-id>
 ticket-validate: strict-spec-cli ticket-validate <ticket-id>
 ticket-resolve: strict-spec-cli ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...
 roadmap-status: strict-spec-cli roadmap-status
-roadmap-sync: strict-spec-cli roadmap-sync
+roadmap-sync: strict-spec-cli roadmap-sync [--fix-names]
+roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]
 ```
 
 ## Prerequisites
@@ -135,10 +136,14 @@ run `init` from this skill.
    - keep the `source_ticket` back-reference
    - keep milestone `planned_changes` empty unless you are intentionally
      materializing legacy inline data
-   - create at least one standalone
-     `.strict-spec-driven/roadmap/planned-changes/*.yaml` artifact for the
-     initial executable work needed to make the milestone actionable, with
-     actionable `summary`, `details`, `depends_on`, and `status`
+   - create at least one standalone planned-change artifact for the initial
+     executable work needed to make the milestone actionable, with actionable
+     `summary`, `details`, `depends_on`, and `status`, using
+     `roadmap-generate planned-change`; the CLI writes the artifact at its
+     canonical filename `<milestone-id>-<planned-change-id>.yaml` under
+     `.strict-spec-driven/roadmap/planned-changes/` — never choose
+     planned-change filenames by hand (a misnamed file is a blocking roadmap
+     diagnostic that `roadmap-sync --fix-names` repairs)
    - when implementation, test, spec, dependency, or technical-standard impact
      remains unknown after evidence gathering, state that uncertainty explicitly
      in the milestone or planned-change detail instead of inventing scope
@@ -184,7 +189,8 @@ run `init` from this skill.
   ambiguous or spec coverage is too thin to decide confidently — never guess
 - After a promotion, run roadmap-sync, refine the created milestone into
   executable roadmap detail, create at least one standalone planned-change file
-  with actionable details, run roadmap-status, review the milestone and
+  with actionable details through `roadmap-generate planned-change` (never
+  hand-picking its filename), run roadmap-status, review the milestone and
   planned-change files again, and apply reasonable corrections before reporting
   completion
 - Do not promote a ticket unless you can immediately replace the generated

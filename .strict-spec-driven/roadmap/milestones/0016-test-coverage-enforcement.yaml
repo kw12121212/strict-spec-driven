@@ -28,6 +28,47 @@ done_criteria:
   - This repository declares its own coverage contract in .strict-spec-driven/config.yaml backed by one deterministic Bun-compatible mechanism that exits non-zero below the configured threshold, with the initial threshold derived from a measured baseline so the gate starts as a ratchet rather than an aspiration.
   - The workflow-regression-coverage technical standard records the coverage contract, defines the coverage metric and measurement scope it applies to, and explains the enforcement mechanism and rationale.
   - Regression tests cover the contract validation, scaffold and template outputs, generated task surfaces, and the self-hosted gate so future workflow edits cannot silently remove the coverage requirement.
+intake_questions:
+  - id: objective
+    question: What observable outcome should this milestone deliver?
+    context: Milestone goal text can be broad; this question keeps the outcome testable before work is decomposed.
+    impact: Unclear objective affects milestone scope, planned-change summaries, and proposal scope for every child change.
+    recommendation: Answer with one user- or operator-observable outcome that can be checked after the milestone is complete.
+  - id: scope-boundary
+    question: What is included in this milestone, and what is explicitly out of scope?
+    context: The roadmap already has scope.in and scope.out fields, but the boundary decision must be called out as a required clarification.
+    impact: Unclear scope affects planned-change ownership, milestone splitting, and whether later changes silently expand scope.
+    recommendation: Use the milestone scope fields as evidence and keep unrelated work out of this milestone.
+  - id: done-criteria
+    question: What concrete evidence proves this milestone is done?
+    context: Done criteria need to be verifiable rather than aspirational.
+    impact: Weak done criteria affect roadmap review, archive readiness, and follow-up change prioritization.
+    recommendation: Name the observable behavior, validation command, documentation, or archived planned changes that prove completion.
+  - id: work-decomposition
+    question: What standalone planned changes are needed to deliver this milestone?
+    context: Roadmap recommendation works from planned-change artifacts, not from hidden prose inside the milestone.
+    impact: Missing decomposition affects proposal generation and can block roadmap-backed automatic implementation.
+    recommendation: Create focused standalone planned-change files with actionable summary, details, dependencies, and status.
+  - id: dependencies-and-blockers
+    question: What dependencies or blockers must be resolved before this milestone can progress?
+    context: Dependencies may come from other milestones, active changes, tickets, services, credentials, or external decisions.
+    impact: Unknown blockers affect ordering, roadmap recommendation eligibility, and implementation handoff.
+    recommendation: Record known dependencies in dependencies and preserve unresolved blockers in milestone notes or planned-change detail.
+  - id: risks
+    question: What compatibility, data, security, privacy, performance, release, or rollback risks could change the plan?
+    context: Roadmap milestones often establish the risk surface before individual strict changes are proposed.
+    impact: Unidentified risks affect scope, technical standards, tests, release sequencing, and rollback planning.
+    recommendation: Record concrete risks in risks and keep mitigations small enough to map into planned changes.
+  - id: verification-evidence
+    question: How will milestone work be verified across implementation, tests, docs, and workflow artifacts?
+    context: The change-intake gate requires a proof plan before implementation begins.
+    impact: Missing verification affects planned-change testing tasks and archive confidence.
+    recommendation: Identify the relevant test suite, validation command, documentation check, or manual evidence expected for child changes.
+  - id: technical-standards
+    question: Which existing technical standards apply, or does this milestone require a new standard?
+    context: Technical rules live under .strict-spec-driven/tech/ and must be known before changes are implemented.
+    impact: Unclear standards affect implementation files, tests, and whether a child change needs a delta-tech artifact.
+    recommendation: List applicable standards or record a follow-up to add or update a technical standard when the milestone needs one.
 planned_changes: {}
 dependencies:
   - The existing review_evidence.project_regression contract remains the single gate surface; the coverage contract extends it rather than introducing a parallel archive-only mechanism.

@@ -21,6 +21,8 @@ check-workflow-state: strict-spec-cli check-workflow-state
 roadmap-status: strict-spec-cli roadmap-status
 roadmap-sync: strict-spec-cli roadmap-sync
 roadmap-sync-materialize: strict-spec-cli roadmap-sync --materialize-planned-changes
+roadmap-sync-fix-names: strict-spec-cli roadmap-sync --fix-names
+roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]
 ```
 
 ## Prerequisites
@@ -78,6 +80,19 @@ run `init` from this skill.
    ```
    This converts the inline entries into standalone planned-change files before
    reconciliation.
+
+   If diagnostics report a standalone planned-change file whose basename does
+   not match the canonical `<milestone-id>-<planned-change-id>.yaml` form (the
+   milestone prefix is not duplicated when the id already starts with it),
+   run:
+   ```bash
+   strict-spec-cli roadmap-sync --fix-names
+   ```
+   This renames misnamed active planned-change files to their canonical names
+   deterministically and reports each rename; default `roadmap-sync` only
+   reports the diagnostic. New planned-change files are created through
+   `roadmap-generate planned-change`, which computes the canonical filename
+   itself — never pick planned-change filenames by hand.
 
 4. **Confirm the reconciled state** — rerun `roadmap-status` and report which
    files changed, which milestone statuses moved, and whether any diagnostics

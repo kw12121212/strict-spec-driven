@@ -52,7 +52,9 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 | `ticket-resolve <id>` | Record a triage decision and apply the transition (promote / close / reject) |
 | `roadmap-status` | Validate and report strict roadmap state |
 | `roadmap-overview` | Print a human-readable roadmap overview table |
-| `roadmap-sync` | Reconcile and regenerate strict roadmap index |
+| `roadmap-sync [--fix-names]` | Reconcile and regenerate strict roadmap index; `--fix-names` renames misnamed planned-change files to canonical names |
+| `roadmap-generate milestone` | Create or update a strict roadmap milestone through structured named arguments |
+| `roadmap-generate planned-change` | Create or update a standalone planned-change artifact at its canonical CLI-computed filename |
 | `verify-spec-mappings` | Audit spec implementation and test mapping coverage |
 | `validate-skills` | Validate strict skill packaging metadata and command symlinks |
 | `schema-list` | List bundled strict schema asset keys |
@@ -116,6 +118,8 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-roadmap-sync` | Reconcile roadmap milestone and change state |
 
 The roadmap docs describe the preferred split-file collaboration model: keep milestone files and `INDEX.yaml` low churn, store day-to-day roadmap work in `.strict-spec-driven/roadmap/planned-changes/`, rerun `roadmap-sync` after merges or archive handoff, and treat external tracker references as optional context rather than required source of truth.
+
+Standalone planned-change files use a canonical, CLI-owned filename: `<milestone-id>-<planned-change-id>.yaml` (when the planned-change id already starts with the milestone id, the prefix is not duplicated). Filename order is semantically meaningful — `roadmap-recommend` selects the first eligible planned change in filename order — so an active planned-change file with a non-canonical basename is a blocking validation diagnostic in `roadmap-status` and `roadmap-sync` (archived planned-change files are exempt). Create and update planned-change artifacts through `roadmap-generate planned-change`, which computes the filename itself, and repair misnamed legacy files with `roadmap-sync --fix-names`; never pick planned-change filenames by hand.
 
 ## Change Intake Question Gate
 

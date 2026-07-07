@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: planned-change-authoring-and-naming
+  status: proposed
+summary:
+  what:
+    - Add deterministic CLI authoring and canonical filename enforcement for standalone roadmap planned-change artifacts so AI agents never invent planned-change filenames, and document the naming rule and CLI usage explicitly in the bundled skills and user documentation.
+  why:
+    - Planned-change files are currently hand-written by AI skills with no filename convention stated or validated, so files can be created without the milestone id prefix. Filename order is semantically load-bearing (roadmap-recommend selects the first eligible planned change in filename order), so a missing milestone prefix corrupts roadmap ordering rather than being merely cosmetic. Because no skill or document states the rule, even careful agents cannot follow it.
+scope:
+  in:
+    - Add a roadmap-generate planned-change CLI command that creates and updates standalone planned-change artifacts and computes the canonical filename <milestone-id>-<planned-change-id>.yaml, collapsing duplication when the id already starts with the milestone id.
+    - Add blocking deterministic validation diagnostics when an active standalone planned-change file basename does not match the canonical filename for its declared milestone.
+    - Add an explicit roadmap-sync --fix-names repair flag that renames misnamed active planned-change files to their canonical names deterministically.
+    - Align roadmap-reopen seeded follow-up filenames with the canonical milestone-prefixed convention.
+    - Update the bundled skills that author planned-change artifacts (strict-roadmap-plan, strict-roadmap-review, strict-ticket-dispatch) to create and update planned changes through roadmap-generate planned-change instead of hand-editing files, and to state the canonical filename rule explicitly in their instructions.
+    - Add the roadmap-generate planned-change command and roadmap-sync --fix-names flag to the 'This Skill's Commands' sections of every bundled skill that touches planned-change artifacts, so agents can look up exact invocations instead of guessing.
+    - Document the canonical planned-change filename rule, the roadmap-generate planned-change command, and the roadmap-sync --fix-names flag in README.md (CLI command table and roadmap collaboration docs).
+    - Update the roadmap domain delta spec contract-first, revising the requirement that currently excludes CLI authoring support for standalone planned-change artifacts.
+  out:
+    - No changes to the planned-change YAML schema body or planned-change identity model.
+    - No changes to milestone authoring fields, archive directory layout, or archived planned-change files.
+    - 'No automatic silent renaming: repair only runs under the explicit --fix-names flag.'
+    - No changes to skills that are not bundled in this repository's skills/ directory.
+unchanged_behavior:
+  - Existing conforming planned-change files (all current files already match the canonical convention) remain byte-identical.
+  - roadmap-generate milestone behavior for milestone planning fields stays as specified.
+  - Legacy inline planned-change materialization workflow and its naming continue to work.

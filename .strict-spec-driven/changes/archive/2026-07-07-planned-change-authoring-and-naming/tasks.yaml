@@ -1,0 +1,43 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: planned-change-authoring-and-naming
+sections:
+  Implementation:
+    add-canonical-filename-helper:
+      text: Add a shared canonical planned-change filename helper (milestone-prefixed with duplicate-prefix collapse) in the roadmap domain module and route materializedPlannedChangePath through it.
+      status: complete
+    add-planned-change-authoring-command:
+      text: Implement roadmap-generate planned-change with --milestone, --id, --summary, --details, --depends-on, --status, and --reset, writing the artifact at its canonical path and rejecting conflicting or unknown-milestone input deterministically.
+      status: complete
+    add-filename-validation-diagnostic:
+      text: Add a blocking deterministic diagnostic during roadmap loading when an active standalone planned-change file basename does not match the canonical filename for its declared milestone, exempting archived planned-change files.
+      status: complete
+    add-fix-names-flag:
+      text: Add roadmap-sync --fix-names to rename misnamed active planned-change files to canonical names deterministically and report renamed files; default roadmap-sync continues to only report.
+      status: complete
+    align-reopen-follow-up-naming:
+      text: Change roadmap-reopen seeded follow-up filenames to the canonical convention instead of allocating a new global numeric prefix.
+      status: complete
+    update-planned-change-authoring-skills:
+      text: Update the bundled strict-roadmap-plan, strict-roadmap-review, and strict-ticket-dispatch skills to author standalone planned-change artifacts through roadmap-generate planned-change instead of hand-editing files, state the canonical filename rule explicitly in their steps or rules, and list roadmap-generate planned-change and roadmap-sync --fix-names in the "This Skill's Commands" section of every bundled skill that touches planned-change artifacts.
+      status: complete
+    document-cli-and-naming-rule:
+      text: Document the roadmap-generate planned-change command, the roadmap-sync --fix-names flag, and the canonical planned-change filename rule in README.md (CLI command table and roadmap collaboration docs).
+      status: complete
+  Testing:
+    add-unit-tests:
+      text: Add tests covering canonical filename derivation (including prefix collapse), the authoring command create/update/error paths, blocking misnamed-file diagnostics, --fix-names renames, and reopen follow-up naming.
+      status: complete
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope, existing conforming planned-change files remain byte-identical, and roadmap-status stays valid on this repository.
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: add-unit-tests

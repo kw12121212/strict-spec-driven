@@ -52,7 +52,9 @@
 | `ticket-resolve <id>` | 记录分诊决定并执行状态转换（晋升 / 关闭 / 拒绝） |
 | `roadmap-status` | 验证并报告严格路线图状态 |
 | `roadmap-overview` | 输出面向人的路线图总览表 |
-| `roadmap-sync` | 协调并重新生成严格路线图索引 |
+| `roadmap-sync [--fix-names]` | 协调并重新生成严格路线图索引；`--fix-names` 将命名不规范的 planned-change 文件重命名为规范文件名 |
+| `roadmap-generate milestone` | 通过结构化命名参数创建或更新严格路线图里程碑 |
+| `roadmap-generate planned-change` | 在 CLI 计算的规范文件名处创建或更新独立 planned-change 工件 |
 | `verify-spec-mappings` | 审计规范实现和测试映射覆盖率 |
 | `validate-skills` | 验证严格 Skill 打包元数据和命令脚本符号链接 |
 | `schema-list` | 列出捆绑的严格 schema 资源键 |
@@ -116,6 +118,8 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-roadmap-sync` | 协调路线图里程碑和变更状态 |
 
 路线图文档描述了首选的拆分文件协作模型：保持里程碑文件和 `INDEX.yaml` 低变动率，将日常路线图工作存储在 `.strict-spec-driven/roadmap/planned-changes/` 中，在合并或归档交接后重新运行 `roadmap-sync`，并将外部跟踪器引用视为可选上下文而非必需的真实来源。
+
+独立 planned-change 文件使用由 CLI 负责的规范文件名：`<milestone-id>-<planned-change-id>.yaml`（当 planned-change id 已以 milestone id 开头时不重复前缀）。文件名顺序具有语义意义——`roadmap-recommend` 按文件名顺序选择第一个符合条件的 planned change——因此活动 planned-change 文件的非规范文件名是 `roadmap-status` 与 `roadmap-sync` 的阻塞性验证诊断（已归档的 planned-change 文件豁免）。请通过 `roadmap-generate planned-change` 创建和更新 planned-change 工件（文件名由 CLI 自行计算），并用 `roadmap-sync --fix-names` 修复历史遗留的错误命名；切勿手工挑选 planned-change 文件名。
 
 ## 变更接收问题门
 

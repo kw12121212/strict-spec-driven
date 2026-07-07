@@ -2,19 +2,29 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import path from "path";
 import { stringifyYamlDocument } from "../yaml.js";
 import {
+  canonicalPlannedChangeFileName,
+  PLANNED_CHANGE_SCHEMA_ID,
   ROADMAP_DIR,
   ROADMAP_MILESTONES_DIR,
   ROADMAP_MILESTONE_SCHEMA_ID,
   ROADMAP_INDEX_PATH,
+  type DeclaredPlannedChangeStatus,
   type LoadedMilestone,
+  type LoadedPlannedChange,
   type MilestoneIntakeQuestion,
   type RoadmapDiagnostic,
   type RoadmapMilestoneStatus,
 } from "./model.js";
 import { loadRoadmap } from "./load.js";
-import { ensureTrailingNewline, makeDiagnostic, normalizeRepoRelativePath, sortDiagnostics } from "./shared.js";
+import {
+  ensureTrailingNewline,
+  isDeclaredPlannedChangeStatus,
+  makeDiagnostic,
+  normalizeRepoRelativePath,
+  sortDiagnostics,
+} from "./shared.js";
 import { buildCanonicalPlannedChangeArtifact, writeFileIfChanged } from "./sync.js";
-import { validateMilestoneArtifact } from "./validate.js";
+import { validateMilestoneArtifact, validateStandalonePlannedChangeArtifact } from "./validate.js";
 import { getRoadmapStatus, syncRoadmap } from "../roadmap.js";
 import {
   buildMilestoneStatus,
@@ -245,7 +255,12 @@ function findExistingMilestone(milestones: LoadedMilestone[], id: string): Loade
   return milestones.find((milestone) => milestone.artifact.milestone.id === id);
 }
 
-function findStandalonePlannedChangeRewriteDiagnostics(rootDir: string, milestones: LoadedMilestone[]): RoadmapDiagnostic[] {
+function findStandalonePlannedChangeRewriteDiagnostics(
+  rootDir: string,
+  milestones: LoadedMilestone[],
+  commandLabel: string,
+  excludePlannedChangeIds: Set<string> = new Set(),
+): RoadmapDiagnostic[] {
   const diagnostics: RoadmapDiagnostic[] = [];
   const changeStates = getChangeStateIndex(rootDir);
   const roadmap = loadRoadmap(rootDir);
@@ -254,6 +269,7 @@ function findStandalonePlannedChangeRewriteDiagnostics(rootDir: string, mileston
     const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
     const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
     for (const plannedChange of standalonePlannedChanges) {
+      if (excludePlannedChangeIds.has(plannedChange.artifact.planned_change.id)) continue;
       const nextContent = ensureTrailingNewline(stringifyYamlDocument(buildCanonicalPlannedChangeArtifact(plannedChange, status)));
       if (nextContent === ensureTrailingNewline(plannedChange.raw)) continue;
       diagnostics.push(
@@ -261,7 +277,7 @@ function findStandalonePlannedChangeRewriteDiagnostics(rootDir: string, mileston
           "semantic",
           plannedChange.repoRelativePath,
           "$",
-          "roadmap-generate milestone would rewrite a standalone planned-change artifact during roadmap synchronization; run roadmap-sync first or edit the planned-change file through the existing roadmap workflow",
+          `${commandLabel} would rewrite a standalone planned-change artifact during roadmap synchronization; run roadmap-sync first or edit the planned-change file through the existing roadmap workflow`,
           "standalone planned-change artifact already canonical",
           "standalone planned-change rewrite required",
         ),
@@ -311,7 +327,7 @@ export function generateRoadmapMilestone(
       milestones: [],
     };
   }
-  const standaloneRewriteDiagnostics = findStandalonePlannedChangeRewriteDiagnostics(rootDir, roadmap.milestones);
+  const standaloneRewriteDiagnostics = findStandalonePlannedChangeRewriteDiagnostics(rootDir, roadmap.milestones, "roadmap-generate milestone");
   if (standaloneRewriteDiagnostics.length > 0) {
     return {
       valid: false,
@@ -381,6 +397,252 @@ export function generateRoadmapMilestone(
     milestone: {
       id: input.id,
       title: (nextArtifact.milestone as Record<string, { title: string }>)[input.id]?.title ?? input.id,
+      path: artifactPath.replace(/^\.strict-spec-driven\//, ""),
+    },
+    milestones: syncResult.milestones,
+  };
+}
+
+const PLANNED_CHANGE_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
+const PLANNED_CHANGES_DIRNAME = "planned-changes";
+const PLANNED_CHANGE_SCHEMA_FILE = "../../templates/strict-spec-driven/schemas/planned-change.yaml";
+
+export type RoadmapPlannedChangeAuthorInput = {
+  id: string;
+  milestone: string;
+  summary?: string;
+  details?: string;
+  dependsOn: string[];
+  status?: string;
+  reset: boolean;
+};
+
+export type RoadmapPlannedChangeAuthorResult = {
+  valid: boolean;
+  warnings: string[];
+  diagnostics: RoadmapDiagnostic[];
+  updatedFiles: string[];
+  plannedChange?: {
+    id: string;
+    milestone: string;
+    path: string;
+  };
+  milestones: RoadmapMilestoneStatus[];
+};
+
+function findExistingPlannedChange(plannedChanges: LoadedPlannedChange[], id: string): LoadedPlannedChange | undefined {
+  return plannedChanges.find((plannedChange) => plannedChange.artifact.planned_change.id === id);
+}
+
+function buildPlannedChangeArtifact(
+  input: RoadmapPlannedChangeAuthorInput,
+  existing: LoadedPlannedChange | undefined,
+  artifactPath: string,
+  diagnostics: RoadmapDiagnostic[],
+): Record<string, unknown> | null {
+  if (!existing && (!input.summary || !input.details)) {
+    diagnostics.push(
+      makeDiagnostic(
+        "schema",
+        artifactPath,
+        "$",
+        "new roadmap planned changes require --summary and --details",
+        "--summary and --details",
+        "missing",
+      ),
+    );
+    return null;
+  }
+
+  const summary = nextScalar(existing?.artifact.summary, input.summary, input.reset, artifactPath, "$.summary", diagnostics);
+  const details = nextScalar(existing?.artifact.details, input.details, input.reset, artifactPath, "$.details", diagnostics);
+  const status = nextScalar(existing?.artifact.status, input.status, input.reset, artifactPath, "$.status", diagnostics);
+
+  if (!summary || !details) return null;
+
+  return {
+    schema: PLANNED_CHANGE_SCHEMA_ID,
+    schema_version: 1,
+    artifact_type: "planned_change",
+    schema_file: existing?.artifact.schema_file ?? PLANNED_CHANGE_SCHEMA_FILE,
+    planned_change: {
+      id: input.id,
+      milestone: input.milestone,
+    },
+    status: (status ?? "planned") as DeclaredPlannedChangeStatus,
+    summary,
+    details,
+    depends_on: input.reset && input.dependsOn.length > 0
+      ? uniqueStrings(input.dependsOn)
+      : appendUnique(existing?.artifact.depends_on ?? [], input.dependsOn),
+    ...(existing?.artifact.team !== undefined ? { team: existing.artifact.team } : {}),
+    ...(existing?.artifact.extensions !== undefined ? { extensions: existing.artifact.extensions } : {}),
+  };
+}
+
+export function generateRoadmapPlannedChange(
+  rootDir: string,
+  input: RoadmapPlannedChangeAuthorInput,
+): RoadmapPlannedChangeAuthorResult {
+  const diagnostics: RoadmapDiagnostic[] = [];
+  const plannedChangesDir = `${ROADMAP_DIR}/${PLANNED_CHANGES_DIRNAME}`;
+  if (!PLANNED_CHANGE_ID_PATTERN.test(input.id)) {
+    diagnostics.push(
+      makeDiagnostic(
+        "schema",
+        plannedChangesDir,
+        "$.planned_change.id",
+        "planned change id must be kebab-case",
+        "kebab-case id",
+        input.id,
+      ),
+    );
+  }
+  if (input.status !== undefined && !isDeclaredPlannedChangeStatus(input.status)) {
+    diagnostics.push(
+      makeDiagnostic(
+        "schema",
+        plannedChangesDir,
+        "$.status",
+        "unsupported planned change status",
+        "planned, complete",
+        input.status,
+      ),
+    );
+  }
+  if (diagnostics.length > 0) {
+    return { valid: false, warnings: [], diagnostics: sortDiagnostics(diagnostics), updatedFiles: [], milestones: [] };
+  }
+
+  const roadmap = loadRoadmap(rootDir);
+  const preflight = getRoadmapStatus(rootDir);
+  const blockingPreflightDiagnostics = preflight.diagnostics.filter((diagnostic) =>
+    diagnostic.artifactPath !== ROADMAP_INDEX_PATH && diagnostic.artifactPath !== ROADMAP_DIR
+  );
+  if (blockingPreflightDiagnostics.length > 0) {
+    return {
+      valid: false,
+      warnings: preflight.warnings,
+      diagnostics: sortDiagnostics(blockingPreflightDiagnostics),
+      updatedFiles: [],
+      milestones: [],
+    };
+  }
+  const standaloneRewriteDiagnostics = findStandalonePlannedChangeRewriteDiagnostics(
+    rootDir,
+    roadmap.milestones,
+    "roadmap-generate planned-change",
+    new Set([input.id]),
+  );
+  if (standaloneRewriteDiagnostics.length > 0) {
+    return {
+      valid: false,
+      warnings: preflight.warnings,
+      diagnostics: sortDiagnostics(standaloneRewriteDiagnostics),
+      updatedFiles: [],
+      milestones: [],
+    };
+  }
+
+  const milestone = findExistingMilestone(roadmap.milestones, input.milestone);
+  if (!milestone) {
+    return {
+      valid: false,
+      warnings: roadmap.warnings,
+      diagnostics: [
+        makeDiagnostic(
+          "reference",
+          plannedChangesDir,
+          "$.planned_change.milestone",
+          "planned change references a missing milestone",
+          "existing roadmap milestone id",
+          input.milestone,
+        ),
+      ],
+      updatedFiles: [],
+      milestones: [],
+    };
+  }
+
+  const existing = findExistingPlannedChange(roadmap.plannedChanges, input.id);
+  if (existing && existing.artifact.planned_change.milestone !== input.milestone) {
+    return {
+      valid: false,
+      warnings: roadmap.warnings,
+      diagnostics: [
+        makeDiagnostic(
+          "semantic",
+          existing.repoRelativePath,
+          "$.planned_change.milestone",
+          "planned change already belongs to a different milestone; moving planned changes between milestones is not supported by this command",
+          existing.artifact.planned_change.milestone,
+          input.milestone,
+        ),
+      ],
+      updatedFiles: [],
+      milestones: [],
+    };
+  }
+
+  const plannedChangePath = existing?.absolutePath
+    ?? path.join(rootDir, plannedChangesDir, canonicalPlannedChangeFileName(input.milestone, input.id));
+  const artifactPath = normalizeRepoRelativePath(rootDir, plannedChangePath);
+
+  if (!existing && existsSync(plannedChangePath)) {
+    diagnostics.push(
+      makeDiagnostic(
+        "semantic",
+        artifactPath,
+        "$.planned_change",
+        "planned change destination already exists for a different or invalid planned change",
+        "unused planned change file path",
+        artifactPath,
+      ),
+    );
+  }
+
+  const nextArtifact = buildPlannedChangeArtifact(input, existing, artifactPath, diagnostics);
+  if (nextArtifact) {
+    validateStandalonePlannedChangeArtifact(nextArtifact, artifactPath, diagnostics);
+  }
+  if (diagnostics.length > 0 || !nextArtifact) {
+    return {
+      valid: false,
+      warnings: roadmap.warnings,
+      diagnostics: sortDiagnostics(diagnostics),
+      updatedFiles: [],
+      milestones: [],
+    };
+  }
+
+  const updatedFiles: string[] = [];
+  const previousContent = existsSync(plannedChangePath) ? readFileSync(plannedChangePath, "utf8") : null;
+  mkdirSync(path.dirname(plannedChangePath), { recursive: true });
+  writeFileIfChanged(plannedChangePath, stringifyYamlDocument(nextArtifact), updatedFiles, rootDir);
+
+  const syncResult = syncRoadmap(rootDir);
+  if (!syncResult.valid) {
+    if (previousContent === null) {
+      rmSync(plannedChangePath, { force: true });
+    } else {
+      writeFileSync(plannedChangePath, previousContent, "utf8");
+    }
+    return {
+      valid: false,
+      warnings: syncResult.warnings,
+      diagnostics: syncResult.diagnostics,
+      updatedFiles: [],
+      milestones: [],
+    };
+  }
+  return {
+    valid: syncResult.valid,
+    warnings: syncResult.warnings,
+    diagnostics: syncResult.diagnostics,
+    updatedFiles: uniqueStrings([...updatedFiles, ...syncResult.updatedFiles]).sort((left, right) => left.localeCompare(right)),
+    plannedChange: {
+      id: input.id,
+      milestone: input.milestone,
       path: artifactPath.replace(/^\.strict-spec-driven\//, ""),
     },
     milestones: syncResult.milestones,

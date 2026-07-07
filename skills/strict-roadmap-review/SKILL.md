@@ -18,10 +18,11 @@ before running anything. Do not guess.
 
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
-roadmap-generate: strict-spec-cli roadmap-generate milestone --<named-args>
+roadmap-generate-milestone: strict-spec-cli roadmap-generate milestone --<named-args>
+roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]
 roadmap-status: strict-spec-cli roadmap-status
 roadmap-overview: strict-spec-cli roadmap-overview
-roadmap-sync: strict-spec-cli roadmap-sync
+roadmap-sync: strict-spec-cli roadmap-sync [--fix-names]
 ```
 
 ## Prerequisites
@@ -37,7 +38,10 @@ run `init` from this skill.
 - Milestone ownership for standalone work items is defined by
   `planned_change.milestone`. Use `roadmap-status` output to locate
   planned-change source files; each `plannedChanges[]` entry reports its
-  `path`. Treat filenames as helpful conventions only.
+  `path`. The file basename is enforced to the canonical form
+  `<milestone-id>-<planned-change-id>.yaml` (milestone prefix not duplicated
+  when the id already starts with it); a misnamed active planned-change file
+  is a blocking diagnostic that `roadmap-sync --fix-names` repairs.
 - Milestone `intake_questions` are part of definition quality. Review them as
   planning checks whose answers must be recoverable from milestone fields or
   owned planned-change detail before the milestone is treated as executable.
@@ -96,11 +100,16 @@ run `init` from this skill.
    strict-spec-cli roadmap-generate milestone --id <milestone-id> --title "..." --goal "..." --scope-in "..." --scope-out "..." --done "..." --dependency "..." --risk "..." --note "..." --details "..."
    ```
    Use `--reset` only when you intentionally replace existing milestone
-   planning fields. Standalone planned-change files remain edited directly by
-   this skill, so planned-change `details` can be tightened without introducing
-   planned-change CLI generation. Tighten vague wording into verifiable
-   statements; elaborate planned-change details until each one carries enough
-   executable planning context to propose without re-deriving intent. When an
+   planning fields. Fix standalone planned-change `summary`, `details`,
+   `depends_on`, and `status` through the planned-change authoring command:
+   ```bash
+   strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." --reset
+   ```
+   The CLI owns the canonical `<milestone-id>-<planned-change-id>.yaml`
+   filename; never create or rename planned-change files by hand. Tighten
+   vague wording into verifiable statements; elaborate planned-change details
+   until each one carries enough executable planning context to propose
+   without re-deriving intent. When an
    intake answer is missing but can be safely derived from existing roadmap,
    spec, ticket, or planned-change evidence, update the relevant milestone
    field or planned-change detail so the answer evidence is explicit. When an
@@ -130,11 +139,14 @@ run `init` from this skill.
 - Keep all roadmap state under `.strict-spec-driven/roadmap/`
 - Review all milestones whose status is not complete; refuse completed
   milestones as out of review scope
-- Apply milestone definition fixes through `roadmap-generate milestone`, edit
-  standalone planned-change detail directly, then resync the roadmap; never
-  leave the roadmap unsynced after edits
-- Use `roadmap-generate milestone` for milestone YAML shape; standalone
-  planned-change files remain edited directly
+- Apply milestone definition fixes through `roadmap-generate milestone` and
+  planned-change detail fixes through `roadmap-generate planned-change`, then
+  resync the roadmap; never leave the roadmap unsynced after edits
+- Use `roadmap-generate milestone` for milestone YAML shape and
+  `roadmap-generate planned-change` for standalone planned-change artifacts;
+  never hand-pick planned-change filenames — the canonical
+  `<milestone-id>-<planned-change-id>.yaml` naming is CLI-owned and
+  `roadmap-sync --fix-names` repairs misnamed files
 - check milestone intake_questions for answer evidence during definition
   review, using milestone fields and owned planned-change details before
   asking the human for missing decisions

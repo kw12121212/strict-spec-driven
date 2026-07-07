@@ -17,9 +17,10 @@ before running anything. Do not guess.
 
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
-roadmap-generate: strict-spec-cli roadmap-generate milestone --<named-args>
+roadmap-generate-milestone: strict-spec-cli roadmap-generate milestone --<named-args>
+roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]
 roadmap-status: strict-spec-cli roadmap-status
-roadmap-sync: strict-spec-cli roadmap-sync
+roadmap-sync: strict-spec-cli roadmap-sync [--fix-names]
 ```
 
 ## Prerequisites
@@ -34,8 +35,14 @@ run `init` from this skill.
 - Do not expect milestone files to list standalone planned-change file paths.
 - Use `roadmap-status` output to locate planned-change source files; each
   `plannedChanges[]` entry reports its `path`.
-- Treat filenames as helpful conventions only. `planned_change.id` and
-  `planned_change.milestone` are the source of truth.
+- `planned_change.id` and `planned_change.milestone` are the source of truth
+  for identity, and the file basename is enforced to match them: the canonical
+  planned-change filename is `<milestone-id>-<planned-change-id>.yaml` (the
+  milestone prefix is not duplicated when the id already starts with it). A
+  misnamed active planned-change file is a blocking validation diagnostic;
+  never pick filenames yourself — create planned changes through
+  `roadmap-generate planned-change` and repair legacy names with
+  `roadmap-sync --fix-names`.
 
 ## Preferred Human Language
 
@@ -73,21 +80,25 @@ run `init` from this skill.
    Use `--reset` only when you intentionally replace existing milestone
    planning fields. Use `roadmap-generate milestone` for milestone YAML shape
    and milestone-field changes; do not hand-roll milestone schema structure.
-   Continue to update:
-    - `.strict-spec-driven/roadmap/INDEX.yaml`
-    - `.strict-spec-driven/roadmap/planned-changes/*.yaml`
-    Milestone index state is normalized by `roadmap-sync`; standalone
-    planned-change files remain edited directly by this skill.
+   Create and update standalone work items with:
+   ```bash
+   strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." --depends-on <planned-change-id> --status planned
+   ```
+   The CLI computes the canonical filename
+   `<milestone-id>-<planned-change-id>.yaml` under
+   `.strict-spec-driven/roadmap/planned-changes/` itself; never choose or edit
+   planned-change filenames by hand. Milestone index state is normalized by
+   `roadmap-sync`.
     Keep milestone planning in structured YAML fields such as `goal`, `scope`,
     `done_criteria`, `dependencies`, `risks`, `status`, `notes`, and
     `details`. Refine each milestone until its goal, scope, done criteria,
     dependencies, risks, notes, and details describe executable planning
-    context rather than placeholders or broad intentions. Keep standalone work
-    items in `planned-changes/*.yaml`, and give each standalone planned-change
-    artifact an actionable `summary`, `details`, `depends_on`, and `status` so
-    later roadmap recommendation, proposal, and implementation workflows can
-    understand the work without inventing missing detail. Keep milestone
-    `planned_changes` empty unless you are explicitly materializing legacy data.
+    context rather than placeholders or broad intentions. Give each standalone
+    planned-change artifact an actionable `summary`, `details`, `depends_on`,
+    and `status` so later roadmap recommendation, proposal, and implementation
+    workflows can understand the work without inventing missing detail. Keep
+    milestone `planned_changes` empty unless you are explicitly materializing
+    legacy data.
     If a milestone needs more than ten planned changes or mixes unrelated work,
     split it or stop for explicit user confirmation instead of hiding the scope
     problem in one large milestone.
@@ -117,5 +128,8 @@ run `init` from this skill.
 - Keep planned changes owned by exactly one milestone
 - Keep milestone files numbered and stable once the roadmap exists
 - Keep each milestone to ten planned changes or fewer
-- Use `roadmap-generate milestone` for milestone YAML shape; standalone
-  planned-change files remain edited directly
+- Use `roadmap-generate milestone` for milestone YAML shape and
+  `roadmap-generate planned-change` for standalone planned-change artifacts;
+  never hand-pick planned-change filenames — the CLI owns the canonical
+  `<milestone-id>-<planned-change-id>.yaml` naming and `roadmap-sync
+  --fix-names` repairs misnamed files

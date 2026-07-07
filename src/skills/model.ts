@@ -55,7 +55,9 @@ export type SkillContentExpectation = {
 const ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 const ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
 const ROADMAP_GENERATE_MILESTONE_SNIPPET = "roadmap-generate milestone";
-const ROADMAP_PLANNED_CHANGE_DIRECT_EDIT_SNIPPET = "standalone planned-change files remain edited directly";
+const ROADMAP_PLANNED_CHANGE_CLI_AUTHORING_SNIPPET = "roadmap-generate planned-change";
+const ROADMAP_CANONICAL_FILENAME_SNIPPET = "<milestone-id>-<planned-change-id>.yaml";
+const ROADMAP_FIX_NAMES_SNIPPET = "roadmap-sync --fix-names";
 const ROADMAP_ACTIVE_CONFLICT_SNIPPET = "active strict change conflicts";
 const ROADMAP_PLAN_EXECUTABLE_DETAIL_SNIPPET = "executable planning context";
 const ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET = "all milestones whose status is not complete";
@@ -325,7 +327,8 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
 export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
   "strict-roadmap-plan": {
     requiredCommands: {
-      "roadmap-generate": `${COMMAND_PREFIX} roadmap-generate milestone --<named-args>`,
+      "roadmap-generate-milestone": `${COMMAND_PREFIX} roadmap-generate milestone --<named-args>`,
+      "roadmap-generate-planned-change": `${COMMAND_PREFIX} roadmap-generate planned-change`,
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
     },
@@ -333,7 +336,9 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
     requiredSnippets: [
       ".strict-spec-driven/roadmap/",
       ROADMAP_GENERATE_MILESTONE_SNIPPET,
-      ROADMAP_PLANNED_CHANGE_DIRECT_EDIT_SNIPPET,
+      ROADMAP_PLANNED_CHANGE_CLI_AUTHORING_SNIPPET,
+      ROADMAP_CANONICAL_FILENAME_SNIPPET,
+      ROADMAP_FIX_NAMES_SNIPPET,
       ROADMAP_PLAN_EXECUTABLE_DETAIL_SNIPPET,
       ROADMAP_PLAN_REVIEW_SNIPPET,
     ],
@@ -366,7 +371,8 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
   },
   "strict-roadmap-review": {
     requiredCommands: {
-      "roadmap-generate": `${COMMAND_PREFIX} roadmap-generate milestone --<named-args>`,
+      "roadmap-generate-milestone": `${COMMAND_PREFIX} roadmap-generate milestone --<named-args>`,
+      "roadmap-generate-planned-change": `${COMMAND_PREFIX} roadmap-generate planned-change`,
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
     },
@@ -374,7 +380,9 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
     requiredSnippets: [
       ".strict-spec-driven/roadmap/",
       ROADMAP_GENERATE_MILESTONE_SNIPPET,
-      ROADMAP_PLANNED_CHANGE_DIRECT_EDIT_SNIPPET,
+      ROADMAP_PLANNED_CHANGE_CLI_AUTHORING_SNIPPET,
+      ROADMAP_CANONICAL_FILENAME_SNIPPET,
+      ROADMAP_FIX_NAMES_SNIPPET,
       ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET,
       ROADMAP_REVIEW_DIRECT_FIX_SNIPPET,
       ROADMAP_REVIEW_DETAIL_ELABORATION_SNIPPET,
@@ -385,9 +393,14 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
     requiredCommands: {
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
+      "roadmap-sync-fix-names": `${COMMAND_PREFIX} roadmap-sync --fix-names`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/roadmap/"],
+    requiredSnippets: [
+      ".strict-spec-driven/roadmap/",
+      ROADMAP_CANONICAL_FILENAME_SNIPPET,
+      ROADMAP_FIX_NAMES_SNIPPET,
+    ],
   },
   "strict-roadmap-archive": {
     requiredCommands: {

@@ -84,6 +84,14 @@ Keep `planned_changes: {}` on milestone files. Non-empty inline entries are trea
 
 Use standalone planned-change artifacts under `.strict-spec-driven/roadmap/planned-changes/` as the default way to add or edit roadmap work.
 
+Create and update them through the CLI:
+
+```sh
+strict-spec-cli roadmap-generate planned-change --milestone 0001-user-auth --id add-session-model --summary "Add session data model and storage." --details "..."
+```
+
+The command writes the artifact at its canonical filename `<milestone-id>-<planned-change-id>.yaml` (the milestone prefix is not duplicated when the planned-change id already starts with it). Filename order is semantically meaningful — `roadmap-recommend` picks the first eligible planned change in filename order — so an active planned-change file with a non-canonical basename is a blocking `roadmap-status`/`roadmap-sync` diagnostic. Repair misnamed legacy files with `roadmap-sync --fix-names`; never pick planned-change filenames by hand. Archived planned-change files are exempt.
+
 Example planned-change file:
 
 ```yaml
@@ -258,10 +266,9 @@ node scripts/strict-spec-driven.js roadmap-sync
 Preferred path:
 
 1. Open the owning milestone file under `.strict-spec-driven/roadmap/milestones/` and confirm its goal, scope, and done criteria still describe the work area correctly.
-2. Create a new standalone file under `.strict-spec-driven/roadmap/planned-changes/`.
-3. Set `planned_change.id`, `planned_change.milestone`, `status`, `summary`, `details`, and `depends_on`.
-4. Add optional `team` metadata if it helps coordination.
-5. Run `/strict-roadmap-sync` to validate the roadmap and refresh derived state.
+2. Run `strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..."` — the CLI creates the file at its canonical `<milestone-id>-<planned-change-id>.yaml` name under `.strict-spec-driven/roadmap/planned-changes/`.
+3. Add `--depends-on <planned-change-id>` arguments and optional `team` metadata if they help coordination.
+4. Run `/strict-roadmap-sync` to validate the roadmap and refresh derived state.
 
 Example:
 

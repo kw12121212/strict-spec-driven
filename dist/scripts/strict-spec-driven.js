@@ -16135,13 +16135,13 @@ import {
   mkdirSync as mkdirSync5,
   readdirSync as readdirSync5,
   readFileSync as readFileSync12,
-  renameSync as renameSync2,
+  renameSync as renameSync3,
   writeFileSync as writeFileSync6
 } from "fs";
 import path14 from "path";
 
 // src/roadmap.ts
-import { existsSync as existsSync11, statSync as statSync7 } from "fs";
+import { existsSync as existsSync11, renameSync as renameSync2, statSync as statSync7 } from "fs";
 import path12 from "path";
 
 // src/roadmap/model.ts
@@ -16157,6 +16157,12 @@ var DECLARED_PLANNED_CHANGE_STATUSES = ["planned", "complete"];
 var ROADMAP_INDEX_SCHEMA_ID = "strict-spec-driven/roadmap-index/v2";
 var ROADMAP_MILESTONE_SCHEMA_ID = "strict-spec-driven/roadmap-milestone/v2";
 var PLANNED_CHANGE_SCHEMA_ID = "strict-spec-driven/planned-change/v1";
+function canonicalPlannedChangeFileName(milestoneId, plannedChangeId) {
+  if (plannedChangeId === milestoneId || plannedChangeId.startsWith(`${milestoneId}-`)) {
+    return `${plannedChangeId}.yaml`;
+  }
+  return `${milestoneId}-${plannedChangeId}.yaml`;
+}
 var DEFAULT_MILESTONE_INTAKE_QUESTIONS = [
   {
     id: "objective",
@@ -17086,12 +17092,21 @@ function reportAmbiguousOwnershipMetadata(references, diagnostics) {
     }
   }
 }
+function reportNonCanonicalPlannedChangeFileNames(roadmap, diagnostics) {
+  for (const plannedChange of roadmap.plannedChanges) {
+    const canonical = canonicalPlannedChangeFileName(plannedChange.artifact.planned_change.milestone, plannedChange.artifact.planned_change.id);
+    if (plannedChange.file === canonical)
+      continue;
+    diagnostics.push(makeDiagnostic("semantic", plannedChange.artifactPath, "$", "standalone planned-change file basename does not match the canonical milestone-prefixed filename; rename the file or run roadmap-sync --fix-names", canonical, plannedChange.file));
+  }
+}
 function appendRoadmapCrossFileDiagnostics(roadmap, changeStates) {
   const references = buildPlannedChangeReferences(roadmap);
   reportDuplicatePlannedChangeIds(references, changeStates, roadmap.diagnostics);
   reportMissingMilestoneReferences(roadmap, references, roadmap.diagnostics);
   reportDependencyReferenceErrors(references, roadmap.diagnostics);
   reportAmbiguousOwnershipMetadata(references, roadmap.diagnostics);
+  reportNonCanonicalPlannedChangeFileNames(roadmap, roadmap.diagnostics);
 }
 function getStandalonePlannedChangesForMilestone(roadmap, milestone) {
   return roadmap.plannedChanges.filter((plannedChange) => plannedChange.artifact.planned_change.milestone === milestone.artifact.milestone.id).sort((left, right) => left.relativeRoadmapPath.localeCompare(right.relativeRoadmapPath));
@@ -17300,7 +17315,7 @@ function buildCanonicalPlannedChangeArtifact(plannedChange, status) {
   };
 }
 function materializedPlannedChangePath(rootDir, milestone, plannedChangeId) {
-  return path11.join(rootDir, ROADMAP_DIR, "planned-changes", `${milestone.artifact.milestone.id}-${plannedChangeId}.yaml`);
+  return path11.join(rootDir, ROADMAP_DIR, "planned-changes", canonicalPlannedChangeFileName(milestone.artifact.milestone.id, plannedChangeId));
 }
 function ensurePlannedChangeDirectory(filePath) {
   mkdirSync4(path11.dirname(filePath), { recursive: true });
@@ -17585,7 +17600,27 @@ function recommendRoadmapChange(rootDir, options = {}) {
     candidates
   };
 }
+function fixPlannedChangeFileNames(rootDir, allowInlinePlannedChanges) {
+  const renamedFiles = [];
+  const preload = loadRoadmap(rootDir, { allowInlinePlannedChanges });
+  for (const plannedChange of preload.plannedChanges) {
+    const canonical = canonicalPlannedChangeFileName(plannedChange.artifact.planned_change.milestone, plannedChange.artifact.planned_change.id);
+    if (plannedChange.file === canonical)
+      continue;
+    const targetPath = path12.join(path12.dirname(plannedChange.absolutePath), canonical);
+    if (existsSync11(targetPath))
+      continue;
+    renameSync2(plannedChange.absolutePath, targetPath);
+    renamedFiles.push({
+      from: normalizeRepoRelativePath2(rootDir, plannedChange.absolutePath),
+      to: normalizeRepoRelativePath2(rootDir, targetPath)
+    });
+  }
+  return renamedFiles.sort((left, right) => left.from.localeCompare(right.from));
+}
 function syncRoadmap(rootDir, options = {}) {
+  const renamedFiles = options.fixNames === true ? fixPlannedChangeFileNames(rootDir, options.materializePlannedChanges === true) : undefined;
+  const renamedFilesResult = renamedFiles !== undefined ? { renamedFiles } : {};
   const roadmap = loadRoadmap(rootDir, {
     allowInlinePlannedChanges: options.materializePlannedChanges === true
   });
@@ -17598,6 +17633,7 @@ function syncRoadmap(rootDir, options = {}) {
       warnings: roadmap.warnings,
       diagnostics: sortDiagnostics(blockingDiagnostics),
       updatedFiles: [],
+      ...renamedFilesResult,
       milestones: []
     };
   }
@@ -17610,6 +17646,7 @@ function syncRoadmap(rootDir, options = {}) {
         makeDiagnostic("schema", ROADMAP_DIR, "$", "strict roadmap directory not found", ROADMAP_DIR, "missing")
       ],
       updatedFiles: [],
+      ...renamedFilesResult,
       milestones: []
     };
   }
@@ -17649,6 +17686,7 @@ function syncRoadmap(rootDir, options = {}) {
     warnings: status.warnings,
     diagnostics: status.diagnostics,
     updatedFiles,
+    ...renamedFilesResult,
     milestones: status.milestones
   };
 }
@@ -18932,7 +18970,7 @@ function archiveChange(rootDir, changeName) {
   regenerateSpecIndex(rootDir);
   const mergedStandards = mergeDeltaTechStandards(rootDir, changeDir);
   const archiveDestination = buildArchiveDestination(rootDir, changeName);
-  renameSync2(changeDir, archiveDestination);
+  renameSync3(changeDir, archiveDestination);
   const roadmapSync = syncRoadmapAfterArchive(rootDir);
   const mergedSpecs = Array.from(mergeReports.values()).sort((left, right) => {
     const bySpecPath = left.specPath.localeCompare(right.specPath);
@@ -19926,7 +19964,7 @@ function buildArtifact(input, existing, artifactPath, diagnostics) {
 function findExistingMilestone(milestones, id) {
   return milestones.find((milestone) => milestone.artifact.milestone.id === id);
 }
-function findStandalonePlannedChangeRewriteDiagnostics(rootDir, milestones) {
+function findStandalonePlannedChangeRewriteDiagnostics(rootDir, milestones, commandLabel, excludePlannedChangeIds = new Set) {
   const diagnostics = [];
   const changeStates = getChangeStateIndex(rootDir);
   const roadmap = loadRoadmap(rootDir);
@@ -19935,10 +19973,12 @@ function findStandalonePlannedChangeRewriteDiagnostics(rootDir, milestones) {
     const plannedChangeEntries = getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges);
     const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
     for (const plannedChange of standalonePlannedChanges) {
+      if (excludePlannedChangeIds.has(plannedChange.artifact.planned_change.id))
+        continue;
       const nextContent = ensureTrailingNewline(stringifyYamlDocument(buildCanonicalPlannedChangeArtifact(plannedChange, status)));
       if (nextContent === ensureTrailingNewline(plannedChange.raw))
         continue;
-      diagnostics.push(makeDiagnostic("semantic", plannedChange.repoRelativePath, "$", "roadmap-generate milestone would rewrite a standalone planned-change artifact during roadmap synchronization; run roadmap-sync first or edit the planned-change file through the existing roadmap workflow", "standalone planned-change artifact already canonical", "standalone planned-change rewrite required"));
+      diagnostics.push(makeDiagnostic("semantic", plannedChange.repoRelativePath, "$", `${commandLabel} would rewrite a standalone planned-change artifact during roadmap synchronization; run roadmap-sync first or edit the planned-change file through the existing roadmap workflow`, "standalone planned-change artifact already canonical", "standalone planned-change rewrite required"));
     }
   }
   return diagnostics;
@@ -19966,7 +20006,7 @@ function generateRoadmapMilestone(rootDir, input) {
       milestones: []
     };
   }
-  const standaloneRewriteDiagnostics = findStandalonePlannedChangeRewriteDiagnostics(rootDir, roadmap.milestones);
+  const standaloneRewriteDiagnostics = findStandalonePlannedChangeRewriteDiagnostics(rootDir, roadmap.milestones, "roadmap-generate milestone");
   if (standaloneRewriteDiagnostics.length > 0) {
     return {
       valid: false,
@@ -20027,12 +20067,153 @@ function generateRoadmapMilestone(rootDir, input) {
     milestones: syncResult.milestones
   };
 }
+var PLANNED_CHANGE_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
+var PLANNED_CHANGES_DIRNAME = "planned-changes";
+var PLANNED_CHANGE_SCHEMA_FILE = "../../templates/strict-spec-driven/schemas/planned-change.yaml";
+function findExistingPlannedChange(plannedChanges, id) {
+  return plannedChanges.find((plannedChange) => plannedChange.artifact.planned_change.id === id);
+}
+function buildPlannedChangeArtifact(input, existing, artifactPath, diagnostics) {
+  if (!existing && (!input.summary || !input.details)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, "$", "new roadmap planned changes require --summary and --details", "--summary and --details", "missing"));
+    return null;
+  }
+  const summary = nextScalar(existing?.artifact.summary, input.summary, input.reset, artifactPath, "$.summary", diagnostics);
+  const details = nextScalar(existing?.artifact.details, input.details, input.reset, artifactPath, "$.details", diagnostics);
+  const status = nextScalar(existing?.artifact.status, input.status, input.reset, artifactPath, "$.status", diagnostics);
+  if (!summary || !details)
+    return null;
+  return {
+    schema: PLANNED_CHANGE_SCHEMA_ID,
+    schema_version: 1,
+    artifact_type: "planned_change",
+    schema_file: existing?.artifact.schema_file ?? PLANNED_CHANGE_SCHEMA_FILE,
+    planned_change: {
+      id: input.id,
+      milestone: input.milestone
+    },
+    status: status ?? "planned",
+    summary,
+    details,
+    depends_on: input.reset && input.dependsOn.length > 0 ? uniqueStrings2(input.dependsOn) : appendUnique(existing?.artifact.depends_on ?? [], input.dependsOn),
+    ...existing?.artifact.team !== undefined ? { team: existing.artifact.team } : {},
+    ...existing?.artifact.extensions !== undefined ? { extensions: existing.artifact.extensions } : {}
+  };
+}
+function generateRoadmapPlannedChange(rootDir, input) {
+  const diagnostics = [];
+  const plannedChangesDir = `${ROADMAP_DIR}/${PLANNED_CHANGES_DIRNAME}`;
+  if (!PLANNED_CHANGE_ID_PATTERN.test(input.id)) {
+    diagnostics.push(makeDiagnostic("schema", plannedChangesDir, "$.planned_change.id", "planned change id must be kebab-case", "kebab-case id", input.id));
+  }
+  if (input.status !== undefined && !isDeclaredPlannedChangeStatus(input.status)) {
+    diagnostics.push(makeDiagnostic("schema", plannedChangesDir, "$.status", "unsupported planned change status", "planned, complete", input.status));
+  }
+  if (diagnostics.length > 0) {
+    return { valid: false, warnings: [], diagnostics: sortDiagnostics(diagnostics), updatedFiles: [], milestones: [] };
+  }
+  const roadmap = loadRoadmap(rootDir);
+  const preflight = getRoadmapStatus(rootDir);
+  const blockingPreflightDiagnostics = preflight.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH && diagnostic.artifactPath !== ROADMAP_DIR);
+  if (blockingPreflightDiagnostics.length > 0) {
+    return {
+      valid: false,
+      warnings: preflight.warnings,
+      diagnostics: sortDiagnostics(blockingPreflightDiagnostics),
+      updatedFiles: [],
+      milestones: []
+    };
+  }
+  const standaloneRewriteDiagnostics = findStandalonePlannedChangeRewriteDiagnostics(rootDir, roadmap.milestones, "roadmap-generate planned-change", new Set([input.id]));
+  if (standaloneRewriteDiagnostics.length > 0) {
+    return {
+      valid: false,
+      warnings: preflight.warnings,
+      diagnostics: sortDiagnostics(standaloneRewriteDiagnostics),
+      updatedFiles: [],
+      milestones: []
+    };
+  }
+  const milestone = findExistingMilestone(roadmap.milestones, input.milestone);
+  if (!milestone) {
+    return {
+      valid: false,
+      warnings: roadmap.warnings,
+      diagnostics: [
+        makeDiagnostic("reference", plannedChangesDir, "$.planned_change.milestone", "planned change references a missing milestone", "existing roadmap milestone id", input.milestone)
+      ],
+      updatedFiles: [],
+      milestones: []
+    };
+  }
+  const existing = findExistingPlannedChange(roadmap.plannedChanges, input.id);
+  if (existing && existing.artifact.planned_change.milestone !== input.milestone) {
+    return {
+      valid: false,
+      warnings: roadmap.warnings,
+      diagnostics: [
+        makeDiagnostic("semantic", existing.repoRelativePath, "$.planned_change.milestone", "planned change already belongs to a different milestone; moving planned changes between milestones is not supported by this command", existing.artifact.planned_change.milestone, input.milestone)
+      ],
+      updatedFiles: [],
+      milestones: []
+    };
+  }
+  const plannedChangePath = existing?.absolutePath ?? path21.join(rootDir, plannedChangesDir, canonicalPlannedChangeFileName(input.milestone, input.id));
+  const artifactPath = normalizeRepoRelativePath2(rootDir, plannedChangePath);
+  if (!existing && existsSync20(plannedChangePath)) {
+    diagnostics.push(makeDiagnostic("semantic", artifactPath, "$.planned_change", "planned change destination already exists for a different or invalid planned change", "unused planned change file path", artifactPath));
+  }
+  const nextArtifact = buildPlannedChangeArtifact(input, existing, artifactPath, diagnostics);
+  if (nextArtifact) {
+    validateStandalonePlannedChangeArtifact(nextArtifact, artifactPath, diagnostics);
+  }
+  if (diagnostics.length > 0 || !nextArtifact) {
+    return {
+      valid: false,
+      warnings: roadmap.warnings,
+      diagnostics: sortDiagnostics(diagnostics),
+      updatedFiles: [],
+      milestones: []
+    };
+  }
+  const updatedFiles = [];
+  const previousContent = existsSync20(plannedChangePath) ? readFileSync15(plannedChangePath, "utf8") : null;
+  mkdirSync7(path21.dirname(plannedChangePath), { recursive: true });
+  writeFileIfChanged(plannedChangePath, stringifyYamlDocument(nextArtifact), updatedFiles, rootDir);
+  const syncResult = syncRoadmap(rootDir);
+  if (!syncResult.valid) {
+    if (previousContent === null) {
+      rmSync3(plannedChangePath, { force: true });
+    } else {
+      writeFileSync8(plannedChangePath, previousContent, "utf8");
+    }
+    return {
+      valid: false,
+      warnings: syncResult.warnings,
+      diagnostics: syncResult.diagnostics,
+      updatedFiles: [],
+      milestones: []
+    };
+  }
+  return {
+    valid: syncResult.valid,
+    warnings: syncResult.warnings,
+    diagnostics: syncResult.diagnostics,
+    updatedFiles: uniqueStrings2([...updatedFiles, ...syncResult.updatedFiles]).sort((left, right) => left.localeCompare(right)),
+    plannedChange: {
+      id: input.id,
+      milestone: input.milestone,
+      path: artifactPath.replace(/^\.strict-spec-driven\//, "")
+    },
+    milestones: syncResult.milestones
+  };
+}
 
 // src/roadmap/reopen.ts
 import { existsSync as existsSync21, mkdirSync as mkdirSync8 } from "fs";
 import path22 from "path";
 var DEFAULT_REOPEN_REASON = "gaps discovered after completion";
-var PLANNED_CHANGES_DIRNAME = "planned-changes";
+var PLANNED_CHANGES_DIRNAME2 = "planned-changes";
 var FOLLOWUP_SCHEMA_FILE = "../../templates/strict-spec-driven/schemas/planned-change.yaml";
 function buildReopenNote(reason) {
   const date = new Date().toISOString().slice(0, 10);
@@ -20048,28 +20229,18 @@ function findMilestoneById(roadmap, milestoneId) {
   return roadmap.milestones.find((milestone) => milestone.artifact.milestone.id === milestoneId);
 }
 function seedFollowUpPlannedChange(roadmap, rootDir, milestone, frozenPlannedChanges, reason, updatedFiles) {
-  const plannedChangesDir = path22.join(rootDir, ".strict-spec-driven", "roadmap", PLANNED_CHANGES_DIRNAME);
+  const plannedChangesDir = path22.join(rootDir, ".strict-spec-driven", "roadmap", PLANNED_CHANGES_DIRNAME2);
   mkdirSync8(plannedChangesDir, { recursive: true });
   const milestoneId = milestone.artifact.milestone.id;
   const existingIds = new Set(roadmap.plannedChanges.map((plannedChange) => plannedChange.artifact.planned_change.id));
   const baseId = `${milestoneId}-followup`;
   let id = baseId;
   let suffix = 2;
-  while (existingIds.has(id)) {
+  let fileName = canonicalPlannedChangeFileName(milestoneId, id);
+  while (existingIds.has(id) || existsSync21(path22.join(plannedChangesDir, fileName))) {
     id = `${baseId}-${suffix}`;
     suffix += 1;
-  }
-  let maxPrefix = 0;
-  for (const plannedChange of roadmap.plannedChanges) {
-    const match = /^(\d+)-/.exec(path22.basename(plannedChange.relativeRoadmapPath));
-    if (match)
-      maxPrefix = Math.max(maxPrefix, Number.parseInt(match[1], 10));
-  }
-  let prefix = maxPrefix + 1;
-  let fileName = `${String(prefix).padStart(4, "0")}-${id}.yaml`;
-  while (existsSync21(path22.join(plannedChangesDir, fileName))) {
-    prefix += 1;
-    fileName = `${String(prefix).padStart(4, "0")}-${id}.yaml`;
+    fileName = canonicalPlannedChangeFileName(milestoneId, id);
   }
   const latestArchived = frozenPlannedChanges[frozenPlannedChanges.length - 1];
   const artifact = {
@@ -20088,7 +20259,7 @@ function seedFollowUpPlannedChange(roadmap, rootDir, milestone, frozenPlannedCha
   };
   const absolutePath = path22.join(plannedChangesDir, fileName);
   writeFileIfChanged(absolutePath, stringifyYamlDocument(artifact), updatedFiles, rootDir);
-  return { id, path: toPosix2(path22.join("roadmap", PLANNED_CHANGES_DIRNAME, fileName)) };
+  return { id, path: toPosix2(path22.join("roadmap", PLANNED_CHANGES_DIRNAME2, fileName)) };
 }
 function reopenMilestone(rootDir, milestoneId, options = {}) {
   const reason = (options.reason ?? "").trim() || DEFAULT_REOPEN_REASON;
@@ -20205,12 +20376,14 @@ var ROADMAP_REOPEN_USAGE = `Usage: strict-spec-cli roadmap-reopen <milestone-id>
 `;
 var ROADMAP_GENERATE_USAGE = [
   'Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> --intake-question "id|question|context|impact|recommendation" [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset]',
+  "       strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary <text> --details <text> [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]",
   "",
   "Notes:",
   "  New milestones require at least one --intake-question value.",
   "  Repeat --intake-question to append structured milestone clarification questions.",
   "  Existing scalar fields with different values require --reset.",
-  "  List fields append unique values by default; with --reset, supplied list fields replace existing values."
+  "  List fields append unique values by default; with --reset, supplied list fields replace existing values.",
+  "  planned-change writes the artifact at its canonical filename <milestone-id>-<planned-change-id>.yaml under roadmap/planned-changes/ (the milestone prefix is not duplicated when the id already starts with it); callers never choose filenames."
 ].join(`
 `) + `
 `;
@@ -20286,19 +20459,28 @@ function runRoadmapOverview(argv) {
   writeOut(formatRoadmapOverview(result));
   return result.valid ? 0 : 1;
 }
+var ROADMAP_SYNC_USAGE = `Usage: strict-spec-cli roadmap-sync [--materialize-planned-changes] [--fix-names]
+`;
 function runRoadmapSync(argv) {
   if (isHelpRequest(argv)) {
-    writeHelp(`Usage: strict-spec-cli roadmap-sync [--materialize-planned-changes]
-`);
+    writeHelp(ROADMAP_SYNC_USAGE);
     return 0;
   }
-  const materializePlannedChanges = argv.length === 1 && argv[0] === "--materialize-planned-changes";
-  if (argv.length > 0 && !materializePlannedChanges) {
-    writeUsage(`Usage: strict-spec-cli roadmap-sync [--materialize-planned-changes]
-`);
+  let materializePlannedChanges = false;
+  let fixNames = false;
+  for (const token of argv) {
+    if (token === "--materialize-planned-changes" && !materializePlannedChanges) {
+      materializePlannedChanges = true;
+      continue;
+    }
+    if (token === "--fix-names" && !fixNames) {
+      fixNames = true;
+      continue;
+    }
+    writeUsage(ROADMAP_SYNC_USAGE);
     return 1;
   }
-  const result = syncRoadmap(process.cwd(), { materializePlannedChanges });
+  const result = syncRoadmap(process.cwd(), { materializePlannedChanges, fixNames });
   writeJson(result);
   return result.valid ? 0 : 1;
 }
@@ -20387,15 +20569,49 @@ function buildRoadmapMilestoneAuthorInput(argv) {
     reset: values2(flags, "reset").length > 0
   };
 }
+function buildRoadmapPlannedChangeAuthorInput(argv) {
+  const flags = parseRoadmapGenerateFlags(argv);
+  ensureAllowedRoadmapGenerateFlags(flags, [
+    "milestone",
+    "id",
+    "summary",
+    "details",
+    "depends-on",
+    "status",
+    "reset"
+  ]);
+  return {
+    id: requiredOne(flags, "id"),
+    milestone: requiredOne(flags, "milestone"),
+    summary: optionalOne2(flags, "summary"),
+    details: optionalOne2(flags, "details"),
+    dependsOn: values2(flags, "depends-on"),
+    status: optionalOne2(flags, "status"),
+    reset: values2(flags, "reset").length > 0
+  };
+}
 function runRoadmapGenerate(argv) {
   if (isHelpRequest(argv)) {
     writeHelp(ROADMAP_GENERATE_USAGE);
     return 0;
   }
   const [selector, ...rest] = argv;
-  if (selector !== "milestone") {
+  if (selector !== "milestone" && selector !== "planned-change") {
     writeUsage(ROADMAP_GENERATE_USAGE);
     return 1;
+  }
+  if (selector === "planned-change") {
+    let plannedChangeInput;
+    try {
+      plannedChangeInput = buildRoadmapPlannedChangeAuthorInput(rest);
+    } catch (error) {
+      writeError(error instanceof Error ? error.message : String(error));
+      writeUsage(ROADMAP_GENERATE_USAGE);
+      return 1;
+    }
+    const plannedChangeResult = generateRoadmapPlannedChange(process.cwd(), plannedChangeInput);
+    writeJson(plannedChangeResult);
+    return plannedChangeResult.valid ? 0 : 1;
   }
   let input;
   try {
@@ -24314,7 +24530,9 @@ var STRICT_WORKFLOW_NO_INIT_SNIPPET = "Do not run `init` from this skill.";
 var ROADMAP_DETAILS_GUIDANCE_SNIPPET = "`details` field";
 var ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET = "standalone planned-change";
 var ROADMAP_GENERATE_MILESTONE_SNIPPET = "roadmap-generate milestone";
-var ROADMAP_PLANNED_CHANGE_DIRECT_EDIT_SNIPPET = "standalone planned-change files remain edited directly";
+var ROADMAP_PLANNED_CHANGE_CLI_AUTHORING_SNIPPET = "roadmap-generate planned-change";
+var ROADMAP_CANONICAL_FILENAME_SNIPPET = "<milestone-id>-<planned-change-id>.yaml";
+var ROADMAP_FIX_NAMES_SNIPPET = "roadmap-sync --fix-names";
 var ROADMAP_ACTIVE_CONFLICT_SNIPPET = "active strict change conflicts";
 var ROADMAP_PLAN_EXECUTABLE_DETAIL_SNIPPET = "executable planning context";
 var ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET = "all milestones whose status is not complete";
@@ -24576,7 +24794,8 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
 var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
   "strict-roadmap-plan": {
     requiredCommands: {
-      "roadmap-generate": `${COMMAND_PREFIX} roadmap-generate milestone --<named-args>`,
+      "roadmap-generate-milestone": `${COMMAND_PREFIX} roadmap-generate milestone --<named-args>`,
+      "roadmap-generate-planned-change": `${COMMAND_PREFIX} roadmap-generate planned-change`,
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`
     },
@@ -24584,7 +24803,9 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
     requiredSnippets: [
       ".strict-spec-driven/roadmap/",
       ROADMAP_GENERATE_MILESTONE_SNIPPET,
-      ROADMAP_PLANNED_CHANGE_DIRECT_EDIT_SNIPPET,
+      ROADMAP_PLANNED_CHANGE_CLI_AUTHORING_SNIPPET,
+      ROADMAP_CANONICAL_FILENAME_SNIPPET,
+      ROADMAP_FIX_NAMES_SNIPPET,
       ROADMAP_PLAN_EXECUTABLE_DETAIL_SNIPPET,
       ROADMAP_PLAN_REVIEW_SNIPPET
     ]
@@ -24617,7 +24838,8 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
   },
   "strict-roadmap-review": {
     requiredCommands: {
-      "roadmap-generate": `${COMMAND_PREFIX} roadmap-generate milestone --<named-args>`,
+      "roadmap-generate-milestone": `${COMMAND_PREFIX} roadmap-generate milestone --<named-args>`,
+      "roadmap-generate-planned-change": `${COMMAND_PREFIX} roadmap-generate planned-change`,
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
       "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`
     },
@@ -24625,7 +24847,9 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
     requiredSnippets: [
       ".strict-spec-driven/roadmap/",
       ROADMAP_GENERATE_MILESTONE_SNIPPET,
-      ROADMAP_PLANNED_CHANGE_DIRECT_EDIT_SNIPPET,
+      ROADMAP_PLANNED_CHANGE_CLI_AUTHORING_SNIPPET,
+      ROADMAP_CANONICAL_FILENAME_SNIPPET,
+      ROADMAP_FIX_NAMES_SNIPPET,
       ROADMAP_REVIEW_INCOMPLETE_SCOPE_SNIPPET,
       ROADMAP_REVIEW_DIRECT_FIX_SNIPPET,
       ROADMAP_REVIEW_DETAIL_ELABORATION_SNIPPET,
@@ -24635,10 +24859,15 @@ var ROADMAP_STRICT_SKILL_EXPECTATIONS = {
   "strict-roadmap-sync": {
     requiredCommands: {
       "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
-      "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`
+      "roadmap-sync": `${COMMAND_PREFIX} roadmap-sync`,
+      "roadmap-sync-fix-names": `${COMMAND_PREFIX} roadmap-sync --fix-names`
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/roadmap/"]
+    requiredSnippets: [
+      ".strict-spec-driven/roadmap/",
+      ROADMAP_CANONICAL_FILENAME_SNIPPET,
+      ROADMAP_FIX_NAMES_SNIPPET
+    ]
   },
   "strict-roadmap-archive": {
     requiredCommands: {
@@ -25763,7 +25992,7 @@ function runSampleShow(argv) {
 }
 
 // src/harness.ts
-import { closeSync, existsSync as existsSync39, mkdirSync as mkdirSync14, openSync, readFileSync as readFileSync28, renameSync as renameSync3, rmSync as rmSync5, statSync as statSync29, writeFileSync as writeFileSync16, appendFileSync } from "fs";
+import { closeSync, existsSync as existsSync39, mkdirSync as mkdirSync14, openSync, readFileSync as readFileSync28, renameSync as renameSync4, rmSync as rmSync5, statSync as statSync29, writeFileSync as writeFileSync16, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
 import path40 from "path";
 var HARNESS_DECLARATION_PATH = ".strict-spec-driven/harness.yaml";
@@ -27212,7 +27441,7 @@ function archiveHarnessSession(rootDir, target) {
   }
   const archiveDestination = buildHarnessSessionArchiveDestination(rootDir, sessionId);
   const archivePath = path40.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
-  renameSync3(sourceDir, archiveDestination);
+  renameSync4(sourceDir, archiveDestination);
   return {
     ok: true,
     sessionId,

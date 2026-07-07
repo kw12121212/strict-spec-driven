@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from "fs";
 import path from "path";
 import { stringifyYamlDocument } from "../yaml.js";
 import {
+  canonicalPlannedChangeFileName,
   PLANNED_CHANGE_SCHEMA_ID,
   ROADMAP_INDEX_PATH,
   type DeclaredRoadmapStatus,
@@ -93,26 +94,16 @@ function seedFollowUpPlannedChange(
   const milestoneId = milestone.artifact.milestone.id;
   const existingIds = new Set(roadmap.plannedChanges.map((plannedChange) => plannedChange.artifact.planned_change.id));
 
-  // Deterministic id derived from the milestone, disambiguated on collision.
+  // Deterministic id derived from the milestone, disambiguated on collision
+  // against both known planned-change ids and existing canonical file names.
   const baseId = `${milestoneId}-followup`;
   let id = baseId;
   let suffix = 2;
-  while (existingIds.has(id)) {
+  let fileName = canonicalPlannedChangeFileName(milestoneId, id);
+  while (existingIds.has(id) || existsSync(path.join(plannedChangesDir, fileName))) {
     id = `${baseId}-${suffix}`;
     suffix += 1;
-  }
-
-  // Numeric filename prefix after the current maximum so ordering is stable.
-  let maxPrefix = 0;
-  for (const plannedChange of roadmap.plannedChanges) {
-    const match = /^(\d+)-/.exec(path.basename(plannedChange.relativeRoadmapPath));
-    if (match) maxPrefix = Math.max(maxPrefix, Number.parseInt(match[1], 10));
-  }
-  let prefix = maxPrefix + 1;
-  let fileName = `${String(prefix).padStart(4, "0")}-${id}.yaml`;
-  while (existsSync(path.join(plannedChangesDir, fileName))) {
-    prefix += 1;
-    fileName = `${String(prefix).padStart(4, "0")}-${id}.yaml`;
+    fileName = canonicalPlannedChangeFileName(milestoneId, id);
   }
 
   const latestArchived = frozenPlannedChanges[frozenPlannedChanges.length - 1];

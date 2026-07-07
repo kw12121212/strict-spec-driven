@@ -1,7 +1,8 @@
-import { existsSync, statSync } from "fs";
+import { existsSync, renameSync, statSync } from "fs";
 import path from "path";
 import { stringifyYamlDocument } from "./yaml.js";
 import {
+  canonicalPlannedChangeFileName,
   ROADMAP_DIR,
   ROADMAP_INDEX_PATH,
   type RoadmapDiagnostic,
@@ -15,7 +16,7 @@ import {
   type RoadmapSyncResult,
   type LoadedRoadmap,
 } from "./roadmap/model.js";
-import { ensureTrailingNewline, makeDiagnostic, sortDiagnostics } from "./roadmap/shared.js";
+import { ensureTrailingNewline, makeDiagnostic, normalizeRepoRelativePath, sortDiagnostics } from "./roadmap/shared.js";
 import { loadRoadmap } from "./roadmap/load.js";
 import {
   appendRoadmapCrossFileDiagnostics,
@@ -49,6 +50,12 @@ export type {
 
 export type RoadmapSyncOptions = {
   materializePlannedChanges?: boolean;
+  fixNames?: boolean;
+};
+
+export type RoadmapSyncRenamedFile = {
+  from: string;
+  to: string;
 };
 
 export type RoadmapRecommendOptions = {
@@ -358,7 +365,38 @@ export function recommendRoadmapChange(rootDir: string, options: RoadmapRecommen
   };
 }
 
+/**
+ * Rename misnamed active standalone planned-change files to their canonical
+ * milestone-prefixed basenames. A rename whose canonical destination already
+ * exists is skipped so the conflict surfaces as a blocking filename diagnostic
+ * instead of overwriting another artifact.
+ */
+function fixPlannedChangeFileNames(rootDir: string, allowInlinePlannedChanges: boolean): RoadmapSyncRenamedFile[] {
+  const renamedFiles: RoadmapSyncRenamedFile[] = [];
+  const preload = loadRoadmap(rootDir, { allowInlinePlannedChanges });
+  for (const plannedChange of preload.plannedChanges) {
+    const canonical = canonicalPlannedChangeFileName(
+      plannedChange.artifact.planned_change.milestone,
+      plannedChange.artifact.planned_change.id,
+    );
+    if (plannedChange.file === canonical) continue;
+    const targetPath = path.join(path.dirname(plannedChange.absolutePath), canonical);
+    if (existsSync(targetPath)) continue;
+    renameSync(plannedChange.absolutePath, targetPath);
+    renamedFiles.push({
+      from: normalizeRepoRelativePath(rootDir, plannedChange.absolutePath),
+      to: normalizeRepoRelativePath(rootDir, targetPath),
+    });
+  }
+  return renamedFiles.sort((left, right) => left.from.localeCompare(right.from));
+}
+
 export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): RoadmapSyncResult {
+  const renamedFiles = options.fixNames === true
+    ? fixPlannedChangeFileNames(rootDir, options.materializePlannedChanges === true)
+    : undefined;
+  const renamedFilesResult = renamedFiles !== undefined ? { renamedFiles } : {};
+
   const roadmap = loadRoadmap(rootDir, {
     allowInlinePlannedChanges: options.materializePlannedChanges === true,
   });
@@ -371,6 +409,7 @@ export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): 
       warnings: roadmap.warnings,
       diagnostics: sortDiagnostics(blockingDiagnostics),
       updatedFiles: [],
+      ...renamedFilesResult,
       milestones: [],
     };
   }
@@ -384,6 +423,7 @@ export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): 
         makeDiagnostic("schema", ROADMAP_DIR, "$", "strict roadmap directory not found", ROADMAP_DIR, "missing"),
       ],
       updatedFiles: [],
+      ...renamedFilesResult,
       milestones: [],
     };
   }
@@ -432,6 +472,7 @@ export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): 
     warnings: status.warnings,
     diagnostics: status.diagnostics,
     updatedFiles,
+    ...renamedFilesResult,
     milestones: status.milestones,
   };
 }

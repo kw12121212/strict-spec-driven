@@ -634,15 +634,18 @@ context.assert(
   );
   context.assert(
     roadmapPlanSkillContent.includes("check-workflow-state: strict-spec-cli check-workflow-state")
-      && roadmapPlanSkillContent.includes("roadmap-generate: strict-spec-cli roadmap-generate milestone --<named-args>")
+      && roadmapPlanSkillContent.includes("roadmap-generate-milestone: strict-spec-cli roadmap-generate milestone --<named-args>")
+      && roadmapPlanSkillContent.includes("roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change")
       && normalizedRoadmapPlanSkillContent.includes("Before any other step, run `strict-spec-cli check-workflow-state`")
       && normalizedRoadmapPlanSkillContent.includes("stop immediately and tell the user to run `/strict-spec-init`")
       && normalizedRoadmapPlanSkillContent.includes("roadmap-generate milestone")
-      && normalizedRoadmapPlanSkillContent.includes("standalone planned-change files remain edited directly")
+      && normalizedRoadmapPlanSkillContent.includes("<milestone-id>-<planned-change-id>.yaml")
+      && normalizedRoadmapPlanSkillContent.includes("never choose or edit planned-change filenames by hand")
+      && normalizedRoadmapPlanSkillContent.includes("roadmap-sync --fix-names")
       && normalizedRoadmapPlanSkillContent.includes("executable planning context")
       && normalizedRoadmapPlanSkillContent.includes("Review the roadmap plan before handoff")
       && !roadmapPlanSkillContent.includes("strict-spec-cli init"),
-    "strict-roadmap-plan requires existing strict workflow state, executable detail guidance, and review guidance",
+    "strict-roadmap-plan requires existing strict workflow state, CLI-owned planned-change naming, executable detail guidance, and review guidance",
   );
   context.assert(
     roadmapArchiveSkillContent.includes("roadmap-archive: strict-spec-cli roadmap-archive [milestone-id]")
@@ -674,11 +677,13 @@ context.assert(
   );
   context.assert(
     roadmapReviewSkillContent.includes("roadmap-status: strict-spec-cli roadmap-status")
-      && roadmapReviewSkillContent.includes("roadmap-generate: strict-spec-cli roadmap-generate milestone --<named-args>")
+      && roadmapReviewSkillContent.includes("roadmap-generate-milestone: strict-spec-cli roadmap-generate milestone --<named-args>")
+      && roadmapReviewSkillContent.includes("roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change")
       && roadmapReviewSkillContent.includes("roadmap-sync: strict-spec-cli roadmap-sync")
       && normalizedRoadmapReviewSkillContent.includes("all milestones whose status is not complete")
       && normalizedRoadmapReviewSkillContent.includes("use roadmap-generate milestone for milestone YAML shape")
-      && normalizedRoadmapReviewSkillContent.includes("standalone planned-change files remain edited directly")
+      && normalizedRoadmapReviewSkillContent.includes("<milestone-id>-<planned-change-id>.yaml")
+      && normalizedRoadmapReviewSkillContent.includes("roadmap-sync --fix-names")
       && normalizedRoadmapReviewSkillContent.includes("concrete and executable")
       && normalizedRoadmapReviewSkillContent.includes("check milestone intake_questions for answer evidence")
       && normalizedRoadmapReviewSkillContent.includes("goal`, `scope`, `done_criteria`, `dependencies`, `risks`, `details`, `notes`, `source_ticket`")

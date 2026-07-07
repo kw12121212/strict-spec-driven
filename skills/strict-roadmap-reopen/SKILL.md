@@ -20,7 +20,8 @@ before running anything. Do not guess.
 check-workflow-state: strict-spec-cli check-workflow-state
 roadmap-status: strict-spec-cli roadmap-status
 roadmap-reopen: strict-spec-cli roadmap-reopen <milestone-id> [--reason "..."]
-roadmap-sync: strict-spec-cli roadmap-sync
+roadmap-sync: strict-spec-cli roadmap-sync [--fix-names]
+roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]
 ```
 
 ## Prerequisites
@@ -103,13 +104,14 @@ run `init` from this skill.
    change file the command created.
 
 4. **Refine the seeded follow-up and add more as needed** — the reopen already
-   created one pending follow-up planned change (`seededFollowUp.path`). Refine
-   its `summary`, `details`, and `depends_on` to describe the real gap work, and
-   add further NEW standalone planned-change artifacts under
-   `.strict-spec-driven/roadmap/planned-changes/` (each with `status: planned`)
-   for additional gaps. Prefer `/strict-roadmap-plan` or direct structured YAML
-   edits for this step. Never edit an existing completed planned-change file;
-   create or refine pending ones only.
+   created one pending follow-up planned change (`seededFollowUp.path`) at its
+   canonical `<milestone-id>-<planned-change-id>.yaml` filename. Refine its
+   `summary`, `details`, and `depends_on` with
+   `roadmap-generate planned-change --reset`, and create further NEW standalone
+   planned-change artifacts (each with `status: planned`) for additional gaps
+   through the same command — the CLI computes the canonical filename itself;
+   never choose planned-change filenames by hand. Never edit an existing
+   completed planned-change file; create or refine pending ones only.
 
 5. **Resync the roadmap** — after refining or adding planned changes, run:
    ```bash

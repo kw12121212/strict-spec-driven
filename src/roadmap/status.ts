@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, statSync } from "fs";
 import path from "path";
 import {
+  canonicalPlannedChangeFileName,
   STRICT_WORKFLOW_DIR,
   type ChangeStateIndex,
   type DeclaredPlannedChangeStatus,
@@ -311,12 +312,33 @@ function reportAmbiguousOwnershipMetadata(
   }
 }
 
+function reportNonCanonicalPlannedChangeFileNames(roadmap: LoadedRoadmap, diagnostics: RoadmapDiagnostic[]): void {
+  for (const plannedChange of roadmap.plannedChanges) {
+    const canonical = canonicalPlannedChangeFileName(
+      plannedChange.artifact.planned_change.milestone,
+      plannedChange.artifact.planned_change.id,
+    );
+    if (plannedChange.file === canonical) continue;
+    diagnostics.push(
+      makeDiagnostic(
+        "semantic",
+        plannedChange.artifactPath,
+        "$",
+        "standalone planned-change file basename does not match the canonical milestone-prefixed filename; rename the file or run roadmap-sync --fix-names",
+        canonical,
+        plannedChange.file,
+      ),
+    );
+  }
+}
+
 export function appendRoadmapCrossFileDiagnostics(roadmap: LoadedRoadmap, changeStates: ChangeStateIndex): void {
   const references = buildPlannedChangeReferences(roadmap);
   reportDuplicatePlannedChangeIds(references, changeStates, roadmap.diagnostics);
   reportMissingMilestoneReferences(roadmap, references, roadmap.diagnostics);
   reportDependencyReferenceErrors(references, roadmap.diagnostics);
   reportAmbiguousOwnershipMetadata(references, roadmap.diagnostics);
+  reportNonCanonicalPlannedChangeFileNames(roadmap, roadmap.diagnostics);
 }
 
 export function getStandalonePlannedChangesForMilestone(

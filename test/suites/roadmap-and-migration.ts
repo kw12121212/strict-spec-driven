@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import {
@@ -155,7 +155,7 @@ try {
     status: "blocked",
     plannedChanges: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapHappyDir, "planned-changes/0001-active-change.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapHappyDir, "planned-changes/0001-roadmap-active-change.yaml", {
     id: "active-change",
     milestone: "0001-roadmap",
     status: "planned",
@@ -163,7 +163,7 @@ try {
     details: "Standalone details for active-change.",
     depends_on: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapHappyDir, "planned-changes/0002-archived-change.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapHappyDir, "planned-changes/0001-roadmap-archived-change.yaml", {
     id: "archived-change",
     milestone: "0001-roadmap",
     status: "planned",
@@ -171,7 +171,7 @@ try {
     details: "Standalone details for archived-change.",
     depends_on: ["active-change"],
   });
-  writeStandalonePlannedChangeArtifact(roadmapHappyDir, "planned-changes/0003-blocked-change.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapHappyDir, "planned-changes/0001-roadmap-blocked-change.yaml", {
     id: "blocked-change",
     milestone: "0001-roadmap",
     status: "planned",
@@ -179,7 +179,7 @@ try {
     details: "Standalone details for blocked-change.",
     depends_on: ["active-change"],
   });
-  writeStandalonePlannedChangeArtifact(roadmapHappyDir, "planned-changes/0004-next-change.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapHappyDir, "planned-changes/0001-roadmap-next-change.yaml", {
     id: "next-change",
     milestone: "0001-roadmap",
     status: "planned",
@@ -228,8 +228,8 @@ try {
   );
   context.assert(
     roadmapStatusBeforeJson.milestones[0].plannedChanges[0].source === "standalone"
-      && roadmapStatusBeforeJson.milestones[0].plannedChanges[0].path === "roadmap/planned-changes/0001-active-change.yaml"
-      && roadmapStatusBeforeJson.milestones[0].plannedChanges[1].path === "roadmap/planned-changes/0002-archived-change.yaml",
+      && roadmapStatusBeforeJson.milestones[0].plannedChanges[0].path === "roadmap/planned-changes/0001-roadmap-active-change.yaml"
+      && roadmapStatusBeforeJson.milestones[0].plannedChanges[1].path === "roadmap/planned-changes/0001-roadmap-archived-change.yaml",
     "roadmap-status reports standalone planned-change source and path",
   );
   context.assert(
@@ -255,7 +255,7 @@ try {
     roadmapOverviewBefore.stdout.includes("[0001-roadmap] Roadmap Workflow")
       && roadmapOverviewBefore.stdout.includes("planned changes:")
       && roadmapOverviewBefore.stdout.includes("active-change | state=active")
-      && roadmapOverviewBefore.stdout.includes("roadmap/planned-changes/0001-active-change.yaml"),
+      && roadmapOverviewBefore.stdout.includes("roadmap/planned-changes/0001-roadmap-active-change.yaml"),
     "roadmap-overview groups planned-change detail under the owning milestone with workflow state and path",
   );
   context.assert(
@@ -276,7 +276,7 @@ try {
     roadmapRecommendJson.valid === true
       && roadmapRecommendJson.status === "recommended"
       && roadmapRecommendJson.recommendation?.id === "next-change"
-      && roadmapRecommendJson.recommendation?.path === "roadmap/planned-changes/0004-next-change.yaml"
+      && roadmapRecommendJson.recommendation?.path === "roadmap/planned-changes/0001-roadmap-next-change.yaml"
       && roadmapRecommendJson.recommendation?.milestone?.id === "0001-roadmap"
       && roadmapRecommendJson.recommendation?.summary === undefined
       && roadmapRecommendJson.recommendation?.reason === undefined,
@@ -329,7 +329,7 @@ try {
   context.assert(
     roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/INDEX.yaml")
       && roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/0001-roadmap.yaml")
-      && roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/planned-changes/0002-archived-change.yaml"),
+      && roadmapSyncJson.updatedFiles.includes(".strict-spec-driven/roadmap/planned-changes/0001-roadmap-archived-change.yaml"),
     "roadmap-sync reports updated index, milestone, and standalone planned-change files",
     `updatedFiles: ${JSON.stringify(roadmapSyncJson.updatedFiles)}`,
   );
@@ -382,7 +382,7 @@ try {
     status: "planned",
     plannedChanges: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapScopedRecommendDir, "planned-changes/0001-first-ready.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapScopedRecommendDir, "planned-changes/0001-first-first-ready.yaml", {
     id: "first-ready",
     milestone: "0001-first",
     status: "planned",
@@ -390,7 +390,7 @@ try {
     details: "Standalone details for first-ready.",
     depends_on: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapScopedRecommendDir, "planned-changes/0002-target-blocked.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapScopedRecommendDir, "planned-changes/0002-target-target-blocked.yaml", {
     id: "target-blocked",
     milestone: "0002-target",
     status: "planned",
@@ -398,7 +398,7 @@ try {
     details: "Standalone details for target-blocked.",
     depends_on: ["first-ready"],
   });
-  writeStandalonePlannedChangeArtifact(roadmapScopedRecommendDir, "planned-changes/0003-target-ready.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapScopedRecommendDir, "planned-changes/0002-target-target-ready.yaml", {
     id: "target-ready",
     milestone: "0002-target",
     status: "planned",
@@ -550,7 +550,7 @@ try {
     "roadmap-generate milestone synchronizes the roadmap index",
   );
 
-  writeStandalonePlannedChangeArtifact(roadmapGenerateDir, "planned-changes/0001-existing-work.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapGenerateDir, "planned-changes/0001-authoring-existing-work.yaml", {
     id: "existing-work",
     milestone: "0001-authoring",
     status: "planned",
@@ -563,7 +563,7 @@ try {
     ".strict-spec-driven",
     "roadmap",
     "planned-changes",
-    "0001-existing-work.yaml",
+    "0001-authoring-existing-work.yaml",
   );
   const standaloneBeforeUpdate = readFileSync(standalonePath, "utf8");
   const milestoneWithSourceTicket = yamlModule.parseYamlFile<Record<string, unknown>>(generatedMilestonePath);
@@ -676,14 +676,264 @@ try {
     missingIntakeQuestionMilestone.stdout,
   );
 
-  const invalidMilestone = cli(["roadmap-generate", "planned-change", "--id", "not-supported"], { cwd: roadmapGenerateDir });
-  context.assert(invalidMilestone.status !== 0, "roadmap-generate rejects planned-change generation selector");
+  const unknownSelector = cli(["roadmap-generate", "not-a-selector", "--id", "x"], { cwd: roadmapGenerateDir });
+  context.assert(unknownSelector.status !== 0, "roadmap-generate rejects unknown generation selectors");
   context.assert(
-    invalidMilestone.stderr.includes("Usage: strict-spec-cli roadmap-generate milestone"),
-    "roadmap-generate invalid selector prints milestone-only usage",
+    unknownSelector.stderr.includes("Usage: strict-spec-cli roadmap-generate milestone")
+      && unknownSelector.stderr.includes("strict-spec-cli roadmap-generate planned-change"),
+    "roadmap-generate unknown selector prints milestone and planned-change usage",
+  );
+
+  const plannedChangeMissingMilestoneArg = cli(["roadmap-generate", "planned-change", "--id", "no-milestone"], { cwd: roadmapGenerateDir });
+  context.assert(
+    plannedChangeMissingMilestoneArg.status !== 0
+      && plannedChangeMissingMilestoneArg.stderr.includes("missing required argument --milestone"),
+    "roadmap-generate planned-change requires --milestone",
+    plannedChangeMissingMilestoneArg.stderr,
   );
 } finally {
   rmSync(roadmapGenerateDir, { recursive: true, force: true });
+}
+
+const plannedChangeAuthoringDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-planned-change-authoring-"));
+try {
+  writeRoadmapMilestoneArtifact(plannedChangeAuthoringDir, "0001-naming.yaml", {
+    id: "0001-naming",
+    title: "Canonical Naming",
+    goal: "Exercise planned-change authoring and canonical filename enforcement.",
+    status: "proposed",
+    plannedChanges: [],
+  });
+  writeRoadmapMilestoneArtifact(plannedChangeAuthoringDir, "0002-other.yaml", {
+    id: "0002-other",
+    title: "Other Milestone",
+    goal: "Reject planned-change moves between milestones.",
+    status: "proposed",
+    plannedChanges: [],
+  });
+  writeRoadmapIndexArtifact(plannedChangeAuthoringDir, [
+    {
+      id: "0001-naming",
+      title: "Canonical Naming",
+      path: "roadmap/milestones/0001-naming.yaml",
+      status: "proposed",
+    },
+    {
+      id: "0002-other",
+      title: "Other Milestone",
+      path: "roadmap/milestones/0002-other.yaml",
+      status: "proposed",
+    },
+  ]);
+  const plannedChangesDir = path.join(plannedChangeAuthoringDir, ".strict-spec-driven", "roadmap", "planned-changes");
+
+  const createPlannedChange = cli([
+    "roadmap-generate",
+    "planned-change",
+    "--milestone",
+    "0001-naming",
+    "--id",
+    "add-widget",
+    "--summary",
+    "Add the widget workflow.",
+    "--details",
+    "Concrete planning detail for the widget work.",
+  ], { cwd: plannedChangeAuthoringDir });
+  context.assert(createPlannedChange.status === 0, "roadmap-generate planned-change creates a new planned change", createPlannedChange.stdout || createPlannedChange.stderr);
+  const createPlannedChangeJson = JSON.parse(createPlannedChange.stdout.trim());
+  context.assert(
+    createPlannedChangeJson.valid === true
+      && createPlannedChangeJson.plannedChange.id === "add-widget"
+      && createPlannedChangeJson.plannedChange.milestone === "0001-naming"
+      && createPlannedChangeJson.plannedChange.path === "roadmap/planned-changes/0001-naming-add-widget.yaml",
+    "roadmap-generate planned-change reports the canonical milestone-prefixed planned-change path",
+    createPlannedChange.stdout,
+  );
+  context.assert(
+    existsSync(path.join(plannedChangesDir, "0001-naming-add-widget.yaml")),
+    "roadmap-generate planned-change writes the artifact at its canonical CLI-computed filename",
+  );
+  const createdArtifact = yamlModule.parseYamlFile<{
+    status: string;
+    summary: string;
+    details: string;
+    depends_on: string[];
+    planned_change: { id: string; milestone: string };
+  }>(path.join(plannedChangesDir, "0001-naming-add-widget.yaml"));
+  context.assert(
+    createdArtifact.planned_change.id === "add-widget"
+      && createdArtifact.planned_change.milestone === "0001-naming"
+      && createdArtifact.status === "planned"
+      && createdArtifact.summary === "Add the widget workflow."
+      && createdArtifact.depends_on.length === 0,
+    "roadmap-generate planned-change writes a valid planned-change artifact with default planned status",
+  );
+
+  const collapsePlannedChange = cli([
+    "roadmap-generate",
+    "planned-change",
+    "--milestone",
+    "0001-naming",
+    "--id",
+    "0001-naming-followup",
+    "--summary",
+    "Follow-up work.",
+    "--details",
+    "Details for follow-up work.",
+    "--depends-on",
+    "add-widget",
+  ], { cwd: plannedChangeAuthoringDir });
+  context.assert(collapsePlannedChange.status === 0, "roadmap-generate planned-change accepts ids that already start with the milestone id", collapsePlannedChange.stdout || collapsePlannedChange.stderr);
+  const collapsePlannedChangeJson = JSON.parse(collapsePlannedChange.stdout.trim());
+  context.assert(
+    collapsePlannedChangeJson.plannedChange.path === "roadmap/planned-changes/0001-naming-followup.yaml"
+      && existsSync(path.join(plannedChangesDir, "0001-naming-followup.yaml")),
+    "roadmap-generate planned-change collapses the duplicate milestone prefix instead of repeating it",
+    collapsePlannedChange.stdout,
+  );
+
+  const conflictingUpdate = cli([
+    "roadmap-generate",
+    "planned-change",
+    "--milestone",
+    "0001-naming",
+    "--id",
+    "add-widget",
+    "--summary",
+    "A different summary without reset.",
+  ], { cwd: plannedChangeAuthoringDir });
+  context.assert(
+    conflictingUpdate.status !== 0
+      && conflictingUpdate.stdout.includes("existing milestone field has conflicting content; rerun with --reset to replace it"),
+    "roadmap-generate planned-change rejects conflicting scalar updates without --reset",
+    conflictingUpdate.stdout,
+  );
+
+  const resetUpdate = cli([
+    "roadmap-generate",
+    "planned-change",
+    "--milestone",
+    "0001-naming",
+    "--id",
+    "add-widget",
+    "--summary",
+    "Replaced summary after reset.",
+    "--reset",
+  ], { cwd: plannedChangeAuthoringDir });
+  context.assert(resetUpdate.status === 0, "roadmap-generate planned-change replaces scalar fields with --reset", resetUpdate.stdout || resetUpdate.stderr);
+  const updatedArtifact = yamlModule.parseYamlFile<{ summary: string; details: string }>(
+    path.join(plannedChangesDir, "0001-naming-add-widget.yaml"),
+  );
+  context.assert(
+    updatedArtifact.summary === "Replaced summary after reset."
+      && updatedArtifact.details === "Concrete planning detail for the widget work.",
+    "roadmap-generate planned-change reset updates supplied fields and preserves the rest",
+  );
+
+  const unknownMilestone = cli([
+    "roadmap-generate",
+    "planned-change",
+    "--milestone",
+    "0009-missing",
+    "--id",
+    "orphan-work",
+    "--summary",
+    "Orphan.",
+    "--details",
+    "Orphan details.",
+  ], { cwd: plannedChangeAuthoringDir });
+  context.assert(
+    unknownMilestone.status !== 0
+      && unknownMilestone.stdout.includes("planned change references a missing milestone")
+      && !existsSync(path.join(plannedChangesDir, "0009-missing-orphan-work.yaml")),
+    "roadmap-generate planned-change rejects an unknown milestone without writing a file",
+    unknownMilestone.stdout,
+  );
+
+  const milestoneMove = cli([
+    "roadmap-generate",
+    "planned-change",
+    "--milestone",
+    "0002-other",
+    "--id",
+    "add-widget",
+    "--summary",
+    "Moved.",
+  ], { cwd: plannedChangeAuthoringDir });
+  context.assert(
+    milestoneMove.status !== 0
+      && milestoneMove.stdout.includes("planned change already belongs to a different milestone"),
+    "roadmap-generate planned-change rejects moving a planned change to a different milestone",
+    milestoneMove.stdout,
+  );
+
+  // Misnamed active planned-change files are a blocking diagnostic that
+  // --fix-names repairs; default sync only reports.
+  renameSync(
+    path.join(plannedChangesDir, "0001-naming-add-widget.yaml"),
+    path.join(plannedChangesDir, "add-widget.yaml"),
+  );
+  const misnamedStatus = cli(["roadmap-status"], { cwd: plannedChangeAuthoringDir });
+  context.assert(misnamedStatus.status !== 0, "roadmap-status exits non-zero for a misnamed active planned-change file");
+  const misnamedStatusJson = JSON.parse(misnamedStatus.stdout.trim());
+  const misnamedDiagnostic = misnamedStatusJson.diagnostics.find((diagnostic: { message: string }) =>
+    diagnostic.message.includes("does not match the canonical milestone-prefixed filename")
+  );
+  context.assert(
+    misnamedStatusJson.valid === false
+      && misnamedDiagnostic
+      && misnamedDiagnostic.expected === "0001-naming-add-widget.yaml"
+      && misnamedDiagnostic.actual === "add-widget.yaml"
+      && misnamedDiagnostic.artifactPath === ".strict-spec-driven/roadmap/planned-changes/add-widget.yaml",
+    "roadmap-status reports a blocking diagnostic naming the expected canonical planned-change filename",
+    misnamedStatus.stdout,
+  );
+
+  const defaultSync = cli(["roadmap-sync"], { cwd: plannedChangeAuthoringDir });
+  context.assert(
+    defaultSync.status !== 0
+      && existsSync(path.join(plannedChangesDir, "add-widget.yaml"))
+      && !existsSync(path.join(plannedChangesDir, "0001-naming-add-widget.yaml")),
+    "roadmap-sync without --fix-names surfaces the misnaming diagnostic and does not rename the file",
+    defaultSync.stdout,
+  );
+
+  const fixNamesSync = cli(["roadmap-sync", "--fix-names"], { cwd: plannedChangeAuthoringDir });
+  context.assert(fixNamesSync.status === 0, "roadmap-sync --fix-names exits zero after repairing misnamed planned-change files", fixNamesSync.stdout || fixNamesSync.stderr);
+  const fixNamesSyncJson = JSON.parse(fixNamesSync.stdout.trim());
+  context.assert(
+    fixNamesSyncJson.valid === true
+      && Array.isArray(fixNamesSyncJson.renamedFiles)
+      && fixNamesSyncJson.renamedFiles.length === 1
+      && fixNamesSyncJson.renamedFiles[0].from === ".strict-spec-driven/roadmap/planned-changes/add-widget.yaml"
+      && fixNamesSyncJson.renamedFiles[0].to === ".strict-spec-driven/roadmap/planned-changes/0001-naming-add-widget.yaml",
+    "roadmap-sync --fix-names reports the deterministic rename from the misnamed file to its canonical name",
+    fixNamesSync.stdout,
+  );
+  context.assert(
+    existsSync(path.join(plannedChangesDir, "0001-naming-add-widget.yaml"))
+      && !existsSync(path.join(plannedChangesDir, "add-widget.yaml")),
+    "roadmap-sync --fix-names renames the misnamed planned-change file on disk",
+  );
+
+  const statusAfterFix = cli(["roadmap-status"], { cwd: plannedChangeAuthoringDir });
+  context.assert(
+    statusAfterFix.status === 0 && JSON.parse(statusAfterFix.stdout.trim()).valid === true,
+    "roadmap-status is valid again after roadmap-sync --fix-names",
+    statusAfterFix.stdout,
+  );
+
+  const noRenameSync = cli(["roadmap-sync", "--fix-names"], { cwd: plannedChangeAuthoringDir });
+  const noRenameSyncJson = JSON.parse(noRenameSync.stdout.trim());
+  context.assert(
+    noRenameSync.status === 0
+      && Array.isArray(noRenameSyncJson.renamedFiles)
+      && noRenameSyncJson.renamedFiles.length === 0,
+    "roadmap-sync --fix-names reports no renames when every planned-change filename is already canonical",
+    noRenameSync.stdout,
+  );
+} finally {
+  rmSync(plannedChangeAuthoringDir, { recursive: true, force: true });
 }
 
 const roadmapGenerateInlineDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-generate-inline-"));
@@ -753,7 +1003,7 @@ try {
     status: "proposed",
     plannedChanges: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapGenerateStandaloneDriftDir, "planned-changes/0001-drifted-work.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapGenerateStandaloneDriftDir, "planned-changes/0001-drift-drifted-work.yaml", {
     id: "drifted-work",
     milestone: "0001-drift",
     status: "complete",
@@ -781,7 +1031,7 @@ try {
     ".strict-spec-driven",
     "roadmap",
     "planned-changes",
-    "0001-drifted-work.yaml",
+    "0001-drift-drifted-work.yaml",
   );
   const driftMilestoneBefore = readFileSync(driftMilestonePath, "utf8");
   const driftPlannedChangeBefore = readFileSync(driftPlannedChangePath, "utf8");
@@ -801,7 +1051,7 @@ try {
       && driftUpdateJson.diagnostics.some(
         (diagnostic: { message: string; artifactPath: string }) =>
           diagnostic.message.includes("would rewrite a standalone planned-change artifact")
-          && diagnostic.artifactPath.endsWith("0001-drifted-work.yaml"),
+          && diagnostic.artifactPath.endsWith("0001-drift-drifted-work.yaml"),
       )
       && readFileSync(driftMilestonePath, "utf8") === driftMilestoneBefore
       && readFileSync(driftPlannedChangePath, "utf8") === driftPlannedChangeBefore,
@@ -843,7 +1093,7 @@ try {
     status: "planned",
     plannedChanges: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0001-complete-one.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0001-complete-complete-one.yaml", {
     id: "complete-one",
     milestone: "0001-complete",
     status: "planned",
@@ -851,7 +1101,7 @@ try {
     details: "Completed standalone planned change one.",
     depends_on: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0002-complete-two.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0001-complete-complete-two.yaml", {
     id: "complete-two",
     milestone: "0001-complete",
     status: "planned",
@@ -859,7 +1109,7 @@ try {
     details: "Completed standalone planned change two.",
     depends_on: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0003-active-change.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0002-active-active-change.yaml", {
     id: "active-change",
     milestone: "0002-active",
     status: "planned",
@@ -867,7 +1117,7 @@ try {
     details: "Active standalone planned change.",
     depends_on: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0004-skipped-complete.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0002-active-skipped-complete.yaml", {
     id: "skipped-complete",
     milestone: "0002-active",
     status: "complete",
@@ -875,7 +1125,7 @@ try {
     details: "This must stay active because its milestone is not complete.",
     depends_on: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0005-pending-change.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapArchiveDir, "planned-changes/0003-pending-pending-change.yaml", {
     id: "pending-change",
     milestone: "0003-pending",
     status: "planned",
@@ -922,20 +1172,20 @@ try {
   );
 
   const archivedMilestonePath = path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "archive", "milestones", "0001-complete.yaml");
-  const archivedPlannedChangePath = path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "archive", "planned-changes", "0001-complete-one.yaml");
-  const archivedSecondPlannedChangePath = path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "archive", "planned-changes", "0002-complete-two.yaml");
+  const archivedPlannedChangePath = path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "archive", "planned-changes", "0001-complete-complete-one.yaml");
+  const archivedSecondPlannedChangePath = path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "archive", "planned-changes", "0001-complete-complete-two.yaml");
   context.assert(
     existsSync(archivedMilestonePath)
       && existsSync(archivedPlannedChangePath)
       && existsSync(archivedSecondPlannedChangePath)
       && !existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "milestones", "0001-complete.yaml"))
-      && !existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-complete-one.yaml")),
+      && !existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-complete-complete-one.yaml")),
     "roadmap-archive moves completed milestone and its completed planned changes into roadmap archive",
   );
   context.assert(
-    existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes", "0003-active-change.yaml"))
-      && existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes", "0004-skipped-complete.yaml"))
-      && existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes", "0005-pending-change.yaml")),
+    existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes", "0002-active-active-change.yaml"))
+      && existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes", "0002-active-skipped-complete.yaml"))
+      && existsSync(path.join(roadmapArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes", "0003-pending-pending-change.yaml")),
     "roadmap-archive leaves active and pending planned changes in active roadmap locations",
   );
   const archivedPlannedChange = yamlModule.parseYamlFile<{ status: string }>(archivedPlannedChangePath);
@@ -1014,7 +1264,7 @@ try {
     status: "complete",
     plannedChanges: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapArchiveExplicitDir, "planned-changes/0001-first-complete.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapArchiveExplicitDir, "planned-changes/0001-first-first-complete.yaml", {
     id: "first-complete",
     milestone: "0001-first",
     status: "complete",
@@ -1022,7 +1272,7 @@ try {
     details: "First complete details.",
     depends_on: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapArchiveExplicitDir, "planned-changes/0002-second-complete.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapArchiveExplicitDir, "planned-changes/0002-second-second-complete.yaml", {
     id: "second-complete",
     milestone: "0002-second",
     status: "complete",
@@ -1073,7 +1323,7 @@ try {
     status: "complete",
     plannedChanges: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapArchiveInvalidDir, "planned-changes/0001-duplicate-a.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapArchiveInvalidDir, "planned-changes/0001-invalid-duplicate-work.yaml", {
     id: "duplicate-work",
     milestone: "0001-invalid",
     status: "complete",
@@ -1105,7 +1355,7 @@ try {
     archiveInvalidJson.valid === false
       && archiveInvalidJson.diagnostics.some((diagnostic: { message: string }) => diagnostic.message.includes("duplicate planned change id"))
       && existsSync(path.join(roadmapArchiveInvalidDir, ".strict-spec-driven", "roadmap", "milestones", "0001-invalid.yaml"))
-      && existsSync(path.join(roadmapArchiveInvalidDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-duplicate-a.yaml")),
+      && existsSync(path.join(roadmapArchiveInvalidDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-invalid-duplicate-work.yaml")),
     "roadmap-archive reports diagnostics and does not move files for invalid roadmap input",
     archiveInvalid.stdout,
   );
@@ -1128,7 +1378,7 @@ try {
     status: "complete",
     plannedChanges: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapReopenDir, "planned-changes/0001-archived-change.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapReopenDir, "planned-changes/0001-reopen-archived-change.yaml", {
     id: "archived-change",
     milestone: "0001-reopen",
     status: "complete",
@@ -1151,7 +1401,7 @@ try {
     ".strict-spec-driven",
     "roadmap",
     "planned-changes",
-    "0001-archived-change.yaml",
+    "0001-reopen-archived-change.yaml",
   );
   const archivedPlannedChangeBefore = readFileSync(archivedPlannedChangePath, "utf8");
 
@@ -1191,9 +1441,8 @@ try {
   context.assert(
     roadmapReopenJson.reopened.seededFollowUp
       && roadmapReopenJson.reopened.seededFollowUp.id === "0001-reopen-followup"
-      && roadmapReopenJson.reopened.seededFollowUp.path.startsWith("roadmap/planned-changes/")
-      && roadmapReopenJson.reopened.seededFollowUp.path.endsWith("-0001-reopen-followup.yaml"),
-    "roadmap-reopen reports the seeded pending follow-up planned change",
+      && roadmapReopenJson.reopened.seededFollowUp.path === "roadmap/planned-changes/0001-reopen-followup.yaml",
+    "roadmap-reopen reports the seeded pending follow-up planned change at its canonical milestone-prefixed path",
     `seededFollowUp: ${JSON.stringify(roadmapReopenJson.reopened.seededFollowUp)}`,
   );
   context.assert(
@@ -1269,7 +1518,7 @@ try {
 
   // Adding another follow-up planned change after reopen keeps the milestone in
   // its pending-work derived state.
-  writeStandalonePlannedChangeArtifact(roadmapReopenDir, "planned-changes/0003-followup-change.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapReopenDir, "planned-changes/0001-reopen-followup-change.yaml", {
     id: "followup-change",
     milestone: "0001-reopen",
     status: "planned",
@@ -1314,7 +1563,7 @@ try {
     status: "planned",
     plannedChanges: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapPlannedAliasDir, "planned-changes/0001-pending-change.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapPlannedAliasDir, "planned-changes/0001-planned-alias-pending-change.yaml", {
     id: "pending-change",
     milestone: "0001-planned-alias",
     status: "planned",
@@ -1367,7 +1616,7 @@ try {
     status: "active",
     plannedChanges: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapNoCandidateDir, "planned-changes/0001-active-change.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapNoCandidateDir, "planned-changes/0001-no-candidate-active-change.yaml", {
     id: "active-change",
     milestone: "0001-no-candidate",
     status: "planned",
@@ -1375,7 +1624,7 @@ try {
     details: "Standalone details for active-change.",
     depends_on: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapNoCandidateDir, "planned-changes/0002-blocked-change.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapNoCandidateDir, "planned-changes/0001-no-candidate-blocked-change.yaml", {
     id: "blocked-change",
     milestone: "0001-no-candidate",
     status: "planned",
@@ -1450,7 +1699,7 @@ try {
     ],
   });
 
-  writeStandalonePlannedChangeArtifact(roadmapSplitFilesDir, "planned-changes/0001-split-active.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapSplitFilesDir, "planned-changes/0001-split-split-active.yaml", {
     id: "split-active",
     milestone: "0001-split",
     status: "planned",
@@ -1472,7 +1721,7 @@ try {
       ],
     },
   });
-  writeStandalonePlannedChangeArtifact(roadmapSplitFilesDir, "planned-changes/0002-split-archived.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapSplitFilesDir, "planned-changes/0001-split-split-archived.yaml", {
     id: "split-archived",
     milestone: "0001-split",
     status: "planned",
@@ -1520,7 +1769,7 @@ try {
   const syncedStandaloneArchived = yamlModule.parseYamlFile<{
     status: string;
     planned_change: { id: string; milestone: string };
-  }>(path.join(roadmapSplitFilesDir, ".strict-spec-driven", "roadmap", "planned-changes", "0002-split-archived.yaml"));
+  }>(path.join(roadmapSplitFilesDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-split-split-archived.yaml"));
   context.assert(
     syncedStandaloneArchived.status === "planned"
       && syncedStandaloneArchived.planned_change.id === "split-archived"
@@ -1536,7 +1785,7 @@ try {
       labels: string[];
       external_refs: Array<{ label: string; target: string }>;
     };
-  }>(path.join(roadmapSplitFilesDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-split-active.yaml"));
+  }>(path.join(roadmapSplitFilesDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-split-split-active.yaml"));
   context.assert(
     syncedStandaloneActive.team.owner === "alice"
       && syncedStandaloneActive.team.reviewers.join(",") === "bob,carol"
@@ -1589,7 +1838,7 @@ try {
   const splitStatusAfterMaterializeJson = JSON.parse(splitStatusAfterMaterialize.stdout.trim());
   const splitPlannedChangeIds = splitStatusAfterMaterializeJson.milestones[0].plannedChanges.map((entry: { id: string }) => entry.id);
   context.assert(
-    splitPlannedChangeIds.join(",") === "split-active,inline-active,split-archived",
+    splitPlannedChangeIds.join(",") === "inline-active,split-active,split-archived",
     "roadmap-status reports materialized and standalone planned changes together after conversion",
     `got ${splitPlannedChangeIds.join(",")}`,
   );
@@ -1601,8 +1850,8 @@ try {
   );
   context.assert(
     splitStatusAfterMaterializeJson.milestones[0].plannedChanges[0].source === "standalone"
-      && splitStatusAfterMaterializeJson.milestones[0].plannedChanges[0].path === "roadmap/planned-changes/0001-split-active.yaml"
-      && splitStatusAfterMaterializeJson.milestones[0].plannedChanges[1].path === "roadmap/planned-changes/0001-split-inline-active.yaml",
+      && splitStatusAfterMaterializeJson.milestones[0].plannedChanges[0].path === "roadmap/planned-changes/0001-split-inline-active.yaml"
+      && splitStatusAfterMaterializeJson.milestones[0].plannedChanges[1].path === "roadmap/planned-changes/0001-split-split-active.yaml",
     "roadmap-status reports planned-change file paths after explicit materialization",
   );
 } finally {
@@ -1618,7 +1867,7 @@ try {
     status: "proposed",
     plannedChanges: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapInvalidTeamMetadataDir, "planned-changes/0001-invalid-team.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapInvalidTeamMetadataDir, "planned-changes/0001-team-invalid-team.yaml", {
     id: "invalid-team",
     milestone: "0001-team",
     status: "planned",
@@ -1687,7 +1936,7 @@ try {
     plannedChanges: [],
   });
 
-  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0001-duplicate-work.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0001-conflict-duplicate-work.yaml", {
     id: "duplicate-work",
     milestone: "0001-conflict",
     status: "planned",
@@ -1703,7 +1952,7 @@ try {
     details: "Second duplicate identity details.",
     depends_on: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0002-orphan-work.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/9999-missing-orphan-work.yaml", {
     id: "orphan-work",
     milestone: "9999-missing",
     status: "planned",
@@ -1711,7 +1960,7 @@ try {
     details: "Missing milestone details.",
     depends_on: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0003-missing-dependency.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0001-conflict-missing-dependency-work.yaml", {
     id: "missing-dependency-work",
     milestone: "0001-conflict",
     status: "planned",
@@ -1719,7 +1968,7 @@ try {
     details: "Missing dependency details.",
     depends_on: ["not-present"],
   });
-  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0004-ambiguous-owner.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0001-conflict-ambiguous-owner-work.yaml", {
     id: "ambiguous-owner-work",
     milestone: "0001-conflict",
     status: "planned",
@@ -1731,7 +1980,7 @@ try {
       owners: ["alice", "bob"],
     },
   });
-  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0005-shared-active.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0001-conflict-shared-active.yaml", {
     id: "shared-active",
     milestone: "0001-conflict",
     status: "planned",
@@ -1747,7 +1996,7 @@ try {
     details: "Second active conflict details.",
     depends_on: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0006-cycle-a.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0001-conflict-cycle-a.yaml", {
     id: "cycle-a",
     milestone: "0001-conflict",
     status: "planned",
@@ -1755,7 +2004,7 @@ try {
     details: "Cycle-a details.",
     depends_on: ["cycle-b"],
   });
-  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0006-cycle-b.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapCrossFileConflictDir, "planned-changes/0001-conflict-cycle-b.yaml", {
     id: "cycle-b",
     milestone: "0001-conflict",
     status: "planned",
@@ -1905,7 +2154,7 @@ try {
     status: "complete",
     plannedChanges: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapAmbiguousDir, "planned-changes/0001-shared-change.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapAmbiguousDir, "planned-changes/0001-ambiguous-shared-change.yaml", {
     id: "shared-change",
     milestone: "0001-ambiguous",
     status: "complete",
@@ -1959,7 +2208,7 @@ try {
   );
   const syncedAmbiguousStandalone = yamlModule.parseYamlFile<{
     status: string;
-  }>(path.join(roadmapAmbiguousDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-shared-change.yaml"));
+  }>(path.join(roadmapAmbiguousDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-ambiguous-shared-change.yaml"));
   context.assert(
     syncedAmbiguousStandalone.status === "planned",
     "roadmap-sync rewrites ambiguous standalone planned change status to planned instead of complete",
@@ -2521,7 +2770,7 @@ try {
     status: "proposed",
     plannedChanges: [],
   });
-  writeStandalonePlannedChangeArtifact(roadmapCycleDir, "planned-changes/0001-change-a.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapCycleDir, "planned-changes/0001-cycle-change-a.yaml", {
     id: "change-a",
     milestone: "0001-cycle",
     status: "planned",
@@ -2529,7 +2778,7 @@ try {
     details: "Cycle test details for change-a.",
     depends_on: ["change-b"],
   });
-  writeStandalonePlannedChangeArtifact(roadmapCycleDir, "planned-changes/0002-change-b.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapCycleDir, "planned-changes/0001-cycle-change-b.yaml", {
     id: "change-b",
     milestone: "0001-cycle",
     status: "planned",
@@ -2837,7 +3086,7 @@ function createCopiedSplitRoadmapWorkspace(): CopiedSplitRoadmapWorkspace {
 
   const strictRoadmapRoot = path.join(workspaceRoot, ".strict-spec-driven", "roadmap");
   const milestonePath = path.join(strictRoadmapRoot, "milestones", "0001-core-todo-workflows.yaml");
-  writeStandalonePlannedChangeArtifact(workspaceRoot, "planned-changes/0001-split-active.yaml", {
+  writeStandalonePlannedChangeArtifact(workspaceRoot, "planned-changes/0001-core-todo-workflows-split-active.yaml", {
     id: "split-active",
     milestone: "0001-core-todo-workflows",
     status: "planned",
@@ -2859,7 +3108,7 @@ function createCopiedSplitRoadmapWorkspace(): CopiedSplitRoadmapWorkspace {
       ],
     },
   });
-  writeStandalonePlannedChangeArtifact(workspaceRoot, "planned-changes/0002-split-archived.yaml", {
+  writeStandalonePlannedChangeArtifact(workspaceRoot, "planned-changes/0001-core-todo-workflows-split-archived.yaml", {
     id: "split-archived",
     milestone: "0001-core-todo-workflows",
     status: "planned",
@@ -2878,8 +3127,8 @@ function createCopiedSplitRoadmapWorkspace(): CopiedSplitRoadmapWorkspace {
     workspaceRoot,
     cleanup: workspace.cleanup,
     milestonePath,
-    splitActivePath: path.join(strictRoadmapRoot, "planned-changes", "0001-split-active.yaml"),
-    splitArchivedPath: path.join(strictRoadmapRoot, "planned-changes", "0002-split-archived.yaml"),
+    splitActivePath: path.join(strictRoadmapRoot, "planned-changes", "0001-core-todo-workflows-split-active.yaml"),
+    splitArchivedPath: path.join(strictRoadmapRoot, "planned-changes", "0001-core-todo-workflows-split-archived.yaml"),
     inlineMaterializedPath: path.join(strictRoadmapRoot, "planned-changes", "0001-core-todo-workflows-add-tag-filtering.yaml"),
     handoffChangeName: "copied-project-handoff",
   };
@@ -3066,7 +3315,7 @@ function runCopiedSplitRoadmapCliScenario(): {
     );
     context.assert(
       materializedStatusJson.milestones[0].plannedChanges[0]?.path === "roadmap/planned-changes/0001-core-todo-workflows-add-due-dates.yaml"
-        && materializedStatusJson.milestones[0].plannedChanges[2]?.path === "roadmap/planned-changes/0001-split-active.yaml",
+        && materializedStatusJson.milestones[0].plannedChanges[2]?.path === "roadmap/planned-changes/0001-core-todo-workflows-split-active.yaml",
       "copied project split roadmap-status reports planned-change paths after conversion",
     );
 
@@ -3153,7 +3402,7 @@ function runCopiedSplitRoadmapHandoffScenario(): {
         `stderr: ${cancelPreexisting.stderr.trim()}`,
       );
     }
-    writeStandalonePlannedChangeArtifact(workspaceRoot, "planned-changes/0003-copied-project-handoff.yaml", {
+    writeStandalonePlannedChangeArtifact(workspaceRoot, "planned-changes/0001-core-todo-workflows-copied-project-handoff.yaml", {
       id: handoffChangeName,
       milestone: "0001-core-todo-workflows",
       status: "planned",

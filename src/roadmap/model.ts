@@ -17,6 +17,19 @@ export const PLANNED_CHANGE_SCHEMA_ID = "strict-spec-driven/planned-change/v1";
 export type DeclaredRoadmapStatus = (typeof DECLARED_ROADMAP_STATUSES)[number];
 export type DeclaredPlannedChangeStatus = (typeof DECLARED_PLANNED_CHANGE_STATUSES)[number];
 
+/**
+ * Canonical basename for a standalone planned-change file. The milestone id
+ * prefixes the planned-change id so filename sort order tracks roadmap order;
+ * when the planned-change id already starts with the milestone id, the prefix
+ * is not duplicated.
+ */
+export function canonicalPlannedChangeFileName(milestoneId: string, plannedChangeId: string): string {
+  if (plannedChangeId === milestoneId || plannedChangeId.startsWith(`${milestoneId}-`)) {
+    return `${plannedChangeId}.yaml`;
+  }
+  return `${milestoneId}-${plannedChangeId}.yaml`;
+}
+
 export type PlannedChangeState = "missing" | "active" | "archived" | "ambiguous";
 
 export type RoadmapIndexEntry = {
@@ -293,6 +306,7 @@ export type RoadmapSyncResult = {
   warnings: string[];
   diagnostics: RoadmapDiagnostic[];
   updatedFiles: string[];
+  renamedFiles?: Array<{ from: string; to: string }>;
   milestones: RoadmapMilestoneStatus[];
 };
 
