@@ -89,6 +89,8 @@ mapping:
     - src/roadmap/model.ts
     - src/roadmap/validate.ts
     - src/roadmap/sync.ts
+    - src/mcp/prompts.ts
+    - src/mcp/inventory.ts
   tests:
     - test/run.ts
     - test/suites/entrypoint-and-skills.ts
@@ -97,6 +99,7 @@ mapping:
     - test/suites/harness-session.ts
     - test/suites/roadmap-and-migration.ts
     - test/suites/tickets.ts
+    - test/suites/mcp-server.ts
 requirements:
   yaml-artifact-schema-coverage:
     strength: MUST
@@ -1194,19 +1197,12 @@ requirements:
         - THEN: the skill blocks archive instead of inferring review success from deterministic validation
   strict-roadmap-scripted-selection:
     strength: MUST
-    statement: The strict-roadmap-recommend and strict-spec-propose-from-roadmap skills MUST obtain the next planned-change recommendation from the scripted roadmap-recommend command before scaffolding a strict change.
+    statement: The strict-roadmap-recommend and strict-spec-propose-from-roadmap skills MUST obtain the planned-change recommendation from the scripted roadmap-recommend command before scaffolding a strict change, and when a user provides a roadmap hint they MUST resolve exact milestone ids or unambiguous numeric milestone-prefix shorthand to an exact milestone id before passing it to roadmap-recommend with --milestone.
     scenarios:
-      skill-uses-scripted-recommendation:
-        - GIVEN: the strict-roadmap-recommend or strict-spec-propose-from-roadmap skill prompt is reviewed
-        - WHEN: its recommend workflow instructions are inspected
-        - THEN: the prompt instructs the agent to run the roadmap-recommend command before selecting work
-        - AND: the prompt treats the command's selected planned change as authoritative for the recommendation step
-        - AND: the prompt no longer requires the agent to manually choose among eligible roadmap planned changes
-      skill-command-contract-includes-roadmap-recommend:
-        - GIVEN: strict roadmap-backed skill command expectations are validated
-        - WHEN: the strict-roadmap-recommend or strict-spec-propose-from-roadmap skill package is checked
-        - THEN: the expected command mapping includes roadmap-recommend
-        - AND: skill validation can reject recommend guidance that omits the scripted recommendation command
+      skill-resolves-fuzzy-milestone-hint:
+        - GIVEN: A user invokes a roadmap-backed recommendation or proposal skill with a milestone hint such as an exact milestone id or a standalone number.
+        - WHEN: The skill obtains the scripted recommendation.
+        - THEN: The skill resolves the hint to exactly one milestone id, runs roadmap-recommend --milestone with the resolved id, treats the returned recommendation as authoritative, and stops with a clear blocker if the hint matches no milestone or multiple milestones instead of manually selecting a planned change.
   strict-roadmap-plan-detail-and-review-guidance:
     strength: MUST
     statement: The system MUST ensure strict-roadmap-plan skill guidance requires agents to elaborate roadmap milestones and standalone planned changes into executable, reviewable planning detail and to perform a roadmap planning review after roadmap synchronization before handoff.

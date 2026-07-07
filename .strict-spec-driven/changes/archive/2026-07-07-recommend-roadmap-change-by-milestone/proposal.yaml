@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: recommend-roadmap-change-by-milestone
+  status: proposed
+summary:
+  what:
+    - Allow roadmap-recommend to scope recommendation to a specified milestone.
+  why:
+    - Operators need to ask the scripted roadmap recommendation command for the next eligible planned change within a known milestone instead of always accepting the first eligible planned change across the full roadmap.
+scope:
+  in:
+    - Add a roadmap-recommend milestone selector, keep candidate evaluation and compact/detail output deterministic inside that selector, and cover the CLI behavior with roadmap tests.
+  out:
+    - No change to roadmap status, sync, archive, reopen, planned-change authoring, or the default roadmap-recommend behavior when no milestone is specified.
+unchanged_behavior:
+  - Without a milestone selector, roadmap-recommend continues to select the first eligible standalone planned change in global roadmap order and compact output still omits planned-change summary and full candidate lists.

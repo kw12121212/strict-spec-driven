@@ -20,7 +20,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 roadmap-status: strict-spec-cli roadmap-status
-roadmap-recommend: strict-spec-cli roadmap-recommend
+roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>]
 propose: strict-spec-cli propose <change-name>
 generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
 ready: strict-spec-cli ready <change-name>
@@ -42,6 +42,27 @@ run `init` from this skill.
   `planned_change.milestone` are the source of truth.
 - If `roadmap-status` reports legacy inline milestone `planned_changes`, stop
   and materialize them before recommending work.
+
+## Roadmap Hint Parameters
+
+When the user supplies a roadmap hint or parameter with the request, treat it as
+a milestone selector before running the recommendation command.
+
+- If the hint is an exact milestone id, use it directly.
+- If the hint is only a number, resolve it to the milestone whose id has the
+  matching numeric prefix after ignoring leading zeros. For example, `5`
+  resolves to a single milestone id such as `0005-migration-and-self-hosting`
+  when that is the only milestone with numeric prefix `5`.
+- If the hint is not numeric, first try an exact milestone id match, then a
+  case-insensitive substring match against milestone id or title.
+- Use `.strict-spec-driven/roadmap/INDEX.yaml` or `roadmap-status` only to
+  resolve the milestone selector. Do not inspect broad planned-change context
+  before running the scripted recommendation.
+- If the hint matches zero milestones or more than one milestone, stop and
+  report the ambiguity. Do not manually choose a planned change.
+- After resolving the hint to exactly one milestone id, run
+  `strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id>` and
+  treat that scripted result as authoritative.
 
 ## Preferred Human Language
 
@@ -79,8 +100,11 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
-1. **Obtain the scripted recommendation first** — run the scripted
-   recommendation command before reading broad roadmap context,
+1. **Obtain the scripted recommendation first** — if the user supplied a roadmap
+   hint, resolve it with the Roadmap Hint Parameters rules, then run
+   `strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id>`.
+   Without a user roadmap hint, run `strict-spec-cli roadmap-recommend`. Run the
+   scripted recommendation command before reading broad roadmap context,
    selecting work, or opening candidate planned-change files, and treat the
    command's selected planned change as authoritative for the recommendation
    step. The scripted result already accounts for active strict change
@@ -93,7 +117,8 @@ run `init` from this skill.
      right now. Surface `candidateSummary` and the actionable `blockers[]`
      entries with their `skipReasons`, then stop. If the concise output is not
      enough to explain the blockers, rerun
-     `strict-spec-cli roadmap-recommend --details`
+     `strict-spec-cli roadmap-recommend --details` or
+     `strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id> --details`
      and surface the full `candidates[].skipReasons`.
    - `"recommended"` — proceed to step 2 with the returned recommendation.
    Do not manually choose among planned changes; branch on `status`

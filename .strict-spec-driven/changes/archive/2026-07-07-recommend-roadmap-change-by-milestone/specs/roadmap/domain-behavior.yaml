@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+mapping:
+  implementation:
+    - src/roadmap.ts
+    - src/cli/cmd-roadmap.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    roadmap-recommend-contract:
+      strength: MUST
+      statement: The system MUST make roadmap-recommend optionally restrict recommendation to a specified milestone, select the first eligible standalone planned change within that milestone's roadmap order, return compact deterministic default output scoped to the selected milestone, preserve full scoped candidate detail behind --details, preserve existing global recommendation behavior when no milestone is specified, and report no-candidate or roadmap-error states without manual selection.
+      scenarios:
+        recommend-selects-first-eligible-within-milestone:
+          - GIVEN: The roadmap contains multiple milestones with eligible and ineligible standalone planned changes.
+          - WHEN: roadmap-recommend runs with a milestone selector for one milestone.
+          - THEN: The command exits zero only when that milestone has an eligible candidate, returns the first eligible planned change within the selected milestone, scopes candidate counts and blockers to that milestone, and does not select eligible work from other milestones.
+  REMOVED: {}

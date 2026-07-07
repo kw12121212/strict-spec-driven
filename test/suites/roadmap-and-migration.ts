@@ -366,6 +366,107 @@ try {
   rmSync(roadmapHappyDir, { recursive: true, force: true });
 }
 
+const roadmapScopedRecommendDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-scoped-recommend-"));
+try {
+  writeRoadmapMilestoneArtifact(roadmapScopedRecommendDir, "0001-first.yaml", {
+    id: "0001-first",
+    title: "First Milestone",
+    goal: "Keep the first milestone eligible.",
+    status: "planned",
+    plannedChanges: [],
+  });
+  writeRoadmapMilestoneArtifact(roadmapScopedRecommendDir, "0002-target.yaml", {
+    id: "0002-target",
+    title: "Target Milestone",
+    goal: "Keep target milestone selection isolated.",
+    status: "planned",
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapScopedRecommendDir, "planned-changes/0001-first-ready.yaml", {
+    id: "first-ready",
+    milestone: "0001-first",
+    status: "planned",
+    summary: "First milestone ready work.",
+    details: "Standalone details for first-ready.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapScopedRecommendDir, "planned-changes/0002-target-blocked.yaml", {
+    id: "target-blocked",
+    milestone: "0002-target",
+    status: "planned",
+    summary: "Target milestone blocked work.",
+    details: "Standalone details for target-blocked.",
+    depends_on: ["first-ready"],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapScopedRecommendDir, "planned-changes/0003-target-ready.yaml", {
+    id: "target-ready",
+    milestone: "0002-target",
+    status: "planned",
+    summary: "Target milestone ready work.",
+    details: "Standalone details for target-ready.",
+    depends_on: [],
+  });
+  writeRoadmapIndexArtifact(roadmapScopedRecommendDir, [
+    {
+      id: "0001-first",
+      title: "First Milestone",
+      path: "roadmap/milestones/0001-first.yaml",
+      status: "planned",
+    },
+    {
+      id: "0002-target",
+      title: "Target Milestone",
+      path: "roadmap/milestones/0002-target.yaml",
+      status: "planned",
+    },
+  ]);
+
+  const globalRecommend = cli(["roadmap-recommend"], { cwd: roadmapScopedRecommendDir });
+  context.assert(globalRecommend.status === 0, "roadmap-recommend keeps global recommendation behavior without milestone scope");
+  const globalRecommendJson = JSON.parse(globalRecommend.stdout.trim());
+  context.assert(
+    globalRecommendJson.recommendation?.id === "first-ready"
+      && globalRecommendJson.candidateSummary?.total === 3
+      && globalRecommendJson.candidateSummary?.eligible === 2,
+    "roadmap-recommend without --milestone selects the first eligible planned change in global roadmap order",
+  );
+
+  const scopedRecommend = cli(["roadmap-recommend", "--milestone", "0002-target"], { cwd: roadmapScopedRecommendDir });
+  context.assert(scopedRecommend.status === 0, "roadmap-recommend --milestone exits zero when the selected milestone has an eligible candidate");
+  const scopedRecommendJson = JSON.parse(scopedRecommend.stdout.trim());
+  context.assert(
+    scopedRecommendJson.recommendation?.id === "target-ready"
+      && scopedRecommendJson.recommendation?.milestone?.id === "0002-target"
+      && scopedRecommendJson.candidateSummary?.total === 2
+      && scopedRecommendJson.candidateSummary?.eligible === 1
+      && scopedRecommendJson.candidateSummary?.skippedByCode?.["dependency-incomplete"] === 1
+      && scopedRecommendJson.detailsCommand === "strict-spec-cli roadmap-recommend --milestone 0002-target --details",
+    "roadmap-recommend --milestone scopes compact recommendation and candidate summaries to the selected milestone",
+  );
+
+  const scopedDetailsRecommend = cli(["roadmap-recommend", "--details", "--milestone=0002-target"], { cwd: roadmapScopedRecommendDir });
+  context.assert(scopedDetailsRecommend.status === 0, "roadmap-recommend --details composes with --milestone");
+  const scopedDetailsRecommendJson = JSON.parse(scopedDetailsRecommend.stdout.trim());
+  context.assert(
+    scopedDetailsRecommendJson.recommendation?.summary === "Target milestone ready work."
+      && scopedDetailsRecommendJson.candidates.length === 2
+      && scopedDetailsRecommendJson.candidates.every((candidate: { milestone: { id: string } }) => candidate.milestone.id === "0002-target"),
+    "roadmap-recommend --details with --milestone preserves full scoped candidate detail",
+  );
+
+  const missingMilestoneRecommend = cli(["roadmap-recommend", "--milestone", "missing-milestone"], { cwd: roadmapScopedRecommendDir });
+  context.assert(missingMilestoneRecommend.status !== 0, "roadmap-recommend --milestone exits non-zero when the selected milestone has no candidates");
+  const missingMilestoneRecommendJson = JSON.parse(missingMilestoneRecommend.stdout.trim());
+  context.assert(
+    missingMilestoneRecommendJson.status === "no-candidate"
+      && missingMilestoneRecommendJson.recommendation === null
+      && missingMilestoneRecommendJson.candidateSummary?.total === 0,
+    "roadmap-recommend --milestone does not fall back to eligible planned changes from other milestones",
+  );
+} finally {
+  rmSync(roadmapScopedRecommendDir, { recursive: true, force: true });
+}
+
 const roadmapGenerateDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-generate-"));
 try {
   const createMilestone = cli([

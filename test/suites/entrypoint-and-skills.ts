@@ -550,6 +550,10 @@ context.assert(
   context.assert(
     normalizedProposeFromRoadmapSkillContent.includes("roadmap-recommend")
       && normalizedProposeFromRoadmapSkillContent.includes("treat the command's selected planned change as authoritative")
+      && normalizedProposeFromRoadmapSkillContent.includes("roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>]")
+      && normalizedProposeFromRoadmapSkillContent.includes("matching numeric prefix after ignoring leading zeros")
+      && normalizedProposeFromRoadmapSkillContent.includes("strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id>")
+      && normalizedProposeFromRoadmapSkillContent.includes("matches zero milestones or more than one milestone")
       && normalizedProposeFromRoadmapSkillContent.includes("before reading broad roadmap context")
       && normalizedProposeFromRoadmapSkillContent.includes("candidates[].skipReasons")
       && normalizedProposeFromRoadmapSkillContent.includes("recommendation.changeName")
@@ -649,8 +653,11 @@ context.assert(
     "strict-roadmap-archive validates default-all completed milestone guidance",
   );
   context.assert(
-    roadmapRecommendSkillContent.includes("roadmap-recommend: strict-spec-cli roadmap-recommend")
+    roadmapRecommendSkillContent.includes("roadmap-recommend: strict-spec-cli roadmap-recommend [--milestone <milestone-id>]")
       && normalizedRoadmapRecommendSkillContent.includes("treat the command's selected planned change as authoritative")
+      && normalizedRoadmapRecommendSkillContent.includes("matching numeric prefix after ignoring leading zeros")
+      && normalizedRoadmapRecommendSkillContent.includes("strict-spec-cli roadmap-recommend --milestone <resolved-milestone-id>")
+      && normalizedRoadmapRecommendSkillContent.includes("matches zero milestones or more than one milestone")
       && normalizedRoadmapRecommendSkillContent.includes("before reading broad roadmap context")
       && normalizedRoadmapRecommendSkillContent.includes("Use `ready` as the proposal handoff validation")
       && normalizedRoadmapRecommendSkillContent.includes("populated change scaffold")

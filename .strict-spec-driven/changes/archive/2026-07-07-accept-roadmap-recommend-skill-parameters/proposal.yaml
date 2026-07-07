@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: accept-roadmap-recommend-skill-parameters
+  status: proposed
+summary:
+  what:
+    - Allow roadmap-backed recommendation skills to accept a user-supplied milestone selector, including fuzzy numeric hints.
+  why:
+    - Operators may know they want work from milestone 5 or another milestone and need the skill layer to pass that intent to the scripted roadmap recommendation command instead of always using the global recommendation.
+scope:
+  in:
+    - Update strict-roadmap-recommend, strict-spec-propose-from-roadmap, and MCP prompt guidance so user-provided roadmap hints are resolved to an exact milestone id, including numeric prefix shorthand, before running roadmap-recommend with --milestone.
+  out:
+    - No change to roadmap-recommend core selection semantics, roadmap status, roadmap sync, archive behavior, or planned-change artifact schemas.
+unchanged_behavior:
+  - When no roadmap hint is supplied, roadmap-backed skills continue to run the scripted global roadmap-recommend command first and treat its selected planned change as authoritative.

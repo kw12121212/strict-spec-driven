@@ -59,7 +59,7 @@ export const MCP_PROMPT_DEFINITIONS: McpPromptDefinition[] = [
     if (roadmapItem) {
       return [
         "Use strict-spec-propose-from-roadmap to create a strict YAML proposal from roadmap-backed work.",
-        `Roadmap proposal hint: ${roadmapItem}. Start with roadmap-recommend and treat the scripted recommendation as authoritative.`,
+        `Roadmap proposal hint: ${roadmapItem}. Resolve exact milestone ids or unambiguous numeric shorthand such as 5 to a milestone id, then start with roadmap-recommend --milestone and treat the scripted recommendation as authoritative.`,
         args.summary ? `Requested change summary: ${args.summary}.` : "Derive proposal scope from the selected roadmap planned change when no extra summary is supplied.",
         "Read only the selected milestone and standalone planned-change context, scaffold exactly one recommended planned change, and link milestone and planned_change metadata in proposal.yaml.",
         "Run check-workflow-state first, generate proposal, design, questions, and delta-spec artifacts with named arguments, then run ready and verify.",
@@ -95,7 +95,9 @@ export const MCP_PROMPT_DEFINITIONS: McpPromptDefinition[] = [
   ].join("\n")),
   prompt("strict_roadmap_recommend", roadmapSchema, (args) => [
     "Use strict-roadmap-recommend to choose the next roadmap-backed strict change.",
-    args.roadmapItem ? `User-provided roadmap hint: ${args.roadmapItem}.` : "Start with roadmap-recommend and treat the scripted recommendation as authoritative.",
+    args.roadmapItem
+      ? `User-provided roadmap hint: ${args.roadmapItem}. Resolve exact milestone ids or unambiguous numeric shorthand such as 5 to a milestone id, then run roadmap-recommend --milestone with the resolved id and treat the scripted recommendation as authoritative.`
+      : "Start with roadmap-recommend and treat the scripted recommendation as authoritative.",
     "Scaffold exactly one recommended planned change, link milestone and planned_change metadata, run ready, then continue through strict-spec-auto.",
     "Do not manually choose among roadmap candidates when the script returns a recommendation.",
   ].join("\n")),

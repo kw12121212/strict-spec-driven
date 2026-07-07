@@ -51,6 +51,10 @@ export type RoadmapSyncOptions = {
   materializePlannedChanges?: boolean;
 };
 
+export type RoadmapRecommendOptions = {
+  milestoneId?: string;
+};
+
 type TextTableColumn<Row> = {
   header: string;
   value: (row: Row) => string;
@@ -277,7 +281,7 @@ function buildCandidateSkipReasons(
   return skipReasons;
 }
 
-export function recommendRoadmapChange(rootDir: string): RoadmapRecommendResult {
+export function recommendRoadmapChange(rootDir: string, options: RoadmapRecommendOptions = {}): RoadmapRecommendResult {
   const { roadmap, warnings, diagnostics, milestones } = loadRoadmapStatusContext(rootDir);
   if (diagnostics.length > 0) {
     return {
@@ -293,11 +297,13 @@ export function recommendRoadmapChange(rootDir: string): RoadmapRecommendResult 
   const milestoneByPath = new Map(roadmap.milestones.map((milestone) => [`roadmap/milestones/${milestone.relativeMilestonePath}`, milestone]));
   const dependencyStatusIndex = createPlannedChangeStatusIndex(milestones);
   const candidates: RoadmapRecommendationCandidate[] = [];
-  const recommendationReason =
-    "first eligible standalone planned change in roadmap order with complete dependencies and no roadmap mismatches";
+  const recommendationReason = options.milestoneId
+    ? `first eligible standalone planned change in milestone '${options.milestoneId}' with complete dependencies and no roadmap mismatches`
+    : "first eligible standalone planned change in roadmap order with complete dependencies and no roadmap mismatches";
   let recommendation: RoadmapRecommendation | null = null;
 
   for (const milestoneStatus of milestones) {
+    if (options.milestoneId !== undefined && milestoneStatus.id !== options.milestoneId) continue;
     const milestone = milestoneByPath.get(milestoneStatus.path);
     if (!milestone) continue;
 

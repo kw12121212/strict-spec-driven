@@ -81,20 +81,12 @@ requirements:
         - THEN: the command exits non-zero with deterministic cross-file diagnostics
   roadmap-recommend-contract:
     strength: MUST
-    statement: The system MUST make roadmap-recommend select the first eligible standalone planned change in roadmap order, return compact deterministic default output with skip reason summaries rather than full candidate or planned-change summary text, preserve full candidate detail behind --details, and report no-candidate or roadmap-error states without manual selection.
+    statement: The system MUST make roadmap-recommend optionally restrict recommendation to a specified milestone, select the first eligible standalone planned change within that milestone's roadmap order, return compact deterministic default output scoped to the selected milestone, preserve full scoped candidate detail behind --details, preserve existing global recommendation behavior when no milestone is specified, and report no-candidate or roadmap-error states without manual selection.
     scenarios:
-      recommend-selects-first-eligible:
-        - GIVEN: the roadmap contains eligible and ineligible standalone planned changes
-        - WHEN: roadmap-recommend runs without --details
-        - THEN: the command exits zero with status recommended and returns the first eligible planned change in roadmap order without planned-change summary text
-      recommend-reports-no-candidate:
-        - GIVEN: all roadmap candidates are complete, active, dependency-blocked, or otherwise ineligible
-        - WHEN: roadmap-recommend runs without --details
-        - THEN: the command reports status no-candidate with compact candidate counts and bounded actionable blockers
-      recommend-details-preserves-full-data:
-        - GIVEN: roadmap-recommend has candidate summary text and skip reasons
-        - WHEN: roadmap-recommend runs with --details
-        - THEN: the command returns the full recommendation, candidates, summaries, and skip reasons for inspection
+      recommend-selects-first-eligible-within-milestone:
+        - GIVEN: The roadmap contains multiple milestones with eligible and ineligible standalone planned changes.
+        - WHEN: roadmap-recommend runs with a milestone selector for one milestone.
+        - THEN: The command exits zero only when that milestone has an eligible candidate, returns the first eligible planned change within the selected milestone, scopes candidate counts and blockers to that milestone, and does not select eligible work from other milestones.
   roadmap-milestone-source-ticket-provenance:
     strength: MUST
     statement: The system MUST preserve a milestone source-ticket back-reference through roadmap loading, status derivation, and sync without dropping it, surface the originating ticket id in roadmap-status for ticket-promoted milestones, and flag a freshly promoted milestone whose scope and done criteria are still the promotion refinement stub as needing scope refinement.

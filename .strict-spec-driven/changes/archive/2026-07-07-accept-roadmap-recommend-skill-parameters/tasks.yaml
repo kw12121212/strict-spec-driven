@@ -1,0 +1,34 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: accept-roadmap-recommend-skill-parameters
+sections:
+  Implementation:
+    update-roadmap-skill-parameter-guidance:
+      text: Update roadmap-backed skill and MCP prompt guidance so user milestone hints, including numeric shorthand, resolve to exact milestone ids before invoking roadmap-recommend --milestone.
+      status: complete
+    update-skill-guidance-tests:
+      text: Add or update skill and MCP prompt regression assertions covering parameterized and fuzzy milestone recommendation guidance.
+      status: complete
+  Testing:
+    build-project:
+      text: Rebuild compiled output after TypeScript or bundled asset source edits.
+      status: complete
+      command: bun run build
+    run-project-tests:
+      text: Run the project test suite covering skill validation and MCP prompt guidance.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-strict-change:
+      text: Verify strict change artifacts and spec mappings after implementation and testing.
+      status: complete
+      command: strict-spec-cli verify accept-roadmap-recommend-skill-parameters && strict-spec-cli verify-spec-mappings
+testing_gates:
+  validation_task: build-project
+  unit_test_task: run-project-tests

@@ -1,0 +1,31 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: recommend-roadmap-change-by-milestone
+sections:
+  Implementation:
+    update-roadmap-recommend-contract:
+      text: Update roadmap recommendation code and CLI parsing so --milestone <milestone-id> scopes candidate evaluation and output while default behavior remains global.
+      status: complete
+  Testing:
+    build-project:
+      text: Rebuild compiled output after TypeScript source edits.
+      status: complete
+      command: bun run build
+    run-roadmap-tests:
+      text: Run the project test suite, including roadmap and migration regression coverage for default and milestone-scoped recommendation behavior.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-strict-change:
+      text: Verify strict change artifacts and spec mappings after implementation and testing.
+      status: complete
+      command: strict-spec-cli verify recommend-roadmap-change-by-milestone && strict-spec-cli verify-spec-mappings
+testing_gates:
+  validation_task: build-project
+  unit_test_task: run-roadmap-tests

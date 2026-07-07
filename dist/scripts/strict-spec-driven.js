@@ -17521,7 +17521,7 @@ function buildCandidateSkipReasons(plannedChangeStatus, dependencyStatusIndex, d
   }
   return skipReasons;
 }
-function recommendRoadmapChange(rootDir) {
+function recommendRoadmapChange(rootDir, options = {}) {
   const { roadmap, warnings, diagnostics, milestones } = loadRoadmapStatusContext(rootDir);
   if (diagnostics.length > 0) {
     return {
@@ -17536,9 +17536,11 @@ function recommendRoadmapChange(rootDir) {
   const milestoneByPath = new Map(roadmap.milestones.map((milestone) => [`roadmap/milestones/${milestone.relativeMilestonePath}`, milestone]));
   const dependencyStatusIndex = createPlannedChangeStatusIndex(milestones);
   const candidates = [];
-  const recommendationReason = "first eligible standalone planned change in roadmap order with complete dependencies and no roadmap mismatches";
+  const recommendationReason = options.milestoneId ? `first eligible standalone planned change in milestone '${options.milestoneId}' with complete dependencies and no roadmap mismatches` : "first eligible standalone planned change in roadmap order with complete dependencies and no roadmap mismatches";
   let recommendation = null;
   for (const milestoneStatus of milestones) {
+    if (options.milestoneId !== undefined && milestoneStatus.id !== options.milestoneId)
+      continue;
     const milestone = milestoneByPath.get(milestoneStatus.path);
     if (!milestone)
       continue;
@@ -20195,7 +20197,7 @@ function emptyReopened(milestoneId) {
 }
 
 // src/cli/cmd-roadmap.ts
-var ROADMAP_RECOMMEND_USAGE = `Usage: strict-spec-cli roadmap-recommend [--details]
+var ROADMAP_RECOMMEND_USAGE = `Usage: strict-spec-cli roadmap-recommend [--details] [--milestone <milestone-id>]
 `;
 var ROADMAP_ARCHIVE_USAGE = `Usage: strict-spec-cli roadmap-archive [milestone-id]
 `;
@@ -20214,7 +20216,7 @@ var ROADMAP_GENERATE_USAGE = [
 `;
 var ACTIONABLE_BLOCKER_LIMIT = 10;
 var ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set(["reset"]);
-function summarizeRoadmapRecommendation(result) {
+function summarizeRoadmapRecommendation(result, args) {
   const skippedByCode = {};
   let eligible = 0;
   for (const candidate of result.candidates) {
@@ -20251,7 +20253,7 @@ function summarizeRoadmapRecommendation(result) {
       skippedByCode
     },
     blockers,
-    detailsCommand: "strict-spec-cli roadmap-recommend --details"
+    detailsCommand: args.milestoneId === undefined ? "strict-spec-cli roadmap-recommend --details" : `strict-spec-cli roadmap-recommend --milestone ${args.milestoneId} --details`
   };
 }
 function runRoadmapStatus(argv) {
@@ -20407,18 +20409,54 @@ function runRoadmapGenerate(argv) {
   writeJson(result);
   return result.valid ? 0 : 1;
 }
+function parseRoadmapRecommendArgs(argv) {
+  const result = { includeDetails: false };
+  for (let index = 0;index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === "--details") {
+      if (result.includeDetails)
+        throw new Error("--details may only be supplied once");
+      result.includeDetails = true;
+      continue;
+    }
+    if (token === "--milestone") {
+      if (result.milestoneId !== undefined)
+        throw new Error("--milestone may only be supplied once");
+      const value = argv[index + 1];
+      if (value === undefined || value.length === 0 || value.startsWith("--"))
+        throw new Error("missing value for --milestone");
+      result.milestoneId = value;
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--milestone=")) {
+      if (result.milestoneId !== undefined)
+        throw new Error("--milestone may only be supplied once");
+      const value = token.slice("--milestone=".length);
+      if (value.length === 0)
+        throw new Error("missing value for --milestone");
+      result.milestoneId = value;
+      continue;
+    }
+    throw new Error(`unsupported argument: ${token}`);
+  }
+  return result;
+}
 function runRoadmapRecommend(argv) {
   if (isHelpRequest(argv)) {
     writeHelp(ROADMAP_RECOMMEND_USAGE);
     return 0;
   }
-  const includeDetails = argv.length === 1 && argv[0] === "--details";
-  if (argv.length > 0 && !includeDetails) {
+  let args;
+  try {
+    args = parseRoadmapRecommendArgs(argv);
+  } catch (error) {
+    writeError(error instanceof Error ? error.message : String(error));
     writeUsage(ROADMAP_RECOMMEND_USAGE);
     return 1;
   }
-  const result = recommendRoadmapChange(process.cwd());
-  writeJson(includeDetails ? result : summarizeRoadmapRecommendation(result));
+  const result = recommendRoadmapChange(process.cwd(), { milestoneId: args.milestoneId });
+  writeJson(args.includeDetails ? result : summarizeRoadmapRecommendation(result, args));
   return result.status === "recommended" ? 0 : 1;
 }
 function runRoadmapArchive(argv) {
