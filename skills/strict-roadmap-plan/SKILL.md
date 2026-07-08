@@ -78,8 +78,13 @@ run `init` from this skill.
    strict-spec-cli roadmap-generate milestone --id <milestone-id> --title "..." --goal "..." --scope-in "..." --scope-out "..." --done "..." --dependency "..." --risk "..." --note "..." --details "..."
    ```
    Use `--reset` only when you intentionally replace existing milestone
-   planning fields. Use `roadmap-generate milestone` for milestone YAML shape
-   and milestone-field changes; do not hand-roll milestone schema structure.
+   planning fields. Global `--reset` never removes or replaces existing
+   `intake_questions`: `--intake-question` values always merge additively, and
+   replacing the intake-question list requires the dedicated
+   `--reset-intake-questions` flag together with at least one
+   `--intake-question` value. Use `roadmap-generate milestone` for milestone
+   YAML shape and milestone-field changes; do not hand-roll milestone schema
+   structure.
    Create and update standalone work items with:
    ```bash
    strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." --depends-on <planned-change-id> --status planned

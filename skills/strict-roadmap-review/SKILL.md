@@ -100,7 +100,11 @@ run `init` from this skill.
    strict-spec-cli roadmap-generate milestone --id <milestone-id> --title "..." --goal "..." --scope-in "..." --scope-out "..." --done "..." --dependency "..." --risk "..." --note "..." --details "..."
    ```
    Use `--reset` only when you intentionally replace existing milestone
-   planning fields. Fix standalone planned-change `summary`, `details`,
+   planning fields. Global `--reset` never removes or replaces existing
+   `intake_questions`: `--intake-question` values always merge additively, and
+   replacing the intake-question list requires the dedicated
+   `--reset-intake-questions` flag together with at least one
+   `--intake-question` value. Fix standalone planned-change `summary`, `details`,
    `depends_on`, and `status` through the planned-change authoring command:
    ```bash
    strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." --reset

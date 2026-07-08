@@ -20,7 +20,7 @@ const ROADMAP_RECOMMEND_USAGE = "Usage: strict-spec-cli roadmap-recommend [--det
 const ROADMAP_ARCHIVE_USAGE = "Usage: strict-spec-cli roadmap-archive [milestone-id]\n";
 const ROADMAP_REOPEN_USAGE = "Usage: strict-spec-cli roadmap-reopen <milestone-id> [--reason \"...\"]\n";
 const ROADMAP_GENERATE_USAGE = [
-  "Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> --intake-question \"id|question|context|impact|recommendation\" [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset]",
+  "Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> --intake-question \"id|question|context|impact|recommendation\" [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset] [--reset-intake-questions]",
   "       strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary <text> --details <text> [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]",
   "",
   "Notes:",
@@ -28,10 +28,12 @@ const ROADMAP_GENERATE_USAGE = [
   "  Repeat --intake-question to append structured milestone clarification questions.",
   "  Existing scalar fields with different values require --reset.",
   "  List fields append unique values by default; with --reset, supplied list fields replace existing values.",
+  "  --reset never removes or replaces existing intake questions; --intake-question values always merge additively unless --reset-intake-questions is supplied.",
+  "  --reset-intake-questions replaces the milestone's intake_questions with exactly the supplied --intake-question values and requires at least one of them.",
   "  planned-change writes the artifact at its canonical filename <milestone-id>-<planned-change-id>.yaml under roadmap/planned-changes/ (the milestone prefix is not duplicated when the id already starts with it); callers never choose filenames.",
 ].join("\n") + "\n";
 const ACTIONABLE_BLOCKER_LIMIT = 10;
-const ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set(["reset"]);
+const ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set(["reset", "reset-intake-questions"]);
 
 type FlagMap = Record<string, string[]>;
 
@@ -229,7 +231,14 @@ function buildRoadmapMilestoneAuthorInput(argv: string[]): RoadmapMilestoneAutho
     "note",
     "details",
     "reset",
+    "reset-intake-questions",
   ]);
+
+  const intakeQuestions = values(flags, "intake-question").map(parseIntakeQuestion);
+  const resetIntakeQuestions = values(flags, "reset-intake-questions").length > 0;
+  if (resetIntakeQuestions && intakeQuestions.length === 0) {
+    throw new Error("--reset-intake-questions requires at least one --intake-question value");
+  }
 
   return {
     id: requiredOne(flags, "id"),
@@ -238,12 +247,13 @@ function buildRoadmapMilestoneAuthorInput(argv: string[]): RoadmapMilestoneAutho
     scopeIn: values(flags, "scope-in"),
     scopeOut: values(flags, "scope-out"),
     doneCriteria: values(flags, "done"),
-    intakeQuestions: values(flags, "intake-question").map(parseIntakeQuestion),
+    intakeQuestions,
     dependencies: values(flags, "dependency"),
     risks: values(flags, "risk"),
     notes: values(flags, "note"),
     details: optionalOne(flags, "details"),
     reset: values(flags, "reset").length > 0,
+    resetIntakeQuestions,
   };
 }
 

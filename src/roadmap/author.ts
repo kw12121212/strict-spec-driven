@@ -48,6 +48,7 @@ export type RoadmapMilestoneAuthorInput = {
   notes: string[];
   details?: string;
   reset: boolean;
+  resetIntakeQuestions: boolean;
 };
 
 export type RoadmapMilestoneAuthorResult = {
@@ -118,11 +119,13 @@ function sameIntakeQuestion(left: MilestoneIntakeQuestion, right: MilestoneIntak
 function mergeIntakeQuestions(
   existing: MilestoneIntakeQuestion[],
   additions: MilestoneIntakeQuestion[],
-  reset: boolean,
+  resetIntakeQuestions: boolean,
   artifactPath: string,
   diagnostics: RoadmapDiagnostic[],
 ): MilestoneIntakeQuestion[] {
-  const source = reset && additions.length > 0 ? additions : [...existing, ...additions];
+  // The global --reset flag never removes or replaces existing intake
+  // questions; only the dedicated --reset-intake-questions flag does.
+  const source = resetIntakeQuestions && additions.length > 0 ? additions : [...existing, ...additions];
   const result: MilestoneIntakeQuestion[] = [];
   const byId = new Map<string, MilestoneIntakeQuestion>();
   for (const question of source) {
@@ -134,9 +137,11 @@ function mergeIntakeQuestions(
     }
     if (sameIntakeQuestion(current, question)) continue;
     diagnostics.push(
-      conflictDiagnostic(
+      makeDiagnostic(
+        "semantic",
         artifactPath,
         `$.intake_questions.${question.id}`,
+        "existing intake question has conflicting content; rerun with --reset-intake-questions to replace the intake question list",
         `${current.question} | ${current.context} | ${current.impact} | ${current.recommendation}`,
         `${question.question} | ${question.context} | ${question.impact} | ${question.recommendation}`,
       ),
@@ -209,7 +214,7 @@ function buildArtifact(
   const intakeQuestions = mergeIntakeQuestions(
     existing?.artifact.intake_questions ?? [],
     input.intakeQuestions,
-    input.reset,
+    input.resetIntakeQuestions,
     artifactPath,
     diagnostics,
   );

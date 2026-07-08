@@ -1,0 +1,35 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: guard-milestone-intake-question-removal
+sections:
+  Implementation:
+    scope-intake-reset-in-author:
+      text: Add resetIntakeQuestions to RoadmapMilestoneAuthorInput and key mergeIntakeQuestions replacement off it in src/roadmap/author.ts, so global reset merges intake questions additively and same-id content conflicts keep producing blocking diagnostics.
+      status: complete
+    parse-reset-intake-questions-flag:
+      text: Parse the new --reset-intake-questions flag for roadmap-generate milestone in src/cli/cmd-roadmap.ts, reject the flag when no --intake-question argument is supplied, and update the command usage text to describe the scoped replacement semantics.
+      status: complete
+    update-roadmap-skill-guidance:
+      text: Update skills/strict-roadmap-plan/SKILL.md and skills/strict-roadmap-review/SKILL.md so their roadmap-generate milestone guidance states that global --reset never touches intake_questions and replacement requires --reset-intake-questions.
+      status: complete
+    rebuild-dist:
+      text: Rebuild compiled output from TypeScript sources so dist/ reflects the new flag semantics before running the dist-based suites.
+      status: complete
+      command: npm run build
+  Testing:
+    add-intake-guard-regression-tests:
+      text: Add regression tests covering that global --reset with --intake-question merges additively and preserves existing intake questions, that --reset-intake-questions replaces the list with exactly the supplied entries, and that --reset-intake-questions without --intake-question exits non-zero with the milestone file unchanged.
+      status: complete
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope, including that sync, reopen, and archive canonical rewrites remain untouched and new-milestone intake-question requirements are unchanged.
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: run-project-regression

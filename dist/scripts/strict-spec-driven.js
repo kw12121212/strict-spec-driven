@@ -19896,8 +19896,8 @@ function appendUnique(existing, additions) {
 function sameIntakeQuestion(left, right) {
   return left.id === right.id && left.question === right.question && left.context === right.context && left.impact === right.impact && left.recommendation === right.recommendation;
 }
-function mergeIntakeQuestions(existing, additions, reset, artifactPath, diagnostics) {
-  const source = reset && additions.length > 0 ? additions : [...existing, ...additions];
+function mergeIntakeQuestions(existing, additions, resetIntakeQuestions, artifactPath, diagnostics) {
+  const source = resetIntakeQuestions && additions.length > 0 ? additions : [...existing, ...additions];
   const result = [];
   const byId = new Map;
   for (const question of source) {
@@ -19909,7 +19909,7 @@ function mergeIntakeQuestions(existing, additions, reset, artifactPath, diagnost
     }
     if (sameIntakeQuestion(current, question))
       continue;
-    diagnostics.push(conflictDiagnostic(artifactPath, `$.intake_questions.${question.id}`, `${current.question} | ${current.context} | ${current.impact} | ${current.recommendation}`, `${question.question} | ${question.context} | ${question.impact} | ${question.recommendation}`));
+    diagnostics.push(makeDiagnostic("semantic", artifactPath, `$.intake_questions.${question.id}`, "existing intake question has conflicting content; rerun with --reset-intake-questions to replace the intake question list", `${current.question} | ${current.context} | ${current.impact} | ${current.recommendation}`, `${question.question} | ${question.context} | ${question.impact} | ${question.recommendation}`));
   }
   return result;
 }
@@ -19936,7 +19936,7 @@ function buildArtifact(input, existing, artifactPath, diagnostics) {
   const title = nextScalar(existing?.artifact.milestone.title, input.title, input.reset, artifactPath, "$.milestone.<id>.title", diagnostics);
   const goal = nextScalar(existing?.artifact.goal, input.goal, input.reset, artifactPath, "$.goal", diagnostics);
   const details = nextScalar(existing?.artifact.details, input.details, input.reset, artifactPath, "$.details", diagnostics);
-  const intakeQuestions = mergeIntakeQuestions(existing?.artifact.intake_questions ?? [], input.intakeQuestions, input.reset, artifactPath, diagnostics);
+  const intakeQuestions = mergeIntakeQuestions(existing?.artifact.intake_questions ?? [], input.intakeQuestions, input.resetIntakeQuestions, artifactPath, diagnostics);
   if (!title || !goal)
     return null;
   return {
@@ -20375,7 +20375,7 @@ var ROADMAP_ARCHIVE_USAGE = `Usage: strict-spec-cli roadmap-archive [milestone-i
 var ROADMAP_REOPEN_USAGE = `Usage: strict-spec-cli roadmap-reopen <milestone-id> [--reason "..."]
 `;
 var ROADMAP_GENERATE_USAGE = [
-  'Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> --intake-question "id|question|context|impact|recommendation" [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset]',
+  'Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> --intake-question "id|question|context|impact|recommendation" [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset] [--reset-intake-questions]',
   "       strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary <text> --details <text> [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]",
   "",
   "Notes:",
@@ -20383,12 +20383,14 @@ var ROADMAP_GENERATE_USAGE = [
   "  Repeat --intake-question to append structured milestone clarification questions.",
   "  Existing scalar fields with different values require --reset.",
   "  List fields append unique values by default; with --reset, supplied list fields replace existing values.",
+  "  --reset never removes or replaces existing intake questions; --intake-question values always merge additively unless --reset-intake-questions is supplied.",
+  "  --reset-intake-questions replaces the milestone's intake_questions with exactly the supplied --intake-question values and requires at least one of them.",
   "  planned-change writes the artifact at its canonical filename <milestone-id>-<planned-change-id>.yaml under roadmap/planned-changes/ (the milestone prefix is not duplicated when the id already starts with it); callers never choose filenames."
 ].join(`
 `) + `
 `;
 var ACTIONABLE_BLOCKER_LIMIT = 10;
-var ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set(["reset"]);
+var ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set(["reset", "reset-intake-questions"]);
 function summarizeRoadmapRecommendation(result, args) {
   const skippedByCode = {};
   let eligible = 0;
@@ -20552,8 +20554,14 @@ function buildRoadmapMilestoneAuthorInput(argv) {
     "risk",
     "note",
     "details",
-    "reset"
+    "reset",
+    "reset-intake-questions"
   ]);
+  const intakeQuestions = values2(flags, "intake-question").map(parseIntakeQuestion);
+  const resetIntakeQuestions = values2(flags, "reset-intake-questions").length > 0;
+  if (resetIntakeQuestions && intakeQuestions.length === 0) {
+    throw new Error("--reset-intake-questions requires at least one --intake-question value");
+  }
   return {
     id: requiredOne(flags, "id"),
     title: optionalOne2(flags, "title"),
@@ -20561,12 +20569,13 @@ function buildRoadmapMilestoneAuthorInput(argv) {
     scopeIn: values2(flags, "scope-in"),
     scopeOut: values2(flags, "scope-out"),
     doneCriteria: values2(flags, "done"),
-    intakeQuestions: values2(flags, "intake-question").map(parseIntakeQuestion),
+    intakeQuestions,
     dependencies: values2(flags, "dependency"),
     risks: values2(flags, "risk"),
     notes: values2(flags, "note"),
     details: optionalOne2(flags, "details"),
-    reset: values2(flags, "reset").length > 0
+    reset: values2(flags, "reset").length > 0,
+    resetIntakeQuestions
   };
 }
 function buildRoadmapPlannedChangeAuthorInput(argv) {

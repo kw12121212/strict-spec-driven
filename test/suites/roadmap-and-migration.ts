@@ -649,14 +649,70 @@ try {
     resetArtifact.goal === "Replace the goal with explicit reset."
       && resetArtifact.scope.in.join("\n") === "Reset milestone scope."
       && resetArtifact.done_criteria.join("\n") === "Reset done criterion."
-      && resetArtifact.intake_questions.map((question) => question.id).join("\n") === "risks"
+      && resetArtifact.intake_questions.map((question) => question.id).join(",") === "objective,scope-boundary,verification-evidence,risks"
       && resetArtifact.notes.join("\n") === "Reset note."
       && resetArtifact.source_ticket === "captured-ticket",
-    "roadmap-generate milestone reset replaces supplied list fields and intake questions while preserving source_ticket",
+    "roadmap-generate milestone reset replaces supplied list fields but merges intake questions additively while preserving source_ticket",
   );
   context.assert(
     readFileSync(standalonePath, "utf8") === standaloneBeforeUpdate,
     "roadmap-generate milestone reset still does not rewrite standalone planned-change files",
+  );
+
+  const beforeIntakeConflict = readFileSync(generatedMilestonePath, "utf8");
+  const resetIntakeConflict = cli([
+    "roadmap-generate",
+    "milestone",
+    "--id",
+    "0001-authoring",
+    "--reset",
+    "--intake-question",
+    "objective|What different outcome should this milestone deliver?|Global reset must not resolve intake conflicts by replacement.|Silent replacement loses recorded planning questions.|Surface the conflict for explicit resolution.",
+  ], { cwd: roadmapGenerateDir });
+  context.assert(
+    resetIntakeConflict.status !== 0
+      && resetIntakeConflict.stdout.includes("conflicting content")
+      && readFileSync(generatedMilestonePath, "utf8") === beforeIntakeConflict,
+    "roadmap-generate milestone with global --reset reports same-id intake conflicts instead of replacing existing intake questions",
+    resetIntakeConflict.stdout,
+  );
+
+  const replaceIntakeQuestions = cli([
+    "roadmap-generate",
+    "milestone",
+    "--id",
+    "0001-authoring",
+    "--reset-intake-questions",
+    "--intake-question",
+    "final-outcome|What single outcome closes this milestone?|Explicit replacement consolidates milestone intake questions.|The consolidated question defines proposal scope for child changes.|Answer with the milestone's one observable completion outcome.",
+  ], { cwd: roadmapGenerateDir });
+  context.assert(replaceIntakeQuestions.status === 0, "roadmap-generate milestone replaces intake questions with --reset-intake-questions", replaceIntakeQuestions.stderr);
+  const replacedIntakeArtifact = yamlModule.parseYamlFile<{
+    goal: string;
+    intake_questions: Array<{ id: string }>;
+    source_ticket?: string;
+  }>(generatedMilestonePath);
+  context.assert(
+    replacedIntakeArtifact.intake_questions.map((question) => question.id).join(",") === "final-outcome"
+      && replacedIntakeArtifact.goal === "Replace the goal with explicit reset."
+      && replacedIntakeArtifact.source_ticket === "captured-ticket",
+    "roadmap-generate milestone --reset-intake-questions replaces the intake list with exactly the supplied entries while leaving other fields untouched",
+  );
+
+  const beforeRejectedIntakeReset = readFileSync(generatedMilestonePath, "utf8");
+  const resetIntakeWithoutEntries = cli([
+    "roadmap-generate",
+    "milestone",
+    "--id",
+    "0001-authoring",
+    "--reset-intake-questions",
+  ], { cwd: roadmapGenerateDir });
+  context.assert(
+    resetIntakeWithoutEntries.status !== 0
+      && resetIntakeWithoutEntries.stderr.includes("--reset-intake-questions requires at least one --intake-question value")
+      && readFileSync(generatedMilestonePath, "utf8") === beforeRejectedIntakeReset,
+    "roadmap-generate milestone rejects --reset-intake-questions without --intake-question and leaves the milestone unchanged",
+    resetIntakeWithoutEntries.stderr,
   );
 
   const missingIntakeQuestionMilestone = cli([

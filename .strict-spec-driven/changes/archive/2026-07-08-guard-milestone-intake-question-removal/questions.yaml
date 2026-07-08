@@ -1,0 +1,12 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: guard-milestone-intake-question-removal
+open: []
+resolved:
+  - id: intake-guard-approach
+    question: Should intake-question deletion be prevented by scoping the destructive replacement behind a dedicated CLI flag, and should the stale locally installed strict-roadmap-milestone skill be removed?
+    context: 'Investigation on 2026-07-08 traced milestone intake-question deletions to two agent-triggered vectors: the global --reset flag replacing the whole intake list whenever any --intake-question is supplied, and a stale installed strict-roadmap-milestone skill that instructed direct milestone YAML edits with a field list omitting intake_questions.'
+    answer: 'User confirmed both actions: the stale installed skill was deleted immediately, and this change scopes replacement behind a dedicated --reset-intake-questions flag with additive merge as the only global --reset behavior; a per-id removal flag was explicitly deferred out of scope.'
+    status: resolved

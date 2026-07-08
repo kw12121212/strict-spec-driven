@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: guard-milestone-intake-question-removal
+  status: proposed
+summary:
+  what:
+    - 'Make roadmap-generate milestone unable to silently shrink a milestone''s intake_questions list: the global --reset flag stops applying to intake questions, and replacing the intake list requires a dedicated explicit --reset-intake-questions flag; without it, supplied --intake-question entries always merge additively with same-id conflict diagnostics.'
+  why:
+    - 'Investigation showed milestone intake questions get deleted by agent-triggered flag side effects: author.ts replaces the entire intake list whenever the global --reset is combined with any --intake-question argument, so an agent resetting scope or goal while touching one intake question silently wipes the rest, and the result still validates because the list stays non-empty. Deterministic sync, reopen, and archive rewrites already preserve intake questions, so the CLI authoring command is the remaining script-side deletion path.'
+scope:
+  in:
+    - mergeIntakeQuestions and RoadmapMilestoneAuthorInput semantics in src/roadmap/author.ts
+    - flag parsing and usage text for roadmap-generate milestone in src/cli/cmd-roadmap.ts
+    - usage guidance for --reset and --reset-intake-questions in skills/strict-roadmap-plan/SKILL.md and skills/strict-roadmap-review/SKILL.md
+    - regression tests for intake-question preservation and explicit replacement
+    - delta spec for roadmap-domain-behavior milestone authoring contract
+  out:
+    - a per-id --remove-intake-question flag; removal is expressed by explicit full-list replacement via --reset-intake-questions
+    - changes to roadmap validation rules, sync, reopen, or archive canonical rewrites, which already preserve intake questions
+    - protection against direct hand-edits of milestone YAML outside the CLI
+unchanged_behavior:
+  - new milestones still require at least one --intake-question
+  - intake_questions must remain a non-empty validated sequence
+  - global --reset semantics for title, goal, scope, done criteria, dependencies, risks, notes, and details
+  - additive merge with conflict diagnostics remains the default intake-question update behavior
