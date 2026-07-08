@@ -127,6 +127,26 @@ summaries must use `preferred_human_language`. The open-question impact must
 name whether the uncertainty affects proposal scope, spec delta, implementation
 files, tests, dependencies, or technical standards.
 
+## Spec and Technical Artifact Routing
+
+A strict change may legitimately have no delta spec. Do not invent a
+`delta-spec` just to satisfy artifact shape.
+
+- Create `delta-spec` artifacts only when the roadmap-backed change modifies
+  user-observable behavior or another requirement that belongs in a strict YAML
+  main spec.
+- For purely technical roadmap-backed changes such as refactors, build or test
+  tooling, repository maintenance, architecture constraints, scripts,
+  validation flows, archive behavior, or skill guidance, leave `specs/` empty
+  when no main spec requirement changes.
+- If a technical-only change alters, adds, or retires an engineering rule,
+  create a `delta-tech` artifact for the affected standard. If it only complies
+  with existing standards, leave `tech/` absent too.
+- A technical-only change still needs complete workflow tasks: script or
+  tooling edits when applicable, focused tests, validation commands,
+  `ready`/`verify` checks, and archive-readiness or archive-merge checks when
+  the change affects artifacts consumed by archive.
+
 ## Steps
 
 Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.
@@ -155,7 +175,9 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
    to scaffold the recommended change:
    - `.strict-spec-driven/config.yaml`
    - `.strict-spec-driven/specs/INDEX.yaml`
-   - every strict YAML main spec the recommended change is likely to touch
+   - every strict YAML main spec the recommended change is likely to touch, if
+     any; for a purely technical recommended change, confirm from the spec index
+     that no main spec requirement is implicated instead of forcing one
    - the technical standards that govern the code this change will touch by
      running `strict-spec-cli tech-status` and
      reading the relevant files under `.strict-spec-driven/tech/`
@@ -179,9 +201,10 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
 
 3. **Present a checkpoint before scaffolding** — summarize the proposed change
    name, milestone, standalone planned-change file path, why it is the best next
-   step, which strict specs are likely to change, and any open questions that
-   still need to land in `questions.yaml`. Include any intake questions that
-   result from thin roadmap details, missing implementation/test/spec impact,
+   step, which strict specs are likely to change or that no strict spec changes
+   are expected for a technical-only change, and any open questions that still
+   need to land in `questions.yaml`. Include any intake questions that result
+   from thin roadmap details, missing implementation/test/spec impact,
    dependency uncertainty, or technical standard uncertainty. Do not stop for human confirmation;
    use the checkpoint only to explain the recommendation.
 
@@ -221,6 +244,10 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
    - testing tasks should include runnable `command` fields
    - `testing_gates.validation_task` and `testing_gates.unit_test_task` must
      point at the corresponding Testing task IDs
+   - for technical-only changes, include the concrete scripts, tooling,
+     generated assets, documentation, or skill-prompt edits in scope; include
+     validation, strict `ready`/`verify`, and archive-readiness or archive-merge
+     checks when relevant
    - keep YAML valid and structured; do not use Markdown prose inside the file
 
 8. **Generate `questions.yaml`** — run one direct CLI invocation for the full
@@ -231,9 +258,10 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
    Record open questions as structured entries under `open`; if everything is
    clear, leave `open: []`.
 
-9. **Generate strict YAML delta specs** — run one direct CLI invocation per
-   target spec and include all mapping paths and requirement operations needed
-   for that target in the same command:
+9. **Generate strict YAML delta specs only when specs change** — run this step
+   only when the change has observable spec impact. Use one direct CLI
+   invocation per target spec and include all mapping paths and requirement
+   operations needed for that target in the same command:
    ```bash
    strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."
    ```
@@ -255,6 +283,11 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
     constraints. Check for decision-ready detail in scope, unchanged behavior,
     design decisions, task coverage, unresolved-question impact, delta spec
     scenarios, delta tech use when applicable, and structured mapping fields.
+    When no delta specs are appropriate, replace delta spec scenario review with
+    a justified absence check for the technical-only change. For technical-only
+    changes, verify that tasks cover scripts or tooling, validation commands,
+    `ready`/`verify`, and archive or archive-merge checks when archive behavior
+    is affected.
     The checkpoint should fix safe, in-scope documentation gaps immediately. Do
     not expand scope or answer unresolved human questions; record ambiguity in
     `questions.yaml`.

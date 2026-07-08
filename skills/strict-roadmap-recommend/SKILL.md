@@ -94,6 +94,26 @@ summaries must use `preferred_human_language`. The open-question impact must
 name whether the uncertainty affects proposal scope, spec delta, implementation
 files, tests, dependencies, or technical standards.
 
+## Spec and Technical Artifact Routing
+
+A strict change may legitimately have no delta spec. Do not invent a
+`delta-spec` just to satisfy artifact shape.
+
+- Create `delta-spec` artifacts only when the roadmap-backed change modifies
+  user-observable behavior or another requirement that belongs in a strict YAML
+  main spec.
+- For purely technical roadmap-backed changes such as refactors, build or test
+  tooling, repository maintenance, architecture constraints, scripts,
+  validation flows, archive behavior, or skill guidance, leave `specs/` empty
+  when no main spec requirement changes.
+- If a technical-only change alters, adds, or retires an engineering rule,
+  create a `delta-tech` artifact for the affected standard. If it only complies
+  with existing standards, leave `tech/` absent too.
+- A technical-only change still needs complete workflow tasks: script or
+  tooling edits when applicable, focused tests, validation commands,
+  `ready`/`verify` checks, and archive-readiness or archive-merge checks when
+  the change affects artifacts consumed by archive.
+
 ## Steps
 
 Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
@@ -135,7 +155,9 @@ run `init` from this skill.
    - the standalone planned-change YAML artifact reported by the
      scripted recommendation result `path`
    - `.strict-spec-driven/specs/INDEX.yaml`
-   - the strict YAML main specs the selected change is likely to touch
+   - the strict YAML main specs the selected change is likely to touch, if any;
+     for a purely technical selected change, confirm from the spec index that no
+     main spec requirement is implicated instead of forcing one
    - `roadmap-status` output only when needed to explain diagnostic context or
      legacy inline planned-change state
    - the owning milestone YAML file's `details` field, if present, as targeted
@@ -152,7 +174,8 @@ run `init` from this skill.
    - the milestone it comes from
    - the standalone planned-change file path from the scripted recommendation result
    - why it is the best next step
-   - which strict specs are likely to change
+   - which strict specs are likely to change, or that no strict spec changes
+     are expected for a technical-only change
    - any open questions that would need to go into the strict change proposal
    Include any intake questions that result from thin roadmap details, missing
    implementation/test/spec impact, dependency uncertainty, or technical
@@ -170,10 +193,12 @@ run `init` from this skill.
    `tasks.yaml` directly, and do not create JSON payload files.
    - `strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..." --milestone <milestone-id> --planned-change <planned-change-id>`
    - `strict-spec-cli generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
-   - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema
+   - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema, including concrete Implementation tasks for script, tooling, generated asset, documentation, or skill-prompt edits in scope; Testing tasks with runnable validation and unit/regression commands; and Verification tasks for `ready`, `verify`, mapping checks, and archive-readiness or archive-merge checks when relevant
    - `strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
-   - `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` for each target spec
+   - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` for each target spec
    - when the change alters a technical standard, generate delta tech under `.strict-spec-driven/changes/<change-name>/tech/` with `generate <change-name> delta-tech --target-standard <id> ...`; for user interface work, capture observable UI behavior as delta-spec requirements and UI engineering and design rules as a `ui`-category technical standard, with visual fidelity governed by visual-regression snapshots rather than inlined
+   - if the change has no observable spec impact, leave the `specs/` directory
+     empty rather than inventing a prose-only file
    Prefer one invocation per supported generated artifact (or per target spec
    for delta specs).
    Do this without copying full milestone-level planning metadata into the
@@ -192,7 +217,11 @@ run `init` from this skill.
    specs, technical standards, and project constraints. Check for decision-ready
    detail in scope, unchanged behavior, design decisions, task coverage,
    unresolved-question impact, delta spec scenarios, delta tech use when
-   applicable, and structured mapping fields. The checkpoint should fix safe,
+   applicable, and structured mapping fields. When no delta specs are
+   appropriate, replace delta spec scenario review with a justified absence
+   check for the technical-only change. For technical-only changes, verify that
+   tasks cover scripts or tooling, validation commands, `ready`/`verify`, and
+   archive or archive-merge checks when archive behavior is affected. The checkpoint should fix safe,
    in-scope documentation gaps immediately, and record real ambiguity in
    `questions.yaml` without expanding scope or answering unresolved human
    questions.

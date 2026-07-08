@@ -92,6 +92,26 @@ Keep the proposal checkpoint focused on what changes, what stays the same,
 where the work likely lives, how it will be tested, and which technical rules
 apply.
 
+## Spec and Technical Artifact Routing
+
+A bugfix may legitimately have no delta spec when it fixes a purely internal
+defect with no observable spec impact. Do not invent a `delta-spec` just to
+satisfy artifact shape.
+
+- Create `delta-spec` artifacts when the bugfix changes user-observable
+  behavior, corrects behavior covered by a main spec, or clarifies an intended
+  requirement that was missing from the specs.
+- For purely internal defects in scripts, validation flows, archive behavior,
+  tooling, repository maintenance, or skill guidance, leave `specs/` empty when
+  no main spec requirement changes.
+- If the bugfix alters, adds, or retires an engineering rule, create a
+  `delta-tech` artifact for the affected standard. If it only complies with
+  existing standards, leave `tech/` absent too.
+- A technical-only bugfix still needs complete workflow tasks: reproduction
+  evidence, script or tooling edits when applicable, focused tests, validation
+  commands, `ready`/`verify` checks, and archive-readiness or archive-merge
+  checks when the fix affects artifacts consumed by archive.
+
 ## Steps
 
 Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
@@ -111,7 +131,9 @@ run `init` from this skill.
    unless it has been revalidated from current repository state. Read:
    - `.strict-spec-driven/config.yaml`
    - `.strict-spec-driven/specs/INDEX.yaml`
-   - every strict YAML main spec the bug appears to violate or touch
+   - every strict YAML main spec the bug appears to violate or touch, if any;
+     for a purely internal defect, confirm from the spec index that no main spec
+     requirement is implicated instead of forcing one
    - the relevant implementation and test files
    - the applicable technical standards by running
      `strict-spec-cli tech-status` and reading the relevant files under
@@ -152,7 +174,10 @@ run `init` from this skill.
    - `tasks.yaml`: use concrete sections for Reproduction, Implementation,
      Testing, and Verification. Include a failing-regression-test or equivalent
      deterministic reproduction task before the production fix. Testing tasks
-     must include runnable `command` fields.
+     must include runnable `command` fields. For technical-only bugfixes,
+     include the concrete scripts, tooling, generated assets, documentation, or
+     skill-prompt edits in scope; include validation, strict `ready`/`verify`,
+     and archive-readiness or archive-merge checks when relevant.
    - `questions.yaml`: leave `open: []` only when reproduction, scope, expected
      behavior, and regression validation are all clear. Otherwise record the
      missing decision and stop before implementation.
@@ -166,7 +191,12 @@ run `init` from this skill.
    against the known bug, reproduction evidence, expected behavior, relevant
    main specs, applicable technical standards, unchanged behavior, task
    coverage, unresolved-question impact, delta spec scenarios, delta tech use
-   when applicable, and structured mapping fields. The checkpoint should fix safe, in-scope
+   when applicable, and structured mapping fields. When no delta specs are
+   appropriate, replace delta spec scenario review with a justified absence
+   check for the technical-only bugfix. For technical-only bugfixes, verify that
+   tasks cover reproduction evidence, scripts or tooling, validation commands,
+   `ready`/`verify`, and archive or archive-merge checks when archive behavior
+   is affected. The checkpoint should fix safe, in-scope
    documentation gaps immediately. Do not expand scope or answer unresolved
    human questions silently.
 

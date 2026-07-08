@@ -64,6 +64,29 @@ Keep the proposal checkpoint focused on what changes, what stays the same,
 where the work likely lives, how it will be tested, and which technical rules
 apply.
 
+## Spec and Technical Artifact Routing
+
+A strict change may legitimately have no delta spec. Do not invent a
+`delta-spec` just to satisfy artifact shape.
+
+- Create `delta-spec` artifacts only when the change modifies user-observable
+  behavior or another requirement that belongs in a strict YAML main spec.
+- For purely technical changes such as refactors, build or test tooling,
+  repository maintenance, architecture constraints, or skill guidance, leave
+  `.strict-spec-driven/changes/<change-name>/specs/` empty when no main spec
+  requirement changes.
+- If a technical-only change alters, adds, or retires an engineering rule,
+  create a `delta-tech` artifact for the affected standard. If it only complies
+  with existing standards, leave `tech/` absent too.
+- A technical-only change still needs concrete workflow tasks: script or tooling
+  edits when applicable, focused tests, validation commands, `ready`/`verify`
+  checks, and archive-readiness checks when the change affects merge or archive
+  behavior.
+- In the proposal checkpoint, explicitly say either which strict spec areas
+  will change or that no strict spec area is expected to change, with the reason.
+- Still require `proposal.yaml`, `design.yaml`, `tasks.yaml`, `questions.yaml`,
+  testing tasks, verification tasks, and any applicable structured mappings.
+
 ## Steps
 
 Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
@@ -78,7 +101,9 @@ run `init` from this skill.
    early** — before narrowing scope, read:
    - `.strict-spec-driven/config.yaml`
    - `.strict-spec-driven/specs/INDEX.yaml`
-   - every relevant strict YAML main spec file the idea appears likely to touch
+   - every relevant strict YAML main spec file the idea appears likely to touch,
+     if any; for a purely technical change, confirm from the spec index that no
+     main spec requirement is implicated instead of forcing one
    - run `strict-spec-cli tech-status` and read
      the relevant files under `.strict-spec-driven/tech/` so the brainstorm
      stays inside the project's technical standards from the start
@@ -98,7 +123,8 @@ run `init` from this skill.
      technical standard, and visual fidelity is governed by visual-regression
      snapshots rather than inlined detail
    - which existing strict YAML spec files will likely be modified, or whether a
-     new strict spec area is needed
+     new strict spec area is needed, or why no strict spec area should change
+     because the change is purely technical
    - any questions that still need a human answer before implementation
 
 4. **Suggest the change name** — once the idea is coherent enough, propose a
@@ -108,7 +134,8 @@ run `init` from this skill.
 5. **Present a proposal checkpoint** — before creating any files, summarize:
    - the proposed change name
    - the goal and scope
-   - the main strict spec areas expected to change
+   - the main strict spec areas expected to change, or "no strict spec changes"
+     with the technical-only rationale
    - key decisions or tradeoffs already settled
    - any unresolved questions that would go into `questions.yaml`
 
@@ -129,19 +156,32 @@ run `init` from this skill.
     - `strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."`
     - `strict-spec-cli generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
     - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema
+      with explicit Implementation tasks for script, tooling, documentation, or
+      skill-prompt edits in scope; Testing tasks with runnable validation and
+      unit/regression commands; and Verification tasks for `ready`, `verify`,
+      mapping checks, and archive-readiness or archive-merge checks when
+      relevant
     - `strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..."` plus any needed `--resolved` entries
-    - `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` once per target strict main spec path
-    Prefer one invocation per supported generated artifact (or per target spec
-    for delta specs) so generated YAML matches the full document shape
-    immediately.
+    - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` once per target strict main spec path
+    - when the change alters a technical standard, `strict-spec-cli generate <change-name> delta-tech --target-standard <standard-id> [--title "..." --category <category>] [--implementation "src/file.ts"] [--enforcement "config"] --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review`
+    If the change has no observable spec impact, leave the `specs/` directory
+    empty rather than inventing a prose-only file. Prefer one invocation per
+    supported generated artifact (or per target spec for delta specs) so
+    generated YAML matches the full document shape immediately.
 
 8. **Run the proposal checkpoint over generated planning artifacts** — before
    validation, perform a semantic self-check of every generated or edited file under
    `.strict-spec-driven/changes/<change-name>/` against the confirmed brainstorm
-   summary, the relevant main specs, technical standards, and the existing
-   project constraints. Check for decision-ready detail in scope, unchanged
-   behavior, design decisions, task coverage, unresolved-question impact, delta
-   spec scenarios, delta tech use when applicable, and structured mapping fields.
+   summary, the relevant main specs if any, technical standards, and the
+   existing project constraints. Check for decision-ready detail in scope,
+   unchanged behavior, design decisions, task coverage, unresolved-question
+   impact, delta spec scenarios, delta tech use when applicable, and structured
+   mapping fields. When no delta specs are appropriate, replace delta spec
+   scenario review with a justified absence check for the technical-only change.
+   For technical-only changes, verify that the task list includes the concrete
+   scripts or generated assets to edit, validation commands to run, strict
+   `ready`/`verify` checks, and archive or archive-merge checks whenever the
+   change affects artifacts that archive consumes.
    The checkpoint should fix safe, in-scope documentation gaps immediately by
    rerunning the supported `generate` commands for script-owned artifacts and by
    directly editing `tasks.yaml` for task-list structure. Do not expand scope or
@@ -162,8 +202,9 @@ run `init` from this skill.
    pending-task diagnostics are expected because implementation has not started
    yet. Fix safe structure issues before handing the proposal off.
 
-10. **Hand off** — summarize the strict change scope, key decisions, proposal
-   checkpoint refinements made, task count, unchanged behavior, and any open questions. If
+10. **Hand off** — summarize the strict change scope, key decisions, whether
+   delta specs are present or intentionally absent, proposal checkpoint
+   refinements made, task count, unchanged behavior, and any open questions. If
    `questions.yaml` still has open entries, make clear that implementation must
    stop for explicit user resolution before coding starts.
 

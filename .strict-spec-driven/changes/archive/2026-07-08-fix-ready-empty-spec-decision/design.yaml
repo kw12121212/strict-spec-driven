@@ -1,0 +1,17 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: fix-ready-empty-spec-decision
+approach:
+  - Add deterministic no-delta-spec recognition in ready by checking design.yaml decision identifiers rather than natural-language prose.
+  - Use the explicit decision only to suppress the missing-delta-spec readiness diagnostic; do not relax delta mapping diagnostics for existing delta specs.
+decisions:
+  no-delta-spec:
+    decision: Treat design decisions keyed no-delta-spec, no-spec-impact, technical-only-no-spec, or empty-spec-decision as explicit evidence that an empty specs directory is intentional.
+    rationale: Stable decision identifiers are structured YAML fields that agents can produce deliberately and scripts can inspect deterministically without embedding semantic judgment in free text.
+alternatives:
+  - option: Infer no-spec intent from proposal or design prose.
+    reason: Rejected because prose matching is brittle, locale-sensitive, and would put product judgment into the script.
+risks:
+  - Agents must use one of the stable decision ids for technical-only changes until a richer structured field exists.

@@ -19410,6 +19410,12 @@ function flattenTasks(artifact) {
 
 // src/workflow-state.ts
 var STRICT_WORKFLOW_DIR8 = ".strict-spec-driven";
+var EMPTY_SPEC_DECISION_IDS = new Set([
+  "no-delta-spec",
+  "no-spec-impact",
+  "technical-only-no-spec",
+  "empty-spec-decision"
+]);
 function changeDir(rootDir, changeName) {
   return path18.join(rootDir, STRICT_WORKFLOW_DIR8, "changes", changeName);
 }
@@ -19435,6 +19441,12 @@ function listDeltaSpecFiles(rootDir, changeName) {
   }
   walk(specsDir);
   return files;
+}
+function hasExplicitEmptySpecDecision(rootDir, changeName) {
+  const design = readChangeArtifact(rootDir, changeName, "design.yaml");
+  if (!design?.decisions)
+    return false;
+  return Object.keys(design.decisions).some((decisionId) => EMPTY_SPEC_DECISION_IDS.has(decisionId.toLowerCase()));
 }
 function readChangeArtifact(rootDir, changeName, artifactName) {
   const artifactPath = path18.join(changeDir(rootDir, changeName), artifactName);
@@ -19571,7 +19583,8 @@ function checkProposalReadiness(rootDir, changeName) {
   const verification = verifyChange(rootDir, changeName);
   const diagnostics = verification.diagnostics.filter((diagnostic) => diagnostic.source !== "task_completion");
   diagnostics.push(...checkDeterministicQuestionGateEvidence(rootDir, changeName));
-  if (listDeltaSpecFiles(rootDir, changeName).length === 0) {
+  const hasMissingDeltaSpecDiagnostic = listDeltaSpecFiles(rootDir, changeName).length === 0 && !hasExplicitEmptySpecDecision(rootDir, changeName);
+  if (hasMissingDeltaSpecDiagnostic) {
     diagnostics.push({
       source: "proposal_readiness",
       artifactPath: `.strict-spec-driven/changes/${changeName}/specs/`,
@@ -19587,7 +19600,7 @@ function checkProposalReadiness(rootDir, changeName) {
     return aKey.localeCompare(bKey);
   });
   const suggestions = suggestionsForDiagnostics(rootDir, changeName, diagnostics);
-  if (diagnostics.some((diagnostic) => diagnostic.source === "proposal_readiness")) {
+  if (hasMissingDeltaSpecDiagnostic) {
     suggestions.push({
       command: `strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> ...`,
       reason: "Create a target-spec-scoped delta spec when the change has strict spec impact."

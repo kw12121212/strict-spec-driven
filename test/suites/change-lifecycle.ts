@@ -385,6 +385,88 @@ try {
       && !readyCompleteJson.diagnostics.some((diagnostic: { source: string }) => diagnostic.source === "proposal_readiness"),
     "ready emits no proposal_readiness diagnostics for complete deterministic question-gate evidence",
   );
+
+  const readyNoDeltaChangeName = "workflow-ready-no-delta";
+  const readyNoDeltaChangeDir = path.join(workflowGuidanceDir, ".strict-spec-driven", "changes", readyNoDeltaChangeName);
+  mkdirSync(path.join(readyNoDeltaChangeDir, "specs"), { recursive: true });
+  writeFileSync(path.join(readyNoDeltaChangeDir, "proposal.yaml"), [
+    "schema: strict-spec-driven/change-proposal/v1",
+    "schema_version: 1",
+    "artifact_type: change_proposal",
+    "schema_file: test",
+    "change:",
+    `  id: ${readyNoDeltaChangeName}`,
+    "  status: proposed",
+    "summary:",
+    "  what:",
+    "    - Document a technical-only workflow maintenance change",
+    "  why:",
+    "    - Testing explicit empty-spec readiness",
+    "scope:",
+    "  in:",
+    "    - Include only internal workflow maintenance",
+    "  out:",
+    "    - Do not change observable spec behavior",
+    "unchanged_behavior:",
+    "  - Existing delta-spec readiness checks remain unchanged when specs are present",
+  ].join("\n") + "\n", "utf8");
+  writeFileSync(path.join(readyNoDeltaChangeDir, "design.yaml"), [
+    "schema: strict-spec-driven/change-design/v1",
+    "schema_version: 1",
+    "artifact_type: change_design",
+    "schema_file: test",
+    `change: ${readyNoDeltaChangeName}`,
+    "approach:",
+    "  - Test no-delta-spec readiness evidence",
+    "decisions:",
+    "  no-delta-spec:",
+    "    decision: Leave specs empty because the change has no strict spec impact.",
+    "    rationale: A stable decision id gives ready deterministic evidence without requiring prose interpretation.",
+    "alternatives: []",
+  ].join("\n") + "\n", "utf8");
+  writeFileSync(path.join(readyNoDeltaChangeDir, "tasks.yaml"), [
+    "schema: strict-spec-driven/task-list/v2",
+    "schema_version: 2",
+    "artifact_type: task_list",
+    "schema_file: test",
+    `change: ${readyNoDeltaChangeName}`,
+    "sections:",
+    "  Implementation:",
+    "    impl-1:",
+    "      text: Implement",
+    "      status: pending",
+    "  Testing:",
+    "    run-tests:",
+    "      text: Run tests",
+    "      status: pending",
+    "      command: bun test/run.ts",
+    "  Verification:",
+    "    verify-1:",
+    "      text: Verify",
+    "      status: pending",
+    "testing_gates:",
+    "  validation_task: run-tests",
+    "  unit_test_task: run-tests",
+  ].join("\n") + "\n", "utf8");
+  writeFileSync(path.join(readyNoDeltaChangeDir, "questions.yaml"), [
+    "schema: strict-spec-driven/question-list/v1",
+    "schema_version: 1",
+    "artifact_type: question_list",
+    "schema_file: test",
+    `change: ${readyNoDeltaChangeName}`,
+    "open: []",
+    "resolved: []",
+  ].join("\n") + "\n", "utf8");
+  const readyNoDelta = cli(["ready", readyNoDeltaChangeName], { cwd: workflowGuidanceDir });
+  context.assert(readyNoDelta.status === 0, "ready exits zero for explicit no-delta-spec decision", readyNoDelta.stdout.trim());
+  const readyNoDeltaJson = JSON.parse(readyNoDelta.stdout.trim());
+  context.assert(
+    readyNoDeltaJson.ready === true
+      && !readyNoDeltaJson.diagnostics.some((diagnostic: { artifactPath: string; message: string }) =>
+        diagnostic.artifactPath.endsWith("/specs/") && diagnostic.message.includes("no delta spec files")
+      ),
+    "ready accepts explicit empty-spec decision without missing-delta-spec diagnostics",
+  );
 } finally {
   rmSync(workflowGuidanceDir, { recursive: true, force: true });
 }

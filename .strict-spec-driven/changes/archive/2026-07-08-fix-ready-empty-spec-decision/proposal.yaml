@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: fix-ready-empty-spec-decision
+  status: proposed
+summary:
+  what:
+    - Allow ready to accept explicit no-delta-spec proposal evidence for technical-only changes.
+  why:
+    - Current ready diagnostics always report missing delta specs even when a change intentionally has no observable spec impact, which conflicts with the strict skill guidance for technical-only changes.
+scope:
+  in:
+    - Recognize a stable design decision id as explicit no-delta-spec evidence.
+    - Keep ready reporting missing delta specs when a change lacks both delta specs and explicit no-delta-spec evidence.
+    - Update regression coverage for ready behavior.
+  out:
+    - Do not change verify or archive behavior.
+    - Do not infer no-spec impact from arbitrary prose.
+unchanged_behavior:
+  - Changes with delta specs continue to require implementation or test mappings for proposal handoff.
+  - Open questions, incomplete scope, unchanged behavior, and missing design decisions continue to block ready.

@@ -617,6 +617,45 @@ context.assert(
     "strict-spec-brainstorm runs a proposal checkpoint over generated planning artifacts before ready/verify handoff",
   );
   context.assert(
+    normalizedBrainstormSkillContent.includes("A strict change may legitimately have no delta spec")
+      && normalizedBrainstormSkillContent.includes("Do not invent a `delta-spec` just to satisfy artifact shape")
+      && normalizedBrainstormSkillContent.includes("script or tooling edits")
+      && normalizedBrainstormSkillContent.includes("validation commands")
+      && normalizedBrainstormSkillContent.includes("`ready`/`verify` checks")
+      && normalizedBrainstormSkillContent.includes("archive-readiness checks")
+      && normalizedBrainstormSkillContent.includes("archive or archive-merge checks"),
+    "strict-spec-brainstorm explains technical-only changes can omit delta specs while still covering scripts, validation, verification, and archive checks",
+  );
+  const technicalOnlyChangeCreationSkillChecks: Array<[string, string]> = [
+    [normalizedProposeSkillContent, "strict-spec-propose"],
+    [normalizedAutoSkillContent, "strict-spec-auto"],
+    [normalizedProposeFromRoadmapSkillContent, "strict-spec-propose-from-roadmap"],
+    [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
+  ];
+  for (const [normalizedSkillContent, skillName] of technicalOnlyChangeCreationSkillChecks) {
+    context.assert(
+      normalizedSkillContent.includes("A strict change may legitimately have no delta spec")
+        && normalizedSkillContent.includes("Do not invent a `delta-spec` just to satisfy artifact shape")
+        && normalizedSkillContent.includes("only when the change has observable spec impact")
+        && normalizedSkillContent.includes("leave the `specs/` directory empty rather than inventing a prose-only file")
+        && normalizedSkillContent.includes("script or tooling")
+        && normalizedSkillContent.includes("validation commands")
+        && normalizedSkillContent.includes("`ready`/`verify`")
+        && normalizedSkillContent.includes("archive or archive-merge checks"),
+      `${skillName} explains technical-only changes can omit delta specs while still covering scripts, validation, verification, and archive checks`,
+    );
+  }
+  context.assert(
+    normalizedBugfixSkillContent.includes("A bugfix may legitimately have no delta spec")
+      && normalizedBugfixSkillContent.includes("Do not invent a `delta-spec` just to satisfy artifact shape")
+      && normalizedBugfixSkillContent.includes("purely internal defects in scripts, validation flows, archive behavior")
+      && normalizedBugfixSkillContent.includes("reproduction evidence")
+      && normalizedBugfixSkillContent.includes("validation commands")
+      && normalizedBugfixSkillContent.includes("`ready`/`verify`")
+      && normalizedBugfixSkillContent.includes("archive or archive-merge checks"),
+    "strict-spec-bugfix explains internal technical bugfixes can omit delta specs while still covering reproduction, validation, verification, and archive checks",
+  );
+  context.assert(
     normalizedBugfixSkillContent.includes("known bug")
       && normalizedBugfixSkillContent.includes("Reproduce before fixing")
       && normalizedBugfixSkillContent.includes("failing regression")

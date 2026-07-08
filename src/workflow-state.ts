@@ -5,6 +5,12 @@ import { parseYamlDocument } from "./yaml.js";
 import { verifyChange, type VerifyDiagnostic } from "./verify.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
+const EMPTY_SPEC_DECISION_IDS = new Set([
+  "no-delta-spec",
+  "no-spec-impact",
+  "technical-only-no-spec",
+  "empty-spec-decision",
+]);
 
 type QuestionListArtifact = {
   open?: Array<{ id?: unknown; question?: unknown; context?: unknown }>;
@@ -80,6 +86,12 @@ function listDeltaSpecFiles(rootDir: string, changeName: string): string[] {
 
   walk(specsDir);
   return files;
+}
+
+function hasExplicitEmptySpecDecision(rootDir: string, changeName: string): boolean {
+  const design = readChangeArtifact<DesignArtifact>(rootDir, changeName, "design.yaml");
+  if (!design?.decisions) return false;
+  return Object.keys(design.decisions).some((decisionId) => EMPTY_SPEC_DECISION_IDS.has(decisionId.toLowerCase()));
 }
 
 function readChangeArtifact<T>(rootDir: string, changeName: string, artifactName: string): T | undefined {
@@ -269,7 +281,9 @@ export function checkProposalReadiness(rootDir: string, changeName: string): Pro
   const verification = verifyChange(rootDir, changeName);
   const diagnostics = verification.diagnostics.filter((diagnostic) => diagnostic.source !== "task_completion");
   diagnostics.push(...checkDeterministicQuestionGateEvidence(rootDir, changeName));
-  if (listDeltaSpecFiles(rootDir, changeName).length === 0) {
+  const hasMissingDeltaSpecDiagnostic = listDeltaSpecFiles(rootDir, changeName).length === 0
+    && !hasExplicitEmptySpecDecision(rootDir, changeName);
+  if (hasMissingDeltaSpecDiagnostic) {
     diagnostics.push({
       source: "proposal_readiness",
       artifactPath: `.strict-spec-driven/changes/${changeName}/specs/`,
@@ -286,7 +300,7 @@ export function checkProposalReadiness(rootDir: string, changeName: string): Pro
   });
 
   const suggestions = suggestionsForDiagnostics(rootDir, changeName, diagnostics);
-  if (diagnostics.some((diagnostic) => diagnostic.source === "proposal_readiness")) {
+  if (hasMissingDeltaSpecDiagnostic) {
     suggestions.push({
       command: `strict-spec-cli generate ${changeName} delta-spec --target-spec <spec-id> ...`,
       reason: "Create a target-spec-scoped delta spec when the change has strict spec impact.",

@@ -1,0 +1,45 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: fix-ready-empty-spec-decision
+sections:
+  Implementation:
+    reproduce-current-ready-blocker:
+      text: Run the targeted change-lifecycle suite before implementation to confirm ready currently blocks a complete technical-only proposal with no delta spec files.
+      status: complete
+      command: bun test/run.ts change-lifecycle
+    update-ready-empty-spec-decision:
+      text: Teach ready to treat stable no-delta-spec design decision ids as explicit evidence that an empty specs directory is intentional.
+      status: complete
+    update-ready-contract:
+      text: Keep the delta spec contract aligned with the ready behavior for missing delta specs and explicit empty-spec decisions.
+      status: complete
+  Testing:
+    run-targeted-change-lifecycle:
+      text: Run the targeted change-lifecycle regression suite after the fix.
+      status: complete
+      command: bun test/run.ts change-lifecycle
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    run-ready-handoff:
+      text: Run ready for this change and confirm proposal handoff diagnostics match the intended scope.
+      status: complete
+      command: strict-spec-cli ready fix-ready-empty-spec-decision
+    verify-spec-mappings:
+      text: Run spec mapping verification after the delta spec and implementation mapping are final.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+    archive-readiness-review:
+      text: Confirm archive readiness by reviewing that verify passes, the delta spec maps implementation and tests, and archive will merge only the ready contract update.
+      status: complete
+    run-strict-verify:
+      text: Run strict verification for this change after implementation tasks, test tasks, mapping checks, and archive-readiness review are complete.
+      status: complete
+      command: strict-spec-cli verify fix-ready-empty-spec-decision
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: run-targeted-change-lifecycle

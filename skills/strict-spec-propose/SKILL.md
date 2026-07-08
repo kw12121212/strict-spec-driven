@@ -93,6 +93,25 @@ Keep the proposal checkpoint focused on what changes, what stays the same,
 where the work likely lives, how it will be tested, and which technical rules
 apply.
 
+## Spec and Technical Artifact Routing
+
+A strict change may legitimately have no delta spec. Do not invent a
+`delta-spec` just to satisfy artifact shape.
+
+- Create `delta-spec` artifacts only when the change modifies user-observable
+  behavior or another requirement that belongs in a strict YAML main spec.
+- For purely technical changes such as refactors, build or test tooling,
+  repository maintenance, architecture constraints, scripts, validation flows,
+  archive behavior, or skill guidance, leave `specs/` empty when no main spec
+  requirement changes.
+- If a technical-only change alters, adds, or retires an engineering rule,
+  create a `delta-tech` artifact for the affected standard. If it only complies
+  with existing standards, leave `tech/` absent too.
+- A technical-only change still needs complete workflow tasks: script or
+  tooling edits when applicable, focused tests, validation commands,
+  `ready`/`verify` checks, and archive-readiness or archive-merge checks when
+  the change affects artifacts consumed by archive.
+
 ## Steps
 
 Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-spec-driven/` is
@@ -108,7 +127,9 @@ run `init` from this skill.
 2. **Read project context, existing strict specs, and technical standards** — read:
    - `.strict-spec-driven/config.yaml`
    - `.strict-spec-driven/specs/INDEX.yaml`
-   - every strict YAML main spec the change is likely to touch
+   - every strict YAML main spec the change is likely to touch, if any; for a
+     purely technical change, confirm from the spec index that no main spec
+     requirement is implicated instead of forcing one
    - the technical standards that govern the code this change will touch by
      running `strict-spec-cli tech-status` and
      reading the relevant files under `.strict-spec-driven/tech/`. Treat every
@@ -174,6 +195,10 @@ run `init` from this skill.
    - testing tasks should include runnable `command` fields
    - `testing_gates.validation_task` and `testing_gates.unit_test_task` must
      point at the corresponding Testing task IDs
+   - for technical-only changes, include the concrete scripts, tooling,
+     generated assets, documentation, or skill-prompt edits in scope; include
+     validation, strict `ready`/`verify`, and archive-readiness or archive-merge
+     checks when relevant
    - keep YAML valid and structured; do not use Markdown prose inside the file
 
 7. **Generate `questions.yaml`** — run one direct CLI invocation for the full
@@ -185,9 +210,10 @@ run `init` from this skill.
    as `id`, `question`, and `context`; the script writes the status. If
    everything is clear, leave `open: []`.
 
-8. **Generate strict YAML delta specs** — run one direct CLI invocation per
-   target spec and include all mapping paths and requirement operations needed
-   for that target in the same command:
+8. **Generate strict YAML delta specs only when specs change** — run this step
+   only when the change has observable spec impact. Use one direct CLI
+   invocation per target spec and include all mapping paths and requirement
+   operations needed for that target in the same command:
     ```bash
     strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..." --operation MODIFIED --requirement <requirement-id> --strength MUST --statement "..."
     ```
@@ -229,7 +255,12 @@ run `init` from this skill.
    relevant main specs, technical standards, and the existing project constraints.
    Check for decision-ready detail in scope, unchanged behavior, design
    decisions, task coverage, unresolved-question impact, delta spec scenarios,
-   delta tech use when applicable, and structured mapping fields. The checkpoint
+   delta tech use when applicable, and structured mapping fields. When no delta
+   specs are appropriate, replace delta spec scenario review with a justified
+   absence check for the technical-only change. For technical-only changes,
+   verify that tasks cover scripts or tooling, validation commands,
+   `ready`/`verify`, and archive or archive-merge checks when archive behavior
+   is affected. The checkpoint
    should fix safe, in-scope documentation gaps immediately by rerunning the
    supported `generate` commands for script-owned artifacts and by directly
    editing `tasks.yaml` for task-list structure. Do not expand scope or answer

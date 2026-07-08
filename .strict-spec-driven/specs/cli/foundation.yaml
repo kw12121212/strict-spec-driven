@@ -2139,16 +2139,16 @@ requirements:
         - THEN: the workflow stops before implementation until the required open questions are resolved while preserving stable technical identifiers such as question ids, artifact fields, schema names, and command names
   cli-question-gate-readiness-validation:
     strength: MUST
-    statement: The ready proposal-handoff command MUST emit deterministic proposal_readiness diagnostics when machine-checkable change-intake evidence is missing from existing proposal, design, question, delta-spec, or mapping artifacts, including empty included scope, empty out-of-scope scope, empty unchanged behavior, missing design decisions, missing delta specs, or delta specs without implementation or test mappings, while leaving semantic product judgment outside CLI validation.
+    statement: The ready proposal-handoff command MUST emit deterministic proposal_readiness diagnostics when machine-checkable change-intake evidence is missing from existing proposal, design, question, delta-spec, or mapping artifacts, including empty included scope, empty out-of-scope scope, empty unchanged behavior, missing design decisions, missing delta specs when no explicit no-delta-spec design decision is present, or delta specs without implementation or test mappings, while leaving semantic product judgment outside CLI validation.
     scenarios:
       readiness-rejects-missing-checklist-evidence:
-        - GIVEN: a strict change has valid YAML planning artifacts but missing deterministic change-intake evidence such as empty scope lists, no unchanged behavior, no design decisions, no delta spec, or empty delta mappings
+        - GIVEN: a strict change has valid YAML planning artifacts but missing deterministic change-intake evidence such as empty scope lists, no unchanged behavior, no design decisions, no delta spec and no explicit no-delta-spec design decision, or empty delta mappings
         - WHEN: strict-spec-driven ready <change-name> runs
         - THEN: the command exits non-zero and emits proposal_readiness diagnostics that point to the missing artifact field or delta-spec mapping
-      readiness-allows-complete-deterministic-evidence:
-        - GIVEN: a strict change has no open questions and records included scope, out-of-scope scope, unchanged behavior, at least one design decision, and at least one delta spec with implementation or test mappings
+      readiness-allows-explicit-empty-spec-decision:
+        - GIVEN: a strict change has no open questions and records included scope, out-of-scope scope, unchanged behavior, at least one design decision whose stable id explicitly declares no delta spec is needed, and no delta spec files
         - WHEN: strict-spec-driven ready <change-name> runs
-        - THEN: the command exits zero without proposal_readiness diagnostics, regardless of whether remaining product-risk answers require human semantic review outside deterministic validation
+        - THEN: the command exits zero without a missing-delta-spec proposal_readiness diagnostic
   cli-change-intake-docs-and-regression-coverage:
     strength: MUST
     statement: The system MUST document and regress the change-intake question gate across user documentation, packaged skill guidance, self-hosted workflow artifacts, and at least one copied real-project fixture, covering evidence-sufficient no-question paths, evidence-insufficient blocking-question paths in preferred_human_language, roadmap-backed planned-change evidence, roadmap-backed thin-detail blockers, and question resolution before implementation proceeds.
