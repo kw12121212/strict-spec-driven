@@ -13,12 +13,15 @@ import {
   type RoadmapPlannedChangeAuthorInput,
 } from "../roadmap/author.js";
 import { reopenMilestone } from "../roadmap/reopen.js";
+import { renumberRoadmapMilestones, reorderRoadmapMilestone, type RoadmapReorderInput } from "../roadmap/order.js";
 import { isHelpRequest } from "./argv.js";
 import { writeError, writeHelp, writeJson, writeOut, writeUsage } from "./output.js";
 
 const ROADMAP_RECOMMEND_USAGE = "Usage: strict-spec-cli roadmap-recommend [--details] [--milestone <milestone-id>]\n";
 const ROADMAP_ARCHIVE_USAGE = "Usage: strict-spec-cli roadmap-archive [milestone-id]\n";
 const ROADMAP_REOPEN_USAGE = "Usage: strict-spec-cli roadmap-reopen <milestone-id> [--reason \"...\"]\n";
+const ROADMAP_REORDER_USAGE = "Usage: strict-spec-cli roadmap-reorder <milestone-id> (--before <milestone-id> | --after <milestone-id> | --order <integer>)\n";
+const ROADMAP_RENUMBER_USAGE = "Usage: strict-spec-cli roadmap-renumber\n";
 const ROADMAP_GENERATE_USAGE = [
   "Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> --intake-question \"id|question|context|impact|recommendation\" [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset] [--reset-intake-questions]",
   "       strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary <text> --details <text> [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]",
@@ -379,6 +382,82 @@ export function runRoadmapArchive(argv: string[]): number {
   }
 
   const result = archiveRoadmapMilestones(process.cwd(), argv[0]);
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+
+function parseRoadmapReorderArgs(argv: string[]): RoadmapReorderInput {
+  const [milestoneId, ...rest] = argv;
+  if (!milestoneId) throw new Error("missing milestone id");
+  let before: string | undefined;
+  let after: string | undefined;
+  let order: number | undefined;
+  for (let index = 0; index < rest.length; index += 1) {
+    const token = rest[index];
+    if (token === "--before" || token === "--after" || token === "--order") {
+      const value = rest[index + 1];
+      if (value === undefined || value.startsWith("--")) throw new Error(`missing value for ${token}`);
+      if (token === "--before") before = value;
+      if (token === "--after") after = value;
+      if (token === "--order") {
+        if (!/^-?\d+$/.test(value)) throw new Error("--order must be an integer");
+        order = Number(value);
+      }
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--before=")) {
+      before = token.slice("--before=".length);
+      continue;
+    }
+    if (token.startsWith("--after=")) {
+      after = token.slice("--after=".length);
+      continue;
+    }
+    if (token.startsWith("--order=")) {
+      const value = token.slice("--order=".length);
+      if (!/^-?\d+$/.test(value)) throw new Error("--order must be an integer");
+      order = Number(value);
+      continue;
+    }
+    throw new Error(`unsupported argument: ${token}`);
+  }
+
+  const modes = [before !== undefined, after !== undefined, order !== undefined].filter(Boolean).length;
+  if (modes !== 1) throw new Error("supply exactly one of --before, --after, or --order");
+  if (before !== undefined) return { milestoneId, mode: "before", neighborId: before };
+  if (after !== undefined) return { milestoneId, mode: "after", neighborId: after };
+  return { milestoneId, mode: "order", order: order as number };
+}
+
+export function runRoadmapReorder(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp(ROADMAP_REORDER_USAGE);
+    return 0;
+  }
+  let input: RoadmapReorderInput;
+  try {
+    input = parseRoadmapReorderArgs(argv);
+  } catch (error) {
+    writeError(error instanceof Error ? error.message : String(error));
+    writeUsage(ROADMAP_REORDER_USAGE);
+    return 1;
+  }
+  const result = reorderRoadmapMilestone(process.cwd(), input);
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+
+export function runRoadmapRenumber(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp(ROADMAP_RENUMBER_USAGE);
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(ROADMAP_RENUMBER_USAGE);
+    return 1;
+  }
+  const result = renumberRoadmapMilestones(process.cwd());
   writeJson(result);
   return result.valid ? 0 : 1;
 }

@@ -33,6 +33,7 @@ import {
   buildRoadmapIndexArtifact,
   ensurePlannedChangeDirectory,
   materializedPlannedChangePath,
+  resolveMilestoneOrderCollisions,
   writeFileIfChanged,
 } from "./roadmap/sync.js";
 
@@ -429,6 +430,8 @@ export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): 
   }
 
   const updatedFiles: string[] = [];
+
+  resolveMilestoneOrderCollisions(roadmap.milestones);
 
   for (const milestone of roadmap.milestones) {
     const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, milestone);

@@ -1,0 +1,75 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+mapping:
+  implementation:
+    - src/roadmap/model.ts
+    - src/roadmap/order.ts
+    - src/roadmap/status.ts
+    - src/roadmap/sync.ts
+    - src/roadmap/author.ts
+    - src/roadmap/load.ts
+    - src/roadmap.ts
+    - src/cli/cmd-roadmap.ts
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+    - src/skills/model.ts
+    - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+    - templates/strict-spec-driven/schemas/roadmap-index.yaml
+    - skills/marketplace.json
+    - skills/strict-roadmap-reorder/SKILL.md
+    - skills/strict-roadmap-review/SKILL.md
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    roadmap-order-sort-key-contract:
+      strength: MUST
+      statement: The system MUST treat a milestone order as an optional integer sort key rather than deriving order from the milestone id prefix, derive the human-facing display ordinal by sorting active milestones on order (breaking ties by slug), assign a newly authored milestone a slug-only identity with no minted sequential prefix and an initial order appended after the current maximum active order, and accept both slug-only and legacy NNNN- prefixed milestone ids as valid identities.
+      scenarios:
+        new-milestone-gets-slug-id-and-appended-order:
+          - GIVEN: an active roadmap exists with milestones carrying order values
+          - WHEN: a new milestone is authored without an explicit order
+          - THEN: the milestone receives a slug-only id with no minted sequential number and an order value appended after the current maximum active order, and roadmap-status reports it last in roadmap order
+        missing-order-is-valid-and-derived:
+          - GIVEN: a milestone artifact has no order field
+          - WHEN: roadmap-status or roadmap-sync runs
+          - THEN: the artifact validates without an order field and the milestone is placed deterministically in derived roadmap order without being rewritten solely to add order
+    roadmap-reorder-contract:
+      strength: MUST
+      statement: The system MUST provide a roadmap-reorder command that repositions exactly one active milestone by editing only its order field to a value between the requested before/after neighbors or to an explicit order, run roadmap synchronization after the write, reject unknown, self-referential, or archived targets and neighbors, and never modify any other milestone or any archived artifact.
+      scenarios:
+        reorder-moves-single-milestone:
+          - GIVEN: an active roadmap has milestones ordered by sparse order values
+          - WHEN: roadmap-reorder runs with --before or --after naming another active milestone
+          - THEN: only the target milestone's order field is rewritten to fall between its new neighbors, the index is re-synced into the new order, and no other milestone file changes
+        reorder-rejects-archived-or-unknown-target:
+          - GIVEN: a reorder targets an archived milestone, a non-existent milestone, or itself as neighbor
+          - WHEN: roadmap-reorder runs
+          - THEN: the command exits non-zero with a deterministic diagnostic and writes no file
+    roadmap-renumber-contract:
+      strength: MUST
+      statement: The system MUST provide a roadmap-renumber command that respreads active milestone order values to canonical gap spacing in existing relative order deterministically, run roadmap synchronization after the write, and leave archived milestones and planned-change files untouched.
+      scenarios:
+        renumber-respreads-active-order:
+          - GIVEN: active milestones have order values whose gaps are exhausted or irregular
+          - WHEN: roadmap-renumber runs
+          - THEN: active milestone order values are rewritten to canonical gap spacing preserving their existing relative order, archived artifacts are untouched, and roadmap-status remains valid
+    roadmap-sync-order-collision-contract:
+      strength: MUST
+      statement: The system MUST make roadmap-sync regenerate the roadmap index sorted by active milestone order and resolve an exact order-value collision between two active milestones by deterministically nudging the milestone selected by slug lexicographic order while leaving every distinct order value unchanged and excluding archived milestones from ordering reconciliation.
+      scenarios:
+        sync-resolves-exact-order-collision:
+          - GIVEN: two active milestones share an identical order value after a merge
+          - WHEN: roadmap-sync runs
+          - THEN: the milestone chosen by slug lexicographic order is nudged to a distinct order value, all milestones with distinct order values keep their order, and roadmap-status is valid afterward
+        sync-sorts-index-by-order:
+          - GIVEN: active milestones carry order values that differ from id-prefix order
+          - WHEN: roadmap-sync runs
+          - THEN: the regenerated index lists milestones in order-field order rather than id-prefix order
+  MODIFIED: {}
+  REMOVED: {}

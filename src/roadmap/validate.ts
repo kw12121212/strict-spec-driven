@@ -21,7 +21,7 @@ import {
   makeDiagnostic,
 } from "./shared.js";
 
-const MILESTONE_ID_PATTERN = /^\d{4}-/;
+const MILESTONE_ID_PATTERN = /^(\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$/;
 const QUESTION_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
 
 function validateString(
@@ -195,7 +195,7 @@ export function validateRoadmapIndexArtifact(
   for (const [key, value] of Object.entries(rawMilestones)) {
     if (!MILESTONE_ID_PATTERN.test(key)) {
       diagnostics.push(
-        makeDiagnostic("schema", artifactPath, `$.milestones.${key}`, "milestone key must start with 4 digits followed by a hyphen", "NNNN- prefix", key),
+        makeDiagnostic("schema", artifactPath, `$.milestones.${key}`, "milestone key must be kebab-case with optional NNNN- legacy prefix", "kebab-case or NNNN-kebab-case", key),
       );
       continue;
     }
@@ -553,6 +553,15 @@ export function validateMilestoneArtifact(
 
   const schemaFile = validateString(artifact, "schema_file", artifactPath, "$.schema_file", diagnostics);
   const goal = validateString(artifact, "goal", artifactPath, "$.goal", diagnostics);
+  const order = "order" in artifact && artifact.order !== undefined
+    ? (() => {
+        if (!Number.isInteger(artifact.order)) {
+          diagnostics.push(makeDiagnostic("schema", artifactPath, "$.order", "order must be an integer", "integer", String(artifact.order)));
+          return null;
+        }
+        return artifact.order;
+      })()
+    : undefined;
   const doneCriteria = validateStringArray(artifact, "done_criteria", artifactPath, "$.done_criteria", diagnostics);
   const intakeQuestions = validateMilestoneIntakeQuestions(artifact, artifactPath, diagnostics);
   const dependencies = validateStringArray(artifact, "dependencies", artifactPath, "$.dependencies", diagnostics);
@@ -602,7 +611,7 @@ export function validateMilestoneArtifact(
     if (!milestoneKey) {
       diagnostics.push(makeDiagnostic("schema", artifactPath, "$.milestone", "milestone must contain exactly one keyed entry", "single keyed entry", `${Object.keys(rawMilestone).length} keys`));
     } else if (!MILESTONE_ID_PATTERN.test(milestoneKey)) {
-      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestone.${milestoneKey}`, "milestone key must start with 4 digits followed by a hyphen", "NNNN- prefix", milestoneKey));
+      diagnostics.push(makeDiagnostic("schema", artifactPath, `$.milestone.${milestoneKey}`, "milestone key must be kebab-case with optional NNNN- legacy prefix", "kebab-case or NNNN-kebab-case", milestoneKey));
     } else {
       const milestoneValue = rawMilestone[milestoneKey];
       if (!isRecord(milestoneValue)) {
@@ -744,6 +753,7 @@ export function validateMilestoneArtifact(
     artifact_type: "roadmap_milestone",
     schema_file: schemaFile,
     milestone,
+    ...(typeof order === "number" ? { order } : {}),
     goal,
     scope,
     done_criteria: doneCriteria,

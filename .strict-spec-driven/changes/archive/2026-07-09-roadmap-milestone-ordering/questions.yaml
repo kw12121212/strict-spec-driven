@@ -1,0 +1,22 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: roadmap-milestone-ordering
+open: []
+resolved:
+  - id: order-gap-size
+    question: What default gap spacing should separate milestone order values so a reorder can insert between neighbors without renumbering?
+    context: 'Impact: too small a gap exhausts quickly and forces frequent roadmap-renumber runs; too large hurts readability. Options: 10, 100, 1000. Recommendation: 100.'
+    answer: Default gap spacing is 100; roadmap-renumber respreads when gaps are exhausted.
+    status: resolved
+  - id: collision-tiebreak-key
+    question: When two active milestones share an identical order value after a merge, what deterministic key decides which one roadmap-sync nudges?
+    context: 'Impact: the key must be reproducible across machines and merges. Options: git commit time (unreliable after rebase/squash) or slug lexicographic order (stable). Recommendation: slug lexicographic.'
+    answer: roadmap-sync breaks exact order-value ties by slug lexicographic order and leaves distinct values untouched.
+    status: resolved
+  - id: rollout-archive-scope
+    question: Should archiving the existing complete milestones into roadmap/archive be an in-scope migration task of this change, or a separate operator action?
+    context: 'Impact: archiving freezes the 18 complete milestones with their numeric ids and empties the active roadmap so future milestones use slug ids, delivering the id unification with near-zero renames. Recommendation: include as an in-scope rollout task.'
+    answer: Archiving the existing complete milestones is an in-scope rollout migration task of this change; archived milestones keep their numeric ids frozen.
+    status: resolved

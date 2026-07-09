@@ -133,6 +133,7 @@ export type RoadmapMilestoneArtifact = {
   artifact_type: "roadmap_milestone";
   schema_file: string;
   milestone: MilestoneIdentity;
+  order?: number;
   goal: string;
   scope: MilestoneScope;
   done_criteria: string[];
@@ -236,6 +237,8 @@ export type RoadmapMilestoneStatus = {
   path: string;
   id: string;
   title: string;
+  order?: number;
+  displayOrdinal: number;
   declaredStatus: DeclaredRoadmapStatus;
   derivedStatus: Exclude<DeclaredRoadmapStatus, "blocked">;
   plannedChanges: RoadmapPlannedChangeStatus[];

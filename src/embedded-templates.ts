@@ -2374,7 +2374,7 @@ json_schema:
       type: object
       additionalProperties: false
       patternProperties:
-        "^\\\\d{4}-":
+        "^(\\\\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$":
           type: object
           additionalProperties: false
           required:
@@ -2438,7 +2438,7 @@ json_schema:
       minProperties: 1
       maxProperties: 1
       patternProperties:
-        "^\\\\d{4}-":
+        "^(\\\\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$":
           type: object
           additionalProperties: false
           required:
@@ -2446,6 +2446,8 @@ json_schema:
           properties:
             title:
               type: string
+    order:
+      type: integer
     goal:
       type: string
     scope:

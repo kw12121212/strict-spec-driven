@@ -34,6 +34,8 @@ export const COMMAND_REGISTRATION_ORDER = [
   "roadmap-status",
   "roadmap-overview",
   "roadmap-sync",
+  "roadmap-reorder",
+  "roadmap-renumber",
   "roadmap-recommend",
   "roadmap-archive",
   "roadmap-reopen",

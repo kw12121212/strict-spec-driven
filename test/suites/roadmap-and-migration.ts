@@ -65,6 +65,7 @@ function writeRoadmapMilestoneArtifact(
     goal: string;
     status: string;
     plannedChanges: Array<{ id: string; status: string; summary: string; depends_on: string[] }>;
+    order?: number;
     details?: string;
   },
 ): void {
@@ -84,6 +85,7 @@ function writeRoadmapMilestoneArtifact(
       artifact_type: "roadmap_milestone",
       schema_file: "../schemas/roadmap-milestone.yaml",
       milestone: milestoneKeyed,
+      ...(options.order !== undefined ? { order: options.order } : {}),
       goal: options.goal,
       scope: {
         in: ["Strict roadmap workflow behavior."],
@@ -467,13 +469,209 @@ try {
   rmSync(roadmapScopedRecommendDir, { recursive: true, force: true });
 }
 
+const roadmapOrderingDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-ordering-"));
+try {
+  writeRoadmapMilestoneArtifact(roadmapOrderingDir, "alpha.yaml", {
+    id: "alpha",
+    title: "Alpha",
+    goal: "Exercise slug-only milestone identity.",
+    status: "proposed",
+    order: 300,
+    plannedChanges: [],
+  });
+  writeRoadmapMilestoneArtifact(roadmapOrderingDir, "beta.yaml", {
+    id: "beta",
+    title: "Beta",
+    goal: "Exercise order sorting before filename sorting.",
+    status: "proposed",
+    order: 100,
+    plannedChanges: [],
+  });
+  writeRoadmapMilestoneArtifact(roadmapOrderingDir, "gamma.yaml", {
+    id: "gamma",
+    title: "Gamma",
+    goal: "Exercise reorder commands.",
+    status: "proposed",
+    order: 200,
+    plannedChanges: [],
+  });
+  writeRoadmapMilestoneArtifact(roadmapOrderingDir, "legacy-single.yaml", {
+    id: "0002-a",
+    title: "Legacy Single",
+    goal: "Exercise a legacy prefixed id with a one-character slug.",
+    status: "proposed",
+    order: 250,
+    plannedChanges: [],
+  });
+  writeRoadmapMilestoneArtifact(roadmapOrderingDir, "legacy-missing-order.yaml", {
+    id: "0001-legacy",
+    title: "Legacy Missing Order",
+    goal: "Remain valid without an order value.",
+    status: "proposed",
+    plannedChanges: [],
+  });
+  writeRoadmapIndexArtifact(roadmapOrderingDir, [
+    {
+      id: "alpha",
+      title: "Alpha",
+      path: "roadmap/milestones/alpha.yaml",
+      status: "proposed",
+    },
+    {
+      id: "beta",
+      title: "Beta",
+      path: "roadmap/milestones/beta.yaml",
+      status: "proposed",
+    },
+    {
+      id: "gamma",
+      title: "Gamma",
+      path: "roadmap/milestones/gamma.yaml",
+      status: "proposed",
+    },
+    {
+      id: "0002-a",
+      title: "Legacy Single",
+      path: "roadmap/milestones/legacy-single.yaml",
+      status: "proposed",
+    },
+    {
+      id: "0001-legacy",
+      title: "Legacy Missing Order",
+      path: "roadmap/milestones/legacy-missing-order.yaml",
+      status: "proposed",
+    },
+  ]);
+
+  const orderStatus = cli(["roadmap-status"], { cwd: roadmapOrderingDir });
+  context.assert(orderStatus.status === 0, "roadmap-status accepts slug-only milestone ids and optional order");
+  const orderStatusJson = JSON.parse(orderStatus.stdout.trim()) as { milestones: Array<{ id: string; order?: number; displayOrdinal: number }> };
+  context.assert(
+    orderStatusJson.milestones.map((milestone) => milestone.id).join(",") === "beta,gamma,0002-a,alpha,0001-legacy"
+      && orderStatusJson.milestones.map((milestone) => milestone.displayOrdinal).join(",") === "1,2,3,4,5",
+    "roadmap-status reports milestones in order-field order with derived display ordinals",
+    orderStatus.stdout,
+  );
+
+  const orderSync = cli(["roadmap-sync"], { cwd: roadmapOrderingDir });
+  context.assert(orderSync.status === 0, "roadmap-sync succeeds for ordered slug milestones", orderSync.stdout || orderSync.stderr);
+  const orderedIndex = yamlModule.parseYamlFile<{ milestones: Record<string, { path: string }> }>(
+    path.join(roadmapOrderingDir, ".strict-spec-driven", "roadmap", "INDEX.yaml"),
+  );
+  context.assert(
+    Object.keys(orderedIndex.milestones).join(",") === "beta,gamma,0002-a,alpha,0001-legacy",
+    "roadmap-sync regenerates the index in order-field order rather than id-prefix or filename order",
+  );
+
+  const alphaPath = path.join(roadmapOrderingDir, ".strict-spec-driven", "roadmap", "milestones", "alpha.yaml");
+  const betaPath = path.join(roadmapOrderingDir, ".strict-spec-driven", "roadmap", "milestones", "beta.yaml");
+  const gammaPath = path.join(roadmapOrderingDir, ".strict-spec-driven", "roadmap", "milestones", "gamma.yaml");
+  const legacyBeforeCollision = readFileSync(
+    path.join(roadmapOrderingDir, ".strict-spec-driven", "roadmap", "milestones", "legacy-missing-order.yaml"),
+    "utf8",
+  );
+  const collidingAlpha = yamlModule.parseYamlFile<Record<string, unknown>>(alphaPath);
+  collidingAlpha.order = 100;
+  writeFileSync(alphaPath, yamlModule.stringifyYamlDocument(collidingAlpha), "utf8");
+  const collisionSync = cli(["roadmap-sync"], { cwd: roadmapOrderingDir });
+  context.assert(collisionSync.status === 0, "roadmap-sync resolves exact order collisions", collisionSync.stdout || collisionSync.stderr);
+  const alphaAfterCollision = yamlModule.parseYamlFile<{ order?: number }>(alphaPath);
+  const betaAfterCollision = yamlModule.parseYamlFile<{ order?: number }>(betaPath);
+  const gammaAfterCollision = yamlModule.parseYamlFile<{ order?: number }>(gammaPath);
+  context.assert(
+    alphaAfterCollision.order === 100
+      && betaAfterCollision.order === 101
+      && gammaAfterCollision.order === 200
+      && readFileSync(path.join(roadmapOrderingDir, ".strict-spec-driven", "roadmap", "milestones", "legacy-missing-order.yaml"), "utf8") === legacyBeforeCollision,
+    "roadmap-sync nudges only the slug-selected colliding milestone, leaves distinct orders and missing-order milestones untouched",
+    collisionSync.stdout,
+  );
+
+  const reorderGamma = cli(["roadmap-reorder", "gamma", "--before", "alpha"], { cwd: roadmapOrderingDir });
+  context.assert(reorderGamma.status === 0, "roadmap-reorder moves one milestone before a neighbor", reorderGamma.stdout || reorderGamma.stderr);
+  const reorderGammaJson = JSON.parse(reorderGamma.stdout.trim()) as { updatedFiles: string[]; target: { id: string; order: number } };
+  const gammaAfterReorder = yamlModule.parseYamlFile<{ order?: number }>(gammaPath);
+  context.assert(
+    reorderGammaJson.target.id === "gamma"
+      && reorderGammaJson.target.order === 0
+      && gammaAfterReorder.order === 0
+      && reorderGammaJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/gamma.yaml")
+      && !reorderGammaJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/alpha.yaml")
+      && !reorderGammaJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/beta.yaml"),
+    "roadmap-reorder rewrites the target milestone order without rewriting other milestone files",
+    reorderGamma.stdout,
+  );
+
+  const explicitOrder = cli(["roadmap-reorder", "alpha", "--order", "400"], { cwd: roadmapOrderingDir });
+  context.assert(explicitOrder.status === 0, "roadmap-reorder accepts an explicit integer order", explicitOrder.stdout || explicitOrder.stderr);
+  const alphaAfterExplicit = yamlModule.parseYamlFile<{ order?: number }>(alphaPath);
+  context.assert(alphaAfterExplicit.order === 400, "roadmap-reorder writes explicit order values");
+
+  const selfReference = cli(["roadmap-reorder", "alpha", "--after", "alpha"], { cwd: roadmapOrderingDir });
+  context.assert(
+    selfReference.status !== 0 && selfReference.stdout.includes("target cannot be its own neighbor"),
+    "roadmap-reorder rejects self-referential neighbor requests",
+    selfReference.stdout,
+  );
+  const unknownReorder = cli(["roadmap-reorder", "missing", "--after", "alpha"], { cwd: roadmapOrderingDir });
+  context.assert(
+    unknownReorder.status !== 0 && unknownReorder.stdout.includes("target milestone was not found in the active roadmap"),
+    "roadmap-reorder rejects unknown active milestones",
+    unknownReorder.stdout,
+  );
+
+  mkdirSync(path.join(roadmapOrderingDir, ".strict-spec-driven", "roadmap", "archive", "milestones"), { recursive: true });
+  writeFileSync(
+    path.join(roadmapOrderingDir, ".strict-spec-driven", "roadmap", "archive", "milestones", "archived.yaml"),
+    yamlModule.stringifyYamlDocument({
+      schema: "strict-spec-driven/roadmap-milestone/v2",
+      schema_version: 2,
+      artifact_type: "roadmap_milestone",
+      schema_file: "../schemas/roadmap-milestone.yaml",
+      milestone: { archived: { title: "Archived" } },
+      order: 50,
+      goal: "Stay archived.",
+      scope: { in: ["Archived work."], out: [] },
+      done_criteria: ["Archived."],
+      intake_questions: [{ ...TEST_MILESTONE_INTAKE_QUESTION }],
+      planned_changes: {},
+      dependencies: [],
+      risks: [],
+      status: "complete",
+      notes: [],
+    }),
+    "utf8",
+  );
+  const archivedReorder = cli(["roadmap-reorder", "archived", "--after", "alpha"], { cwd: roadmapOrderingDir });
+  context.assert(
+    archivedReorder.status !== 0 && archivedReorder.stdout.includes("target milestone is archived"),
+    "roadmap-reorder rejects archived targets",
+    archivedReorder.stdout,
+  );
+
+  const renumber = cli(["roadmap-renumber"], { cwd: roadmapOrderingDir });
+  context.assert(renumber.status === 0, "roadmap-renumber respreads active order values", renumber.stdout || renumber.stderr);
+  const statusAfterRenumber = JSON.parse(cli(["roadmap-status"], { cwd: roadmapOrderingDir }).stdout.trim()) as {
+    milestones: Array<{ id: string; order?: number }>;
+  };
+  context.assert(
+    statusAfterRenumber.milestones
+      .filter((milestone) => milestone.id !== "0001-legacy")
+      .map((milestone) => `${milestone.id}:${milestone.order}`)
+      .join(",") === "gamma:100,beta:200,0002-a:300,alpha:400",
+    "roadmap-renumber preserves relative order while respreading active milestone orders to gap spacing",
+  );
+} finally {
+  rmSync(roadmapOrderingDir, { recursive: true, force: true });
+}
+
 const roadmapGenerateDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-generate-"));
 try {
   const createMilestone = cli([
     "roadmap-generate",
     "milestone",
     "--id",
-    "0001-authoring",
+    "authoring",
     "--title",
     "Authoring Milestone",
     "--goal",
@@ -499,7 +697,7 @@ try {
   const createMilestoneJson = JSON.parse(createMilestone.stdout.trim());
   context.assert(
     createMilestoneJson.valid === true
-      && createMilestoneJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/0001-authoring.yaml")
+      && createMilestoneJson.updatedFiles.includes(".strict-spec-driven/roadmap/milestones/authoring.yaml")
       && createMilestoneJson.updatedFiles.includes(".strict-spec-driven/roadmap/INDEX.yaml"),
     "roadmap-generate milestone reports created milestone and synced index files",
     createMilestone.stdout,
@@ -510,10 +708,11 @@ try {
     ".strict-spec-driven",
     "roadmap",
     "milestones",
-    "0001-authoring.yaml",
+    "authoring.yaml",
   );
   const generatedMilestone = yamlModule.parseYamlFile<{
     milestone: Record<string, { title: string }>;
+    order?: number;
     goal: string;
     scope: { in: string[]; out: string[] };
     done_criteria: string[];
@@ -527,12 +726,13 @@ try {
     source_ticket?: string;
   }>(generatedMilestonePath);
   context.assert(
-    generatedMilestone.milestone["0001-authoring"]?.title === "Authoring Milestone"
+    generatedMilestone.milestone["authoring"]?.title === "Authoring Milestone"
+      && generatedMilestone.order === 100
       && generatedMilestone.status === "proposed"
       && generatedMilestone.intake_questions.length === 2
       && generatedMilestone.intake_questions[0]?.id === "objective"
       && Object.keys(generatedMilestone.planned_changes).length === 0,
-    "roadmap-generate milestone writes keyed milestone identity, intake questions, proposed status, and empty planned_changes",
+    "roadmap-generate milestone writes slug-only keyed identity, initial order, intake questions, proposed status, and empty planned_changes",
   );
   context.assert(
     generatedMilestone.scope.in.includes("Milestone YAML shape is command-authored.")
@@ -545,14 +745,14 @@ try {
     milestones: Record<string, { title: string; path: string; status: string }>;
   }>(path.join(roadmapGenerateDir, ".strict-spec-driven", "roadmap", "INDEX.yaml"));
   context.assert(
-    generatedIndex.milestones["0001-authoring"]?.path === "roadmap/milestones/0001-authoring.yaml"
-      && generatedIndex.milestones["0001-authoring"]?.status === "proposed",
+    generatedIndex.milestones["authoring"]?.path === "roadmap/milestones/authoring.yaml"
+      && generatedIndex.milestones["authoring"]?.status === "proposed",
     "roadmap-generate milestone synchronizes the roadmap index",
   );
 
-  writeStandalonePlannedChangeArtifact(roadmapGenerateDir, "planned-changes/0001-authoring-existing-work.yaml", {
+  writeStandalonePlannedChangeArtifact(roadmapGenerateDir, "planned-changes/authoring-existing-work.yaml", {
     id: "existing-work",
-    milestone: "0001-authoring",
+    milestone: "authoring",
     status: "planned",
     summary: "Existing standalone planned change stays on its current authoring path.",
     details: "Existing standalone planned-change details must not be rewritten by milestone authoring.",
@@ -563,7 +763,7 @@ try {
     ".strict-spec-driven",
     "roadmap",
     "planned-changes",
-    "0001-authoring-existing-work.yaml",
+    "authoring-existing-work.yaml",
   );
   const standaloneBeforeUpdate = readFileSync(standalonePath, "utf8");
   const milestoneWithSourceTicket = yamlModule.parseYamlFile<Record<string, unknown>>(generatedMilestonePath);
@@ -574,7 +774,7 @@ try {
     "roadmap-generate",
     "milestone",
     "--id",
-    "0001-authoring",
+    "authoring",
     "--scope-in",
     "Additional milestone scope.",
     "--details",
@@ -607,7 +807,7 @@ try {
     "roadmap-generate",
     "milestone",
     "--id",
-    "0001-authoring",
+    "authoring",
     "--goal",
     "Replace the goal without reset.",
   ], { cwd: roadmapGenerateDir });
@@ -623,7 +823,7 @@ try {
     "roadmap-generate",
     "milestone",
     "--id",
-    "0001-authoring",
+    "authoring",
     "--reset",
     "--goal",
     "Replace the goal with explicit reset.",
@@ -664,7 +864,7 @@ try {
     "roadmap-generate",
     "milestone",
     "--id",
-    "0001-authoring",
+    "authoring",
     "--reset",
     "--intake-question",
     "objective|What different outcome should this milestone deliver?|Global reset must not resolve intake conflicts by replacement.|Silent replacement loses recorded planning questions.|Surface the conflict for explicit resolution.",
@@ -681,7 +881,7 @@ try {
     "roadmap-generate",
     "milestone",
     "--id",
-    "0001-authoring",
+    "authoring",
     "--reset-intake-questions",
     "--intake-question",
     "final-outcome|What single outcome closes this milestone?|Explicit replacement consolidates milestone intake questions.|The consolidated question defines proposal scope for child changes.|Answer with the milestone's one observable completion outcome.",
@@ -704,7 +904,7 @@ try {
     "roadmap-generate",
     "milestone",
     "--id",
-    "0001-authoring",
+    "authoring",
     "--reset-intake-questions",
   ], { cwd: roadmapGenerateDir });
   context.assert(

@@ -68,6 +68,8 @@ const ROADMAP_REVIEW_INTAKE_ANSWER_SNIPPET = "check milestone intake_questions f
 const ROADMAP_ARCHIVE_DEFAULT_ALL_SNIPPET = "default to all unarchived milestones";
 const ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET = "only milestones whose derived status is complete";
 const ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET = "completed standalone planned-change";
+const ROADMAP_ORDER_SOURCE_SNIPPET = "Use `roadmap-status` or `roadmap-overview` order, never id-prefix order";
+const ROADMAP_REORDER_SINGLE_COMMAND_SNIPPET = "Translate reorder intent into one CLI command";
 const ROADMAP_PLAN_REVIEW_SNIPPET = "Review the roadmap plan before handoff";
 const ROADMAP_SCRIPTED_RECOMMEND_SNIPPET = "treat the command's selected planned change as authoritative";
 const ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET = "before reading broad roadmap context";
@@ -387,6 +389,26 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       ROADMAP_REVIEW_DIRECT_FIX_SNIPPET,
       ROADMAP_REVIEW_DETAIL_ELABORATION_SNIPPET,
       ROADMAP_REVIEW_INTAKE_ANSWER_SNIPPET,
+      "Never infer review order from the milestone id prefix",
+    ],
+  },
+  "strict-roadmap-reorder": {
+    requiredCommands: {
+      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      "roadmap-overview": `${COMMAND_PREFIX} roadmap-overview`,
+      "roadmap-reorder": `${COMMAND_PREFIX} roadmap-reorder <milestone-id> (--before <milestone-id> | --after <milestone-id> | --order <integer>)`,
+      "roadmap-renumber": `${COMMAND_PREFIX} roadmap-renumber`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [
+      ".strict-spec-driven/roadmap/",
+      "optional integer `order` field",
+      "roadmap-reorder",
+      "roadmap-renumber",
+      ROADMAP_ORDER_SOURCE_SNIPPET,
+      ROADMAP_REORDER_SINGLE_COMMAND_SNIPPET,
+      "dependency-order concern",
+      "Archived milestones are frozen history",
     ],
   },
   "strict-roadmap-sync": {

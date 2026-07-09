@@ -23,7 +23,7 @@ import {
   normalizeRepoRelativePath,
   sortDiagnostics,
 } from "./shared.js";
-import { buildCanonicalPlannedChangeArtifact, writeFileIfChanged } from "./sync.js";
+import { buildCanonicalPlannedChangeArtifact, nextAppendedMilestoneOrder, writeFileIfChanged } from "./sync.js";
 import { validateMilestoneArtifact, validateStandalonePlannedChangeArtifact } from "./validate.js";
 import { getRoadmapStatus, syncRoadmap } from "../roadmap.js";
 import {
@@ -33,7 +33,7 @@ import {
   getStandalonePlannedChangesForMilestone,
 } from "./status.js";
 
-const MILESTONE_ID_PATTERN = /^\d{4}-[a-z0-9][a-z0-9-]*[a-z0-9]$|^\d{4}-[a-z0-9]$/;
+const MILESTONE_ID_PATTERN = /^(\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$/;
 
 export type RoadmapMilestoneAuthorInput = {
   id: string;
@@ -171,6 +171,7 @@ function buildMilestoneMap(id: string, title: string): Record<string, { title: s
 function buildArtifact(
   input: RoadmapMilestoneAuthorInput,
   existing: LoadedMilestone | undefined,
+  initialOrder: number,
   artifactPath: string,
   diagnostics: RoadmapDiagnostic[],
 ): Record<string, unknown> | null {
@@ -227,6 +228,7 @@ function buildArtifact(
     artifact_type: "roadmap_milestone",
     schema_file: existing?.artifact.schema_file ?? "../schemas/roadmap-milestone.yaml",
     milestone: buildMilestoneMap(input.id, title),
+    ...(!existing ? { order: initialOrder } : typeof existing.artifact.order === "number" ? { order: existing.artifact.order } : {}),
     goal,
     scope: {
       in: input.reset && input.scopeIn.length > 0
@@ -303,8 +305,8 @@ export function generateRoadmapMilestone(
         "schema",
         ROADMAP_MILESTONES_DIR,
         "$.milestone",
-        "milestone id must start with four digits and a kebab-case suffix",
-        "NNNN-kebab-case",
+        "milestone id must be kebab-case with optional NNNN- legacy prefix",
+        "kebab-case or NNNN-kebab-case",
         input.id,
       ),
     );
@@ -360,7 +362,7 @@ export function generateRoadmapMilestone(
     );
   }
 
-  const nextArtifact = buildArtifact(input, existing, artifactPath, diagnostics);
+  const nextArtifact = buildArtifact(input, existing, nextAppendedMilestoneOrder(roadmap.milestones), artifactPath, diagnostics);
   if (nextArtifact) {
     validateMilestoneArtifact(nextArtifact, artifactPath, diagnostics);
   }

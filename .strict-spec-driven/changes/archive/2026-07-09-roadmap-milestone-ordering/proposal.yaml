@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: roadmap-milestone-ordering
+  status: proposed
+summary:
+  what:
+    - 'Decouple strict roadmap milestone ordering from milestone identity: add an optional sparse-integer order sort key, derive the human-facing display ordinal from it, give new milestones slug-only identities, add roadmap-reorder and roadmap-renumber commands, teach roadmap-sync to sort the index by order and deterministically resolve exact order-value collisions, add a strict-roadmap-reorder skill, and freeze existing complete milestones by archiving them with their legacy numeric ids.'
+  why:
+    - The current NNNN- sequence prefix is simultaneously the milestone identity, its planned-change filename prefix, and its ordering key. Concurrent branches that both mint the next number produce silent duplicate ordinals, the shared index is a merge hot spot, and there is no way to deliberately reorder milestones without renaming files and rewriting references. Separating a mutable order sort key from a stable slug identity removes the collision class, makes reordering a one-file edit, and keeps the git-native local-first workflow.
+scope:
+  in:
+    - Optional order field on the roadmap-milestone schema; loosened milestone-key patterns on roadmap-milestone and roadmap-index schemas to accept slug-only ids and legacy NNNN- ids; roadmap-reorder command (--before/--after/--order) that edits one active milestone order and re-syncs; roadmap-renumber command that respreads active order values with gap spacing; roadmap-sync sorting the regenerated index by order and resolving exact order-value collisions by deterministic slug-lexicographic tie-break; slug-only identity and auto-appended initial order for newly authored milestones; strict-roadmap-reorder skill translating reorder intent into one command with a dependency-order sanity check; a rollout migration that archives existing complete milestones into roadmap/archive with their numeric ids frozen; order-source updates in roadmap-status, roadmap-overview, roadmap-recommend, and strict-roadmap-review so ordering reads the order field rather than the id prefix.
+  out:
+    - Renaming or renumbering archived milestones or archived planned-change files; de-numbering the identities of milestones that remain active without going through archive; LexoRank or fractional string rank keys; ordering of planned changes within a milestone; any locking service, hosted collaboration, or external issue tracker as source of truth.
+unchanged_behavior:
+  - Archived roadmap milestones and archived planned-change files keep their legacy NNNN- ids and are never rewritten by sync, reorder, or renumber; planned-change canonical filename contract for a given milestone id is unchanged; roadmap-archive, roadmap-reopen, and planned-change authoring semantics are unchanged except for reading order; the strict change lifecycle and archive-merge behavior are unchanged.

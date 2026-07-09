@@ -539,7 +539,8 @@ context.assert(
   "roadmap index schema resolves by artifact type",
 );
 const roadmapIndexMilestonesSchema = (roadmapIndexSchema.properties as Record<string, unknown>).milestones as Record<string, unknown>;
-const roadmapIndexMilestonePatternSchema = (roadmapIndexMilestonesSchema.patternProperties as Record<string, unknown>)["^\\d{4}-"] as Record<string, unknown>;
+const roadmapMilestoneIdPattern = "^(\\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$";
+const roadmapIndexMilestonePatternSchema = (roadmapIndexMilestonesSchema.patternProperties as Record<string, unknown>)[roadmapMilestoneIdPattern] as Record<string, unknown>;
 context.assert(
   ((roadmapIndexMilestonePatternSchema.properties as Record<string, unknown>).status as { enum: string[] }).enum.length === 4,
   "roadmap index schema keeps milestone status enums with four values",

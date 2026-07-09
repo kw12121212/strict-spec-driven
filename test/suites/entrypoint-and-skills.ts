@@ -54,6 +54,8 @@ const expectedCommandOrder = [
   "roadmap-status",
   "roadmap-overview",
   "roadmap-sync",
+  "roadmap-reorder",
+  "roadmap-renumber",
   "roadmap-recommend",
   "roadmap-archive",
   "roadmap-reopen",

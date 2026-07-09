@@ -42,6 +42,10 @@ run `init` from this skill.
   `<milestone-id>-<planned-change-id>.yaml` (milestone prefix not duplicated
   when the id already starts with it); a misnamed active planned-change file
   is a blocking diagnostic that `roadmap-sync --fix-names` repairs.
+- Milestone sequencing comes from the order reported by `roadmap-status` or
+  `roadmap-overview`, which derives from the optional integer `order` field.
+  Never infer review order from the milestone id prefix; review does not set
+  or repair order values.
 - Milestone `intake_questions` are part of definition quality. Review them as
   planning checks whose answers must be recoverable from milestone fields or
   owned planned-change detail before the milestone is treated as executable.
@@ -74,7 +78,7 @@ run `init` from this skill.
    declared status, derived status, planned change state, planned-change
    paths, and any diagnostics as the deterministic facts for the review.
    Identify every milestone whose status is not complete and process them in
-   roadmap order. If every milestone is complete, stop here and report that
+   roadmap order from the command output, not id-prefix order. If every milestone is complete, stop here and report that
    there are no incomplete milestones in review scope.
 
 3. **Assess definition quality** — for each incomplete milestone, review the

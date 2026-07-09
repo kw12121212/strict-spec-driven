@@ -14,6 +14,7 @@ import {
   type StandalonePlannedChangeArtifact,
 } from "./model.js";
 import { ensureTrailingNewline, normalizeMilestoneStatus, normalizeRepoRelativePath, toPosix } from "./shared.js";
+import { sortMilestonesByRoadmapOrder } from "./status.js";
 
 export function writeFileIfChanged(filePath: string, nextContent: string, updatedFiles: string[], rootDir: string): void {
   const normalized = ensureTrailingNewline(nextContent);
@@ -72,6 +73,7 @@ export function buildCanonicalMilestoneArtifact(
     artifact_type: "roadmap_milestone",
     schema_file: milestone.artifact.schema_file,
     milestone: milestoneKeyed as unknown as RoadmapMilestoneArtifact["milestone"],
+    ...(typeof milestone.artifact.order === "number" ? { order: milestone.artifact.order } : {}),
     goal: milestone.artifact.goal,
     scope: {
       in: [...milestone.artifact.scope.in],
@@ -169,9 +171,7 @@ function extractMilestoneTitle(artifact: RoadmapMilestoneArtifact): string {
 }
 
 export function buildRoadmapIndexArtifact(milestones: LoadedMilestone[]): Record<string, unknown> {
-  const milestoneEntries = milestones
-    .slice()
-    .sort((left, right) => left.relativeMilestonePath.localeCompare(right.relativeMilestonePath));
+  const milestoneEntries = sortMilestonesByRoadmapOrder(milestones);
 
   const milestonesMap: Record<string, { title: string; path: string; status: string }> = {};
   for (const milestone of milestoneEntries) {
@@ -189,4 +189,41 @@ export function buildRoadmapIndexArtifact(milestones: LoadedMilestone[]): Record
     schema_file: "../schemas/roadmap-index.yaml",
     milestones: milestonesMap,
   };
+}
+
+export const ROADMAP_ORDER_GAP = 100;
+
+function nextUnusedOrder(start: number, occupied: Set<number>): number {
+  let candidate = start;
+  while (occupied.has(candidate)) {
+    candidate += 1;
+  }
+  return candidate;
+}
+
+export function nextAppendedMilestoneOrder(milestones: LoadedMilestone[]): number {
+  const orderedValues = milestones
+    .map((milestone) => milestone.artifact.order)
+    .filter((order): order is number => typeof order === "number");
+  if (orderedValues.length === 0) return ROADMAP_ORDER_GAP;
+  return Math.max(...orderedValues) + ROADMAP_ORDER_GAP;
+}
+
+export function resolveMilestoneOrderCollisions(milestones: LoadedMilestone[]): void {
+  const occupied = new Set<number>();
+  const ordered = milestones
+    .filter((milestone) => typeof milestone.artifact.order === "number")
+    .sort((left, right) => {
+      const byOrder = (left.artifact.order ?? 0) - (right.artifact.order ?? 0);
+      if (byOrder !== 0) return byOrder;
+      return left.artifact.milestone.id.localeCompare(right.artifact.milestone.id);
+    });
+
+  for (const milestone of ordered) {
+    const currentOrder = milestone.artifact.order;
+    if (typeof currentOrder !== "number") continue;
+    const nextOrder = nextUnusedOrder(currentOrder, occupied);
+    milestone.artifact.order = nextOrder;
+    occupied.add(nextOrder);
+  }
 }

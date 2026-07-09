@@ -1,0 +1,69 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: roadmap-milestone-ordering
+sections:
+  Implementation:
+    schema-order-field:
+      text: Add an optional integer `order` field to the roadmap-milestone schema and allow the display ordinal to derive from it; keep the field optional so archived and pre-migration milestone files without `order` remain valid.
+      status: complete
+    schema-loosen-id-patterns:
+      text: Loosen the milestone-key patterns on the roadmap-milestone and roadmap-index schemas from `^\d{4}-` to accept both slug-only ids (new milestones) and legacy `NNNN-` prefixed ids (archived milestones).
+      status: complete
+    order-sort-key-model:
+      text: Update roadmap loading/model so roadmap order derives by sorting active milestones on the `order` field (slug tie-break) instead of the id prefix, and so milestones lacking `order` are placed deterministically.
+      status: complete
+    author-slug-id-and-initial-order:
+      text: Update milestone authoring so a newly authored milestone gets a slug-only id with no minted sequential prefix and an initial `order` appended after the current maximum active order.
+      status: complete
+    reorder-command:
+      text: Add the roadmap-reorder command (--before/--after/--order) that rewrites only the target active milestone's `order` to a midpoint value, re-syncs, and rejects unknown, self-referential, or archived targets and neighbors.
+      status: complete
+    renumber-command:
+      text: Add the roadmap-renumber command that respreads active milestone `order` values to canonical gap spacing (100) preserving relative order, re-syncs, and leaves archived artifacts untouched.
+      status: complete
+    sync-order-collision:
+      text: Update roadmap-sync to regenerate the index sorted by `order` and resolve exact order-value collisions by nudging the slug-lexicographically-selected milestone while leaving distinct values and archived milestones untouched.
+      status: complete
+    register-commands:
+      text: Register roadmap-reorder and roadmap-renumber in the CLI command registry and dispatch.
+      status: complete
+    reorder-skill:
+      text: Add the strict-roadmap-reorder skill that translates human reorder intent into a single roadmap-reorder command invocation and applies a dependency-order sanity check, keeping all mechanics in the CLI.
+      status: complete
+    review-skill-order-source:
+      text: Update the strict-roadmap-review skill so milestone sequencing reads the `order` field via roadmap-status/overview and drops the assumption that the id prefix encodes order; review does not set order.
+      status: complete
+    rollout-archive-existing:
+      text: 'Rollout migration: run roadmap-archive to move the existing complete milestones and their completed planned-change files into roadmap/archive with their numeric ids frozen, leaving the active roadmap ready for slug-id milestones.'
+      status: complete
+    rebuild-dist:
+      text: Rebuild compiled output after TypeScript source edits.
+      status: complete
+      command: bun run build
+  Testing:
+    test-order-and-reorder:
+      text: 'Add/extend regression tests covering: optional `order` schema validation, slug-only vs legacy id acceptance, reorder before/after/order and its rejection of archived/unknown targets, renumber respreading, sync order-collision tie-break and order-sorted index, and archived-milestone immutability under reorder/renumber.'
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope and that no archived milestone or planned-change file was renamed or renumbered.
+      status: complete
+    verify-ready-and-verify:
+      text: Run strict-spec-cli ready and strict-spec-cli verify for the change and resolve structural/schema blockers.
+      status: complete
+    verify-mappings:
+      text: Verify delta-spec mapping fields point at the actual implementation and test files.
+      status: complete
+    verify-archive-readiness:
+      text: 'Confirm archive-merge behavior: the delta-spec merges into roadmap-domain-behavior, roadmap state stays valid after archive, and archived roadmap artifacts remain untouched.'
+      status: complete
+testing_gates:
+  validation_task: test-order-and-reorder
+  unit_test_task: run-project-regression

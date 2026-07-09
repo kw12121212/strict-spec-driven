@@ -15,6 +15,26 @@ import {
 } from "./model.js";
 import { makeDiagnostic, normalizeMilestoneStatus, resolveStrictWorkflowPath, toPosix } from "./shared.js";
 
+const MISSING_ORDER_SORT_VALUE = Number.MAX_SAFE_INTEGER;
+
+function roadmapMilestoneId(milestone: LoadedMilestone): string {
+  const milestoneField = milestone.artifact.milestone as unknown as Record<string, unknown>;
+  if (typeof milestoneField.id === "string") return milestoneField.id;
+  return Object.keys(milestoneField)[0] ?? milestone.relativeMilestonePath;
+}
+
+export function compareMilestonesByRoadmapOrder(left: LoadedMilestone, right: LoadedMilestone): number {
+  const byOrder = (left.artifact.order ?? MISSING_ORDER_SORT_VALUE) - (right.artifact.order ?? MISSING_ORDER_SORT_VALUE);
+  if (byOrder !== 0) return byOrder;
+  const byId = roadmapMilestoneId(left).localeCompare(roadmapMilestoneId(right));
+  if (byId !== 0) return byId;
+  return left.relativeMilestonePath.localeCompare(right.relativeMilestonePath);
+}
+
+export function sortMilestonesByRoadmapOrder(milestones: LoadedMilestone[]): LoadedMilestone[] {
+  return milestones.slice().sort(compareMilestonesByRoadmapOrder);
+}
+
 export function getChangeStateIndex(rootDir: string): ChangeStateIndex {
   const changesDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "changes");
   const active = new Set<string>();
@@ -388,6 +408,7 @@ export function buildMilestoneStatus(
   milestone: LoadedMilestone,
   changeStates: ChangeStateIndex,
   plannedChangeEntries: MergedPlannedChangeEntry[] = getMergedPlannedChangesForMilestone(milestone, []),
+  displayOrdinal = 0,
 ): RoadmapMilestoneStatus {
   const plannedChanges = plannedChangeEntries.map(({ id, entry, source, path: plannedChangePath }) => {
     const state = derivePlannedChangeState(changeStates, id);
@@ -429,6 +450,8 @@ export function buildMilestoneStatus(
     path: toPosix(path.join("roadmap", "milestones", milestone.relativeMilestonePath)),
     id: milestone.artifact.milestone.id,
     title: milestone.artifact.milestone.title,
+    ...(typeof milestone.artifact.order === "number" ? { order: milestone.artifact.order } : {}),
+    displayOrdinal,
     declaredStatus: milestone.artifact.status,
     derivedStatus,
     plannedChanges,
@@ -444,7 +467,6 @@ export function orderMilestoneStatuses(
   statuses: Map<string, RoadmapMilestoneStatus>,
   roadmapIndexPath: string,
 ): RoadmapMilestoneStatus[] {
-  const ordered: RoadmapMilestoneStatus[] = [];
   const seenPaths = new Set<string>();
   const diagnostics = roadmap.diagnostics;
 
@@ -504,7 +526,6 @@ export function orderMilestoneStatuses(
           ),
         );
       }
-      ordered.push(status);
     }
   }
 
@@ -522,9 +543,13 @@ export function orderMilestoneStatuses(
         ),
       );
     }
-    const status = statuses.get(milestonePath);
-    if (status) ordered.push(status);
   }
 
-  return ordered;
+  return sortMilestonesByRoadmapOrder(roadmap.milestones)
+    .map((milestone, index) => {
+      const milestonePath = toPosix(path.join("roadmap", "milestones", milestone.relativeMilestonePath));
+      const status = statuses.get(milestonePath);
+      return status ? { ...status, displayOrdinal: index + 1 } : null;
+    })
+    .filter((status): status is RoadmapMilestoneStatus => status !== null);
 }

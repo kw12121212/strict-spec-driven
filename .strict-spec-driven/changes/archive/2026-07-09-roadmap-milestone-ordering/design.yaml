@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: roadmap-milestone-ordering
+approach:
+  - 'Separate three concerns that the NNNN- prefix currently conflates: identity (a stable slug carried in the milestone id and its planned-change filenames), an order sort key (an optional sparse integer stored on the milestone), and a display ordinal (derived by sorting active milestones on order at index/status render time). Reordering edits only the target milestone''s order field. roadmap-sync regenerates the index sorted by order and resolves exact order-value ties deterministically without touching distinct values. Existing complete milestones are frozen by archiving them with their legacy numeric ids intact, so no active file is renamed; new milestones going forward use slug-only ids with an auto-appended initial order.'
+decisions:
+  order-is-optional-sparse-int:
+    decision: order is an optional integer field with default gap spacing of 100 between milestones; reorder inserts at the midpoint of the target neighbors, roadmap-renumber respreads to 100,200,300 when gaps are exhausted.
+    rationale: Sparse integers are human-readable and let a reorder touch exactly one file; making order optional keeps archived and pre-migration files valid without forced rewrites. Fractional/LexoRank keys avoid renumber but sacrifice readability and are deferred until gap exhaustion is a real problem.
+  collision-tiebreak-by-slug:
+    decision: When two milestones share an identical order value after a merge, roadmap-sync nudges the colliding milestone chosen by slug lexicographic order and leaves every distinct order value untouched.
+    rationale: Slug-lexicographic tie-break is deterministic and reproducible across machines, unlike git commit time which is unreliable after rebase or squash. Only exact ties are resolved so deliberate human ordering intent is always preserved.
+  archive-first-freeze:
+    decision: The rollout archives the existing complete milestones into roadmap/archive with their NNNN- ids frozen, rather than renaming ~130 active files; new milestones use slug-only ids, producing a mixed id space that is harmless because ordering derives from order, not the id prefix.
+    rationale: The 18 current milestones are all complete historical record; archiving them is correct workflow hygiene and reduces migration blast radius to near zero while still delivering slug-only identity for all future active work.
+  reorder-excludes-archived:
+    decision: roadmap-reorder and roadmap-renumber operate only on active milestones; archived roadmap milestones and planned-change files are immutable, extending the existing roadmap-sync archive boundary.
+    rationale: Archived milestones are frozen history; mutating their order would rewrite records the workflow treats as authoritative and immutable.
+  reorder-mechanics-in-cli:
+    decision: All order computation, file writes, index regeneration, and collision resolution live in the strict CLI; the strict-roadmap-reorder skill only translates human reorder intent into a single reorder command and applies a dependency-order sanity check.
+    rationale: 'Complies with the scripts-own-mechanics MUST standard: deterministic format enforcement belongs in scripts, AI judgment belongs in the skill prompt.'
+alternatives: []
+risks: []
