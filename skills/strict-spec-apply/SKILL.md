@@ -177,7 +177,8 @@ requires starting declared components or opening declared targets:
 - Mark each task complete immediately after implementing it
 - Never run `apply` just to inspect status
 - Open questions require a problem explanation, impact analysis, recommendation,
-  and explicit human answer before continuing
+  and explicit human answer before continuing; encode the impact and
+  recommendation in `questions.yaml.open[*].context`
 - Implemented code must satisfy applicable technical standards under
   `.strict-spec-driven/tech/`: never break a MUST rule, follow SHOULD rules by
   default, and raise a conflict instead of silently violating a standard

@@ -91,7 +91,9 @@ When roadmap detail is thin or focused spec/code search fails to identify
 affected behavior, create `questions.yaml.open` entries before implementation.
 Human-facing question text, context, impact, recommendations, options, and
 summaries must use `preferred_human_language`. The open-question impact must
-name whether the uncertainty affects proposal scope, spec delta, implementation
+be included in `questions.yaml.open[*].context`, because the `questions`
+generator has no `--impact` or `--recommendation` flags. The context must name
+whether the uncertainty affects proposal scope, spec delta, implementation
 files, tests, dependencies, or technical standards.
 
 ## Spec and Technical Artifact Routing
@@ -195,6 +197,8 @@ run `init` from this skill.
    - `strict-spec-cli generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
    - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema, including concrete Implementation tasks for script, tooling, generated asset, documentation, or skill-prompt edits in scope; Testing tasks with runnable validation and unit/regression commands; and Verification tasks for `ready`, `verify`, mapping checks, and archive-readiness or archive-merge checks when relevant
    - `strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
+     Include impact analysis and recommendation/options in `--context`; do
+     not pass nonexistent `--impact` or `--recommendation` flags.
    - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` for each target spec
    - when the change alters a technical standard, generate delta tech under `.strict-spec-driven/changes/<change-name>/tech/` with `generate <change-name> delta-tech --target-standard <id> ...`; for user interface work, capture observable UI behavior as delta-spec requirements and UI engineering and design rules as a `ui`-category technical standard, with visual fidelity governed by visual-regression snapshots rather than inlined
    - if the change has no observable spec impact, leave the `specs/` directory

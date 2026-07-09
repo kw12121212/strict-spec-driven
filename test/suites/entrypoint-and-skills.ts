@@ -464,7 +464,8 @@ for (const [normalizedSkillContent, skillName] of questionGateSkillChecks) {
       && normalizedSkillContent.includes("questions.yaml.open")
       && normalizedSkillContent.includes("stable language-neutral ids")
       && normalizedSkillContent.includes("`preferred_human_language` question text")
-      && normalizedSkillContent.includes("concrete context, impact analysis, and a recommended answer or options")
+      && normalizedSkillContent.includes("context that includes impact analysis and a recommended answer or options")
+      && normalizedSkillContent.includes("The `questions` generator has no `--impact` or `--recommendation` flags")
       && normalizedSkillContent.includes("Stop before implementation while `questions.yaml.open` is non-empty")
       && normalizedSkillContent.includes("questions.yaml.resolved")
       && normalizedSkillContent.includes("where the work likely lives, how it will be tested, and which technical rules apply"),
@@ -495,7 +496,7 @@ context.assert(
   normalizedAutoSkillContent.includes("When resuming a roadmap-backed scaffold")
     && normalizedAutoSkillContent.includes("selected standalone planned-change `summary`, `details`, `depends_on`, labels, `source_ticket`")
     && normalizedAutoSkillContent.includes("ticket provenance as valid intake evidence")
-    && normalizedAutoSkillContent.includes("For roadmap-backed scaffolds, make the impact say whether the uncertainty affects proposal scope, spec delta, implementation files, tests, dependencies, or technical standards")
+    && normalizedAutoSkillContent.includes("For roadmap-backed scaffolds, make the context say whether the uncertainty affects proposal scope, spec delta, implementation files, tests, dependencies, or technical standards")
     && normalizedAutoSkillContent.includes("preserve selected planned-change and ticket provenance as intake evidence"),
   "strict-spec-auto preserves roadmap-backed intake evidence when resuming populated scaffolds",
 );

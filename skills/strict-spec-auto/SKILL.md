@@ -89,8 +89,10 @@ roadmap or ticket evidence forward instead of re-asking.
   a plausible guess.
 - Record missing required answers in `questions.yaml.open` with stable
   language-neutral ids, `preferred_human_language` question text, concrete
-  context, impact analysis, and a recommended answer or options.
-- For roadmap-backed scaffolds, make the impact say whether the uncertainty
+  context that includes impact analysis and a recommended answer or options.
+  The `questions` generator has no `--impact` or `--recommendation` flags; put
+  those details in the `--context` text.
+- For roadmap-backed scaffolds, make the context say whether the uncertainty
   affects proposal scope, spec delta, implementation files, tests,
   dependencies, or technical standards.
 - Stop before implementation while `questions.yaml.open` is non-empty.
@@ -160,6 +162,8 @@ run `init` from this skill.
     - `strict-spec-cli generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
     - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema, including concrete Implementation tasks for script, tooling, generated asset, documentation, or skill-prompt edits in scope; Testing tasks with runnable validation and unit/regression commands; and Verification tasks for `ready`, `verify`, mapping checks, and archive-readiness or archive-merge checks when relevant
     - `strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
+      Include impact analysis and recommendation/options in `--context`; do
+      not pass nonexistent `--impact` or `--recommendation` flags.
     - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."`
     - when this change must alter a technical standard (add, modify, or retire a
       rule, or introduce a new standard), generate strict YAML delta tech
@@ -338,7 +342,8 @@ implementation or review requires starting declared components:
 - The complexity check is mandatory
 - The workflow is automatic except when open questions block progress
 - Open questions require a problem explanation, impact analysis, recommendation,
-  and explicit human answer before continuing
+  and explicit human answer before continuing; encode the impact and
+  recommendation in `questions.yaml.open[*].context`
 - Honor applicable technical standards under `.strict-spec-driven/tech/` across
   proposal, implementation, and review: never break a MUST rule, follow SHOULD
   rules by default, and treat unjustified violations as review findings that

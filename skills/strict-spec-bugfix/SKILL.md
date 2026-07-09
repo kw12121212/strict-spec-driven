@@ -83,7 +83,9 @@ affected behavior.
   a plausible guess.
 - Record missing required answers in `questions.yaml.open` with stable
   language-neutral ids, `preferred_human_language` question text, concrete
-  context, impact analysis, and a recommended answer or options.
+  context that includes impact analysis and a recommended answer or options.
+  The `questions` generator has no `--impact` or `--recommendation` flags; put
+  those details in the `--context` text.
 - Stop before implementation while `questions.yaml.open` is non-empty.
 - When the user answers, resolve the item into `questions.yaml.resolved` before
   continuing implementation or automatic workflow execution.

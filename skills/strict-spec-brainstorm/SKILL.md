@@ -55,7 +55,9 @@ affected behavior.
   a plausible guess.
 - Record missing required answers in `questions.yaml.open` with stable
   language-neutral ids, `preferred_human_language` question text, concrete
-  context, impact analysis, and a recommended answer or options.
+  context that includes impact analysis and a recommended answer or options.
+  The `questions` generator has no `--impact` or `--recommendation` flags; put
+  those details in the `--context` text.
 - Stop before implementation while `questions.yaml.open` is non-empty.
 - When the user answers, resolve the item into `questions.yaml.resolved` before
   continuing implementation or automatic workflow execution.
@@ -162,6 +164,8 @@ run `init` from this skill.
       mapping checks, and archive-readiness or archive-merge checks when
       relevant
     - `strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..."` plus any needed `--resolved` entries
+      Include impact analysis and recommendation/options in `--context`; do
+      not pass nonexistent `--impact` or `--recommendation` flags.
     - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` once per target strict main spec path
     - when the change alters a technical standard, `strict-spec-cli generate <change-name> delta-tech --target-standard <standard-id> [--title "..." --category <category>] [--implementation "src/file.ts"] [--enforcement "config"] --operation ADDED --rule <rule-id> --strength MUST --statement "..." --rationale "..." --method review`
     If the change has no observable spec impact, leave the `specs/` directory

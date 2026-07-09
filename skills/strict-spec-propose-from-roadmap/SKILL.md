@@ -255,8 +255,11 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
    ```bash
    strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..." --resolved <question-id> --question "..." --context "..." --answer "..."
    ```
-   Record open questions as structured entries under `open`; if everything is
-   clear, leave `open: []`.
+   Record open questions as structured entries under `open` using `id`,
+   `question`, and `context`; the `questions` generator has no `--impact` or
+   `--recommendation` flags. Include impact analysis and
+   recommendation/options in `--context`. If everything is clear, leave
+   `open: []`.
 
 9. **Generate strict YAML delta specs only when specs change** — run this step
    only when the change has observable spec impact. Use one direct CLI
