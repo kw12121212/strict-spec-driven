@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: ticket-dispatch-to-spec-change
+  status: proposed
+summary:
+  what:
+    - When a strict ticket is dispatched with the not_implemented outcome, the workflow promotes it into a standalone strict spec change instead of a roadmap milestone. The ticket-resolve CLI records the promoted transition and an optional link to the created change name, and the strict-ticket-dispatch skill scaffolds and populates that change through the propose command.
+  why:
+    - Tickets capture concrete, ready-to-build requirements. Routing a promoted ticket through a roadmap milestone skeleton inserts an intermediate planning layer that must be refined again before any work can start. Promoting a dispatched ticket directly into a strict spec change lets it become executable work immediately, keeping the roadmap reserved for genuinely roadmap-scale planning.
+scope:
+  in:
+    - ticket-resolve not_implemented no longer materializes a roadmap milestone or writes the roadmap index; it records the promoted dispatch decision, sets ticket status to promoted, records provenance.promoted_to when a change reference is supplied, and archives the ticket
+    - a new optional --promoted-to <change-name> flag on ticket-resolve links the archived ticket to the strict change created for it
+    - the ticket schema promoted_to field accepts a kebab-case change name, relaxed from the milestone-id pattern, while still accepting existing milestone-style ids
+    - the ticket-domain-behavior spec requirement for the not_implemented outcome is rewritten to describe standalone spec-change promotion instead of milestone materialization
+    - the strict-ticket-dispatch skill replaces milestone refinement and planned-change authoring with proposing a strict change, populating it from ticket evidence with source-ticket linkage, and resolving the ticket with the change link
+    - the embedded schema bundle is regenerated and the project rebuilt so the relaxed ticket schema is enforced
+    - the ticket promote regression tests are rewritten to assert spec-change promotion
+  out:
+    - roadmap milestone and planned-change creation via the roadmap skills and roadmap CLI remains unchanged and is not driven by ticket dispatch
+    - the implemented and not_wanted ticket outcomes are unchanged
+    - the propose command's own change-scaffolding behavior is reused as-is and not modified
+    - automatic authoring of the promoted change's implementation tasks beyond an evidence-seeded proposal remains skill judgment and later apply work
+unchanged_behavior:
+  - implemented closes the ticket with evidence and not_wanted rejects it with rationale; both continue to archive the ticket with an auditable dispatch decision
+  - ticket-create, ticket-list, ticket-show, ticket-validate, and ticket-edit behavior is unchanged
+  - resolved tickets remain auditable via ticket-show and ticket-validate by id from the archived directory
+  - roadmap milestone and planned-change tooling remains available for roadmap-driven work through the roadmap skills

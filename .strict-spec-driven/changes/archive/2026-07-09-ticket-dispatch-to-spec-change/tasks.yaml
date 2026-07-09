@@ -1,0 +1,46 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: ticket-dispatch-to-spec-change
+sections:
+  Implementation:
+    relax-promoted-to-schema:
+      text: In templates/strict-spec-driven/schemas/ticket.yaml relax provenance.promoted_to from the milestone-id pattern to a general kebab-case pattern so it accepts a strict change name while remaining compatible with existing milestone-style ids.
+      status: complete
+    rewrite-not-implemented-transition:
+      text: In src/ticket-dispatch.ts remove milestone materialization, roadmap-index writes, and the source-ticket idempotency lookup from the not_implemented branch; record the promoted dispatch decision, set status to promoted, record provenance.promoted_to only when a change reference is supplied, archive the ticket, and update ResolveTicketInput and ResolveTicketResult so the milestone-shaped fields are replaced by the change link.
+      status: complete
+    add-promoted-to-flag:
+      text: In src/cli/cmd-tickets.ts add an optional --promoted-to <change-name> flag to ticket-resolve, validate it as kebab-case, thread it into ResolveTicketInput, and update the command usage/help text.
+      status: complete
+    align-provenance-docs:
+      text: Update the TicketProvenance.promoted_to doc comment in src/tickets.ts to describe the strict-change-name semantics instead of milestone ids.
+      status: complete
+    rewrite-dispatch-skill:
+      text: Rewrite skills/strict-ticket-dispatch/SKILL.md so the not_implemented path proposes a strict change (propose <change-name>), populates it from ticket evidence with source-ticket linkage, and resolves the ticket with --promoted-to <change-name>; remove milestone refinement and planned-change authoring guidance.
+      status: complete
+    regenerate-bundle-and-build:
+      text: Run the build so the regenerated embedded schema bundle and recompiled dist reflect the relaxed ticket schema and updated CLI behavior.
+      status: complete
+      command: bun run build
+  Testing:
+    test-promote-to-change:
+      text: Rewrite the promote regression cases in test/suites/tickets.ts to assert the not_implemented outcome records a promoted status with no milestone file or roadmap-index modification, records provenance.promoted_to when --promoted-to is supplied, omits the link when it is absent, and keeps the archived ticket auditable via ticket-show and ticket-validate.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-change-artifacts:
+      text: Run strict-spec-cli verify ticket-dispatch-to-spec-change and confirm the strict artifacts and delta spec pass schema and task-completion checks.
+      status: complete
+      command: strict-spec-cli verify ticket-dispatch-to-spec-change
+    verify-scope:
+      text: 'Confirm the implementation matches proposal scope: ticket dispatch no longer creates roadmap milestones, the skill drives change promotion, and implemented/not_wanted outcomes are unchanged.'
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: test-promote-to-change

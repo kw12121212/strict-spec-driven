@@ -1,0 +1,28 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: ticket-dispatch-to-spec-change
+approach:
+  - Keep the deterministic ticket state transition in the CLI and the change-scaffolding judgment in the skill. resolveTicket's not_implemented branch stops creating a milestone and writing the roadmap index; it records the promoted dispatch decision, sets status to promoted, records provenance.promoted_to only when the caller passes a change reference, and archives the ticket. runTicketResolve gains an optional --promoted-to <change-name> flag validated as kebab-case. The ticket schema promoted_to pattern is relaxed to a general kebab-case pattern (which still matches existing 4-digit milestone ids), the embedded bundle is regenerated, and the project rebuilt. The strict-ticket-dispatch skill runs propose <change-name> first, populates the change artifacts from ticket evidence with a source-ticket reference, then calls ticket-resolve --outcome not_implemented --promoted-to <change-name>.
+decisions:
+  keep-mechanics-in-cli:
+    decision: The CLI performs only the deterministic ticket transition and link recording; the skill owns proposing and populating the strict change.
+    rationale: Honors scripts-own-mechanics MUST and keeps AI judgment in skill prompts, matching the answered design choice that the skill hands off to propose.
+  optional-promoted-to-link:
+    decision: Add an optional --promoted-to <change-name> flag rather than requiring it or having the CLI scaffold the change; when supplied it is recorded as provenance.promoted_to.
+    rationale: The change name only exists after the skill runs propose, so the link is recorded on resolve; keeping it optional lets the transition stay independent of scaffolding while still producing an auditable ticket-to-change link when the skill supplies it.
+  relax-promoted-to-pattern:
+    decision: Relax the ticket schema promoted_to pattern from a milestone-id pattern to a general kebab-case pattern so it accepts change names while remaining compatible with existing milestone-style ids.
+    rationale: 'Contract-first-scope-changes MUST: the schema is updated before code depends on it, and the broadened pattern is backward compatible with archived tickets that already link to milestone ids.'
+  drop-ticket-driven-milestones:
+    decision: Remove milestone materialization, roadmap-index writes, and source-ticket idempotency lookup from the not_implemented path entirely; roadmap promotion is no longer a ticket-dispatch outcome.
+    rationale: Matches the answered design choice to replace the milestone path entirely; roadmap tooling stays available through the roadmap skills for roadmap-scale planning.
+alternatives:
+  - option: Have the CLI scaffold the strict change itself on not_implemented for deterministic linkage.
+    reason: Rejected because the answered design choice routes scaffolding through the skill's propose handoff, keeping change authoring judgment in the prompt.
+  - option: Keep both milestone and change promotion as selectable dispatch outcomes.
+    reason: Rejected because the answered design choice replaces the milestone path entirely to avoid a second, ambiguous dispatch branch.
+risks:
+  - Existing callers or tests referencing the milestone-shaped result fields (milestoneId, milestonePath, milestoneCreated) break.
+  - A promoted ticket could be archived without a change link if the skill fails to pass --promoted-to.

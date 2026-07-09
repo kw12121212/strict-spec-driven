@@ -81,21 +81,20 @@ requirements:
         - THEN: the command reads the archived ticket artifact and preserves access to its dispatch decision and provenance
   ticket-promote-on-not-implemented:
     strength: MUST
-    statement: The system MUST, on a not-implemented decision, materialize a new roadmap milestone skeleton seeded only with the goal copied from the ticket's desired outcome, leave scope and done_criteria as an explicit refinement stub, allocate the next milestone number deterministically and refuse rather than overwrite on collision, register the milestone in the roadmap index, set the ticket status to promoted, write bidirectional links (ticket promoted_to and a milestone source-ticket back-reference), and move the promoted ticket artifact to the ticket archived directory.
+    statement: The system MUST, on a not-implemented decision, record the promoted dispatch decision on the ticket, set the ticket status to promoted, record provenance.promoted_to as a reference to a strict spec change only when a change reference is supplied, and move the promoted ticket artifact to the ticket archived directory, without materializing a roadmap milestone or writing the roadmap index; the strict spec change is scaffolded and populated by the dispatch skill through the propose command rather than by the CLI.
     scenarios:
-      promote-materializes-linked-milestone:
-        - GIVEN: an open ticket and a valid roadmap
-        - WHEN: ticket-resolve runs with the not-implemented outcome
-        - THEN: a new milestone skeleton is written with status proposed, its goal copied from the ticket desired outcome, scope and done_criteria left as an explicit refinement stub, and a source-ticket back-reference
-        - AND: the milestone is registered in the roadmap index, the ticket status becomes promoted, the ticket records promoted_to pointing at the milestone, and the promoted ticket is moved under .strict-spec-driven/tickets/archived/
-      promote-allocates-and-refuses-collision:
-        - GIVEN: existing milestones occupy a contiguous range of milestone numbers
-        - WHEN: a not-implemented ticket is promoted
-        - THEN: the new milestone takes the next deterministic milestone number, and if that milestone id already exists the command refuses rather than overwriting it
-      promote-is-idempotent:
-        - GIVEN: a ticket has already been promoted to a milestone
-        - WHEN: ticket-resolve runs again with the not-implemented outcome for that ticket
-        - THEN: no second milestone is created and the existing milestone link is returned
+      promote-records-decision-and-archives:
+        - GIVEN: an open ticket exists
+        - WHEN: ticket-resolve runs with the not-implemented outcome and a rationale
+        - THEN: the ticket records a structured dispatch-decision with the not-implemented outcome and rationale, the ticket status becomes promoted, no roadmap milestone is created and the roadmap index is not modified, and the promoted ticket is moved under .strict-spec-driven/tickets/archived/
+      promote-records-change-link-when-supplied:
+        - GIVEN: an open ticket exists and a strict spec change has already been scaffolded for it
+        - WHEN: ticket-resolve runs with the not-implemented outcome and a --promoted-to change reference
+        - THEN: the archived ticket records provenance.promoted_to pointing at the supplied strict spec change name
+      promote-omits-link-without-reference:
+        - GIVEN: an open ticket exists
+        - WHEN: ticket-resolve runs with the not-implemented outcome and no change reference
+        - THEN: the ticket is archived as promoted with no provenance.promoted_to link and the command still succeeds
   ticket-close-and-reject-transitions:
     strength: MUST
     statement: The system MUST, on an implemented decision, close the ticket and record evidence links to the satisfying specs/code/docs, and on a not-wanted decision, mark the ticket rejected/deferred with the recorded rationale, in both cases moving the resolved ticket artifact to the ticket archived directory and leaving an auditable dispatch-decision trail rather than discarding the ticket.

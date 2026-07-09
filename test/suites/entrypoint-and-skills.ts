@@ -294,26 +294,24 @@ const dispatchSkillContent = readFileSync(path.join(ROOT, "skills", "strict-tick
 const normalizedDispatchSkillContent = dispatchSkillContent.replace(/\s+/g, " ");
 context.assert(
   dispatchSkillContent.includes("ticket-resolve")
-    && dispatchSkillContent.includes("replace the generated")
-    && dispatchSkillContent.includes("refinement stub")
-    && dispatchSkillContent.includes("second-pass review"),
-  "ticket-dispatch skill drives ticket-resolve and completes promoted milestone refinement before handoff",
+    && dispatchSkillContent.includes("propose")
+    && dispatchSkillContent.includes("strict spec change")
+    && dispatchSkillContent.includes("--promoted-to"),
+  "ticket-dispatch skill promotes a not_implemented ticket into a strict spec change and links it with --promoted-to",
 );
 context.assert(
-  normalizedDispatchSkillContent.includes("milestone `details`")
-    && normalizedDispatchSkillContent.includes("at least one standalone planned-change")
-    && normalizedDispatchSkillContent.includes("actionable `summary` and `details`"),
-  "ticket-dispatch skill requires promoted milestones to include details and standalone planned-change detail",
+  normalizedDispatchSkillContent.includes("Populate the planning artifacts from the ticket evidence")
+    && normalizedDispatchSkillContent.includes("proposal.yaml")
+    && normalizedDispatchSkillContent.includes("questions.yaml"),
+  "ticket-dispatch skill populates the promoted change's planning artifacts from ticket evidence",
 );
 context.assert(
   normalizedDispatchSkillContent.includes("Ticket-Promoted Intake Evidence")
-    && normalizedDispatchSkillContent.includes("archived ticket problem")
-    && normalizedDispatchSkillContent.includes("source_ticket")
-    && normalizedDispatchSkillContent.includes("future change-intake evidence")
+    && normalizedDispatchSkillContent.includes("the change's intake evidence")
     && normalizedDispatchSkillContent.includes("affected proposal scope, spec delta, implementation files, tests, dependencies, or technical standards")
     && normalizedDispatchSkillContent.includes("preferred_human_language")
     && normalizedDispatchSkillContent.includes("questions.yaml.open"),
-  "ticket-dispatch skill preserves promoted ticket evidence for roadmap-backed intake",
+  "ticket-dispatch skill preserves promoted ticket evidence for the spec-change intake",
 );
 context.assert(
   normalizedDispatchSkillContent.includes("spec coverage is too thin")

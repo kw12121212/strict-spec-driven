@@ -31,6 +31,7 @@ export type TicketDispatchDecision = {
 };
 
 export type TicketProvenance = {
+  /** Name of the strict spec change a promoted (not_implemented) ticket was routed into. */
   promoted_to?: string;
   implemented_by?: TicketReference[];
 };

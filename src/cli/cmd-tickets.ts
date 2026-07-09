@@ -1,6 +1,6 @@
 import { createTicket, editTicket, listTickets, showTicket, validateTickets, type CreateTicketInput, type EditTicketInput, type TicketReference } from "../tickets.js";
 import { resolveTicket, type DispatchOutcome, type ResolveTicketInput } from "../ticket-dispatch.js";
-import { isHelpRequest } from "./argv.js";
+import { CHANGE_NAME_PATTERN, isHelpRequest } from "./argv.js";
 import { writeHelp, writeJson, writeUsage } from "./output.js";
 
 const DISPATCH_OUTCOMES = new Set<DispatchOutcome>(["not_implemented", "implemented", "not_wanted"]);
@@ -254,15 +254,15 @@ function parseEvidence(flags: FlagMap): TicketReference[] {
 }
 
 export function runTicketResolve(argv: string[]): number {
+  const usage =
+    "Usage: strict-spec-cli ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--promoted-to <change-name>] [--evidence-label <text> --evidence-target <text>]...\n";
   if (isHelpRequest(argv)) {
-    writeHelp(
-      "Usage: strict-spec-cli ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...\n",
-    );
+    writeHelp(usage);
     return 0;
   }
 
   if (argv.length === 0 || argv[0].startsWith("--")) {
-    writeUsage("Usage: strict-spec-cli ticket-resolve <ticket-id> --outcome <not_implemented|implemented|not_wanted> --rationale <text> [--evidence-label <text> --evidence-target <text>]...\n");
+    writeUsage(usage);
     return 1;
   }
   const ticketId = argv[0];
@@ -271,7 +271,7 @@ export function runTicketResolve(argv: string[]): number {
   let evidence: TicketReference[];
   try {
     flags = parseFlagMap(argv.slice(1));
-    ensureAllowedFlags(flags, ["outcome", "rationale", "evidence-label", "evidence-target"]);
+    ensureAllowedFlags(flags, ["outcome", "rationale", "promoted-to", "evidence-label", "evidence-target"]);
     evidence = parseEvidence(flags);
   } catch (error) {
     writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}\n`);
@@ -289,11 +289,18 @@ export function runTicketResolve(argv: string[]): number {
     return 1;
   }
 
+  const promotedTo = singleValue(flags, "promoted-to");
+  if (promotedTo !== undefined && !CHANGE_NAME_PATTERN.test(promotedTo)) {
+    writeUsage("Error: --promoted-to must be a kebab-case change name (lowercase letters, numbers, and hyphens)\n");
+    return 1;
+  }
+
   const input: ResolveTicketInput = {
     ticketId,
     outcome: outcome as DispatchOutcome,
     rationale,
     evidence,
+    ...(promotedTo !== undefined ? { promotedTo } : {}),
   };
   const result = resolveTicket(process.cwd(), input);
   writeJson(result);

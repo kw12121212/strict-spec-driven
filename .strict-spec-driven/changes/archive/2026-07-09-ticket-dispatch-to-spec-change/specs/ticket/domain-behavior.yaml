@@ -1,0 +1,32 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: ticket-domain-behavior
+mapping:
+  implementation:
+    - src/ticket-dispatch.ts
+    - src/cli/cmd-tickets.ts
+    - src/tickets.ts
+  tests:
+    - test/suites/tickets.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    ticket-promote-on-not-implemented:
+      strength: MUST
+      statement: The system MUST, on a not-implemented decision, record the promoted dispatch decision on the ticket, set the ticket status to promoted, record provenance.promoted_to as a reference to a strict spec change only when a change reference is supplied, and move the promoted ticket artifact to the ticket archived directory, without materializing a roadmap milestone or writing the roadmap index; the strict spec change is scaffolded and populated by the dispatch skill through the propose command rather than by the CLI.
+      scenarios:
+        promote-records-decision-and-archives:
+          - GIVEN: an open ticket exists
+          - WHEN: ticket-resolve runs with the not-implemented outcome and a rationale
+          - THEN: the ticket records a structured dispatch-decision with the not-implemented outcome and rationale, the ticket status becomes promoted, no roadmap milestone is created and the roadmap index is not modified, and the promoted ticket is moved under .strict-spec-driven/tickets/archived/
+        promote-records-change-link-when-supplied:
+          - GIVEN: an open ticket exists and a strict spec change has already been scaffolded for it
+          - WHEN: ticket-resolve runs with the not-implemented outcome and a --promoted-to change reference
+          - THEN: the archived ticket records provenance.promoted_to pointing at the supplied strict spec change name
+        promote-omits-link-without-reference:
+          - GIVEN: an open ticket exists
+          - WHEN: ticket-resolve runs with the not-implemented outcome and no change reference
+          - THEN: the ticket is archived as promoted with no provenance.promoted_to link and the command still succeeds
+  REMOVED: {}

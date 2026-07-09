@@ -98,7 +98,7 @@ json_schema:
       properties:
         promoted_to:
           type: string
-          pattern: "^\\d{4}-"
+          pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
         implemented_by:
           type: array
           items:

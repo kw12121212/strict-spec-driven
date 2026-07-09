@@ -13,25 +13,6 @@ function makeWorkspace(): string {
   return root;
 }
 
-function makeRoadmapWorkspace(): string {
-  const root = makeWorkspace();
-  const roadmapDir = path.join(root, ".strict-spec-driven", "roadmap");
-  mkdirSync(path.join(roadmapDir, "milestones"), { recursive: true });
-  writeFileSync(
-    path.join(roadmapDir, "INDEX.yaml"),
-    [
-      "schema: strict-spec-driven/roadmap-index/v2",
-      "schema_version: 2",
-      "artifact_type: roadmap_index",
-      "schema_file: ../schemas/roadmap-index.yaml",
-      "milestones: {}",
-      "",
-    ].join("\n"),
-    "utf8",
-  );
-  return root;
-}
-
 function parseJson(stdout: string): Record<string, unknown> {
   return JSON.parse(stdout) as Record<string, unknown>;
 }
@@ -213,7 +194,7 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
 
   context.section("[tickets] ticket-resolve dispatch transitions");
 
-  const roadmapRoot = makeRoadmapWorkspace();
+  const roadmapRoot = makeWorkspace();
   const promoteTicket = createTicketViaCli(roadmapRoot, "Add CSV export", "no tabular export", "a CSV export exists");
   rewriteTicketTimes(roadmapRoot, promoteTicket, "2026-06-01T00:00:00.000Z", "2026-06-01T00:00:00.000Z");
   const promote = cli(
@@ -223,7 +204,11 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
   context.assert(promote.status === 0, "ticket-resolve promote exits zero");
   const promoteJson = parseJson(promote.stdout);
   context.assert(promoteJson.status === "promoted", "promote sets ticket status to promoted");
-  context.assert(promoteJson.milestoneCreated === true, "promote creates a milestone");
+  context.assert(promoteJson.promotedTo === null, "promote without --promoted-to reports no change link");
+  context.assert(
+    !existsSync(path.join(roadmapRoot, ".strict-spec-driven", "roadmap")),
+    "promote does not materialize a roadmap milestone or roadmap index",
+  );
   context.assert(
     promoteJson.ticketPath === `.strict-spec-driven/tickets/archived/${promoteTicket}.yaml`
       && existsSync(path.join(roadmapRoot, promoteJson.ticketPath as string)),
@@ -233,19 +218,6 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
     !existsSync(path.join(roadmapRoot, ".strict-spec-driven", "tickets", `${promoteTicket}.yaml`)),
     "promote removes the ticket from the active tickets directory",
   );
-  const milestoneId = promoteJson.milestoneId as string;
-  context.assert(/^\d{4}-/.test(milestoneId), "promote allocates a 4-digit milestone id");
-  const milestoneFile = path.join(roadmapRoot, ".strict-spec-driven", "roadmap", "milestones", `${milestoneId}.yaml`);
-  context.assert(existsSync(milestoneFile), "promote writes the milestone file");
-  const milestoneArtifact = yamlParse(readFileSync(milestoneFile, "utf8"));
-  context.assert(milestoneArtifact.source_ticket === promoteTicket, "milestone records the source-ticket back-reference");
-  context.assert(milestoneArtifact.goal === "a CSV export exists", "milestone goal is copied from the ticket desired outcome");
-  context.assert(milestoneArtifact.status === "proposed", "promoted milestone status is proposed");
-  const milestoneScope = milestoneArtifact.scope as { in: string[]; out: string[] };
-  context.assert(
-    milestoneScope.in.some((entry) => entry.includes("REFINEMENT NEEDED")),
-    "promoted milestone scope is left as an explicit refinement stub",
-  );
   const promotedTicketShow = parseJson(cli(["ticket-show", promoteTicket], { cwd: roadmapRoot }).stdout);
   const promotedTicketArtifact = promotedTicketShow.ticket as Record<string, unknown>;
   context.assert(promotedTicketArtifact.created_at === "2026-06-01T00:00:00.000Z", "ticket-resolve preserves created_at");
@@ -254,8 +226,8 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
     "ticket-resolve refreshes updated_at on the archived ticket",
   );
   context.assert(
-    (promotedTicketArtifact.provenance as Record<string, unknown>)?.promoted_to === milestoneId,
-    "ticket records promoted_to pointing at the milestone",
+    promotedTicketArtifact.provenance === undefined,
+    "promote without --promoted-to records no change link on the ticket",
   );
   const promotedTicketValidate = cli(["ticket-validate", promoteTicket], { cwd: roadmapRoot });
   context.assert(promotedTicketValidate.status === 0, "ticket-validate can validate an archived promoted ticket by id");
@@ -264,31 +236,33 @@ export async function runTicketsSuite(context: TestContext): Promise<void> {
     activeTicketsAfterPromote.every((entry) => (entry as { id: string }).id !== promoteTicket),
     "ticket-list omits archived promoted tickets from active ticket state",
   );
-  const roadmapIndex = yamlParse(
-    readFileSync(path.join(roadmapRoot, ".strict-spec-driven", "roadmap", "INDEX.yaml"), "utf8"),
-  ) as { milestones: Record<string, unknown> };
-  context.assert(milestoneId in roadmapIndex.milestones, "promotion registers the milestone in the roadmap index");
 
-  const promoteAgain = cli(
-    ["ticket-resolve", promoteTicket, "--outcome", "not_implemented", "--rationale", "re-running dispatch"],
+  const linkedTicket = createTicketViaCli(roadmapRoot, "Add JSON export", "no json export", "a JSON export exists");
+  const linkedPromote = cli(
+    ["ticket-resolve", linkedTicket, "--outcome", "not_implemented", "--rationale", "absent", "--promoted-to", "add-json-export"],
     { cwd: roadmapRoot },
   );
-  const promoteAgainJson = parseJson(promoteAgain.stdout);
-  context.assert(promoteAgainJson.milestoneCreated === false, "re-promoting a ticket does not create a second milestone");
-  context.assert(promoteAgainJson.milestoneId === milestoneId, "re-promotion returns the existing milestone id");
+  const linkedPromoteJson = parseJson(linkedPromote.stdout);
+  context.assert(linkedPromoteJson.status === "promoted", "promote with a change link sets status to promoted");
+  context.assert(linkedPromoteJson.promotedTo === "add-json-export", "promote reports the linked change name");
+  const linkedShow = parseJson(cli(["ticket-show", linkedTicket], { cwd: roadmapRoot }).stdout);
+  const linkedArtifact = linkedShow.ticket as Record<string, unknown>;
+  context.assert(
+    (linkedArtifact.provenance as Record<string, unknown>)?.promoted_to === "add-json-export",
+    "ticket records promoted_to pointing at the strict spec change",
+  );
+  const linkedValidate = cli(["ticket-validate", linkedTicket], { cwd: roadmapRoot });
+  context.assert(linkedValidate.status === 0, "ticket schema accepts a kebab-case change name as promoted_to");
 
-  const secondTicket = createTicketViaCli(roadmapRoot, "Add JSON export", "no json export", "a JSON export exists");
-  const secondPromote = parseJson(
-    cli(["ticket-resolve", secondTicket, "--outcome", "not_implemented", "--rationale", "absent"], { cwd: roadmapRoot }).stdout,
+  const badLinkTicket = createTicketViaCli(roadmapRoot, "Add XML export", "no xml export", "an XML export exists");
+  const badLink = cli(
+    ["ticket-resolve", badLinkTicket, "--outcome", "not_implemented", "--rationale", "absent", "--promoted-to", "Not A Change"],
+    { cwd: roadmapRoot },
   );
+  context.assert(badLink.status !== 0, "ticket-resolve rejects a non-kebab-case --promoted-to value");
   context.assert(
-    (secondPromote.milestoneId as string) !== milestoneId
-      && /^\d{4}-/.test(secondPromote.milestoneId as string),
-    "a second promotion allocates a distinct sequential milestone number",
-  );
-  context.assert(
-    existsSync(path.join(roadmapRoot, ".strict-spec-driven", "tickets", "archived", `${secondTicket}.yaml`)),
-    "a second promotion archives the second resolved ticket",
+    existsSync(path.join(roadmapRoot, ".strict-spec-driven", "tickets", `${badLinkTicket}.yaml`)),
+    "a rejected --promoted-to value leaves the ticket active and unresolved",
   );
 
   const implementedTicket = createTicketViaCli(roadmapRoot, "Already done feature", "thought it was missing", "it works");
