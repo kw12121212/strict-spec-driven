@@ -131,7 +131,10 @@ run `init` from this skill.
 
 - Keep all roadmap state under `.strict-spec-driven/roadmap/`
 - Keep planned changes owned by exactly one milestone
-- Keep milestone files numbered and stable once the roadmap exists
+- Keep milestone ids slug-only and stable once created; ordering comes from
+  the optional integer `order` field (use `/strict-roadmap-reorder`), never
+  from id prefixes or filenames. Legacy `NNNN-` prefixed ids remain valid but
+  do not mint new ones
 - Keep each milestone to ten planned changes or fewer
 - Use `roadmap-generate milestone` for milestone YAML shape and
   `roadmap-generate planned-change` for standalone planned-change artifacts;
