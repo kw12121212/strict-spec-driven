@@ -1,0 +1,17 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: archive-current-change-tech-sync
+open: []
+resolved:
+  - id: archive-enforcement-boundary
+    question: Should current-change tech sync be enforced by AI-guided archive workflows only, or should the raw archive CLI require a machine-readable sync receipt?
+    context: A raw CLI receipt would add a schema, persistence contract, and archive state-machine precondition but still could not prove that AI convention judgment was meaningful. The recommended boundary is to make strict-spec-archive, strict-spec-auto, strict-tech-sync active-change mode, and the MCP archive prompt mandatory while leaving strict-spec-cli archive as the deterministic merge primitive.
+    answer: 'Confirmed the recommended workflow-level boundary: supported AI-guided archive surfaces must run the checkpoint, while the raw strict-spec-cli archive command gains no AI sync receipt gate.'
+    status: resolved
+  - id: archive-finding-resolution
+    question: When the final scan surfaces a possible reusable convention, what resolution is required before archive may continue?
+    context: Allowing unconditional deferral would preserve the current drift gap, while forcing every pattern into a standard would turn judgment into noise. The recommended policy is to require either confirmed delta-tech capture or an explicit operator classification that the pattern is not reusable; a convention confirmed as reusable cannot be deferred until after archive.
+    answer: 'Confirmed the recommended policy: the scan is mandatory, confirmed reusable conventions must be captured as current-change delta-tech, and explicit non-reusable classification may close a finding without a tech edit.'
+    status: resolved

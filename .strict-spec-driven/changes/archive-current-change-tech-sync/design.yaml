@@ -1,0 +1,43 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: archive-current-change-tech-sync
+approach:
+  - Treat technical-standard discovery as AI judgment in skill guidance and keep filesystem generation, strict YAML validation, delta merging, and archive movement in deterministic CLI commands. Add an active-change branch to strict-tech-sync, invoke the same bounded procedure from archive guidance, and mirror it in auto and MCP archive surfaces.
+  - Build the scan scope from the selected change's proposal, design, tasks, questions, delta specs, delta tech, structured mappings, attributable tracked diff, and relevant untracked files; read only the technical standards governing those paths. Classify existing coverage, confirmed gaps, non-reusable patterns, and unrelated repository drift separately.
+  - When a reusable convention gap is found, present the target standard or proposed new standard, operation, stable rule id, strength, statement, rationale, enforcement method, and mappings for explicit operator confirmation. Generate or update delta-tech inside the active change after approval, then rerun strict verification, delta-tech review, and any complete regression evidence invalidated by the artifact edit before archive.
+  - Keep the review-time reflection as an early non-blocking opportunity, but replace its post-archive deferral option with the guaranteed final archive-time current-change sync. Add stable packaging and MCP prompt assertions so every supported archive guidance surface preserves the gate.
+decisions:
+  pre-archive-not-post-archive:
+    decision: Run current-change tech sync before archive mutates or moves the change.
+    rationale: Only an active change can carry an auditable delta-tech that archive merges; direct main-tech edits after archival would disconnect the convention from the change that established it.
+  skill-level-enforcement:
+    decision: Enforce the synchronization in strict-spec-archive, strict-spec-auto, strict-tech-sync active-change guidance, and the MCP archive prompt without adding a raw CLI receipt gate.
+    rationale: Convention discovery and rule-strength judgment are AI and human responsibilities under the scripts-own-mechanics standard, while strict-spec-cli archive must remain deterministic and usable as the merge primitive.
+  bounded-current-change-scope:
+    decision: Scan only evidence attributable to the selected active change and its applicable standards, not all repository drift.
+    rationale: Archive must close the selected change without absorbing unrelated work or turning every archive into an unbounded maintenance exercise.
+  delta-tech-only-during-active-change:
+    decision: Confirmed standard changes discovered by the checkpoint are written as delta-tech under the active change; live main tech files are never edited directly in this mode.
+    rationale: The workflow config and archive contract require standard changes made during a change to remain in its delta history and merge deterministically on archive.
+  resolve-findings-before-archive:
+    decision: The scan is mandatory; a surfaced finding must be captured as delta-tech or explicitly classified by the operator as not reusable before archive continues, and a confirmed reusable convention cannot be deferred until after archive.
+    rationale: This closes the drift gap while preserving human authority over whether a pattern is normative and what RFC 2119 strength it carries.
+  revalidate-after-delta-tech-edit:
+    decision: After archive-time delta-tech generation, rerun strict verification, review the delta-tech, and rerun complete regression evidence when the strict artifact edit invalidates prior evidence.
+    rationale: The archived artifact set and its evidence must describe the final state, not the pre-sync state.
+  mirror-all-archive-surfaces:
+    decision: Mirror the final gate in standalone archive, automatic workflow, and MCP archive prompt guidance, while retaining review as early discovery.
+    rationale: strict-spec-auto performs its own inline workflow and MCP prompts are a separate entry surface, so updating only strict-spec-archive would allow supported paths to bypass the checkpoint.
+alternatives:
+  - option: Run standalone strict-tech-sync after archive
+    reason: Rejected because it edits live standards outside the archived change and loses delta-tech provenance.
+  - option: Add a tech-sync receipt artifact and make strict-spec-cli archive reject changes without it
+    reason: Rejected for this change because deterministic CLI code cannot validate the quality of AI convention judgment; a new schema and state machine would add ceremony without proving the scan was meaningful.
+  - option: Run a repository-wide tech drift scan at every archive
+    reason: Rejected because unrelated legacy drift would make archive scope unpredictable and could absorb work not owned by the selected change.
+risks:
+  - Archive may pause late when review missed a reusable convention; mitigate by retaining the earlier review reflection and making it point to the same current-change capture path.
+  - Skill wording can drift across archive surfaces; mitigate with shared stable anchors in packaging expectations, skill-content regression tests, and MCP prompt assertions.
+  - Attributing dirty-worktree files to the current change can be ambiguous; restrict the default scope to structured mappings and task evidence, inspect git state as supporting evidence, and surface unresolved ownership instead of silently including files.
