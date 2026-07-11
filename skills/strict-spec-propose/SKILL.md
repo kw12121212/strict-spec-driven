@@ -220,6 +220,12 @@ run `init` from this skill.
     ```bash
     strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..." --operation MODIFIED --requirement <requirement-id> --strength MUST --statement "..."
     ```
+   One requirement can include multiple scenario groups by repeating
+   `--scenario`. A later compatible call for the same operation, requirement id,
+   strength, and statement appends new scenario ids and remains idempotent for
+   equivalent scenarios. Never use `--reset` or direct YAML editing merely to
+   append compatible scenarios; `--reset` rebuilds the entire target delta
+   artifact.
    The generated files under `.strict-spec-driven/changes/<name>/specs/` should
    mirror the target main spec paths.
    - use strict YAML delta artifacts with `target_spec`, `mapping`, and

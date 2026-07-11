@@ -1040,7 +1040,7 @@ requirements:
         - AND: the existing target artifact is left unchanged
   cli-propose-generation-prevents-duplicates:
     strength: MUST
-    statement: The system MUST prevent duplicate YAML content when equivalent proposal population commands are executed more than once.
+    statement: The system MUST prevent duplicate YAML content when equivalent proposal population commands are executed more than once and MUST merge compatible incremental scenario additions for an existing delta-spec requirement without requiring reset or direct YAML editing.
     scenarios:
       repeated-list-values-are-deduplicated:
         - GIVEN: a strict change artifact already contains a generated list entry
@@ -1057,6 +1057,16 @@ requirements:
         - WHEN: a later population command targets the same identifier with conflicting content
         - THEN: the command exits non-zero before writing the artifact
         - AND: stderr identifies the duplicate identifier conflict
+      compatible-delta-requirement-scenarios-are-merged:
+        - GIVEN: a generated delta spec contains a requirement with stable strength, statement, and scenario ids
+        - WHEN: a later generation call targets the same operation and requirement with matching metadata and a new scenario id
+        - THEN: the new scenario is appended after existing scenarios without reset while unrelated artifact content is preserved
+        - AND: repeating an equivalent scenario remains idempotent
+      conflicting-delta-requirement-content-fails-before-write:
+        - GIVEN: a generated delta spec contains an existing requirement and scenario
+        - WHEN: a later generation call changes requirement metadata or supplies different steps for the same scenario id
+        - THEN: the command exits non-zero before rewriting the artifact
+        - AND: stderr identifies the conflicting requirement field or scenario id
   cli-propose-tasks-yaml-remains-scaffold-authored:
     strength: MUST
     statement: The system MUST keep tasks.yaml as a scaffolded change artifact that agents edit directly according to the task-list schema rather than exposing tasks as a generate command artifact.
@@ -1831,16 +1841,20 @@ requirements:
         - THEN: validation passes and the strict-spec-init prompt contains the AGENTS.md generation and non-overwrite guidance
   cli-review-surfaces-uncaptured-tech-conventions:
     strength: MUST
-    statement: The system MUST require strict review workflow guidance — in both the strict-spec-review skill and strict-spec-auto's inline review phase — to prompt a non-blocking reflection on whether the reviewed change established a reusable engineering convention not yet captured under .strict-spec-driven/tech/, and when one is found to surface two follow-up options (add a delta-tech to the current change, or defer to /strict-tech-sync) without blocking strict verification or archive when nothing is captured or the operator declines.
+    statement: The system MUST require strict review workflow guidance in both strict-spec-review and strict-spec-auto to perform an early non-blocking reflection on whether the reviewed change established a reusable engineering convention absent from .strict-spec-driven/tech/, offer immediate delta-tech capture or deferral only to the mandatory final current-change tech sync before archive, and prevent a convention confirmed as reusable from being deferred until after the change is archived.
     scenarios:
-      review-prompts-tech-convention-reflection:
-        - GIVEN: a completed strict change has passed strict verification and enters strict review workflow guidance
-        - WHEN: the AI performs the review under either strict-spec-review or strict-spec-auto
-        - THEN: the review guidance requires reflecting on whether the change introduced a reusable engineering convention absent from .strict-spec-driven/tech/, and when such a convention is found offers adding a delta-tech to the current change or deferring it to /strict-tech-sync
-      tech-reflection-is-non-blocking:
-        - GIVEN: the review tech-convention reflection finds nothing to capture or the operator declines to capture it
+      review-prompts-early-tech-convention-reflection:
+        - GIVEN: a completed strict change has passed strict verification and enters standalone or automatic review guidance
+        - WHEN: the AI reviews the changed implementation, tests, strict artifacts, and applicable technical standards
+        - THEN: the guidance requires an early reflection on uncaptured reusable engineering conventions and offers current-change delta-tech capture before archive
+      review-deferral-reaches-final-archive-gate:
+        - GIVEN: the review reflection surfaces a possible reusable convention that is not captured during review
+        - WHEN: review otherwise completes successfully
+        - THEN: review may continue without treating the reflection itself as a correctness blocker, but the convention decision is deferred only to the mandatory final current-change tech sync before archive rather than to a post-archive standalone sync
+      review-no-finding-remains-non-blocking:
+        - GIVEN: the early review reflection finds no uncaptured reusable convention
         - WHEN: review concludes
-        - THEN: the reflection does not block strict verification or archive recommendation
+        - THEN: the reflection adds no review blocker and the final archive workflow still performs its bounded current-change sync checkpoint
   cli-roadmap-review-skill-packaging-validation:
     strength: MUST
     statement: The system MUST validate the strict-roadmap-review skill package through validate-skills, enforcing guidance that reviews every roadmap milestone whose status is not complete, applies direct YAML definition fixes, elaborates planned-change detail, checks milestone intake_questions for answer evidence in milestone fields and owned planned-change details, keeps completed milestones out of scope as historical record, and reports deterministic path-specific diagnostics when all-incomplete scope guidance, direct-fix guidance, or intake-answer review guidance is missing.
@@ -2193,3 +2207,40 @@ requirements:
         - WHEN: npm install -g . succeeds
         - THEN: the installer removes that stale native executable
         - AND: only the npm-global strict-spec-driven command resolves on PATH
+  cli-tech-sync-supports-active-change-mode:
+    strength: MUST
+    statement: The system MUST require strict-tech-sync guidance to support an active-change mode that scopes evidence to the selected change artifacts, structured mappings, attributable tracked and untracked files, and applicable technical standards; requires explicit operator confirmation of normative rule content and strength; writes confirmed changes as delta-tech under the active change; and preserves direct live-standard editing only for standalone synchronization outside that mode.
+    scenarios:
+      active-change-sync-uses-bounded-evidence:
+        - GIVEN: an active strict change is selected for current-change tech sync
+        - WHEN: the AI determines the scan scope
+        - THEN: the scope is derived from that change's planning artifacts, delta artifacts, structured mappings, task evidence, attributable repository changes, and applicable standards without absorbing unrelated repository drift
+      active-change-sync-routes-through-delta-tech:
+        - GIVEN: the bounded scan finds a reusable convention gap and the operator confirms its target standard, rule content, strength, rationale, enforcement, and mappings
+        - WHEN: the synchronization applies the confirmed finding
+        - THEN: the finding is generated or updated as delta-tech under the selected active change and no live main tech standard is directly edited
+      standalone-sync-keeps-live-edit-mode:
+        - GIVEN: strict-tech-sync is run as standalone repository or component maintenance rather than for an active change archive
+        - WHEN: the operator confirms the proposed standard edits
+        - THEN: the existing direct live-standard synchronization behavior remains available
+  cli-archive-runs-current-change-tech-sync:
+    strength: MUST
+    statement: The system MUST require every supported AI-guided strict change archive surface, including strict-spec-archive, strict-spec-auto, and the strict archive MCP prompt, to complete a final current-change-scoped tech sync before invoking the raw archive command; continue immediately when existing standards and delta-tech cover the change; pause unresolved reusable convention findings for confirmed delta-tech capture or explicit non-reusable classification; forbid post-archive deferral of a convention confirmed as reusable; and rerun strict verification, delta-tech review, and invalidated complete regression evidence after archive-time delta-tech edits.
+    scenarios:
+      archive-continues-when-tech-state-is-covered:
+        - GIVEN: a verified active change reaches final AI-guided archive preparation and its bounded scan finds no uncaptured reusable convention or confirms that existing delta-tech already covers each finding
+        - WHEN: the current-change tech sync checkpoint completes
+        - THEN: archive preparation continues without creating unnecessary tech artifacts
+      archive-pauses-for-reusable-convention-gap:
+        - GIVEN: the final bounded scan finds a possible reusable convention absent from the applicable main standards and current delta-tech
+        - WHEN: archive preparation evaluates the finding
+        - THEN: archive does not invoke strict-spec-cli archive until the operator confirms delta-tech capture or explicitly classifies the pattern as not reusable
+        - AND: a convention the operator confirms as reusable cannot be deferred until after archive
+      archive-revalidates-after-delta-tech-capture:
+        - GIVEN: the operator confirms a reusable convention and archive preparation generates or updates current-change delta-tech
+        - WHEN: the active change artifacts have changed
+        - THEN: strict verification and delta-tech review are rerun and any complete regression evidence invalidated by the edit is rerun before archive
+      raw-archive-remains-deterministic-merge-primitive:
+        - GIVEN: the final sync checkpoint is complete under an AI-guided archive surface
+        - WHEN: that surface invokes strict-spec-cli archive for the selected change
+        - THEN: the raw command retains its deterministic verification, delta merge, index regeneration, roadmap reconciliation, and change-move responsibilities without requiring an AI sync receipt

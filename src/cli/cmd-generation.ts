@@ -130,6 +130,52 @@ function upsertKeyedItem(collection: GenerationInputRecord, id: string, item: Ge
   }
 }
 
+function mergeDeltaRequirement(
+  collection: GenerationInputRecord,
+  requirementId: string,
+  incoming: GenerationInputRecord,
+): void {
+  const existing = collection[requirementId];
+  if (existing === undefined) {
+    collection[requirementId] = incoming;
+    return;
+  }
+  if (!isRecord(existing)) {
+    throw new Error(`duplicate delta requirement '${requirementId}' has conflicting content`);
+  }
+
+  for (const fieldName of ["strength", "statement"] as const) {
+    if (!deepEqual(existing[fieldName], incoming[fieldName])) {
+      throw new Error(`duplicate delta requirement '${requirementId}' has conflicting ${fieldName}`);
+    }
+  }
+
+  const existingScenarios = existing.scenarios;
+  const incomingScenarios = incoming.scenarios;
+  if (!isRecord(existingScenarios) || !isRecord(incomingScenarios)) {
+    throw new Error(`duplicate delta requirement '${requirementId}' has conflicting scenarios`);
+  }
+
+  const mergedScenarios: GenerationInputRecord = { ...existingScenarios };
+  for (const [scenarioId, steps] of Object.entries(incomingScenarios)) {
+    const existingSteps = mergedScenarios[scenarioId];
+    if (existingSteps === undefined) {
+      mergedScenarios[scenarioId] = steps;
+      continue;
+    }
+    if (!deepEqual(existingSteps, steps)) {
+      throw new Error(
+        `duplicate scenario '${scenarioId}' for delta requirement '${requirementId}' has conflicting content`,
+      );
+    }
+  }
+
+  collection[requirementId] = {
+    ...existing,
+    scenarios: mergedScenarios,
+  };
+}
+
 function upsertListItem<T extends GenerationInputRecord>(
   collection: T[],
   item: T,
@@ -691,11 +737,11 @@ function buildDeltaInputFromArgs(rootDir: string, changeName: string, argv: stri
         throw new Error(`duplicate scenario '${scenario.id}' has conflicting content`);
       }
     }
-    upsertKeyedItem(operationMap, requirement.id, {
+    mergeDeltaRequirement(operationMap, requirement.id, {
       strength: requirement.strength,
       statement: requirement.statement,
       scenarios,
-    }, "delta requirement");
+    });
     operations[requirement.operation] = operationMap;
   }
   input.operations = operations;

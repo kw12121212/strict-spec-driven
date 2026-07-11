@@ -165,6 +165,12 @@ run `init` from this skill.
       Include impact analysis and recommendation/options in `--context`; do
       not pass nonexistent `--impact` or `--recommendation` flags.
     - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."`
+      One requirement can include multiple scenario groups by repeating
+      `--scenario`. A later compatible call for the same operation, requirement
+      id, strength, and statement appends new scenario ids and remains idempotent
+      for equivalent scenarios. Never use `--reset` or direct YAML editing merely
+      to append compatible scenarios; `--reset` rebuilds the entire target delta
+      artifact.
     - when this change must alter a technical standard (add, modify, or retire a
       rule, or introduce a new standard), generate strict YAML delta tech
       artifacts under `.strict-spec-driven/changes/<change-name>/tech/`:
@@ -282,10 +288,11 @@ run `init` from this skill.
    `.strict-spec-driven/tech/` (a coding, architecture, testing, tooling,
    security, performance, or API rule). When it did, surface two options: carry
    it now as a delta tech artifact under `changes/<change-name>/tech/` so
-   archive merges it into the standards, or record a follow-up to run
-   `/strict-tech-sync` later. This reflection MUST NOT block strict verification
-   or archive: when no such convention exists or the operator declines to
-   capture it, the workflow proceeds unchanged.
+   archive merges it into the standards, or defer the decision only to the
+   mandatory final current-change tech sync before archive. This early
+   reflection does not by itself block strict verification or review
+   completion, but a convention confirmed as reusable may not be deferred until
+   after the change is archived.
 
 10. **Re-check complete regression evidence** — inspect project workflow
    context, including `.strict-spec-driven/config.yaml` when available, for the
@@ -305,8 +312,24 @@ run `init` from this skill.
    unavailable, stop before archive and give the human actionable setup or
    waiting guidance.
 
-11. **Archive cleanly** — if the change verifies, reviews cleanly, and has
-   passing complete project-level regression test evidence, run:
+11. **Run the final current-change tech sync** — before invoking archive, apply
+   the active-change procedure from `strict-tech-sync` to the selected change.
+   Bound the scan to its planning artifacts, delta artifacts, structured
+   mappings, attributable tracked and untracked files, and applicable technical
+   standards; exclude unrelated repository drift. Continue immediately when
+   existing standards and current delta tech cover the change. When a possible
+   reusable convention remains, pause for the operator to confirm the target
+   standard, operation, stable rule id, strength, statement, rationale,
+   enforcement, and mappings, or to explicitly classify the pattern as not
+   reusable. A convention confirmed as reusable cannot be deferred until after
+   archive and must be generated as current-change delta tech rather than by
+   editing live standards. After any delta-tech edit, review the artifact, rerun
+   strict verification, and rerun the configured complete project regression
+   evidence invalidated by the edit.
+
+12. **Archive cleanly** — if the final current-change tech sync is resolved, the
+   change verifies, reviews cleanly, and has passing complete project-level
+   regression test evidence for the final artifact state, run:
    ```bash
    strict-spec-cli archive <change-name>
    ```
@@ -362,4 +385,6 @@ implementation or review requires starting declared components:
   review-time changes
 - Do not run archive without passing complete project-level regression test
   evidence or explicit setup guidance explaining why that evidence is blocked
+- Do not run archive before the final current-change tech sync is resolved, and
+  do not defer a confirmed reusable convention until after archive
 - Do not commit or push automatically

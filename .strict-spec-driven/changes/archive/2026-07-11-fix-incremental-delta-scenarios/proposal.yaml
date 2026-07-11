@@ -1,0 +1,24 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: fix-incremental-delta-scenarios
+  status: proposed
+summary:
+  what:
+    - Allow repeated delta-spec generation calls to append compatible scenarios to an existing requirement.
+    - Clarify generator guidance so agents use repeated --scenario groups or compatible follow-up calls instead of destructive reset and direct YAML editing.
+  why:
+    - The generator currently compares the entire requirement object, so adding a new scenario to an existing requirement is misclassified as conflicting content.
+scope:
+  in:
+    - Merge scenarios by identifier when operation, requirement id, strength, and statement match.
+    - Keep equivalent repeated input idempotent and preserve existing scenario order.
+    - Retain deterministic conflicts for changed metadata or same-id scenario steps and add regression coverage.
+  out:
+    - Changing the delta-spec schema or archive merge semantics.
+    - Allowing strength, statement, or same-id scenario content to be overwritten.
+unchanged_behavior:
+  - New requirement ids and additional operation groups remain appendable without reset.
+  - Conflicting keyed content still fails before the target artifact is written.

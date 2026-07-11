@@ -90,6 +90,11 @@ const PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET = "fix safe, in-scope docume
 const REVIEW_AUTO_FIX_SNIPPET = "Automatically fix safe in-scope review findings";
 const REVIEW_POST_FIX_REGRESSION_SNIPPET =
   "rerun strict verification plus the configured complete regression command after review-time changes";
+const CURRENT_CHANGE_TECH_SYNC_SNIPPET = "final current-change tech sync";
+const CURRENT_CHANGE_SCOPE_SNIPPET = "attributable tracked and untracked files";
+const CURRENT_CHANGE_DELTA_TECH_SNIPPET = "current-change delta tech";
+const NO_POST_ARCHIVE_DEFERRAL_SNIPPET = "confirmed as reusable";
+const POST_TECH_EDIT_EVIDENCE_SNIPPET = "complete project regression evidence";
 const SHARED_SCHEMA_CACHE_ROOT_SNIPPET = "~/.strict-spec-schemas/";
 const SHARED_SCHEMA_FILE_LOOKUP_SNIPPET =
   "When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root";
@@ -210,6 +215,9 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
+      CURRENT_CHANGE_TECH_SYNC_SNIPPET,
+      CURRENT_CHANGE_DELTA_TECH_SNIPPET,
+      NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
       `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`,
     ],
     forbiddenSnippets: [
@@ -224,7 +232,15 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       archive: `${COMMAND_PREFIX} archive <change-name>`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/"],
+    requiredSnippets: [
+      ".strict-spec-driven/",
+      CURRENT_CHANGE_TECH_SYNC_SNIPPET,
+      CURRENT_CHANGE_SCOPE_SNIPPET,
+      CURRENT_CHANGE_DELTA_TECH_SNIPPET,
+      "explicitly classifies the pattern as not reusable",
+      NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
+      POST_TECH_EDIT_EVIDENCE_SNIPPET,
+    ],
     forbiddenSnippets: [
       "any change to roadmap state caused by archive",
       "ask the user to confirm the change truly has no observable",
@@ -256,6 +272,12 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
+      CURRENT_CHANGE_TECH_SYNC_SNIPPET,
+      CURRENT_CHANGE_SCOPE_SNIPPET,
+      CURRENT_CHANGE_DELTA_TECH_SNIPPET,
+      "explicitly classify the pattern as not reusable",
+      NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
+      POST_TECH_EDIT_EVIDENCE_SNIPPET,
       `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
@@ -301,6 +323,26 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
     forbiddenSnippets: [
       `${COMMAND_PREFIX} review <change-name>`,
       "proposal review",
+    ],
+  },
+  "strict-tech-sync": {
+    requiredCommands: {
+      modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
+      generate: `${COMMAND_PREFIX} generate <change-name> delta-tech --<named-args>`,
+      verify: `${COMMAND_PREFIX} verify <change-name>`,
+      "verify-tech-mappings": `${COMMAND_PREFIX} verify-tech-mappings`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [
+      ".strict-spec-driven/",
+      "active-change sync",
+      "selected change's proposal, design, tasks, questions, delta specs, delta tech, structured mappings",
+      CURRENT_CHANGE_SCOPE_SNIPPET,
+      "explicitly approves both the normative content and its strength",
+      "explicitly classified as not reusable",
+      "may not be deferred until after its active change is archived",
+      "never edit a live main standard directly",
+      "rerun any complete regression evidence invalidated by the artifact edit",
     ],
   },
   "strict-spec-modify": {

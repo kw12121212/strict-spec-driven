@@ -1,0 +1,51 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/cmd-generation.ts
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-propose-from-roadmap/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-bugfix/SKILL.md
+    - skills/strict-roadmap-recommend/SKILL.md
+    - skills/strict-ticket-dispatch/SKILL.md
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    cli-propose-generation-prevents-duplicates:
+      strength: MUST
+      statement: The system MUST prevent duplicate YAML content when equivalent proposal population commands are executed more than once and MUST merge compatible incremental scenario additions for an existing delta-spec requirement without requiring reset or direct YAML editing.
+      scenarios:
+        repeated-list-values-are-deduplicated:
+          - GIVEN: a strict change artifact already contains a generated list entry
+          - WHEN: the same population command supplies the same list entry again
+          - THEN: the resulting YAML artifact contains that list entry only once
+          - AND: the original list order is preserved
+        keyed-items-are-upserted-by-identifier:
+          - GIVEN: a generated artifact contains a keyed item such as a task, question, decision, or requirement
+          - WHEN: a later population command targets the same item identifier with equivalent content
+          - THEN: the resulting YAML artifact contains one item for that identifier
+          - AND: no duplicate keyed entry is written
+        conflicting-keyed-items-fail-before-write:
+          - GIVEN: a generated artifact contains a keyed item
+          - WHEN: a later population command targets the same identifier with conflicting content
+          - THEN: the command exits non-zero before writing the artifact
+          - AND: stderr identifies the duplicate identifier conflict
+        compatible-delta-requirement-scenarios-are-merged:
+          - GIVEN: a generated delta spec contains a requirement with stable strength, statement, and scenario ids
+          - WHEN: a later generation call targets the same operation and requirement with matching metadata and a new scenario id
+          - THEN: the new scenario is appended after existing scenarios without reset while unrelated artifact content is preserved
+          - AND: repeating an equivalent scenario remains idempotent
+        conflicting-delta-requirement-content-fails-before-write:
+          - GIVEN: a generated delta spec contains an existing requirement and scenario
+          - WHEN: a later generation call changes requirement metadata or supplies different steps for the same scenario id
+          - THEN: the command exits non-zero before rewriting the artifact
+          - AND: stderr identifies the conflicting requirement field or scenario id
+  REMOVED: {}

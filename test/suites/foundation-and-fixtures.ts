@@ -1629,14 +1629,97 @@ try {
     "the full questions artifact is written",
   ], { cwd: generateTempDir });
   context.assert(repeatedDelta.status === 0, "generate accepts repeated equivalent keyed delta content", `stderr: ${repeatedDelta.stderr.trim()}`);
+  const incrementalScenarioArgs = [
+    "generate",
+    directChangeName,
+    "delta-spec",
+    "--target-spec",
+    "cli-foundation",
+    "--spec-path",
+    "cli/foundation.yaml",
+    "--operation",
+    "ADDED",
+    "--requirement",
+    "argument-driven-test-requirement",
+    "--strength",
+    "MUST",
+    "--statement",
+    `@${longStatementPath}`,
+    "--scenario",
+    "incremental-scenario-append",
+    "--given",
+    "the delta requirement already has scenarios",
+    "--when",
+    "a later generation call supplies a new scenario id",
+    "--then",
+    "the new scenario is appended without resetting the artifact",
+  ];
+  const appendedDeltaScenario = cli(incrementalScenarioArgs, { cwd: generateTempDir });
+  context.assert(
+    appendedDeltaScenario.status === 0,
+    "generate appends a compatible scenario to an existing delta requirement",
+    `stderr: ${appendedDeltaScenario.stderr.trim()}`,
+  );
+  const directDeltaPath = path.join(directChangeDir, "specs", "cli", "foundation.yaml");
+  const appendedDeltaBytes = readFileSync(directDeltaPath, "utf8");
+  const repeatedAppendedDeltaScenario = cli(incrementalScenarioArgs, { cwd: generateTempDir });
+  context.assert(
+    repeatedAppendedDeltaScenario.status === 0 && readFileSync(directDeltaPath, "utf8") === appendedDeltaBytes,
+    "generate keeps a repeated equivalent appended scenario idempotent",
+    `stderr: ${repeatedAppendedDeltaScenario.stderr.trim()}`,
+  );
+  const conflictingDeltaMetadata = cli([
+    "generate",
+    directChangeName,
+    "delta-spec",
+    "--target-spec",
+    "cli-foundation",
+    "--spec-path",
+    "cli/foundation.yaml",
+    "--operation",
+    "ADDED",
+    "--requirement",
+    "argument-driven-test-requirement",
+    "--strength",
+    "MUST",
+    "--statement",
+    "Conflicting requirement statement.",
+  ], { cwd: generateTempDir });
+  context.assert(
+    conflictingDeltaMetadata.status !== 0
+      && conflictingDeltaMetadata.stderr.includes("delta requirement 'argument-driven-test-requirement'")
+      && conflictingDeltaMetadata.stderr.includes("statement"),
+    "generate rejects conflicting delta requirement metadata with field context",
+    `stderr: ${conflictingDeltaMetadata.stderr.trim()}`,
+  );
+  context.assert(
+    readFileSync(directDeltaPath, "utf8") === appendedDeltaBytes,
+    "generate metadata conflicts leave the existing delta artifact unchanged",
+  );
+  const conflictingDeltaScenario = cli([
+    ...incrementalScenarioArgs.slice(0, -2),
+    "--then",
+    "conflicting scenario steps replace the artifact",
+  ], { cwd: generateTempDir });
+  context.assert(
+    conflictingDeltaScenario.status !== 0
+      && conflictingDeltaScenario.stderr.includes("scenario 'incremental-scenario-append'")
+      && conflictingDeltaScenario.stderr.includes("delta requirement 'argument-driven-test-requirement'"),
+    "generate rejects conflicting same-id delta scenarios with scenario and requirement context",
+    `stderr: ${conflictingDeltaScenario.stderr.trim()}`,
+  );
+  context.assert(
+    readFileSync(directDeltaPath, "utf8") === appendedDeltaBytes,
+    "generate scenario conflicts leave the existing delta artifact unchanged",
+  );
   const parsedDirectDelta = yamlModule.parseYamlDocument<{
     mapping: { implementation: string[] };
     operations: {
-      ADDED: Record<string, unknown>;
+      ADDED: Record<string, { scenarios?: Record<string, unknown> }>;
       MODIFIED: Record<string, unknown>;
       REMOVED: Record<string, unknown>;
     };
-  }>(readFileSync(path.join(directChangeDir, "specs", "cli", "foundation.yaml"), "utf8"));
+  }>(readFileSync(directDeltaPath, "utf8"));
   context.assert(
     parsedDirectDelta.mapping.implementation.length === 2,
     "generate de-duplicates repeated delta mapping paths",
@@ -1646,6 +1729,11 @@ try {
       && Object.keys(parsedDirectDelta.operations.MODIFIED).length === 1
       && Object.keys(parsedDirectDelta.operations.REMOVED).length === 1,
     "generate writes mixed delta requirement operations in one command",
+  );
+  context.assert(
+    Object.keys(parsedDirectDelta.operations.ADDED["argument-driven-test-requirement"]?.scenarios ?? {}).join(",")
+      === "argument-driven-command-populates-artifact,argument-driven-command-populates-questions,incremental-scenario-append",
+    "generate preserves existing scenario order and appends compatible scenario ids in call order",
   );
 
   const missingArgument = cli(["generate", directChangeName, "proposal", "--what", "Missing why."], { cwd: generateTempDir });

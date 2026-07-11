@@ -268,6 +268,12 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
    ```bash
    strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."
    ```
+   One requirement can include multiple scenario groups by repeating
+   `--scenario`. A later compatible call for the same operation, requirement id,
+   strength, and statement appends new scenario ids and remains idempotent for
+   equivalent scenarios. Never use `--reset` or direct YAML editing merely to
+   append compatible scenarios; `--reset` rebuilds the entire target delta
+   artifact.
    The generated files under `.strict-spec-driven/changes/<name>/specs/` should
    mirror target main spec paths. If the change has no observable spec impact,
    leave the `specs/` directory empty rather than inventing a prose-only file.

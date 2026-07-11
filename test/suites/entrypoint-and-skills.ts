@@ -416,6 +416,8 @@ const validateSkillsJson = validateSkillsDispatchJson;
 context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits valid=true JSON");
 
   const reviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-review", "SKILL.md"), "utf8");
+  const archiveSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-archive", "SKILL.md"), "utf8");
+  const techSyncSkillContent = readFileSync(path.join(ROOT, "skills", "strict-tech-sync", "SKILL.md"), "utf8");
   const applySkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-apply", "SKILL.md"), "utf8");
   const proposeSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-propose", "SKILL.md"), "utf8");
   const proposeFromRoadmapSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-propose-from-roadmap", "SKILL.md"), "utf8");
@@ -426,6 +428,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const roadmapPlanSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-plan", "SKILL.md"), "utf8");
   const roadmapArchiveSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-archive", "SKILL.md"), "utf8");
   const roadmapRecommendSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
+  const ticketDispatchSkillContent = readFileSync(path.join(ROOT, "skills", "strict-ticket-dispatch", "SKILL.md"), "utf8");
   const roadmapReviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-review", "SKILL.md"), "utf8");
   const harnessInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-init", "SKILL.md"), "utf8");
   const harnessSessionSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-session", "SKILL.md"), "utf8");
@@ -433,6 +436,8 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const workflowConfigContent = readFileSync(path.join(ROOT, ".strict-spec-driven", "config.yaml"), "utf8");
   const normalizedApplySkillContent = applySkillContent.replace(/\s+/g, " ");
   const normalizedReviewSkillContent = reviewSkillContent.replace(/\s+/g, " ");
+  const normalizedArchiveSkillContent = archiveSkillContent.replace(/\s+/g, " ");
+  const normalizedTechSyncSkillContent = techSyncSkillContent.replace(/\s+/g, " ");
   const normalizedProposeSkillContent = proposeSkillContent.replace(/\s+/g, " ");
   const normalizedProposeFromRoadmapSkillContent = proposeFromRoadmapSkillContent.replace(/\s+/g, " ");
   const normalizedAutoSkillContent = autoSkillContent.replace(/\s+/g, " ");
@@ -442,6 +447,7 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedRoadmapPlanSkillContent = roadmapPlanSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapArchiveSkillContent = roadmapArchiveSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapRecommendSkillContent = roadmapRecommendSkillContent.replace(/\s+/g, " ");
+  const normalizedTicketDispatchSkillContent = ticketDispatchSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapReviewSkillContent = roadmapReviewSkillContent.replace(/\s+/g, " ");
   const normalizedHarnessInitSkillContent = harnessInitSkillContent.replace(/\s+/g, " ");
   const normalizedHarnessSessionSkillContent = harnessSessionSkillContent.replace(/\s+/g, " ");
@@ -597,12 +603,33 @@ context.assert(
     "reusable engineering convention not yet captured under `.strict-spec-driven/tech/`";
   context.assert(
     normalizedReviewSkillContent.includes(techConventionReflectionAnchor)
-      && normalizedReviewSkillContent.includes("/strict-tech-sync")
-      && normalizedReviewSkillContent.includes("MUST NOT block strict verification")
+      && normalizedReviewSkillContent.includes("(non-blocking)")
+      && normalizedReviewSkillContent.includes("mandatory final current-change tech sync")
+      && normalizedReviewSkillContent.includes("may not be deferred until after archive")
       && normalizedAutoSkillContent.includes(techConventionReflectionAnchor)
-      && normalizedAutoSkillContent.includes("/strict-tech-sync")
-      && normalizedAutoSkillContent.includes("MUST NOT block strict verification"),
-    "strict-spec-review and strict-spec-auto prompt a non-blocking reflection to capture uncaptured tech conventions via delta-tech or /strict-tech-sync",
+      && normalizedAutoSkillContent.includes("early reflection does not by itself block")
+      && normalizedAutoSkillContent.includes("mandatory final current-change tech sync")
+      && normalizedAutoSkillContent.includes("may not be deferred until after the change is archived"),
+    "strict-spec-review and strict-spec-auto keep early convention reflection non-blocking while deferring only to the final pre-archive sync",
+  );
+  context.assert(
+    normalizedTechSyncSkillContent.includes("active-change sync")
+      && normalizedTechSyncSkillContent.includes("selected change's proposal, design, tasks, questions, delta specs, delta tech, structured mappings")
+      && normalizedTechSyncSkillContent.includes("attributable tracked and untracked files")
+      && normalizedTechSyncSkillContent.includes("explicitly approves both the normative content and its strength")
+      && normalizedTechSyncSkillContent.includes("generate <change-name> delta-tech")
+      && normalizedTechSyncSkillContent.includes("never edit a live main standard directly")
+      && normalizedTechSyncSkillContent.includes("edit live standards directly only in standalone mode")
+      && normalizedArchiveSkillContent.includes("final current-change tech sync")
+      && normalizedArchiveSkillContent.includes("explicitly classifies the pattern as not reusable")
+      && normalizedArchiveSkillContent.includes("Never defer a confirmed reusable convention until after archive")
+      && normalizedArchiveSkillContent.includes("rerun the configured complete project regression evidence")
+      && normalizedArchiveSkillContent.includes("raw command only as the deterministic")
+      && normalizedAutoSkillContent.includes("Run the final current-change tech sync")
+      && normalizedAutoSkillContent.includes("explicitly classify the pattern as not reusable")
+      && normalizedAutoSkillContent.includes("confirmed as reusable cannot be deferred until after archive")
+      && normalizedAutoSkillContent.includes("rerun the configured complete project regression evidence"),
+    "tech sync, archive, and automatic workflows enforce bounded current-change delta-tech capture before deterministic archive",
   );
   context.assert(
     normalizedBrainstormSkillContent.includes("proposal checkpoint")
@@ -633,6 +660,25 @@ context.assert(
     [normalizedProposeFromRoadmapSkillContent, "strict-spec-propose-from-roadmap"],
     [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
   ];
+  const incrementalDeltaScenarioGuidanceChecks: Array<[string, string]> = [
+    [normalizedProposeSkillContent, "strict-spec-propose"],
+    [normalizedProposeFromRoadmapSkillContent, "strict-spec-propose-from-roadmap"],
+    [normalizedAutoSkillContent, "strict-spec-auto"],
+    [normalizedBrainstormSkillContent, "strict-spec-brainstorm"],
+    [normalizedBugfixSkillContent, "strict-spec-bugfix"],
+    [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
+    [normalizedTicketDispatchSkillContent, "strict-ticket-dispatch"],
+  ];
+  for (const [normalizedSkillContent, skillName] of incrementalDeltaScenarioGuidanceChecks) {
+    context.assert(
+      normalizedSkillContent.includes("One requirement can include multiple scenario groups by repeating `--scenario`")
+        && normalizedSkillContent.includes("later compatible call for the same operation, requirement id, strength, and statement appends new scenario ids")
+        && normalizedSkillContent.includes("remains idempotent for equivalent scenarios")
+        && normalizedSkillContent.includes("Never use `--reset` or direct YAML editing merely to append compatible scenarios")
+        && normalizedSkillContent.includes("`--reset` rebuilds the entire target delta artifact"),
+      `${skillName} documents non-destructive incremental delta scenario generation`,
+    );
+  }
   for (const [normalizedSkillContent, skillName] of technicalOnlyChangeCreationSkillChecks) {
     context.assert(
       normalizedSkillContent.includes("A strict change may legitimately have no delta spec")
@@ -1635,7 +1681,7 @@ try {
 
 const invalidSemanticSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-core-skill-semantics-invalid-"));
 try {
-  const semanticSkillNames = ["strict-spec-propose", "strict-spec-propose-from-roadmap", "strict-spec-archive", "strict-spec-review", "strict-spec-auto"];
+  const semanticSkillNames = ["strict-spec-propose", "strict-spec-propose-from-roadmap", "strict-spec-archive", "strict-spec-review", "strict-spec-auto", "strict-tech-sync"];
   mkdirSync(path.join(invalidSemanticSkillRoot, "dist", "scripts"), { recursive: true });
   mkdirSync(path.join(invalidSemanticSkillRoot, "dist", "templates"), { recursive: true });
 
@@ -1849,12 +1895,53 @@ try {
   );
 
   writeFileSync(
+    path.join(invalidSemanticSkillRoot, "skills", "strict-tech-sync", "SKILL.md"),
+    [
+      "---",
+      "name: strict-tech-sync",
+      "description: Synchronize technical standards.",
+      "metadata:",
+      "  skill_id: strict_tech_sync",
+      "  author: strict-spec-driven",
+      "  type: agent_skill",
+      "  version: 1.0.0",
+      "---",
+      "",
+      "You are synchronizing technical standards under .strict-spec-driven/.",
+      "",
+      "## This Skill's Commands",
+      "",
+      "```yaml",
+      "check-workflow-state: strict-spec-cli check-workflow-state",
+      "tech-status: strict-spec-cli tech-status",
+      "verify-tech-mappings: strict-spec-cli verify-tech-mappings",
+      "```",
+      "",
+      "## Prerequisites",
+      "",
+      "Run the strict workflow state check.",
+      "",
+      "## Steps",
+      "",
+      "1. Scan the whole repository and edit live standards directly.",
+      "",
+      "## Rules",
+      "",
+      "- Ask before changing a MUST rule.",
+    ].join("\n") + "\n",
+    "utf8",
+  );
+
+  writeFileSync(
     path.join(invalidSemanticSkillRoot, "skills", "marketplace.json"),
     JSON.stringify(
       {
         schema: "strict-spec-driven/skill-marketplace/v1",
         namespace: "strict-spec-driven",
-        skills: semanticSkillNames.map((name) => ({ name, family: "strict-spec" })),
+        skills: semanticSkillNames.map((name) => ({
+          name,
+          family: name.startsWith("strict-tech-") ? "strict-tech" : "strict-spec",
+        })),
       },
       null,
       2,
@@ -1949,6 +2036,29 @@ try {
         && diagnostic.expected === "resume the existing populated strict change scaffold without regenerating planning artifacts",
     ),
     "auto skill missing populated scaffold resume guidance reports required snippet diagnostic",
+  );
+  context.assert(
+    invalidSemanticResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.required_snippet.missing"
+        && diagnostic.path === "skills/strict-tech-sync/SKILL.md"
+        && diagnostic.expected === "active-change sync",
+    ),
+    "tech sync skill missing active-change synchronization guidance reports required snippet diagnostic",
+  );
+  context.assert(
+    invalidSemanticResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.required_snippet.missing"
+        && diagnostic.path === "skills/strict-spec-archive/SKILL.md"
+        && diagnostic.expected === "final current-change tech sync",
+    ) && invalidSemanticResult.diagnostics.some(
+      (diagnostic) =>
+        diagnostic.code === "skill.core.required_snippet.missing"
+        && diagnostic.path === "skills/strict-spec-auto/SKILL.md"
+        && diagnostic.expected === "final current-change tech sync",
+    ),
+    "archive and auto skills missing the final current-change tech-sync gate report required snippet diagnostics",
   );
 } finally {
   rmSync(invalidSemanticSkillRoot, { recursive: true, force: true });

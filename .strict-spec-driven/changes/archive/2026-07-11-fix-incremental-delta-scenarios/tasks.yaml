@@ -1,0 +1,56 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: fix-incremental-delta-scenarios
+sections:
+  Implementation:
+    reproduce-incremental-scenario-conflict:
+      text: Reproduce with two real generate delta-spec invocations that an existing requirement with matching strength and statement rejects a new scenario id as conflicting content while preserving the first artifact.
+      status: complete
+    add-failing-regression-test:
+      text: Add focused generator regression assertions for compatible scenario append, idempotent repeated scenarios, metadata conflict, same-id scenario conflict, and preservation of unrelated requirements; confirm the compatible append assertion fails before the production fix.
+      status: complete
+    merge-compatible-delta-scenarios:
+      text: Update src/cli/cmd-generation.ts so repeated delta-spec generation merges new scenario ids into an existing non-removed requirement when strength and statement match, preserves existing order, and retains deterministic pre-write conflicts for changed metadata or same-id scenario steps.
+      status: complete
+    clarify-agent-generation-guidance:
+      text: Update affected delta-spec authoring skills with concise guidance that one requirement supports repeated --scenario groups, compatible later calls append scenario ids without --reset, and --reset or direct YAML editing must not be used as an append workaround.
+      status: complete
+  Testing:
+    run-build:
+      text: Rebuild generated assets, TypeScript output, and CLI/MCP bundles after source and skill edits.
+      status: complete
+      command: bun run build
+    run-lint:
+      text: Run the TypeScript no-emit lint check.
+      status: complete
+      command: bun run lint
+    validate-skill-packages:
+      text: Validate strict skill command mappings and the updated delta-spec generation guidance.
+      status: complete
+      command: bun run validate-skills
+    run-tests:
+      text: Run the complete unit and regression suite, including incremental delta-spec generation and skill guidance assertions.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-proposal-readiness:
+      text: Run strict-spec-cli ready fix-incremental-delta-scenarios and confirm scope, unchanged behavior, mappings, and delta scenarios are decision-ready.
+      status: complete
+    verify-change:
+      text: Run strict-spec-cli verify fix-incremental-delta-scenarios after implementation and tests, then rerun after all task states are complete.
+      status: complete
+    verify-spec-mappings:
+      text: Run strict-spec-cli verify-spec-mappings and confirm every changed implementation and test file remains covered by cli-foundation mappings.
+      status: complete
+    verify-archive-readiness:
+      text: Confirm compatible scenario append is non-destructive, conflict paths leave artifact bytes unchanged, guidance forbids reset-as-append, and archive merge semantics remain unchanged.
+      status: complete
+testing_gates:
+  validation_task: run-build
+  unit_test_task: run-tests

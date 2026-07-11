@@ -136,6 +136,12 @@ run `init` from this skill.
        recommendation; leave `open: []` only when everything is decidable
      - only when the change has observable main-spec impact,
        `generate <change-name> delta-spec --target-spec <spec-id> --implementation "..." --test "..." --operation ADDED --requirement <id> --strength MUST --statement "..." --scenario <id> --given "..." --when "..." --then "..."`
+       One requirement can include multiple scenario groups by repeating
+       `--scenario`. A later compatible call for the same operation, requirement
+       id, strength, and statement appends new scenario ids and remains
+       idempotent for equivalent scenarios. Never use `--reset` or direct YAML
+       editing merely to append compatible scenarios; `--reset` rebuilds the
+       entire target delta artifact.
    - **Do not invent scope, dependencies, or delta specs** unsupported by the
      ticket, user context, or repository evidence. Record genuine ambiguity as an
      open question instead.

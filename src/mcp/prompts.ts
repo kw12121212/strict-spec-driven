@@ -89,8 +89,10 @@ export const MCP_PROMPT_DEFINITIONS: McpPromptDefinition[] = [
   ].join("\n")),
   prompt("strict_archive_change", changeSchema, (args) => [
     `Use strict-spec-archive for change ${String(args.change)}.`,
-    "Archive only after verify and verify-spec-mappings pass and review evidence confirms the complete regression command passed.",
-    "Use the archive command so delta specs merge into main specs and roadmap state reconciles.",
+    "Before final verification, run the mandatory current-change tech-sync checkpoint over the selected change artifacts, mappings, attributable files, and applicable standards without absorbing unrelated repository drift.",
+    "Continue when existing standards or current delta tech cover the change; otherwise pause for operator-confirmed current-change delta-tech capture or explicit classification that the surfaced pattern is not reusable, and never defer a confirmed reusable convention until after archive.",
+    "After any delta-tech edit, review the artifact and rerun strict verification plus invalidated complete regression evidence. Archive only after verify and verify-spec-mappings pass and review evidence confirms the complete regression command passed for the final state.",
+    "Use the raw archive command only as the deterministic mechanism that merges delta specs and delta tech, regenerates indexes, reconciles roadmap state, and moves the change.",
     "Do not manually move change directories or bypass archive preconditions.",
   ].join("\n")),
   prompt("strict_roadmap_recommend", roadmapSchema, (args) => [

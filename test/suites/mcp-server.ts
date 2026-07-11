@@ -270,7 +270,16 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
     "MCP propose prompt renders roadmap-backed proposal guidance when roadmapItem is supplied",
   );
   const archivePrompt = promptsModule.renderStrictPrompt("strict_archive_change", { change: "demo-change" }).messages[0]?.content.text ?? "";
-  context.assert(archivePrompt.includes("verify-spec-mappings"), "MCP archive prompt renders mapping precondition");
+  context.assert(
+    archivePrompt.includes("verify-spec-mappings")
+      && archivePrompt.includes("mandatory current-change tech-sync checkpoint")
+      && archivePrompt.includes("without absorbing unrelated repository drift")
+      && archivePrompt.includes("operator-confirmed current-change delta-tech capture")
+      && archivePrompt.includes("never defer a confirmed reusable convention until after archive")
+      && archivePrompt.includes("rerun strict verification plus invalidated complete regression evidence")
+      && archivePrompt.includes("raw archive command only as the deterministic mechanism"),
+    "MCP archive prompt preserves final current-change tech sync, evidence rerun, and deterministic archive boundaries",
+  );
   const roadmapPrompt = promptsModule.renderStrictPrompt("strict_roadmap_recommend", {}).messages[0]?.content.text ?? "";
   context.assert(roadmapPrompt.includes("roadmap-recommend"), "MCP roadmap prompt renders scripted recommendation guidance");
   const parameterizedRoadmapPrompt = promptsModule.renderStrictPrompt("strict_roadmap_recommend", { roadmapItem: "5" }).messages[0]?.content.text ?? "";

@@ -109,6 +109,12 @@ satisfy artifact shape.
 - If the bugfix alters, adds, or retires an engineering rule, create a
   `delta-tech` artifact for the affected standard. If it only complies with
   existing standards, leave `tech/` absent too.
+- One requirement can include multiple scenario groups by repeating
+  `--scenario`. A later compatible call for the same
+  operation, requirement id, strength, and statement appends new scenario ids
+  and remains idempotent for equivalent scenarios. Never use `--reset` or direct
+  YAML editing merely to append compatible scenarios; `--reset` rebuilds the
+  entire target delta artifact.
 - A technical-only bugfix still needs complete workflow tasks: reproduction
   evidence, script or tooling edits when applicable, focused tests, validation
   commands, `ready`/`verify` checks, and archive-readiness or archive-merge

@@ -15292,6 +15292,41 @@ function upsertKeyedItem(collection, id, item, fieldName) {
     throw new Error(`duplicate ${fieldName} '${id}' has conflicting content`);
   }
 }
+function mergeDeltaRequirement(collection, requirementId, incoming) {
+  const existing = collection[requirementId];
+  if (existing === undefined) {
+    collection[requirementId] = incoming;
+    return;
+  }
+  if (!isRecord2(existing)) {
+    throw new Error(`duplicate delta requirement '${requirementId}' has conflicting content`);
+  }
+  for (const fieldName of ["strength", "statement"]) {
+    if (!deepEqual(existing[fieldName], incoming[fieldName])) {
+      throw new Error(`duplicate delta requirement '${requirementId}' has conflicting ${fieldName}`);
+    }
+  }
+  const existingScenarios = existing.scenarios;
+  const incomingScenarios = incoming.scenarios;
+  if (!isRecord2(existingScenarios) || !isRecord2(incomingScenarios)) {
+    throw new Error(`duplicate delta requirement '${requirementId}' has conflicting scenarios`);
+  }
+  const mergedScenarios = { ...existingScenarios };
+  for (const [scenarioId, steps] of Object.entries(incomingScenarios)) {
+    const existingSteps = mergedScenarios[scenarioId];
+    if (existingSteps === undefined) {
+      mergedScenarios[scenarioId] = steps;
+      continue;
+    }
+    if (!deepEqual(existingSteps, steps)) {
+      throw new Error(`duplicate scenario '${scenarioId}' for delta requirement '${requirementId}' has conflicting content`);
+    }
+  }
+  collection[requirementId] = {
+    ...existing,
+    scenarios: mergedScenarios
+  };
+}
 function upsertListItem(collection, item, id, fieldName) {
   const existing = collection.find((candidate) => candidate.id === id);
   if (!existing) {
@@ -15764,11 +15799,11 @@ function buildDeltaInputFromArgs(rootDir, changeName, argv) {
         throw new Error(`duplicate scenario '${scenario.id}' has conflicting content`);
       }
     }
-    upsertKeyedItem(operationMap, requirement.id, {
+    mergeDeltaRequirement(operationMap, requirement.id, {
       strength: requirement.strength,
       statement: requirement.statement,
       scenarios
-    }, "delta requirement");
+    });
     operations[requirement.operation] = operationMap;
   }
   input.operations = operations;
@@ -24736,6 +24771,11 @@ var PROPOSAL_CHECKPOINT_DETAIL_CRITERIA_SNIPPET = "scope, unchanged behavior, de
 var PROPOSAL_CHECKPOINT_DOCUMENTATION_FIX_SNIPPET = "fix safe, in-scope documentation gaps";
 var REVIEW_AUTO_FIX_SNIPPET = "Automatically fix safe in-scope review findings";
 var REVIEW_POST_FIX_REGRESSION_SNIPPET = "rerun strict verification plus the configured complete regression command after review-time changes";
+var CURRENT_CHANGE_TECH_SYNC_SNIPPET = "final current-change tech sync";
+var CURRENT_CHANGE_SCOPE_SNIPPET = "attributable tracked and untracked files";
+var CURRENT_CHANGE_DELTA_TECH_SNIPPET = "current-change delta tech";
+var NO_POST_ARCHIVE_DEFERRAL_SNIPPET = "confirmed as reusable";
+var POST_TECH_EDIT_EVIDENCE_SNIPPET = "complete project regression evidence";
 var SHARED_SCHEMA_CACHE_ROOT_SNIPPET = "~/.strict-spec-schemas/";
 var SHARED_SCHEMA_FILE_LOOKUP_SNIPPET = "When a YAML artifact already declares `schema_file`, resolve that relative path under the shared cache root";
 var SAMPLE_SHOW_LOOKUP_SNIPPET = "sample-show";
@@ -24854,6 +24894,9 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
+      CURRENT_CHANGE_TECH_SYNC_SNIPPET,
+      CURRENT_CHANGE_DELTA_TECH_SNIPPET,
+      NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
       `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`
     ],
     forbiddenSnippets: [
@@ -24868,7 +24911,15 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       archive: `${COMMAND_PREFIX} archive <change-name>`
     },
     requiredHeadings: ["## Steps", "## Rules"],
-    requiredSnippets: [".strict-spec-driven/"],
+    requiredSnippets: [
+      ".strict-spec-driven/",
+      CURRENT_CHANGE_TECH_SYNC_SNIPPET,
+      CURRENT_CHANGE_SCOPE_SNIPPET,
+      CURRENT_CHANGE_DELTA_TECH_SNIPPET,
+      "explicitly classifies the pattern as not reusable",
+      NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
+      POST_TECH_EDIT_EVIDENCE_SNIPPET
+    ],
     forbiddenSnippets: [
       "any change to roadmap state caused by archive",
       "ask the user to confirm the change truly has no observable"
@@ -24900,6 +24951,12 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
       "direct code review evidence",
       REVIEW_AUTO_FIX_SNIPPET,
       REVIEW_POST_FIX_REGRESSION_SNIPPET,
+      CURRENT_CHANGE_TECH_SYNC_SNIPPET,
+      CURRENT_CHANGE_SCOPE_SNIPPET,
+      CURRENT_CHANGE_DELTA_TECH_SNIPPET,
+      "explicitly classify the pattern as not reusable",
+      NO_POST_ARCHIVE_DEFERRAL_SNIPPET,
+      POST_TECH_EDIT_EVIDENCE_SNIPPET,
       `Do not call or rely on a \`${COMMAND_PREFIX} review\` command`,
       SHARED_SCHEMA_CACHE_ROOT_SNIPPET,
       SHARED_SCHEMA_FILE_LOOKUP_SNIPPET,
@@ -24945,6 +25002,26 @@ var CORE_STRICT_SKILL_EXPECTATIONS = {
     forbiddenSnippets: [
       `${COMMAND_PREFIX} review <change-name>`,
       "proposal review"
+    ]
+  },
+  "strict-tech-sync": {
+    requiredCommands: {
+      modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
+      generate: `${COMMAND_PREFIX} generate <change-name> delta-tech --<named-args>`,
+      verify: `${COMMAND_PREFIX} verify <change-name>`,
+      "verify-tech-mappings": `${COMMAND_PREFIX} verify-tech-mappings`
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [
+      ".strict-spec-driven/",
+      "active-change sync",
+      "selected change's proposal, design, tasks, questions, delta specs, delta tech, structured mappings",
+      CURRENT_CHANGE_SCOPE_SNIPPET,
+      "explicitly approves both the normative content and its strength",
+      "explicitly classified as not reusable",
+      "may not be deferred until after its active change is archived",
+      "never edit a live main standard directly",
+      "rerun any complete regression evidence invalidated by the artifact edit"
     ]
   },
   "strict-spec-modify": {

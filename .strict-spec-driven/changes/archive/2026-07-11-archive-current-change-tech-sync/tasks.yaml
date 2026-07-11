@@ -7,56 +7,56 @@ sections:
   Implementation:
     add-active-change-tech-sync-mode:
       text: Extend skills/strict-tech-sync/SKILL.md with a current-change mode that derives a bounded scan scope from the selected change artifacts, structured mappings, and attributable repository changes; requires operator confirmation for normative rule content and strength; writes confirmed findings as delta-tech under the active change; and preserves direct live-standard editing only for standalone sync.
-      status: pending
+      status: complete
     add-archive-tech-sync-gate:
       text: Update skills/strict-spec-archive/SKILL.md so current-change tech sync runs before final verification and archive, blocks confirmed reusable convention gaps from post-archive deferral, accepts an explicit operator classification that a surfaced pattern is not reusable, and reruns invalidated verification, review, and complete regression evidence after delta-tech edits.
-      status: pending
+      status: complete
     mirror-review-and-auto-guidance:
       text: Update skills/strict-spec-review/SKILL.md and skills/strict-spec-auto/SKILL.md so review remains an early non-blocking discovery point, deferral leads to the mandatory final archive-time current-change sync rather than a post-archive standalone sync, and the automatic workflow performs the same final gate before invoking archive.
-      status: pending
+      status: complete
     update-archive-mcp-guidance:
       text: Update src/mcp/prompts.ts so the strict_archive_change prompt requires the final current-change tech-sync checkpoint and preserves the raw archive command as the deterministic merge and move mechanism.
-      status: pending
+      status: complete
     enforce-packaged-skill-contract:
       text: Update src/skills/model.ts packaging expectations with stable required guidance for current-change scope, delta-tech routing, operator confirmation, no post-archive deferral of confirmed reusable conventions, and post-edit evidence reruns across the affected strict skills.
-      status: pending
+      status: complete
     add-guidance-regression-coverage:
       text: Update test/suites/entrypoint-and-skills.ts and test/suites/mcp-server.ts with behavior-facing assertions that standalone archive, automatic archive, active-change tech sync, review handoff, packaging validation, and MCP archive guidance all preserve the confirmed workflow boundary.
-      status: pending
+      status: complete
   Testing:
     run-build:
       text: Build generated assets, TypeScript output, CLI bundles, and MCP bundles after source and skill edits.
-      status: pending
+      status: complete
       command: bun run build
     run-lint:
       text: Run the TypeScript no-emit lint check.
-      status: pending
+      status: complete
       command: bun run lint
     validate-skill-packages:
       text: Validate bundled strict skill command mappings and required semantic guidance.
-      status: pending
+      status: complete
       command: bun run validate-skills
     run-tests:
       text: Run the complete unit and regression suite, including skill-content and MCP prompt assertions.
-      status: pending
+      status: complete
       command: bun test/run.ts
     run-project-regression:
       text: Run the configured complete project regression and enforce the declared src/** line coverage threshold.
-      status: pending
+      status: complete
       command: bun scripts/coverage-gate.ts --threshold 78
   Verification:
     verify-proposal-readiness:
       text: Run strict-spec-cli ready archive-current-change-tech-sync and confirm the final artifacts still express the confirmed enforcement boundary, scope, unchanged behavior, and mapped delta-spec scenarios.
-      status: pending
+      status: complete
     verify-change:
       text: After all implementation and testing tasks are complete, run strict-spec-cli verify archive-current-change-tech-sync and resolve every diagnostic before archive handoff.
-      status: pending
+      status: complete
     verify-spec-mappings:
       text: Run strict-spec-cli verify-spec-mappings and confirm the cli-foundation mappings cover every implementation and test file added by this change without removing existing coverage.
-      status: pending
+      status: complete
     verify-archive-readiness:
       text: Confirm strict-spec-archive and strict-spec-auto require current-change tech sync before archive, confirmed delta-tech edits invalidate and rerun affected evidence, no supported guidance permits post-archive deferral of a confirmed reusable convention, and src/archive.ts remains unchanged.
-      status: pending
+      status: complete
 testing_gates:
   validation_task: run-build
   unit_test_task: run-tests

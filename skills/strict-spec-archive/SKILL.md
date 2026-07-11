@@ -20,6 +20,7 @@ check-workflow-state: strict-spec-cli check-workflow-state
 modify: strict-spec-cli modify [change-name|archive-dir]
 verify: strict-spec-cli verify <change-name>
 verify-spec-mappings: strict-spec-cli verify-spec-mappings
+generate: strict-spec-cli generate <change-name> delta-tech --<named-args>
 archive: strict-spec-cli archive <change-name>
 ```
 
@@ -33,6 +34,9 @@ archive: strict-spec-cli archive <change-name>
 
 **Handled by the AI**
 - choose the change to archive
+- perform a final current-change-scoped technical-standard synchronization
+- pause for operator confirmation when a possible reusable convention is not
+  covered by applicable standards or current delta tech
 - confirm verification and review readiness
 - interpret archive output and summarize the final result
 
@@ -60,25 +64,50 @@ run `init` from this skill.
 1. **Select the change** — run `modify` without an argument to list active
    changes. If the change is already specified, use it.
 
-2. **Confirm readiness** — run:
+2. **Run the final current-change tech sync** — before final verification or
+   invoking the raw archive command, apply the active-change procedure from
+   `strict-tech-sync` to the selected change.
+   - bound the scan to the selected change's proposal, design, tasks, questions,
+     delta specs, delta tech, structured mappings, attributable tracked and
+     untracked files, and applicable technical standards
+   - exclude unrelated repository drift and surface ambiguous file ownership
+     instead of silently widening the archive scope
+   - continue immediately when applicable main standards and current delta tech
+     already cover the change and no reusable convention gap remains
+   - when a possible reusable convention is uncovered, present the target or
+     proposed standard, operation, stable rule id, strength, statement,
+     rationale, enforcement, and mappings; do not continue until the operator
+     either confirms delta-tech capture or explicitly classifies the pattern as
+     not reusable
+   - never defer a convention confirmed as reusable until after archive; use
+     `generate <change-name> delta-tech ...` so it remains part of the active
+     change rather than editing a live main standard directly
+   - after any delta-tech edit, review the final delta artifact, rerun strict
+     verification, and rerun the configured complete project regression evidence
+     when the artifact edit invalidated the earlier evidence
+
+3. **Confirm readiness** — after the final tech-sync checkpoint and any required
+   evidence reruns, run:
    ```bash
    strict-spec-cli verify <change-name>
    strict-spec-cli verify-spec-mappings
    ```
    Stop if either command reports blockers.
 
-3. **Check for observable spec impact** — inspect
+4. **Check for observable spec impact** — inspect
    `.strict-spec-driven/changes/<name>/specs/`.
    - if it is empty, treat the change as having no delta specs to merge and
      continue directly to archive
    - otherwise proceed
 
-4. **Archive the change** — run:
+5. **Archive the change** — use the raw command only as the deterministic
+   verification, delta-merge, index-regeneration, roadmap-reconciliation, and
+   change-move mechanism:
    ```bash
    strict-spec-cli archive <change-name>
    ```
 
-5. **Confirm the result** — summarize:
+6. **Confirm the result** — summarize:
     - the archive destination
     - the strict main specs that were updated
     - any roadmap files the archive command reconciled
@@ -86,5 +115,9 @@ run `init` from this skill.
 ## Rules
 
 - Never archive a change with verification blockers
+- Never invoke archive before the final current-change tech-sync checkpoint is
+  resolved
+- Never defer a confirmed reusable convention until after archive; capture it as
+  current-change delta tech
 - Use the strict archive command rather than manually moving change directories
 - Treat the current YAML artifacts and repository state as authoritative

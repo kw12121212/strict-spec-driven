@@ -1,6 +1,6 @@
 ---
 name: strict-tech-sync
-description: Scan repository implementation conventions and strict YAML technical standards for drift, then synchronize standards directly after user confirmation.
+description: Scan repository implementation conventions and strict YAML technical standards for drift, then synchronize standalone standards or active-change delta tech after user confirmation.
 metadata:
   skill_id: strict_tech_sync
   author: strict-spec-driven
@@ -26,6 +26,9 @@ before running anything. Do not guess.
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
 verify-tech-mappings: strict-spec-cli verify-tech-mappings
+modify: strict-spec-cli modify [change-name|archive-dir]
+generate: strict-spec-cli generate <change-name> delta-tech --<named-args>
+verify: strict-spec-cli verify <change-name>
 ```
 
 ## Prerequisites
@@ -49,13 +52,27 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
 missing, stop immediately and tell the user to run `/strict-spec-init`. Do not
 run `init` from this skill.
 
-1. **Choose the scan scope** — determine whether the user wants:
+1. **Choose the synchronization mode and scan scope** — determine whether the
+   user wants:
+   - an **active-change sync** for a selected change that is still under
+     `.strict-spec-driven/changes/`; use `modify` without an argument to list
+     candidates when the user did not name one
+   - a **standalone sync** that directly reconciles live standards outside an
+     active change
+
+   Then determine whether the requested scope is:
    - a repository-wide scan
    - a scoped scan for a specific directory, module, layer, or concern
      (for example: error handling, logging, API surface, build tooling)
 
-   If the user already gave a scope, use it. If not, ask whether to scan the
-   whole repository or a narrower target.
+   An active-change sync is always bounded to the selected change. Build its
+   scope from the selected change's proposal, design, tasks, questions, delta
+   specs, delta tech, structured mappings, and repository changes attributable
+   to the change. Use attributable tracked and untracked files only as
+   supporting evidence; surface ambiguous ownership instead of absorbing
+   unrelated repository drift.
+   If a standalone user already gave a scope, use it. Otherwise ask whether to
+   scan the whole repository or a narrower target.
 
 2. **Read strict tech context first** — before deciding that any drift exists,
    read:
@@ -68,14 +85,21 @@ run `init` from this skill.
    configuration, build files, lint/format configs, CI definitions, and tests
    that reveal current implementation conventions. Look for conventions that are
    followed consistently enough to be a de facto standard, and for inconsistent
-   areas where a standard is missing.
+   areas where a standard is missing. For active-change sync, inspect only the
+   selected change evidence and the applicable standards; do not turn the scan
+   into repository-wide maintenance.
 
 4. **Classify drift findings** — compare repository evidence to current
    standards and sort findings into:
+   - conventions already covered by applicable main standards or the active
+     change's delta tech
    - established conventions present in the codebase but missing from standards
    - existing standard rules that are outdated, contradicted by the code, or
      unenforced
    - inconsistent areas where the team should pick a standard (needs human input)
+   - patterns that are specific to this change and are not reusable engineering
+     conventions
+   - unrelated repository drift excluded from an active-change scan
    - areas with no meaningful drift in the scanned scope
 
 5. **Report the drift summary in chat** — present a concise summary covering:
@@ -84,25 +108,39 @@ run `init` from this skill.
    - inconsistencies that need a human decision before becoming a rule
    - areas in scope where no meaningful drift was found
 
-6. **Get user confirmation** — before editing any strict YAML standard file, ask
-   the user to confirm the proposed changes. List each standard file that will be
-   added, modified, or removed, and the strength of each new or changed rule. Do
-   not proceed until the user explicitly approves. A convention only becomes a
-   MUST when the user agrees it is mandatory.
+6. **Get operator confirmation** — before writing any standard or delta-tech
+   artifact, ask the operator to confirm each proposed change. For every finding,
+   provide the target standard (or proposed new standard), operation, stable rule
+   id, strength, normative statement, rationale, enforcement method, and
+   implementation/enforcement mappings. Do not proceed until the operator
+   explicitly approves both the normative content and its strength. A convention
+   only becomes a MUST when the operator agrees it is mandatory. A surfaced
+   pattern may instead be explicitly classified as not reusable; a convention
+   confirmed as reusable may not be deferred until after its active change is
+   archived.
 
-7. **Edit strict YAML standard files directly** — for each confirmed finding:
-   - edit the corresponding file under `.strict-spec-driven/tech/`
+7. **Write confirmed findings through the selected mode** — for each confirmed
+   finding:
+   - in active-change mode, use `generate <change-name> delta-tech ...` to add or
+     update a strict delta-tech artifact under the selected change; never edit a
+     live main standard directly
+   - in standalone mode, edit the corresponding file under
+     `.strict-spec-driven/tech/` directly
    - add, modify, or remove structured rules with `strength`, `statement`,
      `rationale`, and `enforcement`
    - update `mapping.implementation` and `mapping.enforcement` to match the
      repository evidence used for the sync
-   - if no existing category or file fits, create a new standard file under
-     `.strict-spec-driven/tech/` with the correct relative path
+   - if no existing category or file fits, create a new standard through the
+     selected mode with the correct relative path and category
 
 8. **Refresh supporting tech state** — after all edits are complete:
-   - update `.strict-spec-driven/tech/INDEX.yaml` if new files or categories were
-     created
-   - run `verify-tech-mappings` when mapping fields changed
+   - in active-change mode, run `verify <change-name>`, review every generated
+     delta-tech operation and mapping against the confirmed finding, and rerun
+     any complete regression evidence invalidated by the artifact edit before
+     archive continues
+   - in standalone mode, update `.strict-spec-driven/tech/INDEX.yaml` if new
+     files or categories were created and run `verify-tech-mappings` when
+     mapping fields changed
    - run `tech-status` to confirm the standards read back correctly
 
 9. **Report final changes** — summarize:
@@ -112,12 +150,14 @@ run `init` from this skill.
 
 ## Rules
 
-- This is a documentation skill only — do not change product code
+- Do not change product code; synchronize only strict technical-standard state
 - Read strict tech context before judging drift
 - Respect the user-selected scope
 - Use code, configs, CI, and tests as evidence; record the rule plus its
   rationale and enforcement, not raw implementation detail
-- Do not create a strict change — edit `.strict-spec-driven/tech/` files directly
+- Do not create a strict change. In active-change mode write confirmed findings
+  only as delta tech inside the already selected change; edit live standards
+  directly only in standalone mode.
 - Do not write a standalone report file; the summary belongs in chat
 - Get explicit user confirmation before editing any strict YAML standard file
 - Keep mappings in `mapping.implementation` and `mapping.enforcement`, not in

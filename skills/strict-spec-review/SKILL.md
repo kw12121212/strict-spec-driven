@@ -129,10 +129,13 @@ run `init` from this skill.
    When it did, surface two options to the operator:
    - carry it now as a delta tech artifact under `changes/<name>/tech/` so
      archive merges it into the standards, or
-   - record a follow-up to run `/strict-tech-sync` later.
-   This reflection MUST NOT block strict verification or archive: when no such
-   convention exists or the operator declines to capture it, review proceeds
-   unchanged.
+   - defer the decision only to the mandatory final current-change tech sync in
+     `strict-spec-archive` before archive is invoked.
+   This early reflection does not by itself block strict verification or review
+   completion. However, a convention confirmed as reusable may not be deferred
+   until after archive: the final archive checkpoint must capture it as
+   current-change delta tech or obtain an explicit operator classification that
+   the surfaced pattern is not reusable.
 
 10. **Report the result** — include review evidence before findings:
    - changed implementation and test files read
@@ -145,7 +148,8 @@ run `init` from this skill.
    - NITS
    Findings should include file and line references when available.
    Recommend `strict-spec-archive` only when review is clean enough to archive
-   and complete project-level regression test evidence has passed.
+   and complete project-level regression test evidence has passed, noting that
+   archive guidance will still run its bounded final current-change tech sync.
 
 ## Harness Guidance
 
