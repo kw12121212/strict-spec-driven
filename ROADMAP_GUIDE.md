@@ -185,7 +185,7 @@ After the scaffold validates, the default next step is `/strict-spec-auto`. If t
 
 Proposal-oriented workflows must answer a short checklist before implementation.
 Agents should use the active request, selected roadmap planned-change details,
-ticket provenance, main specs, technical standards, existing change artifacts,
+main specs, technical standards, existing change artifacts,
 repository search results, and deterministic CLI output as evidence before
 asking the human anything.
 
@@ -199,7 +199,7 @@ The checklist intents are:
 - Where does this likely live: code, specs, templates, skills, docs, config, or another named repository artifact family found during discovery?
 - How will we prove it works?
 - Could this affect existing users, saved data, APIs, security, privacy, performance, release, or rollback?
-- Is anything blocked by a roadmap item, ticket, active change, service, credential, or outside dependency?
+- Is anything blocked by a roadmap item, active change, service, credential, or outside dependency?
 - Which existing technical rules apply, or do we need a new rule for this change?
 
 If discovery answers a checklist item, the agent uses that evidence and does not
@@ -208,7 +208,7 @@ in `questions.yaml.open` with what is unknown, why it matters, the affected
 scope or testing decision, and the recommended answer or options.
 
 Roadmap-backed proposal flows treat the selected standalone planned-change
-`summary`, `details`, `depends_on`, labels, `source_ticket`, and owning
+`summary`, `details`, `depends_on`, labels, and owning
 milestone `details` as valid evidence for the same checklist. Complete roadmap
 detail should be carried into generated proposal artifacts instead of becoming a
 duplicate human question. Thin roadmap detail, missing implementation/test/spec
@@ -316,21 +316,3 @@ node scripts/strict-spec-driven.js roadmap-status
 `roadmap-overview` prints a milestone summary table followed by per-milestone planned-change detail.
 
 `roadmap-status` reports each milestone's declared and derived status, each planned change's source file path and workflow state, and any mismatches or cross-file validation problems in JSON.
-
-## Ticket Origin and the Intake Pipeline
-
-Milestones can originate from a **ticket** — a strict YAML capture of a pure requirement (problem, desired observable outcome, intent) under `.strict-spec-driven/tickets/`, with a conflict-resistant content-derived id rather than a shared counter. The end-to-end path is:
-
-```text
-ticket -> triage decision -> roadmap milestone -> planned change -> strict change -> spec / tech / code
-```
-
-The two intake steps are skills: `/strict-ticket` captures the requirement (no solutioning), and `/strict-ticket-dispatch` judges whether the requirement is already implemented and drives `ticket-resolve`. The **judgment is AI work confined to the triage skill prompt**; the **CLI performs only the deterministic transition** and records the decision on the ticket. On a `not_implemented` decision the CLI:
-
-- allocates the next milestone number deterministically and refuses (never overwrites) on collision,
-- materializes a milestone skeleton with the goal copied from the ticket's desired outcome and scope / done criteria left as an explicit `REFINEMENT NEEDED` stub,
-- registers it in `INDEX.yaml`, sets the ticket to `promoted`, and writes bidirectional links: `ticket.promoted_to` and a milestone `source_ticket` back-reference.
-
-Promotion is **idempotent** — re-running triage on an already-promoted ticket returns the existing milestone instead of creating a second one.
-
-`roadmap-status` surfaces ticket provenance for promoted milestones: it reports the originating ticket id (`sourceTicket`) and sets `needsScopeRefinement` while the milestone still carries the promotion stub, so reviewers know to run `/strict-roadmap-milestone` to define real scope, done criteria, and dependencies before treating it as executable. `roadmap-sync` preserves the `source_ticket` back-reference without dropping, duplicating, or reordering it.

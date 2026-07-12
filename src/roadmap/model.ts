@@ -96,7 +96,7 @@ export const DEFAULT_MILESTONE_INTAKE_QUESTIONS: MilestoneIntakeQuestion[] = [
   {
     id: "dependencies-and-blockers",
     question: "What dependencies or blockers must be resolved before this milestone can progress?",
-    context: "Dependencies may come from other milestones, active changes, tickets, services, credentials, or external decisions.",
+    context: "Dependencies may come from other milestones, active changes, services, credentials, or external decisions.",
     impact: "Unknown blockers affect ordering, roadmap recommendation eligibility, and implementation handoff.",
     recommendation: "Record known dependencies in dependencies and preserve unresolved blockers in milestone notes or planned-change detail.",
   },
@@ -144,7 +144,6 @@ export type RoadmapMilestoneArtifact = {
   status: DeclaredRoadmapStatus;
   notes: string[];
   details?: string;
-  source_ticket?: string;
 };
 
 export type PlannedChangeTeamMetadata = {
@@ -243,8 +242,6 @@ export type RoadmapMilestoneStatus = {
   derivedStatus: Exclude<DeclaredRoadmapStatus, "blocked">;
   plannedChanges: RoadmapPlannedChangeStatus[];
   mismatches: string[];
-  sourceTicket?: string;
-  needsScopeRefinement?: boolean;
 };
 
 export type RoadmapRecommendationSkipCode =

@@ -30,6 +30,3 @@ specs:
   - id: testing-coverage-gate
     title: Testing Coverage Gate
     path: .strict-spec-driven/specs/testing/coverage-gate.yaml
-  - id: ticket-domain-behavior
-    title: Ticket Domain Behavior
-    path: .strict-spec-driven/specs/ticket/domain-behavior.yaml

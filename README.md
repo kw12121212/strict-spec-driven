@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-**Documentation:** [Quick Start](QUICKSTART.md) · [Roadmap Quick Start](ROADMAP_QUICKSTART.md) · [Roadmap Guide](ROADMAP_GUIDE.md) · [Ticket Guide](TICKET_GUIDE.md) · [Dev Sessions](DEV_SESSIONS.md) · [Debug Sessions](DEBUG_SESSIONS.md) · [RTK](RTK.md)
+**Documentation:** [Quick Start](QUICKSTART.md) · [Roadmap Quick Start](ROADMAP_QUICKSTART.md) · [Roadmap Guide](ROADMAP_GUIDE.md) · [Dev Sessions](DEV_SESSIONS.md) · [Debug Sessions](DEBUG_SESSIONS.md) · [RTK](RTK.md)
 
 `strict-spec-driven` is a YAML-first spec-driven development workflow. It provides the spec-driven lifecycle (propose → apply → verify → skill-driven code review → archive) with Agent Skills integration, converting workflow artifacts — specs, changes, roadmap, tasks, questions — into strict YAML schemas enforced by deterministic scripts.
 
@@ -46,10 +46,6 @@ Subcommands available after `bun run build` (or via installed `node dist/strict-
 | `modify [<name>]` | List editable artifact paths for a change |
 | `cancel <name>` | Remove an active change (archived changes are protected) |
 | `maintenance` | Run configured repository maintenance checks |
-| `ticket-create` | Capture a pure-requirement ticket with a conflict-resistant id |
-| `ticket-list` / `ticket-show <id>` | Enumerate tickets or print one ticket |
-| `ticket-validate [<id>]` | Validate one or all tickets against the bundled schemas |
-| `ticket-resolve <id>` | Record a triage decision and apply the transition (promote / close / reject) |
 | `roadmap-status` | Validate and report strict roadmap state |
 | `roadmap-overview` | Print a human-readable roadmap overview table |
 | `roadmap-sync [--fix-names]` | Reconcile and regenerate strict roadmap index; `--fix-names` renames misnamed planned-change files to canonical names |
@@ -105,8 +101,6 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-spec-sync-specs` | Synchronize specs with code drift |
 | `/strict-spec-resync-code-mapping` | Repair spec implementation and test mappings |
 | `/strict-spec-maintenance` | Run repository maintenance workflow |
-| `/strict-ticket` | Capture a raw requirement as a pure-intent ticket |
-| `/strict-ticket-dispatch` | Judge implemented-vs-not and drive the ticket transition |
 
 **Strict roadmap skills** (`strict-roadmap-*`):
 
@@ -125,7 +119,7 @@ Standalone planned-change files use a canonical, CLI-owned filename: `<milestone
 
 Proposal-oriented skills run a short change-intake gate before implementation.
 They first answer the checklist from available evidence: the active request,
-roadmap planned-change details, ticket provenance, strict specs, technical
+roadmap planned-change details, strict specs, technical
 standards, existing change artifacts, repository search results, and
 deterministic CLI output. If that evidence answers the checklist, the workflow
 does not ask the human again.
@@ -147,26 +141,6 @@ use `.strict-spec-driven/config.yaml` `preferred_human_language` unless the
 active user message asks for a different language. Stable technical values such
 as question ids, artifact fields, schema names, command names, and file paths
 remain language-neutral identifiers.
-
-## Ticket Intake and Triage
-
-Tickets are the front door to the workflow: a ticket captures a **pure requirement** — problem, desired observable outcome, and intent — with no solution, as a strict YAML artifact under `.strict-spec-driven/tickets/` with a conflict-resistant, content-derived id (never a shared counter). Intake is two steps:
-
-1. **Capture** — `/strict-ticket` (or `ticket-create`) records the requirement as pure intent and scaffolds the ticket through the CLI.
-2. **Triage** — `/strict-ticket-dispatch` reads the ticket and inspects existing specs, spec-to-code mappings, code, and docs to judge whether the requirement is already implemented, then drives `ticket-resolve` with one of three outcomes:
-   - **implemented** — closes the ticket with evidence links to the satisfying specs/code/docs
-   - **not_implemented** — promotes the ticket into a new roadmap milestone skeleton (goal seeded from the desired outcome; scope and done criteria left as an explicit refinement stub), then `/strict-ticket-dispatch` immediately replaces the stub with supported milestone scope, milestone `details`, and at least one standalone planned-change file with actionable `summary` and `details`
-   - **not_wanted** — rejects or defers the ticket with a rationale
-
-The boundary is deliberate: the **implemented-vs-not judgment is AI work confined to the triage skill prompt**, while the **CLI performs only the deterministic state transition** and records the decision as an auditable triage record on the ticket. Promotion is idempotent (a rerun never creates a second milestone) and writes bidirectional links — `ticket.promoted_to` and a milestone `source_ticket` back-reference that `roadmap-status` surfaces (flagging a freshly promoted milestone as needing scope refinement) and `roadmap-sync` preserves. The dispatch skill must not report a promotion complete until the promoted milestone has concrete details and a standalone planned-change artifact, or until it has stopped for the exact human decision needed to make that decomposition honestly. This completes the end-to-end path:
-
-```text
-ticket (pure requirement)
-  -> triage decision (AI judgment, recorded by the CLI)
-  -> roadmap milestone (on not_implemented)
-  -> planned change -> strict change
-  -> spec / tech / code
-```
 
 ### MCP Server: `strict-spec-driven-mcp`
 

@@ -79,9 +79,9 @@ affected behavior.
 
 When resuming a roadmap-backed scaffold, also read the proposal's roadmap links
 and use the selected standalone planned-change `summary`, `details`,
-`depends_on`, labels, `source_ticket`, owning milestone `details`, and ticket
-provenance as valid intake evidence. Carry answers already present in that
-roadmap or ticket evidence forward instead of re-asking.
+`depends_on`, labels, and owning milestone `details` as valid intake evidence.
+Carry answers already present in that roadmap evidence forward instead of
+re-asking.
 
 - Do not ask the human for information already recoverable from the request or
   repository evidence.
@@ -149,8 +149,8 @@ run `init` from this skill.
    populated change directory containing proposal, design, tasks, questions,
    and any needed delta spec or delta tech artifacts, resume the existing populated strict change
    scaffold without regenerating planning artifacts or running `propose` again.
-   For roadmap-backed scaffolds, preserve selected planned-change and ticket
-   provenance as intake evidence and inspect `questions.yaml.open` before
+   For roadmap-backed scaffolds, preserve selected planned-change provenance as
+   intake evidence and inspect `questions.yaml.open` before
    implementation.
    Run `ready <change-name>` or `next <change-name>` to surface deterministic
    blockers before implementation. If the target change directory already

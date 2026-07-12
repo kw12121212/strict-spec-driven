@@ -18,7 +18,6 @@ import {
   runRoadmapStatus,
   runRoadmapSync,
 } from "./cli/cmd-roadmap.js";
-import { runTicketCreate, runTicketEdit, runTicketList, runTicketResolve, runTicketShow, runTicketValidate } from "./cli/cmd-tickets.js";
 import { runSopCategoryList, runSopCategoryShow, runSopCreate, runSopEdit, runSopList, runSopShow, runSopValidate } from "./cli/cmd-sops.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runMcpInstall } from "./cli/cmd-mcp-install.js";
@@ -119,12 +118,6 @@ export const commands = createCliCommandTable({
   "roadmap-recommend": (argv) => runRoadmapRecommend(argv),
   "roadmap-archive": (argv) => runRoadmapArchive(argv),
   "roadmap-reopen": (argv) => runRoadmapReopen(argv),
-  "ticket-create": (argv) => runTicketCreate(argv),
-  "ticket-list": (argv) => runTicketList(argv),
-  "ticket-show": (argv) => runTicketShow(argv),
-  "ticket-edit": (argv) => runTicketEdit(argv),
-  "ticket-validate": (argv) => runTicketValidate(argv),
-  "ticket-resolve": (argv) => runTicketResolve(argv),
   "sop-create": (argv) => runSopCreate(argv),
   "sop-list": (argv) => runSopList(argv),
   "sop-show": (argv) => runSopShow(argv),

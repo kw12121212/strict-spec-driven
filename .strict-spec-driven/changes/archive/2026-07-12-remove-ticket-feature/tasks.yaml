@@ -1,0 +1,54 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: ../../templates/strict-spec-driven/schemas/task-list.yaml
+change: remove-ticket-feature
+sections:
+  Implementation:
+    remove-ticket-contract-assets:
+      text: Remove ticket schemas, scaffold state, examples, schema registrations, initialization support, and generated embedded assets.
+      status: complete
+    remove-ticket-runtime-and-cli:
+      text: Remove ticket runtime modules and every ticket CLI registration, handler, help surface, and export.
+      status: complete
+    remove-ticket-roadmap-integration:
+      text: Remove source_ticket roadmap schema, model, authoring, validation, status, sync, and migration behavior while preserving unrelated roadmap behavior.
+      status: complete
+    remove-ticket-skills-and-guidance:
+      text: Remove ticket skill packages and marketplace entries, and remove ticket-specific provenance guidance from remaining skills.
+      status: complete
+    remove-ticket-docs-and-tests:
+      text: Remove ticket documentation and ticket-specific tests, and update shared assertions and fixtures for the reduced feature set.
+      status: complete
+  Testing:
+    lint-and-build:
+      text: Run the TypeScript lint-equivalent compilation and rebuild compiled output.
+      status: complete
+      command: bun run build
+    focused-tests:
+      text: Run focused CLI, skill, roadmap, fixture, and documentation regression suites affected by ticket removal.
+      status: complete
+      command: bun test/run.ts --filter entrypoint-and-skills,foundation-and-fixtures,roadmap-and-migration
+    complete-regression:
+      text: Run the configured complete project regression and coverage gate.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    strict-ready:
+      text: Confirm deterministic change readiness after implementation and testing.
+      status: complete
+      command: strict-spec-cli ready remove-ticket-feature
+    strict-verify:
+      text: Verify the completed strict change artifacts and task state.
+      status: complete
+      command: strict-spec-cli verify remove-ticket-feature
+    verify-spec-mappings:
+      text: Verify main spec implementation and test mappings after ticket contract removal.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+    archive-readiness:
+      text: Confirm the final active-change technical-standard sync and archive merge readiness.
+      status: complete
+testing_gates:
+  validation_task: lint-and-build
+  unit_test_task: focused-tests

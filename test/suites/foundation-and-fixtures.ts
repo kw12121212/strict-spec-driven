@@ -733,59 +733,6 @@ context.assert(
 context.assert(
   bundledRegistry.entries.some(
     (entry) =>
-      entry.schema_id === "strict-spec-driven/ticket/v1"
-      && entry.artifact_type === "ticket"
-      && entry.schema_file === "ticket.yaml"
-      && entry.primary_example.endsWith("/ticket.yaml"),
-  ),
-  "schema registry includes ticket schema and primary example",
-);
-context.assert(
-  bundledRegistry.entries.some(
-    (entry) =>
-      entry.schema_id === "strict-spec-driven/tickets-index/v1"
-      && entry.artifact_type === "tickets_index"
-      && entry.schema_file === "tickets-index.yaml"
-      && entry.primary_example.endsWith("/tickets-index.yaml"),
-  ),
-  "schema registry includes tickets-index schema and primary example",
-);
-const ticketSchema = validationModule.loadBundledSchemaByArtifactType("ticket") as Record<string, unknown>;
-const ticketSchemaProps = ticketSchema.properties as Record<string, unknown>;
-context.assert(
-  (ticketSchemaProps.requirement as Record<string, unknown>)?.properties !== undefined,
-  "ticket schema resolves by artifact type and exposes pure-requirement fields",
-);
-context.assert(
-  (ticketSchemaProps.dispatch_decision as Record<string, unknown>)?.properties !== undefined,
-  "ticket schema exposes an embedded dispatch-decision record",
-);
-const ticketExample = yamlModule.parseYamlFile<{ status: string }>(
-  path.join(ROOT, "examples", "strict-spec-driven", "ticket.yaml"),
-);
-context.assert(
-  ((ticketSchemaProps.status as Record<string, unknown>).enum as string[]).includes(ticketExample.status),
-  "ticket example status stays within ticket schema enums",
-);
-const ticketValidation = validationModule.validateArtifact(
-  ticketSchema,
-  ticketExample,
-  "examples/strict-spec-driven/ticket.yaml",
-);
-context.assert(ticketValidation.valid, "ticket example validates against ticket schema");
-const ticketsIndexSchema = validationModule.loadBundledSchemaByArtifactType("tickets_index") as Record<string, unknown>;
-const ticketsIndexExample = yamlModule.parseYamlFile<Record<string, unknown>>(
-  path.join(ROOT, "examples", "strict-spec-driven", "tickets-index.yaml"),
-);
-const ticketsIndexValidation = validationModule.validateArtifact(
-  ticketsIndexSchema,
-  ticketsIndexExample,
-  "examples/strict-spec-driven/tickets-index.yaml",
-);
-context.assert(ticketsIndexValidation.valid, "tickets-index example validates against tickets-index schema");
-context.assert(
-  bundledRegistry.entries.some(
-    (entry) =>
       entry.schema_id === "strict-spec-driven/harness-session/v1"
       && entry.artifact_type === "harness_session"
       && entry.schema_file === "harness-session.yaml"

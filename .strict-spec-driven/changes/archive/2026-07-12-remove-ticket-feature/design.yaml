@@ -1,0 +1,16 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: remove-ticket-feature
+approach:
+  - Retire the ticket contract first through REMOVED delta-spec operations, then delete ticket-owned implementation and assets, remove ticket integration branches from shared registries and roadmap surfaces, update documentation and tests, rebuild generated output, and run the full regression coverage gate.
+decisions:
+  remove-whole-surface:
+    decision: Delete ticket-owned surfaces instead of leaving deprecated aliases or compatibility shims.
+    rationale: The request is to remove the entire feature, so retained public commands, schemas, skills, or scaffold state would leave a partial ticket capability.
+  preserve-history:
+    decision: Keep archived strict changes and archived roadmap artifacts as immutable history.
+    rationale: Those records document past repository state and are not executable ticket functionality.
+alternatives: []
+risks: []

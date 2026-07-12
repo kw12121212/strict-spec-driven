@@ -723,7 +723,6 @@ try {
     status: string;
     notes: string[];
     details?: string;
-    source_ticket?: string;
   }>(generatedMilestonePath);
   context.assert(
     generatedMilestone.milestone["authoring"]?.title === "Authoring Milestone"
@@ -766,10 +765,6 @@ try {
     "authoring-existing-work.yaml",
   );
   const standaloneBeforeUpdate = readFileSync(standalonePath, "utf8");
-  const milestoneWithSourceTicket = yamlModule.parseYamlFile<Record<string, unknown>>(generatedMilestonePath);
-  milestoneWithSourceTicket.source_ticket = "captured-ticket";
-  writeFileSync(generatedMilestonePath, yamlModule.stringifyYamlDocument(milestoneWithSourceTicket), "utf8");
-
   const appendMilestone = cli([
     "roadmap-generate",
     "milestone",
@@ -787,14 +782,12 @@ try {
     scope: { in: string[] };
     intake_questions: Array<{ id: string }>;
     details?: string;
-    source_ticket?: string;
   }>(generatedMilestonePath);
   context.assert(
     appendedMilestone.scope.in.includes("Milestone YAML shape is command-authored.")
       && appendedMilestone.scope.in.includes("Additional milestone scope.")
       && appendedMilestone.intake_questions.map((question) => question.id).join(",") === "objective,scope-boundary,verification-evidence"
-      && appendedMilestone.details === "Long-form milestone guidance added by the authoring command."
-      && appendedMilestone.source_ticket === "captured-ticket",
+      && appendedMilestone.details === "Long-form milestone guidance added by the authoring command.",
     "roadmap-generate milestone preserves existing milestone metadata and appends intake questions while applying safe updates",
   );
   context.assert(
@@ -843,16 +836,14 @@ try {
     done_criteria: string[];
     intake_questions: Array<{ id: string }>;
     notes: string[];
-    source_ticket?: string;
   }>(generatedMilestonePath);
   context.assert(
     resetArtifact.goal === "Replace the goal with explicit reset."
       && resetArtifact.scope.in.join("\n") === "Reset milestone scope."
       && resetArtifact.done_criteria.join("\n") === "Reset done criterion."
       && resetArtifact.intake_questions.map((question) => question.id).join(",") === "objective,scope-boundary,verification-evidence,risks"
-      && resetArtifact.notes.join("\n") === "Reset note."
-      && resetArtifact.source_ticket === "captured-ticket",
-    "roadmap-generate milestone reset replaces supplied list fields but merges intake questions additively while preserving source_ticket",
+      && resetArtifact.notes.join("\n") === "Reset note.",
+    "roadmap-generate milestone reset replaces supplied list fields while merging intake questions additively",
   );
   context.assert(
     readFileSync(standalonePath, "utf8") === standaloneBeforeUpdate,
@@ -890,12 +881,10 @@ try {
   const replacedIntakeArtifact = yamlModule.parseYamlFile<{
     goal: string;
     intake_questions: Array<{ id: string }>;
-    source_ticket?: string;
   }>(generatedMilestonePath);
   context.assert(
     replacedIntakeArtifact.intake_questions.map((question) => question.id).join(",") === "final-outcome"
-      && replacedIntakeArtifact.goal === "Replace the goal with explicit reset."
-      && replacedIntakeArtifact.source_ticket === "captured-ticket",
+      && replacedIntakeArtifact.goal === "Replace the goal with explicit reset.",
     "roadmap-generate milestone --reset-intake-questions replaces the intake list with exactly the supplied entries while leaving other fields untouched",
   );
 
@@ -5563,74 +5552,4 @@ context.assert(
   lifecycleFirstRun.listAfterArchiveStdout === lifecycleSecondRun.listAfterArchiveStdout,
   "copied workspace list-after-archive output stays stable across repeated lifecycle runs",
 );
-
-context.section("[roadmap] ticket flow against the real-project fixture");
-
-{
-  const ticketFixture = createCopiedProjectWorkspace("todo-app");
-  const fixtureRoot = ticketFixture.workspaceRoot;
-  try {
-    const migrateForTickets = projectWorkspaceCli(fixtureRoot, ["migrate"]);
-    context.assert(migrateForTickets.status === 0, "ticket fixture migrate produces strict workflow state");
-    const materializeForTickets = projectWorkspaceCli(fixtureRoot, ["roadmap-sync", "--materialize-planned-changes"]);
-    context.assert(materializeForTickets.status === 0, "ticket fixture materializes legacy inline planned changes");
-
-    const fixtureTicket = JSON.parse(
-      projectWorkspaceCli(fixtureRoot, [
-        "ticket-create",
-        "--title",
-        "Recurring todos",
-        "--problem",
-        "todos cannot repeat on a schedule",
-        "--desired-outcome",
-        "a user can mark a todo as recurring",
-      ]).stdout,
-    ) as { ticketId: string; created: boolean };
-    context.assert(fixtureTicket.created === true, "ticket-create works in the migrated real-project fixture");
-
-    const fixtureValidate = projectWorkspaceCli(fixtureRoot, ["ticket-validate"]);
-    context.assert(fixtureValidate.status === 0, "ticket-validate passes in the migrated fixture");
-
-    const fixturePromotion = JSON.parse(
-      projectWorkspaceCli(fixtureRoot, [
-        "ticket-resolve",
-        fixtureTicket.ticketId,
-        "--outcome",
-        "not_implemented",
-        "--rationale",
-        "no recurring-todo behavior exists in the project specs or code",
-        "--promoted-to",
-        "recurring-todos",
-      ]).stdout,
-    ) as { status: string; promotedTo: string | null; ticketPath: string };
-    context.assert(fixturePromotion.status === "promoted", "ticket promotes in the real-project fixture");
-    context.assert(
-      fixturePromotion.promotedTo === "recurring-todos",
-      "fixture promotion links the archived ticket to the strict spec change",
-    );
-    context.assert(
-      !existsSync(path.join(fixtureRoot, ".strict-spec-driven", "roadmap", "milestones", "0001-recurring-todos.yaml")),
-      "fixture promotion does not materialize a roadmap milestone",
-    );
-    context.assert(
-      fixturePromotion.ticketPath === `.strict-spec-driven/tickets/archived/${fixtureTicket.ticketId}.yaml`
-        && existsSync(path.join(fixtureRoot, fixturePromotion.ticketPath)),
-      "fixture promotion archives the resolved ticket",
-    );
-
-    const fixtureStatus = JSON.parse(projectWorkspaceCli(fixtureRoot, ["roadmap-status"]).stdout) as { valid: boolean };
-    context.assert(fixtureStatus.valid === true, "fixture roadmap stays valid after a ticket promotion to a spec change");
-
-    const promotedTicketShow = JSON.parse(
-      projectWorkspaceCli(fixtureRoot, ["ticket-show", fixtureTicket.ticketId]).stdout,
-    ) as { ticket: { provenance?: { promoted_to?: string } } };
-    context.assert(
-      promotedTicketShow.ticket.provenance?.promoted_to === "recurring-todos",
-      "fixture archived ticket records promoted_to pointing at the spec change",
-    );
-  } finally {
-    ticketFixture.cleanup();
-  }
-}
-
 }

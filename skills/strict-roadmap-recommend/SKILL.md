@@ -77,8 +77,8 @@ the active user message explicitly asks for a different language.
 
 Apply the same plain change-intake checklist used by proposal skills, but treat
 the selected roadmap data as first-class evidence. The selected standalone
-planned-change `summary`, `details`, `depends_on`, labels, `source_ticket`, and
-owning milestone `details` can answer checklist items. Carry those answers into
+planned-change `summary`, `details`, `depends_on`, labels, and owning milestone
+`details` can answer checklist items. Carry those answers into
 generated proposal, design, task, question, and delta artifacts instead of
 asking the human again.
 

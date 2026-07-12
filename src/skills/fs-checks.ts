@@ -146,16 +146,14 @@ export function validateMarketplaceMetadata(
     if (
       !entry.name.startsWith("strict-spec-") &&
       !entry.name.startsWith("strict-roadmap-") &&
-      !entry.name.startsWith("strict-tech-") &&
-      entry.name !== "strict-ticket" &&
-      !entry.name.startsWith("strict-ticket-")
+      !entry.name.startsWith("strict-tech-")
     ) {
       diagnostics.push(
         makeDiagnostic(
           "skills.marketplace.skills.entry.name.legacy",
           `${relativeMetadataPath}#skills[${index}].name`,
           "skills marketplace entries must use strict skill name prefixes",
-          "strict-spec-*, strict-roadmap-*, strict-tech-*, or strict-ticket-*",
+          "strict-spec-*, strict-roadmap-*, or strict-tech-*",
           entry.name,
         ),
       );

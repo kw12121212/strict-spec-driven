@@ -86,7 +86,7 @@ run `init` from this skill.
    `dependencies`, and `risks`, and planned-change coverage of the milestone
    goal. Also check milestone `intake_questions` for answer evidence in
    `goal`, `scope`, `done_criteria`, `dependencies`, `risks`, `details`,
-   `notes`, `source_ticket`, and owned planned-change `summary`, `details`,
+   `notes`, and owned planned-change `summary`, `details`,
    `depends_on`, and metadata. Treat an intake question as answered only when
    the answer is explicit enough to guide proposal scope, implementation
    boundaries, tests, dependencies, risks, or technical standards. Review each
@@ -119,7 +119,7 @@ run `init` from this skill.
    until each one carries enough executable planning context to propose
    without re-deriving intent. When an
    intake answer is missing but can be safely derived from existing roadmap,
-   spec, ticket, or planned-change evidence, update the relevant milestone
+   spec or planned-change evidence, update the relevant milestone
    field or planned-change detail so the answer evidence is explicit. When an
    intake answer needs a human product, compatibility, risk, dependency, or
    technical-standard decision, report the unresolved decision and impact in

@@ -196,28 +196,6 @@ For changes where the scope is already clear, `/strict-spec-auto` runs the full 
 
 The skill pauses only when open questions require user input or when an unrecoverable error is encountered.
 
-## Ticket Intake (Optional)
-
-When you have a raw requirement but are not yet sure it should become work, file a **ticket** first — a pure-requirement capture (problem, desired outcome, intent) with no solution:
-
-```
-/strict-ticket
-```
-
-Then triage it to decide whether it is already built:
-
-```
-/strict-ticket-dispatch
-```
-
-Triage judges implemented-vs-not from existing specs, code, and docs, then drives `ticket-resolve` to **close** an already-implemented ticket with evidence, **promote** a genuinely new requirement into a roadmap milestone skeleton (handing off to `/strict-roadmap-milestone` for scope), or **reject/defer** an unwanted one. The judgment lives in the skill; the CLI only performs the deterministic transition and records it on the ticket. This is the front of the pipeline:
-
-```text
-ticket -> triage -> roadmap milestone -> planned change -> strict change -> spec / tech / code
-```
-
-For the full ticket lifecycle — artifact structure, state machine, promotion mechanics, and copy-paste CLI examples — see the [Ticket Guide](TICKET_GUIDE.md).
-
 ## Harness (Optional)
 
 If your project has local services, production observability, or structured investigations, declare them in one harness:

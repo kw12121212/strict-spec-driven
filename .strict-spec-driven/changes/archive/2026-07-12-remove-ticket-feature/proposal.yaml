@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: remove-ticket-feature
+  status: proposed
+summary:
+  what:
+    - Remove the ticket feature from the strict workflow.
+  why:
+    - The product no longer includes ticket intake, lifecycle, dispatch, or ticket provenance.
+scope:
+  in:
+    - Remove all ticket CLI commands and runtime modules; ticket schemas, scaffold and examples; ticket skills and marketplace entries; ticket-specific tests; ticket documentation; ticket mappings and ticket-only roadmap provenance behavior; generated embedded assets; and active strict ticket specifications.
+  out:
+    - Archived historical changes and roadmap records remain immutable historical evidence; unrelated strict change, roadmap, tech, SOP, harness, migration, and skill behavior remains available.
+unchanged_behavior:
+  - All non-ticket workflow commands, artifacts, skills, validation, generation, migration, roadmap behavior, and packaging remain unchanged.

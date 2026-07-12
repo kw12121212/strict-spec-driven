@@ -86,9 +86,6 @@ mapping:
     - skills/strict-spec-verify/SKILL.md
     - skills/strict-tech-edit/SKILL.md
     - skills/strict-tech-sync/SKILL.md
-    - skills/strict-ticket-archive/SKILL.md
-    - skills/strict-ticket-dispatch/SKILL.md
-    - skills/strict-ticket/SKILL.md
     - README.zh.md
     - scripts/gen-templates-bundle.ts
     - ROADMAP_GUIDE.md
@@ -1857,16 +1854,16 @@ requirements:
         - THEN: the reflection adds no review blocker and the final archive workflow still performs its bounded current-change sync checkpoint
   cli-roadmap-review-skill-packaging-validation:
     strength: MUST
-    statement: The system MUST validate the strict-roadmap-review skill package through validate-skills, enforcing guidance that reviews every roadmap milestone whose status is not complete, applies direct YAML definition fixes, elaborates planned-change detail, checks milestone intake_questions for answer evidence in milestone fields and owned planned-change details, keeps completed milestones out of scope as historical record, and reports deterministic path-specific diagnostics when all-incomplete scope guidance, direct-fix guidance, or intake-answer review guidance is missing.
+    statement: The system MUST validate the strict-roadmap-review skill package through validate-skills, enforcing guidance that reviews every roadmap milestone whose status is not complete, applies direct YAML definition fixes, elaborates planned-change detail, checks milestone intake_questions for answer evidence in milestone fields and owned planned-change details, keeps completed milestones out of scope as historical record, and reports deterministic path-specific diagnostics when required review guidance is missing.
     scenarios:
       validate-skills-requires-roadmap-review-intake-answer-guidance:
-        - GIVEN: The strict-roadmap-review package is inspected by validate-skills.
-        - WHEN: The package contains complete command mappings and direct-fix guidance but omits guidance to check milestone intake_questions for answer evidence.
-        - THEN: Validation rejects the package with a deterministic required-snippet diagnostic for the missing intake-answer review guidance.
+        - GIVEN: the strict-roadmap-review package is inspected by validate-skills
+        - WHEN: the package omits guidance to check milestone intake_questions for answer evidence
+        - THEN: validation rejects the package with a deterministic required-snippet diagnostic
       roadmap-review-skill-documents-intake-answer-review:
-        - GIVEN: An operator invokes strict-roadmap-review and at least one roadmap milestone is incomplete.
-        - WHEN: The skill prompt is followed.
-        - THEN: The prompt directs the agent to inspect each incomplete milestone's intake_questions, use goal, scope, done_criteria, dependencies, risks, details, notes, source_ticket, and owned planned-change details as answer evidence, apply safe definition fixes directly, and surface unresolved human decisions instead of inventing answers.
+        - GIVEN: an operator invokes strict-roadmap-review and at least one milestone is incomplete
+        - WHEN: the skill prompt is followed
+        - THEN: the agent inspects intake questions, uses milestone planning fields and owned planned-change details as evidence, applies safe fixes, and surfaces unresolved human decisions
   cli-shared-schema-cache-sync-on-startup:
     strength: MUST
     statement: The system MUST synchronize a shared schema cache during strict-spec-driven CLI command and MCP startup, resolving the cache root from the STRICT_SPEC_SCHEMA_CACHE_DIR environment variable when it is set and non-empty and from ~/.strict-spec-schemas/ otherwise; it MUST export the bundled strict schema assets plus a manifest when the cache is missing, records a different export version, or contains any cached schema file that is missing or differs from its bundled content; it MUST perform the refresh by building the new schema tree aside and swapping it into place with renames so concurrent readers never observe a partially written schemas directory; it MUST skip rewriting when the recorded version matches and all cached contents are intact; it MUST NOT synchronize the cache for CLI help requests; and when synchronization fails it MUST continue startup using bundled schemas and emit a warning that names the resolved cache path.
@@ -2144,13 +2141,13 @@ requirements:
     statement: Strict proposal creation guidance MUST answer a short evidence-backed change-intake checklist from the active request and available project context before implementation, ask only required unanswered checklist items in preferred_human_language, record unresolved required answers in questions.yaml.open with impact and recommended answers or options, stop implementation handoff while required open questions remain, and keep stable technical identifiers distinct from localized human-facing question, context, recommendation, and summary text.
     scenarios:
       change-intake-uses-evidence-before-asking:
-        - GIVEN: A strict proposal workflow has an active request, optional roadmap planned-change or ticket provenance, main specs, technical standards, existing change artifacts, repository search results, and deterministic CLI output available for discovery
+        - GIVEN: a strict proposal workflow has an active request, optional roadmap planned-change provenance, main specs, technical standards, existing change artifacts, repository search results, and deterministic CLI output available for discovery
         - WHEN: the workflow prepares a strict change proposal
-        - THEN: the workflow answers the change-intake checklist from that evidence where possible, does not ask the human for answers that discovery already proves, and writes any still-missing required answer to questions.yaml.open with impact and recommended answer or options in the configured preferred_human_language
+        - THEN: the workflow answers the checklist from available evidence, asks only for missing answers, and records still-missing required answers with impact and recommendations in the configured language
       open-required-questions-block-implementation:
-        - GIVEN: a generated strict change has one or more required unresolved checklist answers recorded in questions.yaml.open
+        - GIVEN: a generated strict change has unresolved required checklist answers in questions.yaml.open
         - WHEN: implementation handoff or automatic implementation is considered
-        - THEN: the workflow stops before implementation until the required open questions are resolved while preserving stable technical identifiers such as question ids, artifact fields, schema names, and command names
+        - THEN: the workflow stops until required open questions are resolved while preserving stable technical identifiers
   cli-question-gate-readiness-validation:
     strength: MUST
     statement: The ready proposal-handoff command MUST emit deterministic proposal_readiness diagnostics when machine-checkable change-intake evidence is missing from existing proposal, design, question, delta-spec, or mapping artifacts, including empty included scope, empty out-of-scope scope, empty unchanged behavior, missing design decisions, missing delta specs when no explicit no-delta-spec design decision is present, or delta specs without implementation or test mappings, while leaving semantic product judgment outside CLI validation.

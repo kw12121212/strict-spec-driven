@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-**文档：** [快速入门](QUICKSTART.zh.md) · [路线图快速入门](ROADMAP_QUICKSTART.zh.md) · [路线图指南](ROADMAP_GUIDE.zh.md) · [Ticket 指南](TICKET_GUIDE.zh.md) · [开发会话](DEV_SESSIONS.zh.md) · [调试会话](DEBUG_SESSIONS.zh-CN.md) · [Harness](HARNESS.zh.md) · [RTK](RTK.md)
+**文档：** [快速入门](QUICKSTART.zh.md) · [路线图快速入门](ROADMAP_QUICKSTART.zh.md) · [路线图指南](ROADMAP_GUIDE.zh.md) · [开发会话](DEV_SESSIONS.zh.md) · [调试会话](DEBUG_SESSIONS.zh-CN.md) · [Harness](HARNESS.zh.md) · [RTK](RTK.md)
 
 `strict-spec-driven` 是一个 YAML 优先的规范驱动开发工作流。它提供规范驱动生命周期（提议 → 执行 → 验证 → Skill 驱动代码审查 → 归档）和 Agent Skills 集成，将工作流制品——规范、变更、路线图、任务、问题——转换为严格 YAML 模式，由确定性脚本强制执行。
 
@@ -46,10 +46,6 @@
 | `modify [<name>]` | 列出变更的可编辑制品路径 |
 | `cancel <name>` | 删除活跃变更（已归档变更受保护） |
 | `maintenance` | 运行已配置的仓库维护检查 |
-| `ticket-create` | 以冲突抵抗的 id 捕获一个纯需求工单 |
-| `ticket-list` / `ticket-show <id>` | 枚举工单或打印单个工单 |
-| `ticket-validate [<id>]` | 针对捆绑 schema 校验一个或全部工单 |
-| `ticket-resolve <id>` | 记录分诊决定并执行状态转换（晋升 / 关闭 / 拒绝） |
 | `roadmap-status` | 验证并报告严格路线图状态 |
 | `roadmap-overview` | 输出面向人的路线图总览表 |
 | `roadmap-sync [--fix-names]` | 协调并重新生成严格路线图索引；`--fix-names` 将命名不规范的 planned-change 文件重命名为规范文件名 |
@@ -105,8 +101,6 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-spec-sync-specs` | 与代码漂移同步规范 |
 | `/strict-spec-resync-code-mapping` | 修复规范实现和测试映射 |
 | `/strict-spec-maintenance` | 运行仓库维护工作流 |
-| `/strict-ticket` | 将原始需求捕获为纯意图工单 |
-| `/strict-ticket-dispatch` | 判断是否已实现并驱动工单状态转换 |
 
 **严格路线图 Skills**（`strict-roadmap-*`）：
 
@@ -123,7 +117,7 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 
 ## 变更接收问题门
 
-面向提案的 Skills 会在实现前运行一个简短的变更接收问题门。它们会先用可用证据回答检查清单：当前请求、路线图 planned-change 详情、工单来源、严格规范、技术标准、已有变更制品、仓库搜索结果以及确定性 CLI 输出。如果这些证据已经回答了清单项，工作流不会再向人重复提问。
+面向提案的 Skills 会在实现前运行一个简短的变更接收问题门。它们会先用可用证据回答检查清单：当前请求、路线图 planned-change 详情、严格规范、技术标准、已有变更制品、仓库搜索结果以及确定性 CLI 输出。如果这些证据已经回答了清单项，工作流不会再向人重复提问。
 
 检查清单覆盖：要改什么、为什么值得做、包含什么、不包含什么、哪些既有行为必须保持不变、工作可能位于哪里、如何证明它有效、相关风险或依赖是什么，以及适用哪些技术规则。
 
@@ -131,25 +125,6 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 
 面向人的问题文本、上下文、建议、选项和摘要会使用 `.strict-spec-driven/config.yaml` 中的 `preferred_human_language`，除非当前用户消息明确要求另一种语言。问题 id、制品字段、schema 名称、命令名和文件路径等稳定技术值保持为不随语言变化的标识符。
 
-## 工单接收与分诊
-
-工单是工作流的入口：工单将一个**纯需求**——问题、期望的可观察结果、意图——捕获为不含任何解决方案的严格 YAML 制品，存放于 `.strict-spec-driven/tickets/`，其 id 来自内容派生、具备冲突抵抗性（而非共享计数器）。接收分两步：
-
-1. **捕获** —— `/strict-ticket`（或 `ticket-create`）将需求记录为纯意图并通过 CLI 创建工单。
-2. **分诊** —— `/strict-ticket-dispatch` 阅读工单并检查现有规范、规范到代码的映射、代码与文档，判断需求是否已实现，然后以三种结果之一驱动 `ticket-resolve`：
-   - **implemented** —— 关闭工单并记录指向满足该需求的规范/代码/文档的证据链接；
-   - **not_implemented** —— 将工单晋升为新的路线图里程碑骨架（goal 取自期望结果；scope 与 done criteria 留作明确的细化占位），随后交接 `/strict-roadmap-milestone` 定义真实范围；
-   - **not_wanted** —— 以理由拒绝或推迟工单。
-
-边界是刻意设计的：**是否已实现的判断属于 AI 工作，仅存在于分诊 Skill 提示中**，而 **CLI 只执行确定性的状态转换**并将决定记录为工单上可审计的分诊记录。晋升是幂等的（重复运行绝不会创建第二个里程碑），并写入双向链接——`ticket.promoted_to` 和里程碑的 `source_ticket` 反向引用；`roadmap-status` 会呈现该来源工单（并将刚晋升、仍带细化占位的里程碑标记为需要细化范围），`roadmap-sync` 则会保留它。完整路径为：
-
-```text
-工单（纯需求）
-  -> 分诊决定（AI 判断，由 CLI 记录）
-  -> 路线图里程碑（当 not_implemented 时）
-  -> 计划变更 -> 严格变更
-  -> 规范 / 技术标准 / 代码
-```
 
 ### MCP Server：`strict-spec-driven-mcp`
 

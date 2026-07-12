@@ -1,5 +1,0 @@
-schema: strict-spec-driven/tickets-index/v1
-schema_version: 1
-artifact_type: tickets_index
-schema_file: templates/strict-spec-driven/schemas/tickets-index.yaml
-tickets: {}

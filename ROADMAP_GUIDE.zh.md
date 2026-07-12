@@ -168,7 +168,7 @@ node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
 
 ## 变更接收问题门
 
-面向提案的工作流必须在实现前回答一组简短检查清单。Agent 应先使用当前请求、选中的路线图 planned-change 详情、工单来源、主规范、技术标准、已有变更制品、仓库搜索结果以及确定性 CLI 输出作为证据，再决定是否需要向人提问。
+面向提案的工作流必须在实现前回答一组简短检查清单。Agent 应先使用当前请求、选中的路线图 planned-change 详情来源、主规范、技术标准、已有变更制品、仓库搜索结果以及确定性 CLI 输出作为证据，再决定是否需要向人提问。
 
 检查清单意图包括：
 
@@ -180,12 +180,12 @@ node scripts/strict-spec-driven.js roadmap-sync --materialize-planned-changes
 - 这项工作可能位于哪里：代码、规范、模板、Skills、文档、配置，还是发现到的其他仓库制品？
 - 如何证明它有效？
 - 是否可能影响现有用户、已保存数据、API、安全、隐私、性能、发布或回滚？
-- 是否被路线图项、工单、活跃变更、服务、凭据或外部依赖阻塞？
+- 是否被路线图项、活跃变更、服务、凭据或外部依赖阻塞？
 - 适用哪些已有技术规则，或这个变更是否需要新的技术规则？
 
 如果发现过程已经回答某个清单项，Agent 使用该证据，不再重复提问。如果必需答案仍然未知，提案创建会在 `questions.yaml.open` 中记录它，说明未知内容、为什么重要、受影响的范围或测试决定，以及推荐答案或选项。
 
-路线图支持的提案流程会把选中的独立 planned-change `summary`、`details`、`depends_on`、labels、`source_ticket` 和所属里程碑 `details` 视为同一清单的有效证据。完整的路线图细节应被带入生成的提案制品，而不是变成重复的人类问题。稀薄的路线图细节、缺少实现/测试/规范影响、依赖不确定性或技术标准不确定性，都应在实现前成为本地化的 `questions.yaml.open` 阻塞项。
+路线图支持的提案流程会把选中的独立 planned-change `summary`、`details`、`depends_on`、labels 和所属里程碑 `details` 视为同一清单的有效证据。完整的路线图细节应被带入生成的提案制品，而不是变成重复的人类问题。稀薄的路线图细节、缺少实现/测试/规范影响、依赖不确定性或技术标准不确定性，都应在实现前成为本地化的 `questions.yaml.open` 阻塞项。
 
 面向人的问题文本、上下文、建议、选项和摘要必须使用 `.strict-spec-driven/config.yaml` 中的 `preferred_human_language`，除非当前用户消息明确要求另一种语言。问题 id、制品字段、schema 名称、命令名和文件路径等稳定技术值保持为稳定标识符，不做本地化。
 
@@ -282,21 +282,3 @@ node scripts/strict-spec-driven.js roadmap-status
 `roadmap-overview` 会先输出里程碑总览表，再按里程碑分组输出计划变更明细。
 
 `roadmap-status` 会以 JSON 输出每个里程碑的声明状态和派生状态、每个计划变更的来源文件路径和工作流状态，以及任何不匹配或跨文件校验问题。
-
-## 工单来源与接收流水线
-
-里程碑可以源自一个**工单**——存放于 `.strict-spec-driven/tickets/` 的纯需求（问题、期望的可观察结果、意图）严格 YAML 捕获，其 id 来自内容派生、具备冲突抵抗性，而非共享计数器。端到端路径为：
-
-```text
-工单 -> 分诊决定 -> 路线图里程碑 -> 计划变更 -> 严格变更 -> 规范 / 技术标准 / 代码
-```
-
-两个接收步骤都是 Skill：`/strict-ticket` 捕获需求（不做方案设计），`/strict-ticket-dispatch` 判断需求是否已实现并驱动 `ticket-resolve`。**判断属于 AI 工作，仅存在于分诊 Skill 提示中**；**CLI 只执行确定性的状态转换**并将决定记录到工单上。在 `not_implemented` 决定下，CLI 会：
-
-- 确定性地分配下一个里程碑编号，冲突时拒绝（绝不覆盖）；
-- 物化一个里程碑骨架，goal 取自工单的期望结果，scope 与 done criteria 留作明确的 `REFINEMENT NEEDED` 占位；
-- 在 `INDEX.yaml` 中登记，将工单置为 `promoted`，并写入双向链接：`ticket.promoted_to` 和里程碑的 `source_ticket` 反向引用。
-
-晋升是**幂等的**——对已晋升的工单重复分诊会返回既有里程碑，而不会创建第二个。
-
-`roadmap-status` 会为已晋升的里程碑呈现工单来源：输出来源工单 id（`sourceTicket`），并在里程碑仍带晋升占位时设置 `needsScopeRefinement`，提示审阅者运行 `/strict-roadmap-milestone` 定义真实的范围、完成标准与依赖，再将其视为可执行。`roadmap-sync` 会保留 `source_ticket` 反向引用，不丢弃、不重复、不重排。

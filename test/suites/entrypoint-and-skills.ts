@@ -59,12 +59,6 @@ const expectedCommandOrder = [
   "roadmap-recommend",
   "roadmap-archive",
   "roadmap-reopen",
-  "ticket-create",
-  "ticket-list",
-  "ticket-show",
-  "ticket-edit",
-  "ticket-validate",
-  "ticket-resolve",
   "sop-create",
   "sop-list",
   "sop-show",
@@ -276,82 +270,6 @@ for (const skillName of strictSkillNames) {
   );
 }
 
-const ticketSkillContent = readFileSync(path.join(ROOT, "skills", "strict-ticket", "SKILL.md"), "utf8");
-context.assert(
-  ticketSkillContent.includes("ticket-create") && ticketSkillContent.includes("pure intent"),
-  "ticket-creation skill drives ticket-create and captures pure intent",
-);
-context.assert(
-  ticketSkillContent.includes("never hand-write ticket YAML") || ticketSkillContent.includes("never hand-write"),
-  "ticket-creation skill delegates file creation to the CLI",
-);
-context.assert(
-  !packageValidation.diagnostics.some((diagnostic) => diagnostic.path.includes("strict-ticket")),
-  "strict-ticket skill passes packaging validation with no diagnostics",
-);
-
-const dispatchSkillContent = readFileSync(path.join(ROOT, "skills", "strict-ticket-dispatch", "SKILL.md"), "utf8");
-const normalizedDispatchSkillContent = dispatchSkillContent.replace(/\s+/g, " ");
-context.assert(
-  dispatchSkillContent.includes("ticket-resolve")
-    && dispatchSkillContent.includes("propose")
-    && dispatchSkillContent.includes("strict spec change")
-    && dispatchSkillContent.includes("--promoted-to"),
-  "ticket-dispatch skill promotes a not_implemented ticket into a strict spec change and links it with --promoted-to",
-);
-context.assert(
-  normalizedDispatchSkillContent.includes("Populate the planning artifacts from the ticket evidence")
-    && normalizedDispatchSkillContent.includes("proposal.yaml")
-    && normalizedDispatchSkillContent.includes("questions.yaml"),
-  "ticket-dispatch skill populates the promoted change's planning artifacts from ticket evidence",
-);
-context.assert(
-  normalizedDispatchSkillContent.includes("Ticket-Promoted Intake Evidence")
-    && normalizedDispatchSkillContent.includes("the change's intake evidence")
-    && normalizedDispatchSkillContent.includes("affected proposal scope, spec delta, implementation files, tests, dependencies, or technical standards")
-    && normalizedDispatchSkillContent.includes("preferred_human_language")
-    && normalizedDispatchSkillContent.includes("questions.yaml.open"),
-  "ticket-dispatch skill preserves promoted ticket evidence for the spec-change intake",
-);
-context.assert(
-  normalizedDispatchSkillContent.includes("spec coverage is too thin")
-    && normalizedDispatchSkillContent.includes("leaving the ticket open")
-    && normalizedDispatchSkillContent.includes("Do not invent scope"),
-  "ticket-dispatch skill defers promotion when milestone planning evidence is insufficient",
-);
-context.assert(
-  dispatchSkillContent.includes(".strict-spec-driven/tickets/archived/")
-    && normalizedDispatchSkillContent.includes("as the only mechanism that archives resolved tickets"),
-  "ticket-dispatch skill relies on ticket-resolve to archive resolved tickets",
-);
-context.assert(
-  dispatchSkillContent.toLowerCase().includes("defer to the user") && dispatchSkillContent.includes("never guess"),
-  "ticket-dispatch skill defers to the user on ambiguous evidence",
-);
-context.assert(
-  dispatchSkillContent.includes("judgment stays in this prompt") || dispatchSkillContent.includes("judgment is yours"),
-  "ticket-dispatch skill keeps the implemented-vs-not judgment in the prompt",
-);
-
-const ticketArchiveSkillContent = readFileSync(path.join(ROOT, "skills", "strict-ticket-archive", "SKILL.md"), "utf8");
-const normalizedTicketArchiveSkillContent = ticketArchiveSkillContent.replace(/\s+/g, " ");
-context.assert(
-  ticketArchiveSkillContent.includes("ticket-resolve")
-    && ticketArchiveSkillContent.includes("ticket-show")
-    && ticketArchiveSkillContent.includes("ticket-validate")
-    && ticketArchiveSkillContent.includes(".strict-spec-driven/tickets/archived/"),
-  "ticket-archive skill uses existing ticket CLI commands and checks the archive path",
-);
-context.assert(
-  normalizedTicketArchiveSkillContent.includes("as the only archive mechanism")
-    && normalizedTicketArchiveSkillContent.includes("never move or edit ticket YAML files manually"),
-  "ticket-archive skill forbids manual ticket file moves",
-);
-context.assert(
-  normalizedTicketArchiveSkillContent.includes("Do not make dispatch judgments in this skill")
-    && normalizedTicketArchiveSkillContent.includes("/strict-ticket-dispatch"),
-  "ticket-archive skill defers undecided tickets to dispatch",
-);
 
 const roadmapGuideContent = readFileSync(path.join(ROOT, "ROADMAP_GUIDE.md"), "utf8");
 const normalizedRoadmapGuideContent = roadmapGuideContent.replace(/\s+/g, " ");
@@ -360,7 +278,7 @@ context.assert(
     && normalizedRoadmapGuideContent.includes("What do you want changed?")
     && normalizedRoadmapGuideContent.includes("What existing behavior must stay the same?")
     && normalizedRoadmapGuideContent.includes("Which existing technical rules apply, or do we need a new rule for this change?")
-    && normalizedRoadmapGuideContent.includes("use the active request, selected roadmap planned-change details, ticket provenance, main specs, technical standards, existing change artifacts, repository search results, and deterministic CLI output as evidence")
+    && normalizedRoadmapGuideContent.includes("use the active request, selected roadmap planned-change details, main specs, technical standards, existing change artifacts, repository search results, and deterministic CLI output as evidence")
     && normalizedRoadmapGuideContent.includes("records it in `questions.yaml.open`")
     && normalizedRoadmapGuideContent.includes("Human-facing question text, context, recommendations, options, and summaries must use the `preferred_human_language`")
     && normalizedRoadmapGuideContent.includes("Stable technical values such as question ids, artifact fields, schema names, command names, and file paths remain stable identifiers")
@@ -402,7 +320,6 @@ context.assert(
     && normalizedRoadmapGuideZhContent.includes("`details`")
     && normalizedRoadmapGuideZhContent.includes("`depends_on`")
     && normalizedRoadmapGuideZhContent.includes("labels")
-    && normalizedRoadmapGuideZhContent.includes("`source_ticket`")
     && normalizedRoadmapGuideZhContent.includes("本地化的 `questions.yaml.open` 阻塞项")
     && normalizedRoadmapGuideZhContent.includes("面向人的问题文本、上下文、建议、选项和摘要必须使用")
     && normalizedRoadmapGuideZhContent.includes("稳定技术值保持为稳定标识符，不做本地化")
@@ -428,7 +345,6 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const roadmapPlanSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-plan", "SKILL.md"), "utf8");
   const roadmapArchiveSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-archive", "SKILL.md"), "utf8");
   const roadmapRecommendSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-recommend", "SKILL.md"), "utf8");
-  const ticketDispatchSkillContent = readFileSync(path.join(ROOT, "skills", "strict-ticket-dispatch", "SKILL.md"), "utf8");
   const roadmapReviewSkillContent = readFileSync(path.join(ROOT, "skills", "strict-roadmap-review", "SKILL.md"), "utf8");
   const harnessInitSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-init", "SKILL.md"), "utf8");
   const harnessSessionSkillContent = readFileSync(path.join(ROOT, "skills", "strict-spec-harness-session", "SKILL.md"), "utf8");
@@ -447,7 +363,6 @@ context.assert(validateSkillsJson.valid === true, "validate-skills CLI emits val
   const normalizedRoadmapPlanSkillContent = roadmapPlanSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapArchiveSkillContent = roadmapArchiveSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapRecommendSkillContent = roadmapRecommendSkillContent.replace(/\s+/g, " ");
-  const normalizedTicketDispatchSkillContent = ticketDispatchSkillContent.replace(/\s+/g, " ");
   const normalizedRoadmapReviewSkillContent = roadmapReviewSkillContent.replace(/\s+/g, " ");
   const normalizedHarnessInitSkillContent = harnessInitSkillContent.replace(/\s+/g, " ");
   const normalizedHarnessSessionSkillContent = harnessSessionSkillContent.replace(/\s+/g, " ");
@@ -485,7 +400,7 @@ const roadmapBackedIntakeSkillChecks: Array<[string, string]> = [
 for (const [normalizedSkillContent, skillName] of roadmapBackedIntakeSkillChecks) {
   context.assert(
     normalizedSkillContent.includes("Roadmap-Backed Intake Evidence")
-      && normalizedSkillContent.includes("planned-change `summary`, `details`, `depends_on`, labels, `source_ticket`")
+      && normalizedSkillContent.includes("planned-change `summary`, `details`, `depends_on`, labels, and owning milestone")
       && normalizedSkillContent.includes("owning milestone `details`")
       && normalizedSkillContent.includes("Carry those answers into generated proposal, design, task, question, and delta artifacts instead of asking the human again")
       && normalizedSkillContent.includes("chooses exactly one eligible planned change through the scripted command")
@@ -500,10 +415,9 @@ for (const [normalizedSkillContent, skillName] of roadmapBackedIntakeSkillChecks
 }
 context.assert(
   normalizedAutoSkillContent.includes("When resuming a roadmap-backed scaffold")
-    && normalizedAutoSkillContent.includes("selected standalone planned-change `summary`, `details`, `depends_on`, labels, `source_ticket`")
-    && normalizedAutoSkillContent.includes("ticket provenance as valid intake evidence")
+    && normalizedAutoSkillContent.includes("selected standalone planned-change `summary`, `details`, `depends_on`, labels, and owning milestone `details` as valid intake evidence")
     && normalizedAutoSkillContent.includes("For roadmap-backed scaffolds, make the context say whether the uncertainty affects proposal scope, spec delta, implementation files, tests, dependencies, or technical standards")
-    && normalizedAutoSkillContent.includes("preserve selected planned-change and ticket provenance as intake evidence"),
+    && normalizedAutoSkillContent.includes("preserve selected planned-change provenance as intake evidence"),
   "strict-spec-auto preserves roadmap-backed intake evidence when resuming populated scaffolds",
 );
 context.assert(
@@ -667,7 +581,6 @@ context.assert(
     [normalizedBrainstormSkillContent, "strict-spec-brainstorm"],
     [normalizedBugfixSkillContent, "strict-spec-bugfix"],
     [normalizedRoadmapRecommendSkillContent, "strict-roadmap-recommend"],
-    [normalizedTicketDispatchSkillContent, "strict-ticket-dispatch"],
   ];
   for (const [normalizedSkillContent, skillName] of incrementalDeltaScenarioGuidanceChecks) {
     context.assert(
@@ -772,7 +685,7 @@ context.assert(
       && normalizedRoadmapReviewSkillContent.includes("roadmap-sync --fix-names")
       && normalizedRoadmapReviewSkillContent.includes("concrete and executable")
       && normalizedRoadmapReviewSkillContent.includes("check milestone intake_questions for answer evidence")
-      && normalizedRoadmapReviewSkillContent.includes("goal`, `scope`, `done_criteria`, `dependencies`, `risks`, `details`, `notes`, `source_ticket`")
+      && normalizedRoadmapReviewSkillContent.includes("goal`, `scope`, `done_criteria`, `dependencies`, `risks`, `details`, `notes`")
       && normalizedRoadmapReviewSkillContent.includes("owned planned-change `summary`, `details`, `depends_on`, and metadata")
       && normalizedRoadmapReviewSkillContent.includes("Do not record milestone-level intake gaps in change-level `questions.yaml`"),
     "strict-roadmap-review validates all-incomplete milestone, direct-fix, and intake-answer guidance",

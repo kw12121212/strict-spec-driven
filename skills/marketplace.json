@@ -30,9 +30,6 @@
     { "name": "strict-spec-sync-specs", "family": "strict-spec" },
     { "name": "strict-spec-verify", "family": "strict-spec" },
     { "name": "strict-tech-edit", "family": "strict-tech" },
-    { "name": "strict-tech-sync", "family": "strict-tech" },
-    { "name": "strict-ticket", "family": "strict-ticket" },
-    { "name": "strict-ticket-archive", "family": "strict-ticket" },
-    { "name": "strict-ticket-dispatch", "family": "strict-ticket" }
+    { "name": "strict-tech-sync", "family": "strict-tech" }
   ]
 }

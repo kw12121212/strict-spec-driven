@@ -254,7 +254,6 @@ function buildArtifact(
       ? uniqueStrings(input.notes)
       : appendUnique(existing?.artifact.notes ?? [], input.notes),
     ...(details !== undefined ? { details } : {}),
-    ...(existing?.artifact.source_ticket !== undefined ? { source_ticket: existing.artifact.source_ticket } : {}),
   };
 }
 

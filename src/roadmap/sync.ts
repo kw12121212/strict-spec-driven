@@ -87,7 +87,6 @@ export function buildCanonicalMilestoneArtifact(
     status: resolveCanonicalMilestoneStatus(milestone.artifact.status, status.derivedStatus),
     notes: [...milestone.artifact.notes],
     ...(milestone.artifact.details != null ? { details: milestone.artifact.details } : {}),
-    ...(milestone.artifact.source_ticket != null ? { source_ticket: milestone.artifact.source_ticket } : {}),
   };
 }
 

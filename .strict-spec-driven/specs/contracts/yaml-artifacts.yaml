@@ -65,9 +65,6 @@ mapping:
     - skills/strict-spec-verify/SKILL.md
     - skills/strict-tech-edit/SKILL.md
     - skills/strict-tech-sync/SKILL.md
-    - skills/strict-ticket/SKILL.md
-    - skills/strict-ticket-archive/SKILL.md
-    - skills/strict-ticket-dispatch/SKILL.md
     - skills/strict-roadmap-review/SKILL.md
     - skills/strict-roadmap-plan/SKILL.md
     - skills/strict-roadmap-recommend/SKILL.md
@@ -79,13 +76,10 @@ mapping:
     - ROADMAP_GUIDE.md
     - RTK.md
     - src/skills/model.ts
-    - templates/strict-spec-driven/schemas/ticket.yaml
-    - examples/strict-spec-driven/ticket.yaml
     - src/embedded-templates.ts
     - scripts/gen-templates-bundle.ts
     - examples/strict-spec-driven/change-proposal.yaml
     - skills/strict-spec-bugfix/SKILL.md
-    - src/ticket-dispatch.ts
     - src/roadmap/model.ts
     - src/roadmap/validate.ts
     - src/roadmap/sync.ts
@@ -98,7 +92,6 @@ mapping:
     - test/suites/harness-contracts.ts
     - test/suites/harness-session.ts
     - test/suites/roadmap-and-migration.ts
-    - test/suites/tickets.ts
     - test/suites/mcp-server.ts
 requirements:
   yaml-artifact-schema-coverage:
@@ -617,14 +610,6 @@ requirements:
         - GIVEN: a strict roadmap workflow skill or slash command name is reviewed
         - WHEN: its public prefix is checked
         - THEN: it uses the `strict-roadmap-*` naming family
-  strict-ticket-command-prefix:
-    strength: MUST
-    statement: The system MUST define `strict-ticket` and `strict-ticket-*` as the naming family for strict ticket intake, archive, and dispatch workflow skills and slash commands, where the bare `strict-ticket` name is the intake capture skill and `strict-ticket-*` names cover ticket archive, dispatch, and related ticket workflow skills.
-    scenarios:
-      strict-ticket-workflow-commands-are-distinguishable:
-        - GIVEN: a strict ticket workflow skill or slash command name is reviewed
-        - WHEN: its public prefix is checked
-        - THEN: it uses either the bare `strict-ticket` family-root name or the `strict-ticket-*` naming family
   strict-cli-entrypoint:
     strength: MUST
     statement: The system MUST define `strict-spec-driven` as the CLI entrypoint for strict YAML workflow commands.
@@ -860,14 +845,12 @@ requirements:
         - AND: the migrated archived change remains distinguishable from active strict changes without reconstructing that state from Markdown headings
   strict-skill-packaging-layout-contract:
     strength: MUST
-    statement: The system MUST provide strict skill packaging surfaces for the `strict-spec-*`, `strict-roadmap-*`, `strict-tech-*`, and `strict-ticket-*` families with installer-facing metadata that uses strict namespace names in non-migration contexts.
+    statement: The system MUST provide strict skill packaging surfaces for the `strict-spec-*`, `strict-roadmap-*`, and `strict-tech-*` families with installer-facing metadata that uses strict namespace names in non-migration contexts.
     scenarios:
       strict-skill-families-are-packaged-with-strict-naming:
         - GIVEN: strict workflow skill packaging metadata is reviewed
-        - WHEN: spec, roadmap, tech, and ticket workflow skill entries are checked
-        - THEN: skill package names use the `strict-spec-*`, `strict-roadmap-*`, `strict-tech-*`, and `strict-ticket-*` families
-        - AND: legacy `spec-driven-*` and `roadmap-*` names are not treated as default strict package names outside explicit migration compatibility behavior
-        - AND: marketplace skill entries match strict skill directory names
+        - WHEN: spec, roadmap, and tech workflow skill entries are checked
+        - THEN: skill package names use the `strict-spec-*`, `strict-roadmap-*`, and `strict-tech-*` families, legacy names are not defaults outside migration compatibility, and marketplace entries match skill directory names
   strict-skill-packaging-validation-contract:
     strength: MUST
     statement: The system MUST validate strict skill packages for required metadata fields, declared command references, stale legacy-name references, and bundled symlink assumptions.
@@ -1363,69 +1346,6 @@ requirements:
         - GIVEN: an agent or tool needs to discover supported strict workflow schemas from the shared cache
         - WHEN: it inspects ~/.strict-spec-schemas/
         - THEN: the shared cache includes the exported schema registry and enough metadata to enumerate the exported schema files
-  yaml-ticket-artifact-family:
-    strength: MUST
-    statement: The system MUST define a strict YAML ticket artifact family that captures a pure requirement (problem statement, desired observable outcome, and intent/acceptance notes) separate from any solution, with a conflict-resistant ticket id and title, a lifecycle status enum, creation metadata, optional labels and an optional external-tracker reference, provenance links, and an embedded dispatch-decision record, represented through structured YAML fields.
-    scenarios:
-      ticket-captures-pure-requirement-and-dispatch-state:
-        - GIVEN: the strict YAML ticket schema is reviewed
-        - WHEN: the ticket artifact contract is checked
-        - THEN: problem statement, desired outcome, and intent are available as structured fields separate from any solution, a conflict-resistant id and lifecycle status enum are present, and an embedded dispatch-decision record with outcome, evidence, rationale, and timestamp is representable
-  yaml-ticket-conflict-resistant-ids-and-index:
-    strength: MUST
-    statement: The system MUST store tickets under a dedicated strict workflow tickets location with a tickets index artifact and per-ticket files identified by conflict-resistant ids derived from ticket content rather than a shared sequential counter.
-    scenarios:
-      tickets-use-conflict-resistant-ids:
-        - GIVEN: the strict YAML ticket and tickets-index contracts are reviewed
-        - WHEN: ticket identity and storage are checked
-        - THEN: tickets are stored as per-ticket files under a dedicated tickets location with a tickets index
-        - AND: ticket ids are derived from ticket content rather than allocated from a shared sequential counter so concurrent intake does not collide on a global number
-  yaml-ticket-schema-assets:
-    strength: MUST
-    statement: The system MUST provide concrete schema, schema registry, and minimal valid example assets for the ticket and tickets-index artifact families alongside the existing strict workflow schema and example assets.
-    scenarios:
-      ticket-schema-assets-are-discoverable:
-        - GIVEN: strict workflow schema assets are reviewed
-        - WHEN: the ticket and tickets-index artifact families are checked
-        - THEN: concrete ticket and tickets-index schema files are available under templates/strict-spec-driven/schemas/
-        - THEN: the schema registry lists the ticket and tickets-index schemas each with a primary example
-        - THEN: minimal valid ticket and tickets-index examples are available under examples/strict-spec-driven/
-      ticket-schema-assets-validate:
-        - GIVEN: the ticket and tickets-index schemas and their primary examples are loaded
-        - WHEN: validation is run through the shared strict YAML validation layer
-        - THEN: each example parses successfully and matches the schema identity and artifact type declared by its schema
-  yaml-milestone-source-ticket-backreference:
-    strength: MUST
-    statement: The system MUST allow a roadmap milestone artifact to carry an optional source-ticket back-reference identifying the ticket it was promoted from, so ticket-to-milestone provenance is recoverable from the roadmap side.
-    scenarios:
-      milestone-accepts-source-ticket:
-        - GIVEN: the roadmap milestone schema is reviewed
-        - WHEN: a milestone carries an optional source-ticket back-reference
-        - THEN: the milestone validates with the source-ticket field present and the field identifies the originating ticket by id
-  strict-ticket-dispatch-completes-milestones-when-sufficient:
-    strength: MUST
-    statement: The system MUST ensure the strict-ticket-dispatch skill, after promoting a not-implemented ticket, either completes the promoted roadmap milestone with concrete executable planning fields including milestone details and at least one standalone planned-change artifact with actionable details when ticket intent and gathered evidence are sufficient, or preserves a valid explicit handoff with the human decision needed when the evidence is ambiguous or incomplete.
-    scenarios:
-      dispatch-completes-sufficient-milestone-with-planned-change-details:
-        - GIVEN: a not-implemented ticket is promoted and the ticket intent plus gathered repository evidence provide enough concrete milestone scope, done criteria, dependencies, risks, and planned changes
-        - WHEN: strict-ticket-dispatch continues after ticket-resolve and roadmap-sync
-        - THEN: the skill guidance directs the agent to replace the promoted milestone refinement stub, write milestone details, create at least one standalone planned-change artifact with actionable summary and details, run roadmap-sync again, and report the completed milestone and planned-change files
-      dispatch-defers-insufficient-milestone:
-        - GIVEN: a not-yet-built ticket requirement lacks enough evidence to define concrete milestone scope, milestone details, or a standalone planned change
-        - WHEN: strict-ticket-dispatch forms its dispatch judgment
-        - THEN: the skill guidance directs the agent not to promote yet, to leave the ticket open, and to ask for the concrete missing planning detail instead of inventing scope or planned changes
-  strict-ticket-archive-uses-resolve-command:
-    strength: MUST
-    statement: The system MUST provide a strict-ticket-archive skill that archives tickets only through the existing ticket-resolve CLI transition, preserves existing dispatch evidence, verifies archived ticket readability, and refuses to invent a dispatch outcome for an undecided ticket.
-    scenarios:
-      archive-skill-uses-existing-cli:
-        - GIVEN: a ticket already has a dispatch decision or the user supplies the exact outcome and rationale
-        - WHEN: strict-ticket-archive is used
-        - THEN: the skill guidance directs the agent to run ticket-resolve, then ticket-show and ticket-validate, rather than manually moving ticket YAML
-      archive-skill-defers-undecided-ticket:
-        - GIVEN: a ticket is open or needs input and has no explicit dispatch decision
-        - WHEN: strict-ticket-archive is used
-        - THEN: the skill guidance directs the agent to hand off to strict-ticket-dispatch instead of inventing an outcome
   yaml-delta-new-spec-creation:
     strength: MUST
     statement: The system MUST create a new strict YAML main spec on archive when a delta spec targets a spec identifier that does not match any existing main spec and supplies an explicit new-spec block with a title and a repo-relative target path under the specs directory; when the target spec identifier is missing and no new-spec block is supplied, archive MUST still fail with the existing missing-target error.
@@ -1447,18 +1367,6 @@ requirements:
         - GIVEN: a delta spec supplies a new-spec block whose target spec id or target path matches an existing main spec
         - WHEN: verify is run against the change
         - THEN: the colliding new-spec id or path is reported as a deterministic validation failure before archive writes any file
-  yaml-ticket-lifecycle-timestamp-contract:
-    strength: MUST
-    statement: The system MUST define the strict ticket YAML artifact schema and minimal valid example with required created_at and updated_at timestamp fields so ticket lifecycle times are machine-validated rather than implied by command behavior.
-    scenarios:
-      ticket-schema-requires-lifecycle-timestamps:
-        - GIVEN: the strict YAML ticket artifact schema is reviewed
-        - WHEN: required ticket fields are inspected
-        - THEN: created_at and updated_at are both required top-level string fields
-      ticket-example-demonstrates-lifecycle-timestamps:
-        - GIVEN: the minimal valid ticket YAML example is inspected
-        - WHEN: timestamp fields are reviewed
-        - THEN: the example includes both created_at and updated_at fields
   yaml-sample-assets-shared-cache-export:
     strength: MUST
     statement: The system MUST export bundled strict YAML sample assets into the shared cache using path segments that preserve each sample asset's repository-relative location, so schema example references and agent sample lookups can resolve without requiring per-skill examples directories.
@@ -1495,13 +1403,13 @@ requirements:
         - THEN: the guidance tells the agent to write it to questions.yaml.open with context, impact, and a recommendation or options, and to stop before implementation until it is resolved
   roadmap-backed-intake-question-gate:
     strength: MUST
-    statement: Roadmap-backed and ticket-promoted proposal guidance MUST treat selected standalone planned-change summary, details, dependencies, labels, source-ticket provenance, milestone details, and ticket evidence as valid change-intake evidence, carry answered checklist items into generated proposal artifacts instead of re-asking, create preferred_human_language questions.yaml.open blockers when affected scope, spec delta, implementation, test, dependency, or technical-standard impact remains unknown, and preserve existing roadmap selection and mutation boundaries.
+    statement: Roadmap-backed proposal guidance MUST treat selected standalone planned-change summary, details, dependencies, labels, and milestone details as valid change-intake evidence, carry answered checklist items into generated proposal artifacts instead of re-asking, create preferred_human_language questions.yaml.open blockers when affected scope, spec delta, implementation, test, dependency, or technical-standard impact remains unknown, and preserve existing roadmap selection and mutation boundaries.
     scenarios:
       complete-roadmap-detail-avoids-open-questions:
-        - GIVEN: a roadmap-backed planned change includes enough summary, details, dependency, label, milestone, ticket, spec, code, and test evidence to answer the intake checklist
+        - GIVEN: a roadmap-backed planned change includes enough summary, details, dependency, label, milestone, spec, code, and test evidence to answer the intake checklist
         - WHEN: a roadmap-backed proposal skill creates strict change artifacts
-        - THEN: the guidance tells the agent to carry that evidence into proposal, design, task, question, and delta artifacts without re-asking the human
+        - THEN: the guidance carries that evidence into proposal, design, task, question, and delta artifacts without re-asking the human
       thin-roadmap-detail-creates-blocking-questions:
-        - GIVEN: a roadmap-backed or ticket-promoted item lacks implementation, test, spec, dependency, or technical-standard impact after focused discovery
+        - GIVEN: a roadmap-backed item lacks implementation, test, spec, dependency, or technical-standard impact after focused discovery
         - WHEN: the proposal handoff reaches the question gate
-        - THEN: the guidance tells the agent to write questions.yaml.open entries whose impact identifies the affected proposal scope, spec delta, implementation files, tests, dependencies, or technical standards before implementation
+        - THEN: the guidance writes questions.yaml.open entries whose impact identifies the affected proposal scope, spec delta, implementation files, tests, dependencies, or technical standards before implementation

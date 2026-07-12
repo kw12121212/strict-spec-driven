@@ -438,14 +438,6 @@ export function buildMilestoneStatus(
     mismatches.push(`declared status '${milestone.artifact.status}' does not match derived status '${derivedStatus}'`);
   }
 
-  const sourceTicket = milestone.artifact.source_ticket;
-  const stillStubbed = [
-    ...milestone.artifact.scope.in,
-    ...milestone.artifact.scope.out,
-    ...milestone.artifact.done_criteria,
-  ].some((entry) => entry.includes("REFINEMENT NEEDED"));
-  const needsScopeRefinement = sourceTicket != null && stillStubbed;
-
   return {
     path: toPosix(path.join("roadmap", "milestones", milestone.relativeMilestonePath)),
     id: milestone.artifact.milestone.id,
@@ -456,8 +448,6 @@ export function buildMilestoneStatus(
     derivedStatus,
     plannedChanges,
     mismatches,
-    ...(sourceTicket != null ? { sourceTicket } : {}),
-    ...(needsScopeRefinement ? { needsScopeRefinement: true } : {}),
   };
 }
 

@@ -27948,12 +27948,6 @@ standards:
     category: coding
     path: .strict-spec-driven/tech/sample-standard.yaml
 `,
-  "strict-spec-driven/scaffold/tickets/INDEX.yaml": `schema: strict-spec-driven/tickets-index/v1
-schema_version: 1
-artifact_type: tickets_index
-schema_file: templates/strict-spec-driven/schemas/tickets-index.yaml
-tickets: {}
-`,
   "strict-spec-driven/schemas/change-design.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
 schema_id: strict-spec-driven/change-design/v1
@@ -29870,33 +29864,6 @@ entries:
       notes:
         - Standalone planned changes are the normal roadmap work-item surface; materialize legacy inline milestone entries before running ordinary roadmap commands.
         - Optional team metadata is advisory coordination data and is not a locking or permission mechanism.
-  - schema_id: strict-spec-driven/ticket/v1
-    schema_version: 1
-    artifact_type: ticket
-    artifact_name: ticket
-    schema_file: ticket.yaml
-    primary_example: ../../../examples/strict-spec-driven/ticket.yaml
-    compatibility:
-      status: current
-      introduced_in: 1
-      supersedes: []
-      compatible_with: []
-      notes:
-        - Tickets capture a pure requirement (problem, desired outcome, intent) separate from any solution, with lifecycle status, provenance links, and an embedded dispatch-decision record.
-        - Ticket ids are conflict-resistant (slug- plus content-derived), not drawn from a shared sequential counter.
-  - schema_id: strict-spec-driven/tickets-index/v1
-    schema_version: 1
-    artifact_type: tickets_index
-    artifact_name: tickets-index
-    schema_file: tickets-index.yaml
-    primary_example: ../../../examples/strict-spec-driven/tickets-index.yaml
-    compatibility:
-      status: current
-      introduced_in: 1
-      supersedes: []
-      compatible_with: []
-      notes:
-        - Tickets index is a keyed map keyed by conflict-resistant ticket id for merge-friendly multi-author intake.
   - schema_id: strict-spec-driven/sop/v1
     schema_version: 1
     artifact_type: sop
@@ -30231,9 +30198,6 @@ json_schema:
         type: string
     details:
       type: string
-    source_ticket:
-      type: string
-      pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
 `,
   "strict-spec-driven/schemas/schema-registry.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -31015,217 +30979,6 @@ json_schema:
             type: string
           path:
             type: string
-`,
-  "strict-spec-driven/schemas/ticket.yaml": `schema: strict-spec-driven/schema/v1
-schema_version: 1
-schema_id: strict-spec-driven/ticket/v1
-artifact_type: ticket
-artifact_name: ticket
-description: Strict YAML ticket artifact capturing a pure requirement (problem, desired outcome, intent) with lifecycle status, provenance links, and an embedded dispatch-decision record.
-example_ref: ../../../examples/strict-spec-driven/ticket.yaml
-json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
-  type: object
-  additionalProperties: false
-  required:
-    - schema
-    - schema_version
-    - artifact_type
-    - schema_file
-    - ticket
-    - requirement
-    - status
-    - created_at
-    - updated_at
-  properties:
-    schema:
-      type: string
-      const: strict-spec-driven/ticket/v1
-    schema_version:
-      type: integer
-      const: 1
-    artifact_type:
-      type: string
-      const: ticket
-    schema_file:
-      type: string
-    ticket:
-      type: object
-      additionalProperties: false
-      required:
-        - id
-        - title
-      properties:
-        id:
-          type: string
-          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
-        title:
-          type: string
-          minLength: 1
-    requirement:
-      type: object
-      additionalProperties: false
-      required:
-        - problem
-        - desired_outcome
-      properties:
-        problem:
-          type: string
-          minLength: 1
-        desired_outcome:
-          type: string
-          minLength: 1
-        intent:
-          type: string
-          minLength: 1
-    status:
-      type: string
-      enum:
-        - open
-        - needs_input
-        - promoted
-        - implemented
-        - rejected
-    created_at:
-      type: string
-      minLength: 1
-    updated_at:
-      type: string
-      minLength: 1
-    labels:
-      type: array
-      items:
-        type: string
-        minLength: 1
-    external_tracker:
-      type: object
-      additionalProperties: false
-      required:
-        - label
-        - target
-      properties:
-        label:
-          type: string
-          minLength: 1
-        target:
-          type: string
-          minLength: 1
-    provenance:
-      type: object
-      additionalProperties: false
-      properties:
-        promoted_to:
-          type: string
-          pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
-        implemented_by:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - label
-              - target
-            properties:
-              label:
-                type: string
-                minLength: 1
-              target:
-                type: string
-                minLength: 1
-    dispatch_decision:
-      type: object
-      additionalProperties: false
-      required:
-        - outcome
-        - rationale
-        - decided_at
-      properties:
-        outcome:
-          type: string
-          enum:
-            - not_implemented
-            - implemented
-            - not_wanted
-        evidence:
-          type: array
-          items:
-            type: object
-            additionalProperties: false
-            required:
-              - label
-              - target
-            properties:
-              label:
-                type: string
-                minLength: 1
-              target:
-                type: string
-                minLength: 1
-        rationale:
-          type: string
-          minLength: 1
-        decided_at:
-          type: string
-          minLength: 1
-    extensions:
-      type: object
-      additionalProperties: true
-`,
-  "strict-spec-driven/schemas/tickets-index.yaml": `schema: strict-spec-driven/schema/v1
-schema_version: 1
-schema_id: strict-spec-driven/tickets-index/v1
-artifact_type: tickets_index
-artifact_name: tickets-index
-description: Strict YAML tickets index artifact (keyed ticket map keyed by conflict-resistant ticket id).
-example_ref: ../../../examples/strict-spec-driven/tickets-index.yaml
-json_schema:
-  $schema: "http://json-schema.org/draft-07/schema#"
-  type: object
-  additionalProperties: false
-  required:
-    - schema
-    - schema_version
-    - artifact_type
-    - schema_file
-    - tickets
-  properties:
-    schema:
-      type: string
-      const: strict-spec-driven/tickets-index/v1
-    schema_version:
-      type: integer
-      const: 1
-    artifact_type:
-      type: string
-      const: tickets_index
-    schema_file:
-      type: string
-    tickets:
-      type: object
-      additionalProperties: false
-      patternProperties:
-        "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
-          type: object
-          additionalProperties: false
-          required:
-            - title
-            - path
-            - status
-          properties:
-            title:
-              type: string
-              minLength: 1
-            path:
-              type: string
-              minLength: 1
-            status:
-              type: string
-              enum:
-                - open
-                - needs_input
-                - promoted
-                - implemented
-                - rejected
 `,
   "strict-spec-driven/sop-categories/generic.yaml": `schema: strict-spec-driven/sop-category/v1
 schema_version: 1
@@ -32215,36 +31968,6 @@ standards:
     title: Example Technical Standard
     category: coding
     path: tech/example-standard.yaml
-`,
-  "examples/strict-spec-driven/ticket.yaml": `schema: strict-spec-driven/ticket/v1
-schema_version: 1
-artifact_type: ticket
-schema_file: ../../templates/strict-spec-driven/schemas/ticket.yaml
-ticket:
-  id: export-changes-as-csv-7f3a9c
-  title: Export changes as CSV
-requirement:
-  problem: Operators cannot get a tabular snapshot of strict changes for sharing outside the tool.
-  desired_outcome: A user can obtain a CSV listing of strict changes with their status and milestone.
-  intent: Capture the requirement only; the export format, command surface, and implementation are decided downstream.
-status: open
-created_at: "2026-06-13T00:00:00Z"
-updated_at: "2026-06-13T00:00:00Z"
-labels:
-  - reporting
-external_tracker:
-  label: GitHub
-  target: "https://example.com/org/repo/issues/42"
-`,
-  "examples/strict-spec-driven/tickets-index.yaml": `schema: strict-spec-driven/tickets-index/v1
-schema_version: 1
-artifact_type: tickets_index
-schema_file: ../../templates/strict-spec-driven/schemas/tickets-index.yaml
-tickets:
-  export-changes-as-csv-7f3a9c:
-    title: Export changes as CSV
-    path: .strict-spec-driven/tickets/export-changes-as-csv-7f3a9c.yaml
-    status: open
 `
 };
 function getEmbeddedTemplateKeys() {

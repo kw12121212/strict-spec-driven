@@ -1,0 +1,52 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+mapping:
+  implementation:
+    - src/roadmap/model.ts
+    - src/roadmap/status.ts
+    - src/roadmap/sync.ts
+    - templates/strict-spec-driven/schemas/roadmap-milestone.yaml
+    - src/roadmap/author.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    roadmap-milestone-authoring-command-contract:
+      strength: MUST
+      statement: The system MUST make roadmap-generate milestone create and safely update strict roadmap milestone artifacts using structured YAML fields, require explicit structured milestone intake questions when creating a milestone, reject conflicting edits before writing, run roadmap synchronization after successful writes, and report updated files deterministically, while standalone planned-change authoring remains on the dedicated roadmap-generate planned-change command; the global --reset flag MUST NOT remove or replace existing intake_questions entries, replacing the intake-question list MUST require the dedicated --reset-intake-questions flag together with at least one supplied intake question, and without that flag supplied intake questions MUST merge additively with same-id content conflicts reported as blocking diagnostics.
+      scenarios:
+        global-reset-preserves-intake-questions:
+          - GIVEN: a strict roadmap milestone exists with multiple intake_questions entries
+          - WHEN: roadmap-generate milestone updates it with --reset and an additional --intake-question but without --reset-intake-questions
+          - THEN: the new question merges additively, previous questions remain, and same-id conflicts block replacement
+        explicit-flag-replaces-intake-questions:
+          - GIVEN: a strict roadmap milestone exists with intake_questions entries
+          - WHEN: roadmap-generate milestone runs with --reset-intake-questions and one or more intake questions
+          - THEN: the list is replaced, the roadmap index is synchronized, and updated files are reported
+        reset-intake-questions-requires-entries:
+          - GIVEN: a strict roadmap milestone exists with intake_questions entries
+          - WHEN: roadmap-generate milestone runs with --reset-intake-questions but no intake question
+          - THEN: the command exits non-zero and leaves the milestone unchanged
+    roadmap-milestone-update-preserves-work-items:
+      strength: MUST
+      statement: The system MUST make roadmap-generate milestone update milestone planning fields without creating, modifying, deleting, or moving standalone planned-change artifacts, and MUST reject legacy inline planned_changes without partially rewriting the milestone because inline planned-change migration remains on the existing materialization workflow.
+      scenarios:
+        milestone-command-updates-without-planned-change-authoring:
+          - GIVEN: a strict roadmap milestone exists and standalone planned-change files reference it
+          - WHEN: roadmap-generate milestone updates planning fields
+          - THEN: the planning fields are updated, standalone planned-change files are not rewritten, and roadmap-sync remains valid
+        milestone-command-rejects-inline-legacy-work-items:
+          - GIVEN: a milestone still contains legacy inline planned_changes
+          - WHEN: roadmap-generate milestone tries to update it
+          - THEN: the command reports the materialization workflow and leaves files unchanged
+        milestone-command-rejects-standalone-planned-change-rewrite:
+          - GIVEN: a milestone references a standalone planned-change file that synchronization would rewrite
+          - WHEN: roadmap-generate milestone tries to update it
+          - THEN: the command reports that the planned change must be reconciled through the roadmap workflow and leaves files unchanged
+  REMOVED:
+    roadmap-milestone-source-ticket-provenance:
+      reason: Ticket-derived roadmap provenance is removed with the ticket feature.
