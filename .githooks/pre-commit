@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Freshness gate for the committed dist bundles: downstream projects consume
+# this repository as a git dependency and read the pre-built bundles straight
+# from the commit, so a commit whose sources changed without a rebuild ships
+# a stale CLI silently. Rebuild from the worktree and refuse the commit when
+# the tracked bundle outputs differ from what is being committed.
+#
+# Limitation: the rebuild uses worktree sources. With unstaged edits under
+# the bundle inputs the check may not reflect the exact staged tree; commit
+# with a clean worktree for an exact result.
+
+BUNDLE_INPUTS='^(src/|templates/|scripts/gen-templates-bundle\.ts|package\.json|bun\.lock)'
+BUNDLE_OUTPUTS=(
+  dist/scripts/strict-spec-driven.js
+  dist/scripts/strict-spec-driven-mcp.js
+  src/embedded-templates.ts
+)
+
+if ! git diff --cached --name-only | grep -qE "$BUNDLE_INPUTS"; then
+  exit 0
+fi
+
+if ! git diff --quiet -- src templates package.json bun.lock; then
+  echo "pre-commit: warning: unstaged changes under bundle inputs; freshness check runs against the worktree" >&2
+fi
+
+bun scripts/gen-templates-bundle.ts >/dev/null
+bun run bundle >/dev/null 2>&1
+
+if ! git diff --quiet -- "${BUNDLE_OUTPUTS[@]}"; then
+  echo "pre-commit: dist bundles are stale for the staged sources." >&2
+  echo "The rebuild has refreshed these files in the worktree:" >&2
+  git diff --name-only -- "${BUNDLE_OUTPUTS[@]}" | sed 's/^/  /' >&2
+  echo "Stage them and retry: git add ${BUNDLE_OUTPUTS[*]}" >&2
+  exit 1
+fi

@@ -270,6 +270,12 @@ bun test/run.ts
 ```
 Runs the test suite against compiled `dist/` output.
 
+**Git hooks (one-time per clone):**
+```sh
+git config core.hooksPath .githooks
+```
+Enables the pre-commit freshness gate: commits touching bundle inputs (`src/`, `templates/`, `package.json`, `bun.lock`) are rebuilt and rejected when the committed `dist/scripts` bundles or `src/embedded-templates.ts` are stale, since git-dependency consumers install the pre-built bundles as committed.
+
 **Validate skills:**
 ```sh
 bun run validate-skills
