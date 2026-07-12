@@ -6,6 +6,7 @@ dist/*
 !dist/scripts/
 dist/scripts/*
 !dist/scripts/strict-spec-driven.js
+!dist/scripts/strict-spec-driven-mcp.js
 
 # Environment
 .env
