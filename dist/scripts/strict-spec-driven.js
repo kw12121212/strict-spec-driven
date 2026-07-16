@@ -13979,6 +13979,7 @@ var CHANGE_TEMPLATE_REGRESSION_COMMAND_PLACEHOLDER = "{{project_regression_comma
 var REGRESSION_COMMAND_FALLBACK = "REPLACE WITH the complete project regression command (build plus full test run)";
 var STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 var LEGACY_WORKFLOW_DIR = ".spec-driven";
+var MAX_ACTIVE_CHANGE_COUNT = 2;
 function readConfiguredRegressionCommand(rootDir) {
   const configPath = path2.join(rootDir, STRICT_WORKFLOW_DIR, "config.yaml");
   if (!existsSync2(configPath))
@@ -14059,9 +14060,9 @@ function initializeStrictChangeScaffold(rootDir, changeName) {
   const changeDir = path2.join(strictChangesRootDir, changeName);
   const repoRelativeChangeDir = toRepoRelativePath(rootDir, changeDir);
   const blockingActiveChanges = listActiveChangeNames(rootDir).filter((name) => name !== changeName);
-  if (blockingActiveChanges.length > 0) {
+  if (blockingActiveChanges.length >= MAX_ACTIVE_CHANGE_COUNT) {
     const blockingList = blockingActiveChanges.map((name) => `'${name}'`).join(", ");
-    throw new Error(`cannot create change '${changeName}': active change ${blockingList} already exists and only one active change is allowed at a time; archive or cancel it first`);
+    throw new Error(`cannot create change '${changeName}': active changes ${blockingList} already fill the limit of two active changes; archive or cancel one first`);
   }
   if (existsSync2(changeDir)) {
     if (!statSync2(changeDir).isDirectory()) {
@@ -21660,14 +21661,14 @@ function runMaintenance(rootDir) {
     return { valid: true, checksRun, findingsCount: 0, generatedChange: null, seedingSkippedReason: null };
   }
   const activeChanges = listActiveChangeNames(rootDir);
-  if (activeChanges.length > 0) {
+  if (activeChanges.length >= MAX_ACTIVE_CHANGE_COUNT) {
     const blockingList = activeChanges.map((name) => `'${name}'`).join(", ");
     return {
       valid: true,
       checksRun,
       findingsCount: findings.length,
       generatedChange: null,
-      seedingSkippedReason: `seeding skipped because active change ${blockingList} already exists and only one active change is allowed at a time; archive or cancel it before maintenance can seed a change`
+      seedingSkippedReason: `seeding skipped because active changes ${blockingList} already fill the limit of two active changes; archive or cancel one before maintenance can seed a change`
     };
   }
   const date = new Date().toISOString().slice(0, 10);
@@ -23391,13 +23392,13 @@ function migrateLegacyWorkflow(rootDir, options) {
   }
   const strictChangesAbsolutePath = path32.join(strictRootAbsolutePath, "changes");
   const convertedActiveChangeNames = existsSync31(strictChangesAbsolutePath) ? readdirSync12(strictChangesAbsolutePath, { withFileTypes: true }).filter((entry) => entry.isDirectory() && entry.name !== "archive").map((entry) => entry.name).sort((left, right) => left.localeCompare(right)) : [];
-  if (convertedActiveChangeNames.length > 1) {
+  if (convertedActiveChangeNames.length > MAX_ACTIVE_CHANGE_COUNT) {
     const activeChangeList = convertedActiveChangeNames.map((name) => `'${name}'`).join(", ");
-    result.warnings.push(makeDiagnostic3("multiple_active_changes", `Migration converted ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but the strict workflow allows only one active change at a time.`, `${LEGACY_WORKFLOW_DIR2}/changes`, `${STRICT_WORKFLOW_DIR11}/changes`));
+    result.warnings.push(makeDiagnostic3("multiple_active_changes", `Migration converted ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but the strict workflow allows at most two active changes at a time.`, `${LEGACY_WORKFLOW_DIR2}/changes`, `${STRICT_WORKFLOW_DIR11}/changes`));
     result.manualFollowUp.push({
       sourcePath: `${LEGACY_WORKFLOW_DIR2}/changes`,
-      reason: `The converted strict workflow state contains ${convertedActiveChangeNames.length} active changes (${activeChangeList}), and only one active change is allowed at a time.`,
-      recommendation: "Archive or cancel converted active changes until only one remains before continuing strict workflow work."
+      reason: `The converted strict workflow state contains ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but at most two active changes are allowed at a time.`,
+      recommendation: "Archive or cancel converted active changes until only two remain before continuing strict workflow work."
     });
   }
   options?.onProgress?.(`done: ${result.converted.length} converted, ${result.skipped.length} skipped, ${result.warnings.length} warnings, ${result.errors.length} errors`);

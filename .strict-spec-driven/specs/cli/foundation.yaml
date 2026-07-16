@@ -1911,18 +1911,6 @@ requirements:
         - GIVEN: a core strict skill that instructs agents to create or edit strict YAML artifacts
         - WHEN: strict skill packaging validation inspects the skill prompt
         - THEN: validation requires the prompt to mention ~/.strict-spec-schemas/ and schema_file-based schema lookup guidance alongside the existing schema-show reminder
-  cli-propose-enforces-single-active-change:
-    strength: MUST
-    statement: The system MUST reject propose with a non-zero exit before writing any scaffold file or directory when any active change directory already exists under .strict-spec-driven/changes/, and the rejection message MUST name the blocking active change and direct the operator to archive or cancel it first.
-    scenarios:
-      propose-rejects-when-active-change-exists:
-        - GIVEN: an active strict change directory already exists under .strict-spec-driven/changes/
-        - WHEN: strict-spec-driven propose <new-name> is executed with a valid kebab-case name
-        - THEN: the command exits non-zero before any scaffold file or directory is written, and the error message names the blocking active change and directs the operator to archive or cancel it first
-      propose-succeeds-when-only-archived-changes-exist:
-        - GIVEN: no active change directories exist under .strict-spec-driven/changes/ while archived changes may exist under changes/archive/
-        - WHEN: strict-spec-driven propose <name> is executed with a valid kebab-case name
-        - THEN: the change scaffold is created normally with all strict planning artifacts
   cli-propose-roadmap-backed-guidance:
     strength: MUST
     statement: The system MUST let strict-spec-propose guidance enter a roadmap-backed proposal mode that obtains the next eligible standalone planned change through roadmap-recommend before proposal scaffolding, reads only the targeted roadmap context for the selected planned change, and still stops at proposal validation instead of auto-implementing the change.
@@ -2241,3 +2229,15 @@ requirements:
         - GIVEN: the final sync checkpoint is complete under an AI-guided archive surface
         - WHEN: that surface invokes strict-spec-cli archive for the selected change
         - THEN: the raw command retains its deterministic verification, delta merge, index regeneration, roadmap reconciliation, and change-move responsibilities without requiring an AI sync receipt
+  cli-propose-enforces-two-active-change-limit:
+    strength: MUST
+    statement: 'The system MUST allow at most two active change directories under .strict-spec-driven/changes/: propose MUST create a second active change normally, but MUST reject a third with a non-zero exit before writing any scaffold file or directory, naming the blocking active changes and directing the operator to archive or cancel one first.'
+    scenarios:
+      propose-allows-second-active-change:
+        - GIVEN: exactly one active strict change directory already exists under .strict-spec-driven/changes/
+        - WHEN: strict-spec-driven propose <second-name> is executed with a valid kebab-case name
+        - THEN: the second change scaffold is created normally with all strict planning artifacts
+      propose-rejects-third-active-change:
+        - GIVEN: two active strict change directories already exist under .strict-spec-driven/changes/
+        - WHEN: strict-spec-driven propose <third-name> is executed with a valid kebab-case name
+        - THEN: the command exits non-zero before any scaffold file or directory is written, and the error names the two blocking active changes and directs the operator to archive or cancel one first

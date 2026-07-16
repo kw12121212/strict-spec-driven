@@ -5,7 +5,7 @@ import {
   writeFileSync,
 } from "fs";
 import path from "path";
-import { initializeStrictScaffold } from "./scaffold.js";
+import { MAX_ACTIVE_CHANGE_COUNT, initializeStrictScaffold } from "./scaffold.js";
 import { stringifyYamlDocument } from "./yaml.js";
 import { convertLegacyChangeArtifacts } from "./migrate/converters/changes.js";
 import { convertLegacyRoadmapArtifacts, convertLegacySpecsIndex } from "./migrate/converters/roadmap.js";
@@ -144,21 +144,21 @@ export function migrateLegacyWorkflow(
         .map((entry) => entry.name)
         .sort((left, right) => left.localeCompare(right))
     : [];
-  if (convertedActiveChangeNames.length > 1) {
+  if (convertedActiveChangeNames.length > MAX_ACTIVE_CHANGE_COUNT) {
     const activeChangeList = convertedActiveChangeNames.map((name) => `'${name}'`).join(", ");
     result.warnings.push(
       makeDiagnostic(
         "multiple_active_changes",
-        `Migration converted ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but the strict workflow allows only one active change at a time.`,
+        `Migration converted ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but the strict workflow allows at most two active changes at a time.`,
         `${LEGACY_WORKFLOW_DIR}/changes`,
         `${STRICT_WORKFLOW_DIR}/changes`,
       ),
     );
     result.manualFollowUp.push({
       sourcePath: `${LEGACY_WORKFLOW_DIR}/changes`,
-      reason: `The converted strict workflow state contains ${convertedActiveChangeNames.length} active changes (${activeChangeList}), and only one active change is allowed at a time.`,
+      reason: `The converted strict workflow state contains ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but at most two active changes are allowed at a time.`,
       recommendation:
-        "Archive or cancel converted active changes until only one remains before continuing strict workflow work.",
+        "Archive or cancel converted active changes until only two remain before continuing strict workflow work.",
     });
   }
 

@@ -87,13 +87,13 @@ requirements:
         - THEN: the command permits the rerun and emits the same structured migration report shape
   migrate-multiple-active-change-warning:
     strength: MUST
-    statement: The system MUST keep converting every supported legacy active change during migration, and when the converted output contains more than one active change the migration report MUST include a warning and a manual follow-up entry directing the operator to archive or cancel down to a single active change.
+    statement: The system MUST keep converting every supported legacy active change during migration, and when the converted output contains more than two active changes the migration report MUST include a warning and a manual follow-up entry directing the operator to archive or cancel down to two active changes.
     scenarios:
-      multiple-converted-active-changes-produce-warning-and-follow-up:
-        - GIVEN: a legacy .spec-driven workflow contains more than one supported active change
+      three-converted-active-changes-produce-warning-and-follow-up:
+        - GIVEN: a legacy .spec-driven workflow contains more than two supported active changes
         - WHEN: strict-spec-driven migrate runs
-        - THEN: every supported active change is converted to strict output, and the migration report includes a warning plus a manualFollowUp entry directing the operator to reduce the result to a single active change
-      single-converted-active-change-produces-no-warning:
-        - GIVEN: a legacy .spec-driven workflow contains at most one supported active change
+        - THEN: every supported active change is converted, and the migration report includes a warning plus a manualFollowUp entry directing the operator to reduce the result to two active changes
+      two-converted-active-changes-produce-no-warning:
+        - GIVEN: a legacy .spec-driven workflow contains at most two supported active changes
         - WHEN: strict-spec-driven migrate runs
-        - THEN: the migration report contains no multiple-active-change warning and no related manual follow-up entry
+        - THEN: the migration report contains no active-change-limit warning and no related manual follow-up entry

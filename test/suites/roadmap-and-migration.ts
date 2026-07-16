@@ -3643,7 +3643,7 @@ function runCopiedSplitRoadmapHandoffScenario(): {
       const cancelPreexisting = projectWorkspaceCli(workspaceRoot, ["cancel", preexistingActiveChange]);
       context.assert(
         cancelPreexisting.status === 0,
-        `copied project handoff cancels pre-existing active change '${preexistingActiveChange}' so the single-active rule allows handoff propose`,
+        `copied project handoff cancels pre-existing active change '${preexistingActiveChange}' so active-change capacity is available for handoff propose`,
         `stderr: ${cancelPreexisting.stderr.trim()}`,
       );
     }
@@ -4383,9 +4383,9 @@ try {
   context.assert(
     !migrateHappyJson.warnings.some((diagnostic: { code: string }) => diagnostic.code === "multiple_active_changes")
       && !migrateHappyJson.manualFollowUp.some(
-        (entry: { reason: string }) => entry.reason.includes("only one active change"),
+        (entry: { reason: string }) => entry.reason.includes("at most two active changes"),
       ),
-    "migrate emits no multiple-active-change warning when conversion yields a single active change",
+    "migrate emits no active-change-limit warning when conversion yields a single active change",
   );
 
   const migratedConfig = yamlModule.parseYamlFile<{
@@ -4718,14 +4718,38 @@ try {
   rmSync(migrateHappyDir, { recursive: true, force: true });
 }
 
+const migrateTwoActiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-two-active-"));
+try {
+  writeLegacyMigrationFixture(migrateTwoActiveDir);
+  cpSync(
+    path.join(migrateTwoActiveDir, ".spec-driven", "changes", "demo-change"),
+    path.join(migrateTwoActiveDir, ".spec-driven", "changes", "second-demo-change"),
+    { recursive: true },
+  );
+  const migrateTwoActive = cli(["migrate"], { cwd: migrateTwoActiveDir });
+  context.assert(migrateTwoActive.status === 0, "migrate exits zero when legacy state contains two active changes");
+  const migrateTwoActiveJson = JSON.parse(migrateTwoActive.stdout.trim());
+  context.assert(
+    !migrateTwoActiveJson.warnings.some((diagnostic: { code: string }) => diagnostic.code === "multiple_active_changes")
+      && !migrateTwoActiveJson.manualFollowUp.some(
+        (entry: { reason: string }) => entry.reason.includes("at most two active changes"),
+      ),
+    "migrate emits no active-change-limit warning when conversion yields two active changes",
+  );
+} finally {
+  rmSync(migrateTwoActiveDir, { recursive: true, force: true });
+}
+
 const migrateMultiActiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-migrate-multi-active-"));
 try {
   writeLegacyMigrationFixture(migrateMultiActiveDir);
-  cpSync(
-    path.join(migrateMultiActiveDir, ".spec-driven", "changes", "demo-change"),
-    path.join(migrateMultiActiveDir, ".spec-driven", "changes", "second-demo-change"),
-    { recursive: true },
-  );
+  for (const copiedChangeName of ["second-demo-change", "third-demo-change"]) {
+    cpSync(
+      path.join(migrateMultiActiveDir, ".spec-driven", "changes", "demo-change"),
+      path.join(migrateMultiActiveDir, ".spec-driven", "changes", copiedChangeName),
+      { recursive: true },
+    );
+  }
 
   const migrateMultiActive = cli(["migrate"], { cwd: migrateMultiActiveDir });
   context.assert(
@@ -4735,7 +4759,7 @@ try {
   );
   const migrateMultiActiveJson = JSON.parse(migrateMultiActive.stdout.trim());
   context.assert(migrateMultiActiveJson.valid === true, "multi-active migrate reports valid=true");
-  for (const convertedActiveChange of ["demo-change", "second-demo-change"]) {
+  for (const convertedActiveChange of ["demo-change", "second-demo-change", "third-demo-change"]) {
     context.assert(
       migrateMultiActiveJson.converted.some(
         (artifact: { targetPath: string; kind: string }) =>
@@ -4752,20 +4776,21 @@ try {
     multiActiveWarning !== undefined
       && multiActiveWarning.message.includes("'demo-change'")
       && multiActiveWarning.message.includes("'second-demo-change'")
-      && multiActiveWarning.message.includes("only one active change")
+      && multiActiveWarning.message.includes("'third-demo-change'")
+      && multiActiveWarning.message.includes("at most two active changes")
       && multiActiveWarning.sourcePath === ".spec-driven/changes"
       && multiActiveWarning.targetPath === ".strict-spec-driven/changes",
-    "multi-active migrate emits a multiple_active_changes warning naming the converted active changes",
+    "migrate above capacity emits a multiple_active_changes warning naming the converted active changes",
     `warnings: ${JSON.stringify(migrateMultiActiveJson.warnings)}`,
   );
   const multiActiveFollowUp = migrateMultiActiveJson.manualFollowUp.find(
-    (entry: { reason: string }) => entry.reason.includes("only one active change"),
+    (entry: { reason: string }) => entry.reason.includes("at most two active changes"),
   ) as { sourcePath: string; recommendation: string } | undefined;
   context.assert(
     multiActiveFollowUp !== undefined
       && multiActiveFollowUp.sourcePath === ".spec-driven/changes"
-      && multiActiveFollowUp.recommendation.includes("Archive or cancel"),
-    "multi-active migrate records a manual follow-up entry directing cleanup to a single active change",
+      && multiActiveFollowUp.recommendation.includes("until only two remain"),
+    "migrate above capacity records a manual follow-up directing cleanup to two active changes",
     `manualFollowUp: ${JSON.stringify(migrateMultiActiveJson.manualFollowUp)}`,
   );
 } finally {

@@ -37,6 +37,7 @@ const REGRESSION_COMMAND_FALLBACK =
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const LEGACY_WORKFLOW_DIR = ".spec-driven";
+export const MAX_ACTIVE_CHANGE_COUNT = 2;
 
 function readConfiguredRegressionCommand(rootDir: string): string | null {
   const configPath = path.join(rootDir, STRICT_WORKFLOW_DIR, "config.yaml");
@@ -152,10 +153,10 @@ export function initializeStrictChangeScaffold(rootDir: string, changeName: stri
   const changeDir = path.join(strictChangesRootDir, changeName);
   const repoRelativeChangeDir = toRepoRelativePath(rootDir, changeDir);
   const blockingActiveChanges = listActiveChangeNames(rootDir).filter((name) => name !== changeName);
-  if (blockingActiveChanges.length > 0) {
+  if (blockingActiveChanges.length >= MAX_ACTIVE_CHANGE_COUNT) {
     const blockingList = blockingActiveChanges.map((name) => `'${name}'`).join(", ");
     throw new Error(
-      `cannot create change '${changeName}': active change ${blockingList} already exists and only one active change is allowed at a time; archive or cancel it first`,
+      `cannot create change '${changeName}': active changes ${blockingList} already fill the limit of two active changes; archive or cancel one first`,
     );
   }
   if (existsSync(changeDir)) {

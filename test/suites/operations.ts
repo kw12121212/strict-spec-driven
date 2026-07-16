@@ -322,7 +322,7 @@ try {
   rmSync(maintMismatchDir, { recursive: true, force: true });
 }
 
-// 22e: findings with a pre-existing active change → zero exit, findings reported, seeding skipped
+// 22e: findings with one active change seed a second; findings at capacity skip seeding
 const maintActiveChangeDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-maint-active-"));
 try {
   const strictDir = path.join(maintActiveChangeDir, ".strict-spec-driven");
@@ -357,6 +357,7 @@ try {
     ].join("\n") + "\n",
     "utf8",
   );
+  const unsyncedRoadmapIndex = readFileSync(path.join(strictDir, "roadmap", "INDEX.yaml"), "utf8");
 
   writeFileSync(
     path.join(strictDir, "roadmap", "milestones", "test-maint.yaml"),
@@ -388,8 +389,23 @@ try {
     "utf8",
   );
 
+  const seededSecondResult = cli(["maintenance"], { cwd: maintActiveChangeDir });
+  context.assert(seededSecondResult.status === 0, "maintenance exits zero when seeding a second active change");
+  const seededSecondJson = JSON.parse(seededSecondResult.stdout.trim()) as {
+    findingsCount: number;
+    generatedChange: string | null;
+    seedingSkippedReason: string | null;
+  };
+  context.assert(seededSecondJson.findingsCount > 0, "maintenance reports findings before seeding a second active change");
+  context.assert(typeof seededSecondJson.generatedChange === "string", "maintenance seeds when exactly one active change exists");
+  context.assert(seededSecondJson.seedingSkippedReason === null, "maintenance does not report capacity while one slot remains");
+
+  writeFileSync(path.join(strictDir, "roadmap", "INDEX.yaml"), unsyncedRoadmapIndex, "utf8");
+  const activeEntriesBeforeSkip = readdirSync(path.join(strictDir, "changes")).filter((name) => name !== "archive").sort();
+  context.assert(activeEntriesBeforeSkip.length === 2, "maintenance seeding fills the two-active-change capacity");
+
   const skippedResult = cli(["maintenance"], { cwd: maintActiveChangeDir });
-  context.assert(skippedResult.status === 0, "maintenance exits zero when seeding is skipped for an active change");
+  context.assert(skippedResult.status === 0, "maintenance exits zero when seeding is skipped at two active changes");
   const skippedJson = JSON.parse(skippedResult.stdout.trim()) as {
     valid: boolean;
     checksRun: number;
@@ -400,18 +416,19 @@ try {
   context.assert(skippedJson.valid === true, "maintenance stays valid when seeding is skipped for an active change");
   context.assert(skippedJson.checksRun === 1, "maintenance still reports checksRun when seeding is skipped");
   context.assert(skippedJson.findingsCount > 0, "maintenance keeps findings visible when seeding is skipped");
-  context.assert(skippedJson.generatedChange === null, "maintenance generatedChange is null when an active change exists");
+  context.assert(skippedJson.generatedChange === null, "maintenance generatedChange is null when two active changes exist");
   context.assert(
     typeof skippedJson.seedingSkippedReason === "string"
       && skippedJson.seedingSkippedReason.includes("'existing-active-change'")
-      && skippedJson.seedingSkippedReason.includes("only one active change"),
-    "maintenance seedingSkippedReason names the blocking active change and the single-active rule",
+      && skippedJson.seedingSkippedReason.includes(`'${seededSecondJson.generatedChange}'`)
+      && skippedJson.seedingSkippedReason.includes("limit of two active changes"),
+    "maintenance seedingSkippedReason names both blocking changes and the two-active limit",
     `seedingSkippedReason: ${skippedJson.seedingSkippedReason}`,
   );
   const activeEntries = readdirSync(path.join(strictDir, "changes")).filter((name) => name !== "archive").sort();
   context.assert(
-    activeEntries.join(",") === "existing-active-change",
-    "maintenance creates no maintenance change while an active change exists",
+    activeEntries.join(",") === activeEntriesBeforeSkip.join(","),
+    "maintenance creates no third active change while capacity is full",
     `active entries: ${activeEntries.join(",")}`,
   );
 } finally {

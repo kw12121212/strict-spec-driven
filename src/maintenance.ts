@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, statSync, writeFileSync } from "fs";
 import path from "path";
 import { parseYamlFile, stringifyYamlDocument } from "./yaml.js";
-import { initializeStrictChangeScaffold, listActiveChangeNames } from "./scaffold.js";
+import { MAX_ACTIVE_CHANGE_COUNT, initializeStrictChangeScaffold, listActiveChangeNames } from "./scaffold.js";
 import { syncRoadmap } from "./roadmap.js";
 import type { RoadmapSyncResult } from "./roadmap.js";
 
@@ -177,14 +177,14 @@ export function runMaintenance(rootDir: string): MaintenanceResult {
   }
 
   const activeChanges = listActiveChangeNames(rootDir);
-  if (activeChanges.length > 0) {
+  if (activeChanges.length >= MAX_ACTIVE_CHANGE_COUNT) {
     const blockingList = activeChanges.map((name) => `'${name}'`).join(", ");
     return {
       valid: true,
       checksRun,
       findingsCount: findings.length,
       generatedChange: null,
-      seedingSkippedReason: `seeding skipped because active change ${blockingList} already exists and only one active change is allowed at a time; archive or cancel it before maintenance can seed a change`,
+      seedingSkippedReason: `seeding skipped because active changes ${blockingList} already fill the limit of two active changes; archive or cancel one before maintenance can seed a change`,
     };
   }
 

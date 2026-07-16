@@ -1,0 +1,35 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: allow-two-active-changes
+sections:
+  Implementation:
+    raise-active-change-limit:
+      text: Update proposal scaffolding, maintenance seeding, and migration overflow reporting so the fixed active-change capacity is two, with the third change rejected or reported at the existing prewrite and fidelity-preserving boundaries.
+      status: complete
+    update-active-change-limit-tests:
+      text: Add and update regression coverage proving propose allows a second active change and rejects a third without partial state, maintenance seeds with one active change and skips at two, and migration warns only when conversion yields more than two active changes while preserving every converted change.
+      status: complete
+    rebuild-dist-artifacts:
+      text: Rebuild compiled dist output after TypeScript source edits so packaged CLI behavior reflects the two-active-change limit before dist-based tests run.
+      status: complete
+  Testing:
+    run-lint:
+      text: Run the project lint command and confirm strict TypeScript sources type-check cleanly.
+      status: complete
+      command: bun run lint
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches the fixed two-change scope, preserves prewrite rejection and migration fidelity, keeps cross-change conflict verification unchanged, and introduces no configurable limit or force bypass.
+      status: complete
+    verify-strict-artifacts:
+      text: Run strict ready and verify for allow-two-active-changes, then verify main-spec mappings for the final change state and resolve every safe in-scope diagnostic.
+      status: complete
+testing_gates:
+  validation_task: run-lint
+  unit_test_task: run-project-regression

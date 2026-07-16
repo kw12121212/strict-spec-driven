@@ -1,0 +1,24 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: allow-two-active-changes
+  status: proposed
+summary:
+  what:
+    - Raise the strict workflow active-change limit from one to two across proposal scaffolding, maintenance seeding, and migration overflow reporting.
+  why:
+    - Operators need room for one planned change and one temporary change to be active concurrently without abandoning strict workflow tracking.
+scope:
+  in:
+    - Allow propose to create a second active change and reject a third before any scaffold write, naming both blockers and directing the operator to archive or cancel.
+    - Allow maintenance to seed a change when zero or one active changes exist, and skip seeding with visible findings when two active changes already exist.
+    - Warn after migration only when more than two active changes are converted, directing cleanup down to two.
+    - Update strict specs and regression coverage for all changed boundaries.
+  out:
+    - A configurable active-change limit, force flags, automatic prioritization or suspension, and changes to archive, cancel, list, modify, apply, or cross-change conflict verification.
+unchanged_behavior:
+  - Change-name validation and duplicate collision rejection remain unchanged.
+  - Migration continues converting every supported legacy active change without dropping state.
+  - Archive and cancel remain the mechanisms that remove active changes, and cross-change exclusive-target verification remains enforced.

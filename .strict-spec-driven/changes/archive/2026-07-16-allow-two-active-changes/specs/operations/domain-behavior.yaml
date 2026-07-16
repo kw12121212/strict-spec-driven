@@ -1,0 +1,26 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: operations-domain-behavior
+mapping:
+  implementation:
+    - src/maintenance.ts
+  tests:
+    - test/suites/operations.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    operations-maintenance-contract:
+      strength: MUST
+      statement: The system MUST make maintenance run configured maintenance checks when present, report checksRun and findingsCount, seed a maintenance change only when findings exist and fewer than two active changes are present, skip seeding with generatedChange null and an explicit skipped-seeding explanation when two active changes already exist, and return no generated change when no config or checks are configured.
+      scenarios:
+        maintenance-seeds-second-active-change:
+          - GIVEN: maintenance checks produce findings while exactly one active change exists under .strict-spec-driven/changes/
+          - WHEN: strict-spec-driven maintenance runs
+          - THEN: the command exits zero, reports findings, and creates a second active generated maintenance change
+        maintenance-skips-seeding-at-two-active-changes:
+          - GIVEN: maintenance checks produce findings while two active changes already exist under .strict-spec-driven/changes/
+          - WHEN: strict-spec-driven maintenance runs
+          - THEN: the command exits zero, still reports checksRun and findingsCount, returns generatedChange null, and explains that the two-change active limit has been reached
+  REMOVED: {}

@@ -1082,7 +1082,7 @@ try {
   const cancelProposeChange = cli(["cancel", changeName], { cwd: proposeTempDir });
   context.assert(
     cancelProposeChange.status === 0,
-    "cancel clears the active change so the single-active rule allows the next propose",
+    "cancel clears the active change so the active-change capacity is available for the next propose",
     `stderr: ${cancelProposeChange.stderr.trim()}`,
   );
 
@@ -1342,22 +1342,29 @@ try {
   context.assert(verifyGenerated.status === 0, "generated complete change passes verify", `stderr: ${verifyGenerated.stderr.trim()} stdout: ${verifyGenerated.stdout.trim()}`);
 
   const directChangeName = "argument-driven-change";
-  const blockedDirectPropose = cli(["propose", directChangeName], { cwd: generateTempDir });
+  const directPropose = cli(["propose", directChangeName], { cwd: generateTempDir });
   context.assert(
-    blockedDirectPropose.status !== 0 &&
-      blockedDirectPropose.stderr.includes(`active change '${changeName}' already exists`) &&
-      blockedDirectPropose.stderr.includes("archive or cancel"),
-    "propose rejects a second active change and names the blocking change",
-    `status: ${blockedDirectPropose.status} stderr: ${blockedDirectPropose.stderr.trim()}`,
+    directPropose.status === 0,
+    "propose allows a second active change",
+    `status: ${directPropose.status} stderr: ${directPropose.stderr.trim()}`,
+  );
+  const capacityBlockedChangeName = "capacity-blocked-change";
+  const blockedCapacityPropose = cli(["propose", capacityBlockedChangeName], { cwd: generateTempDir });
+  context.assert(
+    blockedCapacityPropose.status !== 0
+      && blockedCapacityPropose.stderr.includes(`'${changeName}'`)
+      && blockedCapacityPropose.stderr.includes(`'${directChangeName}'`)
+      && blockedCapacityPropose.stderr.includes("limit of two active changes")
+      && blockedCapacityPropose.stderr.includes("archive or cancel one"),
+    "propose rejects a third active change and names both blocking changes",
+    `status: ${blockedCapacityPropose.status} stderr: ${blockedCapacityPropose.stderr.trim()}`,
   );
   context.assert(
-    !existsSync(path.join(generateTempDir, ".strict-spec-driven", "changes", directChangeName)),
-    "blocked propose writes no scaffold state",
+    !existsSync(path.join(generateTempDir, ".strict-spec-driven", "changes", capacityBlockedChangeName)),
+    "third-change rejection writes no scaffold state",
   );
   const cancelScripted = cli(["cancel", changeName], { cwd: generateTempDir });
-  context.assert(cancelScripted.status === 0, "single-active rule allows next propose after cancel", `stderr: ${cancelScripted.stderr.trim()}`);
-  const directPropose = cli(["propose", directChangeName], { cwd: generateTempDir });
-  context.assert(directPropose.status === 0, "argument-driven generate setup creates strict change scaffold", `stderr: ${directPropose.stderr.trim()}`);
+  context.assert(cancelScripted.status === 0, "cancel frees one active-change slot", `stderr: ${cancelScripted.stderr.trim()}`);
   const directChangeDir = path.join(generateTempDir, ".strict-spec-driven", "changes", directChangeName);
   const directProposalPath = path.join(directChangeDir, "proposal.yaml");
 

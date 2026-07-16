@@ -1,0 +1,28 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/scaffold.ts
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    cli-propose-enforces-two-active-change-limit:
+      strength: MUST
+      statement: 'The system MUST allow at most two active change directories under .strict-spec-driven/changes/: propose MUST create a second active change normally, but MUST reject a third with a non-zero exit before writing any scaffold file or directory, naming the blocking active changes and directing the operator to archive or cancel one first.'
+      scenarios:
+        propose-allows-second-active-change:
+          - GIVEN: exactly one active strict change directory already exists under .strict-spec-driven/changes/
+          - WHEN: strict-spec-driven propose <second-name> is executed with a valid kebab-case name
+          - THEN: the second change scaffold is created normally with all strict planning artifacts
+        propose-rejects-third-active-change:
+          - GIVEN: two active strict change directories already exist under .strict-spec-driven/changes/
+          - WHEN: strict-spec-driven propose <third-name> is executed with a valid kebab-case name
+          - THEN: the command exits non-zero before any scaffold file or directory is written, and the error names the two blocking active changes and directs the operator to archive or cancel one first
+  MODIFIED: {}
+  REMOVED:
+    cli-propose-enforces-single-active-change:
+      reason: The fixed workflow capacity is intentionally raised from one active change to two, so the single-active requirement is replaced by cli-propose-enforces-two-active-change-limit.
