@@ -211,9 +211,18 @@ function reportMissingMilestoneReferences(
 
 function reportDependencyReferenceErrors(
   references: PlannedChangeReference[],
+  archivedPlannedChangeIds: Set<string>,
   diagnostics: RoadmapDiagnostic[],
 ): void {
-  const knownIds = new Set(references.map((reference) => reference.id));
+  // Active planned-change ids are the primary dependency targets. Archived
+  // planned-change ids are unioned in because archiving relocates completed
+  // work rather than deleting it, so a dependency on completed-and-archived
+  // work is satisfied. Archived ids never become references, so they stay out
+  // of duplicate-id detection, ownership checks, and the active cycle graph.
+  const knownIds = new Set<string>(references.map((reference) => reference.id));
+  for (const id of archivedPlannedChangeIds) {
+    knownIds.add(id);
+  }
   const graph = new Map<string, Set<string>>();
 
   for (const reference of references) {
@@ -352,11 +361,15 @@ function reportNonCanonicalPlannedChangeFileNames(roadmap: LoadedRoadmap, diagno
   }
 }
 
-export function appendRoadmapCrossFileDiagnostics(roadmap: LoadedRoadmap, changeStates: ChangeStateIndex): void {
+export function appendRoadmapCrossFileDiagnostics(
+  roadmap: LoadedRoadmap,
+  changeStates: ChangeStateIndex,
+  archivedPlannedChangeIds: Set<string>,
+): void {
   const references = buildPlannedChangeReferences(roadmap);
   reportDuplicatePlannedChangeIds(references, changeStates, roadmap.diagnostics);
   reportMissingMilestoneReferences(roadmap, references, roadmap.diagnostics);
-  reportDependencyReferenceErrors(references, roadmap.diagnostics);
+  reportDependencyReferenceErrors(references, archivedPlannedChangeIds, roadmap.diagnostics);
   reportAmbiguousOwnershipMetadata(references, roadmap.diagnostics);
   reportNonCanonicalPlannedChangeFileNames(roadmap, roadmap.diagnostics);
 }

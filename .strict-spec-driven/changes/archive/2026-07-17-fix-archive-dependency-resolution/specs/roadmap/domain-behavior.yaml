@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+mapping:
+  implementation:
+    - src/roadmap/load.ts
+    - src/roadmap/status.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    roadmap-archived-dependency-resolution-contract:
+      strength: MUST
+      statement: The system MUST treat a planned-change depends_on entry whose target planned-change id has been moved into the roadmap archive by a prior roadmap-archive as a satisfied dependency target rather than a missing dependency, so roadmap-status, roadmap-sync, roadmap-archive, roadmap-reorder, and roadmap-reopen remain valid for active milestones whose planned changes depend on completed-and-archived planned changes, while archived planned-change artifacts continue to be excluded from active roadmap index regeneration, active status output, active duplicate-id detection, and active dependency-cycle detection.
+      scenarios:
+        archived-dependency-target-resolves-after-milestone-archive:
+          - GIVEN: a valid roadmap has two milestones where an active milestone's standalone planned change depends_on a planned change owned by another milestone, and the owning milestone and its standalone planned changes are complete and have been moved into roadmap/archive by roadmap-archive
+          - WHEN: strict-spec-driven roadmap-status and roadmap-sync run afterward against the active roadmap
+          - THEN: both commands exit zero, report valid roadmap state, and do not emit a 'planned change dependency is missing from roadmap planned-change sources' diagnostic for the archived dependency target
+  MODIFIED: {}
+  REMOVED: {}

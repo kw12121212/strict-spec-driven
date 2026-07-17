@@ -3,6 +3,7 @@ import path from "path";
 import {
   ROADMAP_DIR,
   ROADMAP_ARCHIVE_DIR,
+  ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR,
   ROADMAP_INDEX_PATH,
   ROADMAP_MILESTONES_DIR,
   type RoadmapDiagnostic,
@@ -11,6 +12,7 @@ import {
   type LoadedRoadmap,
 } from "./model.js";
 import {
+  isRecord,
   listYamlFiles,
   makeDiagnostic,
   normalizeRepoRelativePath,
@@ -192,4 +194,41 @@ export function loadRoadmap(rootDir: string, options: LoadRoadmapOptions = {}): 
     milestones,
     plannedChanges,
   };
+}
+
+/**
+ * Collect the set of planned-change ids that have been relocated into the
+ * roadmap archive. Archiving moves completed standalone planned-change files
+ * into ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR without deleting them, so a planned
+ * change in the active roadmap may legitimately depend on completed-and-archived
+ * work. These ids are used only to satisfy dependency-target membership checks;
+ * they never re-enter active validation, status derivation, or cycle detection.
+ *
+ * The archive holds frozen history, so unreadable or malformed archived files
+ * are skipped silently rather than producing diagnostics.
+ */
+export function loadArchivedPlannedChangeIds(rootDir: string): Set<string> {
+  const archivePlannedChangesDir = path.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR);
+  const ids = new Set<string>();
+  if (!existsSync(archivePlannedChangesDir) || !statSync(archivePlannedChangesDir).isDirectory()) {
+    return ids;
+  }
+
+  for (const absolutePath of listYamlFiles(archivePlannedChangesDir)) {
+    try {
+      const parsed = readYamlFile(absolutePath);
+      if (!isRecord(parsed)) continue;
+      const plannedChange = parsed.planned_change;
+      if (!isRecord(plannedChange)) continue;
+      const id = plannedChange.id;
+      if (typeof id === "string" && id.length > 0) {
+        ids.add(id);
+      }
+    } catch {
+      // Archived history is frozen; an unreadable archived file does not block
+      // active dependency resolution.
+    }
+  }
+
+  return ids;
 }

@@ -1,7 +1,7 @@
 import { existsSync } from "fs";
 import path from "path";
 import { stringifyYamlDocument } from "../yaml.js";
-import { loadRoadmap } from "./load.js";
+import { loadArchivedPlannedChangeIds, loadRoadmap } from "./load.js";
 import {
   ROADMAP_ARCHIVE_MILESTONES_DIR,
   ROADMAP_INDEX_PATH,
@@ -131,7 +131,7 @@ function invalidOrderResult(warnings: string[], diagnostics: RoadmapDiagnostic[]
 export function reorderRoadmapMilestone(rootDir: string, input: RoadmapReorderInput): RoadmapOrderResult {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
   const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH);
   if (blockingDiagnostics.length > 0) return invalidOrderResult(roadmap.warnings, blockingDiagnostics);
 

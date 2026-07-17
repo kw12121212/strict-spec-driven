@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: fix-archive-dependency-resolution
+  status: proposed
+summary:
+  what:
+    - 'Roadmap cross-file validation currently flags a planned-change depends_on entry as a missing dependency whenever the target planned change has been moved into roadmap/archive, because loadRoadmap deliberately excludes the archive area and the dependency check only consults active roadmap planned-change sources. After roadmap-archive moves a completed milestone and its completed standalone planned changes into the archive, any active planned change that depends on that completed work makes roadmap-status, roadmap-sync, roadmap-archive, roadmap-reorder, and roadmap-reopen report invalid roadmap state with a false ''planned change dependency is missing from roadmap planned-change sources'' diagnostic. Archiving is relocation, not deletion: dependencies on completed-and-archived planned changes are satisfied, not missing.'
+  why:
+    - A milestone that delivers follow-up work routinely depends on completed work delivered by an earlier milestone. Once the earlier milestone is archived, the later milestone's planned changes legitimately depend on archived (completed) planned changes. The current validation breaks every subsequent roadmap operation in such a workspace, leaving no way to validate, sync, reorder, or archive remaining milestones without manual file surgery. The archive boundary must keep archived artifacts out of active index/status reconciliation while still recognizing archived planned-change ids as valid (completed) dependency targets.
+scope:
+  in:
+    - src/roadmap/load.ts (new helper that reads archived planned-change ids from ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR), src/roadmap/status.ts (reportDependencyReferenceErrors and appendRoadmapCrossFileDiagnostics accept archived planned-change ids and treat them as resolvable dependency targets without adding them to the active reference graph, duplicate checks, or cycle detection), and the five callers of appendRoadmapCrossFileDiagnostics (src/roadmap.ts loadRoadmapStatusContext and syncRoadmap, src/roadmap/archive.ts, src/roadmap/reopen.ts, src/roadmap/order.ts) which already hold rootDir and resolve the archived ids. New regression coverage in test/suites/roadmap-and-migration.ts.
+  out:
+    - Milestone-level dependencies fields (free-form text), inline planned-change intra-milestone validation in validate.ts, archived artifact schema validation, cycle detection among active planned changes, duplicate-id detection among active sources, and active roadmap index/status/sync reconciliation boundary.
+unchanged_behavior:
+  - roadmap-archive still moves only complete milestones and their completed standalone planned-change files into roadmap/archive, leaves incomplete work active, rewrites the active index, and reports archived and skipped items deterministically; roadmap-sync still excludes archived milestones and planned-change files from active index regeneration, status output, and reconciliation; archived milestone and planned-change files remain exempt from canonical-filename validation; roadmap-status still reports only active unarchived milestones; the active reference graph, duplicate-id checks, ownership checks, and cycle detection still operate only over active roadmap planned-change sources.

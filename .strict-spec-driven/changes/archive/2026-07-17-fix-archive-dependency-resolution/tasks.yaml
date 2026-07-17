@@ -1,0 +1,44 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: fix-archive-dependency-resolution
+sections:
+  Implementation:
+    add-archived-planned-change-id-loader:
+      text: Add a tolerant exported helper in src/roadmap/load.ts that reads every YAML file under ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR and returns the set of planned_change.id values found there; return an empty set when the archive planned-changes directory is absent, and silently skip unreadable or malformed archived files because archived history is frozen.
+      status: complete
+    thread-archived-ids-through-cross-file-diagnostics:
+      text: In src/roadmap/status.ts, give reportDependencyReferenceErrors and appendRoadmapCrossFileDiagnostics an archived planned-change id set parameter; union the archived ids into the knownIds membership test so archived dependency targets resolve instead of producing a missing-dependency diagnostic, without turning archived ids into PlannedChangeReference entries so duplicate-id detection, ownership checks, cycle detection, and active status derivation stay scoped to active roadmap sources.
+      status: complete
+    update-cross-file-diagnostics-callers:
+      text: 'Update every caller of appendRoadmapCrossFileDiagnostics to resolve the archived id set via the new loader and pass it as the new third argument: src/roadmap.ts loadRoadmapStatusContext and syncRoadmap, src/roadmap/archive.ts, src/roadmap/reopen.ts, and src/roadmap/order.ts.'
+      status: complete
+  Testing:
+    add-archived-dependency-resolution-regression-test:
+      text: Add a regression case to test/suites/roadmap-and-migration.ts that sets up a complete milestone whose standalone planned change is depended on by an active milestone's standalone planned change, runs roadmap-archive to move the complete milestone into the archive, then asserts roadmap-status and roadmap-sync exit zero and report valid state with no missing-dependency diagnostic for the archived target.
+      status: complete
+    run-build-and-lint:
+      text: Build the project and run the TypeScript strict compile check.
+      status: complete
+      command: bun run build
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-change:
+      text: Run strict-spec-cli verify for the change and confirm no blockers.
+      status: complete
+      command: strict-spec-cli verify fix-archive-dependency-resolution
+    verify-spec-mappings:
+      text: Run strict-spec-cli verify-spec-mappings and confirm delta mappings resolve.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+    ready-and-archive-readiness:
+      text: Run strict-spec-cli ready and strict-spec-cli next to confirm deterministic handoff and archive-readiness state before archive.
+      status: complete
+      command: strict-spec-cli ready fix-archive-dependency-resolution
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: run-project-regression

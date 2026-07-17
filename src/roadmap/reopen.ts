@@ -11,7 +11,7 @@ import {
   type StandalonePlannedChangeArtifact,
 } from "./model.js";
 import { makeDiagnostic, normalizeMilestoneStatus, sortDiagnostics, toPosix } from "./shared.js";
-import { loadRoadmap } from "./load.js";
+import { loadArchivedPlannedChangeIds, loadRoadmap } from "./load.js";
 import {
   appendRoadmapCrossFileDiagnostics,
   buildMilestoneStatus,
@@ -64,7 +64,7 @@ function buildReopenNote(reason: string): string {
 function loadReopenContext(rootDir: string) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
   return { roadmap, changeStates };
 }
 

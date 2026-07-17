@@ -17,7 +17,7 @@ import {
   type LoadedRoadmap,
 } from "./roadmap/model.js";
 import { ensureTrailingNewline, makeDiagnostic, normalizeRepoRelativePath, sortDiagnostics } from "./roadmap/shared.js";
-import { loadRoadmap } from "./roadmap/load.js";
+import { loadArchivedPlannedChangeIds, loadRoadmap } from "./roadmap/load.js";
 import {
   appendRoadmapCrossFileDiagnostics,
   buildMilestoneStatus,
@@ -137,7 +137,7 @@ type RoadmapStatusContext = {
 function loadRoadmapStatusContext(rootDir: string): RoadmapStatusContext {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
   const statusMap = new Map<string, RoadmapMilestoneStatus>();
   for (const milestone of roadmap.milestones) {
     const milestonePath = `roadmap/milestones/${milestone.relativeMilestonePath}`;
@@ -402,7 +402,7 @@ export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): 
     allowInlinePlannedChanges: options.materializePlannedChanges === true,
   });
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
   const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH);
   if (blockingDiagnostics.length > 0) {
     return {

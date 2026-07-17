@@ -1608,6 +1608,101 @@ try {
   rmSync(roadmapArchiveInvalidDir, { recursive: true, force: true });
 }
 
+const roadmapArchiveDependencyDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-archive-dependency-"));
+try {
+  // A complete milestone whose standalone planned change is depended on by an
+  // active milestone's standalone planned change. After the complete milestone
+  // is archived, the active dependency target lives in roadmap/archive and must
+  // still resolve as a satisfied (completed) dependency, not a missing one.
+  mkdirSync(
+    path.join(roadmapArchiveDependencyDir, ".strict-spec-driven", "changes", "archive", `${formatLocalDateStamp()}-base-work`),
+    { recursive: true },
+  );
+  mkdirSync(path.join(roadmapArchiveDependencyDir, ".strict-spec-driven", "changes", "followup-work"), { recursive: true });
+
+  writeRoadmapMilestoneArtifact(roadmapArchiveDependencyDir, "0001-base.yaml", {
+    id: "0001-base",
+    title: "Base Milestone",
+    goal: "Ship foundational work that later milestones depend on.",
+    status: "complete",
+    plannedChanges: [],
+  });
+  writeRoadmapMilestoneArtifact(roadmapArchiveDependencyDir, "0002-followup.yaml", {
+    id: "0002-followup",
+    title: "Followup Milestone",
+    goal: "Depend on completed-and-archived base work.",
+    status: "active",
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapArchiveDependencyDir, "planned-changes/0001-base-base-work.yaml", {
+    id: "base-work",
+    milestone: "0001-base",
+    status: "complete",
+    summary: "Foundational work that gets archived.",
+    details: "Standalone details for base-work.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapArchiveDependencyDir, "planned-changes/0002-followup-followup-work.yaml", {
+    id: "followup-work",
+    milestone: "0002-followup",
+    status: "planned",
+    summary: "Followup work depends on archived base work.",
+    details: "Standalone details for followup-work.",
+    depends_on: ["base-work"],
+  });
+  writeRoadmapIndexArtifact(roadmapArchiveDependencyDir, [
+    {
+      id: "0001-base",
+      title: "Base Milestone",
+      path: "roadmap/milestones/0001-base.yaml",
+      status: "complete",
+    },
+    {
+      id: "0002-followup",
+      title: "Followup Milestone",
+      path: "roadmap/milestones/0002-followup.yaml",
+      status: "active",
+    },
+  ]);
+
+  const dependencyArchive = cli(["roadmap-archive", "0001-base"], { cwd: roadmapArchiveDependencyDir });
+  context.assert(dependencyArchive.status === 0, "roadmap-archive archives a complete milestone depended on by active work", dependencyArchive.stderr);
+  const dependencyArchiveJson = JSON.parse(dependencyArchive.stdout.trim());
+  context.assert(
+    dependencyArchiveJson.valid === true
+      && dependencyArchiveJson.archivedMilestones.length === 1
+      && dependencyArchiveJson.archivedMilestones[0].id === "0001-base"
+      && !existsSync(path.join(roadmapArchiveDependencyDir, ".strict-spec-driven", "roadmap", "milestones", "0001-base.yaml"))
+      && !existsSync(path.join(roadmapArchiveDependencyDir, ".strict-spec-driven", "roadmap", "planned-changes", "0001-base-base-work.yaml"))
+      && existsSync(path.join(roadmapArchiveDependencyDir, ".strict-spec-driven", "roadmap", "planned-changes", "0002-followup-followup-work.yaml")),
+    "roadmap-archive moves the complete milestone and its completed planned change into the archive while leaving active dependent work in place",
+    dependencyArchive.stdout,
+  );
+
+  const dependencyStatus = cli(["roadmap-status"], { cwd: roadmapArchiveDependencyDir });
+  context.assert(dependencyStatus.status === 0, "roadmap-status stays valid when active work depends on an archived planned change", dependencyStatus.stderr);
+  const dependencyStatusJson = JSON.parse(dependencyStatus.stdout.trim());
+  context.assert(
+    dependencyStatusJson.valid === true
+      && dependencyStatusJson.diagnostics.length === 0
+      && !JSON.stringify(dependencyStatusJson.diagnostics).includes("dependency is missing"),
+    "roadmap-status does not report a missing dependency for an archived planned-change target",
+    dependencyStatus.stdout,
+  );
+
+  const dependencySync = cli(["roadmap-sync"], { cwd: roadmapArchiveDependencyDir });
+  context.assert(dependencySync.status === 0, "roadmap-sync stays valid when active work depends on an archived planned change", dependencySync.stderr);
+  const dependencySyncJson = JSON.parse(dependencySync.stdout.trim());
+  context.assert(
+    dependencySyncJson.valid === true
+      && dependencySyncJson.diagnostics.length === 0,
+    "roadmap-sync does not report a missing dependency for an archived planned-change target",
+    dependencySync.stdout,
+  );
+} finally {
+  rmSync(roadmapArchiveDependencyDir, { recursive: true, force: true });
+}
+
 const roadmapReopenDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-reopen-"));
 try {
   // A milestone whose single planned change is archived → milestone derives complete.

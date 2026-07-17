@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs";
 import path from "path";
 import { stringifyYamlDocument } from "../yaml.js";
-import { loadRoadmap } from "./load.js";
+import { loadArchivedPlannedChangeIds, loadRoadmap } from "./load.js";
 import {
   ROADMAP_ARCHIVE_MILESTONES_DIR,
   ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR,
@@ -104,7 +104,7 @@ function appendCollisionDiagnostics(targets: ArchiveTarget[], diagnostics: Roadm
 export function archiveRoadmapMilestones(rootDir: string, milestoneId?: string): RoadmapArchiveResult {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
 
   const statusMap = new Map<string, RoadmapMilestoneStatus>();
   for (const milestone of roadmap.milestones) {

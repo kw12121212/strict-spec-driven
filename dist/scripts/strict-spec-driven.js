@@ -16658,6 +16658,28 @@ function loadRoadmap(rootDir, options = {}) {
     plannedChanges
   };
 }
+function loadArchivedPlannedChangeIds(rootDir) {
+  const archivePlannedChangesDir = path9.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR);
+  const ids = new Set;
+  if (!existsSync8(archivePlannedChangesDir) || !statSync5(archivePlannedChangesDir).isDirectory()) {
+    return ids;
+  }
+  for (const absolutePath of listYamlFiles(archivePlannedChangesDir)) {
+    try {
+      const parsed = readYamlFile(absolutePath);
+      if (!isRecord3(parsed))
+        continue;
+      const plannedChange = parsed.planned_change;
+      if (!isRecord3(plannedChange))
+        continue;
+      const id = plannedChange.id;
+      if (typeof id === "string" && id.length > 0) {
+        ids.add(id);
+      }
+    } catch {}
+  }
+  return ids;
+}
 
 // src/roadmap/status.ts
 import { existsSync as existsSync9, readdirSync as readdirSync3, statSync as statSync6 } from "fs";
@@ -16798,8 +16820,11 @@ function reportMissingMilestoneReferences(roadmap, references, diagnostics) {
     diagnostics.push(makeDiagnostic("reference", reference.artifactPath, "$.planned_change.milestone", "standalone planned change references a missing milestone", "existing roadmap milestone id", reference.milestoneId));
   }
 }
-function reportDependencyReferenceErrors(references, diagnostics) {
+function reportDependencyReferenceErrors(references, archivedPlannedChangeIds, diagnostics) {
   const knownIds = new Set(references.map((reference) => reference.id));
+  for (const id of archivedPlannedChangeIds) {
+    knownIds.add(id);
+  }
   const graph = new Map;
   for (const reference of references) {
     const dependencies = graph.get(reference.id) ?? new Set;
@@ -16876,11 +16901,11 @@ function reportNonCanonicalPlannedChangeFileNames(roadmap, diagnostics) {
     diagnostics.push(makeDiagnostic("semantic", plannedChange.artifactPath, "$", "standalone planned-change file basename does not match the canonical milestone-prefixed filename; rename the file or run roadmap-sync --fix-names", canonical, plannedChange.file));
   }
 }
-function appendRoadmapCrossFileDiagnostics(roadmap, changeStates) {
+function appendRoadmapCrossFileDiagnostics(roadmap, changeStates, archivedPlannedChangeIds) {
   const references = buildPlannedChangeReferences(roadmap);
   reportDuplicatePlannedChangeIds(references, changeStates, roadmap.diagnostics);
   reportMissingMilestoneReferences(roadmap, references, roadmap.diagnostics);
-  reportDependencyReferenceErrors(references, roadmap.diagnostics);
+  reportDependencyReferenceErrors(references, archivedPlannedChangeIds, roadmap.diagnostics);
   reportAmbiguousOwnershipMetadata(references, roadmap.diagnostics);
   reportNonCanonicalPlannedChangeFileNames(roadmap, roadmap.diagnostics);
 }
@@ -17207,7 +17232,7 @@ function appendPlannedChangeDetail(lines, plannedChange) {
 function loadRoadmapStatusContext(rootDir) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
   const statusMap = new Map;
   for (const milestone of roadmap.milestones) {
     const milestonePath = `roadmap/milestones/${milestone.relativeMilestonePath}`;
@@ -17424,7 +17449,7 @@ function syncRoadmap(rootDir, options = {}) {
     allowInlinePlannedChanges: options.materializePlannedChanges === true
   });
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
   const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH);
   if (blockingDiagnostics.length > 0) {
     return {
@@ -19571,7 +19596,7 @@ function appendCollisionDiagnostics(targets, diagnostics, rootDir) {
 function archiveRoadmapMilestones(rootDir, milestoneId) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
   const statusMap = new Map;
   for (const milestone of roadmap.milestones) {
     const milestonePath = `roadmap/milestones/${milestone.relativeMilestonePath}`;
@@ -20035,7 +20060,7 @@ function buildReopenNote(reason) {
 function loadReopenContext(rootDir) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
   return { roadmap, changeStates };
 }
 function findMilestoneById(roadmap, milestoneId) {
@@ -20258,7 +20283,7 @@ function invalidOrderResult(warnings, diagnostics) {
 function reorderRoadmapMilestone(rootDir, input) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
-  appendRoadmapCrossFileDiagnostics(roadmap, changeStates);
+  appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
   const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH);
   if (blockingDiagnostics.length > 0)
     return invalidOrderResult(roadmap.warnings, blockingDiagnostics);

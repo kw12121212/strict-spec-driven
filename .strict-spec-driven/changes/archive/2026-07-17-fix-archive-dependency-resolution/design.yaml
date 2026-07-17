@@ -1,0 +1,13 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: fix-archive-dependency-resolution
+approach:
+  - Add a tolerant loader that collects planned_change.id values from every YAML file under ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR, returning them as a Set. Thread that set through appendRoadmapCrossFileDiagnostics into reportDependencyReferenceErrors, where the archived ids are unioned into the knownIds used by the missing-dependency check. Archived ids are NOT turned into PlannedChangeReference entries, so they never enter duplicate-id detection, ownership checks, the active cycle-detection graph as starting nodes, or active status derivation; they only satisfy the 'is this dependency target known' membership test. Because each caller of appendRoadmapCrossFileDiagnostics already holds rootDir, each resolves the archived-id set at its existing load point and passes it as a third argument, keeping the data flow explicit and avoiding a global or a broader LoadedRoadmap change.
+decisions:
+  resolve-archived-dependencies-not-delete:
+    decision: Archiving relocates completed planned-change artifacts; it does not delete them. Therefore dependency resolution must treat archived planned-change ids as satisfied (completed) targets rather than missing dependencies, while the active/archive boundary for index, status, and reconciliation stays intact.
+    rationale: The archive boundary spec already mandates that archived artifacts stay out of active index regeneration, status output, and reconciliation. Treating an archived dependency target as missing contradicts the relocation-not-deletion model and blocks every downstream roadmap operation in a workspace where later milestones depend on earlier completed milestones. Unioning archived ids into the membership test is the minimal change that resolves the false diagnostic without weakening duplicate detection, cycle detection, or active reconciliation, which all continue to operate exclusively over active roadmap planned-change sources.
+alternatives: []
+risks: []
