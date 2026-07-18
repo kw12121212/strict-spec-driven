@@ -39,6 +39,8 @@ export const COMMAND_REGISTRATION_ORDER = [
   "roadmap-recommend",
   "roadmap-archive",
   "roadmap-reopen",
+  "roadmap-pause",
+  "roadmap-resume",
   "sop-create",
   "sop-list",
   "sop-show",

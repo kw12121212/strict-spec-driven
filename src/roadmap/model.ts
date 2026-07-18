@@ -142,6 +142,7 @@ export type RoadmapMilestoneArtifact = {
   dependencies: string[];
   risks: string[];
   status: DeclaredRoadmapStatus;
+  paused?: MilestonePausedState;
   notes: string[];
   details?: string;
 };
@@ -158,6 +159,20 @@ export type PlannedChangeTeamMetadata = {
     label: string;
     target: string;
   }>;
+};
+
+/**
+ * Sticky operator-applied pause on a milestone. When `status` is true the
+ * milestone's effective status is forced to `blocked` and roadmap-recommend
+ * skips every planned change the milestone owns. The structured mapping (rather
+ * than a bare status string) is the source of truth so canonical rewrite can
+ * preserve the operator intent alongside an optional reason and the
+ * deterministic date the pause was applied.
+ */
+export type MilestonePausedState = {
+  status: true;
+  reason?: string;
+  paused_on?: string;
 };
 
 export type StandalonePlannedChangeArtifact = {
@@ -239,7 +254,7 @@ export type RoadmapMilestoneStatus = {
   order?: number;
   displayOrdinal: number;
   declaredStatus: DeclaredRoadmapStatus;
-  derivedStatus: Exclude<DeclaredRoadmapStatus, "blocked">;
+  derivedStatus: DeclaredRoadmapStatus;
   plannedChanges: RoadmapPlannedChangeStatus[];
   mismatches: string[];
 };
@@ -248,6 +263,7 @@ export type RoadmapRecommendationSkipCode =
   | "workflow-state-active"
   | "workflow-state-archived"
   | "workflow-state-ambiguous"
+  | "milestone-paused"
   | "planned-change-mismatch"
   | "dependency-incomplete";
 
@@ -315,7 +331,7 @@ export type RoadmapArchiveSkippedMilestone = {
   path: string;
   reason: string;
   declaredStatus: DeclaredRoadmapStatus;
-  derivedStatus: Exclude<DeclaredRoadmapStatus, "blocked">;
+  derivedStatus: DeclaredRoadmapStatus;
   plannedChangeStates: Array<{
     id: string;
     state: PlannedChangeState;

@@ -59,6 +59,8 @@ const expectedCommandOrder = [
   "roadmap-recommend",
   "roadmap-archive",
   "roadmap-reopen",
+  "roadmap-pause",
+  "roadmap-resume",
   "sop-create",
   "sop-list",
   "sop-show",

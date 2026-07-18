@@ -315,6 +315,8 @@ export function recommendRoadmapChange(rootDir: string, options: RoadmapRecommen
     const milestone = milestoneByPath.get(milestoneStatus.path);
     if (!milestone) continue;
 
+    const milestonePaused = milestone.artifact.paused?.status === true;
+
     for (const standalonePlannedChange of getStandalonePlannedChangesForMilestone(roadmap, milestone)) {
       const plannedChangePath = `roadmap/${standalonePlannedChange.relativeRoadmapPath}`;
       const plannedChangeStatus = findPlannedChangeStatus(
@@ -329,6 +331,12 @@ export function recommendRoadmapChange(rootDir: string, options: RoadmapRecommen
         dependencyStatusIndex,
         standalonePlannedChange.artifact.depends_on,
       );
+      if (milestonePaused) {
+        skipReasons.push({
+          code: "milestone-paused",
+          message: "owning milestone is paused; run roadmap-resume to re-enter the recommendation pipeline",
+        });
+      }
       const candidate: RoadmapRecommendationCandidate = {
         id: standalonePlannedChange.artifact.planned_change.id,
         changeName: standalonePlannedChange.artifact.planned_change.id,

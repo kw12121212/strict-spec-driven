@@ -1893,6 +1893,238 @@ try {
   rmSync(roadmapReopenDir, { recursive: true, force: true });
 }
 
+const roadmapPauseDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-pause-"));
+try {
+  // A milestone with a pending standalone planned change derives status proposed
+  // and is eligible for roadmap-recommend.
+  writeRoadmapMilestoneArtifact(roadmapPauseDir, "0001-pause.yaml", {
+    id: "0001-pause",
+    title: "Pause Workflow",
+    goal: "Pause and resume a milestone without losing state.",
+    status: "proposed",
+    plannedChanges: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapPauseDir, "planned-changes/0001-pause-pending-change.yaml", {
+    id: "pending-change",
+    milestone: "0001-pause",
+    status: "planned",
+    summary: "Pending work the pause should hide from recommendation.",
+    details: "Standalone details for pending-change.",
+    depends_on: [],
+  });
+  writeRoadmapIndexArtifact(roadmapPauseDir, [
+    {
+      id: "0001-pause",
+      title: "Pause Workflow",
+      path: "roadmap/milestones/0001-pause.yaml",
+      status: "proposed",
+    },
+  ]);
+
+  const pauseStatusBefore = cli(["roadmap-status"], { cwd: roadmapPauseDir });
+  context.assert(pauseStatusBefore.status === 0, "roadmap-status exits zero for a proposed milestone before pause");
+  const pauseStatusBeforeJson = JSON.parse(pauseStatusBefore.stdout.trim());
+  context.assert(
+    pauseStatusBeforeJson.milestones[0].declaredStatus === "proposed"
+      && pauseStatusBeforeJson.milestones[0].derivedStatus === "proposed",
+    "roadmap-status reports a proposed milestone before pause",
+  );
+
+  // roadmap-recommend initially selects the pending planned change.
+  const recommendBeforePause = cli(["roadmap-recommend"], { cwd: roadmapPauseDir });
+  context.assert(recommendBeforePause.status === 0, "roadmap-recommend exits zero before pause");
+  context.assert(
+    JSON.parse(recommendBeforePause.stdout.trim()).recommendation?.id === "pending-change",
+    "roadmap-recommend initially selects the pending planned change",
+  );
+
+  // Pause the milestone with a concrete reason.
+  const roadmapPause = cli(
+    ["roadmap-pause", "0001-pause", "--reason", "waiting on external vendor API contract"],
+    { cwd: roadmapPauseDir },
+  );
+  context.assert(roadmapPause.status === 0, "roadmap-pause exits zero for a proposed milestone", `got ${roadmapPause.status}: ${roadmapPause.stdout}`);
+  const roadmapPauseJson = JSON.parse(roadmapPause.stdout.trim());
+  context.assert(roadmapPauseJson.valid === true, "roadmap-pause reports valid=true");
+  context.assert(
+    roadmapPauseJson.paused.id === "0001-pause"
+      && roadmapPauseJson.paused.previousStatus === "proposed"
+      && roadmapPauseJson.paused.newStatus === "blocked",
+    "roadmap-pause reports the milestone moved from proposed to blocked",
+  );
+  context.assert(
+    roadmapPauseJson.paused.paused.status === true
+      && roadmapPauseJson.paused.paused.reason === "waiting on external vendor API contract"
+      && typeof roadmapPauseJson.paused.paused.paused_on === "string"
+      && /^\d{4}-\d{2}-\d{2}$/.test(roadmapPauseJson.paused.paused.paused_on),
+    "roadmap-pause records a structured paused mapping with reason and paused_on date",
+    `paused: ${JSON.stringify(roadmapPauseJson.paused.paused)}`,
+  );
+  context.assert(
+    roadmapPauseJson.updatedFiles.some((file: string) => file.endsWith("roadmap/milestones/0001-pause.yaml")),
+    "roadmap-pause records the milestone file as updated",
+  );
+
+  // The milestone file carries the structured paused field plus a dated note.
+  const pausedMilestoneArtifact = yamlModule.parseYamlFile<{
+    status: string;
+    paused?: { status?: boolean; reason?: string; paused_on?: string };
+    notes: string[];
+  }>(path.join(roadmapPauseDir, ".strict-spec-driven", "roadmap", "milestones", "0001-pause.yaml"));
+  context.assert(
+    pausedMilestoneArtifact.status === "blocked",
+    "roadmap-pause writes status blocked to the milestone file",
+  );
+  context.assert(
+    pausedMilestoneArtifact.paused?.status === true
+      && pausedMilestoneArtifact.paused?.reason === "waiting on external vendor API contract"
+      && typeof pausedMilestoneArtifact.paused?.paused_on === "string",
+    "roadmap-pause writes the structured paused field to the milestone file",
+  );
+  context.assert(
+    pausedMilestoneArtifact.notes.some((note: string) => note.startsWith("Paused on ") && note.includes("waiting on external vendor API contract")),
+    "roadmap-pause appends a dated pause note carrying the reason",
+  );
+
+  // roadmap-status now reports declared/derived blocked with no mismatch.
+  const pauseStatusAfter = cli(["roadmap-status"], { cwd: roadmapPauseDir });
+  context.assert(pauseStatusAfter.status === 0, "roadmap-status stays zero after pause");
+  const pauseStatusAfterJson = JSON.parse(pauseStatusAfter.stdout.trim());
+  context.assert(
+    pauseStatusAfterJson.milestones[0].declaredStatus === "blocked"
+      && pauseStatusAfterJson.milestones[0].derivedStatus === "blocked"
+      && pauseStatusAfterJson.milestones[0].mismatches.length === 0,
+    "roadmap-status reports the paused milestone as blocked with no declared/derived mismatch",
+  );
+
+  // roadmap-sync must preserve the pause rather than reverting to derived proposed.
+  const intermediateSync = cli(["roadmap-sync"], { cwd: roadmapPauseDir });
+  context.assert(intermediateSync.status === 0, "roadmap-sync exits zero after pause");
+  const intermediateMilestone = yamlModule.parseYamlFile<{ status: string; paused?: { status?: boolean } }>(
+    path.join(roadmapPauseDir, ".strict-spec-driven", "roadmap", "milestones", "0001-pause.yaml"),
+  );
+  context.assert(
+    intermediateMilestone.status === "blocked" && intermediateMilestone.paused?.status === true,
+    "roadmap-sync keeps the paused milestone blocked rather than reverting to derived proposed",
+  );
+
+  // roadmap-recommend skips the paused milestone with a milestone-paused reason.
+  const recommendDuringPause = cli(["roadmap-recommend", "--details"], { cwd: roadmapPauseDir });
+  context.assert(recommendDuringPause.status !== 0, "roadmap-recommend exits non-zero when no candidate is eligible");
+  const recommendDuringPauseJson = JSON.parse(recommendDuringPause.stdout.trim());
+  context.assert(
+    recommendDuringPauseJson.status === "no-candidate"
+      && recommendDuringPauseJson.recommendation === null,
+    "roadmap-recommend does not recommend any planned change while the milestone is paused",
+  );
+  context.assert(
+    recommendDuringPauseJson.candidates.some(
+      (c: { id: string; skipReasons: { code: string }[] }) =>
+        c.id === "pending-change" && c.skipReasons.some((r) => r.code === "milestone-paused"),
+    ),
+    "roadmap-recommend reports a milestone-paused skip reason on the paused milestone candidate",
+  );
+
+  // Standalone planned-change file is unchanged after pause.
+  const pausedPlannedChangePath = path.join(
+    roadmapPauseDir,
+    ".strict-spec-driven",
+    "roadmap",
+    "planned-changes",
+    "0001-pause-pending-change.yaml",
+  );
+  const pausedPlannedChangeContent = readFileSync(pausedPlannedChangePath, "utf8");
+  context.assert(
+    pausedPlannedChangeContent.includes("status: planned") && !pausedPlannedChangeContent.includes("paused"),
+    "roadmap-pause does not modify standalone planned-change files",
+  );
+
+  // Resume the milestone and confirm re-derivation to proposed.
+  const roadmapResume = cli(
+    ["roadmap-resume", "0001-pause", "--reason", "vendor delivered the API contract"],
+    { cwd: roadmapPauseDir },
+  );
+  context.assert(roadmapResume.status === 0, "roadmap-resume exits zero for a paused milestone", `got ${roadmapResume.status}: ${roadmapResume.stdout}`);
+  const roadmapResumeJson = JSON.parse(roadmapResume.stdout.trim());
+  context.assert(roadmapResumeJson.valid === true, "roadmap-resume reports valid=true");
+  context.assert(
+    roadmapResumeJson.resumed.id === "0001-pause"
+      && roadmapResumeJson.resumed.previousStatus === "blocked"
+      && roadmapResumeJson.resumed.newStatus === "proposed",
+    "roadmap-resume moves the milestone back from blocked to its derived proposed status",
+  );
+  context.assert(
+    roadmapResumeJson.resumed.previousPaused?.status === true,
+    "roadmap-resume reports the previously cleared paused field",
+  );
+
+  // The milestone file no longer carries the paused field and shows the resume note.
+  const resumedMilestoneArtifact = yamlModule.parseYamlFile<{
+    status: string;
+    paused?: { status?: boolean };
+    notes: string[];
+  }>(path.join(roadmapPauseDir, ".strict-spec-driven", "roadmap", "milestones", "0001-pause.yaml"));
+  context.assert(
+    resumedMilestoneArtifact.status === "proposed" && resumedMilestoneArtifact.paused === undefined,
+    "roadmap-resume deletes the paused field and re-derives status from planned-change state",
+  );
+  context.assert(
+    resumedMilestoneArtifact.notes.some((note: string) => note.startsWith("Resumed on ") && note.includes("vendor delivered the API contract")),
+    "roadmap-resume appends a dated resume note carrying the reason",
+  );
+
+  // roadmap-recommend now considers the milestone's planned change again.
+  const recommendAfterResume = cli(["roadmap-recommend"], { cwd: roadmapPauseDir });
+  context.assert(recommendAfterResume.status === 0, "roadmap-recommend exits zero after resume");
+  const recommendAfterResumeJson = JSON.parse(recommendAfterResume.stdout.trim());
+  context.assert(
+    recommendAfterResumeJson.status === "recommended"
+      && recommendAfterResumeJson.recommendation?.id === "pending-change",
+    "roadmap-recommend selects the previously paused planned change after resume",
+  );
+
+  // Resume on a non-paused milestone is rejected.
+  const resumeNotPaused = cli(["roadmap-resume", "0001-pause"], { cwd: roadmapPauseDir });
+  context.assert(resumeNotPaused.status !== 0, "roadmap-resume exits non-zero when the milestone is not paused");
+  const resumeNotPausedJson = JSON.parse(resumeNotPaused.stdout.trim());
+  context.assert(
+    resumeNotPausedJson.valid === false
+      && resumeNotPausedJson.diagnostics.some((d: { message: string }) => d.message.includes("not paused")),
+    "roadmap-resume reports a not-paused diagnostic",
+  );
+
+  // Pause and resume on an unknown milestone id is rejected.
+  const pauseMissing = cli(["roadmap-pause", "does-not-exist"], { cwd: roadmapPauseDir });
+  context.assert(pauseMissing.status !== 0, "roadmap-pause exits non-zero for an unknown milestone id");
+  const pauseMissingJson = JSON.parse(pauseMissing.stdout.trim());
+  context.assert(
+    pauseMissingJson.valid === false
+      && pauseMissingJson.diagnostics.some((d: { message: string }) => d.message.includes("was not found in the roadmap")),
+    "roadmap-pause reports a not-found diagnostic for an unknown milestone id",
+  );
+  const resumeMissing = cli(["roadmap-resume", "does-not-exist"], { cwd: roadmapPauseDir });
+  context.assert(resumeMissing.status !== 0, "roadmap-resume exits non-zero for an unknown milestone id");
+
+  // Missing milestone-id prints usage.
+  const pauseNoArg = cli(["roadmap-pause"], { cwd: roadmapPauseDir });
+  context.assert(pauseNoArg.status !== 0, "roadmap-pause exits non-zero when no milestone id is supplied");
+  const resumeNoArg = cli(["roadmap-resume"], { cwd: roadmapPauseDir });
+  context.assert(resumeNoArg.status !== 0, "roadmap-resume exits non-zero when no milestone id is supplied");
+
+  // Pausing a second time updates the reason and keeps status blocked.
+  const rePause = cli(["roadmap-pause", "0001-pause", "--reason", "vendor slipped the delivery date"], { cwd: roadmapPauseDir });
+  context.assert(rePause.status === 0, "roadmap-pause exits zero when re-pausing an already-resumed milestone");
+  const rePauseJson = JSON.parse(rePause.stdout.trim());
+  context.assert(
+    rePauseJson.paused.previousStatus === "proposed"
+      && rePauseJson.paused.newStatus === "blocked"
+      && rePauseJson.paused.paused.reason === "vendor slipped the delivery date",
+    "roadmap-pause re-pauses a resumed milestone with the new reason",
+  );
+} finally {
+  rmSync(roadmapPauseDir, { recursive: true, force: true });
+}
+
 const roadmapPlannedAliasDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-planned-alias-"));
 try {
   // `planned` is an accepted alias of `proposed` for an incomplete milestone.

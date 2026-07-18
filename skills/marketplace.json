@@ -6,6 +6,8 @@
     { "name": "strict-roadmap-archive", "family": "strict-roadmap" },
     { "name": "strict-roadmap-recommend", "family": "strict-roadmap" },
     { "name": "strict-roadmap-reopen", "family": "strict-roadmap" },
+    { "name": "strict-roadmap-pause", "family": "strict-roadmap" },
+    { "name": "strict-roadmap-resume", "family": "strict-roadmap" },
     { "name": "strict-roadmap-review", "family": "strict-roadmap" },
     { "name": "strict-roadmap-reorder", "family": "strict-roadmap" },
     { "name": "strict-roadmap-sync", "family": "strict-roadmap" },

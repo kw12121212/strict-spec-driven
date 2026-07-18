@@ -12,6 +12,7 @@ import {
   type RoadmapMilestoneAuthorInput,
   type RoadmapPlannedChangeAuthorInput,
 } from "../roadmap/author.js";
+import { pauseMilestone, resumeMilestone } from "../roadmap/pause.js";
 import { reopenMilestone } from "../roadmap/reopen.js";
 import { renumberRoadmapMilestones, reorderRoadmapMilestone, type RoadmapReorderInput } from "../roadmap/order.js";
 import { isHelpRequest } from "./argv.js";
@@ -20,6 +21,8 @@ import { writeError, writeHelp, writeJson, writeOut, writeUsage } from "./output
 const ROADMAP_RECOMMEND_USAGE = "Usage: strict-spec-cli roadmap-recommend [--details] [--milestone <milestone-id>]\n";
 const ROADMAP_ARCHIVE_USAGE = "Usage: strict-spec-cli roadmap-archive [milestone-id]\n";
 const ROADMAP_REOPEN_USAGE = "Usage: strict-spec-cli roadmap-reopen <milestone-id> [--reason \"...\"]\n";
+const ROADMAP_PAUSE_USAGE = "Usage: strict-spec-cli roadmap-pause <milestone-id> [--reason \"...\"]\n";
+const ROADMAP_RESUME_USAGE = "Usage: strict-spec-cli roadmap-resume <milestone-id> [--reason \"...\"]\n";
 const ROADMAP_REORDER_USAGE = "Usage: strict-spec-cli roadmap-reorder <milestone-id> (--before <milestone-id> | --after <milestone-id> | --order <integer>)\n";
 const ROADMAP_RENUMBER_USAGE = "Usage: strict-spec-cli roadmap-renumber\n";
 const ROADMAP_GENERATE_USAGE = [
@@ -500,6 +503,66 @@ export function runRoadmapReopen(argv: string[]): number {
   }
 
   const result = reopenMilestone(process.cwd(), milestoneId, reason !== undefined ? { reason } : {});
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+
+function parseOptionalReasonArg(
+  argv: string[],
+  usage: string,
+): { milestoneId: string; reason: string | undefined } | number {
+  if (argv.length === 0) {
+    writeUsage(usage);
+    return 1;
+  }
+  const milestoneId = argv[0];
+  const reasonArgs: string[] = [];
+  let reason: string | undefined;
+  for (let index = 1; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === "--reason") {
+      const next = argv[index + 1];
+      if (typeof next !== "string") {
+        writeUsage(usage);
+        return 1;
+      }
+      reason = next;
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--reason=")) {
+      reason = token.slice("--reason=".length);
+      continue;
+    }
+    reasonArgs.push(token);
+  }
+  if (reasonArgs.length > 0) {
+    writeUsage(usage);
+    return 1;
+  }
+  return { milestoneId, reason };
+}
+
+export function runRoadmapPause(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp(ROADMAP_PAUSE_USAGE);
+    return 0;
+  }
+  const parsed = parseOptionalReasonArg(argv, ROADMAP_PAUSE_USAGE);
+  if (typeof parsed === "number") return parsed;
+  const result = pauseMilestone(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+
+export function runRoadmapResume(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp(ROADMAP_RESUME_USAGE);
+    return 0;
+  }
+  const parsed = parseOptionalReasonArg(argv, ROADMAP_RESUME_USAGE);
+  if (typeof parsed === "number") return parsed;
+  const result = resumeMilestone(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
   writeJson(result);
   return result.valid ? 0 : 1;
 }

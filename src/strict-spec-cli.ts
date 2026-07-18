@@ -11,10 +11,12 @@ import {
   runRoadmapArchive,
   runRoadmapGenerate,
   runRoadmapOverview,
+  runRoadmapPause,
   runRoadmapRecommend,
   runRoadmapRenumber,
   runRoadmapReorder,
   runRoadmapReopen,
+  runRoadmapResume,
   runRoadmapStatus,
   runRoadmapSync,
 } from "./cli/cmd-roadmap.js";
@@ -76,6 +78,13 @@ export { archiveChange };
 export { getRoadmapStatus, recommendRoadmapChange, syncRoadmap };
 export { archiveRoadmapMilestones } from "./roadmap/archive.js";
 export { reopenMilestone } from "./roadmap/reopen.js";
+export { pauseMilestone, resumeMilestone } from "./roadmap/pause.js";
+export type {
+  RoadmapPauseOptions,
+  RoadmapPauseResult,
+  RoadmapResumeOptions,
+  RoadmapResumeResult,
+} from "./roadmap/pause.js";
 export { migrateLegacyWorkflow };
 export { runMaintenance };
 
@@ -118,6 +127,8 @@ export const commands = createCliCommandTable({
   "roadmap-recommend": (argv) => runRoadmapRecommend(argv),
   "roadmap-archive": (argv) => runRoadmapArchive(argv),
   "roadmap-reopen": (argv) => runRoadmapReopen(argv),
+  "roadmap-pause": (argv) => runRoadmapPause(argv),
+  "roadmap-resume": (argv) => runRoadmapResume(argv),
   "sop-create": (argv) => runSopCreate(argv),
   "sop-list": (argv) => runSopList(argv),
   "sop-show": (argv) => runSopShow(argv),

@@ -1,0 +1,13 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: roadmap-milestone-pause
+approach:
+  - 'Mirror the roadmap-reopen implementation shape: introduce an optional top-level ''paused'' field on the roadmap-milestone v2 schema (status:boolean, reason:string, paused_on:string), validate the mapping, and treat paused.status===true as the source of truth that forces the derived status to ''blocked'' inside buildMilestoneStatus. roadmap-sync''s buildCanonicalMilestoneArtifact round-trips the paused field so canonical rewrite preserves it; resolveCanonicalMilestoneStatus then naturally writes status: blocked because declared blocked matches derived blocked. A new src/roadmap/pause.ts module owns pauseMilestone and resumeMilestone: load roadmap, find milestone, mutate the artifact''s paused field (set with deterministic date on pause, delete on resume), append a dated note recording the transition, run syncRoadmap, return compact pause/resume result. roadmap-recommend gains one filter step that skips planned changes whose owning milestone has paused.status===true. CLI handlers parse <milestone-id> and optional --reason and dispatch to the module; registry and strict-spec-cli.ts register roadmap-pause and roadmap-resume. New skills strict-roadmap-pause and strict-roadmap-resume wrap the CLI for agent use. Delta spec under changes/roadmap-milestone-pause/specs/ captures the observable contract; on archive it merges into .strict-spec-driven/specs/roadmap/domain-behavior.yaml.'
+decisions:
+  pause-is-sticky-structured-field:
+    decision: 'Represent pause as a structured top-level ''paused'' field rather than reusing the bare ''blocked'' status string. The paused field is the source of truth; status: blocked becomes the derived reflection.'
+    rationale: 'A bare status: blocked cannot be made sticky without breaking the existing derivation contract that always re-derives status from planned-change state, and ''blocked'' has prior meaning as a manual override that sync silently overwrites. A dedicated paused field keeps the source-of-truth explicit, leaves room for reason and paused_on metadata (paralleling planned-change team.blocked), and lets buildMilestoneStatus and buildCanonicalMilestoneArtifact treat paused as a first-class input without coupling to status string spelling. Resume is symmetric: delete the paused field and let sync re-derive, so there is no second source of truth.'
+alternatives: []
+risks: []

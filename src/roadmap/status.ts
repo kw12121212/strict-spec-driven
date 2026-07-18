@@ -5,6 +5,7 @@ import {
   STRICT_WORKFLOW_DIR,
   type ChangeStateIndex,
   type DeclaredPlannedChangeStatus,
+  type DeclaredRoadmapStatus,
   type LoadedMilestone,
   type LoadedPlannedChange,
   type LoadedRoadmap,
@@ -79,6 +80,21 @@ function deriveMilestoneStatus(states: PlannedChangeState[]): "proposed" | "acti
   if (states.every((state) => state === "archived")) return "complete";
   if (states.some((state) => state === "active" || state === "ambiguous")) return "active";
   return "proposed";
+}
+
+/**
+ * Effective derived status for a milestone. A sticky `paused.status === true`
+ * forces the derived status to `blocked` regardless of underlying
+ * planned-change state, so the operator-applied pause survives canonical
+ * rewrite and roadmap-recommend. Without a pause the derived status follows
+ * structured planned-change state (proposed, active, or complete).
+ */
+function deriveEffectiveMilestoneStatus(
+  milestone: LoadedMilestone,
+  states: PlannedChangeState[],
+): DeclaredRoadmapStatus {
+  if (milestone.artifact.paused?.status === true) return "blocked";
+  return deriveMilestoneStatus(states);
 }
 
 export type MergedPlannedChangeEntry = {
@@ -445,7 +461,7 @@ export function buildMilestoneStatus(
     };
   });
 
-  const derivedStatus = deriveMilestoneStatus(plannedChanges.map((entry) => entry.state));
+  const derivedStatus = deriveEffectiveMilestoneStatus(milestone, plannedChanges.map((entry) => entry.state));
   const mismatches: string[] = [];
   if (normalizeMilestoneStatus(milestone.artifact.status) !== derivedStatus) {
     mismatches.push(`declared status '${milestone.artifact.status}' does not match derived status '${derivedStatus}'`);

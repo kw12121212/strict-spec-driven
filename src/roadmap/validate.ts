@@ -9,6 +9,7 @@ import {
   type RoadmapMilestoneArtifact,
   type MilestoneIdentity,
   type MilestoneIntakeQuestion,
+  type MilestonePausedState,
   type MilestoneScope,
   type PlannedChangeTeamMetadata,
   type StandalonePlannedChangeArtifact,
@@ -343,6 +344,54 @@ function validateBlockedMetadata(
   };
 }
 
+/**
+ * Validate the optional sticky `paused` mapping on a milestone. The mapping is
+ * the source of truth for a pause; when `status` is true the milestone's
+ * effective status is forced to `blocked` and roadmap-recommend skips every
+ * planned change the milestone owns.
+ */
+function validatePausedMetadata(
+  value: unknown,
+  artifactPath: string,
+  fieldPath: string,
+  diagnostics: RoadmapDiagnostic[],
+): MilestonePausedState | null {
+  if (!isRecord(value)) {
+    diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "paused must be a mapping", "mapping", typeof value));
+    return null;
+  }
+
+  let valid = true;
+  for (const key of Object.keys(value)) {
+    if (key !== "status" && key !== "reason" && key !== "paused_on") {
+      diagnostics.push(
+        makeDiagnostic("schema", artifactPath, `${fieldPath}.${key}`, "unsupported paused metadata field", "status, reason, or paused_on", key),
+      );
+      valid = false;
+    }
+  }
+
+  if (value.status !== true) {
+    diagnostics.push(
+      makeDiagnostic("schema", artifactPath, `${fieldPath}.status`, "paused.status must be the literal boolean true", "true", String(value.status)),
+    );
+    valid = false;
+  }
+
+  const reason = validateOptionalString(value, "reason", artifactPath, `${fieldPath}.reason`, diagnostics);
+  if (reason === null) valid = false;
+
+  const pausedOn = validateOptionalString(value, "paused_on", artifactPath, `${fieldPath}.paused_on`, diagnostics);
+  if (pausedOn === null) valid = false;
+
+  if (!valid) return null;
+  return {
+    status: true,
+    ...(typeof reason === "string" ? { reason } : {}),
+    ...(typeof pausedOn === "string" ? { paused_on: pausedOn } : {}),
+  };
+}
+
 function validateExternalRefsMetadata(
   value: unknown,
   artifactPath: string,
@@ -592,6 +641,16 @@ export function validateMilestoneArtifact(
     );
   }
 
+  const pausedState = "paused" in artifact && artifact.paused !== undefined
+    ? (() => {
+        if (artifact.paused === null) {
+          diagnostics.push(makeDiagnostic("schema", artifactPath, "$.paused", "paused must be a mapping", "mapping", "null"));
+          return null;
+        }
+        return validatePausedMetadata(artifact.paused, artifactPath, "$.paused", diagnostics);
+      })()
+    : undefined;
+
   const rawMilestone = artifact.milestone;
   let milestone: MilestoneIdentity | null = null;
   if (!isRecord(rawMilestone)) {
@@ -752,6 +811,7 @@ export function validateMilestoneArtifact(
     dependencies,
     risks,
     status: statusValue,
+    ...(pausedState ? { paused: pausedState } : {}),
     notes,
     details: details ?? undefined,
   };

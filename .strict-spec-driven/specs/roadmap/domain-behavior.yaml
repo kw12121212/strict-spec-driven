@@ -19,6 +19,7 @@ mapping:
     - src/roadmap/sync.ts
     - src/roadmap/archive.ts
     - src/roadmap/reopen.ts
+    - src/roadmap/pause.ts
     - src/cli/registry.ts
     - src/strict-spec-cli.ts
     - src/skills/model.ts
@@ -32,6 +33,9 @@ mapping:
     - templates/strict-spec-driven/schemas/roadmap-index.yaml
     - skills/marketplace.json
     - skills/strict-roadmap-reorder/SKILL.md
+    - src/embedded-templates.ts
+    - skills/strict-roadmap-pause/SKILL.md
+    - skills/strict-roadmap-resume/SKILL.md
   tests:
     - test/suites/roadmap-and-migration.ts
     - test/suites/entrypoint-and-skills.ts
@@ -253,3 +257,27 @@ requirements:
         - GIVEN: a valid roadmap has two milestones where an active milestone's standalone planned change depends_on a planned change owned by another milestone, and the owning milestone and its standalone planned changes are complete and have been moved into roadmap/archive by roadmap-archive
         - WHEN: strict-spec-driven roadmap-status and roadmap-sync run afterward against the active roadmap
         - THEN: both commands exit zero, report valid roadmap state, and do not emit a 'planned change dependency is missing from roadmap planned-change sources' diagnostic for the archived dependency target
+  roadmap-pause-resume-contract:
+    strength: MUST
+    statement: The system MUST provide roadmap-pause and roadmap-resume commands that mark and clear a sticky paused state on a non-archived strict roadmap milestone. Pausing records an optional reason and a deterministic pause date in a structured top-level paused field on the milestone artifact, forces the milestone effective status to blocked so roadmap-sync canonical rewrite preserves it, appends a dated pause note, and makes roadmap-recommend skip every planned change the milestone owns with a milestone-paused skip reason. Resuming clears the paused field, optionally appends a dated resume note, and lets roadmap-sync re-derive the milestone status from planned-change state. Both commands reject unknown milestone ids with deterministic diagnostics, never modify archived milestones or any planned-change file, and leave the roadmap valid afterward.
+    scenarios:
+      pause-forces-blocked-status:
+        - GIVEN: a valid active roadmap contains a non-archived milestone with an in-progress or pending standalone planned change and no paused field
+        - WHEN: strict-spec-cli roadmap-pause runs for that milestone with an optional reason
+        - THEN: the command exits zero, reports valid true, writes a paused mapping with status true and paused_on date onto the milestone artifact, sets the milestone status to blocked, appends a Paused-on note recording the reason, and leaves roadmap-status reporting declared and derived status blocked with no mismatch
+      pause-survives-sync:
+        - GIVEN: a milestone has been paused by roadmap-pause
+        - WHEN: strict-spec-cli roadmap-sync runs before any further edit
+        - THEN: the milestone stays blocked because the paused field survives canonical rewrite rather than reverting to the planned-change-derived status
+      recommend-skips-paused-milestone:
+        - GIVEN: a valid roadmap contains a paused milestone whose standalone planned change would otherwise be the next eligible recommendation
+        - WHEN: strict-spec-cli roadmap-recommend runs
+        - THEN: the command does not recommend the paused milestone planned change and reports a milestone-paused skip reason on that candidate
+      resume-clears-pause:
+        - GIVEN: a milestone has been paused by roadmap-pause
+        - WHEN: strict-spec-cli roadmap-resume runs for that milestone with an optional reason
+        - THEN: the command exits zero, deletes the paused field from the milestone artifact, optionally appends a Resumed-on note, and lets roadmap-sync re-derive the milestone status from its planned-change state
+      pause-rejects-unknown-milestone:
+        - GIVEN: a valid roadmap has no milestone with the requested id
+        - WHEN: strict-spec-cli roadmap-pause or roadmap-resume runs for that id
+        - THEN: the command exits non-zero with a deterministic diagnostic and writes no milestone file

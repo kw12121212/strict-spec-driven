@@ -1,0 +1,67 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: roadmap-milestone-pause
+sections:
+  Implementation:
+    extend-milestone-schema:
+      text: Add optional top-level paused object (status boolean const true, optional reason string minLength 1, optional paused_on string) to templates/strict-spec-driven/schemas/roadmap-milestone.yaml and the shared schema cache copy at ~/.strict-spec-schemas/templates/strict-spec-driven/schemas/roadmap-milestone.yaml, then regenerate src/embedded-templates.ts via bun scripts/gen-templates-bundle.ts.
+      status: complete
+    add-paused-model-and-validation:
+      text: Add MilestonePausedState type and optional paused field on RoadmapMilestoneArtifact in src/roadmap/model.ts; widen RoadmapMilestoneStatus.derivedStatus to admit blocked; add validatePausedMetadata in src/roadmap/validate.ts and call it from validateMilestoneArtifact; return a RoadmapMilestoneArtifact that round-trips the paused field.
+      status: complete
+    derive-blocked-when-paused:
+      text: Update src/roadmap/status.ts buildMilestoneStatus so derivedStatus becomes blocked when milestone artifact paused.status is true; mismatches must compare normalized status so paused-to-blocked is not a declared/derived mismatch.
+      status: complete
+    preserve-paused-in-canonical-rewrite:
+      text: Update src/roadmap/sync.ts buildCanonicalMilestoneArtifact to round-trip the optional paused field so roadmap-sync preserves pause state across canonical rewrites; confirm resolveCanonicalMilestoneStatus still writes blocked when paused forces derived to blocked.
+      status: complete
+    implement-pause-module:
+      text: Create src/roadmap/pause.ts with pauseMilestone and resumeMilestone. Pause sets paused to a mapping with status true, optional reason, and a paused_on date, appends a Paused-on note, runs syncRoadmap, returns a compact result with previousStatus, newStatus, and paused state. Resume deletes paused, optionally appends a Resumed-on note, runs syncRoadmap, returns a compact result. Reject unknown milestone ids with deterministic diagnostics.
+      status: complete
+    recommend-skips-paused:
+      text: Update src/roadmap.ts recommendRoadmapChange to skip every standalone planned change whose owning milestone has paused.status true, surfacing the skip as a milestone-paused skip reason code on the candidate so callers see why.
+      status: complete
+    wire-cli-commands:
+      text: Add runRoadmapPause and runRoadmapResume handlers to src/cli/cmd-roadmap.ts parsing milestone-id and optional reason; register roadmap-pause and roadmap-resume in src/cli/registry.ts COMMAND_REGISTRATION_ORDER (after roadmap-reopen) and in src/strict-spec-cli.ts commands table; re-export pauseMilestone and resumeMilestone from src/roadmap.ts.
+      status: complete
+    add-pause-and-resume-skills:
+      text: Create skills/strict-roadmap-pause/SKILL.md and skills/strict-roadmap-resume/SKILL.md following the strict-roadmap-reopen skill shape (frontmatter, command table, prerequisites, semantics, steps, rules); add both skills to skills/marketplace.json in the strict-roadmap family.
+      status: complete
+  Testing:
+    pause-resume-regression:
+      text: Add regression coverage in test/suites/roadmap-and-migration.ts that writes a milestone with an active standalone planned change, runs roadmap-pause, asserts derived and declared status becomes blocked and the paused field round-trips through roadmap-sync, asserts roadmap-recommend skips the milestone, runs roadmap-resume, asserts status re-derives to active and the paused field is gone, and asserts pause on an archived milestone is rejected.
+      status: complete
+      command: bun test/run.ts
+    lint:
+      text: Run the project TypeScript lint gate.
+      status: complete
+      command: bun run lint
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-scope:
+      text: Verify implementation matches proposal scope.
+      status: complete
+    ready:
+      text: Run strict-spec-cli ready roadmap-milestone-pause to confirm proposal handoff blockers are clear.
+      status: complete
+      command: strict-spec-cli ready roadmap-milestone-pause
+    verify:
+      text: Run strict-spec-cli verify roadmap-milestone-pause to confirm artifact structure and tasks.
+      status: complete
+      command: strict-spec-cli verify roadmap-milestone-pause
+    verify-spec-mappings:
+      text: Run strict-spec-cli verify-spec-mappings to confirm delta spec implementation and test mappings resolve.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+    archive-merge-check:
+      text: Confirm archive-merge would merge the delta spec into .strict-spec-driven/specs/roadmap/domain-behavior.yaml without breaking existing requirements.
+      status: complete
+      command: strict-spec-cli verify roadmap-milestone-pause
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: run-project-regression

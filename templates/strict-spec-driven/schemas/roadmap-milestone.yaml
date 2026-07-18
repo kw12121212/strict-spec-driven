@@ -144,6 +144,21 @@ json_schema:
         - active
         - blocked
         - complete
+    paused:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+      properties:
+        status:
+          type: boolean
+          const: true
+        reason:
+          type: string
+          minLength: 1
+        paused_on:
+          type: string
+          minLength: 1
     notes:
       type: array
       items:

@@ -85,6 +85,7 @@ export function buildCanonicalMilestoneArtifact(
     dependencies: [...milestone.artifact.dependencies],
     risks: [...milestone.artifact.risks],
     status: resolveCanonicalMilestoneStatus(milestone.artifact.status, status.derivedStatus),
+    ...(milestone.artifact.paused ? { paused: { ...milestone.artifact.paused } } : {}),
     notes: [...milestone.artifact.notes],
     ...(milestone.artifact.details != null ? { details: milestone.artifact.details } : {}),
   };
