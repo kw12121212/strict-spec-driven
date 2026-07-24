@@ -270,13 +270,28 @@ try {
     "question resolution removes the open entry and writes resolved state",
   );
 
-  const rejectedTasksGenerate = cli(["generate", changeName, "tasks", "--reset"], { cwd: workflowGuidanceDir });
-  context.assert(rejectedTasksGenerate.status !== 0, "generate tasks remains unsupported for task-list editing");
+  const scriptedTasksGenerate = cli([
+    "generate", changeName, "tasks", "--reset",
+    "--section", "Implementation", "--task", "do-the-work", "--text", "Implement the scoped behavior.",
+    "--section", "Testing", "--task", "run-tests", "--text", "Run the tests.", "--command", "bun test/run.ts",
+    "--section", "Verification", "--task", "verify-scope", "--text", "Verify the change scope.",
+    "--validation-task", "run-tests", "--unit-test-task", "run-tests",
+  ], { cwd: workflowGuidanceDir });
+  context.assert(scriptedTasksGenerate.status === 0, "generate tasks populates the task list from scripted generation", scriptedTasksGenerate.stderr.trim());
+  const scriptedTasksJson = JSON.parse(scriptedTasksGenerate.stdout.trim());
   context.assert(
-    rejectedTasksGenerate.stderr.includes("artifact must be one of") &&
-      !rejectedTasksGenerate.stderr.includes("tasks"),
-    "generate tasks failure keeps task-list editing outside scripted generation",
-    rejectedTasksGenerate.stderr.trim(),
+    scriptedTasksJson.valid === true && scriptedTasksJson.diagnostics.length === 0,
+    "generate tasks reports a complete scripted task list as valid",
+  );
+  const scriptedTasks = yamlModule.parseYamlDocument<{
+    sections: { Implementation: Record<string, unknown>; Testing: Record<string, unknown> };
+    testing_gates: { validation_task: string };
+  }>(readFileSync(path.join(changeDir, "tasks.yaml"), "utf8"));
+  context.assert(
+    "do-the-work" in scriptedTasks.sections.Implementation
+      && "run-tests" in scriptedTasks.sections.Testing
+      && scriptedTasks.testing_gates.validation_task === "run-tests",
+    "scripted task generation writes the requested tasks and testing gates",
   );
 
   const readyChangeName = "workflow-ready";

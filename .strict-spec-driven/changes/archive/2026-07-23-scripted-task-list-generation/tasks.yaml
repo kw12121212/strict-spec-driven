@@ -1,0 +1,38 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: scripted-task-list-generation
+sections:
+  Implementation:
+    add-tasks-artifact-type:
+      text: In src/propose-generation.ts, add "tasks" to GENERATABLE_ARTIFACTS and implement a buildTaskListArtifact that upserts each supplied task by (section, task-id), merges into the existing tasks.yaml, sets testing_gates from provided gate references, and rebuilds the artifact on --reset, mirroring the questions/delta-spec generators.
+      status: complete
+    add-tasks-cli-parsing:
+      text: In src/cli/cmd-generation.ts, parse the tasks named arguments (--section, --task, --text, --status, --command, --validation-task, --unit-test-task, --reset) into grouped task input, validate per-task field structure (section and status enums, task-id format, duplicate-id rejection, required-flag presence), wire the generate dispatch and usage/help text, and report deterministic argument errors before any write.
+      status: complete
+    update-skill-usage-guidance:
+      text: 'Update skills/strict-spec-brainstorm, strict-spec-propose, strict-spec-propose-from-roadmap, strict-spec-auto, strict-roadmap-recommend, and strict-spec-modify SKILL.md to replace direct tasks.yaml editing with explicit generate tasks usage: the exact command form, the one-invocation-per-task rule, the --reset-on-first-call rule to clear scaffold placeholders, and how to set testing_gates via flags. Leave strict-spec-apply unchanged.'
+      status: complete
+    rebuild-dist:
+      text: Run bun run build so compiled dist/ output reflects the new generate tasks behavior before running the dist-based test suite.
+      status: complete
+  Testing:
+    test-tasks-generation:
+      text: Add regression tests covering single-task upsert idempotency, --reset rebuild, testing-gate flag setting, section/status enum validation, task-id-format and duplicate-id rejection, missing-required-argument failures that leave the target artifact unchanged, and an in-progress append that still writes while returning completeness diagnostics (valid:false).
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-change:
+      text: Run strict-spec-cli ready and strict-spec-cli verify for this change and resolve any structural or schema diagnostics.
+      status: complete
+    verify-delta-spec-mapping:
+      text: Confirm the cli-foundation delta spec maps its new requirement to the implementation and test files and that verify's testing-gate reference checks still pass for generated task lists.
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: test-tasks-generation

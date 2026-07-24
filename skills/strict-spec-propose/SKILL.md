@@ -155,9 +155,9 @@ run `init` from this skill.
    ```bash
    strict-spec-cli propose <change-name>
    ```
-   After scaffolding, generate supported artifacts in the exact ordered steps
-   below and edit the scaffolded `tasks.yaml` directly. Do not create JSON
-   payload files.
+   After scaffolding, generate every supported artifact, including `tasks.yaml`,
+   through direct CLI invocations in the exact ordered steps below. Do not create
+   JSON payload files.
 
 4. **Generate `proposal.yaml`** — run a direct CLI invocation with named
    arguments:
@@ -189,19 +189,30 @@ run `init` from this skill.
    would violate a MUST rule, record an open question in `questions.yaml`
    instead of silently breaking the standard.
 
-6. **Edit `tasks.yaml` directly** — update the scaffolded
-   `.strict-spec-driven/changes/<change-name>/tasks.yaml` according to the
-   task-list schema. Keep concrete task sections for `Implementation`,
+6. **Generate `tasks.yaml` with one CLI invocation per task** — run
+   `strict-spec-cli generate <change-name> tasks` once for each task so no task
+   list is hand-written. Keep concrete task sections for `Implementation`,
    `Testing`, and `Verification`.
-   - every task needs `text` and `status`
-   - testing tasks should include runnable `command` fields
-   - `testing_gates.validation_task` and `testing_gates.unit_test_task` must
-     point at the corresponding Testing task IDs
+   - first task clears the scaffold placeholders:
+     ```bash
+     strict-spec-cli generate <change-name> tasks --reset --section Implementation --task <task-id> --text "..."
+     ```
+   - each later task is one more invocation without `--reset`:
+     ```bash
+     strict-spec-cli generate <change-name> tasks --section Testing --task <task-id> --text "..." --command "..."
+     ```
+   - `--status` defaults to `pending`; testing tasks should pass a runnable
+     `--command`
+   - set the gates with `--validation-task <task-id>` and
+     `--unit-test-task <task-id>`; both must reference `Testing` task ids
+   - the command upserts by `(section, task-id)` and is idempotent; each call
+     returns `{valid, diagnostics}` and reports `valid: false` naming the
+     sections or gates still missing while the list is incomplete — read those,
+     keep adding tasks, and confirm with `verify` before handoff
    - for technical-only changes, include the concrete scripts, tooling,
      generated assets, documentation, or skill-prompt edits in scope; include
      validation, strict `ready`/`verify`, and archive-readiness or archive-merge
      checks when relevant
-   - keep YAML valid and structured; do not use Markdown prose inside the file
 
 7. **Generate `questions.yaml`** — run one direct CLI invocation for the full
    artifact. Use `--reset` when intentionally replacing scaffold content:
@@ -271,9 +282,9 @@ run `init` from this skill.
    `ready`/`verify`, and archive or archive-merge checks when archive behavior
    is affected. The checkpoint
    should fix safe, in-scope documentation gaps immediately by rerunning the
-   supported `generate` commands for script-owned artifacts and by directly
-   editing `tasks.yaml` for task-list structure. Do not expand scope or answer
-   unresolved human questions during this checkpoint; record ambiguity in
+   supported `generate` commands for script-owned artifacts, including
+   `generate <change-name> tasks` for task-list structure. Do not expand scope
+   or answer unresolved human questions during this checkpoint; record ambiguity in
    `questions.yaml`.
 
 10. **Validate proposal readiness and artifact structure** — run:

@@ -5,8 +5,11 @@ import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 
-export const GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "delta-spec", "delta-tech"] as const;
+export const GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "tasks", "delta-spec", "delta-tech"] as const;
 export type GeneratableArtifact = (typeof GENERATABLE_ARTIFACTS)[number];
+
+export const TASK_SECTION_NAMES = ["Implementation", "Testing", "Verification"] as const;
+const TASK_STATUS_VALUES = ["pending", "complete"] as const;
 
 export type GenerationInputRecord = Record<string, unknown>;
 
@@ -91,6 +94,7 @@ function mapGeneratedFieldToInputField(artifact: GeneratableArtifact, fieldPath:
     proposal: ["$.summary", "$.scope", "$.unchanged_behavior", "$.roadmap"],
     design: ["$.approach", "$.decisions", "$.alternatives", "$.risks"],
     questions: ["$.open", "$.resolved"],
+    tasks: ["$.sections", "$.testing_gates"],
     "delta-spec": ["$.target_spec", "$.mapping", "$.operations"],
     "delta-tech": ["$.target_standard", "$.standard", "$.mapping", "$.operations"],
   };
@@ -105,7 +109,7 @@ function mapGeneratedFieldToInputField(artifact: GeneratableArtifact, fieldPath:
     if (fieldPath === "$.change.status") return "$.status";
     if (fieldPath === "$.change.id") return "<change-name>";
   }
-  if (artifact === "design" || artifact === "questions") {
+  if (artifact === "design" || artifact === "questions" || artifact === "tasks") {
     if (fieldPath === "$.change") return "<change-name>";
   }
   if (artifact === "questions") {
@@ -270,6 +274,117 @@ function buildQuestionsArtifact(changeName: string, input: GenerationInputRecord
     open: open.map(normalizeOpenQuestion),
     resolved: resolved.map(normalizeResolvedQuestion),
   };
+}
+
+function normalizeTaskRecord(task: unknown, fieldPath: string): GenerationInputRecord {
+  const record = asRecord(task, fieldPath);
+  const status = asOptionalString(record.status, `${fieldPath}.status`) ?? "pending";
+  if (!(TASK_STATUS_VALUES as readonly string[]).includes(status)) {
+    throw new Error(`input field '${fieldPath}.status' must be one of: ${TASK_STATUS_VALUES.join(", ")}`);
+  }
+  const normalized: GenerationInputRecord = {
+    text: asString(record.text, `${fieldPath}.text`),
+    status,
+  };
+  const command = asOptionalString(record.command, `${fieldPath}.command`);
+  if (command !== undefined) {
+    normalized.command = command;
+  }
+  return normalized;
+}
+
+function buildTaskListArtifact(changeName: string, input: GenerationInputRecord): unknown {
+  const sectionsInput = asRecord(input.sections, "$.sections");
+  const gatesInput = asRecord(input.testing_gates, "$.testing_gates");
+
+  const sections: GenerationInputRecord = {};
+  for (const sectionName of TASK_SECTION_NAMES) {
+    const sectionInput = sectionsInput[sectionName];
+    if (sectionInput === undefined) continue;
+    const sectionRecord = asRecord(sectionInput, `$.sections.${sectionName}`);
+    const taskEntries = Object.entries(sectionRecord);
+    if (taskEntries.length === 0) continue;
+    const sectionTasks: GenerationInputRecord = {};
+    for (const [taskId, task] of taskEntries) {
+      sectionTasks[taskId] = normalizeTaskRecord(task, `$.sections.${sectionName}.${taskId}`);
+    }
+    sections[sectionName] = sectionTasks;
+  }
+
+  const unknownSections = Object.keys(sectionsInput).filter(
+    (name) => !(TASK_SECTION_NAMES as readonly string[]).includes(name),
+  );
+  if (unknownSections.length > 0) {
+    throw new Error(`input field '$.sections' has unknown section(s): ${unknownSections.join(", ")}`);
+  }
+
+  return {
+    schema: "strict-spec-driven/task-list/v2",
+    schema_version: 2,
+    artifact_type: "task_list",
+    schema_file: "templates/strict-spec-driven/schemas/task-list.yaml",
+    change: changeName,
+    sections,
+    testing_gates: {
+      // Gates may be empty while a task list is still being built one task at a time; the empty
+      // string is schema-valid and surfaces as a non-fatal readiness diagnostic.
+      validation_task: asGateReference(gatesInput.validation_task, "$.testing_gates.validation_task"),
+      unit_test_task: asGateReference(gatesInput.unit_test_task, "$.testing_gates.unit_test_task"),
+    },
+  };
+}
+
+function asGateReference(value: unknown, fieldPath: string): string {
+  if (typeof value !== "string") {
+    throw new Error(`input field '${fieldPath}' must be a string`);
+  }
+  return value;
+}
+
+type TaskListShape = {
+  sections?: Record<string, Record<string, unknown> | undefined>;
+  testing_gates?: { validation_task?: unknown; unit_test_task?: unknown };
+};
+
+export function computeTaskListReadiness(artifact: unknown, artifactPath: string): ValidationDiagnostic[] {
+  const shape = (isRecord(artifact) ? artifact : {}) as TaskListShape;
+  const sections = shape.sections ?? {};
+  const testingTaskIds = Object.keys(sections.Testing ?? {});
+  const diagnostics: ValidationDiagnostic[] = [];
+
+  for (const sectionName of TASK_SECTION_NAMES) {
+    if (Object.keys(sections[sectionName] ?? {}).length === 0) {
+      diagnostics.push({
+        source: "reference",
+        artifactPath,
+        fieldPath: `$.sections.${sectionName}`,
+        message: `task list has no ${sectionName} task yet; add at least one before verify`,
+      });
+    }
+  }
+
+  for (const gate of ["validation_task", "unit_test_task"] as const) {
+    const reference = shape.testing_gates?.[gate];
+    if (typeof reference !== "string" || reference.length === 0) {
+      diagnostics.push({
+        source: "reference",
+        artifactPath,
+        fieldPath: `$.testing_gates.${gate}`,
+        message: `testing gate '${gate}' is not set yet; set it with --${gate.replaceAll("_", "-")}`,
+      });
+      continue;
+    }
+    if (!testingTaskIds.includes(reference)) {
+      diagnostics.push({
+        source: "reference",
+        artifactPath,
+        fieldPath: `$.testing_gates.${gate}`,
+        message: `testing gate '${gate}' references '${reference}', which is not a task in the Testing section`,
+      });
+    }
+  }
+
+  return diagnostics;
 }
 
 function normalizeDeltaSpecRelativePath(relativePath: string): string {
@@ -466,6 +581,12 @@ function buildTarget(
         artifactType: "question_list",
         absolutePath: path.join(changeDir, "questions.yaml"),
       };
+    case "tasks":
+      return {
+        artifact: buildTaskListArtifact(changeName, input),
+        artifactType: "task_list",
+        absolutePath: path.join(changeDir, "tasks.yaml"),
+      };
     case "delta-spec": {
       const deltaSpec = buildDeltaSpecArtifact(rootDir, input);
       return {
@@ -515,13 +636,19 @@ function writeGeneratedArtifact(
     throw new Error(`written ${artifact} artifact is invalid: ${formatDiagnostics(diagnostics)}`);
   }
 
+  // Task lists are built one task at a time, so the artifact is structurally valid at every step
+  // but may still be incomplete. Report completeness gaps (missing sections, unresolved testing
+  // gates) as non-fatal diagnostics instead of failing the write; ready/verify remain the
+  // authoritative handoff gate.
+  const readiness = artifact === "tasks" ? computeTaskListReadiness(writtenArtifact, artifactPath) : [];
+
   return {
     changeName,
     artifact,
     artifactPath,
     replaced,
-    valid: true,
-    diagnostics,
+    valid: readiness.length === 0,
+    diagnostics: readiness,
   };
 }
 

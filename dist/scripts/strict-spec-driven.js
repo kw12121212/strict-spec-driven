@@ -14506,7 +14506,9 @@ function validateArtifact(schema2, artifact, artifactPath, options = {}) {
 
 // src/propose-generation.ts
 var STRICT_WORKFLOW_DIR2 = ".strict-spec-driven";
-var GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "delta-spec", "delta-tech"];
+var GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "tasks", "delta-spec", "delta-tech"];
+var TASK_SECTION_NAMES = ["Implementation", "Testing", "Verification"];
+var TASK_STATUS_VALUES = ["pending", "complete"];
 function normalizeRepoRelativePath(rootDir, absolutePath) {
   return path4.relative(rootDir, absolutePath).split(path4.sep).join("/");
 }
@@ -14564,6 +14566,7 @@ function mapGeneratedFieldToInputField(artifact, fieldPath) {
     proposal: ["$.summary", "$.scope", "$.unchanged_behavior", "$.roadmap"],
     design: ["$.approach", "$.decisions", "$.alternatives", "$.risks"],
     questions: ["$.open", "$.resolved"],
+    tasks: ["$.sections", "$.testing_gates"],
     "delta-spec": ["$.target_spec", "$.mapping", "$.operations"],
     "delta-tech": ["$.target_standard", "$.standard", "$.mapping", "$.operations"]
   };
@@ -14578,7 +14581,7 @@ function mapGeneratedFieldToInputField(artifact, fieldPath) {
     if (fieldPath === "$.change.id")
       return "<change-name>";
   }
-  if (artifact === "design" || artifact === "questions") {
+  if (artifact === "design" || artifact === "questions" || artifact === "tasks") {
     if (fieldPath === "$.change")
       return "<change-name>";
   }
@@ -14723,6 +14726,100 @@ function buildQuestionsArtifact(changeName, input) {
     open: open.map(normalizeOpenQuestion),
     resolved: resolved.map(normalizeResolvedQuestion)
   };
+}
+function normalizeTaskRecord(task, fieldPath) {
+  const record = asRecord(task, fieldPath);
+  const status = asOptionalString(record.status, `${fieldPath}.status`) ?? "pending";
+  if (!TASK_STATUS_VALUES.includes(status)) {
+    throw new Error(`input field '${fieldPath}.status' must be one of: ${TASK_STATUS_VALUES.join(", ")}`);
+  }
+  const normalized = {
+    text: asString(record.text, `${fieldPath}.text`),
+    status
+  };
+  const command = asOptionalString(record.command, `${fieldPath}.command`);
+  if (command !== undefined) {
+    normalized.command = command;
+  }
+  return normalized;
+}
+function buildTaskListArtifact(changeName, input) {
+  const sectionsInput = asRecord(input.sections, "$.sections");
+  const gatesInput = asRecord(input.testing_gates, "$.testing_gates");
+  const sections = {};
+  for (const sectionName of TASK_SECTION_NAMES) {
+    const sectionInput = sectionsInput[sectionName];
+    if (sectionInput === undefined)
+      continue;
+    const sectionRecord = asRecord(sectionInput, `$.sections.${sectionName}`);
+    const taskEntries = Object.entries(sectionRecord);
+    if (taskEntries.length === 0)
+      continue;
+    const sectionTasks = {};
+    for (const [taskId, task] of taskEntries) {
+      sectionTasks[taskId] = normalizeTaskRecord(task, `$.sections.${sectionName}.${taskId}`);
+    }
+    sections[sectionName] = sectionTasks;
+  }
+  const unknownSections = Object.keys(sectionsInput).filter((name) => !TASK_SECTION_NAMES.includes(name));
+  if (unknownSections.length > 0) {
+    throw new Error(`input field '$.sections' has unknown section(s): ${unknownSections.join(", ")}`);
+  }
+  return {
+    schema: "strict-spec-driven/task-list/v2",
+    schema_version: 2,
+    artifact_type: "task_list",
+    schema_file: "templates/strict-spec-driven/schemas/task-list.yaml",
+    change: changeName,
+    sections,
+    testing_gates: {
+      validation_task: asGateReference(gatesInput.validation_task, "$.testing_gates.validation_task"),
+      unit_test_task: asGateReference(gatesInput.unit_test_task, "$.testing_gates.unit_test_task")
+    }
+  };
+}
+function asGateReference(value, fieldPath) {
+  if (typeof value !== "string") {
+    throw new Error(`input field '${fieldPath}' must be a string`);
+  }
+  return value;
+}
+function computeTaskListReadiness(artifact, artifactPath) {
+  const shape = isRecord(artifact) ? artifact : {};
+  const sections = shape.sections ?? {};
+  const testingTaskIds = Object.keys(sections.Testing ?? {});
+  const diagnostics = [];
+  for (const sectionName of TASK_SECTION_NAMES) {
+    if (Object.keys(sections[sectionName] ?? {}).length === 0) {
+      diagnostics.push({
+        source: "reference",
+        artifactPath,
+        fieldPath: `$.sections.${sectionName}`,
+        message: `task list has no ${sectionName} task yet; add at least one before verify`
+      });
+    }
+  }
+  for (const gate of ["validation_task", "unit_test_task"]) {
+    const reference = shape.testing_gates?.[gate];
+    if (typeof reference !== "string" || reference.length === 0) {
+      diagnostics.push({
+        source: "reference",
+        artifactPath,
+        fieldPath: `$.testing_gates.${gate}`,
+        message: `testing gate '${gate}' is not set yet; set it with --${gate.replaceAll("_", "-")}`
+      });
+      continue;
+    }
+    if (!testingTaskIds.includes(reference)) {
+      diagnostics.push({
+        source: "reference",
+        artifactPath,
+        fieldPath: `$.testing_gates.${gate}`,
+        message: `testing gate '${gate}' references '${reference}', which is not a task in the Testing section`
+      });
+    }
+  }
+  return diagnostics;
 }
 function normalizeDeltaSpecRelativePath(relativePath) {
   let normalized = relativePath.replaceAll("\\", "/");
@@ -14878,6 +14975,12 @@ function buildTarget(rootDir, changeDir, changeName, artifact, input) {
         artifactType: "question_list",
         absolutePath: path4.join(changeDir, "questions.yaml")
       };
+    case "tasks":
+      return {
+        artifact: buildTaskListArtifact(changeName, input),
+        artifactType: "task_list",
+        absolutePath: path4.join(changeDir, "tasks.yaml")
+      };
     case "delta-spec": {
       const deltaSpec = buildDeltaSpecArtifact(rootDir, input);
       return {
@@ -14915,13 +15018,14 @@ function writeGeneratedArtifact(rootDir, changeName, artifact, input, inputLabel
   if (diagnostics.length > 0) {
     throw new Error(`written ${artifact} artifact is invalid: ${formatDiagnostics(diagnostics)}`);
   }
+  const readiness = artifact === "tasks" ? computeTaskListReadiness(writtenArtifact, artifactPath) : [];
   return {
     changeName,
     artifact,
     artifactPath,
     replaced,
-    valid: true,
-    diagnostics
+    valid: readiness.length === 0,
+    diagnostics: readiness
   };
 }
 function generateChangeArtifactFromInput(rootDir, changeName, artifact, input) {
@@ -14933,12 +15037,13 @@ var STRICT_WORKFLOW_DIR3 = ".strict-spec-driven";
 var BOOLEAN_FLAGS = new Set(["reset"]);
 function usage() {
   return [
-    "Usage: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>",
+    "Usage: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>",
     "",
     "Examples:",
     "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
     "  strict-spec-cli generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
     "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
+    "  strict-spec-cli generate <change-name> tasks [--reset] [--section <Implementation|Testing|Verification> --task <id> --text <text> [--status <pending|complete>] [--command <text>]]... [--validation-task <id>] [--unit-test-task <id>]",
     "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
     "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
   ].join(`
@@ -15278,6 +15383,133 @@ function buildQuestionsInputFromArgs(rootDir, changeName, argv) {
   }
   input.open = open;
   input.resolved = resolved;
+  return input;
+}
+var TASK_SECTION_NAMES2 = ["Implementation", "Testing", "Verification"];
+var TASK_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+function parseTaskCommandInput(argv, rootDir) {
+  const input = { reset: false, groups: [] };
+  let current;
+  function readValue(name, index) {
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith("--")) {
+      throw new Error(`missing value for --${name}`);
+    }
+    return resolveStringValue(value, rootDir);
+  }
+  function setField(field, value, flagName) {
+    if (!current) {
+      throw new Error("missing required argument --section before --" + flagName);
+    }
+    if (current[field] !== undefined) {
+      throw new Error(`--${flagName} may only be supplied once per task`);
+    }
+    current[field] = value;
+  }
+  for (let index = 0;index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token?.startsWith("--") || token.length === 2) {
+      throw new Error(`expected named argument, got '${token ?? ""}'`);
+    }
+    const name = token.slice(2);
+    if (name === "reset") {
+      input.reset = true;
+      continue;
+    }
+    if (name === "section") {
+      current = { section: readValue(name, index) };
+      input.groups.push(current);
+      index += 1;
+      continue;
+    }
+    if (name === "task") {
+      setField("id", readValue(name, index), name);
+      index += 1;
+      continue;
+    }
+    if (name === "text" || name === "status" || name === "command") {
+      setField(name, readValue(name, index), name);
+      index += 1;
+      continue;
+    }
+    if (name === "validation-task") {
+      if (input.validationTask !== undefined)
+        throw new Error("--validation-task may only be supplied once");
+      input.validationTask = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    if (name === "unit-test-task") {
+      if (input.unitTestTask !== undefined)
+        throw new Error("--unit-test-task may only be supplied once");
+      input.unitTestTask = readValue(name, index);
+      index += 1;
+      continue;
+    }
+    throw new Error(`unsupported argument(s): --${name}`);
+  }
+  return input;
+}
+function existingTaskListInput(rootDir, changeName, reset) {
+  if (reset) {
+    return { sections: {}, testing_gates: { validation_task: "", unit_test_task: "" } };
+  }
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/changes/${changeName}/tasks.yaml`);
+  const gates = isRecord2(artifact?.testing_gates) ? artifact.testing_gates : {};
+  return {
+    sections: isRecord2(artifact?.sections) ? artifact.sections : {},
+    testing_gates: {
+      validation_task: typeof gates.validation_task === "string" ? gates.validation_task : "",
+      unit_test_task: typeof gates.unit_test_task === "string" ? gates.unit_test_task : ""
+    }
+  };
+}
+function findTaskSection(sections, taskId) {
+  for (const [sectionName, sectionTasks] of Object.entries(sections)) {
+    if (isRecord2(sectionTasks) && Object.prototype.hasOwnProperty.call(sectionTasks, taskId)) {
+      return sectionName;
+    }
+  }
+  return;
+}
+function buildTaskListInputFromArgs(rootDir, changeName, argv) {
+  const commandInput = parseTaskCommandInput(argv, rootDir);
+  const input = existingTaskListInput(rootDir, changeName, commandInput.reset);
+  const sections = isRecord2(input.sections) ? input.sections : {};
+  const gates = isRecord2(input.testing_gates) ? input.testing_gates : { validation_task: "", unit_test_task: "" };
+  const seenThisInvocation = new Set;
+  for (const group of commandInput.groups) {
+    if (!TASK_SECTION_NAMES2.includes(group.section)) {
+      throw new Error(`unknown section '${group.section}'; expected one of: ${TASK_SECTION_NAMES2.join(", ")}`);
+    }
+    if (!group.id)
+      throw new Error(`missing required argument --task for section '${group.section}'`);
+    if (!TASK_ID_PATTERN.test(group.id)) {
+      throw new Error(`task id '${group.id}' must be kebab-case (lowercase letters, numbers, and hyphens)`);
+    }
+    if (!group.text)
+      throw new Error(`missing required argument --text for task '${group.id}'`);
+    if (seenThisInvocation.has(group.id)) {
+      throw new Error(`duplicate task id '${group.id}' supplied in one invocation`);
+    }
+    seenThisInvocation.add(group.id);
+    const existingSection = findTaskSection(sections, group.id);
+    if (existingSection !== undefined && existingSection !== group.section) {
+      throw new Error(`task id '${group.id}' already exists in section '${existingSection}'; remove it there before moving it to '${group.section}'`);
+    }
+    const task = { text: group.text, status: group.status ?? "pending" };
+    if (group.command !== undefined)
+      task.command = group.command;
+    const sectionTasks = isRecord2(sections[group.section]) ? sections[group.section] : {};
+    sectionTasks[group.id] = task;
+    sections[group.section] = sectionTasks;
+  }
+  if (commandInput.validationTask !== undefined)
+    gates.validation_task = commandInput.validationTask;
+  if (commandInput.unitTestTask !== undefined)
+    gates.unit_test_task = commandInput.unitTestTask;
+  input.sections = sections;
+  input.testing_gates = gates;
   return input;
 }
 function normalizeDeltaSpecRelativePath2(relativePath) {
@@ -15808,6 +16040,8 @@ function buildInputFromNamedArgs(rootDir, changeName, artifact, argv) {
       return buildDesignInput(rootDir, changeName, parseFlagMap(argv, rootDir));
     case "questions":
       return buildQuestionsInputFromArgs(rootDir, changeName, argv);
+    case "tasks":
+      return buildTaskListInputFromArgs(rootDir, changeName, argv);
     case "delta-spec":
       return buildDeltaInputFromArgs(rootDir, changeName, argv);
     case "delta-tech":
@@ -15829,7 +16063,7 @@ function runGenerate(argv) {
     return 1;
   }
   if (!isGeneratableArtifact(artifact)) {
-    writeError("artifact must be one of: proposal, design, questions, delta-spec, delta-tech");
+    writeError("artifact must be one of: proposal, design, questions, tasks, delta-spec, delta-tech");
     return 1;
   }
   try {

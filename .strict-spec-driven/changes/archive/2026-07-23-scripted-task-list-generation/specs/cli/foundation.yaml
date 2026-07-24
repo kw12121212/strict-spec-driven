@@ -1,0 +1,51 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/propose-generation.ts
+    - src/cli/cmd-generation.ts
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    cli-generate-tasks-upserts-single-tasks:
+      strength: MUST
+      statement: The system MUST populate the strict task list through a generate tasks artifact that upserts one task at a time by section and task id into the existing tasks.yaml, sets testing gates from named arguments, and rebuilds the artifact when reset is requested.
+      scenarios:
+        single-task-invocation-upserts-one-task:
+          - GIVEN: a strict change scaffold exists with a valid tasks.yaml
+          - WHEN: an agent runs generate tasks with one section, task id, and text argument group
+          - THEN: the named task is inserted into the given section of tasks.yaml with the supplied text and a default pending status
+          - AND: re-running the identical invocation leaves the tasks artifact unchanged
+        reset-rebuilds-the-task-list:
+          - GIVEN: a strict change has a tasks.yaml containing scaffold placeholder tasks
+          - WHEN: an agent runs generate tasks with the reset flag and one or more task argument groups
+          - THEN: the prior scaffold tasks are cleared and only the supplied tasks remain in the rebuilt artifact
+        gate-arguments-set-testing-gates:
+          - GIVEN: a strict change scaffold exists
+          - WHEN: an agent runs generate tasks with validation-task and unit-test-task arguments referencing Testing section task ids
+          - THEN: the tasks.yaml testing gates reference the supplied task ids
+        invalid-task-arguments-fail-before-write:
+          - GIVEN: a strict change scaffold exists
+          - WHEN: an agent runs generate tasks with an unknown section value or a duplicate task id
+          - THEN: the command exits non-zero and identifies the invalid argument
+          - AND: the existing tasks.yaml is left unchanged
+        incremental-generation-reports-completeness-without-blocking:
+          - GIVEN: a strict change tasks.yaml is mid-construction with a testing gate referencing a Testing task id that has not been added yet
+          - WHEN: an agent runs generate tasks to append another task
+          - THEN: the append succeeds and the updated tasks.yaml is written
+          - AND: the command result reports the outstanding completeness diagnostics instead of failing the write
+  MODIFIED:
+    cli-propose-generation-is-artifact-scoped:
+      strength: MUST
+      statement: The system MUST expose proposal population as artifact-level operations so proposal, design, questions, tasks, and individual delta specs can be generated through separate CLI invocations.
+      scenarios:
+        tasks-artifact-can-be-generated-through-generate:
+          - GIVEN: a strict change scaffold exists
+          - WHEN: a user or agent runs the generate command with the tasks artifact and named task arguments
+          - THEN: the command writes only the tasks.yaml artifact
+          - AND: unrelated planning artifacts in the same change are left unchanged
+  REMOVED: {}

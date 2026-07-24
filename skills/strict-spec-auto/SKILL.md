@@ -156,11 +156,18 @@ run `init` from this skill.
    blockers before implementation. If the target change directory already
    exists but only contains empty subdirectories, `propose` may safely reuse it.
    For new or empty scaffolds, populate artifacts in this exact order. Generate
-   supported artifacts with direct CLI invocations, edit scaffolded
-   `tasks.yaml` directly, and do not create JSON payload files.
+   every supported artifact, including `tasks.yaml`, with direct CLI
+   invocations, and do not create JSON payload files.
     - `strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."`
     - `strict-spec-cli generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
-    - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema, including concrete Implementation tasks for script, tooling, generated asset, documentation, or skill-prompt edits in scope; Testing tasks with runnable validation and unit/regression commands; and Verification tasks for `ready`, `verify`, mapping checks, and archive-readiness or archive-merge checks when relevant
+    - populate `tasks.yaml` with `strict-spec-cli generate <change-name> tasks`,
+      issuing **one invocation per task** so no task list is hand-written:
+      - first task: `strict-spec-cli generate <change-name> tasks --reset --section <Implementation|Testing|Verification> --task <task-id> --text "..." [--status pending|complete] [--command "..."]` — the `--reset` on this first call clears the scaffold placeholder tasks
+      - each later task: the same command without `--reset`, one `--section`/`--task`/`--text` group per call
+      - set the testing gates with `--validation-task <task-id>` and `--unit-test-task <task-id>`; both must reference task ids in the `Testing` section
+      - the command upserts by `(section, task-id)` and is idempotent — re-running an identical call changes nothing
+      - each call returns `{valid, diagnostics}`; while the list is still incomplete it reports `valid: false` naming the sections or gates that are missing, so read those diagnostics, keep adding tasks, and run `verify` before handoff to confirm gates and sections resolve
+      - cover concrete Implementation tasks for script, tooling, generated asset, documentation, or skill-prompt edits in scope; Testing tasks with runnable validation and unit/regression commands; and Verification tasks for `ready`, `verify`, mapping checks, and archive-readiness or archive-merge checks when relevant
     - `strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
       Include impact analysis and recommendation/options in `--context`; do
       not pass nonexistent `--impact` or `--recommendation` flags.
@@ -185,10 +192,10 @@ run `init` from this skill.
     - if the change has no observable spec impact, leave the `specs/` directory
       empty rather than inventing a prose-only file
     Prefer one invocation per supported generated artifact (or per target spec
-    for delta specs). Keep `tasks.yaml` structured with Implementation,
-    Testing, and Verification sections plus valid testing gates. Keep or add a
-    dedicated lint Testing task before full unit or regression test tasks when
-    the project has a runnable lint command.
+    for delta specs, and one per task for tasks). Keep `tasks.yaml` structured
+    with Implementation, Testing, and Verification sections plus valid testing
+    gates. Keep or add a dedicated lint Testing task before full unit or
+    regression test tasks when the project has a runnable lint command.
    For newly created or newly populated scaffolds, **run the proposal checkpoint
    over generated planning artifacts** before running handoff validation. Perform a
    semantic self-check of every generated or edited file under
@@ -203,10 +210,10 @@ run `init` from this skill.
    `ready`/`verify`, and archive or archive-merge checks when archive behavior
    is affected.
    The checkpoint should fix safe, in-scope documentation gaps immediately by
-   rerunning the supported `generate` commands for script-owned artifacts and by
-   directly editing `tasks.yaml` for task-list structure. Do not expand scope or
-   answer unresolved human questions during this checkpoint; record ambiguity in
-   `questions.yaml`.
+   rerunning the supported `generate` commands for script-owned artifacts,
+   including `generate <change-name> tasks` for task-list structure. Do not
+   expand scope or answer unresolved human questions during this checkpoint;
+   record ambiguity in `questions.yaml`.
    Run `ready <change-name>` at proposal time when deciding whether the change
    is ready for implementation; it reports deterministic handoff blockers
    without deciding product scope or requirement content. If you use `verify`

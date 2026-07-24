@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: scripted-task-list-generation
+  status: proposed
+summary:
+  what:
+    - Add a 'tasks' artifact to 'strict-spec-cli generate' so a task list is populated through named CLI arguments instead of AI-authored YAML. Each invocation upserts a single task into an existing tasks.yaml, mirroring the questions/delta-spec append model, and updates testing_gates via flags. Update the six task-authoring skills to instruct one CLI invocation per task with explicit usage guidance.
+  why:
+    - Today six skills instruct the AI to hand-write tasks.yaml, and large hand-authored keyed-map YAML is a frequent source of malformed-artifact errors. Moving task authoring into the script strengthens the scripts-own-mechanics standard and makes generation deterministic and idempotent.
+scope:
+  in:
+    - New 'tasks' subcommand for generate with per-task upsert, --reset, and testing-gate flags; delta spec for cli-foundation adding tasks to the artifact-scoped generation set plus a requirement describing single-task upsert/idempotency/gate semantics; explicit skill-prompt usage guidance in brainstorm, propose, propose-from-roadmap, auto, roadmap-recommend, and modify; regression tests.
+  out:
+    - Changing the task-list/v2 schema; changing apply/verify read behavior; forcing generate tasks as the only way to author tasks (direct editing remains possible); adding any new technical standard.
+unchanged_behavior:
+  - task-list/v2 schema shape; apply single-task-completion behavior; verify testing-gate reference checks; the questions/delta-spec generation semantics that this feature mirrors.

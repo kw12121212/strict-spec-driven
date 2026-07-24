@@ -87,7 +87,14 @@ run `init` from this skill.
    - in `design.yaml`, update `approach`, `decisions`, `alternatives`, or `risks`
    - in strict YAML delta specs, preserve `target_spec`, `mapping`, and
      `operations`
-   - in `tasks.yaml`, preserve existing `status: complete` entries unless the
+   - in `tasks.yaml`, prefer `strict-spec-cli generate <change-name> tasks` to
+     add or update a task — one invocation per task, `--section <name> --task
+     <id> --text "..."` (upserts by section and task id, without `--reset` so
+     other tasks are untouched); pass `--status complete` when re-stating an
+     already-completed task so its completion is preserved, and set gates with
+     `--validation-task`/`--unit-test-task`. Fall back to direct YAML editing
+     only for changes the command cannot express, such as removing or renaming a
+     task. Either way, preserve existing `status: complete` entries unless the
      user explicitly asks to change completed work
    - in `questions.yaml`, add new `open` entries or move resolved decisions into
      `resolved`

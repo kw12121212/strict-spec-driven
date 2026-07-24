@@ -191,11 +191,16 @@ run `init` from this skill.
    ```
    Then populate normal strict change artifacts under
    `.strict-spec-driven/changes/<change-name>/` in this exact order. Generate
-   supported artifacts with direct named arguments, edit scaffolded
-   `tasks.yaml` directly, and do not create JSON payload files.
+   every supported artifact, including `tasks.yaml`, with direct named
+   arguments, and do not create JSON payload files.
    - `strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..." --milestone <milestone-id> --planned-change <planned-change-id>`
    - `strict-spec-cli generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
-   - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema, including concrete Implementation tasks for script, tooling, generated asset, documentation, or skill-prompt edits in scope; Testing tasks with runnable validation and unit/regression commands; and Verification tasks for `ready`, `verify`, mapping checks, and archive-readiness or archive-merge checks when relevant
+   - populate `tasks.yaml` with `strict-spec-cli generate <change-name> tasks`, **one invocation per task** so no task list is hand-written:
+     - first task: `strict-spec-cli generate <change-name> tasks --reset --section <Implementation|Testing|Verification> --task <task-id> --text "..." [--status pending|complete] [--command "..."]` — the `--reset` on this first call clears the scaffold placeholder tasks
+     - each later task: the same command without `--reset`, one `--section`/`--task`/`--text` group per call
+     - set the gates with `--validation-task <task-id>` and `--unit-test-task <task-id>`; both must reference `Testing` task ids
+     - the command upserts by `(section, task-id)` and is idempotent; each call returns `{valid, diagnostics}` and reports `valid: false` naming the sections or gates still missing until the list is complete, so read those diagnostics and confirm with `verify` before handoff
+     - cover concrete Implementation tasks for script, tooling, generated asset, documentation, or skill-prompt edits in scope; Testing tasks with runnable validation and unit/regression commands; and Verification tasks for `ready`, `verify`, mapping checks, and archive-readiness or archive-merge checks when relevant
    - `strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
      Include impact analysis and recommendation/options in `--context`; do
      not pass nonexistent `--impact` or `--recommendation` flags.

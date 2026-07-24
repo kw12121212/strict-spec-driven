@@ -152,17 +152,23 @@ run `init` from this skill.
    artifacts and an empty `specs/` directory for strict YAML delta files.
 
 7. **Populate `proposal.yaml` and related artifacts step by step** — after
-   scaffolding, follow this exact order. Generate supported artifacts with
-   direct parameterized CLI invocations, edit scaffolded `tasks.yaml` directly,
-   and do not create JSON payload files.
+   scaffolding, follow this exact order. Generate every supported artifact,
+   including `tasks.yaml`, with direct parameterized CLI invocations, and do not
+   create JSON payload files.
     - `strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..."`
     - `strict-spec-cli generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
-    - edit `.strict-spec-driven/changes/<change-name>/tasks.yaml` directly according to the task-list schema
-      with explicit Implementation tasks for script, tooling, documentation, or
-      skill-prompt edits in scope; Testing tasks with runnable validation and
-      unit/regression commands; and Verification tasks for `ready`, `verify`,
-      mapping checks, and archive-readiness or archive-merge checks when
-      relevant
+    - populate `tasks.yaml` with `strict-spec-cli generate <change-name> tasks`,
+      issuing **one invocation per task** so no task list is hand-written:
+      - first task: `strict-spec-cli generate <change-name> tasks --reset --section <Implementation|Testing|Verification> --task <task-id> --text "..." [--status pending|complete] [--command "..."]` — the `--reset` on this first call clears the scaffold placeholder tasks
+      - each later task: the same command without `--reset`, one `--section`/`--task`/`--text` group per call
+      - set the testing gates with `--validation-task <task-id>` and `--unit-test-task <task-id>`; both must reference task ids in the `Testing` section
+      - the command upserts by `(section, task-id)` and is idempotent — re-running an identical call changes nothing
+      - each call returns `{valid, diagnostics}`; while the list is still incomplete it reports `valid: false` naming the sections or gates that are missing, so read those diagnostics, keep adding tasks, and run `verify` before handoff to confirm gates and sections resolve
+      - cover Implementation tasks for script, tooling, documentation, or
+        skill-prompt edits in scope; Testing tasks with runnable validation and
+        unit/regression commands; and Verification tasks for `ready`, `verify`,
+        mapping checks, and archive-readiness or archive-merge checks when
+        relevant
     - `strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..."` plus any needed `--resolved` entries
       Include impact analysis and recommendation/options in `--context`; do
       not pass nonexistent `--impact` or `--recommendation` flags.
@@ -193,10 +199,11 @@ run `init` from this skill.
    `ready`/`verify` checks, and archive or archive-merge checks whenever the
    change affects artifacts that archive consumes.
    The checkpoint should fix safe, in-scope documentation gaps immediately by
-   rerunning the supported `generate` commands for script-owned artifacts and by
-   directly editing `tasks.yaml` for task-list structure. Do not expand scope or
-   answer unresolved human questions during this checkpoint; record ambiguity in
-   `questions.yaml` or return to the user checkpoint when the scope changes.
+   rerunning the supported `generate` commands for script-owned artifacts,
+   including `generate <change-name> tasks` for task-list structure. Do not
+   expand scope or answer unresolved human questions during this checkpoint;
+   record ambiguity in `questions.yaml` or return to the user checkpoint when the
+   scope changes.
 
 9. **Validate proposal readiness and artifact structure** — run:
    ```bash

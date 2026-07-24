@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: scripted-task-list-generation
+approach:
+  - Extend the generate command with a 'tasks' artifact that reuses the questions/delta-spec upsert-and-merge pattern. A parser reads the existing tasks.yaml (starting from the propose scaffold), upserts each supplied task by (section, task-id), optionally sets testing_gates from flags, and writes the result. Per-task input errors hard-fail before any write; whole-artifact completeness is reported as soft diagnostics in the command result and enforced authoritatively by the unchanged ready/verify checks. The six task-authoring skills gain explicit step-by-step usage guidance directing one CLI invocation per task, with --reset on the first call to clear scaffold placeholders.
+decisions:
+  cmd-shape:
+    decision: generate <change> tasks accepts --section, --task, --text, optional --status (default pending), --command, --validation-task, --unit-test-task, and --reset. The CLI may accept repeated grouped task arguments, but skill prompts mandate one task per invocation.
+    rationale: Named-argument grouping matches the existing generation contract; one-task-per-call is the whole point of the change (avoid large hand-authored YAML) and is enforced in skill guidance, not in the CLI.
+  placeholder-handling:
+    decision: The first tasks invocation uses --reset to clear the propose scaffold placeholder tasks, then subsequent invocations append one task each; --reset rebuilds the artifact exactly like questions and delta-spec.
+    rationale: Reusing the reset semantics the agent already knows for questions/delta-spec keeps the mental model uniform and removes the three scaffold placeholders cleanly.
+  validation-timing:
+    decision: Each generate tasks write hard-fails and leaves tasks.yaml unchanged on malformed per-task input (unknown section, invalid status, bad task-id format, duplicate task id, missing required flag). It does NOT hard-fail on whole-artifact completeness gaps; instead it returns the standard {valid, diagnostics} result so an in-progress artifact reports valid:false with actionable messages while the append still succeeds.
+    rationale: One-task-per-call construction inherently passes through incomplete states; returning diagnostics gives the agent per-call feedback without forcing an awkward complete-first-call rule, and matches the {valid, diagnostics} shape the other generators already return.
+  task-verification-authority:
+    decision: Authoritative task-list completeness verification stays with the existing ready and verify checks, including verify's existing testing-gate reference validation and full task-list schema validation, which are unchanged by this feature. Incremental generation adds a feedback loop, not a replacement gate.
+    rationale: The completeness gate already exists in verify (cli-verify-validates-testing-gate-references); reusing it avoids duplicating validation and keeps a single source of truth for whether a task list is ready.
+  skill-guidance:
+    decision: 'brainstorm, propose, propose-from-roadmap, auto, roadmap-recommend, and modify replace ''edit tasks.yaml directly'' with explicit generate tasks usage: exact command form, one-invocation-per-task rule, --reset-first-call rule, how to set testing_gates, reading each call''s returned diagnostics to see what remains, and running verify before handoff to confirm gates and sections resolve. apply is unchanged because it only marks tasks complete.'
+    rationale: The user explicitly requires clear AI usage instructions, including how the agent knows the incrementally built task list is complete.
+alternatives: []
+risks: []

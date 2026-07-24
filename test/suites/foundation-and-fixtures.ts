@@ -1274,19 +1274,84 @@ try {
     "generate writes design artifact",
   );
 
-  const scaffoldTasks = readFileSync(path.join(changeDir, "tasks.yaml"), "utf8");
-  const rejectedTasksGenerate = cli(["generate", changeName, "tasks", "--reset"], { cwd: generateTempDir });
-  context.assert(rejectedTasksGenerate.status !== 0, "generate rejects tasks artifact selector");
+  // generate tasks builds the task list one task at a time, resetting scaffold placeholders first.
+  const firstTask = cli([
+    "generate", changeName, "tasks", "--reset",
+    "--section", "Implementation", "--task", "do-the-work", "--text", "Implement the scoped behavior.",
+  ], { cwd: generateTempDir });
+  context.assert(firstTask.status === 0, "generate tasks writes the first task", `stderr: ${firstTask.stderr.trim()}`);
+  const firstTaskJson = JSON.parse(firstTask.stdout.trim());
+  context.assert(firstTaskJson.valid === false, "generate tasks reports an incomplete task list as valid:false");
   context.assert(
-    rejectedTasksGenerate.stderr.includes("artifact must be one of")
-      && !rejectedTasksGenerate.stderr.includes("tasks"),
-    "generate unsupported artifact list omits tasks",
-    `stderr: ${rejectedTasksGenerate.stderr.trim()}`,
+    Array.isArray(firstTaskJson.diagnostics)
+      && firstTaskJson.diagnostics.some((diagnostic: { fieldPath: string }) => diagnostic.fieldPath === "$.sections.Testing"),
+    "generate tasks reports the missing Testing section as a readiness diagnostic",
+  );
+  const afterReset = yamlModule.parseYamlDocument<{ sections: Record<string, Record<string, unknown>> }>(
+    readFileSync(path.join(changeDir, "tasks.yaml"), "utf8"),
   );
   context.assert(
-    readFileSync(path.join(changeDir, "tasks.yaml"), "utf8") === scaffoldTasks,
-    "generate tasks rejection leaves scaffolded tasks artifact unchanged",
+    Object.keys(afterReset.sections).length === 1 && "Implementation" in afterReset.sections,
+    "generate tasks --reset clears scaffold placeholder tasks",
   );
+
+  // Appending a Testing task and setting gates still writes while the list is incomplete.
+  const testingTask = cli([
+    "generate", changeName, "tasks",
+    "--section", "Testing", "--task", "run-tests", "--text", "Run the tests.", "--command", "bun test/run.ts",
+    "--validation-task", "run-tests", "--unit-test-task", "run-tests",
+  ], { cwd: generateTempDir });
+  context.assert(testingTask.status === 0, "generate tasks appends a Testing task and sets gates", `stderr: ${testingTask.stderr.trim()}`);
+  const testingTaskJson = JSON.parse(testingTask.stdout.trim());
+  context.assert(
+    testingTaskJson.valid === false
+      && testingTaskJson.diagnostics.some((diagnostic: { fieldPath: string }) => diagnostic.fieldPath === "$.sections.Verification"),
+    "generate tasks still reports the missing Verification section while writing the append",
+  );
+
+  // Completing the task list clears the readiness diagnostics.
+  const verificationTask = cli([
+    "generate", changeName, "tasks",
+    "--section", "Verification", "--task", "verify-scope", "--text", "Verify the change scope.",
+  ], { cwd: generateTempDir });
+  const verificationTaskJson = JSON.parse(verificationTask.stdout.trim());
+  context.assert(
+    verificationTask.status === 0 && verificationTaskJson.valid === true && verificationTaskJson.diagnostics.length === 0,
+    "generate tasks reports a complete task list as valid with no diagnostics",
+    `stderr: ${verificationTask.stderr.trim()}`,
+  );
+
+  // Re-running an identical task invocation is idempotent.
+  const completedTasks = readFileSync(path.join(changeDir, "tasks.yaml"), "utf8");
+  const idempotentTask = cli([
+    "generate", changeName, "tasks",
+    "--section", "Implementation", "--task", "do-the-work", "--text", "Implement the scoped behavior.",
+  ], { cwd: generateTempDir });
+  context.assert(idempotentTask.status === 0, "generate tasks idempotent re-run succeeds", `stderr: ${idempotentTask.stderr.trim()}`);
+  context.assert(
+    readFileSync(path.join(changeDir, "tasks.yaml"), "utf8") === completedTasks,
+    "generate tasks re-running an identical task changes nothing",
+  );
+
+  // Malformed per-task input fails before writing and leaves the artifact unchanged.
+  const beforeInvalidTask = readFileSync(path.join(changeDir, "tasks.yaml"), "utf8");
+  const invalidTaskCases: Array<[string, string[]]> = [
+    ["unknown section", ["--section", "Nope", "--task", "x", "--text", "y"]],
+    ["invalid status", ["--section", "Testing", "--task", "x", "--text", "y", "--status", "done"]],
+    ["non-kebab task id", ["--section", "Testing", "--task", "Bad_Id", "--text", "y"]],
+    ["duplicate task id in one invocation", ["--section", "Testing", "--task", "dup", "--text", "a", "--section", "Implementation", "--task", "dup", "--text", "b"]],
+    ["cross-section move", ["--section", "Testing", "--task", "do-the-work", "--text", "moved"]],
+    ["missing text", ["--section", "Testing", "--task", "notext"]],
+  ];
+  for (const [label, argv] of invalidTaskCases) {
+    const rejected = cli(["generate", changeName, "tasks", ...argv], { cwd: generateTempDir });
+    context.assert(rejected.status !== 0, `generate tasks rejects ${label}`, `stderr: ${rejected.stderr.trim()}`);
+    context.assert(
+      readFileSync(path.join(changeDir, "tasks.yaml"), "utf8") === beforeInvalidTask,
+      `generate tasks rejection for ${label} leaves the artifact unchanged`,
+    );
+  }
+
   writeCompleteTasksArtifact(changeDir, changeName);
 
   context.assert(
