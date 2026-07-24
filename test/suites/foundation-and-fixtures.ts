@@ -1281,7 +1281,10 @@ try {
   ], { cwd: generateTempDir });
   context.assert(firstTask.status === 0, "generate tasks writes the first task", `stderr: ${firstTask.stderr.trim()}`);
   const firstTaskJson = JSON.parse(firstTask.stdout.trim());
-  context.assert(firstTaskJson.valid === false, "generate tasks reports an incomplete task list as valid:false");
+  context.assert(
+    firstTaskJson.valid === true && firstTaskJson.ready === false,
+    "generate tasks reports a successful write as valid with the incomplete list as ready:false",
+  );
   context.assert(
     Array.isArray(firstTaskJson.diagnostics)
       && firstTaskJson.diagnostics.some((diagnostic: { fieldPath: string }) => diagnostic.fieldPath === "$.sections.Testing"),
@@ -1304,7 +1307,8 @@ try {
   context.assert(testingTask.status === 0, "generate tasks appends a Testing task and sets gates", `stderr: ${testingTask.stderr.trim()}`);
   const testingTaskJson = JSON.parse(testingTask.stdout.trim());
   context.assert(
-    testingTaskJson.valid === false
+    testingTaskJson.valid === true
+      && testingTaskJson.ready === false
       && testingTaskJson.diagnostics.some((diagnostic: { fieldPath: string }) => diagnostic.fieldPath === "$.sections.Verification"),
     "generate tasks still reports the missing Verification section while writing the append",
   );
@@ -1316,8 +1320,8 @@ try {
   ], { cwd: generateTempDir });
   const verificationTaskJson = JSON.parse(verificationTask.stdout.trim());
   context.assert(
-    verificationTask.status === 0 && verificationTaskJson.valid === true && verificationTaskJson.diagnostics.length === 0,
-    "generate tasks reports a complete task list as valid with no diagnostics",
+    verificationTask.status === 0 && verificationTaskJson.valid === true && verificationTaskJson.ready === true && verificationTaskJson.diagnostics.length === 0,
+    "generate tasks reports a complete task list as valid and ready with no diagnostics",
     `stderr: ${verificationTask.stderr.trim()}`,
   );
 
@@ -1351,6 +1355,98 @@ try {
       `generate tasks rejection for ${label} leaves the artifact unchanged`,
     );
   }
+
+  const readTasks = () => yamlModule.parseYamlDocument<{
+    sections: Record<string, Record<string, { text: string; status: string; command?: string }>>;
+  }>(readFileSync(path.join(changeDir, "tasks.yaml"), "utf8"));
+
+  // Field-level merge: mark a task complete with a command, then restate only its text and confirm
+  // the completion and command survive.
+  cli([
+    "generate", changeName, "tasks",
+    "--section", "Testing", "--task", "run-tests", "--text", "Run the tests.", "--command", "bun test/run.ts", "--status", "complete",
+  ], { cwd: generateTempDir });
+  const mergeResult = cli([
+    "generate", changeName, "tasks",
+    "--section", "Testing", "--task", "run-tests", "--text", "Run the entire suite.",
+  ], { cwd: generateTempDir });
+  context.assert(mergeResult.status === 0, "generate tasks field-level restatement succeeds", `stderr: ${mergeResult.stderr.trim()}`);
+  const mergedRunTests = readTasks().sections.Testing["run-tests"];
+  context.assert(
+    mergedRunTests.text === "Run the entire suite."
+      && mergedRunTests.status === "complete"
+      && mergedRunTests.command === "bun test/run.ts",
+    "generate tasks restatement overwrites only supplied fields and preserves status and command",
+  );
+
+  // --reset over a completed task is refused unless forced, and never rebuilds the list empty.
+  const resetBlocked = cli([
+    "generate", changeName, "tasks", "--reset",
+    "--section", "Implementation", "--task", "fresh", "--text", "Fresh start.",
+  ], { cwd: generateTempDir });
+  context.assert(
+    resetBlocked.status !== 0 && resetBlocked.stderr.includes("run-tests"),
+    "generate tasks --reset over completed work is refused and names the completed task",
+    `stderr: ${resetBlocked.stderr.trim()}`,
+  );
+  const resetNoGroup = cli(["generate", changeName, "tasks", "--reset", "--force"], { cwd: generateTempDir });
+  context.assert(
+    resetNoGroup.status !== 0 && resetNoGroup.stderr.includes("at least one"),
+    "generate tasks --reset with no task group is refused",
+    `stderr: ${resetNoGroup.stderr.trim()}`,
+  );
+  const resetForced = cli([
+    "generate", changeName, "tasks", "--reset", "--force",
+    "--section", "Implementation", "--task", "rebuilt", "--text", "Rebuilt task.",
+  ], { cwd: generateTempDir });
+  context.assert(
+    resetForced.status === 0 && Object.keys(readTasks().sections).length === 1 && "Implementation" in readTasks().sections,
+    "generate tasks --reset --force rebuilds the list from the supplied tasks",
+    `stderr: ${resetForced.stderr.trim()}`,
+  );
+
+  // --remove deletes a task; an unknown id is an idempotent no-op reported in the result.
+  cli([
+    "generate", changeName, "tasks",
+    "--section", "Implementation", "--task", "throwaway", "--text", "Throwaway.",
+  ], { cwd: generateTempDir });
+  const removeResult = cli([
+    "generate", changeName, "tasks", "--remove", "throwaway", "--remove", "ghost",
+  ], { cwd: generateTempDir });
+  const removeJson = JSON.parse(removeResult.stdout.trim());
+  context.assert(
+    removeResult.status === 0
+      && Array.isArray(removeJson.removedTasks) && removeJson.removedTasks.includes("throwaway")
+      && Array.isArray(removeJson.unmatchedRemovals) && removeJson.unmatchedRemovals.includes("ghost")
+      && !("throwaway" in readTasks().sections.Implementation),
+    "generate tasks --remove deletes a task and reports an unknown id as a no-op",
+    `stderr: ${removeResult.stderr.trim()}`,
+  );
+
+  // A section move removes the task from its old section and restates it under the new one.
+  const moveResult = cli([
+    "generate", changeName, "tasks",
+    "--remove", "rebuilt", "--section", "Verification", "--task", "rebuilt", "--text", "Rebuilt as verification.",
+  ], { cwd: generateTempDir });
+  const movedSections = readTasks().sections;
+  context.assert(
+    moveResult.status === 0
+      && !("rebuilt" in (movedSections.Implementation ?? {}))
+      && "rebuilt" in (movedSections.Verification ?? {}),
+    "generate tasks remove-and-restate moves a task between sections in one call",
+    `stderr: ${moveResult.stderr.trim()}`,
+  );
+
+  // Values may begin with a dash via the --flag=value form.
+  const dashValue = cli([
+    "generate", changeName, "tasks",
+    "--section", "Implementation", "--task", "dashy", "--text=--reset clears placeholders",
+  ], { cwd: generateTempDir });
+  context.assert(
+    dashValue.status === 0 && readTasks().sections.Implementation["dashy"].text === "--reset clears placeholders",
+    "generate tasks --flag=value stores a value that begins with a dash",
+    `stderr: ${dashValue.stderr.trim()}`,
+  );
 
   writeCompleteTasksArtifact(changeDir, changeName);
 
@@ -1894,6 +1990,60 @@ try {
   context.assert(verifyWithDeltaTech.status === 0, "change with generated delta tech still passes verify", `stderr: ${verifyWithDeltaTech.stderr.trim()} stdout: ${verifyWithDeltaTech.stdout.trim()}`);
 } finally {
   rmSync(generateTempDir, { recursive: true, force: true });
+}
+
+// verify's task-list completeness gate: leftover scaffold placeholders and empty required sections.
+const verifyCompletenessDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-driven-verify-completeness-"));
+try {
+  const completenessChange = "verify-completeness-change";
+  const proposeCompleteness = cli(["propose", completenessChange], { cwd: verifyCompletenessDir });
+  context.assert(proposeCompleteness.status === 0, "verify completeness setup scaffolds a change", `stderr: ${proposeCompleteness.stderr.trim()}`);
+
+  // A freshly scaffolded change still carries placeholder task text in every section.
+  const placeholderVerify = cli(["verify", completenessChange], { cwd: verifyCompletenessDir });
+  const placeholderVerifyJson = JSON.parse(placeholderVerify.stdout.trim());
+  context.assert(
+    placeholderVerifyJson.diagnostics.some(
+      (d: { source: string; fieldPath: string }) => d.source === "task_completeness" && d.fieldPath.endsWith(".text"),
+    ),
+    "verify reports leftover scaffold placeholder task text as a completeness diagnostic",
+    placeholderVerify.stdout.trim(),
+  );
+
+  // Rebuilding the list with only an Implementation task leaves Testing and Verification empty.
+  const emptyRebuild = cli([
+    "generate", completenessChange, "tasks", "--reset", "--force",
+    "--section", "Implementation", "--task", "only-impl", "--text", "Only implementation.",
+  ], { cwd: verifyCompletenessDir });
+  context.assert(emptyRebuild.status === 0, "verify completeness rebuild writes a single-section list", `stderr: ${emptyRebuild.stderr.trim()}`);
+  const emptySectionVerify = cli(["verify", completenessChange], { cwd: verifyCompletenessDir });
+  const emptySectionJson = JSON.parse(emptySectionVerify.stdout.trim());
+  context.assert(
+    emptySectionJson.diagnostics.some(
+      (d: { source: string; fieldPath: string }) => d.source === "task_completeness" && d.fieldPath === "$.sections.Testing",
+    ) && emptySectionJson.diagnostics.some(
+      (d: { source: string; fieldPath: string }) => d.source === "task_completeness" && d.fieldPath === "$.sections.Verification",
+    ),
+    "verify reports empty required sections as completeness diagnostics",
+    emptySectionVerify.stdout.trim(),
+  );
+
+  // A fully authored task list in all three sections produces no completeness diagnostics.
+  cli([
+    "generate", completenessChange, "tasks",
+    "--section", "Testing", "--task", "run-suite", "--text", "Run the suite.", "--command", "bun test/run.ts",
+    "--section", "Verification", "--task", "verify-it", "--text", "Verify the scope.",
+    "--validation-task", "run-suite", "--unit-test-task", "run-suite",
+  ], { cwd: verifyCompletenessDir });
+  const completeVerify = cli(["verify", completenessChange], { cwd: verifyCompletenessDir });
+  const completeVerifyJson = JSON.parse(completeVerify.stdout.trim());
+  context.assert(
+    !completeVerifyJson.diagnostics.some((d: { source: string }) => d.source === "task_completeness"),
+    "verify reports no completeness diagnostics for a fully authored task list",
+    completeVerify.stdout.trim(),
+  );
+} finally {
+  rmSync(verifyCompletenessDir, { recursive: true, force: true });
 }
 
 context.section("[7] fixture-driven validation matrix");

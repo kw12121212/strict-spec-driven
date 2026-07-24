@@ -1,0 +1,60 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: task-generation-safeguards
+sections:
+  Implementation:
+    field-level-task-merge:
+      text: 'In src/cli/cmd-generation.ts, change the tasks upsert from whole-entry replacement to a field-level merge: carry forward the existing text, status, and command for any field not supplied on this invocation, and keep status pending as the default only for a newly created task.'
+      status: complete
+    reset-force-guard:
+      text: 'In src/cli/cmd-generation.ts, guard --reset: exit non-zero when the existing tasks.yaml contains any task with status complete unless --force is supplied, and require at least one task argument group alongside --reset so the task list can never be reduced to an empty set.'
+      status: complete
+    remove-task-flag:
+      text: In src/cli/cmd-generation.ts, add a repeatable --remove <task-id> flag that deletes a task from whichever section holds it, treats an unknown id as an idempotent no-op reported in the result, and keeps the existing cross-section restatement error intact.
+      status: complete
+    inline-value-parsing:
+      text: In the tasks argument parser in src/cli/cmd-generation.ts, accept --flag=value alongside --flag value so task text and command values may begin with a dash, and leave the other artifact parsers unchanged.
+      status: complete
+    readiness-result-contract:
+      text: In src/propose-generation.ts, split the generate tasks result contract so valid reports write success like every other artifact and a new ready boolean carries the completeness diagnostics from computeTaskListReadiness.
+      status: complete
+    verify-task-list-completeness:
+      text: 'In the verify implementation, add task-list completeness diagnostics: report an empty Implementation, Testing, or Verification section, and report any task whose text or command exactly equals a known scaffold placeholder literal, reusing the scaffold constants as the single source of those literals.'
+      status: complete
+    dedupe-section-constant:
+      text: Export TASK_SECTION_NAMES from src/propose-generation.ts and import it in src/cli/cmd-generation.ts so the task section names have a single definition.
+      status: complete
+    update-skill-guidance:
+      text: 'Update skills/strict-spec-brainstorm, strict-spec-propose, strict-spec-propose-from-roadmap, strict-spec-auto, strict-roadmap-recommend, and strict-spec-modify SKILL.md to document the corrected contract: field-level restatement, the --force requirement when resetting over completed work, --remove for deletions and section moves, --flag=value for dash-leading values, and reading ready rather than valid for completeness.'
+      status: complete
+    rebuild-dist:
+      text: Run bun run build so compiled dist/ output reflects the hardened generate tasks and verify behavior before running the dist-based test suite.
+      status: complete
+    detextify-verify-source:
+      text: Replace the two raw NUL bytes at src/verify.ts lines 792 and 829 with an explicit escape sequence so the delta tech rule key keeps its exact runtime value while the file stops being classified as binary by grep and ripgrep.
+      status: complete
+  Testing:
+    test-task-generation-safeguards:
+      text: Add regression tests covering field-level restatement preserving status complete and command, the --reset refusal over completed tasks and its --force override, --reset rejecting an invocation with no task group, --remove deleting a task and no-oping on an unknown id, --flag=value values that begin with a dash, and the valid versus ready split in the result contract.
+      status: complete
+      command: bun test/run.ts
+    test-verify-completeness:
+      text: Add verify regression tests for empty-section diagnostics and scaffold-placeholder diagnostics, and update existing test fixtures whose task lists are incomplete so they satisfy the stricter verify contract.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-change:
+      text: Run strict-spec-cli ready and strict-spec-cli verify for this change and resolve any structural or schema diagnostics.
+      status: complete
+    verify-delta-spec-mapping:
+      text: Run strict-spec-cli verify-spec-mappings and confirm the cli-foundation delta spec maps its modified and added requirements to the implementation and test files that actually changed.
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: test-task-generation-safeguards

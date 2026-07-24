@@ -196,10 +196,13 @@ run `init` from this skill.
    - `strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..." --milestone <milestone-id> --planned-change <planned-change-id>`
    - `strict-spec-cli generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
    - populate `tasks.yaml` with `strict-spec-cli generate <change-name> tasks`, **one invocation per task** so no task list is hand-written:
-     - first task: `strict-spec-cli generate <change-name> tasks --reset --section <Implementation|Testing|Verification> --task <task-id> --text "..." [--status pending|complete] [--command "..."]` — the `--reset` on this first call clears the scaffold placeholder tasks
+     - first task: `strict-spec-cli generate <change-name> tasks --reset --section <Implementation|Testing|Verification> --task <task-id> --text "..." [--status pending|complete] [--command "..."]` — the `--reset` on this first call clears the scaffold placeholder tasks; if the list already has completed tasks, `--reset` refuses unless you add `--force`, and it always requires at least one task group so the list is never rebuilt empty
      - each later task: the same command without `--reset`, one `--section`/`--task`/`--text` group per call
+     - restating an existing `(section, task-id)` is a field-level merge — it overwrites only the fields you pass, so a task's `status: complete` and `command` survive a text-only edit; a brand-new task still needs `--text`
+     - delete a task with `--remove <task-id>` (a repeatable global flag); to move a task between sections, `--remove` it and restate it under the new section in the same call
+     - values may begin with a dash via `--text=...` or `--command=...` (the `--flag=value` form)
      - set the gates with `--validation-task <task-id>` and `--unit-test-task <task-id>`; both must reference `Testing` task ids
-     - the command upserts by `(section, task-id)` and is idempotent; each call returns `{valid, diagnostics}` and reports `valid: false` naming the sections or gates still missing until the list is complete, so read those diagnostics and confirm with `verify` before handoff
+     - the command upserts by `(section, task-id)` and is idempotent; each call returns `{valid, ready, diagnostics}` — `valid` reports write success and `ready` reports completeness, so a `ready: false` result naming empty sections or unset gates is not a failed write, keep adding tasks and confirm with `verify` before handoff
      - cover concrete Implementation tasks for script, tooling, generated asset, documentation, or skill-prompt edits in scope; Testing tasks with runnable validation and unit/regression commands; and Verification tasks for `ready`, `verify`, mapping checks, and archive-readiness or archive-merge checks when relevant
    - `strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
      Include impact analysis and recommendation/options in `--context`; do

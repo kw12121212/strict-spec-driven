@@ -1,0 +1,22 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: task-generation-safeguards
+open: []
+resolved:
+  - id: fix-scope-depth
+    question: Should this change fix all eight identified defects, or only the data-loss and gate-failure subsets?
+    context: Options were all eight items, items one through four only, or items one and two only. Splitting the work would leave the ergonomic defects to a third change against the same code paths and duplicate the regression cost.
+    answer: Fix all eight items in this change.
+    status: resolved
+  - id: verify-strictness
+    question: How strict should the verify gate become for task lists?
+    context: Options were to report both empty-section and scaffold-placeholder diagnostics, to report empty sections only, or to leave verify untouched and instead make the generate readiness diagnostics a hard write failure. The last option conflicts with incremental construction, which necessarily passes through incomplete states.
+    answer: Verify reports diagnostics for both empty sections and leftover scaffold placeholders, using exact matching against the scaffold literals.
+    status: resolved
+  - id: result-contract-shape
+    question: How should the overloaded valid field in the generate tasks result be corrected?
+    context: Options were to make valid report write success and add a separate ready field, to keep the current valid semantics and add a redundant ready field, or to document the overload in the skill prompts without changing the output. Changing the field semantics requires synchronised updates to six skill files, the main spec scenario, and the tests.
+    answer: Valid reports write success consistent with every other artifact, and a new ready field carries completeness.
+    status: resolved

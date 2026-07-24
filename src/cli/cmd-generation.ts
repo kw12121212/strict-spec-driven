@@ -5,6 +5,7 @@ import {
   type GeneratableArtifact,
   type GenerationInputRecord,
   isGeneratableArtifact,
+  TASK_SECTION_NAMES,
 } from "../propose-generation.js";
 import { parseYamlDocument } from "../yaml.js";
 import { CHANGE_NAME_PATTERN, isHelpRequest } from "./argv.js";
@@ -23,7 +24,7 @@ function usage(): string {
     "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
     "  strict-spec-cli generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
     "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
-    "  strict-spec-cli generate <change-name> tasks [--reset] [--section <Implementation|Testing|Verification> --task <id> --text <text> [--status <pending|complete>] [--command <text>]]... [--validation-task <id>] [--unit-test-task <id>]",
+    "  strict-spec-cli generate <change-name> tasks [--reset [--force]] [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
     "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
     "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]...",
   ].join("\n") + "\n";
@@ -432,7 +433,6 @@ function buildQuestionsInputFromArgs(rootDir: string, changeName: string, argv: 
   return input;
 }
 
-const TASK_SECTION_NAMES = ["Implementation", "Testing", "Verification"] as const;
 const TASK_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 type TaskGroup = {
@@ -443,24 +443,23 @@ type TaskGroup = {
   command?: string;
 };
 
+export type TaskRemovalOutcome = {
+  removed: string[];
+  unmatched: string[];
+};
+
 type TaskCommandInput = {
   reset: boolean;
+  force: boolean;
+  removals: string[];
   groups: TaskGroup[];
   validationTask?: string;
   unitTestTask?: string;
 };
 
 function parseTaskCommandInput(argv: string[], rootDir: string): TaskCommandInput {
-  const input: TaskCommandInput = { reset: false, groups: [] };
+  const input: TaskCommandInput = { reset: false, force: false, removals: [], groups: [] };
   let current: TaskGroup | undefined;
-
-  function readValue(name: string, index: number): string {
-    const value = argv[index + 1];
-    if (value === undefined || value.startsWith("--")) {
-      throw new Error(`missing value for --${name}`);
-    }
-    return resolveStringValue(value, rootDir);
-  }
 
   function setField(field: "id" | "text" | "status" | "command", value: string, flagName: string): void {
     if (!current) {
@@ -478,37 +477,54 @@ function parseTaskCommandInput(argv: string[], rootDir: string): TaskCommandInpu
       throw new Error(`expected named argument, got '${token ?? ""}'`);
     }
 
-    const name = token.slice(2);
-    if (name === "reset") {
-      input.reset = true;
+    // Task text and commands routinely name CLI flags, so the inline `--flag=value` form is
+    // accepted alongside `--flag value` to express values that begin with a dash.
+    const rawName = token.slice(2);
+    const equalsAt = rawName.indexOf("=");
+    const name = equalsAt === -1 ? rawName : rawName.slice(0, equalsAt);
+    const inlineValue = equalsAt === -1 ? undefined : resolveStringValue(rawName.slice(equalsAt + 1), rootDir);
+
+    const readValue = (): string => {
+      if (inlineValue !== undefined) return inlineValue;
+      const value = argv[index + 1];
+      if (value === undefined || value.startsWith("--")) {
+        throw new Error(`missing value for --${name}`);
+      }
+      index += 1;
+      return resolveStringValue(value, rootDir);
+    };
+
+    if (name === "reset" || name === "force") {
+      if (inlineValue !== undefined) throw new Error(`--${name} does not take a value`);
+      if (name === "reset") input.reset = true;
+      else input.force = true;
       continue;
     }
     if (name === "section") {
-      current = { section: readValue(name, index) };
+      current = { section: readValue() };
       input.groups.push(current);
-      index += 1;
       continue;
     }
     if (name === "task") {
-      setField("id", readValue(name, index), name);
-      index += 1;
+      setField("id", readValue(), name);
       continue;
     }
     if (name === "text" || name === "status" || name === "command") {
-      setField(name, readValue(name, index), name);
-      index += 1;
+      setField(name, readValue(), name);
+      continue;
+    }
+    if (name === "remove") {
+      input.removals.push(readValue());
       continue;
     }
     if (name === "validation-task") {
       if (input.validationTask !== undefined) throw new Error("--validation-task may only be supplied once");
-      input.validationTask = readValue(name, index);
-      index += 1;
+      input.validationTask = readValue();
       continue;
     }
     if (name === "unit-test-task") {
       if (input.unitTestTask !== undefined) throw new Error("--unit-test-task may only be supplied once");
-      input.unitTestTask = readValue(name, index);
-      index += 1;
+      input.unitTestTask = readValue();
       continue;
     }
 
@@ -536,6 +552,22 @@ function existingTaskListInput(rootDir: string, changeName: string, reset: boole
   };
 }
 
+function completedTaskIds(rootDir: string, changeName: string): string[] {
+  const artifact = readYamlIfExists<GenerationInputRecord>(
+    rootDir,
+    `${STRICT_WORKFLOW_DIR}/changes/${changeName}/tasks.yaml`,
+  );
+  const sections = isRecord(artifact?.sections) ? artifact.sections : {};
+  const completed: string[] = [];
+  for (const sectionTasks of Object.values(sections)) {
+    if (!isRecord(sectionTasks)) continue;
+    for (const [taskId, task] of Object.entries(sectionTasks)) {
+      if (isRecord(task) && task.status === "complete") completed.push(taskId);
+    }
+  }
+  return completed;
+}
+
 function findTaskSection(sections: GenerationInputRecord, taskId: string): string | undefined {
   for (const [sectionName, sectionTasks] of Object.entries(sections)) {
     if (isRecord(sectionTasks) && Object.prototype.hasOwnProperty.call(sectionTasks, taskId)) {
@@ -545,11 +577,46 @@ function findTaskSection(sections: GenerationInputRecord, taskId: string): strin
   return undefined;
 }
 
-function buildTaskListInputFromArgs(rootDir: string, changeName: string, argv: string[]): GenerationInputRecord {
+function buildTaskListInputFromArgs(
+  rootDir: string,
+  changeName: string,
+  argv: string[],
+  removalOutcome?: TaskRemovalOutcome,
+): GenerationInputRecord {
   const commandInput = parseTaskCommandInput(argv, rootDir);
+
+  // Reset discards the existing task list, so it must never be able to silently drop recorded
+  // completions and must never be able to rebuild the list as an empty set.
+  if (commandInput.reset) {
+    if (commandInput.groups.length === 0) {
+      throw new Error("--reset requires at least one --section/--task/--text group so the task list is never rebuilt empty");
+    }
+    if (!commandInput.force) {
+      const completed = completedTaskIds(rootDir, changeName);
+      if (completed.length > 0) {
+        throw new Error(
+          `--reset would discard completed task(s): ${completed.join(", ")}; re-run with --force to rebuild anyway`,
+        );
+      }
+    }
+  }
+
   const input = existingTaskListInput(rootDir, changeName, commandInput.reset);
   const sections = isRecord(input.sections) ? input.sections : {};
   const gates = isRecord(input.testing_gates) ? input.testing_gates : { validation_task: "", unit_test_task: "" };
+
+  // Removals run before upserts so a single invocation can move a task between sections by
+  // removing the old entry and restating it under the new one.
+  for (const taskId of commandInput.removals) {
+    const holdingSection = findTaskSection(sections, taskId);
+    if (holdingSection === undefined) {
+      removalOutcome?.unmatched.push(taskId);
+      continue;
+    }
+    const sectionTasks = sections[holdingSection] as GenerationInputRecord;
+    delete sectionTasks[taskId];
+    removalOutcome?.removed.push(taskId);
+  }
 
   const seenThisInvocation = new Set<string>();
   for (const group of commandInput.groups) {
@@ -560,7 +627,6 @@ function buildTaskListInputFromArgs(rootDir: string, changeName: string, argv: s
     if (!TASK_ID_PATTERN.test(group.id)) {
       throw new Error(`task id '${group.id}' must be kebab-case (lowercase letters, numbers, and hyphens)`);
     }
-    if (!group.text) throw new Error(`missing required argument --text for task '${group.id}'`);
     if (seenThisInvocation.has(group.id)) {
       throw new Error(`duplicate task id '${group.id}' supplied in one invocation`);
     }
@@ -573,10 +639,21 @@ function buildTaskListInputFromArgs(rootDir: string, changeName: string, argv: s
       );
     }
 
-    const task: GenerationInputRecord = { text: group.text, status: group.status ?? "pending" };
-    if (group.command !== undefined) task.command = group.command;
-
     const sectionTasks = isRecord(sections[group.section]) ? sections[group.section] as GenerationInputRecord : {};
+    const existingTask = isRecord(sectionTasks[group.id]) ? sectionTasks[group.id] as GenerationInputRecord : undefined;
+    if (existingTask === undefined && !group.text) {
+      throw new Error(`missing required argument --text for new task '${group.id}'`);
+    }
+
+    // Field-level merge: an invocation overwrites only the fields it supplies, so restating a task
+    // to change one field never discards a recorded completion or command.
+    const task: GenerationInputRecord = {
+      text: group.text ?? existingTask?.text,
+      status: group.status ?? existingTask?.status ?? "pending",
+    };
+    const command = group.command ?? existingTask?.command;
+    if (command !== undefined) task.command = command;
+
     sectionTasks[group.id] = task;
     sections[group.section] = sectionTasks;
   }
@@ -1216,6 +1293,7 @@ function buildInputFromNamedArgs(
   changeName: string,
   artifact: GeneratableArtifact,
   argv: string[],
+  removalOutcome?: TaskRemovalOutcome,
 ): GenerationInputRecord {
   switch (artifact) {
     case "proposal":
@@ -1225,7 +1303,7 @@ function buildInputFromNamedArgs(
     case "questions":
       return buildQuestionsInputFromArgs(rootDir, changeName, argv);
     case "tasks":
-      return buildTaskListInputFromArgs(rootDir, changeName, argv);
+      return buildTaskListInputFromArgs(rootDir, changeName, argv, removalOutcome);
     case "delta-spec":
       return buildDeltaInputFromArgs(rootDir, changeName, argv);
     case "delta-tech":
@@ -1259,8 +1337,11 @@ export function runGenerate(argv: string[]): number {
     }
 
     const namedArgs = [firstInputArg, ...extraArgs];
-    const input = buildInputFromNamedArgs(process.cwd(), changeName, artifact, namedArgs);
+    const removalOutcome: TaskRemovalOutcome = { removed: [], unmatched: [] };
+    const input = buildInputFromNamedArgs(process.cwd(), changeName, artifact, namedArgs, removalOutcome);
     const result = generateChangeArtifactFromInput(process.cwd(), changeName, artifact, input);
+    if (removalOutcome.removed.length > 0) result.removedTasks = removalOutcome.removed;
+    if (removalOutcome.unmatched.length > 0) result.unmatchedRemovals = removalOutcome.unmatched;
     writeJson(result);
     return 0;
   } catch (error) {

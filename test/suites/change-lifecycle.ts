@@ -270,8 +270,9 @@ try {
     "question resolution removes the open entry and writes resolved state",
   );
 
+  // The fixture above deliberately has a completed task, so rebuilding requires --force.
   const scriptedTasksGenerate = cli([
-    "generate", changeName, "tasks", "--reset",
+    "generate", changeName, "tasks", "--reset", "--force",
     "--section", "Implementation", "--task", "do-the-work", "--text", "Implement the scoped behavior.",
     "--section", "Testing", "--task", "run-tests", "--text", "Run the tests.", "--command", "bun test/run.ts",
     "--section", "Verification", "--task", "verify-scope", "--text", "Verify the change scope.",
@@ -280,8 +281,8 @@ try {
   context.assert(scriptedTasksGenerate.status === 0, "generate tasks populates the task list from scripted generation", scriptedTasksGenerate.stderr.trim());
   const scriptedTasksJson = JSON.parse(scriptedTasksGenerate.stdout.trim());
   context.assert(
-    scriptedTasksJson.valid === true && scriptedTasksJson.diagnostics.length === 0,
-    "generate tasks reports a complete scripted task list as valid",
+    scriptedTasksJson.valid === true && scriptedTasksJson.ready === true && scriptedTasksJson.diagnostics.length === 0,
+    "generate tasks reports a complete scripted task list as valid and ready",
   );
   const scriptedTasks = yamlModule.parseYamlDocument<{
     sections: { Implementation: Record<string, unknown>; Testing: Record<string, unknown> };

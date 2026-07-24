@@ -197,18 +197,28 @@ run `init` from this skill.
      ```bash
      strict-spec-cli generate <change-name> tasks --reset --section Implementation --task <task-id> --text "..."
      ```
+     `--reset` refuses when the list already has completed tasks unless you add
+     `--force`, and always requires at least one task group so the list is
+     never rebuilt empty
    - each later task is one more invocation without `--reset`:
      ```bash
      strict-spec-cli generate <change-name> tasks --section Testing --task <task-id> --text "..." --command "..."
      ```
    - `--status` defaults to `pending`; testing tasks should pass a runnable
      `--command`
+   - restating an existing `(section, task-id)` is a field-level merge — it
+     overwrites only the fields you pass, so a task's `status: complete` and
+     `command` survive a text-only edit; a brand-new task still needs `--text`
+   - delete a task with `--remove <task-id>`; to move a task between sections,
+     `--remove` it and restate it under the new section in the same call
+   - values may begin with a dash via `--text=...` or `--command=...`
    - set the gates with `--validation-task <task-id>` and
      `--unit-test-task <task-id>`; both must reference `Testing` task ids
    - the command upserts by `(section, task-id)` and is idempotent; each call
-     returns `{valid, diagnostics}` and reports `valid: false` naming the
-     sections or gates still missing while the list is incomplete — read those,
-     keep adding tasks, and confirm with `verify` before handoff
+     returns `{valid, ready, diagnostics}` — `valid` reports write success and
+     `ready` reports completeness, so a `ready: false` result naming empty
+     sections or unset gates is not a failed write; keep adding tasks and
+     confirm with `verify` before handoff
    - for technical-only changes, include the concrete scripts, tooling,
      generated assets, documentation, or skill-prompt edits in scope; include
      validation, strict `ready`/`verify`, and archive-readiness or archive-merge

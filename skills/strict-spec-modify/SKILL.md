@@ -90,12 +90,17 @@ run `init` from this skill.
    - in `tasks.yaml`, prefer `strict-spec-cli generate <change-name> tasks` to
      add or update a task — one invocation per task, `--section <name> --task
      <id> --text "..."` (upserts by section and task id, without `--reset` so
-     other tasks are untouched); pass `--status complete` when re-stating an
-     already-completed task so its completion is preserved, and set gates with
-     `--validation-task`/`--unit-test-task`. Fall back to direct YAML editing
-     only for changes the command cannot express, such as removing or renaming a
-     task. Either way, preserve existing `status: complete` entries unless the
-     user explicitly asks to change completed work
+     other tasks are untouched). Restating a task is a field-level merge that
+     overwrites only the fields you pass, so an existing `status: complete` and
+     `command` are preserved automatically on a text-only edit — you no longer
+     need to re-pass `--status complete`. Delete a task with `--remove <id>`,
+     and move a task between sections by `--remove`-ing it and restating it
+     under the new section in the same call; set gates with
+     `--validation-task`/`--unit-test-task`. Use `--text=...`/`--command=...`
+     when a value begins with a dash. Fall back to direct YAML editing only for
+     changes the command cannot express, such as renaming a task id. Either
+     way, preserve existing `status: complete` entries unless the user
+     explicitly asks to change completed work
    - in `questions.yaml`, add new `open` entries or move resolved decisions into
      `resolved`
 

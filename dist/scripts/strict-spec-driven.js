@@ -14009,6 +14009,24 @@ function readConfiguredRegressionCommand(rootDir) {
     return null;
   }
 }
+var cachedScaffoldTaskPlaceholders;
+function getScaffoldTaskPlaceholders() {
+  if (cachedScaffoldTaskPlaceholders)
+    return cachedScaffoldTaskPlaceholders;
+  const rendered = readBundledScaffoldTemplate("changes/tasks.yaml").replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, "scaffold").replaceAll(CHANGE_TEMPLATE_REGRESSION_COMMAND_PLACEHOLDER, JSON.stringify(REGRESSION_COMMAND_FALLBACK));
+  const parsed = parseYamlDocument(rendered);
+  const texts = [];
+  for (const sectionTasks of Object.values(parsed?.sections ?? {})) {
+    for (const task of Object.values(sectionTasks ?? {})) {
+      if (task?.command === REGRESSION_COMMAND_FALLBACK)
+        continue;
+      if (typeof task?.text === "string")
+        texts.push(task.text);
+    }
+  }
+  cachedScaffoldTaskPlaceholders = { texts, commands: [REGRESSION_COMMAND_FALLBACK] };
+  return cachedScaffoldTaskPlaceholders;
+}
 function normalizeRelativeScaffoldPath(relativePath) {
   const normalized = relativePath.split("\\").join("/");
   if (path2.isAbsolute(normalized)) {
@@ -15018,14 +15036,25 @@ function writeGeneratedArtifact(rootDir, changeName, artifact, input, inputLabel
   if (diagnostics.length > 0) {
     throw new Error(`written ${artifact} artifact is invalid: ${formatDiagnostics(diagnostics)}`);
   }
-  const readiness = artifact === "tasks" ? computeTaskListReadiness(writtenArtifact, artifactPath) : [];
+  if (artifact === "tasks") {
+    const readiness = computeTaskListReadiness(writtenArtifact, artifactPath);
+    return {
+      changeName,
+      artifact,
+      artifactPath,
+      replaced,
+      valid: true,
+      diagnostics: readiness,
+      ready: readiness.length === 0
+    };
+  }
   return {
     changeName,
     artifact,
     artifactPath,
     replaced,
-    valid: readiness.length === 0,
-    diagnostics: readiness
+    valid: true,
+    diagnostics: []
   };
 }
 function generateChangeArtifactFromInput(rootDir, changeName, artifact, input) {
@@ -15043,7 +15072,7 @@ function usage() {
     "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
     "  strict-spec-cli generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
     "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
-    "  strict-spec-cli generate <change-name> tasks [--reset] [--section <Implementation|Testing|Verification> --task <id> --text <text> [--status <pending|complete>] [--command <text>]]... [--validation-task <id>] [--unit-test-task <id>]",
+    "  strict-spec-cli generate <change-name> tasks [--reset [--force]] [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
     "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
     "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
   ].join(`
@@ -15385,18 +15414,10 @@ function buildQuestionsInputFromArgs(rootDir, changeName, argv) {
   input.resolved = resolved;
   return input;
 }
-var TASK_SECTION_NAMES2 = ["Implementation", "Testing", "Verification"];
 var TASK_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 function parseTaskCommandInput(argv, rootDir) {
-  const input = { reset: false, groups: [] };
+  const input = { reset: false, force: false, removals: [], groups: [] };
   let current;
-  function readValue(name, index) {
-    const value = argv[index + 1];
-    if (value === undefined || value.startsWith("--")) {
-      throw new Error(`missing value for --${name}`);
-    }
-    return resolveStringValue(value, rootDir);
-  }
   function setField(field, value, flagName) {
     if (!current) {
       throw new Error("missing required argument --section before --" + flagName);
@@ -15411,39 +15432,56 @@ function parseTaskCommandInput(argv, rootDir) {
     if (!token?.startsWith("--") || token.length === 2) {
       throw new Error(`expected named argument, got '${token ?? ""}'`);
     }
-    const name = token.slice(2);
-    if (name === "reset") {
-      input.reset = true;
+    const rawName = token.slice(2);
+    const equalsAt = rawName.indexOf("=");
+    const name = equalsAt === -1 ? rawName : rawName.slice(0, equalsAt);
+    const inlineValue = equalsAt === -1 ? undefined : resolveStringValue(rawName.slice(equalsAt + 1), rootDir);
+    const readValue = () => {
+      if (inlineValue !== undefined)
+        return inlineValue;
+      const value = argv[index + 1];
+      if (value === undefined || value.startsWith("--")) {
+        throw new Error(`missing value for --${name}`);
+      }
+      index += 1;
+      return resolveStringValue(value, rootDir);
+    };
+    if (name === "reset" || name === "force") {
+      if (inlineValue !== undefined)
+        throw new Error(`--${name} does not take a value`);
+      if (name === "reset")
+        input.reset = true;
+      else
+        input.force = true;
       continue;
     }
     if (name === "section") {
-      current = { section: readValue(name, index) };
+      current = { section: readValue() };
       input.groups.push(current);
-      index += 1;
       continue;
     }
     if (name === "task") {
-      setField("id", readValue(name, index), name);
-      index += 1;
+      setField("id", readValue(), name);
       continue;
     }
     if (name === "text" || name === "status" || name === "command") {
-      setField(name, readValue(name, index), name);
-      index += 1;
+      setField(name, readValue(), name);
+      continue;
+    }
+    if (name === "remove") {
+      input.removals.push(readValue());
       continue;
     }
     if (name === "validation-task") {
       if (input.validationTask !== undefined)
         throw new Error("--validation-task may only be supplied once");
-      input.validationTask = readValue(name, index);
-      index += 1;
+      input.validationTask = readValue();
       continue;
     }
     if (name === "unit-test-task") {
       if (input.unitTestTask !== undefined)
         throw new Error("--unit-test-task may only be supplied once");
-      input.unitTestTask = readValue(name, index);
-      index += 1;
+      input.unitTestTask = readValue();
       continue;
     }
     throw new Error(`unsupported argument(s): --${name}`);
@@ -15464,6 +15502,20 @@ function existingTaskListInput(rootDir, changeName, reset) {
     }
   };
 }
+function completedTaskIds(rootDir, changeName) {
+  const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/changes/${changeName}/tasks.yaml`);
+  const sections = isRecord2(artifact?.sections) ? artifact.sections : {};
+  const completed = [];
+  for (const sectionTasks of Object.values(sections)) {
+    if (!isRecord2(sectionTasks))
+      continue;
+    for (const [taskId, task] of Object.entries(sectionTasks)) {
+      if (isRecord2(task) && task.status === "complete")
+        completed.push(taskId);
+    }
+  }
+  return completed;
+}
 function findTaskSection(sections, taskId) {
   for (const [sectionName, sectionTasks] of Object.entries(sections)) {
     if (isRecord2(sectionTasks) && Object.prototype.hasOwnProperty.call(sectionTasks, taskId)) {
@@ -15472,23 +15524,42 @@ function findTaskSection(sections, taskId) {
   }
   return;
 }
-function buildTaskListInputFromArgs(rootDir, changeName, argv) {
+function buildTaskListInputFromArgs(rootDir, changeName, argv, removalOutcome) {
   const commandInput = parseTaskCommandInput(argv, rootDir);
+  if (commandInput.reset) {
+    if (commandInput.groups.length === 0) {
+      throw new Error("--reset requires at least one --section/--task/--text group so the task list is never rebuilt empty");
+    }
+    if (!commandInput.force) {
+      const completed = completedTaskIds(rootDir, changeName);
+      if (completed.length > 0) {
+        throw new Error(`--reset would discard completed task(s): ${completed.join(", ")}; re-run with --force to rebuild anyway`);
+      }
+    }
+  }
   const input = existingTaskListInput(rootDir, changeName, commandInput.reset);
   const sections = isRecord2(input.sections) ? input.sections : {};
   const gates = isRecord2(input.testing_gates) ? input.testing_gates : { validation_task: "", unit_test_task: "" };
+  for (const taskId of commandInput.removals) {
+    const holdingSection = findTaskSection(sections, taskId);
+    if (holdingSection === undefined) {
+      removalOutcome?.unmatched.push(taskId);
+      continue;
+    }
+    const sectionTasks = sections[holdingSection];
+    delete sectionTasks[taskId];
+    removalOutcome?.removed.push(taskId);
+  }
   const seenThisInvocation = new Set;
   for (const group of commandInput.groups) {
-    if (!TASK_SECTION_NAMES2.includes(group.section)) {
-      throw new Error(`unknown section '${group.section}'; expected one of: ${TASK_SECTION_NAMES2.join(", ")}`);
+    if (!TASK_SECTION_NAMES.includes(group.section)) {
+      throw new Error(`unknown section '${group.section}'; expected one of: ${TASK_SECTION_NAMES.join(", ")}`);
     }
     if (!group.id)
       throw new Error(`missing required argument --task for section '${group.section}'`);
     if (!TASK_ID_PATTERN.test(group.id)) {
       throw new Error(`task id '${group.id}' must be kebab-case (lowercase letters, numbers, and hyphens)`);
     }
-    if (!group.text)
-      throw new Error(`missing required argument --text for task '${group.id}'`);
     if (seenThisInvocation.has(group.id)) {
       throw new Error(`duplicate task id '${group.id}' supplied in one invocation`);
     }
@@ -15497,10 +15568,18 @@ function buildTaskListInputFromArgs(rootDir, changeName, argv) {
     if (existingSection !== undefined && existingSection !== group.section) {
       throw new Error(`task id '${group.id}' already exists in section '${existingSection}'; remove it there before moving it to '${group.section}'`);
     }
-    const task = { text: group.text, status: group.status ?? "pending" };
-    if (group.command !== undefined)
-      task.command = group.command;
     const sectionTasks = isRecord2(sections[group.section]) ? sections[group.section] : {};
+    const existingTask = isRecord2(sectionTasks[group.id]) ? sectionTasks[group.id] : undefined;
+    if (existingTask === undefined && !group.text) {
+      throw new Error(`missing required argument --text for new task '${group.id}'`);
+    }
+    const task = {
+      text: group.text ?? existingTask?.text,
+      status: group.status ?? existingTask?.status ?? "pending"
+    };
+    const command = group.command ?? existingTask?.command;
+    if (command !== undefined)
+      task.command = command;
     sectionTasks[group.id] = task;
     sections[group.section] = sectionTasks;
   }
@@ -16032,7 +16111,7 @@ function buildDeltaTechInputFromArgs(rootDir, changeName, argv) {
   input.operations = operations;
   return input;
 }
-function buildInputFromNamedArgs(rootDir, changeName, artifact, argv) {
+function buildInputFromNamedArgs(rootDir, changeName, artifact, argv, removalOutcome) {
   switch (artifact) {
     case "proposal":
       return buildProposalInput(parseFlagMap(argv, rootDir));
@@ -16041,7 +16120,7 @@ function buildInputFromNamedArgs(rootDir, changeName, artifact, argv) {
     case "questions":
       return buildQuestionsInputFromArgs(rootDir, changeName, argv);
     case "tasks":
-      return buildTaskListInputFromArgs(rootDir, changeName, argv);
+      return buildTaskListInputFromArgs(rootDir, changeName, argv, removalOutcome);
     case "delta-spec":
       return buildDeltaInputFromArgs(rootDir, changeName, argv);
     case "delta-tech":
@@ -16072,8 +16151,13 @@ function runGenerate(argv) {
       return 1;
     }
     const namedArgs = [firstInputArg, ...extraArgs];
-    const input = buildInputFromNamedArgs(process.cwd(), changeName, artifact, namedArgs);
+    const removalOutcome = { removed: [], unmatched: [] };
+    const input = buildInputFromNamedArgs(process.cwd(), changeName, artifact, namedArgs, removalOutcome);
     const result = generateChangeArtifactFromInput(process.cwd(), changeName, artifact, input);
+    if (removalOutcome.removed.length > 0)
+      result.removedTasks = removalOutcome.removed;
+    if (removalOutcome.unmatched.length > 0)
+      result.unmatchedRemovals = removalOutcome.unmatched;
     writeJson(result);
     return 0;
   } catch (error) {
@@ -17939,6 +18023,50 @@ function checkTestingGates(artifact, artifactPath) {
   }
   return diagnostics;
 }
+function checkTaskListCompleteness(artifact, artifactPath) {
+  const diagnostics = [];
+  const sections = artifact.sections ?? {};
+  for (const sectionName of TASK_SECTION_NAMES) {
+    if (Object.keys(sections[sectionName] ?? {}).length === 0) {
+      diagnostics.push({
+        source: "task_completeness",
+        artifactPath,
+        fieldPath: `$.sections.${sectionName}`,
+        message: `task list section '${sectionName}' has no tasks; add at least one before archiving`,
+        expected: "at least one task",
+        actual: "no tasks"
+      });
+    }
+  }
+  const placeholders = getScaffoldTaskPlaceholders();
+  const placeholderTexts = new Set(placeholders.texts);
+  const placeholderCommands = new Set(placeholders.commands);
+  for (const [sectionName, taskMap] of Object.entries(sections)) {
+    for (const [taskId, task] of Object.entries(taskMap ?? {})) {
+      if (typeof task.text === "string" && placeholderTexts.has(task.text)) {
+        diagnostics.push({
+          source: "task_completeness",
+          artifactPath,
+          fieldPath: `$.sections.${sectionName}.${taskId}.text`,
+          message: `task '${taskId}' still has scaffold placeholder text; replace it with the real task before archiving`,
+          expected: "authored task text",
+          actual: task.text
+        });
+      }
+      if (typeof task.command === "string" && placeholderCommands.has(task.command)) {
+        diagnostics.push({
+          source: "task_completeness",
+          artifactPath,
+          fieldPath: `$.sections.${sectionName}.${taskId}.command`,
+          message: `task '${taskId}' still has scaffold placeholder command; replace it with the real command before archiving`,
+          expected: "authored task command",
+          actual: task.command
+        });
+      }
+    }
+  }
+  return diagnostics;
+}
 function validateDeltaSpecs(changeDir, artifactPathPrefix) {
   const specsDir = path13.join(changeDir, "specs");
   if (!existsSync12(specsDir))
@@ -18551,6 +18679,7 @@ function verifyChange(rootDir, changeName) {
       totalTasks = taskResult.totalTasks;
       completeTasks = taskResult.completeTasks;
       allDiagnostics.push(...checkTestingGates(taskArtifact, artifactPath));
+      allDiagnostics.push(...checkTaskListCompleteness(taskArtifact, artifactPath));
     }
     if (artifactType === "question_list") {
       const questionArtifact = artifact;
@@ -19708,7 +19837,7 @@ function getWorkflowState(rootDir, changeName) {
 }
 function checkProposalReadiness(rootDir, changeName) {
   const verification = verifyChange(rootDir, changeName);
-  const diagnostics = verification.diagnostics.filter((diagnostic) => diagnostic.source !== "task_completion");
+  const diagnostics = verification.diagnostics.filter((diagnostic) => diagnostic.source !== "task_completion" && diagnostic.source !== "task_completeness");
   diagnostics.push(...checkDeterministicQuestionGateEvidence(rootDir, changeName));
   const hasMissingDeltaSpecDiagnostic = listDeltaSpecFiles(rootDir, changeName).length === 0 && !hasExplicitEmptySpecDecision(rootDir, changeName);
   if (hasMissingDeltaSpecDiagnostic) {

@@ -279,7 +279,11 @@ export function getWorkflowState(rootDir: string, changeName: string): WorkflowS
 
 export function checkProposalReadiness(rootDir: string, changeName: string): ProposalReadinessResult {
   const verification = verifyChange(rootDir, changeName);
-  const diagnostics = verification.diagnostics.filter((diagnostic) => diagnostic.source !== "task_completion");
+  // Pending tasks and not-yet-authored task detail are expected at proposal-handoff time; task
+  // completeness is an archive-time gate owned by verify, so it does not block ready.
+  const diagnostics = verification.diagnostics.filter(
+    (diagnostic) => diagnostic.source !== "task_completion" && diagnostic.source !== "task_completeness",
+  );
   diagnostics.push(...checkDeterministicQuestionGateEvidence(rootDir, changeName));
   const hasMissingDeltaSpecDiagnostic = listDeltaSpecFiles(rootDir, changeName).length === 0
     && !hasExplicitEmptySpecDecision(rootDir, changeName);

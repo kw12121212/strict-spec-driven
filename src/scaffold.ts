@@ -53,6 +53,42 @@ function readConfiguredRegressionCommand(rootDir: string): string | null {
   }
 }
 
+export type ScaffoldTaskPlaceholders = {
+  /** Task texts that only stand in for real work and must be replaced before a change verifies. */
+  texts: string[];
+  /** Task commands that only stand in for a real command. */
+  commands: string[];
+};
+
+let cachedScaffoldTaskPlaceholders: ScaffoldTaskPlaceholders | undefined;
+
+/**
+ * Derives the placeholder task content from the bundled change scaffold so verify and the scaffold
+ * itself never drift apart. The scaffold's regression task is a real task changes are expected to
+ * keep, so only its unfilled command counts as a placeholder — every other scaffold task text does.
+ */
+export function getScaffoldTaskPlaceholders(): ScaffoldTaskPlaceholders {
+  if (cachedScaffoldTaskPlaceholders) return cachedScaffoldTaskPlaceholders;
+
+  const rendered = readBundledScaffoldTemplate("changes/tasks.yaml")
+    .replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, "scaffold")
+    .replaceAll(CHANGE_TEMPLATE_REGRESSION_COMMAND_PLACEHOLDER, JSON.stringify(REGRESSION_COMMAND_FALLBACK));
+  const parsed = parseYamlDocument<{
+    sections?: Record<string, Record<string, { text?: unknown; command?: unknown }> | undefined>;
+  }>(rendered);
+
+  const texts: string[] = [];
+  for (const sectionTasks of Object.values(parsed?.sections ?? {})) {
+    for (const task of Object.values(sectionTasks ?? {})) {
+      if (task?.command === REGRESSION_COMMAND_FALLBACK) continue;
+      if (typeof task?.text === "string") texts.push(task.text);
+    }
+  }
+
+  cachedScaffoldTaskPlaceholders = { texts, commands: [REGRESSION_COMMAND_FALLBACK] };
+  return cachedScaffoldTaskPlaceholders;
+}
+
 export type StrictInitResult = {
   rootDir: string;
   created: string[];

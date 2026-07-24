@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: task-generation-safeguards
+  status: proposed
+summary:
+  what:
+    - Harden the generate tasks command so incremental one-task-at-a-time task list construction cannot silently lose completed task state, and make the downstream verify gate actually enforce the task list completeness that generate only reports as advisory diagnostics.
+  why:
+    - The scripted-task-list-generation change made generate tasks replace a whole task entry on every restatement, which silently reverts status complete to pending and drops the command field; --reset can empty a task list containing completed work with no guard; and verify never checks section completeness or leftover scaffold placeholders, so the two-layer validation model the design claimed has no enforcing lower layer.
+scope:
+  in:
+    - Field-level merge upsert for restated tasks; a --reset guard that refuses to discard completed tasks without --force and requires at least one task group; verify diagnostics for empty Implementation, Testing, or Verification sections; verify diagnostics for leftover scaffold placeholder text and commands; a generate tasks result contract where valid reports write success and a new ready field reports completeness; --flag=value parsing in the tasks argument parser; a --remove flag for deleting a task; a single source for the task section name constant; replacing the two raw NUL bytes embedded in src/verify.ts with an escape sequence so the file is no longer classified as binary by text search; and skill guidance updates for every skill that documents the command.
+  out:
+    - The task-list/v2 schema stays unchanged; the proposal, design, questions, delta-spec, and delta-tech generators keep their current parsing and result contracts; --flag=value is added to the tasks parser only; archive and delta-merge behavior is untouched; the apply command path that marks tasks complete is untouched; and clearing an existing command value is not supported.
+unchanged_behavior:
+  - Existing valid generate tasks invocations that supply every field continue to produce the same artifact; upsert remains idempotent for identical invocations; cross-section moves remain a hard error rather than an implicit relocation; the testing gate reference check in verify keeps its current behavior; the delta tech rule key separator keeps its exact runtime value; and no other CLI command changes its output shape.

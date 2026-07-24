@@ -26,6 +26,16 @@ export type GenerateChangeArtifactResult = {
   replaced: boolean;
   valid: boolean;
   diagnostics: ValidationDiagnostic[];
+  /**
+   * Completeness signal for task lists only. `valid` reports write success like every other
+   * artifact; `ready` reports whether the written task list is complete, and its shortfalls are
+   * carried in `diagnostics`. Undefined for non-task artifacts.
+   */
+  ready?: boolean;
+  /** Task ids deleted by `--remove`; present only when a tasks invocation removed something. */
+  removedTasks?: string[];
+  /** Task ids named by `--remove` that were already absent, reported so the no-op is visible. */
+  unmatchedRemovals?: string[];
 };
 
 function normalizeRepoRelativePath(rootDir: string, absolutePath: string): string {
@@ -637,18 +647,29 @@ function writeGeneratedArtifact(
   }
 
   // Task lists are built one task at a time, so the artifact is structurally valid at every step
-  // but may still be incomplete. Report completeness gaps (missing sections, unresolved testing
-  // gates) as non-fatal diagnostics instead of failing the write; ready/verify remain the
-  // authoritative handoff gate.
-  const readiness = artifact === "tasks" ? computeTaskListReadiness(writtenArtifact, artifactPath) : [];
+  // but may still be incomplete. The write itself succeeded (schema-validated above), so `valid`
+  // is true; completeness gaps (missing sections, unresolved testing gates) are reported through
+  // the separate `ready` flag and its diagnostics, with verify remaining the authoritative gate.
+  if (artifact === "tasks") {
+    const readiness = computeTaskListReadiness(writtenArtifact, artifactPath);
+    return {
+      changeName,
+      artifact,
+      artifactPath,
+      replaced,
+      valid: true,
+      diagnostics: readiness,
+      ready: readiness.length === 0,
+    };
+  }
 
   return {
     changeName,
     artifact,
     artifactPath,
     replaced,
-    valid: readiness.length === 0,
-    diagnostics: readiness,
+    valid: true,
+    diagnostics: [],
   };
 }
 

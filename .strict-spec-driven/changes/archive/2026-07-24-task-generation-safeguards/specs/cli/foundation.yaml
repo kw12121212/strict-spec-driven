@@ -1,0 +1,66 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/cmd-generation.ts
+    - src/propose-generation.ts
+    - src/verify.ts
+    - src/scaffold.ts
+    - src/workflow-state.ts
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/change-lifecycle.ts
+operations:
+  ADDED:
+    cli-verify-checks-task-list-completeness:
+      strength: MUST
+      statement: The system MUST report a verification diagnostic when a change task list leaves the Implementation, Testing, or Verification section empty, or when a task still carries scaffold placeholder content.
+      scenarios:
+        empty-section-produces-diagnostic:
+          - GIVEN: a strict change has tasks.yaml where one of the Implementation, Testing, or Verification sections contains no task
+          - WHEN: the verify command is executed for that change
+          - THEN: a diagnostic is emitted identifying the empty section
+        scaffold-placeholder-produces-diagnostic:
+          - GIVEN: a strict change has tasks.yaml where a task text or command still matches the scaffold placeholder content created by propose
+          - WHEN: the verify command is executed for that change
+          - THEN: a diagnostic is emitted identifying the task that retains placeholder content
+        complete-task-list-produces-no-completeness-diagnostics:
+          - GIVEN: a strict change has tasks.yaml with at least one task in each of the three sections and no placeholder content
+          - WHEN: the verify command is executed for that change
+          - THEN: no task list completeness diagnostics are emitted
+  MODIFIED:
+    cli-generate-tasks-upserts-single-tasks:
+      strength: MUST
+      statement: The system MUST populate the strict task list through a generate tasks artifact that merges one task at a time by section and task id into the existing tasks.yaml, preserves task fields the invocation does not supply, sets testing gates from named arguments, removes a named task on request, refuses to discard completed work when rebuilding unless forced, and reports write success separately from task list completeness.
+      scenarios:
+        restatement-preserves-unsupplied-fields:
+          - GIVEN: a strict change tasks.yaml contains a task whose status is complete and which carries a command value
+          - WHEN: an agent runs generate tasks for that same section and task id supplying only new text
+          - THEN: the task text is updated while its completed status and command value are preserved
+        rebuilding-over-completed-work-requires-force:
+          - GIVEN: a strict change tasks.yaml contains at least one task whose status is complete
+          - WHEN: an agent runs generate tasks with the reset flag and without the force flag
+          - THEN: the command exits non-zero and identifies the completed tasks that would be discarded
+          - AND: the existing tasks.yaml is left unchanged
+        rebuilding-requires-at-least-one-task:
+          - GIVEN: a strict change scaffold exists with a valid tasks.yaml
+          - WHEN: an agent runs generate tasks with the reset flag and no task argument group
+          - THEN: the command exits non-zero and the task list is never reduced to an empty set
+        removal-deletes-a-named-task:
+          - GIVEN: a strict change tasks.yaml contains a task in a known section
+          - WHEN: an agent runs generate tasks with a remove argument naming that task id
+          - THEN: the task is deleted from the artifact
+          - AND: repeating the same removal for an id that is no longer present succeeds and reports the removal as a no-op
+        values-may-begin-with-a-dash:
+          - GIVEN: a strict change scaffold exists
+          - WHEN: an agent supplies a task text or command whose value begins with a dash using the inline argument syntax
+          - THEN: the value is stored verbatim in the task entry
+        result-separates-write-success-from-completeness:
+          - GIVEN: a strict change tasks.yaml is mid-construction with sections or testing gates still unresolved
+          - WHEN: an agent runs generate tasks to append another task
+          - THEN: the result reports the write as valid
+          - AND: the result reports completeness as not ready together with diagnostics naming the unresolved sections and gates
+  REMOVED: {}

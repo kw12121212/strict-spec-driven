@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: task-generation-safeguards
+approach:
+  - 'Keep the incremental construction model but repair its two layers. In the CLI merge layer, make the tasks upsert field-level so a restatement only overwrites the fields it supplies, add a reset guard that refuses to discard completed work, add an explicit --remove escape hatch, and accept --flag=value so values may start with a dash. In the result contract, stop overloading valid: it reports write success like every other artifact, and a new ready field with its diagnostics reports completeness. In the verify layer, add the completeness checks the design already assumed existed, so the advisory diagnostics from generate finally have an enforcing downstream gate.'
+decisions:
+  field-level-task-merge:
+    decision: Restating an existing task overwrites only the fields supplied on that invocation; text, status, and command that are not supplied are carried forward from the existing entry, and a newly created task still defaults to status pending.
+    rationale: Whole-entry replacement made the correctness of every restatement depend on the agent remembering to re-pass --status complete and --command, which is exactly the class of omission this command was introduced to eliminate. Field-level merge also matches the established upsertKeyedItem convention elsewhere in the same module, which refuses to silently overwrite keyed content.
+  reset-requires-explicit-force:
+    decision: The reset flag exits non-zero when the existing task list contains any task with status complete unless --force is also supplied, and reset must be accompanied by at least one task argument group so it can never reduce the task list to an empty set.
+    rationale: Reset is documented as a first-invocation step, so an agent resuming an interrupted flow can plausibly re-issue its first command and destroy completed state. Requiring force for completed work makes the destructive case deliberate, and requiring at least one task group removes the silent empty-list outcome entirely.
+  verify-owns-completeness-enforcement:
+    decision: Verify reports a diagnostic when any of the Implementation, Testing, or Verification sections is empty, and when a task text or command exactly equals a known scaffold placeholder literal. Generate keeps reporting the same conditions as advisory readiness diagnostics.
+    rationale: The previous design named verify as the authoritative handoff gate but verify only validated testing gate references, so an incomplete or placeholder-filled task list could reach archive unchallenged. Exact matching against the scaffold literals is used instead of heuristic detection so a legitimately authored task can never be misreported.
+  valid-reports-write-ready-reports-completeness:
+    decision: The generate tasks result reports valid as write success, consistent with every other generated artifact, and reports completeness through a new ready boolean whose diagnostics name the missing sections and unresolved gates.
+    rationale: A valid false result on a write that actually succeeded invites an agent to treat the call as failed and retry, and the most likely retry carries --reset, compounding the data-loss risk. Separating the two signals removes the ambiguity at its source rather than documenting around it.
+  explicit-removal-over-implicit-move:
+    decision: A repeatable --remove flag deletes a task by id, treating a missing id as an idempotent no-op that is reported in the result. Supplying an existing task id under a different section remains a hard error rather than an implicit relocation.
+    rationale: Without a removal path the command could not express a section move or a task deletion at all, forcing a fallback to hand-edited YAML and defeating the purpose of scripted generation. Keeping the implicit move as an error protects against a mistyped section quietly relocating work.
+  inline-value-syntax-scoped-to-tasks:
+    decision: The tasks argument parser accepts --flag=value in addition to --flag value, and this syntax is not extended to the other artifact parsers in this change.
+    rationale: Task text in this repository routinely names CLI flags, and the existing parser rejects any value beginning with a dash because it cannot distinguish a value from the next flag. Scoping the syntax to the tasks parser fixes the case that actually bites while respecting the contract-first scope discipline rule against widening shared behavior opportunistically.
+  escape-nul-separator-in-verify-source:
+    decision: The two raw NUL bytes embedded in src/verify.ts are replaced with an explicit escape sequence that produces the identical runtime string, so the delta tech rule key separator is unchanged in behavior.
+    rationale: A literal NUL byte makes grep and ripgrep classify the whole file as binary, so text searches over src/verify.ts silently return nothing. Since this change edits that same file, the hazard would otherwise apply to its own implementation and to every later agent reading it.
+alternatives: []
+risks: []

@@ -6,6 +6,8 @@ import {
   validateArtifact,
   type ValidationDiagnostic,
 } from "./validation.js";
+import { getScaffoldTaskPlaceholders } from "./scaffold.js";
+import { TASK_SECTION_NAMES } from "./propose-generation.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const FORBIDDEN_SPEC_SUBDIRS = new Set([".strict-spec-driven", "changes", "archive"]);
@@ -219,6 +221,61 @@ function checkTestingGates(
         expected: "existing Testing section task ID",
         actual: taskId,
       });
+    }
+  }
+
+  return diagnostics;
+}
+
+function checkTaskListCompleteness(
+  artifact: TaskListArtifact,
+  artifactPath: string,
+): VerifyDiagnostic[] {
+  const diagnostics: VerifyDiagnostic[] = [];
+  const sections = artifact.sections ?? {};
+
+  // A change task list must exercise all three phases; an empty required section means the phase
+  // was never planned and would otherwise sail through to archive.
+  for (const sectionName of TASK_SECTION_NAMES) {
+    if (Object.keys(sections[sectionName] ?? {}).length === 0) {
+      diagnostics.push({
+        source: "task_completeness",
+        artifactPath,
+        fieldPath: `$.sections.${sectionName}`,
+        message: `task list section '${sectionName}' has no tasks; add at least one before archiving`,
+        expected: "at least one task",
+        actual: "no tasks",
+      });
+    }
+  }
+
+  // Leftover scaffold placeholder content means the task was never authored; matching the exact
+  // scaffold literals keeps a legitimately worded task from ever being misreported.
+  const placeholders = getScaffoldTaskPlaceholders();
+  const placeholderTexts = new Set(placeholders.texts);
+  const placeholderCommands = new Set(placeholders.commands);
+  for (const [sectionName, taskMap] of Object.entries(sections)) {
+    for (const [taskId, task] of Object.entries(taskMap ?? {})) {
+      if (typeof task.text === "string" && placeholderTexts.has(task.text)) {
+        diagnostics.push({
+          source: "task_completeness",
+          artifactPath,
+          fieldPath: `$.sections.${sectionName}.${taskId}.text`,
+          message: `task '${taskId}' still has scaffold placeholder text; replace it with the real task before archiving`,
+          expected: "authored task text",
+          actual: task.text,
+        });
+      }
+      if (typeof task.command === "string" && placeholderCommands.has(task.command)) {
+        diagnostics.push({
+          source: "task_completeness",
+          artifactPath,
+          fieldPath: `$.sections.${sectionName}.${taskId}.command`,
+          message: `task '${taskId}' still has scaffold placeholder command; replace it with the real command before archiving`,
+          expected: "authored task command",
+          actual: task.command,
+        });
+      }
     }
   }
 
@@ -789,7 +846,7 @@ function checkExclusiveActiveTechTargets(
 
   const diagnostics: VerifyDiagnostic[] = [];
 
-  // Keyed by `${target_standard} ${ruleId}` so the same rule id under
+  // Keyed by `${target_standard}<NUL>${ruleId}` so the same rule id under
   // different standards does not falsely collide.
   const targetMap = new Map<
     string,
@@ -826,7 +883,7 @@ function checkExclusiveActiveTechTargets(
         if (opName !== "MODIFIED" && opName !== "REMOVED") continue;
         if (!entries || typeof entries !== "object" || Array.isArray(entries)) continue;
         for (const ruleId of Object.keys(entries)) {
-          const key = `${artifact.target_standard} ${ruleId}`;
+          const key = `${artifact.target_standard}\x00${ruleId}`;
           if (!targetMap.has(key)) targetMap.set(key, []);
           targetMap.get(key)!.push({
             changeName: activeChange,
@@ -1011,6 +1068,7 @@ export function verifyChange(
       completeTasks = taskResult.completeTasks;
 
       allDiagnostics.push(...checkTestingGates(taskArtifact, artifactPath));
+      allDiagnostics.push(...checkTaskListCompleteness(taskArtifact, artifactPath));
     }
 
     if (artifactType === "question_list") {
