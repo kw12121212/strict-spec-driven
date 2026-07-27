@@ -1,0 +1,17 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: roadmap-move-planned-change
+open: []
+resolved:
+  - id: completed-planned-change-policy
+    question: Should roadmap-move-planned-change refuse to move a planned change whose strict change is already archived?
+    context: 'A completed planned change leaving a milestone can flip that milestone from complete to proposed, because a milestone with zero planned changes derives proposed (src/roadmap/status.ts:79), and it makes the target milestone report completed work it never contained. Options were: block with an explicit --allow-complete override, always block, or always allow. Recommendation was block with override, since it prevents surprising status regressions while keeping deliberate reorganization of finished work possible through the CLI.'
+    answer: Block by default and allow the move only when the caller passes --allow-complete. The recommended default was applied when the operator confirmed scaffolding without selecting an alternative.
+    status: resolved
+  - id: command-and-skill-naming
+    question: What should the new command and its skill be named?
+    context: Options were roadmap-move-planned-change with a /strict-roadmap-move skill, the shorter roadmap-move with the same skill, or a CLI-only command documented inside the existing /strict-roadmap-sync and /strict-roadmap-reorder skills. Recommendation was the explicit command name plus a dedicated skill, matching the one-skill-per-roadmap-verb pattern already used by reorder, pause, resume, reopen, and archive.
+    answer: Command name roadmap-move-planned-change, skill name strict-roadmap-move. The recommended default was applied when the operator confirmed scaffolding without selecting an alternative.
+    status: resolved

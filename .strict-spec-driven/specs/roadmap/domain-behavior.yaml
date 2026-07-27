@@ -36,6 +36,8 @@ mapping:
     - src/embedded-templates.ts
     - skills/strict-roadmap-pause/SKILL.md
     - skills/strict-roadmap-resume/SKILL.md
+    - src/roadmap/move.ts
+    - skills/strict-roadmap-move/SKILL.md
   tests:
     - test/suites/roadmap-and-migration.ts
     - test/suites/entrypoint-and-skills.ts
@@ -179,7 +181,7 @@ requirements:
         - THEN: the command exits zero, keeps the archived milestone and archived planned-change files under roadmap/archive, leaves the active roadmap index without the archived milestone, and roadmap-status continues to report only active unarchived milestones
   roadmap-planned-change-authoring-command-contract:
     strength: MUST
-    statement: The system MUST provide a roadmap-generate planned-change command that creates and safely updates standalone planned-change artifacts using structured YAML fields, requires an existing declared milestone, computes the canonical milestone-prefixed filename itself so callers never choose filenames, rejects conflicting edits before writing, runs roadmap synchronization after successful writes, and reports updated files deterministically.
+    statement: The system MUST provide a roadmap-generate planned-change command that creates and safely updates standalone planned-change artifacts using structured YAML fields, requires an existing declared milestone, computes the canonical milestone-prefixed filename itself so callers never choose filenames, rejects conflicting edits before writing, runs roadmap synchronization after successful writes, and reports updated files deterministically. The command MUST continue to refuse reassigning an existing planned change to a different milestone, and its refusal diagnostic MUST name roadmap-move-planned-change as the supported command for that operation.
     scenarios:
       authoring-command-creates-canonical-file:
         - GIVEN: a valid roadmap milestone exists and no planned change with the requested id exists
@@ -189,6 +191,10 @@ requirements:
         - GIVEN: no roadmap milestone with the requested milestone id exists
         - WHEN: roadmap-generate planned-change runs referencing that milestone
         - THEN: the command exits non-zero with a deterministic diagnostic and writes no planned-change file
+      authoring-command-refers-milestone-reassignment-to-move-command:
+        - GIVEN: an existing standalone planned change declares one milestone
+        - WHEN: roadmap-generate planned-change runs for that planned change id with a different milestone id
+        - THEN: the command exits non-zero, writes no file, and its diagnostic names roadmap-move-planned-change as the supported command for milestone reassignment
   roadmap-planned-change-canonical-filename-contract:
     strength: MUST
     statement: The system MUST treat an active standalone planned-change file whose basename does not match the canonical filename for its declared milestone (milestone id prefix plus planned-change id, collapsing the duplicate prefix when the id already starts with the milestone id) as a blocking validation diagnostic while leaving archived planned-change files exempt, and MUST make roadmap-sync rename misnamed active planned-change files to their canonical names deterministically only when the explicit fix-names flag is supplied.
@@ -281,3 +287,31 @@ requirements:
         - GIVEN: a valid roadmap has no milestone with the requested id
         - WHEN: strict-spec-cli roadmap-pause or roadmap-resume runs for that id
         - THEN: the command exits non-zero with a deterministic diagnostic and writes no milestone file
+  roadmap-move-planned-change-contract:
+    strength: MUST
+    statement: The system MUST provide a roadmap-move-planned-change command that reassigns exactly one active standalone planned change to a different active milestone by rewriting its declared milestone and renaming the artifact to the canonical target-milestone-prefixed filename in a single operation, running roadmap synchronization after the write and restoring the original file and path when synchronization is invalid. The command MUST reject an unknown or archived planned change, an unknown or archived target milestone, a destination filename that is already occupied, and a planned change whose derived state is archived unless an explicit allow-complete flag is supplied, each with deterministic diagnostics and no file writes. Moving a planned change into the milestone it already declares MUST be a valid no-op reporting no updated files. The command MUST never modify archived roadmap artifacts, any other planned change, any milestone artifact beyond synchronization-derived status, or any artifact under the changes directory, and MUST report the planned change id, source milestone, target milestone, source path, and target path deterministically.
+    scenarios:
+      move-reassigns-and-renames:
+        - GIVEN: a valid roadmap contains two active milestones and an active standalone planned change owned by the first milestone
+        - WHEN: strict-spec-cli roadmap-move-planned-change runs for that planned change with the second milestone as target
+        - THEN: the command exits zero, the planned-change artifact declares the second milestone, the file is renamed to the canonical basename for the second milestone, both milestones re-derive status through roadmap synchronization, and roadmap-status is valid afterward
+      move-rejects-archived-and-unknown-targets:
+        - GIVEN: a move targets an archived milestone, a milestone that does not exist, an archived planned change, a planned change that does not exist, or a destination filename already occupied by another planned change
+        - WHEN: strict-spec-cli roadmap-move-planned-change runs
+        - THEN: the command exits non-zero with a deterministic diagnostic distinguishing archived from unknown targets and writes no file
+      move-blocks-completed-work-without-flag:
+        - GIVEN: an active standalone planned change whose derived state is archived because its strict change is archived
+        - WHEN: strict-spec-cli roadmap-move-planned-change runs for that planned change without the allow-complete flag
+        - THEN: the command exits non-zero with a deterministic diagnostic naming the allow-complete flag and writes no file, and the same command with the flag supplied completes the move and re-derives both milestone statuses
+      move-into-declared-milestone-is-a-noop:
+        - GIVEN: an active standalone planned change that already declares the requested target milestone
+        - WHEN: strict-spec-cli roadmap-move-planned-change runs for that planned change and milestone
+        - THEN: the command exits zero, reports valid true with no updated files, and leaves every roadmap artifact byte-identical
+      move-that-cannot-complete-leaves-no-partial-state:
+        - GIVEN: a move that cannot complete because a guard rejects it or because post-move roadmap synchronization reports invalid roadmap state
+        - WHEN: strict-spec-cli roadmap-move-planned-change runs
+        - THEN: no file exists at the canonical destination path, the planned-change artifact is byte-identical at its original path, and the command exits non-zero reporting no updated files
+      move-warns-without-blocking:
+        - GIVEN: a moved planned change that has an active strict change, or a depends_on edge touching the moved planned change that after the move points from an earlier-ordered milestone to a later-ordered milestone
+        - WHEN: strict-spec-cli roadmap-move-planned-change runs
+        - THEN: the command exits zero, completes the move, and reports non-blocking warnings naming the stale change proposal roadmap linkage and the order-inverting dependency without modifying any artifact under the changes directory

@@ -10,37 +10,35 @@ mapping:
   implementation:
     - templates/strict-spec-driven/schemas/registry.yaml
     - .strict-spec-driven/specs/INDEX.yaml
+    - src/roadmap/move.ts
+    - src/roadmap/author.ts
+    - src/roadmap/pause.ts
+    - src/roadmap/order.ts
   enforcement: []
 rules:
   contract-first-scope-changes:
     strength: MUST
-    statement: >-
-      When a change alters a workflow contract — a registered schema, a main or
-      delta spec, or a technical standard — the corresponding strict artifact
-      MUST be updated first; implementation code MUST NOT silently widen
-      workflow scope ahead of the contract it depends on.
-    rationale: >-
-      The strict workflow's value is that deterministic, machine-validatable
-      artifacts describe the contract before code implements it. Letting code
-      lead the contract reintroduces the ad hoc drift the workflow exists to
-      prevent and breaks the audit trail that verify and archive rely on.
+    statement: When a change alters a workflow contract — a registered schema, a main or delta spec, or a technical standard — the corresponding strict artifact MUST be updated first; implementation code MUST NOT silently widen workflow scope ahead of the contract it depends on.
+    rationale: The strict workflow's value is that deterministic, machine-validatable artifacts describe the contract before code implements it. Letting code lead the contract reintroduces the ad hoc drift the workflow exists to prevent and breaks the audit trail that verify and archive rely on.
     enforcement:
       method: review
-      detail: >-
-        Reviewers reject code changes that broaden schema, spec, or tech
-        contracts without a matching delta-spec or delta-tech artifact updated
-        in the same strict change.
+      detail: Reviewers reject code changes that broaden schema, spec, or tech contracts without a matching delta-spec or delta-tech artifact updated in the same strict change.
     examples:
       good:
-        - >-
-          A change that adds a new CLI flag first adds the delta-spec
-          requirement and (if it sets a new convention) a delta-tech rule, then
-          implements the flag to match.
+        - A change that adds a new CLI flag first adds the delta-spec requirement and (if it sets a new convention) a delta-tech rule, then implements the flag to match.
       bad:
-        - >-
-          Editing src/ to support a new artifact field while leaving the schema
-          and specs unchanged.
+        - Editing src/ to support a new artifact field while leaving the schema and specs unchanged.
     exceptions:
-      - >-
-        Non-contract refactors that preserve existing schema, spec, and tech
-        behavior need no artifact update.
+      - Non-contract refactors that preserve existing schema, spec, and tech behavior need no artifact update.
+  roadmap-commands-do-not-write-change-artifacts:
+    strength: MUST
+    statement: Roadmap commands MUST NOT create, modify, or delete any artifact under .strict-spec-driven/changes/; when a roadmap operation leaves a change artifact's roadmap linkage stale or otherwise inconsistent, the command MUST report the drift as a non-blocking warning naming the command that repairs it rather than writing the change artifact itself.
+    rationale: 'Roadmap state and change state are separate domains reconciled by derivation: change state is derived from change directory names, and roadmap commands own only roadmap artifacts. A roadmap command that reached into a change directory would make roadmap operations partially bypass the change workflow''s own validation, apply, and verify gates, and would let a single command mutate two contracts whose consistency the workflow checks independently. Reporting the drift keeps the repair inside the change workflow that owns it.'
+    enforcement:
+      method: review
+      detail: Reviewers reject roadmap command implementations that write, rename, or delete files under .strict-spec-driven/changes/, and require a reported warning naming the repair command instead.
+    examples:
+      good:
+        - roadmap-move-planned-change warns that an active strict change still records the previous milestone and names the generate proposal command that refreshes the linkage.
+      bad:
+        - A roadmap command silently rewriting proposal.yaml roadmap.milestone for an active change while moving its planned change.

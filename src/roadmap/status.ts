@@ -62,7 +62,7 @@ export function getChangeStateIndex(rootDir: string): ChangeStateIndex {
   return { active, archived };
 }
 
-function derivePlannedChangeState(changeStates: ChangeStateIndex, id: string): PlannedChangeState {
+export function derivePlannedChangeState(changeStates: ChangeStateIndex, id: string): PlannedChangeState {
   const isActive = changeStates.active.has(id);
   const isArchived = changeStates.archived.has(id);
   if (isActive && isArchived) return "ambiguous";

@@ -70,6 +70,9 @@ const ROADMAP_ARCHIVE_COMPLETE_ONLY_SNIPPET = "only milestones whose derived sta
 const ROADMAP_ARCHIVE_PLANNED_CHANGE_SNIPPET = "completed standalone planned-change";
 const ROADMAP_ORDER_SOURCE_SNIPPET = "Use `roadmap-status` or `roadmap-overview` order, never id-prefix order";
 const ROADMAP_REORDER_SINGLE_COMMAND_SNIPPET = "Translate reorder intent into one CLI command";
+const ROADMAP_MOVE_SINGLE_COMMAND_SNIPPET = "Translate move intent into one CLI command";
+const ROADMAP_MOVE_ALLOW_COMPLETE_SNIPPET = "--allow-complete";
+const ROADMAP_MOVE_NO_CHANGE_WRITES_SNIPPET = "never writes under `.strict-spec-driven/changes/`";
 const ROADMAP_PLAN_REVIEW_SNIPPET = "Review the roadmap plan before handoff";
 const ROADMAP_SCRIPTED_RECOMMEND_SNIPPET = "treat the command's selected planned change as authoritative";
 const ROADMAP_RECOMMEND_BEFORE_CONTEXT_SNIPPET = "before reading broad roadmap context";
@@ -451,6 +454,25 @@ export const ROADMAP_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpec
       ROADMAP_REORDER_SINGLE_COMMAND_SNIPPET,
       "dependency-order concern",
       "Archived milestones are frozen history",
+    ],
+  },
+  "strict-roadmap-move": {
+    requiredCommands: {
+      "roadmap-status": `${COMMAND_PREFIX} roadmap-status`,
+      "roadmap-overview": `${COMMAND_PREFIX} roadmap-overview`,
+      "roadmap-move-planned-change":
+        `${COMMAND_PREFIX} roadmap-move-planned-change <planned-change-id> --milestone <milestone-id> [--allow-complete]`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [
+      ".strict-spec-driven/roadmap/",
+      ROADMAP_SPLIT_PLANNED_CHANGE_SNIPPET,
+      ROADMAP_CANONICAL_FILENAME_SNIPPET,
+      ROADMAP_MOVE_SINGLE_COMMAND_SNIPPET,
+      ROADMAP_MOVE_ALLOW_COMPLETE_SNIPPET,
+      ROADMAP_MOVE_NO_CHANGE_WRITES_SNIPPET,
+      "dependency-order concern",
+      "Archived milestones and archived planned changes are frozen history",
     ],
   },
   "strict-roadmap-sync": {

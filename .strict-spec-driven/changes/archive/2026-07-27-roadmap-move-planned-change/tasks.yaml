@@ -1,0 +1,109 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: roadmap-move-planned-change
+sections:
+  Implementation:
+    add-move-module:
+      text: Add src/roadmap/move.ts with movePlannedChangeToMilestone(rootDir, {plannedChangeId, targetMilestoneId, allowComplete}) that loads the roadmap, appends cross-file diagnostics, and returns an invalid result when blocking diagnostics exist outside the roadmap index path, following the roadmap-reorder preflight pattern
+      status: complete
+    resolve-active-artifacts:
+      text: Resolve the target milestone and planned change against active artifacts only, emitting distinct deterministic diagnostics for archived versus unknown milestone and for archived versus unknown planned change
+      status: complete
+    guard-completed-move:
+      text: Block a move when the planned change derived state is archived unless allowComplete is set, with a diagnostic naming the --allow-complete flag and the milestone status regression it guards against
+      status: complete
+    same-milestone-noop:
+      text: Return a valid no-op result with no updated files when the planned change already declares the target milestone
+      status: complete
+    rewrite-and-rename:
+      text: Rewrite planned_change.milestone to the target, write the canonical artifact at canonicalPlannedChangeFileName(target, id), remove the previous file, and block before writing when the destination path already exists for a different planned change
+      status: complete
+    sync-and-rollback:
+      text: Run syncRoadmap after the write and restore the original file content and path when the sync result is invalid, mirroring the rollback in generateRoadmapPlannedChange
+      status: complete
+    move-warnings:
+      text: Emit non-blocking warnings when an active strict change exists for the moved planned change, naming the generate proposal command that refreshes its roadmap linkage, and when a depends_on edge touching the moved planned change now points from an earlier-ordered milestone to a later-ordered one
+      status: complete
+    cli-command:
+      text: Wire the roadmap-move-planned-change command in src/cli/cmd-roadmap.ts and the CLI registry with usage text, argument parsing for the planned-change id, --milestone, and --allow-complete, and deterministic JSON output reporting the planned change id, source milestone, target milestone, source path, and target path
+      status: complete
+    author-refusal-message:
+      text: Update the roadmap-generate planned-change milestone-mismatch refusal in src/roadmap/author.ts so its message names roadmap-move-planned-change as the supported path
+      status: complete
+    move-skill:
+      text: Add skills/strict-roadmap-move/SKILL.md describing the move workflow, register it in skills/marketplace.json under the strict-roadmap family, and add its required commands, headings, and snippets to src/skills/model.ts
+      status: complete
+    rebuild-dist:
+      text: Rebuild compiled output after the TypeScript edits
+      status: complete
+      command: bun run build
+    delta-tech-roadmap-boundary:
+      text: Carry the roadmap/changes domain boundary as a delta-tech rule under the change's tech/ directory so archive merges it into workflow-scope-discipline
+      status: complete
+  Testing:
+    test-move-happy-path:
+      text: Add a roadmap regression test that moves an active planned change between active milestones and asserts the file is renamed to the canonical target-prefixed basename, planned_change.milestone is rewritten, and roadmap-status is valid afterward
+      status: complete
+      command: bun test/run.ts
+    test-move-rejections:
+      text: 'Add tests covering the rejection paths: unknown planned change, unknown target milestone, archived target milestone, archived planned change, destination filename collision, and completed planned change without --allow-complete, asserting non-zero exit, deterministic diagnostics, and no file writes'
+      status: complete
+      command: bun test/run.ts
+    test-move-noop-and-allow-complete:
+      text: Add tests asserting that a move into the milestone the planned change already declares is a valid no-op with no updated files, and that --allow-complete moves a completed planned change and re-derives both source and target milestone statuses
+      status: complete
+      command: bun test/run.ts
+    test-move-warnings:
+      text: Add tests asserting the non-blocking warnings for an active strict change proposal linkage and for an order-inverting depends_on edge, and that both leave the move valid and the roadmap valid
+      status: complete
+      command: bun test/run.ts
+    test-move-rollback:
+      text: 'Add a test asserting that a move that cannot complete leaves no partial state: no file at the canonical destination path, the planned-change artifact byte-identical at its original path, and no updated files reported'
+      status: complete
+      command: bun test/run.ts
+    test-skill-registration:
+      text: Extend the skill validation test coverage so strict-roadmap-move is validated against its required commands, headings, and snippets
+      status: complete
+      command: bun test/run.ts
+    run-validation:
+      text: Run the complete project regression suite with the coverage gate
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+    run-unit-tests:
+      text: Run the project test suite against compiled output
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-ready:
+      text: Confirm the change is structurally ready for handoff
+      status: complete
+      command: strict-spec-cli ready roadmap-move-planned-change
+    verify-change:
+      text: Confirm strict artifact shape and task completion
+      status: complete
+      command: strict-spec-cli verify roadmap-move-planned-change
+    verify-spec-mappings:
+      text: Confirm spec-to-code mappings resolve after the delta spec merges
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+    verify-roadmap-status:
+      text: Confirm the repository roadmap remains valid after the new command exists
+      status: complete
+      command: strict-spec-cli roadmap-status
+    verify-skills:
+      text: Confirm the new skill passes strict skill validation
+      status: complete
+      command: strict-spec-cli validate-skills
+    verify-archive-readiness:
+      text: Confirm a moved planned change still archives correctly by checking that roadmap-archive moves the moved planned-change file with its new owning milestone and leaves the source milestone consistent
+      status: complete
+      command: bun test/run.ts
+    verify-tech-mappings:
+      text: Confirm tech-to-code mappings resolve for the added standard rule
+      status: complete
+      command: strict-spec-cli verify-tech-mappings
+testing_gates:
+  validation_task: run-validation
+  unit_test_task: run-unit-tests

@@ -12,6 +12,7 @@ import {
   type RoadmapMilestoneAuthorInput,
   type RoadmapPlannedChangeAuthorInput,
 } from "../roadmap/author.js";
+import { movePlannedChangeToMilestone, type RoadmapMoveInput } from "../roadmap/move.js";
 import { pauseMilestone, resumeMilestone } from "../roadmap/pause.js";
 import { reopenMilestone } from "../roadmap/reopen.js";
 import { renumberRoadmapMilestones, reorderRoadmapMilestone, type RoadmapReorderInput } from "../roadmap/order.js";
@@ -25,6 +26,8 @@ const ROADMAP_PAUSE_USAGE = "Usage: strict-spec-cli roadmap-pause <milestone-id>
 const ROADMAP_RESUME_USAGE = "Usage: strict-spec-cli roadmap-resume <milestone-id> [--reason \"...\"]\n";
 const ROADMAP_REORDER_USAGE = "Usage: strict-spec-cli roadmap-reorder <milestone-id> (--before <milestone-id> | --after <milestone-id> | --order <integer>)\n";
 const ROADMAP_RENUMBER_USAGE = "Usage: strict-spec-cli roadmap-renumber\n";
+const ROADMAP_MOVE_PLANNED_CHANGE_USAGE =
+  "Usage: strict-spec-cli roadmap-move-planned-change <planned-change-id> --milestone <milestone-id> [--allow-complete]\n";
 const ROADMAP_GENERATE_USAGE = [
   "Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> --intake-question \"id|question|context|impact|recommendation\" [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset] [--reset-intake-questions]",
   "       strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary <text> --details <text> [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]",
@@ -447,6 +450,58 @@ export function runRoadmapReorder(argv: string[]): number {
     return 1;
   }
   const result = reorderRoadmapMilestone(process.cwd(), input);
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+
+function parseRoadmapMovePlannedChangeArgs(argv: string[]): RoadmapMoveInput {
+  const [plannedChangeId, ...rest] = argv;
+  if (!plannedChangeId || plannedChangeId.startsWith("--")) throw new Error("missing planned change id");
+  let targetMilestoneId: string | undefined;
+  let allowComplete = false;
+  for (let index = 0; index < rest.length; index += 1) {
+    const token = rest[index];
+    if (token === "--milestone") {
+      if (targetMilestoneId !== undefined) throw new Error("--milestone may only be supplied once");
+      const value = rest[index + 1];
+      if (value === undefined || value.length === 0 || value.startsWith("--")) throw new Error("missing value for --milestone");
+      targetMilestoneId = value;
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--milestone=")) {
+      if (targetMilestoneId !== undefined) throw new Error("--milestone may only be supplied once");
+      const value = token.slice("--milestone=".length);
+      if (value.length === 0) throw new Error("missing value for --milestone");
+      targetMilestoneId = value;
+      continue;
+    }
+    if (token === "--allow-complete") {
+      if (allowComplete) throw new Error("--allow-complete may only be supplied once");
+      allowComplete = true;
+      continue;
+    }
+    throw new Error(`unsupported argument: ${token}`);
+  }
+
+  if (targetMilestoneId === undefined) throw new Error("missing required argument --milestone");
+  return { plannedChangeId, targetMilestoneId, allowComplete };
+}
+
+export function runRoadmapMovePlannedChange(argv: string[]): number {
+  if (isHelpRequest(argv)) {
+    writeHelp(ROADMAP_MOVE_PLANNED_CHANGE_USAGE);
+    return 0;
+  }
+  let input: RoadmapMoveInput;
+  try {
+    input = parseRoadmapMovePlannedChangeArgs(argv);
+  } catch (error) {
+    writeError(error instanceof Error ? error.message : String(error));
+    writeUsage(ROADMAP_MOVE_PLANNED_CHANGE_USAGE);
+    return 1;
+  }
+  const result = movePlannedChangeToMilestone(process.cwd(), input);
   writeJson(result);
   return result.valid ? 0 : 1;
 }

@@ -10,6 +10,7 @@ import { runCheckWorkflowState, runNext, runReady } from "./cli/cmd-workflow.js"
 import {
   runRoadmapArchive,
   runRoadmapGenerate,
+  runRoadmapMovePlannedChange,
   runRoadmapOverview,
   runRoadmapPause,
   runRoadmapRecommend,
@@ -78,6 +79,8 @@ export { archiveChange };
 export { getRoadmapStatus, recommendRoadmapChange, syncRoadmap };
 export { archiveRoadmapMilestones } from "./roadmap/archive.js";
 export { reopenMilestone } from "./roadmap/reopen.js";
+export { movePlannedChangeToMilestone } from "./roadmap/move.js";
+export type { RoadmapMoveInput, RoadmapMoveResult, RoadmapMovedPlannedChange } from "./roadmap/move.js";
 export { pauseMilestone, resumeMilestone } from "./roadmap/pause.js";
 export type {
   RoadmapPauseOptions,
@@ -124,6 +127,7 @@ export const commands = createCliCommandTable({
   "roadmap-sync": (argv) => runRoadmapSync(argv),
   "roadmap-reorder": (argv) => runRoadmapReorder(argv),
   "roadmap-renumber": (argv) => runRoadmapRenumber(argv),
+  "roadmap-move-planned-change": (argv) => runRoadmapMovePlannedChange(argv),
   "roadmap-recommend": (argv) => runRoadmapRecommend(argv),
   "roadmap-archive": (argv) => runRoadmapArchive(argv),
   "roadmap-reopen": (argv) => runRoadmapReopen(argv),

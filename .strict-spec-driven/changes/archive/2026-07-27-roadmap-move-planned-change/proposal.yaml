@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: roadmap-move-planned-change
+  status: proposed
+summary:
+  what:
+    - Add a dedicated strict roadmap CLI command, roadmap-move-planned-change, that reassigns one active standalone planned change to a different active milestone by rewriting its planned_change.milestone field, renaming the file to the canonical target-milestone-prefixed basename, and re-running roadmap synchronization so both the source and target milestones re-derive status. Add a matching /strict-roadmap-move skill, and make the existing roadmap-generate planned-change refusal message name the new command.
+  why:
+    - Standalone planned-change files carry their owning milestone in planned_change.milestone and must be named with that milestone's id prefix, so a milestone reassignment is a two-part filesystem and field operation. roadmap-generate planned-change explicitly refuses it, leaving hand-editing YAML plus a manual rename as the only path, which immediately violates the canonical filename contract and contradicts the standard that scripts own filesystem mechanics and deterministic format enforcement.
+scope:
+  in:
+    - New roadmap-move-planned-change command wired through the CLI registry; move implementation that rewrites planned_change.milestone, renames the artifact to the canonical target basename, and runs roadmap-sync with rollback on sync failure; deterministic rejections for unknown planned change, unknown or archived target milestone, archived planned change, destination filename collision, and completed planned changes without the explicit --allow-complete flag; idempotent no-op when the planned change already declares the target milestone; non-blocking warnings for a stale active-change proposal roadmap linkage and for a depends_on edge that now points against roadmap milestone order; a new strict-roadmap-move skill with marketplace and skill-model registration; an updated refusal message in roadmap-generate planned-change that names the new command; strict spec requirements and regression tests.
+  out:
+    - Moving milestones themselves (roadmap-reorder owns that); repositioning a planned change within its milestone, which stays filename-lexicographic; bulk or multi-planned-change moves; editing planned-change summary, details, status, or depends_on during a move; rewriting any change artifact under .strict-spec-driven/changes/, including proposal.yaml roadmap linkage, which stays a reported warning; moving archived planned-change or archived milestone artifacts; introducing a general roadmap validator rule for cross-milestone dependency ordering.
+unchanged_behavior:
+  - roadmap-status, roadmap-overview, roadmap-sync, roadmap-recommend, roadmap-archive, roadmap-reopen, roadmap-pause, roadmap-resume, roadmap-reorder, and roadmap-renumber behavior; the canonical planned-change filename rule and roadmap-sync --fix-names ownership of renames outside a move; global depends_on resolution across roadmap sources; milestone status derivation from planned-change state; the archived-artifact exemption and immutability boundary; roadmap-generate planned-change field-merge semantics, which continue to refuse milestone reassignment.

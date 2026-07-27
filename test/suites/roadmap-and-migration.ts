@@ -2125,6 +2125,421 @@ try {
   rmSync(roadmapPauseDir, { recursive: true, force: true });
 }
 
+const roadmapMoveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-move-"));
+try {
+  const movePlannedChangesDir = path.join(roadmapMoveDir, ".strict-spec-driven", "roadmap", "planned-changes");
+  const readMoveFile = (fileName: string): string => readFileSync(path.join(movePlannedChangesDir, fileName), "utf8");
+
+  // `widget` has an in-progress strict change; `done-change` has an archived one.
+  mkdirSync(path.join(roadmapMoveDir, ".strict-spec-driven", "changes", "widget"), { recursive: true });
+  mkdirSync(
+    path.join(roadmapMoveDir, ".strict-spec-driven", "changes", "archive", `${formatLocalDateStamp()}-done-change`),
+    { recursive: true },
+  );
+
+  writeRoadmapMilestoneArtifact(roadmapMoveDir, "alpha.yaml", {
+    id: "alpha",
+    title: "Alpha",
+    goal: "Own the work that later moves to another milestone.",
+    status: "active",
+    plannedChanges: [],
+    order: 100,
+  });
+  writeRoadmapMilestoneArtifact(roadmapMoveDir, "beta.yaml", {
+    id: "beta",
+    title: "Beta",
+    goal: "Receive planned changes moved from earlier milestones.",
+    status: "proposed",
+    plannedChanges: [],
+    order: 200,
+  });
+  writeStandalonePlannedChangeArtifact(roadmapMoveDir, "planned-changes/alpha-widget.yaml", {
+    id: "widget",
+    milestone: "alpha",
+    status: "planned",
+    summary: "Work that belongs in a different milestone.",
+    details: "Standalone details for widget.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapMoveDir, "planned-changes/alpha-gadget.yaml", {
+    id: "gadget",
+    milestone: "alpha",
+    status: "planned",
+    summary: "Work in the earlier milestone that depends on the moved work.",
+    details: "Standalone details for gadget.",
+    depends_on: ["widget"],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapMoveDir, "planned-changes/beta-gadget.yaml", {
+    id: "beta-gadget",
+    milestone: "beta",
+    status: "planned",
+    summary: "Existing work occupying the canonical destination basename.",
+    details: "Standalone details for beta-gadget.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapMoveDir, "planned-changes/alpha-done-change.yaml", {
+    id: "done-change",
+    milestone: "alpha",
+    status: "complete",
+    summary: "Completed work whose strict change is archived.",
+    details: "Standalone details for done-change.",
+    depends_on: [],
+  });
+  writeRoadmapIndexArtifact(roadmapMoveDir, [
+    { id: "alpha", title: "Alpha", path: "roadmap/milestones/alpha.yaml", status: "active" },
+    { id: "beta", title: "Beta", path: "roadmap/milestones/beta.yaml", status: "proposed" },
+  ]);
+
+  const moveStatusBefore = cli(["roadmap-status"], { cwd: roadmapMoveDir });
+  context.assert(
+    moveStatusBefore.status === 0,
+    "roadmap-status is valid before a planned-change move",
+    moveStatusBefore.stdout || moveStatusBefore.stderr,
+  );
+
+  // Rejections must leave the roadmap byte-identical and create no destination file.
+  const widgetBefore = readMoveFile("alpha-widget.yaml");
+  const gadgetBefore = readMoveFile("alpha-gadget.yaml");
+  const doneChangeBefore = readMoveFile("alpha-done-change.yaml");
+
+  const moveUnknownPlannedChange = cli(["roadmap-move-planned-change", "missing-change", "--milestone", "beta"], {
+    cwd: roadmapMoveDir,
+  });
+  context.assert(moveUnknownPlannedChange.status !== 0, "roadmap-move-planned-change exits non-zero for an unknown planned change");
+  const moveUnknownPlannedChangeJson = JSON.parse(moveUnknownPlannedChange.stdout.trim());
+  context.assert(
+    moveUnknownPlannedChangeJson.valid === false
+      && moveUnknownPlannedChangeJson.updatedFiles.length === 0
+      && moveUnknownPlannedChangeJson.diagnostics.some((diagnostic: { message: string }) =>
+        diagnostic.message === "roadmap-move-planned-change planned change was not found in the active roadmap"
+      ),
+    "roadmap-move-planned-change reports a not-found diagnostic for an unknown planned change",
+    moveUnknownPlannedChange.stdout,
+  );
+
+  const moveUnknownMilestone = cli(["roadmap-move-planned-change", "widget", "--milestone", "missing-milestone"], {
+    cwd: roadmapMoveDir,
+  });
+  context.assert(moveUnknownMilestone.status !== 0, "roadmap-move-planned-change exits non-zero for an unknown target milestone");
+  const moveUnknownMilestoneJson = JSON.parse(moveUnknownMilestone.stdout.trim());
+  context.assert(
+    moveUnknownMilestoneJson.valid === false
+      && moveUnknownMilestoneJson.updatedFiles.length === 0
+      && moveUnknownMilestoneJson.diagnostics.some((diagnostic: { message: string }) =>
+        diagnostic.message === "roadmap-move-planned-change target milestone was not found in the active roadmap"
+      ),
+    "roadmap-move-planned-change reports a not-found diagnostic for an unknown target milestone",
+    moveUnknownMilestone.stdout,
+  );
+
+  const moveCollision = cli(["roadmap-move-planned-change", "gadget", "--milestone", "beta"], { cwd: roadmapMoveDir });
+  context.assert(moveCollision.status !== 0, "roadmap-move-planned-change exits non-zero when the destination filename is occupied");
+  const moveCollisionJson = JSON.parse(moveCollision.stdout.trim());
+  context.assert(
+    moveCollisionJson.valid === false
+      && moveCollisionJson.updatedFiles.length === 0
+      && moveCollisionJson.diagnostics.some((diagnostic: { message: string }) =>
+        diagnostic.message === "roadmap-move-planned-change destination filename is already occupied"
+      ),
+    "roadmap-move-planned-change reports an occupied canonical destination filename",
+    moveCollision.stdout,
+  );
+
+  const moveCompletedWithoutFlag = cli(["roadmap-move-planned-change", "done-change", "--milestone", "beta"], {
+    cwd: roadmapMoveDir,
+  });
+  context.assert(
+    moveCompletedWithoutFlag.status !== 0,
+    "roadmap-move-planned-change exits non-zero for completed work without --allow-complete",
+  );
+  const moveCompletedWithoutFlagJson = JSON.parse(moveCompletedWithoutFlag.stdout.trim());
+  context.assert(
+    moveCompletedWithoutFlagJson.valid === false
+      && moveCompletedWithoutFlagJson.updatedFiles.length === 0
+      && moveCompletedWithoutFlagJson.diagnostics.some((diagnostic: { message: string }) =>
+        diagnostic.message.includes("rerun with --allow-complete to move it deliberately")
+      ),
+    "roadmap-move-planned-change names --allow-complete when refusing to move completed work",
+    moveCompletedWithoutFlag.stdout,
+  );
+
+  context.assert(
+    readMoveFile("alpha-widget.yaml") === widgetBefore
+      && readMoveFile("alpha-gadget.yaml") === gadgetBefore
+      && readMoveFile("alpha-done-change.yaml") === doneChangeBefore
+      && !existsSync(path.join(movePlannedChangesDir, "beta-widget.yaml"))
+      && !existsSync(path.join(movePlannedChangesDir, "beta-done-change.yaml")),
+    "a rejected roadmap-move-planned-change leaves no partial state",
+  );
+
+  // Happy path: the declared milestone and the canonical filename move together.
+  const moveWidget = cli(["roadmap-move-planned-change", "widget", "--milestone", "beta"], { cwd: roadmapMoveDir });
+  context.assert(moveWidget.status === 0, "roadmap-move-planned-change exits zero for an active planned change", moveWidget.stdout || moveWidget.stderr);
+  const moveWidgetJson = JSON.parse(moveWidget.stdout.trim());
+  context.assert(
+    moveWidgetJson.valid === true
+      && moveWidgetJson.moved.id === "widget"
+      && moveWidgetJson.moved.fromMilestone === "alpha"
+      && moveWidgetJson.moved.toMilestone === "beta"
+      && moveWidgetJson.moved.fromPath === ".strict-spec-driven/roadmap/planned-changes/alpha-widget.yaml"
+      && moveWidgetJson.moved.toPath === ".strict-spec-driven/roadmap/planned-changes/beta-widget.yaml",
+    "roadmap-move-planned-change reports the planned change, both milestones, and both paths",
+    moveWidget.stdout,
+  );
+  context.assert(
+    existsSync(path.join(movePlannedChangesDir, "beta-widget.yaml"))
+      && !existsSync(path.join(movePlannedChangesDir, "alpha-widget.yaml")),
+    "roadmap-move-planned-change renames the artifact to the canonical target-prefixed basename",
+  );
+  context.assert(
+    Array.isArray(moveWidgetJson.renamedFiles)
+      && moveWidgetJson.renamedFiles.length === 1
+      && moveWidgetJson.renamedFiles[0].from === ".strict-spec-driven/roadmap/planned-changes/alpha-widget.yaml"
+      && moveWidgetJson.renamedFiles[0].to === ".strict-spec-driven/roadmap/planned-changes/beta-widget.yaml",
+    "roadmap-move-planned-change reports the rename the same way roadmap-sync --fix-names does",
+    moveWidget.stdout,
+  );
+  const movedWidgetArtifact = yamlModule.parseYamlFile<{ planned_change: { id: string; milestone: string }; summary: string }>(
+    path.join(movePlannedChangesDir, "beta-widget.yaml"),
+  );
+  context.assert(
+    movedWidgetArtifact.planned_change.milestone === "beta"
+      && movedWidgetArtifact.planned_change.id === "widget"
+      && movedWidgetArtifact.summary === "Work that belongs in a different milestone.",
+    "roadmap-move-planned-change rewrites the declared milestone without editing planned-change content",
+  );
+
+  // depends_on resolves globally, so the move is valid but the now-inverted
+  // dependency and the stale change linkage are reported as warnings.
+  context.assert(
+    moveWidgetJson.warnings.some((warning: string) =>
+      warning.includes("active strict change 'widget'")
+      && warning.includes("strict-spec-cli generate widget proposal --milestone beta --planned-change widget")
+    ),
+    "roadmap-move-planned-change warns about the stale active-change proposal roadmap linkage",
+    moveWidget.stdout,
+  );
+  context.assert(
+    moveWidgetJson.warnings.some((warning: string) =>
+      warning.includes("planned change 'gadget' in earlier milestone 'alpha' depends on 'widget'")
+      && warning.includes("later milestone 'beta'")
+    ),
+    "roadmap-move-planned-change warns about a dependency edge that now points against roadmap order",
+    moveWidget.stdout,
+  );
+  context.assert(
+    !existsSync(path.join(roadmapMoveDir, ".strict-spec-driven", "changes", "widget", "proposal.yaml")),
+    "roadmap-move-planned-change does not write change artifacts when reporting a stale proposal linkage",
+  );
+
+  const moveStatusAfter = cli(["roadmap-status"], { cwd: roadmapMoveDir });
+  context.assert(moveStatusAfter.status === 0, "roadmap-status stays valid after a planned-change move", moveStatusAfter.stdout);
+  const moveStatusAfterJson = JSON.parse(moveStatusAfter.stdout.trim());
+  const alphaAfterMove = moveStatusAfterJson.milestones.find((milestone: { id: string }) => milestone.id === "alpha");
+  const betaAfterMove = moveStatusAfterJson.milestones.find((milestone: { id: string }) => milestone.id === "beta");
+  context.assert(
+    !alphaAfterMove.plannedChanges.some((plannedChange: { id: string }) => plannedChange.id === "widget")
+      && betaAfterMove.plannedChanges.some((plannedChange: { id: string }) => plannedChange.id === "widget"),
+    "roadmap-status reports the moved planned change under its new milestone",
+  );
+
+  // Re-running the same move is an idempotent no-op.
+  const movedWidgetContent = readMoveFile("beta-widget.yaml");
+  const moveWidgetAgain = cli(["roadmap-move-planned-change", "widget", "--milestone", "beta"], { cwd: roadmapMoveDir });
+  context.assert(moveWidgetAgain.status === 0, "roadmap-move-planned-change exits zero when the planned change already declares the target milestone");
+  const moveWidgetAgainJson = JSON.parse(moveWidgetAgain.stdout.trim());
+  context.assert(
+    moveWidgetAgainJson.valid === true
+      && moveWidgetAgainJson.updatedFiles.length === 0
+      && moveWidgetAgainJson.moved.fromMilestone === "beta"
+      && moveWidgetAgainJson.moved.toMilestone === "beta"
+      && readMoveFile("beta-widget.yaml") === movedWidgetContent,
+    "roadmap-move-planned-change is an idempotent no-op for a planned change already in the target milestone",
+    moveWidgetAgain.stdout,
+  );
+
+  // Completed work moves only with the explicit flag, and both milestones re-derive.
+  const moveCompletedWithFlag = cli(
+    ["roadmap-move-planned-change", "done-change", "--milestone", "beta", "--allow-complete"],
+    { cwd: roadmapMoveDir },
+  );
+  context.assert(
+    moveCompletedWithFlag.status === 0,
+    "roadmap-move-planned-change moves completed work with --allow-complete",
+    moveCompletedWithFlag.stdout || moveCompletedWithFlag.stderr,
+  );
+  context.assert(
+    existsSync(path.join(movePlannedChangesDir, "beta-done-change.yaml"))
+      && !existsSync(path.join(movePlannedChangesDir, "alpha-done-change.yaml")),
+    "roadmap-move-planned-change renames completed work to the canonical target basename",
+  );
+  const completedMoveStatus = JSON.parse(cli(["roadmap-status"], { cwd: roadmapMoveDir }).stdout.trim());
+  context.assert(
+    completedMoveStatus.valid === true
+      && completedMoveStatus.milestones
+        .find((milestone: { id: string }) => milestone.id === "beta").plannedChanges
+        .find((plannedChange: { id: string }) => plannedChange.id === "done-change").derivedStatus === "complete",
+    "the moved completed planned change re-derives as complete under its new milestone",
+  );
+
+  // The authoring command still refuses milestone reassignment and names the move command.
+  const authorReassign = cli(
+    ["roadmap-generate", "planned-change", "--id", "widget", "--milestone", "alpha"],
+    { cwd: roadmapMoveDir },
+  );
+  context.assert(authorReassign.status !== 0, "roadmap-generate planned-change exits non-zero when asked to reassign a milestone");
+  const authorReassignJson = JSON.parse(authorReassign.stdout.trim());
+  context.assert(
+    authorReassignJson.diagnostics.some((diagnostic: { message: string }) =>
+      diagnostic.message.includes("run roadmap-move-planned-change instead")
+    )
+      && readMoveFile("beta-widget.yaml") === movedWidgetContent,
+    "roadmap-generate planned-change names roadmap-move-planned-change for milestone reassignment and writes no file",
+    authorReassign.stdout,
+  );
+
+  const moveMissingMilestoneFlag = cli(["roadmap-move-planned-change", "widget"], { cwd: roadmapMoveDir });
+  context.assert(
+    moveMissingMilestoneFlag.status !== 0,
+    "roadmap-move-planned-change exits non-zero when --milestone is not supplied",
+  );
+  const moveNoArgs = cli(["roadmap-move-planned-change"], { cwd: roadmapMoveDir });
+  context.assert(moveNoArgs.status !== 0, "roadmap-move-planned-change exits non-zero when no planned change id is supplied");
+} finally {
+  rmSync(roadmapMoveDir, { recursive: true, force: true });
+}
+
+const roadmapMoveArchiveDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-move-archive-"));
+try {
+  const moveArchivePlannedChangesDir = path.join(roadmapMoveArchiveDir, ".strict-spec-driven", "roadmap", "planned-changes");
+  mkdirSync(
+    path.join(roadmapMoveArchiveDir, ".strict-spec-driven", "changes", "archive", `${formatLocalDateStamp()}-moving`),
+    { recursive: true },
+  );
+
+  writeRoadmapMilestoneArtifact(roadmapMoveArchiveDir, "keeper.yaml", {
+    id: "keeper",
+    title: "Keeper",
+    goal: "Give up its only planned change to another milestone.",
+    status: "complete",
+    plannedChanges: [],
+    order: 100,
+  });
+  writeRoadmapMilestoneArtifact(roadmapMoveArchiveDir, "receiver.yaml", {
+    id: "receiver",
+    title: "Receiver",
+    goal: "Receive completed work and then archive with it.",
+    status: "proposed",
+    plannedChanges: [],
+    order: 200,
+  });
+  writeRoadmapMilestoneArtifact(roadmapMoveArchiveDir, "later.yaml", {
+    id: "later",
+    title: "Later",
+    goal: "Stay active after the receiving milestone archives.",
+    status: "proposed",
+    plannedChanges: [],
+    order: 300,
+  });
+  writeStandalonePlannedChangeArtifact(roadmapMoveArchiveDir, "planned-changes/keeper-moving.yaml", {
+    id: "moving",
+    milestone: "keeper",
+    status: "complete",
+    summary: "Completed work filed under the wrong milestone.",
+    details: "Standalone details for moving.",
+    depends_on: [],
+  });
+  writeStandalonePlannedChangeArtifact(roadmapMoveArchiveDir, "planned-changes/later-work.yaml", {
+    id: "later-work",
+    milestone: "later",
+    status: "planned",
+    summary: "Work that stays active after the receiving milestone archives.",
+    details: "Standalone details for later-work.",
+    depends_on: [],
+  });
+  writeRoadmapIndexArtifact(roadmapMoveArchiveDir, [
+    { id: "keeper", title: "Keeper", path: "roadmap/milestones/keeper.yaml", status: "complete" },
+    { id: "receiver", title: "Receiver", path: "roadmap/milestones/receiver.yaml", status: "proposed" },
+    { id: "later", title: "Later", path: "roadmap/milestones/later.yaml", status: "proposed" },
+  ]);
+
+  const moveIntoReceiver = cli(
+    ["roadmap-move-planned-change", "moving", "--milestone", "receiver", "--allow-complete"],
+    { cwd: roadmapMoveArchiveDir },
+  );
+  context.assert(
+    moveIntoReceiver.status === 0,
+    "roadmap-move-planned-change moves completed work into the receiving milestone",
+    moveIntoReceiver.stdout || moveIntoReceiver.stderr,
+  );
+  const moveIntoReceiverJson = JSON.parse(moveIntoReceiver.stdout.trim());
+  const keeperAfterMove = moveIntoReceiverJson.milestones.find((milestone: { id: string }) => milestone.id === "keeper");
+  const receiverAfterMove = moveIntoReceiverJson.milestones.find((milestone: { id: string }) => milestone.id === "receiver");
+  context.assert(
+    keeperAfterMove.derivedStatus === "proposed" && receiverAfterMove.derivedStatus === "complete",
+    "moving the only completed planned change re-derives both the source and target milestone statuses",
+    moveIntoReceiver.stdout,
+  );
+
+  // A moved planned change archives with its new owning milestone.
+  const moveArchive = cli(["roadmap-archive"], { cwd: roadmapMoveArchiveDir });
+  context.assert(moveArchive.status === 0, "roadmap-archive exits zero after a planned-change move", moveArchive.stdout || moveArchive.stderr);
+  const moveArchiveJson = JSON.parse(moveArchive.stdout.trim());
+  context.assert(
+    moveArchiveJson.archivedMilestones.length === 1
+      && moveArchiveJson.archivedMilestones[0].id === "receiver"
+      && moveArchiveJson.archivedMilestones[0].plannedChanges.some((plannedChange: { id: string }) => plannedChange.id === "moving"),
+    "roadmap-archive archives the receiving milestone together with the moved planned change",
+    moveArchive.stdout,
+  );
+  context.assert(
+    existsSync(path.join(roadmapMoveArchiveDir, ".strict-spec-driven", "roadmap", "archive", "planned-changes", "receiver-moving.yaml"))
+      && !existsSync(path.join(moveArchivePlannedChangesDir, "receiver-moving.yaml")),
+    "roadmap-archive moves the renamed planned-change file into the roadmap archive",
+  );
+  const moveArchiveStatus = cli(["roadmap-status"], { cwd: roadmapMoveArchiveDir });
+  context.assert(
+    moveArchiveStatus.status === 0,
+    "roadmap-status stays valid after archiving a milestone that received a moved planned change",
+    moveArchiveStatus.stdout,
+  );
+  const moveArchiveStatusJson = JSON.parse(moveArchiveStatus.stdout.trim());
+  context.assert(
+    moveArchiveStatusJson.milestones.every((milestone: { id: string }) => milestone.id !== "receiver")
+      && moveArchiveStatusJson.milestones.some((milestone: { id: string }) => milestone.id === "keeper"),
+    "the source milestone stays in the active roadmap after the receiving milestone archives",
+  );
+
+  const moveIntoArchivedMilestone = cli(["roadmap-move-planned-change", "later-work", "--milestone", "receiver"], {
+    cwd: roadmapMoveArchiveDir,
+  });
+  context.assert(moveIntoArchivedMilestone.status !== 0, "roadmap-move-planned-change exits non-zero for an archived target milestone");
+  const moveIntoArchivedMilestoneJson = JSON.parse(moveIntoArchivedMilestone.stdout.trim());
+  context.assert(
+    moveIntoArchivedMilestoneJson.diagnostics.some((diagnostic: { message: string }) =>
+      diagnostic.message === "roadmap-move-planned-change target milestone is archived and cannot receive planned changes"
+    ),
+    "roadmap-move-planned-change distinguishes an archived target milestone from an unknown one",
+    moveIntoArchivedMilestone.stdout,
+  );
+
+  const moveArchivedPlannedChange = cli(["roadmap-move-planned-change", "moving", "--milestone", "later"], {
+    cwd: roadmapMoveArchiveDir,
+  });
+  context.assert(moveArchivedPlannedChange.status !== 0, "roadmap-move-planned-change exits non-zero for an archived planned change");
+  const moveArchivedPlannedChangeJson = JSON.parse(moveArchivedPlannedChange.stdout.trim());
+  context.assert(
+    moveArchivedPlannedChangeJson.diagnostics.some((diagnostic: { message: string }) =>
+      diagnostic.message === "roadmap-move-planned-change planned change is archived and cannot be moved"
+    )
+      && existsSync(path.join(roadmapMoveArchiveDir, ".strict-spec-driven", "roadmap", "archive", "planned-changes", "receiver-moving.yaml")),
+    "roadmap-move-planned-change distinguishes an archived planned change from an unknown one and leaves the archive untouched",
+    moveArchivedPlannedChange.stdout,
+  );
+} finally {
+  rmSync(roadmapMoveArchiveDir, { recursive: true, force: true });
+}
+
 const roadmapPlannedAliasDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-roadmap-planned-alias-"));
 try {
   // `planned` is an accepted alias of `proposed` for an incomplete milestone.

@@ -1,0 +1,34 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: roadmap-move-planned-change
+approach:
+  - 'Add src/roadmap/move.ts implementing movePlannedChangeToMilestone(rootDir, input), following the established roadmap-reorder and roadmap-pause structural-verb pattern: load the roadmap, block on pre-existing blocking diagnostics, resolve target milestone and planned change against active artifacts only, compute the canonical destination basename with the existing canonicalPlannedChangeFileName helper, write the rewritten artifact at the new path, remove the old path, run syncRoadmap, and restore both paths when sync reports invalid. Wire a roadmap-move-planned-change command in src/cli/cmd-roadmap.ts and the CLI registry, register a strict-roadmap-move skill in skills/marketplace.json and src/skills/model.ts, and update the roadmap-generate planned-change refusal message in src/roadmap/author.ts to name the new command.'
+decisions:
+  dedicated-command-not-authoring-flag:
+    decision: Implement milestone reassignment as a dedicated roadmap-move-planned-change command rather than relaxing roadmap-generate planned-change to accept a changed --milestone value.
+    rationale: roadmap-generate planned-change is a field-merge authoring command whose destination path is fixed at creation; a move is a structural operation that renames an artifact, which matches the existing dedicated-verb pattern used by roadmap-reorder, roadmap-renumber, roadmap-pause, roadmap-resume, and roadmap-reopen. Keeping the authoring command free of rename mechanics preserves its idempotent upsert semantics.
+  canonical-rename-is-part-of-the-move:
+    decision: The move always renames the artifact to canonicalPlannedChangeFileName(targetMilestoneId, plannedChangeId) rather than leaving the rename to roadmap-sync --fix-names.
+    rationale: The canonical filename contract makes a basename that lacks the declaring milestone's id prefix a blocking validation diagnostic, so a move that only rewrote the field would leave the roadmap invalid until a second command ran. Performing the rename inside the move keeps every successful move a valid end state.
+  active-artifacts-only:
+    decision: Reject moves whose planned change or target milestone resolves only in roadmap/archive, with distinct diagnostics for archived versus unknown.
+    rationale: Archived roadmap artifacts are frozen history that roadmap-archive excludes from active index regeneration, status output, duplicate detection, and cycle detection; rewriting them would reintroduce archived work into active roadmap state. Distinguishing archived from unknown gives the operator an actionable message instead of a bare not-found.
+  block-completed-moves-behind-flag:
+    decision: Refuse to move a planned change whose derived state is archived unless the caller passes --allow-complete.
+    rationale: A completed planned change leaving a milestone can flip that milestone from complete to proposed, because a milestone with no planned changes derives proposed, and it makes the target milestone report completed work it never contained. Blocking by default prevents surprising status regressions, while the explicit flag keeps deliberate reorganization of finished work possible through the CLI.
+  idempotent-same-milestone-noop:
+    decision: When the planned change already declares the target milestone, exit zero as a no-op reporting no updated files instead of raising a diagnostic.
+    rationale: Agent-driven workflows re-run commands to converge on a desired end state, and the requested end state already holds. A no-op keeps the command safely re-runnable; a non-canonical basename in that situation remains the responsibility of the existing roadmap-sync --fix-names diagnostic.
+  warn-do-not-write-change-artifacts:
+    decision: When an active strict change exists for the moved planned change, emit a non-blocking warning naming the generate proposal command that refreshes its roadmap linkage, and never write under .strict-spec-driven/changes/.
+    rationale: Change state is derived from the change directory name alone, so a stale proposal.yaml roadmap.milestone value is metadata drift rather than a validation failure. Keeping the roadmap command from writing change artifacts preserves the existing domain boundary that roadmap commands never modify change directories.
+  warn-on-order-inverting-dependency:
+    decision: Emit a non-blocking warning for any depends_on edge touching the moved planned change that, after the move, points from an earlier-ordered milestone to a later-ordered one.
+    rationale: depends_on resolves globally across roadmap sources, so a move never breaks dependency validation but can silently make a planned change permanently unrecommendable behind later work. A warning scoped to edges touching the moved change surfaces the risk without adding a general validator rule that would change existing roadmap-status behavior.
+  no-intra-milestone-position-flag:
+    decision: The command exposes no flag for position within the target milestone.
+    rationale: Planned-change order within a milestone is derived by sorting standalone files on their roadmap-relative path, and the canonical basename embeds the milestone id prefix, so the moved change deterministically sorts by its own id. A position flag would require a planned-change order field that the schema does not have.
+alternatives: []
+risks: []

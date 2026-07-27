@@ -10,6 +10,7 @@
     { "name": "strict-roadmap-resume", "family": "strict-roadmap" },
     { "name": "strict-roadmap-review", "family": "strict-roadmap" },
     { "name": "strict-roadmap-reorder", "family": "strict-roadmap" },
+    { "name": "strict-roadmap-move", "family": "strict-roadmap" },
     { "name": "strict-roadmap-sync", "family": "strict-roadmap" },
     { "name": "strict-spec-apply", "family": "strict-spec" },
     { "name": "strict-spec-archive", "family": "strict-spec" },

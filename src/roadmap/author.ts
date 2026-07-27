@@ -580,7 +580,7 @@ export function generateRoadmapPlannedChange(
           "semantic",
           existing.repoRelativePath,
           "$.planned_change.milestone",
-          "planned change already belongs to a different milestone; moving planned changes between milestones is not supported by this command",
+          "planned change already belongs to a different milestone; this command does not reassign milestones, so run roadmap-move-planned-change instead",
           existing.artifact.planned_change.milestone,
           input.milestone,
         ),

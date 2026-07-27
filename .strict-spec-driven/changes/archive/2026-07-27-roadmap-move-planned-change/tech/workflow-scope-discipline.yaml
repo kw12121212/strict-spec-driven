@@ -1,0 +1,28 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: workflow-scope-discipline
+mapping:
+  implementation:
+    - src/roadmap/move.ts
+    - src/roadmap/author.ts
+    - src/roadmap/pause.ts
+    - src/roadmap/order.ts
+  enforcement: []
+operations:
+  ADDED:
+    roadmap-commands-do-not-write-change-artifacts:
+      strength: MUST
+      statement: Roadmap commands MUST NOT create, modify, or delete any artifact under .strict-spec-driven/changes/; when a roadmap operation leaves a change artifact's roadmap linkage stale or otherwise inconsistent, the command MUST report the drift as a non-blocking warning naming the command that repairs it rather than writing the change artifact itself.
+      rationale: 'Roadmap state and change state are separate domains reconciled by derivation: change state is derived from change directory names, and roadmap commands own only roadmap artifacts. A roadmap command that reached into a change directory would make roadmap operations partially bypass the change workflow''s own validation, apply, and verify gates, and would let a single command mutate two contracts whose consistency the workflow checks independently. Reporting the drift keeps the repair inside the change workflow that owns it.'
+      enforcement:
+        method: review
+        detail: Reviewers reject roadmap command implementations that write, rename, or delete files under .strict-spec-driven/changes/, and require a reported warning naming the repair command instead.
+      examples:
+        good:
+          - roadmap-move-planned-change warns that an active strict change still records the previous milestone and names the generate proposal command that refreshes the linkage.
+        bad:
+          - A roadmap command silently rewriting proposal.yaml roadmap.milestone for an active change while moving its planned change.
+  MODIFIED: {}
+  REMOVED: {}
