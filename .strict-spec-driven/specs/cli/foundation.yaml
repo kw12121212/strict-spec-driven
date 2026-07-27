@@ -90,6 +90,8 @@ mapping:
     - scripts/gen-templates-bundle.ts
     - ROADMAP_GUIDE.md
     - ROADMAP_GUIDE.zh.md
+    - src/cli/command-metadata.ts
+    - src/cli/command-metadata-entries.ts
   tests:
     - test/run.ts
     - test/support/harness.ts
@@ -1075,20 +1077,24 @@ requirements:
         - AND: the scaffolded tasks.yaml remains unchanged
   cli-subcommands-support-help:
     strength: MUST
-    statement: The system MUST support exact `--help` and `-h` help requests for the root CLI and every registered subcommand, printing usage to stdout and exiting zero without performing the command's normal mutation or validation behavior.
+    statement: The system MUST support exact `--help` and `-h` help requests for the root CLI and every registered subcommand, printing help to stdout and exiting zero without performing the command's normal mutation or validation behavior; root help MUST list every registered command grouped by area with a one-line summary, and subcommand help MUST state the command summary, its positional arguments, a description of every accepted flag including whether it is required, repeatable, or reset-governed, the keys the command writes to its output, and the meaning of its exit codes.
     scenarios:
-      root-help-lists-commands:
+      root-help-lists-commands-with-summaries:
         - GIVEN: the strict CLI is available
         - WHEN: the root CLI is invoked with `--help`
-        - THEN: the command exits zero
-        - AND: stdout lists the registered commands in canonical order
-        - AND: stderr is empty
-      subcommand-help-shows-usage:
+        - THEN: the command exits zero, stdout lists every registered command grouped by area with a one-line summary, canonical registration order is preserved within each group, and stderr is empty
+      subcommand-help-describes-full-surface:
         - GIVEN: a registered strict CLI subcommand exists
         - WHEN: that subcommand is invoked with `--help`
-        - THEN: the command exits zero
-        - AND: stdout contains the subcommand usage
-        - AND: stderr is empty
+        - THEN: the command exits zero, stdout contains the command summary, its positional arguments, a description for every accepted flag, the command's output keys, and its exit-code meaning, and stderr is empty
+      repeatable-and-reset-flag-semantics-are-documented:
+        - GIVEN: a subcommand accepts a repeatable list flag or a --reset flag
+        - WHEN: that subcommand is invoked with `--help`
+        - THEN: stdout states whether repeated values append or replace and what --reset rebuilds, without the caller needing an external skill prompt
+      subcommand-help-skips-cache-sync:
+        - GIVEN: the shared cache root is empty
+        - WHEN: a registered subcommand is invoked with `--help`
+        - THEN: help is printed without creating or writing the shared schema or sample cache
   cli-roadmap-loads-split-planned-change-files:
     strength: MUST
     statement: The system MUST load roadmap planned-change state from standalone planned-change artifacts as well as inline milestone planned_changes entries, associating every standalone planned change with exactly one owning milestone and preserving deterministic roadmap order.
@@ -2288,3 +2294,31 @@ requirements:
         - GIVEN: a strict change has tasks.yaml with at least one task in each of the three sections and no placeholder content
         - WHEN: the verify command is executed for that change
         - THEN: no task list completeness diagnostics are emitted
+  cli-help-supports-machine-readable-json:
+    strength: MUST
+    statement: The system MUST support `--help --json` for the root CLI and every registered subcommand, writing a single parseable JSON payload to stdout, exiting zero, leaving stderr empty, performing no mutation or validation, and skipping shared schema and sample cache synchronization; the payload MUST carry the command name, summary, positional arguments, flags with their descriptions and required, repeatable, and reset semantics, the command's output keys, and its exit-code meaning.
+    scenarios:
+      root-json-help-describes-every-command:
+        - GIVEN: the strict CLI is available
+        - WHEN: the root CLI is invoked with `--help --json`
+        - THEN: the command exits zero, stdout is a single parseable JSON payload describing every registered command with its group and summary, and stderr is empty
+      subcommand-json-help-describes-arguments-and-flags:
+        - GIVEN: a registered strict CLI subcommand exists
+        - WHEN: that subcommand is invoked with `--help --json`
+        - THEN: the command exits zero, stdout is a single parseable JSON payload carrying that command's name, summary, positional arguments, flag descriptions with required, repeatable, and reset semantics, output keys, and exit-code meaning, and stderr is empty
+      json-help-skips-cache-sync:
+        - GIVEN: the shared cache root is empty
+        - WHEN: any strict CLI command is invoked with `--help --json`
+        - THEN: the payload is printed without creating or writing the shared schema or sample cache
+  cli-help-covers-every-registered-command:
+    strength: MUST
+    statement: The system MUST describe every command in the canonical registration order through the same command-metadata source that renders root help, subcommand help, JSON help, and MCP tool descriptions, so no registered command can present help without a summary and a description for each flag it accepts, and MCP tool descriptions for mutating commands continue to state project-state mutation explicitly.
+    scenarios:
+      every-registered-command-is-described:
+        - GIVEN: the strict CLI command table is enumerated
+        - WHEN: help is requested for each registered command in turn
+        - THEN: every command reports a non-empty summary and a description for each flag it accepts, with no command falling back to a bare usage line
+      mcp-descriptions-match-command-metadata:
+        - GIVEN: the MCP capability inventory is inspected
+        - WHEN: each tool description is compared with its mapped command-metadata entry
+        - THEN: the descriptions are identical and every mutating tool description still states project-state mutation explicitly

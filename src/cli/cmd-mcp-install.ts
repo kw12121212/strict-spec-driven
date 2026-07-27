@@ -3,8 +3,9 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "fs
 import os from "os";
 import path from "path";
 import { fileURLToPath } from "url";
-import { isHelpRequest } from "./argv.js";
-import { writeError, writeHelp, writeJson, writeUsage } from "./output.js";
+import { handleHelpRequest } from "./argv.js";
+import { getCommandUsage } from "./command-metadata.js";
+import { writeError, writeJson, writeUsage } from "./output.js";
 
 export const MCP_INSTALL_CLIENTS = ["claude-code", "codex", "opencode", "copilot", "json"] as const;
 export type McpInstallClient = (typeof MCP_INSTALL_CLIENTS)[number];
@@ -19,9 +20,7 @@ export type McpInstallScope = (typeof MCP_INSTALL_SCOPES)[number];
 export const DEFAULT_ENTRY_NAME = "strict-spec-driven";
 const ENTRY_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 
-const USAGE =
-  "Usage: strict-spec-cli mcp-install --client <claude-code|codex|opencode|copilot|json|all> " +
-  "[--client <...>] [--scope <project|user>] [--name <entry-name>] [--project <path>] [--config <path>]\n";
+const USAGE = getCommandUsage("mcp-install");
 
 export type ParsedMcpInstallArgs = {
   clients: McpInstallClient[];
@@ -318,8 +317,7 @@ export function buildProject(packageRoot: string): { ok: true } | { ok: false; e
 }
 
 export function runMcpInstall(argv: string[], deps: RegistrationDeps = DEFAULT_DEPS): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(USAGE);
+  if (handleHelpRequest("mcp-install", argv)) {
     return 0;
   }
 

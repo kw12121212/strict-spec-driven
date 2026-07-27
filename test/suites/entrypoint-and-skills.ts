@@ -17,6 +17,25 @@ type CliRegistryModule = {
   COMMAND_REGISTRATION_ORDER: string[];
 };
 
+type CommandMetadataEntry = {
+  name: string;
+  group: string;
+  summary: string;
+  mcpDescription?: string;
+  flags: Array<{ name: string; description: string }>;
+  output: { description: string };
+  exitCodes: Array<{ code: number; meaning: string }>;
+};
+
+type CommandMetadataModule = {
+  getAllCommandMetadata: () => CommandMetadataEntry[];
+};
+
+type McpInventoryModule = {
+  MCP_READ_ONLY_TOOL_INVENTORY: Array<{ name: string; description: string; cliCommand: string; mutates: boolean }>;
+  MCP_MUTATING_TOOL_INVENTORY: Array<{ name: string; description: string; cliCommand: string; mutates: boolean }>;
+};
+
 export async function runEntrypointAndSkillsSuite(context: TestContext): Promise<void> {
 context.section("[1] entrypoint smoke test");
 
@@ -108,13 +127,44 @@ context.assert(
 const rootHelp = cli(["--help"]);
 context.assert(rootHelp.status === 0, "root help exits zero", `got exit code ${rootHelp.status}`);
 context.assert(
-  rootHelp.stdout.includes("Usage:") && rootHelp.stdout.includes(expectedCommandUsage),
-  "root help prints usage and canonical command listing to stdout",
+  rootHelp.stdout.includes("Usage:") && expectedCommandOrder.every((name) => rootHelp.stdout.includes(`  ${name} `)),
+  "root help lists every registered command with a summary",
   `stdout: ${rootHelp.stdout.trim()}`,
 );
 context.assert(rootHelp.stderr.length === 0, "root help keeps stderr empty", `stderr: ${rootHelp.stderr.trim()}`);
 
+const commandMetadata = (await loadDistModule("cli/command-metadata.js")) as CommandMetadataModule;
+const metadataEntries = commandMetadata.getAllCommandMetadata();
+
+context.assert(
+  expectedCommandOrder.every((name) => metadataEntries.some((entry) => entry.name === name)),
+  "every registered command has a metadata entry",
+  `missing: ${expectedCommandOrder.filter((name) => !metadataEntries.some((entry) => entry.name === name)).join(", ")}`,
+);
+context.assert(
+  metadataEntries.every((entry) => entry.summary.trim().length > 0),
+  "every command metadata entry carries a non-empty summary",
+  `empty summaries: ${metadataEntries.filter((entry) => entry.summary.trim().length === 0).map((entry) => entry.name).join(", ")}`,
+);
+context.assert(
+  metadataEntries.every((entry) => entry.flags.every((flag) => flag.description.trim().length > 0)),
+  "every documented flag carries a description",
+  `undocumented flags: ${
+    metadataEntries
+      .flatMap((entry) => entry.flags.filter((flag) => flag.description.trim().length === 0).map((flag) => `${entry.name} ${flag.name}`))
+      .join(", ")
+  }`,
+);
+context.assert(
+  metadataEntries.every((entry) => entry.exitCodes.length > 0 && entry.output.description.trim().length > 0),
+  "every command metadata entry documents its output and exit codes",
+  `incomplete: ${
+    metadataEntries.filter((entry) => entry.exitCodes.length === 0 || entry.output.description.trim().length === 0).map((entry) => entry.name).join(", ")
+  }`,
+);
+
 for (const commandName of expectedCommandOrder) {
+  const metadata = metadataEntries.find((entry) => entry.name === commandName);
   const commandHelp = cli([commandName, "--help"], { cwd: ROOT });
   context.assert(commandHelp.status === 0, `${commandName} --help exits zero`, `stderr: ${commandHelp.stderr.trim()}`);
   context.assert(
@@ -122,8 +172,103 @@ for (const commandName of expectedCommandOrder) {
     `${commandName} --help prints command usage to stdout`,
     `stdout: ${commandHelp.stdout.trim()}`,
   );
+  context.assert(
+    metadata !== undefined
+      && commandHelp.stdout.includes(metadata.summary)
+      && commandHelp.stdout.includes("Exit codes:")
+      && metadata.flags.every((flag) => commandHelp.stdout.includes(flag.description)),
+    `${commandName} --help describes its summary, flags, and exit codes`,
+    `stdout: ${commandHelp.stdout.trim()}`,
+  );
   context.assert(commandHelp.stderr.length === 0, `${commandName} --help keeps stderr empty`, `stderr: ${commandHelp.stderr.trim()}`);
+
+  const jsonHelp = cli([commandName, "--help", "--json"], { cwd: ROOT });
+  context.assert(jsonHelp.status === 0, `${commandName} --help --json exits zero`, `stderr: ${jsonHelp.stderr.trim()}`);
+  context.assert(jsonHelp.stderr.length === 0, `${commandName} --help --json keeps stderr empty`, `stderr: ${jsonHelp.stderr.trim()}`);
+
+  let payload: Record<string, unknown> | undefined;
+  try {
+    payload = JSON.parse(jsonHelp.stdout) as Record<string, unknown>;
+  } catch {
+    payload = undefined;
+  }
+  context.assert(
+    payload !== undefined
+      && payload.command === commandName
+      && typeof payload.summary === "string"
+      && Array.isArray(payload.usage)
+      && Array.isArray(payload.arguments)
+      && Array.isArray(payload.flags)
+      && Array.isArray(payload.exitCodes)
+      && typeof payload.output === "object",
+    `${commandName} --help --json emits a structured help payload`,
+    `stdout: ${jsonHelp.stdout.trim()}`,
+  );
 }
+
+const rootJsonHelp = cli(["--help", "--json"]);
+context.assert(rootJsonHelp.status === 0, "root --help --json exits zero", `stderr: ${rootJsonHelp.stderr.trim()}`);
+context.assert(rootJsonHelp.stderr.length === 0, "root --help --json keeps stderr empty", `stderr: ${rootJsonHelp.stderr.trim()}`);
+
+let rootPayload: { commands?: Array<{ name?: string; group?: string; summary?: string }> } | undefined;
+try {
+  rootPayload = JSON.parse(rootJsonHelp.stdout) as typeof rootPayload;
+} catch {
+  rootPayload = undefined;
+}
+context.assert(
+  rootPayload !== undefined
+    && Array.isArray(rootPayload.commands)
+    && expectedCommandOrder.every((name, index) =>
+      rootPayload?.commands?.[index]?.name === name
+      && typeof rootPayload.commands[index].group === "string"
+      && typeof rootPayload.commands[index].summary === "string"
+    ),
+  "root --help --json describes every command in canonical order with group and summary",
+  `stdout: ${rootJsonHelp.stdout.trim()}`,
+);
+
+const mcpInventory = (await loadDistModule("mcp/inventory.js")) as McpInventoryModule;
+const mcpTools = [...mcpInventory.MCP_READ_ONLY_TOOL_INVENTORY, ...mcpInventory.MCP_MUTATING_TOOL_INVENTORY];
+context.assert(
+  mcpTools.every((tool) => {
+    const metadata = metadataEntries.find((entry) => entry.name === tool.cliCommand);
+    return metadata !== undefined && tool.description === (metadata.mcpDescription ?? metadata.summary);
+  }),
+  "every MCP tool description comes from its command metadata entry",
+  `mismatched: ${
+    mcpTools
+      .filter((tool) => {
+        const metadata = metadataEntries.find((entry) => entry.name === tool.cliCommand);
+        return metadata === undefined || tool.description !== (metadata.mcpDescription ?? metadata.summary);
+      })
+      .map((tool) => tool.name)
+      .join(", ")
+  }`,
+);
+context.assert(
+  mcpTools.filter((tool) => tool.mutates).every((tool) => /^(Mutates|Performs)\b/.test(tool.description)),
+  "every mutating MCP tool description states project-state mutation explicitly",
+  `non-explicit: ${mcpTools.filter((tool) => tool.mutates && !/^(Mutates|Performs)\b/.test(tool.description)).map((tool) => tool.name).join(", ")}`,
+);
+
+const helpCacheRoot = mkdtempSync(path.join(os.tmpdir(), "strict-help-cache-"));
+for (const [label, helpArgs] of [
+  ["root text help", ["--help"]],
+  ["root json help", ["--help", "--json"]],
+  ["subcommand text help", ["verify", "--help"]],
+  ["subcommand json help", ["verify", "--help", "--json"]],
+] as Array<[string, string[]]>) {
+  const cacheDir = path.join(helpCacheRoot, label.replaceAll(" ", "-"));
+  const helpRun = cli(helpArgs, { cwd: ROOT, env: { STRICT_SPEC_SCHEMA_CACHE_DIR: cacheDir } });
+  context.assert(helpRun.status === 0, `${label} exits zero`, `stderr: ${helpRun.stderr.trim()}`);
+  context.assert(
+    !existsSync(cacheDir),
+    `${label} does not create the shared schema cache`,
+    `cache directory was created at ${cacheDir}`,
+  );
+}
+rmSync(helpCacheRoot, { recursive: true, force: true });
 
 const roadmapArchiveInvalidArgs = cli(["roadmap-archive", "one", "two"], { cwd: ROOT });
 context.assert(

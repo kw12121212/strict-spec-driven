@@ -1,6 +1,7 @@
 import { getEmbeddedTemplateKeys, readEmbeddedTemplate } from "../embedded-templates.js";
-import { isHelpRequest } from "./argv.js";
-import { writeError, writeHelp, writeOut, writeUsage } from "./output.js";
+import { handleHelpRequest } from "./argv.js";
+import { getCommandUsage } from "./command-metadata.js";
+import { writeError, writeOut, writeUsage } from "./output.js";
 
 function normalizeTemplateKey(key: string): string {
   return key.startsWith("strict-spec-driven/") ? key : `strict-spec-driven/${key}`;
@@ -38,12 +39,11 @@ function showKey(key: string, usage: string): number {
 }
 
 export function runTemplateList(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli template-list\n");
+  if (handleHelpRequest("template-list", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli template-list\n");
+    writeUsage(getCommandUsage("template-list"));
     return 1;
   }
 
@@ -52,9 +52,8 @@ export function runTemplateList(argv: string[]): number {
 
 export function runTemplateShow(argv: string[]): number {
   const [key, ...extraArgs] = argv;
-  const usage = "Usage: strict-spec-cli template-show <template-key>\n";
-  if (isHelpRequest(argv)) {
-    writeHelp(usage);
+  const usage = getCommandUsage("template-show");
+  if (handleHelpRequest("template-show", argv)) {
     return 0;
   }
   if (!key || extraArgs.length > 0) {
@@ -66,12 +65,11 @@ export function runTemplateShow(argv: string[]): number {
 }
 
 export function runSchemaList(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli schema-list\n");
+  if (handleHelpRequest("schema-list", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli schema-list\n");
+    writeUsage(getCommandUsage("schema-list"));
     return 1;
   }
 
@@ -80,9 +78,8 @@ export function runSchemaList(argv: string[]): number {
 
 export function runSchemaShow(argv: string[]): number {
   const [name, ...extraArgs] = argv;
-  const usage = "Usage: strict-spec-cli schema-show <schema-name|schema-key>\n";
-  if (isHelpRequest(argv)) {
-    writeHelp(usage);
+  const usage = getCommandUsage("schema-show");
+  if (handleHelpRequest("schema-show", argv)) {
     return 0;
   }
   if (!name || extraArgs.length > 0) {
@@ -94,12 +91,11 @@ export function runSchemaShow(argv: string[]): number {
 }
 
 export function runSampleList(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli sample-list\n");
+  if (handleHelpRequest("sample-list", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli sample-list\n");
+    writeUsage(getCommandUsage("sample-list"));
     return 1;
   }
 
@@ -108,9 +104,8 @@ export function runSampleList(argv: string[]): number {
 
 export function runSampleShow(argv: string[]): number {
   const [name, ...extraArgs] = argv;
-  const usage = "Usage: strict-spec-cli sample-show <sample-name|sample-key>\n";
-  if (isHelpRequest(argv)) {
-    writeHelp(usage);
+  const usage = getCommandUsage("sample-show");
+  if (handleHelpRequest("sample-show", argv)) {
     return 0;
   }
   if (!name || extraArgs.length > 0) {

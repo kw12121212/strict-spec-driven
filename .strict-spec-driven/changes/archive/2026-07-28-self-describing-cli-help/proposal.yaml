@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: self-describing-cli-help
+  status: proposed
+summary:
+  what:
+    - Make strict-spec-cli self-describing from --help alone by introducing a typed command-metadata registry that drives grouped root help with per-command summaries, rich per-command help covering arguments, flag semantics, output keys, and exit-code meaning, a machine-readable --help --json form for the root CLI and every subcommand, and MCP tool descriptions derived from the same registry.
+  why:
+    - Today 53 of the 55 registered commands emit a single usage synopsis line and the root help prints a bare comma-separated name list, so an agent cannot choose a command, learn what a flag such as --reset does, or interpret the {valid, ready, diagnostics} output without loading a skill prompt; the flag semantics and output contract live only in skill prompts, and src/mcp/inventory.ts holds a second, drift-prone copy of command descriptions.
+scope:
+  in:
+    - Typed command-metadata registry in src/cli/command-metadata.ts as single source of truth; metadata populated for all 55 registered commands; grouped root help with one-line summaries replacing the name dump in src/cli/usage.ts; per-command help rendering summary, arguments, flag descriptions with required/repeatable/reset semantics, output keys, and exit-code meaning, replacing the inline usage literals across src/cli/cmd-*.ts; --help --json structured help for root and every subcommand; centralized help detection in the entrypoint so every help request skips shared schema and sample cache synchronization as the existing requirement at .strict-spec-driven/specs/cli/foundation.yaml already mandates; src/mcp/inventory.ts descriptions derived from the registry; tests for metadata completeness, help and JSON-help behavior across every command, and MCP description parity.
+  out:
+    - Changing any command's arguments, output payload, exit codes, or mutation behavior; rewriting README, README.zh, or QUICKSTART documentation; localized non-English help output; registering a YAML schema for the JSON help payload.
+unchanged_behavior:
+  - Every command keeps its current arguments, output payload, exit codes, and mutation behavior; --help and -h continue to exit zero, write to stdout, and leave stderr empty; invalid arguments and unknown subcommands continue to write the existing usage hint text to stderr and exit non-zero, including the compact comma-separated root command listing; MCP tool descriptions keep their existing mutation-explicit wording byte-identical.

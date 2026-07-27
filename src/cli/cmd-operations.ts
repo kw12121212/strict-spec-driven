@@ -4,10 +4,11 @@ import path from "path";
 import { getRoadmapStatus } from "../roadmap.js";
 import { validateStrictSkillPackaging } from "../skills.js";
 import { parseYamlDocument } from "../yaml.js";
-import { isHelpRequest } from "./argv.js";
+import { handleHelpRequest } from "./argv.js";
+import { getCommandUsage } from "./command-metadata.js";
 import { findArchivedMatchesByBareName, getArchiveDir, listArchivedChanges } from "./changes.js";
 import { normalizeRepoRelativePath } from "./fs.js";
-import { writeErr, writeError, writeHelp, writeJson, writeUsage } from "./output.js";
+import { writeErr, writeError, writeJson, writeUsage } from "./output.js";
 import { verifySpecMappings } from "./spec-mapping.js";
 import { getTechStatus, verifyTechMappings } from "./tech-mapping.js";
 
@@ -20,12 +21,11 @@ export type ShipResult = {
 
 export function runShip(argv: string[]): number {
   const [target, ...extraArgs] = argv;
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli ship <change-name>\n");
+  if (handleHelpRequest("ship", argv)) {
     return 0;
   }
   if (!target || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-cli ship <change-name>\n");
+    writeUsage(getCommandUsage("ship"));
     return 1;
   }
 
@@ -89,12 +89,11 @@ export function runShip(argv: string[]): number {
 }
 
 export function runValidateSkills(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli validate-skills\n");
+  if (handleHelpRequest("validate-skills", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli validate-skills\n");
+    writeUsage(getCommandUsage("validate-skills"));
     return 1;
   }
 
@@ -104,12 +103,11 @@ export function runValidateSkills(argv: string[]): number {
 }
 
 export function runVerifySpecMappings(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli verify-spec-mappings\n");
+  if (handleHelpRequest("verify-spec-mappings", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli verify-spec-mappings\n");
+    writeUsage(getCommandUsage("verify-spec-mappings"));
     return 1;
   }
 
@@ -119,12 +117,11 @@ export function runVerifySpecMappings(argv: string[]): number {
 }
 
 export function runVerifyTechMappings(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli verify-tech-mappings\n");
+  if (handleHelpRequest("verify-tech-mappings", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli verify-tech-mappings\n");
+    writeUsage(getCommandUsage("verify-tech-mappings"));
     return 1;
   }
 
@@ -134,12 +131,11 @@ export function runVerifyTechMappings(argv: string[]): number {
 }
 
 export function runTechStatus(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli tech-status\n");
+  if (handleHelpRequest("tech-status", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli tech-status\n");
+    writeUsage(getCommandUsage("tech-status"));
     return 1;
   }
 
@@ -155,12 +151,11 @@ function getDirectoryCreationTimeMs(directoryPath: string): number {
 }
 
 export function runCommitAndPush(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli commit-and-push\n");
+  if (handleHelpRequest("commit-and-push", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli commit-and-push\n");
+    writeUsage(getCommandUsage("commit-and-push"));
     return 1;
   }
 

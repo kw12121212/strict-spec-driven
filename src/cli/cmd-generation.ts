@@ -8,8 +8,9 @@ import {
   TASK_SECTION_NAMES,
 } from "../propose-generation.js";
 import { parseYamlDocument } from "../yaml.js";
-import { CHANGE_NAME_PATTERN, isHelpRequest } from "./argv.js";
-import { writeError, writeHelp, writeJson, writeUsage } from "./output.js";
+import { CHANGE_NAME_PATTERN, handleHelpRequest } from "./argv.js";
+import { getCommandUsage } from "./command-metadata.js";
+import { writeError, writeJson, writeUsage } from "./output.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const BOOLEAN_FLAGS = new Set(["reset"]);
@@ -1313,8 +1314,7 @@ function buildInputFromNamedArgs(
 
 export function runGenerate(argv: string[]): number {
   const [changeName, artifact, firstInputArg, ...extraArgs] = argv;
-  if (isHelpRequest(argv)) {
-    writeHelp(usage());
+  if (handleHelpRequest("generate", argv)) {
     return 0;
   }
   if (!changeName || !artifact || !firstInputArg) {

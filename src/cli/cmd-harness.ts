@@ -13,18 +13,19 @@ import {
   validateHarnessSession,
   verifyHarnessScripts,
 } from "../harness.js";
-import { CHANGE_NAME_PATTERN, isHelpRequest } from "./argv.js";
-import { writeError, writeHelp, writeJson, writeOut, writeUsage } from "./output.js";
+import { CHANGE_NAME_PATTERN, handleHelpRequest } from "./argv.js";
+import { getCommandUsage } from "./command-metadata.js";
+import { writeError, writeJson, writeOut, writeUsage } from "./output.js";
 
-const HARNESS_PLAN_USAGE = "Usage: strict-spec-cli harness-plan [--environment <id>] [--component <id> ...]\n";
-const HARNESS_INFER_USAGE = "Usage: strict-spec-cli harness-infer [--write] [--force]\n";
-const HARNESS_DOCTOR_USAGE = "Usage: strict-spec-cli harness-doctor [--fix]\n";
-const HARNESS_START_USAGE = "Usage: strict-spec-cli harness-start [--environment <id>] [--component <id> ...] [--confirm]\n";
-const HARNESS_STOP_USAGE = "Usage: strict-spec-cli harness-stop [--confirm]\n";
-const HARNESS_STATUS_USAGE = "Usage: strict-spec-cli harness-status\n";
-const HARNESS_LOGS_USAGE = "Usage: strict-spec-cli harness-logs [component-id] [--tail <n> | --all]\n";
-const HARNESS_SCRIPTS_USAGE = "Usage: strict-spec-cli harness-scripts <generate|verify>\n";
-const HARNESS_SESSION_USAGE = "Usage: strict-spec-cli harness-session <create|validate|archive> <session-id|session.yaml>\n";
+const HARNESS_PLAN_USAGE = getCommandUsage("harness-plan");
+const HARNESS_INFER_USAGE = getCommandUsage("harness-infer");
+const HARNESS_DOCTOR_USAGE = getCommandUsage("harness-doctor");
+const HARNESS_START_USAGE = getCommandUsage("harness-start");
+const HARNESS_STOP_USAGE = getCommandUsage("harness-stop");
+const HARNESS_STATUS_USAGE = getCommandUsage("harness-status");
+const HARNESS_LOGS_USAGE = getCommandUsage("harness-logs");
+const HARNESS_SCRIPTS_USAGE = getCommandUsage("harness-scripts");
+const HARNESS_SESSION_USAGE = getCommandUsage("harness-session");
 
 type SelectionArgs = {
   environment?: string;
@@ -104,8 +105,7 @@ function parseHarnessLogsArgs(argv: string[]): HarnessLogsArgs | null {
 }
 
 export function runHarnessPlan(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(HARNESS_PLAN_USAGE);
+  if (handleHelpRequest("harness-plan", argv)) {
     return 0;
   }
   const selection = parseSelectionArgs(argv, HARNESS_PLAN_USAGE, false);
@@ -116,8 +116,7 @@ export function runHarnessPlan(argv: string[]): number {
 }
 
 export function runHarnessInfer(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(HARNESS_INFER_USAGE);
+  if (handleHelpRequest("harness-infer", argv)) {
     return 0;
   }
   let write = false;
@@ -144,8 +143,7 @@ export function runHarnessInfer(argv: string[]): number {
 }
 
 export function runHarnessDoctor(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(HARNESS_DOCTOR_USAGE);
+  if (handleHelpRequest("harness-doctor", argv)) {
     return 0;
   }
   let fix = false;
@@ -176,8 +174,7 @@ export function runHarnessDoctor(argv: string[]): number {
 }
 
 export function runHarnessStart(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(HARNESS_START_USAGE);
+  if (handleHelpRequest("harness-start", argv)) {
     return 0;
   }
   const selection = parseSelectionArgs(argv, HARNESS_START_USAGE, true);
@@ -192,8 +189,7 @@ export function runHarnessStart(argv: string[]): number {
 }
 
 export function runHarnessStop(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(HARNESS_STOP_USAGE);
+  if (handleHelpRequest("harness-stop", argv)) {
     return 0;
   }
   const selection = parseSelectionArgs(argv, HARNESS_STOP_USAGE, true);
@@ -204,8 +200,7 @@ export function runHarnessStop(argv: string[]): number {
 }
 
 export function runHarnessStatus(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(HARNESS_STATUS_USAGE);
+  if (handleHelpRequest("harness-status", argv)) {
     return 0;
   }
   if (argv.length > 0) {
@@ -218,8 +213,7 @@ export function runHarnessStatus(argv: string[]): number {
 }
 
 export function runHarnessLogs(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(HARNESS_LOGS_USAGE);
+  if (handleHelpRequest("harness-logs", argv)) {
     return 0;
   }
   const parsed = parseHarnessLogsArgs(argv);
@@ -235,8 +229,7 @@ export function runHarnessLogs(argv: string[]): number {
 
 export function runHarnessScripts(argv: string[]): number {
   const [action, ...extraArgs] = argv;
-  if (isHelpRequest(argv)) {
-    writeHelp(HARNESS_SCRIPTS_USAGE);
+  if (handleHelpRequest("harness-scripts", argv)) {
     return 0;
   }
   if (!action || extraArgs.length > 0 || (action !== "generate" && action !== "verify")) {
@@ -250,8 +243,7 @@ export function runHarnessScripts(argv: string[]): number {
 
 export function runHarnessSession(argv: string[]): number {
   const [action, target, ...extraArgs] = argv;
-  if (isHelpRequest(argv)) {
-    writeHelp(HARNESS_SESSION_USAGE);
+  if (handleHelpRequest("harness-session", argv)) {
     return 0;
   }
   if (!action || !target || extraArgs.length > 0 || !["create", "validate", "archive"].includes(action)) {

@@ -1,0 +1,76 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: self-describing-cli-help
+sections:
+  Implementation:
+    impl-metadata-module:
+      text: Add src/cli/command-metadata.ts defining the typed command-metadata entry (group, summary, mcpDescription, positional arguments, flags with description plus required/repeatable/reset semantics, output keys, exit-code meaning, examples, notes) and the shared renderers for grouped root help, per-command text help, and the JSON help payload.
+      status: complete
+    impl-populate-metadata:
+      text: Populate metadata entries for all 55 commands in COMMAND_REGISTRATION_ORDER, capturing each command's summary, arguments, flag semantics, output keys, and exit-code meaning from its current implementation without altering behavior.
+      status: complete
+    impl-root-help:
+      text: Rewrite src/cli/usage.ts so root help renders commands grouped by area with one-line summaries instead of a single comma-separated name list, preserving canonical registration order within each group.
+      status: complete
+    impl-command-help:
+      text: Replace the inline usage literals across src/cli/cmd-*.ts with the registry-driven per-command help renderer, keeping the existing stderr usage hints for invalid arguments unchanged.
+      status: complete
+    impl-json-help:
+      text: Extend src/cli/argv.ts and src/cli/entrypoint.ts to recognize --help --json for the root CLI and every subcommand, emitting the structured metadata through writeJson while still exiting zero, leaving stderr empty, and skipping shared schema and sample cache synchronization.
+      status: complete
+    impl-mcp-inventory:
+      text: Rewire src/mcp/inventory.ts to read tool descriptions from the command-metadata registry mcpDescription field instead of inline literals, leaving every existing description string byte-identical.
+      status: complete
+    impl-rebuild-dist:
+      text: Rebuild compiled output after the TypeScript edits so dist-based CLI and test behavior reflects the new help surface.
+      status: complete
+      command: bun run build
+    impl-central-help-detection:
+      text: Centralize help detection in src/cli/argv.ts and src/cli/entrypoint.ts so root and subcommand help, in both text and --json form, is recognized before shared schema and sample cache synchronization runs, bringing subcommand help into compliance with the existing cache-sync requirement.
+      status: complete
+  Testing:
+    test-metadata-completeness:
+      text: Add a test asserting every command in COMMAND_REGISTRATION_ORDER has a metadata entry with a non-empty summary and a description for each flag its usage accepts, so a newly registered command without metadata fails the suite.
+      status: complete
+    test-text-help-behavior:
+      text: Add a test that runs --help for the root CLI and every registered subcommand, asserting exit zero, empty stderr, and stdout containing the command summary plus a description line for every documented flag.
+      status: complete
+    test-json-help-behavior:
+      text: Add a test that runs --help --json for the root CLI and every registered subcommand, asserting exit zero, empty stderr, and a parseable payload carrying the command name, summary, arguments, flags, output keys, and exit codes.
+      status: complete
+    test-mcp-description-parity:
+      text: Add a test asserting every MCP tool description equals the mcpDescription of its mapped command-metadata entry and that mutating tools keep explicit project-state mutation wording.
+      status: complete
+    test-help-skips-cache-sync:
+      text: Add a regression test that --help and --help --json for the root CLI and a representative subcommand print help against an empty shared cache root without creating or writing the shared schema or sample cache.
+      status: complete
+    test-run-suite:
+      text: Run the project test suite against rebuilt dist output and confirm no existing help, entrypoint, or MCP test regressed.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-ready:
+      text: Confirm proposal handoff readiness for the change.
+      status: complete
+      command: strict-spec-cli ready self-describing-cli-help
+    verify-change:
+      text: Confirm strict artifact structure, task completion, and open-question state before archive.
+      status: complete
+      command: strict-spec-cli verify self-describing-cli-help
+    verify-spec-mappings:
+      text: Confirm the delta spec implementation and test mappings resolve to real files.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+    verify-tech-mappings:
+      text: Confirm the new cli-command-metadata standard's mappings resolve to real files.
+      status: complete
+      command: strict-spec-cli verify-tech-mappings
+    verify-coverage-gate:
+      text: Run the complete project regression with coverage enforcement as required review evidence before archive.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+testing_gates:
+  validation_task: test-run-suite
+  unit_test_task: test-text-help-behavior

@@ -1,15 +1,15 @@
 import { runMaintenance } from "../maintenance.js";
 import { migrateLegacyWorkflow } from "../migrate.js";
-import { isHelpRequest } from "./argv.js";
-import { writeErr, writeError, writeHelp, writeJson, writeUsage } from "./output.js";
+import { handleHelpRequest } from "./argv.js";
+import { getCommandUsage } from "./command-metadata.js";
+import { writeErr, writeError, writeJson, writeUsage } from "./output.js";
 
 export function runMigrate(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli migrate\n");
+  if (handleHelpRequest("migrate", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli migrate\n");
+    writeUsage(getCommandUsage("migrate"));
     return 1;
   }
 
@@ -27,12 +27,11 @@ export function runMigrate(argv: string[]): number {
 }
 
 export function runMaintenanceCommand(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli maintenance\n");
+  if (handleHelpRequest("maintenance", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli maintenance\n");
+    writeUsage(getCommandUsage("maintenance"));
     return 1;
   }
   const result = runMaintenance(process.cwd());

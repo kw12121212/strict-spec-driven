@@ -3,7 +3,8 @@ import path from "path";
 import { applyTask, readChangeTasks, writeChangeTasks } from "../apply.js";
 import { archiveChange } from "../archive.js";
 import { verifyChange } from "../verify.js";
-import { CHANGE_NAME_PATTERN, isHelpRequest } from "./argv.js";
+import { CHANGE_NAME_PATTERN, handleHelpRequest } from "./argv.js";
+import { getCommandUsage } from "./command-metadata.js";
 import {
   findArchivedMatchesByBareName,
   getArchiveDir,
@@ -12,7 +13,7 @@ import {
   listArchivedChanges,
 } from "./changes.js";
 import { listYamlFiles, normalizeRepoRelativePath } from "./fs.js";
-import { writeError, writeHelp, writeJson, writeOut, writeUsage } from "./output.js";
+import { writeError, writeJson, writeOut, writeUsage } from "./output.js";
 
 export function printChangeArtifacts(rootDir: string, name: string, changeDir: string): void {
   writeOut(`Artifacts for '${name}':\n`);
@@ -36,12 +37,11 @@ export function printChangeArtifacts(rootDir: string, name: string, changeDir: s
 
 export function runApply(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli apply <change-name>\n");
+  if (handleHelpRequest("apply", argv)) {
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-cli apply <change-name>\n");
+    writeUsage(getCommandUsage("apply"));
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(changeName)) {
@@ -64,12 +64,11 @@ export function runApply(argv: string[]): number {
 
 export function runVerify(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli verify <change-name>\n");
+  if (handleHelpRequest("verify", argv)) {
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-cli verify <change-name>\n");
+    writeUsage(getCommandUsage("verify"));
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(changeName)) {
@@ -90,12 +89,11 @@ export function runVerify(argv: string[]): number {
 
 export function runArchive(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli archive <change-name>\n");
+  if (handleHelpRequest("archive", argv)) {
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-cli archive <change-name>\n");
+    writeUsage(getCommandUsage("archive"));
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(changeName)) {
@@ -115,12 +113,11 @@ export function runArchive(argv: string[]): number {
 }
 
 export function runList(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli list\n");
+  if (handleHelpRequest("list", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli list\n");
+    writeUsage(getCommandUsage("list"));
     return 1;
   }
 
@@ -156,12 +153,11 @@ export function runList(argv: string[]): number {
 
 export function runModify(argv: string[]): number {
   const [target, ...extraArgs] = argv;
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli modify [change-name|archive-dir]\n");
+  if (handleHelpRequest("modify", argv)) {
     return 0;
   }
   if (extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-cli modify [change-name|archive-dir]\n");
+    writeUsage(getCommandUsage("modify"));
     return 1;
   }
 
@@ -207,12 +203,11 @@ export function runModify(argv: string[]): number {
 
 export function runCancel(argv: string[]): number {
   const [target, ...extraArgs] = argv;
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli cancel <change-name>\n");
+  if (handleHelpRequest("cancel", argv)) {
     return 0;
   }
   if (!target || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-cli cancel <change-name>\n");
+    writeUsage(getCommandUsage("cancel"));
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(target)) {

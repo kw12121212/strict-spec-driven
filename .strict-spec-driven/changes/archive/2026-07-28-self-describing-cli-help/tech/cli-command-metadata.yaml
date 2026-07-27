@@ -1,0 +1,34 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: cli-command-metadata
+standard:
+  title: CLI Command Metadata
+  category: architecture
+mapping:
+  implementation:
+    - src/cli/command-metadata.ts
+    - src/cli/usage.ts
+    - src/mcp/inventory.ts
+    - src/cli/command-metadata-entries.ts
+    - src/cli/argv.ts
+    - src/cli/entrypoint.ts
+  enforcement:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    single-source-command-descriptions:
+      strength: MUST
+      statement: Every registered strict CLI command MUST have an entry in the shared command-metadata registry, and root help, subcommand help, JSON help, and the MCP capability inventory MUST derive their command descriptions from that registry rather than from inline string literals.
+      rationale: Command descriptions were previously duplicated between per-module usage literals and src/mcp/inventory.ts, or absent entirely, so the surfaces drifted and agents could not learn a command's behavior from the CLI itself; a single typed source keeps every surface consistent and lets a completeness test fail when a new command ships without metadata.
+      enforcement:
+        method: test
+    help-describes-argument-semantics:
+      strength: MUST
+      statement: A command-metadata entry MUST document each accepted flag's meaning together with its required, repeatable, and reset semantics, plus the command's output keys and exit-code meaning; describing operational semantics only in skill prompts instead of the metadata registry is not sufficient.
+      rationale: Agents invoke the strict CLI without a skill prompt loaded, and semantics such as append-versus-replace list flags, what --reset rebuilds, and the fact that a ready:false result is a successful write rather than a failure are exactly the facts that cause incorrect retries when they are undiscoverable from --help.
+      enforcement:
+        method: test
+  MODIFIED: {}
+  REMOVED: {}

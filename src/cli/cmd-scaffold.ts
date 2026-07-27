@@ -4,16 +4,16 @@ import {
   initializeStrictChangeScaffold,
   initializeStrictScaffold,
 } from "../scaffold.js";
-import { CHANGE_NAME_PATTERN, isHelpRequest } from "./argv.js";
-import { writeErr, writeError, writeHelp, writeOut, writeUsage } from "./output.js";
+import { CHANGE_NAME_PATTERN, handleHelpRequest } from "./argv.js";
+import { getCommandUsage } from "./command-metadata.js";
+import { writeErr, writeError, writeOut, writeUsage } from "./output.js";
 
 export function runInit(argv: string[] = []): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli init\n");
+  if (handleHelpRequest("init", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli init\n");
+    writeUsage(getCommandUsage("init"));
     return 1;
   }
 
@@ -39,12 +39,11 @@ export function runInit(argv: string[] = []): number {
 
 export function runPropose(argv: string[]): number {
   const [changeName, ...extraArgs] = argv;
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli propose <change-name>\n");
+  if (handleHelpRequest("propose", argv)) {
     return 0;
   }
   if (!changeName || extraArgs.length > 0) {
-    writeUsage("Usage: strict-spec-cli propose <change-name>\n");
+    writeUsage(getCommandUsage("propose"));
     return 1;
   }
   if (!CHANGE_NAME_PATTERN.test(changeName)) {

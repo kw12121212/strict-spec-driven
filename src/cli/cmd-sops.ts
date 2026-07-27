@@ -15,8 +15,9 @@ import {
   type SopStep,
 } from "../sops.js";
 import { listSopCategories, showSopCategory } from "../sop-categories.js";
-import { isHelpRequest } from "./argv.js";
-import { writeHelp, writeJson, writeUsage } from "./output.js";
+import { handleHelpRequest } from "./argv.js";
+import { getCommandUsage } from "./command-metadata.js";
+import { writeJson, writeUsage } from "./output.js";
 
 type FlagMap = Record<string, string[]>;
 
@@ -101,8 +102,7 @@ const SOP_CREATE_FLAGS = [
   "link-target",
 ];
 
-const SOP_CREATE_USAGE =
-  "Usage: strict-spec-cli sop-create --title <text> --category <id> --purpose <text> --trigger <text> --scope-in <text>... --success <text>... --step-id <id> --step-actor <text> --step-action <text> --step-expected <text> [step/role/branch/exception/escalation/link flags]\n";
+const SOP_CREATE_USAGE = getCommandUsage("sop-create");
 
 function buildCreateInput(flags: FlagMap): CreateSopInput {
   const roles = zip<SopRole>(flags, ["role-id", "role-name", "role-responsibility"], ([id, name, responsibility]) => ({ id, name, responsibility }));
@@ -163,8 +163,7 @@ function buildCreateInput(flags: FlagMap): CreateSopInput {
 }
 
 export function runSopCreate(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(SOP_CREATE_USAGE);
+  if (handleHelpRequest("sop-create", argv)) {
     return 0;
   }
 
@@ -202,12 +201,11 @@ export function runSopCreate(argv: string[]): number {
 }
 
 export function runSopList(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli sop-list\n");
+  if (handleHelpRequest("sop-list", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli sop-list\n");
+    writeUsage(getCommandUsage("sop-list"));
     return 1;
   }
   const result = listSops(process.cwd());
@@ -216,12 +214,11 @@ export function runSopList(argv: string[]): number {
 }
 
 export function runSopShow(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli sop-show <sop-id>\n");
+  if (handleHelpRequest("sop-show", argv)) {
     return 0;
   }
   if (argv.length !== 1 || argv[0].startsWith("--")) {
-    writeUsage("Usage: strict-spec-cli sop-show <sop-id>\n");
+    writeUsage(getCommandUsage("sop-show"));
     return 1;
   }
   const result = showSop(process.cwd(), argv[0]);
@@ -230,12 +227,11 @@ export function runSopShow(argv: string[]): number {
 }
 
 export function runSopValidate(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli sop-validate [<sop-id>]\n");
+  if (handleHelpRequest("sop-validate", argv)) {
     return 0;
   }
   if (argv.length > 1 || (argv.length === 1 && argv[0].startsWith("--"))) {
-    writeUsage("Usage: strict-spec-cli sop-validate [<sop-id>]\n");
+    writeUsage(getCommandUsage("sop-validate"));
     return 1;
   }
   const result = validateSops(process.cwd(), argv[0]);
@@ -244,12 +240,10 @@ export function runSopValidate(argv: string[]): number {
 }
 
 const SOP_EDIT_FLAGS = ["title", "purpose", "trigger", "scope-in", "scope-out", "success"];
-const SOP_EDIT_USAGE =
-  "Usage: strict-spec-cli sop-edit <sop-id> [--title <text>] [--purpose <text>] [--trigger <text>] [--scope-in <text>]... [--scope-out <text>]... [--success <text>]...\n";
+const SOP_EDIT_USAGE = getCommandUsage("sop-edit");
 
 export function runSopEdit(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(SOP_EDIT_USAGE);
+  if (handleHelpRequest("sop-edit", argv)) {
     return 0;
   }
   if (argv.length === 0 || argv[0].startsWith("--")) {
@@ -304,12 +298,11 @@ export function runSopEdit(argv: string[]): number {
 }
 
 export function runSopCategoryList(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli sop-category-list\n");
+  if (handleHelpRequest("sop-category-list", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli sop-category-list\n");
+    writeUsage(getCommandUsage("sop-category-list"));
     return 1;
   }
   const result = listSopCategories();
@@ -318,12 +311,11 @@ export function runSopCategoryList(argv: string[]): number {
 }
 
 export function runSopCategoryShow(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli sop-category-show <category-id>\n");
+  if (handleHelpRequest("sop-category-show", argv)) {
     return 0;
   }
   if (argv.length !== 1 || argv[0].startsWith("--")) {
-    writeUsage("Usage: strict-spec-cli sop-category-show <category-id>\n");
+    writeUsage(getCommandUsage("sop-category-show"));
     return 1;
   }
   const result = showSopCategory(argv[0]);

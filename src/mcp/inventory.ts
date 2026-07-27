@@ -1,3 +1,15 @@
+import { getCommandMetadata } from "../cli/command-metadata.js";
+
+/**
+ * MCP tool descriptions come from the shared command-metadata registry. Mutating commands carry
+ * an mcpDescription that states project-state mutation explicitly; read-only commands reuse the
+ * CLI summary.
+ */
+function mcpToolDescription(cliCommand: string): string {
+  const metadata = getCommandMetadata(cliCommand);
+  return metadata.mcpDescription ?? metadata.summary;
+}
+
 export const MCP_SERVER_NAME = "strict-spec-driven";
 export const MCP_SERVER_VERSION = "0.1.0";
 
@@ -36,98 +48,98 @@ export type McpCapabilityInventory = {
 export const MCP_READ_ONLY_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
   {
     name: "check_workflow_state",
-    description: "Check whether strict workflow state exists.",
+    description: mcpToolDescription("check-workflow-state"),
     safety: "read",
     cliCommand: "check-workflow-state",
     mutates: false,
   },
   {
     name: "list_changes",
-    description: "List active and archived strict changes.",
+    description: mcpToolDescription("list"),
     safety: "read",
     cliCommand: "list",
     mutates: false,
   },
   {
     name: "ready_change",
-    description: "Check proposal handoff readiness for a strict change.",
+    description: mcpToolDescription("ready"),
     safety: "read",
     cliCommand: "ready",
     mutates: false,
   },
   {
     name: "next_change_step",
-    description: "Inspect deterministic next-step guidance for a strict change.",
+    description: mcpToolDescription("next"),
     safety: "read",
     cliCommand: "next",
     mutates: false,
   },
   {
     name: "verify_change",
-    description: "Verify a strict change.",
+    description: mcpToolDescription("verify"),
     safety: "read",
     cliCommand: "verify",
     mutates: false,
   },
   {
     name: "roadmap_status",
-    description: "Report strict roadmap status.",
+    description: mcpToolDescription("roadmap-status"),
     safety: "read",
     cliCommand: "roadmap-status",
     mutates: false,
   },
   {
     name: "roadmap_overview",
-    description: "Render strict roadmap overview.",
+    description: mcpToolDescription("roadmap-overview"),
     safety: "read",
     cliCommand: "roadmap-overview",
     mutates: false,
   },
   {
     name: "roadmap_recommend",
-    description: "Recommend the next strict roadmap change.",
+    description: mcpToolDescription("roadmap-recommend"),
     safety: "read",
     cliCommand: "roadmap-recommend",
     mutates: false,
   },
   {
     name: "verify_spec_mappings",
-    description: "Audit strict spec implementation and test mappings.",
+    description: mcpToolDescription("verify-spec-mappings"),
     safety: "read",
     cliCommand: "verify-spec-mappings",
     mutates: false,
   },
   {
     name: "verify_tech_mappings",
-    description: "Audit strict technical-standard mappings.",
+    description: mcpToolDescription("verify-tech-mappings"),
     safety: "read",
     cliCommand: "verify-tech-mappings",
     mutates: false,
   },
   {
     name: "tech_status",
-    description: "Report strict technical-standard status.",
+    description: mcpToolDescription("tech-status"),
     safety: "read",
     cliCommand: "tech-status",
     mutates: false,
   },
   {
     name: "harness_plan",
-    description: "Report harness execution plan.",
+    description: mcpToolDescription("harness-plan"),
     safety: "read",
     cliCommand: "harness-plan",
     mutates: false,
   },
   {
     name: "harness_status",
-    description: "Report harness runtime status.",
+    description: mcpToolDescription("harness-status"),
     safety: "read",
     cliCommand: "harness-status",
     mutates: false,
   },
   {
     name: "harness_logs",
-    description: "Read bounded harness logs.",
+    description: mcpToolDescription("harness-logs"),
     safety: "read",
     cliCommand: "harness-logs",
     mutates: false,
@@ -137,70 +149,70 @@ export const MCP_READ_ONLY_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
 export const MCP_MUTATING_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
   {
     name: "init_workflow",
-    description: "Mutates project state by initializing strict workflow artifacts in the project root.",
+    description: mcpToolDescription("init"),
     safety: "write",
     cliCommand: "init",
     mutates: true,
   },
   {
     name: "propose_change",
-    description: "Mutates strict workflow state by creating a new change scaffold.",
+    description: mcpToolDescription("propose"),
     safety: "write",
     cliCommand: "propose",
     mutates: true,
   },
   {
     name: "generate_change_artifact",
-    description: "Mutates strict workflow state by generating or updating a change planning artifact.",
+    description: mcpToolDescription("generate"),
     safety: "write",
     cliCommand: "generate",
     mutates: true,
   },
   {
     name: "mark_next_task_complete",
-    description: "Mutates task state by marking the next pending strict change task complete.",
+    description: mcpToolDescription("apply"),
     safety: "write",
     cliCommand: "apply",
     mutates: true,
   },
   {
     name: "roadmap_sync",
-    description: "Mutates roadmap artifacts by reconciling declared roadmap state with workflow history.",
+    description: mcpToolDescription("roadmap-sync"),
     safety: "write",
     cliCommand: "roadmap-sync",
     mutates: true,
   },
   {
     name: "archive_change",
-    description: "Performs a release-class mutation by archiving a verified strict change.",
+    description: mcpToolDescription("archive"),
     safety: "release",
     cliCommand: "archive",
     mutates: true,
   },
   {
     name: "cancel_change",
-    description: "Performs a destructive mutation by permanently deleting an active strict change; requires confirmation.",
+    description: mcpToolDescription("cancel"),
     safety: "destructive",
     cliCommand: "cancel",
     mutates: true,
   },
   {
     name: "harness_start",
-    description: "Performs a lifecycle mutation by starting harness-managed project components.",
+    description: mcpToolDescription("harness-start"),
     safety: "lifecycle",
     cliCommand: "harness-start",
     mutates: true,
   },
   {
     name: "harness_stop",
-    description: "Performs a lifecycle mutation by stopping harness-managed project components.",
+    description: mcpToolDescription("harness-stop"),
     safety: "lifecycle",
     cliCommand: "harness-stop",
     mutates: true,
   },
   {
     name: "harness_session_create",
-    description: "Mutates harness investigation state by creating a new harness session.",
+    description: mcpToolDescription("harness-session"),
     safety: "write",
     cliCommand: "harness-session",
     mutates: true,

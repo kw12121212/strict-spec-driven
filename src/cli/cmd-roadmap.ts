@@ -16,31 +16,19 @@ import { movePlannedChangeToMilestone, type RoadmapMoveInput } from "../roadmap/
 import { pauseMilestone, resumeMilestone } from "../roadmap/pause.js";
 import { reopenMilestone } from "../roadmap/reopen.js";
 import { renumberRoadmapMilestones, reorderRoadmapMilestone, type RoadmapReorderInput } from "../roadmap/order.js";
-import { isHelpRequest } from "./argv.js";
-import { writeError, writeHelp, writeJson, writeOut, writeUsage } from "./output.js";
+import { handleHelpRequest } from "./argv.js";
+import { getCommandUsage } from "./command-metadata.js";
+import { writeError, writeJson, writeOut, writeUsage } from "./output.js";
 
-const ROADMAP_RECOMMEND_USAGE = "Usage: strict-spec-cli roadmap-recommend [--details] [--milestone <milestone-id>]\n";
-const ROADMAP_ARCHIVE_USAGE = "Usage: strict-spec-cli roadmap-archive [milestone-id]\n";
-const ROADMAP_REOPEN_USAGE = "Usage: strict-spec-cli roadmap-reopen <milestone-id> [--reason \"...\"]\n";
-const ROADMAP_PAUSE_USAGE = "Usage: strict-spec-cli roadmap-pause <milestone-id> [--reason \"...\"]\n";
-const ROADMAP_RESUME_USAGE = "Usage: strict-spec-cli roadmap-resume <milestone-id> [--reason \"...\"]\n";
-const ROADMAP_REORDER_USAGE = "Usage: strict-spec-cli roadmap-reorder <milestone-id> (--before <milestone-id> | --after <milestone-id> | --order <integer>)\n";
-const ROADMAP_RENUMBER_USAGE = "Usage: strict-spec-cli roadmap-renumber\n";
-const ROADMAP_MOVE_PLANNED_CHANGE_USAGE =
-  "Usage: strict-spec-cli roadmap-move-planned-change <planned-change-id> --milestone <milestone-id> [--allow-complete]\n";
-const ROADMAP_GENERATE_USAGE = [
-  "Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> --intake-question \"id|question|context|impact|recommendation\" [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--reset] [--reset-intake-questions]",
-  "       strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary <text> --details <text> [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]",
-  "",
-  "Notes:",
-  "  New milestones require at least one --intake-question value.",
-  "  Repeat --intake-question to append structured milestone clarification questions.",
-  "  Existing scalar fields with different values require --reset.",
-  "  List fields append unique values by default; with --reset, supplied list fields replace existing values.",
-  "  --reset never removes or replaces existing intake questions; --intake-question values always merge additively unless --reset-intake-questions is supplied.",
-  "  --reset-intake-questions replaces the milestone's intake_questions with exactly the supplied --intake-question values and requires at least one of them.",
-  "  planned-change writes the artifact at its canonical filename <milestone-id>-<planned-change-id>.yaml under roadmap/planned-changes/ (the milestone prefix is not duplicated when the id already starts with it); callers never choose filenames.",
-].join("\n") + "\n";
+const ROADMAP_RECOMMEND_USAGE = getCommandUsage("roadmap-recommend");
+const ROADMAP_ARCHIVE_USAGE = getCommandUsage("roadmap-archive");
+const ROADMAP_REOPEN_USAGE = getCommandUsage("roadmap-reopen");
+const ROADMAP_PAUSE_USAGE = getCommandUsage("roadmap-pause");
+const ROADMAP_RESUME_USAGE = getCommandUsage("roadmap-resume");
+const ROADMAP_REORDER_USAGE = getCommandUsage("roadmap-reorder");
+const ROADMAP_RENUMBER_USAGE = getCommandUsage("roadmap-renumber");
+const ROADMAP_MOVE_PLANNED_CHANGE_USAGE = getCommandUsage("roadmap-move-planned-change");
+const ROADMAP_GENERATE_USAGE = getCommandUsage("roadmap-generate");
 const ACTIONABLE_BLOCKER_LIMIT = 10;
 const ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set(["reset", "reset-intake-questions"]);
 
@@ -107,12 +95,11 @@ function summarizeRoadmapRecommendation(result: RoadmapRecommendResult, args: Ro
 }
 
 export function runRoadmapStatus(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli roadmap-status\n");
+  if (handleHelpRequest("roadmap-status", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli roadmap-status\n");
+    writeUsage(getCommandUsage("roadmap-status"));
     return 1;
   }
 
@@ -122,12 +109,11 @@ export function runRoadmapStatus(argv: string[]): number {
 }
 
 export function runRoadmapOverview(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp("Usage: strict-spec-cli roadmap-overview\n");
+  if (handleHelpRequest("roadmap-overview", argv)) {
     return 0;
   }
   if (argv.length > 0) {
-    writeUsage("Usage: strict-spec-cli roadmap-overview\n");
+    writeUsage(getCommandUsage("roadmap-overview"));
     return 1;
   }
 
@@ -136,11 +122,10 @@ export function runRoadmapOverview(argv: string[]): number {
   return result.valid ? 0 : 1;
 }
 
-const ROADMAP_SYNC_USAGE = "Usage: strict-spec-cli roadmap-sync [--materialize-planned-changes] [--fix-names]\n";
+const ROADMAP_SYNC_USAGE = getCommandUsage("roadmap-sync");
 
 export function runRoadmapSync(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(ROADMAP_SYNC_USAGE);
+  if (handleHelpRequest("roadmap-sync", argv)) {
     return 0;
   }
   let materializePlannedChanges = false;
@@ -290,8 +275,7 @@ function buildRoadmapPlannedChangeAuthorInput(argv: string[]): RoadmapPlannedCha
 }
 
 export function runRoadmapGenerate(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(ROADMAP_GENERATE_USAGE);
+  if (handleHelpRequest("roadmap-generate", argv)) {
     return 0;
   }
   const [selector, ...rest] = argv;
@@ -358,8 +342,7 @@ function parseRoadmapRecommendArgs(argv: string[]): RoadmapRecommendArgs {
 }
 
 export function runRoadmapRecommend(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(ROADMAP_RECOMMEND_USAGE);
+  if (handleHelpRequest("roadmap-recommend", argv)) {
     return 0;
   }
 
@@ -378,8 +361,7 @@ export function runRoadmapRecommend(argv: string[]): number {
 }
 
 export function runRoadmapArchive(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(ROADMAP_ARCHIVE_USAGE);
+  if (handleHelpRequest("roadmap-archive", argv)) {
     return 0;
   }
   if (argv.length > 1) {
@@ -437,8 +419,7 @@ function parseRoadmapReorderArgs(argv: string[]): RoadmapReorderInput {
 }
 
 export function runRoadmapReorder(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(ROADMAP_REORDER_USAGE);
+  if (handleHelpRequest("roadmap-reorder", argv)) {
     return 0;
   }
   let input: RoadmapReorderInput;
@@ -489,8 +470,7 @@ function parseRoadmapMovePlannedChangeArgs(argv: string[]): RoadmapMoveInput {
 }
 
 export function runRoadmapMovePlannedChange(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(ROADMAP_MOVE_PLANNED_CHANGE_USAGE);
+  if (handleHelpRequest("roadmap-move-planned-change", argv)) {
     return 0;
   }
   let input: RoadmapMoveInput;
@@ -507,8 +487,7 @@ export function runRoadmapMovePlannedChange(argv: string[]): number {
 }
 
 export function runRoadmapRenumber(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(ROADMAP_RENUMBER_USAGE);
+  if (handleHelpRequest("roadmap-renumber", argv)) {
     return 0;
   }
   if (argv.length > 0) {
@@ -521,8 +500,7 @@ export function runRoadmapRenumber(argv: string[]): number {
 }
 
 export function runRoadmapReopen(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(ROADMAP_REOPEN_USAGE);
+  if (handleHelpRequest("roadmap-reopen", argv)) {
     return 0;
   }
   if (argv.length === 0) {
@@ -599,8 +577,7 @@ function parseOptionalReasonArg(
 }
 
 export function runRoadmapPause(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(ROADMAP_PAUSE_USAGE);
+  if (handleHelpRequest("roadmap-pause", argv)) {
     return 0;
   }
   const parsed = parseOptionalReasonArg(argv, ROADMAP_PAUSE_USAGE);
@@ -611,8 +588,7 @@ export function runRoadmapPause(argv: string[]): number {
 }
 
 export function runRoadmapResume(argv: string[]): number {
-  if (isHelpRequest(argv)) {
-    writeHelp(ROADMAP_RESUME_USAGE);
+  if (handleHelpRequest("roadmap-resume", argv)) {
     return 0;
   }
   const parsed = parseOptionalReasonArg(argv, ROADMAP_RESUME_USAGE);

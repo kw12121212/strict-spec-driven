@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: self-describing-cli-help
+approach:
+  - 'Introduce src/cli/command-metadata.ts exporting a typed entry per registered command (group, summary, mcpDescription, positional arguments, flags with description plus required/repeatable/reset semantics, output keys, exit-code meaning, examples, notes). Render all help from that registry: src/cli/usage.ts builds grouped root help with summaries, a shared help renderer replaces the inline usage literals in src/cli/cmd-*.ts, and src/cli/argv.ts plus src/cli/entrypoint.ts recognize --help --json to emit the structured entry as JSON through the existing writeJson helper. src/mcp/inventory.ts stops holding description literals and reads them from the registry. Command behavior, flags, payloads, and exit codes are untouched; only the describing surface changes.'
+decisions:
+  single-metadata-registry:
+    decision: A single typed registry in src/cli/command-metadata.ts is the only source of command descriptions, consumed by root help, per-command help, JSON help, and MCP inventory.
+    rationale: Three renderers plus MCP currently duplicate or omit the same facts; one typed source keeps them consistent and lets a completeness test fail when a newly registered command has no metadata.
+  preserve-mcp-mutation-wording:
+    decision: Registry entries carry both a CLI summary and a separate mutation-explicit mcpDescription rather than composing MCP text from the CLI summary.
+    rationale: The requirement at .strict-spec-driven/specs/cli/foundation.yaml:1629 demands mutating MCP tool descriptions state project-state mutation explicitly; storing both fields removes the duplicate literal source without rewording any existing MCP description.
+  json-help-is-cli-output:
+    decision: The --help --json payload is plain CLI JSON output written through writeJson, with no registered strict YAML schema.
+    rationale: It describes the CLI surface rather than workflow artifact state, matching the existing ad hoc JSON precedent of tech-status and roadmap-status, and registering a schema would imply workflow-artifact guarantees the payload does not carry.
+  document-not-normalize:
+    decision: Help documents each command's actual observed exit codes and output keys and never alters them.
+    rationale: Exit codes are already uniformly zero on success and one on usage or diagnostic failure, so documentation is descriptive; changing any command's behavior would silently widen scope against the contract-first-scope-changes standard.
+  help-stays-cache-free:
+    decision: JSON help follows the same startup path as text help and must not trigger shared schema or sample cache synchronization.
+    rationale: Requirements at foundation.yaml:1869 and the sample-cache requirement both mandate that help requests skip cache sync; the new --help --json form is a help request and must inherit that guarantee.
+  english-only-help:
+    decision: Help output, including the JSON payload, is English only.
+    rationale: preferred_human_language is English in .strict-spec-driven/config.yaml and help is developer-facing CLI output; localizing it would create a second translation surface with no consumer.
+  help-detection-is-centralized:
+    decision: Help detection moves into the CLI entrypoint so root and subcommand help, in both text and JSON form, are recognized before shared schema and sample cache synchronization runs.
+    rationale: Probing showed subcommand help currently synchronizes the cache while root help does not, which does not satisfy the existing MUST at .strict-spec-driven/specs/cli/foundation.yaml requiring help requests to skip cache synchronization; centralizing detection makes every help path comply and prevents the new --help --json form from behaving inconsistently with its text sibling.
+alternatives: []
+risks: []

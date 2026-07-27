@@ -1,0 +1,12 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: self-describing-cli-help
+open: []
+resolved:
+  - id: exit-code-inconsistency-handling
+    question: If documenting all 55 commands surfaces a command whose exit code or output payload contradicts the uniform convention, should the change document the actual behavior or fix the command?
+    context: 'Impact: probing showed exit codes are currently uniform — verify on a missing change exits 1, tech-status and roadmap-status exit 0, an unknown command exits 1 — but no command has been read line by line yet, so an outlier may appear while populating metadata for all 55 entries. Documenting an outlier keeps this change documentation-only and honest; fixing it would change observable CLI behavior that proposal.yaml lists as unchanged and that no delta spec covers, widening scope against the contract-first-scope-changes MUST rule in the workflow-scope-discipline standard. Recommendation: document the actual observed behavior, and record any discovered inconsistency as a separate follow-up change rather than altering command behavior here. Alternative: pause implementation on discovery and run strict-spec-modify to widen scope deliberately before fixing.'
+    answer: Document the actual observed behavior. Command metadata records each command's real exit codes and output keys exactly as implemented, and no command's behavior, flags, payload, or exit codes are altered by this change. If populating metadata surfaces a command that contradicts the uniform convention, record it as a follow-up change rather than fixing it here, preserving the unchanged_behavior promise in proposal.yaml and the contract-first-scope-changes MUST rule in the workflow-scope-discipline standard.
+    status: resolved
