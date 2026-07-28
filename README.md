@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-**Documentation:** [Quick Start](QUICKSTART.md) · [Design](DESIGN.md) · [Roadmap Quick Start](ROADMAP_QUICKSTART.md) · [Roadmap Guide](ROADMAP_GUIDE.md) · [Dev Sessions](DEV_SESSIONS.md) · [Debug Sessions](DEBUG_SESSIONS.md) · [RTK](RTK.md)
+**Documentation:** [Quick Start](QUICKSTART.md) · [Design](DESIGN.md) · [Design Quickstart](DESIGN_QUICKSTART.md) · [Roadmap Quick Start](ROADMAP_QUICKSTART.md) · [Roadmap Guide](ROADMAP_GUIDE.md) · [Dev Sessions](DEV_SESSIONS.md) · [Debug Sessions](DEBUG_SESSIONS.md) · [RTK](RTK.md)
 
 `strict-spec-driven` is a YAML-first spec-driven development workflow. It provides the spec-driven lifecycle (propose → apply → verify → skill-driven code review → archive) with Agent Skills integration, converting workflow artifacts — specs, changes, roadmap, tasks, questions — into strict YAML schemas enforced by deterministic scripts.
 
