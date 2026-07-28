@@ -1,0 +1,22 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: design-doc-generation
+open: []
+resolved:
+  - id: design-doc-positioning
+    question: Is DESIGN.md a capability of the strict-spec-driven workflow product, or only a document for this repository?
+    context: 'Impact: a product capability requires a registered schema, CLI commands, command metadata, init scaffolding, and a skill package, and every downstream project inherits the behavior. A repository-only document requires none of that but stays hand-maintained and drifts like the other root Markdown files. Options considered: product capability; repository document only; repository-local scripts now and productization later. Recommended: product capability, because this repository is itself the workflow product and self-hosts its own workflow.'
+    answer: Product capability. Ship the architecture schema, design-generate and design-status commands, init scaffolding, and the /strict-spec-design skill so any project using the workflow can render its own DESIGN.md.
+    status: resolved
+  - id: design-doc-content-route
+    question: Should DESIGN.md content come from a new YAML source, from a pure projection of existing artifacts, or from hand-written prose with reference checking?
+    context: 'Impact: a pure projection of existing specs and technical standards cannot express component boundaries, data flows, or architecture decisions, because no existing schema holds them. Hand-written prose with reference checking conflicts with the yaml-first-artifacts MUST rule that workflow artifacts are strict YAML and still drifts in its narrative sections. Options considered: hybrid of a thin new architecture artifact plus projection; pure projection; hand-written plus reference validation. Recommended: the hybrid, because it adds the smallest possible new source of truth and keeps everything derivable a projection.'
+    answer: Hybrid. A thin architecture.yaml carries components, data flows, and decisions; the specification-surface and technical-standard sections are projected from existing artifacts; DESIGN.md is fully generated with a --check drift gate.
+    status: resolved
+  - id: design-doc-bilingual-output
+    question: Should this change also render a Chinese DESIGN.zh.md alongside DESIGN.md?
+    context: 'Impact: the repository keeps bilingual pairs for README, QUICKSTART, ROADMAP_GUIDE, HARNESS, DEBUG_SESSIONS, and DEV_SESSIONS, so a bilingual DESIGN would match precedent, but it would require every narrative field in the architecture schema to carry parallel translated text and would significantly complicate both the schema and the renderer. The workflow config declares preferred_human_language: English. Options considered: English only now; bilingual now. Recommended: English only, keeping this change minimal and leaving bilingual rendering to a later change.'
+    answer: English only. Render DESIGN.md and leave DESIGN.zh.md out of scope for this change.
+    status: resolved

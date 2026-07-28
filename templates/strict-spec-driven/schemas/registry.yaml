@@ -294,6 +294,19 @@ entries:
       supersedes: []
       compatible_with: []
       notes: []
+  - schema_id: strict-spec-driven/architecture/v1
+    schema_version: 1
+    artifact_type: architecture
+    artifact_name: architecture
+    schema_file: architecture.yaml
+    primary_example: ../../../examples/strict-spec-driven/architecture.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - The architecture artifact is the only source for the components, data flows, and decisions sections of a generated design document; specification and technical-standard sections are projected from existing artifacts rather than duplicated here.
   - schema_id: strict-spec-driven/config/v1
     schema_version: 1
     artifact_type: workflow_config

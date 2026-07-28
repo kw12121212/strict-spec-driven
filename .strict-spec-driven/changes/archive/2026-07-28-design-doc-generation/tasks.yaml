@@ -1,0 +1,84 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: design-doc-generation
+sections:
+  Implementation:
+    register-architecture-schema:
+      text: Add templates/strict-spec-driven/schemas/architecture.yaml defining schema strict-spec-driven/architecture/v1 with components (id, title, responsibility, boundaries, depends_on, mapping.implementation), data_flows (id, trigger, steps, components), and decisions (id, statement, rationale, alternatives, status), and register it in templates/strict-spec-driven/schemas/registry.yaml so schema-list and schema-show expose it.
+      status: complete
+    add-architecture-scaffold-template:
+      text: Add templates/strict-spec-driven/scaffold/architecture.yaml holding a schema-valid artifact with empty components, data_flows, and decisions collections, then regenerate the embedded templates bundle.
+      status: complete
+      command: bun scripts/gen-templates-bundle.ts
+    scaffold-architecture-on-init:
+      text: Update src/scaffold.ts so init writes .strict-spec-driven/architecture.yaml from the scaffold template alongside config.yaml and specs/INDEX.yaml.
+      status: complete
+    implement-design-renderer:
+      text: 'Add src/design.ts rendering DESIGN.md deterministically: overview from config context, components, data flows, and architecture decisions from architecture.yaml, specification surface projected from specs/INDEX.yaml and the main specs it references, technical standards projected from .strict-spec-driven/tech/, plus a generated banner naming every source artifact.'
+      status: complete
+    implement-check-and-output-modes:
+      text: Implement design-generate check mode (render in memory, compare against the file on disk, never write, exit non-zero on drift or absence, report the changed source) and the output path override, applying identical semantics to the overridden path.
+      status: complete
+    implement-missing-artifact-error:
+      text: Make design-generate exit non-zero with a message naming the expected .strict-spec-driven/architecture.yaml path and the /strict-spec-design entry point when the architecture artifact is absent, writing no partial document.
+      status: complete
+    implement-design-status:
+      text: 'Implement design-status in src/design.ts: validate architecture.yaml against the registered schema, report component, data flow, and decision counts, report component mapping.implementation paths missing from the repository as mapping drift, and exit non-zero when the artifact is invalid.'
+      status: complete
+    wire-design-commands:
+      text: Add src/cli/cmd-design.ts and register design-generate and design-status in src/cli/registry.ts with their flags and JSON output.
+      status: complete
+    add-command-metadata-entries:
+      text: Add design-generate and design-status entries to src/cli/command-metadata-entries.ts documenting each flag's meaning and required/repeatable/reset semantics, the output keys, and exit-code meaning, so root help, subcommand help, JSON help, and the MCP inventory derive from the registry per the cli-command-metadata standard.
+      status: complete
+    add-strict-spec-design-skill:
+      text: Create skills/strict-spec-design/SKILL.md that drafts and refreshes .strict-spec-driven/architecture.yaml from repository evidence and re-renders DESIGN.md, keeping filesystem mechanics in the CLI and judgment in the prompt.
+      status: complete
+    author-repo-architecture-artifact:
+      text: Author this repository's own .strict-spec-driven/architecture.yaml from repository evidence — CLI, schema, roadmap, sessions, harness, migrate, and skill components with their boundaries, dependencies, and implementation mappings, the propose-to-archive data flow, and the settled architecture decisions — then render DESIGN.md.
+      status: complete
+      command: strict-spec-cli design-generate
+    link-design-doc-in-readme:
+      text: Add DESIGN.md to the README.md documentation navigation line.
+      status: complete
+    rebuild-dist:
+      text: Rebuild compiled output so dist-based commands and the test suite exercise the new code, per the typescript-esm-baseline rebuild-after-source-edits rule.
+      status: complete
+      command: bun run build
+  Testing:
+    add-design-document-suite:
+      text: 'Add test/suites/design-document.ts and register it in test/run.ts, covering: all seven rendered sections present with the generated banner and source list; byte-identical output across two runs; check mode passing when current, failing and naming the changed source when stale, and failing when the document is absent; the output path override for both render and check; the non-zero missing-architecture-artifact error writing no document; design-status counts, mapping drift for a missing implementation path, and non-zero exit on an invalid artifact; schema-list and schema-show exposing the architecture schema; and init scaffolding a schema-valid architecture artifact with empty collections.'
+      status: complete
+    run-unit-tests:
+      text: Run the project test suite against compiled dist output and confirm the design-document suite passes with no regressions.
+      status: complete
+      command: bun test/run.ts
+    run-workflow-validation:
+      text: Run strict workflow validation over the change artifacts and the new skill package, confirming schema validity and skill packaging.
+      status: complete
+      command: strict-spec-cli verify design-doc-generation && strict-spec-cli validate-skills
+    run-coverage-gate:
+      text: Run the recorded project regression command so src/** line coverage stays at or above the declared threshold of 78, per the workflow-regression-coverage enforce-minimum-coverage rule.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-change-artifacts:
+      text: Confirm the change is structurally complete and every artifact validates.
+      status: complete
+      command: strict-spec-cli ready design-doc-generation && strict-spec-cli verify design-doc-generation
+    verify-mappings:
+      text: Confirm spec and technical-standard mapping fields resolve, including the new design-domain-behavior mappings and the yaml-first-artifacts mapping additions.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings && strict-spec-cli verify-tech-mappings
+    verify-design-document-current:
+      text: Confirm the repository's own DESIGN.md matches what the sources render, exercising the drift gate end to end on real project state.
+      status: complete
+      command: strict-spec-cli design-generate --check
+    verify-archive-readiness:
+      text: Confirm archive merges the delta spec into .strict-spec-driven/specs/design/domain-behavior.yaml, adds design-domain-behavior to the regenerated specs/INDEX.yaml, and merges the generated-documents-are-not-hand-edited rule into .strict-spec-driven/tech/yaml-first-artifacts.yaml without disturbing its existing three rules or its exception list.
+      status: complete
+testing_gates:
+  validation_task: run-workflow-validation
+  unit_test_task: run-unit-tests

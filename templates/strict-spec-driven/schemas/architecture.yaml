@@ -1,0 +1,131 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/architecture/v1
+artifact_type: architecture
+artifact_name: architecture
+description: >-
+  Strict YAML project architecture artifact. It carries only the architectural
+  narrative that no other strict artifact holds: the components a project is
+  built from with their responsibilities, boundaries, dependencies, and
+  implementation mappings; the data flows that cross those components; and the
+  architecture decisions with their rationale and rejected alternatives.
+  Specification and technical-standard content is deliberately absent because
+  the design document renderer projects it from the spec index, the main specs,
+  and the technical standards directory instead of duplicating it here.
+example_ref: ../../../examples/strict-spec-driven/architecture.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - architecture
+    - components
+    - data_flows
+    - decisions
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/architecture/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: architecture
+    schema_file:
+      type: string
+    architecture:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    components:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+          - responsibility
+        properties:
+          title:
+            type: string
+          responsibility:
+            type: string
+          boundaries:
+            type: array
+            items:
+              type: string
+          depends_on:
+            type: array
+            items:
+              type: string
+          mapping:
+            type: object
+            additionalProperties: false
+            required:
+              - implementation
+            properties:
+              implementation:
+                type: array
+                items:
+                  type: string
+    data_flows:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+          - trigger
+          - steps
+        properties:
+          title:
+            type: string
+          trigger:
+            type: string
+          steps:
+            type: array
+            items:
+              type: string
+          components:
+            type: array
+            items:
+              type: string
+    decisions:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+          - statement
+          - rationale
+          - status
+        properties:
+          title:
+            type: string
+          statement:
+            type: string
+          rationale:
+            type: string
+          status:
+            type: string
+            enum:
+              - proposed
+              - accepted
+              - superseded
+          alternatives:
+            type: array
+            items:
+              type: string

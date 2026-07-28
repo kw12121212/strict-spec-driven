@@ -26,6 +26,7 @@ import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runMcpInstall } from "./cli/cmd-mcp-install.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMappings, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
 import { runSampleList, runSampleShow, runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
+import { runDesignGenerate, runDesignStatus } from "./cli/cmd-design.js";
 import {
   runHarnessDoctor,
   runHarnessInfer,
@@ -90,6 +91,8 @@ export type {
 } from "./roadmap/pause.js";
 export { migrateLegacyWorkflow };
 export { runMaintenance };
+export { generateDesignDocument, getDesignStatus, DesignSourceError } from "./design.js";
+export type { DesignGenerateResult, DesignStatusResult } from "./design.js";
 
 export const commands = createCliCommandTable({
   init: (argv) => runInit(argv),
@@ -103,6 +106,8 @@ export const commands = createCliCommandTable({
   "verify-spec-mappings": (argv) => runVerifySpecMappings(argv),
   "verify-tech-mappings": (argv) => runVerifyTechMappings(argv),
   "tech-status": (argv) => runTechStatus(argv),
+  "design-generate": (argv) => runDesignGenerate(argv),
+  "design-status": (argv) => runDesignStatus(argv),
   "validate-skills": (argv) => runValidateSkills(argv),
   "schema-list": (argv) => runSchemaList(argv),
   "schema-show": (argv) => runSchemaShow(argv),

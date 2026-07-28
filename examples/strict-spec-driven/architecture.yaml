@@ -1,0 +1,33 @@
+schema: strict-spec-driven/architecture/v1
+schema_version: 1
+artifact_type: architecture
+schema_file: ../../templates/strict-spec-driven/schemas/architecture.yaml
+architecture:
+  id: example-architecture
+  title: Example Architecture
+components:
+  example-component:
+    title: Example Component
+    responsibility: Owns one example responsibility.
+    boundaries:
+      - Does not own persistence.
+    depends_on: []
+    mapping:
+      implementation: []
+data_flows:
+  example-flow:
+    title: Example Flow
+    trigger: An operator runs the example command.
+    steps:
+      - The example component receives the request.
+      - The example component returns a result.
+    components:
+      - example-component
+decisions:
+  example-decision:
+    title: Example Decision
+    statement: The example system keeps one component.
+    rationale: A single component is enough for the example.
+    status: accepted
+    alternatives:
+      - Split the example into two components.

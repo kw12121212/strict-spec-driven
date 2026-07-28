@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: design-doc-generation
+approach:
+  - 'Introduce one thin strict YAML source of truth and keep everything else a projection. .strict-spec-driven/architecture.yaml carries only what existing artifacts cannot derive: components with responsibilities, boundaries, dependencies, and implementation mappings; data flows; and architecture decisions with rationale and alternatives. The design-generate renderer composes DESIGN.md from that artifact for sections one through four and projects .strict-spec-driven/specs/INDEX.yaml, each referenced main spec, and .strict-spec-driven/tech/ for the specification-surface and technical-standard sections, emitting a generated-file banner and source list. Rendering is deterministic so --check can compare the rendered output against the file on disk byte for byte and exit non-zero on drift without writing. design-status validates architecture.yaml against the registered schema and reports counts plus mapping.implementation paths that no longer exist, mirroring how tech-status reports standard state. The /strict-spec-design skill owns the AI judgment of drafting and refreshing architecture.yaml from repository evidence, while the scripts own parsing, validation, rendering, and drift detection.'
+decisions:
+  architecture-artifact-name:
+    decision: Name the project-level artifact .strict-spec-driven/architecture.yaml with schema id strict-spec-driven/architecture/v1 and artifact_type architecture, rather than design.yaml.
+    rationale: changes/<name>/design.yaml already exists as the change-level design artifact. Reusing the design.yaml filename at project level would make artifact identity ambiguous in code, skills, diagnostics, and operator conversation. The generated output keeps the operator-facing name DESIGN.md while the source artifact is unambiguously the architecture artifact.
+  hybrid-source-and-projection:
+    decision: Sections covering components, data flows, and architecture decisions read from architecture.yaml; sections covering the specification surface and technical standards are projected from the existing spec index, main specs, and tech standards, and are never duplicated into architecture.yaml.
+    rationale: Duplicating spec titles, paths, mappings, or technical rules into a second artifact would create two sources of truth that drift against each other. Restricting the new artifact to the architectural narrative that no existing schema captures keeps the maintenance surface minimal while still producing a complete design document.
+  no-workflow-gate:
+    decision: DESIGN.md freshness is not wired into verify, ready, or archive; staleness is detected only on demand through design-generate --check.
+    rationale: This repository runs no CI, so a blocking freshness gate would have to fire inside the change lifecycle and would penalize every downstream project that adopts the workflow, including projects with no architecture.yaml. Keeping the check on demand delivers detectability without widening workflow scope, and a later change can add enforcement once the rendering contract has proven stable.
+  missing-source-is-an-error:
+    decision: design-generate fails with a non-zero exit and an actionable message naming /strict-spec-design when .strict-spec-driven/architecture.yaml is absent, instead of degrading to a specs-and-tech-only projection.
+    rationale: A silent degraded rendering would produce a DESIGN.md that looks complete but silently omits every component, data flow, and decision, which is worse than no document. An explicit error keeps the contract between the artifact and its rendering honest.
+  init-scaffolds-architecture:
+    decision: init writes an empty but schema-valid architecture.yaml with empty components, data_flows, and decisions collections, alongside config.yaml and specs/INDEX.yaml.
+    rationale: 'Discoverability matches the existing scaffold precedent: operators learn an artifact exists because init creates it. An empty collection is valid in the same way an empty spec index is, so scaffolding costs nothing and does not force projects to fill it before other commands work.'
+alternatives: []
+risks: []

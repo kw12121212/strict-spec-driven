@@ -24528,6 +24528,74 @@ var COMMAND_METADATA_ENTRIES = {
     },
     exitCodes: SUCCESS_EXIT_CODES
   },
+  "design-generate": {
+    name: "design-generate",
+    group: "operations",
+    summary: "Render DESIGN.md from the architecture artifact, the spec index, and the technical standards.",
+    mcpDescription: "Mutates project state by rendering the generated design document, unless --check is supplied.",
+    usage: `Usage: strict-spec-cli design-generate [--check] [--output <path>]
+`,
+    arguments: [],
+    flags: [
+      {
+        name: "--check",
+        arity: "boolean",
+        description: "Compare the rendered document against the file on disk without writing it; exits non-zero when they differ or the file is absent, and names the source artifacts that went stale."
+      },
+      {
+        name: "--output",
+        arity: "value",
+        valueLabel: "<path>",
+        description: "Repo-relative path to render instead of DESIGN.md; check mode compares against this same path. Accepts the --output=<path> form."
+      }
+    ],
+    output: {
+      format: "json",
+      keys: ["outputPath", "mode", "written", "documentExists", "current", "sources", "staleSources"],
+      description: "A JSON render result naming the output path, the mode, and the source artifacts."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The document was written, or check mode found it current." },
+      {
+        code: 1,
+        meaning: "Usage error, a missing or invalid architecture artifact, or check mode finding the document stale or absent."
+      }
+    ],
+    notes: [
+      "Neither flag is repeatable and there is no reset semantics: each run renders the whole document from its sources.",
+      "The rendered document carries a generated banner and must never be hand-edited; change the sources and re-render.",
+      "Fails rather than degrading when .strict-spec-driven/architecture.yaml is missing; run /strict-spec-design to author it."
+    ]
+  },
+  "design-status": {
+    name: "design-status",
+    group: "operations",
+    summary: "Validate the architecture artifact and report its counts and implementation-mapping drift.",
+    mcpDescription: "Report strict architecture artifact status.",
+    usage: `Usage: strict-spec-cli design-status
+`,
+    arguments: [],
+    flags: [],
+    output: {
+      format: "json",
+      keys: [
+        "artifactPath",
+        "exists",
+        "valid",
+        "diagnostics",
+        "componentCount",
+        "dataFlowCount",
+        "decisionCount",
+        "mappingDrift"
+      ],
+      description: "A JSON summary of .strict-spec-driven/architecture.yaml with schema diagnostics and mapping drift."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The architecture artifact exists and validates." },
+      { code: 1, meaning: "Usage error, a missing architecture artifact, or a schema-invalid artifact." }
+    ],
+    notes: ["Read-only: mapping drift is reported, never repaired."]
+  },
   "validate-skills": {
     name: "validate-skills",
     group: "operations",
@@ -28881,6 +28949,20 @@ import path3 from "path";
 
 // src/embedded-templates.ts
 var EMBEDDED_TEMPLATES = {
+  "strict-spec-driven/scaffold/architecture.yaml": `schema: strict-spec-driven/architecture/v1
+schema_version: 1
+artifact_type: architecture
+schema_file: templates/strict-spec-driven/schemas/architecture.yaml
+architecture:
+  id: project-architecture
+  title: Project Architecture
+# Fill these collections with /strict-spec-design, then render DESIGN.md with
+# \`strict-spec-cli design-generate\`. Specification and technical-standard
+# sections are projected from existing artifacts and never belong here.
+components: {}
+data_flows: {}
+decisions: {}
+`,
   "strict-spec-driven/scaffold/changes/design.yaml": `schema: strict-spec-driven/change-design/v1
 schema_version: 1
 artifact_type: change_design
@@ -29143,6 +29225,138 @@ standards:
     title: Sample Technical Standard
     category: coding
     path: .strict-spec-driven/tech/sample-standard.yaml
+`,
+  "strict-spec-driven/schemas/architecture.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/architecture/v1
+artifact_type: architecture
+artifact_name: architecture
+description: >-
+  Strict YAML project architecture artifact. It carries only the architectural
+  narrative that no other strict artifact holds: the components a project is
+  built from with their responsibilities, boundaries, dependencies, and
+  implementation mappings; the data flows that cross those components; and the
+  architecture decisions with their rationale and rejected alternatives.
+  Specification and technical-standard content is deliberately absent because
+  the design document renderer projects it from the spec index, the main specs,
+  and the technical standards directory instead of duplicating it here.
+example_ref: ../../../examples/strict-spec-driven/architecture.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - architecture
+    - components
+    - data_flows
+    - decisions
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/architecture/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: architecture
+    schema_file:
+      type: string
+    architecture:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    components:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+          - responsibility
+        properties:
+          title:
+            type: string
+          responsibility:
+            type: string
+          boundaries:
+            type: array
+            items:
+              type: string
+          depends_on:
+            type: array
+            items:
+              type: string
+          mapping:
+            type: object
+            additionalProperties: false
+            required:
+              - implementation
+            properties:
+              implementation:
+                type: array
+                items:
+                  type: string
+    data_flows:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+          - trigger
+          - steps
+        properties:
+          title:
+            type: string
+          trigger:
+            type: string
+          steps:
+            type: array
+            items:
+              type: string
+          components:
+            type: array
+            items:
+              type: string
+    decisions:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+          - statement
+          - rationale
+          - status
+        properties:
+          title:
+            type: string
+          statement:
+            type: string
+          rationale:
+            type: string
+          status:
+            type: string
+            enum:
+              - proposed
+              - accepted
+              - superseded
+          alternatives:
+            type: array
+            items:
+              type: string
 `,
   "strict-spec-driven/schemas/change-design.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -31137,6 +31351,19 @@ entries:
       supersedes: []
       compatible_with: []
       notes: []
+  - schema_id: strict-spec-driven/architecture/v1
+    schema_version: 1
+    artifact_type: architecture
+    artifact_name: architecture
+    schema_file: architecture.yaml
+    primary_example: ../../../examples/strict-spec-driven/architecture.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - The architecture artifact is the only source for the components, data flows, and decisions sections of a generated design document; specification and technical-standard sections are projected from existing artifacts rather than duplicated here.
   - schema_id: strict-spec-driven/config/v1
     schema_version: 1
     artifact_type: workflow_config
@@ -32402,6 +32629,40 @@ constraints:
     - id: post-release-verification
       strength: MUST
       statement: A success criterion describes the verification or monitoring that confirms the release is healthy.
+`,
+  "examples/strict-spec-driven/architecture.yaml": `schema: strict-spec-driven/architecture/v1
+schema_version: 1
+artifact_type: architecture
+schema_file: ../../templates/strict-spec-driven/schemas/architecture.yaml
+architecture:
+  id: example-architecture
+  title: Example Architecture
+components:
+  example-component:
+    title: Example Component
+    responsibility: Owns one example responsibility.
+    boundaries:
+      - Does not own persistence.
+    depends_on: []
+    mapping:
+      implementation: []
+data_flows:
+  example-flow:
+    title: Example Flow
+    trigger: An operator runs the example command.
+    steps:
+      - The example component receives the request.
+      - The example component returns a result.
+    components:
+      - example-component
+decisions:
+  example-decision:
+    title: Example Decision
+    statement: The example system keeps one component.
+    rationale: A single component is enough for the example.
+    status: accepted
+    alternatives:
+      - Split the example into two components.
 `,
   "examples/strict-spec-driven/change-design.yaml": `schema: strict-spec-driven/change-design/v1
 schema_version: 1

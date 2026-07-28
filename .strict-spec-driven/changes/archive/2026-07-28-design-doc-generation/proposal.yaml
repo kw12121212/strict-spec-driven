@@ -1,0 +1,19 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: design-doc-generation
+  status: proposed
+summary:
+  what:
+    - 'Add a project-level design document capability to the strict workflow: a new strict YAML architecture artifact at .strict-spec-driven/architecture.yaml, a design-generate command that renders a fully generated DESIGN.md from that artifact plus the existing spec and technical-standard artifacts, a design-status command that validates the architecture artifact and reports implementation-mapping drift, and a /strict-spec-design skill that authors and refreshes the architecture artifact.'
+  why:
+    - A hand-written DESIGN.md would be prose that drifts from the code and would violate the yaml-first-artifacts MUST rule that workflow artifacts are strict YAML validated against a registered schema. Projects still need a human-readable architecture narrative covering component boundaries, data flows, and architecture decisions, which no existing artifact captures. Rendering DESIGN.md deterministically from a thin strict YAML source reduces maintenance to editing validated YAML and makes staleness detectable with design-generate --check.
+scope:
+  in:
+    - New strict YAML schema strict-spec-driven/architecture/v1 registered in the schema registry and exposed through schema-list and schema-show; the .strict-spec-driven/architecture.yaml artifact holding components, data flows, and architecture decisions; design-generate rendering DESIGN.md with --check drift detection and --output path override; design-status validating the artifact and reporting mapping drift; command-metadata registry entries for both commands; init scaffolding an empty but valid architecture.yaml; a new /strict-spec-design skill package; a new design-domain-behavior main spec area; one added rule on the yaml-first-artifacts technical standard; a DESIGN.md link in the README documentation navigation.
+  out:
+    - Wiring DESIGN.md freshness into verify, ready, or archive as a blocking gate; a Chinese DESIGN.zh.md rendering and any bilingual fields in the architecture schema; rendering DESIGN.md for projects that have no architecture.yaml; regenerating or restructuring the existing hand-written root documentation such as README, QUICKSTART, ROADMAP_GUIDE, or HARNESS; any change to change-level design.yaml.
+unchanged_behavior:
+  - All existing registered schemas and their validation behavior; every existing CLI command including verify, ready, archive, and the roadmap, sop, harness, and migrate command families; the semantics of existing .strict-spec-driven/ directories; change-level design.yaml under changes/<name>/; and all existing hand-written root Markdown documentation other than the added README navigation link.

@@ -2,6 +2,7 @@
 import { printFinalSummary, TestContext } from "./support/harness.js";
 import { runChangeLifecycleSuite } from "./suites/change-lifecycle.js";
 import { runCoverageGateSuite } from "./suites/coverage-gate.js";
+import { runDesignDocumentSuite } from "./suites/design-document.js";
 import { runEntrypointAndSkillsSuite } from "./suites/entrypoint-and-skills.js";
 import { runFoundationAndFixtureSuite } from "./suites/foundation-and-fixtures.js";
 import { runHarnessContractsSuite } from "./suites/harness-contracts.js";
@@ -29,6 +30,7 @@ async function main(): Promise<void> {
   await runRoadmapAndMigrationSuite(context);
   await runSopsSuite(context);
   await runOperationsSuite(context);
+  await runDesignDocumentSuite(context);
   await runMcpServerSuite(context);
   await runMcpInstallSuite(context);
   await runCoverageGateSuite(context);

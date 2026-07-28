@@ -296,6 +296,77 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     exitCodes: SUCCESS_EXIT_CODES,
   },
 
+  "design-generate": {
+    name: "design-generate",
+    group: "operations",
+    summary: "Render DESIGN.md from the architecture artifact, the spec index, and the technical standards.",
+    mcpDescription: "Mutates project state by rendering the generated design document, unless --check is supplied.",
+    usage: "Usage: strict-spec-cli design-generate [--check] [--output <path>]\n",
+    arguments: [],
+    flags: [
+      {
+        name: "--check",
+        arity: "boolean",
+        description:
+          "Compare the rendered document against the file on disk without writing it; exits non-zero when they differ or the file is absent, and names the source artifacts that went stale.",
+      },
+      {
+        name: "--output",
+        arity: "value",
+        valueLabel: "<path>",
+        description:
+          "Repo-relative path to render instead of DESIGN.md; check mode compares against this same path. Accepts the --output=<path> form.",
+      },
+    ],
+    output: {
+      format: "json",
+      keys: ["outputPath", "mode", "written", "documentExists", "current", "sources", "staleSources"],
+      description: "A JSON render result naming the output path, the mode, and the source artifacts.",
+    },
+    exitCodes: [
+      { code: 0, meaning: "The document was written, or check mode found it current." },
+      {
+        code: 1,
+        meaning:
+          "Usage error, a missing or invalid architecture artifact, or check mode finding the document stale or absent.",
+      },
+    ],
+    notes: [
+      "Neither flag is repeatable and there is no reset semantics: each run renders the whole document from its sources.",
+      "The rendered document carries a generated banner and must never be hand-edited; change the sources and re-render.",
+      "Fails rather than degrading when .strict-spec-driven/architecture.yaml is missing; run /strict-spec-design to author it.",
+    ],
+  },
+
+  "design-status": {
+    name: "design-status",
+    group: "operations",
+    summary: "Validate the architecture artifact and report its counts and implementation-mapping drift.",
+    mcpDescription: "Report strict architecture artifact status.",
+    usage: "Usage: strict-spec-cli design-status\n",
+    arguments: [],
+    flags: [],
+    output: {
+      format: "json",
+      keys: [
+        "artifactPath",
+        "exists",
+        "valid",
+        "diagnostics",
+        "componentCount",
+        "dataFlowCount",
+        "decisionCount",
+        "mappingDrift",
+      ],
+      description: "A JSON summary of .strict-spec-driven/architecture.yaml with schema diagnostics and mapping drift.",
+    },
+    exitCodes: [
+      { code: 0, meaning: "The architecture artifact exists and validates." },
+      { code: 1, meaning: "Usage error, a missing architecture artifact, or a schema-invalid artifact." },
+    ],
+    notes: ["Read-only: mapping drift is reported, never repaired."],
+  },
+
   "validate-skills": {
     name: "validate-skills",
     group: "operations",

@@ -844,12 +844,16 @@ context.assert(
   JSON.stringify(firstAssetList) === JSON.stringify(secondAssetList),
   "required scaffold asset manifest is deterministic",
 );
-context.assert(firstAssetList.length === 5, "required scaffold asset manifest includes five assets");
+context.assert(firstAssetList.length === 6, "required scaffold asset manifest includes six assets");
 context.assert(
   firstAssetList.every((asset) => asset.endsWith(".yaml")),
   "required scaffold asset manifest contains only YAML files",
 );
 context.assert(firstAssetList.includes("harness.yaml"), "required scaffold asset manifest includes harness scaffold");
+context.assert(
+  firstAssetList.includes("architecture.yaml"),
+  "required scaffold asset manifest includes architecture scaffold",
+);
 
 for (const relativeAssetPath of firstAssetList) {
   const absoluteAssetPath = scaffoldModule.getBundledScaffoldPath(relativeAssetPath);

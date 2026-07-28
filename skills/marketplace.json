@@ -23,6 +23,7 @@
     { "name": "strict-spec-migrate", "family": "strict-spec" },
     { "name": "strict-spec-maintenance", "family": "strict-spec" },
     { "name": "strict-spec-modify", "family": "strict-spec" },
+    { "name": "strict-spec-design", "family": "strict-spec" },
     { "name": "strict-spec-propose", "family": "strict-spec" },
     { "name": "strict-spec-propose-from-roadmap", "family": "strict-spec" },
     { "name": "strict-spec-resync-code-mapping", "family": "strict-spec" },

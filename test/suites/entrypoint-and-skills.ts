@@ -51,6 +51,8 @@ const expectedCommandOrder = [
   "verify-spec-mappings",
   "verify-tech-mappings",
   "tech-status",
+  "design-generate",
+  "design-status",
   "validate-skills",
   "schema-list",
   "schema-show",

@@ -11,49 +11,47 @@ mapping:
     - src/yaml.ts
     - src/validation.ts
     - src/scaffold.ts
+    - src/design.ts
   enforcement:
     - templates/strict-spec-driven/schemas/registry.yaml
     - test/suites/foundation-and-fixtures.ts
+    - test/suites/design-document.ts
 rules:
   artifacts-are-strict-yaml:
     strength: MUST
-    statement: >-
-      All spec-driven workflow artifacts MUST be authored as strict YAML that
-      validates against a registered schema, not as Markdown prose or ad hoc
-      text.
-    rationale: >-
-      The product constraint is deterministic, machine-validatable workflow
-      state. Markdown prose cannot be validated, parsed, or enforced
-      structurally, which is the whole reason the strict workflow exists.
+    statement: All spec-driven workflow artifacts MUST be authored as strict YAML that validates against a registered schema, not as Markdown prose or ad hoc text.
+    rationale: The product constraint is deterministic, machine-validatable workflow state. Markdown prose cannot be validated, parsed, or enforced structurally, which is the whole reason the strict workflow exists.
     enforcement:
       method: ci
-      detail: >-
-        Schemas are registered in registry.yaml and validateArtifact enforces
-        them; the test suite validates every primary example against its schema.
+      detail: Schemas are registered in registry.yaml and validateArtifact enforces them; the test suite validates every primary example against its schema.
     exceptions:
       - Skill SKILL.md files remain Markdown because Agent Skills require it.
       - Human-facing repository documentation (README, guides) stays Markdown.
   scripts-own-mechanics:
     strength: MUST
-    statement: >-
-      Scripts MUST own filesystem mechanics, parsing, validation, and
-      deterministic format enforcement; AI judgment belongs in skill prompts,
-      not in scripts.
-    rationale: >-
-      Separating deterministic mechanics from probabilistic judgment keeps the
-      workflow reproducible and testable, and keeps skills focused on decisions
-      rather than file plumbing.
+    statement: Scripts MUST own filesystem mechanics, parsing, validation, and deterministic format enforcement; AI judgment belongs in skill prompts, not in scripts.
+    rationale: Separating deterministic mechanics from probabilistic judgment keeps the workflow reproducible and testable, and keeps skills focused on decisions rather than file plumbing.
     enforcement:
       method: review
       detail: Reviewers reject scripts that embed product judgment or skills that hand-roll YAML mechanics.
   structured-fields-over-prose:
     strength: SHOULD
-    statement: >-
-      Spec-to-code links SHOULD live in structured mapping fields rather than
-      being described in free-text prose.
-    rationale: >-
-      Structured mapping fields can be verified by verify-spec-mappings and
-      verify-tech-mappings; prose cannot.
+    statement: Spec-to-code links SHOULD live in structured mapping fields rather than being described in free-text prose.
+    rationale: Structured mapping fields can be verified by verify-spec-mappings and verify-tech-mappings; prose cannot.
     enforcement:
       method: ci
       detail: verify-spec-mappings and verify-tech-mappings audit mapping fields.
+  generated-documents-are-not-hand-edited:
+    strength: MUST
+    statement: A human-readable document that the workflow renders from strict YAML MUST be produced only by its generator, MUST carry a banner identifying it as generated and naming its source artifacts, and MUST NOT be edited by hand; content that belongs in such a document is changed by editing the strict YAML source and re-rendering.
+    rationale: Once a document is both generated and hand-editable it has two sources of truth, and the next render silently discards the hand edits or the drift check fails for reasons nobody can attribute. Requiring the banner and forbidding hand edits keeps the YAML source authoritative and makes staleness a detectable, attributable condition rather than an invisible one.
+    enforcement:
+      method: manual
+      detail: design-generate --check re-renders in memory and exits non-zero when the file on disk differs from what the sources produce; reviewers reject direct edits to a document that carries a generated banner.
+    examples:
+      good:
+        - Adding a component to .strict-spec-driven/architecture.yaml and running design-generate to re-render DESIGN.md.
+      bad:
+        - Editing the components section of DESIGN.md directly, which the next design-generate run overwrites.
+    exceptions:
+      - Hand-authored repository documentation that is not rendered from a strict YAML source, such as README.md, QUICKSTART.md, and the guide documents, remains hand-edited Markdown and carries no generated banner.

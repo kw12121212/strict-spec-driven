@@ -9,6 +9,9 @@ specs:
   - id: contracts-yaml-artifacts
     title: Strict YAML Artifact Schemas
     path: .strict-spec-driven/specs/contracts/yaml-artifacts.yaml
+  - id: design-domain-behavior
+    title: Design Document Domain Behavior
+    path: .strict-spec-driven/specs/design/domain-behavior.yaml
   - id: harness-domain-behavior
     title: Harness Domain Behavior
     path: .strict-spec-driven/specs/harness/domain-behavior.yaml
