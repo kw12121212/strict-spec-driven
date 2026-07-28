@@ -1,0 +1,105 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: ui-design-document
+sections:
+  Implementation:
+    add-design-system-schema:
+      text: Add templates/strict-spec-driven/schemas/design-system.yaml defining schema strict-spec-driven/design-system/v1 with fixed token groups colors, typography, layout, elevation, and shapes whose entries stay open-ended, a components collection mapping each component to the tokens it uses plus an optional mapping.implementation and an optional visual-regression snapshot path array, and a guidance block carrying overview, do, and dont; register it in templates/strict-spec-driven/schemas/registry.yaml so schema-list and schema-show expose it.
+      status: complete
+    add-design-system-example:
+      text: Add examples/strict-spec-driven/design-system.yaml as a minimal valid reference artifact exercising every token group, one component with token, implementation, and visual-regression snapshot mappings, and guidance with overview, do, and dont entries.
+      status: complete
+    extract-shared-document-renderer:
+      text: 'Factor the generic machinery in src/design.ts into src/document-render.ts so both renderers share it: schema-validated artifact loading, block assembly, generated-banner rendering, deterministic serialization, check-mode in-memory comparison, and the output-path override. No behavior change in this task.'
+      status: complete
+    rename-architecture-renderer:
+      text: Rename src/design.ts to src/architecture.ts and change DEFAULT_DESIGN_DOCUMENT_PATH from DESIGN.md to ARCHITECTURE.md, keeping every existing rendering, check-mode, output-path, missing-artifact, and status behavior identical apart from the document name.
+      status: complete
+    rename-architecture-command-handler:
+      text: Rename src/cli/cmd-design.ts to src/cli/cmd-architecture.ts and re-register its commands in src/cli/registry.ts as architecture-generate and architecture-status, preserving their flags, JSON output keys, and exit codes.
+      status: complete
+    add-design-system-renderer:
+      text: 'Add src/design-system.ts rendering DESIGN.md in the design.md interchange format on top of src/document-render.ts: YAML front matter carrying the declared tokens, then the generated banner naming .strict-spec-driven/design-system.yaml, then the Overview, Colors, Typography, Layout, Elevation and Depth, Shapes, Components, and Do''s and Don''ts sections in that order, omitting sections whose token group is absent rather than rendering them empty.'
+      status: complete
+    implement-design-system-status:
+      text: 'Implement design-status against the design-system artifact: validate it against the registered schema, report token group, token, and component counts, report component mapping.implementation paths and component visual-regression snapshot paths missing from the repository as mapping drift naming the declaring component, and exit non-zero when the artifact is invalid.'
+      status: complete
+    implement-missing-design-system-error:
+      text: Make design-generate and design-status exit non-zero with a message naming the expected .strict-spec-driven/design-system.yaml path and the /strict-spec-design entry point when the artifact is absent, writing no partial document and never falling back to the architecture artifact.
+      status: complete
+    repoint-design-command-handler:
+      text: Add the re-pointed src/cli/cmd-design.ts wiring design-generate and design-status to the design-system renderer and status, with --check and --output flags matching the architecture family's semantics, and register it in src/cli/registry.ts.
+      status: complete
+    update-command-metadata:
+      text: 'Update src/cli/command-metadata-entries.ts for all four commands: add architecture-generate and architecture-status entries and rewrite the design-generate and design-status entries to describe the design-system artifact, each documenting flag meaning and required, repeatable, and reset semantics plus output keys and exit-code meaning, per the cli-command-metadata standard.'
+      status: complete
+    rename-architecture-skill:
+      text: Rename skills/strict-spec-design/ to skills/strict-spec-architecture/ and update SKILL.md so it authors .strict-spec-driven/architecture.yaml and renders ARCHITECTURE.md through architecture-generate, including its command reference block.
+      status: complete
+    repoint-design-skill:
+      text: Add the re-pointed skills/strict-spec-design/SKILL.md so it authors .strict-spec-driven/design-system.yaml from repository and design evidence and renders DESIGN.md through design-generate, keeping filesystem mechanics in the CLI and judgment in the prompt.
+      status: complete
+    rename-architecture-quickstart:
+      text: Rename DESIGN_QUICKSTART.md and DESIGN_QUICKSTART.zh.md to ARCHITECTURE_QUICKSTART.md and ARCHITECTURE_QUICKSTART.zh.md and update their content for the renamed document, commands, and skill.
+      status: complete
+    update-readme-navigation:
+      text: Update the documentation navigation lines in README.md and README.zh.md to point at ARCHITECTURE.md and ARCHITECTURE_QUICKSTART, replacing the DESIGN.md and DESIGN_QUICKSTART links added by design-doc-generation.
+      status: complete
+    rerender-architecture-document:
+      text: Delete the existing DESIGN.md and render this repository's ARCHITECTURE.md from the unchanged architecture artifact, confirming the rename produces byte-identical content apart from the document title and banner.
+      status: complete
+      command: strict-spec-cli architecture-generate
+    rebuild-templates-and-dist:
+      text: Regenerate the embedded templates bundle so the new design-system schema ships with dist, then rebuild compiled output per the typescript-esm-baseline rebuild-after-source-edits rule.
+      status: complete
+      command: bun scripts/gen-templates-bundle.ts && bun run build
+    repair-renamed-command-references:
+      text: 'Repair references the rename invalidated outside the renderer: update the architecture scaffold template comment to /strict-spec-architecture and architecture-generate, update the canonical command-order fixture in test/suites/entrypoint-and-skills.ts, and carry a delta-tech MODIFIED operation on the yaml-first-artifacts rule generated-documents-are-not-hand-edited so its enforcement detail and examples name the renamed commands and both generated documents instead of the retired design-generate-renders-DESIGN.md pairing.'
+      status: complete
+  Testing:
+    rename-architecture-test-suite:
+      text: Rename test/suites/design-document.ts to test/suites/architecture-document.ts, re-register it in test/run.ts, and update it for ARCHITECTURE.md, architecture-generate, and architecture-status so all existing rendering, determinism, check-mode, output-path, missing-artifact, status, schema-discovery, and init-scaffolding coverage is preserved under the new names.
+      status: complete
+    add-design-system-test-suite:
+      text: 'Add test/suites/design-system-document.ts and register it in test/run.ts, covering: DESIGN.md rendered with leading YAML front matter, the banner after it, and the eight canonical sections in order; byte-identical output across two runs; sections omitted for absent token groups; check mode passing when current, failing and naming the design-system artifact when stale, and failing when the document is absent; the output path override for render and check; the non-zero missing-design-system-artifact error writing no document and not touching ARCHITECTURE.md; and design-status counts, implementation-mapping drift, visual-regression snapshot drift, and non-zero exit on an invalid artifact.'
+      status: complete
+    run-unit-tests:
+      text: Run the project test suite against compiled dist output and confirm both document suites pass with no regressions.
+      status: complete
+      command: bun test/run.ts
+    run-workflow-validation:
+      text: Run strict workflow validation over the change artifacts and both skill packages, confirming schema validity and skill packaging after the rename.
+      status: complete
+      command: strict-spec-cli verify ui-design-document && strict-spec-cli validate-skills
+    run-coverage-gate:
+      text: Run the recorded project regression command so src/** line coverage stays at or above the declared threshold of 78, per the workflow-regression-coverage enforce-minimum-coverage rule.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-change-artifacts:
+      text: Confirm the change is structurally complete and every artifact validates.
+      status: complete
+      command: strict-spec-cli ready ui-design-document && strict-spec-cli verify ui-design-document
+    verify-mappings:
+      text: 'Run the spec and technical-standard mapping audits and confirm every remaining diagnostic is attributable to archive''s additive mapping merge rather than to a wrong delta mapping. Expected pre-archive diagnostics are exactly: the live design-domain-behavior spec and the live yaml-first-artifacts standard still naming src/design.ts and test/suites/design-document.ts, which archive cannot drop because applyDeltaToMainSpec and applyDeltaToMainTech union mapping arrays and never remove entries; and src/architecture.ts, src/cli/cmd-architecture.ts, src/design-system.ts, src/document-render.ts, test/suites/architecture-document.ts, and test/suites/design-system-document.ts reporting as unreferenced because the delta mappings that claim them have not merged yet. Any diagnostic outside that set is a real defect in a delta mapping and must be fixed before archive.'
+      status: complete
+      command: strict-spec-cli verify-spec-mappings && strict-spec-cli verify-tech-mappings
+    verify-architecture-document-current:
+      text: Confirm this repository's ARCHITECTURE.md matches what its sources render, exercising the renamed drift gate end to end on real project state.
+      status: complete
+      command: strict-spec-cli architecture-generate --check
+    verify-design-generate-errors-without-artifact:
+      text: Confirm design-generate exits non-zero naming the missing .strict-spec-driven/design-system.yaml in this repository, which deliberately has no design-system artifact, and that neither DESIGN.md nor ARCHITECTURE.md is created or modified by the attempt.
+      status: complete
+      command: strict-spec-cli design-generate; test $? -ne 0
+    verify-archive-readiness:
+      text: Confirm archive creates .strict-spec-driven/specs/architecture/domain-behavior.yaml from the new_spec delta with all six architecture requirements, applies the design-domain-behavior delta as ADDED before REMOVED so the file never reaches a zero-requirement state that main-spec minProperties rejects, leaves it holding only the six design-system requirements, and regenerates specs/INDEX.yaml with both spec areas listed.
+      status: complete
+    confirm-post-archive-mapping-cleanup-is-specified:
+      text: 'Confirm the post-archive mapping cleanup is fully specified rather than discovered later, since archive''s applyDeltaToMainSpec and applyDeltaToMainTech union mapping arrays and never remove entries. Verify the delta artifacts already carry every new path so archive adds them, and record the exact stale entries the merge will leave behind for a follow-up /strict-spec-resync-code-mapping and /strict-tech-edit run: in .strict-spec-driven/specs/design/domain-behavior.yaml implementation src/design.ts, tests test/suites/design-document.ts, and the architecture-only paths src/scaffold.ts, templates/strict-spec-driven/schemas/architecture.yaml, and templates/strict-spec-driven/scaffold/architecture.yaml; in .strict-spec-driven/tech/yaml-first-artifacts.yaml implementation src/design.ts and enforcement test/suites/design-document.ts. Those two standalone entry points are the documented path-removal mechanism outside an active change, so the cleanup runs after this change archives.'
+      status: complete
+testing_gates:
+  validation_task: run-workflow-validation
+  unit_test_task: run-unit-tests

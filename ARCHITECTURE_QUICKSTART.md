@@ -1,8 +1,8 @@
-# Design Quickstart
+# Architecture Quickstart
 
-English | [中文](DESIGN_QUICKSTART.zh.md)
+English | [中文](ARCHITECTURE_QUICKSTART.zh.md)
 
-A condensed getting-started guide for authoring architecture artifacts (`.strict-spec-driven/architecture.yaml`), verifying implementation mappings, rendering `DESIGN.md`, and enforcing anti-drift checks in a `strict-spec-cli` project.
+A condensed getting-started guide for authoring architecture artifacts (`.strict-spec-driven/architecture.yaml`), verifying implementation mappings, rendering `ARCHITECTURE.md`, and enforcing anti-drift checks in a `strict-spec-cli` project.
 
 ---
 
@@ -50,7 +50,7 @@ components:
 
 data_flows:
   render_design_doc:
-    trigger: User runs `strict-spec-cli design-generate`
+    trigger: User runs `strict-spec-cli architecture-generate`
     steps:
       - Read architecture.yaml, spec index, and technical standards
       - Merge components, flows, decisions, specs, and tech into Markdown
@@ -61,7 +61,7 @@ data_flows:
 
 decisions:
   single_source_of_truth:
-    decision: DESIGN.md is strictly generated from YAML sources and must never be hand-edited.
+    decision: ARCHITECTURE.md is strictly generated from YAML sources and must never be hand-edited.
     rationale: Hand-edits drift over time; generating ensures consistency with code and specs.
     rejected_alternatives:
       - Manual Markdown documentation maintaining separate architecture diagrams.
@@ -75,40 +75,40 @@ decisions:
 Validate schema correctness and verify mapped implementation paths:
 
 ```sh
-strict-spec-cli design-status
+strict-spec-cli architecture-status
 ```
 
-`design-status` reports:
+`architecture-status` reports:
 - Schema validation status and diagnostics.
 - Total count of components, data flows, and decisions.
 - Stale or missing mapped implementation paths (`mappingDrift`).
 
 ---
 
-## 5. Render `DESIGN.md`
+## 5. Render `ARCHITECTURE.md`
 
-Generate `DESIGN.md` at the repository root (or custom output path):
+Generate `ARCHITECTURE.md` at the repository root (or custom output path):
 
 ```sh
-# Render to root DESIGN.md
-strict-spec-cli design-generate
+# Render to root ARCHITECTURE.md
+strict-spec-cli architecture-generate
 
 # Render to custom path
-strict-spec-cli design-generate --output docs/ARCHITECTURE.md
+strict-spec-cli architecture-generate --output docs/ARCHITECTURE.md
 ```
 
 ---
 
 ## 6. Enforce Anti-Drift in CI / Automation
 
-Run in `--check` mode to verify that `DESIGN.md` matches current YAML sources without writing files:
+Run in `--check` mode to verify that `ARCHITECTURE.md` matches current YAML sources without writing files:
 
 ```sh
-strict-spec-cli design-generate --check
+strict-spec-cli architecture-generate --check
 ```
 
-- Exits `0` if `DESIGN.md` is current.
-- Exits `1` if `DESIGN.md` is stale or missing, listing the stale source files.
+- Exits `0` if `ARCHITECTURE.md` is current.
+- Exits `1` if `ARCHITECTURE.md` is stale or missing, listing the stale source files.
 
 ---
 
@@ -116,8 +116,8 @@ strict-spec-cli design-generate --check
 
 | Command | Description |
 | :--- | :--- |
-| `strict-spec-cli design-status` | Validate `architecture.yaml` and report mapping drift |
-| `strict-spec-cli design-generate` | Render `DESIGN.md` from architecture, spec index, and tech standards |
-| `strict-spec-cli design-generate --check` | Verify `DESIGN.md` is up to date without writing changes |
+| `strict-spec-cli architecture-status` | Validate `architecture.yaml` and report mapping drift |
+| `strict-spec-cli architecture-generate` | Render `ARCHITECTURE.md` from architecture, spec index, and tech standards |
+| `strict-spec-cli architecture-generate --check` | Verify `ARCHITECTURE.md` is up to date without writing changes |
 | `strict-spec-cli schema-show architecture` | Show the architecture YAML JSON schema |
 | `strict-spec-cli sample-show architecture` | Show sample architecture YAML file |

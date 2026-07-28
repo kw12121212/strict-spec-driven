@@ -1,8 +1,8 @@
-# 架构设计快速入门 (Design Quickstart)
+# 架构文档快速入门 (Architecture Quickstart)
 
-[English](DESIGN_QUICKSTART.md) | 中文
+[English](ARCHITECTURE_QUICKSTART.md) | 中文
 
-本指南提供在 `strict-spec-cli` 项目中撰写架构元数据（`.strict-spec-driven/architecture.yaml`）、校验代码映射漂移、渲染 `DESIGN.md` 及执行防漂移检查的快速入门说明。
+本指南提供在 `strict-spec-cli` 项目中撰写架构元数据（`.strict-spec-driven/architecture.yaml`）、校验代码映射漂移、渲染 `ARCHITECTURE.md` 及执行防漂移检查的快速入门说明。
 
 ---
 
@@ -50,7 +50,7 @@ components:
 
 data_flows:
   render_design_doc:
-    trigger: 用户运行 `strict-spec-cli design-generate`
+    trigger: 用户运行 `strict-spec-cli architecture-generate`
     steps:
       - 读取 architecture.yaml、规范索引及技术标准
       - 将组件、数据流、决策、规范与技术标准聚合渲染为 Markdown
@@ -61,7 +61,7 @@ data_flows:
 
 decisions:
   single_source_of_truth:
-    decision: DESIGN.md 完全由 YAML 自动生成，严禁手动编辑。
+    decision: ARCHITECTURE.md 完全由 YAML 自动生成，严禁手动编辑。
     rationale: 手动编辑容易导致文档与代码脱节，通过单一真理源自动渲染可保持强一致性。
     rejected_alternatives:
       - 手动维护 Markdown 文档及独立的架构图。
@@ -75,40 +75,40 @@ decisions:
 验证架构文件的语法规范，并检测引用的代码实现路径是否真实存在：
 
 ```sh
-strict-spec-cli design-status
+strict-spec-cli architecture-status
 ```
 
-`design-status` 将输出：
+`architecture-status` 将输出：
 - Schema 校验诊断信息；
 - 组件、数据流和架构决策的统计数量；
 - 代码路径漂移报告（`mappingDrift`，即引用的源码路径不存在或已失效）。
 
 ---
 
-## 5. 渲染生成 `DESIGN.md`
+## 5. 渲染生成 `ARCHITECTURE.md`
 
-在项目根目录生成 `DESIGN.md`（或生成到指定的自定义路径）：
+在项目根目录生成 `ARCHITECTURE.md`（或生成到指定的自定义路径）：
 
 ```sh
-# 默认生成到根目录 DESIGN.md
-strict-spec-cli design-generate
+# 默认生成到根目录 ARCHITECTURE.md
+strict-spec-cli architecture-generate
 
 # 生成到自定义路径
-strict-spec-cli design-generate --output docs/ARCHITECTURE.md
+strict-spec-cli architecture-generate --output docs/ARCHITECTURE.md
 ```
 
 ---
 
 ## 6. 在 CI / 自动化中校验防漂移
 
-使用 `--check` 选项可以在不修改任何文件的情况下，比对磁盘上的 `DESIGN.md` 是否与 YAML 源文件一致：
+使用 `--check` 选项可以在不修改任何文件的情况下，比对磁盘上的 `ARCHITECTURE.md` 是否与 YAML 源文件一致：
 
 ```sh
-strict-spec-cli design-generate --check
+strict-spec-cli architecture-generate --check
 ```
 
-- 若 `DESIGN.md` 为最新状态，退出码为 `0`；
-- 若 `DESIGN.md` 已过期或缺失，退出码为 `1`，并指出具体过期的源文件。
+- 若 `ARCHITECTURE.md` 为最新状态，退出码为 `0`；
+- 若 `ARCHITECTURE.md` 已过期或缺失，退出码为 `1`，并指出具体过期的源文件。
 
 ---
 
@@ -116,8 +116,8 @@ strict-spec-cli design-generate --check
 
 | 命令 | 说明 |
 | :--- | :--- |
-| `strict-spec-cli design-status` | 校验 `architecture.yaml` 合法性并报告代码路径漂移 |
-| `strict-spec-cli design-generate` | 根据架构文件、规范索引和技术标准渲染 `DESIGN.md` |
-| `strict-spec-cli design-generate --check` | 检查 `DESIGN.md` 是否为最新状态（不写入文件） |
+| `strict-spec-cli architecture-status` | 校验 `architecture.yaml` 合法性并报告代码路径漂移 |
+| `strict-spec-cli architecture-generate` | 根据架构文件、规范索引和技术标准渲染 `ARCHITECTURE.md` |
+| `strict-spec-cli architecture-generate --check` | 检查 `ARCHITECTURE.md` 是否为最新状态（不写入文件） |
 | `strict-spec-cli schema-show architecture` | 查看架构 YAML 的 Schema 定义 |
 | `strict-spec-cli sample-show architecture` | 查看架构 YAML 示例 |

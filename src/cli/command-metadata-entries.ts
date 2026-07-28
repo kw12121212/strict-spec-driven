@@ -296,12 +296,12 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     exitCodes: SUCCESS_EXIT_CODES,
   },
 
-  "design-generate": {
-    name: "design-generate",
+  "architecture-generate": {
+    name: "architecture-generate",
     group: "operations",
-    summary: "Render DESIGN.md from the architecture artifact, the spec index, and the technical standards.",
-    mcpDescription: "Mutates project state by rendering the generated design document, unless --check is supplied.",
-    usage: "Usage: strict-spec-cli design-generate [--check] [--output <path>]\n",
+    summary: "Render ARCHITECTURE.md from the architecture artifact, the spec index, and the technical standards.",
+    mcpDescription: "Mutates project state by rendering the generated architecture document, unless --check is supplied.",
+    usage: "Usage: strict-spec-cli architecture-generate [--check] [--output <path>]\n",
     arguments: [],
     flags: [
       {
@@ -315,7 +315,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
         arity: "value",
         valueLabel: "<path>",
         description:
-          "Repo-relative path to render instead of DESIGN.md; check mode compares against this same path. Accepts the --output=<path> form.",
+          "Repo-relative path to render instead of ARCHITECTURE.md; check mode compares against this same path. Accepts the --output=<path> form.",
       },
     ],
     output: {
@@ -334,16 +334,16 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     notes: [
       "Neither flag is repeatable and there is no reset semantics: each run renders the whole document from its sources.",
       "The rendered document carries a generated banner and must never be hand-edited; change the sources and re-render.",
-      "Fails rather than degrading when .strict-spec-driven/architecture.yaml is missing; run /strict-spec-design to author it.",
+      "Fails rather than degrading when .strict-spec-driven/architecture.yaml is missing; run /strict-spec-architecture to author it.",
     ],
   },
 
-  "design-status": {
-    name: "design-status",
+  "architecture-status": {
+    name: "architecture-status",
     group: "operations",
     summary: "Validate the architecture artifact and report its counts and implementation-mapping drift.",
     mcpDescription: "Report strict architecture artifact status.",
-    usage: "Usage: strict-spec-cli design-status\n",
+    usage: "Usage: strict-spec-cli architecture-status\n",
     arguments: [],
     flags: [],
     output: {
@@ -365,6 +365,81 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       { code: 1, meaning: "Usage error, a missing architecture artifact, or a schema-invalid artifact." },
     ],
     notes: ["Read-only: mapping drift is reported, never repaired."],
+  },
+
+  "design-generate": {
+    name: "design-generate",
+    group: "operations",
+    summary: "Render DESIGN.md in the design.md format from the design-system artifact.",
+    mcpDescription: "Mutates project state by rendering the generated design document, unless --check is supplied.",
+    usage: "Usage: strict-spec-cli design-generate [--check] [--output <path>]\n",
+    arguments: [],
+    flags: [
+      {
+        name: "--check",
+        arity: "boolean",
+        description:
+          "Compare the rendered document against the file on disk without writing it; exits non-zero when they differ or the file is absent, and names the source artifact that went stale.",
+      },
+      {
+        name: "--output",
+        arity: "value",
+        valueLabel: "<path>",
+        description:
+          "Repo-relative path to render instead of DESIGN.md; check mode compares against this same path. Accepts the --output=<path> form.",
+      },
+    ],
+    output: {
+      format: "json",
+      keys: ["outputPath", "mode", "written", "documentExists", "current", "sources", "staleSources"],
+      description: "A JSON render result naming the output path, the mode, and the source artifacts.",
+    },
+    exitCodes: [
+      { code: 0, meaning: "The document was written, or check mode found it current." },
+      {
+        code: 1,
+        meaning:
+          "Usage error, a missing or invalid design-system artifact, or check mode finding the document stale or absent.",
+      },
+    ],
+    notes: [
+      "Neither flag is repeatable and there is no reset semantics: each run renders the whole document from its source.",
+      "The rendered document leads with YAML front-matter tokens, then a generated banner, then the canonical design.md sections; it must never be hand-edited.",
+      "Sections whose token group is absent from the artifact are omitted rather than rendered empty.",
+      "Fails rather than degrading when .strict-spec-driven/design-system.yaml is missing; run /strict-spec-design to author it. The artifact is optional, so projects with no user interface simply do not have one.",
+    ],
+  },
+
+  "design-status": {
+    name: "design-status",
+    group: "operations",
+    summary: "Validate the design-system artifact and report its token counts and mapping drift.",
+    mcpDescription: "Report strict design-system artifact status.",
+    usage: "Usage: strict-spec-cli design-status\n",
+    arguments: [],
+    flags: [],
+    output: {
+      format: "json",
+      keys: [
+        "artifactPath",
+        "exists",
+        "valid",
+        "diagnostics",
+        "tokenGroupCount",
+        "tokenCount",
+        "componentCount",
+        "mappingDrift",
+      ],
+      description: "A JSON summary of .strict-spec-driven/design-system.yaml with schema diagnostics and mapping drift.",
+    },
+    exitCodes: [
+      { code: 0, meaning: "The design-system artifact exists and validates." },
+      { code: 1, meaning: "Usage error, a missing design-system artifact, or a schema-invalid artifact." },
+    ],
+    notes: [
+      "Read-only: mapping drift is reported, never repaired.",
+      "Mapping drift covers both component implementation paths and component visual-regression snapshot paths; each entry names the declaring component and its kind.",
+    ],
   },
 
   "validate-skills": {

@@ -1,0 +1,101 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: architecture-domain-behavior
+spec:
+  title: Architecture Document Domain Behavior
+  path: .strict-spec-driven/specs/architecture/domain-behavior.yaml
+mapping:
+  implementation:
+    - src/architecture.ts
+    - src/document-render.ts
+    - src/cli/cmd-architecture.ts
+    - src/cli/command-metadata-entries.ts
+    - src/cli/registry.ts
+    - src/scaffold.ts
+    - templates/strict-spec-driven/schemas/architecture.yaml
+    - templates/strict-spec-driven/scaffold/architecture.yaml
+    - skills/strict-spec-architecture/SKILL.md
+  tests:
+    - test/suites/architecture-document.ts
+operations:
+  ADDED:
+    architecture-document-rendering:
+      strength: MUST
+      statement: The architecture-generate command MUST write an ARCHITECTURE.md that contains an overview section derived from the workflow config context, a components section, a data flows section, and an architecture decisions section derived from the project architecture artifact, a specification surface section projected from the spec index and the main specs it references, a technical standards section projected from the technical standards directory, and a banner identifying the file as generated together with the list of source artifacts it was rendered from.
+      scenarios:
+        renders-all-sections:
+          - GIVEN: A project has a valid architecture artifact describing at least one component, one data flow, and one architecture decision, a spec index referencing at least one main spec, and at least one technical standard
+          - WHEN: The operator runs architecture-generate
+          - THEN: ARCHITECTURE.md is written and contains the overview, components, data flows, architecture decisions, specification surface, and technical standards sections, plus the generated banner naming the architecture artifact, the spec index, and the technical standards directory as sources
+        rendering-is-deterministic:
+          - GIVEN: A project whose architecture artifact, specs, and technical standards are unchanged between runs
+          - WHEN: The operator runs architecture-generate twice in a row
+          - THEN: The second run produces an ARCHITECTURE.md byte-identical to the first
+    architecture-document-drift-detection:
+      strength: MUST
+      statement: The architecture-generate command MUST support a check mode that renders the architecture document in memory, compares it against the architecture document on disk, leaves the file unmodified, and exits non-zero when the two differ or when the file is absent, reporting which source artifact makes the document stale.
+      scenarios:
+        check-passes-when-current:
+          - GIVEN: A project whose ARCHITECTURE.md matches what architecture-generate would render
+          - WHEN: The operator runs architecture-generate in check mode
+          - THEN: The command exits zero, reports the document as current, and does not modify ARCHITECTURE.md
+        check-fails-when-stale:
+          - GIVEN: A project whose architecture artifact has been edited since ARCHITECTURE.md was last rendered
+          - WHEN: The operator runs architecture-generate in check mode
+          - THEN: The command exits non-zero, reports the document as stale, names the architecture artifact as the changed source, and leaves ARCHITECTURE.md byte-identical to its prior content
+        check-fails-when-document-absent:
+          - GIVEN: A project with a valid architecture artifact but no ARCHITECTURE.md on disk
+          - WHEN: The operator runs architecture-generate in check mode
+          - THEN: The command exits non-zero, reports that the architecture document is missing, and does not create it
+    architecture-document-output-path:
+      strength: MUST
+      statement: The architecture-generate command MUST render to ARCHITECTURE.md at the repository root by default and MUST render to an operator-supplied repository-relative path instead when an output path is given, applying the same rendering and check semantics to that path.
+      scenarios:
+        default-output-path:
+          - GIVEN: A project with a valid architecture artifact and no output path supplied
+          - WHEN: The operator runs architecture-generate
+          - THEN: The rendered document is written to ARCHITECTURE.md at the repository root and no DESIGN.md is created or modified
+        overridden-output-path:
+          - GIVEN: A project with a valid architecture artifact
+          - WHEN: The operator runs architecture-generate with an output path pointing to a different repository-relative file
+          - THEN: The rendered document is written to that path, ARCHITECTURE.md at the repository root is not created or modified, and check mode run with the same output path compares against that path
+    missing-architecture-artifact-error:
+      strength: MUST
+      statement: When the project architecture artifact is absent, the architecture-generate command MUST exit non-zero with a message that names the missing artifact path and the workflow entry point that creates it, and MUST NOT write, modify, or partially render an architecture document.
+      scenarios:
+        absent-architecture-artifact:
+          - GIVEN: A project with a strict workflow directory, specs, and technical standards but no architecture artifact
+          - WHEN: The operator runs architecture-generate
+          - THEN: The command exits non-zero, the message names the expected architecture artifact path and the architecture authoring entry point, and no architecture document is created or modified
+    architecture-status-reporting:
+      strength: MUST
+      statement: The architecture-status command MUST report whether the project architecture artifact validates against its registered schema, report the number of components, data flows, and architecture decisions it declares, and report every component implementation mapping path that does not exist in the repository as mapping drift, exiting non-zero when the artifact is invalid.
+      scenarios:
+        reports-counts-for-valid-artifact:
+          - GIVEN: A project whose architecture artifact is schema-valid and whose component implementation mapping paths all exist
+          - WHEN: The operator runs architecture-status
+          - THEN: The command exits zero, reports the artifact as valid, reports the component, data flow, and decision counts, and reports no mapping drift
+        reports-mapping-drift:
+          - GIVEN: A project whose architecture artifact is schema-valid but maps a component to an implementation path that no longer exists
+          - WHEN: The operator runs architecture-status
+          - THEN: The command reports that path as mapping drift together with the component that declares it
+        rejects-invalid-artifact:
+          - GIVEN: A project whose architecture artifact does not validate against the registered architecture schema
+          - WHEN: The operator runs architecture-status
+          - THEN: The command exits non-zero and reports the schema validation diagnostics
+    architecture-artifact-availability:
+      strength: MUST
+      statement: The workflow MUST register an architecture artifact schema that is listed by schema-list and printable by schema-show, and init MUST scaffold an architecture artifact that validates against that schema with empty component, data flow, and decision collections.
+      scenarios:
+        schema-is-discoverable:
+          - GIVEN: A project with the strict workflow available
+          - WHEN: The operator runs schema-list and then schema-show for the architecture schema
+          - THEN: schema-list includes the architecture schema and schema-show prints its definition
+        init-scaffolds-architecture-artifact:
+          - GIVEN: A directory with no strict workflow state
+          - WHEN: The operator runs init
+          - THEN: An architecture artifact is created alongside the workflow config and spec index, it validates against the registered architecture schema, and its component, data flow, and decision collections are empty
+  MODIFIED: {}
+  REMOVED: {}

@@ -13,9 +13,48 @@ export type HelpRequest = {
   json: boolean;
 };
 
+/** Flags shared by every generated-document command: architecture-generate and design-generate. */
+export type DocumentGenerateArgs = {
+  check: boolean;
+  outputPath?: string;
+};
+
 export function normalizeCliInvocation(argv: string[]): CliInvocation {
   const [subcommand, ...subcommandArgs] = argv;
   return { subcommand, subcommandArgs };
+}
+
+/**
+ * Parses the --check and --output flags every generated-document command accepts. Returns null for
+ * any unknown token, a repeated flag, or a missing --output value so the caller prints usage.
+ */
+export function parseDocumentGenerateArgs(argv: string[]): DocumentGenerateArgs | null {
+  const parsed: DocumentGenerateArgs = { check: false };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === "--check") {
+      if (parsed.check) return null;
+      parsed.check = true;
+      continue;
+    }
+    if (token === "--output") {
+      const value = argv[index + 1];
+      if (parsed.outputPath !== undefined || value === undefined || value.startsWith("--")) return null;
+      parsed.outputPath = value;
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--output=")) {
+      const value = token.slice("--output=".length);
+      if (parsed.outputPath !== undefined || value.length === 0) return null;
+      parsed.outputPath = value;
+      continue;
+    }
+    return null;
+  }
+
+  return parsed;
 }
 
 /**

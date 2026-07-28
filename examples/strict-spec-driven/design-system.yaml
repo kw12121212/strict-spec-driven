@@ -1,0 +1,54 @@
+schema: strict-spec-driven/design-system/v1
+schema_version: 1
+artifact_type: design_system
+schema_file: ../../templates/strict-spec-driven/schemas/design-system.yaml
+design_system:
+  id: example-design-system
+  title: Example Design System
+tokens:
+  colors:
+    primary: "#1A73E8"
+    surface: "#FFFFFF"
+    text: "#202124"
+  typography:
+    body:
+      fontFamily: Inter, system-ui, sans-serif
+      fontSize: 16px
+      fontWeight: 400
+      lineHeight: 1.5
+      letterSpacing: "0"
+    heading:
+      fontFamily: Inter, system-ui, sans-serif
+      fontSize: 28px
+      fontWeight: 600
+      lineHeight: 1.25
+  layout:
+    sm: 8px
+    md: 16px
+    lg: 24px
+  elevation:
+    card: 0 1px 3px rgba(0, 0, 0, 0.12)
+  shapes:
+    rounded: 8px
+components:
+  example-button:
+    title: Example Button
+    description: The primary action control used across the example interface.
+    tokens:
+      backgroundColor: colors.primary
+      textColor: colors.surface
+      padding: layout.md
+      rounded: shapes.rounded
+    mapping:
+      implementation:
+        - src/components/example-button.tsx
+      snapshots:
+        - test/snapshots/example-button.png
+guidance:
+  overview: >-
+    The example design system favors a single accent color on neutral surfaces
+    so that primary actions stay unambiguous.
+  do:
+    - Use the primary color for exactly one action per view.
+  dont:
+    - Do not introduce accent colors outside the declared palette.

@@ -1,0 +1,122 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: design-domain-behavior
+mapping:
+  implementation:
+    - src/design-system.ts
+    - src/document-render.ts
+    - src/cli/cmd-design.ts
+    - src/cli/command-metadata-entries.ts
+    - src/cli/registry.ts
+    - templates/strict-spec-driven/schemas/design-system.yaml
+    - templates/strict-spec-driven/schemas/registry.yaml
+    - examples/strict-spec-driven/design-system.yaml
+    - skills/strict-spec-design/SKILL.md
+  tests:
+    - test/suites/design-system-document.ts
+operations:
+  ADDED:
+    design-system-document-rendering:
+      strength: MUST
+      statement: 'The design-generate command MUST write a DESIGN.md in the design.md interchange format: a YAML front-matter block carrying the machine-readable design tokens declared by the project design-system artifact, followed by a banner identifying the file as generated and naming its source artifacts, followed by an Overview section derived from the artifact''s guidance, a Colors section, a Typography section, a Layout section, an Elevation and Depth section, and a Shapes section derived from the corresponding token groups, a Components section listing each declared component with the tokens it maps to, and a Do''s and Don''ts section derived from the artifact''s guidance.'
+      scenarios:
+        renders-design-md-format:
+          - GIVEN: A project has a valid design-system artifact declaring at least one entry in each token group, at least one component, and guidance containing an overview and both do and don't items
+          - WHEN: The operator runs design-generate
+          - THEN: DESIGN.md is written, its first line opens a YAML front-matter block containing the declared tokens, the generated banner follows the front matter and names the design-system artifact as a source, and the body contains the Overview, Colors, Typography, Layout, Elevation and Depth, Shapes, Components, and Do's and Don'ts sections in that order
+        rendering-is-deterministic:
+          - GIVEN: A project whose design-system artifact is unchanged between runs
+          - WHEN: The operator runs design-generate twice in a row
+          - THEN: The second run produces a DESIGN.md byte-identical to the first
+        omits-sections-for-absent-token-groups:
+          - GIVEN: A project whose design-system artifact declares colors and typography but no elevation or shapes tokens
+          - WHEN: The operator runs design-generate
+          - THEN: DESIGN.md contains the Colors and Typography sections, omits the Elevation and Depth and Shapes sections rather than rendering them empty, and the front matter carries only the declared token groups
+    design-system-document-drift-detection:
+      strength: MUST
+      statement: The design-generate command MUST support a check mode that renders the design document in memory, compares it against the design document on disk, leaves the file unmodified, and exits non-zero when the two differ or when the file is absent, reporting that the design-system artifact makes the document stale.
+      scenarios:
+        check-passes-when-current:
+          - GIVEN: A project whose DESIGN.md matches what design-generate would render
+          - WHEN: The operator runs design-generate in check mode
+          - THEN: The command exits zero, reports the document as current, and does not modify DESIGN.md
+        check-fails-when-stale:
+          - GIVEN: A project whose design-system artifact has been edited since DESIGN.md was last rendered
+          - WHEN: The operator runs design-generate in check mode
+          - THEN: The command exits non-zero, reports the document as stale, names the design-system artifact as the changed source, and leaves DESIGN.md byte-identical to its prior content
+        check-fails-when-document-absent:
+          - GIVEN: A project with a valid design-system artifact but no DESIGN.md on disk
+          - WHEN: The operator runs design-generate in check mode
+          - THEN: The command exits non-zero, reports that the design document is missing, and does not create it
+    design-system-document-output-path:
+      strength: MUST
+      statement: The design-generate command MUST render to DESIGN.md at the repository root by default and MUST render to an operator-supplied repository-relative path instead when an output path is given, applying the same rendering and check semantics to that path.
+      scenarios:
+        default-output-path:
+          - GIVEN: A project with a valid design-system artifact and no output path supplied
+          - WHEN: The operator runs design-generate
+          - THEN: The rendered document is written to DESIGN.md at the repository root and ARCHITECTURE.md is not created or modified
+        overridden-output-path:
+          - GIVEN: A project with a valid design-system artifact
+          - WHEN: The operator runs design-generate with an output path pointing to a different repository-relative file
+          - THEN: The rendered document is written to that path, DESIGN.md at the repository root is not created or modified, and check mode run with the same output path compares against that path
+    missing-design-system-artifact-error:
+      strength: MUST
+      statement: When the project design-system artifact is absent, the design-generate and design-status commands MUST exit non-zero with a message that names the missing artifact path and the workflow entry point that creates it, and MUST NOT write, modify, or partially render a design document.
+      scenarios:
+        absent-design-system-artifact:
+          - GIVEN: A project with a strict workflow directory and an architecture artifact but no design-system artifact
+          - WHEN: The operator runs design-generate
+          - THEN: The command exits non-zero, the message names the expected design-system artifact path and the design authoring entry point, and no design document is created or modified
+        absent-artifact-does-not-fall-back-to-architecture:
+          - GIVEN: A project that has an architecture artifact and an ARCHITECTURE.md but no design-system artifact
+          - WHEN: The operator runs design-generate
+          - THEN: The command exits non-zero naming the missing design-system artifact, and neither ARCHITECTURE.md nor DESIGN.md is created or modified
+    design-system-status-reporting:
+      strength: MUST
+      statement: The design-status command MUST report whether the project design-system artifact validates against its registered schema, report the number of token groups, tokens, and components it declares, and report every component implementation mapping path and every component visual-regression snapshot path that does not exist in the repository as mapping drift, exiting non-zero when the artifact is invalid.
+      scenarios:
+        reports-counts-for-valid-artifact:
+          - GIVEN: A project whose design-system artifact is schema-valid and whose component implementation and snapshot mapping paths all exist
+          - WHEN: The operator runs design-status
+          - THEN: The command exits zero, reports the artifact as valid, reports the token group, token, and component counts, and reports no mapping drift
+        reports-mapping-drift:
+          - GIVEN: A project whose design-system artifact is schema-valid but maps a component to an implementation path that no longer exists
+          - WHEN: The operator runs design-status
+          - THEN: The command reports that path as mapping drift together with the component that declares it
+        reports-snapshot-drift:
+          - GIVEN: A project whose design-system artifact is schema-valid but declares a component visual-regression snapshot path that no longer exists in the repository
+          - WHEN: The operator runs design-status
+          - THEN: The command reports that snapshot path as mapping drift together with the component that declares it
+        rejects-invalid-artifact:
+          - GIVEN: A project whose design-system artifact does not validate against the registered design-system schema
+          - WHEN: The operator runs design-status
+          - THEN: The command exits non-zero and reports the schema validation diagnostics
+    design-system-artifact-availability:
+      strength: MUST
+      statement: The workflow MUST register a design-system artifact schema that is listed by schema-list and printable by schema-show, and init MUST NOT scaffold a design-system artifact, leaving it optional and absent until a project authors one.
+      scenarios:
+        schema-is-discoverable:
+          - GIVEN: A project with the strict workflow available
+          - WHEN: The operator runs schema-list and then schema-show for the design-system schema
+          - THEN: schema-list includes the design-system schema and schema-show prints its definition
+        init-does-not-scaffold-design-system-artifact:
+          - GIVEN: A directory with no strict workflow state
+          - WHEN: The operator runs init
+          - THEN: The workflow config, spec index, and architecture artifact are created and no design-system artifact is created
+  MODIFIED: {}
+  REMOVED:
+    design-document-rendering:
+      reason: Renamed and relocated to architecture-document-rendering in the architecture-domain-behavior spec area; this spec area now describes the design-system document instead.
+    design-document-drift-detection:
+      reason: Renamed and relocated to architecture-document-drift-detection in the architecture-domain-behavior spec area.
+    design-document-output-path:
+      reason: Renamed and relocated to architecture-document-output-path in the architecture-domain-behavior spec area; DESIGN.md is now the design-system document's output path.
+    missing-architecture-artifact-error:
+      reason: Relocated unchanged to the architecture-domain-behavior spec area, which owns the architecture artifact.
+    design-status-reporting:
+      reason: Renamed and relocated to architecture-status-reporting in the architecture-domain-behavior spec area.
+    architecture-artifact-availability:
+      reason: Relocated unchanged to the architecture-domain-behavior spec area, which owns the architecture schema and its init scaffolding.

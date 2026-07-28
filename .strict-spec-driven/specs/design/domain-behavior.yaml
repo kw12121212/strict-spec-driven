@@ -4,94 +4,106 @@ artifact_type: main_spec
 schema_file: templates/strict-spec-driven/schemas/main-spec.yaml
 spec:
   id: design-domain-behavior
-  title: Design Document Domain Behavior
+  title: Design System Document Domain Behavior
 mapping:
   implementation:
-    - src/design.ts
     - src/cli/cmd-design.ts
     - src/cli/command-metadata-entries.ts
     - src/cli/registry.ts
-    - src/scaffold.ts
-    - templates/strict-spec-driven/schemas/architecture.yaml
     - templates/strict-spec-driven/schemas/registry.yaml
-    - templates/strict-spec-driven/scaffold/architecture.yaml
     - skills/strict-spec-design/SKILL.md
+    - src/design-system.ts
+    - src/document-render.ts
+    - templates/strict-spec-driven/schemas/design-system.yaml
+    - examples/strict-spec-driven/design-system.yaml
   tests:
-    - test/suites/design-document.ts
+    - test/suites/design-system-document.ts
 requirements:
-  design-document-rendering:
+  design-system-document-rendering:
     strength: MUST
-    statement: The design-generate command MUST write a DESIGN.md that contains an overview section derived from the workflow config context, a components section, a data flows section, and an architecture decisions section derived from the project architecture artifact, a specification surface section projected from the spec index and the main specs it references, a technical standards section projected from the technical standards directory, and a banner identifying the file as generated together with the list of source artifacts it was rendered from.
+    statement: 'The design-generate command MUST write a DESIGN.md in the design.md interchange format: a YAML front-matter block carrying the machine-readable design tokens declared by the project design-system artifact, followed by a banner identifying the file as generated and naming its source artifacts, followed by an Overview section derived from the artifact''s guidance, a Colors section, a Typography section, a Layout section, an Elevation and Depth section, and a Shapes section derived from the corresponding token groups, a Components section listing each declared component with the tokens it maps to, and a Do''s and Don''ts section derived from the artifact''s guidance.'
     scenarios:
-      renders-all-sections:
-        - GIVEN: A project has a valid architecture artifact describing at least one component, one data flow, and one architecture decision, a spec index referencing at least one main spec, and at least one technical standard
+      renders-design-md-format:
+        - GIVEN: A project has a valid design-system artifact declaring at least one entry in each token group, at least one component, and guidance containing an overview and both do and don't items
         - WHEN: The operator runs design-generate
-        - THEN: DESIGN.md is written and contains the overview, components, data flows, architecture decisions, specification surface, and technical standards sections, plus the generated banner naming the architecture artifact, the spec index, and the technical standards directory as sources
+        - THEN: DESIGN.md is written, its first line opens a YAML front-matter block containing the declared tokens, the generated banner follows the front matter and names the design-system artifact as a source, and the body contains the Overview, Colors, Typography, Layout, Elevation and Depth, Shapes, Components, and Do's and Don'ts sections in that order
       rendering-is-deterministic:
-        - GIVEN: A project whose architecture artifact, specs, and technical standards are unchanged between runs
+        - GIVEN: A project whose design-system artifact is unchanged between runs
         - WHEN: The operator runs design-generate twice in a row
         - THEN: The second run produces a DESIGN.md byte-identical to the first
-  design-document-drift-detection:
+      omits-sections-for-absent-token-groups:
+        - GIVEN: A project whose design-system artifact declares colors and typography but no elevation or shapes tokens
+        - WHEN: The operator runs design-generate
+        - THEN: DESIGN.md contains the Colors and Typography sections, omits the Elevation and Depth and Shapes sections rather than rendering them empty, and the front matter carries only the declared token groups
+  design-system-document-drift-detection:
     strength: MUST
-    statement: The design-generate command MUST support a check mode that renders the design document in memory, compares it against the design document on disk, leaves the file unmodified, and exits non-zero when the two differ or when the file is absent, reporting which source artifact makes the document stale.
+    statement: The design-generate command MUST support a check mode that renders the design document in memory, compares it against the design document on disk, leaves the file unmodified, and exits non-zero when the two differ or when the file is absent, reporting that the design-system artifact makes the document stale.
     scenarios:
       check-passes-when-current:
         - GIVEN: A project whose DESIGN.md matches what design-generate would render
         - WHEN: The operator runs design-generate in check mode
         - THEN: The command exits zero, reports the document as current, and does not modify DESIGN.md
       check-fails-when-stale:
-        - GIVEN: A project whose architecture artifact has been edited since DESIGN.md was last rendered
+        - GIVEN: A project whose design-system artifact has been edited since DESIGN.md was last rendered
         - WHEN: The operator runs design-generate in check mode
-        - THEN: The command exits non-zero, reports the document as stale, names the architecture artifact as the changed source, and leaves DESIGN.md byte-identical to its prior content
+        - THEN: The command exits non-zero, reports the document as stale, names the design-system artifact as the changed source, and leaves DESIGN.md byte-identical to its prior content
       check-fails-when-document-absent:
-        - GIVEN: A project with a valid architecture artifact but no DESIGN.md on disk
+        - GIVEN: A project with a valid design-system artifact but no DESIGN.md on disk
         - WHEN: The operator runs design-generate in check mode
         - THEN: The command exits non-zero, reports that the design document is missing, and does not create it
-  design-document-output-path:
+  design-system-document-output-path:
     strength: MUST
     statement: The design-generate command MUST render to DESIGN.md at the repository root by default and MUST render to an operator-supplied repository-relative path instead when an output path is given, applying the same rendering and check semantics to that path.
     scenarios:
       default-output-path:
-        - GIVEN: A project with a valid architecture artifact and no output path supplied
+        - GIVEN: A project with a valid design-system artifact and no output path supplied
         - WHEN: The operator runs design-generate
-        - THEN: The rendered document is written to DESIGN.md at the repository root
+        - THEN: The rendered document is written to DESIGN.md at the repository root and ARCHITECTURE.md is not created or modified
       overridden-output-path:
-        - GIVEN: A project with a valid architecture artifact
+        - GIVEN: A project with a valid design-system artifact
         - WHEN: The operator runs design-generate with an output path pointing to a different repository-relative file
         - THEN: The rendered document is written to that path, DESIGN.md at the repository root is not created or modified, and check mode run with the same output path compares against that path
-  missing-architecture-artifact-error:
+  missing-design-system-artifact-error:
     strength: MUST
-    statement: When the project architecture artifact is absent, the design-generate command MUST exit non-zero with a message that names the missing artifact path and the workflow entry point that creates it, and MUST NOT write, modify, or partially render a design document.
+    statement: When the project design-system artifact is absent, the design-generate and design-status commands MUST exit non-zero with a message that names the missing artifact path and the workflow entry point that creates it, and MUST NOT write, modify, or partially render a design document.
     scenarios:
-      absent-architecture-artifact:
-        - GIVEN: A project with a strict workflow directory, specs, and technical standards but no architecture artifact
+      absent-design-system-artifact:
+        - GIVEN: A project with a strict workflow directory and an architecture artifact but no design-system artifact
         - WHEN: The operator runs design-generate
-        - THEN: The command exits non-zero, the message names the expected architecture artifact path and the design authoring entry point, and no design document is created or modified
-  design-status-reporting:
+        - THEN: The command exits non-zero, the message names the expected design-system artifact path and the design authoring entry point, and no design document is created or modified
+      absent-artifact-does-not-fall-back-to-architecture:
+        - GIVEN: A project that has an architecture artifact and an ARCHITECTURE.md but no design-system artifact
+        - WHEN: The operator runs design-generate
+        - THEN: The command exits non-zero naming the missing design-system artifact, and neither ARCHITECTURE.md nor DESIGN.md is created or modified
+  design-system-status-reporting:
     strength: MUST
-    statement: The design-status command MUST report whether the project architecture artifact validates against its registered schema, report the number of components, data flows, and architecture decisions it declares, and report every component implementation mapping path that does not exist in the repository as mapping drift, exiting non-zero when the artifact is invalid.
+    statement: The design-status command MUST report whether the project design-system artifact validates against its registered schema, report the number of token groups, tokens, and components it declares, and report every component implementation mapping path and every component visual-regression snapshot path that does not exist in the repository as mapping drift, exiting non-zero when the artifact is invalid.
     scenarios:
       reports-counts-for-valid-artifact:
-        - GIVEN: A project whose architecture artifact is schema-valid and whose component implementation mapping paths all exist
+        - GIVEN: A project whose design-system artifact is schema-valid and whose component implementation and snapshot mapping paths all exist
         - WHEN: The operator runs design-status
-        - THEN: The command exits zero, reports the artifact as valid, reports the component, data flow, and decision counts, and reports no mapping drift
+        - THEN: The command exits zero, reports the artifact as valid, reports the token group, token, and component counts, and reports no mapping drift
       reports-mapping-drift:
-        - GIVEN: A project whose architecture artifact is schema-valid but maps a component to an implementation path that no longer exists
+        - GIVEN: A project whose design-system artifact is schema-valid but maps a component to an implementation path that no longer exists
         - WHEN: The operator runs design-status
         - THEN: The command reports that path as mapping drift together with the component that declares it
+      reports-snapshot-drift:
+        - GIVEN: A project whose design-system artifact is schema-valid but declares a component visual-regression snapshot path that no longer exists in the repository
+        - WHEN: The operator runs design-status
+        - THEN: The command reports that snapshot path as mapping drift together with the component that declares it
       rejects-invalid-artifact:
-        - GIVEN: A project whose architecture artifact does not validate against the registered architecture schema
+        - GIVEN: A project whose design-system artifact does not validate against the registered design-system schema
         - WHEN: The operator runs design-status
         - THEN: The command exits non-zero and reports the schema validation diagnostics
-  architecture-artifact-availability:
+  design-system-artifact-availability:
     strength: MUST
-    statement: The workflow MUST register an architecture artifact schema that is listed by schema-list and printable by schema-show, and init MUST scaffold an architecture artifact that validates against that schema with empty component, data flow, and decision collections.
+    statement: The workflow MUST register a design-system artifact schema that is listed by schema-list and printable by schema-show, and init MUST NOT scaffold a design-system artifact, leaving it optional and absent until a project authors one.
     scenarios:
       schema-is-discoverable:
         - GIVEN: A project with the strict workflow available
-        - WHEN: The operator runs schema-list and then schema-show for the architecture schema
-        - THEN: schema-list includes the architecture schema and schema-show prints its definition
-      init-scaffolds-architecture-artifact:
+        - WHEN: The operator runs schema-list and then schema-show for the design-system schema
+        - THEN: schema-list includes the design-system schema and schema-show prints its definition
+      init-does-not-scaffold-design-system-artifact:
         - GIVEN: A directory with no strict workflow state
         - WHEN: The operator runs init
-        - THEN: An architecture artifact is created alongside the workflow config and spec index, it validates against the registered architecture schema, and its component, data flow, and decision collections are empty
+        - THEN: The workflow config, spec index, and architecture artifact are created and no design-system artifact is created

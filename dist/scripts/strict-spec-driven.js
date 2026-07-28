@@ -6801,12 +6801,12 @@ var COMMAND_METADATA_ENTRIES = {
     },
     exitCodes: SUCCESS_EXIT_CODES
   },
-  "design-generate": {
-    name: "design-generate",
+  "architecture-generate": {
+    name: "architecture-generate",
     group: "operations",
-    summary: "Render DESIGN.md from the architecture artifact, the spec index, and the technical standards.",
-    mcpDescription: "Mutates project state by rendering the generated design document, unless --check is supplied.",
-    usage: `Usage: strict-spec-cli design-generate [--check] [--output <path>]
+    summary: "Render ARCHITECTURE.md from the architecture artifact, the spec index, and the technical standards.",
+    mcpDescription: "Mutates project state by rendering the generated architecture document, unless --check is supplied.",
+    usage: `Usage: strict-spec-cli architecture-generate [--check] [--output <path>]
 `,
     arguments: [],
     flags: [
@@ -6819,7 +6819,7 @@ var COMMAND_METADATA_ENTRIES = {
         name: "--output",
         arity: "value",
         valueLabel: "<path>",
-        description: "Repo-relative path to render instead of DESIGN.md; check mode compares against this same path. Accepts the --output=<path> form."
+        description: "Repo-relative path to render instead of ARCHITECTURE.md; check mode compares against this same path. Accepts the --output=<path> form."
       }
     ],
     output: {
@@ -6837,15 +6837,15 @@ var COMMAND_METADATA_ENTRIES = {
     notes: [
       "Neither flag is repeatable and there is no reset semantics: each run renders the whole document from its sources.",
       "The rendered document carries a generated banner and must never be hand-edited; change the sources and re-render.",
-      "Fails rather than degrading when .strict-spec-driven/architecture.yaml is missing; run /strict-spec-design to author it."
+      "Fails rather than degrading when .strict-spec-driven/architecture.yaml is missing; run /strict-spec-architecture to author it."
     ]
   },
-  "design-status": {
-    name: "design-status",
+  "architecture-status": {
+    name: "architecture-status",
     group: "operations",
     summary: "Validate the architecture artifact and report its counts and implementation-mapping drift.",
     mcpDescription: "Report strict architecture artifact status.",
-    usage: `Usage: strict-spec-cli design-status
+    usage: `Usage: strict-spec-cli architecture-status
 `,
     arguments: [],
     flags: [],
@@ -6868,6 +6868,78 @@ var COMMAND_METADATA_ENTRIES = {
       { code: 1, meaning: "Usage error, a missing architecture artifact, or a schema-invalid artifact." }
     ],
     notes: ["Read-only: mapping drift is reported, never repaired."]
+  },
+  "design-generate": {
+    name: "design-generate",
+    group: "operations",
+    summary: "Render DESIGN.md in the design.md format from the design-system artifact.",
+    mcpDescription: "Mutates project state by rendering the generated design document, unless --check is supplied.",
+    usage: `Usage: strict-spec-cli design-generate [--check] [--output <path>]
+`,
+    arguments: [],
+    flags: [
+      {
+        name: "--check",
+        arity: "boolean",
+        description: "Compare the rendered document against the file on disk without writing it; exits non-zero when they differ or the file is absent, and names the source artifact that went stale."
+      },
+      {
+        name: "--output",
+        arity: "value",
+        valueLabel: "<path>",
+        description: "Repo-relative path to render instead of DESIGN.md; check mode compares against this same path. Accepts the --output=<path> form."
+      }
+    ],
+    output: {
+      format: "json",
+      keys: ["outputPath", "mode", "written", "documentExists", "current", "sources", "staleSources"],
+      description: "A JSON render result naming the output path, the mode, and the source artifacts."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The document was written, or check mode found it current." },
+      {
+        code: 1,
+        meaning: "Usage error, a missing or invalid design-system artifact, or check mode finding the document stale or absent."
+      }
+    ],
+    notes: [
+      "Neither flag is repeatable and there is no reset semantics: each run renders the whole document from its source.",
+      "The rendered document leads with YAML front-matter tokens, then a generated banner, then the canonical design.md sections; it must never be hand-edited.",
+      "Sections whose token group is absent from the artifact are omitted rather than rendered empty.",
+      "Fails rather than degrading when .strict-spec-driven/design-system.yaml is missing; run /strict-spec-design to author it. The artifact is optional, so projects with no user interface simply do not have one."
+    ]
+  },
+  "design-status": {
+    name: "design-status",
+    group: "operations",
+    summary: "Validate the design-system artifact and report its token counts and mapping drift.",
+    mcpDescription: "Report strict design-system artifact status.",
+    usage: `Usage: strict-spec-cli design-status
+`,
+    arguments: [],
+    flags: [],
+    output: {
+      format: "json",
+      keys: [
+        "artifactPath",
+        "exists",
+        "valid",
+        "diagnostics",
+        "tokenGroupCount",
+        "tokenCount",
+        "componentCount",
+        "mappingDrift"
+      ],
+      description: "A JSON summary of .strict-spec-driven/design-system.yaml with schema diagnostics and mapping drift."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The design-system artifact exists and validates." },
+      { code: 1, meaning: "Usage error, a missing design-system artifact, or a schema-invalid artifact." }
+    ],
+    notes: [
+      "Read-only: mapping drift is reported, never repaired.",
+      "Mapping drift covers both component implementation paths and component visual-regression snapshot paths; each entry names the declaring component and its kind."
+    ]
   },
   "validate-skills": {
     name: "validate-skills",
@@ -7925,6 +7997,35 @@ function normalizeCliInvocation(argv) {
   const [subcommand, ...subcommandArgs] = argv;
   return { subcommand, subcommandArgs };
 }
+function parseDocumentGenerateArgs(argv) {
+  const parsed = { check: false };
+  for (let index = 0;index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === "--check") {
+      if (parsed.check)
+        return null;
+      parsed.check = true;
+      continue;
+    }
+    if (token === "--output") {
+      const value = argv[index + 1];
+      if (parsed.outputPath !== undefined || value === undefined || value.startsWith("--"))
+        return null;
+      parsed.outputPath = value;
+      index += 1;
+      continue;
+    }
+    if (token.startsWith("--output=")) {
+      const value = token.slice("--output=".length);
+      if (parsed.outputPath !== undefined || value.length === 0)
+        return null;
+      parsed.outputPath = value;
+      continue;
+    }
+    return null;
+  }
+  return parsed;
+}
 function resolveHelpRequest(argv) {
   if (argv.length === 0 || argv.length > 2) {
     return { requested: false, json: false };
@@ -7976,8 +8077,8 @@ schema_file: templates/strict-spec-driven/schemas/architecture.yaml
 architecture:
   id: project-architecture
   title: Project Architecture
-# Fill these collections with /strict-spec-design, then render DESIGN.md with
-# \`strict-spec-cli design-generate\`. Specification and technical-standard
+# Fill these collections with /strict-spec-architecture, then render ARCHITECTURE.md
+# with \`strict-spec-cli architecture-generate\`. Specification and technical-standard
 # sections are projected from existing artifacts and never belong here.
 components: {}
 data_flows: {}
@@ -8982,6 +9083,143 @@ json_schema:
             properties:
               reason:
                 type: string
+`,
+  "strict-spec-driven/schemas/design-system.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/design-system/v1
+artifact_type: design_system
+artifact_name: design-system
+description: >-
+  Strict YAML project design-system artifact. It carries the visual identity no
+  other strict artifact holds: the design tokens a user interface is built from,
+  the components that consume those tokens, and the design guidance that
+  explains them. Token groups are fixed so the renderer and design-status can
+  project deterministic sections from them, while the entries inside each group
+  stay open so no schema decides what a project's palette or spacing scale is
+  named. Observable UI behavior is deliberately absent because it belongs in
+  main spec requirements, and UI engineering rules are deliberately absent
+  because they belong in ui-category technical standards.
+example_ref: ../../../examples/strict-spec-driven/design-system.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - design_system
+    - tokens
+    - components
+    - guidance
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/design-system/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: design_system
+    schema_file:
+      type: string
+    design_system:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    tokens:
+      type: object
+      additionalProperties: false
+      properties:
+        colors:
+          type: object
+          additionalProperties:
+            type: string
+        typography:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: false
+            properties:
+              fontFamily:
+                type: string
+              fontSize:
+                type: string
+              fontWeight:
+                type:
+                  - string
+                  - integer
+              lineHeight:
+                type:
+                  - string
+                  - number
+              letterSpacing:
+                type: string
+        layout:
+          type: object
+          additionalProperties:
+            type: string
+        elevation:
+          type: object
+          additionalProperties:
+            type: string
+        shapes:
+          type: object
+          additionalProperties:
+            type: string
+    components:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+        properties:
+          title:
+            type: string
+          description:
+            type: string
+          tokens:
+            type: object
+            additionalProperties:
+              type: string
+          mapping:
+            type: object
+            additionalProperties: false
+            properties:
+              implementation:
+                type: array
+                items:
+                  type: string
+              snapshots:
+                type: array
+                items:
+                  type: string
+    guidance:
+      type: object
+      additionalProperties: false
+      required:
+        - overview
+      properties:
+        overview:
+          type: string
+        do:
+          type: array
+          items:
+            type: string
+        dont:
+          type: array
+          items:
+            type: string
 `,
   "strict-spec-driven/schemas/harness-session.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -10384,6 +10622,20 @@ entries:
       compatible_with: []
       notes:
         - The architecture artifact is the only source for the components, data flows, and decisions sections of a generated design document; specification and technical-standard sections are projected from existing artifacts rather than duplicated here.
+  - schema_id: strict-spec-driven/design-system/v1
+    schema_version: 1
+    artifact_type: design_system
+    artifact_name: design-system
+    schema_file: design-system.yaml
+    primary_example: ../../../examples/strict-spec-driven/design-system.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - The design-system artifact is the only source for the generated design document; it is optional and absent for projects with no user interface, and init deliberately does not scaffold it.
+        - Token groups are fixed while the entries inside each group stay open, so the renderer can project deterministic sections without dictating a design language.
   - schema_id: strict-spec-driven/config/v1
     schema_version: 1
     artifact_type: workflow_config
@@ -11863,6 +12115,61 @@ operations:
   ADDED: {}
   MODIFIED: {}
   REMOVED: {}
+`,
+  "examples/strict-spec-driven/design-system.yaml": `schema: strict-spec-driven/design-system/v1
+schema_version: 1
+artifact_type: design_system
+schema_file: ../../templates/strict-spec-driven/schemas/design-system.yaml
+design_system:
+  id: example-design-system
+  title: Example Design System
+tokens:
+  colors:
+    primary: "#1A73E8"
+    surface: "#FFFFFF"
+    text: "#202124"
+  typography:
+    body:
+      fontFamily: Inter, system-ui, sans-serif
+      fontSize: 16px
+      fontWeight: 400
+      lineHeight: 1.5
+      letterSpacing: "0"
+    heading:
+      fontFamily: Inter, system-ui, sans-serif
+      fontSize: 28px
+      fontWeight: 600
+      lineHeight: 1.25
+  layout:
+    sm: 8px
+    md: 16px
+    lg: 24px
+  elevation:
+    card: 0 1px 3px rgba(0, 0, 0, 0.12)
+  shapes:
+    rounded: 8px
+components:
+  example-button:
+    title: Example Button
+    description: The primary action control used across the example interface.
+    tokens:
+      backgroundColor: colors.primary
+      textColor: colors.surface
+      padding: layout.md
+      rounded: shapes.rounded
+    mapping:
+      implementation:
+        - src/components/example-button.tsx
+      snapshots:
+        - test/snapshots/example-button.png
+guidance:
+  overview: >-
+    The example design system favors a single accent color on neutral surfaces
+    so that primary actions stay unambiguous.
+  do:
+    - Use the primary color for exactly one action per view.
+  dont:
+    - Do not introduce accent colors outside the declared palette.
 `,
   "examples/strict-spec-driven/harness-session.yaml": `schema: strict-spec-driven/harness-session/v1
 schema_version: 1
@@ -15537,6 +15844,8 @@ var COMMAND_REGISTRATION_ORDER = [
   "verify-spec-mappings",
   "verify-tech-mappings",
   "tech-status",
+  "architecture-generate",
+  "architecture-status",
   "design-generate",
   "design-status",
   "validate-skills",
@@ -27759,19 +28068,16 @@ function runSampleShow(argv) {
   return showKey(normalizeSampleKey(name), usage2);
 }
 
-// src/design.ts
-import { existsSync as existsSync39, mkdirSync as mkdirSync12, readFileSync as readFileSync29, statSync as statSync27, writeFileSync as writeFileSync15 } from "fs";
+// src/architecture.ts
+import { existsSync as existsSync40, readFileSync as readFileSync30, statSync as statSync27 } from "fs";
+import path42 from "path";
+
+// src/document-render.ts
+import { existsSync as existsSync39, mkdirSync as mkdirSync12, readFileSync as readFileSync29, writeFileSync as writeFileSync15 } from "fs";
 import path41 from "path";
 var STRICT_WORKFLOW_DIR13 = ".strict-spec-driven";
-var ARCHITECTURE_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR13}/architecture.yaml`;
-var WORKFLOW_CONFIG_PATH = `${STRICT_WORKFLOW_DIR13}/config.yaml`;
-var SPEC_INDEX_PATH = `${STRICT_WORKFLOW_DIR13}/specs/INDEX.yaml`;
-var TECH_DIR_PATH = `${STRICT_WORKFLOW_DIR13}/tech/`;
-var EXCLUDED_TECH_BASENAMES2 = new Set(["INDEX.yaml"]);
-var DEFAULT_DESIGN_DOCUMENT_PATH = "DESIGN.md";
-var DESIGN_AUTHORING_ENTRY_POINT = "/strict-spec-design";
 
-class DesignSourceError extends Error {
+class DocumentSourceError extends Error {
 }
 function asStringArray2(value) {
   return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
@@ -27791,34 +28097,127 @@ function readYamlIfPresent(absolutePath, artifactPath) {
     return null;
   }
 }
+function renderBulletList(values3) {
+  return values3.map((value) => `- ${value}`);
+}
+function trimTrailingBlankLines(lines) {
+  const result = [...lines];
+  while (result.length > 0 && result[result.length - 1] === "") {
+    result.pop();
+  }
+  return result;
+}
+function blocksToDocument(blocks) {
+  return blocks.map((block) => block.lines.join(`
+`)).join(`
+
+`) + `
+`;
+}
+function splitDocumentIntoBlockTexts(content, blocks) {
+  const lines = content.split(`
+`);
+  const startIndexes = [0];
+  let searchFrom = 0;
+  for (const block of blocks.slice(1)) {
+    const headingIndex = lines.indexOf(block.heading, searchFrom);
+    if (headingIndex === -1)
+      return null;
+    startIndexes.push(headingIndex);
+    searchFrom = headingIndex + 1;
+  }
+  return startIndexes.map((startIndex, position) => {
+    const endIndex = position + 1 < startIndexes.length ? startIndexes[position + 1] : lines.length;
+    return lines.slice(startIndex, endIndex).join(`
+`).replace(/\n+$/, "");
+  });
+}
+function allSources(blocks) {
+  return [...new Set(blocks.flatMap((block) => block.sources))];
+}
+function collectStaleSources(blocks, diskContent) {
+  const diskBlockTexts = splitDocumentIntoBlockTexts(diskContent, blocks);
+  if (!diskBlockTexts) {
+    return allSources(blocks);
+  }
+  const stale = new Set;
+  blocks.forEach((block, index) => {
+    if (block.lines.join(`
+`) === diskBlockTexts[index])
+      return;
+    block.sources.forEach((source) => stale.add(source));
+  });
+  return stale.size > 0 ? [...stale] : allSources(blocks);
+}
+function renderBlocksToDocument(rootDir, blocks, options) {
+  const content = blocksToDocument(blocks);
+  const sources = allSources(blocks);
+  const relativeOutputPath = (options.outputPath ?? options.defaultOutputPath).replaceAll("\\", "/");
+  if (path41.isAbsolute(relativeOutputPath)) {
+    throw new DocumentSourceError(`${options.documentLabel} output path must be repo-relative, got '${relativeOutputPath}'`);
+  }
+  const absoluteOutputPath = path41.resolve(rootDir, relativeOutputPath);
+  const normalizedOutputPath = normalizeRepoRelativePath4(rootDir, absoluteOutputPath);
+  if (normalizedOutputPath === ".." || normalizedOutputPath.startsWith("../")) {
+    throw new DocumentSourceError(`${options.documentLabel} output path cannot traverse outside the repository, got '${relativeOutputPath}'`);
+  }
+  if (options.check) {
+    const base = { outputPath: normalizedOutputPath, mode: "check", written: false, sources };
+    if (!existsSync39(absoluteOutputPath)) {
+      return { ...base, documentExists: false, current: false, staleSources: sources };
+    }
+    const diskContent = readFileSync29(absoluteOutputPath, "utf8");
+    if (diskContent === content) {
+      return { ...base, documentExists: true, current: true, staleSources: [] };
+    }
+    return { ...base, documentExists: true, current: false, staleSources: collectStaleSources(blocks, diskContent) };
+  }
+  mkdirSync12(path41.dirname(absoluteOutputPath), { recursive: true });
+  writeFileSync15(absoluteOutputPath, content, "utf8");
+  return {
+    outputPath: normalizedOutputPath,
+    mode: "write",
+    written: true,
+    documentExists: true,
+    current: true,
+    sources,
+    staleSources: []
+  };
+}
+
+// src/architecture.ts
+var ARCHITECTURE_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR13}/architecture.yaml`;
+var WORKFLOW_CONFIG_PATH = `${STRICT_WORKFLOW_DIR13}/config.yaml`;
+var SPEC_INDEX_PATH = `${STRICT_WORKFLOW_DIR13}/specs/INDEX.yaml`;
+var TECH_DIR_PATH = `${STRICT_WORKFLOW_DIR13}/tech/`;
+var EXCLUDED_TECH_BASENAMES2 = new Set(["INDEX.yaml"]);
+var DEFAULT_ARCHITECTURE_DOCUMENT_PATH = "ARCHITECTURE.md";
+var ARCHITECTURE_AUTHORING_ENTRY_POINT = "/strict-spec-architecture";
 function getArchitectureArtifactPath(rootDir) {
-  return path41.join(rootDir, STRICT_WORKFLOW_DIR13, "architecture.yaml");
+  return path42.join(rootDir, STRICT_WORKFLOW_DIR13, "architecture.yaml");
 }
 function loadArchitectureArtifact(rootDir) {
   const absolutePath = getArchitectureArtifactPath(rootDir);
-  if (!existsSync39(absolutePath)) {
-    throw new DesignSourceError(`architecture artifact is missing: ${ARCHITECTURE_ARTIFACT_PATH}; run ${DESIGN_AUTHORING_ENTRY_POINT} to author it`);
+  if (!existsSync40(absolutePath)) {
+    throw new DocumentSourceError(`architecture artifact is missing: ${ARCHITECTURE_ARTIFACT_PATH}; run ${ARCHITECTURE_AUTHORING_ENTRY_POINT} to author it`);
   }
   let artifact;
   try {
-    artifact = parseYamlDocument(readFileSync29(absolutePath, "utf8"), { source: ARCHITECTURE_ARTIFACT_PATH });
+    artifact = parseYamlDocument(readFileSync30(absolutePath, "utf8"), { source: ARCHITECTURE_ARTIFACT_PATH });
   } catch (error) {
-    throw new DesignSourceError(`architecture artifact is not valid YAML: ${ARCHITECTURE_ARTIFACT_PATH}: ${error instanceof Error ? error.message : String(error)}`);
+    throw new DocumentSourceError(`architecture artifact is not valid YAML: ${ARCHITECTURE_ARTIFACT_PATH}: ${error instanceof Error ? error.message : String(error)}`);
   }
   const schema2 = loadBundledSchemaByArtifactType("architecture");
   const result = validateArtifact(schema2, artifact, ARCHITECTURE_ARTIFACT_PATH);
   return { artifact: artifact ?? {}, diagnostics: result.diagnostics };
 }
 function listTechFiles2(techDir) {
-  if (!existsSync39(techDir) || !statSync27(techDir).isDirectory())
+  if (!existsSync40(techDir) || !statSync27(techDir).isDirectory())
     return [];
   return listFilesRecursive(techDir).filter((filePath) => {
-    const basename = path41.basename(filePath);
+    const basename = path42.basename(filePath);
     return basename.endsWith(".yaml") && !EXCLUDED_TECH_BASENAMES2.has(basename);
   }).sort();
-}
-function renderBulletList(values3) {
-  return values3.map((value) => `- ${value}`);
 }
 function renderHeaderBlock(artifact) {
   const title = asText(artifact.architecture?.title) || "Project Architecture";
@@ -27830,7 +28229,7 @@ function renderHeaderBlock(artifact) {
       `# ${title}`,
       "",
       "> **Generated file — do not edit by hand.**",
-      "> Rendered by `strict-spec-cli design-generate` from these source artifacts:",
+      "> Rendered by `strict-spec-cli architecture-generate` from these source artifacts:",
       `> - \`${ARCHITECTURE_ARTIFACT_PATH}\``,
       `> - \`${WORKFLOW_CONFIG_PATH}\``,
       `> - \`${SPEC_INDEX_PATH}\``,
@@ -27841,7 +28240,7 @@ function renderHeaderBlock(artifact) {
   };
 }
 function renderOverviewBlock(rootDir) {
-  const config = readYamlIfPresent(path41.join(rootDir, STRICT_WORKFLOW_DIR13, "config.yaml"), WORKFLOW_CONFIG_PATH);
+  const config = readYamlIfPresent(path42.join(rootDir, STRICT_WORKFLOW_DIR13, "config.yaml"), WORKFLOW_CONFIG_PATH);
   const context = asText(config?.context);
   return {
     id: "overview",
@@ -27926,7 +28325,7 @@ function renderDecisionsBlock(artifact) {
   };
 }
 function renderSpecificationSurfaceBlock(rootDir) {
-  const index = readYamlIfPresent(path41.join(rootDir, STRICT_WORKFLOW_DIR13, "specs", "INDEX.yaml"), SPEC_INDEX_PATH);
+  const index = readYamlIfPresent(path42.join(rootDir, STRICT_WORKFLOW_DIR13, "specs", "INDEX.yaml"), SPEC_INDEX_PATH);
   const rawSpecs = index?.specs;
   const specs = Array.isArray(rawSpecs) ? rawSpecs : [];
   const lines = [
@@ -27950,7 +28349,7 @@ function renderSpecificationSurfaceBlock(rootDir) {
     const specId = asText(spec.id);
     const specPath = asText(spec.path);
     const specTitle = asText(spec.title) || specId;
-    const mainSpec = specPath ? readYamlIfPresent(path41.join(rootDir, specPath), specPath) : null;
+    const mainSpec = specPath ? readYamlIfPresent(path42.join(rootDir, specPath), specPath) : null;
     const requirementCount = mainSpec ? Object.keys(asRecord2(mainSpec.requirements)).length : null;
     const mapping = asRecord2(mainSpec?.mapping);
     const implementationCount = mainSpec ? asStringArray2(mapping.implementation).length : null;
@@ -27966,7 +28365,7 @@ function renderSpecificationSurfaceBlock(rootDir) {
   };
 }
 function renderTechnicalStandardsBlock(rootDir) {
-  const techFiles = listTechFiles2(path41.join(rootDir, STRICT_WORKFLOW_DIR13, "tech"));
+  const techFiles = listTechFiles2(path42.join(rootDir, STRICT_WORKFLOW_DIR13, "tech"));
   const lines = [
     "## Technical Standards",
     "",
@@ -28005,14 +28404,7 @@ function renderTechnicalStandardsBlock(rootDir) {
     lines: trimTrailingBlankLines(lines)
   };
 }
-function trimTrailingBlankLines(lines) {
-  const result = [...lines];
-  while (result.length > 0 && result[result.length - 1] === "") {
-    result.pop();
-  }
-  return result;
-}
-function buildDesignBlocks(rootDir, artifact) {
+function buildArchitectureBlocks(rootDir, artifact) {
   return [
     renderHeaderBlock(artifact),
     renderOverviewBlock(rootDir),
@@ -28023,97 +28415,28 @@ function buildDesignBlocks(rootDir, artifact) {
     renderTechnicalStandardsBlock(rootDir)
   ];
 }
-function blocksToDocument(blocks) {
-  return blocks.map((block) => block.lines.join(`
-`)).join(`
-
-`) + `
-`;
-}
-function splitDocumentIntoBlockTexts(content, blocks) {
-  const lines = content.split(`
-`);
-  const startIndexes = [0];
-  let searchFrom = 0;
-  for (const block of blocks.slice(1)) {
-    const headingIndex = lines.indexOf(block.heading, searchFrom);
-    if (headingIndex === -1)
-      return null;
-    startIndexes.push(headingIndex);
-    searchFrom = headingIndex + 1;
-  }
-  return startIndexes.map((startIndex, position) => {
-    const endIndex = position + 1 < startIndexes.length ? startIndexes[position + 1] : lines.length;
-    return lines.slice(startIndex, endIndex).join(`
-`).replace(/\n+$/, "");
-  });
-}
-function allSources(blocks) {
-  return [...new Set(blocks.flatMap((block) => block.sources))];
-}
-function collectStaleSources(blocks, diskContent) {
-  const diskBlockTexts = splitDocumentIntoBlockTexts(diskContent, blocks);
-  if (!diskBlockTexts) {
-    return allSources(blocks);
-  }
-  const stale = new Set;
-  blocks.forEach((block, index) => {
-    if (block.lines.join(`
-`) === diskBlockTexts[index])
-      return;
-    block.sources.forEach((source) => stale.add(source));
-  });
-  return stale.size > 0 ? [...stale] : allSources(blocks);
-}
-function generateDesignDocument(rootDir, options = {}) {
+function generateArchitectureDocument(rootDir, options = {}) {
   const { artifact, diagnostics } = loadArchitectureArtifact(rootDir);
   if (diagnostics.length > 0) {
     const details = diagnostics.map((diagnostic) => `${diagnostic.fieldPath}: ${diagnostic.message}`).join("; ");
-    throw new DesignSourceError(`architecture artifact does not validate: ${ARCHITECTURE_ARTIFACT_PATH}: ${details}`);
+    throw new DocumentSourceError(`architecture artifact does not validate: ${ARCHITECTURE_ARTIFACT_PATH}: ${details}`);
   }
-  const blocks = buildDesignBlocks(rootDir, artifact);
-  const content = blocksToDocument(blocks);
-  const sources = allSources(blocks);
-  const relativeOutputPath = (options.outputPath ?? DEFAULT_DESIGN_DOCUMENT_PATH).replaceAll("\\", "/");
-  if (path41.isAbsolute(relativeOutputPath)) {
-    throw new DesignSourceError(`design document output path must be repo-relative, got '${relativeOutputPath}'`);
-  }
-  const absoluteOutputPath = path41.resolve(rootDir, relativeOutputPath);
-  const normalizedOutputPath = normalizeRepoRelativePath4(rootDir, absoluteOutputPath);
-  if (normalizedOutputPath === ".." || normalizedOutputPath.startsWith("../")) {
-    throw new DesignSourceError(`design document output path cannot traverse outside the repository, got '${relativeOutputPath}'`);
-  }
-  if (options.check) {
-    const base = { outputPath: normalizedOutputPath, mode: "check", written: false, sources };
-    if (!existsSync39(absoluteOutputPath)) {
-      return { ...base, documentExists: false, current: false, staleSources: sources };
-    }
-    const diskContent = readFileSync29(absoluteOutputPath, "utf8");
-    if (diskContent === content) {
-      return { ...base, documentExists: true, current: true, staleSources: [] };
-    }
-    return { ...base, documentExists: true, current: false, staleSources: collectStaleSources(blocks, diskContent) };
-  }
-  mkdirSync12(path41.dirname(absoluteOutputPath), { recursive: true });
-  writeFileSync15(absoluteOutputPath, content, "utf8");
-  return {
-    outputPath: normalizedOutputPath,
-    mode: "write",
-    written: true,
-    documentExists: true,
-    current: true,
-    sources,
-    staleSources: []
-  };
+  const blocks = buildArchitectureBlocks(rootDir, artifact);
+  return renderBlocksToDocument(rootDir, blocks, {
+    check: options.check,
+    outputPath: options.outputPath,
+    defaultOutputPath: DEFAULT_ARCHITECTURE_DOCUMENT_PATH,
+    documentLabel: "architecture document"
+  });
 }
-function getDesignStatus(rootDir) {
+function getArchitectureStatus(rootDir) {
   const { artifact, diagnostics } = loadArchitectureArtifact(rootDir);
   const components = asRecord2(artifact.components);
   const mappingDrift = [];
   for (const [componentId, rawComponent] of Object.entries(components)) {
     const implementation = asStringArray2(asRecord2(asRecord2(rawComponent).mapping).implementation);
     for (const mappedPath of implementation) {
-      if (!existsSync39(path41.join(rootDir, mappedPath))) {
+      if (!existsSync40(path42.join(rootDir, mappedPath))) {
         mappingDrift.push({ component: componentId, path: mappedPath });
       }
     }
@@ -28130,41 +28453,295 @@ function getDesignStatus(rootDir) {
   };
 }
 
-// src/cli/cmd-design.ts
-function parseDesignGenerateArgs(argv) {
-  const parsed = { check: false };
-  for (let index = 0;index < argv.length; index += 1) {
-    const token = argv[index];
-    if (token === "--check") {
-      if (parsed.check)
-        return null;
-      parsed.check = true;
-      continue;
-    }
-    if (token === "--output") {
-      const value = argv[index + 1];
-      if (parsed.outputPath !== undefined || value === undefined || value.startsWith("--"))
-        return null;
-      parsed.outputPath = value;
-      index += 1;
-      continue;
-    }
-    if (token.startsWith("--output=")) {
-      const value = token.slice("--output=".length);
-      if (parsed.outputPath !== undefined || value.length === 0)
-        return null;
-      parsed.outputPath = value;
-      continue;
-    }
-    return null;
+// src/cli/cmd-architecture.ts
+function runArchitectureGenerate(argv) {
+  if (handleHelpRequest("architecture-generate", argv)) {
+    return 0;
   }
-  return parsed;
+  const parsed = parseDocumentGenerateArgs(argv);
+  if (!parsed) {
+    writeUsage(getCommandUsage("architecture-generate"));
+    return 1;
+  }
+  try {
+    const result = generateArchitectureDocument(process.cwd(), { check: parsed.check, outputPath: parsed.outputPath });
+    writeJson(result);
+    if (result.current) {
+      return 0;
+    }
+    if (!result.documentExists) {
+      writeError(`architecture document is missing: ${result.outputPath}; run architecture-generate to render it`);
+      return 1;
+    }
+    writeError(`architecture document is stale: ${result.outputPath}; re-render it after changing ${result.staleSources.join(", ")}`);
+    return 1;
+  } catch (error) {
+    if (error instanceof DocumentSourceError) {
+      writeError(error.message);
+      return 1;
+    }
+    writeError(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
 }
+function runArchitectureStatus(argv) {
+  if (handleHelpRequest("architecture-status", argv)) {
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(getCommandUsage("architecture-status"));
+    return 1;
+  }
+  try {
+    const result = getArchitectureStatus(process.cwd());
+    writeJson(result);
+    return result.valid ? 0 : 1;
+  } catch (error) {
+    if (error instanceof DocumentSourceError) {
+      writeError(error.message);
+      return 1;
+    }
+    writeError(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
+
+// src/design-system.ts
+import { existsSync as existsSync41, readFileSync as readFileSync31 } from "fs";
+import path43 from "path";
+var DESIGN_SYSTEM_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR13}/design-system.yaml`;
+var DEFAULT_DESIGN_DOCUMENT_PATH = "DESIGN.md";
+var DESIGN_AUTHORING_ENTRY_POINT = "/strict-spec-design";
+var TOKEN_GROUPS = [
+  { key: "colors", heading: "## Colors" },
+  { key: "typography", heading: "## Typography" },
+  { key: "layout", heading: "## Layout" },
+  { key: "elevation", heading: "## Elevation & Depth" },
+  { key: "shapes", heading: "## Shapes" }
+];
+function getDesignSystemArtifactPath(rootDir) {
+  return path43.join(rootDir, STRICT_WORKFLOW_DIR13, "design-system.yaml");
+}
+function loadDesignSystemArtifact(rootDir) {
+  const absolutePath = getDesignSystemArtifactPath(rootDir);
+  if (!existsSync41(absolutePath)) {
+    throw new DocumentSourceError(`design-system artifact is missing: ${DESIGN_SYSTEM_ARTIFACT_PATH}; run ${DESIGN_AUTHORING_ENTRY_POINT} to author it`);
+  }
+  let artifact;
+  try {
+    artifact = parseYamlDocument(readFileSync31(absolutePath, "utf8"), { source: DESIGN_SYSTEM_ARTIFACT_PATH });
+  } catch (error) {
+    throw new DocumentSourceError(`design-system artifact is not valid YAML: ${DESIGN_SYSTEM_ARTIFACT_PATH}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  const schema2 = loadBundledSchemaByArtifactType("design_system");
+  const result = validateArtifact(schema2, artifact, DESIGN_SYSTEM_ARTIFACT_PATH);
+  return { artifact: artifact ?? {}, diagnostics: result.diagnostics };
+}
+function declaredTokenGroups(artifact) {
+  const tokens = asRecord2(artifact.tokens);
+  return TOKEN_GROUPS.map((group) => ({
+    key: group.key,
+    heading: group.heading,
+    entries: asRecord2(tokens[group.key])
+  })).filter((group) => Object.keys(group.entries).length > 0);
+}
+function renderHeaderBlock2(artifact) {
+  const title = asText(artifact.design_system?.title) || "Design System";
+  const groups = declaredTokenGroups(artifact);
+  const frontMatter = {};
+  for (const group of groups) {
+    frontMatter[group.key] = group.entries;
+  }
+  const frontMatterLines = groups.length > 0 ? stringifyYamlDocument(frontMatter).replace(/\n+$/, "").split(`
+`) : [];
+  return {
+    id: "header",
+    heading: null,
+    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
+    lines: [
+      "---",
+      ...frontMatterLines,
+      "---",
+      "",
+      `# ${title}`,
+      "",
+      "> **Generated file — do not edit by hand.**",
+      "> Rendered by `strict-spec-cli design-generate` from these source artifacts:",
+      `> - \`${DESIGN_SYSTEM_ARTIFACT_PATH}\``,
+      ">",
+      "> Change the sources and re-render; edits made here are discarded by the next render."
+    ]
+  };
+}
+function renderOverviewBlock2(artifact) {
+  const overview = asText(artifact.guidance?.overview);
+  return {
+    id: "overview",
+    heading: "## Overview",
+    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
+    lines: [
+      "## Overview",
+      "",
+      ...overview ? overview.split(`
+`).map((line) => line.trimEnd()) : [`_No design overview is recorded in \`${DESIGN_SYSTEM_ARTIFACT_PATH}\`._`]
+    ]
+  };
+}
+function renderScalarTokenBlock(groupKey, heading, entries) {
+  const lines = [heading, "", "| Token | Value |", "| --- | --- |"];
+  for (const [tokenId, value] of Object.entries(entries)) {
+    lines.push(`| \`${tokenId}\` | \`${String(value)}\` |`);
+  }
+  return {
+    id: `tokens-${groupKey}`,
+    heading,
+    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
+    lines: trimTrailingBlankLines(lines)
+  };
+}
+function renderTypographyBlock(heading, entries) {
+  const lines = [heading, ""];
+  for (const [tokenId, rawValue] of Object.entries(entries)) {
+    const value = asRecord2(rawValue);
+    lines.push(`### \`${tokenId}\``, "");
+    for (const [field, fieldValue] of Object.entries(value)) {
+      lines.push(`- **${field}:** \`${String(fieldValue)}\``);
+    }
+    lines.push("");
+  }
+  return {
+    id: "tokens-typography",
+    heading,
+    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
+    lines: trimTrailingBlankLines(lines)
+  };
+}
+function renderComponentsBlock2(artifact) {
+  const components = asRecord2(artifact.components);
+  const lines = ["## Components", ""];
+  if (Object.keys(components).length === 0) {
+    lines.push(`_No components are declared in \`${DESIGN_SYSTEM_ARTIFACT_PATH}\`._`);
+  }
+  for (const [componentId, rawComponent] of Object.entries(components)) {
+    const component = asRecord2(rawComponent);
+    lines.push(`### ${asText(component.title) || componentId} (\`${componentId}\`)`, "");
+    const description = asText(component.description);
+    if (description) {
+      lines.push(description, "");
+    }
+    const componentTokens = asRecord2(component.tokens);
+    if (Object.keys(componentTokens).length > 0) {
+      lines.push("| Property | Token |", "| --- | --- |");
+      for (const [property, token] of Object.entries(componentTokens)) {
+        lines.push(`| \`${property}\` | \`${String(token)}\` |`);
+      }
+      lines.push("");
+    }
+    const mapping = asRecord2(component.mapping);
+    const implementation = asStringArray2(mapping.implementation);
+    if (implementation.length > 0) {
+      lines.push("**Implementation**", "", ...renderBulletList(implementation.map((value) => `\`${value}\``)), "");
+    }
+    const snapshots = asStringArray2(mapping.snapshots);
+    if (snapshots.length > 0) {
+      lines.push("**Visual regression snapshots**", "", ...renderBulletList(snapshots.map((value) => `\`${value}\``)), "");
+    }
+  }
+  return {
+    id: "components",
+    heading: "## Components",
+    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
+    lines: trimTrailingBlankLines(lines)
+  };
+}
+function renderGuidanceBlock(artifact) {
+  const dos = asStringArray2(artifact.guidance?.do);
+  const donts = asStringArray2(artifact.guidance?.dont);
+  const lines = ["## Do's and Don'ts", ""];
+  if (dos.length === 0 && donts.length === 0) {
+    lines.push(`_No design guidance is declared in \`${DESIGN_SYSTEM_ARTIFACT_PATH}\`._`);
+  }
+  if (dos.length > 0) {
+    lines.push("**Do**", "", ...renderBulletList(dos), "");
+  }
+  if (donts.length > 0) {
+    lines.push("**Don't**", "", ...renderBulletList(donts), "");
+  }
+  return {
+    id: "guidance",
+    heading: "## Do's and Don'ts",
+    sources: [DESIGN_SYSTEM_ARTIFACT_PATH],
+    lines: trimTrailingBlankLines(lines)
+  };
+}
+function buildDesignSystemBlocks(artifact) {
+  const blocks = [renderHeaderBlock2(artifact), renderOverviewBlock2(artifact)];
+  for (const group of declaredTokenGroups(artifact)) {
+    blocks.push(group.key === "typography" ? renderTypographyBlock(group.heading, group.entries) : renderScalarTokenBlock(group.key, group.heading, group.entries));
+  }
+  blocks.push(renderComponentsBlock2(artifact), renderGuidanceBlock(artifact));
+  return blocks;
+}
+function generateDesignDocument(rootDir, options = {}) {
+  const { artifact, diagnostics } = loadDesignSystemArtifact(rootDir);
+  if (diagnostics.length > 0) {
+    const details = diagnostics.map((diagnostic) => `${diagnostic.fieldPath}: ${diagnostic.message}`).join("; ");
+    throw new DocumentSourceError(`design-system artifact does not validate: ${DESIGN_SYSTEM_ARTIFACT_PATH}: ${details}`);
+  }
+  const blocks = buildDesignSystemBlocks(artifact);
+  return renderBlocksToDocument(rootDir, blocks, {
+    check: options.check,
+    outputPath: options.outputPath,
+    defaultOutputPath: DEFAULT_DESIGN_DOCUMENT_PATH,
+    documentLabel: "design document"
+  });
+}
+function getDesignSystemStatus(rootDir) {
+  const { artifact, diagnostics } = loadDesignSystemArtifact(rootDir);
+  const tokens = asRecord2(artifact.tokens);
+  const components = asRecord2(artifact.components);
+  const mappingDrift = [];
+  let tokenCount = 0;
+  let tokenGroupCount = 0;
+  for (const group of TOKEN_GROUPS) {
+    const entries = asRecord2(tokens[group.key]);
+    const entryCount = Object.keys(entries).length;
+    if (entryCount === 0)
+      continue;
+    tokenGroupCount += 1;
+    tokenCount += entryCount;
+  }
+  for (const [componentId, rawComponent] of Object.entries(components)) {
+    const mapping = asRecord2(asRecord2(rawComponent).mapping);
+    for (const mappedPath of asStringArray2(mapping.implementation)) {
+      if (!existsSync41(path43.join(rootDir, mappedPath))) {
+        mappingDrift.push({ component: componentId, path: mappedPath, kind: "implementation" });
+      }
+    }
+    for (const snapshotPath of asStringArray2(mapping.snapshots)) {
+      if (!existsSync41(path43.join(rootDir, snapshotPath))) {
+        mappingDrift.push({ component: componentId, path: snapshotPath, kind: "snapshot" });
+      }
+    }
+  }
+  return {
+    artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH,
+    exists: true,
+    valid: diagnostics.length === 0,
+    diagnostics,
+    tokenGroupCount,
+    tokenCount,
+    componentCount: Object.keys(components).length,
+    mappingDrift
+  };
+}
+
+// src/cli/cmd-design.ts
 function runDesignGenerate(argv) {
   if (handleHelpRequest("design-generate", argv)) {
     return 0;
   }
-  const parsed = parseDesignGenerateArgs(argv);
+  const parsed = parseDocumentGenerateArgs(argv);
   if (!parsed) {
     writeUsage(getCommandUsage("design-generate"));
     return 1;
@@ -28182,7 +28759,7 @@ function runDesignGenerate(argv) {
     writeError(`design document is stale: ${result.outputPath}; re-render it after changing ${result.staleSources.join(", ")}`);
     return 1;
   } catch (error) {
-    if (error instanceof DesignSourceError) {
+    if (error instanceof DocumentSourceError) {
       writeError(error.message);
       return 1;
     }
@@ -28199,11 +28776,11 @@ function runDesignStatus(argv) {
     return 1;
   }
   try {
-    const result = getDesignStatus(process.cwd());
+    const result = getDesignSystemStatus(process.cwd());
     writeJson(result);
     return result.valid ? 0 : 1;
   } catch (error) {
-    if (error instanceof DesignSourceError) {
+    if (error instanceof DocumentSourceError) {
       writeError(error.message);
       return 1;
     }
@@ -28213,9 +28790,9 @@ function runDesignStatus(argv) {
 }
 
 // src/harness.ts
-import { closeSync, existsSync as existsSync40, mkdirSync as mkdirSync13, openSync, readFileSync as readFileSync30, renameSync as renameSync4, rmSync as rmSync5, statSync as statSync28, writeFileSync as writeFileSync16, appendFileSync } from "fs";
+import { closeSync, existsSync as existsSync42, mkdirSync as mkdirSync13, openSync, readFileSync as readFileSync32, renameSync as renameSync4, rmSync as rmSync5, statSync as statSync28, writeFileSync as writeFileSync16, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
-import path42 from "path";
+import path44 from "path";
 var HARNESS_DECLARATION_PATH = ".strict-spec-driven/harness.yaml";
 var HARNESS_RUNTIME_DIR = ".strict-spec-driven/.runtime/harness";
 var HARNESS_RUNTIME_STATE_PATH = `${HARNESS_RUNTIME_DIR}/state.json`;
@@ -28269,9 +28846,9 @@ function yamlDiagnosticFromError(artifactPath, error) {
   };
 }
 function getRuntimePaths(rootDir) {
-  const absoluteRuntimeDir = path42.join(rootDir, HARNESS_RUNTIME_DIR);
-  const absoluteLogsDir = path42.join(rootDir, HARNESS_LOGS_DIR);
-  const absoluteStatePath = path42.join(rootDir, HARNESS_RUNTIME_STATE_PATH);
+  const absoluteRuntimeDir = path44.join(rootDir, HARNESS_RUNTIME_DIR);
+  const absoluteLogsDir = path44.join(rootDir, HARNESS_LOGS_DIR);
+  const absoluteStatePath = path44.join(rootDir, HARNESS_RUNTIME_STATE_PATH);
   return {
     absoluteRuntimeDir,
     absoluteLogsDir,
@@ -28303,10 +28880,10 @@ function isProcessAlive(pid) {
 }
 function readRuntimeState(rootDir) {
   const paths = getRuntimePaths(rootDir);
-  if (!existsSync40(paths.absoluteStatePath))
+  if (!existsSync42(paths.absoluteStatePath))
     return { ok: true, state: null };
   try {
-    const state = JSON.parse(readFileSync30(paths.absoluteStatePath, "utf8"));
+    const state = JSON.parse(readFileSync32(paths.absoluteStatePath, "utf8"));
     if (typeof state !== "object" || state === null || state.version !== 1 || typeof state.artifactPath !== "string" || typeof state.harnessId !== "string" || typeof state.environmentId !== "string" || !Array.isArray(state.componentOrder) || typeof state.components !== "object" || state.components === null) {
       return {
         ok: false,
@@ -28497,20 +29074,20 @@ function assertOperationAllowed(artifactPath, environment, component, operationN
   return null;
 }
 function readJsonFile(filePath) {
-  if (!existsSync40(filePath))
+  if (!existsSync42(filePath))
     return null;
   try {
-    return JSON.parse(readFileSync30(filePath, "utf8"));
+    return JSON.parse(readFileSync32(filePath, "utf8"));
   } catch {
     return null;
   }
 }
 function detectPackageRunner(rootDir) {
-  if (existsSync40(path42.join(rootDir, "bun.lock")) || existsSync40(path42.join(rootDir, "bun.lockb")))
+  if (existsSync42(path44.join(rootDir, "bun.lock")) || existsSync42(path44.join(rootDir, "bun.lockb")))
     return "bun run";
-  if (existsSync40(path42.join(rootDir, "pnpm-lock.yaml")))
+  if (existsSync42(path44.join(rootDir, "pnpm-lock.yaml")))
     return "pnpm run";
-  if (existsSync40(path42.join(rootDir, "yarn.lock")))
+  if (existsSync42(path44.join(rootDir, "yarn.lock")))
     return "yarn";
   return "npm run";
 }
@@ -28556,11 +29133,11 @@ function readEnvSampleNames(rootDir) {
   const names = new Set;
   const evidence = [];
   for (const relativePath of ENV_SAMPLE_FILES) {
-    const absolutePath = path42.join(rootDir, relativePath);
-    if (!existsSync40(absolutePath))
+    const absolutePath = path44.join(rootDir, relativePath);
+    if (!existsSync42(absolutePath))
       continue;
     evidence.push(relativePath);
-    for (const line of readFileSync30(absolutePath, "utf8").split(/\r?\n/)) {
+    for (const line of readFileSync32(absolutePath, "utf8").split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#"))
         continue;
@@ -28614,7 +29191,7 @@ function inferComposePort(service) {
   return null;
 }
 function detectPackageScriptSignal(rootDir, packageJson, scripts) {
-  if (!existsSync40(path42.join(rootDir, "package.json"))) {
+  if (!existsSync42(path44.join(rootDir, "package.json"))) {
     return { candidate: null, evidence: [] };
   }
   const preferredScript = PACKAGE_SCRIPT_NAMES.find((name) => scripts[name] !== undefined);
@@ -28640,11 +29217,11 @@ function detectPackageScriptSignal(rootDir, packageJson, scripts) {
 function detectComposeServiceSignal(rootDir) {
   const evidence = [];
   for (const relativePath of COMPOSE_FILES) {
-    const absolutePath = path42.join(rootDir, relativePath);
-    if (!existsSync40(absolutePath))
+    const absolutePath = path44.join(rootDir, relativePath);
+    if (!existsSync42(absolutePath))
       continue;
     try {
-      const compose = parseYamlDocument(readFileSync30(absolutePath, "utf8"), { source: relativePath });
+      const compose = parseYamlDocument(readFileSync32(absolutePath, "utf8"), { source: relativePath });
       const services = isRecord5(compose) && isRecord5(compose.services) ? Object.entries(compose.services).filter((entry) => isRecord5(entry[1])) : [];
       const eligible = services.filter(([, service2]) => ("build" in service2) || readStringOrStringArray(service2.command) !== undefined);
       if (eligible.length === 0) {
@@ -28670,11 +29247,11 @@ function detectComposeServiceSignal(rootDir) {
   return { candidate: null, evidence };
 }
 function detectProcfileSignal(rootDir, packageJson) {
-  const procfilePath = path42.join(rootDir, "Procfile");
-  if (!existsSync40(procfilePath)) {
+  const procfilePath = path44.join(rootDir, "Procfile");
+  if (!existsSync42(procfilePath)) {
     return { candidate: null, evidence: [] };
   }
-  const entries = readFileSync30(procfilePath, "utf8").split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0 && !line.startsWith("#")).map((line) => line.match(/^([A-Za-z0-9_-]+):\s*(.+)$/)).filter((match) => match !== null).map((match) => ({ name: match[1], command: match[2].trim() })).filter((entry) => entry.command.length > 0);
+  const entries = readFileSync32(procfilePath, "utf8").split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0 && !line.startsWith("#")).map((line) => line.match(/^([A-Za-z0-9_-]+):\s*(.+)$/)).filter((match) => match !== null).map((match) => ({ name: match[1], command: match[2].trim() })).filter((entry) => entry.command.length > 0);
   const eligible = entries.filter((entry) => !PROCFILE_EXCLUDED_PROCESS_NAMES.has(entry.name.toLowerCase()));
   if (eligible.length === 0) {
     return {
@@ -28696,11 +29273,11 @@ function detectProcfileSignal(rootDir, packageJson) {
   };
 }
 function detectMakefileSignal(rootDir) {
-  const makefilePath = path42.join(rootDir, "Makefile");
-  if (!existsSync40(makefilePath)) {
+  const makefilePath = path44.join(rootDir, "Makefile");
+  if (!existsSync42(makefilePath)) {
     return { candidate: null, evidence: [] };
   }
-  const target = readFileSync30(makefilePath, "utf8").split(/\r?\n/).map((line) => line.match(/^([A-Za-z0-9_.-]+)\s*:(?![=])/)).find((match) => match !== null && !match[1].startsWith(".") && MAKEFILE_TARGET_NAMES.has(match[1]));
+  const target = readFileSync32(makefilePath, "utf8").split(/\r?\n/).map((line) => line.match(/^([A-Za-z0-9_.-]+)\s*:(?![=])/)).find((match) => match !== null && !match[1].startsWith(".") && MAKEFILE_TARGET_NAMES.has(match[1]));
   if (!target) {
     return {
       candidate: null,
@@ -28736,7 +29313,7 @@ function detectHarnessInferenceSignal(rootDir, packageJson, scripts) {
   return { signal: null, evidence };
 }
 function buildInferredHarness(rootDir) {
-  const packageJson = readJsonFile(path42.join(rootDir, "package.json"));
+  const packageJson = readJsonFile(path44.join(rootDir, "package.json"));
   const scripts = getPackageScripts(packageJson);
   const envSamples = readEnvSampleNames(rootDir);
   const inference = detectHarnessInferenceSignal(rootDir, packageJson, scripts);
@@ -28757,7 +29334,7 @@ function buildInferredHarness(rootDir) {
       artifact_type: "harness",
       schema_file: "templates/strict-spec-driven/schemas/harness.yaml",
       harness: {
-        id: path42.basename(rootDir).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "default",
+        id: path44.basename(rootDir).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "default",
         description: "AI-assisted draft inferred from repository metadata. Review commands and safety policy before enabling lifecycle scripts.",
         environments: {
           development: {
@@ -28836,7 +29413,7 @@ function buildInferredHarness(rootDir) {
   };
 }
 function inferHarness(rootDir, options = {}) {
-  const absolutePath = path42.join(rootDir, HARNESS_DECLARATION_PATH);
+  const absolutePath = path44.join(rootDir, HARNESS_DECLARATION_PATH);
   const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
   const inferred = buildInferredHarness(rootDir);
   const draft = stringifyYamlDocument(inferred.artifact);
@@ -28846,7 +29423,7 @@ function inferHarness(rootDir, options = {}) {
     return { ok: false, artifactPath, created: false, draft, evidence: inferred.evidence, diagnostics };
   }
   if (options.write) {
-    if (existsSync40(absolutePath) && !options.force) {
+    if (existsSync42(absolutePath) && !options.force) {
       return {
         ok: false,
         artifactPath,
@@ -28859,15 +29436,15 @@ function inferHarness(rootDir, options = {}) {
         })]
       };
     }
-    mkdirSync13(path42.dirname(absolutePath), { recursive: true });
+    mkdirSync13(path44.dirname(absolutePath), { recursive: true });
     writeFileSync16(absolutePath, draft, "utf8");
   }
   return { ok: true, artifactPath, created: options.write ?? false, draft, evidence: inferred.evidence, diagnostics: [] };
 }
 function deriveHarnessPlan(rootDir, environmentId, componentIds = []) {
-  const absolutePath = path42.join(rootDir, HARNESS_DECLARATION_PATH);
+  const absolutePath = path44.join(rootDir, HARNESS_DECLARATION_PATH);
   const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
-  if (!existsSync40(absolutePath)) {
+  if (!existsSync42(absolutePath)) {
     throw new Error("missing-harness");
   }
   const artifact = parseYamlFile(absolutePath);
@@ -28966,7 +29543,7 @@ function normalizeOperation(operation) {
   };
 }
 function getHarnessPlanResult(rootDir, environmentId, componentIds = []) {
-  const artifactPath = normalizeRepoRelativePath4(rootDir, path42.join(rootDir, HARNESS_DECLARATION_PATH));
+  const artifactPath = normalizeRepoRelativePath4(rootDir, path44.join(rootDir, HARNESS_DECLARATION_PATH));
   try {
     return {
       valid: true,
@@ -29129,7 +29706,7 @@ function startHarness(rootDir, options = {}) {
       return { ok: false, artifactPath: planResult.artifactPath, runtimeStatePath: writablePaths.relativeStatePath, harnessId: planResult.harness.id, environmentId: planResult.environment.id, components: summarizeRuntimeState(state), diagnostics };
     }
     const missingEnvironment = getMissingRequiredEnvironment(component);
-    const logAbsolutePath = path42.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
+    const logAbsolutePath = path44.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
     const logPath = normalizeRepoRelativePath4(rootDir, logAbsolutePath);
     if (missingEnvironment.length > 0) {
       const failureReason = formatMissingRequiredEnvironmentFailure(missingEnvironment);
@@ -29189,7 +29766,7 @@ function startHarness(rootDir, options = {}) {
     writeFileSync16(logAbsolutePath, "", "utf8");
     const logDescriptor = openSync(logAbsolutePath, "a");
     const child = spawn(component.operations.start.command ?? "", [], {
-      cwd: path42.join(rootDir, component.workingDirectory),
+      cwd: path44.join(rootDir, component.workingDirectory),
       env: process.env,
       shell: true,
       detached: true,
@@ -29253,7 +29830,7 @@ function getHarnessLogs(rootDir, options = {}) {
   if (record === undefined) {
     return { ok: false, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, diagnostics: [createDiagnostic(runtime.state.artifactPath, "$", "harness-logs received an unknown declared component id", { source: "logs", phase: "logs", componentId, expected: ids.join(", "), actual: componentId })] };
   }
-  const content = readFileSync30(path42.join(rootDir, record.logPath), "utf8");
+  const content = readFileSync32(path44.join(rootDir, record.logPath), "utf8");
   const boundedContent = options.all ? content : takeTailLines(content, options.tailLines ?? DEFAULT_HARNESS_LOG_TAIL_LINES);
   return { ok: true, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, componentId, logPath: record.logPath, content: boundedContent, diagnostics: [] };
 }
@@ -29286,7 +29863,7 @@ function stopHarness(rootDir, options = {}) {
       continue;
     }
     if (record.stopCommand) {
-      const result = spawnSync(record.stopCommand, [], { cwd: path42.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
+      const result = spawnSync(record.stopCommand, [], { cwd: path44.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
       if (result.status !== 0) {
         record.status = "failed";
         record.failureReason = result.stderr.trim() || result.stdout.trim() || "stop command failed";
@@ -29315,13 +29892,13 @@ function addDoctorDiagnostic(diagnostics, artifactPath, fieldPath, message, opti
   diagnostics.push(createDiagnostic(artifactPath, fieldPath, message, options));
 }
 function doctorHarness(rootDir) {
-  const artifactPath = normalizeRepoRelativePath4(rootDir, path42.join(rootDir, HARNESS_DECLARATION_PATH));
+  const artifactPath = normalizeRepoRelativePath4(rootDir, path44.join(rootDir, HARNESS_DECLARATION_PATH));
   const planResult = getHarnessPlanResult(rootDir);
   const diagnostics = [];
   if (!planResult.valid) {
     return { ok: false, artifactPath: planResult.artifactPath, diagnostics: planResult.diagnostics };
   }
-  const absolutePath = path42.join(rootDir, HARNESS_DECLARATION_PATH);
+  const absolutePath = path44.join(rootDir, HARNESS_DECLARATION_PATH);
   const artifact = parseYamlFile(absolutePath);
   const rootEnvSamples = readEnvSampleNames(rootDir);
   const wrapperCheck = verifyHarnessScripts(rootDir);
@@ -29335,8 +29912,8 @@ function doctorHarness(rootDir) {
     }
     const seenPorts = new Map;
     for (const component of environmentPlan.components) {
-      const workingDirectory = path42.join(rootDir, component.workingDirectory);
-      if (!existsSync40(workingDirectory) || !statSync28(workingDirectory).isDirectory()) {
+      const workingDirectory = path44.join(rootDir, component.workingDirectory);
+      if (!existsSync42(workingDirectory) || !statSync28(workingDirectory).isDirectory()) {
         addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.working_directory`, "harness component working directory is missing", {
           source: "filesystem",
           componentId: component.id,
@@ -29344,19 +29921,19 @@ function doctorHarness(rootDir) {
           actual: component.workingDirectory
         });
       }
-      const componentEnvSamples = workingDirectory === rootDir || !existsSync40(workingDirectory) ? { names: [], evidence: [] } : readEnvSampleNames(workingDirectory);
+      const componentEnvSamples = workingDirectory === rootDir || !existsSync42(workingDirectory) ? { names: [], evidence: [] } : readEnvSampleNames(workingDirectory);
       const documentedEnvNames = new Set([...rootEnvSamples.names, ...componentEnvSamples.names]);
       for (const name of component.environment.required) {
         if (!documentedEnvNames.has(name)) {
           let targetPath = ".env.example";
           if (componentEnvSamples.evidence.length > 0) {
-            targetPath = path42.join(component.workingDirectory, componentEnvSamples.evidence[0]);
+            targetPath = path44.join(component.workingDirectory, componentEnvSamples.evidence[0]);
           } else if (rootEnvSamples.evidence.length > 0) {
             targetPath = rootEnvSamples.evidence[0];
           } else if (component.workingDirectory !== ".") {
-            targetPath = path42.join(component.workingDirectory, ".env.example");
+            targetPath = path44.join(component.workingDirectory, ".env.example");
           }
-          const repoRelativeTarget = normalizeRepoRelativePath4(rootDir, path42.resolve(rootDir, targetPath));
+          const repoRelativeTarget = normalizeRepoRelativePath4(rootDir, path44.resolve(rootDir, targetPath));
           const recovery = {
             type: "bootstrap_env",
             description: `Append missing required environment variable ${name} to ${repoRelativeTarget}`,
@@ -29405,7 +29982,7 @@ ${name}=
           continue;
         const scriptName = extractPackageScriptName(operation.command);
         if (scriptName !== null) {
-          const packageJson = readJsonFile(path42.join(workingDirectory, "package.json"));
+          const packageJson = readJsonFile(path44.join(workingDirectory, "package.json"));
           const scripts = getPackageScripts(packageJson);
           if (scripts[scriptName] === undefined) {
             addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.operations.${operationName}.command`, "harness operation references a missing package script", {
@@ -29462,14 +30039,14 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
       continue;
     for (const step of diag.recovery.steps) {
       if (step.action === "write_file") {
-        const absolutePath = path42.resolve(rootDir, step.path);
+        const absolutePath = path44.resolve(rootDir, step.path);
         const mode = step.mode ?? "overwrite";
         const key = `write_file::${absolutePath}::${mode}::${step.content}`;
         if (executedKeys.has(key))
           continue;
         executedKeys.add(key);
-        const dir = path42.dirname(absolutePath);
-        if (!existsSync40(dir)) {
+        const dir = path44.dirname(absolutePath);
+        if (!existsSync42(dir)) {
           mkdirSync13(dir, { recursive: true });
         }
         if (mode === "append") {
@@ -29483,7 +30060,7 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
         if (executedKeys.has(key))
           continue;
         executedKeys.add(key);
-        const cliPath = path42.resolve(process.argv[1]);
+        const cliPath = path44.resolve(process.argv[1]);
         const display = ["strict-spec-cli", ...step.args].join(" ");
         const result = spawnSync(process.execPath, [cliPath, ...step.args], { cwd: rootDir, encoding: "utf8" });
         if (result.error) {
@@ -29522,11 +30099,11 @@ function wrapperContent(scriptName) {
 `);
 }
 function generateHarnessScripts(rootDir) {
-  const scriptsDir = path42.join(rootDir, "scripts");
+  const scriptsDir = path44.join(rootDir, "scripts");
   mkdirSync13(scriptsDir, { recursive: true });
   const created = [];
   for (const scriptName of SCRIPT_NAMES) {
-    const absolutePath = path42.join(scriptsDir, scriptName);
+    const absolutePath = path44.join(scriptsDir, scriptName);
     writeFileSync16(absolutePath, wrapperContent(scriptName), { encoding: "utf8", mode: 493 });
     created.push(normalizeRepoRelativePath4(rootDir, absolutePath));
   }
@@ -29547,8 +30124,8 @@ function verifyHarnessScripts(rootDir) {
   };
   for (const scriptName of SCRIPT_NAMES) {
     const relativePath = `scripts/${scriptName}`;
-    const absolutePath = path42.join(rootDir, relativePath);
-    if (!existsSync40(absolutePath)) {
+    const absolutePath = path44.join(rootDir, relativePath);
+    if (!existsSync42(absolutePath)) {
       diagnostics.push(createDiagnostic(relativePath, "$", "harness script is missing", {
         source: "scripts",
         phase: "scripts",
@@ -29558,7 +30135,7 @@ function verifyHarnessScripts(rootDir) {
       }));
       continue;
     }
-    const content = readFileSync30(absolutePath, "utf8");
+    const content = readFileSync32(absolutePath, "utf8");
     if (content !== wrapperContent(scriptName)) {
       diagnostics.push(createDiagnostic(relativePath, "$", "harness script content does not match generated wrapper", {
         source: "scripts",
@@ -29577,38 +30154,38 @@ function normalizeHarnessSessionPath(rootDir, target) {
   const normalized = target.split("\\").join("/");
   const looksLikePath = normalized.includes("/") || normalized.endsWith(".yaml");
   const repoRelativePath = looksLikePath ? normalized : `${HARNESS_SESSIONS_DIR}/${normalized}/${HARNESS_SESSION_FILE_NAME}`;
-  const absolutePath = path42.resolve(rootDir, repoRelativePath);
+  const absolutePath = path44.resolve(rootDir, repoRelativePath);
   return { artifactPath: normalizeRepoRelativePath4(rootDir, absolutePath), absolutePath };
 }
 function formatLocalDate2(date = new Date) {
   return `${String(date.getFullYear())}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 function buildHarnessSessionArchiveDestination(rootDir, sessionId) {
-  const archiveRoot = path42.join(rootDir, HARNESS_SESSION_ARCHIVE_DIR);
+  const archiveRoot = path44.join(rootDir, HARNESS_SESSION_ARCHIVE_DIR);
   mkdirSync13(archiveRoot, { recursive: true });
   const baseName = `${formatLocalDate2()}-${sessionId}`;
-  let candidate = path42.join(archiveRoot, baseName);
+  let candidate = path44.join(archiveRoot, baseName);
   let sequence = 2;
-  while (existsSync40(candidate)) {
-    candidate = path42.join(archiveRoot, `${baseName}-${sequence}`);
+  while (existsSync42(candidate)) {
+    candidate = path44.join(archiveRoot, `${baseName}-${sequence}`);
     sequence += 1;
   }
   return candidate;
 }
 function isDirectory(filePath) {
-  return existsSync40(filePath) && statSync28(filePath).isDirectory();
+  return existsSync42(filePath) && statSync28(filePath).isDirectory();
 }
 function createHarnessSession(rootDir, sessionId) {
-  const sessionDir = path42.join(rootDir, HARNESS_SESSIONS_DIR, sessionId);
-  const sessionPath = path42.join(sessionDir, HARNESS_SESSION_FILE_NAME);
-  const evidenceDir = path42.join(sessionDir, "evidence");
+  const sessionDir = path44.join(rootDir, HARNESS_SESSIONS_DIR, sessionId);
+  const sessionPath = path44.join(sessionDir, HARNESS_SESSION_FILE_NAME);
+  const evidenceDir = path44.join(sessionDir, "evidence");
   const relativeSessionDir = normalizeRepoRelativePath4(rootDir, sessionDir);
   const relativeSessionPath = normalizeRepoRelativePath4(rootDir, sessionPath);
   const relativeEvidenceDir = normalizeRepoRelativePath4(rootDir, evidenceDir);
   if (!SESSION_ID_PATTERN.test(sessionId) || sessionId === "archive") {
     return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$.harness_session.id", "harness-session id must be kebab-case and not reserved", { expected: "lowercase letters, numbers, hyphens, and not 'archive'", actual: sessionId })] };
   }
-  if (existsSync40(sessionPath) || existsSync40(evidenceDir)) {
+  if (existsSync42(sessionPath) || existsSync42(evidenceDir)) {
     return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$", "harness-session already exists", { expected: "new harness-session directory", actual: relativeSessionDir })] };
   }
   mkdirSync13(evidenceDir, { recursive: true });
@@ -29617,7 +30194,7 @@ function createHarnessSession(rootDir, sessionId) {
 }
 function validateHarnessSession(rootDir, target) {
   const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
-  if (!existsSync40(absolutePath)) {
+  if (!existsSync42(absolutePath)) {
     return { valid: false, artifactPath, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
   }
   let artifact;
@@ -29631,15 +30208,15 @@ function validateHarnessSession(rootDir, target) {
 }
 function archiveHarnessSession(rootDir, target) {
   const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
-  const sourceDir = path42.dirname(absolutePath);
+  const sourceDir = path44.dirname(absolutePath);
   const relativeSourceDir = normalizeRepoRelativePath4(rootDir, sourceDir);
   const missingResult = { ok: false, sessionId: null, sourceDir: relativeSourceDir, sourcePath: artifactPath, archiveDir: null, archivePath: null };
-  if (!existsSync40(absolutePath)) {
+  if (!existsSync42(absolutePath)) {
     return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
   }
-  const activeRoot = path42.resolve(rootDir, HARNESS_SESSIONS_DIR);
-  const sourceParent = path42.dirname(path42.resolve(sourceDir));
-  if (path42.basename(absolutePath) !== HARNESS_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
+  const activeRoot = path44.resolve(rootDir, HARNESS_SESSIONS_DIR);
+  const sourceParent = path44.dirname(path44.resolve(sourceDir));
+  if (path44.basename(absolutePath) !== HARNESS_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
     return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session archive target must be an active session.yaml artifact", { expected: `${HARNESS_SESSIONS_DIR}/<session-id>/${HARNESS_SESSION_FILE_NAME}`, actual: artifactPath })] };
   }
   const validation = validateHarnessSession(rootDir, artifactPath);
@@ -29654,14 +30231,14 @@ function archiveHarnessSession(rootDir, target) {
   if (sessionId === "archive") {
     return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id is reserved for archived sessions", { expected: "non-reserved harness-session id", actual: sessionId })] };
   }
-  if (path42.basename(sourceDir) !== sessionId) {
-    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path42.basename(sourceDir), actual: sessionId })] };
+  if (path44.basename(sourceDir) !== sessionId) {
+    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path44.basename(sourceDir), actual: sessionId })] };
   }
   if (status !== "resolved" && status !== "blocked") {
     return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.status", "harness-session must be resolved or blocked before archive", { expected: "resolved or blocked", actual: typeof status === "string" ? status : typeof status })] };
   }
   const archiveDestination = buildHarnessSessionArchiveDestination(rootDir, sessionId);
-  const archivePath = path42.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
+  const archivePath = path44.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
   renameSync4(sourceDir, archiveDestination);
   return {
     ok: true,
@@ -29922,6 +30499,8 @@ var commands = createCliCommandTable({
   "verify-spec-mappings": (argv) => runVerifySpecMappings(argv),
   "verify-tech-mappings": (argv) => runVerifyTechMappings(argv),
   "tech-status": (argv) => runTechStatus(argv),
+  "architecture-generate": (argv) => runArchitectureGenerate(argv),
+  "architecture-status": (argv) => runArchitectureStatus(argv),
   "design-generate": (argv) => runDesignGenerate(argv),
   "design-status": (argv) => runDesignStatus(argv),
   "validate-skills": (argv) => runValidateSkills(argv),
@@ -30008,9 +30587,11 @@ export {
   getRoadmapStatus,
   getRequiredBundledScaffoldAssets,
   getRequiredBundledChangeTemplateAssets,
-  getDesignStatus,
+  getDesignSystemStatus,
   getBundledScaffoldPath,
+  getArchitectureStatus,
   generateDesignDocument,
+  generateArchitectureDocument,
   findMissingRequiredScaffoldAssets,
   findMissingRequiredChangeTemplateAssets,
   createSchemaValidator,
@@ -30020,5 +30601,5 @@ export {
   archiveRoadmapMilestones,
   archiveChange,
   applyTask,
-  DesignSourceError
+  DocumentSourceError
 };

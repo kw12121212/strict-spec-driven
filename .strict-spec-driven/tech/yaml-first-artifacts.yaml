@@ -11,11 +11,14 @@ mapping:
     - src/yaml.ts
     - src/validation.ts
     - src/scaffold.ts
-    - src/design.ts
+    - src/architecture.ts
+    - src/design-system.ts
+    - src/document-render.ts
   enforcement:
     - templates/strict-spec-driven/schemas/registry.yaml
     - test/suites/foundation-and-fixtures.ts
-    - test/suites/design-document.ts
+    - test/suites/architecture-document.ts
+    - test/suites/design-system-document.ts
 rules:
   artifacts-are-strict-yaml:
     strength: MUST
@@ -44,14 +47,16 @@ rules:
   generated-documents-are-not-hand-edited:
     strength: MUST
     statement: A human-readable document that the workflow renders from strict YAML MUST be produced only by its generator, MUST carry a banner identifying it as generated and naming its source artifacts, and MUST NOT be edited by hand; content that belongs in such a document is changed by editing the strict YAML source and re-rendering.
-    rationale: Once a document is both generated and hand-editable it has two sources of truth, and the next render silently discards the hand edits or the drift check fails for reasons nobody can attribute. Requiring the banner and forbidding hand edits keeps the YAML source authoritative and makes staleness a detectable, attributable condition rather than an invisible one.
+    rationale: Once a document is both generated and hand-editable it has two sources of truth, and the next render silently discards the hand edits or the drift check fails for reasons nobody can attribute. Requiring the banner and forbidding hand edits keeps the YAML source authoritative and makes staleness a detectable, attributable condition rather than an invisible one. The banner is required to identify the document and name its sources but not to occupy the first line, so a document rendered in an interchange format that requires leading front matter satisfies the rule with the banner placed directly after it.
     enforcement:
       method: manual
-      detail: design-generate --check re-renders in memory and exits non-zero when the file on disk differs from what the sources produce; reviewers reject direct edits to a document that carries a generated banner.
+      detail: architecture-generate --check and design-generate --check re-render in memory and exit non-zero when the file on disk differs from what the sources produce; reviewers reject direct edits to a document that carries a generated banner.
     examples:
       good:
-        - Adding a component to .strict-spec-driven/architecture.yaml and running design-generate to re-render DESIGN.md.
+        - Adding a component to .strict-spec-driven/architecture.yaml and running architecture-generate to re-render ARCHITECTURE.md.
+        - Adding a color token to .strict-spec-driven/design-system.yaml and running design-generate to re-render DESIGN.md.
       bad:
-        - Editing the components section of DESIGN.md directly, which the next design-generate run overwrites.
+        - Editing the components section of ARCHITECTURE.md directly, which the next architecture-generate run overwrites.
+        - Editing the front-matter tokens in DESIGN.md directly instead of the design-system artifact they are rendered from.
     exceptions:
       - Hand-authored repository documentation that is not rendered from a strict YAML source, such as README.md, QUICKSTART.md, and the guide documents, remains hand-edited Markdown and carries no generated banner.

@@ -24528,12 +24528,12 @@ var COMMAND_METADATA_ENTRIES = {
     },
     exitCodes: SUCCESS_EXIT_CODES
   },
-  "design-generate": {
-    name: "design-generate",
+  "architecture-generate": {
+    name: "architecture-generate",
     group: "operations",
-    summary: "Render DESIGN.md from the architecture artifact, the spec index, and the technical standards.",
-    mcpDescription: "Mutates project state by rendering the generated design document, unless --check is supplied.",
-    usage: `Usage: strict-spec-cli design-generate [--check] [--output <path>]
+    summary: "Render ARCHITECTURE.md from the architecture artifact, the spec index, and the technical standards.",
+    mcpDescription: "Mutates project state by rendering the generated architecture document, unless --check is supplied.",
+    usage: `Usage: strict-spec-cli architecture-generate [--check] [--output <path>]
 `,
     arguments: [],
     flags: [
@@ -24546,7 +24546,7 @@ var COMMAND_METADATA_ENTRIES = {
         name: "--output",
         arity: "value",
         valueLabel: "<path>",
-        description: "Repo-relative path to render instead of DESIGN.md; check mode compares against this same path. Accepts the --output=<path> form."
+        description: "Repo-relative path to render instead of ARCHITECTURE.md; check mode compares against this same path. Accepts the --output=<path> form."
       }
     ],
     output: {
@@ -24564,15 +24564,15 @@ var COMMAND_METADATA_ENTRIES = {
     notes: [
       "Neither flag is repeatable and there is no reset semantics: each run renders the whole document from its sources.",
       "The rendered document carries a generated banner and must never be hand-edited; change the sources and re-render.",
-      "Fails rather than degrading when .strict-spec-driven/architecture.yaml is missing; run /strict-spec-design to author it."
+      "Fails rather than degrading when .strict-spec-driven/architecture.yaml is missing; run /strict-spec-architecture to author it."
     ]
   },
-  "design-status": {
-    name: "design-status",
+  "architecture-status": {
+    name: "architecture-status",
     group: "operations",
     summary: "Validate the architecture artifact and report its counts and implementation-mapping drift.",
     mcpDescription: "Report strict architecture artifact status.",
-    usage: `Usage: strict-spec-cli design-status
+    usage: `Usage: strict-spec-cli architecture-status
 `,
     arguments: [],
     flags: [],
@@ -24595,6 +24595,78 @@ var COMMAND_METADATA_ENTRIES = {
       { code: 1, meaning: "Usage error, a missing architecture artifact, or a schema-invalid artifact." }
     ],
     notes: ["Read-only: mapping drift is reported, never repaired."]
+  },
+  "design-generate": {
+    name: "design-generate",
+    group: "operations",
+    summary: "Render DESIGN.md in the design.md format from the design-system artifact.",
+    mcpDescription: "Mutates project state by rendering the generated design document, unless --check is supplied.",
+    usage: `Usage: strict-spec-cli design-generate [--check] [--output <path>]
+`,
+    arguments: [],
+    flags: [
+      {
+        name: "--check",
+        arity: "boolean",
+        description: "Compare the rendered document against the file on disk without writing it; exits non-zero when they differ or the file is absent, and names the source artifact that went stale."
+      },
+      {
+        name: "--output",
+        arity: "value",
+        valueLabel: "<path>",
+        description: "Repo-relative path to render instead of DESIGN.md; check mode compares against this same path. Accepts the --output=<path> form."
+      }
+    ],
+    output: {
+      format: "json",
+      keys: ["outputPath", "mode", "written", "documentExists", "current", "sources", "staleSources"],
+      description: "A JSON render result naming the output path, the mode, and the source artifacts."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The document was written, or check mode found it current." },
+      {
+        code: 1,
+        meaning: "Usage error, a missing or invalid design-system artifact, or check mode finding the document stale or absent."
+      }
+    ],
+    notes: [
+      "Neither flag is repeatable and there is no reset semantics: each run renders the whole document from its source.",
+      "The rendered document leads with YAML front-matter tokens, then a generated banner, then the canonical design.md sections; it must never be hand-edited.",
+      "Sections whose token group is absent from the artifact are omitted rather than rendered empty.",
+      "Fails rather than degrading when .strict-spec-driven/design-system.yaml is missing; run /strict-spec-design to author it. The artifact is optional, so projects with no user interface simply do not have one."
+    ]
+  },
+  "design-status": {
+    name: "design-status",
+    group: "operations",
+    summary: "Validate the design-system artifact and report its token counts and mapping drift.",
+    mcpDescription: "Report strict design-system artifact status.",
+    usage: `Usage: strict-spec-cli design-status
+`,
+    arguments: [],
+    flags: [],
+    output: {
+      format: "json",
+      keys: [
+        "artifactPath",
+        "exists",
+        "valid",
+        "diagnostics",
+        "tokenGroupCount",
+        "tokenCount",
+        "componentCount",
+        "mappingDrift"
+      ],
+      description: "A JSON summary of .strict-spec-driven/design-system.yaml with schema diagnostics and mapping drift."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The design-system artifact exists and validates." },
+      { code: 1, meaning: "Usage error, a missing design-system artifact, or a schema-invalid artifact." }
+    ],
+    notes: [
+      "Read-only: mapping drift is reported, never repaired.",
+      "Mapping drift covers both component implementation paths and component visual-regression snapshot paths; each entry names the declaring component and its kind."
+    ]
   },
   "validate-skills": {
     name: "validate-skills",
@@ -28956,8 +29028,8 @@ schema_file: templates/strict-spec-driven/schemas/architecture.yaml
 architecture:
   id: project-architecture
   title: Project Architecture
-# Fill these collections with /strict-spec-design, then render DESIGN.md with
-# \`strict-spec-cli design-generate\`. Specification and technical-standard
+# Fill these collections with /strict-spec-architecture, then render ARCHITECTURE.md
+# with \`strict-spec-cli architecture-generate\`. Specification and technical-standard
 # sections are projected from existing artifacts and never belong here.
 components: {}
 data_flows: {}
@@ -29962,6 +30034,143 @@ json_schema:
             properties:
               reason:
                 type: string
+`,
+  "strict-spec-driven/schemas/design-system.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/design-system/v1
+artifact_type: design_system
+artifact_name: design-system
+description: >-
+  Strict YAML project design-system artifact. It carries the visual identity no
+  other strict artifact holds: the design tokens a user interface is built from,
+  the components that consume those tokens, and the design guidance that
+  explains them. Token groups are fixed so the renderer and design-status can
+  project deterministic sections from them, while the entries inside each group
+  stay open so no schema decides what a project's palette or spacing scale is
+  named. Observable UI behavior is deliberately absent because it belongs in
+  main spec requirements, and UI engineering rules are deliberately absent
+  because they belong in ui-category technical standards.
+example_ref: ../../../examples/strict-spec-driven/design-system.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - design_system
+    - tokens
+    - components
+    - guidance
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/design-system/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: design_system
+    schema_file:
+      type: string
+    design_system:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    tokens:
+      type: object
+      additionalProperties: false
+      properties:
+        colors:
+          type: object
+          additionalProperties:
+            type: string
+        typography:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: false
+            properties:
+              fontFamily:
+                type: string
+              fontSize:
+                type: string
+              fontWeight:
+                type:
+                  - string
+                  - integer
+              lineHeight:
+                type:
+                  - string
+                  - number
+              letterSpacing:
+                type: string
+        layout:
+          type: object
+          additionalProperties:
+            type: string
+        elevation:
+          type: object
+          additionalProperties:
+            type: string
+        shapes:
+          type: object
+          additionalProperties:
+            type: string
+    components:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+        properties:
+          title:
+            type: string
+          description:
+            type: string
+          tokens:
+            type: object
+            additionalProperties:
+              type: string
+          mapping:
+            type: object
+            additionalProperties: false
+            properties:
+              implementation:
+                type: array
+                items:
+                  type: string
+              snapshots:
+                type: array
+                items:
+                  type: string
+    guidance:
+      type: object
+      additionalProperties: false
+      required:
+        - overview
+      properties:
+        overview:
+          type: string
+        do:
+          type: array
+          items:
+            type: string
+        dont:
+          type: array
+          items:
+            type: string
 `,
   "strict-spec-driven/schemas/harness-session.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -31364,6 +31573,20 @@ entries:
       compatible_with: []
       notes:
         - The architecture artifact is the only source for the components, data flows, and decisions sections of a generated design document; specification and technical-standard sections are projected from existing artifacts rather than duplicated here.
+  - schema_id: strict-spec-driven/design-system/v1
+    schema_version: 1
+    artifact_type: design_system
+    artifact_name: design-system
+    schema_file: design-system.yaml
+    primary_example: ../../../examples/strict-spec-driven/design-system.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - The design-system artifact is the only source for the generated design document; it is optional and absent for projects with no user interface, and init deliberately does not scaffold it.
+        - Token groups are fixed while the entries inside each group stay open, so the renderer can project deterministic sections without dictating a design language.
   - schema_id: strict-spec-driven/config/v1
     schema_version: 1
     artifact_type: workflow_config
@@ -32843,6 +33066,61 @@ operations:
   ADDED: {}
   MODIFIED: {}
   REMOVED: {}
+`,
+  "examples/strict-spec-driven/design-system.yaml": `schema: strict-spec-driven/design-system/v1
+schema_version: 1
+artifact_type: design_system
+schema_file: ../../templates/strict-spec-driven/schemas/design-system.yaml
+design_system:
+  id: example-design-system
+  title: Example Design System
+tokens:
+  colors:
+    primary: "#1A73E8"
+    surface: "#FFFFFF"
+    text: "#202124"
+  typography:
+    body:
+      fontFamily: Inter, system-ui, sans-serif
+      fontSize: 16px
+      fontWeight: 400
+      lineHeight: 1.5
+      letterSpacing: "0"
+    heading:
+      fontFamily: Inter, system-ui, sans-serif
+      fontSize: 28px
+      fontWeight: 600
+      lineHeight: 1.25
+  layout:
+    sm: 8px
+    md: 16px
+    lg: 24px
+  elevation:
+    card: 0 1px 3px rgba(0, 0, 0, 0.12)
+  shapes:
+    rounded: 8px
+components:
+  example-button:
+    title: Example Button
+    description: The primary action control used across the example interface.
+    tokens:
+      backgroundColor: colors.primary
+      textColor: colors.surface
+      padding: layout.md
+      rounded: shapes.rounded
+    mapping:
+      implementation:
+        - src/components/example-button.tsx
+      snapshots:
+        - test/snapshots/example-button.png
+guidance:
+  overview: >-
+    The example design system favors a single accent color on neutral surfaces
+    so that primary actions stay unambiguous.
+  do:
+    - Use the primary color for exactly one action per view.
+  dont:
+    - Do not introduce accent colors outside the declared palette.
 `,
   "examples/strict-spec-driven/harness-session.yaml": `schema: strict-spec-driven/harness-session/v1
 schema_version: 1

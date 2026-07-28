@@ -7,8 +7,8 @@ schema_file: templates/strict-spec-driven/schemas/architecture.yaml
 architecture:
   id: project-architecture
   title: Project Architecture
-# Fill these collections with /strict-spec-design, then render DESIGN.md with
-# \`strict-spec-cli design-generate\`. Specification and technical-standard
+# Fill these collections with /strict-spec-architecture, then render ARCHITECTURE.md
+# with \`strict-spec-cli architecture-generate\`. Specification and technical-standard
 # sections are projected from existing artifacts and never belong here.
 components: {}
 data_flows: {}
@@ -1013,6 +1013,143 @@ json_schema:
             properties:
               reason:
                 type: string
+`,
+  "strict-spec-driven/schemas/design-system.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/design-system/v1
+artifact_type: design_system
+artifact_name: design-system
+description: >-
+  Strict YAML project design-system artifact. It carries the visual identity no
+  other strict artifact holds: the design tokens a user interface is built from,
+  the components that consume those tokens, and the design guidance that
+  explains them. Token groups are fixed so the renderer and design-status can
+  project deterministic sections from them, while the entries inside each group
+  stay open so no schema decides what a project's palette or spacing scale is
+  named. Observable UI behavior is deliberately absent because it belongs in
+  main spec requirements, and UI engineering rules are deliberately absent
+  because they belong in ui-category technical standards.
+example_ref: ../../../examples/strict-spec-driven/design-system.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - design_system
+    - tokens
+    - components
+    - guidance
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/design-system/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: design_system
+    schema_file:
+      type: string
+    design_system:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    tokens:
+      type: object
+      additionalProperties: false
+      properties:
+        colors:
+          type: object
+          additionalProperties:
+            type: string
+        typography:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: false
+            properties:
+              fontFamily:
+                type: string
+              fontSize:
+                type: string
+              fontWeight:
+                type:
+                  - string
+                  - integer
+              lineHeight:
+                type:
+                  - string
+                  - number
+              letterSpacing:
+                type: string
+        layout:
+          type: object
+          additionalProperties:
+            type: string
+        elevation:
+          type: object
+          additionalProperties:
+            type: string
+        shapes:
+          type: object
+          additionalProperties:
+            type: string
+    components:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+        properties:
+          title:
+            type: string
+          description:
+            type: string
+          tokens:
+            type: object
+            additionalProperties:
+              type: string
+          mapping:
+            type: object
+            additionalProperties: false
+            properties:
+              implementation:
+                type: array
+                items:
+                  type: string
+              snapshots:
+                type: array
+                items:
+                  type: string
+    guidance:
+      type: object
+      additionalProperties: false
+      required:
+        - overview
+      properties:
+        overview:
+          type: string
+        do:
+          type: array
+          items:
+            type: string
+        dont:
+          type: array
+          items:
+            type: string
 `,
   "strict-spec-driven/schemas/harness-session.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -2415,6 +2552,20 @@ entries:
       compatible_with: []
       notes:
         - The architecture artifact is the only source for the components, data flows, and decisions sections of a generated design document; specification and technical-standard sections are projected from existing artifacts rather than duplicated here.
+  - schema_id: strict-spec-driven/design-system/v1
+    schema_version: 1
+    artifact_type: design_system
+    artifact_name: design-system
+    schema_file: design-system.yaml
+    primary_example: ../../../examples/strict-spec-driven/design-system.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - The design-system artifact is the only source for the generated design document; it is optional and absent for projects with no user interface, and init deliberately does not scaffold it.
+        - Token groups are fixed while the entries inside each group stay open, so the renderer can project deterministic sections without dictating a design language.
   - schema_id: strict-spec-driven/config/v1
     schema_version: 1
     artifact_type: workflow_config
@@ -3894,6 +4045,61 @@ operations:
   ADDED: {}
   MODIFIED: {}
   REMOVED: {}
+`,
+  "examples/strict-spec-driven/design-system.yaml": `schema: strict-spec-driven/design-system/v1
+schema_version: 1
+artifact_type: design_system
+schema_file: ../../templates/strict-spec-driven/schemas/design-system.yaml
+design_system:
+  id: example-design-system
+  title: Example Design System
+tokens:
+  colors:
+    primary: "#1A73E8"
+    surface: "#FFFFFF"
+    text: "#202124"
+  typography:
+    body:
+      fontFamily: Inter, system-ui, sans-serif
+      fontSize: 16px
+      fontWeight: 400
+      lineHeight: 1.5
+      letterSpacing: "0"
+    heading:
+      fontFamily: Inter, system-ui, sans-serif
+      fontSize: 28px
+      fontWeight: 600
+      lineHeight: 1.25
+  layout:
+    sm: 8px
+    md: 16px
+    lg: 24px
+  elevation:
+    card: 0 1px 3px rgba(0, 0, 0, 0.12)
+  shapes:
+    rounded: 8px
+components:
+  example-button:
+    title: Example Button
+    description: The primary action control used across the example interface.
+    tokens:
+      backgroundColor: colors.primary
+      textColor: colors.surface
+      padding: layout.md
+      rounded: shapes.rounded
+    mapping:
+      implementation:
+        - src/components/example-button.tsx
+      snapshots:
+        - test/snapshots/example-button.png
+guidance:
+  overview: >-
+    The example design system favors a single accent color on neutral surfaces
+    so that primary actions stay unambiguous.
+  do:
+    - Use the primary color for exactly one action per view.
+  dont:
+    - Do not introduce accent colors outside the declared palette.
 `,
   "examples/strict-spec-driven/harness-session.yaml": `schema: strict-spec-driven/harness-session/v1
 schema_version: 1

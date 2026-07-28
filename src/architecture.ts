@@ -1,19 +1,31 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, statSync } from "fs";
 import path from "path";
 import { listFilesRecursive, normalizeRepoRelativePath } from "./cli/fs.js";
+import {
+  DocumentSourceError,
+  STRICT_WORKFLOW_DIR,
+  asRecord,
+  asStringArray,
+  asText,
+  readYamlIfPresent,
+  renderBlocksToDocument,
+  renderBulletList,
+  trimTrailingBlankLines,
+  type DocumentBlock,
+  type DocumentRenderResult,
+} from "./document-render.js";
 import { loadBundledSchemaByArtifactType, validateArtifact, type ValidationDiagnostic } from "./validation.js";
 import { parseYamlDocument } from "./yaml.js";
 
-const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const ARCHITECTURE_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR}/architecture.yaml`;
 const WORKFLOW_CONFIG_PATH = `${STRICT_WORKFLOW_DIR}/config.yaml`;
 const SPEC_INDEX_PATH = `${STRICT_WORKFLOW_DIR}/specs/INDEX.yaml`;
 const TECH_DIR_PATH = `${STRICT_WORKFLOW_DIR}/tech/`;
 const EXCLUDED_TECH_BASENAMES = new Set(["INDEX.yaml"]);
 
-export const DEFAULT_DESIGN_DOCUMENT_PATH = "DESIGN.md";
+export const DEFAULT_ARCHITECTURE_DOCUMENT_PATH = "ARCHITECTURE.md";
 /** Entry point named in the missing-artifact error so operators know how to create the source. */
-export const DESIGN_AUTHORING_ENTRY_POINT = "/strict-spec-design";
+export const ARCHITECTURE_AUTHORING_ENTRY_POINT = "/strict-spec-architecture";
 
 type ArchitectureComponent = {
   title?: unknown;
@@ -45,25 +57,12 @@ type ArchitectureArtifact = {
   decisions?: Record<string, ArchitectureDecision>;
 };
 
-/**
- * A rendered section of the design document together with the source artifacts that produce it.
- * Check mode compares blocks individually so drift can name the source that went stale rather than
- * only reporting that the whole document differs.
- */
-type DesignBlock = {
-  id: string;
-  /** Heading line that starts the block on disk, or null for the leading title-and-banner block. */
-  heading: string | null;
-  sources: string[];
-  lines: string[];
-};
-
-export type DesignMappingDrift = {
+export type ArchitectureMappingDrift = {
   component: string;
   path: string;
 };
 
-export type DesignStatusResult = {
+export type ArchitectureStatusResult = {
   artifactPath: string;
   exists: boolean;
   valid: boolean;
@@ -71,56 +70,24 @@ export type DesignStatusResult = {
   componentCount: number;
   dataFlowCount: number;
   decisionCount: number;
-  mappingDrift: DesignMappingDrift[];
+  mappingDrift: ArchitectureMappingDrift[];
 };
 
-export type DesignGenerateResult = {
-  outputPath: string;
-  mode: "write" | "check";
-  written: boolean;
-  /** False when check mode found no document at the output path, which is reported apart from drift. */
-  documentExists: boolean;
-  current: boolean;
-  sources: string[];
-  staleSources: string[];
-};
-
-export class DesignSourceError extends Error {}
-
-function asStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-}
-
-function asText(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
-}
-
-function readYamlIfPresent<T>(absolutePath: string, artifactPath: string): T | null {
-  if (!existsSync(absolutePath)) return null;
-  try {
-    return parseYamlDocument<T>(readFileSync(absolutePath, "utf8"), { source: artifactPath });
-  } catch {
-    return null;
-  }
-}
+export type ArchitectureGenerateResult = DocumentRenderResult;
 
 export function getArchitectureArtifactPath(rootDir: string): string {
   return path.join(rootDir, STRICT_WORKFLOW_DIR, "architecture.yaml");
 }
 
 /**
- * Reads and schema-validates the architecture artifact. Both design-generate and design-status
+ * Reads and schema-validates the architecture artifact. Both architecture-generate and architecture-status
  * depend on it, so the missing-artifact message names the path and the entry point that creates it.
  */
 function loadArchitectureArtifact(rootDir: string): { artifact: ArchitectureArtifact; diagnostics: ValidationDiagnostic[] } {
   const absolutePath = getArchitectureArtifactPath(rootDir);
   if (!existsSync(absolutePath)) {
-    throw new DesignSourceError(
-      `architecture artifact is missing: ${ARCHITECTURE_ARTIFACT_PATH}; run ${DESIGN_AUTHORING_ENTRY_POINT} to author it`,
+    throw new DocumentSourceError(
+      `architecture artifact is missing: ${ARCHITECTURE_ARTIFACT_PATH}; run ${ARCHITECTURE_AUTHORING_ENTRY_POINT} to author it`,
     );
   }
 
@@ -128,7 +95,7 @@ function loadArchitectureArtifact(rootDir: string): { artifact: ArchitectureArti
   try {
     artifact = parseYamlDocument<unknown>(readFileSync(absolutePath, "utf8"), { source: ARCHITECTURE_ARTIFACT_PATH });
   } catch (error) {
-    throw new DesignSourceError(
+    throw new DocumentSourceError(
       `architecture artifact is not valid YAML: ${ARCHITECTURE_ARTIFACT_PATH}: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
@@ -148,11 +115,7 @@ function listTechFiles(techDir: string): string[] {
     .sort();
 }
 
-function renderBulletList(values: string[]): string[] {
-  return values.map((value) => `- ${value}`);
-}
-
-function renderHeaderBlock(artifact: ArchitectureArtifact): DesignBlock {
+function renderHeaderBlock(artifact: ArchitectureArtifact): DocumentBlock {
   const title = asText(artifact.architecture?.title) || "Project Architecture";
   return {
     id: "header",
@@ -162,7 +125,7 @@ function renderHeaderBlock(artifact: ArchitectureArtifact): DesignBlock {
       `# ${title}`,
       "",
       "> **Generated file — do not edit by hand.**",
-      "> Rendered by `strict-spec-cli design-generate` from these source artifacts:",
+      "> Rendered by `strict-spec-cli architecture-generate` from these source artifacts:",
       `> - \`${ARCHITECTURE_ARTIFACT_PATH}\``,
       `> - \`${WORKFLOW_CONFIG_PATH}\``,
       `> - \`${SPEC_INDEX_PATH}\``,
@@ -173,7 +136,7 @@ function renderHeaderBlock(artifact: ArchitectureArtifact): DesignBlock {
   };
 }
 
-function renderOverviewBlock(rootDir: string): DesignBlock {
+function renderOverviewBlock(rootDir: string): DocumentBlock {
   const config = readYamlIfPresent<{ context?: unknown }>(path.join(rootDir, STRICT_WORKFLOW_DIR, "config.yaml"), WORKFLOW_CONFIG_PATH);
   const context = asText(config?.context);
   return {
@@ -190,7 +153,7 @@ function renderOverviewBlock(rootDir: string): DesignBlock {
   };
 }
 
-function renderComponentsBlock(artifact: ArchitectureArtifact): DesignBlock {
+function renderComponentsBlock(artifact: ArchitectureArtifact): DocumentBlock {
   const components = asRecord(artifact.components);
   const lines: string[] = ["## Components", ""];
 
@@ -222,7 +185,7 @@ function renderComponentsBlock(artifact: ArchitectureArtifact): DesignBlock {
   return { id: "components", heading: "## Components", sources: [ARCHITECTURE_ARTIFACT_PATH], lines: trimTrailingBlankLines(lines) };
 }
 
-function renderDataFlowsBlock(artifact: ArchitectureArtifact): DesignBlock {
+function renderDataFlowsBlock(artifact: ArchitectureArtifact): DocumentBlock {
   const dataFlows = asRecord(artifact.data_flows);
   const lines: string[] = ["## Data Flows", ""];
 
@@ -249,7 +212,7 @@ function renderDataFlowsBlock(artifact: ArchitectureArtifact): DesignBlock {
   return { id: "data-flows", heading: "## Data Flows", sources: [ARCHITECTURE_ARTIFACT_PATH], lines: trimTrailingBlankLines(lines) };
 }
 
-function renderDecisionsBlock(artifact: ArchitectureArtifact): DesignBlock {
+function renderDecisionsBlock(artifact: ArchitectureArtifact): DocumentBlock {
   const decisions = asRecord(artifact.decisions);
   const lines: string[] = ["## Architecture Decisions", ""];
 
@@ -278,7 +241,7 @@ function renderDecisionsBlock(artifact: ArchitectureArtifact): DesignBlock {
   };
 }
 
-function renderSpecificationSurfaceBlock(rootDir: string): DesignBlock {
+function renderSpecificationSurfaceBlock(rootDir: string): DocumentBlock {
   const index = readYamlIfPresent<{ specs?: unknown }>(path.join(rootDir, STRICT_WORKFLOW_DIR, "specs", "INDEX.yaml"), SPEC_INDEX_PATH);
   const rawSpecs = index?.specs;
   const specs = Array.isArray(rawSpecs) ? rawSpecs : [];
@@ -329,7 +292,7 @@ function renderSpecificationSurfaceBlock(rootDir: string): DesignBlock {
   };
 }
 
-function renderTechnicalStandardsBlock(rootDir: string): DesignBlock {
+function renderTechnicalStandardsBlock(rootDir: string): DocumentBlock {
   const techFiles = listTechFiles(path.join(rootDir, STRICT_WORKFLOW_DIR, "tech"));
   const lines: string[] = [
     "## Technical Standards",
@@ -374,15 +337,7 @@ function renderTechnicalStandardsBlock(rootDir: string): DesignBlock {
   };
 }
 
-function trimTrailingBlankLines(lines: string[]): string[] {
-  const result = [...lines];
-  while (result.length > 0 && result[result.length - 1] === "") {
-    result.pop();
-  }
-  return result;
-}
-
-function buildDesignBlocks(rootDir: string, artifact: ArchitectureArtifact): DesignBlock[] {
+function buildArchitectureBlocks(rootDir: string, artifact: ArchitectureArtifact): DocumentBlock[] {
   return [
     renderHeaderBlock(artifact),
     renderOverviewBlock(rootDir),
@@ -394,111 +349,29 @@ function buildDesignBlocks(rootDir: string, artifact: ArchitectureArtifact): Des
   ];
 }
 
-function blocksToDocument(blocks: DesignBlock[]): string {
-  return blocks.map((block) => block.lines.join("\n")).join("\n\n") + "\n";
-}
-
-/**
- * Splits an on-disk document at the same headings the renderer emits so each block can be compared
- * to its rendered counterpart. Returns null when the headings are missing or reordered, which makes
- * per-source attribution impossible and forces the caller to report every source as stale.
- */
-function splitDocumentIntoBlockTexts(content: string, blocks: DesignBlock[]): string[] | null {
-  const lines = content.split("\n");
-  const startIndexes: number[] = [0];
-
-  let searchFrom = 0;
-  for (const block of blocks.slice(1)) {
-    const headingIndex = lines.indexOf(block.heading as string, searchFrom);
-    if (headingIndex === -1) return null;
-    startIndexes.push(headingIndex);
-    searchFrom = headingIndex + 1;
-  }
-
-  return startIndexes.map((startIndex, position) => {
-    const endIndex = position + 1 < startIndexes.length ? startIndexes[position + 1] : lines.length;
-    return lines.slice(startIndex, endIndex).join("\n").replace(/\n+$/, "");
-  });
-}
-
-function allSources(blocks: DesignBlock[]): string[] {
-  return [...new Set(blocks.flatMap((block) => block.sources))];
-}
-
-/**
- * Called only when the document already differs from what the sources render. Block comparison
- * ignores blank-line padding between sections, so a difference that lives purely in that padding
- * matches every block; naming no source at all would contradict the drift report, so the whole
- * source list stands in.
- */
-function collectStaleSources(blocks: DesignBlock[], diskContent: string): string[] {
-  const diskBlockTexts = splitDocumentIntoBlockTexts(diskContent, blocks);
-  if (!diskBlockTexts) {
-    return allSources(blocks);
-  }
-
-  const stale = new Set<string>();
-  blocks.forEach((block, index) => {
-    if (block.lines.join("\n") === diskBlockTexts[index]) return;
-    block.sources.forEach((source) => stale.add(source));
-  });
-
-  return stale.size > 0 ? [...stale] : allSources(blocks);
-}
-
-export function generateDesignDocument(
+export function generateArchitectureDocument(
   rootDir: string,
   options: { check?: boolean; outputPath?: string } = {},
-): DesignGenerateResult {
+): ArchitectureGenerateResult {
   const { artifact, diagnostics } = loadArchitectureArtifact(rootDir);
   if (diagnostics.length > 0) {
     const details = diagnostics.map((diagnostic) => `${diagnostic.fieldPath}: ${diagnostic.message}`).join("; ");
-    throw new DesignSourceError(`architecture artifact does not validate: ${ARCHITECTURE_ARTIFACT_PATH}: ${details}`);
+    throw new DocumentSourceError(`architecture artifact does not validate: ${ARCHITECTURE_ARTIFACT_PATH}: ${details}`);
   }
 
-  const blocks = buildDesignBlocks(rootDir, artifact);
-  const content = blocksToDocument(blocks);
-  const sources = allSources(blocks);
-  const relativeOutputPath = (options.outputPath ?? DEFAULT_DESIGN_DOCUMENT_PATH).replaceAll("\\", "/");
-
-  if (path.isAbsolute(relativeOutputPath)) {
-    throw new DesignSourceError(`design document output path must be repo-relative, got '${relativeOutputPath}'`);
-  }
-  const absoluteOutputPath = path.resolve(rootDir, relativeOutputPath);
-  const normalizedOutputPath = normalizeRepoRelativePath(rootDir, absoluteOutputPath);
-  if (normalizedOutputPath === ".." || normalizedOutputPath.startsWith("../")) {
-    throw new DesignSourceError(`design document output path cannot traverse outside the repository, got '${relativeOutputPath}'`);
-  }
-
-  if (options.check) {
-    const base = { outputPath: normalizedOutputPath, mode: "check", written: false, sources } as const;
-    if (!existsSync(absoluteOutputPath)) {
-      return { ...base, documentExists: false, current: false, staleSources: sources };
-    }
-    const diskContent = readFileSync(absoluteOutputPath, "utf8");
-    if (diskContent === content) {
-      return { ...base, documentExists: true, current: true, staleSources: [] };
-    }
-    return { ...base, documentExists: true, current: false, staleSources: collectStaleSources(blocks, diskContent) };
-  }
-
-  mkdirSync(path.dirname(absoluteOutputPath), { recursive: true });
-  writeFileSync(absoluteOutputPath, content, "utf8");
-  return {
-    outputPath: normalizedOutputPath,
-    mode: "write",
-    written: true,
-    documentExists: true,
-    current: true,
-    sources,
-    staleSources: [],
-  };
+  const blocks = buildArchitectureBlocks(rootDir, artifact);
+  return renderBlocksToDocument(rootDir, blocks, {
+    check: options.check,
+    outputPath: options.outputPath,
+    defaultOutputPath: DEFAULT_ARCHITECTURE_DOCUMENT_PATH,
+    documentLabel: "architecture document",
+  });
 }
 
-export function getDesignStatus(rootDir: string): DesignStatusResult {
+export function getArchitectureStatus(rootDir: string): ArchitectureStatusResult {
   const { artifact, diagnostics } = loadArchitectureArtifact(rootDir);
   const components = asRecord(artifact.components);
-  const mappingDrift: DesignMappingDrift[] = [];
+  const mappingDrift: ArchitectureMappingDrift[] = [];
 
   for (const [componentId, rawComponent] of Object.entries(components)) {
     const implementation = asStringArray(asRecord(asRecord(rawComponent).mapping).implementation);

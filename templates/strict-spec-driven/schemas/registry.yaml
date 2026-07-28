@@ -307,6 +307,20 @@ entries:
       compatible_with: []
       notes:
         - The architecture artifact is the only source for the components, data flows, and decisions sections of a generated design document; specification and technical-standard sections are projected from existing artifacts rather than duplicated here.
+  - schema_id: strict-spec-driven/design-system/v1
+    schema_version: 1
+    artifact_type: design_system
+    artifact_name: design-system
+    schema_file: design-system.yaml
+    primary_example: ../../../examples/strict-spec-driven/design-system.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - The design-system artifact is the only source for the generated design document; it is optional and absent for projects with no user interface, and init deliberately does not scaffold it.
+        - Token groups are fixed while the entries inside each group stay open, so the renderer can project deterministic sections without dictating a design language.
   - schema_id: strict-spec-driven/config/v1
     schema_version: 1
     artifact_type: workflow_config

@@ -1,0 +1,25 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: workflow-scope-discipline
+mapping:
+  implementation:
+    - src/archive.ts
+  enforcement: []
+operations:
+  ADDED:
+    relocated-mappings-declare-their-cleanup:
+      strength: MUST
+      statement: A change that renames or deletes a file referenced by a strict spec mapping or a technical-standard mapping MUST record the stale mapping entries that archive's additive merge will leave behind, together with the standalone command that removes them, before the change archives.
+      rationale: applyDeltaToMainSpec and applyDeltaToMainTech union delta mapping arrays into the target artifact and never remove entries, so a relocated or deleted file stays listed in the merged mapping after archive. Left unrecorded, that becomes permanent mapping drift that verify-spec-mappings and verify-tech-mappings report indefinitely with no owner and no record of which change caused it. Requiring the change that relocates the file to name the surviving entries and the removal command keeps the cleanup attributable to the change that created the need, and keeps the additive merge a deliberate safety property rather than a silent source of rot.
+      enforcement:
+        method: review
+        detail: Reviewers check that a change touching mapped file paths either leaves every mapping resolvable or names the surviving stale entries and the standalone command that clears them; verify-spec-mappings and verify-tech-mappings surface the entries to be enumerated.
+      examples:
+        good:
+          - Renaming src/design.ts to src/architecture.ts, carrying the new path in the delta mappings so archive adds it, and recording that the live spec and standard will still list src/design.ts until /strict-spec-resync-code-mapping and /strict-tech-edit remove it.
+        bad:
+          - Renaming a mapped implementation file, adding only the new path to the delta mapping, and archiving without recording that the old path survives the merge.
+  MODIFIED: {}
+  REMOVED: {}

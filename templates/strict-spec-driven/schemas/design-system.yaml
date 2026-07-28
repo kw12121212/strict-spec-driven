@@ -1,0 +1,136 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/design-system/v1
+artifact_type: design_system
+artifact_name: design-system
+description: >-
+  Strict YAML project design-system artifact. It carries the visual identity no
+  other strict artifact holds: the design tokens a user interface is built from,
+  the components that consume those tokens, and the design guidance that
+  explains them. Token groups are fixed so the renderer and design-status can
+  project deterministic sections from them, while the entries inside each group
+  stay open so no schema decides what a project's palette or spacing scale is
+  named. Observable UI behavior is deliberately absent because it belongs in
+  main spec requirements, and UI engineering rules are deliberately absent
+  because they belong in ui-category technical standards.
+example_ref: ../../../examples/strict-spec-driven/design-system.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - design_system
+    - tokens
+    - components
+    - guidance
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/design-system/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: design_system
+    schema_file:
+      type: string
+    design_system:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    tokens:
+      type: object
+      additionalProperties: false
+      properties:
+        colors:
+          type: object
+          additionalProperties:
+            type: string
+        typography:
+          type: object
+          additionalProperties:
+            type: object
+            additionalProperties: false
+            properties:
+              fontFamily:
+                type: string
+              fontSize:
+                type: string
+              fontWeight:
+                type:
+                  - string
+                  - integer
+              lineHeight:
+                type:
+                  - string
+                  - number
+              letterSpacing:
+                type: string
+        layout:
+          type: object
+          additionalProperties:
+            type: string
+        elevation:
+          type: object
+          additionalProperties:
+            type: string
+        shapes:
+          type: object
+          additionalProperties:
+            type: string
+    components:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+        properties:
+          title:
+            type: string
+          description:
+            type: string
+          tokens:
+            type: object
+            additionalProperties:
+              type: string
+          mapping:
+            type: object
+            additionalProperties: false
+            properties:
+              implementation:
+                type: array
+                items:
+                  type: string
+              snapshots:
+                type: array
+                items:
+                  type: string
+    guidance:
+      type: object
+      additionalProperties: false
+      required:
+        - overview
+      properties:
+        overview:
+          type: string
+        do:
+          type: array
+          items:
+            type: string
+        dont:
+          type: array
+          items:
+            type: string

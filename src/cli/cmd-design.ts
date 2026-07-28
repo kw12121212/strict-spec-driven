@@ -1,48 +1,15 @@
-import { DesignSourceError, generateDesignDocument, getDesignStatus } from "../design.js";
-import { handleHelpRequest } from "./argv.js";
+import { generateDesignDocument, getDesignSystemStatus } from "../design-system.js";
+import { DocumentSourceError } from "../document-render.js";
+import { handleHelpRequest, parseDocumentGenerateArgs } from "./argv.js";
 import { getCommandUsage } from "./command-metadata.js";
 import { writeError, writeJson, writeUsage } from "./output.js";
-
-type DesignGenerateArgs = {
-  check: boolean;
-  outputPath?: string;
-};
-
-function parseDesignGenerateArgs(argv: string[]): DesignGenerateArgs | null {
-  const parsed: DesignGenerateArgs = { check: false };
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
-    if (token === "--check") {
-      if (parsed.check) return null;
-      parsed.check = true;
-      continue;
-    }
-    if (token === "--output") {
-      const value = argv[index + 1];
-      if (parsed.outputPath !== undefined || value === undefined || value.startsWith("--")) return null;
-      parsed.outputPath = value;
-      index += 1;
-      continue;
-    }
-    if (token.startsWith("--output=")) {
-      const value = token.slice("--output=".length);
-      if (parsed.outputPath !== undefined || value.length === 0) return null;
-      parsed.outputPath = value;
-      continue;
-    }
-    return null;
-  }
-
-  return parsed;
-}
 
 export function runDesignGenerate(argv: string[]): number {
   if (handleHelpRequest("design-generate", argv)) {
     return 0;
   }
 
-  const parsed = parseDesignGenerateArgs(argv);
+  const parsed = parseDocumentGenerateArgs(argv);
   if (!parsed) {
     writeUsage(getCommandUsage("design-generate"));
     return 1;
@@ -63,7 +30,7 @@ export function runDesignGenerate(argv: string[]): number {
     );
     return 1;
   } catch (error) {
-    if (error instanceof DesignSourceError) {
+    if (error instanceof DocumentSourceError) {
       writeError(error.message);
       return 1;
     }
@@ -82,11 +49,11 @@ export function runDesignStatus(argv: string[]): number {
   }
 
   try {
-    const result = getDesignStatus(process.cwd());
+    const result = getDesignSystemStatus(process.cwd());
     writeJson(result);
     return result.valid ? 0 : 1;
   } catch (error) {
-    if (error instanceof DesignSourceError) {
+    if (error instanceof DocumentSourceError) {
       writeError(error.message);
       return 1;
     }

@@ -26,6 +26,7 @@ import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runMcpInstall } from "./cli/cmd-mcp-install.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMappings, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
 import { runSampleList, runSampleShow, runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
+import { runArchitectureGenerate, runArchitectureStatus } from "./cli/cmd-architecture.js";
 import { runDesignGenerate, runDesignStatus } from "./cli/cmd-design.js";
 import {
   runHarnessDoctor,
@@ -91,8 +92,11 @@ export type {
 } from "./roadmap/pause.js";
 export { migrateLegacyWorkflow };
 export { runMaintenance };
-export { generateDesignDocument, getDesignStatus, DesignSourceError } from "./design.js";
-export type { DesignGenerateResult, DesignStatusResult } from "./design.js";
+export { generateArchitectureDocument, getArchitectureStatus } from "./architecture.js";
+export type { ArchitectureGenerateResult, ArchitectureStatusResult } from "./architecture.js";
+export { generateDesignDocument, getDesignSystemStatus } from "./design-system.js";
+export type { DesignGenerateResult, DesignSystemStatusResult } from "./design-system.js";
+export { DocumentSourceError } from "./document-render.js";
 
 export const commands = createCliCommandTable({
   init: (argv) => runInit(argv),
@@ -106,6 +110,8 @@ export const commands = createCliCommandTable({
   "verify-spec-mappings": (argv) => runVerifySpecMappings(argv),
   "verify-tech-mappings": (argv) => runVerifyTechMappings(argv),
   "tech-status": (argv) => runTechStatus(argv),
+  "architecture-generate": (argv) => runArchitectureGenerate(argv),
+  "architecture-status": (argv) => runArchitectureStatus(argv),
   "design-generate": (argv) => runDesignGenerate(argv),
   "design-status": (argv) => runDesignStatus(argv),
   "validate-skills": (argv) => runValidateSkills(argv),

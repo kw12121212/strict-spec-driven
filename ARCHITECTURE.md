@@ -1,7 +1,7 @@
 # strict-spec-driven Architecture
 
 > **Generated file — do not edit by hand.**
-> Rendered by `strict-spec-cli design-generate` from these source artifacts:
+> Rendered by `strict-spec-cli architecture-generate` from these source artifacts:
 > - `.strict-spec-driven/architecture.yaml`
 > - `.strict-spec-driven/config.yaml`
 > - `.strict-spec-driven/specs/INDEX.yaml`
@@ -118,23 +118,55 @@ Audits that spec implementation and test mappings and technical-standard impleme
 - `src/cli/spec-mapping.ts`
 - `src/cli/tech-mapping.ts`
 
-### Design Document Rendering (`design-document`)
+### Generated Document Rendering (`document-render`)
 
-Renders DESIGN.md deterministically from the architecture artifact plus the workflow config, the spec index, and the technical standards, detects drift against the rendered output without writing, and reports architecture artifact validity and implementation-mapping drift.
+Provides the machinery both generated-document families share: schema-validated artifact loading, block assembly, generated-banner rendering, deterministic serialization, block-by-block check-mode comparison that attributes drift to a source artifact, and the output-path override.
+
+**Boundaries**
+
+- Owns no artifact of its own; each document family supplies its own blocks and source artifacts.
+- Renders whatever blocks it is given and never decides what a document contains.
+
+**Depends on:** `schema-validation`
+
+**Implementation**
+
+- `src/document-render.ts`
+
+### Architecture Document Rendering (`architecture-document`)
+
+Renders ARCHITECTURE.md deterministically from the architecture artifact plus the workflow config, the spec index, and the technical standards, detects drift against the rendered output without writing, and reports architecture artifact validity and implementation-mapping drift.
 
 **Boundaries**
 
 - Owns no source of truth of its own beyond the architecture artifact; specification and standards content is projected, never duplicated.
 - Deliberately not wired into verify, ready, or archive; staleness is an on-demand check.
 
-**Depends on:** `schema-validation`, `mapping-audit`
+**Depends on:** `document-render`, `schema-validation`, `mapping-audit`
 
 **Implementation**
 
-- `src/design.ts`
-- `src/cli/cmd-design.ts`
+- `src/architecture.ts`
+- `src/cli/cmd-architecture.ts`
 - `templates/strict-spec-driven/schemas/architecture.yaml`
 - `templates/strict-spec-driven/scaffold/architecture.yaml`
+
+### Design System Document Rendering (`design-system-document`)
+
+Renders DESIGN.md in the design.md interchange format from the optional design-system artifact as YAML front-matter tokens followed by the canonical sections, and reports design-system artifact validity, token and component counts, and implementation and snapshot mapping drift.
+
+**Boundaries**
+
+- Holds visual identity only; observable UI behavior belongs to main specs and UI engineering rules belong to ui-category technical standards.
+- Treats the design-system artifact as optional and absent for projects with no user interface; init deliberately does not scaffold it.
+
+**Depends on:** `document-render`, `schema-validation`
+
+**Implementation**
+
+- `src/design-system.ts`
+- `src/cli/cmd-design.ts`
+- `templates/strict-spec-driven/schemas/design-system.yaml`
 
 ### Roadmap Domain (`roadmap`)
 
@@ -276,17 +308,16 @@ Validates that every bundled strict skill is packaged correctly: required frontm
 5. verify checks artifact shape, task completion, and open questions.
 6. archive merges delta specs into main specs and delta tech into technical standards, regenerates the spec index, reconciles roadmap status, and moves the change into the archive.
 
-### Design Document Rendering (`design-document-render`)
+### Generated Document Rendering (`generated-document-render`)
 
-**Trigger:** An operator runs design-generate, or design-generate --check to detect staleness.
+**Trigger:** An operator runs architecture-generate or design-generate, or either with --check to detect staleness.
 
-**Components:** `design-document` → `schema-validation`
+**Components:** `architecture-document` → `design-system-document` → `document-render` → `schema-validation`
 
-1. The architecture artifact is read and validated against the registered architecture schema.
-2. Components, data flows, and architecture decisions are rendered from that artifact.
-3. The overview is projected from the workflow config context, the specification surface from the spec index and the main specs it references, and the technical standards from the technical standards directory.
-4. The rendered blocks are joined into one document carrying a generated banner that names every source artifact.
-5. Write mode writes the document; check mode compares block by block against the file on disk, writes nothing, and exits non-zero naming the source artifacts that went stale.
+1. The document family's source artifact is read and validated against its registered schema, failing with the artifact path and its authoring entry point when absent.
+2. The family builds its own blocks. Architecture renders components, data flows, and decisions from the architecture artifact, then projects the overview from the workflow config context, the specification surface from the spec index and the main specs it references, and the technical standards from the technical standards directory. Design renders YAML front-matter tokens and the canonical design.md sections from the design-system artifact, omitting sections whose token group is absent.
+3. The rendered blocks are joined into one document carrying a generated banner that names every source artifact.
+4. Write mode writes the document; check mode compares block by block against the file on disk, writes nothing, and exits non-zero naming the source artifacts that went stale.
 
 ### Artifact Validation (`artifact-validation-flow`)
 
@@ -380,9 +411,10 @@ Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it refe
 
 | Spec | ID | Requirements | Implementation files | Test files |
 | --- | --- | --- | --- | --- |
+| [Architecture Document Domain Behavior](.strict-spec-driven/specs/architecture/domain-behavior.yaml) | `architecture-domain-behavior` | 6 | 9 | 1 |
 | [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 176 | 85 | 11 |
 | [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 115 | 78 | 7 |
-| [Design Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 6 | 9 | 1 |
+| [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 6 | 9 | 1 |
 | [Harness Domain Behavior](.strict-spec-driven/specs/harness/domain-behavior.yaml) | `harness-domain-behavior` | 9 | 14 | 5 |
 | [Migrate Domain Behavior](.strict-spec-driven/specs/migrate/domain-behavior.yaml) | `migrate-domain-behavior` | 7 | 11 | 1 |
 | [Operations Domain Behavior](.strict-spec-driven/specs/operations/domain-behavior.yaml) | `operations-domain-behavior` | 5 | 4 | 1 |
@@ -416,6 +448,7 @@ Projected from `.strict-spec-driven/tech/`. MUST rules are binding; SHOULD rules
 
 - **MUST** `contract-first-scope-changes` — When a change alters a workflow contract — a registered schema, a main or delta spec, or a technical standard — the corresponding strict artifact MUST be updated first; implementation code MUST NOT silently widen workflow scope ahead of the contract it depends on.
 - **MUST** `roadmap-commands-do-not-write-change-artifacts` — Roadmap commands MUST NOT create, modify, or delete any artifact under .strict-spec-driven/changes/; when a roadmap operation leaves a change artifact's roadmap linkage stale or otherwise inconsistent, the command MUST report the drift as a non-blocking warning naming the command that repairs it rather than writing the change artifact itself.
+- **MUST** `relocated-mappings-declare-their-cleanup` — A change that renames or deletes a file referenced by a strict spec mapping or a technical-standard mapping MUST record the stale mapping entries that archive's additive merge will leave behind, together with the standalone command that removes them, before the change archives.
 
 ### [YAML-First Artifact Authoring](.strict-spec-driven/tech/yaml-first-artifacts.yaml) (`yaml-first-artifacts`) — architecture
 

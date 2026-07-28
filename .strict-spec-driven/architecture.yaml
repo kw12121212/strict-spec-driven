@@ -98,24 +98,56 @@ components:
       implementation:
         - src/cli/spec-mapping.ts
         - src/cli/tech-mapping.ts
-  design-document:
-    title: Design Document Rendering
+  document-render:
+    title: Generated Document Rendering
     responsibility: >-
-      Renders DESIGN.md deterministically from the architecture artifact plus the workflow config,
-      the spec index, and the technical standards, detects drift against the rendered output without
-      writing, and reports architecture artifact validity and implementation-mapping drift.
+      Provides the machinery both generated-document families share: schema-validated artifact
+      loading, block assembly, generated-banner rendering, deterministic serialization, block-by-block
+      check-mode comparison that attributes drift to a source artifact, and the output-path override.
+    boundaries:
+      - Owns no artifact of its own; each document family supplies its own blocks and source artifacts.
+      - Renders whatever blocks it is given and never decides what a document contains.
+    depends_on:
+      - schema-validation
+    mapping:
+      implementation:
+        - src/document-render.ts
+  architecture-document:
+    title: Architecture Document Rendering
+    responsibility: >-
+      Renders ARCHITECTURE.md deterministically from the architecture artifact plus the workflow
+      config, the spec index, and the technical standards, detects drift against the rendered output
+      without writing, and reports architecture artifact validity and implementation-mapping drift.
     boundaries:
       - Owns no source of truth of its own beyond the architecture artifact; specification and standards content is projected, never duplicated.
       - Deliberately not wired into verify, ready, or archive; staleness is an on-demand check.
     depends_on:
+      - document-render
       - schema-validation
       - mapping-audit
     mapping:
       implementation:
-        - src/design.ts
-        - src/cli/cmd-design.ts
+        - src/architecture.ts
+        - src/cli/cmd-architecture.ts
         - templates/strict-spec-driven/schemas/architecture.yaml
         - templates/strict-spec-driven/scaffold/architecture.yaml
+  design-system-document:
+    title: Design System Document Rendering
+    responsibility: >-
+      Renders DESIGN.md in the design.md interchange format from the optional design-system artifact
+      as YAML front-matter tokens followed by the canonical sections, and reports design-system
+      artifact validity, token and component counts, and implementation and snapshot mapping drift.
+    boundaries:
+      - Holds visual identity only; observable UI behavior belongs to main specs and UI engineering rules belong to ui-category technical standards.
+      - Treats the design-system artifact as optional and absent for projects with no user interface; init deliberately does not scaffold it.
+    depends_on:
+      - document-render
+      - schema-validation
+    mapping:
+      implementation:
+        - src/design-system.ts
+        - src/cli/cmd-design.ts
+        - templates/strict-spec-driven/schemas/design-system.yaml
   roadmap:
     title: Roadmap Domain
     responsibility: >-
@@ -252,17 +284,26 @@ data_flows:
       - change-lifecycle
       - schema-validation
       - roadmap
-  design-document-render:
-    title: Design Document Rendering
-    trigger: An operator runs design-generate, or design-generate --check to detect staleness.
+  generated-document-render:
+    title: Generated Document Rendering
+    trigger: >-
+      An operator runs architecture-generate or design-generate, or either with --check to detect
+      staleness.
     steps:
-      - The architecture artifact is read and validated against the registered architecture schema.
-      - Components, data flows, and architecture decisions are rendered from that artifact.
-      - The overview is projected from the workflow config context, the specification surface from the spec index and the main specs it references, and the technical standards from the technical standards directory.
+      - The document family's source artifact is read and validated against its registered schema, failing with the artifact path and its authoring entry point when absent.
+      - >-
+        The family builds its own blocks. Architecture renders components, data flows, and decisions
+        from the architecture artifact, then projects the overview from the workflow config context,
+        the specification surface from the spec index and the main specs it references, and the
+        technical standards from the technical standards directory. Design renders YAML front-matter
+        tokens and the canonical design.md sections from the design-system artifact, omitting
+        sections whose token group is absent.
       - The rendered blocks are joined into one document carrying a generated banner that names every source artifact.
       - Write mode writes the document; check mode compares block by block against the file on disk, writes nothing, and exits non-zero naming the source artifacts that went stale.
     components:
-      - design-document
+      - architecture-document
+      - design-system-document
+      - document-render
       - schema-validation
   artifact-validation-flow:
     title: Artifact Validation

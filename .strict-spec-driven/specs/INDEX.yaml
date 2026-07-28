@@ -3,6 +3,9 @@ schema_version: 1
 artifact_type: spec_index
 schema_file: templates/strict-spec-driven/schemas/spec-index.yaml
 specs:
+  - id: architecture-domain-behavior
+    title: Architecture Document Domain Behavior
+    path: .strict-spec-driven/specs/architecture/domain-behavior.yaml
   - id: cli-foundation
     title: CLI Foundation
     path: .strict-spec-driven/specs/cli/foundation.yaml
@@ -10,7 +13,7 @@ specs:
     title: Strict YAML Artifact Schemas
     path: .strict-spec-driven/specs/contracts/yaml-artifacts.yaml
   - id: design-domain-behavior
-    title: Design Document Domain Behavior
+    title: Design System Document Domain Behavior
     path: .strict-spec-driven/specs/design/domain-behavior.yaml
   - id: harness-domain-behavior
     title: Harness Domain Behavior
