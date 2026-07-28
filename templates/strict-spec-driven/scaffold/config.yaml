@@ -51,6 +51,12 @@ review_evidence:
     #       - src/**
     #     exclude:
     #       - src/generated/**
+# Checks the maintenance command runs. Supported types: roadmap-sync-check,
+# specs-directory-structure-check, and generated-doc-check. generated-doc-check
+# reports a rendered ARCHITECTURE.md or DESIGN.md that no longer matches its
+# strict YAML sources; it never re-renders the document itself, and it stays
+# silent for a document you have not rendered.
 # maintenance:
 #   checks:
 #     - type: roadmap-sync-check
+#     - type: generated-doc-check

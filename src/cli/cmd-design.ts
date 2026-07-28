@@ -1,8 +1,26 @@
-import { generateDesignDocument, getDesignSystemStatus } from "../design-system.js";
+import { generateDesignDocument, getDesignSystemStatus, initializeDesignSystemArtifact } from "../design-system.js";
 import { DocumentSourceError } from "../document-render.js";
 import { handleHelpRequest, parseDocumentGenerateArgs } from "./argv.js";
 import { getCommandUsage } from "./command-metadata.js";
 import { writeError, writeJson, writeUsage } from "./output.js";
+
+export function runDesignInit(argv: string[]): number {
+  if (handleHelpRequest("design-init", argv)) {
+    return 0;
+  }
+  if (argv.length > 0) {
+    writeUsage(getCommandUsage("design-init"));
+    return 1;
+  }
+
+  try {
+    writeJson(initializeDesignSystemArtifact(process.cwd()));
+    return 0;
+  } catch (error) {
+    writeError(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
+}
 
 export function runDesignGenerate(argv: string[]): number {
   if (handleHelpRequest("design-generate", argv)) {

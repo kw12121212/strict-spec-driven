@@ -4,6 +4,9 @@ import { parseYamlFile, stringifyYamlDocument } from "./yaml.js";
 import { MAX_ACTIVE_CHANGE_COUNT, initializeStrictChangeScaffold, listActiveChangeNames } from "./scaffold.js";
 import { syncRoadmap } from "./roadmap.js";
 import type { RoadmapSyncResult } from "./roadmap.js";
+import { generateArchitectureDocument } from "./architecture.js";
+import { generateDesignDocument } from "./design-system.js";
+import { DocumentSourceError, type DocumentRenderResult } from "./document-render.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const FORBIDDEN_SPEC_SUBDIRS = new Set([".strict-spec-driven", "changes", "archive"]);
@@ -82,6 +85,54 @@ function runSpecsDirectoryStructureCheck(rootDir: string): MaintenanceFinding[] 
       });
     }
   }
+  return findings;
+}
+
+/**
+ * The generated documents this check compares. Both renderers already render in memory, compare
+ * against disk, and name the sources that went stale in check mode, so the check reuses them rather
+ * than reimplementing comparison.
+ */
+const GENERATED_DOCUMENT_TARGETS: {
+  reRenderCommand: string;
+  check: (rootDir: string) => DocumentRenderResult;
+}[] = [
+  {
+    reRenderCommand: "strict-spec-cli architecture-generate",
+    check: (rootDir) => generateArchitectureDocument(rootDir, { check: true }),
+  },
+  {
+    reRenderCommand: "strict-spec-cli design-generate",
+    check: (rootDir) => generateDesignDocument(rootDir, { check: true }),
+  },
+];
+
+/**
+ * Reports generated documents that exist on disk and no longer match their strict YAML sources. A
+ * document absent from disk is not drift: both generated documents are opt-in, so a project that
+ * never rendered one has declined it rather than let it go stale. An unreadable source artifact is
+ * skipped for the same reason — there is nothing to compare against, and artifact validity is what
+ * architecture-status and design-status report.
+ */
+function runGeneratedDocCheck(rootDir: string): MaintenanceFinding[] {
+  const findings: MaintenanceFinding[] = [];
+
+  for (const target of GENERATED_DOCUMENT_TARGETS) {
+    let result: DocumentRenderResult;
+    try {
+      result = target.check(rootDir);
+    } catch (error) {
+      if (error instanceof DocumentSourceError) continue;
+      throw error;
+    }
+
+    if (!result.documentExists || result.current) continue;
+    findings.push({
+      check: "generated-doc-check",
+      description: `Re-render stale ${result.outputPath} after changes to ${result.staleSources.join(", ")}: ${target.reRenderCommand}`,
+    });
+  }
+
   return findings;
 }
 
@@ -168,6 +219,10 @@ export function runMaintenance(rootDir: string): MaintenanceResult {
     }
     if (check.type === "specs-directory-structure-check") {
       findings.push(...runSpecsDirectoryStructureCheck(rootDir));
+      checksRun++;
+    }
+    if (check.type === "generated-doc-check") {
+      findings.push(...runGeneratedDocCheck(rootDir));
       checksRun++;
     }
   }

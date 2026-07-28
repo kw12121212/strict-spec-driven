@@ -1,0 +1,41 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: design-domain-behavior
+mapping:
+  implementation:
+    - src/cli/cmd-design.ts
+    - src/design-system.ts
+    - src/cli/registry.ts
+    - src/cli/command-metadata-entries.ts
+    - templates/strict-spec-driven/scaffold/design-system.yaml
+    - src/embedded-templates.ts
+    - skills/strict-spec-design/SKILL.md
+    - skills/strict-spec-design-sync/SKILL.md
+  tests:
+    - test/suites/design-system-document.ts
+operations:
+  ADDED:
+    design-system-artifact-initialization:
+      strength: MUST
+      statement: The design-init command MUST create the project design-system artifact from the bundled design-system scaffold template when the artifact is absent, MUST report the created path, MUST leave an existing artifact byte-identical and report it as skipped rather than overwriting it, and the created artifact MUST validate against the registered design-system schema so design-status and design-generate are usable immediately; init MUST continue to create no design-system artifact.
+      scenarios:
+        creates-artifact-when-absent:
+          - GIVEN: A project with strict workflow state and no design-system artifact
+          - WHEN: The operator runs design-init
+          - THEN: The command exits zero, reports the created .strict-spec-driven/design-system.yaml path, and the created artifact validates against the registered design-system schema
+        created-artifact-is-immediately-usable:
+          - GIVEN: A project where design-init has just created the design-system artifact and nothing else has edited it
+          - WHEN: The operator runs design-status
+          - THEN: The command exits zero, reports the artifact as valid, reports zero tokens and zero components, and reports no mapping drift
+        skips-existing-artifact-without-overwriting:
+          - GIVEN: A project whose design-system artifact already declares tokens and components
+          - WHEN: The operator runs design-init
+          - THEN: The command exits zero, reports the artifact as skipped, and the artifact on disk is byte-identical to its prior content
+        init-still-does-not-scaffold-the-artifact:
+          - GIVEN: A directory with no strict workflow state
+          - WHEN: The operator runs init without running design-init
+          - THEN: The workflow config, spec index, and architecture artifact are created and no design-system artifact is created
+  MODIFIED: {}
+  REMOVED: {}

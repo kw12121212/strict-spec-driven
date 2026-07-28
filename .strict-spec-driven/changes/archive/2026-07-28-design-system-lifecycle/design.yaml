@@ -1,0 +1,42 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: design-system-lifecycle
+approach:
+  - 'Complete the design-system lifecycle in three separable pieces that reuse existing mechanics rather than adding a parallel subsystem: an opt-in design-init command backed by a bundled scaffold template for initialization, a prompt-only strict-spec-design-sync skill for ongoing reconciliation against user interface code, and a generated-doc-check maintenance check type that calls the existing check-mode renderers read-only for staleness detection. Scripts keep owning filesystem mechanics, schema validation, and comparison; the judgment about what a project''s tokens and components actually are stays in the skill prompt.'
+decisions:
+  design-init-is-a-separate-opt-in-command:
+    decision: Initialization is a new design-init command rather than a flag on init or a new file that init writes.
+    rationale: The design spec requirement design-system-artifact-availability carries a MUST that init does not scaffold a design-system artifact, because most projects have no user interface. A separate opt-in command adds the missing starting point without weakening that requirement or forcing a MODIFIED delta on it.
+  scaffold-is-schema-valid-on-creation:
+    decision: 'The scaffold template mirrors templates/strict-spec-driven/scaffold/architecture.yaml: minimal design_system id and title, empty tokens and components maps, a placeholder guidance.overview string, and guiding comments naming the skill that fills it and the command that renders the document.'
+    rationale: The design-system schema requires the tokens, components, and guidance keys plus guidance.overview, so an empty-collection scaffold with a placeholder overview validates immediately. That makes design-status and design-generate usable straight after design-init instead of failing until the operator has hand-written enough content, matching how architecture.yaml already behaves.
+  design-sync-is-standalone-only:
+    decision: strict-spec-design-sync reconciles the live design-system artifact directly and has no active-change mode, unlike strict-tech-sync.
+    rationale: There is no delta-design generator and archive does not merge a design-system artifact, so an active-change mode would have to either edit the live artifact from inside a change or invent a delta-design artifact type. Inventing one to satisfy family symmetry is scope the change does not need; standalone editing is consistent with how the design-system artifact already works.
+  missing-generated-document-is-not-a-maintenance-finding:
+    decision: generated-doc-check reports a finding only for a document that exists on disk and is stale. An absent document, or an absent source artifact, produces no finding.
+    rationale: 'Both generated documents are opt-in: a project that never rendered ARCHITECTURE.md or has no design-system artifact has not drifted, it has declined the document. Reporting absence would make every configured maintenance run noisy for those projects. The stricter missing-is-failure semantics stay in design-generate --check and architecture-generate --check, where the operator explicitly asked about one document.'
+  maintenance-check-is-read-only:
+    decision: The check calls generateArchitectureDocument and generateDesignDocument in check mode and never writes a document; the re-render command is carried as an implementation task in the seeded maintenance change.
+    rationale: 'Existing check mode already renders in memory, compares against disk, leaves the file untouched, and names the stale source artifacts, so the check needs no new rendering or comparison logic. Keeping maintenance read-only for documents preserves the auditability the seeded change exists to provide: silently re-rendering would hide the drift the finding is meant to surface.'
+  one-check-type-covers-both-documents:
+    decision: A single generated-doc-check type covers ARCHITECTURE.md and DESIGN.md rather than separate design-doc-check and architecture-doc-check types.
+    rationale: The two documents already share identical render-and-compare semantics and a common result shape, so one check type avoids duplicating the same detection logic and spares a second change to extend coverage to the architecture document later.
+  maintenance-metadata-correction-is-in-scope:
+    decision: The maintenance command-metadata entry's declared output keys are corrected to the keys the command actually emits, and no other command-metadata entry is touched.
+    rationale: The cli-command-metadata standard carries a MUST that a metadata entry documents the command's output keys, and this change alters maintenance behavior, so leaving the entry declaring valid and diagnostics while the command emits checksRun, findingsCount, generatedChange, and seedingSkippedReason would ship a known violation on the command being changed. Limiting the fix to that one entry keeps it compliance rather than an audit.
+alternatives:
+  - option: Add a --with-design flag to init instead of a separate design-init command.
+    reason: It would contradict the existing MUST that init creates no design-system artifact and force a MODIFIED delta on a requirement that is deliberately restrictive, to save one command invocation.
+  - option: Invent a delta-design artifact type so strict-spec-design-sync gains an active-change mode symmetrical with strict-tech-sync.
+    reason: Archive has no design-system merge path, so a delta-design artifact would require new merge machinery and archive semantics for a need no current workflow step has; standalone editing already fits how the artifact works.
+  - option: Wire design-generate --check and architecture-generate --check into verify, ready, or archive instead of adding a maintenance check type.
+    reason: It would reverse a deliberate existing decision and make every unrelated change fail its gates on generated-document rendering; a configured maintenance check gives the same detection without coupling document freshness to change completion.
+  - option: Add separate design-doc-check and architecture-doc-check maintenance types.
+    reason: The two documents share identical render-in-memory, compare, and stale-source-reporting semantics, so two types would duplicate the same detection logic and the same tests.
+risks:
+  - The design half of this change cannot be exercised end to end in this repository, which is a CLI with no user interface and no design-system artifact, so design-init and the design branch of generated-doc-check are evidenced by unit tests over fixture projects rather than by self-hosting; only the architecture branch can be dogfooded.
+  - A project that renders its generated document deliberately at release time rather than continuously would see a maintenance finding on every run once the check is configured. The check stays opt-in per project config and reports only documents already on disk, so the noise is bounded to projects that asked for it.
+  - Adding new source code enlarges the coverage denominator the review-evidence gate measures, so leaving a new branch untested can push measured src line coverage below the declared threshold of 78 and block archive; the new tests must cover the skip, absent-document, and absent-source branches rather than only the happy path.

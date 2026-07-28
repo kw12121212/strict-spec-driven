@@ -35,9 +35,21 @@ strict-spec-cli sample-show design-system
 
 ---
 
-## 3. 编写 `.strict-spec-driven/design-system.yaml`
+## 3. 创建设计系统制品
 
-创建或编辑 `.strict-spec-driven/design-system.yaml` 来记录 Design Tokens、组件映射和设计指南：
+`init` 刻意不会创建设计系统制品，因为大多数项目没有用户界面。确认项目确实有 UI 之后，显式创建它：
+
+```sh
+strict-spec-cli design-init
+```
+
+该命令写出一份 Schema 合法的骨架（Token 与组件集合为空），因此 `design-status` 立即可用，你编辑的是一个合法制品而不是从零拼装。如果制品已存在，命令报告 `skipped` 并保持文件字节不变 —— 绝不覆盖 —— 所以可以安全重复执行。
+
+---
+
+## 4. 编写 `.strict-spec-driven/design-system.yaml`
+
+在骨架基础上填入 Design Tokens、组件映射和设计指南：
 
 ```yaml
 schema: strict-spec-driven/design-system/v1
@@ -102,7 +114,7 @@ guidance:
 
 ---
 
-## 4. 检查状态与代码/快照映射漂移
+## 5. 检查状态与代码/快照映射漂移
 
 校验 Schema 正确性并检查组件映射的代码与视觉快照路径：
 
@@ -117,7 +129,7 @@ strict-spec-cli design-status
 
 ---
 
-## 5. 渲染生成 `DESIGN.md`
+## 6. 渲染生成 `DESIGN.md`
 
 在项目根目录（或指定输出路径）生成 `DESIGN.md` 文档：
 
@@ -131,7 +143,7 @@ strict-spec-cli design-generate --output docs/DESIGN.md
 
 ---
 
-## 6. 在 CI / 自动化中执行防漂移检查
+## 7. 执行防漂移检查
 
 使用 `--check` 模式校验 `DESIGN.md` 是否与 YAML 源保持最新一致（不写入文件）：
 
@@ -142,14 +154,41 @@ strict-spec-cli design-generate --check
 - 如果 `DESIGN.md` 为最新状态，退出码为 `0`。
 - 如果 `DESIGN.md` 过期或缺失，退出码为 `1` 并列出过期的源文件。
 
+如果希望它被周期性检查而不是手动执行，在 `.strict-spec-driven/config.yaml` 中声明为维护检查：
+
+```yaml
+maintenance:
+  checks:
+    - type: generated-doc-check
+```
+
+之后 `strict-spec-cli maintenance` 会把过期的 `DESIGN.md`（以及 `ARCHITECTURE.md`）报告为 finding，指出过期的源制品和重新渲染的命令，并 seed 一个维护变更作为记录。它绝不会自行重新渲染文档，对你尚未渲染过的文档也保持沉默。
+
+---
+
+## 8. 让制品与代码保持一致
+
+`--check` 和 `generated-doc-check` 比较的是 `DESIGN.md` 与 `design-system.yaml`。两者都无法发现**制品本身**已经落后于界面代码 —— 比如某个组件被删除，或者色板被重新调整。`design-status` 只能发现已不存在的映射路径。
+
+这种情况请使用 `/strict-spec-design-sync`：它扫描样式表、主题文件与 UI 源码，报告代码与已记录识别体系之间的每一处分歧，在你逐条确认后同步制品，并重新渲染文档。
+
 ---
 
 ## 命令汇总表
 
 | 命令 | 说明 |
 | :--- | :--- |
+| `strict-spec-cli design-init` | 从内置骨架创建 `design-system.yaml`，已存在则跳过 |
 | `strict-spec-cli design-status` | 校验 `design-system.yaml` 并检查代码/快照映射漂移 |
 | `strict-spec-cli design-generate` | 从 `design-system.yaml` 渲染生成 `DESIGN.md` |
 | `strict-spec-cli design-generate --check` | 检查 `DESIGN.md` 是否为最新状态（不写入文件） |
 | `strict-spec-cli schema-show design-system` | 显示设计系统的 JSON Schema |
 | `strict-spec-cli sample-show design-system` | 显示设计系统的 YAML 示例文件 |
+| `strict-spec-cli maintenance` | 配置了 `generated-doc-check` 时，报告过期的 `DESIGN.md` |
+
+## 相关技能
+
+| 技能 | 用途 |
+| :--- | :--- |
+| `/strict-spec-design` | 编写或刷新设计系统制品，并渲染 `DESIGN.md` |
+| `/strict-spec-design-sync` | 将制品与已变更的 UI 代码对账同步 |

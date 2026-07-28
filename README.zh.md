@@ -99,6 +99,8 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 | `/strict-spec-harness-session` | 运行结构化 harness 调查 |
 | `/strict-spec-spec-edit` | 直接编辑主规范文件 |
 | `/strict-spec-sync-specs` | 与代码漂移同步规范 |
+| `/strict-spec-design` | 编写或刷新设计系统制品并渲染 `DESIGN.md` |
+| `/strict-spec-design-sync` | 将设计系统制品与 UI 代码漂移对账同步 |
 | `/strict-spec-resync-code-mapping` | 修复规范实现和测试映射 |
 | `/strict-spec-maintenance` | 运行仓库维护工作流 |
 

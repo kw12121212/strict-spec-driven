@@ -1,0 +1,41 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: design-system-lifecycle
+  status: proposed
+summary:
+  what:
+    - Add an opt-in design-init command that scaffolds .strict-spec-driven/design-system.yaml from a bundled minimal scaffold template, skipping an existing artifact rather than overwriting it.
+    - Add a strict-spec-design-sync skill that scans user interface code for drift against the design-system artifact and reconciles the artifact in standalone mode after operator confirmation.
+    - Add a generated-doc-check maintenance check type that reports a finding for each generated document that exists on disk and is stale, covering both ARCHITECTURE.md and DESIGN.md.
+    - Enable the new generated-doc-check in this repository's own workflow config so the architecture branch of the check is self-hosted.
+    - Correct the maintenance command-metadata output keys to match the report the command actually emits.
+  why:
+    - 'The design system has an authoring skill but no initialization path: init deliberately does not scaffold a design-system artifact and no scaffold template exists, so /strict-spec-design must hand-author the whole file from a full example instead of starting from a minimal valid skeleton the way /strict-spec-architecture does.'
+    - The design system has no drift-sync skill. specs have strict-spec-sync-specs and technical standards have strict-tech-sync, but nothing scans user interface code and reconciles design-system.yaml when components, palettes, or token names change; design-status can only report mapped paths that no longer exist.
+    - Staleness of the generated documents depends on an operator remembering to run design-generate --check or architecture-generate --check. The maintenance command implements only roadmap-sync-check and specs-directory-structure-check, so no configured check catches a stale generated document.
+    - 'Resolved question enable-generated-doc-check-in-this-repository: the architecture document is rendered and committed here, so enabling the check dogfoods it against real drift instead of only fixture projects.'
+scope:
+  in:
+    - 'New design-init command: registry wiring, command-metadata entry, and a new templates/strict-spec-driven/scaffold/design-system.yaml that is schema-valid on creation, with the embedded template bundle regenerated.'
+    - New skills/strict-spec-design-sync/SKILL.md plus its skills/marketplace.json entry, scoped to standalone reconciliation of the live design-system artifact.
+    - New generated-doc-check maintenance check type in src/maintenance.ts that reuses the existing architecture and design check-mode renderers read-only and reports one finding per existing stale document.
+    - A maintenance section in this repository's .strict-spec-driven/config.yaml declaring a single generated-doc-check entry, where the repository previously had no maintenance section at all.
+    - Delta specs adding a design-init requirement to design-domain-behavior and a generated-doc-check requirement to operations-domain-behavior, including mapping updates for the new skill and scaffold template.
+    - 'Documentation updates: README and README.zh skill tables, DESIGN_QUICKSTART and its zh translation, the strict-spec-design skill step that now starts from design-init, and the strict-spec-maintenance skill list of supported check types.'
+    - Narrow correction of the maintenance command-metadata output keys, required by the cli-command-metadata standard for the command this change alters.
+  out:
+    - No delta-design artifact type. The design-system artifact stays directly edited in standalone mode and archive does not merge it.
+    - design-generate --check and architecture-generate --check stay out of verify, ready, and archive; they remain on-demand plus the new maintenance check.
+    - No strict-spec-design-edit lightweight edit skill; strict-spec-design already covers refresh.
+    - maintenance never re-renders a generated document; the re-render command is carried as a task in the seeded change.
+    - No design-system artifact is created for this repository, which is a CLI with no user interface, so the design branch of the new check stays silent here.
+    - No command-metadata audit beyond the single maintenance entry; the undocumented design generator flags found during brainstorming are left for a separate change.
+unchanged_behavior:
+  - init still creates no design-system artifact; design-init is the only way to scaffold one and it is opt-in.
+  - design-generate, design-status, architecture-generate, and architecture-status keep their existing rendering, check, output-path, and error semantics.
+  - maintenance keeps its two-active-change seeding limit, seeded change name format, and skipped-seeding reporting.
+  - A project with no maintenance section in config.yaml still runs zero checks and produces zero findings.
+  - A project with no design-system artifact still gets no generated-doc-check finding for DESIGN.md.

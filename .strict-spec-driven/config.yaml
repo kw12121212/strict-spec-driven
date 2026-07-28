@@ -85,3 +85,6 @@ review_evidence:
           - src/**
         exclude:
           - src/embedded-templates.ts
+maintenance:
+  checks:
+    - type: generated-doc-check

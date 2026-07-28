@@ -14,6 +14,7 @@ export const COMMAND_REGISTRATION_ORDER = [
   "tech-status",
   "architecture-generate",
   "architecture-status",
+  "design-init",
   "design-generate",
   "design-status",
   "validate-skills",

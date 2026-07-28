@@ -1,0 +1,85 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: design-system-lifecycle
+sections:
+  Implementation:
+    add-design-system-scaffold-template:
+      text: 'Create templates/strict-spec-driven/scaffold/design-system.yaml as a schema-valid minimal skeleton: design_system id and title, empty tokens and components maps, a placeholder guidance.overview, and guiding comments naming /strict-spec-design and design-generate.'
+      status: complete
+    implement-design-init-command:
+      text: 'Implement the design-init behavior in src/design-system.ts and src/cli/cmd-design.ts: write .strict-spec-driven/design-system.yaml from the bundled scaffold template, report the created path, and skip without overwriting when the artifact already exists.'
+      status: complete
+    register-design-init-command:
+      text: Register design-init in src/cli/registry.ts and add its src/cli/command-metadata-entries.ts entry documenting its flags, output keys, and exit-code meaning as the cli-command-metadata standard requires.
+      status: complete
+    implement-generated-doc-check:
+      text: 'Add the generated-doc-check type to src/maintenance.ts: call generateArchitectureDocument and generateDesignDocument in check mode, emit one finding per document that exists on disk and is stale naming the document and its stale source artifacts plus the re-render command, and emit nothing when a document or its source artifact is absent.'
+      status: complete
+    fix-maintenance-command-metadata:
+      text: 'Correct the maintenance entry in src/cli/command-metadata-entries.ts to declare the output keys the command actually emits: valid, checksRun, findingsCount, generatedChange, and seedingSkippedReason.'
+      status: complete
+    document-check-type-in-scaffold-config:
+      text: List generated-doc-check alongside roadmap-sync-check in the commented maintenance section of templates/strict-spec-driven/scaffold/config.yaml so a newly initialized project can discover it.
+      status: complete
+    add-design-sync-skill:
+      text: 'Add skills/strict-spec-design-sync/SKILL.md: standalone-only reconciliation of .strict-spec-driven/design-system.yaml against user interface code, with a commands block, the workflow-state prerequisite, the preferred-human-language section, drift classification, operator confirmation before any write, and re-render plus confirmation steps.'
+      status: complete
+    register-design-sync-skill:
+      text: Add the strict-spec-design-sync entry to skills/marketplace.json under the strict-spec family so validate-skills reports skill and marketplace parity.
+      status: complete
+    update-design-skill-entry-point:
+      text: Update skills/strict-spec-design/SKILL.md so its commands block lists design-init and its read-the-current-state step starts from design-init when the artifact is absent, and cross-reference strict-spec-design-sync as the later drift-sync entry point.
+      status: complete
+    update-maintenance-skill-check-list:
+      text: 'Update skills/strict-spec-maintenance/SKILL.md to list the supported check types accurately: roadmap-sync-check, specs-directory-structure-check, and generated-doc-check, replacing the claim that only roadmap-sync-check is supported.'
+      status: complete
+    update-readme-and-quickstart-docs:
+      text: 'Document the new entry points in README.md, README.zh.md, DESIGN_QUICKSTART.md, and DESIGN_QUICKSTART.zh.md: the design-init initialization step, the /strict-spec-design-sync skill row, and the generated-doc-check maintenance option.'
+      status: complete
+    regenerate-bundle-and-rebuild:
+      text: Regenerate the embedded template bundle so the new scaffold template ships with the packaged CLI, then rebuild compiled output as the typescript-esm-baseline standard requires before relying on dist behavior.
+      status: complete
+      command: bun scripts/gen-templates-bundle.ts && bun run build
+    enable-generated-doc-check-in-this-repository:
+      text: Add a maintenance section to this repository's .strict-spec-driven/config.yaml declaring a single generated-doc-check entry, so the new check type is self-hosted against the committed ARCHITECTURE.md.
+      status: complete
+  Testing:
+    test-design-init:
+      text: 'Extend test/suites/design-system-document.ts to cover design-init: it creates a schema-valid design-system.yaml that design-status accepts in a project with no artifact, it skips without overwriting an existing artifact, and init on its own still creates no design-system artifact.'
+      status: complete
+    test-generated-doc-check:
+      text: 'Extend test/suites/operations.ts to cover generated-doc-check: a stale existing document produces a finding naming the document and its stale source, a current document produces none, an absent document produces none, an absent design-system artifact produces none while a stale ARCHITECTURE.md in the same project still does, and the check never modifies a document on disk.'
+      status: complete
+    run-validate-skills:
+      text: Run skill validation so the new strict-spec-design-sync skill and its marketplace entry report parity with no diagnostics.
+      status: complete
+      command: bun run validate-skills
+    run-project-regression:
+      text: Run the complete project regression command; it builds the project, runs the full suite, and exits non-zero when measured src/** line coverage falls below the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-change-artifacts:
+      text: Verify the strict change artifacts, task completion, and open-question state.
+      status: complete
+      command: strict-spec-cli verify design-system-lifecycle
+    verify-readiness:
+      text: Confirm structural proposal readiness for handoff.
+      status: complete
+      command: strict-spec-cli ready design-system-lifecycle
+    verify-mappings:
+      text: Confirm the delta-spec mapping paths added for the new skill, scaffold template, and sources all resolve in the repository.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+    verify-archive-merge-readiness:
+      text: 'Confirm archive readiness for the two delta specs: the design-domain-behavior and operations-domain-behavior deltas add requirements and mapping entries only, so the additive merge leaves no stale mapping entry behind and no standalone mapping-cleanup command is required.'
+      status: complete
+    verify-self-hosted-check-behavior:
+      text: 'Run the maintenance command in this repository with generated-doc-check enabled and confirm the outcome: zero design findings because there is no design-system artifact, and an ARCHITECTURE.md finding only when that document is genuinely stale against architecture.yaml, the spec index, the main specs, and the technical standards.'
+      status: complete
+      command: strict-spec-cli maintenance
+testing_gates:
+  validation_task: run-validate-skills
+  unit_test_task: run-project-regression

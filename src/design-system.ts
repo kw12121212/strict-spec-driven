@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import {
   DocumentSourceError,
@@ -12,10 +12,13 @@ import {
   type DocumentBlock,
   type DocumentRenderResult,
 } from "./document-render.js";
+import { readBundledScaffoldTemplate } from "./scaffold.js";
 import { loadBundledSchemaByArtifactType, validateArtifact, type ValidationDiagnostic } from "./validation.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
 const DESIGN_SYSTEM_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR}/design-system.yaml`;
+/** Scaffold asset design-init writes. It is deliberately absent from the init asset list. */
+const DESIGN_SYSTEM_SCAFFOLD_ASSET = "design-system.yaml";
 
 export const DEFAULT_DESIGN_DOCUMENT_PATH = "DESIGN.md";
 /** Entry point named in the missing-artifact error so operators know how to create the source. */
@@ -60,8 +63,32 @@ export type DesignSystemStatusResult = {
 
 export type DesignGenerateResult = DocumentRenderResult;
 
+export type DesignInitResult = {
+  artifactPath: string;
+  created: boolean;
+  /** True when an artifact was already present; it is left byte-identical rather than overwritten. */
+  skipped: boolean;
+};
+
 export function getDesignSystemArtifactPath(rootDir: string): string {
   return path.join(rootDir, STRICT_WORKFLOW_DIR, "design-system.yaml");
+}
+
+/**
+ * Creates the design-system artifact from the bundled scaffold so the authoring skill starts from a
+ * schema-valid skeleton instead of an empty file. This is a separate opt-in command rather than part
+ * of init because the artifact is optional: a project with no user interface never needs one, so init
+ * deliberately does not scaffold it.
+ */
+export function initializeDesignSystemArtifact(rootDir: string): DesignInitResult {
+  const absolutePath = getDesignSystemArtifactPath(rootDir);
+  if (existsSync(absolutePath)) {
+    return { artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH, created: false, skipped: true };
+  }
+
+  mkdirSync(path.dirname(absolutePath), { recursive: true });
+  writeFileSync(absolutePath, readBundledScaffoldTemplate(DESIGN_SYSTEM_SCAFFOLD_ASSET), "utf8");
+  return { artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH, created: true, skipped: false };
 }
 
 /**

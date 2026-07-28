@@ -581,4 +581,168 @@ try {
   rmSync(techValidDir, { recursive: true, force: true });
 }
 
+context.section("[24] maintenance generated-doc-check");
+
+const GENERATED_DOC_CHECK_CONFIG = ["maintenance:", "  checks:", "    - type: generated-doc-check", ""].join("\n");
+
+const MINIMAL_DESIGN_SYSTEM = [
+  "schema: strict-spec-driven/design-system/v1",
+  "schema_version: 1",
+  "artifact_type: design_system",
+  "schema_file: templates/strict-spec-driven/schemas/design-system.yaml",
+  "design_system:",
+  "  id: check-design-system",
+  "  title: Check Design System",
+  "tokens:",
+  "  colors:",
+  "    primary: '#1A73E8'",
+  "components: {}",
+  "guidance:",
+  "  overview: The identity recorded before the artifact drifted.",
+  "",
+].join("\n");
+
+type MaintenanceReport = {
+  valid: boolean;
+  checksRun: number;
+  findingsCount: number;
+  generatedChange: string | null;
+};
+
+/** Initializes a workspace whose config declares only the generated-doc-check. */
+function createGeneratedDocCheckWorkspace(): string {
+  const workspaceRoot = mkdtempSync(path.join(os.tmpdir(), "strict-spec-generated-doc-"));
+  cli(["init"], { cwd: workspaceRoot });
+  const configPath = path.join(workspaceRoot, ".strict-spec-driven", "config.yaml");
+  writeFileSync(configPath, `${readFileSync(configPath, "utf8")}\n${GENERATED_DOC_CHECK_CONFIG}`, "utf8");
+  return workspaceRoot;
+}
+
+function readMaintenanceReport(cwd: string): MaintenanceReport {
+  const result = cli(["maintenance"], { cwd });
+  return JSON.parse(result.stdout.trim()) as MaintenanceReport;
+}
+
+/** Finding descriptions recorded in the seeded change's scope, which is where the check reports them. */
+function readSeededFindings(workspaceRoot: string, changeName: string): string[] {
+  const proposal = readFileSync(
+    path.join(workspaceRoot, ".strict-spec-driven", "changes", changeName, "proposal.yaml"),
+    "utf8",
+  );
+  return proposal.split("\n");
+}
+
+// 23a: a rendered document that still matches its sources is not a finding
+const docCurrentDir = createGeneratedDocCheckWorkspace();
+try {
+  cli(["architecture-generate"], { cwd: docCurrentDir });
+  const report = readMaintenanceReport(docCurrentDir);
+  context.assert(report.checksRun === 1, "generated-doc-check counts as a run check", JSON.stringify(report));
+  context.assert(report.findingsCount === 0, "a current generated document produces no finding", JSON.stringify(report));
+  context.assert(report.generatedChange === null, "a current generated document seeds no maintenance change");
+} finally {
+  rmSync(docCurrentDir, { recursive: true, force: true });
+}
+
+// 23b: a document that was never rendered is declined, not stale
+const docAbsentDir = createGeneratedDocCheckWorkspace();
+try {
+  const report = readMaintenanceReport(docAbsentDir);
+  context.assert(report.checksRun === 1, "generated-doc-check runs when no document exists on disk");
+  context.assert(report.findingsCount === 0, "an absent generated document produces no finding", JSON.stringify(report));
+  context.assert(
+    !existsSync(path.join(docAbsentDir, "ARCHITECTURE.md")),
+    "generated-doc-check does not create a missing generated document",
+  );
+} finally {
+  rmSync(docAbsentDir, { recursive: true, force: true });
+}
+
+// 23c: a stale document is reported, named with its stale source and re-render command, and left untouched
+const docStaleDir = createGeneratedDocCheckWorkspace();
+try {
+  cli(["architecture-generate"], { cwd: docStaleDir });
+  const documentPath = path.join(docStaleDir, "ARCHITECTURE.md");
+  const renderedDocument = readFileSync(documentPath, "utf8");
+
+  const artifactPath = path.join(docStaleDir, ".strict-spec-driven", "architecture.yaml");
+  writeFileSync(
+    artifactPath,
+    readFileSync(artifactPath, "utf8").replace("title: Project Architecture", "title: Drifted Architecture"),
+    "utf8",
+  );
+
+  const report = readMaintenanceReport(docStaleDir);
+  context.assert(report.findingsCount === 1, "a stale generated document produces one finding", JSON.stringify(report));
+  context.assert(typeof report.generatedChange === "string", "a stale generated document seeds a maintenance change");
+  context.assert(
+    readFileSync(documentPath, "utf8") === renderedDocument,
+    "generated-doc-check leaves the stale document byte-identical",
+  );
+
+  const findingLines = readSeededFindings(docStaleDir, report.generatedChange as string);
+  const architectureFinding = findingLines.find((line) => line.includes("ARCHITECTURE.md"));
+  context.assert(architectureFinding !== undefined, "the finding names the stale document", findingLines.join("\n"));
+  context.assert(
+    (architectureFinding ?? "").includes(".strict-spec-driven/architecture.yaml"),
+    "the finding names the source artifact that went stale",
+    architectureFinding,
+  );
+  context.assert(
+    (architectureFinding ?? "").includes("strict-spec-cli architecture-generate"),
+    "the finding names the command that re-renders the document",
+    architectureFinding,
+  );
+  context.assert(
+    !findingLines.some((line) => line.includes("DESIGN.md")),
+    "a project with no design-system artifact gets no design document finding",
+    findingLines.join("\n"),
+  );
+} finally {
+  rmSync(docStaleDir, { recursive: true, force: true });
+}
+
+// 23d: both documents are covered by the one check type
+const docBothDir = createGeneratedDocCheckWorkspace();
+try {
+  const designArtifactPath = path.join(docBothDir, ".strict-spec-driven", "design-system.yaml");
+  writeFileSync(designArtifactPath, MINIMAL_DESIGN_SYSTEM, "utf8");
+  cli(["architecture-generate"], { cwd: docBothDir });
+  cli(["design-generate"], { cwd: docBothDir });
+
+  const designDocumentPath = path.join(docBothDir, "DESIGN.md");
+  const renderedDesignDocument = readFileSync(designDocumentPath, "utf8");
+  writeFileSync(
+    designArtifactPath,
+    MINIMAL_DESIGN_SYSTEM.replace(
+      "The identity recorded before the artifact drifted.",
+      "The identity after the artifact drifted.",
+    ),
+    "utf8",
+  );
+
+  const report = readMaintenanceReport(docBothDir);
+  context.assert(
+    report.findingsCount === 1,
+    "the stale design document is reported while the current architecture document is not",
+    JSON.stringify(report),
+  );
+  context.assert(
+    readFileSync(designDocumentPath, "utf8") === renderedDesignDocument,
+    "generated-doc-check leaves the stale design document byte-identical",
+  );
+
+  const findingLines = readSeededFindings(docBothDir, report.generatedChange as string);
+  const designFinding = findingLines.find((line) => line.includes("DESIGN.md"));
+  context.assert(designFinding !== undefined, "the finding names the stale design document", findingLines.join("\n"));
+  context.assert(
+    (designFinding ?? "").includes(".strict-spec-driven/design-system.yaml")
+      && (designFinding ?? "").includes("strict-spec-cli design-generate"),
+    "the design finding names its source artifact and re-render command",
+    designFinding,
+  );
+} finally {
+  rmSync(docBothDir, { recursive: true, force: true });
+}
+
 }

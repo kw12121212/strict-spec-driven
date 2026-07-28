@@ -1,0 +1,12 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: design-system-lifecycle
+open: []
+resolved:
+  - id: enable-generated-doc-check-in-this-repository
+    question: Should this repository enable the new generated-doc-check in its own .strict-spec-driven/config.yaml maintenance section?
+    context: 'Impact: this repository''s config.yaml currently has no maintenance section at all, so strict-spec-cli maintenance runs zero checks and never seeds a change. Adding maintenance.checks with a generated-doc-check entry would make every maintenance run compare the rendered ARCHITECTURE.md against architecture.yaml, the spec index, the main specs, and the technical standards, and seed a maintenance change whenever it has drifted. DESIGN.md is unaffected here because this repository is a CLI with no user interface and has no design-system artifact, so the design half of the check stays silent and cannot be self-hosted. Recommendation: yes, add the entry, because the architecture document is rendered and committed in this repository and its drift is exactly what the check exists to catch, and because it makes the new check type self-hosted rather than shipped untested against a real project. Options: (a) add maintenance.checks with a generated-doc-check entry to this repository''s config.yaml as part of this change; (b) ship the check type without enabling it here and leave this repository''s maintenance configuration empty, documenting the option for consumer projects only.'
+    answer: 'Yes, option (a): add a maintenance section with a generated-doc-check entry to this repository''s own .strict-spec-driven/config.yaml as part of this change. The architecture document is rendered and committed here, so its drift is exactly what the check exists to catch, and enabling it makes the new check type self-hosted for the architecture branch rather than shipped only against fixture projects. The design branch stays silent here because this repository is a CLI with no design-system artifact.'
+    status: resolved

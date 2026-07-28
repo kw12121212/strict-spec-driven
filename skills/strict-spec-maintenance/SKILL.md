@@ -37,7 +37,22 @@ If no `maintenance` section exists, the command exits with zero findings. Add a 
 maintenance:
   checks:
     - type: roadmap-sync-check
+    - type: generated-doc-check
 ```
+
+Supported check types:
+
+| Type | What it reports | Corrections applied |
+|---|---|---|
+| `roadmap-sync-check` | Each roadmap file whose state was reconciled | Yes — sync is applied, the finding records it |
+| `specs-directory-structure-check` | A workflow state directory misplaced under `.strict-spec-driven/specs/` | No — the finding names the directory to remove |
+| `generated-doc-check` | A rendered `ARCHITECTURE.md` or `DESIGN.md` that no longer matches its strict YAML sources | No — the finding names the stale sources and the re-render command |
+
+`generated-doc-check` is read-only for the documents it inspects: it renders in
+memory, compares, and never writes. It reports only a document that is already on
+disk, because both generated documents are opt-in — a project that never rendered
+one has declined it rather than let it go stale. A project with no design-system
+artifact therefore gets no `DESIGN.md` finding.
 
 ## Preferred Human Language
 
@@ -67,7 +82,7 @@ run `init` from this skill.
    - `tasks.yaml`: one implementation task per finding, plus standard testing and verification tasks
    - `design.yaml`, `questions.yaml`: scaffolded templates for operator review
 
-4. **Work through tasks** — use the standard `/strict-spec-apply <generatedChange>` workflow to complete all pending tasks. For `roadmap-sync-check` findings, the roadmap sync was already applied; implementation tasks are to review and confirm the changes were correct.
+4. **Work through tasks** — use the standard `/strict-spec-apply <generatedChange>` workflow to complete all pending tasks. For `roadmap-sync-check` findings, the roadmap sync was already applied; implementation tasks are to review and confirm the changes were correct. For `generated-doc-check` findings, nothing was applied: run the re-render command named in the finding, and if the stale sources reveal that the source artifact itself is wrong, fix the artifact through its own skill before re-rendering.
 
 5. **Verify and archive** — once all tasks are complete:
    ```
@@ -77,6 +92,5 @@ run `init` from this skill.
 
 ## Notes
 
-- The `maintenance` command runs configured checks and applies automated corrections as a side effect (for example, updating roadmap sync state). The generated change is an auditable record of what was done.
-- Only the `roadmap-sync-check` type is supported in this version. It applies roadmap sync state reconciliation and records each updated file as a finding.
+- The `maintenance` command runs configured checks and applies automated corrections as a side effect (for example, updating roadmap sync state). The generated change is an auditable record of what was done. Not every check applies a correction; see the table above for which do.
 - The maintenance change name uses the format `maintenance-YYYY-MM-DD` (with a numeric suffix if a collision exists).

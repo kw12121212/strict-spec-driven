@@ -99,6 +99,8 @@ Skills are Agent Skills packages installed via `install.sh`. Invoke them in Clau
 | `/strict-spec-harness-session` | Run a structured harness investigation |
 | `/strict-spec-spec-edit` | Edit main spec files directly |
 | `/strict-spec-sync-specs` | Synchronize specs with code drift |
+| `/strict-spec-design` | Author or refresh the design system artifact and render `DESIGN.md` |
+| `/strict-spec-design-sync` | Reconcile the design system artifact with UI code drift |
 | `/strict-spec-resync-code-mapping` | Repair spec implementation and test mappings |
 | `/strict-spec-maintenance` | Run repository maintenance workflow |
 

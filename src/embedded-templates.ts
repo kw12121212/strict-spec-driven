@@ -148,9 +148,32 @@ review_evidence:
     #       - src/**
     #     exclude:
     #       - src/generated/**
+# Checks the maintenance command runs. Supported types: roadmap-sync-check,
+# specs-directory-structure-check, and generated-doc-check. generated-doc-check
+# reports a rendered ARCHITECTURE.md or DESIGN.md that no longer matches its
+# strict YAML sources; it never re-renders the document itself, and it stays
+# silent for a document you have not rendered.
 # maintenance:
 #   checks:
 #     - type: roadmap-sync-check
+#     - type: generated-doc-check
+`,
+  "strict-spec-driven/scaffold/design-system.yaml": `schema: strict-spec-driven/design-system/v1
+schema_version: 1
+artifact_type: design_system
+schema_file: templates/strict-spec-driven/schemas/design-system.yaml
+design_system:
+  id: project-design-system
+  title: Project Design System
+# Fill these collections with /strict-spec-design, then render DESIGN.md with
+# \`strict-spec-cli design-generate\`. Declare only the token groups the interface
+# actually has: an absent group is omitted from the rendered document rather than
+# rendered empty. Observable UI behavior belongs in main specs and UI engineering
+# rules belong in ui-category technical standards, so neither belongs here.
+tokens: {}
+components: {}
+guidance:
+  overview: REPLACE WITH the visual identity this interface is built on
 `,
   "strict-spec-driven/scaffold/harness-sessions/session.yaml": `schema: strict-spec-driven/harness-session/v1
 schema_version: 1

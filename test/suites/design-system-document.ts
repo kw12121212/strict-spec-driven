@@ -121,6 +121,72 @@ export async function runDesignSystemDocumentSuite(context: TestContext): Promis
     rmSync(initRoot, { recursive: true, force: true });
   }
 
+  context.section("[design-system-document] design-init");
+
+  const designInitRoot = mkdtempSync(path.join(os.tmpdir(), "strict-design-system-design-init-"));
+  try {
+    cli(["init"], { cwd: designInitRoot });
+    const artifactFile = path.join(designInitRoot, DESIGN_SYSTEM_PATH);
+
+    const created = cli(["design-init"], { cwd: designInitRoot });
+    const createdPayload = readJson(created);
+    context.assert(created.status === 0, "design-init exits zero when the artifact is absent", created.stderr.trim());
+    context.assert(createdPayload.created === true, "design-init reports the artifact as created");
+    context.assert(createdPayload.skipped === false, "design-init does not report a skip when it created the artifact");
+    context.assert(
+      createdPayload.artifactPath === ".strict-spec-driven/design-system.yaml",
+      "design-init reports the created artifact path",
+      String(createdPayload.artifactPath),
+    );
+    context.assert(existsSync(artifactFile), "design-init writes the design-system artifact");
+
+    const scaffoldedStatus = cli(["design-status"], { cwd: designInitRoot });
+    const scaffoldedPayload = readJson(scaffoldedStatus);
+    context.assert(
+      scaffoldedStatus.status === 0,
+      "design-status accepts the artifact design-init just created",
+      scaffoldedStatus.stderr.trim(),
+    );
+    context.assert(scaffoldedPayload.valid === true, "the design-init artifact validates against the registered schema");
+    context.assert(
+      scaffoldedPayload.tokenGroupCount === 0
+        && scaffoldedPayload.tokenCount === 0
+        && scaffoldedPayload.componentCount === 0,
+      "the design-init artifact declares no tokens or components yet",
+      JSON.stringify(scaffoldedPayload),
+    );
+    context.assert(
+      Array.isArray(scaffoldedPayload.mappingDrift) && scaffoldedPayload.mappingDrift.length === 0,
+      "the design-init artifact reports no mapping drift",
+    );
+
+    const scaffoldedContent = readFileSync(artifactFile, "utf8");
+    const rerun = cli(["design-init"], { cwd: designInitRoot });
+    const rerunPayload = readJson(rerun);
+    context.assert(rerun.status === 0, "design-init exits zero when the artifact already exists");
+    context.assert(rerunPayload.skipped === true, "design-init reports an existing artifact as skipped");
+    context.assert(rerunPayload.created === false, "design-init does not report a creation when it skipped");
+    context.assert(
+      readFileSync(artifactFile, "utf8") === scaffoldedContent,
+      "design-init leaves an existing artifact byte-identical",
+    );
+  } finally {
+    rmSync(designInitRoot, { recursive: true, force: true });
+  }
+
+  const populatedInitRoot = createPopulatedWorkspace();
+  try {
+    const artifactFile = path.join(populatedInitRoot, DESIGN_SYSTEM_PATH);
+    const skipped = cli(["design-init"], { cwd: populatedInitRoot });
+    context.assert(readJson(skipped).skipped === true, "design-init skips a populated design-system artifact");
+    context.assert(
+      readFileSync(artifactFile, "utf8") === POPULATED_DESIGN_SYSTEM,
+      "design-init never overwrites declared tokens and components with the scaffold",
+    );
+  } finally {
+    rmSync(populatedInitRoot, { recursive: true, force: true });
+  }
+
   context.section("[design-system-document] missing design-system artifact");
 
   const missingRoot = mkdtempSync(path.join(os.tmpdir(), "strict-design-system-missing-"));

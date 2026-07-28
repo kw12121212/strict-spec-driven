@@ -27,7 +27,7 @@ import { runMcpInstall } from "./cli/cmd-mcp-install.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMappings, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
 import { runSampleList, runSampleShow, runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
 import { runArchitectureGenerate, runArchitectureStatus } from "./cli/cmd-architecture.js";
-import { runDesignGenerate, runDesignStatus } from "./cli/cmd-design.js";
+import { runDesignGenerate, runDesignInit, runDesignStatus } from "./cli/cmd-design.js";
 import {
   runHarnessDoctor,
   runHarnessInfer,
@@ -94,8 +94,8 @@ export { migrateLegacyWorkflow };
 export { runMaintenance };
 export { generateArchitectureDocument, getArchitectureStatus } from "./architecture.js";
 export type { ArchitectureGenerateResult, ArchitectureStatusResult } from "./architecture.js";
-export { generateDesignDocument, getDesignSystemStatus } from "./design-system.js";
-export type { DesignGenerateResult, DesignSystemStatusResult } from "./design-system.js";
+export { generateDesignDocument, getDesignSystemStatus, initializeDesignSystemArtifact } from "./design-system.js";
+export type { DesignGenerateResult, DesignInitResult, DesignSystemStatusResult } from "./design-system.js";
 export { DocumentSourceError } from "./document-render.js";
 
 export const commands = createCliCommandTable({
@@ -112,6 +112,7 @@ export const commands = createCliCommandTable({
   "tech-status": (argv) => runTechStatus(argv),
   "architecture-generate": (argv) => runArchitectureGenerate(argv),
   "architecture-status": (argv) => runArchitectureStatus(argv),
+  "design-init": (argv) => runDesignInit(argv),
   "design-generate": (argv) => runDesignGenerate(argv),
   "design-status": (argv) => runDesignStatus(argv),
   "validate-skills": (argv) => runValidateSkills(argv),

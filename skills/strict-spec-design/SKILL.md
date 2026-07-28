@@ -28,6 +28,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 design-status: strict-spec-cli design-status
+design-init: strict-spec-cli design-init
 design-generate: strict-spec-cli design-generate
 design-check: strict-spec-cli design-generate --check
 schema-show: strict-spec-cli schema-show design-system
@@ -94,27 +95,35 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If
    The command exits non-zero when the artifact is absent, which is the expected
    state for a project that has no user interface.
 
-3. **Inspect the schema when the shape is unclear** — run
+3. **Create the artifact when it is absent** — once the project is confirmed to
+   have a user interface, run `strict-spec-cli design-init`. It writes a
+   schema-valid skeleton with empty token and component collections so you edit a
+   valid artifact instead of composing one from nothing, and it reports an
+   existing artifact as skipped rather than overwriting it, so it is safe to run
+   before a refresh. `init` never creates this artifact, so this is the only way
+   to scaffold it.
+
+4. **Inspect the schema when the shape is unclear** — run
    `strict-spec-cli schema-show design-system` and
    `strict-spec-cli sample-show design-system`. Do not guess field names.
 
-4. **Gather evidence before writing** — derive tokens from what the interface
+5. **Gather evidence before writing** — derive tokens from what the interface
    actually uses, not from an idealized palette: read the stylesheets, theme
    files, component library configuration, and existing UI source. Run
    `strict-spec-cli tech-status` and read any `ui`-category standard so the
    identity you record is consistent with the rules that bind the code.
 
-5. **Write or update `.strict-spec-driven/design-system.yaml`** — keep token and
+6. **Write or update `.strict-spec-driven/design-system.yaml`** — keep token and
    component ids stable across edits: they are the anchors readers, diffs, and
    component token references rely on. Preserve authoring order within a group,
    because the renderer emits entries in document order. Reference tokens from
    components by their dotted path, such as `colors.primary`, so a reader can
    follow a component property back to the token that defines it.
 
-6. **Render the document** — run `strict-spec-cli design-generate`. It writes
+7. **Render the document** — run `strict-spec-cli design-generate`. It writes
    `DESIGN.md` at the repository root, or the path given to `--output`.
 
-7. **Confirm the result** — run `strict-spec-cli design-status` again for a clean
+8. **Confirm the result** — run `strict-spec-cli design-status` again for a clean
    validation and no mapping drift, then `strict-spec-cli design-generate --check`
    to confirm the rendered document matches its source. Check mode exits non-zero
    and names the stale source artifact when it does not.
@@ -125,7 +134,16 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If
 memory, compares against the file on disk, never writes, and exits non-zero when
 the document is stale or absent, naming which source artifact changed. It is an
 on-demand check: it is deliberately not wired into `verify`, `ready`, or
-`archive`.
+`archive`. A project that wants it run on a schedule instead declares a
+`generated-doc-check` entry under `maintenance.checks` in
+`.strict-spec-driven/config.yaml`, which reports a stale document as a
+maintenance finding.
+
+That check compares the document against the artifact. It cannot tell that the
+artifact itself has fallen behind the interface code — that a component was
+deleted or a palette retuned. Use `/strict-spec-design-sync` for that: it scans
+the UI sources, reports the divergence, and reconciles the artifact after you
+confirm each edit.
 
 ## Rules
 

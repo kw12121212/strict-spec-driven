@@ -1,0 +1,39 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: operations-domain-behavior
+mapping:
+  implementation:
+    - src/maintenance.ts
+    - src/architecture.ts
+    - src/design-system.ts
+    - src/cli/command-metadata-entries.ts
+    - templates/strict-spec-driven/scaffold/config.yaml
+    - skills/strict-spec-maintenance/SKILL.md
+  tests:
+    - test/suites/operations.ts
+operations:
+  ADDED:
+    operations-generated-doc-check-contract:
+      strength: MUST
+      statement: When a generated-doc-check is configured, maintenance MUST compare each rendered generated document against its strict YAML sources without writing to it, MUST report one finding per document that exists on disk and no longer matches its sources naming the document, the sources that changed, and the command that re-renders it, and MUST report no finding for a document that is absent from disk or whose source artifact is absent.
+      scenarios:
+        reports-stale-existing-document:
+          - GIVEN: A project configured with a generated-doc-check whose rendered document exists on disk but no longer matches its strict YAML sources
+          - WHEN: The operator runs maintenance
+          - THEN: The command reports a finding naming that document, the sources that changed, and the re-render command, and the document on disk is byte-identical to its prior content
+        reports-no-finding-for-current-document:
+          - GIVEN: A project configured with a generated-doc-check whose rendered document matches its strict YAML sources
+          - WHEN: The operator runs maintenance
+          - THEN: The command reports the check as run, reports no finding for that document, and seeds no change on that account
+        reports-no-finding-for-absent-document:
+          - GIVEN: A project configured with a generated-doc-check whose source artifact is present but whose rendered document was never written to disk
+          - WHEN: The operator runs maintenance
+          - THEN: The command reports no finding for that document and does not create it
+        reports-no-finding-for-absent-source-artifact:
+          - GIVEN: A project configured with a generated-doc-check that has no design-system artifact and a stale architecture document on disk
+          - WHEN: The operator runs maintenance
+          - THEN: The command reports no design document finding, still reports the stale architecture document as a finding, and does not fail because the design-system artifact is absent
+  MODIFIED: {}
+  REMOVED: {}

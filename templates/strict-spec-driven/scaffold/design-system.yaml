@@ -1,0 +1,16 @@
+schema: strict-spec-driven/design-system/v1
+schema_version: 1
+artifact_type: design_system
+schema_file: templates/strict-spec-driven/schemas/design-system.yaml
+design_system:
+  id: project-design-system
+  title: Project Design System
+# Fill these collections with /strict-spec-design, then render DESIGN.md with
+# `strict-spec-cli design-generate`. Declare only the token groups the interface
+# actually has: an absent group is omitted from the rendered document rather than
+# rendered empty. Observable UI behavior belongs in main specs and UI engineering
+# rules belong in ui-category technical standards, so neither belongs here.
+tokens: {}
+components: {}
+guidance:
+  overview: REPLACE WITH the visual identity this interface is built on

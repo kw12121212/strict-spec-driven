@@ -24596,6 +24596,30 @@ var COMMAND_METADATA_ENTRIES = {
     ],
     notes: ["Read-only: mapping drift is reported, never repaired."]
   },
+  "design-init": {
+    name: "design-init",
+    group: "operations",
+    summary: "Create the design-system artifact from the bundled scaffold without overwriting an existing one.",
+    mcpDescription: "Mutates project state by creating .strict-spec-driven/design-system.yaml when it is absent.",
+    usage: `Usage: strict-spec-cli design-init
+`,
+    arguments: [],
+    flags: [],
+    output: {
+      format: "json",
+      keys: ["artifactPath", "created", "skipped"],
+      description: "A JSON result naming the design-system artifact path and whether this run created it or skipped an existing one."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The artifact was created, or an existing artifact was left untouched." },
+      { code: 1, meaning: "Usage error or the bundled design-system scaffold asset could not be read." }
+    ],
+    notes: [
+      "There are no flags and no reset semantics: an existing artifact is reported as skipped and left byte-identical, never overwritten or merged.",
+      "Separate from init on purpose: the design-system artifact is optional, so init does not scaffold it and a project with no user interface never runs this command.",
+      "The created artifact is schema-valid but empty of tokens and components; fill it with /strict-spec-design, then render DESIGN.md with design-generate."
+    ]
+  },
   "design-generate": {
     name: "design-generate",
     group: "operations",
@@ -25437,10 +25461,16 @@ var COMMAND_METADATA_ENTRIES = {
     flags: [],
     output: {
       format: "json",
-      keys: ["valid", "diagnostics"],
-      description: "A JSON maintenance report."
+      keys: ["valid", "checksRun", "findingsCount", "generatedChange", "seedingSkippedReason"],
+      description: "A JSON maintenance report naming how many configured checks ran, how many findings they produced, the seeded change if any, and why seeding was skipped when it was."
     },
-    exitCodes: VALIDITY_EXIT_CODES
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "There are no flags: the checks that run come from the maintenance.checks list in .strict-spec-driven/config.yaml, and a project with no such list runs zero checks and produces zero findings.",
+      "Supported check types are roadmap-sync-check, specs-directory-structure-check, and generated-doc-check.",
+      "generated-doc-check is read-only for the documents it inspects: it reports a stale generated document and the command that re-renders it, and never writes one itself.",
+      "Seeding is skipped with generatedChange null and an explicit seedingSkippedReason when two active changes already exist."
+    ]
   },
   ship: {
     name: "ship",
@@ -29169,9 +29199,32 @@ review_evidence:
     #       - src/**
     #     exclude:
     #       - src/generated/**
+# Checks the maintenance command runs. Supported types: roadmap-sync-check,
+# specs-directory-structure-check, and generated-doc-check. generated-doc-check
+# reports a rendered ARCHITECTURE.md or DESIGN.md that no longer matches its
+# strict YAML sources; it never re-renders the document itself, and it stays
+# silent for a document you have not rendered.
 # maintenance:
 #   checks:
 #     - type: roadmap-sync-check
+#     - type: generated-doc-check
+`,
+  "strict-spec-driven/scaffold/design-system.yaml": `schema: strict-spec-driven/design-system/v1
+schema_version: 1
+artifact_type: design_system
+schema_file: templates/strict-spec-driven/schemas/design-system.yaml
+design_system:
+  id: project-design-system
+  title: Project Design System
+# Fill these collections with /strict-spec-design, then render DESIGN.md with
+# \`strict-spec-cli design-generate\`. Declare only the token groups the interface
+# actually has: an absent group is omitted from the rendered document rather than
+# rendered empty. Observable UI behavior belongs in main specs and UI engineering
+# rules belong in ui-category technical standards, so neither belongs here.
+tokens: {}
+components: {}
+guidance:
+  overview: REPLACE WITH the visual identity this interface is built on
 `,
   "strict-spec-driven/scaffold/harness-sessions/session.yaml": `schema: strict-spec-driven/harness-session/v1
 schema_version: 1

@@ -414,10 +414,10 @@ Projected from `.strict-spec-driven/specs/INDEX.yaml` and the main specs it refe
 | [Architecture Document Domain Behavior](.strict-spec-driven/specs/architecture/domain-behavior.yaml) | `architecture-domain-behavior` | 6 | 9 | 1 |
 | [CLI Foundation](.strict-spec-driven/specs/cli/foundation.yaml) | `cli-foundation` | 176 | 85 | 11 |
 | [Strict YAML Artifact Schemas](.strict-spec-driven/specs/contracts/yaml-artifacts.yaml) | `contracts-yaml-artifacts` | 115 | 78 | 7 |
-| [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 6 | 9 | 1 |
+| [Design System Document Domain Behavior](.strict-spec-driven/specs/design/domain-behavior.yaml) | `design-domain-behavior` | 7 | 12 | 1 |
 | [Harness Domain Behavior](.strict-spec-driven/specs/harness/domain-behavior.yaml) | `harness-domain-behavior` | 9 | 14 | 5 |
 | [Migrate Domain Behavior](.strict-spec-driven/specs/migrate/domain-behavior.yaml) | `migrate-domain-behavior` | 7 | 11 | 1 |
-| [Operations Domain Behavior](.strict-spec-driven/specs/operations/domain-behavior.yaml) | `operations-domain-behavior` | 5 | 4 | 1 |
+| [Operations Domain Behavior](.strict-spec-driven/specs/operations/domain-behavior.yaml) | `operations-domain-behavior` | 6 | 9 | 1 |
 | [Roadmap Domain Behavior](.strict-spec-driven/specs/roadmap/domain-behavior.yaml) | `roadmap-domain-behavior` | 19 | 31 | 3 |
 | [Sessions Domain Behavior](.strict-spec-driven/specs/sessions/domain-behavior.yaml) | `sessions-domain-behavior` | 4 | 10 | 3 |
 | [SOP Domain Behavior](.strict-spec-driven/specs/sop/domain-behavior.yaml) | `sop-domain-behavior` | 5 | 4 | 1 |
