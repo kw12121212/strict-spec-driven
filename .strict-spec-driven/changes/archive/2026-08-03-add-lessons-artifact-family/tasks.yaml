@@ -1,0 +1,96 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-lessons-artifact-family
+sections:
+  Implementation:
+    define-lesson-schemas:
+      text: 'Author templates/strict-spec-driven/schemas/lesson.yaml and lessons-index.yaml defining the strict lesson record: lesson id and title, category reusing the technical-standard category enum, context, observation, lesson, applies_when, an occurrences list of origin/date/evidence entries, status of active|promoted|obsolete, promoted_to, obsoleted_reason, obsoleted_at, created_at, and updated_at.'
+      status: complete
+    register-lesson-schemas:
+      text: Add strict-spec-driven/lesson/v1 and the lessons-index schema to templates/strict-spec-driven/schemas/registry.yaml with current compatibility status and primary example references.
+      status: complete
+    add-lesson-example:
+      text: Add examples/strict-spec-driven/lesson.yaml as a minimal valid lesson demonstrating every required field, one occurrence entry, and active status.
+      status: complete
+    add-lessons-scaffold:
+      text: Add templates/strict-spec-driven/scaffold/lessons/INDEX.yaml and wire it through src/scaffold.ts so strict-spec-cli init creates the lessons directory shape in new projects.
+      status: complete
+    implement-lessons-domain:
+      text: Implement src/lessons.ts owning lesson filesystem mechanics, schema validation, content-derived conflict-resistant id generation, index maintenance, occurrence appending, and the promoted and obsolete status transitions, modeled on src/sops.ts.
+      status: complete
+    implement-lessons-cli:
+      text: Implement src/cli/cmd-lessons.ts providing lesson-create, lesson-list, lesson-show, lesson-edit, lesson-obsolete, and lesson-status, with lesson-list and lesson-status omitting promoted and obsolete entries unless --all is supplied.
+      status: complete
+    register-lesson-commands:
+      text: Register the six lesson commands in src/cli/registry.ts and add their entries to src/cli/command-metadata-entries.ts documenting each flag's meaning, required and repeatable semantics, output keys, and exit-code meaning as the cli-command-metadata standard requires.
+      status: complete
+    add-lesson-staleness-check:
+      text: Add a lesson-staleness-check branch to the typed maintenance dispatch in src/maintenance.ts that reports active lessons whose occurrences all point at long-archived changes or whose applies_when names files or commands no longer present, emitting findings for human judgment without retiring anything automatically.
+      status: complete
+    declare-staleness-check-in-config:
+      text: Add the lesson-staleness-check entry to maintenance.checks in .strict-spec-driven/config.yaml so this repository runs the obsolescence review on its own lessons.
+      status: complete
+    wire-capture-skills:
+      text: Add the lesson capture obligation to skills/strict-spec-review, strict-spec-archive, strict-spec-harness-session, strict-spec-bugfix, and strict-spec-auto SKILL.md, requiring an explicit declaration of either a written lesson or its justified absence, judged against the objective proposal-versus-implementation diff criteria.
+      status: complete
+    wire-consumption-skills:
+      text: Add lesson-status reading to skills/strict-spec-brainstorm, strict-spec-propose, strict-spec-bugfix, and strict-spec-apply SKILL.md alongside the existing tech-status step, and list the lesson commands in each skill's command block.
+      status: complete
+    wire-promotion-skills:
+      text: Add the lesson promotion path to skills/strict-tech-edit and strict-tech-sync SKILL.md so that turning a lesson into a technical-standard rule marks the lesson promoted and records the resulting standard and rule id in promoted_to.
+      status: complete
+    rebuild-dist:
+      text: Rebuild compiled output after the TypeScript edits so dist-based behavior and the dist-backed test suite reflect the new sources.
+      status: complete
+      command: bun run build
+    document-design-generator-arguments:
+      text: Document the design generator's existing --alternative, --reason, and --risk arguments in the generate entry of src/cli/command-metadata-entries.ts, stating each argument's meaning, that --alternative and --reason must be supplied in equal counts, and that all three append uniquely; correct the generate usage line so help output matches the accepted argument set.
+      status: complete
+    record-misdiagnosis-lesson:
+      text: 'Record the first lesson in the new store from this change''s own misdiagnosis: an unsupported-argument rejection was read as proof that the design generator could not record alternatives, when the arguments existed and were merely undocumented.'
+      status: complete
+  Testing:
+    test-lesson-schema-validation:
+      text: 'Add test/suites/lessons.ts cases covering lesson schema validation: required fields, the status enum, occurrence entry shape, rejection of promoted without promoted_to and obsolete without obsoleted_reason, and path-aware diagnostics on invalid input.'
+      status: complete
+    test-lesson-command-behavior:
+      text: Add regression cases for lesson-create idempotence on identical content, index maintenance, lesson-list and lesson-status hiding promoted and obsolete entries by default and revealing them under --all, lesson-edit occurrence appending, lesson-obsolete requiring a reason and never deleting the file, and deterministic not-found errors for unknown ids.
+      status: complete
+    test-lesson-staleness-check:
+      text: Add maintenance regression cases proving lesson-staleness-check reports stale candidates as findings, leaves lesson files untouched, and produces no findings for a freshly recorded active lesson.
+      status: complete
+    run-workflow-validation:
+      text: Run strict artifact and skill validation over the change and the edited skill prompts.
+      status: complete
+      command: strict-spec-cli verify add-lessons-artifact-family && strict-spec-cli validate-skills
+    run-project-regression:
+      text: Run the complete project regression with subprocess coverage collection and confirm measured src/** line coverage stays at or above the declared threshold of 78 despite the new source modules.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+    test-generate-argument-documentation-coverage:
+      text: Add a change-lifecycle regression case that compares the generate command's accepted named arguments against the arguments documented in its command-metadata entry and fails with a diagnostic naming any accepted-but-undocumented argument, so an undocumented argument cannot again be mistaken for a missing capability.
+      status: complete
+  Verification:
+    check-ready:
+      text: Confirm the change passes the deterministic proposal-handoff readiness check.
+      status: complete
+      command: strict-spec-cli ready add-lessons-artifact-family
+    verify-spec-mappings:
+      text: Confirm every spec mapping introduced by the delta specs resolves to files that exist.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+    verify-tech-mappings:
+      text: Confirm no technical-standard mapping was invalidated by the new source modules.
+      status: complete
+      command: strict-spec-cli verify-tech-mappings
+    check-archive-readiness:
+      text: Confirm archive will merge the delta specs correctly, that the new lessons domain-behavior spec lands at its declared path and enters the spec index, and that no file renamed or deleted by this change leaves a stale mapping behind, per the relocated-mappings-declare-their-cleanup standard.
+      status: complete
+    dogfood-capture-declaration:
+      text: At review, exercise the capture wiring this change introduces by explicitly declaring either a lesson recorded from implementing it or the justified absence of one, confirming the capture path works end to end on its own change.
+      status: complete
+testing_gates:
+  validation_task: run-workflow-validation
+  unit_test_task: run-project-regression

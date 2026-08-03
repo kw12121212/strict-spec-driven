@@ -64,6 +64,41 @@ function resolveStringValue(value: string, rootDir: string): string {
   return readFileSync(inputPath, "utf8");
 }
 
+/**
+ * The named arguments each artifact generator accepts. These are exported so the argument set and
+ * the command-metadata entry that documents it can be compared by a regression test: an argument
+ * the generator accepts but help omits is indistinguishable from an unsupported one, and a caller
+ * who guesses a wrong name reads the resulting rejection as proof the capability is missing.
+ */
+export const PROPOSAL_ARGUMENTS = [
+  "what",
+  "why",
+  "in",
+  "out",
+  "unchanged",
+  "status",
+  "milestone",
+  "planned-change",
+  "roadmap-milestone",
+  "roadmap-planned-change",
+] as const;
+
+export const DESIGN_ARGUMENTS = [
+  "reset",
+  "approach",
+  "decision",
+  "decision-text",
+  "rationale",
+  "alternative",
+  "reason",
+  "risk",
+] as const;
+
+/** Every named argument the generate command accepts through a declared allow-list. */
+export function getDeclaredGenerateArguments(): string[] {
+  return [...new Set<string>([...PROPOSAL_ARGUMENTS, ...DESIGN_ARGUMENTS])].sort();
+}
+
 function ensureAllowedFlags(flags: FlagMap, allowed: string[]): void {
   const allowedSet = new Set(allowed);
   const unsupported = Object.keys(flags).filter((flag) => !allowedSet.has(flag));
@@ -196,18 +231,7 @@ function upsertListItem<T extends GenerationInputRecord>(
 }
 
 function buildProposalInput(flags: FlagMap): GenerationInputRecord {
-  ensureAllowedFlags(flags, [
-    "what",
-    "why",
-    "in",
-    "out",
-    "unchanged",
-    "status",
-    "milestone",
-    "planned-change",
-    "roadmap-milestone",
-    "roadmap-planned-change",
-  ]);
+  ensureAllowedFlags(flags, [...PROPOSAL_ARGUMENTS]);
 
   const what = uniqueStrings(values(flags, "what"));
   const why = uniqueStrings(values(flags, "why"));
@@ -254,16 +278,7 @@ function existingDesignInput(rootDir: string, changeName: string, reset: boolean
 }
 
 function buildDesignInput(rootDir: string, changeName: string, flags: FlagMap): GenerationInputRecord {
-  ensureAllowedFlags(flags, [
-    "reset",
-    "approach",
-    "decision",
-    "decision-text",
-    "rationale",
-    "alternative",
-    "reason",
-    "risk",
-  ]);
+  ensureAllowedFlags(flags, [...DESIGN_ARGUMENTS]);
 
   const input = existingDesignInput(rootDir, changeName, hasFlag(flags, "reset"));
   input.approach = uniqueStrings([...(Array.isArray(input.approach) ? input.approach as string[] : []), ...values(flags, "approach")]);

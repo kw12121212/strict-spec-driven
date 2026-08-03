@@ -38,6 +38,7 @@ maintenance:
   checks:
     - type: roadmap-sync-check
     - type: generated-doc-check
+    - type: lesson-staleness-check
 ```
 
 Supported check types:
@@ -47,6 +48,14 @@ Supported check types:
 | `roadmap-sync-check` | Each roadmap file whose state was reconciled | Yes — sync is applied, the finding records it |
 | `specs-directory-structure-check` | A workflow state directory misplaced under `.strict-spec-driven/specs/` | No — the finding names the directory to remove |
 | `generated-doc-check` | A rendered `ARCHITECTURE.md` or `DESIGN.md` that no longer matches its strict YAML sources | No — the finding names the stale sources and the re-render command |
+| `lesson-staleness-check` | An active lesson whose `applies_when` names a repository path that no longer exists, or whose every occurrence comes from archived work with the newest older than 180 days | No — the finding names why the lesson is a candidate and the `lesson-obsolete` command that retires it |
+
+`lesson-staleness-check` only nominates candidates and never changes a lesson.
+Deciding that experience has expired is a judgment call, and a lesson retired
+wrongly takes with it the motivating context that its promoted technical-standard
+rule deliberately omits. Review each finding and either retire the lesson with
+`strict-spec-cli lesson-obsolete <lesson-id> --reason "<why>"` or update its
+`applies_when` condition — a lesson that is simply rarely triggered is not stale.
 
 `generated-doc-check` is read-only for the documents it inspects: it renders in
 memory, compares, and never writes. It reports only a document that is already on

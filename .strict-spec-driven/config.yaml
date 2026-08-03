@@ -88,3 +88,4 @@ review_evidence:
 maintenance:
   checks:
     - type: generated-doc-check
+    - type: lesson-staleness-check

@@ -24,6 +24,7 @@ const REQUIRED_SCAFFOLD_ASSETS = [
   "specs/INDEX.yaml",
   "tech/INDEX.yaml",
   "roadmap/INDEX.yaml",
+  "lessons/INDEX.yaml",
 ] as const;
 const REQUIRED_CHANGE_TEMPLATE_ASSETS = [
   "changes/proposal.yaml",

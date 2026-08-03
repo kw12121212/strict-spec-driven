@@ -19,6 +19,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
+lesson-status: strict-spec-cli lesson-status
 propose: strict-spec-cli propose <change-name>
 generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
 ready: strict-spec-cli ready <change-name>
@@ -109,6 +110,13 @@ run `init` from this skill.
    - run `strict-spec-cli tech-status` and read
      the relevant files under `.strict-spec-driven/tech/` so the brainstorm
      stays inside the project's technical standards from the start
+   - run `strict-spec-cli lesson-status` and read the lessons it ranks first.
+     Lessons are recorded experience, not binding rules: they carry no MUST or
+     SHOULD strength, so treat each one as a warning worth checking against this
+     change rather than a constraint to satisfy. Match on `applies_when` — that
+     field states the condition under which the lesson is worth recalling. A
+     lesson with several occurrences has bitten this project repeatedly and
+     deserves weight even though nothing enforces it.
    Use this evidence for the change-intake question gate before asking the
    human for details the repository already answers.
 

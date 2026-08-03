@@ -1,0 +1,106 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: lessons-domain-behavior
+spec:
+  title: Lessons Domain Behavior
+  path: .strict-spec-driven/specs/lessons/domain-behavior.yaml
+mapping:
+  implementation:
+    - src/lessons.ts
+    - src/cli/cmd-lessons.ts
+    - src/cli/registry.ts
+    - src/cli/command-metadata-entries.ts
+    - skills/strict-spec-review/SKILL.md
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-tech-edit/SKILL.md
+    - src/cli/command-metadata.ts
+    - src/strict-spec-cli.ts
+    - src/scaffold.ts
+    - templates/strict-spec-driven/scaffold/lessons/INDEX.yaml
+    - skills/strict-spec-archive/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+    - skills/strict-spec-bugfix/SKILL.md
+    - skills/strict-spec-harness-session/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-apply/SKILL.md
+    - skills/strict-tech-sync/SKILL.md
+  tests:
+    - test/suites/lessons.ts
+operations:
+  ADDED:
+    lesson-create-contract:
+      strength: MUST
+      statement: The system MUST provide a lesson-create command that records a reusable engineering lesson with a content-derived conflict-resistant id, active status, a category drawn from the technical-standard category set, the context, observation, takeaway, and applies_when content, and one initial occurrence naming its origin, maintains the lessons index, emits the created file path, and is idempotent so rerunning with identical content neither clobbers nor duplicates existing lesson state.
+      scenarios:
+        create-records-a-retrievable-lesson:
+          - GIVEN: a strict workflow with the lessons contract is present
+          - WHEN: lesson-create runs with a category, context, observation, takeaway, applies_when, and an origin
+          - THEN: a lesson file is written under the lessons location with a content-derived id and active status, one occurrence records the origin, the lessons index is updated, and the created path is reported
+        create-is-idempotent-on-rerun:
+          - GIVEN: a lesson already exists for identical content
+          - WHEN: lesson-create runs again with the same content
+          - THEN: the existing lesson file is left unchanged, no second lesson is created, and the command reports the existing lesson as not newly created
+        create-rejects-incomplete-or-unknown-category:
+          - GIVEN: a strict workflow with the lessons contract is present
+          - WHEN: lesson-create runs with an unknown category or omits a required content field
+          - THEN: no lesson file is written and the command exits non-zero with path-aware diagnostics naming the unknown category or the missing required field
+    lesson-discovery-contract:
+      strength: MUST
+      statement: The system MUST provide lesson-list, lesson-show, and lesson-status commands where lesson-list and lesson-status omit lessons in promoted or obsolete status unless an --all flag is supplied, lesson-status reports active lessons ordered so that the highest-recurrence lessons that have not yet been promoted appear first, lesson-show prints a single lesson including its occurrences regardless of status, and an unknown lesson id produces a deterministic not-found error.
+      scenarios:
+        list-hides-promoted-and-obsolete-by-default:
+          - GIVEN: lessons exist in active, promoted, and obsolete status
+          - WHEN: lesson-list runs without --all
+          - THEN: only the active lessons are reported
+        list-all-reveals-every-status:
+          - GIVEN: lessons exist in active, promoted, and obsolete status
+          - WHEN: lesson-list runs with --all
+          - THEN: lessons in every status are reported together with their status
+        status-ranks-unpromoted-recurrence-first:
+          - GIVEN: several active lessons exist with differing occurrence counts and none is promoted
+          - WHEN: lesson-status runs
+          - THEN: the lessons are reported in deterministic order with the highest occurrence count first
+        show-reports-unknown-lesson:
+          - GIVEN: no lesson exists for a given id
+          - WHEN: lesson-show runs with that id
+          - THEN: the command exits non-zero with a deterministic not-found diagnostic
+    lesson-recurrence-contract:
+      strength: MUST
+      statement: The system MUST provide a lesson-edit command that appends a new occurrence to an existing lesson when the same lesson is encountered again, so that recurrence is recorded on the existing lesson rather than as a duplicate lesson, and that refreshes the lesson's updated_at while leaving earlier occurrences intact.
+      scenarios:
+        edit-appends-a-recurrence:
+          - GIVEN: an active lesson with one occurrence exists
+          - WHEN: lesson-edit runs adding an occurrence naming a second origin
+          - THEN: the lesson carries both occurrences in recorded order, the earlier occurrence is unchanged, and updated_at is refreshed
+        recurrence-does-not-duplicate-the-lesson:
+          - GIVEN: an active lesson exists for a given applies_when condition
+          - WHEN: a recurrence of the same condition is recorded through lesson-edit
+          - THEN: no second lesson file is created and the lessons index still lists exactly one lesson for that condition
+    lesson-promotion-contract:
+      strength: MUST
+      statement: The system MUST allow a lesson to be marked promoted only together with a promoted_to reference naming the technical standard and rule identifier it became, MUST preserve the promoted lesson's original context, observation, takeaway, and occurrences unchanged, and MUST reject a promoted status that carries no promoted_to reference.
+      scenarios:
+        promotion-links-the-resulting-rule:
+          - GIVEN: an active lesson has been turned into a technical-standard rule
+          - WHEN: the lesson is marked promoted with a promoted_to reference naming that standard and rule
+          - THEN: the lesson reports promoted status, the promoted_to reference resolves to the named standard and rule, and its original content and occurrences are unchanged
+        promotion-without-a-reference-is-rejected:
+          - GIVEN: a lesson is set to promoted status with no promoted_to reference
+          - WHEN: the lesson is validated
+          - THEN: validation exits non-zero with a path-aware diagnostic naming the missing promoted_to reference
+    lesson-obsolescence-contract:
+      strength: MUST
+      statement: The system MUST provide a lesson-obsolete command that retires a lesson by setting obsolete status with a required obsoleted_reason and obsoleted_at, MUST NOT delete the lesson file or any of its recorded content, and MUST reject an obsolete status that carries no obsoleted_reason.
+      scenarios:
+        obsoleting-retires-without-deleting:
+          - GIVEN: an active lesson exists whose premise no longer holds
+          - WHEN: lesson-obsolete runs with a reason
+          - THEN: the lesson reports obsolete status with the recorded reason and timestamp, the file still exists, and its original content and occurrences remain readable
+        obsoleting-requires-a-reason:
+          - GIVEN: a strict workflow with the lessons contract is present
+          - WHEN: lesson-obsolete runs without a reason
+          - THEN: no lesson is modified and the command exits non-zero with a diagnostic naming the missing reason
+  MODIFIED: {}
+  REMOVED: {}

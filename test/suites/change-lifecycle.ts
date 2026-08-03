@@ -3696,7 +3696,50 @@ context.assert(
   "copied project workspace verify-spec-mappings output stays stable across repeated lifecycle flows",
 );
 
-context.section("[16] removed review command");
+context.section("[16] generate argument documentation coverage");
+
+type GenerationModule = { getDeclaredGenerateArguments: () => string[] };
+type CommandMetadataModule = {
+  COMMAND_METADATA_ENTRIES: Record<string, { flags: Array<{ name: string; description: string; repeatable?: boolean; repeatSemantics?: string }> }>;
+};
+
+const generationModule = await loadDistModule<GenerationModule>("cli/cmd-generation.js");
+const metadataModule = await loadDistModule<CommandMetadataModule>("cli/command-metadata-entries.js");
+
+const acceptedGenerateArguments = generationModule.getDeclaredGenerateArguments();
+const documentedGenerateArguments = new Set(
+  metadataModule.COMMAND_METADATA_ENTRIES.generate.flags.map((flag) => flag.name.replace(/^--/, "")),
+);
+const undocumentedGenerateArguments = acceptedGenerateArguments.filter((name) => !documentedGenerateArguments.has(name));
+context.assert(
+  undocumentedGenerateArguments.length === 0,
+  "every named argument the generate command accepts is documented in its command-metadata entry",
+  `undocumented argument(s): ${undocumentedGenerateArguments.map((name) => `--${name}`).join(", ")}`,
+);
+
+for (const required of ["alternative", "reason", "risk"]) {
+  context.assert(
+    documentedGenerateArguments.has(required),
+    `generate documents the design --${required} argument`,
+  );
+}
+const alternativeFlag = metadataModule.COMMAND_METADATA_ENTRIES.generate.flags.find((flag) => flag.name === "--alternative");
+context.assert(
+  typeof alternativeFlag?.repeatSemantics === "string" && alternativeFlag.repeatSemantics.includes("--reason"),
+  "the documented --alternative argument states its pairing requirement with --reason",
+);
+
+const generateHelp = cli(["generate", "--help"]);
+context.assert(
+  generateHelp.stdout.includes("--alternative") && generateHelp.stdout.includes("--risk"),
+  "generate help output surfaces the design alternative and risk arguments",
+);
+context.assert(
+  generateHelp.stdout.includes("design [--reset]") && generateHelp.stdout.includes("[--alternative <text> --reason <text>]"),
+  "the generate usage line for design lists the alternative and reason arguments",
+);
+
+context.section("[17] removed review command");
 
 const removedReviewResult = cli(["review", "missing-change"]);
 context.assert(

@@ -269,6 +269,17 @@ harness:
           evidence_labels: []
           unavailable_conditions: []
 `,
+  "strict-spec-driven/scaffold/lessons/INDEX.yaml": `schema: strict-spec-driven/lessons-index/v1
+schema_version: 1
+artifact_type: lessons_index
+schema_file: ../schemas/lessons-index.yaml
+# Lessons record reusable engineering experience — a pitfall, a path that failed, or diagnostic
+# knowledge — that specs and technical standards deliberately exclude. Create them with
+# \`strict-spec-cli lesson-create\`; this index is rebuilt from the lesson files and is not
+# hand-edited. A lesson that becomes general enough to bind is promoted into a technical standard
+# rule and keeps its original text as the motivating context that rule omits.
+lessons: {}
+`,
   "strict-spec-driven/scaffold/roadmap/INDEX.yaml": `schema: strict-spec-driven/roadmap-index/v2
 schema_version: 2
 artifact_type: roadmap_index
@@ -1846,6 +1857,233 @@ json_schema:
             type: string
             minLength: 1
 `,
+  "strict-spec-driven/schemas/lesson.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/lesson/v1
+artifact_type: lesson
+artifact_name: lesson
+description: >-
+  Strict YAML lesson artifact capturing reusable engineering experience — the context it arose in,
+  what was observed, the reusable takeaway, and the condition under which the takeaway should be
+  recalled — together with the occurrences that prove recurrence and a lifecycle status of active,
+  promoted, or obsolete. A lesson deliberately carries no RFC 2119 strength and no enforcement
+  mapping; binding rules belong in technical standards, and a lesson general enough to bind is
+  promoted into one.
+example_ref: ../../../examples/strict-spec-driven/lesson.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - lesson
+    - category
+    - status
+    - created_at
+    - updated_at
+    - context
+    - observation
+    - takeaway
+    - applies_when
+    - occurrences
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/lesson/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: lesson
+    schema_file:
+      type: string
+    lesson:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        title:
+          type: string
+          minLength: 1
+    category:
+      type: string
+      description: >-
+        Reuses the technical-standard category vocabulary so a lesson and the standard it may be
+        promoted into are filed under the same subject area.
+      enum:
+        - coding
+        - architecture
+        - security
+        - performance
+        - api
+        - testing
+        - tooling
+        - operations
+        - documentation
+        - ui
+    status:
+      type: string
+      description: >-
+        active means the lesson still applies and is offered at consumption points. promoted means
+        the lesson became a binding technical-standard rule and is retained for the motivating
+        context that the rule itself omits. obsolete means the lesson no longer holds and was
+        explicitly retired with a recorded reason.
+      enum:
+        - active
+        - promoted
+        - obsolete
+    created_at:
+      type: string
+      minLength: 1
+    updated_at:
+      type: string
+      minLength: 1
+    context:
+      type: string
+      minLength: 1
+      description: What was being done when the experience arose.
+    observation:
+      type: string
+      minLength: 1
+      description: What actually happened, stated concretely enough to recognize a recurrence.
+    takeaway:
+      type: string
+      minLength: 1
+      description: The reusable conclusion drawn from the observation.
+    applies_when:
+      type: string
+      minLength: 1
+      description: >-
+        The condition under which this lesson should be recalled. This is the retrieval key: it is
+        what lets a consumption point surface the lesson to someone who has not read the store, and
+        it is the test for whether a new experience is a recurrence of this lesson or a new one.
+    occurrences:
+      type: array
+      minItems: 1
+      description: >-
+        Every recorded encounter with this lesson, oldest first. A recurrence appends an entry
+        rather than creating a second lesson, so the length of this list is the objective evidence
+        for whether the lesson has earned promotion into a binding rule.
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - origin
+          - date
+          - evidence
+        properties:
+          origin:
+            type: string
+            minLength: 1
+            description: The change, harness session, or ticket this encounter came from.
+          date:
+            type: string
+            minLength: 1
+          evidence:
+            type: string
+            minLength: 1
+            description: Concrete evidence for this encounter, such as a command, error message, or file.
+    promoted_to:
+      type: object
+      additionalProperties: false
+      description: >-
+        Set only when status is promoted; names the technical standard and rule the lesson became so
+        the binding rule can be traced back to the failure that motivated it.
+      required:
+        - standard
+        - rule
+      properties:
+        standard:
+          type: string
+          minLength: 1
+        rule:
+          type: string
+          minLength: 1
+    obsoleted_reason:
+      type: string
+      minLength: 1
+      description: >-
+        Set only when status is obsolete; why the lesson no longer holds — its premise disappeared,
+        a stronger mechanism replaced it, or it was disproven.
+    obsoleted_at:
+      type: string
+      minLength: 1
+`,
+  "strict-spec-driven/schemas/lessons-index.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/lessons-index/v1
+artifact_type: lessons_index
+artifact_name: lessons-index
+description: >-
+  Strict YAML lesson index artifact (keyed lesson map keyed by conflict-resistant lesson id)
+  describing each recorded lesson's title, category, status, occurrence count, and path, so lessons
+  are discoverable without reading every lesson file.
+example_ref: ../../../examples/strict-spec-driven/lessons-index.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - lessons
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/lessons-index/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: lessons_index
+    schema_file:
+      type: string
+    lessons:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+          - category
+          - status
+          - occurrences
+          - path
+        properties:
+          title:
+            type: string
+            minLength: 1
+          category:
+            type: string
+            minLength: 1
+          status:
+            type: string
+            enum:
+              - active
+              - promoted
+              - obsolete
+          occurrences:
+            type: integer
+            minimum: 1
+            description: >-
+              Recorded encounter count, mirrored into the index so recurrence can be ranked without
+              opening every lesson file.
+          path:
+            type: string
+            minLength: 1
+`,
   "strict-spec-driven/schemas/main-spec.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
 schema_id: strict-spec-driven/main-spec/v1
@@ -2524,6 +2762,33 @@ entries:
       compatible_with: []
       notes:
         - SOPs index is a keyed map keyed by conflict-resistant SOP id for merge-friendly multi-author authoring.
+  - schema_id: strict-spec-driven/lesson/v1
+    schema_version: 1
+    artifact_type: lesson
+    artifact_name: lesson
+    schema_file: lesson.yaml
+    primary_example: ../../../examples/strict-spec-driven/lesson.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Lessons record reusable experience and deliberately carry no RFC 2119 strength or enforcement mapping; a lesson general enough to bind is promoted into a technical standard rule instead.
+        - Recurrence is appended to the occurrences list on the existing lesson rather than creating a second lesson, so occurrence count is the objective promotion signal.
+  - schema_id: strict-spec-driven/lessons-index/v1
+    schema_version: 1
+    artifact_type: lessons_index
+    artifact_name: lessons-index
+    schema_file: lessons-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/lessons-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Lessons index is a keyed map keyed by conflict-resistant lesson id for merge-friendly multi-author authoring.
   - schema_id: strict-spec-driven/harness/v1
     schema_version: 1
     artifact_type: harness
@@ -4309,6 +4574,47 @@ harness:
             - production-status
           unavailable_conditions:
             - Production credentials must remain outside YAML.
+`,
+  "examples/strict-spec-driven/lesson.yaml": `schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: ../../templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: rebuild-before-trusting-dist-tests-a1b2c3
+  title: Rebuild before trusting dist-backed test results
+category: testing
+status: active
+created_at: "2026-04-24T09:15:00.000Z"
+updated_at: "2026-04-24T09:15:00.000Z"
+context: >-
+  Editing a TypeScript source module and then running the project test suite to confirm the change
+  behaved as intended.
+observation: >-
+  The suite passed while the edited behavior was plainly absent, because the tests execute compiled
+  dist/ output and the build had not been rerun, so every assertion exercised the previous revision.
+takeaway: >-
+  A dist-backed suite reports on the last build, not on the working tree, so a pass proves nothing
+  about uncompiled source edits; rebuild first and treat an unexpectedly clean run right after a
+  source edit as a signal that the build is stale.
+applies_when: >-
+  Running or interpreting the result of any test suite that executes compiled output after editing
+  TypeScript sources.
+occurrences:
+  - origin: 2026-04-24-port-verify-to-yaml
+    date: "2026-04-24"
+    evidence: "bun test/run.ts passed against dist/verify.js compiled before the src/verify.ts edit"
+`,
+  "examples/strict-spec-driven/lessons-index.yaml": `schema: strict-spec-driven/lessons-index/v1
+schema_version: 1
+artifact_type: lessons_index
+schema_file: ../../templates/strict-spec-driven/schemas/lessons-index.yaml
+lessons:
+  rebuild-before-trusting-dist-tests-a1b2c3:
+    title: Rebuild before trusting dist-backed test results
+    category: testing
+    status: active
+    occurrences: 1
+    path: .strict-spec-driven/lessons/rebuild-before-trusting-dist-tests-a1b2c3.yaml
 `,
   "examples/strict-spec-driven/main-spec.yaml": `schema: strict-spec-driven/main-spec/v1
 schema_version: 1

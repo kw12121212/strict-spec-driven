@@ -1,0 +1,52 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/lesson.yaml
+    - templates/strict-spec-driven/schemas/registry.yaml
+    - examples/strict-spec-driven/lesson.yaml
+  tests:
+    - test/suites/lessons.ts
+operations:
+  ADDED:
+    yaml-lesson-artifact-model:
+      strength: MUST
+      statement: The system MUST define a strict YAML lesson artifact with structured schema identity, a stable lesson identifier and human-readable title, a category constrained to the same category set as technical standards, the context, observation, takeaway, and applies_when content fields, a structured occurrences collection whose entries each carry an origin, a date, and evidence, a status constrained to active, promoted, or obsolete, and the conditional promoted_to, obsoleted_reason, and obsoleted_at fields required by the promoted and obsolete statuses.
+      scenarios:
+        lesson-fields-are-structured:
+          - GIVEN: a strict YAML lesson artifact is reviewed
+          - WHEN: its lesson data is inspected
+          - THEN: the lesson identifier, title, category, status, and each content field are available as structured fields, and the occurrences collection is available as a structured list rather than free-text prose
+        lesson-status-values-are-constrained:
+          - GIVEN: a strict YAML lesson artifact is validated
+          - WHEN: the lesson status is checked
+          - THEN: only active, promoted, and obsolete are accepted and any other value is reported as a deterministic validation failure
+        lesson-carries-no-requirement-strength:
+          - GIVEN: a strict YAML lesson artifact is validated
+          - WHEN: the artifact is checked against the lesson schema
+          - THEN: the schema defines no RFC 2119 strength field and no enforcement mapping, keeping lessons distinct from the technical standards that carry binding rules
+    yaml-lesson-index-model:
+      strength: MUST
+      statement: The system MUST define a strict YAML lessons index that lists every lesson by identifier, title, category, status, and repo-relative path so lessons are discoverable without reading each lesson file, and MUST register the lesson and lessons-index schemas in the schema registry with current compatibility status.
+      scenarios:
+        lessons-index-lists-every-lesson:
+          - GIVEN: several lesson artifacts exist
+          - WHEN: the lessons index is inspected
+          - THEN: each lesson appears with its identifier, title, category, status, and repo-relative path in a deterministic order
+        lesson-schemas-are-registered:
+          - GIVEN: the schema registry is inspected
+          - WHEN: the lesson and lessons-index entries are checked
+          - THEN: both entries are present with current compatibility status and resolvable primary example references
+    yaml-lesson-minimal-example:
+      strength: MUST
+      statement: The system MUST provide a minimal valid YAML lesson example that includes schema identity, stable lesson identity, title, category, every required content field, one occurrence entry, and active status.
+      scenarios:
+        lesson-example-validates-against-its-schema:
+          - GIVEN: the bundled minimal lesson example is present
+          - WHEN: the example is validated against the registered lesson schema
+          - THEN: validation succeeds and every required lesson field is present
+  MODIFIED: {}
+  REMOVED: {}

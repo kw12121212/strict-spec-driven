@@ -21,6 +21,9 @@ tech-status: strict-spec-cli tech-status
 verify-tech-mappings: strict-spec-cli verify-tech-mappings
 modify: strict-spec-cli modify [change-name|archive-dir]
 verify: strict-spec-cli verify <change-name>
+lesson-status: strict-spec-cli lesson-status
+lesson-create: strict-spec-cli lesson-create --title <text> --category <category> --context <text> --observation <text> --takeaway <text> --applies-when <text> --origin <text> --evidence <text>
+lesson-edit: strict-spec-cli lesson-edit <lesson-id> --origin <text> --evidence <text>
 ```
 
 ## Prerequisites
@@ -137,7 +140,37 @@ run `init` from this skill.
    current-change delta tech or obtain an explicit operator classification that
    the surfaced pattern is not reusable.
 
-10. **Report the result** — include review evidence before findings:
+10. **Declare the lesson outcome (required)** — before reporting, state
+   explicitly either that a lesson was recorded or that none applies, with the
+   reason. Judge this from the objective proposal-versus-implementation diff,
+   not from a general sense of having learned something. Record a lesson when
+   any of these is true:
+   - a `design.yaml` decision or approach was overturned during implementation
+   - a question surfaced that the proposal did not foresee
+   - a task was added because of a discovery rather than a scope change
+   - a regression failure exposed a trap that this change did not introduce
+
+   When one applies, first check whether an existing lesson already covers the
+   same `applies_when` condition:
+   ```bash
+   strict-spec-cli lesson-status
+   ```
+   If it does, append the recurrence instead of creating a near-duplicate:
+   ```bash
+   strict-spec-cli lesson-edit <lesson-id> --origin <change-name> --evidence "..."
+   ```
+   Otherwise record a new one:
+   ```bash
+   strict-spec-cli lesson-create --title "..." --category <category> --context "..." \
+     --observation "..." --takeaway "..." --applies-when "..." \
+     --origin <change-name> --evidence "..."
+   ```
+   Spend the effort on `--applies-when`: it is the retrieval key that decides
+   whether anyone ever sees the lesson again. When none of the four criteria
+   applies, say "no lesson" and give the one-line reason. Do not manufacture an
+   entry to fill the slot — a store padded with filler stops being read.
+
+11. **Report the result** — include review evidence before findings:
    - changed implementation and test files read
    - strict artifacts and delta specs read
    - verification and regression commands executed, including post-fix reruns

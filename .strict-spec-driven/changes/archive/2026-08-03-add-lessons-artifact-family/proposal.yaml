@@ -1,0 +1,37 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-lessons-artifact-family
+  status: proposed
+summary:
+  what:
+    - Add a lessons artifact family under .strict-spec-driven/lessons/ that records reusable engineering experience — pitfalls, rejected paths, and diagnostic knowledge — as strict YAML, together with the CLI commands that maintain it, the skill-prompt capture and consumption wiring that keeps it read and written, and a maintenance staleness check that surfaces lessons whose premises no longer hold.
+    - 'Close a documentation gap in the generate command surfaced while scoping this change: the design and proposal generators accept named arguments that their command-metadata entry never documented, so help output pointed away from working arguments.'
+  why:
+    - 'Specs capture observable behavior and technical standards capture binding engineering rules, but experience has no home. Evidence: 218 archived changes hold 651 design rationale entries and every one of them carries an alternatives block, yet none of it is indexed, queryable, or read by any skill — writing it is equivalent to discarding it. The only working promotion path today is turning an observation into a tech MUST rule, which absorbs only experience that can be phrased as a binding rule; pitfalls, diagnostic knowledge, and single-observation judgments still fall through. Specs and tech work because they are consumed, not because they are written, so an experience store without capture and consumption triggers becomes a diary nobody reads.'
+    - Scoping this change produced a live demonstration of the cost. The design generator was invoked with guessed argument names, its unsupported-argument rejection was read as proof the capability was missing, and a scope expansion to build already-existing flags was proposed and approved before reading the parser. The arguments existed; only the documentation did not. That is a standing violation of the cli-command-metadata rule requiring every accepted flag to be documented, and it is now recorded as this store's first lesson.
+scope:
+  in:
+    - Strict YAML lesson and lessons-index schemas registered in the schema registry, with minimal valid examples and an init scaffold
+    - CLI commands lesson-create, lesson-list, lesson-show, lesson-edit, lesson-obsolete, and lesson-status, registered in the command registry and command-metadata registry
+    - Capture wiring in the strict-spec-review, strict-spec-archive, strict-spec-harness-session, strict-spec-bugfix, and strict-spec-auto skill prompts
+    - Consumption wiring in the strict-spec-brainstorm, strict-spec-propose, strict-spec-bugfix, strict-spec-apply, and strict-spec-auto skill prompts, reading lesson-status alongside tech-status
+    - Promotion wiring in the strict-tech-edit and strict-tech-sync skill prompts that marks a lesson promoted and links the tech rule it became
+    - A lesson-staleness-check maintenance check type wired into src/maintenance.ts, declared in the repository workflow config, and documented in the strict-spec-maintenance skill's supported check-type table
+    - Documentation of every named argument the generate command already accepts for the proposal and design artifacts, a corrected usage line, and a cli-foundation requirement plus regression test that fails when an accepted argument is undocumented
+    - A mapping-only delta tech artifact extending the cli-command-metadata standard's enforcement mapping to name the new regression test, since this change adds the first automated enforcement of its help-describes-argument-semantics rule
+    - Regression tests covering lesson schema validation, command behavior, index maintenance, recurrence, promotion, obsolete transitions, and the staleness check
+  out:
+    - Backfilling the 651 historical design rationale entries from the 218 archived changes
+    - Any change to the change-design schema or to the generate command's accepted argument set — the design generator already accepted --alternative, --reason, and --risk, and this change only documents them
+    - A delta-lesson artifact carried through a change directory — lessons are standalone artifacts written when experience is learned, not planned deltas
+    - Mapping validation for lessons — there is no verify-lesson-mappings command and occurrence origin stays a soft reference
+    - Automatic extraction of lessons from diffs, commits, or archived changes without human judgment
+unchanged_behavior:
+  - No rule in any of the five existing technical standards is added, modified, or retired; the only standards edit is an additive enforcement-mapping entry on cli-command-metadata
+  - Existing spec requirements keep their current semantics; the contracts, cli, and operations specs gain new requirements without modifying existing ones
+  - The change lifecycle stays as it is — propose, apply, verify, review, archive, ship — with no new blocking CLI gate; lesson capture is a skill-prompt declaration, not a script-enforced door
+  - The archive delta-merge behavior for specs and tech is unaffected because lessons never travel through a change directory
+  - Every generate argument keeps its current name, arity, and merge semantics; only the metadata describing them changes

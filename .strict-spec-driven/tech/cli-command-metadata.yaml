@@ -14,8 +14,10 @@ mapping:
     - src/cli/command-metadata-entries.ts
     - src/cli/argv.ts
     - src/cli/entrypoint.ts
+    - src/cli/cmd-generation.ts
   enforcement:
     - test/suites/entrypoint-and-skills.ts
+    - test/suites/change-lifecycle.ts
 rules:
   single-source-command-descriptions:
     strength: MUST

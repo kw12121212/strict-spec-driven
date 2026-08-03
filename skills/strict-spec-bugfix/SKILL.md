@@ -18,6 +18,9 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
+lesson-status: strict-spec-cli lesson-status
+lesson-create: strict-spec-cli lesson-create --title <text> --category <category> --context <text> --observation <text> --takeaway <text> --applies-when <text> --origin <text> --evidence <text>
+lesson-edit: strict-spec-cli lesson-edit <lesson-id> --origin <text> --evidence <text>
 propose: strict-spec-cli propose <change-name>
 generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
 ready: strict-spec-cli ready <change-name>
@@ -146,6 +149,11 @@ run `init` from this skill.
    - the applicable technical standards by running
      `strict-spec-cli tech-status` and reading the relevant files under
      `.strict-spec-driven/tech/`
+   - the recorded experience that may bear on this defect by running
+     `strict-spec-cli lesson-status` and matching its `applies_when` conditions
+     against the failing area. Lessons carry no MUST or SHOULD strength; treat
+     them as warnings worth checking, and weight a lesson with several
+     occurrences because it has bitten this project repeatedly.
    Use this evidence for the change-intake question gate before asking the
    human or continuing into implementation.
 
@@ -253,7 +261,19 @@ run `init` from this skill.
     rerun strict verification plus the configured complete regression command
     after review-time changes. Do not call or rely on a `strict-spec-cli review` command.
 
-12. **Archive only when clean** — archive only after strict verification,
+12. **Declare the lesson outcome (required)** — a defect that reached a fix is
+    direct evidence about why the existing tests and technical standards failed
+    to catch it, which is the reusable part of a bugfix. Before archiving,
+    state explicitly either that a lesson was recorded or that none applies,
+    with the reason. Record one when the defect slipped through a gap that will
+    let the next defect through too — a missing test shape, a misleading error
+    message, an invariant nothing enforces. First check
+    `strict-spec-cli lesson-status` for an existing lesson with the same
+    `applies_when` condition and append the recurrence with `lesson-edit`
+    instead of creating a near-duplicate. Do not manufacture an entry: a fix for
+    a plain typo teaches nothing and should be declared "no lesson".
+
+13. **Archive only when clean** — archive only after strict verification,
     mapping verification, direct review, targeted regression, and complete
     regression evidence pass:
     ```bash

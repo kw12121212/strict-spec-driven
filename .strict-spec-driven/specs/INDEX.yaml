@@ -18,6 +18,9 @@ specs:
   - id: harness-domain-behavior
     title: Harness Domain Behavior
     path: .strict-spec-driven/specs/harness/domain-behavior.yaml
+  - id: lessons-domain-behavior
+    title: Lessons Domain Behavior
+    path: .strict-spec-driven/specs/lessons/domain-behavior.yaml
   - id: migrate-domain-behavior
     title: Migrate Domain Behavior
     path: .strict-spec-driven/specs/migrate/domain-behavior.yaml

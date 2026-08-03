@@ -18,6 +18,9 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
+lesson-status: strict-spec-cli lesson-status
+lesson-create: strict-spec-cli lesson-create --title <text> --category <category> --context <text> --observation <text> --takeaway <text> --applies-when <text> --origin <text> --evidence <text>
+lesson-edit: strict-spec-cli lesson-edit <lesson-id> --origin <text> --evidence <text>
 propose: strict-spec-cli propose <change-name>
 generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
 apply: strict-spec-cli apply <change-name>
@@ -135,6 +138,11 @@ run `init` from this skill.
    relevant files under `.strict-spec-driven/tech/`), mapped implementation and
    test files, repository status, and regression configuration when needed. Do
    not reread unrelated roadmap, archive, or spec files just because they exist.
+   Also run `strict-spec-cli lesson-status` and match its `applies_when`
+   conditions against the work at hand. Lessons carry no MUST or SHOULD
+   strength, so treat them as warnings worth checking rather than constraints to
+   satisfy; weight a lesson with several occurrences, because the count means
+   this project has hit it repeatedly.
    Use this evidence for the change-intake question gate before asking the
    human or continuing into implementation.
 
@@ -304,7 +312,23 @@ run `init` from this skill.
    completion, but a convention confirmed as reusable may not be deferred until
    after the change is archived.
 
-10. **Re-check complete regression evidence** — inspect project workflow
+10. **Declare the lesson outcome (required)** — before archive, state
+   explicitly either that a lesson was recorded or that none applies, with the
+   reason. Judge it from the objective proposal-versus-implementation diff, not
+   from a general sense of having learned something: a `design.yaml` decision or
+   approach overturned during implementation, a question the proposal did not
+   foresee, a task added because of a discovery rather than a scope change, or a
+   regression failure exposing a trap this change did not introduce. When one
+   applies, check `strict-spec-cli lesson-status` for an existing lesson with the
+   same `applies_when` condition and append the recurrence with
+   `lesson-edit <lesson-id> --origin <change-name> --evidence "..."` rather than
+   creating a near-duplicate; otherwise record a new one with `lesson-create`.
+   Spend the effort on `--applies-when`: it is the retrieval key that decides
+   whether the lesson is ever seen again. When none of the criteria applies, say
+   "no lesson" with a one-line reason — never manufacture an entry, because a
+   store padded with filler stops being read.
+
+11. **Re-check complete regression evidence** — inspect project workflow
    context, including `.strict-spec-driven/config.yaml` when available, for the
    complete project-level regression test method. Require evidence that the full
    project regression command has passed during review before archive execution,
@@ -322,7 +346,7 @@ run `init` from this skill.
    unavailable, stop before archive and give the human actionable setup or
    waiting guidance.
 
-11. **Run the final current-change tech sync** — before invoking archive, apply
+12. **Run the final current-change tech sync** — before invoking archive, apply
    the active-change procedure from `strict-tech-sync` to the selected change.
    Bound the scan to its planning artifacts, delta artifacts, structured
    mappings, attributable tracked and untracked files, and applicable technical
@@ -337,7 +361,7 @@ run `init` from this skill.
    strict verification, and rerun the configured complete project regression
    evidence invalidated by the edit.
 
-12. **Archive cleanly** — if the final current-change tech sync is resolved, the
+13. **Archive cleanly** — if the final current-change tech sync is resolved, the
    change verifies, reviews cleanly, and has passing complete project-level
    regression test evidence for the final artifact state, run:
    ```bash

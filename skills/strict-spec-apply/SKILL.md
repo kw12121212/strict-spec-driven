@@ -18,6 +18,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
+lesson-status: strict-spec-cli lesson-status
 verify-tech-mappings: strict-spec-cli verify-tech-mappings
 modify: strict-spec-cli modify [change-name|archive-dir]
 apply: strict-spec-cli apply <change-name>
@@ -86,6 +87,13 @@ run `init` from this skill.
      `strict-spec-cli tech-status` and read the
      relevant files under `.strict-spec-driven/tech/`. These are the engineering
      rules the implementation must satisfy.
+   - run `strict-spec-cli lesson-status` and read the lessons it ranks first.
+     Lessons are recorded experience, not binding rules: they carry no MUST or
+     SHOULD strength, so treat each one as a warning worth checking against this
+     change rather than a constraint to satisfy. Match on `applies_when` — that
+     field states the condition under which the lesson is worth recalling. A
+     lesson with several occurrences has bitten this project repeatedly and
+     deserves weight even though nothing enforces it.
 
 3. **Gate on open questions** — inspect `questions.yaml`.
    - if `open` contains entries, do not infer answers or continue

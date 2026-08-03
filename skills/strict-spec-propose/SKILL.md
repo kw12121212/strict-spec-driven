@@ -24,6 +24,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
+lesson-status: strict-spec-cli lesson-status
 propose: strict-spec-cli propose <change-name>
 generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
 ready: strict-spec-cli ready <change-name>
@@ -138,6 +139,13 @@ run `init` from this skill.
      applicable MUST rule as a binding design constraint and every SHOULD rule
      as the default the proposal follows unless it records an explicit
      justification. If no standards apply, note that and continue.
+   - run `strict-spec-cli lesson-status` and read the lessons it ranks first.
+     Lessons are recorded experience, not binding rules: they carry no MUST or
+     SHOULD strength, so treat each one as a warning worth checking against this
+     change rather than a constraint to satisfy. Match on `applies_when` — that
+     field states the condition under which the lesson is worth recalling. A
+     lesson with several occurrences has bitten this project repeatedly and
+     deserves weight even though nothing enforces it.
    - Decide the relationship to each standard: most changes only *comply* with
      existing standards. If this change's intent is to *alter* a standard (add,
      modify, or retire a rule, or introduce a whole new standard), plan a delta

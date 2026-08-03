@@ -1,0 +1,31 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: operations-domain-behavior
+mapping:
+  implementation:
+    - src/maintenance.ts
+    - skills/strict-spec-maintenance/SKILL.md
+  tests:
+    - test/suites/operations.ts
+operations:
+  ADDED:
+    operations-lesson-staleness-check:
+      strength: MUST
+      statement: The system MUST support a lesson-staleness-check maintenance check type that reports active lessons whose recorded occurrences all originate from long-archived work or whose applies_when condition names files or commands no longer present in the repository, emits them as maintenance findings for human judgment, and MUST NOT change any lesson's status or content itself.
+      scenarios:
+        staleness-check-reports-stale-candidates:
+          - GIVEN: an active lesson exists whose applies_when names a file no longer present in the repository and the lesson-staleness-check is configured
+          - WHEN: maintenance runs
+          - THEN: the check reports the lesson as a finding identifying why it is a staleness candidate
+        staleness-check-leaves-lessons-untouched:
+          - GIVEN: the lesson-staleness-check produces findings
+          - WHEN: maintenance completes
+          - THEN: no lesson file is modified, no lesson status becomes obsolete, and retirement remains an explicit human decision
+        staleness-check-is-quiet-for-fresh-lessons:
+          - GIVEN: an active lesson was recorded from a recent change and its applies_when names files that still exist
+          - WHEN: maintenance runs the lesson-staleness-check
+          - THEN: the check produces no findings for that lesson
+  MODIFIED: {}
+  REMOVED: {}

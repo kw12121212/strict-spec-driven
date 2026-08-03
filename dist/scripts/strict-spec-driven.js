@@ -6583,7 +6583,7 @@ var COMMAND_METADATA_ENTRIES = {
       "",
       "Examples:",
       "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
-      "  strict-spec-cli generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
+      "  strict-spec-cli generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>]",
       "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
       "  strict-spec-cli generate <change-name> tasks [--reset [--force]] [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
       "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
@@ -6611,6 +6611,126 @@ var COMMAND_METADATA_ENTRIES = {
         description: "Allow a tasks --reset to discard tasks already recorded as complete."
       },
       {
+        name: "--what",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Proposal artifact only: what the change does. At least one is required.",
+        required: true,
+        repeatable: true,
+        repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
+        name: "--why",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Proposal artifact only: why the change is needed. At least one is required.",
+        required: true,
+        repeatable: true,
+        repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
+        name: "--in",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Proposal artifact only: an item that is in scope.",
+        repeatable: true,
+        repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
+        name: "--out",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Proposal artifact only: an item that is explicitly out of scope.",
+        repeatable: true,
+        repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
+        name: "--unchanged",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Proposal artifact only: behavior the change must leave unchanged; review checks the result against these.",
+        repeatable: true,
+        repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
+        name: "--milestone",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Proposal artifact only: roadmap milestone this change belongs to. Requires --planned-change."
+      },
+      {
+        name: "--planned-change",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Proposal artifact only: roadmap planned change this change implements. Requires --milestone."
+      },
+      {
+        name: "--roadmap-milestone",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Proposal artifact only: alias for --milestone."
+      },
+      {
+        name: "--roadmap-planned-change",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Proposal artifact only: alias for --planned-change."
+      },
+      {
+        name: "--approach",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Design artifact only: one paragraph of the chosen approach. At least one is required.",
+        required: true,
+        repeatable: true,
+        repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
+        name: "--decision",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Design artifact only: kebab-case decision id, upserted by id.",
+        repeatable: true,
+        repeatSemantics: "Repeat with --decision-text and --rationale once per decision; the three must be supplied in equal counts."
+      },
+      {
+        name: "--decision-text",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Design artifact only: what was decided, paired positionally with --decision.",
+        repeatable: true
+      },
+      {
+        name: "--rationale",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Design artifact only: why the decision was made, paired positionally with --decision. Must justify the choice rather than restate it.",
+        repeatable: true
+      },
+      {
+        name: "--alternative",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Design artifact only: an approach that was considered and rejected. Requires a paired --reason.",
+        repeatable: true,
+        repeatSemantics: "Repeat with --reason once per alternative; the two must be supplied in equal counts. Appends unique option/reason pairs."
+      },
+      {
+        name: "--reason",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Design artifact only: why the paired --alternative was rejected. Must name the specific disadvantage that ruled it out, not restate the option.",
+        repeatable: true
+      },
+      {
+        name: "--risk",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Design artifact only: a risk the change carries.",
+        repeatable: true,
+        repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
         name: "--section",
         arity: "value",
         valueLabel: "<Implementation|Testing|Verification>",
@@ -6636,7 +6756,7 @@ var COMMAND_METADATA_ENTRIES = {
         name: "--status",
         arity: "value",
         valueLabel: "<pending|complete>",
-        description: "Task status; defaults to pending and is preserved when omitted on an existing task.",
+        description: "Tasks artifact: task status, defaulting to pending and preserved when omitted on an existing task. Proposal artifact: the change's lifecycle status.",
         repeatable: true
       },
       {
@@ -7724,6 +7844,173 @@ var COMMAND_METADATA_ENTRIES = {
     },
     exitCodes: VALIDITY_EXIT_CODES
   },
+  "lesson-create": {
+    name: "lesson-create",
+    group: "lessons",
+    summary: "Record a reusable engineering lesson learned from experience.",
+    usage: `Usage: strict-spec-cli lesson-create --title <text> --category <category> --context <text> --observation <text> --takeaway <text> --applies-when <text> --origin <text> --evidence <text> [--date <yyyy-mm-dd>]
+`,
+    arguments: [],
+    flags: [
+      { name: "--title", arity: "value", valueLabel: "<text>", description: "Lesson title; the id is derived from it.", required: true },
+      {
+        name: "--category",
+        arity: "value",
+        valueLabel: "<category>",
+        description: "Subject area, drawn from the same vocabulary as technical standards: coding, architecture, security, performance, api, testing, tooling, operations, documentation, or ui.",
+        required: true
+      },
+      { name: "--context", arity: "value", valueLabel: "<text>", description: "What was being done when the experience arose.", required: true },
+      { name: "--observation", arity: "value", valueLabel: "<text>", description: "What actually happened, concrete enough to recognize a recurrence.", required: true },
+      { name: "--takeaway", arity: "value", valueLabel: "<text>", description: "The reusable conclusion drawn from the observation.", required: true },
+      {
+        name: "--applies-when",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "The condition under which the lesson should be recalled. This is the retrieval key and the test for whether a later experience is a recurrence of this lesson or a new one.",
+        required: true
+      },
+      { name: "--origin", arity: "value", valueLabel: "<text>", description: "The change, harness session, or ticket this first encounter came from.", required: true },
+      { name: "--evidence", arity: "value", valueLabel: "<text>", description: "Concrete evidence for the encounter, such as a command, error message, or file.", required: true },
+      { name: "--date", arity: "value", valueLabel: "<yyyy-mm-dd>", description: "Encounter date; defaults to today." }
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "created", "lessonId", "path", "diagnostics"],
+      description: "A JSON lesson creation result reporting whether a new lesson file was written."
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "The lesson id is derived from the title plus a hash of the title, category, and applies-when condition, so recording the same experience twice is idempotent and leaves existing occurrences untouched (created is false).",
+      "A lesson carries no MUST/SHOULD/MAY strength and no enforcement mapping; a lesson general enough to bind belongs in a technical standard and is promoted with lesson-edit."
+    ]
+  },
+  "lesson-list": {
+    name: "lesson-list",
+    group: "lessons",
+    summary: "List recorded lessons, active ones by default.",
+    usage: `Usage: strict-spec-cli lesson-list [--all]
+`,
+    arguments: [],
+    flags: [
+      {
+        name: "--all",
+        arity: "boolean",
+        description: "Include promoted and obsolete lessons. Both are hidden by default because a promoted lesson is already surfaced as the technical-standard rule it became."
+      }
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "lessons", "diagnostics"],
+      description: "A JSON list of lessons with id, title, category, status, occurrence count, and path."
+    },
+    exitCodes: VALIDITY_EXIT_CODES
+  },
+  "lesson-show": {
+    name: "lesson-show",
+    group: "lessons",
+    summary: "Print one lesson including its recorded occurrences.",
+    usage: `Usage: strict-spec-cli lesson-show <lesson-id>
+`,
+    arguments: [{ name: "lesson-id", description: "Id of the lesson to print.", required: true }],
+    flags: [],
+    output: {
+      format: "json",
+      keys: ["valid", "lessonId", "path", "lesson", "diagnostics"],
+      description: "A JSON lesson result carrying the full artifact."
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: ["Shows a lesson in any status, so a promoted or obsolete lesson stays reachable after it leaves the default list."]
+  },
+  "lesson-edit": {
+    name: "lesson-edit",
+    group: "lessons",
+    summary: "Edit a lesson, append a recurrence, or promote it into a technical standard rule.",
+    usage: `Usage: strict-spec-cli lesson-edit <lesson-id> [--title <text>] [--context <text>] [--observation <text>] [--takeaway <text>] [--applies-when <text>] [--origin <text> --evidence <text> [--date <yyyy-mm-dd>]] [--promoted-standard <id> --promoted-rule <id>]
+`,
+    arguments: [{ name: "lesson-id", description: "Id of the lesson to edit.", required: true }],
+    flags: [
+      { name: "--title", arity: "value", valueLabel: "<text>", description: "Replace the lesson title." },
+      { name: "--context", arity: "value", valueLabel: "<text>", description: "Replace the context." },
+      { name: "--observation", arity: "value", valueLabel: "<text>", description: "Replace the observation." },
+      { name: "--takeaway", arity: "value", valueLabel: "<text>", description: "Replace the takeaway." },
+      { name: "--applies-when", arity: "value", valueLabel: "<text>", description: "Replace the recall condition." },
+      {
+        name: "--origin",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Append a recurrence from this change, session, or ticket. Requires --evidence."
+      },
+      { name: "--evidence", arity: "value", valueLabel: "<text>", description: "Evidence for the appended recurrence. Requires --origin." },
+      { name: "--date", arity: "value", valueLabel: "<yyyy-mm-dd>", description: "Date of the appended recurrence; defaults to today." },
+      {
+        name: "--promoted-standard",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Technical standard the lesson became. Sets status to promoted and requires --promoted-rule."
+      },
+      { name: "--promoted-rule", arity: "value", valueLabel: "<id>", description: "Rule id within that standard. Requires --promoted-standard." }
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "edited", "lessonId", "path", "lesson", "diagnostics"],
+      description: "A JSON lesson edit result carrying the updated artifact."
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "A recurrence is appended rather than replacing earlier occurrences, so the occurrence count stays an honest record of how often the condition was hit and remains the objective signal for promotion.",
+      "Promotion keeps the lesson's original context, observation, takeaway, and occurrences: the technical-standard rule states what must be done but omits the failure that motivated it.",
+      "An obsolete lesson cannot be edited; retirement is terminal and is recorded with lesson-obsolete."
+    ]
+  },
+  "lesson-obsolete": {
+    name: "lesson-obsolete",
+    group: "lessons",
+    summary: "Retire a lesson that no longer holds, recording why.",
+    usage: `Usage: strict-spec-cli lesson-obsolete <lesson-id> --reason <text>
+`,
+    arguments: [{ name: "lesson-id", description: "Id of the lesson to retire.", required: true }],
+    flags: [
+      {
+        name: "--reason",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Why the lesson no longer holds: its premise disappeared, a stronger mechanism replaced it, or it was disproven.",
+        required: true
+      }
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "obsoleted", "lessonId", "path", "lesson", "diagnostics"],
+      description: "A JSON lesson retirement result carrying the updated artifact."
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "The lesson file is never deleted: a lesson retired because its root-cause analysis was wrong is itself reusable experience, and discarding it would hand the same reasoning trap to the next person.",
+      "Retiring an already-obsolete lesson is idempotent and reports obsoleted false without rewriting the recorded reason."
+    ]
+  },
+  "lesson-status": {
+    name: "lesson-status",
+    group: "lessons",
+    summary: "Report the lesson store with the highest-recurrence lessons first.",
+    usage: `Usage: strict-spec-cli lesson-status [--all]
+`,
+    arguments: [],
+    flags: [
+      { name: "--all", arity: "boolean", description: "Include promoted and obsolete lessons in the reported list." }
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "lessonCount", "statusCounts", "categoryCounts", "lessons", "diagnostics"],
+      description: "A JSON lesson store report; lessonCount, statusCounts, and categoryCounts always cover every lesson, while lessons honors --all."
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "Lessons are ordered by occurrence count descending, then by creation order, so the lessons with the strongest evidence for promotion into a binding rule appear first.",
+      "This is the consumption entry point read alongside tech-status when planning or implementing a change."
+    ]
+  },
   maintenance: {
     name: "maintenance",
     group: "migration",
@@ -7869,6 +8156,7 @@ var COMMAND_GROUP_ORDER = [
   "harness",
   "roadmap",
   "sop",
+  "lessons",
   "operations",
   "migration",
   "mcp"
@@ -7881,6 +8169,7 @@ var COMMAND_GROUP_TITLES = {
   harness: "Harness",
   roadmap: "Roadmap",
   sop: "Standard operating procedures",
+  lessons: "Lessons",
   operations: "Operations",
   migration: "Migration and maintenance",
   mcp: "MCP"
@@ -8368,6 +8657,17 @@ harness:
               mode: manual
           evidence_labels: []
           unavailable_conditions: []
+`,
+  "strict-spec-driven/scaffold/lessons/INDEX.yaml": `schema: strict-spec-driven/lessons-index/v1
+schema_version: 1
+artifact_type: lessons_index
+schema_file: ../schemas/lessons-index.yaml
+# Lessons record reusable engineering experience — a pitfall, a path that failed, or diagnostic
+# knowledge — that specs and technical standards deliberately exclude. Create them with
+# \`strict-spec-cli lesson-create\`; this index is rebuilt from the lesson files and is not
+# hand-edited. A lesson that becomes general enough to bind is promoted into a technical standard
+# rule and keeps its original text as the motivating context that rule omits.
+lessons: {}
 `,
   "strict-spec-driven/scaffold/roadmap/INDEX.yaml": `schema: strict-spec-driven/roadmap-index/v2
 schema_version: 2
@@ -9946,6 +10246,233 @@ json_schema:
             type: string
             minLength: 1
 `,
+  "strict-spec-driven/schemas/lesson.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/lesson/v1
+artifact_type: lesson
+artifact_name: lesson
+description: >-
+  Strict YAML lesson artifact capturing reusable engineering experience — the context it arose in,
+  what was observed, the reusable takeaway, and the condition under which the takeaway should be
+  recalled — together with the occurrences that prove recurrence and a lifecycle status of active,
+  promoted, or obsolete. A lesson deliberately carries no RFC 2119 strength and no enforcement
+  mapping; binding rules belong in technical standards, and a lesson general enough to bind is
+  promoted into one.
+example_ref: ../../../examples/strict-spec-driven/lesson.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - lesson
+    - category
+    - status
+    - created_at
+    - updated_at
+    - context
+    - observation
+    - takeaway
+    - applies_when
+    - occurrences
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/lesson/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: lesson
+    schema_file:
+      type: string
+    lesson:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        title:
+          type: string
+          minLength: 1
+    category:
+      type: string
+      description: >-
+        Reuses the technical-standard category vocabulary so a lesson and the standard it may be
+        promoted into are filed under the same subject area.
+      enum:
+        - coding
+        - architecture
+        - security
+        - performance
+        - api
+        - testing
+        - tooling
+        - operations
+        - documentation
+        - ui
+    status:
+      type: string
+      description: >-
+        active means the lesson still applies and is offered at consumption points. promoted means
+        the lesson became a binding technical-standard rule and is retained for the motivating
+        context that the rule itself omits. obsolete means the lesson no longer holds and was
+        explicitly retired with a recorded reason.
+      enum:
+        - active
+        - promoted
+        - obsolete
+    created_at:
+      type: string
+      minLength: 1
+    updated_at:
+      type: string
+      minLength: 1
+    context:
+      type: string
+      minLength: 1
+      description: What was being done when the experience arose.
+    observation:
+      type: string
+      minLength: 1
+      description: What actually happened, stated concretely enough to recognize a recurrence.
+    takeaway:
+      type: string
+      minLength: 1
+      description: The reusable conclusion drawn from the observation.
+    applies_when:
+      type: string
+      minLength: 1
+      description: >-
+        The condition under which this lesson should be recalled. This is the retrieval key: it is
+        what lets a consumption point surface the lesson to someone who has not read the store, and
+        it is the test for whether a new experience is a recurrence of this lesson or a new one.
+    occurrences:
+      type: array
+      minItems: 1
+      description: >-
+        Every recorded encounter with this lesson, oldest first. A recurrence appends an entry
+        rather than creating a second lesson, so the length of this list is the objective evidence
+        for whether the lesson has earned promotion into a binding rule.
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - origin
+          - date
+          - evidence
+        properties:
+          origin:
+            type: string
+            minLength: 1
+            description: The change, harness session, or ticket this encounter came from.
+          date:
+            type: string
+            minLength: 1
+          evidence:
+            type: string
+            minLength: 1
+            description: Concrete evidence for this encounter, such as a command, error message, or file.
+    promoted_to:
+      type: object
+      additionalProperties: false
+      description: >-
+        Set only when status is promoted; names the technical standard and rule the lesson became so
+        the binding rule can be traced back to the failure that motivated it.
+      required:
+        - standard
+        - rule
+      properties:
+        standard:
+          type: string
+          minLength: 1
+        rule:
+          type: string
+          minLength: 1
+    obsoleted_reason:
+      type: string
+      minLength: 1
+      description: >-
+        Set only when status is obsolete; why the lesson no longer holds — its premise disappeared,
+        a stronger mechanism replaced it, or it was disproven.
+    obsoleted_at:
+      type: string
+      minLength: 1
+`,
+  "strict-spec-driven/schemas/lessons-index.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/lessons-index/v1
+artifact_type: lessons_index
+artifact_name: lessons-index
+description: >-
+  Strict YAML lesson index artifact (keyed lesson map keyed by conflict-resistant lesson id)
+  describing each recorded lesson's title, category, status, occurrence count, and path, so lessons
+  are discoverable without reading every lesson file.
+example_ref: ../../../examples/strict-spec-driven/lessons-index.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - lessons
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/lessons-index/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: lessons_index
+    schema_file:
+      type: string
+    lessons:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+          - category
+          - status
+          - occurrences
+          - path
+        properties:
+          title:
+            type: string
+            minLength: 1
+          category:
+            type: string
+            minLength: 1
+          status:
+            type: string
+            enum:
+              - active
+              - promoted
+              - obsolete
+          occurrences:
+            type: integer
+            minimum: 1
+            description: >-
+              Recorded encounter count, mirrored into the index so recurrence can be ranked without
+              opening every lesson file.
+          path:
+            type: string
+            minLength: 1
+`,
   "strict-spec-driven/schemas/main-spec.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
 schema_id: strict-spec-driven/main-spec/v1
@@ -10624,6 +11151,33 @@ entries:
       compatible_with: []
       notes:
         - SOPs index is a keyed map keyed by conflict-resistant SOP id for merge-friendly multi-author authoring.
+  - schema_id: strict-spec-driven/lesson/v1
+    schema_version: 1
+    artifact_type: lesson
+    artifact_name: lesson
+    schema_file: lesson.yaml
+    primary_example: ../../../examples/strict-spec-driven/lesson.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Lessons record reusable experience and deliberately carry no RFC 2119 strength or enforcement mapping; a lesson general enough to bind is promoted into a technical standard rule instead.
+        - Recurrence is appended to the occurrences list on the existing lesson rather than creating a second lesson, so occurrence count is the objective promotion signal.
+  - schema_id: strict-spec-driven/lessons-index/v1
+    schema_version: 1
+    artifact_type: lessons_index
+    artifact_name: lessons-index
+    schema_file: lessons-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/lessons-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Lessons index is a keyed map keyed by conflict-resistant lesson id for merge-friendly multi-author authoring.
   - schema_id: strict-spec-driven/harness/v1
     schema_version: 1
     artifact_type: harness
@@ -12409,6 +12963,47 @@ harness:
             - production-status
           unavailable_conditions:
             - Production credentials must remain outside YAML.
+`,
+  "examples/strict-spec-driven/lesson.yaml": `schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: ../../templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: rebuild-before-trusting-dist-tests-a1b2c3
+  title: Rebuild before trusting dist-backed test results
+category: testing
+status: active
+created_at: "2026-04-24T09:15:00.000Z"
+updated_at: "2026-04-24T09:15:00.000Z"
+context: >-
+  Editing a TypeScript source module and then running the project test suite to confirm the change
+  behaved as intended.
+observation: >-
+  The suite passed while the edited behavior was plainly absent, because the tests execute compiled
+  dist/ output and the build had not been rerun, so every assertion exercised the previous revision.
+takeaway: >-
+  A dist-backed suite reports on the last build, not on the working tree, so a pass proves nothing
+  about uncompiled source edits; rebuild first and treat an unexpectedly clean run right after a
+  source edit as a signal that the build is stale.
+applies_when: >-
+  Running or interpreting the result of any test suite that executes compiled output after editing
+  TypeScript sources.
+occurrences:
+  - origin: 2026-04-24-port-verify-to-yaml
+    date: "2026-04-24"
+    evidence: "bun test/run.ts passed against dist/verify.js compiled before the src/verify.ts edit"
+`,
+  "examples/strict-spec-driven/lessons-index.yaml": `schema: strict-spec-driven/lessons-index/v1
+schema_version: 1
+artifact_type: lessons_index
+schema_file: ../../templates/strict-spec-driven/schemas/lessons-index.yaml
+lessons:
+  rebuild-before-trusting-dist-tests-a1b2c3:
+    title: Rebuild before trusting dist-backed test results
+    category: testing
+    status: active
+    occurrences: 1
+    path: .strict-spec-driven/lessons/rebuild-before-trusting-dist-tests-a1b2c3.yaml
 `,
   "examples/strict-spec-driven/main-spec.yaml": `schema: strict-spec-driven/main-spec/v1
 schema_version: 1
@@ -15939,6 +16534,12 @@ var COMMAND_REGISTRATION_ORDER = [
   "sop-validate",
   "sop-category-list",
   "sop-category-show",
+  "lesson-create",
+  "lesson-list",
+  "lesson-show",
+  "lesson-edit",
+  "lesson-obsolete",
+  "lesson-status",
   "maintenance",
   "ship",
   "commit-and-push",
@@ -15976,7 +16577,8 @@ var REQUIRED_SCAFFOLD_ASSETS = [
   "architecture.yaml",
   "specs/INDEX.yaml",
   "tech/INDEX.yaml",
-  "roadmap/INDEX.yaml"
+  "roadmap/INDEX.yaml",
+  "lessons/INDEX.yaml"
 ];
 var REQUIRED_CHANGE_TEMPLATE_ASSETS = [
   "changes/proposal.yaml",
@@ -17095,6 +17697,28 @@ function resolveStringValue(value, rootDir) {
   const inputPath = path5.resolve(rootDir, value.slice(1));
   return readFileSync6(inputPath, "utf8");
 }
+var PROPOSAL_ARGUMENTS = [
+  "what",
+  "why",
+  "in",
+  "out",
+  "unchanged",
+  "status",
+  "milestone",
+  "planned-change",
+  "roadmap-milestone",
+  "roadmap-planned-change"
+];
+var DESIGN_ARGUMENTS = [
+  "reset",
+  "approach",
+  "decision",
+  "decision-text",
+  "rationale",
+  "alternative",
+  "reason",
+  "risk"
+];
 function ensureAllowedFlags(flags, allowed) {
   const allowedSet = new Set(allowed);
   const unsupported = Object.keys(flags).filter((flag) => !allowedSet.has(flag));
@@ -17194,18 +17818,7 @@ function upsertListItem(collection, item, id, fieldName) {
   return collection;
 }
 function buildProposalInput(flags) {
-  ensureAllowedFlags(flags, [
-    "what",
-    "why",
-    "in",
-    "out",
-    "unchanged",
-    "status",
-    "milestone",
-    "planned-change",
-    "roadmap-milestone",
-    "roadmap-planned-change"
-  ]);
+  ensureAllowedFlags(flags, [...PROPOSAL_ARGUMENTS]);
   const what = uniqueStrings(values(flags, "what"));
   const why = uniqueStrings(values(flags, "why"));
   if (what.length === 0)
@@ -17247,16 +17860,7 @@ function existingDesignInput(rootDir, changeName, reset) {
   };
 }
 function buildDesignInput(rootDir, changeName, flags) {
-  ensureAllowedFlags(flags, [
-    "reset",
-    "approach",
-    "decision",
-    "decision-text",
-    "rationale",
-    "alternative",
-    "reason",
-    "risk"
-  ]);
+  ensureAllowedFlags(flags, [...DESIGN_ARGUMENTS]);
   const input = existingDesignInput(rootDir, changeName, hasFlag(flags, "reset"));
   input.approach = uniqueStrings([...Array.isArray(input.approach) ? input.approach : [], ...values(flags, "approach")]);
   input.risks = uniqueStrings([...Array.isArray(input.risks) ? input.risks : [], ...values(flags, "risk")]);
@@ -24403,18 +25007,616 @@ function runSopCategoryShow(argv) {
   return result.valid ? 0 : 1;
 }
 
+// src/lessons.ts
+import { existsSync as existsSync26, mkdirSync as mkdirSync10, readdirSync as readdirSync10, statSync as statSync14, writeFileSync as writeFileSync11 } from "fs";
+import path28 from "path";
+import { createHash as createHash3 } from "crypto";
+var STRICT_WORKFLOW_DIR10 = ".strict-spec-driven";
+var LESSONS_DIR = `${STRICT_WORKFLOW_DIR10}/lessons`;
+var LESSONS_INDEX_PATH = `${LESSONS_DIR}/INDEX.yaml`;
+var LESSON_SCHEMA_ID = "strict-spec-driven/lesson/v1";
+var LESSONS_INDEX_SCHEMA_ID = "strict-spec-driven/lessons-index/v1";
+function lessonsDir(rootDir) {
+  return path28.join(rootDir, LESSONS_DIR);
+}
+function lessonsIndexPath(rootDir) {
+  return path28.join(rootDir, LESSONS_INDEX_PATH);
+}
+function lessonFilePath(rootDir, lessonId) {
+  return path28.join(lessonsDir(rootDir), `${lessonId}.yaml`);
+}
+function repoRelative2(rootDir, absolutePath) {
+  return path28.relative(rootDir, absolutePath).split(path28.sep).join("/");
+}
+function slugify2(value) {
+  const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48).replace(/^-+|-+$/g, "");
+  return slug.length > 0 ? slug : "lesson";
+}
+function contentHash2(input) {
+  return createHash3("sha256").update([input.title, input.category, input.appliesWhen].join(" ")).digest("hex").slice(0, 6);
+}
+function deriveLessonId(input) {
+  return `${slugify2(input.title)}-${contentHash2(input)}`;
+}
+function getLessonCategories() {
+  const schema2 = loadBundledSchemaBySchemaId(LESSON_SCHEMA_ID);
+  const values3 = schema2.properties?.category?.enum;
+  return Array.isArray(values3) ? values3.map((value) => String(value)) : [];
+}
+function makeDiagnostic3(rootDir, message, fieldPath = "$", absolutePath) {
+  return {
+    source: "schema",
+    artifactPath: absolutePath ? repoRelative2(rootDir, absolutePath) : LESSONS_DIR,
+    fieldPath,
+    message
+  };
+}
+function listLessonFiles(rootDir) {
+  const dir = lessonsDir(rootDir);
+  if (!existsSync26(dir) || !statSync14(dir).isDirectory()) {
+    return [];
+  }
+  return readdirSync10(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path28.join(dir, name)).sort();
+}
+function compareLessons(left, right) {
+  const order = left.createdAt.localeCompare(right.createdAt);
+  return order !== 0 ? order : left.id.localeCompare(right.id);
+}
+function buildLessonArtifact(input, lessonId) {
+  const now = new Date().toISOString();
+  return {
+    schema: LESSON_SCHEMA_ID,
+    schema_version: 1,
+    artifact_type: "lesson",
+    schema_file: "templates/strict-spec-driven/schemas/lesson.yaml",
+    lesson: { id: lessonId, title: input.title },
+    category: input.category,
+    status: "active",
+    created_at: now,
+    updated_at: now,
+    context: input.context,
+    observation: input.observation,
+    takeaway: input.takeaway,
+    applies_when: input.appliesWhen,
+    occurrences: [{ ...input.occurrence }]
+  };
+}
+function rebuildLessonsIndex(rootDir) {
+  const entries = [];
+  for (const filePath of listLessonFiles(rootDir)) {
+    const artifact = parseYamlFile(filePath);
+    const lessonId = artifact?.lesson?.id;
+    if (typeof lessonId !== "string" || lessonId.length === 0) {
+      continue;
+    }
+    entries.push({
+      id: lessonId,
+      createdAt: String(artifact.created_at ?? ""),
+      indexEntry: {
+        title: artifact.lesson.title,
+        category: artifact.category,
+        status: artifact.status,
+        occurrences: Array.isArray(artifact.occurrences) ? artifact.occurrences.length : 0,
+        path: repoRelative2(rootDir, filePath)
+      }
+    });
+  }
+  const sorted = {};
+  for (const entry of entries.sort(compareLessons)) {
+    sorted[entry.id] = entry.indexEntry;
+  }
+  const indexArtifact = {
+    schema: LESSONS_INDEX_SCHEMA_ID,
+    schema_version: 1,
+    artifact_type: "lessons_index",
+    schema_file: "templates/strict-spec-driven/schemas/lessons-index.yaml",
+    lessons: sorted
+  };
+  mkdirSync10(lessonsDir(rootDir), { recursive: true });
+  writeFileSync11(lessonsIndexPath(rootDir), stringifyYamlDocument(indexArtifact), "utf8");
+}
+function validateLessonArtifact(rootDir, artifact, absolutePath) {
+  const artifactPath = repoRelative2(rootDir, absolutePath);
+  const schema2 = loadBundledSchemaBySchemaId(LESSON_SCHEMA_ID);
+  const base = validateArtifact(schema2, artifact, artifactPath);
+  if (!base.valid) {
+    return base.diagnostics;
+  }
+  const lesson = artifact;
+  const diagnostics = [];
+  const push = (message, fieldPath) => {
+    diagnostics.push({ source: "schema", artifactPath, fieldPath, message });
+  };
+  if (lesson.status === "promoted" && !lesson.promoted_to) {
+    push("a promoted lesson must record promoted_to naming the technical standard and rule it became", "$.promoted_to");
+  }
+  if (lesson.status !== "promoted" && lesson.promoted_to) {
+    push(`promoted_to is only valid on a promoted lesson, but status is '${lesson.status}'`, "$.promoted_to");
+  }
+  if (lesson.status === "obsolete") {
+    if (!lesson.obsoleted_reason) {
+      push("an obsolete lesson must record obsoleted_reason explaining why it no longer holds", "$.obsoleted_reason");
+    }
+    if (!lesson.obsoleted_at) {
+      push("an obsolete lesson must record obsoleted_at", "$.obsoleted_at");
+    }
+  } else {
+    if (lesson.obsoleted_reason) {
+      push(`obsoleted_reason is only valid on an obsolete lesson, but status is '${lesson.status}'`, "$.obsoleted_reason");
+    }
+    if (lesson.obsoleted_at) {
+      push(`obsoleted_at is only valid on an obsolete lesson, but status is '${lesson.status}'`, "$.obsoleted_at");
+    }
+  }
+  return diagnostics;
+}
+function createLesson(rootDir, input) {
+  const diagnostics = [];
+  if (!input.title || input.title.trim().length === 0) {
+    diagnostics.push(makeDiagnostic3(rootDir, "lesson title is required", "$.lesson.title"));
+  }
+  if (!input.category || input.category.trim().length === 0) {
+    diagnostics.push(makeDiagnostic3(rootDir, "lesson category is required", "$.category"));
+  }
+  if (diagnostics.length > 0) {
+    return { valid: false, created: false, lessonId: null, path: null, diagnostics };
+  }
+  const categories = getLessonCategories();
+  if (!categories.includes(input.category)) {
+    return {
+      valid: false,
+      created: false,
+      lessonId: null,
+      path: null,
+      diagnostics: [
+        makeDiagnostic3(rootDir, `unknown lesson category '${input.category}'; expected one of [${categories.join(", ")}]`, "$.category")
+      ]
+    };
+  }
+  const lessonId = deriveLessonId(input);
+  const filePath = lessonFilePath(rootDir, lessonId);
+  if (existsSync26(filePath)) {
+    return { valid: true, created: false, lessonId, path: repoRelative2(rootDir, filePath), diagnostics: [] };
+  }
+  const artifact = buildLessonArtifact(input, lessonId);
+  const validationDiagnostics = validateLessonArtifact(rootDir, artifact, filePath);
+  if (validationDiagnostics.length > 0) {
+    return { valid: false, created: false, lessonId, path: null, diagnostics: validationDiagnostics };
+  }
+  mkdirSync10(lessonsDir(rootDir), { recursive: true });
+  writeFileSync11(filePath, stringifyYamlDocument(artifact), "utf8");
+  rebuildLessonsIndex(rootDir);
+  return { valid: true, created: true, lessonId, path: repoRelative2(rootDir, filePath), diagnostics: [] };
+}
+function readLessonEntries(rootDir) {
+  const entries = [];
+  for (const filePath of listLessonFiles(rootDir)) {
+    const artifact = parseYamlFile(filePath);
+    const lessonId = artifact?.lesson?.id;
+    if (typeof lessonId !== "string" || lessonId.length === 0) {
+      continue;
+    }
+    entries.push({
+      id: lessonId,
+      title: artifact.lesson.title,
+      category: artifact.category,
+      status: artifact.status,
+      occurrences: Array.isArray(artifact.occurrences) ? artifact.occurrences.length : 0,
+      path: repoRelative2(rootDir, filePath),
+      createdAt: String(artifact.created_at ?? "")
+    });
+  }
+  return entries;
+}
+function stripCreatedAt(entry) {
+  return {
+    id: entry.id,
+    title: entry.title,
+    category: entry.category,
+    status: entry.status,
+    occurrences: entry.occurrences,
+    path: entry.path
+  };
+}
+function listLessons(rootDir, options = {}) {
+  const entries = readLessonEntries(rootDir).filter((entry) => options.includeAll === true || entry.status === "active").sort(compareLessons).map(stripCreatedAt);
+  return { valid: true, lessons: entries, diagnostics: [] };
+}
+function showLesson(rootDir, lessonId) {
+  const filePath = lessonFilePath(rootDir, lessonId);
+  if (!existsSync26(filePath)) {
+    return {
+      valid: false,
+      lessonId,
+      path: null,
+      lesson: null,
+      diagnostics: [makeDiagnostic3(rootDir, `lesson '${lessonId}' not found`, "$.lesson.id")]
+    };
+  }
+  const lesson = parseYamlFile(filePath);
+  return { valid: true, lessonId, path: repoRelative2(rootDir, filePath), lesson, diagnostics: [] };
+}
+function getLessonStatus(rootDir, options = {}) {
+  const all = readLessonEntries(rootDir);
+  const visible = all.filter((entry) => options.includeAll === true || entry.status === "active");
+  const statusCounts = { active: 0, promoted: 0, obsolete: 0 };
+  const categoryCounts = {};
+  for (const entry of all) {
+    if (entry.status in statusCounts) {
+      statusCounts[entry.status] += 1;
+    }
+    categoryCounts[entry.category] = (categoryCounts[entry.category] ?? 0) + 1;
+  }
+  const lessons = visible.sort((left, right) => {
+    const byRecurrence = right.occurrences - left.occurrences;
+    return byRecurrence !== 0 ? byRecurrence : compareLessons(left, right);
+  }).map(stripCreatedAt);
+  const sortedCategoryCounts = {};
+  for (const key of Object.keys(categoryCounts).sort()) {
+    sortedCategoryCounts[key] = categoryCounts[key];
+  }
+  return {
+    valid: true,
+    lessonCount: all.length,
+    statusCounts,
+    categoryCounts: sortedCategoryCounts,
+    lessons,
+    diagnostics: []
+  };
+}
+function editLesson(rootDir, input) {
+  const filePath = lessonFilePath(rootDir, input.lessonId);
+  if (!existsSync26(filePath)) {
+    return {
+      valid: false,
+      edited: false,
+      lessonId: input.lessonId,
+      path: null,
+      lesson: null,
+      diagnostics: [makeDiagnostic3(rootDir, `lesson '${input.lessonId}' not found`, "$.lesson.id")]
+    };
+  }
+  const artifact = parseYamlFile(filePath);
+  if (artifact.status === "obsolete") {
+    return {
+      valid: false,
+      edited: false,
+      lessonId: input.lessonId,
+      path: null,
+      lesson: null,
+      diagnostics: [
+        makeDiagnostic3(rootDir, `lesson '${input.lessonId}' is obsolete and cannot be edited`, "$.status", filePath)
+      ]
+    };
+  }
+  if (input.title !== undefined) {
+    artifact.lesson.title = input.title;
+  }
+  if (input.context !== undefined) {
+    artifact.context = input.context;
+  }
+  if (input.observation !== undefined) {
+    artifact.observation = input.observation;
+  }
+  if (input.takeaway !== undefined) {
+    artifact.takeaway = input.takeaway;
+  }
+  if (input.appliesWhen !== undefined) {
+    artifact.applies_when = input.appliesWhen;
+  }
+  if (input.occurrence !== undefined) {
+    artifact.occurrences = [...artifact.occurrences ?? [], { ...input.occurrence }];
+  }
+  if (input.promotedTo !== undefined) {
+    artifact.status = "promoted";
+    artifact.promoted_to = { ...input.promotedTo };
+  }
+  artifact.updated_at = new Date().toISOString();
+  const validationDiagnostics = validateLessonArtifact(rootDir, artifact, filePath);
+  if (validationDiagnostics.length > 0) {
+    return { valid: false, edited: false, lessonId: input.lessonId, path: null, lesson: null, diagnostics: validationDiagnostics };
+  }
+  mkdirSync10(lessonsDir(rootDir), { recursive: true });
+  writeFileSync11(filePath, stringifyYamlDocument(artifact), "utf8");
+  rebuildLessonsIndex(rootDir);
+  return { valid: true, edited: true, lessonId: input.lessonId, path: repoRelative2(rootDir, filePath), lesson: artifact, diagnostics: [] };
+}
+function obsoleteLesson(rootDir, lessonId, reason) {
+  if (!reason || reason.trim().length === 0) {
+    return {
+      valid: false,
+      obsoleted: false,
+      lessonId,
+      path: null,
+      lesson: null,
+      diagnostics: [makeDiagnostic3(rootDir, "obsoleting a lesson requires a reason explaining why it no longer holds", "$.obsoleted_reason")]
+    };
+  }
+  const filePath = lessonFilePath(rootDir, lessonId);
+  if (!existsSync26(filePath)) {
+    return {
+      valid: false,
+      obsoleted: false,
+      lessonId,
+      path: null,
+      lesson: null,
+      diagnostics: [makeDiagnostic3(rootDir, `lesson '${lessonId}' not found`, "$.lesson.id")]
+    };
+  }
+  const artifact = parseYamlFile(filePath);
+  if (artifact.status === "obsolete") {
+    return { valid: true, obsoleted: false, lessonId, path: repoRelative2(rootDir, filePath), lesson: artifact, diagnostics: [] };
+  }
+  artifact.status = "obsolete";
+  artifact.obsoleted_reason = reason;
+  artifact.obsoleted_at = new Date().toISOString();
+  artifact.updated_at = artifact.obsoleted_at;
+  delete artifact.promoted_to;
+  const validationDiagnostics = validateLessonArtifact(rootDir, artifact, filePath);
+  if (validationDiagnostics.length > 0) {
+    return { valid: false, obsoleted: false, lessonId, path: null, lesson: null, diagnostics: validationDiagnostics };
+  }
+  writeFileSync11(filePath, stringifyYamlDocument(artifact), "utf8");
+  rebuildLessonsIndex(rootDir);
+  return { valid: true, obsoleted: true, lessonId, path: repoRelative2(rootDir, filePath), lesson: artifact, diagnostics: [] };
+}
+
+// src/cli/cmd-lessons.ts
+var BOOLEAN_FLAGS2 = new Set(["all"]);
+function parseFlagMap3(argv) {
+  const flags = {};
+  for (let index = 0;index < argv.length; index += 1) {
+    const token = argv[index];
+    if (!token?.startsWith("--") || token.length === 2) {
+      throw new Error(`unexpected argument '${token}'`);
+    }
+    const name = token.slice(2);
+    if (BOOLEAN_FLAGS2.has(name)) {
+      flags[name] ??= [];
+      flags[name].push("true");
+      continue;
+    }
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith("--")) {
+      throw new Error(`missing value for --${name}`);
+    }
+    flags[name] ??= [];
+    flags[name].push(value);
+    index += 1;
+  }
+  return flags;
+}
+function ensureAllowedFlags3(flags, allowed) {
+  const allowedSet = new Set(allowed);
+  const unsupported = Object.keys(flags).filter((flag) => !allowedSet.has(flag));
+  if (unsupported.length > 0) {
+    throw new Error(`unsupported argument(s): ${unsupported.map((flag) => `--${flag}`).join(", ")}`);
+  }
+}
+function singleValue2(flags, name) {
+  const values3 = flags[name];
+  return values3 && values3.length > 0 ? values3[values3.length - 1] : undefined;
+}
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+var LESSON_CREATE_FLAGS = [
+  "title",
+  "category",
+  "context",
+  "observation",
+  "takeaway",
+  "applies-when",
+  "origin",
+  "evidence",
+  "date"
+];
+function runLessonCreate(argv) {
+  if (handleHelpRequest("lesson-create", argv)) {
+    return 0;
+  }
+  let flags;
+  try {
+    flags = parseFlagMap3(argv);
+    ensureAllowedFlags3(flags, LESSON_CREATE_FLAGS);
+  } catch (error) {
+    writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}
+`);
+    return 1;
+  }
+  const required = ["title", "category", "context", "observation", "takeaway", "applies-when", "origin", "evidence"];
+  const missing = required.filter((flag) => {
+    const value = singleValue2(flags, flag);
+    return value === undefined || value.trim().length === 0;
+  });
+  if (missing.length > 0) {
+    writeUsage(`Error: ${missing.map((flag) => `--${flag}`).join(", ")} ${missing.length === 1 ? "is" : "are"} required
+`);
+    return 1;
+  }
+  const input = {
+    title: singleValue2(flags, "title"),
+    category: singleValue2(flags, "category"),
+    context: singleValue2(flags, "context"),
+    observation: singleValue2(flags, "observation"),
+    takeaway: singleValue2(flags, "takeaway"),
+    appliesWhen: singleValue2(flags, "applies-when"),
+    occurrence: {
+      origin: singleValue2(flags, "origin"),
+      date: singleValue2(flags, "date") ?? today(),
+      evidence: singleValue2(flags, "evidence")
+    }
+  };
+  const result = createLesson(process.cwd(), input);
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+function runLessonList(argv) {
+  if (handleHelpRequest("lesson-list", argv)) {
+    return 0;
+  }
+  let flags;
+  try {
+    flags = parseFlagMap3(argv);
+    ensureAllowedFlags3(flags, ["all"]);
+  } catch (error) {
+    writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}
+`);
+    return 1;
+  }
+  const result = listLessons(process.cwd(), { includeAll: "all" in flags });
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+function runLessonStatus(argv) {
+  if (handleHelpRequest("lesson-status", argv)) {
+    return 0;
+  }
+  let flags;
+  try {
+    flags = parseFlagMap3(argv);
+    ensureAllowedFlags3(flags, ["all"]);
+  } catch (error) {
+    writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}
+`);
+    return 1;
+  }
+  const result = getLessonStatus(process.cwd(), { includeAll: "all" in flags });
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+function runLessonShow(argv) {
+  if (handleHelpRequest("lesson-show", argv)) {
+    return 0;
+  }
+  if (argv.length !== 1 || argv[0].startsWith("--")) {
+    writeUsage(getCommandUsage("lesson-show"));
+    return 1;
+  }
+  const result = showLesson(process.cwd(), argv[0]);
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+var LESSON_EDIT_FLAGS = [
+  "title",
+  "context",
+  "observation",
+  "takeaway",
+  "applies-when",
+  "origin",
+  "evidence",
+  "date",
+  "promoted-standard",
+  "promoted-rule"
+];
+function runLessonEdit(argv) {
+  if (handleHelpRequest("lesson-edit", argv)) {
+    return 0;
+  }
+  if (argv.length === 0 || argv[0].startsWith("--")) {
+    writeUsage(getCommandUsage("lesson-edit"));
+    return 1;
+  }
+  const lessonId = argv[0];
+  let flags;
+  try {
+    flags = parseFlagMap3(argv.slice(1));
+    ensureAllowedFlags3(flags, LESSON_EDIT_FLAGS);
+  } catch (error) {
+    writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}
+`);
+    return 1;
+  }
+  if (Object.keys(flags).length === 0) {
+    writeUsage(`Error: lesson-edit requires at least one editable field, an occurrence, or a promotion
+`);
+    return 1;
+  }
+  for (const flag of ["title", "context", "observation", "takeaway", "applies-when"]) {
+    const value = singleValue2(flags, flag);
+    if (value !== undefined && value.trim().length === 0) {
+      writeUsage(`Error: --${flag} must not be blank
+`);
+      return 1;
+    }
+  }
+  const origin = singleValue2(flags, "origin");
+  const evidence = singleValue2(flags, "evidence");
+  if (origin === undefined !== (evidence === undefined)) {
+    writeUsage(`Error: recording an occurrence requires both --origin and --evidence
+`);
+    return 1;
+  }
+  const promotedStandard = singleValue2(flags, "promoted-standard");
+  const promotedRule = singleValue2(flags, "promoted-rule");
+  if (promotedStandard === undefined !== (promotedRule === undefined)) {
+    writeUsage(`Error: promoting a lesson requires both --promoted-standard and --promoted-rule
+`);
+    return 1;
+  }
+  const input = { lessonId };
+  if ("title" in flags)
+    input.title = singleValue2(flags, "title");
+  if ("context" in flags)
+    input.context = singleValue2(flags, "context");
+  if ("observation" in flags)
+    input.observation = singleValue2(flags, "observation");
+  if ("takeaway" in flags)
+    input.takeaway = singleValue2(flags, "takeaway");
+  if ("applies-when" in flags)
+    input.appliesWhen = singleValue2(flags, "applies-when");
+  if (origin !== undefined && evidence !== undefined) {
+    const occurrence = { origin, date: singleValue2(flags, "date") ?? today(), evidence };
+    input.occurrence = occurrence;
+  }
+  if (promotedStandard !== undefined && promotedRule !== undefined) {
+    input.promotedTo = { standard: promotedStandard, rule: promotedRule };
+  }
+  const result = editLesson(process.cwd(), input);
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+function runLessonObsolete(argv) {
+  if (handleHelpRequest("lesson-obsolete", argv)) {
+    return 0;
+  }
+  if (argv.length === 0 || argv[0].startsWith("--")) {
+    writeUsage(getCommandUsage("lesson-obsolete"));
+    return 1;
+  }
+  const lessonId = argv[0];
+  let flags;
+  try {
+    flags = parseFlagMap3(argv.slice(1));
+    ensureAllowedFlags3(flags, ["reason"]);
+  } catch (error) {
+    writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}
+`);
+    return 1;
+  }
+  const reason = singleValue2(flags, "reason");
+  if (reason === undefined || reason.trim().length === 0) {
+    writeUsage(`Error: --reason is required; retiring a lesson must record why it no longer holds
+`);
+    return 1;
+  }
+  const result = obsoleteLesson(process.cwd(), lessonId, reason);
+  writeJson(result);
+  return result.valid ? 0 : 1;
+}
+
 // src/maintenance.ts
-import { existsSync as existsSync29, readdirSync as readdirSync10, statSync as statSync15, writeFileSync as writeFileSync13 } from "fs";
-import path31 from "path";
+import { existsSync as existsSync30, readdirSync as readdirSync11, statSync as statSync16, writeFileSync as writeFileSync14 } from "fs";
+import path32 from "path";
 
 // src/architecture.ts
-import { existsSync as existsSync27, readFileSync as readFileSync19, statSync as statSync14 } from "fs";
-import path29 from "path";
+import { existsSync as existsSync28, readFileSync as readFileSync19, statSync as statSync15 } from "fs";
+import path30 from "path";
 
 // src/document-render.ts
-import { existsSync as existsSync26, mkdirSync as mkdirSync10, readFileSync as readFileSync18, writeFileSync as writeFileSync11 } from "fs";
-import path28 from "path";
-var STRICT_WORKFLOW_DIR10 = ".strict-spec-driven";
+import { existsSync as existsSync27, mkdirSync as mkdirSync11, readFileSync as readFileSync18, writeFileSync as writeFileSync12 } from "fs";
+import path29 from "path";
+var STRICT_WORKFLOW_DIR11 = ".strict-spec-driven";
 
 class DocumentSourceError extends Error {
 }
@@ -24428,7 +25630,7 @@ function asRecord2(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 function readYamlIfPresent(absolutePath, artifactPath) {
-  if (!existsSync26(absolutePath))
+  if (!existsSync27(absolutePath))
     return null;
   try {
     return parseYamlDocument(readFileSync18(absolutePath, "utf8"), { source: artifactPath });
@@ -24492,17 +25694,17 @@ function renderBlocksToDocument(rootDir, blocks, options) {
   const content = blocksToDocument(blocks);
   const sources = allSources(blocks);
   const relativeOutputPath = (options.outputPath ?? options.defaultOutputPath).replaceAll("\\", "/");
-  if (path28.isAbsolute(relativeOutputPath)) {
+  if (path29.isAbsolute(relativeOutputPath)) {
     throw new DocumentSourceError(`${options.documentLabel} output path must be repo-relative, got '${relativeOutputPath}'`);
   }
-  const absoluteOutputPath = path28.resolve(rootDir, relativeOutputPath);
+  const absoluteOutputPath = path29.resolve(rootDir, relativeOutputPath);
   const normalizedOutputPath = normalizeRepoRelativePath4(rootDir, absoluteOutputPath);
   if (normalizedOutputPath === ".." || normalizedOutputPath.startsWith("../")) {
     throw new DocumentSourceError(`${options.documentLabel} output path cannot traverse outside the repository, got '${relativeOutputPath}'`);
   }
   if (options.check) {
     const base = { outputPath: normalizedOutputPath, mode: "check", written: false, sources };
-    if (!existsSync26(absoluteOutputPath)) {
+    if (!existsSync27(absoluteOutputPath)) {
       return { ...base, documentExists: false, current: false, staleSources: sources };
     }
     const diskContent = readFileSync18(absoluteOutputPath, "utf8");
@@ -24511,8 +25713,8 @@ function renderBlocksToDocument(rootDir, blocks, options) {
     }
     return { ...base, documentExists: true, current: false, staleSources: collectStaleSources(blocks, diskContent) };
   }
-  mkdirSync10(path28.dirname(absoluteOutputPath), { recursive: true });
-  writeFileSync11(absoluteOutputPath, content, "utf8");
+  mkdirSync11(path29.dirname(absoluteOutputPath), { recursive: true });
+  writeFileSync12(absoluteOutputPath, content, "utf8");
   return {
     outputPath: normalizedOutputPath,
     mode: "write",
@@ -24525,19 +25727,19 @@ function renderBlocksToDocument(rootDir, blocks, options) {
 }
 
 // src/architecture.ts
-var ARCHITECTURE_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR10}/architecture.yaml`;
-var WORKFLOW_CONFIG_PATH = `${STRICT_WORKFLOW_DIR10}/config.yaml`;
-var SPEC_INDEX_PATH = `${STRICT_WORKFLOW_DIR10}/specs/INDEX.yaml`;
-var TECH_DIR_PATH = `${STRICT_WORKFLOW_DIR10}/tech/`;
+var ARCHITECTURE_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR11}/architecture.yaml`;
+var WORKFLOW_CONFIG_PATH = `${STRICT_WORKFLOW_DIR11}/config.yaml`;
+var SPEC_INDEX_PATH = `${STRICT_WORKFLOW_DIR11}/specs/INDEX.yaml`;
+var TECH_DIR_PATH = `${STRICT_WORKFLOW_DIR11}/tech/`;
 var EXCLUDED_TECH_BASENAMES = new Set(["INDEX.yaml"]);
 var DEFAULT_ARCHITECTURE_DOCUMENT_PATH = "ARCHITECTURE.md";
 var ARCHITECTURE_AUTHORING_ENTRY_POINT = "/strict-spec-architecture";
 function getArchitectureArtifactPath(rootDir) {
-  return path29.join(rootDir, STRICT_WORKFLOW_DIR10, "architecture.yaml");
+  return path30.join(rootDir, STRICT_WORKFLOW_DIR11, "architecture.yaml");
 }
 function loadArchitectureArtifact(rootDir) {
   const absolutePath = getArchitectureArtifactPath(rootDir);
-  if (!existsSync27(absolutePath)) {
+  if (!existsSync28(absolutePath)) {
     throw new DocumentSourceError(`architecture artifact is missing: ${ARCHITECTURE_ARTIFACT_PATH}; run ${ARCHITECTURE_AUTHORING_ENTRY_POINT} to author it`);
   }
   let artifact;
@@ -24551,10 +25753,10 @@ function loadArchitectureArtifact(rootDir) {
   return { artifact: artifact ?? {}, diagnostics: result.diagnostics };
 }
 function listTechFiles(techDir) {
-  if (!existsSync27(techDir) || !statSync14(techDir).isDirectory())
+  if (!existsSync28(techDir) || !statSync15(techDir).isDirectory())
     return [];
   return listFilesRecursive(techDir).filter((filePath) => {
-    const basename = path29.basename(filePath);
+    const basename = path30.basename(filePath);
     return basename.endsWith(".yaml") && !EXCLUDED_TECH_BASENAMES.has(basename);
   }).sort();
 }
@@ -24579,7 +25781,7 @@ function renderHeaderBlock(artifact) {
   };
 }
 function renderOverviewBlock(rootDir) {
-  const config = readYamlIfPresent(path29.join(rootDir, STRICT_WORKFLOW_DIR10, "config.yaml"), WORKFLOW_CONFIG_PATH);
+  const config = readYamlIfPresent(path30.join(rootDir, STRICT_WORKFLOW_DIR11, "config.yaml"), WORKFLOW_CONFIG_PATH);
   const context = asText(config?.context);
   return {
     id: "overview",
@@ -24664,7 +25866,7 @@ function renderDecisionsBlock(artifact) {
   };
 }
 function renderSpecificationSurfaceBlock(rootDir) {
-  const index = readYamlIfPresent(path29.join(rootDir, STRICT_WORKFLOW_DIR10, "specs", "INDEX.yaml"), SPEC_INDEX_PATH);
+  const index = readYamlIfPresent(path30.join(rootDir, STRICT_WORKFLOW_DIR11, "specs", "INDEX.yaml"), SPEC_INDEX_PATH);
   const rawSpecs = index?.specs;
   const specs = Array.isArray(rawSpecs) ? rawSpecs : [];
   const lines = [
@@ -24688,7 +25890,7 @@ function renderSpecificationSurfaceBlock(rootDir) {
     const specId = asText(spec.id);
     const specPath = asText(spec.path);
     const specTitle = asText(spec.title) || specId;
-    const mainSpec = specPath ? readYamlIfPresent(path29.join(rootDir, specPath), specPath) : null;
+    const mainSpec = specPath ? readYamlIfPresent(path30.join(rootDir, specPath), specPath) : null;
     const requirementCount = mainSpec ? Object.keys(asRecord2(mainSpec.requirements)).length : null;
     const mapping = asRecord2(mainSpec?.mapping);
     const implementationCount = mainSpec ? asStringArray2(mapping.implementation).length : null;
@@ -24704,7 +25906,7 @@ function renderSpecificationSurfaceBlock(rootDir) {
   };
 }
 function renderTechnicalStandardsBlock(rootDir) {
-  const techFiles = listTechFiles(path29.join(rootDir, STRICT_WORKFLOW_DIR10, "tech"));
+  const techFiles = listTechFiles(path30.join(rootDir, STRICT_WORKFLOW_DIR11, "tech"));
   const lines = [
     "## Technical Standards",
     "",
@@ -24775,7 +25977,7 @@ function getArchitectureStatus(rootDir) {
   for (const [componentId, rawComponent] of Object.entries(components)) {
     const implementation = asStringArray2(asRecord2(asRecord2(rawComponent).mapping).implementation);
     for (const mappedPath of implementation) {
-      if (!existsSync27(path29.join(rootDir, mappedPath))) {
+      if (!existsSync28(path30.join(rootDir, mappedPath))) {
         mappingDrift.push({ component: componentId, path: mappedPath });
       }
     }
@@ -24793,9 +25995,9 @@ function getArchitectureStatus(rootDir) {
 }
 
 // src/design-system.ts
-import { existsSync as existsSync28, mkdirSync as mkdirSync11, readFileSync as readFileSync20, writeFileSync as writeFileSync12 } from "fs";
-import path30 from "path";
-var DESIGN_SYSTEM_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR10}/design-system.yaml`;
+import { existsSync as existsSync29, mkdirSync as mkdirSync12, readFileSync as readFileSync20, writeFileSync as writeFileSync13 } from "fs";
+import path31 from "path";
+var DESIGN_SYSTEM_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR11}/design-system.yaml`;
 var DESIGN_SYSTEM_SCAFFOLD_ASSET = "design-system.yaml";
 var DEFAULT_DESIGN_DOCUMENT_PATH = "DESIGN.md";
 var DESIGN_AUTHORING_ENTRY_POINT = "/strict-spec-design";
@@ -24807,20 +26009,20 @@ var TOKEN_GROUPS = [
   { key: "shapes", heading: "## Shapes" }
 ];
 function getDesignSystemArtifactPath(rootDir) {
-  return path30.join(rootDir, STRICT_WORKFLOW_DIR10, "design-system.yaml");
+  return path31.join(rootDir, STRICT_WORKFLOW_DIR11, "design-system.yaml");
 }
 function initializeDesignSystemArtifact(rootDir) {
   const absolutePath = getDesignSystemArtifactPath(rootDir);
-  if (existsSync28(absolutePath)) {
+  if (existsSync29(absolutePath)) {
     return { artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH, created: false, skipped: true };
   }
-  mkdirSync11(path30.dirname(absolutePath), { recursive: true });
-  writeFileSync12(absolutePath, readBundledScaffoldTemplate(DESIGN_SYSTEM_SCAFFOLD_ASSET), "utf8");
+  mkdirSync12(path31.dirname(absolutePath), { recursive: true });
+  writeFileSync13(absolutePath, readBundledScaffoldTemplate(DESIGN_SYSTEM_SCAFFOLD_ASSET), "utf8");
   return { artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH, created: true, skipped: false };
 }
 function loadDesignSystemArtifact(rootDir) {
   const absolutePath = getDesignSystemArtifactPath(rootDir);
-  if (!existsSync28(absolutePath)) {
+  if (!existsSync29(absolutePath)) {
     throw new DocumentSourceError(`design-system artifact is missing: ${DESIGN_SYSTEM_ARTIFACT_PATH}; run ${DESIGN_AUTHORING_ENTRY_POINT} to author it`);
   }
   let artifact;
@@ -25010,12 +26212,12 @@ function getDesignSystemStatus(rootDir) {
   for (const [componentId, rawComponent] of Object.entries(components)) {
     const mapping = asRecord2(asRecord2(rawComponent).mapping);
     for (const mappedPath of asStringArray2(mapping.implementation)) {
-      if (!existsSync28(path30.join(rootDir, mappedPath))) {
+      if (!existsSync29(path31.join(rootDir, mappedPath))) {
         mappingDrift.push({ component: componentId, path: mappedPath, kind: "implementation" });
       }
     }
     for (const snapshotPath of asStringArray2(mapping.snapshots)) {
-      if (!existsSync28(path30.join(rootDir, snapshotPath))) {
+      if (!existsSync29(path31.join(rootDir, snapshotPath))) {
         mappingDrift.push({ component: componentId, path: snapshotPath, kind: "snapshot" });
       }
     }
@@ -25033,7 +26235,7 @@ function getDesignSystemStatus(rootDir) {
 }
 
 // src/maintenance.ts
-var STRICT_WORKFLOW_DIR11 = ".strict-spec-driven";
+var STRICT_WORKFLOW_DIR12 = ".strict-spec-driven";
 var FORBIDDEN_SPEC_SUBDIRS2 = new Set([".strict-spec-driven", "changes", "archive"]);
 var REGRESSION_COMMAND_FALLBACK2 = "REPLACE WITH the complete project regression command (build plus full test run)";
 function configuredRegressionCommand(config) {
@@ -25041,16 +26243,16 @@ function configuredRegressionCommand(config) {
   return typeof command === "string" && command.trim().length > 0 ? command : REGRESSION_COMMAND_FALLBACK2;
 }
 function getChangesDir2(rootDir) {
-  return path31.join(rootDir, STRICT_WORKFLOW_DIR11, "changes");
+  return path32.join(rootDir, STRICT_WORKFLOW_DIR12, "changes");
 }
 function generateChangeName(rootDir, date) {
   const changesDir = getChangesDir2(rootDir);
   let candidate = `maintenance-${date}`;
-  if (!existsSync29(path31.join(changesDir, candidate)))
+  if (!existsSync30(path32.join(changesDir, candidate)))
     return candidate;
   for (let i2 = 2;i2 <= 99; i2++) {
     candidate = `maintenance-${date}-${i2}`;
-    if (!existsSync29(path31.join(changesDir, candidate)))
+    if (!existsSync30(path32.join(changesDir, candidate)))
       return candidate;
   }
   throw new Error(`Could not generate a unique maintenance change name for date ${date}`);
@@ -25063,11 +26265,11 @@ function runRoadmapSyncCheck(rootDir) {
   }));
 }
 function runSpecsDirectoryStructureCheck(rootDir) {
-  const specsDir = path31.join(rootDir, STRICT_WORKFLOW_DIR11, "specs");
-  if (!existsSync29(specsDir) || !statSync15(specsDir).isDirectory())
+  const specsDir = path32.join(rootDir, STRICT_WORKFLOW_DIR12, "specs");
+  if (!existsSync30(specsDir) || !statSync16(specsDir).isDirectory())
     return [];
   const findings = [];
-  for (const entry of readdirSync10(specsDir, { withFileTypes: true })) {
+  for (const entry of readdirSync11(specsDir, { withFileTypes: true })) {
     if (entry.isDirectory() && FORBIDDEN_SPEC_SUBDIRS2.has(entry.name)) {
       findings.push({
         check: "specs-directory-structure-check",
@@ -25103,6 +26305,64 @@ function runGeneratedDocCheck(rootDir) {
     findings.push({
       check: "generated-doc-check",
       description: `Re-render stale ${result.outputPath} after changes to ${result.staleSources.join(", ")}: ${target.reRenderCommand}`
+    });
+  }
+  return findings;
+}
+var LESSON_STALENESS_WINDOW_DAYS = 180;
+var PATH_TOKEN_PATTERN = /(?:[A-Za-z0-9_.-]+\/)+[A-Za-z0-9_.-]+\.[A-Za-z0-9]+/g;
+function referencedPathsThatVanished(rootDir, text) {
+  const missing = [];
+  for (const token of text.match(PATH_TOKEN_PATTERN) ?? []) {
+    if (token.includes("://") || token.startsWith(".."))
+      continue;
+    if (existsSync30(path32.join(rootDir, token)))
+      continue;
+    if (!missing.includes(token))
+      missing.push(token);
+  }
+  return missing;
+}
+function changeIsArchived(rootDir, changeName) {
+  return existsSync30(path32.join(getChangesDir2(rootDir), "archive", changeName));
+}
+function daysSince(isoDate) {
+  const parsed = Date.parse(isoDate);
+  if (Number.isNaN(parsed))
+    return null;
+  return (Date.now() - parsed) / (1000 * 60 * 60 * 24);
+}
+function runLessonStalenessCheck(rootDir) {
+  const findings = [];
+  const lessons = listLessons(rootDir).lessons;
+  for (const entry of lessons) {
+    const shown = showLesson(rootDir, entry.id);
+    const lesson = shown.lesson;
+    if (!lesson)
+      continue;
+    const missingPaths = referencedPathsThatVanished(rootDir, lesson.applies_when);
+    if (missingPaths.length > 0) {
+      findings.push({
+        check: "lesson-staleness-check",
+        description: `Review lesson '${entry.id}': its applies_when names ${missingPaths.join(", ")}, which no longer exists in the repository. Retire it with 'strict-spec-cli lesson-obsolete ${entry.id} --reason "<why>"' or update the condition with lesson-edit.`
+      });
+      continue;
+    }
+    const occurrences = lesson.occurrences ?? [];
+    if (occurrences.length === 0)
+      continue;
+    const everyOriginArchived = occurrences.every((occurrence) => changeIsArchived(rootDir, occurrence.origin));
+    if (!everyOriginArchived)
+      continue;
+    const ages = occurrences.map((occurrence) => daysSince(occurrence.date)).filter((age) => age !== null);
+    if (ages.length === 0)
+      continue;
+    const newestAge = Math.min(...ages);
+    if (newestAge < LESSON_STALENESS_WINDOW_DAYS)
+      continue;
+    findings.push({
+      check: "lesson-staleness-check",
+      description: `Review lesson '${entry.id}': every recorded occurrence comes from archived work and the most recent is ${Math.floor(newestAge)} days old. Confirm it still applies, or retire it with 'strict-spec-cli lesson-obsolete ${entry.id} --reason "<why>"'.`
     });
   }
   return findings;
@@ -25160,8 +26420,8 @@ function buildTasksYaml(changeName, findings, regressionCommand) {
   };
 }
 function runMaintenance(rootDir) {
-  const configPath = path31.join(rootDir, STRICT_WORKFLOW_DIR11, "config.yaml");
-  if (!existsSync29(configPath)) {
+  const configPath = path32.join(rootDir, STRICT_WORKFLOW_DIR12, "config.yaml");
+  if (!existsSync30(configPath)) {
     return { valid: true, checksRun: 0, findingsCount: 0, generatedChange: null, seedingSkippedReason: null };
   }
   let config;
@@ -25189,6 +26449,10 @@ function runMaintenance(rootDir) {
       findings.push(...runGeneratedDocCheck(rootDir));
       checksRun++;
     }
+    if (check.type === "lesson-staleness-check") {
+      findings.push(...runLessonStalenessCheck(rootDir));
+      checksRun++;
+    }
   }
   if (findings.length === 0) {
     return { valid: true, checksRun, findingsCount: 0, generatedChange: null, seedingSkippedReason: null };
@@ -25207,28 +26471,28 @@ function runMaintenance(rootDir) {
   const date = new Date().toISOString().slice(0, 10);
   const changeName = generateChangeName(rootDir, date);
   initializeStrictChangeScaffold(rootDir, changeName);
-  const changeDir2 = path31.join(getChangesDir2(rootDir), changeName);
-  writeFileSync13(path31.join(changeDir2, "proposal.yaml"), stringifyYamlDocument(buildProposalYaml(changeName, findings)), "utf8");
-  writeFileSync13(path31.join(changeDir2, "tasks.yaml"), stringifyYamlDocument(buildTasksYaml(changeName, findings, configuredRegressionCommand(config))), "utf8");
+  const changeDir2 = path32.join(getChangesDir2(rootDir), changeName);
+  writeFileSync14(path32.join(changeDir2, "proposal.yaml"), stringifyYamlDocument(buildProposalYaml(changeName, findings)), "utf8");
+  writeFileSync14(path32.join(changeDir2, "tasks.yaml"), stringifyYamlDocument(buildTasksYaml(changeName, findings, configuredRegressionCommand(config))), "utf8");
   return { valid: true, checksRun, findingsCount: findings.length, generatedChange: changeName, seedingSkippedReason: null };
 }
 
 // src/migrate.ts
 import {
-  existsSync as existsSync35,
-  readdirSync as readdirSync12,
-  statSync as statSync21,
-  writeFileSync as writeFileSync15
+  existsSync as existsSync36,
+  readdirSync as readdirSync13,
+  statSync as statSync22,
+  writeFileSync as writeFileSync16
 } from "fs";
-import path37 from "path";
+import path38 from "path";
 
 // src/migrate/converters/changes.ts
 import {
-  existsSync as existsSync31,
+  existsSync as existsSync32,
   readFileSync as readFileSync22,
-  statSync as statSync17
+  statSync as statSync18
 } from "fs";
-import path33 from "path";
+import path34 from "path";
 
 // src/migrate/parsers/shared.ts
 function isRecord4(value) {
@@ -26043,28 +27307,28 @@ function parseLegacyDeltaSpec(sourcePath, content) {
 
 // src/migrate/shared.ts
 import {
-  existsSync as existsSync30,
-  mkdirSync as mkdirSync12,
-  readdirSync as readdirSync11,
+  existsSync as existsSync31,
+  mkdirSync as mkdirSync13,
+  readdirSync as readdirSync12,
   readFileSync as readFileSync21,
-  statSync as statSync16,
-  writeFileSync as writeFileSync14
+  statSync as statSync17,
+  writeFileSync as writeFileSync15
 } from "fs";
-import path32 from "path";
+import path33 from "path";
 var LEGACY_WORKFLOW_DIR2 = ".spec-driven";
-var STRICT_WORKFLOW_DIR12 = ".strict-spec-driven";
+var STRICT_WORKFLOW_DIR13 = ".strict-spec-driven";
 function toRepoRelativePath2(rootDir, absolutePath) {
-  return toPosix2(path32.relative(rootDir, absolutePath));
+  return toPosix2(path33.relative(rootDir, absolutePath));
 }
 function listFilesRecursive2(directoryPath) {
-  if (!existsSync30(directoryPath) || !statSync16(directoryPath).isDirectory()) {
+  if (!existsSync31(directoryPath) || !statSync17(directoryPath).isDirectory()) {
     return [];
   }
   const files = [];
   function walk(currentPath) {
-    const entries = readdirSync11(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+    const entries = readdirSync12(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
-      const fullPath = path32.join(currentPath, entry.name);
+      const fullPath = path33.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -26077,47 +27341,47 @@ function listFilesRecursive2(directoryPath) {
   walk(directoryPath);
   return files;
 }
-function makeDiagnostic3(code, message, sourcePath, targetPath) {
+function makeDiagnostic4(code, message, sourcePath, targetPath) {
   return { code, message, sourcePath, targetPath };
 }
 function readYamlFile3(filePath) {
   return parseYamlDocument(readFileSync21(filePath, "utf8"));
 }
 function writeYamlFile3(filePath, value) {
-  mkdirSync12(path32.dirname(filePath), { recursive: true });
-  writeFileSync14(filePath, stringifyYamlDocument(value), "utf8");
+  mkdirSync13(path33.dirname(filePath), { recursive: true });
+  writeFileSync15(filePath, stringifyYamlDocument(value), "utf8");
 }
 function replaceMarkdownExtension(repoRelativePath) {
   return repoRelativePath.replace(/\.md$/i, ".yaml");
 }
 function buildStrictMarkdownTargetPath(rootDir, repoRelativeTargetPath) {
-  return path32.join(rootDir, ...repoRelativeTargetPath.split("/"));
+  return path33.join(rootDir, ...repoRelativeTargetPath.split("/"));
 }
 function listLegacyChangeDirectories(rootDir) {
-  const changesRoot = path32.join(rootDir, LEGACY_WORKFLOW_DIR2, "changes");
-  if (!existsSync30(changesRoot) || !statSync16(changesRoot).isDirectory()) {
+  const changesRoot = path33.join(rootDir, LEGACY_WORKFLOW_DIR2, "changes");
+  if (!existsSync31(changesRoot) || !statSync17(changesRoot).isDirectory()) {
     return [];
   }
   const directories = [];
-  const changeEntries = readdirSync11(changesRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+  const changeEntries = readdirSync12(changesRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
   for (const entry of changeEntries) {
     if (!entry.isDirectory()) {
       continue;
     }
     if (entry.name === "archive") {
-      const archiveRoot = path32.join(changesRoot, "archive");
-      if (!existsSync30(archiveRoot) || !statSync16(archiveRoot).isDirectory()) {
+      const archiveRoot = path33.join(changesRoot, "archive");
+      if (!existsSync31(archiveRoot) || !statSync17(archiveRoot).isDirectory()) {
         continue;
       }
-      const archiveEntries = readdirSync11(archiveRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+      const archiveEntries = readdirSync12(archiveRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
       for (const archiveEntry of archiveEntries) {
         if (!archiveEntry.isDirectory()) {
           continue;
         }
         directories.push({
-          legacyDirectoryPath: path32.join(archiveRoot, archiveEntry.name),
+          legacyDirectoryPath: path33.join(archiveRoot, archiveEntry.name),
           repoRelativeDirectory: `${LEGACY_WORKFLOW_DIR2}/changes/archive/${archiveEntry.name}`,
-          strictDirectoryPath: path32.join(rootDir, STRICT_WORKFLOW_DIR12, "changes", "archive", archiveEntry.name),
+          strictDirectoryPath: path33.join(rootDir, STRICT_WORKFLOW_DIR13, "changes", "archive", archiveEntry.name),
           directoryName: archiveEntry.name,
           archived: true
         });
@@ -26125,9 +27389,9 @@ function listLegacyChangeDirectories(rootDir) {
       continue;
     }
     directories.push({
-      legacyDirectoryPath: path32.join(changesRoot, entry.name),
+      legacyDirectoryPath: path33.join(changesRoot, entry.name),
       repoRelativeDirectory: `${LEGACY_WORKFLOW_DIR2}/changes/${entry.name}`,
-      strictDirectoryPath: path32.join(rootDir, STRICT_WORKFLOW_DIR12, "changes", entry.name),
+      strictDirectoryPath: path33.join(rootDir, STRICT_WORKFLOW_DIR13, "changes", entry.name),
       directoryName: entry.name,
       archived: false
     });
@@ -26140,7 +27404,7 @@ function recordDeferredArtifact(result, sourcePath, reason, recommendation, kind
     sourcePath,
     reason
   });
-  result.warnings.push(makeDiagnostic3(code, reason, sourcePath));
+  result.warnings.push(makeDiagnostic4(code, reason, sourcePath));
   result.manualFollowUp.push({
     sourcePath,
     reason,
@@ -26161,15 +27425,15 @@ function convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles) {
   for (const changeDirectory of listLegacyChangeDirectories(rootDir)) {
     const fallbackChangeId = changeDirectory.archived ? toKebabCase(changeDirectory.directoryName.replace(/^\d{4}-\d{2}-\d{2}-/, "")) : toKebabCase(changeDirectory.directoryName);
     let changeId = fallbackChangeId;
-    const legacyProposalPath = path33.join(changeDirectory.legacyDirectoryPath, "proposal.md");
+    const legacyProposalPath = path34.join(changeDirectory.legacyDirectoryPath, "proposal.md");
     const repoRelativeProposalPath = `${changeDirectory.repoRelativeDirectory}/proposal.md`;
-    if (existsSync31(legacyProposalPath) && statSync17(legacyProposalPath).isFile()) {
+    if (existsSync32(legacyProposalPath) && statSync18(legacyProposalPath).isFile()) {
       handledLegacyFiles.add(repoRelativeProposalPath);
       try {
         const proposalArtifact = parseLegacyProposal(repoRelativeProposalPath, readFileSync22(legacyProposalPath, "utf8"), fallbackChangeId, changeDirectory.archived);
         changeId = proposalArtifact.change.id;
         const strictTargetPath = `${changeDirectory.strictDirectoryPath.replace(`${rootDir}/`, "")}/proposal.yaml`;
-        writeYamlFile3(path33.join(changeDirectory.strictDirectoryPath, "proposal.yaml"), proposalArtifact);
+        writeYamlFile3(path34.join(changeDirectory.strictDirectoryPath, "proposal.yaml"), proposalArtifact);
         result.converted.push({
           kind: "change_proposal",
           sourcePath: repoRelativeProposalPath,
@@ -26205,16 +27469,16 @@ function convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles) {
       }
     ];
     for (const artifactFile of changeArtifactFiles) {
-      const legacyFilePath = path33.join(changeDirectory.legacyDirectoryPath, artifactFile.legacyName);
+      const legacyFilePath = path34.join(changeDirectory.legacyDirectoryPath, artifactFile.legacyName);
       const repoRelativeLegacyFilePath = `${changeDirectory.repoRelativeDirectory}/${artifactFile.legacyName}`;
-      if (!existsSync31(legacyFilePath) || !statSync17(legacyFilePath).isFile()) {
+      if (!existsSync32(legacyFilePath) || !statSync18(legacyFilePath).isFile()) {
         continue;
       }
       handledLegacyFiles.add(repoRelativeLegacyFilePath);
       try {
         const artifact = artifactFile.convert(repoRelativeLegacyFilePath, readFileSync22(legacyFilePath, "utf8"), changeId);
         const strictTargetPath = `${changeDirectory.strictDirectoryPath.replace(`${rootDir}/`, "")}/${artifactFile.targetName}`;
-        writeYamlFile3(path33.join(changeDirectory.strictDirectoryPath, artifactFile.targetName), artifact);
+        writeYamlFile3(path34.join(changeDirectory.strictDirectoryPath, artifactFile.targetName), artifact);
         result.converted.push({
           kind: artifactFile.kind,
           sourcePath: repoRelativeLegacyFilePath,
@@ -26226,14 +27490,14 @@ function convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles) {
         recordDeferredArtifact(result, repoRelativeLegacyFilePath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
       }
     }
-    const legacyDeltaSpecsRoot = path33.join(changeDirectory.legacyDirectoryPath, "specs");
-    if (existsSync31(legacyDeltaSpecsRoot) && statSync17(legacyDeltaSpecsRoot).isDirectory()) {
-      const deltaSpecFiles = listFilesRecursive2(legacyDeltaSpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path33.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
+    const legacyDeltaSpecsRoot = path34.join(changeDirectory.legacyDirectoryPath, "specs");
+    if (existsSync32(legacyDeltaSpecsRoot) && statSync18(legacyDeltaSpecsRoot).isDirectory()) {
+      const deltaSpecFiles = listFilesRecursive2(legacyDeltaSpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path34.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
       for (const legacyDeltaSpecPath of deltaSpecFiles) {
         handledLegacyFiles.add(legacyDeltaSpecPath);
         try {
-          const deltaArtifact = parseLegacyDeltaSpec(legacyDeltaSpecPath, readFileSync22(path33.join(rootDir, legacyDeltaSpecPath), "utf8"));
-          const strictTargetPath = replaceMarkdownExtension(legacyDeltaSpecPath.replace(`${LEGACY_WORKFLOW_DIR2}/changes/`, `${STRICT_WORKFLOW_DIR12}/changes/`).replace("/specs/", "/specs/"));
+          const deltaArtifact = parseLegacyDeltaSpec(legacyDeltaSpecPath, readFileSync22(path34.join(rootDir, legacyDeltaSpecPath), "utf8"));
+          const strictTargetPath = replaceMarkdownExtension(legacyDeltaSpecPath.replace(`${LEGACY_WORKFLOW_DIR2}/changes/`, `${STRICT_WORKFLOW_DIR13}/changes/`).replace("/specs/", "/specs/"));
           writeYamlFile3(buildStrictMarkdownTargetPath(rootDir, strictTargetPath), deltaArtifact);
           result.converted.push({
             kind: "delta_spec",
@@ -26252,17 +27516,17 @@ function convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles) {
 
 // src/migrate/converters/roadmap.ts
 import {
-  existsSync as existsSync32,
+  existsSync as existsSync33,
   readFileSync as readFileSync23,
-  statSync as statSync18
+  statSync as statSync19
 } from "fs";
-import path34 from "path";
+import path35 from "path";
 
 // src/converters/roadmap.ts
 var ROADMAP_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/roadmap-index.yaml";
 var ROADMAP_MILESTONE_SCHEMA_FILE = "templates/strict-spec-driven/schemas/roadmap-milestone.yaml";
 var SPEC_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/spec-index.yaml";
-var STRICT_WORKFLOW_DIR13 = ".strict-spec-driven";
+var STRICT_WORKFLOW_DIR14 = ".strict-spec-driven";
 var DECLARED_ROADMAP_STATUSES2 = ["proposed", "planned", "active", "blocked", "complete"];
 function normalizeWhitespace2(value) {
   return value.trim().replace(/\s+/g, " ");
@@ -26533,7 +27797,7 @@ function convertSpecsIndex(markdown) {
       const [, , href, title] = match;
       const hrefNorm = href.trim();
       const id = toKebabCase2(hrefNorm.replace(/\.md$/i, "").replace(/\//g, "-"));
-      const strictPath = `${STRICT_WORKFLOW_DIR13}/specs/${hrefNorm.replace(/\.md$/i, ".yaml")}`;
+      const strictPath = `${STRICT_WORKFLOW_DIR14}/specs/${hrefNorm.replace(/\.md$/i, ".yaml")}`;
       specs.push({ id, title: normalizeWhitespace2(title), path: strictPath });
     }
     return {
@@ -26558,15 +27822,15 @@ function convertSpecsIndex(markdown) {
 
 // src/migrate/converters/roadmap.ts
 var LEGACY_ROADMAP_DIR = `${LEGACY_WORKFLOW_DIR2}/roadmap`;
-var STRICT_ROADMAP_DIR = `${STRICT_WORKFLOW_DIR12}/roadmap`;
+var STRICT_ROADMAP_DIR = `${STRICT_WORKFLOW_DIR13}/roadmap`;
 function convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles) {
-  const legacyRoadmapRoot = path34.join(rootDir, LEGACY_ROADMAP_DIR);
-  if (!existsSync32(legacyRoadmapRoot) || !statSync18(legacyRoadmapRoot).isDirectory()) {
+  const legacyRoadmapRoot = path35.join(rootDir, LEGACY_ROADMAP_DIR);
+  if (!existsSync33(legacyRoadmapRoot) || !statSync19(legacyRoadmapRoot).isDirectory()) {
     return;
   }
   const legacyIndexPath = `${LEGACY_ROADMAP_DIR}/INDEX.md`;
-  const legacyIndexAbsPath = path34.join(legacyRoadmapRoot, "INDEX.md");
-  if (existsSync32(legacyIndexAbsPath) && statSync18(legacyIndexAbsPath).isFile()) {
+  const legacyIndexAbsPath = path35.join(legacyRoadmapRoot, "INDEX.md");
+  if (existsSync33(legacyIndexAbsPath) && statSync19(legacyIndexAbsPath).isFile()) {
     handledLegacyFiles.add(legacyIndexPath);
     try {
       const content = readFileSync23(legacyIndexAbsPath, "utf8");
@@ -26588,16 +27852,16 @@ function convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles) {
       recordDeferredArtifact(result, legacyIndexPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
     }
   }
-  const legacyMilestonesRoot = path34.join(legacyRoadmapRoot, "milestones");
-  if (!existsSync32(legacyMilestonesRoot) || !statSync18(legacyMilestonesRoot).isDirectory()) {
+  const legacyMilestonesRoot = path35.join(legacyRoadmapRoot, "milestones");
+  if (!existsSync33(legacyMilestonesRoot) || !statSync19(legacyMilestonesRoot).isDirectory()) {
     return;
   }
-  const milestoneFiles = listFilesRecursive2(legacyMilestonesRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path34.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
+  const milestoneFiles = listFilesRecursive2(legacyMilestonesRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path35.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
   for (const legacyMilestoneFile of milestoneFiles) {
     handledLegacyFiles.add(legacyMilestoneFile);
     try {
-      const content = readFileSync23(path34.join(rootDir, legacyMilestoneFile), "utf8");
-      const filename = path34.basename(legacyMilestoneFile);
+      const content = readFileSync23(path35.join(rootDir, legacyMilestoneFile), "utf8");
+      const filename = path35.basename(legacyMilestoneFile);
       const conversionResult = convertRoadmapMilestone(content, filename);
       if (!conversionResult.ok) {
         recordDeferredArtifact(result, legacyMilestoneFile, conversionResult.reason, conversionResult.recommendation, "legacy_markdown_artifact", "conversion_ambiguous");
@@ -26619,14 +27883,14 @@ function convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles) {
 }
 function convertLegacySpecsIndex(rootDir, result, handledLegacyFiles) {
   const legacySpecsIndexPath = `${LEGACY_WORKFLOW_DIR2}/specs/INDEX.md`;
-  const legacySpecsIndexAbsPath = path34.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs", "INDEX.md");
-  if (!existsSync32(legacySpecsIndexAbsPath) || !statSync18(legacySpecsIndexAbsPath).isFile()) {
+  const legacySpecsIndexAbsPath = path35.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs", "INDEX.md");
+  if (!existsSync33(legacySpecsIndexAbsPath) || !statSync19(legacySpecsIndexAbsPath).isFile()) {
     return;
   }
   handledLegacyFiles.add(legacySpecsIndexPath);
-  const strictSpecsIndexPath = `${STRICT_WORKFLOW_DIR12}/specs/INDEX.yaml`;
-  const strictSpecsIndexAbsPath = path34.join(rootDir, STRICT_WORKFLOW_DIR12, "specs", "INDEX.yaml");
-  if (existsSync32(strictSpecsIndexAbsPath)) {
+  const strictSpecsIndexPath = `${STRICT_WORKFLOW_DIR13}/specs/INDEX.yaml`;
+  const strictSpecsIndexAbsPath = path35.join(rootDir, STRICT_WORKFLOW_DIR13, "specs", "INDEX.yaml");
+  if (existsSync33(strictSpecsIndexAbsPath)) {
     result.converted.push({
       kind: "spec_index",
       sourcePath: legacySpecsIndexPath,
@@ -26657,19 +27921,19 @@ function convertLegacySpecsIndex(rootDir, result, handledLegacyFiles) {
 
 // src/migrate/converters/specs.ts
 import {
-  existsSync as existsSync33,
+  existsSync as existsSync34,
   readFileSync as readFileSync24,
-  statSync as statSync19
+  statSync as statSync20
 } from "fs";
-import path35 from "path";
+import path36 from "path";
 var SPEC_INDEX_SCHEMA_FILE2 = "templates/strict-spec-driven/schemas/spec-index.yaml";
 function regenerateStrictSpecIndex(rootDir) {
-  const specsRoot = path35.join(rootDir, STRICT_WORKFLOW_DIR12, "specs");
-  const indexPath = path35.join(specsRoot, "INDEX.yaml");
+  const specsRoot = path36.join(rootDir, STRICT_WORKFLOW_DIR13, "specs");
+  const indexPath = path36.join(specsRoot, "INDEX.yaml");
   const specs = listFilesRecursive2(specsRoot).map((absolutePath) => ({
     absolutePath,
     repoRelativePath: toRepoRelativePath2(rootDir, absolutePath)
-  })).filter(({ absolutePath }) => absolutePath.endsWith(".yaml") || absolutePath.endsWith(".yml")).filter(({ absolutePath }) => path35.basename(absolutePath) !== "INDEX.yaml").map(({ absolutePath, repoRelativePath }) => {
+  })).filter(({ absolutePath }) => absolutePath.endsWith(".yaml") || absolutePath.endsWith(".yml")).filter(({ absolutePath }) => path36.basename(absolutePath) !== "INDEX.yaml").map(({ absolutePath, repoRelativePath }) => {
     const artifact = readYamlFile3(absolutePath);
     if (!isRecord4(artifact) || artifact.artifact_type !== "main_spec") {
       return null;
@@ -26690,7 +27954,7 @@ function regenerateStrictSpecIndex(rootDir) {
     }
     return left.id.localeCompare(right.id);
   });
-  const indexArtifact = existsSync33(indexPath) ? {
+  const indexArtifact = existsSync34(indexPath) ? {
     ...readYamlFile3(indexPath),
     schema: "strict-spec-driven/spec-index/v1",
     schema_version: 1,
@@ -26707,17 +27971,17 @@ function regenerateStrictSpecIndex(rootDir) {
   writeYamlFile3(indexPath, indexArtifact);
 }
 function convertLegacySpecArtifacts(rootDir, result, handledLegacyFiles) {
-  const legacySpecsRoot = path35.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs");
-  if (!existsSync33(legacySpecsRoot) || !statSync19(legacySpecsRoot).isDirectory()) {
+  const legacySpecsRoot = path36.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs");
+  if (!existsSync34(legacySpecsRoot) || !statSync20(legacySpecsRoot).isDirectory()) {
     return false;
   }
   let convertedAny = false;
-  const legacySpecFiles = listFilesRecursive2(legacySpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => repoRelativePath.endsWith(".md")).filter((repoRelativePath) => path35.basename(repoRelativePath) !== "INDEX.md").filter((repoRelativePath) => path35.basename(repoRelativePath) !== "README.md").sort((left, right) => left.localeCompare(right));
+  const legacySpecFiles = listFilesRecursive2(legacySpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => repoRelativePath.endsWith(".md")).filter((repoRelativePath) => path36.basename(repoRelativePath) !== "INDEX.md").filter((repoRelativePath) => path36.basename(repoRelativePath) !== "README.md").sort((left, right) => left.localeCompare(right));
   for (const legacySpecFile of legacySpecFiles) {
     handledLegacyFiles.add(legacySpecFile);
     try {
-      const strictArtifact = parseLegacyMainSpec(legacySpecFile, readFileSync24(path35.join(rootDir, legacySpecFile), "utf8"));
-      const strictTargetPath = replaceMarkdownExtension(legacySpecFile.replace(`${LEGACY_WORKFLOW_DIR2}/specs/`, `${STRICT_WORKFLOW_DIR12}/specs/`));
+      const strictArtifact = parseLegacyMainSpec(legacySpecFile, readFileSync24(path36.join(rootDir, legacySpecFile), "utf8"));
+      const strictTargetPath = replaceMarkdownExtension(legacySpecFile.replace(`${LEGACY_WORKFLOW_DIR2}/specs/`, `${STRICT_WORKFLOW_DIR13}/specs/`));
       writeYamlFile3(buildStrictMarkdownTargetPath(rootDir, strictTargetPath), strictArtifact);
       result.converted.push({
         kind: "main_spec",
@@ -26784,13 +28048,13 @@ function sortMigrationResult(result) {
 
 // src/migrate/preflight.ts
 import {
-  existsSync as existsSync34,
+  existsSync as existsSync35,
   readFileSync as readFileSync25,
-  statSync as statSync20
+  statSync as statSync21
 } from "fs";
-import path36 from "path";
+import path37 from "path";
 var LEGACY_CONFIG_PATH = `${LEGACY_WORKFLOW_DIR2}/config.yaml`;
-var STRICT_CONFIG_PATH = `${STRICT_WORKFLOW_DIR12}/config.yaml`;
+var STRICT_CONFIG_PATH = `${STRICT_WORKFLOW_DIR13}/config.yaml`;
 var LEGACY_CONFIG_TEXT_REPLACEMENTS = [
   [/\bproposal\.md\b/g, "proposal.yaml"],
   [/\bdesign\.md\b/g, "design.yaml"],
@@ -26820,9 +28084,9 @@ function normalizeLegacyConfigValue(value) {
   return value;
 }
 function loadStrictConfigFromLegacy(rootDir, errors) {
-  const legacyConfigAbsolutePath = path36.join(rootDir, LEGACY_CONFIG_PATH);
-  if (!existsSync34(legacyConfigAbsolutePath) || !statSync20(legacyConfigAbsolutePath).isFile()) {
-    errors.push(makeDiagnostic3("legacy_config_missing", "Bootstrap migration requires .spec-driven/config.yaml to exist before migrate can initialize strict workflow state.", LEGACY_CONFIG_PATH));
+  const legacyConfigAbsolutePath = path37.join(rootDir, LEGACY_CONFIG_PATH);
+  if (!existsSync35(legacyConfigAbsolutePath) || !statSync21(legacyConfigAbsolutePath).isFile()) {
+    errors.push(makeDiagnostic4("legacy_config_missing", "Bootstrap migration requires .spec-driven/config.yaml to exist before migrate can initialize strict workflow state.", LEGACY_CONFIG_PATH));
     return null;
   }
   let legacyConfigArtifact;
@@ -26830,20 +28094,20 @@ function loadStrictConfigFromLegacy(rootDir, errors) {
     legacyConfigArtifact = parseYamlDocument(readFileSync25(legacyConfigAbsolutePath, "utf8"));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    errors.push(makeDiagnostic3("legacy_config_invalid", `Legacy workflow config could not be parsed as YAML: ${message}`, LEGACY_CONFIG_PATH));
+    errors.push(makeDiagnostic4("legacy_config_invalid", `Legacy workflow config could not be parsed as YAML: ${message}`, LEGACY_CONFIG_PATH));
     return null;
   }
   if (!isRecord4(legacyConfigArtifact)) {
-    errors.push(makeDiagnostic3("legacy_config_invalid", "Legacy workflow config must decode to a YAML mapping before migrate can continue.", LEGACY_CONFIG_PATH));
+    errors.push(makeDiagnostic4("legacy_config_invalid", "Legacy workflow config must decode to a YAML mapping before migrate can continue.", LEGACY_CONFIG_PATH));
     return null;
   }
   const { context, rules } = legacyConfigArtifact;
   if (typeof context !== "string" || context.length === 0) {
-    errors.push(makeDiagnostic3("legacy_config_invalid", "Legacy workflow config must provide a non-empty string context before migrate can continue.", LEGACY_CONFIG_PATH));
+    errors.push(makeDiagnostic4("legacy_config_invalid", "Legacy workflow config must provide a non-empty string context before migrate can continue.", LEGACY_CONFIG_PATH));
     return null;
   }
   if (!isRecord4(rules)) {
-    errors.push(makeDiagnostic3("legacy_config_invalid", "Legacy workflow config must provide a rules mapping before migrate can continue.", LEGACY_CONFIG_PATH));
+    errors.push(makeDiagnostic4("legacy_config_invalid", "Legacy workflow config must provide a rules mapping before migrate can continue.", LEGACY_CONFIG_PATH));
     return null;
   }
   const scaffoldConfig = loadBundledScaffoldYaml("config.yaml");
@@ -26859,29 +28123,29 @@ function getReportedStrictScaffoldAssets() {
 
 // src/migrate.ts
 function migrateLegacyWorkflow(rootDir, options) {
-  const legacyRootAbsolutePath = path37.join(rootDir, LEGACY_WORKFLOW_DIR2);
-  const strictRootAbsolutePath = path37.join(rootDir, STRICT_WORKFLOW_DIR12);
+  const legacyRootAbsolutePath = path38.join(rootDir, LEGACY_WORKFLOW_DIR2);
+  const strictRootAbsolutePath = path38.join(rootDir, STRICT_WORKFLOW_DIR13);
   const result = {
     valid: false,
-    targetRoot: STRICT_WORKFLOW_DIR12,
+    targetRoot: STRICT_WORKFLOW_DIR13,
     converted: [],
     skipped: [],
     warnings: [],
     errors: [],
     manualFollowUp: []
   };
-  if (!existsSync35(legacyRootAbsolutePath) || !statSync21(legacyRootAbsolutePath).isDirectory()) {
-    result.errors.push(makeDiagnostic3("legacy_source_missing", "Bootstrap migration requires a .spec-driven/ directory at the repository root.", LEGACY_WORKFLOW_DIR2));
+  if (!existsSync36(legacyRootAbsolutePath) || !statSync22(legacyRootAbsolutePath).isDirectory()) {
+    result.errors.push(makeDiagnostic4("legacy_source_missing", "Bootstrap migration requires a .spec-driven/ directory at the repository root.", LEGACY_WORKFLOW_DIR2));
     return sortMigrationResult(result);
   }
-  if (existsSync35(strictRootAbsolutePath)) {
-    const strictRootStat = statSync21(strictRootAbsolutePath);
+  if (existsSync36(strictRootAbsolutePath)) {
+    const strictRootStat = statSync22(strictRootAbsolutePath);
     if (!strictRootStat.isDirectory()) {
-      result.errors.push(makeDiagnostic3("strict_target_conflict", "Cannot migrate into .strict-spec-driven because a non-directory entry already exists at that path.", undefined, STRICT_WORKFLOW_DIR12));
+      result.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into .strict-spec-driven because a non-directory entry already exists at that path.", undefined, STRICT_WORKFLOW_DIR13));
       return sortMigrationResult(result);
     }
-    if (readdirSync12(strictRootAbsolutePath).length > 0) {
-      result.errors.push(makeDiagnostic3("strict_target_conflict", "Cannot migrate into a non-empty .strict-spec-driven directory. You must manually delete it before running migration. Do NOT delete it automatically — ask the user to run: rm -rf .strict-spec-driven", undefined, STRICT_WORKFLOW_DIR12));
+    if (readdirSync13(strictRootAbsolutePath).length > 0) {
+      result.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into a non-empty .strict-spec-driven directory. You must manually delete it before running migration. Do NOT delete it automatically — ask the user to run: rm -rf .strict-spec-driven", undefined, STRICT_WORKFLOW_DIR13));
       return sortMigrationResult(result);
     }
   }
@@ -26892,8 +28156,8 @@ function migrateLegacyWorkflow(rootDir, options) {
   const legacyFiles = listFilesRecursive2(legacyRootAbsolutePath).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).sort((left, right) => left.localeCompare(right));
   options?.onProgress?.(`scanning: found ${legacyFiles.length} legacy files`);
   initializeStrictScaffold(rootDir);
-  const strictConfigAbsolutePath = path37.join(rootDir, STRICT_CONFIG_PATH);
-  writeFileSync15(strictConfigAbsolutePath, stringifyYamlDocument(strictConfig), "utf8");
+  const strictConfigAbsolutePath = path38.join(rootDir, STRICT_CONFIG_PATH);
+  writeFileSync16(strictConfigAbsolutePath, stringifyYamlDocument(strictConfig), "utf8");
   result.converted.push({
     kind: "workflow_config",
     sourcePath: LEGACY_CONFIG_PATH,
@@ -26904,7 +28168,7 @@ function migrateLegacyWorkflow(rootDir, options) {
   for (const scaffoldAsset of getReportedStrictScaffoldAssets()) {
     result.converted.push({
       kind: "strict_scaffold_asset",
-      targetPath: `${STRICT_WORKFLOW_DIR12}/${scaffoldAsset}`,
+      targetPath: `${STRICT_WORKFLOW_DIR13}/${scaffoldAsset}`,
       note: "Ensured required strict scaffold asset is available for migration output."
     });
   }
@@ -26915,7 +28179,7 @@ function migrateLegacyWorkflow(rootDir, options) {
   options?.onProgress?.("converting: roadmap");
   convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles);
   convertLegacySpecsIndex(rootDir, result, handledLegacyFiles);
-  const unhandled = legacyFiles.filter((f) => !handledLegacyFiles.has(f) && path37.basename(f) !== "README.md");
+  const unhandled = legacyFiles.filter((f) => !handledLegacyFiles.has(f) && path38.basename(f) !== "README.md");
   if (unhandled.length > 0) {
     options?.onProgress?.(`deferring: ${unhandled.length} unhandled files`);
   }
@@ -26923,11 +28187,11 @@ function migrateLegacyWorkflow(rootDir, options) {
     const deferredArtifact = describeDeferredLegacyArtifact(legacyFile);
     recordDeferredArtifact(result, legacyFile, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "converter_unavailable");
   }
-  const strictChangesAbsolutePath = path37.join(strictRootAbsolutePath, "changes");
-  const convertedActiveChangeNames = existsSync35(strictChangesAbsolutePath) ? readdirSync12(strictChangesAbsolutePath, { withFileTypes: true }).filter((entry) => entry.isDirectory() && entry.name !== "archive").map((entry) => entry.name).sort((left, right) => left.localeCompare(right)) : [];
+  const strictChangesAbsolutePath = path38.join(strictRootAbsolutePath, "changes");
+  const convertedActiveChangeNames = existsSync36(strictChangesAbsolutePath) ? readdirSync13(strictChangesAbsolutePath, { withFileTypes: true }).filter((entry) => entry.isDirectory() && entry.name !== "archive").map((entry) => entry.name).sort((left, right) => left.localeCompare(right)) : [];
   if (convertedActiveChangeNames.length > MAX_ACTIVE_CHANGE_COUNT) {
     const activeChangeList = convertedActiveChangeNames.map((name) => `'${name}'`).join(", ");
-    result.warnings.push(makeDiagnostic3("multiple_active_changes", `Migration converted ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but the strict workflow allows at most two active changes at a time.`, `${LEGACY_WORKFLOW_DIR2}/changes`, `${STRICT_WORKFLOW_DIR12}/changes`));
+    result.warnings.push(makeDiagnostic4("multiple_active_changes", `Migration converted ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but the strict workflow allows at most two active changes at a time.`, `${LEGACY_WORKFLOW_DIR2}/changes`, `${STRICT_WORKFLOW_DIR13}/changes`));
     result.manualFollowUp.push({
       sourcePath: `${LEGACY_WORKFLOW_DIR2}/changes`,
       reason: `The converted strict workflow state contains ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but at most two active changes are allowed at a time.`,
@@ -26976,9 +28240,9 @@ function runMaintenanceCommand(argv) {
 
 // src/cli/cmd-mcp-install.ts
 import { execFileSync, execSync } from "child_process";
-import { existsSync as existsSync36, mkdirSync as mkdirSync13, readFileSync as readFileSync26, statSync as statSync22, writeFileSync as writeFileSync16 } from "fs";
+import { existsSync as existsSync37, mkdirSync as mkdirSync14, readFileSync as readFileSync26, statSync as statSync23, writeFileSync as writeFileSync17 } from "fs";
 import os2 from "os";
-import path38 from "path";
+import path39 from "path";
 import { fileURLToPath as fileURLToPath4 } from "url";
 var MCP_INSTALL_CLIENTS = ["claude-code", "codex", "opencode", "copilot", "json"];
 var MCP_INSTALL_ALL_CLIENTS = MCP_INSTALL_CLIENTS.filter((client) => client !== "json");
@@ -27065,17 +28329,17 @@ function parseMcpInstallArgs(argv) {
   return { ok: true, value: { clients: selected, scope, entryName, projectRoot, configPath } };
 }
 function resolvePackageRoot() {
-  const moduleDir = path38.dirname(fileURLToPath4(import.meta.url));
-  return path38.resolve(moduleDir, "..", "..");
+  const moduleDir = path39.dirname(fileURLToPath4(import.meta.url));
+  return path39.resolve(moduleDir, "..", "..");
 }
 function resolveMcpEntrypointPath(packageRoot) {
-  return path38.join(packageRoot, "dist", "scripts", "strict-spec-driven-mcp.js");
+  return path39.join(packageRoot, "dist", "scripts", "strict-spec-driven-mcp.js");
 }
 function buildServerInvocation(entrypointPath, projectRoot) {
   return { command: "node", args: [entrypointPath, "--project", projectRoot] };
 }
 function parseExistingJsonObject(filePath) {
-  if (!existsSync36(filePath)) {
+  if (!existsSync37(filePath)) {
     return { ok: true, value: {} };
   }
   try {
@@ -27118,24 +28382,24 @@ function mergeCopilotConfig(existing, name, invocation) {
 }
 function userConfigHome() {
   const xdg = process.env.XDG_CONFIG_HOME;
-  return xdg && xdg.length > 0 ? xdg : path38.join(os2.homedir(), ".config");
+  return xdg && xdg.length > 0 ? xdg : path39.join(os2.homedir(), ".config");
 }
 function resolveFileClientTarget(client, scope, projectRoot, configPath) {
   if (client === "json") {
     if (!configPath) {
       return { ok: false, error: "client 'json' requires --config <path>" };
     }
-    return { ok: true, path: path38.resolve(configPath) };
+    return { ok: true, path: path39.resolve(configPath) };
   }
   if (client === "opencode") {
     return {
       ok: true,
-      path: scope === "user" ? path38.join(userConfigHome(), "opencode", "opencode.json") : path38.join(projectRoot, "opencode.json")
+      path: scope === "user" ? path39.join(userConfigHome(), "opencode", "opencode.json") : path39.join(projectRoot, "opencode.json")
     };
   }
   return {
     ok: true,
-    path: scope === "user" ? path38.join(userConfigHome(), "Code", "User", "mcp.json") : path38.join(projectRoot, ".vscode", "mcp.json")
+    path: scope === "user" ? path39.join(userConfigHome(), "Code", "User", "mcp.json") : path39.join(projectRoot, ".vscode", "mcp.json")
   };
 }
 function registerFileClient(client, targetPath, name, invocation) {
@@ -27152,8 +28416,8 @@ function registerFileClient(client, targetPath, name, invocation) {
     content = mergeMcpServersConfig(existing.value, name, invocation);
   }
   try {
-    mkdirSync13(path38.dirname(targetPath), { recursive: true });
-    writeFileSync16(targetPath, content);
+    mkdirSync14(path39.dirname(targetPath), { recursive: true });
+    writeFileSync17(targetPath, content);
   } catch (error) {
     return { client, status: "error", detail: `failed to write ${targetPath}: ${error instanceof Error ? error.message : String(error)}` };
   }
@@ -27223,8 +28487,8 @@ function runMcpInstall(argv, deps = DEFAULT_DEPS) {
     writeUsage(USAGE);
     return 1;
   }
-  const projectRoot = path38.resolve(parsed.value.projectRoot ?? process.cwd());
-  if (!existsSync36(projectRoot) || !statSync22(projectRoot).isDirectory()) {
+  const projectRoot = path39.resolve(parsed.value.projectRoot ?? process.cwd());
+  if (!existsSync37(projectRoot) || !statSync23(projectRoot).isDirectory()) {
     writeError(`project root '${projectRoot}' is not a directory`);
     return 1;
   }
@@ -27247,13 +28511,13 @@ function runMcpInstall(argv, deps = DEFAULT_DEPS) {
 }
 
 // src/cli/cmd-operations.ts
-import { existsSync as existsSync41, readFileSync as readFileSync31, statSync as statSync27 } from "fs";
+import { existsSync as existsSync42, readFileSync as readFileSync31, statSync as statSync28 } from "fs";
 import { execSync as execSync2 } from "child_process";
-import path43 from "path";
+import path44 from "path";
 
 // src/skills.ts
-import { existsSync as existsSync38, readdirSync as readdirSync13, readFileSync as readFileSync28, statSync as statSync24 } from "node:fs";
-import path40 from "node:path";
+import { existsSync as existsSync39, readdirSync as readdirSync14, readFileSync as readFileSync28, statSync as statSync25 } from "node:fs";
+import path41 from "node:path";
 
 // src/skills/model.ts
 var REQUIRED_METADATA_FIELDS = ["skill_id", "author", "type", "version"];
@@ -27761,7 +29025,7 @@ var MIGRATION_STRICT_SKILL_EXPECTATIONS = {
     requiredSnippets: [".spec-driven/", ".strict-spec-driven/"]
   }
 };
-function makeDiagnostic4(code, diagPath, message, expected, actual) {
+function makeDiagnostic5(code, diagPath, message, expected, actual) {
   return { code, path: toPosix2(diagPath), message, expected, actual };
 }
 
@@ -27775,9 +29039,9 @@ function validateStrictWorkflowStateGuidance(skillName, content, commands, skill
   const normalizedContent = content.replace(/\s+/g, " ");
   const checkWorkflowStateCommand = commands["check-workflow-state"];
   if (!checkWorkflowStateCommand) {
-    diagnostics.push(makeDiagnostic4("skill.strict_workflow.check_command.missing", `${skillPath}#commands.check-workflow-state`, "non-init strict skills must expose the scripted strict workflow state check command", CHECK_WORKFLOW_STATE_COMMAND));
+    diagnostics.push(makeDiagnostic5("skill.strict_workflow.check_command.missing", `${skillPath}#commands.check-workflow-state`, "non-init strict skills must expose the scripted strict workflow state check command", CHECK_WORKFLOW_STATE_COMMAND));
   } else if (!checkWorkflowStateCommand.includes(CHECK_WORKFLOW_STATE_COMMAND)) {
-    diagnostics.push(makeDiagnostic4("skill.strict_workflow.check_command.invalid", `${skillPath}#commands.check-workflow-state`, "non-init strict skills must run the scripted strict workflow state check command before workflow work", CHECK_WORKFLOW_STATE_COMMAND, checkWorkflowStateCommand));
+    diagnostics.push(makeDiagnostic5("skill.strict_workflow.check_command.invalid", `${skillPath}#commands.check-workflow-state`, "non-init strict skills must run the scripted strict workflow state check command before workflow work", CHECK_WORKFLOW_STATE_COMMAND, checkWorkflowStateCommand));
   }
   for (const snippet2 of [
     STRICT_WORKFLOW_EXISTENCE_STEP_SNIPPET,
@@ -27786,10 +29050,10 @@ function validateStrictWorkflowStateGuidance(skillName, content, commands, skill
   ]) {
     if (normalizedContent.includes(snippet2.replace(/\s+/g, " ")))
       continue;
-    diagnostics.push(makeDiagnostic4("skill.strict_workflow.precheck.missing", skillPath, "non-init strict skills must check for existing .strict-spec-driven/ state before any other step and stop with init guidance when it is missing", snippet2));
+    diagnostics.push(makeDiagnostic5("skill.strict_workflow.precheck.missing", skillPath, "non-init strict skills must check for existing .strict-spec-driven/ state before any other step and stop with init guidance when it is missing", snippet2));
   }
   if (commands.init) {
-    diagnostics.push(makeDiagnostic4("skill.strict_workflow.init_command.forbidden", `${skillPath}#commands.init`, "non-init strict skills must not declare the bundled init command as a fallback", "no init command entry", commands.init));
+    diagnostics.push(makeDiagnostic5("skill.strict_workflow.init_command.forbidden", `${skillPath}#commands.init`, "non-init strict skills must not declare the bundled init command as a fallback", "no init command entry", commands.init));
   }
 }
 function validateSkillContentAgainstExpectation(skillName, content, commands, skillPath, diagnostics, expectationMap, diagnosticPrefix, label) {
@@ -27798,31 +29062,31 @@ function validateSkillContentAgainstExpectation(skillName, content, commands, sk
     return;
   const normalizedContent = content.replace(/\s+/g, " ");
   if (content.includes(GENERIC_COMMAND_PLACEHOLDER)) {
-    diagnostics.push(makeDiagnostic4(`${diagnosticPrefix}.placeholder_command`, skillPath, `${label} must replace the generic placeholder command mapping with explicit commands`, "explicit command mapping", GENERIC_COMMAND_PLACEHOLDER));
+    diagnostics.push(makeDiagnostic5(`${diagnosticPrefix}.placeholder_command`, skillPath, `${label} must replace the generic placeholder command mapping with explicit commands`, "explicit command mapping", GENERIC_COMMAND_PLACEHOLDER));
   }
   for (const heading of expectation.requiredHeadings) {
     if (!content.includes(heading)) {
-      diagnostics.push(makeDiagnostic4(`${diagnosticPrefix}.required_heading.missing`, skillPath, `${label} is missing required section heading '${heading}'`, heading));
+      diagnostics.push(makeDiagnostic5(`${diagnosticPrefix}.required_heading.missing`, skillPath, `${label} is missing required section heading '${heading}'`, heading));
     }
   }
   for (const snippet2 of expectation.requiredSnippets) {
     if (!normalizedContent.includes(snippet2.replace(/\s+/g, " "))) {
-      diagnostics.push(makeDiagnostic4(`${diagnosticPrefix}.required_snippet.missing`, skillPath, `${label} must reference '${snippet2}'`, snippet2));
+      diagnostics.push(makeDiagnostic5(`${diagnosticPrefix}.required_snippet.missing`, skillPath, `${label} must reference '${snippet2}'`, snippet2));
     }
   }
   for (const snippet2 of expectation.forbiddenSnippets ?? []) {
     if (normalizedContent.includes(snippet2.replace(/\s+/g, " "))) {
-      diagnostics.push(makeDiagnostic4(`${diagnosticPrefix}.forbidden_snippet.present`, skillPath, `${label} contains misleading prompt text '${snippet2}'`, "prompt text aligned with implemented CLI behavior", snippet2));
+      diagnostics.push(makeDiagnostic5(`${diagnosticPrefix}.forbidden_snippet.present`, skillPath, `${label} contains misleading prompt text '${snippet2}'`, "prompt text aligned with implemented CLI behavior", snippet2));
     }
   }
   for (const [commandName, expectedValue] of Object.entries(expectation.requiredCommands)) {
     const actualValue = commands[commandName];
     if (!actualValue) {
-      diagnostics.push(makeDiagnostic4(`${diagnosticPrefix}.command.missing`, `${skillPath}#commands.${commandName}`, `${label} is missing required command entry '${commandName}'`, expectedValue));
+      diagnostics.push(makeDiagnostic5(`${diagnosticPrefix}.command.missing`, `${skillPath}#commands.${commandName}`, `${label} is missing required command entry '${commandName}'`, expectedValue));
       continue;
     }
     if (!actualValue.includes(expectedValue)) {
-      diagnostics.push(makeDiagnostic4(`${diagnosticPrefix}.command.invalid`, `${skillPath}#commands.${commandName}`, `${label} command '${commandName}' must reference the expected strict CLI subcommand`, expectedValue, actualValue));
+      diagnostics.push(makeDiagnostic5(`${diagnosticPrefix}.command.invalid`, `${skillPath}#commands.${commandName}`, `${label} command '${commandName}' must reference the expected strict CLI subcommand`, expectedValue, actualValue));
     }
   }
 }
@@ -27841,12 +29105,12 @@ function validateMigrationSkillContent(skillName, content, commands, skillPath, 
 function validateCommandSection(skillName, content, skillPath, diagnostics) {
   const sectionMatch = content.match(/## This Skill's Commands[\s\S]*?```yaml\s*([\s\S]*?)```/m);
   if (!sectionMatch) {
-    diagnostics.push(makeDiagnostic4("skill.commands_section.missing", skillPath, "skills that use the CLI must include a '## This Skill's Commands' section with a yaml command mapping"));
+    diagnostics.push(makeDiagnostic5("skill.commands_section.missing", skillPath, "skills that use the CLI must include a '## This Skill's Commands' section with a yaml command mapping"));
     return;
   }
   const yamlBlock = sectionMatch[1].trim();
   if (!yamlBlock) {
-    diagnostics.push(makeDiagnostic4("skill.commands_section.empty", skillPath, "command mapping block cannot be empty"));
+    diagnostics.push(makeDiagnostic5("skill.commands_section.empty", skillPath, "command mapping block cannot be empty"));
     return;
   }
   let commands;
@@ -27856,39 +29120,39 @@ function validateCommandSection(skillName, content, skillPath, diagnostics) {
     const yamlDetails = getYamlParseDetails(error);
     const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
     diagnostics.push({
-      ...makeDiagnostic4("skill.commands_section.parse_error", skillPath, "command mapping block is not valid YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
+      ...makeDiagnostic5("skill.commands_section.parse_error", skillPath, "command mapping block is not valid YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
       ...yamlDiagnosticDetails
     });
     return;
   }
   if (!commands || typeof commands !== "object" || Array.isArray(commands)) {
-    diagnostics.push(makeDiagnostic4("skill.commands_section.invalid_shape", skillPath, "command mapping block must be a YAML mapping"));
+    diagnostics.push(makeDiagnostic5("skill.commands_section.invalid_shape", skillPath, "command mapping block must be a YAML mapping"));
     return;
   }
   const entries = Object.entries(commands);
   if (entries.length === 0) {
-    diagnostics.push(makeDiagnostic4("skill.commands_section.no_commands", skillPath, "command mapping must declare at least one command entry"));
+    diagnostics.push(makeDiagnostic5("skill.commands_section.no_commands", skillPath, "command mapping must declare at least one command entry"));
     return;
   }
   const normalizedCommands = {};
   for (const [name, value] of entries) {
     if (typeof value !== "string" || value.trim().length === 0) {
-      diagnostics.push(makeDiagnostic4("skill.commands_section.command.invalid", `${skillPath}#commands.${name}`, "command mapping values must be non-empty strings"));
+      diagnostics.push(makeDiagnostic5("skill.commands_section.command.invalid", `${skillPath}#commands.${name}`, "command mapping values must be non-empty strings"));
       continue;
     }
     normalizedCommands[name] = value;
     if (value.includes("{{SKILL_DIR}}") || value.includes("~/.local/bin/strict-spec-driven") || value.includes("~/.local/bin/strict-spec-cli")) {
-      diagnostics.push(makeDiagnostic4("skill.commands_section.command.machine_path", `${skillPath}#commands.${name}`, "command entries must use the PATH-resolved strict CLI command, not skill-relative or hard-coded user bin paths", `${COMMAND_PREFIX} <explicit-subcommand>`, value));
+      diagnostics.push(makeDiagnostic5("skill.commands_section.command.machine_path", `${skillPath}#commands.${name}`, "command entries must use the PATH-resolved strict CLI command, not skill-relative or hard-coded user bin paths", `${COMMAND_PREFIX} <explicit-subcommand>`, value));
       continue;
     }
     const trimmedValue = value.trim();
     if (trimmedValue !== COMMAND_PREFIX && !trimmedValue.startsWith(`${COMMAND_PREFIX} `)) {
-      diagnostics.push(makeDiagnostic4("skill.commands_section.command.reference", `${skillPath}#commands.${name}`, "command entries must reference the PATH-resolved strict CLI command", COMMAND_PREFIX, value));
+      diagnostics.push(makeDiagnostic5("skill.commands_section.command.reference", `${skillPath}#commands.${name}`, "command entries must reference the PATH-resolved strict CLI command", COMMAND_PREFIX, value));
       continue;
     }
     const commandSuffix = trimmedValue.slice(COMMAND_PREFIX.length).trim();
     if (commandSuffix.length === 0 || commandSuffix === "<command>" || value.includes(GENERIC_COMMAND_PLACEHOLDER)) {
-      diagnostics.push(makeDiagnostic4("skill.commands_section.command.placeholder", `${skillPath}#commands.${name}`, "command entries must replace the generic strict CLI placeholder with an explicit subcommand and parameters", `${COMMAND_PREFIX} <explicit-subcommand>`, value));
+      diagnostics.push(makeDiagnostic5("skill.commands_section.command.placeholder", `${skillPath}#commands.${name}`, "command entries must replace the generic strict CLI placeholder with an explicit subcommand and parameters", `${COMMAND_PREFIX} <explicit-subcommand>`, value));
     }
   }
   validateCoreSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
@@ -27910,75 +29174,75 @@ function sortDiagnostics2(diagnostics) {
 }
 
 // src/skills/fs-checks.ts
-import { existsSync as existsSync37, lstatSync, readFileSync as readFileSync27, readlinkSync, statSync as statSync23 } from "node:fs";
-import path39 from "node:path";
+import { existsSync as existsSync38, lstatSync, readFileSync as readFileSync27, readlinkSync, statSync as statSync24 } from "node:fs";
+import path40 from "node:path";
 function validateRequiredSymlink(skillDir, skillName, entryName, expectedTarget, diagnostics) {
-  const entryPath = path39.join(skillDir, entryName);
-  const relativeSkillPath = path39.join("skills", skillName, entryName);
-  if (!existsSync37(entryPath)) {
-    diagnostics.push(makeDiagnostic4(`skill.${entryName}_symlink.missing`, relativeSkillPath, `skill '${skillName}' is missing required ${entryName} symlink`));
+  const entryPath = path40.join(skillDir, entryName);
+  const relativeSkillPath = path40.join("skills", skillName, entryName);
+  if (!existsSync38(entryPath)) {
+    diagnostics.push(makeDiagnostic5(`skill.${entryName}_symlink.missing`, relativeSkillPath, `skill '${skillName}' is missing required ${entryName} symlink`));
     return;
   }
   const stats = lstatSync(entryPath);
   if (!stats.isSymbolicLink()) {
-    diagnostics.push(makeDiagnostic4(`skill.${entryName}_symlink.invalid_type`, relativeSkillPath, `skill '${skillName}' ${entryName} entry must be a symlink`));
+    diagnostics.push(makeDiagnostic5(`skill.${entryName}_symlink.invalid_type`, relativeSkillPath, `skill '${skillName}' ${entryName} entry must be a symlink`));
     return;
   }
   const target = toPosix2(readlinkSync(entryPath));
   const normalizedExpected = toPosix2(expectedTarget);
   if (target !== normalizedExpected) {
-    diagnostics.push(makeDiagnostic4(`skill.${entryName}_symlink.invalid_target`, relativeSkillPath, `skill '${skillName}' ${entryName} symlink must point to '${normalizedExpected}'`, normalizedExpected, target));
+    diagnostics.push(makeDiagnostic5(`skill.${entryName}_symlink.invalid_target`, relativeSkillPath, `skill '${skillName}' ${entryName} symlink must point to '${normalizedExpected}'`, normalizedExpected, target));
     return;
   }
-  const resolved = path39.resolve(skillDir, target);
-  if (!existsSync37(resolved) || !statSync23(resolved).isDirectory()) {
-    diagnostics.push(makeDiagnostic4(`skill.${entryName}_symlink.broken`, relativeSkillPath, `skill '${skillName}' ${entryName} symlink target does not resolve to a directory`));
+  const resolved = path40.resolve(skillDir, target);
+  if (!existsSync38(resolved) || !statSync24(resolved).isDirectory()) {
+    diagnostics.push(makeDiagnostic5(`skill.${entryName}_symlink.broken`, relativeSkillPath, `skill '${skillName}' ${entryName} symlink target does not resolve to a directory`));
   }
 }
 function validateMarketplaceMetadata(rootDir, skillNames, diagnostics) {
-  const metadataPath = path39.join(rootDir, "skills", "marketplace.json");
-  const relativeMetadataPath = path39.join("skills", "marketplace.json");
-  if (!existsSync37(metadataPath)) {
-    diagnostics.push(makeDiagnostic4("skills.marketplace.missing", relativeMetadataPath, "skills marketplace metadata file is missing"));
+  const metadataPath = path40.join(rootDir, "skills", "marketplace.json");
+  const relativeMetadataPath = path40.join("skills", "marketplace.json");
+  if (!existsSync38(metadataPath)) {
+    diagnostics.push(makeDiagnostic5("skills.marketplace.missing", relativeMetadataPath, "skills marketplace metadata file is missing"));
     return 0;
   }
   let parsed;
   try {
     parsed = JSON.parse(readFileSync27(metadataPath, "utf8"));
   } catch (error) {
-    diagnostics.push(makeDiagnostic4("skills.marketplace.parse_error", relativeMetadataPath, "skills marketplace metadata must be valid JSON", "valid JSON", error instanceof Error ? error.message : String(error)));
+    diagnostics.push(makeDiagnostic5("skills.marketplace.parse_error", relativeMetadataPath, "skills marketplace metadata must be valid JSON", "valid JSON", error instanceof Error ? error.message : String(error)));
     return 0;
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    diagnostics.push(makeDiagnostic4("skills.marketplace.invalid_shape", relativeMetadataPath, "skills marketplace metadata must be a JSON object"));
+    diagnostics.push(makeDiagnostic5("skills.marketplace.invalid_shape", relativeMetadataPath, "skills marketplace metadata must be a JSON object"));
     return 0;
   }
   const manifest = parsed;
   if (!Array.isArray(manifest.skills)) {
-    diagnostics.push(makeDiagnostic4("skills.marketplace.skills.missing", relativeMetadataPath, "skills marketplace metadata must include a skills array"));
+    diagnostics.push(makeDiagnostic5("skills.marketplace.skills.missing", relativeMetadataPath, "skills marketplace metadata must include a skills array"));
     return 0;
   }
   const marketplaceNames = [];
   for (let index = 0;index < manifest.skills.length; index += 1) {
     const entry = manifest.skills[index];
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-      diagnostics.push(makeDiagnostic4("skills.marketplace.skills.entry.invalid", `${relativeMetadataPath}#skills[${index}]`, "skills marketplace entries must be objects"));
+      diagnostics.push(makeDiagnostic5("skills.marketplace.skills.entry.invalid", `${relativeMetadataPath}#skills[${index}]`, "skills marketplace entries must be objects"));
       continue;
     }
     if (typeof entry.name !== "string" || entry.name.trim().length === 0) {
-      diagnostics.push(makeDiagnostic4("skills.marketplace.skills.entry.name.missing", `${relativeMetadataPath}#skills[${index}].name`, "skills marketplace entry names must be non-empty strings"));
+      diagnostics.push(makeDiagnostic5("skills.marketplace.skills.entry.name.missing", `${relativeMetadataPath}#skills[${index}].name`, "skills marketplace entry names must be non-empty strings"));
       continue;
     }
     marketplaceNames.push(entry.name);
     if (!entry.name.startsWith("strict-spec-") && !entry.name.startsWith("strict-roadmap-") && !entry.name.startsWith("strict-tech-")) {
-      diagnostics.push(makeDiagnostic4("skills.marketplace.skills.entry.name.legacy", `${relativeMetadataPath}#skills[${index}].name`, "skills marketplace entries must use strict skill name prefixes", "strict-spec-*, strict-roadmap-*, or strict-tech-*", entry.name));
+      diagnostics.push(makeDiagnostic5("skills.marketplace.skills.entry.name.legacy", `${relativeMetadataPath}#skills[${index}].name`, "skills marketplace entries must use strict skill name prefixes", "strict-spec-*, strict-roadmap-*, or strict-tech-*", entry.name));
     }
   }
   const normalizeList = (values3) => [...new Set(values3)].sort((a, b) => a.localeCompare(b));
   const expected = normalizeList(skillNames);
   const actual = normalizeList(marketplaceNames);
   if (JSON.stringify(expected) !== JSON.stringify(actual)) {
-    diagnostics.push(makeDiagnostic4("skills.marketplace.skills.mismatch", relativeMetadataPath, "skills marketplace names must match skill directories exactly", JSON.stringify(expected), JSON.stringify(actual)));
+    diagnostics.push(makeDiagnostic5("skills.marketplace.skills.mismatch", relativeMetadataPath, "skills marketplace names must match skill directories exactly", JSON.stringify(expected), JSON.stringify(actual)));
   }
   return actual.length;
 }
@@ -27990,12 +29254,12 @@ function parseFrontmatter(content, skillPath, diagnostics) {
   const lines = normalized.split(`
 `);
   if (lines[0] !== "---") {
-    diagnostics.push(makeDiagnostic4("skill.frontmatter.missing", skillPath, "SKILL.md must start with YAML frontmatter"));
+    diagnostics.push(makeDiagnostic5("skill.frontmatter.missing", skillPath, "SKILL.md must start with YAML frontmatter"));
     return null;
   }
   const closeIndex = lines.findIndex((line, index) => index > 0 && line === "---");
   if (closeIndex === -1) {
-    diagnostics.push(makeDiagnostic4("skill.frontmatter.unterminated", skillPath, "SKILL.md frontmatter must be terminated with a closing --- line"));
+    diagnostics.push(makeDiagnostic5("skill.frontmatter.unterminated", skillPath, "SKILL.md frontmatter must be terminated with a closing --- line"));
     return null;
   }
   const rawFrontmatter = lines.slice(1, closeIndex).join(`
@@ -28003,7 +29267,7 @@ function parseFrontmatter(content, skillPath, diagnostics) {
   try {
     const parsed = parseYamlDocument(rawFrontmatter, { source: skillPath });
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      diagnostics.push(makeDiagnostic4("skill.frontmatter.invalid_shape", skillPath, "SKILL.md frontmatter must parse to a YAML mapping", "mapping", typeof parsed));
+      diagnostics.push(makeDiagnostic5("skill.frontmatter.invalid_shape", skillPath, "SKILL.md frontmatter must parse to a YAML mapping", "mapping", typeof parsed));
       return null;
     }
     return parsed;
@@ -28011,7 +29275,7 @@ function parseFrontmatter(content, skillPath, diagnostics) {
     const yamlDetails = getYamlParseDetails(error);
     const yamlDiagnosticDetails = getYamlDiagnosticDetails(error);
     diagnostics.push({
-      ...makeDiagnostic4("skill.frontmatter.parse_error", skillPath, "SKILL.md frontmatter is not valid YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
+      ...makeDiagnostic5("skill.frontmatter.parse_error", skillPath, "SKILL.md frontmatter is not valid YAML", "parseable YAML mapping", yamlDetails ? formatYamlParseSummary(yamlDetails) : error instanceof Error ? error.message : String(error)),
       ...yamlDiagnosticDetails
     });
     return null;
@@ -28019,25 +29283,25 @@ function parseFrontmatter(content, skillPath, diagnostics) {
 }
 function validateFrontmatterFields(frontmatter, skillName, skillPath, diagnostics) {
   if (typeof frontmatter.name !== "string" || frontmatter.name.trim().length === 0) {
-    diagnostics.push(makeDiagnostic4("skill.frontmatter.name.missing", skillPath, "frontmatter.name must be a non-empty string"));
+    diagnostics.push(makeDiagnostic5("skill.frontmatter.name.missing", skillPath, "frontmatter.name must be a non-empty string"));
   } else if (frontmatter.name !== skillName) {
-    diagnostics.push(makeDiagnostic4("skill.frontmatter.name.mismatch", skillPath, "frontmatter.name must match the skill directory name", skillName, frontmatter.name));
+    diagnostics.push(makeDiagnostic5("skill.frontmatter.name.mismatch", skillPath, "frontmatter.name must match the skill directory name", skillName, frontmatter.name));
   }
   if (typeof frontmatter.description !== "string" || frontmatter.description.trim().length === 0) {
-    diagnostics.push(makeDiagnostic4("skill.frontmatter.description.missing", skillPath, "frontmatter.description must be a non-empty string"));
+    diagnostics.push(makeDiagnostic5("skill.frontmatter.description.missing", skillPath, "frontmatter.description must be a non-empty string"));
   }
   if (!frontmatter.metadata || typeof frontmatter.metadata !== "object" || Array.isArray(frontmatter.metadata)) {
-    diagnostics.push(makeDiagnostic4("skill.frontmatter.metadata.missing", skillPath, "frontmatter.metadata must be a mapping"));
+    diagnostics.push(makeDiagnostic5("skill.frontmatter.metadata.missing", skillPath, "frontmatter.metadata must be a mapping"));
     return;
   }
   for (const field of REQUIRED_METADATA_FIELDS) {
     const value = frontmatter.metadata[field];
     if (typeof value !== "string" || value.trim().length === 0) {
-      diagnostics.push(makeDiagnostic4("skill.frontmatter.metadata.required", `${skillPath}#metadata.${field}`, `frontmatter.metadata.${field} must be a non-empty string`));
+      diagnostics.push(makeDiagnostic5("skill.frontmatter.metadata.required", `${skillPath}#metadata.${field}`, `frontmatter.metadata.${field} must be a non-empty string`));
     }
   }
   if (frontmatter.metadata.type !== "agent_skill") {
-    diagnostics.push(makeDiagnostic4("skill.frontmatter.metadata.type.invalid", `${skillPath}#metadata.type`, "frontmatter.metadata.type must be 'agent_skill'", "agent_skill", typeof frontmatter.metadata.type === "string" ? frontmatter.metadata.type : String(frontmatter.metadata.type)));
+    diagnostics.push(makeDiagnostic5("skill.frontmatter.metadata.type.invalid", `${skillPath}#metadata.type`, "frontmatter.metadata.type must be 'agent_skill'", "agent_skill", typeof frontmatter.metadata.type === "string" ? frontmatter.metadata.type : String(frontmatter.metadata.type)));
   }
 }
 function validateLegacyReferences(skillName, content, skillPath, diagnostics) {
@@ -28067,17 +29331,17 @@ function validateLegacyReferences(skillName, content, skillPath, diagnostics) {
     check.regex.lastIndex = 0;
     if (!match)
       continue;
-    diagnostics.push(makeDiagnostic4(check.code, skillPath, check.message));
+    diagnostics.push(makeDiagnostic5(check.code, skillPath, check.message));
   }
 }
 
 // src/skills.ts
 function validateStrictSkillPackaging(rootDir) {
   const diagnostics = [];
-  const skillsRoot = path40.join(rootDir, "skills");
+  const skillsRoot = path41.join(rootDir, "skills");
   const relativeSkillsRoot = "skills";
-  if (!existsSync38(skillsRoot) || !statSync24(skillsRoot).isDirectory()) {
-    diagnostics.push(makeDiagnostic4("skills.directory.missing", relativeSkillsRoot, "skills directory is missing"));
+  if (!existsSync39(skillsRoot) || !statSync25(skillsRoot).isDirectory()) {
+    diagnostics.push(makeDiagnostic5("skills.directory.missing", relativeSkillsRoot, "skills directory is missing"));
     return {
       valid: false,
       diagnostics,
@@ -28088,16 +29352,16 @@ function validateStrictSkillPackaging(rootDir) {
       }
     };
   }
-  const skillNames = readdirSync13(skillsRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
+  const skillNames = readdirSync14(skillsRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
   for (const skillName of skillNames) {
-    const skillDir = path40.join(skillsRoot, skillName);
-    const skillPath = path40.join("skills", skillName, "SKILL.md");
+    const skillDir = path41.join(skillsRoot, skillName);
+    const skillPath = path41.join("skills", skillName, "SKILL.md");
     if (!skillName.startsWith("strict-spec-") && !skillName.startsWith("strict-roadmap-") && !skillName.startsWith("strict-tech-")) {
-      diagnostics.push(makeDiagnostic4("skill.directory.legacy_name", path40.join("skills", skillName), "skill directory must use strict prefix", "strict-spec-*, strict-roadmap-*, or strict-tech-*", skillName));
+      diagnostics.push(makeDiagnostic5("skill.directory.legacy_name", path41.join("skills", skillName), "skill directory must use strict prefix", "strict-spec-*, strict-roadmap-*, or strict-tech-*", skillName));
     }
-    const skillFilePath = path40.join(skillDir, "SKILL.md");
-    if (!existsSync38(skillFilePath)) {
-      diagnostics.push(makeDiagnostic4("skill.file.missing", skillPath, "skill directory must include SKILL.md"));
+    const skillFilePath = path41.join(skillDir, "SKILL.md");
+    if (!existsSync39(skillFilePath)) {
+      diagnostics.push(makeDiagnostic5("skill.file.missing", skillPath, "skill directory must include SKILL.md"));
       continue;
     }
     const content = readFileSync28(skillFilePath, "utf8");
@@ -28123,9 +29387,9 @@ function validateStrictSkillPackaging(rootDir) {
 }
 
 // src/cli/spec-mapping.ts
-import { existsSync as existsSync39, readdirSync as readdirSync14, readFileSync as readFileSync29, statSync as statSync25 } from "fs";
-import path41 from "path";
-var STRICT_SPECS_DIR = path41.join(".strict-spec-driven", "specs");
+import { existsSync as existsSync40, readdirSync as readdirSync15, readFileSync as readFileSync29, statSync as statSync26 } from "fs";
+import path42 from "path";
+var STRICT_SPECS_DIR = path42.join(".strict-spec-driven", "specs");
 var FORBIDDEN_SPEC_SUBDIRS3 = new Set([".strict-spec-driven", "changes", "archive"]);
 var EXCLUDED_MAPPING_SPEC_BASENAMES = new Set(["INDEX.yaml"]);
 function makeMappingDiagnostic(source, artifactPath, fieldPath, message, expected, actual) {
@@ -28138,25 +29402,25 @@ function normalizeMappedPath(rootDir, artifactPath, field, index, rawPath, diagn
     return null;
   }
   const normalizedInput = rawPath.trim().replaceAll("\\", "/");
-  if (path41.isAbsolute(normalizedInput)) {
+  if (path42.isAbsolute(normalizedInput)) {
     diagnostics.push(makeMappingDiagnostic("mapping_coverage", artifactPath, fieldPath, "mapping entry must be repo-relative", "repo-relative path", normalizedInput));
     return null;
   }
-  const resolved = path41.resolve(rootDir, normalizedInput);
-  const repoRelative2 = normalizeRepoRelativePath4(rootDir, resolved);
-  if (repoRelative2 === ".." || repoRelative2.startsWith("../")) {
+  const resolved = path42.resolve(rootDir, normalizedInput);
+  const repoRelative3 = normalizeRepoRelativePath4(rootDir, resolved);
+  if (repoRelative3 === ".." || repoRelative3.startsWith("../")) {
     diagnostics.push(makeMappingDiagnostic("mapping_coverage", artifactPath, fieldPath, "mapping entry cannot traverse outside repository", "path inside repository", normalizedInput));
     return null;
   }
-  if (repoRelative2 !== normalizedInput) {
-    diagnostics.push(makeMappingDiagnostic("mapping_coverage", artifactPath, fieldPath, "mapping entry must be normalized repo-relative path", repoRelative2, normalizedInput));
+  if (repoRelative3 !== normalizedInput) {
+    diagnostics.push(makeMappingDiagnostic("mapping_coverage", artifactPath, fieldPath, "mapping entry must be normalized repo-relative path", repoRelative3, normalizedInput));
     return null;
   }
-  if (!existsSync39(path41.join(rootDir, repoRelative2))) {
+  if (!existsSync40(path42.join(rootDir, repoRelative3))) {
     diagnostics.push(makeMappingDiagnostic("mapping_coverage", artifactPath, fieldPath, "mapping entry points to a file that does not exist", "existing file path", normalizedInput));
     return null;
   }
-  return repoRelative2;
+  return repoRelative3;
 }
 function parseSpecMapping(rootDir, specPath, diagnostics) {
   const artifactPath = normalizeRepoRelativePath4(rootDir, specPath);
@@ -28208,13 +29472,13 @@ function parseSpecMapping(rootDir, specPath, diagnostics) {
   return normalized;
 }
 function collectEvidenceCandidates(rootDir) {
-  const implementation = listFilesRecursive(path41.join(rootDir, "src")).filter((file) => file.endsWith(".ts")).map((file) => normalizeRepoRelativePath4(rootDir, file));
+  const implementation = listFilesRecursive(path42.join(rootDir, "src")).filter((file) => file.endsWith(".ts")).map((file) => normalizeRepoRelativePath4(rootDir, file));
   for (const file of ["package.json", "tsconfig.json"]) {
-    if (existsSync39(path41.join(rootDir, file))) {
+    if (existsSync40(path42.join(rootDir, file))) {
       implementation.push(file);
     }
   }
-  const tests = listFilesRecursive(path41.join(rootDir, "test")).filter((file) => file.endsWith(".ts")).map((file) => normalizeRepoRelativePath4(rootDir, file));
+  const tests = listFilesRecursive(path42.join(rootDir, "test")).filter((file) => file.endsWith(".ts")).map((file) => normalizeRepoRelativePath4(rootDir, file));
   const dedupeSort = (values3) => [...new Set(values3.map((value) => normalizePathSeparators(value)))].sort();
   return {
     implementation: dedupeSort(implementation),
@@ -28244,23 +29508,23 @@ function sortMappingDiagnostics(diagnostics) {
 }
 function verifySpecMappings(rootDir) {
   const diagnostics = [];
-  const specsDir = path41.join(rootDir, STRICT_SPECS_DIR);
+  const specsDir = path42.join(rootDir, STRICT_SPECS_DIR);
   const mapped = {
     implementation: new Set,
     tests: new Set
   };
-  if (!existsSync39(specsDir) || !statSync25(specsDir).isDirectory()) {
+  if (!existsSync40(specsDir) || !statSync26(specsDir).isDirectory()) {
     diagnostics.push(makeMappingDiagnostic("mapping_input", STRICT_SPECS_DIR, "$", "spec mapping inputs are unavailable because .strict-spec-driven/specs/ does not exist", "existing .strict-spec-driven/specs/ directory"));
   }
   if (diagnostics.length === 0) {
-    for (const entry of readdirSync14(specsDir, { withFileTypes: true })) {
+    for (const entry of readdirSync15(specsDir, { withFileTypes: true })) {
       if (entry.isDirectory() && FORBIDDEN_SPEC_SUBDIRS3.has(entry.name)) {
-        diagnostics.push(makeMappingDiagnostic("mapping_input", path41.join(STRICT_SPECS_DIR, entry.name), "$", `.strict-spec-driven/specs/ must not contain a '${entry.name}' subdirectory; workflow state directories belong under .strict-spec-driven/ directly`, `no '${entry.name}' subdirectory under .strict-spec-driven/specs/`, `found .strict-spec-driven/specs/${entry.name}/`));
+        diagnostics.push(makeMappingDiagnostic("mapping_input", path42.join(STRICT_SPECS_DIR, entry.name), "$", `.strict-spec-driven/specs/ must not contain a '${entry.name}' subdirectory; workflow state directories belong under .strict-spec-driven/ directly`, `no '${entry.name}' subdirectory under .strict-spec-driven/specs/`, `found .strict-spec-driven/specs/${entry.name}/`));
       }
     }
   }
   const specFiles = diagnostics.length === 0 ? listFilesRecursive(specsDir).filter((filePath) => {
-    const basename = path41.basename(filePath);
+    const basename = path42.basename(filePath);
     return basename.endsWith(".yaml") && !EXCLUDED_MAPPING_SPEC_BASENAMES.has(basename);
   }) : [];
   if (diagnostics.length === 0 && specFiles.length === 0) {
@@ -28305,40 +29569,40 @@ function verifySpecMappings(rootDir) {
 }
 
 // src/cli/tech-mapping.ts
-import { existsSync as existsSync40, readFileSync as readFileSync30, statSync as statSync26 } from "fs";
-import path42 from "path";
-var STRICT_TECH_DIR = path42.join(".strict-spec-driven", "tech");
+import { existsSync as existsSync41, readFileSync as readFileSync30, statSync as statSync27 } from "fs";
+import path43 from "path";
+var STRICT_TECH_DIR = path43.join(".strict-spec-driven", "tech");
 var EXCLUDED_TECH_BASENAMES2 = new Set(["INDEX.yaml"]);
 var MECHANICAL_ENFORCEMENT_METHODS = new Set(["lint", "ci", "test"]);
-function makeDiagnostic5(source, artifactPath, fieldPath, message, expected, actual) {
+function makeDiagnostic6(source, artifactPath, fieldPath, message, expected, actual) {
   return { source, artifactPath, fieldPath, message, expected, actual };
 }
 function validateMappedPath(rootDir, artifactPath, field, index, rawPath, diagnostics) {
   const fieldPath = `$.mapping.${field}[${index}]`;
   if (typeof rawPath !== "string" || rawPath.trim().length === 0) {
-    diagnostics.push(makeDiagnostic5("mapping_coverage", artifactPath, fieldPath, "mapping entry must be a non-empty string", "non-empty repo-relative path", String(rawPath)));
+    diagnostics.push(makeDiagnostic6("mapping_coverage", artifactPath, fieldPath, "mapping entry must be a non-empty string", "non-empty repo-relative path", String(rawPath)));
     return null;
   }
   const normalizedInput = rawPath.trim().replaceAll("\\", "/");
-  if (path42.isAbsolute(normalizedInput)) {
-    diagnostics.push(makeDiagnostic5("mapping_coverage", artifactPath, fieldPath, "mapping entry must be repo-relative", "repo-relative path", normalizedInput));
+  if (path43.isAbsolute(normalizedInput)) {
+    diagnostics.push(makeDiagnostic6("mapping_coverage", artifactPath, fieldPath, "mapping entry must be repo-relative", "repo-relative path", normalizedInput));
     return null;
   }
-  const resolved = path42.resolve(rootDir, normalizedInput);
-  const repoRelative2 = normalizeRepoRelativePath4(rootDir, resolved);
-  if (repoRelative2 === ".." || repoRelative2.startsWith("../")) {
-    diagnostics.push(makeDiagnostic5("mapping_coverage", artifactPath, fieldPath, "mapping entry cannot traverse outside repository", "path inside repository", normalizedInput));
+  const resolved = path43.resolve(rootDir, normalizedInput);
+  const repoRelative3 = normalizeRepoRelativePath4(rootDir, resolved);
+  if (repoRelative3 === ".." || repoRelative3.startsWith("../")) {
+    diagnostics.push(makeDiagnostic6("mapping_coverage", artifactPath, fieldPath, "mapping entry cannot traverse outside repository", "path inside repository", normalizedInput));
     return null;
   }
-  if (repoRelative2 !== normalizedInput) {
-    diagnostics.push(makeDiagnostic5("mapping_coverage", artifactPath, fieldPath, "mapping entry must be normalized repo-relative path", repoRelative2, normalizedInput));
+  if (repoRelative3 !== normalizedInput) {
+    diagnostics.push(makeDiagnostic6("mapping_coverage", artifactPath, fieldPath, "mapping entry must be normalized repo-relative path", repoRelative3, normalizedInput));
     return null;
   }
-  if (!existsSync40(path42.join(rootDir, repoRelative2))) {
-    diagnostics.push(makeDiagnostic5("mapping_coverage", artifactPath, fieldPath, "mapping entry points to a file that does not exist", "existing file path", normalizedInput));
+  if (!existsSync41(path43.join(rootDir, repoRelative3))) {
+    diagnostics.push(makeDiagnostic6("mapping_coverage", artifactPath, fieldPath, "mapping entry points to a file that does not exist", "existing file path", normalizedInput));
     return null;
   }
-  return repoRelative2;
+  return repoRelative3;
 }
 function parseTechMapping(rootDir, techPath, diagnostics) {
   const artifactPath = normalizeRepoRelativePath4(rootDir, techPath);
@@ -28347,16 +29611,16 @@ function parseTechMapping(rootDir, techPath, diagnostics) {
   try {
     doc = parseYamlDocument(content, { source: artifactPath });
   } catch (error) {
-    diagnostics.push(makeDiagnostic5("mapping_coverage", artifactPath, "$.mapping", "tech standard file is not valid YAML", "parseable YAML mapping", error instanceof Error ? error.message : String(error)));
+    diagnostics.push(makeDiagnostic6("mapping_coverage", artifactPath, "$.mapping", "tech standard file is not valid YAML", "parseable YAML mapping", error instanceof Error ? error.message : String(error)));
     return null;
   }
   if (!doc || typeof doc !== "object" || Array.isArray(doc)) {
-    diagnostics.push(makeDiagnostic5("mapping_coverage", artifactPath, "$.mapping", "tech standard file must contain a YAML mapping", "YAML mapping"));
+    diagnostics.push(makeDiagnostic6("mapping_coverage", artifactPath, "$.mapping", "tech standard file must contain a YAML mapping", "YAML mapping"));
     return null;
   }
   const mappingValue = doc.mapping;
   if (!mappingValue || typeof mappingValue !== "object" || Array.isArray(mappingValue)) {
-    diagnostics.push(makeDiagnostic5("mapping_coverage", artifactPath, "$.mapping", "tech standard must define mapping.implementation and mapping.enforcement arrays", "mapping object"));
+    diagnostics.push(makeDiagnostic6("mapping_coverage", artifactPath, "$.mapping", "tech standard must define mapping.implementation and mapping.enforcement arrays", "mapping object"));
     return null;
   }
   const mapping = mappingValue;
@@ -28365,7 +29629,7 @@ function parseTechMapping(rootDir, techPath, diagnostics) {
     const value = mapping[field];
     const fieldPath = `$.mapping.${field}`;
     if (!Array.isArray(value)) {
-      diagnostics.push(makeDiagnostic5("mapping_coverage", artifactPath, fieldPath, `mapping.${field} must be an array`, "array of repo-relative paths", String(value)));
+      diagnostics.push(makeDiagnostic6("mapping_coverage", artifactPath, fieldPath, `mapping.${field} must be an array`, "array of repo-relative paths", String(value)));
       continue;
     }
     value.forEach((entry, index) => {
@@ -28405,7 +29669,7 @@ function checkEnforcementDeclaration(rootDir, techPath, diagnostics) {
     }
   }
   if (mechanicalRuleIds.length > 0 && enforcementPaths.length === 0) {
-    diagnostics.push(makeDiagnostic5("enforcement_declaration", artifactPath, "$.mapping.enforcement", `standard declares mechanical enforcement (lint, ci, or test) for rule(s) ${mechanicalRuleIds.sort().join(", ")} but maps no enforcement files`, "at least one mapping.enforcement path", "empty mapping.enforcement"));
+    diagnostics.push(makeDiagnostic6("enforcement_declaration", artifactPath, "$.mapping.enforcement", `standard declares mechanical enforcement (lint, ci, or test) for rule(s) ${mechanicalRuleIds.sort().join(", ")} but maps no enforcement files`, "at least one mapping.enforcement path", "empty mapping.enforcement"));
   }
 }
 function sortDiagnostics3(diagnostics) {
@@ -28417,16 +29681,16 @@ function sortDiagnostics3(diagnostics) {
 }
 function listTechFiles2(techDir) {
   return listFilesRecursive(techDir).filter((filePath) => {
-    const basename = path42.basename(filePath);
+    const basename = path43.basename(filePath);
     return basename.endsWith(".yaml") && !EXCLUDED_TECH_BASENAMES2.has(basename);
   });
 }
 function verifyTechMappings(rootDir) {
   const diagnostics = [];
-  const techDir = path42.join(rootDir, STRICT_TECH_DIR);
+  const techDir = path43.join(rootDir, STRICT_TECH_DIR);
   const mapped = { implementation: new Set, enforcement: new Set };
-  if (!existsSync40(techDir) || !statSync26(techDir).isDirectory()) {
-    diagnostics.push(makeDiagnostic5("mapping_input", STRICT_TECH_DIR, "$", "tech mapping inputs are unavailable because .strict-spec-driven/tech/ does not exist", "existing .strict-spec-driven/tech/ directory"));
+  if (!existsSync41(techDir) || !statSync27(techDir).isDirectory()) {
+    diagnostics.push(makeDiagnostic6("mapping_input", STRICT_TECH_DIR, "$", "tech mapping inputs are unavailable because .strict-spec-driven/tech/ does not exist", "existing .strict-spec-driven/tech/ directory"));
     return {
       valid: false,
       diagnostics,
@@ -28453,7 +29717,7 @@ function verifyTechMappings(rootDir) {
   };
 }
 function getTechStatus(rootDir) {
-  const techDir = path42.join(rootDir, STRICT_TECH_DIR);
+  const techDir = path43.join(rootDir, STRICT_TECH_DIR);
   const empty = {
     techDirExists: false,
     standardCount: 0,
@@ -28461,7 +29725,7 @@ function getTechStatus(rootDir) {
     strengthCounts: { MUST: 0, SHOULD: 0, MAY: 0 },
     standards: []
   };
-  if (!existsSync40(techDir) || !statSync26(techDir).isDirectory()) {
+  if (!existsSync41(techDir) || !statSync27(techDir).isDirectory()) {
     return empty;
   }
   const standards = [];
@@ -28524,8 +29788,8 @@ function runShip(argv) {
   const rootDir = process.cwd();
   const archiveRoot = getArchiveDir(rootDir);
   let resolvedArchiveName = null;
-  const exactDir = path43.join(archiveRoot, target);
-  if (existsSync41(exactDir) && statSync27(exactDir).isDirectory()) {
+  const exactDir = path44.join(archiveRoot, target);
+  if (existsSync42(exactDir) && statSync28(exactDir).isDirectory()) {
     resolvedArchiveName = target;
   } else {
     const bareMatches = findArchivedMatchesByBareName(rootDir, target);
@@ -28543,11 +29807,11 @@ function runShip(argv) {
     writeError(`archived change '${target}' not found`);
     return 1;
   }
-  const resolvedArchiveDir = path43.join(archiveRoot, resolvedArchiveName);
+  const resolvedArchiveDir = path44.join(archiveRoot, resolvedArchiveName);
   const archivePath = normalizeRepoRelativePath4(rootDir, resolvedArchiveDir);
   let proposalSummary = "";
-  const proposalPath = path43.join(resolvedArchiveDir, "proposal.yaml");
-  if (existsSync41(proposalPath)) {
+  const proposalPath = path44.join(resolvedArchiveDir, "proposal.yaml");
+  if (existsSync42(proposalPath)) {
     try {
       const proposalDoc = parseYamlDocument(readFileSync31(proposalPath, "utf8"));
       const summary = proposalDoc.summary;
@@ -28620,7 +29884,7 @@ function runTechStatus(argv) {
 }
 var ARCHIVE_DATE_PATTERN = /^(\d{4}-\d{2}-\d{2})-(.+)$/;
 function getDirectoryCreationTimeMs(directoryPath) {
-  const stats = statSync27(directoryPath);
+  const stats = statSync28(directoryPath);
   return stats.birthtimeMs > 0 ? stats.birthtimeMs : stats.ctimeMs;
 }
 function runCommitAndPush(argv) {
@@ -28642,7 +29906,7 @@ function runCommitAndPush(argv) {
     const match = ARCHIVE_DATE_PATTERN.exec(name);
     return match ? {
       dirName: name,
-      createdAtMs: getDirectoryCreationTimeMs(path43.join(archiveRoot, name)),
+      createdAtMs: getDirectoryCreationTimeMs(path44.join(archiveRoot, name)),
       bareName: match[2]
     } : null;
   }).filter((entry) => entry !== null).sort((a, b) => b.createdAtMs - a.createdAtMs || b.dirName.localeCompare(a.dirName));
@@ -28906,9 +30170,9 @@ function runDesignStatus(argv) {
 }
 
 // src/harness.ts
-import { closeSync, existsSync as existsSync42, mkdirSync as mkdirSync14, openSync, readFileSync as readFileSync32, renameSync as renameSync4, rmSync as rmSync5, statSync as statSync28, writeFileSync as writeFileSync17, appendFileSync } from "fs";
+import { closeSync, existsSync as existsSync43, mkdirSync as mkdirSync15, openSync, readFileSync as readFileSync32, renameSync as renameSync4, rmSync as rmSync5, statSync as statSync29, writeFileSync as writeFileSync18, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
-import path44 from "path";
+import path45 from "path";
 var HARNESS_DECLARATION_PATH = ".strict-spec-driven/harness.yaml";
 var HARNESS_RUNTIME_DIR = ".strict-spec-driven/.runtime/harness";
 var HARNESS_RUNTIME_STATE_PATH = `${HARNESS_RUNTIME_DIR}/state.json`;
@@ -28962,9 +30226,9 @@ function yamlDiagnosticFromError(artifactPath, error) {
   };
 }
 function getRuntimePaths(rootDir) {
-  const absoluteRuntimeDir = path44.join(rootDir, HARNESS_RUNTIME_DIR);
-  const absoluteLogsDir = path44.join(rootDir, HARNESS_LOGS_DIR);
-  const absoluteStatePath = path44.join(rootDir, HARNESS_RUNTIME_STATE_PATH);
+  const absoluteRuntimeDir = path45.join(rootDir, HARNESS_RUNTIME_DIR);
+  const absoluteLogsDir = path45.join(rootDir, HARNESS_LOGS_DIR);
+  const absoluteStatePath = path45.join(rootDir, HARNESS_RUNTIME_STATE_PATH);
   return {
     absoluteRuntimeDir,
     absoluteLogsDir,
@@ -28974,7 +30238,7 @@ function getRuntimePaths(rootDir) {
 }
 function ensureRuntimeDirectories(rootDir) {
   const paths = getRuntimePaths(rootDir);
-  mkdirSync14(paths.absoluteLogsDir, { recursive: true });
+  mkdirSync15(paths.absoluteLogsDir, { recursive: true });
   return paths;
 }
 function sleepSync(milliseconds) {
@@ -28996,7 +30260,7 @@ function isProcessAlive(pid) {
 }
 function readRuntimeState(rootDir) {
   const paths = getRuntimePaths(rootDir);
-  if (!existsSync42(paths.absoluteStatePath))
+  if (!existsSync43(paths.absoluteStatePath))
     return { ok: true, state: null };
   try {
     const state = JSON.parse(readFileSync32(paths.absoluteStatePath, "utf8"));
@@ -29025,7 +30289,7 @@ function readRuntimeState(rootDir) {
 }
 function writeRuntimeState(rootDir, state) {
   const paths = ensureRuntimeDirectories(rootDir);
-  writeFileSync17(paths.absoluteStatePath, JSON.stringify(state, null, 2) + `
+  writeFileSync18(paths.absoluteStatePath, JSON.stringify(state, null, 2) + `
 `, "utf8");
 }
 function clearRuntimeState(rootDir) {
@@ -29190,7 +30454,7 @@ function assertOperationAllowed(artifactPath, environment, component, operationN
   return null;
 }
 function readJsonFile(filePath) {
-  if (!existsSync42(filePath))
+  if (!existsSync43(filePath))
     return null;
   try {
     return JSON.parse(readFileSync32(filePath, "utf8"));
@@ -29199,11 +30463,11 @@ function readJsonFile(filePath) {
   }
 }
 function detectPackageRunner(rootDir) {
-  if (existsSync42(path44.join(rootDir, "bun.lock")) || existsSync42(path44.join(rootDir, "bun.lockb")))
+  if (existsSync43(path45.join(rootDir, "bun.lock")) || existsSync43(path45.join(rootDir, "bun.lockb")))
     return "bun run";
-  if (existsSync42(path44.join(rootDir, "pnpm-lock.yaml")))
+  if (existsSync43(path45.join(rootDir, "pnpm-lock.yaml")))
     return "pnpm run";
-  if (existsSync42(path44.join(rootDir, "yarn.lock")))
+  if (existsSync43(path45.join(rootDir, "yarn.lock")))
     return "yarn";
   return "npm run";
 }
@@ -29249,8 +30513,8 @@ function readEnvSampleNames(rootDir) {
   const names = new Set;
   const evidence = [];
   for (const relativePath of ENV_SAMPLE_FILES) {
-    const absolutePath = path44.join(rootDir, relativePath);
-    if (!existsSync42(absolutePath))
+    const absolutePath = path45.join(rootDir, relativePath);
+    if (!existsSync43(absolutePath))
       continue;
     evidence.push(relativePath);
     for (const line of readFileSync32(absolutePath, "utf8").split(/\r?\n/)) {
@@ -29307,7 +30571,7 @@ function inferComposePort(service) {
   return null;
 }
 function detectPackageScriptSignal(rootDir, packageJson, scripts) {
-  if (!existsSync42(path44.join(rootDir, "package.json"))) {
+  if (!existsSync43(path45.join(rootDir, "package.json"))) {
     return { candidate: null, evidence: [] };
   }
   const preferredScript = PACKAGE_SCRIPT_NAMES.find((name) => scripts[name] !== undefined);
@@ -29333,8 +30597,8 @@ function detectPackageScriptSignal(rootDir, packageJson, scripts) {
 function detectComposeServiceSignal(rootDir) {
   const evidence = [];
   for (const relativePath of COMPOSE_FILES) {
-    const absolutePath = path44.join(rootDir, relativePath);
-    if (!existsSync42(absolutePath))
+    const absolutePath = path45.join(rootDir, relativePath);
+    if (!existsSync43(absolutePath))
       continue;
     try {
       const compose = parseYamlDocument(readFileSync32(absolutePath, "utf8"), { source: relativePath });
@@ -29363,8 +30627,8 @@ function detectComposeServiceSignal(rootDir) {
   return { candidate: null, evidence };
 }
 function detectProcfileSignal(rootDir, packageJson) {
-  const procfilePath = path44.join(rootDir, "Procfile");
-  if (!existsSync42(procfilePath)) {
+  const procfilePath = path45.join(rootDir, "Procfile");
+  if (!existsSync43(procfilePath)) {
     return { candidate: null, evidence: [] };
   }
   const entries = readFileSync32(procfilePath, "utf8").split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0 && !line.startsWith("#")).map((line) => line.match(/^([A-Za-z0-9_-]+):\s*(.+)$/)).filter((match) => match !== null).map((match) => ({ name: match[1], command: match[2].trim() })).filter((entry) => entry.command.length > 0);
@@ -29389,8 +30653,8 @@ function detectProcfileSignal(rootDir, packageJson) {
   };
 }
 function detectMakefileSignal(rootDir) {
-  const makefilePath = path44.join(rootDir, "Makefile");
-  if (!existsSync42(makefilePath)) {
+  const makefilePath = path45.join(rootDir, "Makefile");
+  if (!existsSync43(makefilePath)) {
     return { candidate: null, evidence: [] };
   }
   const target = readFileSync32(makefilePath, "utf8").split(/\r?\n/).map((line) => line.match(/^([A-Za-z0-9_.-]+)\s*:(?![=])/)).find((match) => match !== null && !match[1].startsWith(".") && MAKEFILE_TARGET_NAMES.has(match[1]));
@@ -29429,7 +30693,7 @@ function detectHarnessInferenceSignal(rootDir, packageJson, scripts) {
   return { signal: null, evidence };
 }
 function buildInferredHarness(rootDir) {
-  const packageJson = readJsonFile(path44.join(rootDir, "package.json"));
+  const packageJson = readJsonFile(path45.join(rootDir, "package.json"));
   const scripts = getPackageScripts(packageJson);
   const envSamples = readEnvSampleNames(rootDir);
   const inference = detectHarnessInferenceSignal(rootDir, packageJson, scripts);
@@ -29450,7 +30714,7 @@ function buildInferredHarness(rootDir) {
       artifact_type: "harness",
       schema_file: "templates/strict-spec-driven/schemas/harness.yaml",
       harness: {
-        id: path44.basename(rootDir).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "default",
+        id: path45.basename(rootDir).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "default",
         description: "AI-assisted draft inferred from repository metadata. Review commands and safety policy before enabling lifecycle scripts.",
         environments: {
           development: {
@@ -29529,7 +30793,7 @@ function buildInferredHarness(rootDir) {
   };
 }
 function inferHarness(rootDir, options = {}) {
-  const absolutePath = path44.join(rootDir, HARNESS_DECLARATION_PATH);
+  const absolutePath = path45.join(rootDir, HARNESS_DECLARATION_PATH);
   const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
   const inferred = buildInferredHarness(rootDir);
   const draft = stringifyYamlDocument(inferred.artifact);
@@ -29539,7 +30803,7 @@ function inferHarness(rootDir, options = {}) {
     return { ok: false, artifactPath, created: false, draft, evidence: inferred.evidence, diagnostics };
   }
   if (options.write) {
-    if (existsSync42(absolutePath) && !options.force) {
+    if (existsSync43(absolutePath) && !options.force) {
       return {
         ok: false,
         artifactPath,
@@ -29552,15 +30816,15 @@ function inferHarness(rootDir, options = {}) {
         })]
       };
     }
-    mkdirSync14(path44.dirname(absolutePath), { recursive: true });
-    writeFileSync17(absolutePath, draft, "utf8");
+    mkdirSync15(path45.dirname(absolutePath), { recursive: true });
+    writeFileSync18(absolutePath, draft, "utf8");
   }
   return { ok: true, artifactPath, created: options.write ?? false, draft, evidence: inferred.evidence, diagnostics: [] };
 }
 function deriveHarnessPlan(rootDir, environmentId, componentIds = []) {
-  const absolutePath = path44.join(rootDir, HARNESS_DECLARATION_PATH);
+  const absolutePath = path45.join(rootDir, HARNESS_DECLARATION_PATH);
   const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
-  if (!existsSync42(absolutePath)) {
+  if (!existsSync43(absolutePath)) {
     throw new Error("missing-harness");
   }
   const artifact = parseYamlFile(absolutePath);
@@ -29659,7 +30923,7 @@ function normalizeOperation(operation) {
   };
 }
 function getHarnessPlanResult(rootDir, environmentId, componentIds = []) {
-  const artifactPath = normalizeRepoRelativePath4(rootDir, path44.join(rootDir, HARNESS_DECLARATION_PATH));
+  const artifactPath = normalizeRepoRelativePath4(rootDir, path45.join(rootDir, HARNESS_DECLARATION_PATH));
   try {
     return {
       valid: true,
@@ -29822,7 +31086,7 @@ function startHarness(rootDir, options = {}) {
       return { ok: false, artifactPath: planResult.artifactPath, runtimeStatePath: writablePaths.relativeStatePath, harnessId: planResult.harness.id, environmentId: planResult.environment.id, components: summarizeRuntimeState(state), diagnostics };
     }
     const missingEnvironment = getMissingRequiredEnvironment(component);
-    const logAbsolutePath = path44.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
+    const logAbsolutePath = path45.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
     const logPath = normalizeRepoRelativePath4(rootDir, logAbsolutePath);
     if (missingEnvironment.length > 0) {
       const failureReason = formatMissingRequiredEnvironmentFailure(missingEnvironment);
@@ -29879,10 +31143,10 @@ function startHarness(rootDir, options = {}) {
         diagnostics
       };
     }
-    writeFileSync17(logAbsolutePath, "", "utf8");
+    writeFileSync18(logAbsolutePath, "", "utf8");
     const logDescriptor = openSync(logAbsolutePath, "a");
     const child = spawn(component.operations.start.command ?? "", [], {
-      cwd: path44.join(rootDir, component.workingDirectory),
+      cwd: path45.join(rootDir, component.workingDirectory),
       env: process.env,
       shell: true,
       detached: true,
@@ -29946,7 +31210,7 @@ function getHarnessLogs(rootDir, options = {}) {
   if (record === undefined) {
     return { ok: false, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, diagnostics: [createDiagnostic(runtime.state.artifactPath, "$", "harness-logs received an unknown declared component id", { source: "logs", phase: "logs", componentId, expected: ids.join(", "), actual: componentId })] };
   }
-  const content = readFileSync32(path44.join(rootDir, record.logPath), "utf8");
+  const content = readFileSync32(path45.join(rootDir, record.logPath), "utf8");
   const boundedContent = options.all ? content : takeTailLines(content, options.tailLines ?? DEFAULT_HARNESS_LOG_TAIL_LINES);
   return { ok: true, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, componentId, logPath: record.logPath, content: boundedContent, diagnostics: [] };
 }
@@ -29979,7 +31243,7 @@ function stopHarness(rootDir, options = {}) {
       continue;
     }
     if (record.stopCommand) {
-      const result = spawnSync(record.stopCommand, [], { cwd: path44.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
+      const result = spawnSync(record.stopCommand, [], { cwd: path45.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
       if (result.status !== 0) {
         record.status = "failed";
         record.failureReason = result.stderr.trim() || result.stdout.trim() || "stop command failed";
@@ -30008,13 +31272,13 @@ function addDoctorDiagnostic(diagnostics, artifactPath, fieldPath, message, opti
   diagnostics.push(createDiagnostic(artifactPath, fieldPath, message, options));
 }
 function doctorHarness(rootDir) {
-  const artifactPath = normalizeRepoRelativePath4(rootDir, path44.join(rootDir, HARNESS_DECLARATION_PATH));
+  const artifactPath = normalizeRepoRelativePath4(rootDir, path45.join(rootDir, HARNESS_DECLARATION_PATH));
   const planResult = getHarnessPlanResult(rootDir);
   const diagnostics = [];
   if (!planResult.valid) {
     return { ok: false, artifactPath: planResult.artifactPath, diagnostics: planResult.diagnostics };
   }
-  const absolutePath = path44.join(rootDir, HARNESS_DECLARATION_PATH);
+  const absolutePath = path45.join(rootDir, HARNESS_DECLARATION_PATH);
   const artifact = parseYamlFile(absolutePath);
   const rootEnvSamples = readEnvSampleNames(rootDir);
   const wrapperCheck = verifyHarnessScripts(rootDir);
@@ -30028,8 +31292,8 @@ function doctorHarness(rootDir) {
     }
     const seenPorts = new Map;
     for (const component of environmentPlan.components) {
-      const workingDirectory = path44.join(rootDir, component.workingDirectory);
-      if (!existsSync42(workingDirectory) || !statSync28(workingDirectory).isDirectory()) {
+      const workingDirectory = path45.join(rootDir, component.workingDirectory);
+      if (!existsSync43(workingDirectory) || !statSync29(workingDirectory).isDirectory()) {
         addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.working_directory`, "harness component working directory is missing", {
           source: "filesystem",
           componentId: component.id,
@@ -30037,19 +31301,19 @@ function doctorHarness(rootDir) {
           actual: component.workingDirectory
         });
       }
-      const componentEnvSamples = workingDirectory === rootDir || !existsSync42(workingDirectory) ? { names: [], evidence: [] } : readEnvSampleNames(workingDirectory);
+      const componentEnvSamples = workingDirectory === rootDir || !existsSync43(workingDirectory) ? { names: [], evidence: [] } : readEnvSampleNames(workingDirectory);
       const documentedEnvNames = new Set([...rootEnvSamples.names, ...componentEnvSamples.names]);
       for (const name of component.environment.required) {
         if (!documentedEnvNames.has(name)) {
           let targetPath = ".env.example";
           if (componentEnvSamples.evidence.length > 0) {
-            targetPath = path44.join(component.workingDirectory, componentEnvSamples.evidence[0]);
+            targetPath = path45.join(component.workingDirectory, componentEnvSamples.evidence[0]);
           } else if (rootEnvSamples.evidence.length > 0) {
             targetPath = rootEnvSamples.evidence[0];
           } else if (component.workingDirectory !== ".") {
-            targetPath = path44.join(component.workingDirectory, ".env.example");
+            targetPath = path45.join(component.workingDirectory, ".env.example");
           }
-          const repoRelativeTarget = normalizeRepoRelativePath4(rootDir, path44.resolve(rootDir, targetPath));
+          const repoRelativeTarget = normalizeRepoRelativePath4(rootDir, path45.resolve(rootDir, targetPath));
           const recovery = {
             type: "bootstrap_env",
             description: `Append missing required environment variable ${name} to ${repoRelativeTarget}`,
@@ -30098,7 +31362,7 @@ ${name}=
           continue;
         const scriptName = extractPackageScriptName(operation.command);
         if (scriptName !== null) {
-          const packageJson = readJsonFile(path44.join(workingDirectory, "package.json"));
+          const packageJson = readJsonFile(path45.join(workingDirectory, "package.json"));
           const scripts = getPackageScripts(packageJson);
           if (scripts[scriptName] === undefined) {
             addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.operations.${operationName}.command`, "harness operation references a missing package script", {
@@ -30155,20 +31419,20 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
       continue;
     for (const step of diag.recovery.steps) {
       if (step.action === "write_file") {
-        const absolutePath = path44.resolve(rootDir, step.path);
+        const absolutePath = path45.resolve(rootDir, step.path);
         const mode = step.mode ?? "overwrite";
         const key = `write_file::${absolutePath}::${mode}::${step.content}`;
         if (executedKeys.has(key))
           continue;
         executedKeys.add(key);
-        const dir = path44.dirname(absolutePath);
-        if (!existsSync42(dir)) {
-          mkdirSync14(dir, { recursive: true });
+        const dir = path45.dirname(absolutePath);
+        if (!existsSync43(dir)) {
+          mkdirSync15(dir, { recursive: true });
         }
         if (mode === "append") {
           appendFileSync(absolutePath, step.content, "utf8");
         } else {
-          writeFileSync17(absolutePath, step.content, "utf8");
+          writeFileSync18(absolutePath, step.content, "utf8");
         }
         anyFixed = true;
       } else if (step.action === "run_cli") {
@@ -30176,7 +31440,7 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
         if (executedKeys.has(key))
           continue;
         executedKeys.add(key);
-        const cliPath = path44.resolve(process.argv[1]);
+        const cliPath = path45.resolve(process.argv[1]);
         const display = ["strict-spec-cli", ...step.args].join(" ");
         const result = spawnSync(process.execPath, [cliPath, ...step.args], { cwd: rootDir, encoding: "utf8" });
         if (result.error) {
@@ -30215,12 +31479,12 @@ function wrapperContent(scriptName) {
 `);
 }
 function generateHarnessScripts(rootDir) {
-  const scriptsDir = path44.join(rootDir, "scripts");
-  mkdirSync14(scriptsDir, { recursive: true });
+  const scriptsDir = path45.join(rootDir, "scripts");
+  mkdirSync15(scriptsDir, { recursive: true });
   const created = [];
   for (const scriptName of SCRIPT_NAMES) {
-    const absolutePath = path44.join(scriptsDir, scriptName);
-    writeFileSync17(absolutePath, wrapperContent(scriptName), { encoding: "utf8", mode: 493 });
+    const absolutePath = path45.join(scriptsDir, scriptName);
+    writeFileSync18(absolutePath, wrapperContent(scriptName), { encoding: "utf8", mode: 493 });
     created.push(normalizeRepoRelativePath4(rootDir, absolutePath));
   }
   return { ok: true, scripts: SCRIPT_NAMES.map((name) => `scripts/${name}`), created, verified: [], diagnostics: [] };
@@ -30240,8 +31504,8 @@ function verifyHarnessScripts(rootDir) {
   };
   for (const scriptName of SCRIPT_NAMES) {
     const relativePath = `scripts/${scriptName}`;
-    const absolutePath = path44.join(rootDir, relativePath);
-    if (!existsSync42(absolutePath)) {
+    const absolutePath = path45.join(rootDir, relativePath);
+    if (!existsSync43(absolutePath)) {
       diagnostics.push(createDiagnostic(relativePath, "$", "harness script is missing", {
         source: "scripts",
         phase: "scripts",
@@ -30270,47 +31534,47 @@ function normalizeHarnessSessionPath(rootDir, target) {
   const normalized = target.split("\\").join("/");
   const looksLikePath = normalized.includes("/") || normalized.endsWith(".yaml");
   const repoRelativePath = looksLikePath ? normalized : `${HARNESS_SESSIONS_DIR}/${normalized}/${HARNESS_SESSION_FILE_NAME}`;
-  const absolutePath = path44.resolve(rootDir, repoRelativePath);
+  const absolutePath = path45.resolve(rootDir, repoRelativePath);
   return { artifactPath: normalizeRepoRelativePath4(rootDir, absolutePath), absolutePath };
 }
 function formatLocalDate2(date = new Date) {
   return `${String(date.getFullYear())}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 function buildHarnessSessionArchiveDestination(rootDir, sessionId) {
-  const archiveRoot = path44.join(rootDir, HARNESS_SESSION_ARCHIVE_DIR);
-  mkdirSync14(archiveRoot, { recursive: true });
+  const archiveRoot = path45.join(rootDir, HARNESS_SESSION_ARCHIVE_DIR);
+  mkdirSync15(archiveRoot, { recursive: true });
   const baseName = `${formatLocalDate2()}-${sessionId}`;
-  let candidate = path44.join(archiveRoot, baseName);
+  let candidate = path45.join(archiveRoot, baseName);
   let sequence = 2;
-  while (existsSync42(candidate)) {
-    candidate = path44.join(archiveRoot, `${baseName}-${sequence}`);
+  while (existsSync43(candidate)) {
+    candidate = path45.join(archiveRoot, `${baseName}-${sequence}`);
     sequence += 1;
   }
   return candidate;
 }
 function isDirectory(filePath) {
-  return existsSync42(filePath) && statSync28(filePath).isDirectory();
+  return existsSync43(filePath) && statSync29(filePath).isDirectory();
 }
 function createHarnessSession(rootDir, sessionId) {
-  const sessionDir = path44.join(rootDir, HARNESS_SESSIONS_DIR, sessionId);
-  const sessionPath = path44.join(sessionDir, HARNESS_SESSION_FILE_NAME);
-  const evidenceDir = path44.join(sessionDir, "evidence");
+  const sessionDir = path45.join(rootDir, HARNESS_SESSIONS_DIR, sessionId);
+  const sessionPath = path45.join(sessionDir, HARNESS_SESSION_FILE_NAME);
+  const evidenceDir = path45.join(sessionDir, "evidence");
   const relativeSessionDir = normalizeRepoRelativePath4(rootDir, sessionDir);
   const relativeSessionPath = normalizeRepoRelativePath4(rootDir, sessionPath);
   const relativeEvidenceDir = normalizeRepoRelativePath4(rootDir, evidenceDir);
   if (!SESSION_ID_PATTERN.test(sessionId) || sessionId === "archive") {
     return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$.harness_session.id", "harness-session id must be kebab-case and not reserved", { expected: "lowercase letters, numbers, hyphens, and not 'archive'", actual: sessionId })] };
   }
-  if (existsSync42(sessionPath) || existsSync42(evidenceDir)) {
+  if (existsSync43(sessionPath) || existsSync43(evidenceDir)) {
     return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$", "harness-session already exists", { expected: "new harness-session directory", actual: relativeSessionDir })] };
   }
-  mkdirSync14(evidenceDir, { recursive: true });
-  writeFileSync17(sessionPath, readBundledScaffoldTemplate(HARNESS_SESSION_TEMPLATE_PATH).replaceAll(TEMPLATE_SESSION_ID_PLACEHOLDER, sessionId), "utf8");
+  mkdirSync15(evidenceDir, { recursive: true });
+  writeFileSync18(sessionPath, readBundledScaffoldTemplate(HARNESS_SESSION_TEMPLATE_PATH).replaceAll(TEMPLATE_SESSION_ID_PLACEHOLDER, sessionId), "utf8");
   return { ok: true, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: `${relativeEvidenceDir}/`, created: [relativeSessionPath, `${relativeEvidenceDir}/`], diagnostics: [] };
 }
 function validateHarnessSession(rootDir, target) {
   const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
-  if (!existsSync42(absolutePath)) {
+  if (!existsSync43(absolutePath)) {
     return { valid: false, artifactPath, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
   }
   let artifact;
@@ -30324,15 +31588,15 @@ function validateHarnessSession(rootDir, target) {
 }
 function archiveHarnessSession(rootDir, target) {
   const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
-  const sourceDir = path44.dirname(absolutePath);
+  const sourceDir = path45.dirname(absolutePath);
   const relativeSourceDir = normalizeRepoRelativePath4(rootDir, sourceDir);
   const missingResult = { ok: false, sessionId: null, sourceDir: relativeSourceDir, sourcePath: artifactPath, archiveDir: null, archivePath: null };
-  if (!existsSync42(absolutePath)) {
+  if (!existsSync43(absolutePath)) {
     return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
   }
-  const activeRoot = path44.resolve(rootDir, HARNESS_SESSIONS_DIR);
-  const sourceParent = path44.dirname(path44.resolve(sourceDir));
-  if (path44.basename(absolutePath) !== HARNESS_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
+  const activeRoot = path45.resolve(rootDir, HARNESS_SESSIONS_DIR);
+  const sourceParent = path45.dirname(path45.resolve(sourceDir));
+  if (path45.basename(absolutePath) !== HARNESS_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
     return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session archive target must be an active session.yaml artifact", { expected: `${HARNESS_SESSIONS_DIR}/<session-id>/${HARNESS_SESSION_FILE_NAME}`, actual: artifactPath })] };
   }
   const validation = validateHarnessSession(rootDir, artifactPath);
@@ -30347,14 +31611,14 @@ function archiveHarnessSession(rootDir, target) {
   if (sessionId === "archive") {
     return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id is reserved for archived sessions", { expected: "non-reserved harness-session id", actual: sessionId })] };
   }
-  if (path44.basename(sourceDir) !== sessionId) {
-    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path44.basename(sourceDir), actual: sessionId })] };
+  if (path45.basename(sourceDir) !== sessionId) {
+    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path45.basename(sourceDir), actual: sessionId })] };
   }
   if (status !== "resolved" && status !== "blocked") {
     return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.status", "harness-session must be resolved or blocked before archive", { expected: "resolved or blocked", actual: typeof status === "string" ? status : typeof status })] };
   }
   const archiveDestination = buildHarnessSessionArchiveDestination(rootDir, sessionId);
-  const archivePath = path44.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
+  const archivePath = path45.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
   renameSync4(sourceDir, archiveDestination);
   return {
     ok: true,
@@ -30657,6 +31921,12 @@ var commands = createCliCommandTable({
   "sop-validate": (argv) => runSopValidate(argv),
   "sop-category-list": (argv) => runSopCategoryList(argv),
   "sop-category-show": (argv) => runSopCategoryShow(argv),
+  "lesson-create": (argv) => runLessonCreate(argv),
+  "lesson-list": (argv) => runLessonList(argv),
+  "lesson-show": (argv) => runLessonShow(argv),
+  "lesson-edit": (argv) => runLessonEdit(argv),
+  "lesson-obsolete": (argv) => runLessonObsolete(argv),
+  "lesson-status": (argv) => runLessonStatus(argv),
   maintenance: (argv) => runMaintenanceCommand(argv),
   ship: (argv) => runShip(argv),
   "commit-and-push": (argv) => runCommitAndPush(argv),

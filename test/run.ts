@@ -15,6 +15,7 @@ import { runMcpInstallSuite } from "./suites/mcp-install.js";
 import { runMcpServerSuite } from "./suites/mcp-server.js";
 import { runOperationsSuite } from "./suites/operations.js";
 import { runRoadmapAndMigrationSuite } from "./suites/roadmap-and-migration.js";
+import { runLessonsSuite } from "./suites/lessons.js";
 import { runSopsSuite } from "./suites/sops.js";
 
 async function main(): Promise<void> {
@@ -30,6 +31,7 @@ async function main(): Promise<void> {
   await runChangeLifecycleSuite(context);
   await runRoadmapAndMigrationSuite(context);
   await runSopsSuite(context);
+  await runLessonsSuite(context);
   await runOperationsSuite(context);
   await runArchitectureDocumentSuite(context);
   await runDesignSystemDocumentSuite(context);

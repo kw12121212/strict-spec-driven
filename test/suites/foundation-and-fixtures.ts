@@ -844,7 +844,7 @@ context.assert(
   JSON.stringify(firstAssetList) === JSON.stringify(secondAssetList),
   "required scaffold asset manifest is deterministic",
 );
-context.assert(firstAssetList.length === 6, "required scaffold asset manifest includes six assets");
+context.assert(firstAssetList.length === 7, "required scaffold asset manifest includes seven assets");
 context.assert(
   firstAssetList.every((asset) => asset.endsWith(".yaml")),
   "required scaffold asset manifest contains only YAML files",

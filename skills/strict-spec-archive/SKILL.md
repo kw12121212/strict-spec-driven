@@ -22,6 +22,7 @@ verify: strict-spec-cli verify <change-name>
 verify-spec-mappings: strict-spec-cli verify-spec-mappings
 generate: strict-spec-cli generate <change-name> delta-tech --<named-args>
 archive: strict-spec-cli archive <change-name>
+lesson-status: strict-spec-cli lesson-status
 ```
 
 ## Responsibility Split
@@ -86,7 +87,16 @@ run `init` from this skill.
      verification, and rerun the configured complete project regression evidence
      when the artifact edit invalidated the earlier evidence
 
-3. **Confirm readiness** — after the final tech-sync checkpoint and any required
+3. **Confirm the lesson declaration** — confirm that review declared either a
+   recorded lesson or a justified "no lesson" for this change. Experience is
+   learned during implementation and is lost the moment the change is archived,
+   so this is the last point at which it can be captured cheaply. If the
+   declaration was never made, make it now against the objective criteria in
+   `strict-spec-review` — an overturned design decision, an unforeseen question,
+   a task added from a discovery, or a regression exposing a pre-existing trap —
+   and record the lesson before continuing. Do not invent one to fill the slot.
+
+4. **Confirm readiness** — after the final tech-sync checkpoint and any required
    evidence reruns, run:
    ```bash
    strict-spec-cli verify <change-name>
@@ -94,20 +104,20 @@ run `init` from this skill.
    ```
    Stop if either command reports blockers.
 
-4. **Check for observable spec impact** — inspect
+5. **Check for observable spec impact** — inspect
    `.strict-spec-driven/changes/<name>/specs/`.
    - if it is empty, treat the change as having no delta specs to merge and
      continue directly to archive
    - otherwise proceed
 
-5. **Archive the change** — use the raw command only as the deterministic
+6. **Archive the change** — use the raw command only as the deterministic
    verification, delta-merge, index-regeneration, roadmap-reconciliation, and
    change-move mechanism:
    ```bash
    strict-spec-cli archive <change-name>
    ```
 
-6. **Confirm the result** — summarize:
+7. **Confirm the result** — summarize:
     - the archive destination
     - the strict main specs that were updated
     - any roadmap files the archive command reconciled

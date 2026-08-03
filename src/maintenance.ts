@@ -7,6 +7,7 @@ import type { RoadmapSyncResult } from "./roadmap.js";
 import { generateArchitectureDocument } from "./architecture.js";
 import { generateDesignDocument } from "./design-system.js";
 import { DocumentSourceError, type DocumentRenderResult } from "./document-render.js";
+import { listLessons, showLesson } from "./lessons.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const FORBIDDEN_SPEC_SUBDIRS = new Set([".strict-spec-driven", "changes", "archive"]);
@@ -136,6 +137,80 @@ function runGeneratedDocCheck(rootDir: string): MaintenanceFinding[] {
   return findings;
 }
 
+/**
+ * How long a lesson may go without a fresh encounter before its evidence base counts as dated. A
+ * lesson whose every occurrence came from work that has since been archived, and that nothing has
+ * hit since, is a candidate for review — not a lesson that is automatically wrong.
+ */
+const LESSON_STALENESS_WINDOW_DAYS = 180;
+
+/** Repo-relative path-like tokens, used to spot a lesson that names a file the repo no longer has. */
+const PATH_TOKEN_PATTERN = /(?:[A-Za-z0-9_.-]+\/)+[A-Za-z0-9_.-]+\.[A-Za-z0-9]+/g;
+
+function referencedPathsThatVanished(rootDir: string, text: string): string[] {
+  const missing: string[] = [];
+  for (const token of text.match(PATH_TOKEN_PATTERN) ?? []) {
+    if (token.includes("://") || token.startsWith("..")) continue;
+    if (existsSync(path.join(rootDir, token))) continue;
+    if (!missing.includes(token)) missing.push(token);
+  }
+  return missing;
+}
+
+function changeIsArchived(rootDir: string, changeName: string): boolean {
+  return existsSync(path.join(getChangesDir(rootDir), "archive", changeName));
+}
+
+function daysSince(isoDate: string): number | null {
+  const parsed = Date.parse(isoDate);
+  if (Number.isNaN(parsed)) return null;
+  return (Date.now() - parsed) / (1000 * 60 * 60 * 24);
+}
+
+/**
+ * Nominates active lessons whose premises look like they no longer hold, so obsolescence review is
+ * scheduled work rather than something a human has to remember to do. The check only reports: it
+ * never rewrites a lesson, because deciding that experience has expired is a judgment call, and a
+ * lesson retired for the wrong reason takes its motivating context with it.
+ */
+function runLessonStalenessCheck(rootDir: string): MaintenanceFinding[] {
+  const findings: MaintenanceFinding[] = [];
+  const lessons = listLessons(rootDir).lessons;
+
+  for (const entry of lessons) {
+    const shown = showLesson(rootDir, entry.id);
+    const lesson = shown.lesson;
+    if (!lesson) continue;
+
+    const missingPaths = referencedPathsThatVanished(rootDir, lesson.applies_when);
+    if (missingPaths.length > 0) {
+      findings.push({
+        check: "lesson-staleness-check",
+        description: `Review lesson '${entry.id}': its applies_when names ${missingPaths.join(", ")}, which no longer exists in the repository. Retire it with 'strict-spec-cli lesson-obsolete ${entry.id} --reason "<why>"' or update the condition with lesson-edit.`,
+      });
+      continue;
+    }
+
+    const occurrences = lesson.occurrences ?? [];
+    if (occurrences.length === 0) continue;
+
+    const everyOriginArchived = occurrences.every((occurrence) => changeIsArchived(rootDir, occurrence.origin));
+    if (!everyOriginArchived) continue;
+
+    const ages = occurrences.map((occurrence) => daysSince(occurrence.date)).filter((age): age is number => age !== null);
+    if (ages.length === 0) continue;
+    const newestAge = Math.min(...ages);
+    if (newestAge < LESSON_STALENESS_WINDOW_DAYS) continue;
+
+    findings.push({
+      check: "lesson-staleness-check",
+      description: `Review lesson '${entry.id}': every recorded occurrence comes from archived work and the most recent is ${Math.floor(newestAge)} days old. Confirm it still applies, or retire it with 'strict-spec-cli lesson-obsolete ${entry.id} --reason "<why>"'.`,
+    });
+  }
+
+  return findings;
+}
+
 function buildProposalYaml(changeName: string, findings: MaintenanceFinding[]): object {
   const checkTypes = [...new Set(findings.map((f) => f.check))];
   return {
@@ -223,6 +298,10 @@ export function runMaintenance(rootDir: string): MaintenanceResult {
     }
     if (check.type === "generated-doc-check") {
       findings.push(...runGeneratedDocCheck(rootDir));
+      checksRun++;
+    }
+    if (check.type === "lesson-staleness-check") {
+      findings.push(...runLessonStalenessCheck(rootDir));
       checksRun++;
     }
   }

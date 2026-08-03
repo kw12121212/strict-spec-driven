@@ -22,6 +22,7 @@ import {
   runRoadmapSync,
 } from "./cli/cmd-roadmap.js";
 import { runSopCategoryList, runSopCategoryShow, runSopCreate, runSopEdit, runSopList, runSopShow, runSopValidate } from "./cli/cmd-sops.js";
+import { runLessonCreate, runLessonEdit, runLessonList, runLessonObsolete, runLessonShow, runLessonStatus } from "./cli/cmd-lessons.js";
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runMcpInstall } from "./cli/cmd-mcp-install.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMappings, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
@@ -152,6 +153,12 @@ export const commands = createCliCommandTable({
   "sop-validate": (argv) => runSopValidate(argv),
   "sop-category-list": (argv) => runSopCategoryList(argv),
   "sop-category-show": (argv) => runSopCategoryShow(argv),
+  "lesson-create": (argv) => runLessonCreate(argv),
+  "lesson-list": (argv) => runLessonList(argv),
+  "lesson-show": (argv) => runLessonShow(argv),
+  "lesson-edit": (argv) => runLessonEdit(argv),
+  "lesson-obsolete": (argv) => runLessonObsolete(argv),
+  "lesson-status": (argv) => runLessonStatus(argv),
   maintenance: (argv) => runMaintenanceCommand(argv),
   ship: (argv) => runShip(argv),
   "commit-and-push": (argv) => runCommitAndPush(argv),

@@ -24310,7 +24310,7 @@ var COMMAND_METADATA_ENTRIES = {
       "",
       "Examples:",
       "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
-      "  strict-spec-cli generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
+      "  strict-spec-cli generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>]",
       "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
       "  strict-spec-cli generate <change-name> tasks [--reset [--force]] [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
       "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
@@ -24338,6 +24338,126 @@ var COMMAND_METADATA_ENTRIES = {
         description: "Allow a tasks --reset to discard tasks already recorded as complete."
       },
       {
+        name: "--what",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Proposal artifact only: what the change does. At least one is required.",
+        required: true,
+        repeatable: true,
+        repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
+        name: "--why",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Proposal artifact only: why the change is needed. At least one is required.",
+        required: true,
+        repeatable: true,
+        repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
+        name: "--in",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Proposal artifact only: an item that is in scope.",
+        repeatable: true,
+        repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
+        name: "--out",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Proposal artifact only: an item that is explicitly out of scope.",
+        repeatable: true,
+        repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
+        name: "--unchanged",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Proposal artifact only: behavior the change must leave unchanged; review checks the result against these.",
+        repeatable: true,
+        repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
+        name: "--milestone",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Proposal artifact only: roadmap milestone this change belongs to. Requires --planned-change."
+      },
+      {
+        name: "--planned-change",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Proposal artifact only: roadmap planned change this change implements. Requires --milestone."
+      },
+      {
+        name: "--roadmap-milestone",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Proposal artifact only: alias for --milestone."
+      },
+      {
+        name: "--roadmap-planned-change",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Proposal artifact only: alias for --planned-change."
+      },
+      {
+        name: "--approach",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Design artifact only: one paragraph of the chosen approach. At least one is required.",
+        required: true,
+        repeatable: true,
+        repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
+        name: "--decision",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Design artifact only: kebab-case decision id, upserted by id.",
+        repeatable: true,
+        repeatSemantics: "Repeat with --decision-text and --rationale once per decision; the three must be supplied in equal counts."
+      },
+      {
+        name: "--decision-text",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Design artifact only: what was decided, paired positionally with --decision.",
+        repeatable: true
+      },
+      {
+        name: "--rationale",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Design artifact only: why the decision was made, paired positionally with --decision. Must justify the choice rather than restate it.",
+        repeatable: true
+      },
+      {
+        name: "--alternative",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Design artifact only: an approach that was considered and rejected. Requires a paired --reason.",
+        repeatable: true,
+        repeatSemantics: "Repeat with --reason once per alternative; the two must be supplied in equal counts. Appends unique option/reason pairs."
+      },
+      {
+        name: "--reason",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Design artifact only: why the paired --alternative was rejected. Must name the specific disadvantage that ruled it out, not restate the option.",
+        repeatable: true
+      },
+      {
+        name: "--risk",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Design artifact only: a risk the change carries.",
+        repeatable: true,
+        repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
         name: "--section",
         arity: "value",
         valueLabel: "<Implementation|Testing|Verification>",
@@ -24363,7 +24483,7 @@ var COMMAND_METADATA_ENTRIES = {
         name: "--status",
         arity: "value",
         valueLabel: "<pending|complete>",
-        description: "Task status; defaults to pending and is preserved when omitted on an existing task.",
+        description: "Tasks artifact: task status, defaulting to pending and preserved when omitted on an existing task. Proposal artifact: the change's lifecycle status.",
         repeatable: true
       },
       {
@@ -25450,6 +25570,173 @@ var COMMAND_METADATA_ENTRIES = {
       description: "A JSON SOP category result."
     },
     exitCodes: VALIDITY_EXIT_CODES
+  },
+  "lesson-create": {
+    name: "lesson-create",
+    group: "lessons",
+    summary: "Record a reusable engineering lesson learned from experience.",
+    usage: `Usage: strict-spec-cli lesson-create --title <text> --category <category> --context <text> --observation <text> --takeaway <text> --applies-when <text> --origin <text> --evidence <text> [--date <yyyy-mm-dd>]
+`,
+    arguments: [],
+    flags: [
+      { name: "--title", arity: "value", valueLabel: "<text>", description: "Lesson title; the id is derived from it.", required: true },
+      {
+        name: "--category",
+        arity: "value",
+        valueLabel: "<category>",
+        description: "Subject area, drawn from the same vocabulary as technical standards: coding, architecture, security, performance, api, testing, tooling, operations, documentation, or ui.",
+        required: true
+      },
+      { name: "--context", arity: "value", valueLabel: "<text>", description: "What was being done when the experience arose.", required: true },
+      { name: "--observation", arity: "value", valueLabel: "<text>", description: "What actually happened, concrete enough to recognize a recurrence.", required: true },
+      { name: "--takeaway", arity: "value", valueLabel: "<text>", description: "The reusable conclusion drawn from the observation.", required: true },
+      {
+        name: "--applies-when",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "The condition under which the lesson should be recalled. This is the retrieval key and the test for whether a later experience is a recurrence of this lesson or a new one.",
+        required: true
+      },
+      { name: "--origin", arity: "value", valueLabel: "<text>", description: "The change, harness session, or ticket this first encounter came from.", required: true },
+      { name: "--evidence", arity: "value", valueLabel: "<text>", description: "Concrete evidence for the encounter, such as a command, error message, or file.", required: true },
+      { name: "--date", arity: "value", valueLabel: "<yyyy-mm-dd>", description: "Encounter date; defaults to today." }
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "created", "lessonId", "path", "diagnostics"],
+      description: "A JSON lesson creation result reporting whether a new lesson file was written."
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "The lesson id is derived from the title plus a hash of the title, category, and applies-when condition, so recording the same experience twice is idempotent and leaves existing occurrences untouched (created is false).",
+      "A lesson carries no MUST/SHOULD/MAY strength and no enforcement mapping; a lesson general enough to bind belongs in a technical standard and is promoted with lesson-edit."
+    ]
+  },
+  "lesson-list": {
+    name: "lesson-list",
+    group: "lessons",
+    summary: "List recorded lessons, active ones by default.",
+    usage: `Usage: strict-spec-cli lesson-list [--all]
+`,
+    arguments: [],
+    flags: [
+      {
+        name: "--all",
+        arity: "boolean",
+        description: "Include promoted and obsolete lessons. Both are hidden by default because a promoted lesson is already surfaced as the technical-standard rule it became."
+      }
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "lessons", "diagnostics"],
+      description: "A JSON list of lessons with id, title, category, status, occurrence count, and path."
+    },
+    exitCodes: VALIDITY_EXIT_CODES
+  },
+  "lesson-show": {
+    name: "lesson-show",
+    group: "lessons",
+    summary: "Print one lesson including its recorded occurrences.",
+    usage: `Usage: strict-spec-cli lesson-show <lesson-id>
+`,
+    arguments: [{ name: "lesson-id", description: "Id of the lesson to print.", required: true }],
+    flags: [],
+    output: {
+      format: "json",
+      keys: ["valid", "lessonId", "path", "lesson", "diagnostics"],
+      description: "A JSON lesson result carrying the full artifact."
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: ["Shows a lesson in any status, so a promoted or obsolete lesson stays reachable after it leaves the default list."]
+  },
+  "lesson-edit": {
+    name: "lesson-edit",
+    group: "lessons",
+    summary: "Edit a lesson, append a recurrence, or promote it into a technical standard rule.",
+    usage: `Usage: strict-spec-cli lesson-edit <lesson-id> [--title <text>] [--context <text>] [--observation <text>] [--takeaway <text>] [--applies-when <text>] [--origin <text> --evidence <text> [--date <yyyy-mm-dd>]] [--promoted-standard <id> --promoted-rule <id>]
+`,
+    arguments: [{ name: "lesson-id", description: "Id of the lesson to edit.", required: true }],
+    flags: [
+      { name: "--title", arity: "value", valueLabel: "<text>", description: "Replace the lesson title." },
+      { name: "--context", arity: "value", valueLabel: "<text>", description: "Replace the context." },
+      { name: "--observation", arity: "value", valueLabel: "<text>", description: "Replace the observation." },
+      { name: "--takeaway", arity: "value", valueLabel: "<text>", description: "Replace the takeaway." },
+      { name: "--applies-when", arity: "value", valueLabel: "<text>", description: "Replace the recall condition." },
+      {
+        name: "--origin",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Append a recurrence from this change, session, or ticket. Requires --evidence."
+      },
+      { name: "--evidence", arity: "value", valueLabel: "<text>", description: "Evidence for the appended recurrence. Requires --origin." },
+      { name: "--date", arity: "value", valueLabel: "<yyyy-mm-dd>", description: "Date of the appended recurrence; defaults to today." },
+      {
+        name: "--promoted-standard",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Technical standard the lesson became. Sets status to promoted and requires --promoted-rule."
+      },
+      { name: "--promoted-rule", arity: "value", valueLabel: "<id>", description: "Rule id within that standard. Requires --promoted-standard." }
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "edited", "lessonId", "path", "lesson", "diagnostics"],
+      description: "A JSON lesson edit result carrying the updated artifact."
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "A recurrence is appended rather than replacing earlier occurrences, so the occurrence count stays an honest record of how often the condition was hit and remains the objective signal for promotion.",
+      "Promotion keeps the lesson's original context, observation, takeaway, and occurrences: the technical-standard rule states what must be done but omits the failure that motivated it.",
+      "An obsolete lesson cannot be edited; retirement is terminal and is recorded with lesson-obsolete."
+    ]
+  },
+  "lesson-obsolete": {
+    name: "lesson-obsolete",
+    group: "lessons",
+    summary: "Retire a lesson that no longer holds, recording why.",
+    usage: `Usage: strict-spec-cli lesson-obsolete <lesson-id> --reason <text>
+`,
+    arguments: [{ name: "lesson-id", description: "Id of the lesson to retire.", required: true }],
+    flags: [
+      {
+        name: "--reason",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Why the lesson no longer holds: its premise disappeared, a stronger mechanism replaced it, or it was disproven.",
+        required: true
+      }
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "obsoleted", "lessonId", "path", "lesson", "diagnostics"],
+      description: "A JSON lesson retirement result carrying the updated artifact."
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "The lesson file is never deleted: a lesson retired because its root-cause analysis was wrong is itself reusable experience, and discarding it would hand the same reasoning trap to the next person.",
+      "Retiring an already-obsolete lesson is idempotent and reports obsoleted false without rewriting the recorded reason."
+    ]
+  },
+  "lesson-status": {
+    name: "lesson-status",
+    group: "lessons",
+    summary: "Report the lesson store with the highest-recurrence lessons first.",
+    usage: `Usage: strict-spec-cli lesson-status [--all]
+`,
+    arguments: [],
+    flags: [
+      { name: "--all", arity: "boolean", description: "Include promoted and obsolete lessons in the reported list." }
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "lessonCount", "statusCounts", "categoryCounts", "lessons", "diagnostics"],
+      description: "A JSON lesson store report; lessonCount, statusCounts, and categoryCounts always cover every lesson, while lessons honors --all."
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "Lessons are ordered by occurrence count descending, then by creation order, so the lessons with the strongest evidence for promotion into a binding rule appear first.",
+      "This is the consumption entry point read alongside tech-status when planning or implementing a change."
+    ]
   },
   maintenance: {
     name: "maintenance",
@@ -29320,6 +29607,17 @@ harness:
           evidence_labels: []
           unavailable_conditions: []
 `,
+  "strict-spec-driven/scaffold/lessons/INDEX.yaml": `schema: strict-spec-driven/lessons-index/v1
+schema_version: 1
+artifact_type: lessons_index
+schema_file: ../schemas/lessons-index.yaml
+# Lessons record reusable engineering experience — a pitfall, a path that failed, or diagnostic
+# knowledge — that specs and technical standards deliberately exclude. Create them with
+# \`strict-spec-cli lesson-create\`; this index is rebuilt from the lesson files and is not
+# hand-edited. A lesson that becomes general enough to bind is promoted into a technical standard
+# rule and keeps its original text as the motivating context that rule omits.
+lessons: {}
+`,
   "strict-spec-driven/scaffold/roadmap/INDEX.yaml": `schema: strict-spec-driven/roadmap-index/v2
 schema_version: 2
 artifact_type: roadmap_index
@@ -30897,6 +31195,233 @@ json_schema:
             type: string
             minLength: 1
 `,
+  "strict-spec-driven/schemas/lesson.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/lesson/v1
+artifact_type: lesson
+artifact_name: lesson
+description: >-
+  Strict YAML lesson artifact capturing reusable engineering experience — the context it arose in,
+  what was observed, the reusable takeaway, and the condition under which the takeaway should be
+  recalled — together with the occurrences that prove recurrence and a lifecycle status of active,
+  promoted, or obsolete. A lesson deliberately carries no RFC 2119 strength and no enforcement
+  mapping; binding rules belong in technical standards, and a lesson general enough to bind is
+  promoted into one.
+example_ref: ../../../examples/strict-spec-driven/lesson.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - lesson
+    - category
+    - status
+    - created_at
+    - updated_at
+    - context
+    - observation
+    - takeaway
+    - applies_when
+    - occurrences
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/lesson/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: lesson
+    schema_file:
+      type: string
+    lesson:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        title:
+          type: string
+          minLength: 1
+    category:
+      type: string
+      description: >-
+        Reuses the technical-standard category vocabulary so a lesson and the standard it may be
+        promoted into are filed under the same subject area.
+      enum:
+        - coding
+        - architecture
+        - security
+        - performance
+        - api
+        - testing
+        - tooling
+        - operations
+        - documentation
+        - ui
+    status:
+      type: string
+      description: >-
+        active means the lesson still applies and is offered at consumption points. promoted means
+        the lesson became a binding technical-standard rule and is retained for the motivating
+        context that the rule itself omits. obsolete means the lesson no longer holds and was
+        explicitly retired with a recorded reason.
+      enum:
+        - active
+        - promoted
+        - obsolete
+    created_at:
+      type: string
+      minLength: 1
+    updated_at:
+      type: string
+      minLength: 1
+    context:
+      type: string
+      minLength: 1
+      description: What was being done when the experience arose.
+    observation:
+      type: string
+      minLength: 1
+      description: What actually happened, stated concretely enough to recognize a recurrence.
+    takeaway:
+      type: string
+      minLength: 1
+      description: The reusable conclusion drawn from the observation.
+    applies_when:
+      type: string
+      minLength: 1
+      description: >-
+        The condition under which this lesson should be recalled. This is the retrieval key: it is
+        what lets a consumption point surface the lesson to someone who has not read the store, and
+        it is the test for whether a new experience is a recurrence of this lesson or a new one.
+    occurrences:
+      type: array
+      minItems: 1
+      description: >-
+        Every recorded encounter with this lesson, oldest first. A recurrence appends an entry
+        rather than creating a second lesson, so the length of this list is the objective evidence
+        for whether the lesson has earned promotion into a binding rule.
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - origin
+          - date
+          - evidence
+        properties:
+          origin:
+            type: string
+            minLength: 1
+            description: The change, harness session, or ticket this encounter came from.
+          date:
+            type: string
+            minLength: 1
+          evidence:
+            type: string
+            minLength: 1
+            description: Concrete evidence for this encounter, such as a command, error message, or file.
+    promoted_to:
+      type: object
+      additionalProperties: false
+      description: >-
+        Set only when status is promoted; names the technical standard and rule the lesson became so
+        the binding rule can be traced back to the failure that motivated it.
+      required:
+        - standard
+        - rule
+      properties:
+        standard:
+          type: string
+          minLength: 1
+        rule:
+          type: string
+          minLength: 1
+    obsoleted_reason:
+      type: string
+      minLength: 1
+      description: >-
+        Set only when status is obsolete; why the lesson no longer holds — its premise disappeared,
+        a stronger mechanism replaced it, or it was disproven.
+    obsoleted_at:
+      type: string
+      minLength: 1
+`,
+  "strict-spec-driven/schemas/lessons-index.yaml": `schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/lessons-index/v1
+artifact_type: lessons_index
+artifact_name: lessons-index
+description: >-
+  Strict YAML lesson index artifact (keyed lesson map keyed by conflict-resistant lesson id)
+  describing each recorded lesson's title, category, status, occurrence count, and path, so lessons
+  are discoverable without reading every lesson file.
+example_ref: ../../../examples/strict-spec-driven/lessons-index.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - lessons
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/lessons-index/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: lessons_index
+    schema_file:
+      type: string
+    lessons:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+          - category
+          - status
+          - occurrences
+          - path
+        properties:
+          title:
+            type: string
+            minLength: 1
+          category:
+            type: string
+            minLength: 1
+          status:
+            type: string
+            enum:
+              - active
+              - promoted
+              - obsolete
+          occurrences:
+            type: integer
+            minimum: 1
+            description: >-
+              Recorded encounter count, mirrored into the index so recurrence can be ranked without
+              opening every lesson file.
+          path:
+            type: string
+            minLength: 1
+`,
   "strict-spec-driven/schemas/main-spec.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
 schema_id: strict-spec-driven/main-spec/v1
@@ -31575,6 +32100,33 @@ entries:
       compatible_with: []
       notes:
         - SOPs index is a keyed map keyed by conflict-resistant SOP id for merge-friendly multi-author authoring.
+  - schema_id: strict-spec-driven/lesson/v1
+    schema_version: 1
+    artifact_type: lesson
+    artifact_name: lesson
+    schema_file: lesson.yaml
+    primary_example: ../../../examples/strict-spec-driven/lesson.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Lessons record reusable experience and deliberately carry no RFC 2119 strength or enforcement mapping; a lesson general enough to bind is promoted into a technical standard rule instead.
+        - Recurrence is appended to the occurrences list on the existing lesson rather than creating a second lesson, so occurrence count is the objective promotion signal.
+  - schema_id: strict-spec-driven/lessons-index/v1
+    schema_version: 1
+    artifact_type: lessons_index
+    artifact_name: lessons-index
+    schema_file: lessons-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/lessons-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Lessons index is a keyed map keyed by conflict-resistant lesson id for merge-friendly multi-author authoring.
   - schema_id: strict-spec-driven/harness/v1
     schema_version: 1
     artifact_type: harness
@@ -33360,6 +33912,47 @@ harness:
             - production-status
           unavailable_conditions:
             - Production credentials must remain outside YAML.
+`,
+  "examples/strict-spec-driven/lesson.yaml": `schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: ../../templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: rebuild-before-trusting-dist-tests-a1b2c3
+  title: Rebuild before trusting dist-backed test results
+category: testing
+status: active
+created_at: "2026-04-24T09:15:00.000Z"
+updated_at: "2026-04-24T09:15:00.000Z"
+context: >-
+  Editing a TypeScript source module and then running the project test suite to confirm the change
+  behaved as intended.
+observation: >-
+  The suite passed while the edited behavior was plainly absent, because the tests execute compiled
+  dist/ output and the build had not been rerun, so every assertion exercised the previous revision.
+takeaway: >-
+  A dist-backed suite reports on the last build, not on the working tree, so a pass proves nothing
+  about uncompiled source edits; rebuild first and treat an unexpectedly clean run right after a
+  source edit as a signal that the build is stale.
+applies_when: >-
+  Running or interpreting the result of any test suite that executes compiled output after editing
+  TypeScript sources.
+occurrences:
+  - origin: 2026-04-24-port-verify-to-yaml
+    date: "2026-04-24"
+    evidence: "bun test/run.ts passed against dist/verify.js compiled before the src/verify.ts edit"
+`,
+  "examples/strict-spec-driven/lessons-index.yaml": `schema: strict-spec-driven/lessons-index/v1
+schema_version: 1
+artifact_type: lessons_index
+schema_file: ../../templates/strict-spec-driven/schemas/lessons-index.yaml
+lessons:
+  rebuild-before-trusting-dist-tests-a1b2c3:
+    title: Rebuild before trusting dist-backed test results
+    category: testing
+    status: active
+    occurrences: 1
+    path: .strict-spec-driven/lessons/rebuild-before-trusting-dist-tests-a1b2c3.yaml
 `,
   "examples/strict-spec-driven/main-spec.yaml": `schema: strict-spec-driven/main-spec/v1
 schema_version: 1

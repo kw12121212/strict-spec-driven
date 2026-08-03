@@ -2322,3 +2322,19 @@ requirements:
         - GIVEN: the MCP capability inventory is inspected
         - WHEN: each tool description is compared with its mapped command-metadata entry
         - THEN: the descriptions are identical and every mutating tool description still states project-state mutation explicitly
+  cli-generation-documents-every-accepted-argument:
+    strength: MUST
+    statement: 'The system MUST document every named argument the generate command accepts for an artifact in the shared command-metadata registry, including the argument''s meaning and its required, repeatable, and pairing semantics, so that help output and the accepted argument set cannot diverge. An argument that the generator accepts but the metadata registry omits is a defect: an undocumented argument is indistinguishable from an unsupported one, so a caller who guesses a wrong name reads the resulting rejection as evidence that the capability is missing.'
+    scenarios:
+      every-accepted-generate-argument-is-documented:
+        - GIVEN: the generate command's accepted named arguments and the command-metadata entry that describes them
+        - WHEN: the accepted argument set is compared against the documented argument set
+        - THEN: every accepted argument appears in the metadata entry with its meaning and its required, repeatable, and pairing semantics
+      undocumented-argument-is-reported:
+        - GIVEN: the generate command accepts a named argument that the command-metadata entry does not list
+        - WHEN: argument documentation coverage is checked
+        - THEN: the gap is reported as a deterministic diagnostic naming the undocumented argument
+      design-alternative-and-risk-arguments-are-discoverable:
+        - GIVEN: a caller reading generate help to learn how to record a rejected alternative or a risk on a design artifact
+        - WHEN: the design artifact's documented arguments are inspected
+        - THEN: the alternative, reason, and risk arguments are listed with their meanings, and the pairing requirement between an alternative and its reason is stated

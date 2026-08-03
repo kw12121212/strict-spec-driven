@@ -745,4 +745,126 @@ try {
   rmSync(docBothDir, { recursive: true, force: true });
 }
 
+
+context.section("[25] maintenance lesson-staleness-check");
+
+const LESSON_STALENESS_CONFIG = ["maintenance:", "  checks:", "    - type: lesson-staleness-check", ""].join("\n");
+
+function makeLessonStalenessWorkspace(): string {
+  const root = mkdtempSync(path.join(os.tmpdir(), "strict-spec-lesson-stale-"));
+  const strictDir = path.join(root, ".strict-spec-driven");
+  mkdirSync(path.join(strictDir, "lessons"), { recursive: true });
+  mkdirSync(path.join(strictDir, "changes", "archive"), { recursive: true });
+  writeFileSync(
+    path.join(strictDir, "config.yaml"),
+    ["schema: strict-spec-driven/config/v1", "schema_version: 1", "artifact_type: workflow_config", LESSON_STALENESS_CONFIG].join("\n"),
+    "utf8",
+  );
+  return root;
+}
+
+function runLessonStaleness(root: string): { checksRun: number; findingsCount: number; findings: string[] } {
+  const result = cli(["maintenance"], { cwd: root });
+  const parsed = JSON.parse(result.stdout.trim()) as { checksRun: number; findingsCount: number; generatedChange: string | null };
+  const findings: string[] = [];
+  if (parsed.generatedChange) {
+    const tasksPath = path.join(root, ".strict-spec-driven", "changes", parsed.generatedChange, "tasks.yaml");
+    if (existsSync(tasksPath)) findings.push(readFileSync(tasksPath, "utf8"));
+  }
+  return { checksRun: parsed.checksRun, findingsCount: parsed.findingsCount, findings };
+}
+
+// 25a: a lesson whose applies_when names a vanished path is nominated, and the lesson is untouched
+const staleLessonDir = makeLessonStalenessWorkspace();
+try {
+  const created = JSON.parse(
+    cli(
+      [
+        "lesson-create",
+        "--title", "Guard the removed module",
+        "--category", "coding",
+        "--context", "editing a module that has since been deleted",
+        "--observation", "the module silently swallowed an error",
+        "--takeaway", "check the error path before trusting the module",
+        "--applies-when", "touching src/module-that-no-longer-exists.ts in this repository",
+        "--origin", "some-change",
+        "--evidence", "a swallowed error surfaced only in production logs",
+      ],
+      { cwd: staleLessonDir },
+    ).stdout.trim(),
+  ) as { lessonId: string; path: string };
+
+  const lessonFile = path.join(staleLessonDir, created.path);
+  const before = readFileSync(lessonFile, "utf8");
+
+  const staleRun = runLessonStaleness(staleLessonDir);
+  context.assert(staleRun.checksRun === 1, "lesson-staleness-check runs when configured");
+  context.assert(staleRun.findingsCount === 1, "a lesson naming a vanished path is reported as a staleness candidate");
+  const staleText = staleRun.findings.join("\n");
+  context.assert(
+    staleText.includes(created.lessonId) && staleText.includes("src/module-that-no-longer-exists.ts"),
+    "the finding names the lesson and the path that no longer exists",
+    staleText,
+  );
+  context.assert(
+    staleText.includes("lesson-obsolete"),
+    "the finding names the command that retires the lesson",
+    staleText,
+  );
+
+  const after = readFileSync(lessonFile, "utf8");
+  context.assert(after === before, "the staleness check never rewrites a lesson file");
+  const listed = JSON.parse(cli(["lesson-list"], { cwd: staleLessonDir }).stdout.trim()) as { lessons: Array<{ status: string }> };
+  context.assert(
+    listed.lessons.length === 1 && listed.lessons[0]?.status === "active",
+    "the nominated lesson keeps active status; retirement stays an explicit human decision",
+  );
+} finally {
+  rmSync(staleLessonDir, { recursive: true, force: true });
+}
+
+// 25b: a fresh lesson whose referenced paths still exist produces no findings
+const freshLessonDir = makeLessonStalenessWorkspace();
+try {
+  mkdirSync(path.join(freshLessonDir, "src"), { recursive: true });
+  writeFileSync(path.join(freshLessonDir, "src", "present.ts"), "export const present = true;\n", "utf8");
+
+  cli(
+    [
+      "lesson-create",
+      "--title", "Recently learned",
+      "--category", "testing",
+      "--context", "a recent change",
+      "--observation", "something surprising happened",
+      "--takeaway", "watch for it next time",
+      "--applies-when", "working on src/present.ts in this repository",
+      "--origin", "add-lessons-artifact-family",
+      "--evidence", "observed during the change that introduced this lesson",
+    ],
+    { cwd: freshLessonDir },
+  );
+
+  const freshRun = runLessonStaleness(freshLessonDir);
+  context.assert(freshRun.checksRun === 1, "lesson-staleness-check runs for a fresh lesson");
+  context.assert(freshRun.findingsCount === 0, "a fresh lesson whose referenced paths still exist produces no findings");
+} finally {
+  rmSync(freshLessonDir, { recursive: true, force: true });
+}
+
+// 25c: an unconfigured project never runs the check
+const unconfiguredLessonDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-lesson-stale-"));
+try {
+  const strictDir = path.join(unconfiguredLessonDir, ".strict-spec-driven");
+  mkdirSync(path.join(strictDir, "lessons"), { recursive: true });
+  writeFileSync(
+    path.join(strictDir, "config.yaml"),
+    "schema: strict-spec-driven/config/v1\nschema_version: 1\nartifact_type: workflow_config\n",
+    "utf8",
+  );
+  const unconfigured = JSON.parse(cli(["maintenance"], { cwd: unconfiguredLessonDir }).stdout.trim()) as { checksRun: number };
+  context.assert(unconfigured.checksRun === 0, "lesson-staleness-check does not run unless the project declares it");
+} finally {
+  rmSync(unconfiguredLessonDir, { recursive: true, force: true });
+}
+
 }

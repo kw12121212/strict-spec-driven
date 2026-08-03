@@ -1,0 +1,11 @@
+schema: strict-spec-driven/lessons-index/v1
+schema_version: 1
+artifact_type: lessons_index
+schema_file: templates/strict-spec-driven/schemas/lessons-index.yaml
+lessons:
+  an-unsupported-argument-error-only-disproves-the-582410:
+    title: An unsupported-argument error only disproves the name, not the capability
+    category: tooling
+    status: active
+    occurrences: 1
+    path: .strict-spec-driven/lessons/an-unsupported-argument-error-only-disproves-the-582410.yaml

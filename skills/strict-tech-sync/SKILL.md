@@ -25,6 +25,8 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
+lesson-status: strict-spec-cli lesson-status
+lesson-edit: strict-spec-cli lesson-edit <lesson-id> --promoted-standard <id> --promoted-rule <id>
 verify-tech-mappings: strict-spec-cli verify-tech-mappings
 modify: strict-spec-cli modify [change-name|archive-dir]
 generate: strict-spec-cli generate <change-name> delta-tech --<named-args>
@@ -80,6 +82,11 @@ run `init` from this skill.
    - `.strict-spec-driven/tech/INDEX.yaml`
    - run `tech-status` to enumerate existing standards and rules
    - every strict YAML standard file relevant to the chosen scope
+   - run `lesson-status` to see recorded experience in the same area. A lesson
+     with repeated occurrences is the strongest evidence that a convention has
+     earned a binding rule: the occurrence count is objective proof the project
+     keeps hitting it, and the lesson's observation already supplies the
+     rationale. Treat repeated lessons as promotion candidates for this sync.
 
 3. **Read repository evidence in the chosen scope** — inspect the code,
    configuration, build files, lint/format configs, CI definitions, and tests
@@ -133,7 +140,18 @@ run `init` from this skill.
    - if no existing category or file fits, create a new standard through the
      selected mode with the correct relative path and category
 
-8. **Refresh supporting tech state** — after all edits are complete:
+8. **Link any lesson this sync promoted** — when a rule written in the previous
+   step originated from a recorded lesson, mark that lesson promoted now that
+   the standard or delta tech exists:
+   ```bash
+   strict-spec-cli lesson-edit <lesson-id> --promoted-standard <standard-id> --promoted-rule <rule-id>
+   ```
+   This drops the lesson from the default lesson list so the same guidance is
+   not surfaced twice at consumption points. Never delete a promoted lesson: the
+   rule states what must be done but omits the failure that motivated it, and
+   the lesson is the only remaining record of that failure.
+
+9. **Refresh supporting tech state** — after all edits are complete:
    - in active-change mode, run `verify <change-name>`, review every generated
      delta-tech operation and mapping against the confirmed finding, and rerun
      any complete regression evidence invalidated by the artifact edit before
@@ -143,7 +161,7 @@ run `init` from this skill.
      mapping fields changed
    - run `tech-status` to confirm the standards read back correctly
 
-9. **Report final changes** — summarize:
+10. **Report final changes** — summarize:
    - which standard files were added, modified, or removed
    - a brief description of the drift fixed in each file
    - any inconsistencies that were left unresolved and why

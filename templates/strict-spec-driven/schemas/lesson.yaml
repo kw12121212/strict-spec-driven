@@ -1,0 +1,160 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/lesson/v1
+artifact_type: lesson
+artifact_name: lesson
+description: >-
+  Strict YAML lesson artifact capturing reusable engineering experience — the context it arose in,
+  what was observed, the reusable takeaway, and the condition under which the takeaway should be
+  recalled — together with the occurrences that prove recurrence and a lifecycle status of active,
+  promoted, or obsolete. A lesson deliberately carries no RFC 2119 strength and no enforcement
+  mapping; binding rules belong in technical standards, and a lesson general enough to bind is
+  promoted into one.
+example_ref: ../../../examples/strict-spec-driven/lesson.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - lesson
+    - category
+    - status
+    - created_at
+    - updated_at
+    - context
+    - observation
+    - takeaway
+    - applies_when
+    - occurrences
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/lesson/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: lesson
+    schema_file:
+      type: string
+    lesson:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+      properties:
+        id:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+        title:
+          type: string
+          minLength: 1
+    category:
+      type: string
+      description: >-
+        Reuses the technical-standard category vocabulary so a lesson and the standard it may be
+        promoted into are filed under the same subject area.
+      enum:
+        - coding
+        - architecture
+        - security
+        - performance
+        - api
+        - testing
+        - tooling
+        - operations
+        - documentation
+        - ui
+    status:
+      type: string
+      description: >-
+        active means the lesson still applies and is offered at consumption points. promoted means
+        the lesson became a binding technical-standard rule and is retained for the motivating
+        context that the rule itself omits. obsolete means the lesson no longer holds and was
+        explicitly retired with a recorded reason.
+      enum:
+        - active
+        - promoted
+        - obsolete
+    created_at:
+      type: string
+      minLength: 1
+    updated_at:
+      type: string
+      minLength: 1
+    context:
+      type: string
+      minLength: 1
+      description: What was being done when the experience arose.
+    observation:
+      type: string
+      minLength: 1
+      description: What actually happened, stated concretely enough to recognize a recurrence.
+    takeaway:
+      type: string
+      minLength: 1
+      description: The reusable conclusion drawn from the observation.
+    applies_when:
+      type: string
+      minLength: 1
+      description: >-
+        The condition under which this lesson should be recalled. This is the retrieval key: it is
+        what lets a consumption point surface the lesson to someone who has not read the store, and
+        it is the test for whether a new experience is a recurrence of this lesson or a new one.
+    occurrences:
+      type: array
+      minItems: 1
+      description: >-
+        Every recorded encounter with this lesson, oldest first. A recurrence appends an entry
+        rather than creating a second lesson, so the length of this list is the objective evidence
+        for whether the lesson has earned promotion into a binding rule.
+      items:
+        type: object
+        additionalProperties: false
+        required:
+          - origin
+          - date
+          - evidence
+        properties:
+          origin:
+            type: string
+            minLength: 1
+            description: The change, harness session, or ticket this encounter came from.
+          date:
+            type: string
+            minLength: 1
+          evidence:
+            type: string
+            minLength: 1
+            description: Concrete evidence for this encounter, such as a command, error message, or file.
+    promoted_to:
+      type: object
+      additionalProperties: false
+      description: >-
+        Set only when status is promoted; names the technical standard and rule the lesson became so
+        the binding rule can be traced back to the failure that motivated it.
+      required:
+        - standard
+        - rule
+      properties:
+        standard:
+          type: string
+          minLength: 1
+        rule:
+          type: string
+          minLength: 1
+    obsoleted_reason:
+      type: string
+      minLength: 1
+      description: >-
+        Set only when status is obsolete; why the lesson no longer holds — its premise disappeared,
+        a stronger mechanism replaced it, or it was disproven.
+    obsoleted_at:
+      type: string
+      minLength: 1

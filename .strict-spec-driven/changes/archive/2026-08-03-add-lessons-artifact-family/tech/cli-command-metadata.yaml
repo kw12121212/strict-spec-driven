@@ -1,0 +1,14 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: cli-command-metadata
+mapping:
+  implementation:
+    - src/cli/cmd-generation.ts
+  enforcement:
+    - test/suites/change-lifecycle.ts
+operations:
+  ADDED: {}
+  MODIFIED: {}
+  REMOVED: {}

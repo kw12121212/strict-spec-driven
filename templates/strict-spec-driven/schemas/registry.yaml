@@ -256,6 +256,33 @@ entries:
       compatible_with: []
       notes:
         - SOPs index is a keyed map keyed by conflict-resistant SOP id for merge-friendly multi-author authoring.
+  - schema_id: strict-spec-driven/lesson/v1
+    schema_version: 1
+    artifact_type: lesson
+    artifact_name: lesson
+    schema_file: lesson.yaml
+    primary_example: ../../../examples/strict-spec-driven/lesson.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Lessons record reusable experience and deliberately carry no RFC 2119 strength or enforcement mapping; a lesson general enough to bind is promoted into a technical standard rule instead.
+        - Recurrence is appended to the occurrences list on the existing lesson rather than creating a second lesson, so occurrence count is the objective promotion signal.
+  - schema_id: strict-spec-driven/lessons-index/v1
+    schema_version: 1
+    artifact_type: lessons_index
+    artifact_name: lessons-index
+    schema_file: lessons-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/lessons-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 1
+      supersedes: []
+      compatible_with: []
+      notes:
+        - Lessons index is a keyed map keyed by conflict-resistant lesson id for merge-friendly multi-author authoring.
   - schema_id: strict-spec-driven/harness/v1
     schema_version: 1
     artifact_type: harness

@@ -1,0 +1,59 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-lessons-artifact-family
+approach:
+  - 'Model the lessons family on the existing standalone SOP family, which is the closest structural precedent: a domain module src/lessons.ts owning filesystem mechanics, validation, and index maintenance; a CLI module src/cli/cmd-lessons.ts owning argument parsing and output; registration in src/cli/registry.ts and src/cli/command-metadata-entries.ts; and a dedicated regression suite test/suites/lessons.ts.'
+  - Register a strict-spec-driven/lesson/v1 schema and a lessons-index schema in the schema registry, ship minimal valid examples under examples/strict-spec-driven/, and add an empty lessons/INDEX.yaml to the init scaffold so new projects get the directory shape.
+  - 'Shape the lesson record around retrievability rather than enforcement: context, observation, takeaway, and an applies_when field stating the condition under which the lesson should be recalled. Carry recurrence in an occurrences list where each entry names its origin change or session, a date, and short evidence, so recurrence count is a queryable fact.'
+  - Wire both ends in the same change so the store is read and written from the moment it lands. Capture happens in review, archive, harness-session, bugfix, and auto; consumption happens in brainstorm, propose, bugfix, apply, and auto, reading lesson-status the same way those prompts already read tech-status; promotion linkage happens in tech-edit and tech-sync.
+  - Add a lesson-staleness-check maintenance check type to the existing typed dispatch in src/maintenance.ts and declare it in the repository workflow config, so obsolescence review is scheduled work that seeds a change rather than something a human must remember to do.
+decisions:
+  standalone-not-delta:
+    decision: Lessons are standalone artifacts written directly into .strict-spec-driven/lessons/, never carried through a change directory as a delta-lesson that archive merges.
+    rationale: Delta artifacts model contract changes planned during the proposal phase, whereas experience is discovered during implementation. A delta-lesson would require authors to predict which pitfalls they will hit before hitting them, producing empty placeholders at proposal time and forcing a second edit after the discovery.
+  no-rfc2119-strength:
+    decision: A lesson carries no MUST, SHOULD, or MAY strength and no enforcement mapping; retrievability is carried by the applies_when field instead.
+    rationale: 'Technical standards derive their force from being a small set of binding rules that review and implementation treat as hard constraints. Admitting weak, situational, single-observation knowledge into that set would dilute what a MUST signals, so the two surfaces stay separate: tech is a narrow enforced rule set, lessons are a broad unenforced knowledge surface.'
+  content-field-named-takeaway:
+    decision: The reusable-conclusion field is named takeaway rather than lesson, because the identity block is already named lesson to match the spec, sop, and standard artifacts.
+    rationale: Reusing the key lesson for both the identity object and a content string would make the artifact self-shadowing and force every reader to disambiguate by nesting depth; the identity block name is fixed by consistency with the other artifact families, so the content field is the one that moves.
+  occurrences-carry-recurrence:
+    decision: Recurrence is recorded by appending to an occurrences list on the existing lesson rather than by creating a second lesson, and re-hitting the same applies_when condition is the test for which of the two applies.
+    rationale: Recurrence count is the objective evidence deciding whether a lesson has earned promotion into a binding tech rule. A single-valued origin field cannot express that a pitfall was hit three times, which would leave promotion resting on an author's impression instead of a queryable fact.
+  id-hashes-applies-when:
+    decision: The content-derived lesson id hashes the title, category, and applies_when condition rather than the narrative fields.
+    rationale: Idempotence has to key on the thing that identifies a recurrence. Hashing the observation or takeaway would make a reworded retelling of the same pitfall resolve to a new id, splitting one lesson's occurrence history across two files and destroying the recurrence signal that promotion depends on.
+  one-way-promotion:
+    decision: A lesson may be promoted into a technical standard rule, marking the lesson promoted and recording the rule it became in promoted_to; tech rules are never demoted back into lessons, and a promoted lesson keeps its full original text.
+    rationale: A tech rule states what must be done but deliberately omits what goes wrong when it is not — the existing test-helpers-isolate-developer-home rule gives no hint that it exists because a test suite wrote the developer's real home directory. Discarding the lesson on promotion would destroy the only record of that motivating failure, which is the context needed to judge the rule later.
+  hide-promoted-by-default:
+    decision: lesson-list and lesson-status omit promoted and obsolete lessons by default and expose them behind an --all flag.
+    rationale: Consumption points already read tech-status, so a promoted lesson shown next to the rule it became would surface the same guidance twice and train readers to skim the list. Restricting the default view to active lessons preserves signal while leaving the historical record reachable through lesson-show.
+  obsolete-is-explicit-and-non-destructive:
+    decision: Retiring a lesson sets status obsolete with a required obsoleted_reason and obsoleted_at through a lesson-obsolete command; lesson files are never deleted, and an obsolete lesson cannot be further edited.
+    rationale: A lesson retired because its root-cause analysis turned out to be wrong is itself higher-order experience — the record that a conclusion was once believed and why it failed prevents the same reasoning error from recurring. Deletion would hand that trap back to the next person, and allowing edits after retirement would let the record be quietly rewritten.
+  capture-is-declaration-not-gate:
+    decision: Capture is a skill-prompt obligation to explicitly declare either a written lesson or the absence of one, judged against an objective proposal-versus-implementation diff; no CLI command blocks on it.
+    rationale: A hard gate on a repository archiving changes at this cadence would reward manufacturing filler entries to clear the door, degrading retrieval quality. Binding the declaration to observable diff evidence — an overturned design decision, an unforeseen question, a task added from discovery, a regression exposing a pre-existing trap — makes the judgment checkable without making it blocking.
+  staleness-reports-never-retires:
+    decision: The lesson-staleness-check nominates candidates through two concrete signals — an applies_when naming a repo path that no longer exists, or every occurrence originating from archived work with the newest older than 180 days — and never changes a lesson's status or content.
+    rationale: Deciding that experience has expired is a judgment call, and a lesson retired wrongly takes its motivating context with it. Requiring a concrete checkable signal rather than a general staleness heuristic also limits false positives, which are the failure mode that trains reviewers to dismiss the check entirely.
+  bugfix-captures-and-consumes:
+    decision: The strict-spec-bugfix prompt is wired as both a capture point and a consumption point.
+    rationale: A defect reaching a fix is direct evidence about why existing tests and standards failed to catch it, which is precisely the reusable part; treating bugfix as consumption only would read the store at the moment it has the most to contribute to it.
+alternatives:
+  - option: Extend the technical standards family with a new category and rely on the unused MAY strength to hold experience.
+    reason: Rejected because tech rules require an enforcement mapping and are treated as binding constraints during proposal and review, while experience is situational and often has no enforcement point; folding the two together would weaken the meaning of every MUST already in the set.
+  - option: Extend the change-design schema and build an index over the decisions and alternatives already recorded there.
+    reason: Rejected because those fields record choices made at proposal time, not discoveries made during implementation, so the field that matters most for retrieval — the condition under which the knowledge applies — has nowhere to live and would have to be inferred from 218 archived files.
+  - option: Land the schema and CLI first and defer the capture and consumption wiring to a follow-up change.
+    reason: Rejected because an experience store with no capture trigger accumulates nothing and an unread store justifies no capture effort, so the intermediate state is one where the family exists but cannot demonstrate value, which is the state most likely to be abandoned before the follow-up lands.
+  - option: Rely on the existing promotion path alone, continuing to turn observations directly into tech MUST rules.
+    reason: Rejected because it only absorbs experience already general enough to be phrased as a binding rule; a first observation has no recurrence evidence yet and would either be over-promoted into a premature rule or discarded entirely.
+risks:
+  - The store may accumulate low-value entries if the capture judgment drifts from the objective diff criteria toward a general sense of having learned something, degrading retrieval precision as volume grows.
+  - Consumption depends on skill prompts actually reading lesson-status; if a prompt edit is missed or later rewritten, that path silently stops reading the store without any test failing.
+  - Adding src/lessons.ts and src/cli/cmd-lessons.ts enlarges the coverage denominator, so thin tests on the new modules can push measured src/** line coverage below the declared threshold of 78 and block archive.
+  - The staleness heuristic may flag lessons that are simply rarely triggered but still correct, and repeated false positives would train reviewers to dismiss its findings.

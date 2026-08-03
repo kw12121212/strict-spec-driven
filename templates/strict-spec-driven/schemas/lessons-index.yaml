@@ -1,0 +1,65 @@
+schema: strict-spec-driven/schema/v1
+schema_version: 1
+schema_id: strict-spec-driven/lessons-index/v1
+artifact_type: lessons_index
+artifact_name: lessons-index
+description: >-
+  Strict YAML lesson index artifact (keyed lesson map keyed by conflict-resistant lesson id)
+  describing each recorded lesson's title, category, status, occurrence count, and path, so lessons
+  are discoverable without reading every lesson file.
+example_ref: ../../../examples/strict-spec-driven/lessons-index.yaml
+json_schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required:
+    - schema
+    - schema_version
+    - artifact_type
+    - schema_file
+    - lessons
+  properties:
+    schema:
+      type: string
+      const: strict-spec-driven/lessons-index/v1
+    schema_version:
+      type: integer
+      const: 1
+    artifact_type:
+      type: string
+      const: lessons_index
+    schema_file:
+      type: string
+    lessons:
+      type: object
+      additionalProperties:
+        type: object
+        additionalProperties: false
+        required:
+          - title
+          - category
+          - status
+          - occurrences
+          - path
+        properties:
+          title:
+            type: string
+            minLength: 1
+          category:
+            type: string
+            minLength: 1
+          status:
+            type: string
+            enum:
+              - active
+              - promoted
+              - obsolete
+          occurrences:
+            type: integer
+            minimum: 1
+            description: >-
+              Recorded encounter count, mirrored into the index so recurrence can be ranked without
+              opening every lesson file.
+          path:
+            type: string
+            minLength: 1
