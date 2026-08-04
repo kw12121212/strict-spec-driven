@@ -24311,7 +24311,7 @@ var COMMAND_METADATA_ENTRIES = {
       "Examples:",
       "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
       "  strict-spec-cli generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>]",
-      "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
+      "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]...",
       "  strict-spec-cli generate <change-name> tasks [--reset [--force]] [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
       "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
       "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
@@ -24456,6 +24456,70 @@ var COMMAND_METADATA_ENTRIES = {
         description: "Design artifact only: a risk the change carries.",
         repeatable: true,
         repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
+        name: "--open",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Questions artifact only: opens a question group recorded as unresolved. Requires --question and --context. An open question blocks implementation handoff.",
+        repeatable: true,
+        repeatSemantics: "Upserts by question id; restating an existing id with different content is rejected."
+      },
+      {
+        name: "--resolved",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Questions artifact only: opens a question group recorded as already answered. Requires --question, --context, and --answer.",
+        repeatable: true,
+        repeatSemantics: "Upserts by question id; restating an existing id with different content is rejected."
+      },
+      {
+        name: "--resolve",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Questions artifact only: moves an existing open question to resolved, reusing its recorded question, context, and kind. Requires --answer.",
+        repeatable: true,
+        repeatSemantics: "Upserts by question id; the question text and context may be overridden per call."
+      },
+      {
+        name: "--question",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Questions artifact only: the human-facing question text for the open group.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group."
+      },
+      {
+        name: "--context",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Questions artifact only: why the question is asked, what a sufficient answer contains, its impact, and a recommended answer or options. There are no separate --impact or --recommendation flags.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group."
+      },
+      {
+        name: "--answer",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Questions artifact only: the answer recorded for a --resolved or --resolve group.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group."
+      },
+      {
+        name: "--kind",
+        arity: "value",
+        valueLabel: "<requirement|technical>",
+        description: "Questions artifact only: classifies the question. requirement marks an interrogation question about the need itself, which may be answered only from the requester's words or replayed roadmap detail and never from repository evidence; technical is the default when omitted. --reset preserves requirement-kind entries, and no flag removes them.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group."
+      },
+      {
+        name: "--answered-by",
+        arity: "value",
+        valueLabel: "<human|roadmap|assumption>",
+        description: "Questions artifact only: records where a resolved answer came from. assumption marks an answer the agent supplied without human confirmation and blocks ready. Carried forward automatically when --resolve replaces an open entry.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group."
       },
       {
         name: "--section",
@@ -29399,16 +29463,71 @@ schema_version: 1
 artifact_type: question_list
 schema_file: templates/strict-spec-driven/schemas/question-list.yaml
 change: {{change_name}}
-# open questions block the change — keep empty until real questions arise.
-# Sample entry shape: { id: kebab-id, question: "...", context: "...", status: open }
-open: []
-resolved:
-  # Replace or remove the sample entry below. Move questions here once answered.
-  - id: sample-resolved
-    question: Is [assumption] valid?
-    context: Confirmation needed before proceeding.
-    answer: Yes, confirmed by [source].
-    status: resolved
+# The five requirement questions below are seeded open on purpose: a change starts blocked
+# until a human answers them. They are answered only from the requester's own words or from
+# replayed roadmap detail — never from repository evidence, which can show what the system
+# does but never what a person wants. Resolve each with:
+#   strict-spec-cli generate {{change_name}} questions --resolve <id> --answer "..." --answered-by human
+# Their text below is the canonical English baseline; restate it in the project's
+# preferred_human_language when asking the requester.
+open:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: >-
+      Why this is asked: the change is planned against a need, and the need lives only with the
+      requester. A "problem" here means what someone does or suffers today — not a feature that is
+      missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and
+      the underlying problem is still unstated. What a sufficient answer contains: who is affected,
+      what they do today instead, and how often. Worked example: "every Monday one person spends
+      forty minutes copying order rows into a spreadsheet to send the weekly report". What it
+      changes: this becomes the proposal's why, and it decides whether the change is worth making.
+    kind: requirement
+    status: open
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: >-
+      Why this is asked: without a success condition, nobody can tell afterwards whether the change
+      worked. "Observable" means someone outside the system can check it without reading the code.
+      What a sufficient answer contains: what a person will see, or no longer have to do, once this
+      is done. Worked example: "the report is in the manager's inbox on Monday morning without
+      anyone assembling it". What it changes: this becomes the delta spec's scenarios and the
+      acceptance evidence at review time.
+    kind: requirement
+    status: open
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: >-
+      Why this is asked: work that nothing forced is the work most often thrown away later. This
+      question catches a request that sounds reasonable but has no real driver behind it. What a
+      sufficient answer contains: the concrete event, deadline, incident, or cost that made this
+      surface now, or an honest statement that nothing did. Worked example: "the report was missed
+      last month and it was raised with the team". What it changes: a change with no trigger is a
+      candidate for deferral, and the answer is weighed at review before archive.
+    kind: requirement
+    status: open
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: >-
+      Why this is asked: the requester knows which nearby behavior other people depend on, and the
+      agent does not. A "non-goal" is something the change must leave alone even though it sits
+      close to the work. What a sufficient answer contains: the behavior, setting, or output that
+      must survive untouched, and who relies on it. Worked example: "do not change the saved
+      filters — several people rely on their own". What it changes: these become the proposal's
+      unchanged_behavior items, which review checks the finished result against.
+    kind: requirement
+    status: open
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: >-
+      Why this is asked: a short request usually admits several readings, and building the wrong one
+      is indistinguishable from building nothing. What a sufficient answer contains: the reading
+      that is meant, stated plainly enough to rule the others out — or a statement that only one
+      reading exists and what it is. Worked example: "export means the version sent to the manager,
+      not the one I read myself". What it changes: this fixes the scope boundary before any code is
+      written, and settles disputes about what was asked for.
+    kind: requirement
+    status: open
+resolved: []
 `,
   "strict-spec-driven/scaffold/changes/tasks.yaml": `schema: strict-spec-driven/task-list/v2
 schema_version: 2
@@ -31815,6 +31934,17 @@ json_schema:
             type: string
           context:
             type: string
+          kind:
+            type: string
+            enum:
+              - requirement
+              - technical
+          answered_by:
+            type: string
+            enum:
+              - human
+              - roadmap
+              - assumption
           status:
             type: string
             const: open
@@ -31836,6 +31966,17 @@ json_schema:
             type: string
           context:
             type: string
+          kind:
+            type: string
+            enum:
+              - requirement
+              - technical
+          answered_by:
+            type: string
+            enum:
+              - human
+              - roadmap
+              - assumption
           answer:
             type: string
           status:
@@ -34086,11 +34227,32 @@ artifact_type: question_list
 schema_file: ../../templates/strict-spec-driven/schemas/question-list.yaml
 change: example-change
 open:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: >-
+      Asked because the workflow plans a change against a need, and only the requester knows the
+      need. A sufficient answer names who is affected and what they do today instead, without
+      naming a feature. Worked example: "the on-call engineer re-reads three dashboards every
+      morning because no single view shows overnight failures". The answer becomes the proposal's
+      why and decides whether this change is worth making at all.
+    kind: requirement
+    status: open
   - id: choose-example
     question: Which valid option should be used?
     context: The answer determines the implementation choice.
     status: open
 resolved:
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: >-
+      Asked because a change needs a success condition someone outside the system can check. A
+      sufficient answer describes what a person will see or no longer have to do, not what the
+      code will contain. Worked example: "the morning check takes one glance at one page". The
+      answer becomes the delta spec's scenarios.
+    kind: requirement
+    answered_by: human
+    answer: The overnight failure count is visible without opening any dashboard.
+    status: resolved
   - id: confirmed-example
     question: Is the example valid?
     context: The answer confirms the contract.

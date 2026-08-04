@@ -244,25 +244,55 @@ function buildDesignArtifact(changeName: string, input: GenerationInputRecord): 
   };
 }
 
+const QUESTION_KIND_VALUES = new Set(["requirement", "technical"]);
+const ANSWERED_BY_VALUES = new Set(["human", "roadmap", "assumption"]);
+
+/**
+ * Copies the optional attribution fields onto a normalized question. They are optional so that
+ * question lists written before the requirement-interrogation contract stay valid, but an
+ * out-of-set value is rejected here rather than being dropped on the floor.
+ */
+function applyQuestionAttribution(
+  target: GenerationInputRecord,
+  record: GenerationInputRecord,
+  fieldPath: string,
+): GenerationInputRecord {
+  if (record.kind !== undefined) {
+    const kind = asString(record.kind, `${fieldPath}.kind`);
+    if (!QUESTION_KIND_VALUES.has(kind)) {
+      throw new Error(`input field '${fieldPath}.kind' must be one of: requirement, technical`);
+    }
+    target.kind = kind;
+  }
+  if (record.answered_by !== undefined) {
+    const answeredBy = asString(record.answered_by, `${fieldPath}.answered_by`);
+    if (!ANSWERED_BY_VALUES.has(answeredBy)) {
+      throw new Error(`input field '${fieldPath}.answered_by' must be one of: human, roadmap, assumption`);
+    }
+    target.answered_by = answeredBy;
+  }
+  return target;
+}
+
 function normalizeOpenQuestion(question: unknown, index: number): GenerationInputRecord {
   const record = asRecord(question, `$.open[${index}]`);
-  return {
+  return applyQuestionAttribution({
     id: asString(record.id, `$.open[${index}].id`),
     question: asString(record.question, `$.open[${index}].question`),
     context: asString(record.context, `$.open[${index}].context`),
     status: "open",
-  };
+  }, record, `$.open[${index}]`);
 }
 
 function normalizeResolvedQuestion(question: unknown, index: number): GenerationInputRecord {
   const record = asRecord(question, `$.resolved[${index}]`);
-  return {
+  return applyQuestionAttribution({
     id: asString(record.id, `$.resolved[${index}].id`),
     question: asString(record.question, `$.resolved[${index}].question`),
     context: asString(record.context, `$.resolved[${index}].context`),
     answer: asString(record.answer, `$.resolved[${index}].answer`),
     status: "resolved",
-  };
+  }, record, `$.resolved[${index}]`);
 }
 
 function buildQuestionsArtifact(changeName: string, input: GenerationInputRecord): unknown {

@@ -1314,6 +1314,140 @@ try {
   rmSync(invalidCoreSkillRoot, { recursive: true, force: true });
 }
 
+const interrogationGuidanceRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-interrogation-guidance-"));
+try {
+  const interrogationSkillDir = path.join(interrogationGuidanceRoot, "skills", "strict-spec-brainstorm");
+  mkdirSync(path.join(interrogationGuidanceRoot, "dist", "scripts"), { recursive: true });
+  mkdirSync(path.join(interrogationGuidanceRoot, "dist", "templates"), { recursive: true });
+  mkdirSync(interrogationSkillDir, { recursive: true });
+  symlinkSync("../../dist/scripts", path.join(interrogationSkillDir, "scripts"));
+  symlinkSync("../../dist/templates", path.join(interrogationSkillDir, "templates"));
+  writeFileSync(
+    path.join(interrogationGuidanceRoot, "skills", "marketplace.json"),
+    JSON.stringify(
+      {
+        schema: "strict-spec-driven/skill-marketplace/v1",
+        namespace: "strict-spec-driven",
+        skills: [{ name: "strict-spec-brainstorm", family: "strict-spec" }],
+      },
+      null,
+      2,
+    ) + "\n",
+    "utf8",
+  );
+
+  const canonicalIdLines = [
+    "- `requirement-problem` — what is going wrong",
+    "- `requirement-outcome` — what proves it solved",
+    "- `requirement-trigger` — why now",
+    "- `requirement-non-goals` — what must not change",
+    "- `requirement-interpretation` — which reading is meant",
+  ];
+  const askingTechniqueLines = [
+    "Ask one question at a time.",
+    "Carry a concrete guess into every question.",
+    "Reject an answer that names a solution.",
+  ];
+  const explanationDutyLines = [
+    "Always explain why the question matters before posing it.",
+    "When an answer cannot be used, state the reason for the pushback.",
+  ];
+
+  function writeInterrogationSkill(bodyLines: string[]): void {
+    writeFileSync(
+      path.join(interrogationSkillDir, "SKILL.md"),
+      [
+        "---",
+        "name: strict-spec-brainstorm",
+        "description: stub",
+        "metadata:",
+        "  skill_id: strict_spec_brainstorm",
+        "  author: strict-spec-driven",
+        "  type: agent_skill",
+        "  version: 1.0.0",
+        "---",
+        "",
+        "# strict-spec-brainstorm",
+        "",
+        "## This Skill's Commands",
+        "",
+        "```yaml",
+        "propose: strict-spec-cli propose <change-name>",
+        "```",
+        "",
+        ...bodyLines,
+      ].join("\n") + "\n",
+      "utf8",
+    );
+  }
+
+  function interrogationDiagnostics(): Array<{ code: string; expected?: string }> {
+    return skillValidationModule
+      .validateStrictSkillPackaging(interrogationGuidanceRoot)
+      .diagnostics.filter((diagnostic) => diagnostic.code.startsWith("skill.requirement_interrogation."));
+  }
+
+  writeInterrogationSkill(["## Steps", "", "Do the work."]);
+  const missingSection = interrogationDiagnostics();
+  context.assert(
+    missingSection.some((diagnostic) => diagnostic.code === "skill.requirement_interrogation.heading.missing"),
+    "validate-skills rejects a proposal-oriented skill missing the requirement-interrogation section",
+  );
+
+  writeInterrogationSkill([
+    "## Requirement Interrogation",
+    "",
+    "Requirement answers are never answered from repository evidence.",
+    ...canonicalIdLines,
+    ...explanationDutyLines,
+  ]);
+  const missingTechnique = interrogationDiagnostics();
+  context.assert(
+    missingTechnique.length > 0
+      && missingTechnique.every((diagnostic) => diagnostic.code === "skill.requirement_interrogation.guidance.missing"),
+    "validate-skills rejects interrogation guidance that omits the asking technique",
+  );
+  context.assert(
+    missingTechnique.some((diagnostic) => diagnostic.expected === "one question at a time"),
+    "the asking-technique diagnostic names the missing rule",
+    `diagnostics: ${JSON.stringify(missingTechnique)}`,
+  );
+
+  writeInterrogationSkill([
+    "## Requirement Interrogation",
+    "",
+    "Requirement answers are never answered from repository evidence.",
+    ...canonicalIdLines,
+    ...askingTechniqueLines,
+  ]);
+  const missingExplanation = interrogationDiagnostics();
+  context.assert(
+    missingExplanation.some((diagnostic) => diagnostic.expected === "explain why the question matters"),
+    "validate-skills rejects interrogation guidance that omits the explain-before-asking duty",
+    `diagnostics: ${JSON.stringify(missingExplanation)}`,
+  );
+  context.assert(
+    missingExplanation.some((diagnostic) => diagnostic.expected === "state the reason for the pushback"),
+    "validate-skills rejects interrogation guidance that omits the explained-pushback duty",
+  );
+
+  writeInterrogationSkill([
+    "## Requirement Interrogation",
+    "",
+    "Requirement answers are never answered from repository evidence.",
+    ...canonicalIdLines,
+    ...askingTechniqueLines,
+    ...explanationDutyLines,
+  ]);
+  context.assert(
+    interrogationDiagnostics().length === 0,
+    "validate-skills accepts complete requirement-interrogation guidance",
+    `diagnostics: ${JSON.stringify(interrogationDiagnostics())}`,
+  );
+} finally {
+  rmSync(interrogationGuidanceRoot, { recursive: true, force: true });
+}
+
 const invalidGenericCommandSkillRoot = mkdtempSync(path.join(os.tmpdir(), "strict-skill-generic-command-invalid-"));
 try {
   const invalidGenericCommandSkillDir = path.join(invalidGenericCommandSkillRoot, "skills", "strict-spec-placeholder-fixture");

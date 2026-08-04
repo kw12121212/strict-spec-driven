@@ -1,0 +1,117 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: requirement-interrogation-gate
+sections:
+  Implementation:
+    extend-question-list-schema:
+      text: Add optional kind (requirement|technical) and answered_by (human|roadmap|assumption) entry fields to templates/strict-spec-driven/schemas/question-list.yaml, keeping both optional so existing artifacts stay valid.
+      status: complete
+    update-question-list-examples:
+      text: Update examples/strict-spec-driven/question-list.yaml and question-list.open.yaml to demonstrate a requirement-kind entry with answered_by attribution alongside a legacy technical entry.
+      status: complete
+    seed-requirement-questions-on-propose:
+      text: Seed the five canonical open requirement questions in src/scaffold.ts so propose writes them into questions.yaml with kind requirement and preferred_human_language text.
+      status: complete
+    add-questions-generator-flags:
+      text: Add --kind and --answered-by to the questions generator in src/propose-generation.ts and make --reset preserve every requirement-kind entry with no flag that removes one.
+      status: complete
+    register-questions-flag-metadata:
+      text: Register the --kind and --answered-by flags with their required, repeatable, and reset semantics in src/cli/command-metadata-entries.ts so help and the MCP inventory describe them.
+      status: complete
+    add-ready-requirement-diagnostics:
+      text: Add requirement_intake diagnostics to checkProposalReadiness in src/workflow-state.ts that fail while a canonical requirement id is missing, open, or answered by assumption, naming the id, field path, and resolving command.
+      status: complete
+    extend-validate-skills-guidance-check:
+      text: Extend the skill guidance content checks in src/skills/content.ts (surfaced through src/skills.ts) so validate-skills rejects brainstorm, propose, bugfix, or auto packages missing the requirement-interrogation section, the no-repository-evidence rule, the five canonical ids, the three asking-technique rules, or either explanation duty.
+      status: complete
+    update-brainstorm-skill-guidance:
+      text: 'Add the Requirement Interrogation section to skills/strict-spec-brainstorm/SKILL.md ahead of the change-intake gate, carrying the five canonical ids, the no-repository-evidence rule, and the six asking actions: one question at a time, each carrying a concrete guess instead of a blank prompt, asking about the last concrete occurrence, rejecting answers that name a solution, asking what happens if nothing is done, and replaying an imperfect summary for correction.'
+      status: complete
+    update-propose-skill-guidance:
+      text: Add the same Requirement Interrogation section, including the six asking actions and the AskUserQuestion concrete-options requirement, to skills/strict-spec-propose/SKILL.md ahead of its change-intake gate.
+      status: complete
+    update-bugfix-skill-guidance:
+      text: Add the Requirement Interrogation section to skills/strict-spec-bugfix/SKILL.md with the same six asking actions, scoped to confirming the defect's real impact and intended outcome before a fix is planned.
+      status: complete
+    update-auto-skill-stop:
+      text: Update skills/strict-spec-auto/SKILL.md so the workflow stops once at the requirement-interrogation checkpoint before proposing, applies the six asking actions at that stop, records answered_by assumption rather than an invented answer when interrogation cannot land, and then continues unattended through archive.
+      status: complete
+    update-readme-english:
+      text: 'Document the requirement-interrogation stage in README.md: stage ordering, the evidence restriction, the five canonical ids, seeded blocking, and the enforcement limit.'
+      status: complete
+    update-readme-chinese:
+      text: Mirror the requirement-interrogation documentation in README.zh.md.
+      status: complete
+    rebuild-generated-output:
+      text: Rebuild compiled output and regenerated embedded assets after the source and template edits.
+      status: complete
+      command: bun run build
+    add-askuserquestion-guidance:
+      text: State in each proposal-oriented skill that requirement questions are asked through AskUserQuestion with two to four concrete options where the harness provides it, so the agent must commit to a guess instead of posing a blank question.
+      status: complete
+    author-seeded-question-explanations:
+      text: Author the self-explanatory context text for each of the five seeded requirement questions, stating why the question is asked, what a sufficient answer contains, a concrete worked example, and what the answer changes downstream, with any workflow vocabulary defined in plain terms.
+      status: complete
+    add-explanation-duties-to-skills:
+      text: State in each proposal-oriented skill that a question is explained before it is posed and that pushback on a solution-shaped or thin answer names its reason and supplies the missing criterion instead of silently re-asking.
+      status: complete
+    ready-diagnostics-explain-the-ask:
+      text: Make each requirement_intake diagnostic in src/workflow-state.ts say what the unanswered question is asking for, not only its id, so a blocked ready is actionable without reading the skill.
+      status: complete
+  Testing:
+    test-question-list-schema-fields:
+      text: Cover question-list schema validation for a requirement entry with attribution, a legacy entry without the new fields, and rejected out-of-set kind or answered_by values.
+      status: complete
+    test-propose-seeding:
+      text: Cover that propose seeds the five canonical open requirement questions with kind requirement and that a freshly scaffolded change is not ready.
+      status: complete
+    test-reset-preserves-requirement-entries:
+      text: Cover that generate questions --reset rebuilds technical entries while preserving every requirement-kind entry, and that --resolve records answered_by.
+      status: complete
+    test-ready-requirement-diagnostics:
+      text: Cover ready blocking on a missing canonical id, on a still-open requirement question, and on an assumption-answered one, and passing when all five are human- or roadmap-answered.
+      status: complete
+    test-validate-skills-interrogation-guidance:
+      text: Cover validate-skills rejecting a proposal-oriented skill package missing the interrogation guidance and accepting the four complete packages.
+      status: complete
+    run-strict-validation:
+      text: Run the strict validation commands over the edited workflow state and skill packages.
+      status: complete
+      command: strict-spec-cli validate-skills
+    run-regression-coverage-gate:
+      text: Run the complete project regression suite with the coverage gate as review evidence.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+    test-validate-skills-asking-technique:
+      text: Cover validate-skills rejecting a proposal-oriented skill package that carries the interrogation section but omits the one-question-at-a-time rule, the concrete-guess rule, or the reject-solution-shaped-answers rule.
+      status: complete
+    test-seeded-question-explanations:
+      text: Cover that each seeded requirement entry carries context beyond a restatement of its question, including the sufficient-answer criteria and a worked example.
+      status: complete
+    test-validate-skills-explanation-duty:
+      text: Cover validate-skills rejecting a proposal-oriented skill package that documents the asking technique but omits the explain-before-asking or explained-pushback duty.
+      status: complete
+  Verification:
+    verify-proposal-readiness:
+      text: Confirm proposal handoff readiness reports no structural blockers.
+      status: complete
+      command: strict-spec-cli ready requirement-interrogation-gate
+    verify-change-artifacts:
+      text: Confirm strict artifact structure, task completion, and open questions before archive.
+      status: complete
+      command: strict-spec-cli verify requirement-interrogation-gate
+    verify-spec-mappings:
+      text: Confirm the delta spec implementation and test mappings resolve to real files.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+    verify-dogfood-seeded-gate:
+      text: Scaffold a throwaway change in a temporary project, confirm its seeded requirement questions block ready, then cancel it, proving the gate works end to end outside the test suite.
+      status: complete
+    verify-archive-merge-readiness:
+      text: Confirm the two delta specs merge cleanly into contracts-yaml-artifacts and cli-foundation, and that no stale mapping entries are left behind for archive's additive merge.
+      status: complete
+testing_gates:
+  validation_task: run-strict-validation
+  unit_test_task: run-regression-coverage-gate

@@ -79,7 +79,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       "Examples:",
       "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
       "  strict-spec-cli generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>]",
-      "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
+      "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]...",
       "  strict-spec-cli generate <change-name> tasks [--reset [--force]] [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
       "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
       "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]...",
@@ -225,6 +225,76 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
         description: "Design artifact only: a risk the change carries.",
         repeatable: true,
         repeatSemantics: "Appends unique values in the order supplied.",
+      },
+      {
+        name: "--open",
+        arity: "value",
+        valueLabel: "<id>",
+        description:
+          "Questions artifact only: opens a question group recorded as unresolved. Requires --question and --context. An open question blocks implementation handoff.",
+        repeatable: true,
+        repeatSemantics: "Upserts by question id; restating an existing id with different content is rejected.",
+      },
+      {
+        name: "--resolved",
+        arity: "value",
+        valueLabel: "<id>",
+        description:
+          "Questions artifact only: opens a question group recorded as already answered. Requires --question, --context, and --answer.",
+        repeatable: true,
+        repeatSemantics: "Upserts by question id; restating an existing id with different content is rejected.",
+      },
+      {
+        name: "--resolve",
+        arity: "value",
+        valueLabel: "<id>",
+        description:
+          "Questions artifact only: moves an existing open question to resolved, reusing its recorded question, context, and kind. Requires --answer.",
+        repeatable: true,
+        repeatSemantics: "Upserts by question id; the question text and context may be overridden per call.",
+      },
+      {
+        name: "--question",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Questions artifact only: the human-facing question text for the open group.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group.",
+      },
+      {
+        name: "--context",
+        arity: "value",
+        valueLabel: "<text>",
+        description:
+          "Questions artifact only: why the question is asked, what a sufficient answer contains, its impact, and a recommended answer or options. There are no separate --impact or --recommendation flags.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group.",
+      },
+      {
+        name: "--answer",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Questions artifact only: the answer recorded for a --resolved or --resolve group.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group.",
+      },
+      {
+        name: "--kind",
+        arity: "value",
+        valueLabel: "<requirement|technical>",
+        description:
+          "Questions artifact only: classifies the question. requirement marks an interrogation question about the need itself, which may be answered only from the requester's words or replayed roadmap detail and never from repository evidence; technical is the default when omitted. --reset preserves requirement-kind entries, and no flag removes them.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group.",
+      },
+      {
+        name: "--answered-by",
+        arity: "value",
+        valueLabel: "<human|roadmap|assumption>",
+        description:
+          "Questions artifact only: records where a resolved answer came from. assumption marks an answer the agent supplied without human confirmation and blocks ready. Carried forward automatically when --resolve replaces an open entry.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group.",
       },
       {
         name: "--section",

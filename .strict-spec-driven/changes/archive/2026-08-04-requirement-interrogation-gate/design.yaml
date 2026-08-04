@@ -1,0 +1,60 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: requirement-interrogation-gate
+approach:
+  - 'Reuse the blocking mechanism that already works instead of inventing a new one: propose seeds questions.yaml with five canonical requirement questions as open entries, and open questions already stop implementation handoff, so a freshly scaffolded change is blocked by default and the only way forward is answers. The question-list schema gains two optional entry fields — kind and answered_by — so the CLI can tell a requirement question from a technical one and can see whether an answer came from a human, from replayed roadmap detail, or from an agent assumption. ready grows requirement_intake diagnostics over those fields, the questions generator refuses to drop requirement-kind entries, the four proposal-oriented skills gain a Requirement Interrogation section that runs before the existing change-intake checklist, and validate-skills enforces that section''s presence.'
+  - 'Interrogation quality is governed in three layers with explicitly different enforcement strength: the CLI deterministically enforces that the canonical requirement questions exist, are answered, and carry attribution; the skill prompts govern how the questions are asked, because a batch of abstract questions returns a batch of restated solutions; and honesty of attribution remains an unenforceable skill-level obligation whose failures are made visible through answered_by assumption rather than prevented.'
+  - A requirement question that arrives as a bare interrogative assumes the requester already knows what a sufficient answer looks like, which is the assumption that produces one-word answers and restated solutions. Every canonical requirement question therefore ships with self-explanatory context — why the question is being asked, what a sufficient answer contains, a concrete worked example of one, and what the answer will change downstream — and the asking technique requires explaining before asking and explaining any pushback rather than silently re-asking.
+decisions:
+  seed-questions-at-propose:
+    decision: propose seeds the five canonical requirement questions into questions.yaml as open entries rather than relying on skill guidance to add them.
+    rationale: Guidance that an agent must remember to follow is exactly what fails today; seeding inverts the default so that asking nothing leaves the change blocked instead of leaving it silently passing.
+  fixed-canonical-question-ids:
+    decision: 'The five requirement questions use fixed language-neutral ids: requirement-problem, requirement-outcome, requirement-trigger, requirement-non-goals, requirement-interpretation.'
+    rationale: ready can only check a requirement set deterministically if it knows which ids must be present; free-form ids would reduce the check to counting entries, which an agent satisfies with one throwaway question.
+  extend-question-list-not-new-artifact:
+    decision: Record requirement answers in the existing questions.yaml through new kind and answered_by fields instead of adding a per-change requirements artifact.
+    rationale: A separate intent artifact would duplicate the blocking surface and reproduce the shape of the ticket feature that was deliberately removed in remove-ticket-feature; one artifact keeps one place that blocks.
+  optional-new-schema-fields:
+    decision: kind and answered_by are optional in the question-list schema, with kind defaulting to technical.
+    rationale: The schema uses additionalProperties false, so making the fields required would invalidate every existing questions.yaml in the archive; optional fields let the new contract land without rewriting history.
+  reset-preserves-requirement-entries:
+    decision: The questions generator preserves requirement-kind entries under --reset and offers no flag that removes them.
+    rationale: Roadmap milestones already protect intake_questions from --reset for the same reason, and an escape hatch that clears the gate would make the gate advisory in practice.
+  assumption-answers-block:
+    decision: A requirement question resolved with answered_by assumption produces a blocking ready diagnostic that names the id and the assumed answer rather than passing with a warning.
+    rationale: An advisory signal is walked past by exactly the agent that was in a hurry enough to assume, so the assumption must cost a stop and an explicit human decision to be worth recording at all.
+  auto-stops-once:
+    decision: strict-spec-auto stops once at the requirement-interrogation checkpoint before proposing, then runs unattended through archive.
+    rationale: Auto's value is skipping confirmations that only restate what the artifacts already show, but no artifact can supply intent, so this single stop is the one that prevents an unattended run from building the wrong thing correctly.
+  three-layer-interrogation-responsibility:
+    decision: Split interrogation responsibility across CLI enforcement of question existence and attribution, skill-prompt enforcement of asking technique, and an acknowledged unenforceable layer for answer honesty.
+    rationale: Seeding alone stops an agent from asking nothing but not from asking five abstract questions at once and recording five restated solutions, so question existence and question quality need different mechanisms and the residual honesty gap must be named rather than assumed away.
+  prescribe-asking-technique:
+    decision: The requirement-interrogation section prescribes concrete asking actions — one question at a time, each carrying a concrete guess rather than a blank prompt, asking about the last concrete occurrence instead of the general case, rejecting answers that name a solution, asking what happens if nothing is done, and replaying a deliberately imperfect summary for correction — and requires AskUserQuestion with concrete options where the harness provides it.
+    rationale: Abstract prompts return the requester's own proposed solution because in their mind the solution is the problem, whereas a concrete wrong guess is cheap to correct and a correction carries more information than agreement.
+  assumption-attribution-makes-evasion-visible:
+    decision: When interrogation cannot land — the requester will not engage or the answer stays a restated solution — the correct action is recording answered_by assumption rather than a plausible invented answer.
+    rationale: Nothing can force a genuine answer out of an unwilling requester, so the achievable goal is that evading the question costs a blocked ready and an explicit human decision instead of passing silently.
+  questions-explain-themselves:
+    decision: Each seeded canonical requirement question carries context that states why it is asked, what a sufficient answer contains, a concrete worked example, and what the answer changes downstream; a bare interrogative is not an acceptable seeded question.
+    rationale: A requester who is not told what a sufficient answer looks like supplies whatever first comes to mind, which is almost always the solution they already had in mind, so an unexplained question collects a compliant non-answer and the gate passes on it.
+  explain-before-asking:
+    decision: The asking technique requires explaining why the question matters before posing it, and explaining the reason for any pushback when an answer is solution-shaped or too thin, rather than silently re-asking the same question.
+    rationale: Silent re-asking reads as the agent not having listened and pushes the requester toward repeating themselves more firmly, whereas naming why the answer cannot be used yet gives them the missing criterion and lets them supply it.
+  no-assumed-requester-expertise:
+    decision: Guidance and documentation must not assume the requester knows the workflow's vocabulary — problem versus solution, observable outcome, non-goal, attribution — and must define each in plain terms at the point of asking.
+    rationale: The requester is the domain expert and the agent is the workflow expert, so any term the workflow invented is the agent's job to explain and never a prerequisite the requester is expected to arrive with.
+alternatives:
+  - option: Strengthen the existing change-intake checklist with requirement-shaped items instead of adding a separate stage.
+    reason: The checklist's own evidence-first rule would then apply to the new items, licensing agents to answer them from repository evidence, which is the precise failure being fixed.
+  - option: Keep the stage entirely in skill prompts with no schema or CLI enforcement.
+    reason: Prompt-only guidance is what the workflow already has, and it produces proposals that pass every deterministic check while never having asked the user anything.
+  - option: Have ready infer requirement coverage from proposal.yaml prose rather than from structured question entries.
+    reason: Prose inference cannot distinguish a human-confirmed problem statement from an agent-authored one, so the check would grade the fluency of the writing rather than the provenance of the answer.
+risks:
+  - The CLI can enforce presence and attribution but cannot verify a human was truly asked; an agent that paraphrases its own guess and stamps answered_by human defeats the gate, leaving that honesty as a prompt-level MUST.
+  - Seeding five open questions makes every new change start with a non-zero ready exit, which will read as a regression to anyone who expects a fresh scaffold to be quiet.
+  - The five canonical ids are fixed by this change, so a project that finds requirement-trigger or requirement-interpretation inapplicable must answer them anyway until configurable checklists are added.

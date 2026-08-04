@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: requirement-interrogation-gate
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Canonical requirement question (kind: requirement). Attribution: human — answered from the requester''s own words in the originating request. Once this change lands, this entry carries kind: requirement and answered_by: human structurally.'
+    answer: The workflow's intake gate interrogates the proposed solution and never the need. Its evidence-first rule tells agents not to ask what repository evidence can answer, but requirement-level facts are structurally unrecoverable from a repository, so an agent can answer the whole checklist truthfully from a one-line request and reach propose having asked the human nothing. ready then only checks that proposal fields are non-empty, so an inferred proposal passes every deterministic check.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Canonical requirement question (kind: requirement). Attribution: human — the requester''s stated goal was obtaining the real requirement rather than the stated one.'
+    answer: 'A newly scaffolded change is blocked by default: ready exits non-zero until the five canonical requirement questions are resolved with human or roadmap attribution. Silence stops being a passing state, and an agent that asks nothing cannot reach implementation handoff.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not be changed?
+    context: 'Canonical requirement question (kind: requirement). Attribution: human — confirmed by the requester at the proposal checkpoint.'
+    answer: No project-configurable checklist in config.yaml; no standalone pre-change intent artifact, which would re-create the ticket feature deliberately removed in remove-ticket-feature; no changes to roadmap milestone intake_questions, which already work; no retrofitting of archived changes; and the existing change-intake checklist keeps its content and evidence-first rule, moving to second position only.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Canonical requirement question (kind: requirement). Attribution: human — the request asked where the stage should go, and the placement was confirmed at the checkpoint.'
+    answer: The request is for placement and enforcement of a requirement-interrogation stage inside the existing workflow, not for a separate requirements-gathering tool or a new artifact family. It runs at the front of every human-request entry point, before the change name is chosen and before the change-intake checklist.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this? Did a change actually get built on a misread requirement, and if so, which one?
+    context: 'Canonical requirement question (kind: requirement), unanswered after discovery and therefore blocking, which is exactly the behavior this change introduces. Impact: the answer decides whether the five canonical ids are the right set. If the failure was an agent building a plausible-but-unwanted feature, requirement-problem and requirement-interpretation carry the weight and requirement-trigger may be redundant. If the failure was a change nobody needed, requirement-trigger earns its slot. It also decides whether assumption-answered items should stay blocking or become configurable. Recommended answer if no specific incident exists: state that the gap was found by reviewing the whole flow rather than from a concrete failure, and keep all five ids as designed.'
+    answer: 'The ticket feature: 14 changes built between 2026-06-13 and 2026-07-09, then removed wholesale on 2026-07-12 with the stated reason that the product no longer includes ticket intake, lifecycle, dispatch, or provenance — a need-level failure rather than a defect or a superseded design, since the removal names no successor carrying the original pain. A second instance is the round trip from remove-task-generate-command on 2026-04-29 to scripted-task-list-generation on 2026-07-23, where a capability was deleted and rebuilt on an unverified judgement. All five canonical requirement ids are retained; requirement-trigger exists to stop exactly this kind of unverified start. Note that fix-class changes such as fix-ready-empty-spec-decision and fix-archive-dependency-resolution are specification incompleteness rather than requirement misreading, and this gate does not address them.'
+    status: resolved
+    kind: requirement
+    answered_by: human

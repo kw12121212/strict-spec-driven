@@ -6584,7 +6584,7 @@ var COMMAND_METADATA_ENTRIES = {
       "Examples:",
       "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
       "  strict-spec-cli generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>]",
-      "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
+      "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]...",
       "  strict-spec-cli generate <change-name> tasks [--reset [--force]] [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
       "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
       "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
@@ -6729,6 +6729,70 @@ var COMMAND_METADATA_ENTRIES = {
         description: "Design artifact only: a risk the change carries.",
         repeatable: true,
         repeatSemantics: "Appends unique values in the order supplied."
+      },
+      {
+        name: "--open",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Questions artifact only: opens a question group recorded as unresolved. Requires --question and --context. An open question blocks implementation handoff.",
+        repeatable: true,
+        repeatSemantics: "Upserts by question id; restating an existing id with different content is rejected."
+      },
+      {
+        name: "--resolved",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Questions artifact only: opens a question group recorded as already answered. Requires --question, --context, and --answer.",
+        repeatable: true,
+        repeatSemantics: "Upserts by question id; restating an existing id with different content is rejected."
+      },
+      {
+        name: "--resolve",
+        arity: "value",
+        valueLabel: "<id>",
+        description: "Questions artifact only: moves an existing open question to resolved, reusing its recorded question, context, and kind. Requires --answer.",
+        repeatable: true,
+        repeatSemantics: "Upserts by question id; the question text and context may be overridden per call."
+      },
+      {
+        name: "--question",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Questions artifact only: the human-facing question text for the open group.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group."
+      },
+      {
+        name: "--context",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Questions artifact only: why the question is asked, what a sufficient answer contains, its impact, and a recommended answer or options. There are no separate --impact or --recommendation flags.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group."
+      },
+      {
+        name: "--answer",
+        arity: "value",
+        valueLabel: "<text>",
+        description: "Questions artifact only: the answer recorded for a --resolved or --resolve group.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group."
+      },
+      {
+        name: "--kind",
+        arity: "value",
+        valueLabel: "<requirement|technical>",
+        description: "Questions artifact only: classifies the question. requirement marks an interrogation question about the need itself, which may be answered only from the requester's words or replayed roadmap detail and never from repository evidence; technical is the default when omitted. --reset preserves requirement-kind entries, and no flag removes them.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group."
+      },
+      {
+        name: "--answered-by",
+        arity: "value",
+        valueLabel: "<human|roadmap|assumption>",
+        description: "Questions artifact only: records where a resolved answer came from. assumption marks an answer the agent supplied without human confirmation and blocks ready. Carried forward automatically when --resolve replaces an open entry.",
+        repeatable: true,
+        repeatSemantics: "At most once per question group."
       },
       {
         name: "--section",
@@ -8450,16 +8514,71 @@ schema_version: 1
 artifact_type: question_list
 schema_file: templates/strict-spec-driven/schemas/question-list.yaml
 change: {{change_name}}
-# open questions block the change — keep empty until real questions arise.
-# Sample entry shape: { id: kebab-id, question: "...", context: "...", status: open }
-open: []
-resolved:
-  # Replace or remove the sample entry below. Move questions here once answered.
-  - id: sample-resolved
-    question: Is [assumption] valid?
-    context: Confirmation needed before proceeding.
-    answer: Yes, confirmed by [source].
-    status: resolved
+# The five requirement questions below are seeded open on purpose: a change starts blocked
+# until a human answers them. They are answered only from the requester's own words or from
+# replayed roadmap detail — never from repository evidence, which can show what the system
+# does but never what a person wants. Resolve each with:
+#   strict-spec-cli generate {{change_name}} questions --resolve <id> --answer "..." --answered-by human
+# Their text below is the canonical English baseline; restate it in the project's
+# preferred_human_language when asking the requester.
+open:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: >-
+      Why this is asked: the change is planned against a need, and the need lives only with the
+      requester. A "problem" here means what someone does or suffers today — not a feature that is
+      missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and
+      the underlying problem is still unstated. What a sufficient answer contains: who is affected,
+      what they do today instead, and how often. Worked example: "every Monday one person spends
+      forty minutes copying order rows into a spreadsheet to send the weekly report". What it
+      changes: this becomes the proposal's why, and it decides whether the change is worth making.
+    kind: requirement
+    status: open
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: >-
+      Why this is asked: without a success condition, nobody can tell afterwards whether the change
+      worked. "Observable" means someone outside the system can check it without reading the code.
+      What a sufficient answer contains: what a person will see, or no longer have to do, once this
+      is done. Worked example: "the report is in the manager's inbox on Monday morning without
+      anyone assembling it". What it changes: this becomes the delta spec's scenarios and the
+      acceptance evidence at review time.
+    kind: requirement
+    status: open
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: >-
+      Why this is asked: work that nothing forced is the work most often thrown away later. This
+      question catches a request that sounds reasonable but has no real driver behind it. What a
+      sufficient answer contains: the concrete event, deadline, incident, or cost that made this
+      surface now, or an honest statement that nothing did. Worked example: "the report was missed
+      last month and it was raised with the team". What it changes: a change with no trigger is a
+      candidate for deferral, and the answer is weighed at review before archive.
+    kind: requirement
+    status: open
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: >-
+      Why this is asked: the requester knows which nearby behavior other people depend on, and the
+      agent does not. A "non-goal" is something the change must leave alone even though it sits
+      close to the work. What a sufficient answer contains: the behavior, setting, or output that
+      must survive untouched, and who relies on it. Worked example: "do not change the saved
+      filters — several people rely on their own". What it changes: these become the proposal's
+      unchanged_behavior items, which review checks the finished result against.
+    kind: requirement
+    status: open
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: >-
+      Why this is asked: a short request usually admits several readings, and building the wrong one
+      is indistinguishable from building nothing. What a sufficient answer contains: the reading
+      that is meant, stated plainly enough to rule the others out — or a statement that only one
+      reading exists and what it is. Worked example: "export means the version sent to the manager,
+      not the one I read myself". What it changes: this fixes the scope boundary before any code is
+      written, and settles disputes about what was asked for.
+    kind: requirement
+    status: open
+resolved: []
 `,
   "strict-spec-driven/scaffold/changes/tasks.yaml": `schema: strict-spec-driven/task-list/v2
 schema_version: 2
@@ -10866,6 +10985,17 @@ json_schema:
             type: string
           context:
             type: string
+          kind:
+            type: string
+            enum:
+              - requirement
+              - technical
+          answered_by:
+            type: string
+            enum:
+              - human
+              - roadmap
+              - assumption
           status:
             type: string
             const: open
@@ -10887,6 +11017,17 @@ json_schema:
             type: string
           context:
             type: string
+          kind:
+            type: string
+            enum:
+              - requirement
+              - technical
+          answered_by:
+            type: string
+            enum:
+              - human
+              - roadmap
+              - assumption
           answer:
             type: string
           status:
@@ -13137,11 +13278,32 @@ artifact_type: question_list
 schema_file: ../../templates/strict-spec-driven/schemas/question-list.yaml
 change: example-change
 open:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: >-
+      Asked because the workflow plans a change against a need, and only the requester knows the
+      need. A sufficient answer names who is affected and what they do today instead, without
+      naming a feature. Worked example: "the on-call engineer re-reads three dashboards every
+      morning because no single view shows overnight failures". The answer becomes the proposal's
+      why and decides whether this change is worth making at all.
+    kind: requirement
+    status: open
   - id: choose-example
     question: Which valid option should be used?
     context: The answer determines the implementation choice.
     status: open
 resolved:
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: >-
+      Asked because a change needs a success condition someone outside the system can check. A
+      sufficient answer describes what a person will see or no longer have to do, not what the
+      code will contain. Worked example: "the morning check takes one glance at one page". The
+      answer becomes the delta spec's scenarios.
+    kind: requirement
+    answered_by: human
+    answer: The overnight failure count is visible without opening any dashboard.
+    status: resolved
   - id: confirmed-example
     question: Is the example valid?
     context: The answer confirms the contract.
@@ -17296,24 +17458,43 @@ function buildDesignArtifact(changeName, input) {
     risks: asOptionalStringArray(input.risks, "$.risks") ?? []
   };
 }
+var QUESTION_KIND_VALUES = new Set(["requirement", "technical"]);
+var ANSWERED_BY_VALUES = new Set(["human", "roadmap", "assumption"]);
+function applyQuestionAttribution(target, record, fieldPath) {
+  if (record.kind !== undefined) {
+    const kind = asString(record.kind, `${fieldPath}.kind`);
+    if (!QUESTION_KIND_VALUES.has(kind)) {
+      throw new Error(`input field '${fieldPath}.kind' must be one of: requirement, technical`);
+    }
+    target.kind = kind;
+  }
+  if (record.answered_by !== undefined) {
+    const answeredBy = asString(record.answered_by, `${fieldPath}.answered_by`);
+    if (!ANSWERED_BY_VALUES.has(answeredBy)) {
+      throw new Error(`input field '${fieldPath}.answered_by' must be one of: human, roadmap, assumption`);
+    }
+    target.answered_by = answeredBy;
+  }
+  return target;
+}
 function normalizeOpenQuestion(question, index) {
   const record = asRecord(question, `$.open[${index}]`);
-  return {
+  return applyQuestionAttribution({
     id: asString(record.id, `$.open[${index}].id`),
     question: asString(record.question, `$.open[${index}].question`),
     context: asString(record.context, `$.open[${index}].context`),
     status: "open"
-  };
+  }, record, `$.open[${index}]`);
 }
 function normalizeResolvedQuestion(question, index) {
   const record = asRecord(question, `$.resolved[${index}]`);
-  return {
+  return applyQuestionAttribution({
     id: asString(record.id, `$.resolved[${index}].id`),
     question: asString(record.question, `$.resolved[${index}].question`),
     context: asString(record.context, `$.resolved[${index}].context`),
     answer: asString(record.answer, `$.resolved[${index}].answer`),
     status: "resolved"
-  };
+  }, record, `$.resolved[${index}]`);
 }
 function buildQuestionsArtifact(changeName, input) {
   const open = input.open ?? [];
@@ -17660,7 +17841,7 @@ function usage() {
     "Examples:",
     "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
     "  strict-spec-cli generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
-    "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
+    "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]...",
     "  strict-spec-cli generate <change-name> tasks [--reset [--force]] [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
     "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
     "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]..."
@@ -17893,6 +18074,20 @@ function buildDesignInput(rootDir, changeName, flags) {
   input.alternatives = alternatives;
   return input;
 }
+var QUESTION_KIND_VALUES2 = ["requirement", "technical"];
+var ANSWERED_BY_VALUES2 = ["human", "roadmap", "assumption"];
+function isRequirementQuestion(entry) {
+  return isRecord2(entry) && entry.kind === "requirement";
+}
+function withQuestionAttribution(entry, item, inheritedFrom) {
+  const kind = item.questionKind ?? (typeof inheritedFrom?.kind === "string" ? inheritedFrom.kind : undefined);
+  const answeredBy = item.answeredBy ?? (typeof inheritedFrom?.answered_by === "string" ? inheritedFrom.answered_by : undefined);
+  if (kind !== undefined)
+    entry.kind = kind;
+  if (answeredBy !== undefined)
+    entry.answered_by = answeredBy;
+  return entry;
+}
 function parseQuestionCommandInput(argv, rootDir) {
   const input = { reset: false, items: [] };
   let currentItem;
@@ -17933,19 +18128,39 @@ function parseQuestionCommandInput(argv, rootDir) {
       index += 1;
       continue;
     }
+    if (name === "kind") {
+      const value = readValue(name, index);
+      if (!QUESTION_KIND_VALUES2.includes(value)) {
+        throw new Error(`--kind must be one of: ${QUESTION_KIND_VALUES2.join(", ")}`);
+      }
+      setField("questionKind", value, name);
+      index += 1;
+      continue;
+    }
+    if (name === "answered-by") {
+      const value = readValue(name, index);
+      if (!ANSWERED_BY_VALUES2.includes(value)) {
+        throw new Error(`--answered-by must be one of: ${ANSWERED_BY_VALUES2.join(", ")}`);
+      }
+      setField("answeredBy", value, name);
+      index += 1;
+      continue;
+    }
     throw new Error(`unsupported argument(s): --${name}`);
   }
   return input;
 }
 function existingQuestionsInput(rootDir, changeName, reset) {
-  if (reset) {
-    return { open: [], resolved: [] };
-  }
   const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/changes/${changeName}/questions.yaml`);
-  return {
-    open: Array.isArray(artifact?.open) ? artifact.open : [],
-    resolved: Array.isArray(artifact?.resolved) ? artifact.resolved : []
-  };
+  const open = Array.isArray(artifact?.open) ? artifact.open : [];
+  const resolved = Array.isArray(artifact?.resolved) ? artifact.resolved : [];
+  if (reset) {
+    return {
+      open: open.filter(isRequirementQuestion),
+      resolved: resolved.filter(isRequirementQuestion)
+    };
+  }
+  return { open, resolved };
 }
 function buildQuestionsInputFromArgs(rootDir, changeName, argv) {
   const commandInput = parseQuestionCommandInput(argv, rootDir);
@@ -17961,11 +18176,11 @@ function buildQuestionsInputFromArgs(rootDir, changeName, argv) {
       if (item.answer !== undefined) {
         throw new Error(`--answer is only valid with --resolved for question '${item.id}'`);
       }
-      open = upsertListItem(open, {
+      open = upsertListItem(open, withQuestionAttribution({
         id: item.id,
         question: item.question,
         context: item.context
-      }, item.id, "open question");
+      }, item), item.id, "open question");
       continue;
     }
     if (item.kind === "resolve") {
@@ -17980,12 +18195,12 @@ function buildQuestionsInputFromArgs(rootDir, changeName, argv) {
       if (!context)
         throw new Error(`missing required argument --context for unresolved question '${item.id}'`);
       open = open.filter((candidate) => candidate.id !== item.id);
-      resolved = upsertListItem(resolved, {
+      resolved = upsertListItem(resolved, withQuestionAttribution({
         id: item.id,
         question,
         context,
         answer: item.answer
-      }, item.id, "resolved question");
+      }, item, existingRecord), item.id, "resolved question");
       continue;
     }
     if (!item.question)
@@ -17994,12 +18209,12 @@ function buildQuestionsInputFromArgs(rootDir, changeName, argv) {
       throw new Error(`missing required argument --context for question '${item.id}'`);
     if (!item.answer)
       throw new Error(`missing required argument --answer for resolved question '${item.id}'`);
-    resolved = upsertListItem(resolved, {
+    resolved = upsertListItem(resolved, withQuestionAttribution({
       id: item.id,
       question: item.question,
       context: item.context,
       answer: item.answer
-    }, item.id, "resolved question");
+    }, item), item.id, "resolved question");
   }
   input.open = open;
   input.resolved = resolved;
@@ -22244,6 +22459,13 @@ var EMPTY_SPEC_DECISION_IDS = new Set([
   "technical-only-no-spec",
   "empty-spec-decision"
 ]);
+var CANONICAL_REQUIREMENT_QUESTIONS = [
+  { id: "requirement-problem", asks: "what is concretely going wrong today, and for whom" },
+  { id: "requirement-outcome", asks: "what observable difference proves the problem is solved" },
+  { id: "requirement-trigger", asks: "why now — what forced this" },
+  { id: "requirement-non-goals", asks: "what must explicitly not change" },
+  { id: "requirement-interpretation", asks: "which reading of the request is intended" }
+];
 function changeDir(rootDir, changeName) {
   return path18.join(rootDir, STRICT_WORKFLOW_DIR8, "changes", changeName);
 }
@@ -22316,6 +22538,42 @@ function proposalReadinessDiagnostic(changeName, artifactPath, fieldPath, messag
     expected,
     actual
   };
+}
+function checkRequirementIntakeEvidence(rootDir, changeName) {
+  const artifact = readChangeArtifact(rootDir, changeName, "questions.yaml");
+  if (!artifact)
+    return [];
+  const artifactPath = `.strict-spec-driven/changes/${changeName}/questions.yaml`;
+  const open = Array.isArray(artifact.open) ? artifact.open : [];
+  const resolved = Array.isArray(artifact.resolved) ? artifact.resolved : [];
+  const diagnostics = [];
+  for (const canonical of CANONICAL_REQUIREMENT_QUESTIONS) {
+    const resolvedEntry = resolved.find((entry) => entry?.id === canonical.id);
+    if (resolvedEntry) {
+      if (resolvedEntry.answered_by !== "human" && resolvedEntry.answered_by !== "roadmap") {
+        const isAssumption = resolvedEntry.answered_by === "assumption";
+        diagnostics.push({
+          source: "requirement_intake",
+          artifactPath,
+          fieldPath: `$.resolved[?(@.id=='${canonical.id}')].answered_by`,
+          message: `requirement question '${canonical.id}' asks ${canonical.asks}, and its answer is ` + (isAssumption ? "attributed to an agent assumption rather than to the requester" : "missing an answered_by attribution naming where the answer came from"),
+          expected: "answered_by human or roadmap",
+          actual: isAssumption ? "answered_by assumption" : "no answered_by attribution"
+        });
+      }
+      continue;
+    }
+    const isOpen = open.some((entry) => entry?.id === canonical.id);
+    diagnostics.push({
+      source: "requirement_intake",
+      artifactPath,
+      fieldPath: isOpen ? `$.open[?(@.id=='${canonical.id}')]` : "$.resolved",
+      message: `requirement question '${canonical.id}' asks ${canonical.asks}, and is ${isOpen ? "still unanswered" : "missing"}; ` + `resolve it with: strict-spec-cli generate ${changeName} questions --resolve ${canonical.id} --answer <answer> --answered-by human`,
+      expected: `resolved '${canonical.id}' answered by the requester`,
+      actual: isOpen ? "open requirement question" : "no such requirement question"
+    });
+  }
+  return diagnostics;
 }
 function checkDeterministicQuestionGateEvidence(rootDir, changeName) {
   const diagnostics = [];
@@ -22411,6 +22669,7 @@ function checkProposalReadiness(rootDir, changeName) {
   const verification = verifyChange(rootDir, changeName);
   const diagnostics = verification.diagnostics.filter((diagnostic) => diagnostic.source !== "task_completion" && diagnostic.source !== "task_completeness");
   diagnostics.push(...checkDeterministicQuestionGateEvidence(rootDir, changeName));
+  diagnostics.push(...checkRequirementIntakeEvidence(rootDir, changeName));
   const hasMissingDeltaSpecDiagnostic = listDeltaSpecFiles(rootDir, changeName).length === 0 && !hasExplicitEmptySpecDecision(rootDir, changeName);
   if (hasMissingDeltaSpecDiagnostic) {
     diagnostics.push({
@@ -28581,6 +28840,26 @@ var BUGFIX_REPRODUCE_BEFORE_FIXING_SNIPPET = "Reproduce before fixing";
 var BUGFIX_REGRESSION_TEST_SNIPPET = "failing regression";
 var BUGFIX_MINIMAL_FIX_SNIPPET = "minimal fix";
 var BUGFIX_DEBUG_SESSION_SNIPPET = "strict-spec-debug-session";
+var REQUIREMENT_INTERROGATION_SKILLS = [
+  "strict-spec-brainstorm",
+  "strict-spec-propose",
+  "strict-spec-bugfix",
+  "strict-spec-auto"
+];
+var REQUIREMENT_INTERROGATION_HEADING = "## Requirement Interrogation";
+var REQUIREMENT_INTERROGATION_SNIPPETS = [
+  { snippet: "never answered from repository evidence", element: "the rule that requirement items are never answered from repository evidence" },
+  { snippet: "requirement-problem", element: "the canonical requirement id 'requirement-problem'" },
+  { snippet: "requirement-outcome", element: "the canonical requirement id 'requirement-outcome'" },
+  { snippet: "requirement-trigger", element: "the canonical requirement id 'requirement-trigger'" },
+  { snippet: "requirement-non-goals", element: "the canonical requirement id 'requirement-non-goals'" },
+  { snippet: "requirement-interpretation", element: "the canonical requirement id 'requirement-interpretation'" },
+  { snippet: "one question at a time", element: "the asking-technique rule of one question at a time" },
+  { snippet: "concrete guess", element: "the asking-technique rule that a question carries a concrete guess rather than a blank prompt" },
+  { snippet: "names a solution", element: "the asking-technique rule that rejects an answer naming a solution instead of a problem" },
+  { snippet: "explain why the question matters", element: "the duty to explain a question before posing it" },
+  { snippet: "state the reason for the pushback", element: "the duty to state the reason for pushback instead of silently re-asking" }
+];
 var CORE_STRICT_SKILL_EXPECTATIONS = {
   "strict-spec-init": {
     requiredCommands: {
@@ -29030,6 +29309,19 @@ function makeDiagnostic5(code, diagPath, message, expected, actual) {
 }
 
 // src/skills/content.ts
+function validateRequirementInterrogationGuidance(skillName, content, skillPath, diagnostics) {
+  if (!REQUIREMENT_INTERROGATION_SKILLS.includes(skillName))
+    return;
+  const normalizedContent = content.replace(/\s+/g, " ");
+  if (!content.includes(REQUIREMENT_INTERROGATION_HEADING)) {
+    diagnostics.push(makeDiagnostic5("skill.requirement_interrogation.heading.missing", skillPath, "proposal-oriented strict skills must carry a requirement-interrogation section that runs before the change-intake checklist", REQUIREMENT_INTERROGATION_HEADING));
+  }
+  for (const expectation of REQUIREMENT_INTERROGATION_SNIPPETS) {
+    if (normalizedContent.includes(expectation.snippet.replace(/\s+/g, " ")))
+      continue;
+    diagnostics.push(makeDiagnostic5("skill.requirement_interrogation.guidance.missing", skillPath, `proposal-oriented strict skills must document ${expectation.element}`, expectation.snippet));
+  }
+}
 function requiresExistingStrictWorkflowState(skillName) {
   return (skillName.startsWith("strict-spec-") || skillName.startsWith("strict-roadmap-") || skillName.startsWith("strict-tech-")) && skillName !== "strict-spec-init" && skillName !== "strict-spec-migrate";
 }
@@ -29160,6 +29452,7 @@ function validateCommandSection(skillName, content, skillPath, diagnostics) {
   validatePlanningSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateMigrationSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateStrictWorkflowStateGuidance(skillName, content, normalizedCommands, skillPath, diagnostics);
+  validateRequirementInterrogationGuidance(skillName, content, skillPath, diagnostics);
 }
 
 // src/skills/diagnostics.ts

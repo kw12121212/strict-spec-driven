@@ -117,9 +117,53 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 
 独立 planned-change 文件使用由 CLI 负责的规范文件名：`<milestone-id>-<planned-change-id>.yaml`（当 planned-change id 已以 milestone id 开头时不重复前缀）。文件名顺序具有语义意义——`roadmap-recommend` 按文件名顺序选择第一个符合条件的 planned change——因此活动 planned-change 文件的非规范文件名是 `roadmap-status` 与 `roadmap-sync` 的阻塞性验证诊断（已归档的 planned-change 文件豁免）。请通过 `roadmap-generate planned-change` 创建和更新 planned-change 工件（文件名由 CLI 自行计算），并用 `roadmap-sync --fix-names` 修复历史遗留的错误命名；切勿手工挑选 planned-change 文件名。
 
+## 需求拷问
+
+每一条从人类请求开始的路径——`/strict-spec-brainstorm`、`/strict-spec-propose`、
+`/strict-spec-bugfix`、`/strict-spec-auto`——都会先拷问**需求**，再由变更接收问题门去拷问
+**方案**。它排在前面，是因为一个范围划得很干净、却建立在误读需求之上的变更，依然是错的变更。
+
+需求类答案**永远不从仓库证据中获取**。代码能说明系统做了什么，说明不了一个人想要什么。
+只有请求者自己的话（包括他在当前请求里已经说过的内容），或者回放的路线图 planned-change
+与里程碑详情，才能回答这些问题。
+
+`propose` 会把五条固定问题作为 open 条目预置进 `questions.yaml`，因此新建的变更**一开始就是被阻断的**：
+
+| 问题 id | 问什么 | 怎样才算答完整 |
+|---|---|---|
+| `requirement-problem` | 今天具体出了什么问题，谁在承受？ | 谁受影响、他现在改用什么办法、多久发生一次——且不点名任何功能 |
+| `requirement-outcome` | 什么样的可观测差异证明它被解决了？ | 一个人将会看到什么、或不必再做什么，且能从系统外部核对 |
+| `requirement-trigger` | 为什么是现在，什么逼出了它？ | 具体的事件、期限、事故或代价；如果确实没有，就如实说明 |
+| `requirement-non-goals` | 什么明确不能改？ | 必须原样保留的邻近行为，以及谁依赖它 |
+| `requirement-interpretation` | 打算取哪一种读法？ | 把想要的那一种说清楚到足以排除其他读法 |
+
+每条预置条目都自带说明——为什么问、怎样才算答完整、一个具体范例、以及这个答案会改变什么，
+因此回答它不需要事先了解这套工作流。
+
+答案带归属记录。`--answered-by human` 和 `--answered-by roadmap` 满足门禁；
+`--answered-by assumption` 表示答案由 agent 在没有人类确认的情况下给出，会阻断 `ready`
+直到有人明确决定：
+
+```bash
+strict-spec-cli generate <change-name> questions --resolve requirement-problem \
+  --answer "..." --answered-by human
+```
+
+只要任一固定问题缺失、仍处于 open、由 assumption 回答，或者已解决却完全没有归属标注，
+`ready` 就会输出 `requirement_intake` 诊断并非零退出。questions 生成器的 `--reset`
+会保留 requirement 类条目，并且没有任何标志可以删除它们。
+
+强制力分三层，值得说清楚哪层管什么：
+
+| 层 | 机制 | 保证什么 |
+|---|---|---|
+| CLI | `propose` 预置、`ready` 诊断 | 问题存在、已被回答、带有归属 |
+| Skills | 四个 skill 提示词中的提问技术，由 `validate-skills` 强制 | 一次问一条、每条带具体猜测、提问前先解释、推回时说明理由 |
+| 都不管 | — | agent 是否真的认真拷问过。这是判断，无法检查；记录 `answered_by: assumption` 让糊弄留下痕迹，而不是阻止它 |
+
 ## 变更接收问题门
 
-面向提案的 Skills 会在实现前运行一个简短的变更接收问题门。它们会先用可用证据回答检查清单：当前请求、路线图 planned-change 详情、严格规范、技术标准、已有变更制品、仓库搜索结果以及确定性 CLI 输出。如果这些证据已经回答了清单项，工作流不会再向人重复提问。
+面向提案的 Skills 会在上述需求拷问之后、实现之前运行一个简短的变更接收问题门。它们会先用可用证据回答检查清单：当前请求、路线图 planned-change 详情、严格规范、技术标准、已有变更制品、仓库搜索结果以及确定性 CLI 输出。如果这些证据已经回答了清单项，工作流不会再向人重复提问。
 
 检查清单覆盖：要改什么、为什么值得做、包含什么、不包含什么、哪些既有行为必须保持不变、工作可能位于哪里、如何证明它有效、相关风险或依赖是什么，以及适用哪些技术规则。
 

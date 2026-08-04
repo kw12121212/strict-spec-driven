@@ -109,6 +109,41 @@ const BUGFIX_REGRESSION_TEST_SNIPPET = "failing regression";
 const BUGFIX_MINIMAL_FIX_SNIPPET = "minimal fix";
 const BUGFIX_DEBUG_SESSION_SNIPPET = "strict-spec-debug-session";
 
+/**
+ * Skills that start a change from a human request. Each must interrogate the need before the
+ * change-intake checklist interrogates the solution, so the guidance below is enforced rather than
+ * left to the agent's diligence.
+ */
+export const REQUIREMENT_INTERROGATION_SKILLS = [
+  "strict-spec-brainstorm",
+  "strict-spec-propose",
+  "strict-spec-bugfix",
+  "strict-spec-auto",
+] as const;
+
+export const REQUIREMENT_INTERROGATION_HEADING = "## Requirement Interrogation";
+
+export type RequirementInterrogationExpectation = {
+  /** Text the skill must carry verbatim. */
+  snippet: string;
+  /** What the snippet enforces, named in the diagnostic so the fix is obvious. */
+  element: string;
+};
+
+export const REQUIREMENT_INTERROGATION_SNIPPETS: ReadonlyArray<RequirementInterrogationExpectation> = [
+  { snippet: "never answered from repository evidence", element: "the rule that requirement items are never answered from repository evidence" },
+  { snippet: "requirement-problem", element: "the canonical requirement id 'requirement-problem'" },
+  { snippet: "requirement-outcome", element: "the canonical requirement id 'requirement-outcome'" },
+  { snippet: "requirement-trigger", element: "the canonical requirement id 'requirement-trigger'" },
+  { snippet: "requirement-non-goals", element: "the canonical requirement id 'requirement-non-goals'" },
+  { snippet: "requirement-interpretation", element: "the canonical requirement id 'requirement-interpretation'" },
+  { snippet: "one question at a time", element: "the asking-technique rule of one question at a time" },
+  { snippet: "concrete guess", element: "the asking-technique rule that a question carries a concrete guess rather than a blank prompt" },
+  { snippet: "names a solution", element: "the asking-technique rule that rejects an answer naming a solution instead of a problem" },
+  { snippet: "explain why the question matters", element: "the duty to explain a question before posing it" },
+  { snippet: "state the reason for the pushback", element: "the duty to state the reason for pushback instead of silently re-asking" },
+];
+
 export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectation> = {
   "strict-spec-init": {
     requiredCommands: {

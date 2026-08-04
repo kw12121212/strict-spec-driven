@@ -1,0 +1,104 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/scaffold.ts
+    - src/propose-generation.ts
+    - src/cli/cmd-generation.ts
+    - src/workflow-state.ts
+    - src/skills.ts
+    - src/skills/content.ts
+    - src/cli/command-metadata-entries.ts
+    - templates/strict-spec-driven/scaffold/changes/questions.yaml
+    - README.md
+    - README.zh.md
+  tests:
+    - test/suites/change-lifecycle.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-propose-seeds-requirement-questions:
+      strength: MUST
+      statement: The propose command MUST seed questions.yaml with exactly five canonical open requirement questions carrying the language-neutral ids requirement-problem, requirement-outcome, requirement-trigger, requirement-non-goals, and requirement-interpretation, each with kind requirement and each carrying self-explanatory context that states why the question is asked, what a sufficient answer contains, a concrete worked example of one, and what the answer changes downstream; a seeded entry whose context is only a restatement of the question does not satisfy this requirement. The seeded text is the canonical English baseline, and proposal-oriented skills restate it in the configured preferred_human_language when asking the requester.
+      scenarios:
+        propose-seeds-five-canonical-open-requirement-questions:
+          - GIVEN: a strict workflow project with no active change of the requested name
+          - WHEN: strict-spec-driven propose <name> runs
+          - THEN: the scaffolded questions.yaml contains the five canonical requirement ids as open entries with kind requirement
+        seeded-questions-carry-self-explanatory-context:
+          - GIVEN: a change scaffolded by propose and read by a requester unfamiliar with the strict workflow
+          - WHEN: the seeded requirement questions are inspected
+          - THEN: each entry's context states why the question is asked, what a sufficient answer contains, a worked example, and what the answer changes, rather than restating the question
+        seeded-questions-block-a-fresh-scaffold:
+          - GIVEN: a change scaffolded by propose whose seeded requirement questions are still open
+          - WHEN: strict-spec-driven ready <name> runs
+          - THEN: the command exits non-zero and reports the unanswered requirement questions rather than reporting the fresh scaffold as ready
+    cli-questions-generator-requirement-attribution:
+      strength: MUST
+      statement: The questions generator MUST accept --kind and --answered-by so requirement entries can be created and resolved with attribution, MUST carry an existing entry's kind forward when --resolve moves it from open to resolved, MUST preserve every requirement-kind entry when --reset rebuilds the artifact, MUST offer no flag that removes a requirement-kind entry, and MUST document both flags in the shared command-metadata registry.
+      scenarios:
+        reset-preserves-requirement-kind-entries:
+          - GIVEN: a questions.yaml containing seeded requirement-kind entries and additional technical entries
+          - WHEN: strict-spec-driven generate <name> questions --reset runs with new technical entries
+          - THEN: the technical entries are rebuilt while every requirement-kind entry is preserved unchanged
+        resolve-records-answer-attribution:
+          - GIVEN: an open requirement-kind question and a human-supplied answer
+          - WHEN: strict-spec-driven generate <name> questions --resolve <id> --answer <text> --answered-by human runs
+          - THEN: the entry moves to resolved carrying kind requirement and answered_by human
+        rejects-out-of-set-attribution-values:
+          - GIVEN: a questions generator invocation supplying a --kind or --answered-by value outside the permitted sets
+          - WHEN: the command runs
+          - THEN: the command exits non-zero naming the flag and its permitted values
+    cli-ready-requirement-intake-diagnostics:
+      strength: MUST
+      statement: The ready proposal-handoff command MUST emit requirement_intake diagnostics and exit non-zero while any canonical requirement question is absent from questions.yaml, still open, resolved with answered_by assumption, or resolved without an answered_by attribution, and each diagnostic MUST name the canonical requirement id, the artifact field path, what the unanswered question is asking for, and the command that resolves it.
+      scenarios:
+        ready-blocks-on-assumption-answered-requirements:
+          - GIVEN: a change whose canonical requirement questions are resolved but at least one carries answered_by assumption
+          - WHEN: strict-spec-driven ready <name> runs
+          - THEN: the command exits non-zero with a requirement_intake diagnostic naming the assumed requirement id and the resolving command
+        ready-blocks-on-unattributed-requirement-answer:
+          - GIVEN: a change whose canonical requirement question is resolved but carries no answered_by field
+          - WHEN: strict-spec-driven ready <name> runs
+          - THEN: the command exits non-zero with a requirement_intake diagnostic reporting the missing attribution
+        ready-blocks-on-missing-canonical-requirement-id:
+          - GIVEN: a change whose questions.yaml omits one of the five canonical requirement ids entirely
+          - WHEN: strict-spec-driven ready <name> runs
+          - THEN: the command exits non-zero with a requirement_intake diagnostic naming the missing canonical id and what it asks for
+        ready-proceeds-on-human-answered-requirements:
+          - GIVEN: a change whose five canonical requirement questions are all resolved with answered_by human or roadmap and whose other proposal readiness evidence is present
+          - WHEN: strict-spec-driven ready <name> runs
+          - THEN: the command exits zero without requirement_intake diagnostics
+    cli-validate-skills-requires-interrogation-guidance:
+      strength: MUST
+      statement: The validate-skills command MUST reject a strict skill package for brainstorm, propose, bugfix, or auto whose guidance omits the requirement-interrogation section, the rule that requirement items are never answered from repository evidence, the five canonical requirement ids, the prescribed asking technique of one question at a time each carrying a concrete guess and rejecting answers that name a solution, the duty to explain why a question matters and what a sufficient answer contains before posing it, or the duty to state the reason for pushback instead of silently re-asking, reporting deterministic path-specific diagnostics for each missing element.
+      scenarios:
+        validate-skills-rejects-missing-interrogation-guidance:
+          - GIVEN: a proposal-oriented strict skill package whose guidance omits the requirement-interrogation section
+          - WHEN: strict-spec-driven validate-skills runs
+          - THEN: the command exits non-zero with a diagnostic naming the skill path and the missing guidance element
+        validate-skills-rejects-missing-asking-technique:
+          - GIVEN: a proposal-oriented strict skill package that documents the requirement-interrogation section and canonical ids but omits the one-question-at-a-time rule, the concrete-guess rule, or the reject-solution-shaped-answers rule
+          - WHEN: strict-spec-driven validate-skills runs
+          - THEN: the command exits non-zero with a diagnostic naming the skill path and the missing asking-technique rule
+        validate-skills-rejects-missing-explanation-duty:
+          - GIVEN: a proposal-oriented strict skill package that documents the asking technique but omits the duty to explain a question before posing it or the duty to state the reason for pushback
+          - WHEN: strict-spec-driven validate-skills runs
+          - THEN: the command exits non-zero with a diagnostic naming the skill path and the missing explanation duty
+        validate-skills-accepts-complete-interrogation-guidance:
+          - GIVEN: all four proposal-oriented strict skill packages document the requirement-interrogation section, the evidence rule, the five canonical ids, the asking technique, and both explanation duties
+          - WHEN: strict-spec-driven validate-skills runs
+          - THEN: the command exits zero without interrogation-guidance diagnostics
+    cli-requirement-interrogation-docs-coverage:
+      strength: MUST
+      statement: The system MUST document the requirement-interrogation stage in both README.md and README.zh.md, explaining why it runs before the change-intake checklist, why repository evidence cannot answer requirement items, what each of the five canonical ids asks and what a sufficient answer to it contains, how seeded questions block a fresh scaffold, the prescribed asking technique and explanation duties, and the three-layer split in which the CLI enforces question existence and attribution, the skills govern asking technique, and answer honesty stays an unenforceable obligation made visible through answered_by assumption.
+      scenarios:
+        documented-requirement-interrogation-stage:
+          - GIVEN: a user reads the repository README or its localized counterpart
+          - WHEN: the requirement-interrogation stage is described
+          - THEN: the documentation explains the stage ordering, the evidence restriction, what each canonical id asks and what answers it, the seeded blocking behavior, the asking technique and explanation duties, and the three-layer enforcement split
+  MODIFIED: {}
+  REMOVED: {}

@@ -1,0 +1,62 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: contracts-yaml-artifacts
+mapping:
+  implementation:
+    - templates/strict-spec-driven/schemas/question-list.yaml
+    - examples/strict-spec-driven/question-list.yaml
+    - examples/strict-spec-driven/question-list.open.yaml
+    - src/embedded-templates.ts
+    - skills/strict-spec-brainstorm/SKILL.md
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-bugfix/SKILL.md
+    - skills/strict-spec-auto/SKILL.md
+  tests:
+    - test/suites/change-lifecycle.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    question-list-requirement-entry-fields:
+      strength: MUST
+      statement: The system MUST allow every strict question-list entry to carry an optional kind field constrained to requirement or technical and an optional answered_by field constrained to human, roadmap, or assumption, MUST treat an entry without kind as technical, and MUST keep question-list artifacts that omit both fields schema-valid.
+      scenarios:
+        requirement-entry-accepts-kind-and-attribution:
+          - GIVEN: a strict question-list artifact whose resolved entry declares kind requirement and answered_by human
+          - WHEN: the artifact is validated against the question-list schema
+          - THEN: validation succeeds and both fields are preserved on the entry
+        legacy-entries-without-new-fields-stay-valid:
+          - GIVEN: a strict question-list artifact whose entries declare only id, question, context, status, and answer
+          - WHEN: the artifact is validated against the question-list schema
+          - THEN: validation succeeds and every entry is treated as kind technical
+        rejects-unknown-kind-or-attribution-values:
+          - GIVEN: a strict question-list entry whose kind or answered_by carries a value outside the permitted sets
+          - WHEN: the artifact is validated against the question-list schema
+          - THEN: validation fails with a diagnostic naming the offending field and its permitted values
+    proposal-skills-requirement-interrogation-pass:
+      strength: MUST
+      statement: Proposal-oriented skill guidance MUST run a requirement-interrogation pass before the change-intake checklist on every path that starts from a human request, MUST answer requirement-kind items only from the active human request or replayed roadmap planned-change detail and never from repository evidence, MUST explain why each question matters and what a sufficient answer contains before posing it rather than assuming the requester knows how to answer, MUST explain the reason when an answer cannot be used yet instead of silently re-asking, and MUST record each canonical requirement answer in questions.yaml with its answered_by attribution before implementation continues.
+      scenarios:
+        requirement-items-are-never-answered-from-code:
+          - GIVEN: a proposal-oriented skill has repository evidence that suggests a plausible answer to a canonical requirement question
+          - WHEN: the skill performs the requirement-interrogation pass
+          - THEN: the skill asks the human rather than resolving the item from repository evidence, because code shows what the system does and not what a person wants
+        questions-are-explained-before-they-are-asked:
+          - GIVEN: a requester who has not used the strict workflow and does not know what distinguishes a problem from a solution or what an observable outcome is
+          - WHEN: the skill poses a canonical requirement question
+          - THEN: the question is accompanied by why it is asked, what a sufficient answer contains, a concrete worked example, and what the answer will change, with any workflow vocabulary defined in plain terms
+        pushback-states-its-reason:
+          - GIVEN: a requester answers a canonical requirement question with a restated solution or an answer too thin to use
+          - WHEN: the skill declines to record that answer
+          - THEN: the skill names why the answer cannot be used yet and supplies the missing criterion rather than repeating the same question unchanged
+        roadmap-detail-may-answer-requirement-items:
+          - GIVEN: a roadmap-backed proposal whose planned change and milestone detail already state the problem, outcome, trigger, non-goals, and intended reading
+          - WHEN: the skill performs the requirement-interrogation pass
+          - THEN: the skill resolves the canonical requirement questions with answered_by roadmap and does not re-ask the human
+        auto-stops-once-at-the-interrogation-checkpoint:
+          - GIVEN: strict-spec-auto is started from a human request whose canonical requirement questions are unanswered
+          - WHEN: the automatic workflow reaches the requirement-interrogation checkpoint
+          - THEN: the workflow stops for human answers before proposing and resumes unattended through archive once the canonical requirement questions are resolved
+  MODIFIED: {}
+  REMOVED: {}

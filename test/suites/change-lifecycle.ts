@@ -20,6 +20,31 @@ import {
   type YamlModule,
 } from "../support/harness.js";
 
+const CANONICAL_REQUIREMENT_IDS = [
+  "requirement-problem",
+  "requirement-outcome",
+  "requirement-trigger",
+  "requirement-non-goals",
+  "requirement-interpretation",
+] as const;
+
+/**
+ * Renders the answered requirement interrogation for a hand-written questions fixture. ready blocks
+ * until each canonical question carries a human or roadmap answer, so a fixture that expects a ready
+ * change must supply them.
+ */
+function answeredRequirementQuestionLines(): string[] {
+  return CANONICAL_REQUIREMENT_IDS.flatMap((questionId) => [
+    `  - id: ${questionId}`,
+    `    question: Fixture question for ${questionId}?`,
+    `    context: Fixture context explaining why ${questionId} is asked and what answers it.`,
+    "    kind: requirement",
+    "    answered_by: human",
+    `    answer: Fixture requester answer for ${questionId}.`,
+    "    status: resolved",
+  ]);
+}
+
 export async function runChangeLifecycleSuite(context: TestContext): Promise<void> {
   const yamlModule = await loadDistModule<YamlModule>("yaml.js");
 
@@ -364,7 +389,8 @@ try {
     "schema_file: test",
     `change: ${readyChangeName}`,
     "open: []",
-    "resolved: []",
+    "resolved:",
+    ...answeredRequirementQuestionLines(),
   ].join("\n") + "\n", "utf8");
   // The ready delta targets cli-foundation, so that main spec must exist for
   // the change to resolve at ready/verify time.
@@ -471,7 +497,8 @@ try {
     "schema_file: test",
     `change: ${readyNoDeltaChangeName}`,
     "open: []",
-    "resolved: []",
+    "resolved:",
+    ...answeredRequirementQuestionLines(),
   ].join("\n") + "\n", "utf8");
   const readyNoDelta = cli(["ready", readyNoDeltaChangeName], { cwd: workflowGuidanceDir });
   context.assert(readyNoDelta.status === 0, "ready exits zero for explicit no-delta-spec decision", readyNoDelta.stdout.trim());
@@ -488,6 +515,32 @@ try {
 }
 
 context.section("[11b] change-intake question gate fixture regression");
+
+
+/**
+ * propose seeds the requirement interrogation as open questions, so every change is blocked until a
+ * human answers them. Fixtures that want a ready change must answer them like a requester would.
+ */
+function resolveSeededRequirementQuestions(workspaceRoot: string, changeName: string): void {
+  for (const questionId of CANONICAL_REQUIREMENT_IDS) {
+    const result = projectWorkspaceCli(workspaceRoot, [
+      "generate",
+      changeName,
+      "questions",
+      "--resolve",
+      questionId,
+      "--answer",
+      `Fixture requester answer for ${questionId}.`,
+      "--answered-by",
+      "human",
+    ]);
+    context.assert(
+      result.status === 0,
+      `${changeName} fixture resolves seeded requirement question '${questionId}'`,
+      `stdout: ${result.stdout.trim()} stderr: ${result.stderr.trim()}`,
+    );
+  }
+}
 
 function generateReadyFixtureChange(workspaceRoot: string, changeName: string): void {
   const proposeResult = projectWorkspaceCli(workspaceRoot, ["propose", changeName]);
@@ -535,6 +588,7 @@ function generateReadyFixtureChange(workspaceRoot: string, changeName: string): 
     projectWorkspaceCli(workspaceRoot, ["generate", changeName, "questions", "--reset"]).status === 0,
     `${changeName} fixture empty questions generation exits zero`,
   );
+  resolveSeededRequirementQuestions(workspaceRoot, changeName);
   context.assert(
     projectWorkspaceCli(workspaceRoot, [
       "generate",
@@ -667,10 +721,10 @@ try {
     open: unknown[];
     resolved: Array<{ id: string; answer: string }>;
   }>(readFileSync(blockedQuestionsPath, "utf8"));
+  const resolvedCompatibility = resolvedQuestions.resolved.find((entry) => entry.id === "data-compatibility");
   context.assert(
     resolvedQuestions.open.length === 0
-      && resolvedQuestions.resolved[0]?.id === "data-compatibility"
-      && resolvedQuestions.resolved[0]?.answer === "必须保留现有完成状态。",
+      && resolvedCompatibility?.answer === "必须保留现有完成状态。",
     "copied fixture question resolution moves the answer to resolved state",
   );
   const readyAfterResolution = projectWorkspaceCli(workspaceRoot, ["ready", "fixture-blocked"]);
@@ -3737,6 +3791,295 @@ context.assert(
 context.assert(
   generateHelp.stdout.includes("design [--reset]") && generateHelp.stdout.includes("[--alternative <text> --reason <text>]"),
   "the generate usage line for design lists the alternative and reason arguments",
+);
+
+context.section("[18] requirement interrogation gate");
+
+const interrogationFixture = createCopiedProjectWorkspace("todo-app");
+try {
+  const { workspaceRoot } = interrogationFixture;
+  context.assert(
+    projectWorkspaceCli(workspaceRoot, ["migrate"]).status === 0,
+    "requirement interrogation fixture migrate succeeds",
+  );
+  context.assert(
+    projectWorkspaceCli(workspaceRoot, ["cancel", "add-due-dates"]).status === 0,
+    "requirement interrogation fixture removes the seeded active change",
+  );
+
+  const changeName = "interrogation-change";
+  context.assert(
+    projectWorkspaceCli(workspaceRoot, ["propose", changeName]).status === 0,
+    "requirement interrogation fixture propose exits zero",
+  );
+  const questionsPath = path.join(workspaceRoot, ".strict-spec-driven", "changes", changeName, "questions.yaml");
+  type SeededQuestions = {
+    open: Array<{ id: string; question: string; context: string; kind?: string; answered_by?: string }>;
+    resolved: Array<{ id: string; answer: string; kind?: string; answered_by?: string }>;
+  };
+  const seeded = yamlModule.parseYamlDocument<SeededQuestions>(readFileSync(questionsPath, "utf8"));
+
+  for (const questionId of CANONICAL_REQUIREMENT_IDS) {
+    const entry = seeded.open.find((candidate) => candidate.id === questionId);
+    context.assert(
+      entry !== undefined && entry.kind === "requirement",
+      `propose seeds canonical requirement question '${questionId}' as open with kind requirement`,
+    );
+    context.assert(
+      entry !== undefined
+        && entry.context.length > entry.question.length
+        && entry.context.includes("Worked example")
+        && entry.context.includes("sufficient answer"),
+      `seeded requirement question '${questionId}' explains itself rather than restating the question`,
+    );
+  }
+  context.assert(
+    seeded.open.length === CANONICAL_REQUIREMENT_IDS.length,
+    "propose seeds exactly the five canonical requirement questions",
+    `open ids: ${seeded.open.map((entry) => entry.id).join(", ")}`,
+  );
+
+  const freshReady = projectWorkspaceCli(workspaceRoot, ["ready", changeName]);
+  context.assert(
+    freshReady.status !== 0,
+    "a freshly scaffolded change is not ready while its seeded requirement questions are open",
+    `stdout: ${freshReady.stdout.trim()}`,
+  );
+  const freshReadyJson = JSON.parse(freshReady.stdout.trim());
+  const requirementDiagnostics = freshReadyJson.diagnostics.filter(
+    (diagnostic: { source: string }) => diagnostic.source === "requirement_intake",
+  );
+  context.assert(
+    requirementDiagnostics.length === CANONICAL_REQUIREMENT_IDS.length,
+    "ready reports one requirement_intake diagnostic per unanswered canonical question",
+    `diagnostics: ${JSON.stringify(freshReadyJson.diagnostics.map((d: { source: string }) => d.source))}`,
+  );
+  context.assert(
+    requirementDiagnostics.some(
+      (diagnostic: { message: string }) =>
+        diagnostic.message.includes("what is concretely going wrong today")
+        && diagnostic.message.includes("--answered-by human"),
+    ),
+    "each requirement_intake diagnostic states what the question asks for and the resolving command",
+    `messages: ${requirementDiagnostics.map((d: { message: string }) => d.message).join(" | ")}`,
+  );
+
+  // Rebuilding the technical questions must never clear the interrogation itself.
+  context.assert(
+    projectWorkspaceCli(workspaceRoot, [
+      "generate",
+      changeName,
+      "questions",
+      "--reset",
+      "--open",
+      "technical-detail",
+      "--question",
+      "Which storage path is used?",
+      "--context",
+      "Technical follow-up recorded alongside the seeded interrogation.",
+    ]).status === 0,
+    "questions --reset with a technical entry exits zero",
+  );
+  const afterReset = yamlModule.parseYamlDocument<SeededQuestions>(readFileSync(questionsPath, "utf8"));
+  context.assert(
+    CANONICAL_REQUIREMENT_IDS.every((questionId) => afterReset.open.some((entry) => entry.id === questionId)),
+    "questions --reset preserves every requirement-kind entry",
+    `open ids: ${afterReset.open.map((entry) => entry.id).join(", ")}`,
+  );
+  context.assert(
+    afterReset.open.some((entry) => entry.id === "technical-detail"),
+    "questions --reset still records the supplied technical entry",
+  );
+
+  context.assert(
+    projectWorkspaceCli(workspaceRoot, [
+      "generate",
+      changeName,
+      "questions",
+      "--resolve",
+      "requirement-problem",
+      "--answer",
+      "The weekly report is assembled by hand every Monday.",
+      "--answered-by",
+      "human",
+    ]).status === 0,
+    "resolving a seeded requirement question with attribution exits zero",
+  );
+  const afterResolve = yamlModule.parseYamlDocument<SeededQuestions>(readFileSync(questionsPath, "utf8"));
+  const resolvedProblem = afterResolve.resolved.find((entry) => entry.id === "requirement-problem");
+  context.assert(
+    resolvedProblem?.kind === "requirement" && resolvedProblem?.answered_by === "human",
+    "resolving carries the requirement kind forward and records the answer attribution",
+    `entry: ${JSON.stringify(resolvedProblem)}`,
+  );
+
+  const rejectedKind = projectWorkspaceCli(workspaceRoot, [
+    "generate",
+    changeName,
+    "questions",
+    "--open",
+    "bad-kind",
+    "--question",
+    "Q",
+    "--context",
+    "C",
+    "--kind",
+    "invented",
+  ]);
+  context.assert(
+    rejectedKind.status !== 0 && rejectedKind.stderr.includes("requirement, technical"),
+    "the questions generator rejects an out-of-set --kind value naming the permitted values",
+    `stderr: ${rejectedKind.stderr.trim()}`,
+  );
+  const rejectedAttribution = projectWorkspaceCli(workspaceRoot, [
+    "generate",
+    changeName,
+    "questions",
+    "--resolve",
+    "requirement-outcome",
+    "--answer",
+    "A",
+    "--answered-by",
+    "guesswork",
+  ]);
+  context.assert(
+    rejectedAttribution.status !== 0 && rejectedAttribution.stderr.includes("human, roadmap, assumption"),
+    "the questions generator rejects an out-of-set --answered-by value naming the permitted values",
+    `stderr: ${rejectedAttribution.stderr.trim()}`,
+  );
+
+  for (const questionId of CANONICAL_REQUIREMENT_IDS) {
+    if (questionId === "requirement-problem") continue;
+    projectWorkspaceCli(workspaceRoot, [
+      "generate",
+      changeName,
+      "questions",
+      "--resolve",
+      questionId,
+      "--answer",
+      `Requester answer for ${questionId}.`,
+      "--answered-by",
+      questionId === "requirement-trigger" ? "roadmap" : "human",
+    ]);
+  }
+  const allAnswered = yamlModule.parseYamlDocument<SeededQuestions>(readFileSync(questionsPath, "utf8"));
+  context.assert(
+    CANONICAL_REQUIREMENT_IDS.every((questionId) => allAnswered.resolved.some((entry) => entry.id === questionId)),
+    "every canonical requirement question can be resolved with human or roadmap attribution",
+  );
+  const readyAfterAnswers = JSON.parse(projectWorkspaceCli(workspaceRoot, ["ready", changeName]).stdout.trim());
+  context.assert(
+    !readyAfterAnswers.diagnostics.some((diagnostic: { source: string }) => diagnostic.source === "requirement_intake"),
+    "ready reports no requirement_intake diagnostics once every canonical question is answered by a human or the roadmap",
+    `diagnostics: ${JSON.stringify(readyAfterAnswers.diagnostics)}`,
+  );
+
+  // An assumption-answered requirement blocks exactly like an unanswered one.
+  const assumptionQuestions = yamlModule.parseYamlDocument<SeededQuestions>(readFileSync(questionsPath, "utf8"));
+  const assumedEntry = assumptionQuestions.resolved.find((entry) => entry.id === "requirement-outcome");
+  if (assumedEntry) assumedEntry.answered_by = "assumption";
+  writeFileSync(questionsPath, yamlModule.stringifyYamlDocument(assumptionQuestions), "utf8");
+  const readyWithAssumption = projectWorkspaceCli(workspaceRoot, ["ready", changeName]);
+  const assumptionJson = JSON.parse(readyWithAssumption.stdout.trim());
+  context.assert(
+    readyWithAssumption.status !== 0
+      && assumptionJson.diagnostics.some(
+        (diagnostic: { source: string; message: string }) =>
+          diagnostic.source === "requirement_intake" && diagnostic.message.includes("agent assumption"),
+      ),
+    "ready blocks a requirement answered by assumption and names it as an agent assumption",
+    `stdout: ${readyWithAssumption.stdout.trim()}`,
+  );
+
+  // So does an answer with no attribution at all.
+  const unattributed = yamlModule.parseYamlDocument<SeededQuestions>(readFileSync(questionsPath, "utf8"));
+  const unattributedEntry = unattributed.resolved.find((entry) => entry.id === "requirement-outcome");
+  if (unattributedEntry) delete unattributedEntry.answered_by;
+  writeFileSync(questionsPath, yamlModule.stringifyYamlDocument(unattributed), "utf8");
+  const readyUnattributed = projectWorkspaceCli(workspaceRoot, ["ready", changeName]);
+  context.assert(
+    readyUnattributed.status !== 0
+      && JSON.parse(readyUnattributed.stdout.trim()).diagnostics.some(
+        (diagnostic: { source: string; message: string }) =>
+          diagnostic.source === "requirement_intake" && diagnostic.message.includes("missing an answered_by attribution"),
+      ),
+    "ready blocks a requirement answer that carries no attribution",
+    `stdout: ${readyUnattributed.stdout.trim()}`,
+  );
+
+  // And so does removing the canonical question outright.
+  const removed = yamlModule.parseYamlDocument<SeededQuestions>(readFileSync(questionsPath, "utf8"));
+  removed.resolved = removed.resolved.filter((entry) => entry.id !== "requirement-outcome");
+  writeFileSync(questionsPath, yamlModule.stringifyYamlDocument(removed), "utf8");
+  const readyMissing = projectWorkspaceCli(workspaceRoot, ["ready", changeName]);
+  context.assert(
+    readyMissing.status !== 0
+      && JSON.parse(readyMissing.stdout.trim()).diagnostics.some(
+        (diagnostic: { source: string; message: string }) =>
+          diagnostic.source === "requirement_intake" && diagnostic.message.includes("requirement-outcome"),
+      ),
+    "ready blocks when a canonical requirement question is absent from questions.yaml",
+    `stdout: ${readyMissing.stdout.trim()}`,
+  );
+} finally {
+  interrogationFixture.cleanup();
+}
+
+const questionListSchemaModule = await loadDistModule<ValidationModule>("validation.js");
+const questionListSchema = questionListSchemaModule.loadBundledSchemaBySchemaId(
+  "strict-spec-driven/question-list/v1",
+);
+
+function questionListArtifact(open: unknown[], resolved: unknown[]): unknown {
+  return {
+    schema: "strict-spec-driven/question-list/v1",
+    schema_version: 1,
+    artifact_type: "question_list",
+    schema_file: "templates/strict-spec-driven/schemas/question-list.yaml",
+    change: "schema-coverage",
+    open,
+    resolved,
+  };
+}
+
+function questionListIsValid(open: unknown[], resolved: unknown[]): boolean {
+  return questionListSchemaModule.validateWithSchema(
+    questionListSchema,
+    questionListArtifact(open, resolved),
+    "questions.yaml",
+  ).valid;
+}
+
+context.assert(
+  questionListIsValid([], [{
+    id: "requirement-problem",
+    question: "What is going wrong?",
+    context: "Explained context.",
+    kind: "requirement",
+    answered_by: "human",
+    answer: "The report is assembled by hand.",
+    status: "resolved",
+  }]),
+  "the question-list schema accepts a requirement entry carrying kind and answered_by",
+);
+context.assert(
+  questionListIsValid([{ id: "legacy", question: "Q", context: "C", status: "open" }], []),
+  "the question-list schema keeps entries without kind or answered_by valid",
+);
+context.assert(
+  !questionListIsValid([{ id: "bad", question: "Q", context: "C", kind: "invented", status: "open" }], []),
+  "the question-list schema rejects an out-of-set kind value",
+);
+context.assert(
+  !questionListIsValid([], [{
+    id: "bad",
+    question: "Q",
+    context: "C",
+    answered_by: "guesswork",
+    answer: "A",
+    status: "resolved",
+  }]),
+  "the question-list schema rejects an out-of-set answered_by value",
 );
 
 context.section("[17] removed review command");

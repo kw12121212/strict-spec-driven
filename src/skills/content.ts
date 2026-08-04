@@ -7,6 +7,9 @@ import {
   MIGRATION_STRICT_SKILL_EXPECTATIONS,
   PLANNING_STRICT_SKILL_EXPECTATIONS,
   ROADMAP_STRICT_SKILL_EXPECTATIONS,
+  REQUIREMENT_INTERROGATION_HEADING,
+  REQUIREMENT_INTERROGATION_SKILLS,
+  REQUIREMENT_INTERROGATION_SNIPPETS,
   STRICT_WORKFLOW_EXISTENCE_STEP_SNIPPET,
   STRICT_WORKFLOW_INIT_GUIDANCE_SNIPPET,
   STRICT_WORKFLOW_NO_INIT_SNIPPET,
@@ -14,6 +17,39 @@ import {
   type SkillContentExpectation,
   type SkillPackagingDiagnostic,
 } from "./model.js";
+
+function validateRequirementInterrogationGuidance(
+  skillName: string,
+  content: string,
+  skillPath: string,
+  diagnostics: SkillPackagingDiagnostic[],
+): void {
+  if (!(REQUIREMENT_INTERROGATION_SKILLS as readonly string[]).includes(skillName)) return;
+  const normalizedContent = content.replace(/\s+/g, " ");
+
+  if (!content.includes(REQUIREMENT_INTERROGATION_HEADING)) {
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.requirement_interrogation.heading.missing",
+        skillPath,
+        "proposal-oriented strict skills must carry a requirement-interrogation section that runs before the change-intake checklist",
+        REQUIREMENT_INTERROGATION_HEADING,
+      ),
+    );
+  }
+
+  for (const expectation of REQUIREMENT_INTERROGATION_SNIPPETS) {
+    if (normalizedContent.includes(expectation.snippet.replace(/\s+/g, " "))) continue;
+    diagnostics.push(
+      makeDiagnostic(
+        "skill.requirement_interrogation.guidance.missing",
+        skillPath,
+        `proposal-oriented strict skills must document ${expectation.element}`,
+        expectation.snippet,
+      ),
+    );
+  }
+}
 
 function requiresExistingStrictWorkflowState(skillName: string): boolean {
   return (
@@ -388,4 +424,5 @@ export function validateCommandSection(
   validatePlanningSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateMigrationSkillContent(skillName, content, normalizedCommands, skillPath, diagnostics);
   validateStrictWorkflowStateGuidance(skillName, content, normalizedCommands, skillPath, diagnostics);
+  validateRequirementInterrogationGuidance(skillName, content, skillPath, diagnostics);
 }

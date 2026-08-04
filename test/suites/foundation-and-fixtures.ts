@@ -67,6 +67,34 @@ type McpServerModule = {
   runMcpServer(argv: string[], connect?: (context: unknown) => Promise<void>): Promise<void>;
 };
 
+const CANONICAL_REQUIREMENT_IDS = [
+  "requirement-problem",
+  "requirement-outcome",
+  "requirement-trigger",
+  "requirement-non-goals",
+  "requirement-interpretation",
+] as const;
+
+/**
+ * propose seeds the requirement interrogation as open questions, so a change stays blocked until a
+ * human answers them. Fixtures that expect a verifiable change must answer them like a requester.
+ */
+function answerSeededRequirementQuestions(changeName: string, cwd: string): void {
+  for (const questionId of CANONICAL_REQUIREMENT_IDS) {
+    cli([
+      "generate",
+      changeName,
+      "questions",
+      "--resolve",
+      questionId,
+      "--answer",
+      `Fixture requester answer for ${questionId}.`,
+      "--answered-by",
+      "human",
+    ], { cwd });
+  }
+}
+
 export async function runFoundationAndFixtureSuite(context: TestContext): Promise<void> {
 context.section("[2] yaml utilities");
 
@@ -1458,6 +1486,7 @@ try {
     cli(["generate", changeName, "questions", "--reset"], { cwd: generateTempDir }).status === 0,
     "generate writes questions artifact",
   );
+  answerSeededRequirementQuestions(changeName, generateTempDir);
 
   const generatedDelta = cli([
     "generate",
@@ -1639,15 +1668,25 @@ try {
   ], { cwd: generateTempDir });
   context.assert(directQuestions.status === 0, "generate writes full questions artifact from one named-argument command", `stderr: ${directQuestions.stderr.trim()}`);
   const directQuestionsArtifact = yamlModule.parseYamlDocument<{
-    open: Array<{ id: string }>;
-    resolved: Array<{ id: string }>;
+    open: Array<{ id: string; kind?: string }>;
+    resolved: Array<{ id: string; kind?: string }>;
   }>(readFileSync(path.join(directChangeDir, "questions.yaml"), "utf8"));
+  const directOpenTechnical = directQuestionsArtifact.open.filter((entry) => entry.kind !== "requirement");
+  const directResolvedTechnical = directQuestionsArtifact.resolved.filter((entry) => entry.kind !== "requirement");
   context.assert(
-    directQuestionsArtifact.open.length === 1 && directQuestionsArtifact.resolved.length === 1,
+    directOpenTechnical.length === 1 && directResolvedTechnical.length === 1,
     "generate writes open and resolved questions in one command",
   );
   const resetQuestions = cli(["generate", directChangeName, "questions", "--reset"], { cwd: generateTempDir });
   context.assert(resetQuestions.status === 0, "generate resets questions artifact from named arguments", `stderr: ${resetQuestions.stderr.trim()}`);
+  const resetQuestionsArtifact = yamlModule.parseYamlDocument<{ open: Array<{ id: string; kind?: string }> }>(
+    readFileSync(path.join(directChangeDir, "questions.yaml"), "utf8"),
+  );
+  context.assert(
+    CANONICAL_REQUIREMENT_IDS.every((questionId) => resetQuestionsArtifact.open.some((entry) => entry.id === questionId)),
+    "generate questions --reset preserves the seeded requirement interrogation",
+  );
+  answerSeededRequirementQuestions(directChangeName, generateTempDir);
 
   const directDelta = cli([
     "generate",
@@ -2443,8 +2482,8 @@ function runCopiedWorkspaceCliFlowScenario(): {
     );
     context.assert(copiedListStdout.includes("Active:"), "copied workspace list reports the Active heading");
     context.assert(
-      copiedListStdout.includes("copied-workspace-cli-change    proposed"),
-      "copied workspace list reports the proposed copied-workspace change",
+      copiedListStdout.includes("copied-workspace-cli-change    blocked"),
+      "copied workspace list reports the freshly proposed change as blocked by its seeded requirement questions",
       `stdout: ${copiedListStdout}`,
     );
     context.assert(

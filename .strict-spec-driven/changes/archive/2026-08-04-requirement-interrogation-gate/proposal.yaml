@@ -1,0 +1,48 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: requirement-interrogation-gate
+  status: proposed
+summary:
+  what:
+    - Add a requirement-interrogation stage that runs ahead of the existing change-intake checklist on every path that starts from a human request.
+    - Seed questions.yaml at propose time with five canonical open requirement questions so a newly scaffolded change starts blocked until a human answers them.
+    - Extend the question-list schema with optional kind and answered_by entry fields so requirement questions are distinguishable from technical ones and carry answer attribution.
+    - Add deterministic requirement_intake diagnostics to ready that fail while a canonical requirement question is missing, still open, or resolved by assumption.
+    - Prescribe how requirement questions are asked, so the gate cannot degrade into five abstract questions answered with five restated solutions.
+    - Make every requirement question explain itself — why it is asked, what a sufficient answer contains, a worked example, and what the answer changes — so answering does not require prior knowledge of the workflow.
+  why:
+    - The existing change-intake checklist interrogates the proposed solution — scope, files, tests, rules — and never interrogates the need itself, so a one-line request becomes a fully-formed proposal without the underlying problem ever being stated.
+    - The gate's evidence-first rule tells agents not to ask what repository evidence can answer, but repository evidence can only show what the system does and never what a person wants, so requirement-level items are treated as recoverable when they are structurally unrecoverable.
+    - ready can only assert that proposal fields are non-empty, so a confidently inferred proposal passes every deterministic check and the CLI cannot distinguish a human-confirmed requirement from an agent-invented one.
+    - Roadmap milestones already require structured intake_questions at creation time while standalone changes require no equivalent interrogation, leaving the two intake paths inconsistent.
+    - Seeding stops an agent from asking nothing, but a batch of abstract questions returns the requester's own proposed solution restated five times, which passes the gate and rebuilds the exact failure the gate exists to prevent.
+    - A requester who is not told what a sufficient answer looks like supplies whatever comes to mind first, which is usually the solution they already had, so an unexplained question collects a compliant non-answer that the gate then passes.
+    - 'The ticket feature is the recorded instance: 14 changes built between 2026-06-13 and 2026-07-09 and removed wholesale on 2026-07-12 because the product no longer needed the capability, with no successor named for the original pain.'
+scope:
+  in:
+    - Extend the question-list schema with optional kind (requirement|technical) and answered_by (human|roadmap|assumption) entry fields, keeping existing artifacts valid.
+    - Seed five canonical requirement questions as open entries when propose scaffolds questions.yaml, each carrying self-explanatory context rather than a bare interrogative.
+    - Protect requirement-kind entries from removal by the questions generator, including under --reset.
+    - Add --kind and --answered-by flags to generate questions, with matching command-metadata registry entries.
+    - Add requirement_intake diagnostics to ready so it exits non-zero while any canonical requirement question is missing, open, or answered by assumption, and so each diagnostic says what the question asks for.
+    - Add a Requirement Interrogation section to the brainstorm, propose, bugfix, and auto skills that runs before the existing change-intake checklist and forbids answering requirement items from repository evidence.
+    - Prescribe the asking technique in that section — one question at a time, each carrying a concrete guess, asking about the last concrete occurrence, rejecting solution-shaped answers, asking what happens if nothing is done, and replaying an imperfect summary for correction — and require AskUserQuestion with concrete options where the harness provides it.
+    - 'Require both explanation duties: explain why a question matters and what a sufficient answer contains before posing it, and state the reason for any pushback instead of silently re-asking.'
+    - Make strict-spec-auto stop once at the requirement-interrogation checkpoint before proposing, then continue unattended.
+    - Extend validate-skills to enforce the Requirement Interrogation guidance, the asking-technique rules, and both explanation duties in the four proposal-oriented skills.
+    - Document the stage in README.md and README.zh.md, including what each canonical id asks and what a sufficient answer to it contains, and add regression coverage for the schema, seeding, reset protection, ready diagnostics, and skill validation.
+  out:
+    - Project-configurable requirement checklists in config.yaml; the canonical five ids are fixed by this change.
+    - Any standalone pre-change intent artifact with its own lifecycle or index, which would re-create the deliberately removed ticket feature.
+    - Changes to roadmap milestone intake_questions, which already require structured interrogation and keep working as-is.
+    - Retrofitting requirement questions into already-archived changes.
+    - Enforcing that an agent actually interrogated well; the residual honesty gap is acknowledged and made visible through answered_by assumption rather than prevented.
+    - Specification-incompleteness failures of the fix-class kind, which this gate does not address because the requirement was understood and only its edge cases were missed.
+unchanged_behavior:
+  - Existing questions.yaml artifacts without kind or answered_by fields remain schema-valid, because both new fields are optional.
+  - The existing change-intake checklist keeps its current content and evidence-first rule; it simply runs after the requirement stage.
+  - verify, archive, apply, and all roadmap command behavior remain unchanged.
+  - propose-from-roadmap keeps replaying milestone intake_questions rather than re-asking the human.

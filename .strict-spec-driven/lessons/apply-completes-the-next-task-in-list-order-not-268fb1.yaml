@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: apply-completes-the-next-task-in-list-order-not-268fb1
+  title: apply completes the next task in list order, not the task you just finished
+category: tooling
+status: active
+created_at: '2026-08-04T10:14:52.191Z'
+updated_at: '2026-08-04T10:14:52.191Z'
+context: Implementing a change whose task list was authored in one order while the work was done in another, and running strict-spec-cli apply twice in a row after finishing two pieces of work.
+observation: 'apply takes no task id: it marks the first pending task in list order complete and reports which one it took. The second invocation marked add-questions-generator-flags complete although that task had not been started, because it was simply next in the list. Nothing failed and nothing warned; the change simply carried a false completion record until the returned task id was read and compared against the work actually done.'
+takeaway: Run apply exactly once per completed task and read the returned taskId before continuing, because apply is positional rather than addressed. When work is finished out of list order, set that task's status directly with generate <change> tasks --section <s> --task <id> --status complete, which addresses the task by id; batching apply calls in a single shell line makes the mismatch invisible since only the last output is usually read.
+applies_when: About to run strict-spec-cli apply more than once in a row, or marking work complete that was done in a different order than the task list records.
+occurrences:
+  - origin: requirement-interrogation-gate
+    date: '2026-08-04'
+    evidence: two chained apply calls returned seed-requirement-questions-on-propose and add-questions-generator-flags, the second of which had no implementation yet and had to be reverted with generate tasks --status pending

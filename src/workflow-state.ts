@@ -12,9 +12,32 @@ const EMPTY_SPEC_DECISION_IDS = new Set([
   "empty-spec-decision",
 ]);
 
-type QuestionListArtifact = {
-  open?: Array<{ id?: unknown; question?: unknown; context?: unknown }>;
+type QuestionEntry = {
+  id?: unknown;
+  question?: unknown;
+  context?: unknown;
+  kind?: unknown;
+  answered_by?: unknown;
 };
+
+type QuestionListArtifact = {
+  open?: QuestionEntry[];
+  resolved?: QuestionEntry[];
+};
+
+/**
+ * The requirement-interrogation set. These are answered only from the requester's own words or
+ * replayed roadmap detail, never from repository evidence, so ready checks that each one was
+ * actually answered rather than inferred. The summary text makes a blocked ready actionable
+ * without reading the skill.
+ */
+const CANONICAL_REQUIREMENT_QUESTIONS: ReadonlyArray<{ id: string; asks: string }> = [
+  { id: "requirement-problem", asks: "what is concretely going wrong today, and for whom" },
+  { id: "requirement-outcome", asks: "what observable difference proves the problem is solved" },
+  { id: "requirement-trigger", asks: "why now — what forced this" },
+  { id: "requirement-non-goals", asks: "what must explicitly not change" },
+  { id: "requirement-interpretation", asks: "which reading of the request is intended" },
+];
 
 type ProposalArtifact = {
   scope?: {
@@ -147,6 +170,54 @@ function proposalReadinessDiagnostic(
     expected,
     actual,
   };
+}
+
+function checkRequirementIntakeEvidence(rootDir: string, changeName: string): VerifyDiagnostic[] {
+  const artifact = readChangeArtifact<QuestionListArtifact>(rootDir, changeName, "questions.yaml");
+  if (!artifact) return [];
+  const artifactPath = `.strict-spec-driven/changes/${changeName}/questions.yaml`;
+  const open = Array.isArray(artifact.open) ? artifact.open : [];
+  const resolved = Array.isArray(artifact.resolved) ? artifact.resolved : [];
+  const diagnostics: VerifyDiagnostic[] = [];
+
+  for (const canonical of CANONICAL_REQUIREMENT_QUESTIONS) {
+    const resolvedEntry = resolved.find((entry) => entry?.id === canonical.id);
+    if (resolvedEntry) {
+      // A canonical requirement entry can only be authored after this contract exists, so unlike
+      // legacy technical questions it must carry attribution — otherwise an unattributed answer
+      // would slip past the assumption check and the gate would grade only the writing.
+      if (resolvedEntry.answered_by !== "human" && resolvedEntry.answered_by !== "roadmap") {
+        const isAssumption = resolvedEntry.answered_by === "assumption";
+        diagnostics.push({
+          source: "requirement_intake",
+          artifactPath,
+          fieldPath: `$.resolved[?(@.id=='${canonical.id}')].answered_by`,
+          message:
+            `requirement question '${canonical.id}' asks ${canonical.asks}, and its answer is `
+            + (isAssumption
+              ? "attributed to an agent assumption rather than to the requester"
+              : "missing an answered_by attribution naming where the answer came from"),
+          expected: "answered_by human or roadmap",
+          actual: isAssumption ? "answered_by assumption" : "no answered_by attribution",
+        });
+      }
+      continue;
+    }
+
+    const isOpen = open.some((entry) => entry?.id === canonical.id);
+    diagnostics.push({
+      source: "requirement_intake",
+      artifactPath,
+      fieldPath: isOpen ? `$.open[?(@.id=='${canonical.id}')]` : "$.resolved",
+      message:
+        `requirement question '${canonical.id}' asks ${canonical.asks}, and is ${isOpen ? "still unanswered" : "missing"}; `
+        + `resolve it with: strict-spec-cli generate ${changeName} questions --resolve ${canonical.id} --answer <answer> --answered-by human`,
+      expected: `resolved '${canonical.id}' answered by the requester`,
+      actual: isOpen ? "open requirement question" : "no such requirement question",
+    });
+  }
+
+  return diagnostics;
 }
 
 function checkDeterministicQuestionGateEvidence(rootDir: string, changeName: string): VerifyDiagnostic[] {
@@ -285,6 +356,7 @@ export function checkProposalReadiness(rootDir: string, changeName: string): Pro
     (diagnostic) => diagnostic.source !== "task_completion" && diagnostic.source !== "task_completeness",
   );
   diagnostics.push(...checkDeterministicQuestionGateEvidence(rootDir, changeName));
+  diagnostics.push(...checkRequirementIntakeEvidence(rootDir, changeName));
   const hasMissingDeltaSpecDiagnostic = listDeltaSpecFiles(rootDir, changeName).length === 0
     && !hasExplicitEmptySpecDecision(rootDir, changeName);
   if (hasMissingDeltaSpecDiagnostic) {

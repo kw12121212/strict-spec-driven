@@ -50,6 +50,17 @@ json_schema:
             type: string
           context:
             type: string
+          kind:
+            type: string
+            enum:
+              - requirement
+              - technical
+          answered_by:
+            type: string
+            enum:
+              - human
+              - roadmap
+              - assumption
           status:
             type: string
             const: open
@@ -71,6 +82,17 @@ json_schema:
             type: string
           context:
             type: string
+          kind:
+            type: string
+            enum:
+              - requirement
+              - technical
+          answered_by:
+            type: string
+            enum:
+              - human
+              - roadmap
+              - assumption
           answer:
             type: string
           status:

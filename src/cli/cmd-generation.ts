@@ -24,7 +24,7 @@ function usage(): string {
     "Examples:",
     "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
     "  strict-spec-cli generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
-    "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)]...",
+    "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]...",
     "  strict-spec-cli generate <change-name> tasks [--reset [--force]] [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
     "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
     "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]...",
@@ -94,9 +94,21 @@ export const DESIGN_ARGUMENTS = [
   "risk",
 ] as const;
 
+/** Named arguments the questions artifact accepts, so metadata coverage guards them too. */
+export const QUESTION_ARGUMENTS = [
+  "open",
+  "resolved",
+  "resolve",
+  "question",
+  "context",
+  "answer",
+  "kind",
+  "answered-by",
+] as const;
+
 /** Every named argument the generate command accepts through a declared allow-list. */
 export function getDeclaredGenerateArguments(): string[] {
-  return [...new Set<string>([...PROPOSAL_ARGUMENTS, ...DESIGN_ARGUMENTS])].sort();
+  return [...new Set<string>([...PROPOSAL_ARGUMENTS, ...DESIGN_ARGUMENTS, ...QUESTION_ARGUMENTS])].sort();
 }
 
 function ensureAllowedFlags(flags: FlagMap, allowed: string[]): void {
@@ -322,7 +334,34 @@ type QuestionGroup = {
   question?: string;
   context?: string;
   answer?: string;
+  questionKind?: string;
+  answeredBy?: string;
 };
+
+const QUESTION_KIND_VALUES = ["requirement", "technical"] as const;
+const ANSWERED_BY_VALUES = ["human", "roadmap", "assumption"] as const;
+
+/** Requirement-kind entries are the interrogation gate itself, so a rebuild never drops them. */
+function isRequirementQuestion(entry: unknown): boolean {
+  return isRecord(entry) && entry.kind === "requirement";
+}
+
+/**
+ * Attaches kind and answered_by to a question entry. Resolving a seeded question carries the kind
+ * forward from the open entry it replaces, so attribution survives without restating --kind.
+ */
+function withQuestionAttribution(
+  entry: GenerationInputRecord,
+  item: QuestionGroup,
+  inheritedFrom?: GenerationInputRecord,
+): GenerationInputRecord {
+  const kind = item.questionKind ?? (typeof inheritedFrom?.kind === "string" ? inheritedFrom.kind : undefined);
+  const answeredBy = item.answeredBy
+    ?? (typeof inheritedFrom?.answered_by === "string" ? inheritedFrom.answered_by : undefined);
+  if (kind !== undefined) entry.kind = kind;
+  if (answeredBy !== undefined) entry.answered_by = answeredBy;
+  return entry;
+}
 
 type QuestionCommandInput = {
   reset: boolean;
@@ -341,7 +380,7 @@ function parseQuestionCommandInput(argv: string[], rootDir: string): QuestionCom
     return resolveStringValue(value, rootDir);
   }
 
-  function setField(field: "question" | "context" | "answer", value: string, flagName: string): void {
+  function setField(field: "question" | "context" | "answer" | "questionKind" | "answeredBy", value: string, flagName: string): void {
     if (!currentItem) {
       throw new Error("missing required argument --open or --resolved");
     }
@@ -373,6 +412,24 @@ function parseQuestionCommandInput(argv: string[], rootDir: string): QuestionCom
       index += 1;
       continue;
     }
+    if (name === "kind") {
+      const value = readValue(name, index);
+      if (!QUESTION_KIND_VALUES.includes(value as (typeof QUESTION_KIND_VALUES)[number])) {
+        throw new Error(`--kind must be one of: ${QUESTION_KIND_VALUES.join(", ")}`);
+      }
+      setField("questionKind", value, name);
+      index += 1;
+      continue;
+    }
+    if (name === "answered-by") {
+      const value = readValue(name, index);
+      if (!ANSWERED_BY_VALUES.includes(value as (typeof ANSWERED_BY_VALUES)[number])) {
+        throw new Error(`--answered-by must be one of: ${ANSWERED_BY_VALUES.join(", ")}`);
+      }
+      setField("answeredBy", value, name);
+      index += 1;
+      continue;
+    }
 
     throw new Error(`unsupported argument(s): --${name}`);
   }
@@ -381,17 +438,21 @@ function parseQuestionCommandInput(argv: string[], rootDir: string): QuestionCom
 }
 
 function existingQuestionsInput(rootDir: string, changeName: string, reset: boolean): GenerationInputRecord {
-  if (reset) {
-    return { open: [], resolved: [] };
-  }
   const artifact = readYamlIfExists<GenerationInputRecord>(
     rootDir,
     `${STRICT_WORKFLOW_DIR}/changes/${changeName}/questions.yaml`,
   );
-  return {
-    open: Array.isArray(artifact?.open) ? artifact.open : [],
-    resolved: Array.isArray(artifact?.resolved) ? artifact.resolved : [],
-  };
+  const open = Array.isArray(artifact?.open) ? artifact.open : [];
+  const resolved = Array.isArray(artifact?.resolved) ? artifact.resolved : [];
+  if (reset) {
+    // A rebuild clears technical questions only; the seeded requirement interrogation survives it,
+    // because a flag that could clear the gate would make the gate advisory.
+    return {
+      open: open.filter(isRequirementQuestion),
+      resolved: resolved.filter(isRequirementQuestion),
+    };
+  }
+  return { open, resolved };
 }
 
 function buildQuestionsInputFromArgs(rootDir: string, changeName: string, argv: string[]): GenerationInputRecord {
@@ -407,11 +468,11 @@ function buildQuestionsInputFromArgs(rootDir: string, changeName: string, argv: 
       if (item.answer !== undefined) {
         throw new Error(`--answer is only valid with --resolved for question '${item.id}'`);
       }
-      open = upsertListItem(open, {
+      open = upsertListItem(open, withQuestionAttribution({
         id: item.id,
         question: item.question,
         context: item.context,
-      }, item.id, "open question");
+      }, item), item.id, "open question");
       continue;
     }
 
@@ -424,24 +485,24 @@ function buildQuestionsInputFromArgs(rootDir: string, changeName: string, argv: 
       if (!question) throw new Error(`missing required argument --question for unresolved question '${item.id}'`);
       if (!context) throw new Error(`missing required argument --context for unresolved question '${item.id}'`);
       open = open.filter((candidate) => candidate.id !== item.id);
-      resolved = upsertListItem(resolved, {
+      resolved = upsertListItem(resolved, withQuestionAttribution({
         id: item.id,
         question,
         context,
         answer: item.answer,
-      }, item.id, "resolved question");
+      }, item, existingRecord), item.id, "resolved question");
       continue;
     }
 
     if (!item.question) throw new Error(`missing required argument --question for question '${item.id}'`);
     if (!item.context) throw new Error(`missing required argument --context for question '${item.id}'`);
     if (!item.answer) throw new Error(`missing required argument --answer for resolved question '${item.id}'`);
-    resolved = upsertListItem(resolved, {
+    resolved = upsertListItem(resolved, withQuestionAttribution({
       id: item.id,
       question: item.question,
       context: item.context,
       answer: item.answer,
-    }, item.id, "resolved question");
+    }, item), item.id, "resolved question");
   }
 
   input.open = open;

@@ -117,9 +117,62 @@ The roadmap docs describe the preferred split-file collaboration model: keep mil
 
 Standalone planned-change files use a canonical, CLI-owned filename: `<milestone-id>-<planned-change-id>.yaml` (when the planned-change id already starts with the milestone id, the prefix is not duplicated). Filename order is semantically meaningful — `roadmap-recommend` selects the first eligible planned change in filename order — so an active planned-change file with a non-canonical basename is a blocking validation diagnostic in `roadmap-status` and `roadmap-sync` (archived planned-change files are exempt). Create and update planned-change artifacts through `roadmap-generate planned-change`, which computes the filename itself, and repair misnamed legacy files with `roadmap-sync --fix-names`; never pick planned-change filenames by hand.
 
+## Requirement Interrogation
+
+Every path that starts from a human request — `/strict-spec-brainstorm`,
+`/strict-spec-propose`, `/strict-spec-bugfix`, `/strict-spec-auto` — interrogates
+the *need* before the change-intake gate interrogates the *solution*. It runs
+first because a well-scoped change built against a misread need is still the
+wrong change.
+
+Requirement answers are never taken from repository evidence. Code shows what
+the system does; it cannot show what a person wants. Only the requester's own
+words — including what they already said in the request — or replayed roadmap
+planned-change and milestone detail may answer them.
+
+`propose` seeds five canonical questions into `questions.yaml` as open entries,
+so a freshly scaffolded change starts blocked until they are answered:
+
+| Question id | Asks | A sufficient answer contains |
+|---|---|---|
+| `requirement-problem` | What is concretely going wrong today, and for whom? | Who is affected, what they do today instead, and how often — without naming a feature |
+| `requirement-outcome` | What observable difference proves it is solved? | What a person will see or no longer have to do, checkable from outside the system |
+| `requirement-trigger` | Why now — what forced this? | The concrete event, deadline, incident, or cost, or an honest statement that nothing forced it |
+| `requirement-non-goals` | What must explicitly not change? | The nearby behavior that must survive untouched, and who relies on it |
+| `requirement-interpretation` | Which reading is intended? | The intended reading stated plainly enough to rule the others out |
+
+Each seeded entry carries its own explanation — why it is asked, what a
+sufficient answer contains, a worked example, and what the answer changes — so
+answering does not require prior knowledge of this workflow.
+
+Answers are recorded with attribution. `--answered-by human` and
+`--answered-by roadmap` satisfy the gate; `--answered-by assumption` records
+that the agent supplied the answer without human confirmation and blocks `ready`
+until a human decides:
+
+```bash
+strict-spec-cli generate <change-name> questions --resolve requirement-problem \
+  --answer "..." --answered-by human
+```
+
+`ready` emits `requirement_intake` diagnostics and exits non-zero while any
+canonical question is missing, still open, answered by assumption, or resolved
+with no attribution at all. `--reset` on the questions generator preserves
+requirement-kind entries, and no flag removes them.
+
+Enforcement splits into three layers, and it is worth being clear about which is
+which:
+
+| Layer | Mechanism | Guarantees |
+|---|---|---|
+| CLI | `propose` seeding, `ready` diagnostics | The questions exist, are answered, and carry attribution |
+| Skills | The asking technique in the four skill prompts, enforced by `validate-skills` | The questions are asked one at a time, carrying a concrete guess, explained before they are posed, with pushback that states its reason |
+| Neither | — | Whether the agent genuinely interrogated. This is judgment and cannot be checked; recording `answered_by: assumption` makes an evasion visible rather than preventing it |
+
 ## Change Intake Question Gate
 
-Proposal-oriented skills run a short change-intake gate before implementation.
+Proposal-oriented skills run a short change-intake gate after the requirement
+interrogation above and before implementation.
 They first answer the checklist from available evidence: the active request,
 roadmap planned-change details, strict specs, technical
 standards, existing change artifacts, repository search results, and

@@ -9,3 +9,15 @@ lessons:
     status: active
     occurrences: 1
     path: .strict-spec-driven/lessons/an-unsupported-argument-error-only-disproves-the-582410.yaml
+  a-schema-field-is-not-live-until-the-artifact-ge-910119:
+    title: A schema field is not live until the artifact generator's normalizer copies it
+    category: tooling
+    status: active
+    occurrences: 1
+    path: .strict-spec-driven/lessons/a-schema-field-is-not-live-until-the-artifact-ge-910119.yaml
+  apply-completes-the-next-task-in-list-order-not-268fb1:
+    title: apply completes the next task in list order, not the task you just finished
+    category: tooling
+    status: active
+    occurrences: 1
+    path: .strict-spec-driven/lessons/apply-completes-the-next-task-in-list-order-not-268fb1.yaml

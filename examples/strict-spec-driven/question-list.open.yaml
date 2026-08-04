@@ -4,11 +4,32 @@ artifact_type: question_list
 schema_file: ../../templates/strict-spec-driven/schemas/question-list.yaml
 change: example-change
 open:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: >-
+      Asked because the workflow plans a change against a need, and only the requester knows the
+      need. A sufficient answer names who is affected and what they do today instead, without
+      naming a feature. Worked example: "the on-call engineer re-reads three dashboards every
+      morning because no single view shows overnight failures". The answer becomes the proposal's
+      why and decides whether this change is worth making at all.
+    kind: requirement
+    status: open
   - id: choose-example
     question: Which valid option should be used?
     context: The answer determines the implementation choice.
     status: open
 resolved:
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: >-
+      Asked because a change needs a success condition someone outside the system can check. A
+      sufficient answer describes what a person will see or no longer have to do, not what the
+      code will contain. Worked example: "the morning check takes one glance at one page". The
+      answer becomes the delta spec's scenarios.
+    kind: requirement
+    answered_by: human
+    answer: The overnight failure count is visible without opening any dashboard.
+    status: resolved
   - id: confirmed-example
     question: Is the example valid?
     context: The answer confirms the contract.

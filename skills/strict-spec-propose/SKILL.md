@@ -70,6 +70,72 @@ operator-facing text. This field is a human-language preference, not a
 programming language. Comply with that configured common human language unless
 the active user message explicitly asks for a different language.
 
+## Requirement Interrogation
+
+Run this before the change-intake checklist below. That checklist interrogates
+the proposed solution — scope, files, tests, rules. This one interrogates the
+need, and it comes first because a well-scoped change built against a misread
+need is still the wrong change.
+
+Requirement answers are **never answered from repository evidence**. Code shows
+what the system does; it cannot show what a person wants. Only the requester's
+own words, or replayed roadmap planned-change and milestone detail, may answer
+these. What the requester already said in the active request counts — never
+re-ask something they have already told you.
+
+`propose` seeds these five as open questions, so a fresh change starts blocked:
+
+- `requirement-problem` — what is concretely going wrong today, and for whom
+- `requirement-outcome` — what observable difference proves it is solved
+- `requirement-trigger` — why now, what forced this
+- `requirement-non-goals` — what must explicitly not change
+- `requirement-interpretation` — which reading is intended, where more than one exists
+
+Resolve each with:
+
+```bash
+strict-spec-cli generate <change-name> questions --resolve <id> --answer "..." --answered-by human
+```
+
+### How to ask
+
+Asking these badly collects five restated solutions and passes the gate, so the
+technique is part of the requirement:
+
+- **Ask one question at a time**, and let each answer shape the next. A batch of
+  five questions returns five shallow answers.
+- **Carry a concrete guess into every question** rather than posing a blank
+  prompt. People correct a wrong specific statement far more readily than they
+  fill in a blank. Where the harness provides `AskUserQuestion`, use it with two
+  to four concrete options so you must commit to a guess.
+- **Ask about the last concrete occurrence**, not the general case. Episodic
+  memory produces facts; general questions produce theories, and people theorize
+  badly about their own workflows.
+- **Reject an answer that names a solution** instead of a problem. If it names a
+  button, field, page, or endpoint, ask what they would do next once that
+  existed, until the answer is a behavior.
+- **Ask what happens if nothing is done.** This tests whether the trigger is real.
+- **Replay a deliberately imperfect summary** and let them correct it. A
+  correction carries more information than agreement.
+
+### Explain before you ask
+
+Never assume the requester knows how to answer. Before posing a question,
+**explain why the question matters** and what a sufficient answer contains,
+defining any workflow vocabulary — problem versus solution, observable outcome,
+non-goal — in plain terms. The requester is the domain expert; you are the
+workflow expert, so the vocabulary is your job to explain.
+
+When an answer cannot be used yet, **state the reason for the pushback** and
+supply the missing criterion. Never silently re-ask the same question: that
+reads as not having listened, and it pushes the requester into repeating
+themselves rather than adding what is missing.
+
+When interrogation cannot land — the requester will not engage, or the answer
+stays a restated solution — record `--answered-by assumption` rather than
+inventing a plausible answer. An assumption blocks `ready` and forces an
+explicit human decision; a fabricated answer passes silently and is worse.
+
 ## Change Intake Question Gate
 
 Before implementation handoff or proposal validation, perform the required
