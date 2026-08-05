@@ -1,7 +1,7 @@
 import path from "path";
-import { stringifyYamlDocument } from "../yaml.js";
 import {
   ROADMAP_INDEX_PATH,
+  ROADMAP_MILESTONE_SCHEMA_ID,
   type DeclaredRoadmapStatus,
   type LoadedMilestone,
   type MilestonePausedState,
@@ -16,8 +16,8 @@ import {
   getMergedPlannedChangesForMilestone,
   getStandalonePlannedChangesForMilestone,
 } from "./status.js";
-import { buildCanonicalMilestoneArtifact, buildRoadmapIndexArtifact, writeFileIfChanged } from "./sync.js";
-import { getRoadmapStatus } from "../roadmap.js";
+import { buildCanonicalMilestoneArtifact } from "./sync.js";
+import { getRoadmapStatus, syncRoadmap } from "../roadmap.js";
 
 export type RoadmapPauseOptions = {
   reason?: string;
@@ -174,8 +174,6 @@ export function pauseMilestone(
   };
 
   const pauseNote = buildPauseNote(reason, pausedOn);
-  const updatedFiles: string[] = [];
-
   const nextNotes = [...milestone.artifact.notes];
   if (nextNotes[nextNotes.length - 1] !== pauseNote) {
     nextNotes.push(pauseNote);
@@ -199,17 +197,19 @@ export function pauseMilestone(
     plannedChangeEntries,
   );
   const nextArtifact = buildCanonicalMilestoneArtifact(draftMilestone, nextStatus);
-  const nextContent = stringifyYamlDocument(nextArtifact);
-  writeFileIfChanged(milestone.absolutePath, nextContent, updatedFiles, rootDir);
-
-  // Reflect the rewritten artifact on the loaded milestone so the index rebuild
-  // below picks up the blocked status and the pause note.
-  milestone.artifact = nextArtifact;
-  milestone.raw = nextContent;
-
-  const indexPath = path.join(rootDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
-  const nextIndex = buildRoadmapIndexArtifact(roadmap.milestones);
-  writeFileIfChanged(indexPath, stringifyYamlDocument(nextIndex), updatedFiles, rootDir);
+  const syncResult = syncRoadmap(rootDir, { stagedMutations: [{
+    absolutePath: milestone.absolutePath,
+    artifactId: milestoneIdResolved,
+    schemaId: ROADMAP_MILESTONE_SCHEMA_ID,
+    operation: "update",
+    candidate: nextArtifact,
+  }] });
+  if (!syncResult.valid) {
+    return {
+      ...emptyPauseResult(milestoneId),
+      diagnostics: syncResult.diagnostics,
+    };
+  }
 
   const pausedSummary = {
     id: milestoneIdResolved,
@@ -225,7 +225,7 @@ export function pauseMilestone(
     return {
       valid: false,
       paused: pausedSummary,
-      updatedFiles,
+      updatedFiles: syncResult.updatedFiles,
       diagnostics: sortDiagnostics(postStatus.diagnostics),
     };
   }
@@ -233,7 +233,7 @@ export function pauseMilestone(
   return {
     valid: true,
     paused: pausedSummary,
-    updatedFiles,
+    updatedFiles: syncResult.updatedFiles,
     diagnostics: [],
   };
 }
@@ -313,8 +313,6 @@ export function resumeMilestone(
   }
 
   const resumeNote = buildResumeNote(reason);
-  const updatedFiles: string[] = [];
-
   // Build the next artifact with `paused` removed and the resume note appended.
   // buildCanonicalMilestoneArtifact only re-adds `paused` when the loaded
   // milestone artifact carries one, so feeding it a draft without `paused`
@@ -334,17 +332,19 @@ export function resumeMilestone(
   };
   const nextStatus = buildMilestoneStatus(draftMilestone, changeStates, plannedChangeEntries);
   const nextArtifact = buildCanonicalMilestoneArtifact(draftMilestone, nextStatus);
-  const nextContent = stringifyYamlDocument(nextArtifact);
-  writeFileIfChanged(milestone.absolutePath, nextContent, updatedFiles, rootDir);
-
-  // Reflect the rewritten artifact on the loaded milestone so the index rebuild
-  // below picks up the re-derived status and the resume note.
-  milestone.artifact = nextArtifact;
-  milestone.raw = nextContent;
-
-  const indexPath = path.join(rootDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
-  const nextIndex = buildRoadmapIndexArtifact(roadmap.milestones);
-  writeFileIfChanged(indexPath, stringifyYamlDocument(nextIndex), updatedFiles, rootDir);
+  const syncResult = syncRoadmap(rootDir, { stagedMutations: [{
+    absolutePath: milestone.absolutePath,
+    artifactId: milestoneIdResolved,
+    schemaId: ROADMAP_MILESTONE_SCHEMA_ID,
+    operation: "update",
+    candidate: nextArtifact,
+  }] });
+  if (!syncResult.valid) {
+    return {
+      ...emptyResumeResult(milestoneId),
+      diagnostics: syncResult.diagnostics,
+    };
+  }
 
   const resumedSummary = {
     id: milestoneIdResolved,
@@ -360,7 +360,7 @@ export function resumeMilestone(
     return {
       valid: false,
       resumed: resumedSummary,
-      updatedFiles,
+      updatedFiles: syncResult.updatedFiles,
       diagnostics: sortDiagnostics(postStatus.diagnostics),
     };
   }
@@ -368,7 +368,7 @@ export function resumeMilestone(
   return {
     valid: true,
     resumed: resumedSummary,
-    updatedFiles,
+    updatedFiles: syncResult.updatedFiles,
     diagnostics: [],
   };
 }

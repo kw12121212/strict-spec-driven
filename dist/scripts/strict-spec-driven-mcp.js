@@ -36194,17 +36194,11 @@ artifact_families:
       - roadmap-reopen
       - roadmap-archive
     direct_write_paths:
-      - src/roadmap.ts
-      - src/roadmap/archive.ts
-      - src/roadmap/author.ts
-      - src/roadmap/move.ts
-      - src/roadmap/order.ts
-      - src/roadmap/pause.ts
-      - src/roadmap/reopen.ts
       - src/roadmap/sync.ts
     evidence:
       - .strict-spec-driven/roadmap/INDEX.yaml
       - src/roadmap/author.ts
+      - src/roadmap/sync.ts
   lessons-state:
     artifact_types:
       - lessons_index
@@ -36470,7 +36464,7 @@ mutation_surfaces:
       - src/roadmap/reopen.ts
       - src/roadmap/sync.ts
     mechanism: filesystem-writer
-    classification: remaining-direct-writer
+    classification: cli-owned
     operations:
       - create
       - update
@@ -36480,14 +36474,31 @@ mutation_surfaces:
     families:
       - roadmap-state
     evidence:
-      - src/roadmap/author.ts
+      - src/roadmap/sync.ts
       - src/roadmap/archive.ts
+  lesson-sop-filesystem-writers:
+    path_patterns:
+      - src/lessons.ts
+      - src/sops.ts
+    mechanism: filesystem-writer
+    classification: cli-owned
+    operations:
+      - create
+      - update
+      - named-remove
+      - delete
+      - rename
+    families:
+      - lessons-state
+      - sop-state
+    evidence:
+      - src/yaml-mutation.ts
+      - src/lessons.ts
+      - src/sops.ts
   domain-filesystem-writers:
     path_patterns:
       - src/design-system.ts
       - src/harness.ts
-      - src/lessons.ts
-      - src/sops.ts
       - src/maintenance.ts
       - src/migrate.ts
       - src/migrate/shared.ts
@@ -36507,11 +36518,9 @@ mutation_surfaces:
       - change-planning-state
       - change-delta-state
       - roadmap-state
-      - lessons-state
-      - sop-state
     evidence:
       - src/harness.ts
-      - src/lessons.ts
+      - src/migrate.ts
   generated-and-rendered-writers:
     path_patterns:
       - scripts/gen-templates-bundle.ts
@@ -41300,7 +41309,7 @@ var COMMAND_METADATA_ENTRIES = {
     summary: "Create or update a roadmap milestone or planned change.",
     usage: [
       'Usage: strict-spec-cli roadmap-generate milestone --id <milestone-id> --title <text> --goal <text> --intake-question "id|question|context|impact|recommendation" [--scope-in <text>] [--scope-out <text>] [--done <text>] [--dependency <text>] [--risk <text>] [--note <text>] [--details <text>] [--remove-scope-in <substring>] [--remove-risk <substring>] [--remove-intake-question <id>]',
-      "       strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary <text> --details <text> [--depends-on <planned-change-id>] [--status <planned|complete>] [--remove-depends-on <planned-change-id>]",
+      '       strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary <text> --details <text> [--depends-on <planned-change-id>] [--status <planned|complete>] [--owner <text>] [--reviewer <text>] [--blocked <true|false>] [--blocked-reason <text>] [--label <text>] [--external-ref "label|target"] [--remove-depends-on <planned-change-id>] [--remove-reviewer <text>] [--remove-label <text>] [--remove-external-ref <label>] [--clear-owner] [--clear-blocked]',
       "",
       "Notes:",
       "  New milestones require at least one --intake-question value.",
@@ -41339,6 +41348,17 @@ var COMMAND_METADATA_ENTRIES = {
       { name: "--summary", arity: "value", valueLabel: "<text>", description: "Planned-change summary." },
       { name: "--depends-on", arity: "value", valueLabel: "<planned-change-id>", description: "Planned-change dependency.", repeatable: true },
       { name: "--status", arity: "value", valueLabel: "<planned|complete>", description: "Planned-change status." },
+      { name: "--owner", arity: "value", valueLabel: "<text>", description: "Planned-change owner; replaces the recorded owner." },
+      { name: "--clear-owner", arity: "boolean", description: "Removes the planned-change owner without changing other team metadata." },
+      { name: "--reviewer", arity: "value", valueLabel: "<text>", description: "Planned-change reviewer.", repeatable: true, repeatSemantics: "Appends unique values." },
+      { name: "--remove-reviewer", arity: "value", valueLabel: "<text>", description: "Removes the one reviewer matching this value.", repeatable: true, repeatSemantics: "Each value removes one reviewer." },
+      { name: "--blocked", arity: "value", valueLabel: "<true|false>", description: "Sets structured team blocked status." },
+      { name: "--blocked-reason", arity: "value", valueLabel: "<text>", description: "Sets the blocked reason; requires a supplied or existing blocked state." },
+      { name: "--clear-blocked", arity: "boolean", description: "Removes the structured blocked state." },
+      { name: "--label", arity: "value", valueLabel: "<text>", description: "Planned-change label.", repeatable: true, repeatSemantics: "Appends unique values." },
+      { name: "--remove-label", arity: "value", valueLabel: "<text>", description: "Removes the one label matching this value.", repeatable: true, repeatSemantics: "Each value removes one label." },
+      { name: "--external-ref", arity: "value", valueLabel: '"label|target"', description: "Upserts an external reference by label.", repeatable: true, repeatSemantics: "Repeated values upsert distinct labels." },
+      { name: "--remove-external-ref", arity: "value", valueLabel: "<label>", description: "Removes the external reference with this label.", repeatable: true, repeatSemantics: "Each value removes one reference." },
       { name: "--remove-scope-in", arity: "value", valueLabel: "<substring>", description: "Drops the one in-scope entry containing this substring; must match exactly one.", repeatable: true, repeatSemantics: "Each value removes one entry." },
       { name: "--remove-scope-out", arity: "value", valueLabel: "<substring>", description: "Drops the one out-of-scope entry containing this substring; must match exactly one.", repeatable: true, repeatSemantics: "Each value removes one entry." },
       { name: "--remove-done", arity: "value", valueLabel: "<substring>", description: "Drops the one done criterion containing this substring; must match exactly one.", repeatable: true, repeatSemantics: "Each value removes one entry." },
@@ -41632,17 +41652,52 @@ var COMMAND_METADATA_ENTRIES = {
   "sop-edit": {
     name: "sop-edit",
     group: "sop",
-    summary: "Edit the header fields of an existing standard operating procedure.",
-    usage: `Usage: strict-spec-cli sop-edit <sop-id> [--title <text>] [--purpose <text>] [--trigger <text>] [--scope-in <text>]... [--scope-out <text>]... [--success <text>]...
+    summary: "Safely edit mutable fields and named entries of an existing standard operating procedure.",
+    usage: `Usage: strict-spec-cli sop-edit <sop-id> [--title <text>] [--purpose <text>] [--trigger <text>] [--status <draft|active>] [structured additions...] [named removals...]
 `,
     arguments: [{ name: "sop-id", description: "The SOP to edit.", required: true }],
     flags: [
       { name: "--title", arity: "value", valueLabel: "<text>", description: "Replacement title." },
       { name: "--purpose", arity: "value", valueLabel: "<text>", description: "Replacement purpose." },
       { name: "--trigger", arity: "value", valueLabel: "<text>", description: "Replacement trigger." },
-      { name: "--scope-in", arity: "value", valueLabel: "<text>", description: "Replacement in-scope item.", repeatable: true },
-      { name: "--scope-out", arity: "value", valueLabel: "<text>", description: "Replacement out-of-scope item.", repeatable: true },
-      { name: "--success", arity: "value", valueLabel: "<text>", description: "Replacement success criterion.", repeatable: true }
+      { name: "--status", arity: "value", valueLabel: "<draft|active>", description: "Lifecycle status; active SOPs cannot return to draft." },
+      { name: "--scope-in", arity: "value", valueLabel: "<text>", description: "In-scope item.", repeatable: true, repeatSemantics: "Appends unique values." },
+      { name: "--scope-out", arity: "value", valueLabel: "<text>", description: "Out-of-scope item.", repeatable: true, repeatSemantics: "Appends unique values." },
+      { name: "--success", arity: "value", valueLabel: "<text>", description: "Success criterion.", repeatable: true, repeatSemantics: "Appends unique values." },
+      { name: "--role-id", arity: "value", valueLabel: "<id>", description: "Role id paired with role name and responsibility.", repeatable: true },
+      { name: "--role-name", arity: "value", valueLabel: "<text>", description: "Role name paired by position.", repeatable: true },
+      { name: "--role-responsibility", arity: "value", valueLabel: "<text>", description: "Role responsibility paired by position.", repeatable: true },
+      { name: "--prerequisite", arity: "value", valueLabel: "<text>", description: "Prerequisite.", repeatable: true, repeatSemantics: "Appends unique values." },
+      { name: "--classification", arity: "value", valueLabel: "<text>", description: "Replacement category classification." },
+      { name: "--clear-classification", arity: "boolean", description: "Removes optional classification." },
+      { name: "--step-id", arity: "value", valueLabel: "<id>", description: "Step id paired with actor, action, and expected result.", repeatable: true },
+      { name: "--step-actor", arity: "value", valueLabel: "<text>", description: "Step actor paired by position.", repeatable: true },
+      { name: "--step-action", arity: "value", valueLabel: "<text>", description: "Step action paired by position.", repeatable: true },
+      { name: "--step-expected", arity: "value", valueLabel: "<text>", description: "Step expected result paired by position.", repeatable: true },
+      { name: "--branch-step", arity: "value", valueLabel: "<step-id>", description: "Owning step for a branch group.", repeatable: true },
+      { name: "--branch-condition", arity: "value", valueLabel: "<text>", description: "Branch condition paired by position.", repeatable: true },
+      { name: "--branch-goto", arity: "value", valueLabel: "<step-id>", description: "Branch target paired by position.", repeatable: true },
+      { name: "--escalation-trigger", arity: "value", valueLabel: "<text>", description: "Escalation trigger paired with target and action.", repeatable: true },
+      { name: "--escalation-to", arity: "value", valueLabel: "<text>", description: "Escalation target paired by position.", repeatable: true },
+      { name: "--escalation-action", arity: "value", valueLabel: "<text>", description: "Escalation action paired by position.", repeatable: true },
+      { name: "--exception-condition", arity: "value", valueLabel: "<text>", description: "Exception condition paired with handling.", repeatable: true },
+      { name: "--exception-handling", arity: "value", valueLabel: "<text>", description: "Exception handling paired by position.", repeatable: true },
+      { name: "--output", arity: "value", valueLabel: "<text>", description: "SOP output.", repeatable: true, repeatSemantics: "Appends unique values." },
+      { name: "--reference-label", arity: "value", valueLabel: "<text>", description: "Reference label paired with target.", repeatable: true },
+      { name: "--reference-target", arity: "value", valueLabel: "<text>", description: "Reference target paired by position.", repeatable: true },
+      { name: "--link-kind", arity: "value", valueLabel: "<spec|change|roadmap>", description: "Link kind paired with target.", repeatable: true },
+      { name: "--link-target", arity: "value", valueLabel: "<text>", description: "Link target paired by position.", repeatable: true },
+      { name: "--remove-scope-in", arity: "value", valueLabel: "<text>", description: "Removes the exact in-scope item.", repeatable: true },
+      { name: "--remove-scope-out", arity: "value", valueLabel: "<text>", description: "Removes the exact out-of-scope item.", repeatable: true },
+      { name: "--remove-success", arity: "value", valueLabel: "<text>", description: "Removes the exact success criterion.", repeatable: true },
+      { name: "--remove-role", arity: "value", valueLabel: "<id>", description: "Removes a role by id.", repeatable: true },
+      { name: "--remove-prerequisite", arity: "value", valueLabel: "<text>", description: "Removes the exact prerequisite.", repeatable: true },
+      { name: "--remove-step", arity: "value", valueLabel: "<id>", description: "Removes a step by id.", repeatable: true },
+      { name: "--remove-escalation", arity: "value", valueLabel: "<trigger>", description: "Removes an escalation by trigger.", repeatable: true },
+      { name: "--remove-exception", arity: "value", valueLabel: "<condition>", description: "Removes an exception by condition.", repeatable: true },
+      { name: "--remove-output", arity: "value", valueLabel: "<text>", description: "Removes the exact output.", repeatable: true },
+      { name: "--remove-reference", arity: "value", valueLabel: "<label>", description: "Removes a reference by label.", repeatable: true },
+      { name: "--remove-link", arity: "value", valueLabel: "<kind|target>", description: "Removes a link by kind and target.", repeatable: true }
     ],
     output: {
       format: "json",

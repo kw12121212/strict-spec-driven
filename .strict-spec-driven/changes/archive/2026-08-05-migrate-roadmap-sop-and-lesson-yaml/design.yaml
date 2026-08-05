@@ -1,0 +1,29 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: migrate-roadmap-sop-and-lesson-yaml
+approach:
+  - 'Introduce domain-level mutation planners that build complete candidate artifacts and reference/index candidates before committing them together through commitYamlMutation. Preserve the existing CLI entry points, parsers, schemas, and domain validators; add only the named semantic flags required to cover currently unreachable safe edits and removals. Model lifecycle retirement explicitly: completed roadmap work archives, lessons obsolete rather than disappear, and unsupported whole-artifact deletion returns a deterministic diagnostic. Update the mutation inventory only after regression evidence proves each declared operation owner.'
+decisions:
+  shared-domain-transactions:
+    decision: Commit each roadmap, SOP, or lesson artifact together with every affected index or reference artifact in one shared YAML mutation transaction.
+    rationale: These families have cross-file integrity rules, so staging only the primary file could expose a valid artifact with a stale index or partially applied move.
+  lifecycle-specific-removal:
+    decision: 'Expose named removal only for mutable collections and map whole-artifact removal to the domain lifecycle: archive completed roadmap state, obsolete lessons, and reject deletion where no lifecycle permits it.'
+    rationale: Historical roadmap and lesson artifacts are evidence; uniform physical deletion would destroy auditability and contradict their existing schemas and observable contracts.
+  compatible-domain-cli:
+    decision: Extend existing roadmap-*, sop-edit, and lesson-* commands with semantic named arguments and deterministic diagnostics instead of adding a raw generic YAML edit command.
+    rationale: The commands already encode identity, validation, and lifecycle context, while a raw editor would let callers bypass those invariants and violate the milestone compatibility boundary.
+  inventory-after-evidence:
+    decision: Keep mutation inventory states and CLI ownership aligned with tested command behavior and shared-boundary usage.
+    rationale: The machine-readable surface is authoritative for agents, so it must never advertise an operation until both transaction routing and lifecycle behavior are proven.
+alternatives:
+  - option: Add one generic set/remove/delete YAML command for all three families.
+    reason: Generic path-oriented mutation would expose document structure instead of semantic intent and could not safely enforce domain-specific archive, obsolescence, identity, or reference rules.
+  - option: Retain the direct filesystem writers and document their command ownership only in the inventory.
+    reason: That would leave partial-write and confinement behavior inconsistent and would not satisfy the accepted shared mutation-boundary standard.
+risks:
+  - Roadmap operations touch multiple active and archive paths; transactional regressions must cover rollback and index consistency for create, move, archive, and canonical rename failures.
+  - Expanding SOP named edits can accidentally clear required category sections; candidate validation must run before commit and rejected mutations must preserve bytes.
+  - Lesson store migration already performs directory replacement; integrating index and artifact commits must preserve its all-or-nothing legacy-layout guarantee.

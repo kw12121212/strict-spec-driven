@@ -5451,17 +5451,11 @@ artifact_families:
       - roadmap-reopen
       - roadmap-archive
     direct_write_paths:
-      - src/roadmap.ts
-      - src/roadmap/archive.ts
-      - src/roadmap/author.ts
-      - src/roadmap/move.ts
-      - src/roadmap/order.ts
-      - src/roadmap/pause.ts
-      - src/roadmap/reopen.ts
       - src/roadmap/sync.ts
     evidence:
       - .strict-spec-driven/roadmap/INDEX.yaml
       - src/roadmap/author.ts
+      - src/roadmap/sync.ts
   lessons-state:
     artifact_types:
       - lessons_index
@@ -5727,7 +5721,7 @@ mutation_surfaces:
       - src/roadmap/reopen.ts
       - src/roadmap/sync.ts
     mechanism: filesystem-writer
-    classification: remaining-direct-writer
+    classification: cli-owned
     operations:
       - create
       - update
@@ -5737,14 +5731,31 @@ mutation_surfaces:
     families:
       - roadmap-state
     evidence:
-      - src/roadmap/author.ts
+      - src/roadmap/sync.ts
       - src/roadmap/archive.ts
+  lesson-sop-filesystem-writers:
+    path_patterns:
+      - src/lessons.ts
+      - src/sops.ts
+    mechanism: filesystem-writer
+    classification: cli-owned
+    operations:
+      - create
+      - update
+      - named-remove
+      - delete
+      - rename
+    families:
+      - lessons-state
+      - sop-state
+    evidence:
+      - src/yaml-mutation.ts
+      - src/lessons.ts
+      - src/sops.ts
   domain-filesystem-writers:
     path_patterns:
       - src/design-system.ts
       - src/harness.ts
-      - src/lessons.ts
-      - src/sops.ts
       - src/maintenance.ts
       - src/migrate.ts
       - src/migrate/shared.ts
@@ -5764,11 +5775,9 @@ mutation_surfaces:
       - change-planning-state
       - change-delta-state
       - roadmap-state
-      - lessons-state
-      - sop-state
     evidence:
       - src/harness.ts
-      - src/lessons.ts
+      - src/migrate.ts
   generated-and-rendered-writers:
     path_patterns:
       - scripts/gen-templates-bundle.ts

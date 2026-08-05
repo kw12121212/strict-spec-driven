@@ -8,7 +8,7 @@ lesson:
 category: tooling
 status: active
 created_at: '2026-08-03T08:40:57.095Z'
-updated_at: '2026-08-03T08:40:57.095Z'
+updated_at: '2026-08-05T12:08:41.426Z'
 context: Scoping a change through the strict workflow, a generated design artifact needed to record rejected alternatives, so the design generator was invoked with guessed argument names.
 observation: 'The command replied ''unsupported argument(s): --alternative-option, --alternative-reason'' and the artifact kept alternatives: []. That rejection was read as proof the generator could not record alternatives at all, and a scope expansion to add the missing flags was proposed and approved. The generator in fact already accepted --alternative, --reason, and --risk; only its usage line and command-metadata entry omitted them, so both --help and the error message pointed away from the working arguments.'
 takeaway: A CLI's rejection of a guessed argument name is evidence about the name, never about the capability. Before concluding a tool cannot do something, read the argument parser in the source rather than trusting help output, because help is a separate artifact that can silently omit working arguments. Treat an accepted-but-undocumented argument as the likely explanation whenever help looks thinner than the feature ought to be.
@@ -17,3 +17,6 @@ occurrences:
   - origin: add-lessons-artifact-family
     date: '2026-08-03'
     evidence: strict-spec-cli generate <change> design --alternative-option ... returned 'unsupported argument(s)' while src/cli/cmd-generation.ts buildDesignInput already listed alternative, reason, and risk in its allowed flags
+  - origin: migrate-roadmap-sop-and-lesson-yaml
+    date: '2026-08-05'
+    evidence: Workflow guidance named unsupported --reset and --occurrence-origin flags; inspecting command help revealed the supported named removal and --origin/--evidence arguments, avoiding a false capability-gap conclusion.

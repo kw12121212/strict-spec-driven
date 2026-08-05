@@ -1,11 +1,13 @@
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs";
+import { existsSync } from "fs";
 import path from "path";
-import { stringifyYamlDocument } from "../yaml.js";
 import { loadArchivedPlannedChangeIds, loadRoadmap } from "./load.js";
 import {
   ROADMAP_ARCHIVE_MILESTONES_DIR,
   ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR,
+  PLANNED_CHANGE_SCHEMA_ID,
+  ROADMAP_INDEX_SCHEMA_ID,
   ROADMAP_INDEX_PATH,
+  ROADMAP_MILESTONE_SCHEMA_ID,
   type LoadedMilestone,
   type LoadedPlannedChange,
   type RoadmapArchivedMilestone,
@@ -24,9 +26,13 @@ import {
   orderMilestoneStatuses,
 } from "./status.js";
 import {
+  commitRoadmapMutations,
   buildCanonicalMilestoneArtifact,
   buildCanonicalPlannedChangeArtifact,
   buildRoadmapIndexArtifact,
+  roadmapMutationDiagnostics,
+  roadmapUpdatedFiles,
+  type RoadmapMutation,
 } from "./sync.js";
 
 type ArchiveTarget = {
@@ -48,11 +54,6 @@ function archivePlannedChangePath(rootDir: string, plannedChange: LoadedPlannedC
 
 function archiveMilestonePath(rootDir: string, milestone: LoadedMilestone): string {
   return path.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR, milestone.relativeMilestonePath);
-}
-
-function writeYamlFile(filePath: string, value: unknown): void {
-  mkdirSync(path.dirname(filePath), { recursive: true });
-  writeFileSync(filePath, stringifyYamlDocument(value), "utf8");
 }
 
 function buildSkippedMilestone(status: RoadmapMilestoneStatus): RoadmapArchiveSkippedMilestone {
@@ -199,23 +200,38 @@ export function archiveRoadmapMilestones(rootDir: string, milestoneId?: string):
     };
   }
 
-  const updatedFiles: string[] = [];
+  const mutations: RoadmapMutation[] = [];
   const archivedMilestones: RoadmapArchivedMilestone[] = [];
   for (const target of targets) {
-    writeYamlFile(target.milestoneArchivePath, buildCanonicalMilestoneArtifact(target.milestone, target.status));
-    unlinkSync(target.milestone.absolutePath);
-    updatedFiles.push(target.milestone.repoRelativePath);
-    updatedFiles.push(normalizeRepoRelativePath(rootDir, target.milestoneArchivePath));
+    mutations.push({
+      absolutePath: target.milestoneArchivePath,
+      artifactId: target.status.id,
+      schemaId: ROADMAP_MILESTONE_SCHEMA_ID,
+      operation: "create",
+      candidate: buildCanonicalMilestoneArtifact(target.milestone, target.status),
+    });
+    mutations.push({
+      absolutePath: target.milestone.absolutePath,
+      artifactId: target.status.id,
+      schemaId: ROADMAP_MILESTONE_SCHEMA_ID,
+      operation: "delete",
+    });
 
     const archivedPlannedChanges = [];
     for (const plannedChangeTarget of target.plannedChanges) {
-      writeYamlFile(
-        plannedChangeTarget.archivePath,
-        buildCanonicalPlannedChangeArtifact(plannedChangeTarget.plannedChange, target.status),
-      );
-      unlinkSync(plannedChangeTarget.plannedChange.absolutePath);
-      updatedFiles.push(plannedChangeTarget.plannedChange.repoRelativePath);
-      updatedFiles.push(normalizeRepoRelativePath(rootDir, plannedChangeTarget.archivePath));
+      mutations.push({
+        absolutePath: plannedChangeTarget.archivePath,
+        artifactId: plannedChangeTarget.plannedChange.artifact.planned_change.id,
+        schemaId: PLANNED_CHANGE_SCHEMA_ID,
+        operation: "create",
+        candidate: buildCanonicalPlannedChangeArtifact(plannedChangeTarget.plannedChange, target.status),
+      });
+      mutations.push({
+        absolutePath: plannedChangeTarget.plannedChange.absolutePath,
+        artifactId: plannedChangeTarget.plannedChange.artifact.planned_change.id,
+        schemaId: PLANNED_CHANGE_SCHEMA_ID,
+        operation: "delete",
+      });
       archivedPlannedChanges.push({
         id: plannedChangeTarget.plannedChange.artifact.planned_change.id,
         sourcePath: toPosix(path.join("roadmap", plannedChangeTarget.plannedChange.relativeRoadmapPath)),
@@ -235,8 +251,29 @@ export function archiveRoadmapMilestones(rootDir: string, milestoneId?: string):
   if (targets.length > 0) {
     const archivedMilestonePaths = new Set(targets.map((target) => target.milestone.absolutePath));
     const remainingMilestones = roadmap.milestones.filter((milestone) => !archivedMilestonePaths.has(milestone.absolutePath));
-    writeYamlFile(path.join(rootDir, ROADMAP_INDEX_PATH), buildRoadmapIndexArtifact(remainingMilestones));
-    updatedFiles.push(ROADMAP_INDEX_PATH);
+    mutations.push({
+      absolutePath: path.join(rootDir, ROADMAP_INDEX_PATH),
+      artifactId: "roadmap-index",
+      schemaId: ROADMAP_INDEX_SCHEMA_ID,
+      role: "reference",
+      candidate: buildRoadmapIndexArtifact(remainingMilestones),
+    });
+  }
+
+  let updatedFiles: string[] = [];
+  if (mutations.length > 0) {
+    const mutation = commitRoadmapMutations(rootDir, mutations);
+    if (!mutation.valid) {
+      return {
+        valid: false,
+        warnings: roadmap.warnings,
+        diagnostics: sortDiagnostics(roadmapMutationDiagnostics(mutation)),
+        updatedFiles: [],
+        archivedMilestones: [],
+        skippedMilestones,
+      };
+    }
+    updatedFiles = roadmapUpdatedFiles(rootDir, mutation);
   }
 
   return {

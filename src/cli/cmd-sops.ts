@@ -20,6 +20,7 @@ import { getCommandUsage } from "./command-metadata.js";
 import { writeJson, writeUsage } from "./output.js";
 
 type FlagMap = Record<string, string[]>;
+const BOOLEAN_FLAGS = new Set(["clear-classification"]);
 
 function parseFlagMap(argv: string[]): FlagMap {
   const flags: FlagMap = {};
@@ -29,6 +30,11 @@ function parseFlagMap(argv: string[]): FlagMap {
       throw new Error(`unexpected argument '${token}'`);
     }
     const name = token.slice(2);
+    if (BOOLEAN_FLAGS.has(name)) {
+      flags[name] ??= [];
+      flags[name].push("true");
+      continue;
+    }
     const value = argv[index + 1];
     if (value === undefined || value.startsWith("--")) {
       throw new Error(`missing value for --${name}`);
@@ -239,7 +245,15 @@ export function runSopValidate(argv: string[]): number {
   return result.valid ? 0 : 1;
 }
 
-const SOP_EDIT_FLAGS = ["title", "purpose", "trigger", "scope-in", "scope-out", "success"];
+const SOP_EDIT_FLAGS = [
+  "title", "purpose", "trigger", "status", "scope-in", "scope-out", "success",
+  "role-id", "role-name", "role-responsibility", "prerequisite", "classification", "clear-classification",
+  "step-id", "step-actor", "step-action", "step-expected", "branch-step", "branch-condition", "branch-goto",
+  "escalation-trigger", "escalation-to", "escalation-action", "exception-condition", "exception-handling",
+  "output", "reference-label", "reference-target", "link-kind", "link-target",
+  "remove-scope-in", "remove-scope-out", "remove-success", "remove-role", "remove-prerequisite",
+  "remove-step", "remove-escalation", "remove-exception", "remove-output", "remove-reference", "remove-link",
+];
 const SOP_EDIT_USAGE = getCommandUsage("sop-edit");
 
 export function runSopEdit(argv: string[]): number {
@@ -271,6 +285,11 @@ export function runSopEdit(argv: string[]): number {
       return 1;
     }
   }
+  const status = singleValue(flags, "status");
+  if (status !== undefined && status !== "draft" && status !== "active") {
+    writeUsage("Error: --status must be draft or active\n");
+    return 1;
+  }
 
   const input: EditSopInput = { sopId };
   if ("title" in flags) {
@@ -291,8 +310,53 @@ export function runSopEdit(argv: string[]): number {
   if ("success" in flags) {
     input.successCriteria = flags.success;
   }
+  if (status !== undefined) input.status = status;
+  const roles = zip<SopRole>(flags, ["role-id", "role-name", "role-responsibility"], ([id, name, responsibility]) => ({ id, name, responsibility }));
+  if (roles.length > 0) input.roles = roles;
+  if ("prerequisite" in flags) input.prerequisites = flags.prerequisite;
+  if ("classification" in flags) input.classification = singleValue(flags, "classification");
+  if ("clear-classification" in flags) input.clearClassification = true;
+  const steps = zip<SopStep>(flags, ["step-id", "step-actor", "step-action", "step-expected"], ([id, actor, action, expected]) => ({ id, order: 0, actor, action, expected_result: expected }));
+  steps.forEach((step, index) => { step.order = index + 1; });
+  const branches = zip<{ step: string; branch: SopBranch }>(flags, ["branch-step", "branch-condition", "branch-goto"], ([step, condition, goto]) => ({ step, branch: { condition, goto_step: goto } }));
+  for (const row of branches) {
+    const owner = steps.find((step) => step.id === row.step);
+    if (!owner) {
+      writeUsage(`Error: --branch-step '${row.step}' does not match any --step-id\n`);
+      return 1;
+    }
+    owner.branches ??= [];
+    owner.branches.push(row.branch);
+  }
+  if (steps.length > 0) input.steps = steps;
+  const escalation = zip<SopEscalation>(flags, ["escalation-trigger", "escalation-to", "escalation-action"], ([trigger, to, action]) => ({ trigger, to, ...(action ? { action } : {}) }));
+  if (escalation.length > 0) input.escalation = escalation;
+  const exceptions = zip<SopException>(flags, ["exception-condition", "exception-handling"], ([condition, handling]) => ({ condition, handling }));
+  if (exceptions.length > 0) input.exceptions = exceptions;
+  if ("output" in flags) input.outputs = flags.output;
+  const references = zip<SopReference>(flags, ["reference-label", "reference-target"], ([label, target]) => ({ label, target }));
+  if (references.length > 0) input.references = references;
+  const links = zip<SopLink>(flags, ["link-kind", "link-target"], ([kind, target]) => ({ kind: kind as SopLink["kind"], target }));
+  if (links.length > 0) input.links = links;
+  input.removedScopeIn = flags["remove-scope-in"];
+  input.removedScopeOut = flags["remove-scope-out"];
+  input.removedSuccessCriteria = flags["remove-success"];
+  input.removedRoles = flags["remove-role"];
+  input.removedPrerequisites = flags["remove-prerequisite"];
+  input.removedSteps = flags["remove-step"];
+  input.removedEscalations = flags["remove-escalation"];
+  input.removedExceptions = flags["remove-exception"];
+  input.removedOutputs = flags["remove-output"];
+  input.removedReferences = flags["remove-reference"];
+  input.removedLinks = flags["remove-link"];
 
-  const result = editSop(process.cwd(), input);
+  let result;
+  try {
+    result = editSop(process.cwd(), input);
+  } catch (error) {
+    writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}\n`);
+    return 1;
+  }
   writeJson(result);
   return result.valid ? 0 : 1;
 }

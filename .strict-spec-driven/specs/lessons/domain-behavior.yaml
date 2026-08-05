@@ -30,6 +30,7 @@ mapping:
     - examples/strict-spec-driven/lessons-index.yaml
     - inventory/yaml-mutation-surfaces.yaml
     - src/embedded-templates.ts
+    - src/yaml-mutation.ts
   tests:
     - test/suites/lessons.ts
 requirements:
@@ -149,3 +150,19 @@ requirements:
         - GIVEN: a strict workflow with categorized lessons
         - WHEN: lesson-list or lesson-status receives a category outside the schema vocabulary
         - THEN: the command exits non-zero with a deterministic diagnostic naming the unsupported category and the accepted category values
+  lesson-complete-cli-mutation-coverage:
+    strength: MUST
+    statement: The system MUST route lesson creation, narrative updates, occurrence append, promotion, obsolescence, categorized-layout migration, and lessons-index rebuilding through artifact-aware transactions that accept structured semantic arguments, validate lifecycle and index relationships before commit, preserve immutable identity and prior evidence, and represent retirement as obsolescence rather than deletion with deterministic rejection of unsupported mutation.
+    scenarios:
+      lesson-mutations-commit-with-index:
+        - GIVEN: A categorized lesson store contains an active lesson and a valid grouped index
+        - WHEN: A lesson command creates a lesson, updates narrative content, appends a recurrence, promotes it, or marks it obsolete
+        - THEN: The lesson and affected index state commit together, immutable identity and earlier occurrences remain unchanged, and the command reports valid canonical paths
+      lesson-history-is-never-deleted:
+        - GIVEN: A lesson has been promoted or its premise no longer holds
+        - WHEN: A caller performs the supported lifecycle transition or attempts unsupported deletion
+        - THEN: The lesson remains readable with its promotion or obsolescence evidence, while unsupported deletion is rejected deterministically and leaves the store unchanged
+      lesson-migration-or-validation-failure-rolls-back:
+        - GIVEN: A legacy or categorized lesson mutation contains malformed content, an unknown category, a destination collision, or an invalid lifecycle transition
+        - WHEN: Any lesson command prepares and validates the store transaction
+        - THEN: The command exits non-zero with path-aware diagnostics and the lesson files, categorized layout, and index remain in their complete pre-command state

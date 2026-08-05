@@ -30,7 +30,7 @@ const ROADMAP_RENUMBER_USAGE = getCommandUsage("roadmap-renumber");
 const ROADMAP_MOVE_PLANNED_CHANGE_USAGE = getCommandUsage("roadmap-move-planned-change");
 const ROADMAP_GENERATE_USAGE = getCommandUsage("roadmap-generate");
 const ACTIONABLE_BLOCKER_LIMIT = 10;
-const ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set<string>();
+const ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set(["clear-owner", "clear-blocked"]);
 
 type FlagMap = Record<string, string[]>;
 
@@ -210,6 +210,14 @@ function parseIntakeQuestion(value: string): RoadmapMilestoneAuthorInput["intake
   return { id, question, context, impact, recommendation };
 }
 
+function parseExternalRef(value: string): { label: string; target: string } {
+  const separator = value.indexOf("|");
+  if (separator <= 0 || separator === value.length - 1) {
+    throw new Error("--external-ref must use label|target");
+  }
+  return { label: value.slice(0, separator).trim(), target: value.slice(separator + 1).trim() };
+}
+
 function buildRoadmapMilestoneAuthorInput(argv: string[]): RoadmapMilestoneAuthorInput {
   const flags = parseRoadmapGenerateFlags(argv);
   ensureAllowedRoadmapGenerateFlags(flags, [
@@ -267,7 +275,23 @@ function buildRoadmapPlannedChangeAuthorInput(argv: string[]): RoadmapPlannedCha
     "depends-on",
     "status",
     "remove-depends-on",
+    "owner",
+    "clear-owner",
+    "reviewer",
+    "remove-reviewer",
+    "blocked",
+    "blocked-reason",
+    "clear-blocked",
+    "label",
+    "remove-label",
+    "external-ref",
+    "remove-external-ref",
   ]);
+
+  const blockedValue = optionalOne(flags, "blocked");
+  if (blockedValue !== undefined && blockedValue !== "true" && blockedValue !== "false") {
+    throw new Error("--blocked must be true or false");
+  }
 
   return {
     id: requiredOne(flags, "id"),
@@ -277,6 +301,17 @@ function buildRoadmapPlannedChangeAuthorInput(argv: string[]): RoadmapPlannedCha
     dependsOn: values(flags, "depends-on"),
     status: optionalOne(flags, "status"),
     removedDependsOn: values(flags, "remove-depends-on"),
+    owner: optionalOne(flags, "owner"),
+    clearOwner: "clear-owner" in flags,
+    reviewers: values(flags, "reviewer"),
+    removedReviewers: values(flags, "remove-reviewer"),
+    blocked: blockedValue === undefined ? undefined : blockedValue === "true",
+    blockedReason: optionalOne(flags, "blocked-reason"),
+    clearBlocked: "clear-blocked" in flags,
+    labels: values(flags, "label"),
+    removedLabels: values(flags, "remove-label"),
+    externalRefs: values(flags, "external-ref").map(parseExternalRef),
+    removedExternalRefs: values(flags, "remove-external-ref"),
   };
 }
 

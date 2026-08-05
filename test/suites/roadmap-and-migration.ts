@@ -1108,6 +1108,94 @@ try {
     "roadmap-generate planned-change updates the supplied field and preserves the rest",
   );
 
+  const teamUpdate = cli([
+    "roadmap-generate",
+    "planned-change",
+    "--milestone",
+    "0001-naming",
+    "--id",
+    "add-widget",
+    "--owner",
+    "platform-team",
+    "--reviewer",
+    "reviewer-a",
+    "--reviewer",
+    "reviewer-b",
+    "--blocked",
+    "true",
+    "--blocked-reason",
+    "Awaiting API contract",
+    "--label",
+    "cli",
+    "--label",
+    "yaml",
+    "--external-ref",
+    "ticket|OPS-42",
+  ], { cwd: plannedChangeAuthoringDir });
+  context.assert(teamUpdate.status === 0, "roadmap-generate planned-change authors structured team metadata", teamUpdate.stdout || teamUpdate.stderr);
+  const teamArtifact = yamlModule.parseYamlFile<{
+    team: {
+      owner?: string;
+      reviewers?: string[];
+      blocked?: { status: boolean; reason?: string };
+      labels?: string[];
+      external_refs?: Array<{ label: string; target: string }>;
+    };
+  }>(path.join(plannedChangesDir, "0001-naming-add-widget.yaml"));
+  context.assert(
+    teamArtifact.team.owner === "platform-team"
+      && teamArtifact.team.reviewers?.join(",") === "reviewer-a,reviewer-b"
+      && teamArtifact.team.blocked?.status === true
+      && teamArtifact.team.blocked.reason === "Awaiting API contract"
+      && teamArtifact.team.labels?.join(",") === "cli,yaml"
+      && teamArtifact.team.external_refs?.[0]?.label === "ticket"
+      && teamArtifact.team.external_refs[0]?.target === "OPS-42",
+    "roadmap-generate planned-change writes owner, reviewers, blocked state, labels, and external references",
+  );
+
+  const teamRemoval = cli([
+    "roadmap-generate",
+    "planned-change",
+    "--milestone",
+    "0001-naming",
+    "--id",
+    "add-widget",
+    "--clear-owner",
+    "--remove-reviewer",
+    "reviewer-a",
+    "--clear-blocked",
+    "--remove-label",
+    "cli",
+    "--remove-external-ref",
+    "ticket",
+  ], { cwd: plannedChangeAuthoringDir });
+  context.assert(teamRemoval.status === 0, "roadmap-generate planned-change removes named team metadata", teamRemoval.stdout || teamRemoval.stderr);
+  const trimmedTeamArtifact = yamlModule.parseYamlFile<typeof teamArtifact>(path.join(plannedChangesDir, "0001-naming-add-widget.yaml"));
+  context.assert(
+    trimmedTeamArtifact.team.owner === undefined
+      && trimmedTeamArtifact.team.reviewers?.join(",") === "reviewer-b"
+      && trimmedTeamArtifact.team.blocked === undefined
+      && trimmedTeamArtifact.team.labels?.join(",") === "yaml"
+      && trimmedTeamArtifact.team.external_refs === undefined,
+    "roadmap-generate planned-change removes only explicitly named team entries",
+  );
+
+  const teamBytesBeforeUnmatchedRemoval = readFileSync(path.join(plannedChangesDir, "0001-naming-add-widget.yaml"), "utf8");
+  const unmatchedTeamRemoval = cli([
+    "roadmap-generate", "planned-change", "--milestone", "0001-naming", "--id", "add-widget",
+    "--remove-reviewer", "reviewer-a",
+  ], { cwd: plannedChangeAuthoringDir });
+  context.assert(unmatchedTeamRemoval.status !== 0, "roadmap-generate rejects an unmatched exact team removal");
+  const unmatchedTeamRemovalJson = JSON.parse(unmatchedTeamRemoval.stdout.trim());
+  context.assert(
+    unmatchedTeamRemovalJson.diagnostics.some((entry: { fieldPath?: string }) => entry.fieldPath === "$.team.reviewers"),
+    "an unmatched team removal reports its structured field path",
+  );
+  context.assert(
+    readFileSync(path.join(plannedChangesDir, "0001-naming-add-widget.yaml"), "utf8") === teamBytesBeforeUnmatchedRemoval,
+    "an unmatched team removal leaves the planned change byte-identical",
+  );
+
   const unknownMilestone = cli([
     "roadmap-generate",
     "planned-change",

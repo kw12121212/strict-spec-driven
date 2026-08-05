@@ -1,10 +1,10 @@
-import { existsSync, mkdirSync } from "fs";
+import { existsSync } from "fs";
 import path from "path";
-import { stringifyYamlDocument } from "../yaml.js";
 import {
   canonicalPlannedChangeFileName,
   PLANNED_CHANGE_SCHEMA_ID,
   ROADMAP_INDEX_PATH,
+  ROADMAP_MILESTONE_SCHEMA_ID,
   type DeclaredRoadmapStatus,
   type LoadedMilestone,
   type RoadmapDiagnostic,
@@ -19,8 +19,8 @@ import {
   getMergedPlannedChangesForMilestone,
   getStandalonePlannedChangesForMilestone,
 } from "./status.js";
-import { buildCanonicalMilestoneArtifact, buildRoadmapIndexArtifact, writeFileIfChanged } from "./sync.js";
-import { getRoadmapStatus } from "../roadmap.js";
+import { buildCanonicalMilestoneArtifact } from "./sync.js";
+import { getRoadmapStatus, syncRoadmap } from "../roadmap.js";
 
 export type RoadmapReopenOptions = {
   reason?: string;
@@ -86,11 +86,8 @@ function seedFollowUpPlannedChange(
   milestone: LoadedMilestone,
   frozenPlannedChanges: RoadmapReopenFrozenPlannedChange[],
   reason: string,
-  updatedFiles: string[],
-): RoadmapReopenSeededFollowUp {
+): RoadmapReopenSeededFollowUp & { absolutePath: string; artifact: StandalonePlannedChangeArtifact } {
   const plannedChangesDir = path.join(rootDir, ".strict-spec-driven", "roadmap", PLANNED_CHANGES_DIRNAME);
-  mkdirSync(plannedChangesDir, { recursive: true });
-
   const milestoneId = milestone.artifact.milestone.id;
   const existingIds = new Set(roadmap.plannedChanges.map((plannedChange) => plannedChange.artifact.planned_change.id));
 
@@ -123,8 +120,7 @@ function seedFollowUpPlannedChange(
   };
 
   const absolutePath = path.join(plannedChangesDir, fileName);
-  writeFileIfChanged(absolutePath, stringifyYamlDocument(artifact), updatedFiles, rootDir);
-  return { id, path: toPosix(path.join("roadmap", PLANNED_CHANGES_DIRNAME, fileName)) };
+  return { id, path: toPosix(path.join("roadmap", PLANNED_CHANGES_DIRNAME, fileName)), absolutePath, artifact };
 }
 
 /**
@@ -211,56 +207,51 @@ export function reopenMilestone(
     }));
 
   const reopenNote = buildReopenNote(reason);
-  const updatedFiles: string[] = [];
-
   // Seed a pending follow-up so the milestone has real non-archived work. The
   // reopened milestone then derives its status from structured planned-change
   // state rather than from a sticky declared status.
-  const seededFollowUp = seedFollowUpPlannedChange(roadmap, rootDir, milestone, frozenPlannedChanges, reason, updatedFiles);
-
-  // Reload so the freshly seeded follow-up participates in status derivation,
-  // then rewrite the milestone with its derived status plus the reopen note.
-  const reloaded = loadReopenContext(rootDir);
-  const reloadedMilestone = findMilestoneById(reloaded.roadmap, milestoneId);
-  if (reloaded.roadmap.diagnostics.length > 0 || !reloadedMilestone) {
-    return {
-      valid: false,
-      reopened: { ...emptyReopened(milestoneId), id: milestoneIdResolved, title: milestoneTitleResolved, path: milestonePathResolved, previousStatus, frozenPlannedChanges, seededFollowUp },
-      updatedFiles,
-      diagnostics: sortDiagnostics([...diagnostics, ...reloaded.roadmap.diagnostics]),
-    };
-  }
-
-  const reloadedStandalone = getStandalonePlannedChangesForMilestone(reloaded.roadmap, reloadedMilestone);
-  const reloadedEntries = getMergedPlannedChangesForMilestone(reloadedMilestone, reloadedStandalone);
-  const reloadedStatus = buildMilestoneStatus(reloadedMilestone, reloaded.changeStates, reloadedEntries);
-
-  const reopenNotes = [...reloadedMilestone.artifact.notes];
+  const seedPlan = seedFollowUpPlannedChange(roadmap, rootDir, milestone, frozenPlannedChanges, reason);
+  const seededFollowUp: RoadmapReopenSeededFollowUp = { id: seedPlan.id, path: seedPlan.path };
+  const reopenNotes = [...milestone.artifact.notes];
   if (reopenNotes[reopenNotes.length - 1] !== reopenNote) {
     reopenNotes.push(reopenNote);
   }
 
-  const nextMilestoneArtifact = buildCanonicalMilestoneArtifact(reloadedMilestone, reloadedStatus);
+  const nextMilestoneArtifact = buildCanonicalMilestoneArtifact(milestone, status);
   nextMilestoneArtifact.notes = reopenNotes;
-
-  const nextContent = stringifyYamlDocument(nextMilestoneArtifact);
-  writeFileIfChanged(reloadedMilestone.absolutePath, nextContent, updatedFiles, rootDir);
-
-  // Reflect the rewritten artifact on the loaded milestone so the index rebuild
-  // below picks up the derived status and the reopen note.
-  reloadedMilestone.artifact = nextMilestoneArtifact;
-  reloadedMilestone.raw = nextContent;
-
-  const indexPath = path.join(rootDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
-  const nextIndex = buildRoadmapIndexArtifact(reloaded.roadmap.milestones);
-  writeFileIfChanged(indexPath, stringifyYamlDocument(nextIndex), updatedFiles, rootDir);
+  const syncResult = syncRoadmap(rootDir, { stagedMutations: [
+    {
+      absolutePath: seedPlan.absolutePath,
+      artifactId: seedPlan.id,
+      schemaId: PLANNED_CHANGE_SCHEMA_ID,
+      operation: "create",
+      candidate: seedPlan.artifact,
+    },
+    {
+      absolutePath: milestone.absolutePath,
+      artifactId: milestoneIdResolved,
+      schemaId: ROADMAP_MILESTONE_SCHEMA_ID,
+      operation: "update",
+      candidate: nextMilestoneArtifact,
+    },
+  ] });
+  if (!syncResult.valid) {
+    return {
+      valid: false,
+      reopened: { ...emptyReopened(milestoneId), id: milestoneIdResolved, title: milestoneTitleResolved, path: milestonePathResolved, previousStatus, frozenPlannedChanges, seededFollowUp },
+      updatedFiles: [],
+      diagnostics: sortDiagnostics([...diagnostics, ...syncResult.diagnostics]),
+    };
+  }
+  const newStatus = syncResult.milestones.find((entry) => entry.id === milestoneIdResolved)?.derivedStatus
+    ?? nextMilestoneArtifact.status;
 
   const reopenedSummary = {
     id: milestoneIdResolved,
     title: milestoneTitleResolved,
     path: milestonePathResolved,
     previousStatus,
-    newStatus: nextMilestoneArtifact.status,
+    newStatus,
     frozenPlannedChanges,
     seededFollowUp,
   };
@@ -272,7 +263,7 @@ export function reopenMilestone(
     return {
       valid: false,
       reopened: reopenedSummary,
-      updatedFiles,
+      updatedFiles: syncResult.updatedFiles,
       diagnostics: sortDiagnostics(reopenedDiagnostics),
     };
   }
@@ -280,7 +271,7 @@ export function reopenMilestone(
   return {
     valid: true,
     reopened: reopenedSummary,
-    updatedFiles,
+    updatedFiles: syncResult.updatedFiles,
     diagnostics: sortDiagnostics(diagnostics),
   };
 }

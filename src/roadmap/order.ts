@@ -1,10 +1,10 @@
 import { existsSync } from "fs";
 import path from "path";
-import { stringifyYamlDocument } from "../yaml.js";
 import { loadArchivedPlannedChangeIds, loadRoadmap } from "./load.js";
 import {
   ROADMAP_ARCHIVE_MILESTONES_DIR,
   ROADMAP_INDEX_PATH,
+  ROADMAP_MILESTONE_SCHEMA_ID,
   type LoadedMilestone,
   type RoadmapDiagnostic,
   type RoadmapSyncResult,
@@ -17,7 +17,7 @@ import {
 import {
   ROADMAP_ORDER_GAP,
   buildCanonicalMilestoneArtifact,
-  writeFileIfChanged,
+  type RoadmapMutation,
 } from "./sync.js";
 import { getRoadmapStatus, syncRoadmap } from "../roadmap.js";
 import { getChangeStateIndex, getMergedPlannedChangesForMilestone, getStandalonePlannedChangesForMilestone, buildMilestoneStatus } from "./status.js";
@@ -107,15 +107,21 @@ function midpointOrder(
   return { order: candidate };
 }
 
-function writeTargetOrder(rootDir: string, milestone: LoadedMilestone, order: number, updatedFiles: string[]): void {
+function buildTargetOrderMutation(rootDir: string, milestone: LoadedMilestone, order: number): RoadmapMutation {
   const changeStates = getChangeStateIndex(rootDir);
   const roadmap = loadRoadmap(rootDir);
   const freshMilestone = roadmap.milestones.find((candidate) => candidate.artifact.milestone.id === milestone.artifact.milestone.id) ?? milestone;
   const standalonePlannedChanges = getStandalonePlannedChangesForMilestone(roadmap, freshMilestone);
   const plannedChangeEntries = getMergedPlannedChangesForMilestone(freshMilestone, standalonePlannedChanges);
   const status = buildMilestoneStatus(freshMilestone, changeStates, plannedChangeEntries);
-  freshMilestone.artifact.order = order;
-  writeFileIfChanged(freshMilestone.absolutePath, stringifyYamlDocument(buildCanonicalMilestoneArtifact(freshMilestone, status)), updatedFiles, rootDir);
+  const draftMilestone = { ...freshMilestone, artifact: { ...freshMilestone.artifact, order } };
+  return {
+    absolutePath: freshMilestone.absolutePath,
+    artifactId: freshMilestone.artifact.milestone.id,
+    schemaId: ROADMAP_MILESTONE_SCHEMA_ID,
+    operation: "update",
+    candidate: buildCanonicalMilestoneArtifact(draftMilestone, status),
+  };
 }
 
 function invalidOrderResult(warnings: string[], diagnostics: RoadmapDiagnostic[]): RoadmapOrderResult {
@@ -166,12 +172,11 @@ export function reorderRoadmapMilestone(rootDir: string, input: RoadmapReorderIn
     ]);
   }
 
-  const updatedFiles: string[] = [];
-  writeTargetOrder(rootDir, targetLookup.milestone, nextOrder, updatedFiles);
-  const syncResult = syncRoadmap(rootDir);
+  const syncResult = syncRoadmap(rootDir, {
+    stagedMutations: [buildTargetOrderMutation(rootDir, targetLookup.milestone, nextOrder)],
+  });
   return {
     ...syncResult,
-    updatedFiles: Array.from(new Set([...updatedFiles, ...syncResult.updatedFiles])).sort((left, right) => left.localeCompare(right)),
     target: {
       id: input.milestoneId,
       order: nextOrder,
@@ -190,15 +195,8 @@ export function renumberRoadmapMilestones(rootDir: string): RoadmapOrderResult {
     ]);
   }
 
-  const updatedFiles: string[] = [];
   const sortedMilestones = sortMilestonesByRoadmapOrder(roadmap.milestones);
-  sortedMilestones.forEach((milestone, index) => {
-    writeTargetOrder(rootDir, milestone, (index + 1) * ROADMAP_ORDER_GAP, updatedFiles);
-  });
-
-  const syncResult = syncRoadmap(rootDir);
-  return {
-    ...syncResult,
-    updatedFiles: Array.from(new Set([...updatedFiles, ...syncResult.updatedFiles])).sort((left, right) => left.localeCompare(right)),
-  };
+  const stagedMutations = sortedMilestones.map((milestone, index) =>
+    buildTargetOrderMutation(rootDir, milestone, (index + 1) * ROADMAP_ORDER_GAP));
+  return syncRoadmap(rootDir, { stagedMutations });
 }

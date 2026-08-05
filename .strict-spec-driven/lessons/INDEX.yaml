@@ -13,7 +13,7 @@ categories:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability
       status: active
-      occurrences: 1
+      occurrences: 2
       path: .strict-spec-driven/lessons/tooling/an-unsupported-argument-error-only-disproves-the-582410.yaml
     a-schema-field-is-not-live-until-the-artifact-ge-910119:
       title: A schema field is not live until the artifact generator's normalizer copies it

@@ -1,0 +1,41 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+mapping:
+  implementation:
+    - src/roadmap/author.ts
+    - src/roadmap/sync.ts
+    - src/roadmap/move.ts
+    - src/roadmap/pause.ts
+    - src/roadmap/reopen.ts
+    - src/roadmap/archive.ts
+    - src/cli/cmd-roadmap.ts
+    - src/yaml-mutation.ts
+    - src/cli/command-metadata-entries.ts
+    - inventory/yaml-mutation-surfaces.yaml
+    - src/roadmap.ts
+    - src/roadmap/order.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    roadmap-complete-cli-mutation-coverage:
+      strength: MUST
+      statement: The system MUST expose every lifecycle-permitted roadmap milestone, standalone planned-change, and roadmap-index creation, scalar update, additive collection update, exact named removal, reorder, move, pause, resume, reopen, canonical rename, reconciliation, and archive operation through structured roadmap CLI arguments; MUST commit each primary artifact together with affected indexes and references atomically; MUST preserve completed historical work through archive rather than physical deletion; and MUST reject invalid or lifecycle-forbidden mutations deterministically without partial writes.
+      scenarios:
+        roadmap-structured-mutations-preserve-references:
+          - GIVEN: A valid active roadmap contains a milestone, standalone planned changes, dependencies, intake questions, and an index
+          - WHEN: A roadmap domain command creates or updates one field, removes one named mutable entry, reorders or moves work, or changes pause state
+          - THEN: Only the named semantic mutation and required canonical index or reference updates commit, the roadmap remains valid, and unrelated fields and files remain unchanged
+        roadmap-lifecycle-removal-preserves-history:
+          - GIVEN: Roadmap work is complete or historical and is eligible for lifecycle retirement
+          - WHEN: The supported roadmap retirement operation runs
+          - THEN: The milestone and completed planned changes move to the roadmap archive with stable identities and auditable content instead of being physically discarded
+        roadmap-mutation-failure-is-atomic:
+          - GIVEN: A requested roadmap mutation would violate a schema, dependency, canonical-name, archive, or cross-file relationship rule
+          - WHEN: The roadmap domain command validates the candidate transaction
+          - THEN: The command exits non-zero with path-aware deterministic diagnostics and every active, indexed, and archived roadmap file remains unchanged
+  MODIFIED: {}
+  REMOVED: {}

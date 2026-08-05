@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: migrate-roadmap-sop-and-lesson-yaml
   milestone: cli-yaml-artifact-coverage
-status: planned
+status: complete
 summary: Complete CLI mutation coverage for roadmap, SOP, and lesson YAML.
 details: 'Close create, update, named removal, move, pause, resume, reopen, archive, obsolescence, promotion, and lifecycle-specific deletion gaps across milestones, planned changes, roadmap index and archive, SOP artifacts and index, lessons and index. Preserve canonical filenames, stable identities, dependency resolution, status derivation, intake-question gates, category constraints, and transactional index rebuilding. Deletion is not uniform: completed or historical roadmap state and lesson records that must remain auditable are archived, obsoleted, or deterministically rejected rather than removed; only artifact lifecycles that explicitly permit deletion expose it.'
 depends_on:

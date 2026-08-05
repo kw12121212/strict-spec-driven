@@ -1,0 +1,52 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: migrate-roadmap-sop-and-lesson-yaml
+sections:
+  Implementation:
+    migrate-roadmap-transactions:
+      text: Route roadmap milestone, planned-change, index, move, pause/resume, reopen, canonical rename, sync, and archive writes through shared artifact-aware transactions that validate cross-file relationships before commit.
+      status: complete
+      command: bun run build
+    complete-roadmap-mutation-surface:
+      text: Add or align structured roadmap command arguments for every valid scalar, collection, named-removal, status, move, and lifecycle operation while preserving canonical identities, dependency resolution, and deterministic deletion/archive rules.
+      status: complete
+      command: bun run build
+    migrate-sop-transactions:
+      text: Move SOP artifact and index creation and updates onto one shared mutation transaction and extend sop-edit semantic arguments to cover all mutable structured fields and exact named removals with pre-commit category and link validation.
+      status: complete
+      command: bun run build
+    align-lesson-transactions:
+      text: Complete shared-transaction coverage for lesson artifacts, categorized layout migration, index rebuilding, recurrence, promotion, and obsolescence while deterministically preserving non-deletable lesson history.
+      status: complete
+      command: bun run build
+    align-surface-metadata-and-mappings:
+      text: Update command metadata, mutation inventory owners and evidence, generated assets if affected, and structured delta mappings so advertised roadmap, SOP, and lesson operation coverage exactly matches tested behavior.
+      status: complete
+      command: bun run check:yaml-inventory
+  Testing:
+    validate-build-and-inventory:
+      text: Compile the project and validate the repository-wide YAML mutation inventory after the family migration.
+      status: complete
+      command: bun run build && bun run check:yaml-inventory
+    test-domain-mutations:
+      text: Run focused roadmap, SOP, and lesson unit and copied-project regressions covering every permitted operation, deterministic lifecycle rejection, index/reference integrity, confinement, rollback, and unchanged-byte failure behavior.
+      status: complete
+      command: bun test/run.ts roadmap-and-migration sops lessons
+    run-project-regression:
+      text: Run the complete project regression with the configured line-coverage threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-proposal-readiness:
+      text: Confirm the populated change and resolved roadmap intake remain ready after implementation task updates.
+      status: complete
+      command: strict-spec-cli ready migrate-roadmap-sop-and-lesson-yaml
+    verify-change-and-mappings:
+      text: Verify strict change structure and structured spec mappings, then confirm archive merge readiness for all three domain deltas.
+      status: complete
+      command: strict-spec-cli verify migrate-roadmap-sop-and-lesson-yaml && strict-spec-cli verify-spec-mappings
+testing_gates:
+  validation_task: validate-build-and-inventory
+  unit_test_task: test-domain-mutations

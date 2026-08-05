@@ -1,5 +1,13 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
+import { parseYamlDocument } from "../yaml.js";
+import {
+  commitYamlMutation,
+  type YamlMutationOperation,
+  type YamlMutationRequest,
+  type YamlMutationResult,
+  type YamlMutationRole,
+} from "../yaml-mutation.js";
 import {
   canonicalPlannedChangeFileName,
   PLANNED_CHANGE_SCHEMA_ID,
@@ -11,16 +19,112 @@ import {
   type PlannedChangeEntry,
   type RoadmapMilestoneArtifact,
   type RoadmapMilestoneStatus,
+  type RoadmapDiagnostic,
   type StandalonePlannedChangeArtifact,
 } from "./model.js";
 import { ensureTrailingNewline, normalizeMilestoneStatus, normalizeRepoRelativePath, toPosix } from "./shared.js";
 import { sortMilestonesByRoadmapOrder } from "./status.js";
+import {
+  validateMilestoneArtifact,
+  validateRoadmapIndexArtifact,
+  validateStandalonePlannedChangeArtifact,
+} from "./validate.js";
+
+export type RoadmapMutation = {
+  absolutePath: string;
+  artifactId: string;
+  schemaId: typeof ROADMAP_INDEX_SCHEMA_ID | typeof ROADMAP_MILESTONE_SCHEMA_ID | typeof PLANNED_CHANGE_SCHEMA_ID;
+  operation?: YamlMutationOperation;
+  role?: YamlMutationRole;
+  candidate?: unknown;
+};
+
+function validateRoadmapMutationCandidate(schemaId: RoadmapMutation["schemaId"], candidate: unknown, artifactPath: string) {
+  const diagnostics: RoadmapDiagnostic[] = [];
+  if (schemaId === ROADMAP_INDEX_SCHEMA_ID) {
+    validateRoadmapIndexArtifact(candidate, artifactPath, diagnostics);
+  } else if (schemaId === ROADMAP_MILESTONE_SCHEMA_ID) {
+    validateMilestoneArtifact(candidate, artifactPath, diagnostics);
+  } else {
+    validateStandalonePlannedChangeArtifact(candidate, artifactPath, diagnostics);
+  }
+  return diagnostics.map((entry) => ({
+    code: entry.source,
+    artifactPath: entry.artifactPath,
+    fieldPath: entry.fieldPath,
+    message: entry.message,
+    expected: entry.expected,
+    actual: entry.actual,
+  }));
+}
+
+export function commitRoadmapMutations(rootDir: string, mutations: readonly RoadmapMutation[]): YamlMutationResult {
+  const familyRoot = path.join(rootDir, ROADMAP_DIR);
+  const requests: YamlMutationRequest[] = mutations.map((mutation) => {
+    const operation = mutation.operation ?? (existsSync(mutation.absolutePath) ? "update" : "create");
+    return {
+      artifactFamily: "roadmap-state",
+      artifactId: mutation.artifactId,
+      schemaId: mutation.schemaId,
+      familyRoot,
+      absolutePath: mutation.absolutePath,
+      operation,
+      role: mutation.role,
+      ...(operation === "delete"
+        ? {}
+        : {
+            candidate: mutation.candidate,
+            validateCandidate: (candidate: unknown, context: { artifactPath: string }) =>
+              validateRoadmapMutationCandidate(mutation.schemaId, candidate, context.artifactPath),
+          }),
+    };
+  });
+  return commitYamlMutation({ rootDir, mutations: requests });
+}
+
+export function roadmapMutationDiagnostics(result: YamlMutationResult): RoadmapDiagnostic[] {
+  return result.diagnostics.map((entry) => ({
+    source: entry.code === "schema" || entry.code === "semantic" || entry.code === "reference"
+      ? entry.code
+      : "semantic",
+    artifactPath: entry.artifactPath,
+    fieldPath: entry.fieldPath,
+    message: entry.message,
+    expected: entry.expected,
+    actual: entry.actual,
+  }));
+}
+
+export function roadmapUpdatedFiles(rootDir: string, result: YamlMutationResult): string[] {
+  return result.changes
+    .filter((change) => change.changed)
+    .map((change) => normalizeRepoRelativePath(rootDir, path.join(rootDir, change.artifactPath)))
+    .sort((left, right) => left.localeCompare(right));
+}
 
 export function writeFileIfChanged(filePath: string, nextContent: string, updatedFiles: string[], rootDir: string): void {
   const normalized = ensureTrailingNewline(nextContent);
   const current = existsSync(filePath) ? ensureTrailingNewline(readFileSync(filePath, "utf8")) : null;
   if (current === normalized) return;
-  writeFileSync(filePath, normalized, "utf8");
+  const candidate = parseYamlDocument<Record<string, unknown>>(normalized, { source: filePath });
+  const schemaId = candidate.schema;
+  if (schemaId !== ROADMAP_INDEX_SCHEMA_ID && schemaId !== ROADMAP_MILESTONE_SCHEMA_ID && schemaId !== PLANNED_CHANGE_SCHEMA_ID) {
+    throw new Error(`unsupported roadmap schema '${String(schemaId)}' for ${filePath}`);
+  }
+  const identity = schemaId === ROADMAP_INDEX_SCHEMA_ID
+    ? "roadmap-index"
+    : schemaId === ROADMAP_MILESTONE_SCHEMA_ID
+      ? Object.keys(candidate.milestone as Record<string, unknown>)[0] ?? filePath
+      : String((candidate.planned_change as Record<string, unknown>).id ?? filePath);
+  const mutation = commitRoadmapMutations(rootDir, [{
+    absolutePath: filePath,
+    artifactId: identity,
+    schemaId,
+    candidate,
+  }]);
+  if (!mutation.valid) {
+    throw new Error(roadmapMutationDiagnostics(mutation).map((entry) => `${entry.artifactPath} ${entry.fieldPath}: ${entry.message}`).join("; "));
+  }
   updatedFiles.push(normalizeRepoRelativePath(rootDir, filePath));
 }
 
@@ -146,10 +250,6 @@ export function materializedPlannedChangePath(rootDir: string, milestone: Loaded
     "planned-changes",
     canonicalPlannedChangeFileName(milestone.artifact.milestone.id, plannedChangeId),
   );
-}
-
-export function ensurePlannedChangeDirectory(filePath: string): void {
-  mkdirSync(path.dirname(filePath), { recursive: true });
 }
 
 function extractMilestoneId(artifact: RoadmapMilestoneArtifact): string {

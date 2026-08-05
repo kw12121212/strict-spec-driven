@@ -1,10 +1,13 @@
-import { existsSync, renameSync, statSync } from "fs";
+import { existsSync, statSync } from "fs";
 import path from "path";
 import { stringifyYamlDocument } from "./yaml.js";
 import {
   canonicalPlannedChangeFileName,
+  PLANNED_CHANGE_SCHEMA_ID,
   ROADMAP_DIR,
+  ROADMAP_INDEX_SCHEMA_ID,
   ROADMAP_INDEX_PATH,
+  ROADMAP_MILESTONE_SCHEMA_ID,
   type RoadmapDiagnostic,
   type RoadmapRecommendResult,
   type RoadmapMilestoneStatus,
@@ -15,6 +18,8 @@ import {
   type RoadmapStatusResult,
   type RoadmapSyncResult,
   type LoadedRoadmap,
+  type LoadedMilestone,
+  type LoadedPlannedChange,
 } from "./roadmap/model.js";
 import { ensureTrailingNewline, makeDiagnostic, normalizeRepoRelativePath, sortDiagnostics } from "./roadmap/shared.js";
 import { loadArchivedPlannedChangeIds, loadRoadmap } from "./roadmap/load.js";
@@ -31,11 +36,14 @@ import {
   buildCanonicalPlannedChangeArtifact,
   buildMaterializedPlannedChangeArtifact,
   buildRoadmapIndexArtifact,
-  ensurePlannedChangeDirectory,
   materializedPlannedChangePath,
   resolveMilestoneOrderCollisions,
-  writeFileIfChanged,
+  commitRoadmapMutations,
+  roadmapMutationDiagnostics,
+  roadmapUpdatedFiles,
+  type RoadmapMutation,
 } from "./roadmap/sync.js";
+import { validateMilestoneArtifact, validateStandalonePlannedChangeArtifact } from "./roadmap/validate.js";
 
 export type {
   RoadmapDiagnostic,
@@ -52,6 +60,7 @@ export type {
 export type RoadmapSyncOptions = {
   materializePlannedChanges?: boolean;
   fixNames?: boolean;
+  stagedMutations?: readonly RoadmapMutation[];
 };
 
 export type RoadmapSyncRenamedFile = {
@@ -380,9 +389,13 @@ export function recommendRoadmapChange(rootDir: string, options: RoadmapRecommen
  * exists is skipped so the conflict surfaces as a blocking filename diagnostic
  * instead of overwriting another artifact.
  */
-function fixPlannedChangeFileNames(rootDir: string, allowInlinePlannedChanges: boolean): RoadmapSyncRenamedFile[] {
+function fixPlannedChangeFileNames(rootDir: string, allowInlinePlannedChanges: boolean): {
+  renamedFiles: RoadmapSyncRenamedFile[];
+  diagnostics: RoadmapDiagnostic[];
+} {
   const renamedFiles: RoadmapSyncRenamedFile[] = [];
   const preload = loadRoadmap(rootDir, { allowInlinePlannedChanges });
+  const mutations: RoadmapMutation[] = [];
   for (const plannedChange of preload.plannedChanges) {
     const canonical = canonicalPlannedChangeFileName(
       plannedChange.artifact.planned_change.milestone,
@@ -391,27 +404,130 @@ function fixPlannedChangeFileNames(rootDir: string, allowInlinePlannedChanges: b
     if (plannedChange.file === canonical) continue;
     const targetPath = path.join(path.dirname(plannedChange.absolutePath), canonical);
     if (existsSync(targetPath)) continue;
-    renameSync(plannedChange.absolutePath, targetPath);
+    mutations.push({
+      absolutePath: targetPath,
+      artifactId: plannedChange.artifact.planned_change.id,
+      schemaId: PLANNED_CHANGE_SCHEMA_ID,
+      operation: "create",
+      candidate: plannedChange.artifact,
+    });
+    mutations.push({
+      absolutePath: plannedChange.absolutePath,
+      artifactId: plannedChange.artifact.planned_change.id,
+      schemaId: PLANNED_CHANGE_SCHEMA_ID,
+      operation: "delete",
+    });
     renamedFiles.push({
       from: normalizeRepoRelativePath(rootDir, plannedChange.absolutePath),
       to: normalizeRepoRelativePath(rootDir, targetPath),
     });
   }
-  return renamedFiles.sort((left, right) => left.from.localeCompare(right.from));
+  if (mutations.length > 0) {
+    const mutation = commitRoadmapMutations(rootDir, mutations);
+    if (!mutation.valid) return { renamedFiles: [], diagnostics: roadmapMutationDiagnostics(mutation) };
+  }
+  return {
+    renamedFiles: renamedFiles.sort((left, right) => left.from.localeCompare(right.from)),
+    diagnostics: [],
+  };
+}
+
+function applyStagedRoadmapMutations(
+  rootDir: string,
+  roadmap: LoadedRoadmap,
+  mutations: readonly RoadmapMutation[],
+): void {
+  const roadmapRoot = path.join(rootDir, ROADMAP_DIR);
+  const milestoneRoot = path.join(roadmapRoot, "milestones");
+
+  for (const mutation of mutations) {
+    const absolutePath = path.resolve(mutation.absolutePath);
+    if (mutation.schemaId === ROADMAP_INDEX_SCHEMA_ID) continue;
+
+    if (mutation.schemaId === ROADMAP_MILESTONE_SCHEMA_ID) {
+      const existingIndex = roadmap.milestones.findIndex((entry) => path.resolve(entry.absolutePath) === absolutePath);
+      if (mutation.operation === "delete") {
+        if (existingIndex >= 0) roadmap.milestones.splice(existingIndex, 1);
+        continue;
+      }
+      const artifactPath = normalizeRepoRelativePath(rootDir, absolutePath);
+      const artifact = validateMilestoneArtifact(mutation.candidate, artifactPath, roadmap.diagnostics);
+      if (!artifact) continue;
+      const relativeMilestonePath = normalizeRepoRelativePath(milestoneRoot, absolutePath);
+      const loaded: LoadedMilestone = {
+        absolutePath,
+        artifactPath,
+        file: path.basename(absolutePath),
+        relativeMilestonePath,
+        repoRelativePath: normalizeRepoRelativePath(rootDir, absolutePath),
+        raw: ensureTrailingNewline(stringifyYamlDocument(artifact)),
+        artifact,
+      };
+      if (existingIndex >= 0) roadmap.milestones[existingIndex] = loaded;
+      else roadmap.milestones.push(loaded);
+      continue;
+    }
+
+    const existingIndex = roadmap.plannedChanges.findIndex((entry) => path.resolve(entry.absolutePath) === absolutePath);
+    if (mutation.operation === "delete") {
+      if (existingIndex >= 0) roadmap.plannedChanges.splice(existingIndex, 1);
+      continue;
+    }
+    const artifactPath = normalizeRepoRelativePath(rootDir, absolutePath);
+    const artifact = validateStandalonePlannedChangeArtifact(mutation.candidate, artifactPath, roadmap.diagnostics);
+    if (!artifact) continue;
+    const relativeRoadmapPath = normalizeRepoRelativePath(roadmapRoot, absolutePath);
+    const loaded: LoadedPlannedChange = {
+      absolutePath,
+      artifactPath,
+      file: path.basename(absolutePath),
+      relativeRoadmapPath,
+      repoRelativePath: normalizeRepoRelativePath(rootDir, absolutePath),
+      raw: ensureTrailingNewline(stringifyYamlDocument(artifact)),
+      artifact,
+    };
+    if (existingIndex >= 0) roadmap.plannedChanges[existingIndex] = loaded;
+    else roadmap.plannedChanges.push(loaded);
+  }
+}
+
+function mergeRoadmapMutations(mutations: readonly RoadmapMutation[]): RoadmapMutation[] {
+  const byPath = new Map<string, RoadmapMutation>();
+  for (const mutation of mutations) {
+    const key = path.resolve(mutation.absolutePath);
+    const existing = byPath.get(key);
+    byPath.set(key, existing?.operation === "create" && mutation.operation !== "delete"
+      ? { ...mutation, operation: "create" }
+      : mutation);
+  }
+  return Array.from(byPath.values());
 }
 
 export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): RoadmapSyncResult {
-  const renamedFiles = options.fixNames === true
+  const renameResult = options.fixNames === true
     ? fixPlannedChangeFileNames(rootDir, options.materializePlannedChanges === true)
     : undefined;
-  const renamedFilesResult = renamedFiles !== undefined ? { renamedFiles } : {};
+  if (renameResult && renameResult.diagnostics.length > 0) {
+    return {
+      valid: false,
+      warnings: [],
+      diagnostics: sortDiagnostics(renameResult.diagnostics),
+      updatedFiles: [],
+      renamedFiles: [],
+      milestones: [],
+    };
+  }
+  const renamedFilesResult = renameResult !== undefined ? { renamedFiles: renameResult.renamedFiles } : {};
 
   const roadmap = loadRoadmap(rootDir, {
     allowInlinePlannedChanges: options.materializePlannedChanges === true,
   });
+  applyStagedRoadmapMutations(rootDir, roadmap, options.stagedMutations ?? []);
   const changeStates = getChangeStateIndex(rootDir);
   appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
-  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH);
+  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) =>
+    diagnostic.artifactPath !== ROADMAP_INDEX_PATH
+      && !((options.stagedMutations?.length ?? 0) > 0 && diagnostic.artifactPath === ROADMAP_DIR));
   if (blockingDiagnostics.length > 0) {
     return {
       valid: false,
@@ -424,7 +540,7 @@ export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): 
   }
 
   const roadmapDir = path.join(rootDir, ROADMAP_DIR);
-  if (!existsSync(roadmapDir) || !statSync(roadmapDir).isDirectory()) {
+  if ((!existsSync(roadmapDir) || !statSync(roadmapDir).isDirectory()) && (options.stagedMutations?.length ?? 0) === 0) {
     return {
       valid: false,
       warnings: roadmap.warnings,
@@ -437,7 +553,7 @@ export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): 
     };
   }
 
-  const updatedFiles: string[] = [];
+  const mutations: RoadmapMutation[] = [...(options.stagedMutations ?? [])];
 
   resolveMilestoneOrderCollisions(roadmap.milestones);
 
@@ -452,22 +568,36 @@ export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): 
     if (options.materializePlannedChanges) {
       for (const [id, entry] of Object.entries(milestone.artifact.planned_changes)) {
         const plannedChangePath = materializedPlannedChangePath(rootDir, milestone, id);
-        ensurePlannedChangeDirectory(plannedChangePath);
         const plannedChangeArtifact = buildMaterializedPlannedChangeArtifact(milestone, id, entry, status);
-        writeFileIfChanged(plannedChangePath, stringifyYamlDocument(plannedChangeArtifact), updatedFiles, rootDir);
+        mutations.push({
+          absolutePath: plannedChangePath,
+          artifactId: id,
+          schemaId: PLANNED_CHANGE_SCHEMA_ID,
+          candidate: plannedChangeArtifact,
+        });
       }
     }
 
     const nextArtifact = buildCanonicalMilestoneArtifact(milestone, status, {
       omitInlinePlannedChangeIds: materializedInlineIds,
     });
-    writeFileIfChanged(milestone.absolutePath, stringifyYamlDocument(nextArtifact), updatedFiles, rootDir);
+    mutations.push({
+      absolutePath: milestone.absolutePath,
+      artifactId: milestone.artifact.milestone.id,
+      schemaId: ROADMAP_MILESTONE_SCHEMA_ID,
+      candidate: nextArtifact,
+    });
     milestone.artifact = nextArtifact;
     milestone.raw = ensureTrailingNewline(stringifyYamlDocument(nextArtifact));
 
     for (const plannedChange of standalonePlannedChanges) {
       const nextPlannedChangeArtifact = buildCanonicalPlannedChangeArtifact(plannedChange, status);
-      writeFileIfChanged(plannedChange.absolutePath, stringifyYamlDocument(nextPlannedChangeArtifact), updatedFiles, rootDir);
+      mutations.push({
+        absolutePath: plannedChange.absolutePath,
+        artifactId: plannedChange.artifact.planned_change.id,
+        schemaId: PLANNED_CHANGE_SCHEMA_ID,
+        candidate: nextPlannedChangeArtifact,
+      });
       plannedChange.artifact = nextPlannedChangeArtifact;
       plannedChange.raw = ensureTrailingNewline(stringifyYamlDocument(nextPlannedChangeArtifact));
     }
@@ -475,7 +605,26 @@ export function syncRoadmap(rootDir: string, options: RoadmapSyncOptions = {}): 
 
   const indexPath = path.join(rootDir, ROADMAP_INDEX_PATH);
   const nextIndex = buildRoadmapIndexArtifact(roadmap.milestones);
-  writeFileIfChanged(indexPath, stringifyYamlDocument(nextIndex), updatedFiles, rootDir);
+  mutations.push({
+    absolutePath: indexPath,
+    artifactId: "roadmap-index",
+    schemaId: ROADMAP_INDEX_SCHEMA_ID,
+    role: "reference",
+    candidate: nextIndex,
+  });
+
+  const mutation = commitRoadmapMutations(rootDir, mergeRoadmapMutations(mutations));
+  if (!mutation.valid) {
+    return {
+      valid: false,
+      warnings: roadmap.warnings,
+      diagnostics: sortDiagnostics(roadmapMutationDiagnostics(mutation)),
+      updatedFiles: [],
+      ...renamedFilesResult,
+      milestones: [],
+    };
+  }
+  const updatedFiles = roadmapUpdatedFiles(rootDir, mutation);
 
   const status = getRoadmapStatus(rootDir);
   return {

@@ -349,6 +349,83 @@ export async function runSopsSuite(context: TestContext): Promise<void> {
   const blankEdit = cli(["sop-edit", validId, "--title", ""], { cwd: validateRoot });
   context.assert(blankEdit.status !== 0, "sop-edit rejects a blank required field");
 
+  const structuredEdit = cli([
+    "sop-edit", validId,
+    "--status", "active",
+    "--scope-in", "additional work",
+    "--scope-out", "unrelated work",
+    "--success", "secondary check passes",
+    "--role-id", "reviewer", "--role-name", "Reviewer", "--role-responsibility", "approve the result",
+    "--prerequisite", "review access",
+    "--step-id", "s2", "--step-actor", "reviewer", "--step-action", "review", "--step-expected", "approved",
+    "--output", "approval record",
+    "--reference-label", "runbook", "--reference-target", "docs/runbook.md",
+  ], { cwd: validateRoot });
+  context.assert(structuredEdit.status === 0, "sop-edit appends structured fields and activates a draft SOP", structuredEdit.stdout || structuredEdit.stderr);
+  const structuredSop = parseJson(structuredEdit.stdout).sop as Record<string, any>;
+  context.assert(
+    structuredSop.status === "active"
+      && structuredSop.scope.in.join(",") === "the in-scope work,additional work"
+      && structuredSop.success_criteria.join(",") === "the goal is observably met,secondary check passes"
+      && structuredSop.roles[0].id === "reviewer"
+      && structuredSop.steps[1].id === "s2"
+      && structuredSop.steps[1].order === 2
+      && structuredSop.references[0].label === "runbook",
+    "sop-edit preserves existing collections while adding keyed and scalar entries",
+  );
+
+  const namedRemoval = cli([
+    "sop-edit", validId,
+    "--remove-scope-in", "additional work",
+    "--remove-scope-out", "unrelated work",
+    "--remove-success", "secondary check passes",
+    "--remove-role", "reviewer",
+    "--remove-prerequisite", "review access",
+    "--remove-step", "s2",
+    "--remove-output", "approval record",
+    "--remove-reference", "runbook",
+  ], { cwd: validateRoot });
+  context.assert(namedRemoval.status === 0, "sop-edit removes exact named entries", namedRemoval.stdout || namedRemoval.stderr);
+  const trimmedSop = parseJson(namedRemoval.stdout).sop as Record<string, any>;
+  context.assert(
+    trimmedSop.scope.in.join(",") === "the in-scope work"
+      && trimmedSop.scope.out === undefined
+      && trimmedSop.success_criteria.join(",") === "the goal is observably met"
+      && trimmedSop.roles === undefined
+      && trimmedSop.prerequisites === undefined
+      && trimmedSop.steps.length === 1
+      && trimmedSop.outputs === undefined
+      && trimmedSop.references === undefined,
+    "sop-edit removes only the explicitly named entries and preserves required siblings",
+  );
+
+  const bytesBeforeRejectedRemoval = readFileSync(sopFilePath(validateRoot, validId), "utf8");
+  const indexBeforeRejectedRemoval = readFileSync(path.join(validateRoot, ".strict-spec-driven", "sops", "INDEX.yaml"), "utf8");
+  const rejectedRemoval = cli(["sop-edit", validId, "--remove-step", "s1"], { cwd: validateRoot });
+  context.assert(rejectedRemoval.status !== 0, "sop-edit rejects removal of category-required content");
+  context.assert(
+    readFileSync(sopFilePath(validateRoot, validId), "utf8") === bytesBeforeRejectedRemoval
+      && readFileSync(path.join(validateRoot, ".strict-spec-driven", "sops", "INDEX.yaml"), "utf8") === indexBeforeRejectedRemoval,
+    "a rejected SOP mutation leaves both the SOP and index byte-identical",
+  );
+
+  const unmatchedRemoval = cli(["sop-edit", validId, "--remove-role", "missing-role"], { cwd: validateRoot });
+  context.assert(unmatchedRemoval.status !== 0, "sop-edit rejects a named removal that matches no entry");
+  const unmatchedRemovalJson = parseJson(unmatchedRemoval.stdout);
+  context.assert(
+    unmatchedRemovalJson.diagnostics.some((entry: { fieldPath?: string; message?: string }) =>
+      entry.fieldPath === "$.roles" && entry.message?.includes("missing-role")),
+    "an unmatched SOP removal reports a deterministic field-path diagnostic",
+  );
+  context.assert(
+    readFileSync(sopFilePath(validateRoot, validId), "utf8") === bytesBeforeRejectedRemoval
+      && readFileSync(path.join(validateRoot, ".strict-spec-driven", "sops", "INDEX.yaml"), "utf8") === indexBeforeRejectedRemoval,
+    "an unmatched SOP removal leaves both the SOP and index byte-identical",
+  );
+
+  const reverseLifecycle = cli(["sop-edit", validId, "--status", "draft"], { cwd: validateRoot });
+  context.assert(reverseLifecycle.status !== 0, "sop-edit rejects returning an active SOP to draft");
+
   rmSync(validateRoot, { recursive: true, force: true });
   rmSync(createRoot, { recursive: true, force: true });
 }

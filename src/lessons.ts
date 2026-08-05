@@ -1,19 +1,13 @@
 import {
-  cpSync,
   existsSync,
-  mkdirSync,
-  mkdtempSync,
   readdirSync,
-  renameSync,
-  rmSync,
   statSync,
-  writeFileSync,
 } from "fs";
 import path from "path";
 import { createHash } from "crypto";
-import { parseYamlFile, stringifyYamlDocument } from "./yaml.js";
+import { parseYamlFile } from "./yaml.js";
 import { loadBundledSchemaBySchemaId, validateArtifact, type ValidationDiagnostic } from "./validation.js";
-import { commitYamlMutation, type YamlMutationOperation } from "./yaml-mutation.js";
+import { commitYamlMutation, type YamlMutationOperation, type YamlMutationRequest } from "./yaml-mutation.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const LESSONS_DIR = `${STRICT_WORKFLOW_DIR}/lessons`;
@@ -262,7 +256,7 @@ function buildLessonArtifact(input: CreateLessonInput, lessonId: string): Lesson
   };
 }
 
-function buildLessonsIndex(rootDir: string, filePaths: string[]): LessonsIndexArtifact {
+function buildLessonsIndex(rootDir: string, filePaths: string[], overrides: readonly LessonArtifact[] = []): LessonsIndexArtifact {
   const entries: Array<{
     id: string;
     category: string;
@@ -270,8 +264,12 @@ function buildLessonsIndex(rootDir: string, filePaths: string[]): LessonsIndexAr
     indexEntry: LessonIndexEntry;
   }> = [];
 
+  const overrideById = new Map(overrides.map((artifact) => [artifact.lesson.id, artifact]));
+  const includedOverrides = new Set<string>();
   for (const filePath of filePaths) {
-    const artifact = parseYamlFile<LessonArtifact>(filePath);
+    const parsed = parseYamlFile<LessonArtifact>(filePath);
+    const artifact = overrideById.get(parsed?.lesson?.id) ?? parsed;
+    if (artifact !== parsed) includedOverrides.add(artifact.lesson.id);
     const lessonId = artifact?.lesson?.id;
     if (typeof lessonId !== "string" || lessonId.length === 0) {
       continue;
@@ -285,6 +283,20 @@ function buildLessonsIndex(rootDir: string, filePaths: string[]): LessonsIndexAr
         status: artifact.status,
         occurrences: Array.isArray(artifact.occurrences) ? artifact.occurrences.length : 0,
         path: `${LESSONS_DIR}/${artifact.category}/${lessonId}.yaml`,
+      },
+    });
+  }
+  for (const override of overrides) {
+    if (includedOverrides.has(override.lesson.id)) continue;
+    entries.push({
+      id: override.lesson.id,
+      category: override.category,
+      createdAt: override.created_at,
+      indexEntry: {
+        title: override.lesson.title,
+        status: override.status,
+        occurrences: override.occurrences.length,
+        path: `${LESSONS_DIR}/${override.category}/${override.lesson.id}.yaml`,
       },
     });
   }
@@ -308,16 +320,31 @@ function buildLessonsIndex(rootDir: string, filePaths: string[]): LessonsIndexAr
   };
 }
 
-function writeLessonsIndex(rootDir: string, storeDir: string, filePaths: string[]): void {
-  const indexArtifact = buildLessonsIndex(rootDir, filePaths);
-  writeFileSync(path.join(storeDir, "INDEX.yaml"), stringifyYamlDocument(indexArtifact), "utf8");
-}
-
 /** Rebuilds .strict-spec-driven/lessons/INDEX.yaml deterministically from categorized lessons. */
 export function rebuildLessonsIndex(rootDir: string): void {
   const storeDir = lessonsDir(rootDir);
-  mkdirSync(storeDir, { recursive: true });
-  writeLessonsIndex(rootDir, storeDir, listCategorizedLessonFilesInDir(storeDir));
+  const indexPath = lessonsIndexPath(rootDir);
+  const indexArtifact = buildLessonsIndex(rootDir, listCategorizedLessonFilesInDir(storeDir));
+  const mutation = commitYamlMutation({
+    rootDir,
+    mutations: [{
+      artifactFamily: "lessons-state",
+      artifactId: "lessons-index",
+      schemaId: LESSONS_INDEX_SCHEMA_ID,
+      familyRoot: storeDir,
+      absolutePath: indexPath,
+      operation: existsSync(indexPath) ? "update" : "create",
+      role: "reference",
+      candidate: indexArtifact,
+      validateCandidate: (value) => validateArtifact(
+        loadBundledSchemaBySchemaId(LESSONS_INDEX_SCHEMA_ID), value, repoRelative(rootDir, indexPath),
+      ).diagnostics.map((entry) => ({
+        code: entry.source, fieldPath: entry.fieldPath, message: entry.message,
+        expected: entry.expected, actual: entry.actual,
+      })),
+    }],
+  });
+  if (!mutation.valid) throw new Error(mutation.diagnostics.map((entry) => entry.message).join("; "));
 }
 
 function errorMessage(error: unknown): string {
@@ -382,19 +409,10 @@ function validateMigrationSources(rootDir: string, legacyFiles: string[]): {
   return { diagnostics, destinations };
 }
 
-function copyDirectoryContents(sourceDir: string, destinationDir: string): void {
-  for (const entry of readdirSync(sourceDir, { withFileTypes: true })) {
-    cpSync(path.join(sourceDir, entry.name), path.join(destinationDir, entry.name), {
-      recursive: entry.isDirectory(),
-      preserveTimestamps: true,
-    });
-  }
-}
-
 /**
- * Upgrades a legacy flat lesson store as a single directory replacement. Preflight happens before
- * staging, and the original directory stays in a sibling backup until the categorized store is
- * live, so a failed migration never leaves a mixture of old and new paths.
+ * Upgrades a legacy flat lesson store through one artifact-aware transaction. Preflight happens
+ * before planning; categorized creates, legacy deletes, and the grouped index then commit or roll
+ * back together, so a failed migration never leaves a mixture of old and new paths.
  */
 function prepareLessonStore(rootDir: string): LessonStorePreparation {
   const storeDir = lessonsDir(rootDir);
@@ -408,69 +426,67 @@ function prepareLessonStore(rootDir: string): LessonStorePreparation {
     return { valid: false, migrated: false, diagnostics: preflight.diagnostics };
   }
 
-  const parentDir = path.dirname(storeDir);
-  let stagingDir: string | null = null;
-  let backupRoot: string | null = null;
-  let backupDir: string | null = null;
-  let originalMoved = false;
-  let replacementLive = false;
+  const artifacts = Array.from(preflight.destinations.values()).map((entry) => entry.artifact);
+  const requests: YamlMutationRequest[] = [];
+  for (const [sourcePath, { artifact, destination }] of preflight.destinations) {
+    requests.push({
+      artifactFamily: "lessons-state",
+      artifactId: artifact.lesson.id,
+      schemaId: LESSON_SCHEMA_ID,
+      familyRoot: storeDir,
+      absolutePath: destination,
+      operation: "create",
+      candidate: artifact,
+      validateCandidate: (value) => validateLessonArtifact(rootDir, value, destination).map((entry) => ({
+        code: entry.source, fieldPath: entry.fieldPath, message: entry.message,
+        expected: entry.expected, actual: entry.actual,
+      })),
+    });
+    requests.push({
+      artifactFamily: "lessons-state",
+      artifactId: artifact.lesson.id,
+      schemaId: LESSON_SCHEMA_ID,
+      familyRoot: storeDir,
+      absolutePath: sourcePath,
+      operation: "delete",
+    });
+  }
 
-  try {
-    stagingDir = mkdtempSync(path.join(parentDir, ".lessons-migration-"));
-    backupRoot = mkdtempSync(path.join(parentDir, ".lessons-backup-"));
-    backupDir = path.join(backupRoot, "lessons");
-    copyDirectoryContents(storeDir, stagingDir);
-    for (const [sourcePath, { artifact }] of preflight.destinations) {
-      const stagedSource = path.join(stagingDir, path.basename(sourcePath));
-      const stagedDestinationDir = path.join(stagingDir, artifact.category);
-      mkdirSync(stagedDestinationDir, { recursive: true });
-      renameSync(stagedSource, path.join(stagedDestinationDir, `${artifact.lesson.id}.yaml`));
-    }
-    writeLessonsIndex(rootDir, stagingDir, listCategorizedLessonFilesInDir(stagingDir));
+  const indexPath = lessonsIndexPath(rootDir);
+  const indexArtifact = buildLessonsIndex(rootDir, listCategorizedLessonFilesInDir(storeDir), artifacts);
+  requests.push({
+    artifactFamily: "lessons-state",
+    artifactId: "lessons-index",
+    schemaId: LESSONS_INDEX_SCHEMA_ID,
+    familyRoot: storeDir,
+    absolutePath: indexPath,
+    operation: existsSync(indexPath) ? "update" : "create",
+    role: "reference",
+    candidate: indexArtifact,
+    validateCandidate: (value) => validateArtifact(
+      loadBundledSchemaBySchemaId(LESSONS_INDEX_SCHEMA_ID), value, repoRelative(rootDir, indexPath),
+    ).diagnostics.map((entry) => ({
+      code: entry.source, fieldPath: entry.fieldPath, message: entry.message,
+      expected: entry.expected, actual: entry.actual,
+    })),
+  });
 
-    renameSync(storeDir, backupDir);
-    originalMoved = true;
-    try {
-      renameSync(stagingDir, storeDir);
-      replacementLive = true;
-    } catch (error) {
-      renameSync(backupDir, storeDir);
-      originalMoved = false;
-      throw error;
-    }
-    rmSync(backupRoot, { recursive: true, force: true });
-    return { valid: true, migrated: true, diagnostics: [] };
-  } catch (error) {
-    if (originalMoved && !replacementLive && backupDir !== null && existsSync(backupDir) && !existsSync(storeDir)) {
-      try {
-        renameSync(backupDir, storeDir);
-        originalMoved = false;
-      } catch (rollbackError) {
-        return {
-          valid: false,
-          migrated: false,
-          diagnostics: [
-            makeDiagnostic(
-              rootDir,
-              `lesson migration failed (${errorMessage(error)}) and rollback failed (${errorMessage(rollbackError)}); original store remains at ${repoRelative(rootDir, backupDir)}`,
-            ),
-          ],
-        };
-      }
-    }
+  const mutation = commitYamlMutation({ rootDir, mutations: requests });
+  if (!mutation.valid) {
     return {
       valid: false,
       migrated: false,
-      diagnostics: [makeDiagnostic(rootDir, `lesson migration failed: ${errorMessage(error)}`)],
+      diagnostics: mutation.diagnostics.map((entry) => ({
+        source: "schema",
+        artifactPath: entry.artifactPath,
+        fieldPath: entry.fieldPath,
+        message: entry.message,
+        expected: entry.expected,
+        actual: entry.actual,
+      })),
     };
-  } finally {
-    if (!replacementLive && stagingDir !== null && existsSync(stagingDir)) {
-      rmSync(stagingDir, { recursive: true, force: true });
-    }
-    if (!originalMoved && backupRoot !== null && existsSync(backupRoot)) {
-      rmSync(backupRoot, { recursive: true, force: true });
-    }
   }
+  return { valid: true, migrated: true, diagnostics: [] };
 }
 
 function findLessonFilePath(rootDir: string, lessonId: string): string | null {
@@ -555,24 +571,44 @@ function writeValidatedLessonArtifact(
   artifact: LessonArtifact,
   operation: YamlMutationOperation,
 ): void {
+  const indexPath = lessonsIndexPath(rootDir);
+  const indexArtifact = buildLessonsIndex(rootDir, listCategorizedLessonFilesInDir(lessonsDir(rootDir)), [artifact]);
   const mutation = commitYamlMutation({
     rootDir,
-    mutations: [{
-      artifactFamily: "lessons-state",
-      artifactId: artifact.lesson.id,
-      schemaId: LESSON_SCHEMA_ID,
-      familyRoot: lessonsDir(rootDir),
-      absolutePath: filePath,
-      operation,
-      candidate: artifact,
-      validateCandidate: (value) => validateLessonArtifact(rootDir, value, filePath).map((entry) => ({
-        code: entry.source,
-        fieldPath: entry.fieldPath,
-        message: entry.message,
-        expected: entry.expected,
-        actual: entry.actual,
-      })),
-    }],
+    mutations: [
+      {
+        artifactFamily: "lessons-state",
+        artifactId: artifact.lesson.id,
+        schemaId: LESSON_SCHEMA_ID,
+        familyRoot: lessonsDir(rootDir),
+        absolutePath: filePath,
+        operation,
+        candidate: artifact,
+        validateCandidate: (value) => validateLessonArtifact(rootDir, value, filePath).map((entry) => ({
+          code: entry.source,
+          fieldPath: entry.fieldPath,
+          message: entry.message,
+          expected: entry.expected,
+          actual: entry.actual,
+        })),
+      },
+      {
+        artifactFamily: "lessons-state",
+        artifactId: "lessons-index",
+        schemaId: LESSONS_INDEX_SCHEMA_ID,
+        familyRoot: lessonsDir(rootDir),
+        absolutePath: indexPath,
+        operation: existsSync(indexPath) ? "update" : "create",
+        role: "reference",
+        candidate: indexArtifact,
+        validateCandidate: (value) => validateArtifact(
+          loadBundledSchemaBySchemaId(LESSONS_INDEX_SCHEMA_ID), value, repoRelative(rootDir, indexPath),
+        ).diagnostics.map((entry) => ({
+          code: entry.source, fieldPath: entry.fieldPath, message: entry.message,
+          expected: entry.expected, actual: entry.actual,
+        })),
+      },
+    ],
   });
   if (!mutation.valid) {
     throw new Error(
@@ -629,7 +665,6 @@ export function createLesson(rootDir: string, input: CreateLessonInput): CreateL
   }
 
   writeValidatedLessonArtifact(rootDir, filePath, artifact, "create");
-  rebuildLessonsIndex(rootDir);
 
   return { valid: true, created: true, lessonId, path: repoRelative(rootDir, filePath), diagnostics: [] };
 }
@@ -881,7 +916,6 @@ export function editLesson(rootDir: string, input: EditLessonInput): EditLessonR
   }
 
   writeValidatedLessonArtifact(rootDir, filePath, artifact, "update");
-  rebuildLessonsIndex(rootDir);
   return { valid: true, edited: true, lessonId: input.lessonId, path: repoRelative(rootDir, filePath), lesson: artifact, diagnostics: [] };
 }
 
@@ -945,7 +979,6 @@ export function obsoleteLesson(rootDir: string, lessonId: string, reason: string
   }
 
   writeValidatedLessonArtifact(rootDir, filePath, artifact, "update");
-  rebuildLessonsIndex(rootDir);
   return { valid: true, obsoleted: true, lessonId, path: repoRelative(rootDir, filePath), lesson: artifact, diagnostics: [] };
 }
 

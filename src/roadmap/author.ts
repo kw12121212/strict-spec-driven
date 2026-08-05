@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync } from "fs";
 import path from "path";
 import { stringifyYamlDocument } from "../yaml.js";
 import {
@@ -12,6 +12,7 @@ import {
   type LoadedMilestone,
   type LoadedPlannedChange,
   type MilestoneIntakeQuestion,
+  type PlannedChangeTeamMetadata,
   type RoadmapDiagnostic,
   type RoadmapMilestoneStatus,
 } from "./model.js";
@@ -23,7 +24,7 @@ import {
   normalizeRepoRelativePath,
   sortDiagnostics,
 } from "./shared.js";
-import { buildCanonicalPlannedChangeArtifact, nextAppendedMilestoneOrder, writeFileIfChanged } from "./sync.js";
+import { buildCanonicalPlannedChangeArtifact, nextAppendedMilestoneOrder } from "./sync.js";
 import { validateMilestoneArtifact, validateStandalonePlannedChangeArtifact } from "./validate.js";
 import { getRoadmapStatus, syncRoadmap } from "../roadmap.js";
 import {
@@ -127,6 +128,26 @@ function mergeList(
       );
     }
     merged = merged.filter((entry) => entry !== matched[0]);
+  }
+  return merged;
+}
+
+function mergeExactList(
+  existing: string[],
+  additions: string[],
+  removals: string[],
+  flagName: string,
+  artifactPath: string,
+  fieldPath: string,
+  diagnostics: RoadmapDiagnostic[],
+): string[] {
+  let merged = appendUnique(existing, additions);
+  for (const value of removals) {
+    if (!merged.includes(value)) {
+      diagnostics.push(makeDiagnostic("semantic", artifactPath, fieldPath, `--${flagName} matched no entry`, value, "missing"));
+      continue;
+    }
+    merged = merged.filter((entry) => entry !== value);
   }
   return merged;
 }
@@ -402,18 +423,14 @@ export function generateRoadmapMilestone(
     };
   }
 
-  const updatedFiles: string[] = [];
-  const previousMilestoneContent = existsSync(milestonePath) ? readFileSync(milestonePath, "utf8") : null;
-  mkdirSync(path.dirname(milestonePath), { recursive: true });
-  writeFileIfChanged(milestonePath, stringifyYamlDocument(nextArtifact), updatedFiles, rootDir);
-
-  const syncResult = syncRoadmap(rootDir);
+  const syncResult = syncRoadmap(rootDir, { stagedMutations: [{
+    absolutePath: milestonePath,
+    artifactId: input.id,
+    schemaId: ROADMAP_MILESTONE_SCHEMA_ID,
+    operation: existing ? "update" : "create",
+    candidate: nextArtifact,
+  }] });
   if (!syncResult.valid) {
-    if (previousMilestoneContent === null) {
-      rmSync(milestonePath, { force: true });
-    } else {
-      writeFileSync(milestonePath, previousMilestoneContent, "utf8");
-    }
     return {
       valid: false,
       warnings: syncResult.warnings,
@@ -426,7 +443,7 @@ export function generateRoadmapMilestone(
     valid: syncResult.valid,
     warnings: syncResult.warnings,
     diagnostics: syncResult.diagnostics,
-    updatedFiles: uniqueStrings([...updatedFiles, ...syncResult.updatedFiles]).sort((left, right) => left.localeCompare(right)),
+    updatedFiles: syncResult.updatedFiles,
     milestone: {
       id: input.id,
       title: (nextArtifact.milestone as Record<string, { title: string }>)[input.id]?.title ?? input.id,
@@ -448,6 +465,17 @@ export type RoadmapPlannedChangeAuthorInput = {
   dependsOn: string[];
   status?: string;
   removedDependsOn: string[];
+  owner?: string;
+  clearOwner: boolean;
+  reviewers: string[];
+  removedReviewers: string[];
+  blocked?: boolean;
+  blockedReason?: string;
+  clearBlocked: boolean;
+  labels: string[];
+  removedLabels: string[];
+  externalRefs: Array<{ label: string; target: string }>;
+  removedExternalRefs: string[];
 };
 
 export type RoadmapPlannedChangeAuthorResult = {
@@ -493,6 +521,45 @@ function buildPlannedChangeArtifact(
 
   if (!summary || !details) return null;
 
+  const team: PlannedChangeTeamMetadata = { ...(existing?.artifact.team ?? {}) };
+  if (input.clearOwner) delete team.owner;
+  if (input.owner !== undefined) team.owner = input.owner;
+  const reviewers = mergeExactList(team.reviewers ?? [], input.reviewers, input.removedReviewers, "remove-reviewer", artifactPath, "$.team.reviewers", diagnostics);
+  if (reviewers.length > 0) team.reviewers = reviewers;
+  else delete team.reviewers;
+  if (input.clearBlocked) delete team.blocked;
+  if (input.blocked !== undefined || input.blockedReason !== undefined) {
+    const blockedStatus = input.blocked ?? team.blocked?.status;
+    if (blockedStatus === undefined) {
+      diagnostics.push(makeDiagnostic("semantic", artifactPath, "$.team.blocked", "--blocked-reason requires --blocked or an existing blocked state", "blocked state", "missing"));
+    } else {
+      team.blocked = {
+        status: blockedStatus,
+        ...(input.blockedReason !== undefined ? { reason: input.blockedReason } : team.blocked?.reason !== undefined ? { reason: team.blocked.reason } : {}),
+      };
+    }
+  }
+  const labels = mergeExactList(team.labels ?? [], input.labels, input.removedLabels, "remove-label", artifactPath, "$.team.labels", diagnostics);
+  if (labels.length > 0) team.labels = labels;
+  else delete team.labels;
+  const externalRefs = [...(team.external_refs ?? [])];
+  for (const reference of input.externalRefs) {
+    const index = externalRefs.findIndex((entry) => entry.label === reference.label);
+    if (index >= 0) externalRefs[index] = reference;
+    else externalRefs.push(reference);
+  }
+  for (const label of input.removedExternalRefs) {
+    const index = externalRefs.findIndex((entry) => entry.label === label);
+    if (index < 0) {
+      diagnostics.push(makeDiagnostic("semantic", artifactPath, "$.team.external_refs", "--remove-external-ref matched no label", label, "missing"));
+      continue;
+    }
+    externalRefs.splice(index, 1);
+  }
+  if (externalRefs.length > 0) team.external_refs = externalRefs;
+  else delete team.external_refs;
+  const hasTeam = Object.keys(team).length > 0;
+
   return {
     schema: PLANNED_CHANGE_SCHEMA_ID,
     schema_version: 1,
@@ -511,7 +578,7 @@ function buildPlannedChangeArtifact(
       input.removedDependsOn,
       "remove-depends-on",
     ),
-    ...(existing?.artifact.team !== undefined ? { team: existing.artifact.team } : {}),
+    ...(hasTeam ? { team } : {}),
     ...(existing?.artifact.extensions !== undefined ? { extensions: existing.artifact.extensions } : {}),
   };
 }
@@ -651,18 +718,14 @@ export function generateRoadmapPlannedChange(
     };
   }
 
-  const updatedFiles: string[] = [];
-  const previousContent = existsSync(plannedChangePath) ? readFileSync(plannedChangePath, "utf8") : null;
-  mkdirSync(path.dirname(plannedChangePath), { recursive: true });
-  writeFileIfChanged(plannedChangePath, stringifyYamlDocument(nextArtifact), updatedFiles, rootDir);
-
-  const syncResult = syncRoadmap(rootDir);
+  const syncResult = syncRoadmap(rootDir, { stagedMutations: [{
+    absolutePath: plannedChangePath,
+    artifactId: input.id,
+    schemaId: PLANNED_CHANGE_SCHEMA_ID,
+    operation: existing ? "update" : "create",
+    candidate: nextArtifact,
+  }] });
   if (!syncResult.valid) {
-    if (previousContent === null) {
-      rmSync(plannedChangePath, { force: true });
-    } else {
-      writeFileSync(plannedChangePath, previousContent, "utf8");
-    }
     return {
       valid: false,
       warnings: syncResult.warnings,
@@ -675,7 +738,7 @@ export function generateRoadmapPlannedChange(
     valid: syncResult.valid,
     warnings: syncResult.warnings,
     diagnostics: syncResult.diagnostics,
-    updatedFiles: uniqueStrings([...updatedFiles, ...syncResult.updatedFiles]).sort((left, right) => left.localeCompare(right)),
+    updatedFiles: syncResult.updatedFiles,
     plannedChange: {
       id: input.id,
       milestone: input.milestone,

@@ -11,6 +11,9 @@ mapping:
     - src/sop-categories.ts
     - src/cli/cmd-sops.ts
     - src/cli/registry.ts
+    - src/cli/command-metadata-entries.ts
+    - src/yaml-mutation.ts
+    - inventory/yaml-mutation-surfaces.yaml
   tests:
     - test/suites/sops.ts
 requirements:
@@ -86,3 +89,15 @@ requirements:
         - GIVEN: an existing SOP
         - WHEN: sop-edit runs with new values for editable fields
         - THEN: the SOP file is rewritten with the new values, its id, created_at, and status are unchanged, the result is schema-valid, and the SOP index is rebuilt
+  sop-complete-cli-mutation-coverage:
+    strength: MUST
+    statement: The system MUST make SOP creation and editing accept structured semantic arguments for every lifecycle-permitted scalar, collection, keyed entry, exact named removal, and draft-to-active status transition; MUST commit the SOP artifact and rebuilt SOP index atomically after base-schema, category-overlay, branch, and link validation; MUST preserve immutable identity and creation fields; and MUST reject unsupported deletion or invalid mutations deterministically without partial writes.
+    scenarios:
+      sop-edits-and-removals-are-targeted:
+        - GIVEN: A draft SOP contains multiple roles, prerequisites, steps, branches, escalation entries, exceptions, outputs, references, links, scope entries, and success criteria
+        - WHEN: sop-edit changes one scalar, upserts or removes one named structured entry, or activates the SOP through semantic flags
+        - THEN: The requested entries change, every unrelated entry and immutable field remains unchanged, the SOP and index remain valid, and the result reports the committed artifacts
+      sop-invalid-candidate-preserves-bytes:
+        - GIVEN: A SOP edit would remove category-required content, leave a dangling branch or link, duplicate a keyed identity, or request a forbidden lifecycle operation
+        - WHEN: sop-edit validates the requested mutation
+        - THEN: The command exits non-zero with a deterministic field-path diagnostic and neither the SOP nor its index is rewritten

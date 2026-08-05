@@ -1,6 +1,5 @@
-import { existsSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync } from "fs";
 import path from "path";
-import { stringifyYamlDocument } from "../yaml.js";
 import { getRoadmapStatus, syncRoadmap } from "../roadmap.js";
 import { loadArchivedPlannedChangeIds, loadRoadmap } from "./load.js";
 import {
@@ -31,8 +30,9 @@ import {
   getStandalonePlannedChangesForMilestone,
   sortMilestonesByRoadmapOrder,
 } from "./status.js";
-import { buildCanonicalPlannedChangeArtifact, writeFileIfChanged } from "./sync.js";
+import { buildCanonicalPlannedChangeArtifact, type RoadmapMutation } from "./sync.js";
 import { validateMilestoneArtifact } from "./validate.js";
+import { PLANNED_CHANGE_SCHEMA_ID } from "./model.js";
 
 export type RoadmapMoveInput = {
   plannedChangeId: string;
@@ -280,17 +280,22 @@ export function movePlannedChangeToMilestone(rootDir: string, input: RoadmapMove
   );
   const nextArtifact = buildCanonicalPlannedChangeArtifact(draftPlannedChange, targetStatus);
 
-  const previousContent = readFileSync(plannedChange.absolutePath, "utf8");
-  const updatedFiles: string[] = [];
-  writeFileIfChanged(destinationAbsolutePath, stringifyYamlDocument(nextArtifact), updatedFiles, rootDir);
+  const moveRequests: RoadmapMutation[] = [{
+    absolutePath: destinationAbsolutePath,
+    artifactId: input.plannedChangeId,
+    schemaId: PLANNED_CHANGE_SCHEMA_ID,
+    candidate: nextArtifact,
+  }];
   if (renames) {
-    rmSync(plannedChange.absolutePath, { force: true });
+    moveRequests.push({
+      absolutePath: plannedChange.absolutePath,
+      artifactId: input.plannedChangeId,
+      schemaId: PLANNED_CHANGE_SCHEMA_ID,
+      operation: "delete",
+    });
   }
-
-  const syncResult = syncRoadmap(rootDir);
+  const syncResult = syncRoadmap(rootDir, { stagedMutations: moveRequests });
   if (!syncResult.valid) {
-    rmSync(destinationAbsolutePath, { force: true });
-    writeFileSync(plannedChange.absolutePath, previousContent, "utf8");
     return {
       valid: false,
       warnings: syncResult.warnings,
@@ -312,9 +317,6 @@ export function movePlannedChangeToMilestone(rootDir: string, input: RoadmapMove
   return {
     ...syncResult,
     warnings,
-    updatedFiles: Array.from(new Set([...updatedFiles, ...syncResult.updatedFiles])).sort((left, right) =>
-      left.localeCompare(right)
-    ),
     ...(renames ? { renamedFiles: [{ from: sourcePath, to: destinationPath }] } : {}),
     moved: {
       id: input.plannedChangeId,

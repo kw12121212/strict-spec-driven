@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: migrate-roadmap-sop-and-lesson-yaml
+  status: proposed
+summary:
+  what:
+    - Complete structured CLI mutation coverage for roadmap milestones, standalone planned changes, SOPs, and lessons, with their indexes and lifecycle state updated transactionally.
+    - Route every permitted mutation in these families through the shared artifact-aware YAML mutation boundary and return deterministic validation or lifecycle diagnostics for forbidden operations.
+  why:
+    - These domain commands still contain direct filesystem write paths or incomplete mutation surfaces, so normal maintenance can require implementation-specific handling instead of one safe CLI-owned contract.
+    - Completing this family migration is the next dependency-ready step toward eliminating AI-authored repository YAML.
+scope:
+  in:
+    - Migrate roadmap create, update, named removal, move, pause, resume, reopen, archive, canonical rename, and index reconciliation writes to the shared YAML mutation transaction.
+    - Extend SOP editing to cover every lifecycle-permitted structured field and named removal while keeping bundled category definitions immutable and rejecting unsupported deletion deterministically.
+    - Keep lesson creation, narrative updates, recurrence, promotion, obsolescence, categorized migration, and index rebuilding on the shared transaction boundary, and make non-deletion explicit in CLI behavior and inventory evidence.
+    - Update command metadata, mutation inventory ownership evidence, focused domain tests, copied-project regressions, and structured spec mappings.
+  out:
+    - Change the semantic schema of roadmap, SOP, or lesson artifacts beyond what is required to expose safe mutation operations.
+    - Delete or silently discard completed roadmap history, SOP state whose lifecycle does not permit deletion, or lesson records retained for auditability.
+    - Rename stable domain CLI commands or replace them with a monolithic generic YAML editor.
+unchanged_behavior:
+  - Roadmap recommendation ordering, dependency resolution, status derivation, canonical filename rules, and archive boundaries remain compatible.
+  - SOP identity, category overlays, created timestamps, link validation, and existing create/list/show/validate behavior remain compatible.
+  - Lesson identities, categories, earlier occurrences, promoted or obsolete history, visibility filters, and automatic legacy-layout migration remain compatible.
+roadmap:
+  milestone: cli-yaml-artifact-coverage
+  planned_change: migrate-roadmap-sop-and-lesson-yaml
