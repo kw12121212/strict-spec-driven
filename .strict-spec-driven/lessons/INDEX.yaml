@@ -55,3 +55,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/deleting-a-seeded-default-exposes-every-consumer-e1b2bd.yaml
+    a-regenerated-source-file-that-is-also-compiled-65ffa0:
+      title: A regenerated source file that is also compiled has no effect until rebuild
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-regenerated-source-file-that-is-also-compiled-65ffa0.yaml

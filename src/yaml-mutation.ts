@@ -44,6 +44,13 @@ export type YamlMutationRequest = {
   operation: YamlMutationOperation;
   role?: YamlMutationRole;
   candidate?: unknown;
+  /**
+   * Pre-serialized file content, for a participant this boundary must commit atomically alongside
+   * YAML artifacts but cannot express as a YAML mapping — a regenerated bundle in another language.
+   * Accepted only for `role: "generated"`, which is what keeps it from becoming a raw-payload path
+   * into the artifact families themselves.
+   */
+  content?: string;
   validateCandidate?: (
     candidate: unknown,
     context: { artifactPath: string; schemaId: string },
@@ -451,7 +458,17 @@ export function commitYamlMutation(options: CommitYamlMutationOptions): YamlMuta
       diagnostics.push(diagnostic(artifactPath, "planning", "target-missing", "$", `${request.operation} requires an existing target`));
     }
 
-    if (request.operation !== "delete") {
+    if (request.content !== undefined && (request.role !== "generated" || request.candidate !== undefined)) {
+      diagnostics.push(diagnostic(
+        artifactPath,
+        "planning",
+        "content-not-generated",
+        "$.content",
+        "pre-serialized content is accepted only for a generated participant carrying no YAML candidate",
+      ));
+    } else if (request.operation !== "delete" && request.content !== undefined) {
+      serializedCandidate = request.content;
+    } else if (request.operation !== "delete") {
       if (!isMeaningfulArtifact(request.candidate)) {
         diagnostics.push(diagnostic(
           artifactPath,
@@ -487,7 +504,7 @@ export function commitYamlMutation(options: CommitYamlMutationOptions): YamlMuta
           ));
         }
       }
-    } else if (request.candidate !== undefined || request.validateCandidate !== undefined) {
+    } else if (request.candidate !== undefined || request.validateCandidate !== undefined || request.content !== undefined) {
       diagnostics.push(diagnostic(
         artifactPath,
         "planning",

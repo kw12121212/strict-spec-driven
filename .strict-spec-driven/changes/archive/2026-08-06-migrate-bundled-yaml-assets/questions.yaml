@@ -1,0 +1,48 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: migrate-bundled-yaml-assets
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'A repository maintainer or agent who needs to correct a bundled schema, an init scaffold, a SOP category template, a minimal example, a validation fixture, or the mutation inventory has no CLI path today: yaml-surface-list reports all four operations as human-only for those five families, so the only way to change them is to hand-author YAML text and then remember to regenerate the embedded bundle. The roadmap milestone states the cost directly: normal maintenance of a repository-owned YAML artifact still requires AI-authored YAML.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: strict-spec-cli yaml-surface-list reports bundled-schema-assets, bundled-scaffold-assets, bundled-reference-examples, validation-fixtures, and yaml-mutation-inventory as cli-owned for create, update, named removal, and deletion, each naming a real CLI owner; the dedicated inventory check passes; and each of those assets can be created, edited, partially removed, and deleted through a command that either succeeds with the embedded bundle regenerated or fails leaving every pre-existing file unchanged.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: 'Both roadmap dependencies completed in the two most recent commits: expose-cli-yaml-mutation-surface delivered the discovery surface and replace-change-scaffold-with-lazy-generation removed the obsolete change-planning scaffold templates, which the planned change names as its precondition. roadmap-recommend selected this planned change as the single eligible candidate, and it is the last unmigrated set of families standing between the milestone and its completion criteria.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: The bundled read commands schema-list, schema-show, sample-list, sample-show, template-list, template-show, yaml-surface-list, and yaml-surface-show keep their names, key normalization, output, and exit codes. Intentionally invalid validation fixtures stay invalid and keep producing the diagnostics their suites assert, which the planned change states as preserving intentionally invalid fixture semantics. Legacy .spec-driven migration input and external dependency YAML keep their non-CLI classifications. init, propose, and generate produce identical output from identical inputs.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: Migrating these assets means adding maintainer-facing structured CLI operations that own the writes, not relaxing or restructuring the assets themselves. The planned change scopes it to the remaining bundled schema documents, initialization scaffolds, SOP category templates, minimal examples, positive and negative fixtures, registries, and manifests, and requires validating changed assets as a coherent set, regenerating embedded bundles when required, rejecting dangling references, and making deletion dependency-aware. Files surfaced by the tracked-file inventory may not be dropped for not being runtime workflow artifacts.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: maintainer-command-visibility
+    question: Should the five new bundled-asset editing commands appear in the general strict-spec-cli command listing and the MCP tool set, or should they be presented only as repository-maintenance tooling?
+    context: 'A sufficient answer decides where schema-edit, template-edit, sample-edit, fixture-edit, and inventory-edit appear in the CLI''s public surface. Impact: this affects the proposal scope, the delta spec for cli-foundation, the command-metadata implementation files, the help and MCP regression tests, and the cli-command-metadata technical standard; it does not affect the mutation core or the inventory reclassification. Context: unlike every other artifact command, these five only function inside this repository''s checkout, because they write templates/, examples/, test/fixtures/, and inventory/ source files that do not exist in an installed project, so listing them unconditionally advertises commands that will always refuse in normal use. Options: (a) list them in a distinct ''Repository maintenance'' help group, keep them out of the MCP tool set, and refuse deterministically outside the checkout; (b) list them alongside every other command with no grouping distinction; (c) hide them from the default listing and document them only in maintainer documentation. Recommendation: option (a), because it keeps the commands discoverable and testable from this repository while preventing an agent working in an installed project from selecting a tool that can only fail.'
+    answer: Option (a). The five commands are listed in a distinct 'Repository maintenance' help group that states they apply to this checkout only, they are excluded from the MCP tool set so an agent in an installed project cannot select them, and each refuses outside the checkout with a deterministic diagnostic naming the absent bundled source tree rather than a raw filesystem error. They remain runnable and --help-able so they stay testable from this repository.
+    status: resolved
+    answered_by: human

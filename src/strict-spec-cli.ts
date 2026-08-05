@@ -29,6 +29,13 @@ import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMapping
 import { runSpecEdit, runTechEdit } from "./cli/cmd-spec-tech.js";
 import { runSampleList, runSampleShow, runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
 import { runYamlSurfaceList, runYamlSurfaceShow } from "./cli/cmd-yaml-surface.js";
+import {
+  runFixtureEdit,
+  runInventoryEdit,
+  runSampleEdit,
+  runSchemaEdit,
+  runTemplateEdit,
+} from "./cli/cmd-bundled-assets.js";
 import { runArchitectureEdit, runArchitectureGenerate, runArchitectureStatus } from "./cli/cmd-architecture.js";
 import { runDesignEdit, runDesignGenerate, runDesignInit, runDesignStatus } from "./cli/cmd-design.js";
 import {
@@ -134,6 +141,11 @@ export const commands = createCliCommandTable({
   "template-show": (argv) => runTemplateShow(argv),
   "yaml-surface-list": (argv) => runYamlSurfaceList(argv),
   "yaml-surface-show": (argv) => runYamlSurfaceShow(argv),
+  "schema-edit": (argv) => runSchemaEdit(argv),
+  "template-edit": (argv) => runTemplateEdit(argv),
+  "sample-edit": (argv) => runSampleEdit(argv),
+  "fixture-edit": (argv) => runFixtureEdit(argv),
+  "inventory-edit": (argv) => runInventoryEdit(argv),
   "harness-edit": (argv) => runHarnessEdit(argv),
   "harness-infer": (argv) => runHarnessInfer(argv),
   "harness-doctor": (argv) => runHarnessDoctor(argv),

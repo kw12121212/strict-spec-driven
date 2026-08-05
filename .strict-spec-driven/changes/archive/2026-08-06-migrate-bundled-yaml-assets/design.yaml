@@ -1,0 +1,47 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: migrate-bundled-yaml-assets
+approach:
+  - Introduce one shared bundled-asset mutation module that resolves a caller-named asset key to a confined repository path, classifies it into its inventory family, applies the family's lifecycle rules, and commits through the existing shared YAML mutation core. Each family then gets a thin per-family edit command that mirrors the read command already serving it, so the write surface reuses the same key space callers already use for schema-show, sample-show, template-show, and the mutation inventory.
+  - Reference integrity and bundle regeneration are modelled as reference and generated participants of the same mutation, not as follow-up steps. A schema write carries its registry entry and primary-example reference, a scaffold or example write carries the regenerated src/embedded-templates.ts, and an inventory write carries the dedicated inventory check as its validation gate. Any failure in that set leaves every pre-existing file byte-identical.
+  - 'Because these commands read and write this repository''s bundled source tree, they are explicitly repository-maintenance scoped: they resolve the checkout root, refuse deterministically when the bundled source tree is absent, and are documented as maintainer tooling rather than project workflow commands.'
+decisions:
+  per-family-edit-commands:
+    decision: Add schema-edit, template-edit, sample-edit, fixture-edit, and inventory-edit as separate commands sharing one implementation, rather than a single generic asset-edit command.
+    rationale: Every existing artifact family in this CLI is written through its own <family>-edit command and read through its own <family>-list and <family>-show pair, so a single generic writer would be the only command in the CLI whose destination is chosen by an argument rather than by the command name, which is exactly the generic path-writer shape the mutation contract rejects.
+  reference-set-is-one-transaction:
+    decision: Treat the schema registry entry, the primary-example reference, and the regenerated embedded bundle as participants of the same mutation rather than as separate follow-up commands.
+    rationale: A bundled schema that lands without its registry entry, or a scaffold edit that lands without a regenerated embedded bundle, produces a repository that validates file-by-file but is broken for every installed consumer, and a caller who must remember a second command will eventually not run it.
+  inventory-check-is-the-inventory-gate:
+    decision: Validate inventory-edit writes with the existing check-yaml-mutation-inventory logic rather than with schema validation alone.
+    rationale: The inventory's correctness is defined by coverage and staleness rules over tracked repository paths, none of which a schema can express, so schema-only validation would accept an inventory that the repository check then rejects.
+  fixtures-validate-by-parse-only:
+    decision: Validate validation fixtures for YAML parseability and declared fixture intent, never against the schema the fixture names.
+    rationale: Roughly half these fixtures exist precisely because they violate their schema, so applying schema validation would make the invalid fixtures unwritable and would silently destroy the negative half of the diagnostic test matrix.
+  deletion-is-reference-gated:
+    decision: Refuse deletion of any bundled asset still referenced by the registry, a scaffold consumer, a primary-example reference, the mutation inventory, or an asserting test suite, and name the referencing path in the rejection.
+    rationale: These assets are referenced by identifier from files that no schema links back to them, so an unguarded delete produces a dangling reference discovered only at runtime in an installed project rather than at write time.
+  maintenance-commands-are-a-separate-surface:
+    decision: List the five editing commands in a distinct 'Repository maintenance' help group marked as applying to this checkout only, exclude them from the MCP tool set, and have each refuse outside the checkout with a deterministic diagnostic naming the absent bundled source tree.
+    rationale: An agent selecting tools in an installed project has no way to know these five can only fail there, so exposing them through MCP would make failure the expected outcome of a legitimate-looking tool choice; keeping them in help preserves discoverability and testability from this repository, where they are the only supported way to edit the assets.
+  malformed-fixtures-are-delete-only:
+    decision: 'Derive each validation fixture''s expected validity from its filename convention and enforce it: a .valid. fixture must parse, an .invalid. fixture must parse but is never schema-checked, and an .invalid.malformed. fixture must not parse — which makes it unreachable by field editing, so fixture-edit accepts only dependency-gated deletion for it and refuses field edits with a deterministic lifecycle diagnostic.'
+    rationale: A malformed fixture exists precisely because it is not a YAML document, so the only way to field-edit one would be to accept a raw text payload, which is the direct-write shape the mutation contract forbids; refusing with a lifecycle diagnostic is the outcome the milestone's done criteria allow for an operation a lifecycle does not permit.
+  reuse-the-shared-serializer:
+    decision: Serialize bundled-asset writes through the repository's existing shared YAML serializer rather than adding a format-preserving YAML editor, accepting that the first CLI write to a hand-authored asset reflows its block scalars and quote styles into the same shape every other CLI-written artifact already has.
+    rationale: Every artifact this CLI writes already lands in that serializer's format, so a second, presentation-preserving writer would make bundled assets the only family whose on-disk shape depends on who last wrote it, and the alternative — a bespoke text splicer or a new YAML dependency — buys formatting fidelity at the cost of a second mutation path the mutation contract exists to prevent.
+alternatives:
+  - option: A single generic asset-edit command taking a repository-relative path.
+    reason: It reintroduces caller-chosen output paths, which the cli-owns-repository-yaml-mutations standard rejects as a path writer wearing a command name.
+  - option: Leave bundled schemas, scaffolds, examples, fixtures, and the inventory permanently classified as an explicit human-only exclusion.
+    reason: The milestone's tracked-file criterion explicitly forbids omitting a repository-owned YAML file merely because it is not a runtime workflow artifact, so this would abandon the milestone rather than complete it.
+  - option: Regenerate the embedded bundle in a post-write hook or a separate build step.
+    reason: It leaves an observable window in which the working tree contains an edited asset and a stale embedded bundle, and it makes rollback of a failed regeneration impossible because the asset write has already committed.
+risks:
+  - The bundled schema, registry, and embedded-bundle set is the CLI's own bootstrap; a write that corrupts it can make the CLI unable to validate the very artifacts needed to fix it, so the transaction boundary and rollback coverage carry unusually high consequence.
+  - Validation fixtures encode asserted diagnostic text; a fixture edit that is individually valid can still break the suites that assert those diagnostics, so fixture coverage must assert the resulting diagnostics rather than only the write.
+  - Reclassifying five families from human-only to cli-owned changes what the mutation surface promises, so any command that does not actually deliver all four operations would make the surface overstate coverage.
+  - The new commands depend on this repository's checkout, which conflicts with the existing runtime-repository-evidence-is-embedded standard unless that standard is amended in the same change.
+  - The first CLI write to each hand-authored bundled asset reflows the whole file, so an edit to one field produces a whole-file diff; reviewers must expect that on the initial migration of each asset rather than reading it as unintended damage.

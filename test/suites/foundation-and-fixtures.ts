@@ -3554,4 +3554,367 @@ context.assert(
   "QUICKSTART.md includes harness guidance and a link to HARNESS.md",
 );
 
+
+// --- Bundled repository asset editing -------------------------------------------------------
+
+type BundledAssetModule = typeof import("../../src/bundled-asset-mutation.js");
+const bundledAssets = await loadDistModule<BundledAssetModule>("bundled-asset-mutation.js");
+
+/** A synthetic checkout carrying only the markers and assets a bundled-asset test needs. */
+function createSyntheticCheckout(): { root: string; cleanup: () => void } {
+  const root = mkdtempSync(path.join(os.tmpdir(), "strict-bundled-asset-"));
+  mkdirSync(path.join(root, "templates", "strict-spec-driven", "schemas"), { recursive: true });
+  mkdirSync(path.join(root, "templates", "strict-spec-driven", "scaffold"), { recursive: true });
+  mkdirSync(path.join(root, "examples", "strict-spec-driven"), { recursive: true });
+  mkdirSync(path.join(root, "inventory"), { recursive: true });
+  mkdirSync(path.join(root, "test", "fixtures", "validation"), { recursive: true });
+  mkdirSync(path.join(root, "src"), { recursive: true });
+  writeFileSync(path.join(root, "templates", "strict-spec-driven", "schemas", "registry.yaml"), "entries: []\n");
+  writeFileSync(path.join(root, "inventory", "yaml-mutation-surfaces.yaml"), "artifact_families: {}\n");
+  writeFileSync(
+    path.join(root, "src", "embedded-templates.ts"),
+    "export const EMBEDDED_TEMPLATES: Record<string, string> = {\n"
+      + '  "strict-spec-driven/schemas/registry.yaml": `entries: []\n`,\n};\n',
+  );
+  return { root, cleanup: () => rmSync(root, { recursive: true, force: true }) };
+}
+
+{
+  const checkout = createSyntheticCheckout();
+  try {
+    const fixtureFile = path.join(checkout.root, "test", "fixtures", "validation", "schema-check.valid.yaml");
+    writeFileSync(fixtureFile, "id: sample\nkind: alpha\ntags:\n  - core\n");
+
+    const created = bundledAssets.mutateBundledAsset({
+      family: "validation-fixtures",
+      assetName: "created-check.valid.yaml",
+      rootDir: checkout.root,
+      edits: [{ kind: "set", fieldPath: "id", value: "created" }],
+    });
+    context.assert(
+      created.valid && created.committed
+        && existsSync(path.join(checkout.root, "test", "fixtures", "validation", "created-check.valid.yaml")),
+      "fixture-edit creates a new fixture from field edits alone",
+    );
+
+    const updated = bundledAssets.mutateBundledAsset({
+      family: "validation-fixtures",
+      assetName: "schema-check.valid.yaml",
+      rootDir: checkout.root,
+      edits: [{ kind: "append", fieldPath: "tags", value: "extra" }],
+    });
+    const afterUpdate = load(readFileSync(fixtureFile, "utf8")) as Record<string, unknown>;
+    context.assert(
+      updated.valid && Array.isArray(afterUpdate.tags) && (afterUpdate.tags as string[]).join(",") === "core,extra"
+        && afterUpdate.id === "sample" && afterUpdate.kind === "alpha",
+      "fixture-edit appends to the addressed sequence and leaves every sibling field unchanged",
+    );
+
+    const removed = bundledAssets.mutateBundledAsset({
+      family: "validation-fixtures",
+      assetName: "schema-check.valid.yaml",
+      rootDir: checkout.root,
+      edits: [{ kind: "remove", fieldPath: "kind" }],
+    });
+    const afterRemove = load(readFileSync(fixtureFile, "utf8")) as Record<string, unknown>;
+    context.assert(
+      removed.valid && afterRemove.kind === undefined && afterRemove.id === "sample",
+      "fixture-edit named removal deletes only the addressed entry",
+    );
+
+    const deleted = bundledAssets.mutateBundledAsset({
+      family: "validation-fixtures",
+      assetName: "created-check.valid.yaml",
+      rootDir: checkout.root,
+      delete: true,
+    });
+    context.assert(
+      deleted.valid && !existsSync(path.join(checkout.root, "test", "fixtures", "validation", "created-check.valid.yaml")),
+      "fixture-edit deletes an unreferenced fixture",
+    );
+
+    const escaped = bundledAssets.mutateBundledAsset({
+      family: "validation-fixtures",
+      assetName: "../../../etc/passwd.yaml",
+      rootDir: checkout.root,
+      edits: [{ kind: "set", fieldPath: "id", value: "escaped" }],
+    });
+    context.assert(
+      !escaped.valid && escaped.diagnostics.some((entry) => entry.code === "unknown-asset"),
+      "a bundled-asset name that escapes its family is rejected rather than normalized",
+    );
+
+    const missingField = bundledAssets.mutateBundledAsset({
+      family: "validation-fixtures",
+      assetName: "schema-check.valid.yaml",
+      rootDir: checkout.root,
+      edits: [{ kind: "remove", fieldPath: "not-present" }],
+    });
+    context.assert(
+      !missingField.valid && missingField.diagnostics.some((entry) => entry.code === "field-path-missing"),
+      "removing an absent field path is a deterministic error rather than a silent no-op",
+    );
+  } finally {
+    checkout.cleanup();
+  }
+}
+
+{
+  const checkout = createSyntheticCheckout();
+  try {
+    const examplePath = path.join(checkout.root, "examples", "strict-spec-driven", "config.yaml");
+    const exampleSource = readFileSync(path.join(ROOT, "examples", "strict-spec-driven", "config.yaml"), "utf8");
+    writeFileSync(examplePath, exampleSource);
+    const bundlePath = path.join(checkout.root, "src", "embedded-templates.ts");
+    const bundleBefore = readFileSync(bundlePath, "utf8");
+
+    const written = bundledAssets.mutateBundledAsset({
+      family: "bundled-reference-examples",
+      assetName: "config.yaml",
+      rootDir: checkout.root,
+      edits: [{ kind: "set", fieldPath: "preferred_human_language", value: "English" }],
+    });
+    const bundleAfter = readFileSync(bundlePath, "utf8");
+    context.assert(
+      written.valid && bundleAfter !== bundleBefore
+        && bundleAfter.includes("examples/strict-spec-driven/config.yaml")
+        && written.changes.some((change) => change.artifactPath === "src/embedded-templates.ts" && change.role === "generated"),
+      "an accepted example write regenerates the embedded bundle inside the same transaction",
+    );
+
+    const bundleBeforeFailure = readFileSync(bundlePath, "utf8");
+    const exampleBeforeFailure = readFileSync(examplePath, "utf8");
+    const rolledBack = bundledAssets.mutateBundledAsset({
+      family: "bundled-reference-examples",
+      assetName: "config.yaml",
+      rootDir: checkout.root,
+      edits: [{ kind: "set", fieldPath: "preferred_human_language", value: "Japanese" }],
+      regenerateEmbeddedBundle: () => {
+        throw new Error("injected regeneration failure");
+      },
+    });
+    context.assert(
+      !rolledBack.valid && !rolledBack.committed
+        && rolledBack.diagnostics.some((entry) => entry.code === "bundle-regeneration-failed")
+        && readFileSync(examplePath, "utf8") === exampleBeforeFailure
+        && readFileSync(bundlePath, "utf8") === bundleBeforeFailure,
+      "a failed embedded-bundle regeneration leaves both the asset and the bundle byte-identical",
+    );
+
+    const invalidExample = bundledAssets.mutateBundledAsset({
+      family: "bundled-reference-examples",
+      assetName: "config.yaml",
+      rootDir: checkout.root,
+      edits: [{ kind: "remove", fieldPath: "artifact_type" }],
+    });
+    context.assert(
+      !invalidExample.valid && readFileSync(examplePath, "utf8").includes("artifact_type"),
+      "an example edit that breaks its registered schema is rejected and the example is unchanged",
+    );
+  } finally {
+    checkout.cleanup();
+  }
+}
+
+{
+  const checkout = createSyntheticCheckout();
+  try {
+    const malformedPath = path.join(checkout.root, "test", "fixtures", "validation", "schema-check.invalid.malformed.yaml");
+    writeFileSync(malformedPath, "id: malformed\ntags:\n  - bad: [\n");
+    const before = readFileSync(malformedPath, "utf8");
+
+    const refused = bundledAssets.mutateBundledAsset({
+      family: "validation-fixtures",
+      assetName: "schema-check.invalid.malformed.yaml",
+      rootDir: checkout.root,
+      edits: [{ kind: "set", fieldPath: "id", value: "repaired" }],
+    });
+    context.assert(
+      !refused.valid && refused.diagnostics.some((entry) => entry.code === "fixture-intent-not-field-editable")
+        && readFileSync(malformedPath, "utf8") === before,
+      "field edits to a must-not-parse fixture are refused with a lifecycle diagnostic and change nothing",
+    );
+
+    const enumPath = path.join(checkout.root, "test", "fixtures", "validation", "schema-check.invalid.enum.yaml");
+    writeFileSync(enumPath, "id: invalid-enum\nkind: gamma\n");
+    const enumEdit = bundledAssets.mutateBundledAsset({
+      family: "validation-fixtures",
+      assetName: "schema-check.invalid.enum.yaml",
+      rootDir: checkout.root,
+      edits: [{ kind: "set", fieldPath: "id", value: "still-invalid-enum" }],
+    });
+    const enumAfter = load(readFileSync(enumPath, "utf8")) as Record<string, unknown>;
+    context.assert(
+      enumEdit.valid && enumAfter.kind === "gamma",
+      "an intentionally schema-invalid fixture stays invalid after a fixture-edit write",
+    );
+
+    const deletedMalformed = bundledAssets.mutateBundledAsset({
+      family: "validation-fixtures",
+      assetName: "schema-check.invalid.malformed.yaml",
+      rootDir: checkout.root,
+      delete: true,
+    });
+    context.assert(
+      deletedMalformed.valid && !existsSync(malformedPath),
+      "deletion remains supported for a must-not-parse fixture",
+    );
+  } finally {
+    checkout.cleanup();
+  }
+}
+
+{
+  // The generated-participant seam is the only way non-YAML content reaches the mutation boundary,
+  // so the guard that keeps it out of the artifact families themselves needs its own coverage.
+  const guardRoot = mkdtempSync(path.join(os.tmpdir(), "strict-generated-guard-"));
+  try {
+    const targetPath = path.join(guardRoot, "artifact.yaml");
+    writeFileSync(targetPath, "id: original\n");
+    const rejected = yamlMutationModule.commitYamlMutation({
+      rootDir: guardRoot,
+      mutations: [{
+        artifactFamily: "test-family",
+        artifactId: "artifact.yaml",
+        schemaId: "test-schema",
+        familyRoot: guardRoot,
+        absolutePath: targetPath,
+        operation: "update",
+        content: "id: smuggled\n",
+      }],
+    });
+    context.assert(
+      !rejected.valid && rejected.diagnostics.some((entry) => entry.code === "content-not-generated")
+        && readFileSync(targetPath, "utf8") === "id: original\n",
+      "pre-serialized content is refused for an artifact-role participant and changes nothing",
+    );
+  } finally {
+    rmSync(guardRoot, { recursive: true, force: true });
+  }
+}
+
+{
+  const absentTree = mkdtempSync(path.join(os.tmpdir(), "strict-no-bundled-tree-"));
+  try {
+    const refused = bundledAssets.mutateBundledAsset({
+      family: "bundled-schema-assets",
+      assetName: "main-spec.yaml",
+      rootDir: absentTree,
+      edits: [{ kind: "set", fieldPath: "schema_version", value: "2" }],
+    });
+    context.assert(
+      !refused.valid && refused.diagnostics.some((entry) => entry.code === "bundled-source-tree-absent")
+        && readdirSync(absentTree).length === 0,
+      "a bundled-asset write refuses deterministically where the bundled source tree is absent and creates nothing",
+    );
+  } finally {
+    rmSync(absentTree, { recursive: true, force: true });
+  }
+}
+
+{
+  const referenced = bundledAssets.findAssetReferences("test/fixtures/validation/schema-check.valid.yaml", ROOT);
+  context.assert(
+    referenced.includes("test/suites/foundation-and-fixtures.ts"),
+    "reference discovery finds the test suite that asserts against a fixture",
+  );
+  const schemaReferences = bundledAssets.findAssetReferences("templates/strict-spec-driven/schemas/main-spec.yaml", ROOT);
+  context.assert(
+    schemaReferences.includes("templates/strict-spec-driven/schemas/registry.yaml"),
+    "reference discovery finds the schema registry entry that names a bundled schema",
+  );
+
+  const inventoryBefore = readFileSync(YAML_MUTATION_INVENTORY_PATH, "utf8");
+  const gated = bundledAssets.mutateBundledAsset({
+    family: "yaml-mutation-inventory",
+    rootDir: ROOT,
+    edits: [{ kind: "remove", fieldPath: "artifact_families.validation-fixtures" }],
+  });
+  context.assert(
+    !gated.valid && !gated.committed
+      && gated.diagnostics.some((entry) => entry.code === "uncovered-yaml-path")
+      && readFileSync(YAML_MUTATION_INVENTORY_PATH, "utf8") === inventoryBefore,
+    "an inventory write that would leave a tracked YAML path uncovered is rejected by the coverage gate",
+  );
+
+  const stillReferenced = bundledAssets.mutateBundledAsset({
+    family: "validation-fixtures",
+    assetName: "schema-check.valid.yaml",
+    rootDir: ROOT,
+    delete: true,
+  });
+  context.assert(
+    !stillReferenced.valid
+      && stillReferenced.diagnostics.some((entry) =>
+        entry.code === "asset-still-referenced" && entry.message.includes("test/suites/foundation-and-fixtures.ts"))
+      && existsSync(fixturePath("schema-check.valid.yaml")),
+    "deletion is refused while a test suite still references the asset, naming the referencing path",
+  );
+}
+
+{
+  const helpResult = cli(["--help", "--json"]);
+  const helpPayload = JSON.parse(helpResult.stdout) as {
+    groups: { id: string; title: string }[];
+    commands: { name: string; group: string }[];
+  };
+  const maintenanceCommands = helpPayload.commands.filter((entry) => entry.group === "maintenance").map((entry) => entry.name).sort();
+  context.assert(
+    helpPayload.groups.some((group) => group.id === "maintenance" && group.title.includes("this checkout only"))
+      && maintenanceCommands.join(",") === "fixture-edit,inventory-edit,sample-edit,schema-edit,template-edit",
+    "the five bundled-asset editing commands are grouped as repository maintenance scoped to this checkout",
+  );
+
+  const mcpToolsSource = readFileSync(path.join(ROOT, "src", "mcp", "tools.ts"), "utf8");
+  context.assert(
+    !["schema-edit", "template-edit", "sample-edit", "fixture-edit", "inventory-edit"]
+      .some((commandName) => mcpToolsSource.includes(`"${commandName}"`)),
+    "the bundled-asset editing commands are excluded from the MCP tool set",
+  );
+
+  for (const commandName of ["schema-edit", "template-edit", "sample-edit", "fixture-edit", "inventory-edit"]) {
+    const commandHelp = cli([commandName, "--help"]);
+    context.assert(
+      commandHelp.status === 0 && commandHelp.stdout.includes("--set") && commandHelp.stdout.includes("--remove-entry")
+        && commandHelp.stdout.includes("--delete"),
+      `${commandName} help documents its editing flag semantics`,
+    );
+  }
+
+  const usageError = cli(["fixture-edit", "schema-check.valid.yaml", "--set", "id"]);
+  context.assert(
+    usageError.status === 1 && usageError.stdout.includes("usage-error"),
+    "a bundled-asset editing command reports a usage error when an edit is missing its value",
+  );
+}
+
+{
+  // A dash-leading value is ordinary YAML, so it must be reachable through the repository's
+  // documented --flag=value form rather than being swallowed as the next flag.
+  const checkout = createSyntheticCheckout();
+  try {
+    const fixtureFile = path.join(checkout.root, "test", "fixtures", "validation", "offsets.valid.yaml");
+    writeFileSync(fixtureFile, "id: offsets\n");
+    const written = bundledAssets.mutateBundledAsset({
+      family: "validation-fixtures",
+      assetName: "offsets.valid.yaml",
+      rootDir: checkout.root,
+      edits: [{ kind: "set", fieldPath: "offset", value: "-3" }, { kind: "set", fieldPath: "label", value: "-dash-leading" }],
+    });
+    const stored = load(readFileSync(fixtureFile, "utf8")) as Record<string, unknown>;
+    context.assert(
+      written.valid && stored.offset === -3 && stored.label === "-dash-leading",
+      "a dash-leading value is written as its YAML scalar rather than parsed as a flag",
+    );
+  } finally {
+    checkout.cleanup();
+  }
+
+  const inlineForm = cli(["fixture-edit", "--help"]);
+  context.assert(
+    inlineForm.stdout.includes("--flag=value"),
+    "bundled-asset editing help documents the --flag=value form for dash-leading values",
+  );
+}
+
 }

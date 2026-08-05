@@ -1,0 +1,41 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: migrate-bundled-yaml-assets
+  status: proposed
+summary:
+  what:
+    - 'Add CLI-owned create, update, named removal, and whole-artifact deletion for the repository-bundled YAML asset families that are still classified human-only: bundled schema documents and the schema registry, initialization scaffolds and SOP category templates, minimal reference examples, validation test fixtures, and the YAML mutation inventory itself.'
+    - Route every bundled-asset write through the shared YAML mutation core so candidate validation, cross-asset reference integrity, embedded-bundle regeneration, and atomic commit or rollback all happen inside one transaction.
+    - Reclassify the five affected inventory families from human-only to cli-owned with their new CLI owners, so the mutation surface and the dedicated inventory check report real coverage rather than a documented gap.
+  why:
+    - These are the last repository-owned YAML families whose normal maintenance still requires hand-authored YAML text, which directly blocks the milestone criterion that every artifact family has tested CLI create, update, named removal, and delete behavior or a deterministic lifecycle rejection.
+    - Bundled schema, scaffold, and example edits silently invalidate the embedded template bundle, the shared schema cache, registry entries, and primary-example references unless regeneration and reference checks are part of the same atomic write.
+    - The tracked-file inventory criterion forbids omitting a repository-owned YAML file merely because it is a fixture, a bundled asset, or the inventory itself, so these families cannot be left as a permanent excluded classification.
+scope:
+  in:
+    - Add schema-edit for templates/strict-spec-driven/schemas/*.yaml including registry.yaml, reconciling registry entries and primary-example references in the same transaction.
+    - Add template-edit for templates/strict-spec-driven/scaffold/**/*.yaml and templates/strict-spec-driven/sop-categories/*.yaml.
+    - Add sample-edit for examples/strict-spec-driven/*.yaml.
+    - Add fixture-edit for test/fixtures/validation/*.yaml that preserves intentionally invalid fixture content instead of repairing it.
+    - Add inventory-edit for inventory/yaml-mutation-surfaces.yaml, gated on the dedicated inventory check so the inventory cannot be edited into an inconsistent state.
+    - Regenerate src/embedded-templates.ts within the same transaction for every accepted write under templates/, examples/, and inventory/, and roll the whole write back when regeneration fails.
+    - Make deletion dependency-aware, refusing to remove an asset still referenced by the schema registry, a scaffold consumer, a primary-example reference, the mutation inventory, or an asserting test suite.
+    - Confine the new commands to this repository's checkout and reject them deterministically when the bundled source tree is absent.
+    - Update inventory classifications, command metadata, text and JSON help, and the YAML mutation surface for the five reclassified families.
+    - Add unit and copied-project regression coverage for each new command across create, update, named removal, deletion, deterministic rejection, and rollback.
+  out:
+    - Changing the content model or schema of any bundled asset beyond what exposing a safe mutation operation requires.
+    - Adding new read commands for validation fixtures; ordinary file reads remain sufficient for discovery.
+    - Bringing legacy .spec-driven migration input, external dependency YAML, or other explicitly excluded classifications under CLI mutation ownership.
+    - Renaming or removing schema-list, schema-show, sample-list, sample-show, template-list, template-show, yaml-surface-list, or yaml-surface-show.
+unchanged_behavior:
+  - The existing bundled-asset read commands keep their key normalization, output format, and exit codes.
+  - Intentionally invalid validation fixtures stay invalid and keep producing the diagnostics their suites assert.
+  - Legacy .spec-driven migration input and external YAML keep their non-CLI inventory classifications.
+  - init, propose, generate, and every domain artifact command keep producing identical output from identical inputs.
+roadmap:
+  milestone: cli-yaml-artifact-coverage
+  planned_change: migrate-bundled-yaml-assets

@@ -1,0 +1,85 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: migrate-bundled-yaml-assets
+sections:
+  Implementation:
+    add-bundled-asset-mutation-module:
+      text: 'Add src/bundled-asset-mutation.ts: resolve a caller-named asset key to a confined repository path, classify it into its inventory family, apply that family''s lifecycle rules, and commit through commitYamlMutation.'
+      status: complete
+    confine-commands-to-checkout:
+      text: Resolve the repository checkout root in the shared module and reject every bundled-asset write with a deterministic diagnostic when the bundled source tree is absent, so the commands are inert in installed projects.
+      status: complete
+    add-schema-edit-command:
+      text: Add schema-edit for templates/strict-spec-driven/schemas/*.yaml including registry.yaml, carrying the registry entry and primary-example reference as participants of the same mutation.
+      status: complete
+    add-template-edit-command:
+      text: Add template-edit for templates/strict-spec-driven/scaffold/**/*.yaml and templates/strict-spec-driven/sop-categories/*.yaml.
+      status: complete
+    add-sample-edit-command:
+      text: Add sample-edit for examples/strict-spec-driven/*.yaml, keeping example keys aligned with the registry primary_example references.
+      status: complete
+    add-fixture-edit-command:
+      text: Add fixture-edit for test/fixtures/validation/*.yaml that validates parseability and declared fixture intent only, so intentionally invalid fixtures stay invalid.
+      status: complete
+    add-inventory-edit-command:
+      text: Add inventory-edit for inventory/yaml-mutation-surfaces.yaml gated on the check-yaml-mutation-inventory validation logic rather than schema validation alone.
+      status: complete
+    regenerate-embedded-bundle-in-transaction:
+      text: Make every accepted write under templates/, examples/, and inventory/ regenerate src/embedded-templates.ts inside the same mutation, and roll the entire write back when regeneration fails.
+      status: complete
+    gate-deletion-on-references:
+      text: Refuse deletion of any bundled asset still referenced by the schema registry, a scaffold consumer, a primary-example reference, the mutation inventory, or an asserting test suite, naming the referencing path in the rejection.
+      status: complete
+    register-commands-and-metadata:
+      text: Register the five commands in src/cli/registry.ts and src/cli/command-metadata-entries.ts with artifact-kind, schema, and example routing so text help, JSON help, and MCP descriptions stay consistent.
+      status: complete
+    reclassify-inventory-families:
+      text: Reclassify bundled-schema-assets, bundled-scaffold-assets, bundled-reference-examples, validation-fixtures, and yaml-mutation-inventory from human-only to cli-owned with their new cli_owners, using inventory-edit itself.
+      status: complete
+    rebuild-compiled-output:
+      text: Rebuild compiled dist/ output after the TypeScript edits.
+      status: complete
+      command: bun run build
+  Testing:
+    cover-create-update-remove-delete:
+      text: Cover create, update, named removal, and deletion for each of schema-edit, template-edit, sample-edit, fixture-edit, and inventory-edit in test/suites/foundation-and-fixtures.ts.
+      status: complete
+    cover-reference-and-rollback-failures:
+      text: Cover deterministic rejection and full rollback for dangling registry, scaffold, example, and inventory references, failed embedded-bundle regeneration, and writes attempted with the bundled source tree absent.
+      status: complete
+    cover-fixture-semantics:
+      text: Assert that fixture-edit leaves intentionally invalid fixtures invalid and that the diagnostics their suites assert are unchanged after a fixture write.
+      status: complete
+    cover-surface-and-help:
+      text: Assert the mutation surface reports the five reclassified families as cli-owned with their new CLI owners, and that text help, JSON help, and MCP descriptions carry the new commands.
+      status: complete
+      command: bun test/run.ts
+    run-inventory-check:
+      text: Run the dedicated YAML mutation inventory check after reclassification.
+      status: complete
+      command: bun run check:yaml-inventory
+    run-project-regression:
+      text: Run the complete project regression suite with the coverage gate.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    run-ready:
+      text: Confirm the change is ready to hand off.
+      status: complete
+      command: strict-spec-cli ready migrate-bundled-yaml-assets
+    run-verify:
+      text: Verify artifact structure, task completion, open questions, and main-spec mapping validity.
+      status: complete
+      command: strict-spec-cli verify migrate-bundled-yaml-assets
+    verify-spec-mappings:
+      text: Confirm delta-spec and delta-tech mapping paths resolve to real files.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+    confirm-archive-merge:
+      text: Confirm the delta spec merges into cli-foundation and the delta tech merges into yaml-first-artifacts without leaving the mutation inventory or embedded bundle stale.
+      status: complete
+testing_gates:
+  validation_task: run-inventory-check
+  unit_test_task: cover-create-update-remove-delete

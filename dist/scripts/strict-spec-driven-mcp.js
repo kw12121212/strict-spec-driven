@@ -35757,14 +35757,10 @@ artifact_type: yaml_mutation_inventory
 inventory:
   id: repository-yaml-mutation-surfaces
   title: Repository YAML Mutation Surfaces
-  scope: >-
-    Every repository-owned YAML or YML family and every repository code, CLI, MCP, skill, and
-    documentation surface that can mutate it or direct another actor to mutate it.
+  scope: Every repository-owned YAML or YML family and every repository code, CLI, MCP, skill, and documentation surface that can mutate it or direct another actor to mutate it.
   discovery:
     yaml_paths: git ls-files -co --exclude-standard -- '*.yaml' '*.yml'
-    mutation_paths: >-
-      Git-visible TypeScript, JavaScript, Markdown, shell, PowerShell, and JSON files containing
-      filesystem mutation calls or YAML-authoring guidance.
+    mutation_paths: Git-visible TypeScript, JavaScript, Markdown, shell, PowerShell, and JSON files containing filesystem mutation calls or YAML-authoring guidance.
   operation_states:
     - cli-owned
     - direct-write
@@ -35964,9 +35960,7 @@ artifact_families:
       - examples/strict-spec-driven/task-list.yaml
       - examples/strict-spec-driven/question-list*.yaml
     ownership: repository-owned
-    validation_owner: >-
-      templates/strict-spec-driven/schemas/change-proposal.yaml, change-design.yaml,
-      task-list.yaml, and question-list.yaml
+    validation_owner: templates/strict-spec-driven/schemas/change-proposal.yaml, change-design.yaml, task-list.yaml, and question-list.yaml
     operations:
       create: cli-owned
       update: cli-owned
@@ -36038,9 +36032,7 @@ artifact_families:
       - examples/strict-spec-driven/planned-change.yaml
       - templates/strict-spec-driven/scaffold/roadmap/INDEX.yaml
     ownership: repository-owned
-    validation_owner: >-
-      templates/strict-spec-driven/schemas/roadmap-index.yaml, roadmap-milestone.yaml, and
-      planned-change.yaml
+    validation_owner: templates/strict-spec-driven/schemas/roadmap-index.yaml, roadmap-milestone.yaml, and planned-change.yaml
     operations:
       create: cli-owned
       update: cli-owned
@@ -36111,8 +36103,7 @@ artifact_families:
       - examples/strict-spec-driven/sop.yaml
       - templates/strict-spec-driven/sop-categories/*.yaml
     ownership: repository-owned
-    validation_owner: >-
-      templates/strict-spec-driven/schemas/sops-index.yaml, sop-category.yaml, and sop.yaml
+    validation_owner: templates/strict-spec-driven/schemas/sops-index.yaml, sop-category.yaml, and sop.yaml
     operations:
       create: cli-owned
       update: cli-owned
@@ -36137,13 +36128,14 @@ artifact_families:
     ownership: repository-owned
     validation_owner: test/suites/foundation-and-fixtures.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - Registry entries, primary examples, embedded templates, and shared schema cache exports must stay synchronized.
-    cli_owners: []
+    cli_owners:
+      - schema-edit
     direct_write_paths: []
     evidence:
       - templates/strict-spec-driven/schemas/registry.yaml
@@ -36153,16 +36145,18 @@ artifact_families:
       - scaffold_yaml
     path_patterns:
       - templates/strict-spec-driven/scaffold/**/*.yaml
+      - templates/strict-spec-driven/sop-categories/*.yaml
     ownership: repository-owned
     validation_owner: test/suites/foundation-and-fixtures.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - Embedded templates and init/propose output must be regenerated and revalidated.
-    cli_owners: []
+    cli_owners:
+      - template-edit
     direct_write_paths: []
     evidence:
       - templates/strict-spec-driven/scaffold/config.yaml
@@ -36175,13 +36169,14 @@ artifact_families:
     ownership: repository-owned
     validation_owner: test/suites/foundation-and-fixtures.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - Schema registry and example coverage references must remain complete.
-    cli_owners: []
+    cli_owners:
+      - sample-edit
     direct_write_paths: []
     evidence:
       - examples/strict-spec-driven/schema-registry.yaml
@@ -36194,13 +36189,14 @@ artifact_families:
     ownership: repository-owned
     validation_owner: test/suites/foundation-and-fixtures.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - Fixture matrices and asserted diagnostics must be updated together.
-    cli_owners: []
+    cli_owners:
+      - fixture-edit
     direct_write_paths: []
     evidence:
       - test/fixtures/validation/schema-check.valid.yaml
@@ -36233,13 +36229,14 @@ artifact_families:
     ownership: repository-owned
     validation_owner: scripts/check-yaml-mutation-inventory.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - The dedicated checker and regression suite must agree with every inventory field and pattern.
-    cli_owners: []
+    cli_owners:
+      - inventory-edit
     direct_write_paths: []
     evidence:
       - inventory/yaml-mutation-surfaces.yaml
@@ -36440,6 +36437,8 @@ mutation_surfaces:
       - src/cli/cmd-spec-tech.ts
       - src/cli/cmd-sops.ts
       - src/cli/cmd-workflow.ts
+      - src/cli/cmd-bundled-assets.ts
+      - src/bundled-asset-mutation.ts
     mechanism: cli-command
     classification: cli-owned
     operations:
@@ -36460,6 +36459,11 @@ mutation_surfaces:
       - roadmap-state
       - lessons-state
       - sop-state
+      - bundled-schema-assets
+      - bundled-scaffold-assets
+      - bundled-reference-examples
+      - validation-fixtures
+      - yaml-mutation-inventory
     evidence:
       - src/cli/cmd-generation.ts
       - src/cli/cmd-roadmap.ts
@@ -39853,6 +39857,50 @@ var SUCCESS_EXIT_CODES = [
   { code: 0, meaning: "The command succeeded." },
   { code: 1, meaning: "Usage error or runtime failure." }
 ];
+var BUNDLED_ASSET_EDIT_FLAGS = [
+  {
+    name: "--set",
+    arity: "value",
+    valueLabel: "<field-path>",
+    description: "Address a field to overwrite, as a dotted path such as registry.status. Pairs with the following --value.",
+    repeatable: true,
+    repeatSemantics: "Each --set/--value pair is one edit, applied in the order supplied."
+  },
+  {
+    name: "--value",
+    arity: "value",
+    valueLabel: "<text>",
+    description: "The scalar written at the preceding --set field path. true, false, null, and numeric text are written as those YAML scalars.",
+    repeatable: true
+  },
+  {
+    name: "--append",
+    arity: "value",
+    valueLabel: "<field-path>",
+    description: "Address a sequence to append to. Pairs with the following --item and appends without duplicating an existing entry.",
+    repeatable: true,
+    repeatSemantics: "Each --append/--item pair is one edit, applied in the order supplied."
+  },
+  {
+    name: "--item",
+    arity: "value",
+    valueLabel: "<text>",
+    description: "The value appended to the preceding --append sequence.",
+    repeatable: true
+  },
+  {
+    name: "--remove-entry",
+    arity: "value",
+    valueLabel: "<field-path>",
+    description: "Delete the addressed field or sequence entry, leaving every sibling in place. Removing an absent path is an error, not a no-op.",
+    repeatable: true
+  },
+  {
+    name: "--delete",
+    arity: "boolean",
+    description: "Delete the whole asset. Rejected alongside any editing flag, and refused while anything still references the asset."
+  }
+];
 var COMMAND_METADATA_ENTRIES = {
   init: {
     name: "init",
@@ -40873,6 +40921,158 @@ var COMMAND_METADATA_ENTRIES = {
     notes: [
       "Operation states are reported verbatim from the mutation inventory; a direct-write state means the operation has no CLI owner yet, not that it is forbidden.",
       "Run yaml-surface-show <artifact-kind> for the owning commands, resolved schema path, and example references of one family."
+    ]
+  },
+  "schema-edit": {
+    name: "schema-edit",
+    group: "maintenance",
+    summary: "Create, update, remove named entries from, or delete a bundled strict YAML schema asset.",
+    usage: `Usage: strict-spec-cli schema-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+`,
+    arguments: [
+      {
+        name: "asset",
+        description: "A schema asset name reported by schema-list, such as main-spec or registry.yaml.",
+        required: true
+      }
+    ],
+    flags: BUNDLED_ASSET_EDIT_FLAGS,
+    output: {
+      format: "json",
+      keys: ["family", "assetPath", "valid", "committed", "changes", "diagnostics"],
+      description: "A JSON result naming the inventory family, the resolved asset path, whether the transaction committed, every participant it changed, and deterministic diagnostics."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The asset mutation validated and committed." },
+      { code: 1, meaning: "Usage error, a rejected mutation, or a failed transaction that changed nothing." }
+    ],
+    notes: [
+      "This command is repository-maintenance scoped: it edits this repository's bundled source tree and refuses with a deterministic diagnostic wherever that tree is absent.",
+      "Edits apply in the order supplied and touch only the addressed field; every sibling key and unaddressed branch is preserved.",
+      "Use the --flag=value form when a value begins with a dash, such as a negative number or a dash-leading string.",
+      "An accepted write regenerates src/embedded-templates.ts inside the same transaction, and a failure leaves both the asset and the bundle unchanged.",
+      "--delete is refused while the schema registry, a primary-example reference, a scaffold consumer, the mutation inventory, or a test suite still names the asset.",
+      "A schema document is judged on the wrapper contract its loader depends on: registry.yaml must keep an entries sequence, and every other schema must keep a json_schema mapping."
+    ]
+  },
+  "template-edit": {
+    name: "template-edit",
+    group: "maintenance",
+    summary: "Create, update, remove named entries from, or delete a bundled scaffold or SOP category template.",
+    usage: `Usage: strict-spec-cli template-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+`,
+    arguments: [
+      {
+        name: "asset",
+        description: "A scaffold or SOP category template key reported by template-list, such as scaffold/config.yaml or sop-categories/release.yaml.",
+        required: true
+      }
+    ],
+    flags: BUNDLED_ASSET_EDIT_FLAGS,
+    output: {
+      format: "json",
+      keys: ["family", "assetPath", "valid", "committed", "changes", "diagnostics"],
+      description: "A JSON result naming the inventory family, the resolved asset path, whether the transaction committed, every participant it changed, and deterministic diagnostics."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The asset mutation validated and committed." },
+      { code: 1, meaning: "Usage error, a rejected mutation, or a failed transaction that changed nothing." }
+    ],
+    notes: [
+      "This command is repository-maintenance scoped: it edits this repository's bundled source tree and refuses with a deterministic diagnostic wherever that tree is absent.",
+      "Edits apply in the order supplied and touch only the addressed field; every sibling key and unaddressed branch is preserved.",
+      "Use the --flag=value form when a value begins with a dash, such as a negative number or a dash-leading string.",
+      "An accepted write regenerates src/embedded-templates.ts inside the same transaction, and a failure leaves both the asset and the bundle unchanged.",
+      "--delete is refused while the schema registry, a primary-example reference, a scaffold consumer, the mutation inventory, or a test suite still names the asset."
+    ]
+  },
+  "sample-edit": {
+    name: "sample-edit",
+    group: "maintenance",
+    summary: "Create, update, remove named entries from, or delete a bundled minimal valid strict YAML sample.",
+    usage: `Usage: strict-spec-cli sample-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+`,
+    arguments: [
+      {
+        name: "asset",
+        description: "A sample key reported by sample-list, such as main-spec or delta-tech.operations.",
+        required: true
+      }
+    ],
+    flags: BUNDLED_ASSET_EDIT_FLAGS,
+    output: {
+      format: "json",
+      keys: ["family", "assetPath", "valid", "committed", "changes", "diagnostics"],
+      description: "A JSON result naming the inventory family, the resolved asset path, whether the transaction committed, every participant it changed, and deterministic diagnostics."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The asset mutation validated and committed." },
+      { code: 1, meaning: "Usage error, a rejected mutation, or a failed transaction that changed nothing." }
+    ],
+    notes: [
+      "This command is repository-maintenance scoped: it edits this repository's bundled source tree and refuses with a deterministic diagnostic wherever that tree is absent.",
+      "Edits apply in the order supplied and touch only the addressed field; every sibling key and unaddressed branch is preserved.",
+      "Use the --flag=value form when a value begins with a dash, such as a negative number or a dash-leading string.",
+      "An accepted write regenerates src/embedded-templates.ts inside the same transaction, and a failure leaves both the asset and the bundle unchanged.",
+      "--delete is refused while the schema registry, a primary-example reference, a scaffold consumer, the mutation inventory, or a test suite still names the asset.",
+      "A sample is validated against the registered schema its own schema field names, so it stays a genuinely valid example of that artifact."
+    ]
+  },
+  "fixture-edit": {
+    name: "fixture-edit",
+    group: "maintenance",
+    summary: "Create, update, remove named entries from, or delete a validation test fixture.",
+    usage: `Usage: strict-spec-cli fixture-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+`,
+    arguments: [
+      {
+        name: "asset",
+        description: "A fixture file name under test/fixtures/validation, such as schema-check.valid.yaml.",
+        required: true
+      }
+    ],
+    flags: BUNDLED_ASSET_EDIT_FLAGS,
+    output: {
+      format: "json",
+      keys: ["family", "assetPath", "valid", "committed", "changes", "diagnostics"],
+      description: "A JSON result naming the inventory family, the resolved asset path, whether the transaction committed, every participant it changed, and deterministic diagnostics."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The asset mutation validated and committed." },
+      { code: 1, meaning: "Usage error, a rejected mutation, or a failed transaction that changed nothing." }
+    ],
+    notes: [
+      "This command is repository-maintenance scoped: it edits this repository's bundled source tree and refuses with a deterministic diagnostic wherever that tree is absent.",
+      "Edits apply in the order supplied and touch only the addressed field; every sibling key and unaddressed branch is preserved.",
+      "Use the --flag=value form when a value begins with a dash, such as a negative number or a dash-leading string.",
+      "--delete is refused while the schema registry, a primary-example reference, a scaffold consumer, the mutation inventory, or a test suite still names the asset.",
+      "Fixtures are never validated against the schema they name, so a fixture that exists to be invalid stays invalid and keeps producing the diagnostics its suite asserts.",
+      "A fixture whose declared intent is to be unparseable holds no addressable fields; field edits are refused and deletion is its only supported mutation."
+    ]
+  },
+  "inventory-edit": {
+    name: "inventory-edit",
+    group: "maintenance",
+    summary: "Update, remove named entries from, or delete the YAML mutation inventory.",
+    usage: `Usage: strict-spec-cli inventory-edit [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+`,
+    arguments: [],
+    flags: BUNDLED_ASSET_EDIT_FLAGS,
+    output: {
+      format: "json",
+      keys: ["family", "assetPath", "valid", "committed", "changes", "diagnostics"],
+      description: "A JSON result naming the inventory family, the resolved asset path, whether the transaction committed, every participant it changed, and deterministic diagnostics."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The asset mutation validated and committed." },
+      { code: 1, meaning: "Usage error, a rejected mutation, or a failed transaction that changed nothing." }
+    ],
+    notes: [
+      "This command is repository-maintenance scoped: it edits this repository's bundled source tree and refuses with a deterministic diagnostic wherever that tree is absent.",
+      "Edits apply in the order supplied and touch only the addressed field; every sibling key and unaddressed branch is preserved.",
+      "Use the --flag=value form when a value begins with a dash, such as a negative number or a dash-leading string.",
+      "An accepted write regenerates src/embedded-templates.ts inside the same transaction, and a failure leaves both the asset and the bundle unchanged.",
+      "The candidate inventory is gated on the repository inventory coverage check, not on schema validation alone, so a write that would leave a tracked YAML path uncovered or a pattern stale is rejected."
     ]
   },
   "yaml-surface-show": {

@@ -6504,7 +6504,7 @@ var require_dist = __commonJS((exports, module) => {
 });
 
 // src/strict-spec-cli.ts
-import { fileURLToPath as fileURLToPath6 } from "url";
+import { fileURLToPath as fileURLToPath7 } from "url";
 import { realpathSync as realpathSync2 } from "fs";
 
 // src/scaffold.ts
@@ -11528,14 +11528,10 @@ artifact_type: yaml_mutation_inventory
 inventory:
   id: repository-yaml-mutation-surfaces
   title: Repository YAML Mutation Surfaces
-  scope: >-
-    Every repository-owned YAML or YML family and every repository code, CLI, MCP, skill, and
-    documentation surface that can mutate it or direct another actor to mutate it.
+  scope: Every repository-owned YAML or YML family and every repository code, CLI, MCP, skill, and documentation surface that can mutate it or direct another actor to mutate it.
   discovery:
     yaml_paths: git ls-files -co --exclude-standard -- '*.yaml' '*.yml'
-    mutation_paths: >-
-      Git-visible TypeScript, JavaScript, Markdown, shell, PowerShell, and JSON files containing
-      filesystem mutation calls or YAML-authoring guidance.
+    mutation_paths: Git-visible TypeScript, JavaScript, Markdown, shell, PowerShell, and JSON files containing filesystem mutation calls or YAML-authoring guidance.
   operation_states:
     - cli-owned
     - direct-write
@@ -11735,9 +11731,7 @@ artifact_families:
       - examples/strict-spec-driven/task-list.yaml
       - examples/strict-spec-driven/question-list*.yaml
     ownership: repository-owned
-    validation_owner: >-
-      templates/strict-spec-driven/schemas/change-proposal.yaml, change-design.yaml,
-      task-list.yaml, and question-list.yaml
+    validation_owner: templates/strict-spec-driven/schemas/change-proposal.yaml, change-design.yaml, task-list.yaml, and question-list.yaml
     operations:
       create: cli-owned
       update: cli-owned
@@ -11809,9 +11803,7 @@ artifact_families:
       - examples/strict-spec-driven/planned-change.yaml
       - templates/strict-spec-driven/scaffold/roadmap/INDEX.yaml
     ownership: repository-owned
-    validation_owner: >-
-      templates/strict-spec-driven/schemas/roadmap-index.yaml, roadmap-milestone.yaml, and
-      planned-change.yaml
+    validation_owner: templates/strict-spec-driven/schemas/roadmap-index.yaml, roadmap-milestone.yaml, and planned-change.yaml
     operations:
       create: cli-owned
       update: cli-owned
@@ -11882,8 +11874,7 @@ artifact_families:
       - examples/strict-spec-driven/sop.yaml
       - templates/strict-spec-driven/sop-categories/*.yaml
     ownership: repository-owned
-    validation_owner: >-
-      templates/strict-spec-driven/schemas/sops-index.yaml, sop-category.yaml, and sop.yaml
+    validation_owner: templates/strict-spec-driven/schemas/sops-index.yaml, sop-category.yaml, and sop.yaml
     operations:
       create: cli-owned
       update: cli-owned
@@ -11908,13 +11899,14 @@ artifact_families:
     ownership: repository-owned
     validation_owner: test/suites/foundation-and-fixtures.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - Registry entries, primary examples, embedded templates, and shared schema cache exports must stay synchronized.
-    cli_owners: []
+    cli_owners:
+      - schema-edit
     direct_write_paths: []
     evidence:
       - templates/strict-spec-driven/schemas/registry.yaml
@@ -11924,16 +11916,18 @@ artifact_families:
       - scaffold_yaml
     path_patterns:
       - templates/strict-spec-driven/scaffold/**/*.yaml
+      - templates/strict-spec-driven/sop-categories/*.yaml
     ownership: repository-owned
     validation_owner: test/suites/foundation-and-fixtures.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - Embedded templates and init/propose output must be regenerated and revalidated.
-    cli_owners: []
+    cli_owners:
+      - template-edit
     direct_write_paths: []
     evidence:
       - templates/strict-spec-driven/scaffold/config.yaml
@@ -11946,13 +11940,14 @@ artifact_families:
     ownership: repository-owned
     validation_owner: test/suites/foundation-and-fixtures.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - Schema registry and example coverage references must remain complete.
-    cli_owners: []
+    cli_owners:
+      - sample-edit
     direct_write_paths: []
     evidence:
       - examples/strict-spec-driven/schema-registry.yaml
@@ -11965,13 +11960,14 @@ artifact_families:
     ownership: repository-owned
     validation_owner: test/suites/foundation-and-fixtures.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - Fixture matrices and asserted diagnostics must be updated together.
-    cli_owners: []
+    cli_owners:
+      - fixture-edit
     direct_write_paths: []
     evidence:
       - test/fixtures/validation/schema-check.valid.yaml
@@ -12004,13 +12000,14 @@ artifact_families:
     ownership: repository-owned
     validation_owner: scripts/check-yaml-mutation-inventory.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - The dedicated checker and regression suite must agree with every inventory field and pattern.
-    cli_owners: []
+    cli_owners:
+      - inventory-edit
     direct_write_paths: []
     evidence:
       - inventory/yaml-mutation-surfaces.yaml
@@ -12211,6 +12208,8 @@ mutation_surfaces:
       - src/cli/cmd-spec-tech.ts
       - src/cli/cmd-sops.ts
       - src/cli/cmd-workflow.ts
+      - src/cli/cmd-bundled-assets.ts
+      - src/bundled-asset-mutation.ts
     mechanism: cli-command
     classification: cli-owned
     operations:
@@ -12231,6 +12230,11 @@ mutation_surfaces:
       - roadmap-state
       - lessons-state
       - sop-state
+      - bundled-schema-assets
+      - bundled-scaffold-assets
+      - bundled-reference-examples
+      - validation-fixtures
+      - yaml-mutation-inventory
     evidence:
       - src/cli/cmd-generation.ts
       - src/cli/cmd-roadmap.ts
@@ -16030,6 +16034,50 @@ var SUCCESS_EXIT_CODES = [
   { code: 0, meaning: "The command succeeded." },
   { code: 1, meaning: "Usage error or runtime failure." }
 ];
+var BUNDLED_ASSET_EDIT_FLAGS = [
+  {
+    name: "--set",
+    arity: "value",
+    valueLabel: "<field-path>",
+    description: "Address a field to overwrite, as a dotted path such as registry.status. Pairs with the following --value.",
+    repeatable: true,
+    repeatSemantics: "Each --set/--value pair is one edit, applied in the order supplied."
+  },
+  {
+    name: "--value",
+    arity: "value",
+    valueLabel: "<text>",
+    description: "The scalar written at the preceding --set field path. true, false, null, and numeric text are written as those YAML scalars.",
+    repeatable: true
+  },
+  {
+    name: "--append",
+    arity: "value",
+    valueLabel: "<field-path>",
+    description: "Address a sequence to append to. Pairs with the following --item and appends without duplicating an existing entry.",
+    repeatable: true,
+    repeatSemantics: "Each --append/--item pair is one edit, applied in the order supplied."
+  },
+  {
+    name: "--item",
+    arity: "value",
+    valueLabel: "<text>",
+    description: "The value appended to the preceding --append sequence.",
+    repeatable: true
+  },
+  {
+    name: "--remove-entry",
+    arity: "value",
+    valueLabel: "<field-path>",
+    description: "Delete the addressed field or sequence entry, leaving every sibling in place. Removing an absent path is an error, not a no-op.",
+    repeatable: true
+  },
+  {
+    name: "--delete",
+    arity: "boolean",
+    description: "Delete the whole asset. Rejected alongside any editing flag, and refused while anything still references the asset."
+  }
+];
 var COMMAND_METADATA_ENTRIES = {
   init: {
     name: "init",
@@ -17050,6 +17098,158 @@ var COMMAND_METADATA_ENTRIES = {
     notes: [
       "Operation states are reported verbatim from the mutation inventory; a direct-write state means the operation has no CLI owner yet, not that it is forbidden.",
       "Run yaml-surface-show <artifact-kind> for the owning commands, resolved schema path, and example references of one family."
+    ]
+  },
+  "schema-edit": {
+    name: "schema-edit",
+    group: "maintenance",
+    summary: "Create, update, remove named entries from, or delete a bundled strict YAML schema asset.",
+    usage: `Usage: strict-spec-cli schema-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+`,
+    arguments: [
+      {
+        name: "asset",
+        description: "A schema asset name reported by schema-list, such as main-spec or registry.yaml.",
+        required: true
+      }
+    ],
+    flags: BUNDLED_ASSET_EDIT_FLAGS,
+    output: {
+      format: "json",
+      keys: ["family", "assetPath", "valid", "committed", "changes", "diagnostics"],
+      description: "A JSON result naming the inventory family, the resolved asset path, whether the transaction committed, every participant it changed, and deterministic diagnostics."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The asset mutation validated and committed." },
+      { code: 1, meaning: "Usage error, a rejected mutation, or a failed transaction that changed nothing." }
+    ],
+    notes: [
+      "This command is repository-maintenance scoped: it edits this repository's bundled source tree and refuses with a deterministic diagnostic wherever that tree is absent.",
+      "Edits apply in the order supplied and touch only the addressed field; every sibling key and unaddressed branch is preserved.",
+      "Use the --flag=value form when a value begins with a dash, such as a negative number or a dash-leading string.",
+      "An accepted write regenerates src/embedded-templates.ts inside the same transaction, and a failure leaves both the asset and the bundle unchanged.",
+      "--delete is refused while the schema registry, a primary-example reference, a scaffold consumer, the mutation inventory, or a test suite still names the asset.",
+      "A schema document is judged on the wrapper contract its loader depends on: registry.yaml must keep an entries sequence, and every other schema must keep a json_schema mapping."
+    ]
+  },
+  "template-edit": {
+    name: "template-edit",
+    group: "maintenance",
+    summary: "Create, update, remove named entries from, or delete a bundled scaffold or SOP category template.",
+    usage: `Usage: strict-spec-cli template-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+`,
+    arguments: [
+      {
+        name: "asset",
+        description: "A scaffold or SOP category template key reported by template-list, such as scaffold/config.yaml or sop-categories/release.yaml.",
+        required: true
+      }
+    ],
+    flags: BUNDLED_ASSET_EDIT_FLAGS,
+    output: {
+      format: "json",
+      keys: ["family", "assetPath", "valid", "committed", "changes", "diagnostics"],
+      description: "A JSON result naming the inventory family, the resolved asset path, whether the transaction committed, every participant it changed, and deterministic diagnostics."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The asset mutation validated and committed." },
+      { code: 1, meaning: "Usage error, a rejected mutation, or a failed transaction that changed nothing." }
+    ],
+    notes: [
+      "This command is repository-maintenance scoped: it edits this repository's bundled source tree and refuses with a deterministic diagnostic wherever that tree is absent.",
+      "Edits apply in the order supplied and touch only the addressed field; every sibling key and unaddressed branch is preserved.",
+      "Use the --flag=value form when a value begins with a dash, such as a negative number or a dash-leading string.",
+      "An accepted write regenerates src/embedded-templates.ts inside the same transaction, and a failure leaves both the asset and the bundle unchanged.",
+      "--delete is refused while the schema registry, a primary-example reference, a scaffold consumer, the mutation inventory, or a test suite still names the asset."
+    ]
+  },
+  "sample-edit": {
+    name: "sample-edit",
+    group: "maintenance",
+    summary: "Create, update, remove named entries from, or delete a bundled minimal valid strict YAML sample.",
+    usage: `Usage: strict-spec-cli sample-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+`,
+    arguments: [
+      {
+        name: "asset",
+        description: "A sample key reported by sample-list, such as main-spec or delta-tech.operations.",
+        required: true
+      }
+    ],
+    flags: BUNDLED_ASSET_EDIT_FLAGS,
+    output: {
+      format: "json",
+      keys: ["family", "assetPath", "valid", "committed", "changes", "diagnostics"],
+      description: "A JSON result naming the inventory family, the resolved asset path, whether the transaction committed, every participant it changed, and deterministic diagnostics."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The asset mutation validated and committed." },
+      { code: 1, meaning: "Usage error, a rejected mutation, or a failed transaction that changed nothing." }
+    ],
+    notes: [
+      "This command is repository-maintenance scoped: it edits this repository's bundled source tree and refuses with a deterministic diagnostic wherever that tree is absent.",
+      "Edits apply in the order supplied and touch only the addressed field; every sibling key and unaddressed branch is preserved.",
+      "Use the --flag=value form when a value begins with a dash, such as a negative number or a dash-leading string.",
+      "An accepted write regenerates src/embedded-templates.ts inside the same transaction, and a failure leaves both the asset and the bundle unchanged.",
+      "--delete is refused while the schema registry, a primary-example reference, a scaffold consumer, the mutation inventory, or a test suite still names the asset.",
+      "A sample is validated against the registered schema its own schema field names, so it stays a genuinely valid example of that artifact."
+    ]
+  },
+  "fixture-edit": {
+    name: "fixture-edit",
+    group: "maintenance",
+    summary: "Create, update, remove named entries from, or delete a validation test fixture.",
+    usage: `Usage: strict-spec-cli fixture-edit <asset> [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+`,
+    arguments: [
+      {
+        name: "asset",
+        description: "A fixture file name under test/fixtures/validation, such as schema-check.valid.yaml.",
+        required: true
+      }
+    ],
+    flags: BUNDLED_ASSET_EDIT_FLAGS,
+    output: {
+      format: "json",
+      keys: ["family", "assetPath", "valid", "committed", "changes", "diagnostics"],
+      description: "A JSON result naming the inventory family, the resolved asset path, whether the transaction committed, every participant it changed, and deterministic diagnostics."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The asset mutation validated and committed." },
+      { code: 1, meaning: "Usage error, a rejected mutation, or a failed transaction that changed nothing." }
+    ],
+    notes: [
+      "This command is repository-maintenance scoped: it edits this repository's bundled source tree and refuses with a deterministic diagnostic wherever that tree is absent.",
+      "Edits apply in the order supplied and touch only the addressed field; every sibling key and unaddressed branch is preserved.",
+      "Use the --flag=value form when a value begins with a dash, such as a negative number or a dash-leading string.",
+      "--delete is refused while the schema registry, a primary-example reference, a scaffold consumer, the mutation inventory, or a test suite still names the asset.",
+      "Fixtures are never validated against the schema they name, so a fixture that exists to be invalid stays invalid and keeps producing the diagnostics its suite asserts.",
+      "A fixture whose declared intent is to be unparseable holds no addressable fields; field edits are refused and deletion is its only supported mutation."
+    ]
+  },
+  "inventory-edit": {
+    name: "inventory-edit",
+    group: "maintenance",
+    summary: "Update, remove named entries from, or delete the YAML mutation inventory.",
+    usage: `Usage: strict-spec-cli inventory-edit [--set <field-path> --value <text>]... [--append <field-path> --item <text>]... [--remove-entry <field-path>]... [--delete]
+`,
+    arguments: [],
+    flags: BUNDLED_ASSET_EDIT_FLAGS,
+    output: {
+      format: "json",
+      keys: ["family", "assetPath", "valid", "committed", "changes", "diagnostics"],
+      description: "A JSON result naming the inventory family, the resolved asset path, whether the transaction committed, every participant it changed, and deterministic diagnostics."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The asset mutation validated and committed." },
+      { code: 1, meaning: "Usage error, a rejected mutation, or a failed transaction that changed nothing." }
+    ],
+    notes: [
+      "This command is repository-maintenance scoped: it edits this repository's bundled source tree and refuses with a deterministic diagnostic wherever that tree is absent.",
+      "Edits apply in the order supplied and touch only the addressed field; every sibling key and unaddressed branch is preserved.",
+      "Use the --flag=value form when a value begins with a dash, such as a negative number or a dash-leading string.",
+      "An accepted write regenerates src/embedded-templates.ts inside the same transaction, and a failure leaves both the asset and the bundle unchanged.",
+      "The candidate inventory is gated on the repository inventory coverage check, not on schema validation alone, so a write that would leave a tracked YAML path uncovered or a pattern stale is rejected."
     ]
   },
   "yaml-surface-show": {
@@ -18220,6 +18420,7 @@ var COMMAND_GROUP_ORDER = [
   "change",
   "generation",
   "assets",
+  "maintenance",
   "harness",
   "roadmap",
   "sop",
@@ -18233,6 +18434,7 @@ var COMMAND_GROUP_TITLES = {
   change: "Change lifecycle",
   generation: "Artifact generation",
   assets: "Bundled assets",
+  maintenance: "Repository maintenance (this checkout only)",
   harness: "Harness",
   roadmap: "Roadmap",
   sop: "Standard operating procedures",
@@ -18552,6 +18754,11 @@ var COMMAND_REGISTRATION_ORDER = [
   "template-show",
   "yaml-surface-list",
   "yaml-surface-show",
+  "schema-edit",
+  "template-edit",
+  "sample-edit",
+  "fixture-edit",
+  "inventory-edit",
   "harness-edit",
   "harness-infer",
   "harness-doctor",
@@ -18897,7 +19104,11 @@ function commitYamlMutation(options) {
     } else if ((request.operation === "update" || request.operation === "delete") && !exists) {
       diagnostics.push(diagnostic(artifactPath, "planning", "target-missing", "$", `${request.operation} requires an existing target`));
     }
-    if (request.operation !== "delete") {
+    if (request.content !== undefined && (request.role !== "generated" || request.candidate !== undefined)) {
+      diagnostics.push(diagnostic(artifactPath, "planning", "content-not-generated", "$.content", "pre-serialized content is accepted only for a generated participant carrying no YAML candidate"));
+    } else if (request.operation !== "delete" && request.content !== undefined) {
+      serializedCandidate = request.content;
+    } else if (request.operation !== "delete") {
       if (!isMeaningfulArtifact(request.candidate)) {
         diagnostics.push(diagnostic(artifactPath, "validation", "empty-candidate", "$", "create and update require a non-empty YAML mapping candidate"));
       } else if (!request.validateCandidate) {
@@ -18914,7 +19125,7 @@ function commitYamlMutation(options) {
           diagnostics.push(diagnostic(artifactPath, "validation", "candidate-validation-failed", "$", "failed to serialize or validate the complete YAML candidate", { actual: errorCode(error) }));
         }
       }
-    } else if (request.candidate !== undefined || request.validateCandidate !== undefined) {
+    } else if (request.candidate !== undefined || request.validateCandidate !== undefined || request.content !== undefined) {
       diagnostics.push(diagnostic(artifactPath, "planning", "delete-with-edit", "$", "whole-artifact deletion cannot be combined with candidate edits or validation"));
     }
     planned.push({
@@ -34191,9 +34402,638 @@ function runYamlSurfaceShow(argv) {
   return 0;
 }
 
-// src/architecture-author.ts
-import { existsSync as existsSync47 } from "fs";
+// src/bundled-asset-mutation.ts
+import { existsSync as existsSync47, mkdtempSync, readFileSync as readFileSync32, readdirSync as readdirSync17, rmSync as rmSync6, statSync as statSync30, writeFileSync as writeFileSync11 } from "fs";
+import { spawnSync } from "child_process";
+import { tmpdir } from "os";
 import path49 from "path";
+import { fileURLToPath as fileURLToPath6 } from "url";
+var FAMILIES = {
+  "bundled-schema-assets": {
+    family: "bundled-schema-assets",
+    familyRoot: "templates/strict-spec-driven/schemas",
+    validation: "registered-schema",
+    feedsEmbeddedBundle: true
+  },
+  "bundled-scaffold-assets": {
+    family: "bundled-scaffold-assets",
+    familyRoot: "templates/strict-spec-driven/scaffold",
+    extraRoots: ["templates/strict-spec-driven/sop-categories"],
+    validation: "registered-schema",
+    feedsEmbeddedBundle: true
+  },
+  "bundled-reference-examples": {
+    family: "bundled-reference-examples",
+    familyRoot: "examples/strict-spec-driven",
+    validation: "registered-schema",
+    feedsEmbeddedBundle: true
+  },
+  "validation-fixtures": {
+    family: "validation-fixtures",
+    familyRoot: "test/fixtures/validation",
+    validation: "fixture-intent",
+    feedsEmbeddedBundle: false
+  },
+  "yaml-mutation-inventory": {
+    family: "yaml-mutation-inventory",
+    familyRoot: "inventory",
+    validation: "inventory-check",
+    feedsEmbeddedBundle: true,
+    singleton: "yaml-mutation-surfaces.yaml"
+  }
+};
+var CHECKOUT_MARKERS = [
+  "templates/strict-spec-driven/schemas/registry.yaml",
+  "examples/strict-spec-driven",
+  "inventory/yaml-mutation-surfaces.yaml"
+];
+var EMBEDDED_BUNDLE_PATH = "src/embedded-templates.ts";
+function toPosix4(value) {
+  return value.split(path49.sep).join("/");
+}
+function moduleRepositoryRoot() {
+  return path49.join(path49.dirname(fileURLToPath6(import.meta.url)), "..");
+}
+function resolveCheckoutRoot(candidateRoot) {
+  const candidates = candidateRoot ? [candidateRoot] : [process.cwd(), moduleRepositoryRoot()];
+  for (const candidate of candidates) {
+    const resolved = path49.resolve(candidate);
+    if (CHECKOUT_MARKERS.every((marker) => existsSync47(path49.join(resolved, marker))))
+      return resolved;
+  }
+  return;
+}
+function issue(fieldPath, message, code, extra = {}) {
+  return { code, fieldPath, message, ...extra };
+}
+function refusal(family, code, message, assetPath) {
+  return {
+    family,
+    ...assetPath ? { assetPath } : {},
+    valid: false,
+    committed: false,
+    exitStatus: 1,
+    changes: [],
+    diagnostics: [{
+      artifactPath: assetPath ?? `<${family}>`,
+      phase: "planning",
+      code,
+      fieldPath: "$",
+      message
+    }]
+  };
+}
+function resolveAssetPath(family, assetName, rootDir) {
+  const descriptor = FAMILIES[family];
+  if (descriptor.singleton) {
+    if (assetName && assetName !== descriptor.singleton && assetName !== toPosix4(path49.join(descriptor.familyRoot, descriptor.singleton))) {
+      return { error: `${family} holds only ${descriptor.singleton}` };
+    }
+    return { assetPath: toPosix4(path49.join(descriptor.familyRoot, descriptor.singleton)), familyRoot: descriptor.familyRoot };
+  }
+  if (!assetName)
+    return { error: `${family} requires an asset name` };
+  if (path49.isAbsolute(assetName) || assetName.split(/[\\/]/).includes("..")) {
+    return { error: `asset name must stay inside ${family}, and '${assetName}' does not` };
+  }
+  const normalized = assetName.endsWith(".yaml") || assetName.endsWith(".yml") ? assetName : `${assetName}.yaml`;
+  const roots = [descriptor.familyRoot, ...descriptor.extraRoots ?? []];
+  for (const root of roots) {
+    const stripped = normalized.startsWith(`${root}/`) ? normalized.slice(root.length + 1) : undefined;
+    if (stripped !== undefined)
+      return { assetPath: toPosix4(path49.join(root, stripped)), familyRoot: root };
+  }
+  for (const root of roots) {
+    if (existsSync47(path49.join(rootDir, root, normalized))) {
+      return { assetPath: toPosix4(path49.join(root, normalized)), familyRoot: root };
+    }
+  }
+  return { assetPath: toPosix4(path49.join(descriptor.familyRoot, normalized)), familyRoot: descriptor.familyRoot };
+}
+function splitFieldPath(fieldPath) {
+  return fieldPath.replace(/^\$\.?/, "").split(".").filter((segment) => segment.length > 0);
+}
+function coerceScalar(value) {
+  if (value === "true")
+    return true;
+  if (value === "false")
+    return false;
+  if (value === "null")
+    return null;
+  if (/^-?\d+$/.test(value))
+    return Number.parseInt(value, 10);
+  if (/^-?\d*\.\d+$/.test(value))
+    return Number.parseFloat(value);
+  return value;
+}
+function applyFieldEdits(document, edits) {
+  const failures = [];
+  let root = document;
+  if (root === undefined || root === null)
+    root = {};
+  for (const edit of edits) {
+    const segments = splitFieldPath(edit.fieldPath);
+    if (segments.length === 0) {
+      failures.push({ fieldPath: edit.fieldPath, message: "field path must name a field", code: "empty-field-path" });
+      continue;
+    }
+    let cursor = root;
+    let failed = false;
+    for (const segment of segments.slice(0, -1)) {
+      if (cursor === null || typeof cursor !== "object") {
+        failures.push({ fieldPath: edit.fieldPath, message: `'${segment}' cannot be addressed under a scalar value`, code: "field-path-not-traversable" });
+        failed = true;
+        break;
+      }
+      const container2 = cursor;
+      if (Array.isArray(container2)) {
+        const index = Number.parseInt(segment, 10);
+        if (!Number.isInteger(index) || index < 0 || index >= container2.length) {
+          failures.push({ fieldPath: edit.fieldPath, message: `sequence index '${segment}' is out of range`, code: "field-path-out-of-range" });
+          failed = true;
+          break;
+        }
+        cursor = container2[index];
+        continue;
+      }
+      if (container2[segment] === undefined) {
+        if (edit.kind === "remove") {
+          failures.push({ fieldPath: edit.fieldPath, message: `'${segment}' does not exist`, code: "field-path-missing" });
+          failed = true;
+          break;
+        }
+        container2[segment] = {};
+      }
+      cursor = container2[segment];
+    }
+    if (failed)
+      continue;
+    const leaf = segments[segments.length - 1];
+    if (cursor === null || typeof cursor !== "object") {
+      failures.push({ fieldPath: edit.fieldPath, message: `'${leaf}' cannot be addressed under a scalar value`, code: "field-path-not-traversable" });
+      continue;
+    }
+    if (Array.isArray(cursor)) {
+      const index = Number.parseInt(leaf, 10);
+      if (!Number.isInteger(index) || index < 0 || index >= cursor.length) {
+        failures.push({ fieldPath: edit.fieldPath, message: `sequence index '${leaf}' is out of range`, code: "field-path-out-of-range" });
+        continue;
+      }
+      if (edit.kind === "remove")
+        cursor.splice(index, 1);
+      else
+        cursor[index] = coerceScalar(edit.value);
+      continue;
+    }
+    const container = cursor;
+    if (edit.kind === "remove") {
+      if (container[leaf] === undefined) {
+        failures.push({ fieldPath: edit.fieldPath, message: `'${leaf}' does not exist`, code: "field-path-missing" });
+        continue;
+      }
+      delete container[leaf];
+      continue;
+    }
+    if (edit.kind === "append") {
+      const existing = container[leaf];
+      const list = Array.isArray(existing) ? existing : existing === undefined ? [] : undefined;
+      if (list === undefined) {
+        failures.push({ fieldPath: edit.fieldPath, message: `'${leaf}' is not a sequence`, code: "field-path-not-a-sequence" });
+        continue;
+      }
+      const value = coerceScalar(edit.value);
+      if (!list.some((entry) => entry === value))
+        list.push(value);
+      container[leaf] = list;
+      continue;
+    }
+    container[leaf] = coerceScalar(edit.value);
+  }
+  return { document: root, failures };
+}
+function fixtureIntent(assetPath) {
+  return path49.basename(assetPath).includes(".invalid.malformed.") ? "must-not-parse" : "must-parse";
+}
+function registeredSchemaFor(candidate, assetPath) {
+  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
+    return { error: issue("$", "a bundled asset must be a YAML mapping", "candidate-not-a-mapping", { artifactPath: assetPath }) };
+  }
+  const schemaId = candidate.schema;
+  if (typeof schemaId !== "string") {
+    return { error: issue("$.schema", "a bundled asset must declare its schema id so it can be validated", "missing-schema-id", { artifactPath: assetPath }) };
+  }
+  try {
+    return { schema: loadBundledSchemaBySchemaId(schemaId) };
+  } catch (error) {
+    return {
+      error: issue("$.schema", error instanceof Error ? error.message : String(error), "unknown-schema-id", { artifactPath: assetPath })
+    };
+  }
+}
+function validateSchemaDocument(candidate, assetPath) {
+  const record = candidate;
+  const issues = [];
+  if (path49.basename(assetPath) === "registry.yaml") {
+    if (!Array.isArray(record.entries)) {
+      issues.push(issue("$.entries", "the schema registry must hold an entries sequence", "registry-entries-missing", { artifactPath: assetPath }));
+    }
+    return issues;
+  }
+  const jsonSchema = record.json_schema;
+  if (!jsonSchema || typeof jsonSchema !== "object") {
+    issues.push(issue("$.json_schema", "a bundled schema document must carry a json_schema mapping", "json-schema-missing", { artifactPath: assetPath }));
+    return issues;
+  }
+  return issues;
+}
+function validateCandidateFor(descriptor, assetPath, rootDir) {
+  return (candidate) => {
+    if (descriptor.family === "bundled-schema-assets")
+      return validateSchemaDocument(candidate, assetPath);
+    if (descriptor.validation === "inventory-check")
+      return runInventoryChecker(rootDir, assetPath, candidate);
+    if (descriptor.validation === "fixture-intent") {
+      return [];
+    }
+    const resolved = registeredSchemaFor(candidate, assetPath);
+    if ("error" in resolved)
+      return [resolved.error];
+    const result2 = validateWithSchema(resolved.schema, candidate, assetPath);
+    return result2.diagnostics.map((entry) => issue(entry.fieldPath ?? "$", entry.message, "candidate-invalid", { artifactPath: assetPath }));
+  };
+}
+function findAssetReferences(assetPath, rootDir) {
+  const references = [];
+  const base = path49.basename(assetPath);
+  const schemaFileName = base;
+  if (assetPath.startsWith("templates/strict-spec-driven/schemas/") && base !== "registry.yaml") {
+    try {
+      const registry = loadBundledSchemaRegistry();
+      if (registry.entries.some((entry) => entry.schema_file === schemaFileName)) {
+        references.push("templates/strict-spec-driven/schemas/registry.yaml");
+      }
+    } catch {}
+  }
+  if (assetPath.startsWith("examples/strict-spec-driven/")) {
+    try {
+      const registry = loadBundledSchemaRegistry();
+      const primaryExampleOf = (entry) => entry.primary_example;
+      if (registry.entries.some((entry) => {
+        const primaryExample = primaryExampleOf(entry);
+        return typeof primaryExample === "string" && primaryExample.endsWith(`/${base}`);
+      })) {
+        references.push("templates/strict-spec-driven/schemas/registry.yaml");
+      }
+    } catch {}
+  }
+  const inventoryPath = path49.join(rootDir, "inventory", "yaml-mutation-surfaces.yaml");
+  if (assetPath !== "inventory/yaml-mutation-surfaces.yaml" && existsSync47(inventoryPath)) {
+    const inventoryText = readFileSync32(inventoryPath, "utf8");
+    if (inventoryText.includes(assetPath))
+      references.push("inventory/yaml-mutation-surfaces.yaml");
+  }
+  const suitesDir = path49.join(rootDir, "test", "suites");
+  if (existsSync47(suitesDir)) {
+    for (const entry of readdirSync17(suitesDir).sort()) {
+      if (!entry.endsWith(".ts"))
+        continue;
+      const suitePath = path49.join(suitesDir, entry);
+      if (readFileSync32(suitePath, "utf8").includes(base))
+        references.push(toPosix4(path49.relative(rootDir, suitePath)));
+    }
+  }
+  const scaffoldSources = [path49.join(rootDir, "src", "scaffold.ts"), path49.join(rootDir, "src", "sop-categories.ts")];
+  for (const source of scaffoldSources) {
+    if (existsSync47(source) && readFileSync32(source, "utf8").includes(base)) {
+      references.push(toPosix4(path49.relative(rootDir, source)));
+    }
+  }
+  return [...new Set(references)].sort();
+}
+function listEmbeddedAssetFiles(rootDir) {
+  const assetRoots = ["templates", "examples", "inventory"];
+  const found = [];
+  for (const assetRoot of assetRoots) {
+    const assetRootDir = path49.join(rootDir, assetRoot);
+    if (!existsSync47(assetRootDir))
+      continue;
+    const walk = (directory) => {
+      for (const entry of readdirSync17(directory).sort()) {
+        const full = path49.join(directory, entry);
+        if (statSync30(full).isDirectory()) {
+          walk(full);
+          continue;
+        }
+        const relativePath = path49.relative(assetRootDir, full);
+        found.push([toPosix4(assetRoot === "templates" ? relativePath : path49.join(assetRoot, relativePath)), full]);
+      }
+    };
+    walk(assetRootDir);
+  }
+  return found;
+}
+function renderEmbeddedBundle(rootDir) {
+  const entries = [];
+  for (const [key, file] of listEmbeddedAssetFiles(rootDir)) {
+    const content = readFileSync32(file, "utf8");
+    const escaped = content.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$\{/g, "\\${");
+    entries.push(`  ${JSON.stringify(key)}: \`${escaped}\``);
+  }
+  return `// Auto-generated by scripts/gen-templates-bundle.ts — do not edit manually
+export const EMBEDDED_TEMPLATES: Record<string, string> = {
+${entries.join(`,
+`)},
+};
+
+export function hasEmbeddedTemplate(key: string): boolean {
+  return key in EMBEDDED_TEMPLATES;
+}
+
+export function getEmbeddedTemplateKeys(): string[] {
+  return Object.keys(EMBEDDED_TEMPLATES).sort();
+}
+
+export function readEmbeddedTemplate(key: string): string | undefined {
+  return EMBEDDED_TEMPLATES[key];
+}
+`;
+}
+function runInventoryChecker(rootDir, assetPath, candidate) {
+  const checkerPath = path49.join(rootDir, "scripts", "check-yaml-mutation-inventory.ts");
+  if (!existsSync47(checkerPath))
+    return [];
+  const candidatePath = path49.join(mkdtempSync(path49.join(tmpdir(), "strict-spec-inventory-")), "candidate.yaml");
+  writeFileSync11(candidatePath, stringifyYamlDocument(candidate), "utf8");
+  const completed = spawnSync("bun", [checkerPath, rootDir, "--candidate", candidatePath], { encoding: "utf8" });
+  rmSync6(path49.dirname(candidatePath), { recursive: true, force: true });
+  if (completed.error || typeof completed.stdout !== "string" || completed.stdout.trim() === "") {
+    return [issue("$.inventory.check", "the mutation inventory check could not be run, so the candidate inventory cannot be accepted", "inventory-check-unavailable", { artifactPath: assetPath })];
+  }
+  let report;
+  try {
+    report = JSON.parse(completed.stdout);
+  } catch {
+    return [issue("$.inventory.check", "the mutation inventory check produced unreadable output", "inventory-check-unreadable", { artifactPath: assetPath })];
+  }
+  if (report.valid)
+    return [];
+  return (report.diagnostics ?? []).map((entry) => issue(entry.path, entry.message, entry.code, { artifactPath: assetPath }));
+}
+function mutateBundledAsset(options) {
+  const descriptor = FAMILIES[options.family];
+  const rootDir = resolveCheckoutRoot(options.rootDir);
+  if (!rootDir) {
+    return refusal(options.family, "bundled-source-tree-absent", "the bundled source tree was not found; this command is repository-maintenance scoped and runs only inside the strict-spec-driven checkout");
+  }
+  const resolved = resolveAssetPath(options.family, options.assetName, rootDir);
+  if ("error" in resolved)
+    return refusal(options.family, "unknown-asset", resolved.error);
+  const { assetPath, familyRoot } = resolved;
+  const absolutePath = path49.join(rootDir, assetPath);
+  const exists = existsSync47(absolutePath);
+  const edits = options.edits ?? [];
+  if (options.delete) {
+    if (edits.length > 0) {
+      return refusal(options.family, "delete-with-edit", "deletion is an isolated operation and cannot be combined with field edits", assetPath);
+    }
+    if (!exists)
+      return refusal(options.family, "target-missing", `no such asset: ${assetPath}`, assetPath);
+    const references = findAssetReferences(assetPath, rootDir);
+    if (references.length > 0) {
+      return refusal(options.family, "asset-still-referenced", `${assetPath} is still referenced by ${references.join(", ")}; remove those references before deleting it`, assetPath);
+    }
+  } else if (edits.length === 0) {
+    return refusal(options.family, "no-edits", "supply at least one field edit, or --delete to remove the asset", assetPath);
+  }
+  const intent = descriptor.validation === "fixture-intent" ? fixtureIntent(assetPath) : undefined;
+  if (intent === "must-not-parse" && !options.delete) {
+    return refusal(options.family, "fixture-intent-not-field-editable", `${assetPath} declares the must-not-parse fixture intent, so it holds no addressable fields; deletion is its only supported mutation`, assetPath);
+  }
+  let candidate;
+  if (!options.delete) {
+    let current = {};
+    if (exists) {
+      try {
+        current = parseYamlDocument(readFileSync32(absolutePath, "utf8"), { source: assetPath });
+      } catch (error) {
+        return refusal(options.family, "target-unparseable", `${assetPath} could not be parsed, so its fields cannot be addressed: ${error instanceof Error ? error.message : String(error)}`, assetPath);
+      }
+    }
+    const applied = applyFieldEdits(current, edits);
+    if (applied.failures.length > 0) {
+      return {
+        family: options.family,
+        assetPath,
+        valid: false,
+        committed: false,
+        exitStatus: 1,
+        changes: [],
+        diagnostics: applied.failures.map((failure) => ({
+          artifactPath: assetPath,
+          phase: "validation",
+          code: failure.code,
+          fieldPath: failure.fieldPath,
+          message: failure.message
+        }))
+      };
+    }
+    candidate = applied.document;
+  }
+  const requests = [{
+    artifactFamily: options.family,
+    artifactId: assetPath,
+    schemaId: options.family,
+    familyRoot,
+    absolutePath,
+    operation: options.delete ? "delete" : exists ? "update" : "create",
+    ...options.delete ? {} : {
+      candidate,
+      validateCandidate: validateCandidateFor(descriptor, assetPath, rootDir)
+    }
+  }];
+  if (descriptor.feedsEmbeddedBundle) {
+    const bundleAbsolutePath = path49.join(rootDir, EMBEDDED_BUNDLE_PATH);
+    if (existsSync47(bundleAbsolutePath)) {
+      let bundleContent;
+      try {
+        const render = options.regenerateEmbeddedBundle ?? renderEmbeddedBundle;
+        bundleContent = projectPendingBundle(render, rootDir, assetPath, options.delete ? undefined : candidate);
+      } catch (error) {
+        return refusal(options.family, "bundle-regeneration-failed", `failed to regenerate ${EMBEDDED_BUNDLE_PATH}: ${error instanceof Error ? error.message : String(error)}`, assetPath);
+      }
+      requests.push({
+        artifactFamily: options.family,
+        artifactId: EMBEDDED_BUNDLE_PATH,
+        schemaId: "generated-embedded-bundle",
+        familyRoot: "src",
+        absolutePath: bundleAbsolutePath,
+        operation: "update",
+        role: "generated",
+        content: bundleContent
+      });
+    }
+  }
+  const result2 = commitYamlMutation({ rootDir, mutations: requests });
+  return { family: options.family, assetPath, ...result2 };
+}
+function projectPendingBundle(render, rootDir, assetPath, candidate) {
+  const currentBundle = render(rootDir);
+  const embeddedKey = assetPath.startsWith("templates/") ? assetPath.slice("templates/".length) : assetPath;
+  const entryPrefix = `  ${JSON.stringify(embeddedKey)}: \``;
+  const serialized = candidate === undefined ? undefined : stringifyYamlDocument(candidate);
+  const escaped = serialized?.replace(/\\/g, "\\\\").replace(/`/g, "\\`").replace(/\$\{/g, "\\${");
+  const startIndex = currentBundle.indexOf(entryPrefix);
+  if (startIndex === -1) {
+    if (escaped === undefined)
+      return currentBundle;
+    const insertAt = currentBundle.indexOf(`
+};`);
+    if (insertAt === -1)
+      throw new Error("embedded bundle has no recognizable entry table");
+    return `${currentBundle.slice(0, insertAt)},
+${entryPrefix}${escaped}\``.concat(currentBundle.slice(insertAt));
+  }
+  const valueStart = startIndex + entryPrefix.length;
+  let cursor = valueStart;
+  while (cursor < currentBundle.length) {
+    if (currentBundle[cursor] === "\\") {
+      cursor += 2;
+      continue;
+    }
+    if (currentBundle[cursor] === "`")
+      break;
+    cursor += 1;
+  }
+  if (cursor >= currentBundle.length)
+    throw new Error("embedded bundle entry is unterminated");
+  if (escaped === undefined) {
+    const lineEnd = currentBundle.indexOf(`
+`, cursor);
+    return currentBundle.slice(0, startIndex) + currentBundle.slice(lineEnd + 1);
+  }
+  return currentBundle.slice(0, valueStart) + escaped + currentBundle.slice(cursor);
+}
+
+// src/cli/cmd-bundled-assets.ts
+function parseEditArgs(argv, expectsAssetName) {
+  const parsed = { edits: [], delete: false };
+  let index = 0;
+  if (expectsAssetName) {
+    const first = argv[0];
+    if (first !== undefined && !first.startsWith("--")) {
+      parsed.assetName = first;
+      index = 1;
+    }
+  }
+  let pending;
+  for (;index < argv.length; index += 1) {
+    const rawToken = argv[index];
+    const separator = rawToken.startsWith("--") ? rawToken.indexOf("=") : -1;
+    const token = separator === -1 ? rawToken : rawToken.slice(0, separator);
+    const inlineValue = separator === -1 ? undefined : rawToken.slice(separator + 1);
+    const takeValue = () => {
+      if (inlineValue !== undefined)
+        return inlineValue;
+      const value = argv[index + 1];
+      if (value === undefined)
+        return;
+      index += 1;
+      return value;
+    };
+    if (token === "--delete") {
+      parsed.delete = true;
+      continue;
+    }
+    if (token === "--set" || token === "--append") {
+      if (pending)
+        return { error: `${pending.kind === "set" ? "--set" : "--append"} '${pending.fieldPath}' is missing its value` };
+      const fieldPath = takeValue();
+      if (fieldPath === undefined)
+        return { error: `${token} requires a field path` };
+      pending = { kind: token === "--set" ? "set" : "append", fieldPath };
+      continue;
+    }
+    if (token === "--value" || token === "--item") {
+      if (!pending)
+        return { error: `${token} must follow --set or --append` };
+      const expected = pending.kind === "set" ? "--value" : "--item";
+      if (token !== expected)
+        return { error: `--${pending.kind} pairs with ${expected}, not ${token}` };
+      const value = takeValue();
+      if (value === undefined)
+        return { error: `${token} requires a value` };
+      parsed.edits.push(pending.kind === "set" ? { kind: "set", fieldPath: pending.fieldPath, value } : { kind: "append", fieldPath: pending.fieldPath, value });
+      pending = undefined;
+      continue;
+    }
+    if (token === "--remove-entry") {
+      const fieldPath = takeValue();
+      if (fieldPath === undefined)
+        return { error: "--remove-entry requires a field path" };
+      parsed.edits.push({ kind: "remove", fieldPath });
+      continue;
+    }
+    return { error: `unsupported argument: ${rawToken}` };
+  }
+  if (pending)
+    return { error: `--${pending.kind} '${pending.fieldPath}' is missing its value` };
+  return parsed;
+}
+function runBundledAssetEdit(commandName, family, argv, options) {
+  if (handleHelpRequest(commandName, argv))
+    return 0;
+  const usage2 = getCommandUsage(commandName);
+  const parsed = parseEditArgs(argv, options.expectsAssetName);
+  if ("error" in parsed) {
+    writeJson({
+      family,
+      valid: false,
+      committed: false,
+      changes: [],
+      diagnostics: [{ artifactPath: `<${family}>`, phase: "planning", code: "usage-error", fieldPath: "$", message: parsed.error }]
+    });
+    writeUsage(usage2);
+    return 1;
+  }
+  if (options.expectsAssetName && !parsed.assetName) {
+    writeUsage(usage2);
+    return 1;
+  }
+  const outcome = mutateBundledAsset({
+    family,
+    ...parsed.assetName !== undefined ? { assetName: parsed.assetName } : {},
+    edits: parsed.edits,
+    delete: parsed.delete
+  });
+  writeJson({
+    family: outcome.family,
+    ...outcome.assetPath ? { assetPath: outcome.assetPath } : {},
+    valid: outcome.valid,
+    committed: outcome.committed,
+    changes: outcome.changes,
+    diagnostics: outcome.diagnostics
+  });
+  return outcome.exitStatus;
+}
+function runSchemaEdit(argv) {
+  return runBundledAssetEdit("schema-edit", "bundled-schema-assets", argv, { expectsAssetName: true });
+}
+function runTemplateEdit(argv) {
+  return runBundledAssetEdit("template-edit", "bundled-scaffold-assets", argv, { expectsAssetName: true });
+}
+function runSampleEdit(argv) {
+  return runBundledAssetEdit("sample-edit", "bundled-reference-examples", argv, { expectsAssetName: true });
+}
+function runFixtureEdit(argv) {
+  return runBundledAssetEdit("fixture-edit", "validation-fixtures", argv, { expectsAssetName: true });
+}
+function runInventoryEdit(argv) {
+  return runBundledAssetEdit("inventory-edit", "yaml-mutation-inventory", argv, { expectsAssetName: false });
+}
+
+// src/architecture-author.ts
+import { existsSync as existsSync48 } from "fs";
+import path50 from "path";
 var ARCHITECTURE_SCHEMA_ID = "strict-spec-driven/architecture/v1";
 var ARCHITECTURE_ARTIFACT_PATH2 = ".strict-spec-driven/architecture.yaml";
 function asRecord6(value) {
@@ -34257,7 +35097,7 @@ function relationshipIssues(candidate) {
 }
 function authorArchitecture(rootDir, input) {
   const absolutePath = getArchitectureArtifactPath(rootDir);
-  const exists = existsSync47(absolutePath);
+  const exists = existsSync48(absolutePath);
   const operation = input.delete ? "delete" : exists ? "update" : "create";
   if (input.delete && hasEditIntent2(input))
     throw new Error("--delete cannot be combined with architecture editing flags");
@@ -34352,7 +35192,7 @@ function authorArchitecture(rootDir, input) {
       artifactFamily: "architecture-state",
       artifactId: "architecture",
       schemaId: ARCHITECTURE_SCHEMA_ID,
-      familyRoot: path49.join(rootDir, ".strict-spec-driven"),
+      familyRoot: path50.join(rootDir, ".strict-spec-driven"),
       absolutePath,
       operation,
       ...candidate === undefined ? {} : {
@@ -34742,27 +35582,27 @@ function runDesignStatus(argv) {
 }
 
 // src/harness.ts
-import { closeSync, existsSync as existsSync49, mkdirSync as mkdirSync8, openSync, readFileSync as readFileSync32, renameSync as renameSync4, rmSync as rmSync6, rmdirSync as rmdirSync3, statSync as statSync31, writeFileSync as writeFileSync11, appendFileSync } from "fs";
-import { spawn, spawnSync } from "child_process";
-import path51 from "path";
+import { closeSync, existsSync as existsSync50, mkdirSync as mkdirSync8, openSync, readFileSync as readFileSync33, renameSync as renameSync4, rmSync as rmSync7, rmdirSync as rmdirSync3, statSync as statSync32, writeFileSync as writeFileSync12, appendFileSync } from "fs";
+import { spawn, spawnSync as spawnSync2 } from "child_process";
+import path52 from "path";
 
 // src/harness-author.ts
-import { existsSync as existsSync48, readdirSync as readdirSync17, rmdirSync as rmdirSync2, statSync as statSync30 } from "fs";
-import path50 from "path";
+import { existsSync as existsSync49, readdirSync as readdirSync18, rmdirSync as rmdirSync2, statSync as statSync31 } from "fs";
+import path51 from "path";
 var HARNESS_SCHEMA_ID = "strict-spec-driven/harness/v1";
 var HARNESS_FAMILY_ROOT = ".strict-spec-driven";
 var HARNESS_DECLARATION_PATH = ".strict-spec-driven/harness.yaml";
 var HARNESS_SESSIONS_DIR = ".strict-spec-driven/harness-sessions";
 var HARNESS_SESSION_SCHEMA_ID = "strict-spec-driven/harness-session/v1";
 function commitHarnessCandidate(rootDir, candidate, operation) {
-  const absolutePath = path50.join(rootDir, HARNESS_DECLARATION_PATH);
+  const absolutePath = path51.join(rootDir, HARNESS_DECLARATION_PATH);
   return commitYamlMutation({
     rootDir,
     mutations: [{
       artifactFamily: "harness-state",
       artifactId: "harness",
       schemaId: HARNESS_SCHEMA_ID,
-      familyRoot: path50.join(rootDir, HARNESS_FAMILY_ROOT),
+      familyRoot: path51.join(rootDir, HARNESS_FAMILY_ROOT),
       absolutePath,
       operation,
       candidate,
@@ -34849,10 +35689,10 @@ function baseComponent(type2) {
   };
 }
 function activeSessionPaths(rootDir) {
-  const sessionsDir = path50.join(rootDir, HARNESS_SESSIONS_DIR);
-  if (!existsSync48(sessionsDir) || !statSync30(sessionsDir).isDirectory())
+  const sessionsDir = path51.join(rootDir, HARNESS_SESSIONS_DIR);
+  if (!existsSync49(sessionsDir) || !statSync31(sessionsDir).isDirectory())
     return [];
-  return readdirSync17(sessionsDir).filter((entry) => entry !== "archive").map((entry) => path50.join(sessionsDir, entry, "session.yaml")).filter((entry) => existsSync48(entry));
+  return readdirSync18(sessionsDir).filter((entry) => entry !== "archive").map((entry) => path51.join(sessionsDir, entry, "session.yaml")).filter((entry) => existsSync49(entry));
 }
 function validateRelationships(candidate) {
   const issues = [];
@@ -35024,8 +35864,8 @@ function hasEditIntent3(input) {
   return input.id !== undefined || input.description !== undefined || input.environment !== undefined || input.component !== undefined || input.removeEnvironments.length > 0 || input.removeComponents.length > 0 || input.removeDependsOn.length > 0 || input.removeRequiredEnvironment.length > 0 || input.removeOptionalEnvironment.length > 0 || input.removeUrls.length > 0 || input.removePorts.length > 0 || input.removeReadinessNotes.length > 0 || input.removeEvidenceLabels.length > 0 || input.removeUnavailableConditions.length > 0 || input.removeOperations.length > 0;
 }
 function authorHarness(rootDir, input) {
-  const absolutePath = path50.join(rootDir, HARNESS_DECLARATION_PATH);
-  const exists = existsSync48(absolutePath);
+  const absolutePath = path51.join(rootDir, HARNESS_DECLARATION_PATH);
+  const exists = existsSync49(absolutePath);
   const operation = input.delete ? "delete" : exists ? "update" : "create";
   if (input.delete && hasEditIntent3(input)) {
     throw new Error("--delete cannot be combined with harness editing flags");
@@ -35072,7 +35912,7 @@ function authorHarness(rootDir, input) {
       artifactFamily: "harness-state",
       artifactId: "harness",
       schemaId: HARNESS_SCHEMA_ID,
-      familyRoot: path50.join(rootDir, HARNESS_FAMILY_ROOT),
+      familyRoot: path51.join(rootDir, HARNESS_FAMILY_ROOT),
       absolutePath,
       operation
     }]
@@ -35080,14 +35920,14 @@ function authorHarness(rootDir, input) {
   return { ...mutation, artifactPath: HARNESS_DECLARATION_PATH, operation };
 }
 function commitHarnessSessionCandidate(rootDir, sessionId, candidate, operation) {
-  const absolutePath = path50.join(rootDir, HARNESS_SESSIONS_DIR, sessionId, "session.yaml");
+  const absolutePath = path51.join(rootDir, HARNESS_SESSIONS_DIR, sessionId, "session.yaml");
   return commitYamlMutation({
     rootDir,
     mutations: [{
       artifactFamily: "harness-state",
       artifactId: sessionId,
       schemaId: HARNESS_SESSION_SCHEMA_ID,
-      familyRoot: path50.join(rootDir, HARNESS_SESSIONS_DIR),
+      familyRoot: path51.join(rootDir, HARNESS_SESSIONS_DIR),
       absolutePath,
       operation,
       candidate,
@@ -35118,18 +35958,18 @@ function hasSessionEditIntent(input) {
   return input.status !== undefined || input.owner !== undefined || input.environment !== undefined || input.issueSummary !== undefined || input.observedBehavior !== undefined || input.expectedBehavior !== undefined || input.expectedFailure !== undefined || input.verificationStatus !== undefined || input.selectedComponents.length > 0 || input.preconditions.length > 0 || input.replayCommands.length > 0 || input.verificationEvidence.length > 0 || input.step !== undefined || input.evidence !== undefined || input.hypothesis !== undefined || input.finding !== undefined || input.checkpoint !== undefined || input.manualAction !== undefined || input.removeSelectedComponents.length > 0 || input.removePreconditions.length > 0 || input.removeSteps.length > 0 || input.removeVerificationSteps.length > 0 || input.removeEvidence.length > 0 || input.removeHypotheses.length > 0 || input.removeFindings.length > 0 || input.removeCheckpoints.length > 0 || input.removeManualActions.length > 0 || input.removeReplayCommands.length > 0 || input.removeVerificationEvidence.length > 0;
 }
 function authorHarnessSession(rootDir, sessionId, input) {
-  const sessionDir = path50.join(rootDir, HARNESS_SESSIONS_DIR, sessionId);
-  const absolutePath = path50.join(sessionDir, "session.yaml");
-  const evidenceDir = path50.join(sessionDir, "evidence");
-  const sessionPath = path50.relative(rootDir, absolutePath).split(path50.sep).join("/");
-  const relativeEvidenceDir = `${path50.relative(rootDir, evidenceDir).split(path50.sep).join("/")}/`;
-  if (!existsSync48(absolutePath))
+  const sessionDir = path51.join(rootDir, HARNESS_SESSIONS_DIR, sessionId);
+  const absolutePath = path51.join(sessionDir, "session.yaml");
+  const evidenceDir = path51.join(sessionDir, "evidence");
+  const sessionPath = path51.relative(rootDir, absolutePath).split(path51.sep).join("/");
+  const relativeEvidenceDir = `${path51.relative(rootDir, evidenceDir).split(path51.sep).join("/")}/`;
+  if (!existsSync49(absolutePath))
     throw new Error(`harness-session artifact not found: ${sessionPath}`);
   if (input.delete && hasSessionEditIntent(input))
     throw new Error("session delete cannot be combined with editing flags");
   if (!input.delete && !hasSessionEditIntent(input))
     throw new Error("harness-session edit requires semantic fields or named removals");
-  if (input.delete && existsSync48(evidenceDir) && readdirSync17(evidenceDir).length > 0) {
+  if (input.delete && existsSync49(evidenceDir) && readdirSync18(evidenceDir).length > 0) {
     throw new Error("harness-session delete is blocked while its evidence directory is non-empty; archive the session to preserve evidence");
   }
   if (input.delete) {
@@ -35139,15 +35979,15 @@ function authorHarnessSession(rootDir, sessionId, input) {
         artifactFamily: "harness-state",
         artifactId: sessionId,
         schemaId: HARNESS_SESSION_SCHEMA_ID,
-        familyRoot: path50.join(rootDir, HARNESS_SESSIONS_DIR),
+        familyRoot: path51.join(rootDir, HARNESS_SESSIONS_DIR),
         absolutePath,
         operation: "delete"
       }]
     });
     if (mutation2.valid) {
-      if (existsSync48(evidenceDir))
+      if (existsSync49(evidenceDir))
         rmdirSync2(evidenceDir);
-      if (existsSync48(sessionDir))
+      if (existsSync49(sessionDir))
         rmdirSync2(sessionDir);
     }
     return { ...mutation2, sessionId, sessionPath, evidenceDir: relativeEvidenceDir, operation: "delete" };
@@ -35163,14 +36003,14 @@ function authorHarnessSession(rootDir, sessionId, input) {
   if (input.environment !== undefined)
     harness.environment = input.environment;
   candidate.harness = harness;
-  const issue = asRecord7(candidate.issue);
+  const issue2 = asRecord7(candidate.issue);
   if (input.issueSummary !== undefined)
-    issue.summary = input.issueSummary;
+    issue2.summary = input.issueSummary;
   if (input.observedBehavior !== undefined)
-    issue.observed_behavior = input.observedBehavior;
+    issue2.observed_behavior = input.observedBehavior;
   if (input.expectedBehavior !== undefined)
-    issue.expected_behavior = input.expectedBehavior;
-  candidate.issue = issue;
+    issue2.expected_behavior = input.expectedBehavior;
+  candidate.issue = issue2;
   candidate.selected_components = input.removeSelectedComponents.reduce((values3, value) => removeExact(values3, value), appendUnique5(asStringArray4(candidate.selected_components), input.selectedComponents));
   const reproduction = asRecord7(candidate.reproduction);
   reproduction.preconditions = input.removePreconditions.reduce((values3, value) => removeExact(values3, value), appendUnique5(asStringArray4(reproduction.preconditions), input.preconditions));
@@ -35297,9 +36137,9 @@ function yamlDiagnosticFromError(artifactPath, error) {
   };
 }
 function getRuntimePaths(rootDir) {
-  const absoluteRuntimeDir = path51.join(rootDir, HARNESS_RUNTIME_DIR);
-  const absoluteLogsDir = path51.join(rootDir, HARNESS_LOGS_DIR);
-  const absoluteStatePath = path51.join(rootDir, HARNESS_RUNTIME_STATE_PATH);
+  const absoluteRuntimeDir = path52.join(rootDir, HARNESS_RUNTIME_DIR);
+  const absoluteLogsDir = path52.join(rootDir, HARNESS_LOGS_DIR);
+  const absoluteStatePath = path52.join(rootDir, HARNESS_RUNTIME_STATE_PATH);
   return {
     absoluteRuntimeDir,
     absoluteLogsDir,
@@ -35331,10 +36171,10 @@ function isProcessAlive(pid) {
 }
 function readRuntimeState(rootDir) {
   const paths = getRuntimePaths(rootDir);
-  if (!existsSync49(paths.absoluteStatePath))
+  if (!existsSync50(paths.absoluteStatePath))
     return { ok: true, state: null };
   try {
-    const state = JSON.parse(readFileSync32(paths.absoluteStatePath, "utf8"));
+    const state = JSON.parse(readFileSync33(paths.absoluteStatePath, "utf8"));
     if (typeof state !== "object" || state === null || state.version !== 1 || typeof state.artifactPath !== "string" || typeof state.harnessId !== "string" || typeof state.environmentId !== "string" || !Array.isArray(state.componentOrder) || typeof state.components !== "object" || state.components === null) {
       return {
         ok: false,
@@ -35360,11 +36200,11 @@ function readRuntimeState(rootDir) {
 }
 function writeRuntimeState(rootDir, state) {
   const paths = ensureRuntimeDirectories(rootDir);
-  writeFileSync11(paths.absoluteStatePath, JSON.stringify(state, null, 2) + `
+  writeFileSync12(paths.absoluteStatePath, JSON.stringify(state, null, 2) + `
 `, "utf8");
 }
 function clearRuntimeState(rootDir) {
-  rmSync6(getRuntimePaths(rootDir).absoluteRuntimeDir, { recursive: true, force: true });
+  rmSync7(getRuntimePaths(rootDir).absoluteRuntimeDir, { recursive: true, force: true });
 }
 function snapshot(record) {
   const alive = isProcessAlive(record.pid);
@@ -35525,20 +36365,20 @@ function assertOperationAllowed(artifactPath, environment, component, operationN
   return null;
 }
 function readJsonFile(filePath) {
-  if (!existsSync49(filePath))
+  if (!existsSync50(filePath))
     return null;
   try {
-    return JSON.parse(readFileSync32(filePath, "utf8"));
+    return JSON.parse(readFileSync33(filePath, "utf8"));
   } catch {
     return null;
   }
 }
 function detectPackageRunner(rootDir) {
-  if (existsSync49(path51.join(rootDir, "bun.lock")) || existsSync49(path51.join(rootDir, "bun.lockb")))
+  if (existsSync50(path52.join(rootDir, "bun.lock")) || existsSync50(path52.join(rootDir, "bun.lockb")))
     return "bun run";
-  if (existsSync49(path51.join(rootDir, "pnpm-lock.yaml")))
+  if (existsSync50(path52.join(rootDir, "pnpm-lock.yaml")))
     return "pnpm run";
-  if (existsSync49(path51.join(rootDir, "yarn.lock")))
+  if (existsSync50(path52.join(rootDir, "yarn.lock")))
     return "yarn";
   return "npm run";
 }
@@ -35584,11 +36424,11 @@ function readEnvSampleNames(rootDir) {
   const names = new Set;
   const evidence = [];
   for (const relativePath of ENV_SAMPLE_FILES) {
-    const absolutePath = path51.join(rootDir, relativePath);
-    if (!existsSync49(absolutePath))
+    const absolutePath = path52.join(rootDir, relativePath);
+    if (!existsSync50(absolutePath))
       continue;
     evidence.push(relativePath);
-    for (const line of readFileSync32(absolutePath, "utf8").split(/\r?\n/)) {
+    for (const line of readFileSync33(absolutePath, "utf8").split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#"))
         continue;
@@ -35642,7 +36482,7 @@ function inferComposePort(service) {
   return null;
 }
 function detectPackageScriptSignal(rootDir, packageJson, scripts) {
-  if (!existsSync49(path51.join(rootDir, "package.json"))) {
+  if (!existsSync50(path52.join(rootDir, "package.json"))) {
     return { candidate: null, evidence: [] };
   }
   const preferredScript = PACKAGE_SCRIPT_NAMES.find((name) => scripts[name] !== undefined);
@@ -35668,11 +36508,11 @@ function detectPackageScriptSignal(rootDir, packageJson, scripts) {
 function detectComposeServiceSignal(rootDir) {
   const evidence = [];
   for (const relativePath of COMPOSE_FILES) {
-    const absolutePath = path51.join(rootDir, relativePath);
-    if (!existsSync49(absolutePath))
+    const absolutePath = path52.join(rootDir, relativePath);
+    if (!existsSync50(absolutePath))
       continue;
     try {
-      const compose = parseYamlDocument(readFileSync32(absolutePath, "utf8"), { source: relativePath });
+      const compose = parseYamlDocument(readFileSync33(absolutePath, "utf8"), { source: relativePath });
       const services = isRecord5(compose) && isRecord5(compose.services) ? Object.entries(compose.services).filter((entry) => isRecord5(entry[1])) : [];
       const eligible = services.filter(([, service2]) => ("build" in service2) || readStringOrStringArray(service2.command) !== undefined);
       if (eligible.length === 0) {
@@ -35698,11 +36538,11 @@ function detectComposeServiceSignal(rootDir) {
   return { candidate: null, evidence };
 }
 function detectProcfileSignal(rootDir, packageJson) {
-  const procfilePath = path51.join(rootDir, "Procfile");
-  if (!existsSync49(procfilePath)) {
+  const procfilePath = path52.join(rootDir, "Procfile");
+  if (!existsSync50(procfilePath)) {
     return { candidate: null, evidence: [] };
   }
-  const entries = readFileSync32(procfilePath, "utf8").split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0 && !line.startsWith("#")).map((line) => line.match(/^([A-Za-z0-9_-]+):\s*(.+)$/)).filter((match) => match !== null).map((match) => ({ name: match[1], command: match[2].trim() })).filter((entry) => entry.command.length > 0);
+  const entries = readFileSync33(procfilePath, "utf8").split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0 && !line.startsWith("#")).map((line) => line.match(/^([A-Za-z0-9_-]+):\s*(.+)$/)).filter((match) => match !== null).map((match) => ({ name: match[1], command: match[2].trim() })).filter((entry) => entry.command.length > 0);
   const eligible = entries.filter((entry) => !PROCFILE_EXCLUDED_PROCESS_NAMES.has(entry.name.toLowerCase()));
   if (eligible.length === 0) {
     return {
@@ -35724,11 +36564,11 @@ function detectProcfileSignal(rootDir, packageJson) {
   };
 }
 function detectMakefileSignal(rootDir) {
-  const makefilePath = path51.join(rootDir, "Makefile");
-  if (!existsSync49(makefilePath)) {
+  const makefilePath = path52.join(rootDir, "Makefile");
+  if (!existsSync50(makefilePath)) {
     return { candidate: null, evidence: [] };
   }
-  const target = readFileSync32(makefilePath, "utf8").split(/\r?\n/).map((line) => line.match(/^([A-Za-z0-9_.-]+)\s*:(?![=])/)).find((match) => match !== null && !match[1].startsWith(".") && MAKEFILE_TARGET_NAMES.has(match[1]));
+  const target = readFileSync33(makefilePath, "utf8").split(/\r?\n/).map((line) => line.match(/^([A-Za-z0-9_.-]+)\s*:(?![=])/)).find((match) => match !== null && !match[1].startsWith(".") && MAKEFILE_TARGET_NAMES.has(match[1]));
   if (!target) {
     return {
       candidate: null,
@@ -35764,7 +36604,7 @@ function detectHarnessInferenceSignal(rootDir, packageJson, scripts) {
   return { signal: null, evidence };
 }
 function buildInferredHarness(rootDir) {
-  const packageJson = readJsonFile(path51.join(rootDir, "package.json"));
+  const packageJson = readJsonFile(path52.join(rootDir, "package.json"));
   const scripts = getPackageScripts(packageJson);
   const envSamples = readEnvSampleNames(rootDir);
   const inference = detectHarnessInferenceSignal(rootDir, packageJson, scripts);
@@ -35785,7 +36625,7 @@ function buildInferredHarness(rootDir) {
       artifact_type: "harness",
       schema_file: "templates/strict-spec-driven/schemas/harness.yaml",
       harness: {
-        id: path51.basename(rootDir).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "default",
+        id: path52.basename(rootDir).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "default",
         description: "AI-assisted draft inferred from repository metadata. Review commands and safety policy before enabling lifecycle scripts.",
         environments: {
           development: {
@@ -35864,7 +36704,7 @@ function buildInferredHarness(rootDir) {
   };
 }
 function inferHarness(rootDir, options = {}) {
-  const absolutePath = path51.join(rootDir, HARNESS_DECLARATION_PATH2);
+  const absolutePath = path52.join(rootDir, HARNESS_DECLARATION_PATH2);
   const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
   const inferred = buildInferredHarness(rootDir);
   const draft = stringifyYamlDocument(inferred.artifact);
@@ -35874,7 +36714,7 @@ function inferHarness(rootDir, options = {}) {
     return { ok: false, artifactPath, created: false, draft, evidence: inferred.evidence, diagnostics };
   }
   if (options.write) {
-    if (existsSync49(absolutePath) && !options.force) {
+    if (existsSync50(absolutePath) && !options.force) {
       return {
         ok: false,
         artifactPath,
@@ -35887,7 +36727,7 @@ function inferHarness(rootDir, options = {}) {
         })]
       };
     }
-    const mutation = commitHarnessCandidate(rootDir, inferred.artifact, existsSync49(absolutePath) ? "update" : "create");
+    const mutation = commitHarnessCandidate(rootDir, inferred.artifact, existsSync50(absolutePath) ? "update" : "create");
     if (!mutation.valid) {
       return {
         ok: false,
@@ -35911,9 +36751,9 @@ function inferHarness(rootDir, options = {}) {
   return { ok: true, artifactPath, created: options.write ?? false, draft, evidence: inferred.evidence, diagnostics: [] };
 }
 function deriveHarnessPlan(rootDir, environmentId, componentIds = []) {
-  const absolutePath = path51.join(rootDir, HARNESS_DECLARATION_PATH2);
+  const absolutePath = path52.join(rootDir, HARNESS_DECLARATION_PATH2);
   const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
-  if (!existsSync49(absolutePath)) {
+  if (!existsSync50(absolutePath)) {
     throw new Error("missing-harness");
   }
   const artifact = parseYamlFile(absolutePath);
@@ -36012,7 +36852,7 @@ function normalizeOperation(operation) {
   };
 }
 function getHarnessPlanResult(rootDir, environmentId, componentIds = []) {
-  const artifactPath = normalizeRepoRelativePath4(rootDir, path51.join(rootDir, HARNESS_DECLARATION_PATH2));
+  const artifactPath = normalizeRepoRelativePath4(rootDir, path52.join(rootDir, HARNESS_DECLARATION_PATH2));
   try {
     return {
       valid: true,
@@ -36067,7 +36907,7 @@ function runHttpReadinessCheck(url) {
     "req.on('error', () => process.exit(1));",
     "req.end();"
   ].join("");
-  return spawnSync(process.execPath, ["-e", script, url], { stdio: "ignore" }).status === 0;
+  return spawnSync2(process.execPath, ["-e", script, url], { stdio: "ignore" }).status === 0;
 }
 function runTcpReadinessCheck(port) {
   const script = [
@@ -36078,7 +36918,7 @@ function runTcpReadinessCheck(port) {
     "});",
     "socket.on('error', () => process.exit(1));"
   ].join("");
-  return spawnSync(process.execPath, ["-e", script, String(port)], { stdio: "ignore" }).status === 0;
+  return spawnSync2(process.execPath, ["-e", script, String(port)], { stdio: "ignore" }).status === 0;
 }
 function findPortConflict(ports, ignoredPorts) {
   for (const port of ports) {
@@ -36175,7 +37015,7 @@ function startHarness(rootDir, options = {}) {
       return { ok: false, artifactPath: planResult.artifactPath, runtimeStatePath: writablePaths.relativeStatePath, harnessId: planResult.harness.id, environmentId: planResult.environment.id, components: summarizeRuntimeState(state), diagnostics };
     }
     const missingEnvironment = getMissingRequiredEnvironment(component);
-    const logAbsolutePath = path51.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
+    const logAbsolutePath = path52.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
     const logPath = normalizeRepoRelativePath4(rootDir, logAbsolutePath);
     if (missingEnvironment.length > 0) {
       const failureReason = formatMissingRequiredEnvironmentFailure(missingEnvironment);
@@ -36232,10 +37072,10 @@ function startHarness(rootDir, options = {}) {
         diagnostics
       };
     }
-    writeFileSync11(logAbsolutePath, "", "utf8");
+    writeFileSync12(logAbsolutePath, "", "utf8");
     const logDescriptor = openSync(logAbsolutePath, "a");
     const child = spawn(component.operations.start.command ?? "", [], {
-      cwd: path51.join(rootDir, component.workingDirectory),
+      cwd: path52.join(rootDir, component.workingDirectory),
       env: process.env,
       shell: true,
       detached: true,
@@ -36299,7 +37139,7 @@ function getHarnessLogs(rootDir, options = {}) {
   if (record === undefined) {
     return { ok: false, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, diagnostics: [createDiagnostic(runtime.state.artifactPath, "$", "harness-logs received an unknown declared component id", { source: "logs", phase: "logs", componentId, expected: ids.join(", "), actual: componentId })] };
   }
-  const content = readFileSync32(path51.join(rootDir, record.logPath), "utf8");
+  const content = readFileSync33(path52.join(rootDir, record.logPath), "utf8");
   const boundedContent = options.all ? content : takeTailLines(content, options.tailLines ?? DEFAULT_HARNESS_LOG_TAIL_LINES);
   return { ok: true, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, componentId, logPath: record.logPath, content: boundedContent, diagnostics: [] };
 }
@@ -36332,7 +37172,7 @@ function stopHarness(rootDir, options = {}) {
       continue;
     }
     if (record.stopCommand) {
-      const result2 = spawnSync(record.stopCommand, [], { cwd: path51.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
+      const result2 = spawnSync2(record.stopCommand, [], { cwd: path52.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
       if (result2.status !== 0) {
         record.status = "failed";
         record.failureReason = result2.stderr.trim() || result2.stdout.trim() || "stop command failed";
@@ -36361,13 +37201,13 @@ function addDoctorDiagnostic(diagnostics, artifactPath, fieldPath, message, opti
   diagnostics.push(createDiagnostic(artifactPath, fieldPath, message, options));
 }
 function doctorHarness(rootDir) {
-  const artifactPath = normalizeRepoRelativePath4(rootDir, path51.join(rootDir, HARNESS_DECLARATION_PATH2));
+  const artifactPath = normalizeRepoRelativePath4(rootDir, path52.join(rootDir, HARNESS_DECLARATION_PATH2));
   const planResult = getHarnessPlanResult(rootDir);
   const diagnostics = [];
   if (!planResult.valid) {
     return { ok: false, artifactPath: planResult.artifactPath, diagnostics: planResult.diagnostics };
   }
-  const absolutePath = path51.join(rootDir, HARNESS_DECLARATION_PATH2);
+  const absolutePath = path52.join(rootDir, HARNESS_DECLARATION_PATH2);
   const artifact = parseYamlFile(absolutePath);
   const rootEnvSamples = readEnvSampleNames(rootDir);
   const wrapperCheck = verifyHarnessScripts(rootDir);
@@ -36381,8 +37221,8 @@ function doctorHarness(rootDir) {
     }
     const seenPorts = new Map;
     for (const component of environmentPlan.components) {
-      const workingDirectory = path51.join(rootDir, component.workingDirectory);
-      if (!existsSync49(workingDirectory) || !statSync31(workingDirectory).isDirectory()) {
+      const workingDirectory = path52.join(rootDir, component.workingDirectory);
+      if (!existsSync50(workingDirectory) || !statSync32(workingDirectory).isDirectory()) {
         addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.working_directory`, "harness component working directory is missing", {
           source: "filesystem",
           componentId: component.id,
@@ -36390,19 +37230,19 @@ function doctorHarness(rootDir) {
           actual: component.workingDirectory
         });
       }
-      const componentEnvSamples = workingDirectory === rootDir || !existsSync49(workingDirectory) ? { names: [], evidence: [] } : readEnvSampleNames(workingDirectory);
+      const componentEnvSamples = workingDirectory === rootDir || !existsSync50(workingDirectory) ? { names: [], evidence: [] } : readEnvSampleNames(workingDirectory);
       const documentedEnvNames = new Set([...rootEnvSamples.names, ...componentEnvSamples.names]);
       for (const name of component.environment.required) {
         if (!documentedEnvNames.has(name)) {
           let targetPath = ".env.example";
           if (componentEnvSamples.evidence.length > 0) {
-            targetPath = path51.join(component.workingDirectory, componentEnvSamples.evidence[0]);
+            targetPath = path52.join(component.workingDirectory, componentEnvSamples.evidence[0]);
           } else if (rootEnvSamples.evidence.length > 0) {
             targetPath = rootEnvSamples.evidence[0];
           } else if (component.workingDirectory !== ".") {
-            targetPath = path51.join(component.workingDirectory, ".env.example");
+            targetPath = path52.join(component.workingDirectory, ".env.example");
           }
-          const repoRelativeTarget = normalizeRepoRelativePath4(rootDir, path51.resolve(rootDir, targetPath));
+          const repoRelativeTarget = normalizeRepoRelativePath4(rootDir, path52.resolve(rootDir, targetPath));
           const recovery = {
             type: "bootstrap_env",
             description: `Append missing required environment variable ${name} to ${repoRelativeTarget}`,
@@ -36451,7 +37291,7 @@ ${name}=
           continue;
         const scriptName = extractPackageScriptName(operation.command);
         if (scriptName !== null) {
-          const packageJson = readJsonFile(path51.join(workingDirectory, "package.json"));
+          const packageJson = readJsonFile(path52.join(workingDirectory, "package.json"));
           const scripts = getPackageScripts(packageJson);
           if (scripts[scriptName] === undefined) {
             addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.operations.${operationName}.command`, "harness operation references a missing package script", {
@@ -36508,7 +37348,7 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
       continue;
     for (const step of diag.recovery.steps) {
       if (step.action === "write_file") {
-        const absolutePath = path51.resolve(rootDir, step.path);
+        const absolutePath = path52.resolve(rootDir, step.path);
         const relativePath = normalizeRepoRelativePath4(rootDir, absolutePath);
         if (relativePath.startsWith(".strict-spec-driven/") && /\.ya?ml$/i.test(relativePath)) {
           throw new Error(`harness-doctor recovery cannot write repository-owned YAML directly: ${relativePath}; declare a run_cli recovery that uses the artifact-aware authoring command`);
@@ -36518,14 +37358,14 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
         if (executedKeys.has(key))
           continue;
         executedKeys.add(key);
-        const dir = path51.dirname(absolutePath);
-        if (!existsSync49(dir)) {
+        const dir = path52.dirname(absolutePath);
+        if (!existsSync50(dir)) {
           mkdirSync8(dir, { recursive: true });
         }
         if (mode === "append") {
           appendFileSync(absolutePath, step.content, "utf8");
         } else {
-          writeFileSync11(absolutePath, step.content, "utf8");
+          writeFileSync12(absolutePath, step.content, "utf8");
         }
         anyFixed = true;
       } else if (step.action === "run_cli") {
@@ -36533,9 +37373,9 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
         if (executedKeys.has(key))
           continue;
         executedKeys.add(key);
-        const cliPath = path51.resolve(process.argv[1]);
+        const cliPath = path52.resolve(process.argv[1]);
         const display = ["strict-spec-cli", ...step.args].join(" ");
-        const result2 = spawnSync(process.execPath, [cliPath, ...step.args], { cwd: rootDir, encoding: "utf8" });
+        const result2 = spawnSync2(process.execPath, [cliPath, ...step.args], { cwd: rootDir, encoding: "utf8" });
         if (result2.error) {
           throw new Error(`Failed to execute recovery command: ${display}. Error: ${result2.error.message}`);
         }
@@ -36572,12 +37412,12 @@ function wrapperContent(scriptName) {
 `);
 }
 function generateHarnessScripts(rootDir) {
-  const scriptsDir = path51.join(rootDir, "scripts");
+  const scriptsDir = path52.join(rootDir, "scripts");
   mkdirSync8(scriptsDir, { recursive: true });
   const created = [];
   for (const scriptName of SCRIPT_NAMES) {
-    const absolutePath = path51.join(scriptsDir, scriptName);
-    writeFileSync11(absolutePath, wrapperContent(scriptName), { encoding: "utf8", mode: 493 });
+    const absolutePath = path52.join(scriptsDir, scriptName);
+    writeFileSync12(absolutePath, wrapperContent(scriptName), { encoding: "utf8", mode: 493 });
     created.push(normalizeRepoRelativePath4(rootDir, absolutePath));
   }
   return { ok: true, scripts: SCRIPT_NAMES.map((name) => `scripts/${name}`), created, verified: [], diagnostics: [] };
@@ -36597,8 +37437,8 @@ function verifyHarnessScripts(rootDir) {
   };
   for (const scriptName of SCRIPT_NAMES) {
     const relativePath = `scripts/${scriptName}`;
-    const absolutePath = path51.join(rootDir, relativePath);
-    if (!existsSync49(absolutePath)) {
+    const absolutePath = path52.join(rootDir, relativePath);
+    if (!existsSync50(absolutePath)) {
       diagnostics.push(createDiagnostic(relativePath, "$", "harness script is missing", {
         source: "scripts",
         phase: "scripts",
@@ -36608,7 +37448,7 @@ function verifyHarnessScripts(rootDir) {
       }));
       continue;
     }
-    const content = readFileSync32(absolutePath, "utf8");
+    const content = readFileSync33(absolutePath, "utf8");
     if (content !== wrapperContent(scriptName)) {
       diagnostics.push(createDiagnostic(relativePath, "$", "harness script content does not match generated wrapper", {
         source: "scripts",
@@ -36627,47 +37467,47 @@ function normalizeHarnessSessionPath(rootDir, target) {
   const normalized = target.split("\\").join("/");
   const looksLikePath = normalized.includes("/") || normalized.endsWith(".yaml");
   const repoRelativePath = looksLikePath ? normalized : `${HARNESS_SESSIONS_DIR2}/${normalized}/${HARNESS_SESSION_FILE_NAME}`;
-  const absolutePath = path51.resolve(rootDir, repoRelativePath);
+  const absolutePath = path52.resolve(rootDir, repoRelativePath);
   return { artifactPath: normalizeRepoRelativePath4(rootDir, absolutePath), absolutePath };
 }
 function formatLocalDate2(date = new Date) {
   return `${String(date.getFullYear())}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 function buildHarnessSessionArchiveDestination(rootDir, sessionId) {
-  const archiveRoot = path51.join(rootDir, HARNESS_SESSION_ARCHIVE_DIR);
+  const archiveRoot = path52.join(rootDir, HARNESS_SESSION_ARCHIVE_DIR);
   mkdirSync8(archiveRoot, { recursive: true });
   const baseName = `${formatLocalDate2()}-${sessionId}`;
-  let candidate = path51.join(archiveRoot, baseName);
+  let candidate = path52.join(archiveRoot, baseName);
   let sequence = 2;
-  while (existsSync49(candidate)) {
-    candidate = path51.join(archiveRoot, `${baseName}-${sequence}`);
+  while (existsSync50(candidate)) {
+    candidate = path52.join(archiveRoot, `${baseName}-${sequence}`);
     sequence += 1;
   }
   return candidate;
 }
 function isDirectory(filePath) {
-  return existsSync49(filePath) && statSync31(filePath).isDirectory();
+  return existsSync50(filePath) && statSync32(filePath).isDirectory();
 }
 function createHarnessSession(rootDir, sessionId) {
-  const sessionDir = path51.join(rootDir, HARNESS_SESSIONS_DIR2, sessionId);
-  const sessionPath = path51.join(sessionDir, HARNESS_SESSION_FILE_NAME);
-  const evidenceDir = path51.join(sessionDir, "evidence");
+  const sessionDir = path52.join(rootDir, HARNESS_SESSIONS_DIR2, sessionId);
+  const sessionPath = path52.join(sessionDir, HARNESS_SESSION_FILE_NAME);
+  const evidenceDir = path52.join(sessionDir, "evidence");
   const relativeSessionDir = normalizeRepoRelativePath4(rootDir, sessionDir);
   const relativeSessionPath = normalizeRepoRelativePath4(rootDir, sessionPath);
   const relativeEvidenceDir = normalizeRepoRelativePath4(rootDir, evidenceDir);
   if (!SESSION_ID_PATTERN.test(sessionId) || sessionId === "archive") {
     return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$.harness_session.id", "harness-session id must be kebab-case and not reserved", { expected: "lowercase letters, numbers, hyphens, and not 'archive'", actual: sessionId })] };
   }
-  if (existsSync49(sessionPath) || existsSync49(evidenceDir)) {
+  if (existsSync50(sessionPath) || existsSync50(evidenceDir)) {
     return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$", "harness-session already exists", { expected: "new harness-session directory", actual: relativeSessionDir })] };
   }
   mkdirSync8(evidenceDir, { recursive: true });
   const candidate = parseYamlDocument(readBundledScaffoldTemplate(HARNESS_SESSION_TEMPLATE_PATH).replaceAll(TEMPLATE_SESSION_ID_PLACEHOLDER, sessionId), { source: relativeSessionPath });
   const mutation = commitHarnessSessionCandidate(rootDir, sessionId, candidate, "create");
   if (!mutation.valid) {
-    if (existsSync49(evidenceDir))
+    if (existsSync50(evidenceDir))
       rmdirSync3(evidenceDir);
-    if (existsSync49(sessionDir))
+    if (existsSync50(sessionDir))
       rmdirSync3(sessionDir);
     return {
       ok: false,
@@ -36692,7 +37532,7 @@ function createHarnessSession(rootDir, sessionId) {
 }
 function validateHarnessSession(rootDir, target) {
   const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
-  if (!existsSync49(absolutePath)) {
+  if (!existsSync50(absolutePath)) {
     return { valid: false, artifactPath, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
   }
   let artifact;
@@ -36706,15 +37546,15 @@ function validateHarnessSession(rootDir, target) {
 }
 function archiveHarnessSession(rootDir, target) {
   const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
-  const sourceDir = path51.dirname(absolutePath);
+  const sourceDir = path52.dirname(absolutePath);
   const relativeSourceDir = normalizeRepoRelativePath4(rootDir, sourceDir);
   const missingResult = { ok: false, sessionId: null, sourceDir: relativeSourceDir, sourcePath: artifactPath, archiveDir: null, archivePath: null };
-  if (!existsSync49(absolutePath)) {
+  if (!existsSync50(absolutePath)) {
     return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
   }
-  const activeRoot = path51.resolve(rootDir, HARNESS_SESSIONS_DIR2);
-  const sourceParent = path51.dirname(path51.resolve(sourceDir));
-  if (path51.basename(absolutePath) !== HARNESS_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
+  const activeRoot = path52.resolve(rootDir, HARNESS_SESSIONS_DIR2);
+  const sourceParent = path52.dirname(path52.resolve(sourceDir));
+  if (path52.basename(absolutePath) !== HARNESS_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
     return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session archive target must be an active session.yaml artifact", { expected: `${HARNESS_SESSIONS_DIR2}/<session-id>/${HARNESS_SESSION_FILE_NAME}`, actual: artifactPath })] };
   }
   const validation = validateHarnessSession(rootDir, artifactPath);
@@ -36729,8 +37569,8 @@ function archiveHarnessSession(rootDir, target) {
   if (sessionId === "archive") {
     return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id is reserved for archived sessions", { expected: "non-reserved harness-session id", actual: sessionId })] };
   }
-  if (path51.basename(sourceDir) !== sessionId) {
-    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path51.basename(sourceDir), actual: sessionId })] };
+  if (path52.basename(sourceDir) !== sessionId) {
+    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path52.basename(sourceDir), actual: sessionId })] };
   }
   if (status !== "resolved" && status !== "blocked") {
     return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.status", "harness-session must be resolved or blocked before archive", { expected: "resolved or blocked", actual: typeof status === "string" ? status : typeof status })] };
@@ -36753,7 +37593,7 @@ function archiveHarnessSession(rootDir, target) {
     };
   }
   const archiveDestination = buildHarnessSessionArchiveDestination(rootDir, sessionId);
-  const archivePath = path51.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
+  const archivePath = path52.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
   renameSync4(sourceDir, archiveDestination);
   return {
     ok: true,
@@ -37423,6 +38263,11 @@ var commands = createCliCommandTable({
   "template-show": (argv) => runTemplateShow(argv),
   "yaml-surface-list": (argv) => runYamlSurfaceList(argv),
   "yaml-surface-show": (argv) => runYamlSurfaceShow(argv),
+  "schema-edit": (argv) => runSchemaEdit(argv),
+  "template-edit": (argv) => runTemplateEdit(argv),
+  "sample-edit": (argv) => runSampleEdit(argv),
+  "fixture-edit": (argv) => runFixtureEdit(argv),
+  "inventory-edit": (argv) => runInventoryEdit(argv),
   "harness-edit": (argv) => runHarnessEdit(argv),
   "harness-infer": (argv) => runHarnessInfer(argv),
   "harness-doctor": (argv) => runHarnessDoctor(argv),
@@ -37475,9 +38320,9 @@ function isDirectInvocation(argvPath, moduleUrl) {
   if (!argvPath)
     return false;
   try {
-    return realpathSync2(argvPath) === realpathSync2(fileURLToPath6(moduleUrl));
+    return realpathSync2(argvPath) === realpathSync2(fileURLToPath7(moduleUrl));
   } catch {
-    const modulePath = fileURLToPath6(moduleUrl);
+    const modulePath = fileURLToPath7(moduleUrl);
     return modulePath.includes("~BUN") || modulePath.includes("$bunfs");
   }
 }

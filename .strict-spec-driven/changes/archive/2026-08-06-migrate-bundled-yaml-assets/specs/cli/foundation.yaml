@@ -1,0 +1,85 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/bundled-asset-mutation.ts
+    - src/cli/cmd-bundled-assets.ts
+    - src/cli/command-metadata-entries.ts
+    - src/cli/registry.ts
+    - src/yaml-mutation-surface.ts
+    - inventory/yaml-mutation-surfaces.yaml
+    - src/cli/command-metadata.ts
+    - src/strict-spec-cli.ts
+    - src/yaml-mutation.ts
+    - scripts/gen-templates-bundle.ts
+    - scripts/check-yaml-mutation-inventory.ts
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-authors-bundled-repository-assets:
+      strength: MUST
+      statement: The system MUST provide CLI-owned creation, update, named-entry removal, and whole-artifact deletion for every repository-bundled YAML asset family — bundled schema documents and the schema registry, initialization scaffolds and SOP category templates, minimal reference examples, validation test fixtures, and the YAML mutation inventory — through commands that accept named semantic arguments and resolve a confined asset destination from the command's own family rather than from a caller-supplied output path.
+      scenarios:
+        bundled-asset-families-report-cli-ownership:
+          - GIVEN: The mutation inventory declares the bundled schema, scaffold, reference example, validation fixture, and mutation inventory families
+          - WHEN: A caller requests the YAML mutation surface listing
+          - THEN: Each of those families is reported as CLI-owned for create, update, named removal, and deletion, and each supported operation names the CLI command that owns it
+        named-removal-affects-only-the-named-entry:
+          - GIVEN: A bundled asset containing several named entries
+          - WHEN: A caller removes one entry by name through its family's editing command
+          - THEN: Only that entry is gone and every sibling entry, unnamed field, and unrelated bundled asset is unchanged
+        caller-supplied-destinations-are-rejected:
+          - GIVEN: A caller invokes a bundled-asset editing command with an asset name that resolves outside its family's confined location
+          - WHEN: The system resolves the request
+          - THEN: The request is rejected with a deterministic diagnostic naming the confinement rule and no file is created or modified
+    bundled-asset-writes-are-reference-complete:
+      strength: MUST
+      statement: 'The system MUST treat a bundled asset''s dependent references and regenerated bundles as participants of the same write: an accepted bundled-asset mutation MUST leave the schema registry, primary-example references, scaffold consumers, mutation inventory, and embedded asset bundle mutually consistent, MUST refuse a deletion while any of those still reference the asset, and MUST leave every pre-existing file unchanged when any part of that set fails.'
+      scenarios:
+        embedded-bundle-is-regenerated-with-the-asset:
+          - GIVEN: A bundled schema, scaffold, example, or inventory asset is edited through its CLI command
+          - WHEN: The write is accepted
+          - THEN: The embedded asset bundle reflects the edited content, so no state exists in which the asset and the bundle disagree
+        failed-regeneration-rolls-back-the-write:
+          - GIVEN: A bundled-asset write is accepted for content but regenerating the embedded bundle fails
+          - WHEN: The system resolves the mutation
+          - THEN: The mutation fails with a deterministic diagnostic and both the asset and the embedded bundle are byte-identical to their pre-write content
+        deletion-is-refused-while-referenced:
+          - GIVEN: A bundled asset is still named by the schema registry, a primary-example reference, a scaffold consumer, the mutation inventory, or an asserting test suite
+          - WHEN: A caller requests deletion of that asset
+          - THEN: The deletion is refused with a diagnostic naming each referencing path and nothing is deleted
+        dangling-references-are-rejected-at-write-time:
+          - GIVEN: A bundled schema is created without the registry entry and primary example that make it reachable
+          - WHEN: The system validates the candidate mutation
+          - THEN: The write is rejected with a diagnostic naming the missing reference, rather than producing an asset that validates alone but is unreachable
+    fixture-and-inventory-writes-preserve-their-purpose:
+      strength: MUST
+      statement: 'The system MUST validate each bundled asset against the contract that asset actually serves: a validation fixture MUST be checked for parseability and its declared fixture intent rather than against the schema it names, so an intentionally invalid fixture stays invalid, and a mutation-inventory write MUST be gated on the repository inventory coverage check rather than on schema validation alone.'
+      scenarios:
+        invalid-fixtures-stay-invalid:
+          - GIVEN: A validation fixture that intentionally violates the schema it names
+          - WHEN: A caller edits that fixture through its CLI command
+          - THEN: The write is accepted, the fixture remains schema-invalid, and it still produces the diagnostics its test suite asserts
+        inventory-writes-are-gated-on-coverage:
+          - GIVEN: A caller edits the YAML mutation inventory in a way that leaves a tracked repository YAML path uncovered or a declared pattern stale
+          - WHEN: The system validates the candidate inventory
+          - THEN: The write is rejected with the inventory coverage diagnostics and the recorded inventory is unchanged
+        field-edits-to-an-unparseable-fixture-are-refused:
+          - GIVEN: A validation fixture whose declared intent is to be unparseable YAML
+          - WHEN: A caller attempts to edit one of its fields
+          - THEN: The edit is refused with a deterministic diagnostic naming the fixture's declared intent, the fixture is unchanged, and deletion remains the only supported mutation for it
+    bundled-asset-commands-are-checkout-scoped:
+      strength: MUST
+      statement: The system MUST confine the bundled-asset editing commands to the repository checkout that contains the bundled source tree, and MUST refuse each of them with a deterministic diagnostic naming the absent source tree when invoked where that tree does not exist, rather than creating the tree or writing a partial asset.
+      scenarios:
+        refusal-outside-the-bundled-source-tree:
+          - GIVEN: A bundled-asset editing command is invoked from a project that has no bundled source tree
+          - WHEN: The system resolves the request
+          - THEN: The command exits non-zero with a diagnostic naming the absent bundled source tree and creates no file or directory
+  MODIFIED: {}
+  REMOVED: {}

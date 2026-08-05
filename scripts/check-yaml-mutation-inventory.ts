@@ -365,9 +365,15 @@ export function validateYamlMutationInventory(options: InventoryValidationOption
 }
 
 function runCli(): void {
-  const rootArgument = process.argv[2];
+  const args = process.argv.slice(2);
+  // `--candidate` lets a pending inventory be checked before it is written, so inventory-edit can
+  // gate a write on coverage without first installing the document it is validating.
+  const candidateIndex = args.indexOf("--candidate");
+  const candidatePath = candidateIndex === -1 ? undefined : args[candidateIndex + 1];
+  const rootArgument = args.filter((_, index) => index !== candidateIndex && index !== candidateIndex + 1)[0];
   const rootDir = rootArgument ? path.resolve(rootArgument) : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-  const result = validateYamlMutationInventory({ rootDir });
+  const candidate = candidatePath ? load(readFileSync(path.resolve(candidatePath), "utf8")) : undefined;
+  const result = validateYamlMutationInventory({ rootDir, ...(candidate !== undefined ? { inventory: candidate } : {}) });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   if (!result.valid) process.exitCode = 1;
 }

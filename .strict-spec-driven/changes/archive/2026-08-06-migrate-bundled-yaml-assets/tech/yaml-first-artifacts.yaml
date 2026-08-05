@@ -1,0 +1,36 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: yaml-first-artifacts
+mapping:
+  implementation:
+    - src/bundled-asset-mutation.ts
+    - src/cli/cmd-bundled-assets.ts
+  enforcement:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    bundled-asset-writes-regenerate-derived-output:
+      strength: MUST
+      statement: A mutation of a repository-bundled asset that is embedded, registered, or referenced elsewhere MUST regenerate and revalidate its derived output inside the same transaction as the source write; regeneration MUST NOT be deferred to a separate command, build step, or post-write hook.
+      rationale: The embedded bundle is what every installed consumer actually reads, so a committed source edit with a stale bundle is a repository that passes file-level validation while shipping the old content. Deferring regeneration also makes rollback impossible, because the source write has already committed by the time the regeneration fails.
+      enforcement:
+        method: test
+        detail: Regressions assert that an accepted bundled-asset write leaves source and derived output consistent, and that an injected regeneration failure leaves both byte-identical to their pre-write content.
+      examples:
+        good:
+          - Edit a bundled scaffold through its CLI command and have the same mutation regenerate the embedded asset bundle before commit.
+        bad:
+          - Write the scaffold file, then rely on the caller or a later build step to regenerate the embedded bundle.
+  MODIFIED:
+    runtime-repository-evidence-is-embedded:
+      strength: MUST
+      statement: Repository-owned evidence a CLI command must read while running inside another project MUST be embedded in the bundled asset set and read embedded-first, with a working-tree read only as a fallback; a command MUST NOT depend on a repository path that exists only in this repository's checkout.
+      rationale: The CLI is installed and run inside other projects, where this repository's working tree is absent, but every test and manual check runs from the checkout where such a path resolves. A direct working-tree read therefore passes the whole suite and fails for every installed user, and the failure surfaces only as a runtime ENOENT far from the code that introduced it. Embedding the asset and reading embedded-first makes the runtime and test environments agree.
+      enforcement:
+        method: test
+        detail: Regressions assert embedded-first reads for commands intended to run in installed projects, and assert that a checkout-scoped maintenance command refuses deterministically instead of failing with a filesystem error when the bundled source tree is absent.
+      exceptions:
+        - A command declared repository-maintenance scoped may require this repository's bundled source tree, provided it is excluded from the installed-project surface and refuses with a deterministic diagnostic naming the absent source tree rather than with a raw filesystem error.
+  REMOVED: {}

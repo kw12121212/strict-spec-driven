@@ -5014,14 +5014,10 @@ artifact_type: yaml_mutation_inventory
 inventory:
   id: repository-yaml-mutation-surfaces
   title: Repository YAML Mutation Surfaces
-  scope: >-
-    Every repository-owned YAML or YML family and every repository code, CLI, MCP, skill, and
-    documentation surface that can mutate it or direct another actor to mutate it.
+  scope: Every repository-owned YAML or YML family and every repository code, CLI, MCP, skill, and documentation surface that can mutate it or direct another actor to mutate it.
   discovery:
     yaml_paths: git ls-files -co --exclude-standard -- '*.yaml' '*.yml'
-    mutation_paths: >-
-      Git-visible TypeScript, JavaScript, Markdown, shell, PowerShell, and JSON files containing
-      filesystem mutation calls or YAML-authoring guidance.
+    mutation_paths: Git-visible TypeScript, JavaScript, Markdown, shell, PowerShell, and JSON files containing filesystem mutation calls or YAML-authoring guidance.
   operation_states:
     - cli-owned
     - direct-write
@@ -5221,9 +5217,7 @@ artifact_families:
       - examples/strict-spec-driven/task-list.yaml
       - examples/strict-spec-driven/question-list*.yaml
     ownership: repository-owned
-    validation_owner: >-
-      templates/strict-spec-driven/schemas/change-proposal.yaml, change-design.yaml,
-      task-list.yaml, and question-list.yaml
+    validation_owner: templates/strict-spec-driven/schemas/change-proposal.yaml, change-design.yaml, task-list.yaml, and question-list.yaml
     operations:
       create: cli-owned
       update: cli-owned
@@ -5295,9 +5289,7 @@ artifact_families:
       - examples/strict-spec-driven/planned-change.yaml
       - templates/strict-spec-driven/scaffold/roadmap/INDEX.yaml
     ownership: repository-owned
-    validation_owner: >-
-      templates/strict-spec-driven/schemas/roadmap-index.yaml, roadmap-milestone.yaml, and
-      planned-change.yaml
+    validation_owner: templates/strict-spec-driven/schemas/roadmap-index.yaml, roadmap-milestone.yaml, and planned-change.yaml
     operations:
       create: cli-owned
       update: cli-owned
@@ -5368,8 +5360,7 @@ artifact_families:
       - examples/strict-spec-driven/sop.yaml
       - templates/strict-spec-driven/sop-categories/*.yaml
     ownership: repository-owned
-    validation_owner: >-
-      templates/strict-spec-driven/schemas/sops-index.yaml, sop-category.yaml, and sop.yaml
+    validation_owner: templates/strict-spec-driven/schemas/sops-index.yaml, sop-category.yaml, and sop.yaml
     operations:
       create: cli-owned
       update: cli-owned
@@ -5394,13 +5385,14 @@ artifact_families:
     ownership: repository-owned
     validation_owner: test/suites/foundation-and-fixtures.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - Registry entries, primary examples, embedded templates, and shared schema cache exports must stay synchronized.
-    cli_owners: []
+    cli_owners:
+      - schema-edit
     direct_write_paths: []
     evidence:
       - templates/strict-spec-driven/schemas/registry.yaml
@@ -5410,16 +5402,18 @@ artifact_families:
       - scaffold_yaml
     path_patterns:
       - templates/strict-spec-driven/scaffold/**/*.yaml
+      - templates/strict-spec-driven/sop-categories/*.yaml
     ownership: repository-owned
     validation_owner: test/suites/foundation-and-fixtures.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - Embedded templates and init/propose output must be regenerated and revalidated.
-    cli_owners: []
+    cli_owners:
+      - template-edit
     direct_write_paths: []
     evidence:
       - templates/strict-spec-driven/scaffold/config.yaml
@@ -5432,13 +5426,14 @@ artifact_families:
     ownership: repository-owned
     validation_owner: test/suites/foundation-and-fixtures.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - Schema registry and example coverage references must remain complete.
-    cli_owners: []
+    cli_owners:
+      - sample-edit
     direct_write_paths: []
     evidence:
       - examples/strict-spec-driven/schema-registry.yaml
@@ -5451,13 +5446,14 @@ artifact_families:
     ownership: repository-owned
     validation_owner: test/suites/foundation-and-fixtures.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - Fixture matrices and asserted diagnostics must be updated together.
-    cli_owners: []
+    cli_owners:
+      - fixture-edit
     direct_write_paths: []
     evidence:
       - test/fixtures/validation/schema-check.valid.yaml
@@ -5490,13 +5486,14 @@ artifact_families:
     ownership: repository-owned
     validation_owner: scripts/check-yaml-mutation-inventory.ts
     operations:
-      create: human-only
-      update: human-only
-      named_remove: human-only
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - The dedicated checker and regression suite must agree with every inventory field and pattern.
-    cli_owners: []
+    cli_owners:
+      - inventory-edit
     direct_write_paths: []
     evidence:
       - inventory/yaml-mutation-surfaces.yaml
@@ -5697,6 +5694,8 @@ mutation_surfaces:
       - src/cli/cmd-spec-tech.ts
       - src/cli/cmd-sops.ts
       - src/cli/cmd-workflow.ts
+      - src/cli/cmd-bundled-assets.ts
+      - src/bundled-asset-mutation.ts
     mechanism: cli-command
     classification: cli-owned
     operations:
@@ -5717,6 +5716,11 @@ mutation_surfaces:
       - roadmap-state
       - lessons-state
       - sop-state
+      - bundled-schema-assets
+      - bundled-scaffold-assets
+      - bundled-reference-examples
+      - validation-fixtures
+      - yaml-mutation-inventory
     evidence:
       - src/cli/cmd-generation.ts
       - src/cli/cmd-roadmap.ts

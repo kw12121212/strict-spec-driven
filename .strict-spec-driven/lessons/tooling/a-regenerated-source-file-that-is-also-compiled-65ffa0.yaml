@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-regenerated-source-file-that-is-also-compiled-65ffa0
+  title: A regenerated source file that is also compiled has no effect until rebuild
+category: tooling
+status: active
+created_at: '2026-08-05T16:09:04.186Z'
+updated_at: '2026-08-05T16:09:04.186Z'
+context: Editing inventory/yaml-mutation-surfaces.yaml through the new inventory-edit command, which regenerates src/embedded-templates.ts inside the same transaction, then reading the result back with yaml-surface-list.
+observation: The write committed, the working-tree inventory held the new classifications, the regenerated embedded source held them too, and the standalone inventory checker passed — but yaml-surface-list still reported the old values, because the installed CLI resolves bundled assets from the embedded module compiled into dist/, not from either the working-tree file or its regenerated source.
+takeaway: A bundled asset in this repository exists at three layers — working-tree file, generated embedded source, compiled dist bundle — and a command that regenerates the first two changes nothing a CLI invocation can observe until the build runs. When a write reports success but a read-back command disagrees, suspect the layer the reader actually consumes before suspecting the write.
+applies_when: Verifying, through any strict-spec-cli command, the effect of a change to a repository-bundled asset under templates/, examples/, or inventory/ — including asset edits made by schema-edit, template-edit, sample-edit, or inventory-edit — where the CLI reads that asset embedded-first.
+occurrences:
+  - origin: migrate-bundled-yaml-assets
+    date: '2026-08-05'
+    evidence: inventory-edit committed the five reclassified families and yaml-surface-list still reported human-only for all four operations until bun run build was rerun, after which it reported cli-owned.
