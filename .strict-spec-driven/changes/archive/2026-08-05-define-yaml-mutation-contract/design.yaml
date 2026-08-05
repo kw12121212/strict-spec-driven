@@ -1,0 +1,29 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: define-yaml-mutation-contract
+approach:
+  - Express the contract as observable CLI requirements in cli-foundation, update the artifact-authoring boundary requirements in contracts-yaml-artifacts that still preserve direct task-list editing, and strengthen yaml-first-artifacts with reusable engineering constraints. Keep implementation outside this planned change so following roadmap items can build against an explicit contract.
+  - 'Use the completed inventory as the coverage boundary: every repository-owned YAML family is CLI-owned for supported mutations, while external YAML, legacy migration input, rendered outputs, generated caches, and explicitly classified read-only or human-only surfaces remain outside automated mutation ownership.'
+decisions:
+  uniform-operation-semantics:
+    decision: Define creation, scalar and keyed-item upsert, additive list changes, named single-entry removal, and isolated whole-artifact deletion as the common mutation vocabulary.
+    rationale: One vocabulary makes effects predictable across artifact families and prevents an edit flag from silently replacing unnamed state.
+  intent-not-payload:
+    decision: Require artifact-aware commands with named semantic arguments and CLI-resolved confined paths; reject raw YAML payloads and arbitrary output paths on AI-facing mutation surfaces.
+    rationale: Moving raw document text behind a CLI would preserve the same unsafe editing model, while semantic intent lets the CLI own shape, defaults, and valid destinations.
+  validate-then-commit:
+    decision: Validate the complete candidate document, schema relationships, and reference side effects before one atomic commit; failures preserve the prior filesystem state and emit deterministic machine-readable diagnostics.
+    rationale: Whole-candidate validation and atomicity are required to prevent partial YAML writes and cross-file corruption.
+  meaningful-first-write:
+    decision: A creation operation persists only caller-supplied or workflow-required state and a failed first write leaves no blank file or empty artifact container.
+    rationale: Placeholder scaffolds create invalid intermediate state and force later commands to distinguish absence from meaningless persisted content.
+  compatible-domain-interfaces:
+    decision: Retain established domain-specific commands as compatible interfaces while applying the common contract beneath them.
+    rationale: Callers keep stable workflows while later implementation consolidates filesystem and serialization mechanics.
+alternatives:
+  - option: Define safety separately in each artifact-family migration.
+    reason: That would duplicate semantics, permit drift between commands, and leave later roadmap work without an authoritative shared contract.
+risks:
+  - Some current scaffold behavior and direct-edit guidance will temporarily lag the new contract until the dependent implementation and migration planned changes complete.

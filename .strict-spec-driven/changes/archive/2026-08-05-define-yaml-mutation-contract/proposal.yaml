@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: define-yaml-mutation-contract
+  status: proposed
+summary:
+  what:
+    - Replace superseded requirements that retain direct main-spec, technical-standard, or standalone roadmap YAML editing paths with CLI-owned authoring contracts while preserving each skill's semantic workflow ownership.
+  why:
+    - The completed mutation-surface inventory shows that later CLI implementation and artifact-family migrations need a single contract that prevents data loss and arbitrary-path or raw-payload writes.
+scope:
+  in:
+    - Add and modify strict requirements in cli-foundation for uniform mutation semantics, path confinement, validation, atomicity, diagnostics, machine-readable help, and creation without blank placeholder artifacts.
+    - Modify contracts-yaml-artifacts requirements that preserve direct task-list editing exceptions.
+    - Modify yaml-first-artifacts technical rules to make the CLI-owned mutation boundary and safe write lifecycle binding.
+  out:
+    - Implement the shared YAML mutation core, expose new artifact-family commands, or migrate individual YAML families in this change.
+    - Change external or dependency-owned YAML, legacy .spec-driven migration input, rendered Markdown, or explicit read-only and human-only exceptions.
+unchanged_behavior:
+  - Established domain-specific CLI commands remain the compatible interfaces for the artifact operations they already own.
+  - The roadmap inventory remains canonical evidence and roadmap planned-change metadata remains under .strict-spec-driven/roadmap/.

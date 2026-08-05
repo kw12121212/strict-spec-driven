@@ -90,6 +90,8 @@ mapping:
     - templates/strict-spec-driven/schemas/question-list.yaml
     - examples/strict-spec-driven/question-list.yaml
     - examples/strict-spec-driven/question-list.open.yaml
+    - src/cli/cmd-generation.ts
+    - src/propose-generation.ts
   tests:
     - test/run.ts
     - test/suites/entrypoint-and-skills.ts
@@ -905,19 +907,17 @@ requirements:
         - AND: the command mapping is not limited to a generic placeholder command
   strict-planning-skill-guidance-contract:
     strength: MUST
-    statement: The system MUST ensure strict planning and documentation skill packages describe `.strict-spec-driven/` YAML workflow artifacts and preserve the intended boundaries between brainstorming, direct main-spec edits, repository spec synchronization, and mapping repair.
+    statement: The system MUST ensure strict planning and documentation skill packages describe strict YAML workflow artifacts, preserve ownership between brainstorming, main-spec intent editing, repository synchronization, and mapping repair, and route each repository-owned YAML mutation through the applicable artifact-aware CLI operation rather than direct document editing.
     scenarios:
       planning-skills-reference-strict-workflow-artifacts:
-        - GIVEN: a strict planning or documentation `SKILL.md` file is reviewed
-        - WHEN: its prerequisites and workflow instructions are inspected
-        - THEN: the skill describes `.strict-spec-driven/` YAML workflow artifacts rather than legacy or packaging-only placeholder state
-      planning-skills-preserve-workflow-ownership-boundaries:
-        - GIVEN: the strict planning and documentation skill prompts are reviewed
-        - WHEN: their workflow guidance is inspected
-        - THEN: direct main-spec editing remains owned by `strict-spec-spec-edit`
-        - AND: repository drift synchronization remains owned by `strict-spec-sync-specs`
-        - AND: mapping repair remains owned by `strict-spec-resync-code-mapping`
-        - AND: the prompts do not require a separate `strict-spec-spec-content` package to make those workflows usable
+        - GIVEN: A strict planning or documentation skill file is reviewed
+        - WHEN: Its prerequisites and workflow instructions are inspected
+        - THEN: The skill describes .strict-spec-driven YAML workflow artifacts rather than legacy or packaging-only placeholder state
+      planning-skills-preserve-semantic-ownership-and-cli-mechanics:
+        - GIVEN: The strict planning and documentation skill prompts are reviewed
+        - WHEN: Their workflow guidance is inspected
+        - THEN: Main-spec intent editing remains owned by strict-spec-spec-edit, repository drift synchronization remains owned by strict-spec-sync-specs, and mapping repair remains owned by strict-spec-resync-code-mapping
+        - THEN: Each skill supplies semantic facts to artifact-aware CLI operations and does not edit YAML document shape directly
   strict-migration-skill-command-contract:
     strength: MUST
     statement: The system MUST provide a strict migration skill package for `migrate` with explicit command mappings that reference the strict bundled CLI commands used for migration execution and post-migration validation.
@@ -1039,24 +1039,23 @@ requirements:
         - AND: delta files for other target specs remain unchanged
   skill-proposal-generation-uses-parameterized-cli:
     strength: MUST
-    statement: The system MUST guide proposal-generating skills to create or update supported strict change artifacts through deterministic strict CLI commands when a script-owned operation exists, while keeping agents responsible for supplying semantic facts, explicit checkpoint summaries, and direct structured task-list edits; those skills MUST NOT instruct agents to hand-author generated artifact shape or create JSON payload files for script-supported generated artifacts.
+    statement: The system MUST guide proposal-generating skills to create or update every supported strict change artifact, including tasks.yaml, through deterministic strict CLI commands with named semantic arguments, while keeping agents responsible for semantic facts and checkpoint summaries; those skills MUST NOT hand-author YAML shape or create raw YAML or JSON payload files.
     scenarios:
-      proposal-skills-delegate-supported-mechanics-to-cli:
-        - GIVEN: a strict proposal-generating skill needs to populate or update change artifacts
-        - WHEN: the skill instructions describe the artifact generation workflow
-        - THEN: the instructions require agents to invoke strict CLI behavior with named arguments for supported script-owned artifact operations
-        - AND: the instructions keep semantic decisions, scope summaries, task-list editing, and user confirmation checkpoints in the skill workflow
-        - AND: the instructions prohibit JSON payload files and hand-authored generated artifact shape where CLI support exists
+      proposal-skills-delegate-all-supported-mechanics-to-cli:
+        - GIVEN: A strict proposal-generating skill needs to populate or update change artifacts
+        - WHEN: The skill instructions describe the artifact generation workflow
+        - THEN: The instructions invoke strict CLI operations with named arguments for proposals, designs, task lists, questions, delta specs, and delta tech as applicable
+        - THEN: The instructions keep semantic decisions and checkpoint summaries in the skill workflow without directing any YAML text edit or payload-file construction
   skill-commands-do-not-own-artifact-shape:
     strength: MUST
-    statement: The system MUST preserve the boundary that skills and generated CLI invocations provide key facts while CLI code owns strict artifact shape, defaults, YAML writing, validation, deterministic workflow-state reporting, and safe updates for supported generated artifacts and question operations; tasks.yaml remains governed by its scaffold, schema, and direct structured edits.
+    statement: The system MUST preserve the boundary that skills provide semantic intent while CLI code owns strict artifact paths, shape, defaults, YAML serialization, complete-candidate validation, relationship checks, deterministic reporting, and safe mutation for every supported repository-owned YAML artifact, including tasks.yaml.
     scenarios:
       command-invocations-do-not-construct-artifact-shape:
-        - GIVEN: a proposal or lifecycle skill instructs an agent to perform a script-supported workflow operation
-        - WHEN: the generated commands are reviewed
-        - THEN: each command invokes strict CLI behavior with named parameters for the supported operation
-        - AND: the commands do not construct YAML or JSON payload files for script-owned artifact shape
-        - AND: tasks.yaml editing and unsupported or judgment-dependent content remain represented as explicit skill guidance or open questions
+        - GIVEN: A proposal or lifecycle skill instructs an agent to perform a repository-owned YAML mutation
+        - WHEN: The generated commands are reviewed
+        - THEN: Each command invokes artifact-aware strict CLI behavior with named semantic parameters
+        - THEN: The commands do not construct YAML or JSON payload files, choose arbitrary artifact paths, or directly edit tasks.yaml
+        - THEN: Judgment-dependent uncertainty remains represented as explicit questions rather than hidden in document mechanics
   yaml-standalone-planned-change-artifact-contract:
     strength: MUST
     statement: The system MUST define a standalone planned-change YAML artifact family with schema identity, artifact type, stable planned change id, exactly one owning milestone reference, declared status, summary, details, dependency references, and optional extension points for future team metadata.

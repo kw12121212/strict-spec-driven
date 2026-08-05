@@ -1,0 +1,151 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/cmd-generation.ts
+    - src/yaml.ts
+    - src/validation.ts
+    - src/scaffold.ts
+    - src/roadmap/author.ts
+  tests:
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/change-lifecycle.ts
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    cli-yaml-mutations-use-artifact-aware-intent:
+      strength: MUST
+      statement: The system MUST expose supported mutations of repository-owned YAML through artifact-aware CLI operations that accept named semantic arguments, resolve targets only within the declared artifact-family locations, and reject raw YAML payloads and arbitrary output paths.
+      scenarios:
+        named-intent-resolves-a-confined-target:
+          - GIVEN: A caller names an artifact family, stable artifact identity, and semantic fields through a supported CLI operation
+          - WHEN: The CLI resolves the mutation target
+          - THEN: The target is derived within the repository-declared locations for that artifact family
+          - THEN: The caller does not supply document shape or an arbitrary filesystem output path
+        raw-payload-or-path-is-rejected:
+          - GIVEN: A mutation request supplies raw YAML content or an arbitrary target path instead of the operation's named semantic inputs
+          - WHEN: The CLI validates the request
+          - THEN: The command exits non-zero with a deterministic diagnostic before changing the filesystem
+    cli-yaml-mutations-have-uniform-safe-semantics:
+      strength: MUST
+      statement: The system MUST give every CLI-owned YAML family uniform creation, field-level scalar and keyed-item upsert, additive list, named single-entry removal, and isolated whole-artifact deletion semantics that preserve every field, keyed item, and list entry not named by the invocation.
+      scenarios:
+        updates-preserve-unnamed-content:
+          - GIVEN: An existing valid YAML artifact contains fields, keyed items, and list entries beyond the mutation request
+          - WHEN: A caller restates one scalar or keyed item or adds list values
+          - THEN: Only the named scalar or keyed item is overwritten, list values are appended without duplicates, and all unnamed content remains unchanged
+        removal-and-deletion-are-explicitly-separated:
+          - GIVEN: An existing artifact contains multiple named entries
+          - WHEN: A caller requests removal
+          - THEN: A named-entry removal deletes only the identified entry, while whole-artifact deletion requires a separate delete-only invocation that cannot be combined with edits
+        creation-persists-meaningful-state-only:
+          - GIVEN: A caller requests creation of a YAML artifact
+          - WHEN: The required caller-supplied or workflow-required state is absent or invalid
+          - THEN: No blank or placeholder artifact and no empty artifact container is persisted
+    cli-yaml-mutations-validate-before-atomic-commit:
+      strength: MUST
+      statement: The system MUST build and validate the complete candidate YAML artifact, applicable schema relationships, path confinement, and declared reference side effects before committing a mutation atomically, and MUST leave the prior filesystem state unchanged when any check or write fails.
+      scenarios:
+        valid-candidate-commits-once:
+          - GIVEN: A mutation request produces a complete candidate artifact whose schema, relationships, paths, and reference effects are valid
+          - WHEN: The CLI commits the mutation
+          - THEN: The complete candidate and required reference updates become visible as one successful operation
+        invalid-or-failed-write-rolls-back:
+          - GIVEN: A candidate artifact, relationship, path, reference update, or filesystem write is invalid or fails
+          - WHEN: The CLI processes the mutation
+          - THEN: The command exits non-zero and every pre-existing file remains byte-for-byte unchanged
+          - THEN: A failed creation leaves no new artifact file or empty container
+    cli-yaml-mutations-report-deterministic-contracts:
+      strength: MUST
+      statement: The system MUST provide deterministic machine-readable results and diagnostics for YAML mutations and machine-readable help that identifies required named inputs, append versus overwrite behavior, named removal semantics, isolated deletion semantics, output fields, and exit codes.
+      scenarios:
+        help-describes-the-complete-mutation-effect:
+          - GIVEN: A caller requests machine-readable help for a YAML mutation command
+          - WHEN: The CLI renders the command contract
+          - THEN: The output identifies every named input and whether it creates, overwrites, appends, removes one named entry, or deletes the whole artifact
+        results-identify-success-or-failure:
+          - GIVEN: A YAML mutation succeeds or fails validation
+          - WHEN: The CLI reports the outcome
+          - THEN: The result deterministically identifies the artifact, changed operation, validation status, diagnostics, and exit status without requiring prose parsing
+    cli-skills-route-repository-yaml-mutations-through-cli:
+      strength: MUST
+      statement: The system MUST require AI-facing skills to express repository-owned YAML mutation intent through the applicable artifact-aware CLI operation whenever that family supports mutation, while retaining direct access only for inventory-classified read-only or human-only exceptions.
+      scenarios:
+        skills-never-hand-author-cli-owned-yaml:
+          - GIVEN: A skill needs to create, modify, remove an entry from, or delete a repository-owned YAML artifact
+          - WHEN: Its workflow guidance is followed
+          - THEN: The agent invokes the applicable CLI operation with named semantic arguments instead of editing YAML text or constructing a payload file
+          - THEN: Any direct-access exception is explicitly classified as read-only or human-only in the mutation inventory
+    cli-yaml-mutations-preserve-established-domain-interfaces:
+      strength: MUST
+      statement: The system MUST preserve established domain-specific CLI commands as compatible interfaces for the YAML artifact operations they already own while shared mutation mechanics are introduced beneath those commands.
+      scenarios:
+        existing-domain-command-remains-compatible:
+          - GIVEN: A domain-specific CLI command already owns a supported YAML artifact operation
+          - WHEN: The shared mutation boundary is adopted for that operation
+          - THEN: Existing callers can continue to use the established command name and semantic inputs
+          - THEN: The command applies the uniform validation, preservation, diagnostic, and atomic-write contract without requiring callers to switch to a raw generic editor
+  MODIFIED:
+    cli-roadmap-skills-use-milestone-authoring-command:
+      strength: MUST
+      statement: The system MUST require strict roadmap planning and review skill guidance to route milestone and standalone planned-change creation and field-level modification through roadmap-generate with named semantic arguments, preserving roadmap artifacts as canonical planning state without a direct YAML editing path.
+      scenarios:
+        roadmap-skills-route-all-roadmap-shape-through-cli:
+          - GIVEN: Strict roadmap planning or review guidance needs to create or modify a milestone or standalone planned change
+          - WHEN: The bundled skill guidance is inspected
+          - THEN: The guidance invokes roadmap-generate for the matching artifact kind and names only semantic fields
+          - THEN: The guidance does not instruct the agent to write roadmap YAML directly
+    cli-tech-sync-supports-active-change-mode:
+      strength: MUST
+      statement: The system MUST require strict-tech-sync guidance to scope active-change evidence to attributable artifacts and mappings, capture confirmed active-change findings as delta-tech, and route confirmed standalone main-standard mutations through an artifact-aware CLI operation rather than direct live-standard editing.
+      scenarios:
+        active-change-sync-uses-bounded-evidence:
+          - GIVEN: An active strict change is selected for current-change tech sync
+          - WHEN: The AI determines the scan scope
+          - THEN: The scope is derived from that change's planning artifacts, delta artifacts, structured mappings, task evidence, attributable repository changes, and applicable standards
+        active-change-sync-routes-through-delta-tech:
+          - GIVEN: A bounded scan finds a reusable convention gap and the operator confirms its rule content and mappings
+          - WHEN: The synchronization applies the finding
+          - THEN: The finding is generated or updated as delta-tech under the selected active change and no live main standard is directly edited
+        standalone-sync-uses-cli-owned-main-standard-mutation:
+          - GIVEN: Strict-tech-sync runs as standalone repository maintenance and the operator confirms a main-standard edit
+          - WHEN: The synchronization applies the confirmed mutation
+          - THEN: The skill invokes the artifact-aware main-standard CLI operation with named semantic arguments
+          - THEN: The skill does not edit the live YAML document directly
+    cli-skill-yaml-rules-schema-lookup-reminder:
+      strength: SHOULD
+      statement: Core strict skills that supply semantic intent for strict YAML mutations SHOULD direct agents to the applicable command's machine-readable help, schema-show, and sample-show when inputs or artifact fields are unclear, while requiring the mutation itself to remain CLI-owned.
+      scenarios:
+        yaml-rules-route-lookup-and-mutation-safely:
+          - GIVEN: A core strict skill needs to explain or perform a strict YAML mutation
+          - WHEN: An agent reads the skill's YAML authoring rules
+          - THEN: The rules identify CLI help, schema-show, and sample-show as supported contract lookup surfaces
+          - THEN: The rules require named semantic mutation commands and do not instruct direct YAML editing
+    cli-skills-remind-shared-schema-cache-location:
+      strength: MUST
+      statement: Core strict skills that supply semantic inputs for strict YAML operations MUST identify the shared schema cache root and schema_file lookup behavior for contract inspection, while making clear that cached schema access is read-only guidance and artifact mutation remains owned by the applicable CLI command.
+      scenarios:
+        validate-skills-requires-read-only-cache-guidance:
+          - GIVEN: A core strict skill supplies semantic inputs for strict YAML operations
+          - WHEN: Skill packaging validation inspects the prompt
+          - THEN: The prompt explains shared cache and schema_file lookup for read-only inspection
+          - THEN: The prompt routes every supported repository-owned YAML mutation through artifact-aware CLI commands
+    cli-skills-remind-sample-lookup:
+      strength: SHOULD
+      statement: Core strict skills that supply semantic inputs for strict YAML operations SHOULD mention sample-show and shared cached samples as read-only examples, and MUST NOT use sample access as a reason to copy, hand-author, or directly edit repository-owned YAML.
+      scenarios:
+        yaml-rules-use-samples-without-owning-shape:
+          - GIVEN: A core strict skill includes YAML authoring guidance
+          - WHEN: An agent reads the rules before supplying mutation intent
+          - THEN: The rules identify sample-show as the supported example lookup
+          - THEN: The rules require the applicable CLI operation to own the resulting artifact shape and write
+  REMOVED:
+    cli-propose-creates-strict-change-scaffold:
+      reason: 'Superseded by meaningful first-write semantics: change artifacts are created lazily from real semantic inputs instead of persisted as blank or placeholder scaffolds.'
+    cli-propose-reports-created-artifacts:
+      reason: Superseded because propose must not report placeholder artifact paths for follow-up direct editing; artifact generation commands report the real files they create.
+    cli-propose-tasks-yaml-remains-scaffold-authored:
+      reason: Superseded by cli-generate-tasks-upserts-single-tasks and the uniform CLI-owned YAML mutation contract.

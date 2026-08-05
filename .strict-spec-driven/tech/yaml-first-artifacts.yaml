@@ -24,6 +24,8 @@ mapping:
     - test/suites/foundation-and-fixtures.ts
     - test/suites/architecture-document.ts
     - test/suites/design-system-document.ts
+    - test/suites/change-lifecycle.ts
+    - test/suites/roadmap-and-migration.ts
 rules:
   artifacts-are-strict-yaml:
     strength: MUST
@@ -51,26 +53,27 @@ rules:
       detail: verify-spec-mappings and verify-tech-mappings audit mapping fields.
   generated-documents-are-not-hand-edited:
     strength: MUST
-    statement: A human-readable document that the workflow renders from strict YAML MUST be produced only by its generator, MUST carry a banner identifying it as generated and naming its source artifacts, and MUST NOT be edited by hand; content that belongs in such a document is changed by editing the strict YAML source and re-rendering.
-    rationale: Once a document is both generated and hand-editable it has two sources of truth, and the next render silently discards the hand edits or the drift check fails for reasons nobody can attribute. Requiring the banner and forbidding hand edits keeps the YAML source authoritative and makes staleness a detectable, attributable condition rather than an invisible one. The banner is required to identify the document and name its sources but not to occupy the first line, so a document rendered in an interchange format that requires leading front matter satisfies the rule with the banner placed directly after it.
+    statement: A human-readable document rendered from strict YAML MUST be produced only by its generator and carry a banner naming its YAML sources; neither the rendered document nor its repository-owned YAML sources may be hand-edited, so source changes MUST use the applicable artifact-aware CLI operation before re-rendering.
+    rationale: Generated output and its strict YAML sources need one attributable mutation path. Routing source intent through the CLI prevents schema drift and unsafe replacements, while generator-only output preserves a single source of truth.
     enforcement:
       method: manual
-      detail: architecture-generate --check and design-generate --check re-render in memory and exit non-zero when the file on disk differs from what the sources produce; reviewers reject direct edits to a document that carries a generated banner.
+      detail: Architecture and design check commands detect rendered drift; reviewers require source mutations to use their artifact-aware CLI commands and reject direct edits to generated documents or repository-owned source YAML.
     examples:
       good:
-        - Adding a component to .strict-spec-driven/architecture.yaml and running architecture-generate to re-render ARCHITECTURE.md.
-        - Adding a color token to .strict-spec-driven/design-system.yaml and running design-generate to re-render DESIGN.md.
+        - Invoke the architecture authoring operation with named component fields, then run architecture-generate to re-render ARCHITECTURE.md.
+        - Invoke the design-system authoring operation with named token fields, then run design-generate to re-render DESIGN.md.
       bad:
-        - Editing the components section of ARCHITECTURE.md directly, which the next architecture-generate run overwrites.
-        - Editing the front-matter tokens in DESIGN.md directly instead of the design-system artifact they are rendered from.
+        - Edit ARCHITECTURE.md or .strict-spec-driven/architecture.yaml directly.
+        - Edit DESIGN.md or .strict-spec-driven/design-system.yaml directly.
     exceptions:
-      - Hand-authored repository documentation that is not rendered from a strict YAML source, such as README.md, QUICKSTART.md, and the guide documents, remains hand-edited Markdown and carries no generated banner.
+      - Hand-authored repository documentation that is not rendered from strict YAML remains human-edited Markdown.
   artifact-writes-are-non-destructive:
     strength: MUST
-    statement: 'An artifact-authoring command MUST confine its effect to the fields named in that invocation: restating a scalar or keyed item overwrites only that item, repeated list values append, and discarding a recorded entry MUST require a flag naming that entry. No flag may replace or clear a collection the invocation did not name, and whole-artifact rebuild MUST be a separate isolated operation rather than a mode of an editing command.'
-    rationale: A single flag that both permitted a scalar edit and flipped supplied lists from append to replace destroyed recorded roadmap content, because the destructive behavior was reached by an argument combination the caller did not intend and could not see. Binding a write's effect to what the caller named removes that whole class of loss instead of renaming it, and keeps every authoring command safe to run without first reasoning about which other fields it might touch.
+    statement: 'An artifact-authoring operation MUST affect only fields or named entries supplied in that invocation: scalar and keyed-item restatement overwrites only the named value, repeated list values append without duplicates, named removal deletes only the identified entry, and whole-artifact deletion is an isolated delete-only operation. Every unnamed field, item, list value, and sibling artifact MUST remain unchanged.'
+    rationale: Binding effects to explicit semantic intent prevents silent data loss and makes every mutation safe without requiring the caller to reconstruct or reason about unrelated document content.
     enforcement:
       method: test
+      detail: Regression tests cover scalar and keyed upsert, additive lists, idempotency, named removal, delete-only isolation, and preservation of unrelated bytes or parsed values.
   yaml-mutation-surfaces-stay-inventoried:
     strength: MUST
     statement: Every repository-owned YAML or YML artifact family and every repository code, CLI, MCP, skill, or documentation mutation surface MUST remain represented in inventory/yaml-mutation-surfaces.yaml with its ownership, supported operations, reference side effects, current CLI ownership or direct-write paths, and repository evidence; the dedicated inventory check MUST fail when coverage is missing, invalid, or stale.
@@ -78,3 +81,26 @@ rules:
     enforcement:
       method: test
       detail: bun run check:yaml-inventory validates the matrix directly, and test/suites/foundation-and-fixtures.ts covers repository completeness and deterministic failure diagnostics.
+  cli-owns-repository-yaml-mutations:
+    strength: MUST
+    statement: Every supported creation, update, named-entry removal, or whole-artifact deletion of repository-owned YAML MUST flow through an artifact-aware CLI operation that accepts named semantic arguments, resolves a confined artifact-family path, and owns document shape; AI-facing workflows MUST NOT supply raw YAML payloads, arbitrary output paths, or direct file edits.
+    rationale: A generic path or payload writer merely relocates unsafe hand-editing behind a command. Artifact identity and semantic inputs let deterministic code preserve structure, enforce valid destinations, and reconcile references consistently across every YAML family.
+    enforcement:
+      method: test
+      detail: Mutation command and skill regressions assert named-argument behavior, path confinement, and rejection of raw payload or direct-write guidance; inventory classifications preserve explicit exceptions.
+    exceptions:
+      - External and dependency-owned YAML, legacy .spec-driven migration input, generated caches, rendered non-YAML output, and surfaces explicitly classified as read-only or human-only in inventory/yaml-mutation-surfaces.yaml are outside automated mutation ownership.
+  artifact-writes-validate-and-commit-atomically:
+    strength: MUST
+    statement: A YAML mutation MUST validate the complete candidate document, registered schema, declared relationships, confined path, and reference side effects before an atomic commit; any validation, reference, or filesystem failure MUST leave all pre-existing files unchanged and emit deterministic machine-readable diagnostics.
+    rationale: Per-field checks and sequential writes can expose partial or cross-file-invalid state. Complete validation followed by one atomic boundary makes success and rollback observable and reliable.
+    enforcement:
+      method: test
+      detail: Failure-injection and invalid-candidate regressions compare pre-write and post-failure filesystem state and assert stable structured diagnostic fields.
+  artifact-creation-persists-meaningful-state-only:
+    strength: MUST
+    statement: A YAML creation operation MUST persist only real caller-supplied or workflow-required state; blank documents, placeholder values, and empty artifact containers MUST NOT be written, and a rejected or failed first write MUST leave the target absent.
+    rationale: Placeholder scaffolds turn absence into misleading invalid state, invite direct follow-up editing, and make recovery from a failed first mutation ambiguous.
+    enforcement:
+      method: test
+      detail: Creation regressions assert valid minimal state on success and target absence after missing input, invalid input, relationship failure, or commit failure.

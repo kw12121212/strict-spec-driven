@@ -1,0 +1,44 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: define-yaml-mutation-contract
+sections:
+  Implementation:
+    define-cli-mutation-requirements:
+      text: Author cli-foundation delta requirements for artifact-aware named inputs, confined path resolution, uniform create/upsert/append/remove/delete semantics, complete-candidate validation, atomic commit or rollback, deterministic diagnostics, machine-readable help, and meaningful first writes without placeholder containers.
+      status: complete
+    reconcile-authoring-boundary:
+      text: Modify the contracts-yaml-artifacts boundary requirements and remove the obsolete cli-foundation requirement that preserve direct tasks.yaml editing, while retaining semantic judgment and explicit read-only or human-only exceptions outside CLI mutation ownership.
+      status: complete
+    strengthen-yaml-mutation-standard:
+      text: Modify yaml-first-artifacts so repository-owned YAML mutations use artifact-aware CLI operations, preserve unnamed content, validate schema and relationships before atomic writes, and never persist blank or placeholder artifacts after failed creation.
+      status: complete
+  Testing:
+    validate-yaml-inventory:
+      text: Run the mutation inventory validator to confirm the contract coverage boundary and its classified exceptions remain complete.
+      status: complete
+      command: bun run check:yaml-inventory
+    run-project-regression:
+      text: Run the configured complete project regression and enforce the minimum src/** line coverage threshold as review evidence for the contract-only change.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-ready:
+      text: Confirm the populated roadmap-backed change is decision-ready, its requirement intake is resolved from roadmap evidence, and its delta spec and delta tech routing is valid.
+      status: complete
+      command: strict-spec-cli ready define-yaml-mutation-contract
+    verify-mappings:
+      text: Confirm existing strict spec and technical-standard mappings remain valid after the contract deltas are prepared.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings && strict-spec-cli verify-tech-mappings
+    verify-archive-readiness:
+      text: Inspect the MODIFIED and REMOVED delta operations and confirm archive will reconcile superseded direct-edit requirements and merge the strengthened yaml-first-artifacts rules without losing unrelated content.
+      status: complete
+    verify-change:
+      text: After every other task is complete, confirm the finished change structure, task state, resolved questions, target mappings, and delta artifacts pass strict verification.
+      status: complete
+      command: strict-spec-cli verify define-yaml-mutation-contract
+testing_gates:
+  validation_task: validate-yaml-inventory
+  unit_test_task: run-project-regression
