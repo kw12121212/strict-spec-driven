@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import {
@@ -256,6 +256,20 @@ export async function runCoverageGateSuite(context: TestContext): Promise<void> 
       maintenanceTasks.includes("validation_task: run-project-regression")
         && maintenanceTasks.includes("unit_test_task: run-project-regression"),
       "maintenance-generated testing gates reference the project-regression task",
+    );
+
+    // A seeded change needs the interrogation gate as much as a hand-proposed one, and design.yaml
+    // is deliberately left unauthored because the check results cannot supply an approach.
+    const maintenanceChangeDir = path.join(maintenanceStateDir, "changes", String(maintenanceJson.generatedChange));
+    const maintenanceQuestions = readFileSync(path.join(maintenanceChangeDir, "questions.yaml"), "utf8");
+    context.assert(
+      maintenanceQuestions.includes("id: requirement-problem")
+        && maintenanceQuestions.includes("kind: requirement"),
+      "maintenance-generated change carries the requirement-interrogation gate",
+    );
+    context.assert(
+      !existsSync(path.join(maintenanceChangeDir, "design.yaml")),
+      "maintenance writes no placeholder design artifact",
     );
   } finally {
     rmSync(maintenanceWorkspace, { recursive: true, force: true });

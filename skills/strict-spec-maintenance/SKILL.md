@@ -89,7 +89,8 @@ run `init` from this skill.
 3. **If `generatedChange` is set** — a maintenance change was created under `.strict-spec-driven/changes/<generatedChange>/`. The change contains:
    - `proposal.yaml`: scope listing each finding
    - `tasks.yaml`: one implementation task per finding, plus standard testing and verification tasks
-   - `design.yaml`, `questions.yaml`: scaffolded templates for operator review
+   - `questions.yaml`: the requirement-interrogation set, seeded open for operator answers
+   - `design.yaml`: not written; author it with `generate <change-name> design` before verify
 
 4. **Work through tasks** — use the standard `/strict-spec-apply <generatedChange>` workflow to complete all pending tasks. For `roadmap-sync-check` findings, the roadmap sync was already applied; implementation tasks are to review and confirm the changes were correct. For `generated-doc-check` findings, nothing was applied: run the re-render command named in the finding, and if the stale sources reveal that the source artifact itself is wrong, fix the artifact through its own skill before re-rendering.
 

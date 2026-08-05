@@ -97,7 +97,6 @@ export type ScaffoldModule = {
   readBundledScaffoldTemplate(relativePath: string): string;
   loadBundledScaffoldYaml<T>(relativePath: string): T;
   getRequiredBundledScaffoldAssets(): string[];
-  getRequiredBundledChangeTemplateAssets(): string[];
   findMissingRequiredScaffoldAssets(): string[];
 };
 

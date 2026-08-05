@@ -1,0 +1,127 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/scaffold.ts
+    - src/propose-generation.ts
+    - src/cli/cmd-generation.ts
+    - src/cli/cmd-scaffold.ts
+    - src/verify.ts
+    - src/maintenance.ts
+    - src/embedded-templates.ts
+    - inventory/yaml-mutation-surfaces.yaml
+    - src/requirement-questions.ts
+  tests:
+    - test/suites/change-lifecycle.ts
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-change-authoring-creates-artifacts-lazily:
+      strength: MUST
+      statement: The system MUST create strict change planning artifacts only from real authored content, so that no supported command writes a placeholder proposal, design, questions, or tasks artifact, and a change directory contains only artifacts that an authoring invocation has actually populated.
+      scenarios:
+        propose-creates-container-without-planning-artifacts:
+          - GIVEN: a valid kebab-case change name that does not already exist
+          - WHEN: the propose command is executed for that name
+          - THEN: the command creates the change directory and its specs directory
+          - AND: no proposal, design, tasks, or questions artifact exists in that change directory
+        generate-creates-only-the-authored-artifact:
+          - GIVEN: a change directory that contains no planning artifacts
+          - WHEN: an authoring command is executed for one planning artifact with valid named arguments
+          - THEN: that artifact is created from typed defaults merged with the supplied named arguments
+          - AND: the other planning artifacts remain absent
+    cli-first-authoring-invocation-is-atomic:
+      strength: MUST
+      statement: The system MUST treat the first successful authoring invocation for a change, whether it is the propose command or an artifact authoring command, as one atomic operation that validates the change name, the existing-change collision rule, and the active-change limit before creating the change container together with any artifact content that invocation supplies, and MUST remove every path it created when that invocation is rejected or fails.
+      scenarios:
+        failed-first-authoring-leaves-no-change-behind:
+          - GIVEN: a change name that does not yet exist
+          - WHEN: an authoring command for that change is executed with arguments that fail validation or schema checking
+          - THEN: the command exits non-zero
+          - AND: no change directory exists for that name afterwards
+        first-authoring-validates-before-creating-anything:
+          - GIVEN: a requested change name that is not kebab-case, or an active-change limit that is already filled
+          - WHEN: an authoring command is executed for that change
+          - THEN: the command exits non-zero and reports the violated rule
+          - AND: no change directory and no artifact are created
+        failed-write-into-existing-change-preserves-it:
+          - GIVEN: an existing change directory that already contains at least one authored artifact
+          - WHEN: an authoring command for that change is rejected
+          - THEN: the change directory and its existing artifacts remain unchanged
+    cli-missing-change-artifacts-are-reported-as-diagnostics:
+      strength: MUST
+      statement: The system MUST report a required change planning artifact that has not been authored as an explicit readiness and verification diagnostic that names the absent artifact and the authoring command that would create it, rather than relying on detecting placeholder content inside a written artifact.
+      scenarios:
+        absent-required-artifact-blocks-readiness:
+          - GIVEN: a change whose planning artifacts have not all been authored
+          - WHEN: the readiness or verification command is executed for that change
+          - THEN: the command reports one diagnostic per absent required artifact
+          - AND: each diagnostic names the absent artifact and the authoring command that creates it
+        absent-questions-artifact-blocks-readiness:
+          - GIVEN: a change whose questions artifact has never been authored
+          - WHEN: the readiness command is executed for that change
+          - THEN: the command reports the questions artifact as absent and does not report the change ready
+          - AND: the requirement-interrogation gate cannot be bypassed by never authoring the questions artifact
+    cli-requirement-questions-remain-enforceable-workflow-state:
+      strength: MUST
+      statement: The system MUST preserve the canonical requirement questions as enforceable workflow state created through structured command input, so that removing placeholder change artifacts does not remove the requirement-interrogation gate and those questions remain unremovable and continue to block implementation handoff until they are answered.
+      scenarios:
+        requirement-questions-exist-after-structured-authoring:
+          - GIVEN: a change whose questions artifact has been authored through the supported command
+          - WHEN: the questions artifact is read
+          - THEN: the canonical requirement questions are present as open workflow state
+          - AND: no supported flag removes a requirement-kind question
+  MODIFIED:
+    cli-strict-scaffold-template-assets:
+      strength: MUST
+      statement: The system MUST provide bundled strict scaffold template assets that can seed initial `.strict-spec-driven/` project state for init and fixture-driven tests, and every bundled scaffold artifact MUST parse as valid YAML and validate against its registered schema; bundled scaffold assets MUST NOT include change planning artifact templates, because change planning artifacts are created only from authored content.
+      scenarios:
+        required-scaffold-template-asset-families-are-present:
+          - GIVEN: the strict CLI bundled templates are inspected
+          - WHEN: scaffold template assets are enumerated
+          - THEN: template assets exist for strict config, specs index, and roadmap index
+          - AND: no bundled scaffold asset provides a change proposal, design, tasks, or questions template
+        scaffold-templates-remain-separate-from-contract-schemas-and-examples:
+          - GIVEN: strict template directories are inspected
+          - WHEN: scaffold template assets are compared to schema and example assets
+          - THEN: scaffold assets are stored as a distinct template bundle
+          - AND: schema and example files remain dedicated to validation contracts and examples
+        every-scaffold-artifact-parses-and-validates:
+          - GIVEN: the bundled scaffold assets are read
+          - WHEN: each asset is parsed and validated against its registered schema
+          - THEN: every asset parses as valid YAML and validates without any rebuild flag
+    cli-propose-validates-change-name-and-collision:
+      strength: MUST
+      statement: The system MUST reject invalid strict change names, existing strict change collisions, and an already-filled active-change limit before creating any change directory or artifact content.
+      scenarios:
+        propose-rejects-invalid-name:
+          - GIVEN: a requested change name that is not kebab-case
+          - WHEN: the propose command is executed for that name
+          - THEN: the command exits non-zero
+          - AND: no strict change directory is created
+        propose-rejects-duplicate-change:
+          - GIVEN: a change directory for that name already exists with authored artifacts
+          - WHEN: the propose command is executed for that name
+          - THEN: the command exits non-zero
+          - AND: existing change artifacts are left unchanged
+        propose-is-idempotent-against-an-artifact-free-container:
+          - GIVEN: a change directory that exists but contains no planning artifacts
+          - WHEN: the propose command is executed again for that name
+          - THEN: the command succeeds without changing the change directory
+          - AND: the artifact-free container still counts toward the active-change limit
+    cli-propose-works-from-dist-only:
+      strength: MUST
+      statement: The system MUST allow the propose command to create a strict change correctly when run from the compiled `dist/` output without the source tree present.
+      scenarios:
+        propose-succeeds-from-dist-only-environment:
+          - GIVEN: only the compiled output directory exists with compiled JS and bundled templates
+          - WHEN: the propose command is executed for a new change name
+          - THEN: it creates the change directory and its specs directory
+          - AND: it writes no placeholder planning artifact
+  REMOVED:
+    cli-propose-generation-preserves-scaffold-behavior:
+      reason: Propose no longer writes a placeholder planning artifact set, so there is no scaffold behavior to preserve and no empty-directory reuse rule to state; cli-change-authoring-creates-artifacts-lazily and cli-first-authoring-invocation-is-atomic replace it.

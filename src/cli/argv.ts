@@ -1,7 +1,8 @@
+import { CHANGE_NAME_PATTERN } from "../scaffold.js";
 import { buildCommandHelpPayload, formatCommandHelp } from "./command-metadata.js";
 import { writeHelp, writeJson } from "./output.js";
 
-export const CHANGE_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export { CHANGE_NAME_PATTERN };
 
 export type CliInvocation = {
   subcommand?: string;

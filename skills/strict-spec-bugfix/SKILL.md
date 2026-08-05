@@ -86,7 +86,7 @@ own words, or replayed roadmap planned-change and milestone detail, may answer
 these. What the requester already said in the active request counts — never
 re-ask something they have already told you.
 
-`propose` seeds these five as open questions, so a fresh change starts blocked:
+Authoring `questions.yaml` seeds these five as open questions, so a fresh change starts blocked:
 
 - `requirement-problem` — what is concretely going wrong today, and for whom
 - `requirement-outcome` — what observable difference proves it is solved

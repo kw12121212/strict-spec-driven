@@ -45,9 +45,6 @@ function scaffoldArchiveCompatibilityChange(root: string): void {
     "--in", "Add one requirement and one rule",
     "--out", "Change unrelated artifacts",
     "--unchanged", "Existing live content remains",
-    "--remove-in", "Add [specific behavior]",
-    "--remove-out", "Implement unrelated workflow behavior.",
-    "--remove-unchanged", "Existing strict workflow behavior remains unchanged",
   ], { cwd: root });
   cli([
     "generate", change, "design",
@@ -55,15 +52,10 @@ function scaffoldArchiveCompatibilityChange(root: string): void {
     "--decision", "keep-archive",
     "--decision-text", "Keep archive as the delta merge owner",
     "--rationale", "Live authoring and delta merge remain separate compatible paths",
-    "--remove-approach", "Describe the implementation approach.",
-    "--remove-decision", "sample-decision",
-    "--remove-alternative", "Describe an alternative approach",
-    "--remove-risk", "Describe a risk this change carries",
   ], { cwd: root });
   resolveSeededQuestions(root, change);
   cli([
     "generate", change, "tasks",
-    "--remove", "implement-change", "--remove", "run-project-regression", "--remove", "verify-scope",
     "--section", "Implementation", "--task", "implement", "--text", "Implement deltas", "--status", "complete",
   ], { cwd: root });
   cli([

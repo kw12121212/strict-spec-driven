@@ -196,7 +196,7 @@ run `init` from this skill.
    - `strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..." --milestone <milestone-id> --planned-change <planned-change-id>`
    - `strict-spec-cli generate <change-name> design --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
    - populate `tasks.yaml` with `strict-spec-cli generate <change-name> tasks`, **one invocation per task** so no task list is hand-written:
-     - first task: `strict-spec-cli generate <change-name> tasks --section <Implementation|Testing|Verification> --task <task-id> --text "..." [--status pending|complete] [--command "..."]` — the scaffold seeds placeholder tasks, so remove them by id with `--remove` once the real tasks are in; `verify` reports any placeholder text left behind
+     - first task: `strict-spec-cli generate <change-name> tasks --section <Implementation|Testing|Verification> --task <task-id> --text "..." [--status pending|complete] [--command "..."]` — the task list starts absent and is created by this first call, so there are no placeholder tasks to remove
      - each later task: one `--section`/`--task`/`--text` group per call
      - restating an existing `(section, task-id)` is a field-level merge — it overwrites only the fields you pass, so a task's `status: complete` and `command` survive a text-only edit; a brand-new task still needs `--text`
      - delete a task with `--remove <task-id>` (a repeatable global flag); to move a task between sections, `--remove` it and restate it under the new section in the same call

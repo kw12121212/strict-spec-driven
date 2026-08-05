@@ -1,5 +1,6 @@
-import { existsSync, readFileSync, statSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
+import { reserveChangeContainer, unwindChangeContainer } from "./scaffold.js";
 import { loadBundledSchemaByArtifactType, validateArtifact, type ValidationDiagnostic } from "./validation.js";
 import { parseYamlDocument } from "./yaml.js";
 import { commitYamlMutation } from "./yaml-mutation.js";
@@ -198,14 +199,6 @@ function formatGenerationDiagnostics(
     ...lines,
     ...formatRecoveryAssets(artifactType),
   ].join("\n");
-}
-
-function ensureExistingChangeDir(rootDir: string, changeName: string): string {
-  const changeDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "changes", changeName);
-  if (!existsSync(changeDir) || !statSync(changeDir).isDirectory()) {
-    throw new Error(`change '${changeName}' not found`);
-  }
-  return changeDir;
 }
 
 function buildProposalArtifact(changeName: string, input: GenerationInputRecord): unknown {
@@ -691,7 +684,34 @@ function writeGeneratedArtifact(
   input: GenerationInputRecord,
   inputLabel: string,
 ): GenerateChangeArtifactResult {
-  const changeDir = ensureExistingChangeDir(rootDir, changeName);
+  // Authoring is the operation that brings a change into existence: whichever call runs first
+  // reserves the container, and every path this call created is unwound if anything below rejects,
+  // so a failed first write leaves no change behind and a failed later write leaves the existing
+  // change untouched.
+  const reservation = reserveChangeContainer(rootDir, changeName);
+  try {
+    return writeGeneratedArtifactIntoContainer(
+      rootDir,
+      reservation.changeDir,
+      changeName,
+      artifact,
+      input,
+      inputLabel,
+    );
+  } catch (error) {
+    unwindChangeContainer(reservation);
+    throw error;
+  }
+}
+
+function writeGeneratedArtifactIntoContainer(
+  rootDir: string,
+  changeDir: string,
+  changeName: string,
+  artifact: GeneratableArtifact,
+  input: GenerationInputRecord,
+  inputLabel: string,
+): GenerateChangeArtifactResult {
   const target = buildTarget(rootDir, changeDir, changeName, artifact, input);
   const artifactPath = normalizeRepoRelativePath(rootDir, target.absolutePath);
 

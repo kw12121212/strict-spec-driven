@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: deleting-a-seeded-default-exposes-every-consumer-e1b2bd
+  title: Deleting a seeded default exposes every consumer that never had to supply it
+category: tooling
+status: active
+created_at: '2026-08-05T14:43:47.791Z'
+updated_at: '2026-08-05T14:43:47.791Z'
+context: Removing the placeholder change scaffold, so propose stopped writing proposal.yaml, design.yaml, tasks.yaml, and questions.yaml and each artifact became something an authoring call creates.
+observation: The production change was small and landed quickly; the cost was entirely in consumers that had silently depended on the seeded files. Test fixtures called propose and then authored a proposal, a design, and a delta, but never a task list — because the scaffold had always supplied one, so ready passed without anyone noticing the gap. Several helpers existed only to delete seeded content and passed --remove-approach and --remove-in with the exact template literals, which then failed with 'matched no entry' once nothing seeded them. The requirement-interrogation gate turned out to be reachable only through the seeded questions file, so removing the seed would have quietly retired the gate rather than relocating it. None of these dependencies were stated anywhere; each surfaced as a separate test failure across four suites.
+takeaway: A seeded default is an undeclared dependency for everything downstream of it. Before deleting one, search for consumers that never had to supply the thing themselves rather than for references to the seed — test fixtures are the worst offenders, because a fixture that reaches a passing state without authoring an artifact is proof that something else authored it. Grep for the seeded literals to find the cleanup helpers, and separately ask which invariants existed only because the seed guaranteed the file was present; those invariants need a new home before the seed goes, not after.
+applies_when: Deleting or stopping the generation of seeded, templated, or default content that a command previously wrote automatically — bundled scaffolds, default config files, auto-created fixtures — where downstream code and tests may have depended on its presence without ever creating it.
+occurrences:
+  - origin: replace-change-scaffold-with-lazy-generation
+    date: '2026-08-05'
+    evidence: Removing the four templates/strict-spec-driven/scaffold/changes/*.yaml assets broke assertions in foundation-and-fixtures.ts, change-lifecycle.ts, entrypoint-and-skills.ts, and spec-tech-authoring.ts; the ready fixture in change-lifecycle.ts had never authored tasks.yaml, and clearScaffoldPlaceholders existed solely to delete seeded literals with --remove-approach and --remove-in.

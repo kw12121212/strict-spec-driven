@@ -3155,8 +3155,8 @@ var require_utils = __commonJS((exports, module) => {
     }
     return ind;
   }
-  function removeDotSegments(path2) {
-    let input = path2;
+  function removeDotSegments(path3) {
+    let input = path3;
     const output = [];
     let nextSlash = -1;
     let len = 0;
@@ -3346,8 +3346,8 @@ var require_schemes = __commonJS((exports, module) => {
       wsComponent.secure = undefined;
     }
     if (wsComponent.resourceName) {
-      const [path2, query] = wsComponent.resourceName.split("?");
-      wsComponent.path = path2 && path2 !== "/" ? path2 : undefined;
+      const [path3, query] = wsComponent.resourceName.split("?");
+      wsComponent.path = path3 && path3 !== "/" ? path3 : undefined;
       wsComponent.query = query;
       wsComponent.resourceName = undefined;
     }
@@ -6507,10 +6507,10 @@ var require_dist = __commonJS((exports, module) => {
 import { fileURLToPath as fileURLToPath6 } from "url";
 import { realpathSync as realpathSync2 } from "fs";
 
-// src/yaml-mutation-surface.ts
-import { existsSync as existsSync3, readFileSync as readFileSync4, statSync as statSync2 } from "fs";
-import path3 from "path";
-import { fileURLToPath as fileURLToPath2 } from "url";
+// src/scaffold.ts
+import { copyFileSync, existsSync, mkdirSync, readFileSync as readFileSync2, readdirSync, rmSync, statSync, writeFileSync } from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 // src/embedded-templates.ts
 var EMBEDDED_TEMPLATES = {
@@ -6527,142 +6527,6 @@ architecture:
 components: {}
 data_flows: {}
 decisions: {}
-`,
-  "strict-spec-driven/scaffold/changes/design.yaml": `schema: strict-spec-driven/change-design/v1
-schema_version: 1
-artifact_type: change_design
-schema_file: templates/strict-spec-driven/schemas/change-design.yaml
-change: {{change_name}}
-approach:
-  - Describe the implementation approach.
-decisions:
-  sample-decision:
-    decision: Describe what was decided.
-    rationale: Explain the independent reasoning, tradeoff, or constraint behind this decision.
-alternatives:
-  # Replace the sample entry below with real alternatives considered.
-  - option: "Describe an alternative approach that was considered."
-    reason: "Explain why it was rejected in favor of the chosen approach."
-risks:
-  # Replace the sample entry below with real risks, or remove if none.
-  - "Describe a risk this change carries and how it is mitigated."
-`,
-  "strict-spec-driven/scaffold/changes/proposal.yaml": `schema: strict-spec-driven/change-proposal/v1
-schema_version: 1
-artifact_type: change_proposal
-schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
-change:
-  id: {{change_name}}
-  status: proposed
-summary:
-  what:
-    # Replace the sample entry below with real observable behavior descriptions.
-    - Add [observable workflow behavior] for [target artifact family].
-  why:
-    # Replace the sample entry below with the real motivation.
-    - The behavior is needed to support [workflow scenario or user need].
-scope:
-  in:
-    # Replace sample entries with real scope items.
-    - Add [specific behavior] to [target artifact].
-  out:
-    - Implement unrelated workflow behavior.
-unchanged_behavior:
-  - Existing strict workflow behavior remains unchanged unless explicitly listed in scope.
-`,
-  "strict-spec-driven/scaffold/changes/questions.yaml": `schema: strict-spec-driven/question-list/v1
-schema_version: 1
-artifact_type: question_list
-schema_file: templates/strict-spec-driven/schemas/question-list.yaml
-change: {{change_name}}
-# The five requirement questions below are seeded open on purpose: a change starts blocked
-# until a human answers them. They are answered only from the requester's own words or from
-# replayed roadmap detail — never from repository evidence, which can show what the system
-# does but never what a person wants. Resolve each with:
-#   strict-spec-cli generate {{change_name}} questions --resolve <id> --answer "..." --answered-by human
-# Their text below is the canonical English baseline; restate it in the project's
-# preferred_human_language when asking the requester.
-open:
-  - id: requirement-problem
-    question: What is concretely going wrong today, and for whom?
-    context: >-
-      Why this is asked: the change is planned against a need, and the need lives only with the
-      requester. A "problem" here means what someone does or suffers today — not a feature that is
-      missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and
-      the underlying problem is still unstated. What a sufficient answer contains: who is affected,
-      what they do today instead, and how often. Worked example: "every Monday one person spends
-      forty minutes copying order rows into a spreadsheet to send the weekly report". What it
-      changes: this becomes the proposal's why, and it decides whether the change is worth making.
-    kind: requirement
-    status: open
-  - id: requirement-outcome
-    question: What observable difference proves the problem is solved?
-    context: >-
-      Why this is asked: without a success condition, nobody can tell afterwards whether the change
-      worked. "Observable" means someone outside the system can check it without reading the code.
-      What a sufficient answer contains: what a person will see, or no longer have to do, once this
-      is done. Worked example: "the report is in the manager's inbox on Monday morning without
-      anyone assembling it". What it changes: this becomes the delta spec's scenarios and the
-      acceptance evidence at review time.
-    kind: requirement
-    status: open
-  - id: requirement-trigger
-    question: Why now — what forced this?
-    context: >-
-      Why this is asked: work that nothing forced is the work most often thrown away later. This
-      question catches a request that sounds reasonable but has no real driver behind it. What a
-      sufficient answer contains: the concrete event, deadline, incident, or cost that made this
-      surface now, or an honest statement that nothing did. Worked example: "the report was missed
-      last month and it was raised with the team". What it changes: a change with no trigger is a
-      candidate for deferral, and the answer is weighed at review before archive.
-    kind: requirement
-    status: open
-  - id: requirement-non-goals
-    question: What must explicitly not change?
-    context: >-
-      Why this is asked: the requester knows which nearby behavior other people depend on, and the
-      agent does not. A "non-goal" is something the change must leave alone even though it sits
-      close to the work. What a sufficient answer contains: the behavior, setting, or output that
-      must survive untouched, and who relies on it. Worked example: "do not change the saved
-      filters — several people rely on their own". What it changes: these become the proposal's
-      unchanged_behavior items, which review checks the finished result against.
-    kind: requirement
-    status: open
-  - id: requirement-interpretation
-    question: Which reading of the request is intended, where more than one is possible?
-    context: >-
-      Why this is asked: a short request usually admits several readings, and building the wrong one
-      is indistinguishable from building nothing. What a sufficient answer contains: the reading
-      that is meant, stated plainly enough to rule the others out — or a statement that only one
-      reading exists and what it is. Worked example: "export means the version sent to the manager,
-      not the one I read myself". What it changes: this fixes the scope boundary before any code is
-      written, and settles disputes about what was asked for.
-    kind: requirement
-    status: open
-resolved: []
-`,
-  "strict-spec-driven/scaffold/changes/tasks.yaml": `schema: strict-spec-driven/task-list/v2
-schema_version: 2
-artifact_type: task_list
-schema_file: templates/strict-spec-driven/schemas/task-list.yaml
-change: {{change_name}}
-sections:
-  Implementation:
-    implement-change:
-      text: Implement the scoped workflow behavior.
-      status: pending
-  Testing:
-    run-project-regression:
-      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
-      status: pending
-      command: {{project_regression_command}}
-  Verification:
-    verify-scope:
-      text: Verify implementation matches proposal scope.
-      status: pending
-testing_gates:
-  validation_task: run-project-regression
-  unit_test_task: run-project-regression
 `,
   "strict-spec-driven/scaffold/config.yaml": `schema: strict-spec-driven/config/v1
 schema_version: 1
@@ -11870,7 +11734,6 @@ artifact_families:
       - examples/strict-spec-driven/change-design.yaml
       - examples/strict-spec-driven/task-list.yaml
       - examples/strict-spec-driven/question-list*.yaml
-      - templates/strict-spec-driven/scaffold/changes/*.yaml
     ownership: repository-owned
     validation_owner: >-
       templates/strict-spec-driven/schemas/change-proposal.yaml, change-design.yaml,
@@ -11897,8 +11760,8 @@ artifact_families:
       - src/cli/cmd-change.ts
       - src/cli/cmd-generation.ts
     evidence:
-      - templates/strict-spec-driven/scaffold/changes/proposal.yaml
       - src/propose-generation.ts
+      - src/cli/cmd-generation.ts
   change-delta-state:
     artifact_types:
       - delta_spec
@@ -12537,12 +12400,6 @@ function getEmbeddedTemplateKeys() {
 function readEmbeddedTemplate(key) {
   return EMBEDDED_TEMPLATES[key];
 }
-
-// src/shared-schema-cache.ts
-import { createHash, randomBytes } from "crypto";
-import { existsSync, mkdirSync, readFileSync as readFileSync2, renameSync, rmSync, statSync, writeFileSync } from "fs";
-import os from "os";
-import path from "path";
 
 // src/yaml.ts
 import { readFileSync } from "fs";
@@ -15389,7 +15246,180 @@ function parseYamlFile(path) {
   return parseYamlDocument(readFileSync(path, "utf8"), { source: path });
 }
 
+// src/scaffold.ts
+function getBundledDir(...segments) {
+  const thisDir = path.dirname(fileURLToPath(import.meta.url));
+  const distPath = path.join(thisDir, "templates", ...segments);
+  if (existsSync(distPath))
+    return distPath;
+  return path.join(thisDir, "..", "templates", ...segments);
+}
+var BUNDLED_SCAFFOLD_DIR = getBundledDir("strict-spec-driven", "scaffold");
+function scaffoldTemplateKey(relativePath) {
+  return `strict-spec-driven/scaffold/${relativePath}`;
+}
+var REQUIRED_SCAFFOLD_ASSETS = [
+  "config.yaml",
+  "harness.yaml",
+  "architecture.yaml",
+  "specs/INDEX.yaml",
+  "tech/INDEX.yaml",
+  "roadmap/INDEX.yaml",
+  "lessons/INDEX.yaml"
+];
+var STRICT_WORKFLOW_DIR = ".strict-spec-driven";
+var LEGACY_WORKFLOW_DIR = ".spec-driven";
+var MAX_ACTIVE_CHANGE_COUNT = 2;
+var CHANGE_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+function normalizeRelativeScaffoldPath(relativePath) {
+  const normalized = relativePath.split("\\").join("/");
+  if (path.isAbsolute(normalized)) {
+    throw new Error(`Scaffold asset path must be repo-relative, got '${relativePath}'`);
+  }
+  const parts = normalized.split("/");
+  if (!normalized || parts.some((part) => part.length === 0 || part === "." || part === "..")) {
+    throw new Error(`Scaffold asset path must be normalized, got '${relativePath}'`);
+  }
+  return normalized;
+}
+function toRepoRelativePath(rootDir, absolutePath) {
+  return path.relative(rootDir, absolutePath).split(path.sep).join("/");
+}
+function directoryTreeContainsFiles(directoryPath) {
+  for (const entry of readdirSync(directoryPath, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      if (directoryTreeContainsFiles(path.join(directoryPath, entry.name))) {
+        return true;
+      }
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
+function getBundledScaffoldPath(relativePath) {
+  const normalized = normalizeRelativeScaffoldPath(relativePath);
+  const resolved = path.resolve(BUNDLED_SCAFFOLD_DIR, normalized);
+  const relativeToRoot = path.relative(BUNDLED_SCAFFOLD_DIR, resolved);
+  if (relativeToRoot.startsWith("..") || path.isAbsolute(relativeToRoot)) {
+    throw new Error(`Scaffold asset path escapes scaffold root: '${relativePath}'`);
+  }
+  return resolved;
+}
+function readBundledScaffoldTemplate(relativePath) {
+  const embedded = readEmbeddedTemplate(scaffoldTemplateKey(relativePath));
+  if (embedded !== undefined)
+    return embedded;
+  return readFileSync2(getBundledScaffoldPath(relativePath), "utf8");
+}
+function loadBundledScaffoldYaml(relativePath) {
+  return parseYamlDocument(readBundledScaffoldTemplate(relativePath));
+}
+function getRequiredBundledScaffoldAssets() {
+  return [...REQUIRED_SCAFFOLD_ASSETS];
+}
+function findMissingRequiredScaffoldAssets() {
+  return getRequiredBundledScaffoldAssets().filter((relativePath) => !hasEmbeddedTemplate(scaffoldTemplateKey(relativePath)) && !existsSync(getBundledScaffoldPath(relativePath)));
+}
+function listActiveChangeNames(rootDir) {
+  const strictChangesRootDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "changes");
+  if (!existsSync(strictChangesRootDir) || !statSync(strictChangesRootDir).isDirectory()) {
+    return [];
+  }
+  return readdirSync(strictChangesRootDir, { withFileTypes: true }).filter((entry) => entry.isDirectory() && entry.name !== "archive").map((entry) => entry.name).sort((left, right) => left.localeCompare(right));
+}
+function reserveChangeContainer(rootDir, changeName, options = {}) {
+  if (!CHANGE_NAME_PATTERN.test(changeName)) {
+    throw new Error("change name must be kebab-case (lowercase letters, numbers, and hyphens)");
+  }
+  const strictChangesRootDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "changes");
+  const changeDir = path.join(strictChangesRootDir, changeName);
+  const repoRelativeChangeDir = toRepoRelativePath(rootDir, changeDir);
+  const specsDir = path.join(changeDir, "specs");
+  const containerExists = existsSync(changeDir);
+  if (containerExists && !statSync(changeDir).isDirectory()) {
+    throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
+  }
+  if (containerExists && options.rejectPopulated && directoryTreeContainsFiles(changeDir)) {
+    throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
+  }
+  if (!containerExists) {
+    const blockingActiveChanges = listActiveChangeNames(rootDir).filter((name) => name !== changeName);
+    if (blockingActiveChanges.length >= MAX_ACTIVE_CHANGE_COUNT) {
+      const blockingList = blockingActiveChanges.map((name) => `'${name}'`).join(", ");
+      throw new Error(`cannot create change '${changeName}': active changes ${blockingList} already fill the limit of two active changes; archive or cancel one first`);
+    }
+  }
+  const createdPaths = [];
+  for (const directoryPath of [strictChangesRootDir, changeDir, specsDir]) {
+    if (existsSync(directoryPath))
+      continue;
+    mkdirSync(directoryPath, { recursive: true });
+    createdPaths.push(directoryPath);
+  }
+  return {
+    changeDir,
+    repoRelativeChangeDir,
+    specsDir,
+    created: !containerExists,
+    createdPaths
+  };
+}
+function unwindChangeContainer(reservation) {
+  for (const createdPath of [...reservation.createdPaths].reverse()) {
+    rmSync(createdPath, { recursive: true, force: true });
+  }
+}
+function initializeStrictChangeScaffold(rootDir, changeName) {
+  const reservation = reserveChangeContainer(rootDir, changeName, { rejectPopulated: true });
+  return {
+    changeDir: reservation.repoRelativeChangeDir,
+    specsDir: `${toRepoRelativePath(rootDir, reservation.specsDir)}/`,
+    created: reservation.created
+  };
+}
+function initializeStrictScaffold(rootDir) {
+  const warnings = [];
+  const created = [];
+  const skipped = [];
+  const strictRootDir = path.join(rootDir, STRICT_WORKFLOW_DIR);
+  const legacyRootDir = path.join(rootDir, LEGACY_WORKFLOW_DIR);
+  if (existsSync(legacyRootDir) && statSync(legacyRootDir).isDirectory()) {
+    warnings.push("Warning: detected legacy '.spec-driven/' directory; strict init will continue using '.strict-spec-driven/'.");
+  }
+  for (const assetPath of getRequiredBundledScaffoldAssets()) {
+    const targetPath = path.join(strictRootDir, assetPath);
+    if (existsSync(targetPath)) {
+      skipped.push(assetPath);
+      continue;
+    }
+    mkdirSync(path.dirname(targetPath), { recursive: true });
+    const embedded = readEmbeddedTemplate(scaffoldTemplateKey(assetPath));
+    if (embedded !== undefined) {
+      writeFileSync(targetPath, embedded, "utf8");
+    } else {
+      copyFileSync(getBundledScaffoldPath(assetPath), targetPath);
+    }
+    created.push(assetPath);
+  }
+  return {
+    rootDir: strictRootDir,
+    created,
+    skipped,
+    warnings
+  };
+}
+
+// src/yaml-mutation-surface.ts
+import { existsSync as existsSync4, readFileSync as readFileSync5, statSync as statSync3 } from "fs";
+import path4 from "path";
+import { fileURLToPath as fileURLToPath3 } from "url";
+
 // src/shared-schema-cache.ts
+import { createHash, randomBytes } from "crypto";
+import { existsSync as existsSync2, mkdirSync as mkdirSync2, readFileSync as readFileSync3, renameSync, rmSync as rmSync2, statSync as statSync2, writeFileSync as writeFileSync2 } from "fs";
+import os from "os";
+import path2 from "path";
 var SHARED_SCHEMA_KEY_PREFIX = "strict-spec-driven/schemas/";
 var SHARED_SAMPLE_KEY_PREFIX = "examples/strict-spec-driven/";
 var SHARED_SCHEMA_CACHE_DIRNAME = ".strict-spec-schemas";
@@ -15405,7 +15435,7 @@ function getBundledSharedCacheAssets() {
       throw new Error(`embedded shared cache asset '${key}' is not available`);
     }
     return {
-      relativeCachePath: toPosix(key.startsWith(SHARED_SCHEMA_KEY_PREFIX) ? path.join("templates", key) : key),
+      relativeCachePath: toPosix(key.startsWith(SHARED_SCHEMA_KEY_PREFIX) ? path2.join("templates", key) : key),
       content
     };
   }).sort((left, right) => left.relativeCachePath.localeCompare(right.relativeCachePath));
@@ -15427,19 +15457,19 @@ function stringListsEqual(left, right) {
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 function readManifest(manifestPath) {
-  if (!existsSync(manifestPath) || !statSync(manifestPath).isFile())
+  if (!existsSync2(manifestPath) || !statSync2(manifestPath).isFile())
     return;
   try {
-    return parseYamlDocument(readFileSync2(manifestPath, "utf8"));
+    return parseYamlDocument(readFileSync3(manifestPath, "utf8"));
   } catch {
     return;
   }
 }
 function cachedFileMatchesAsset(absolutePath, asset) {
-  if (!existsSync(absolutePath) || !statSync(absolutePath).isFile())
+  if (!existsSync2(absolutePath) || !statSync2(absolutePath).isFile())
     return false;
   try {
-    return readFileSync2(absolutePath, "utf8") === asset.content;
+    return readFileSync3(absolutePath, "utf8") === asset.content;
   } catch {
     return false;
   }
@@ -15450,7 +15480,7 @@ function cacheNeedsRefresh(rootDir, manifestPath, exportVersion, assets) {
   if (!manifest || manifest.export_version !== exportVersion || !isStringArray(manifest.exported_files) || !stringListsEqual(manifest.exported_files, expectedFiles)) {
     return true;
   }
-  return assets.some((asset) => !cachedFileMatchesAsset(path.join(rootDir, asset.relativeCachePath), asset));
+  return assets.some((asset) => !cachedFileMatchesAsset(path2.join(rootDir, asset.relativeCachePath), asset));
 }
 function uniqueSiblingPath(basePath, label) {
   return `${basePath}.${label}-${process.pid}-${randomBytes(6).toString("hex")}`;
@@ -15458,56 +15488,56 @@ function uniqueSiblingPath(basePath, label) {
 function getSharedSchemaCacheRoot() {
   const overrideDir = process.env[SHARED_SCHEMA_CACHE_DIR_ENV];
   if (overrideDir !== undefined && overrideDir.trim() !== "") {
-    return path.resolve(overrideDir);
+    return path2.resolve(overrideDir);
   }
-  return path.join(os.homedir(), SHARED_SCHEMA_CACHE_DIRNAME);
+  return path2.join(os.homedir(), SHARED_SCHEMA_CACHE_DIRNAME);
 }
 function getSharedSchemaManifestPath(rootDir = getSharedSchemaCacheRoot()) {
-  return path.join(rootDir, SHARED_SCHEMA_MANIFEST_NAME);
+  return path2.join(rootDir, SHARED_SCHEMA_MANIFEST_NAME);
 }
 function swapInRefreshedAssets(rootDir, assets) {
-  const stagingDir = uniqueSiblingPath(path.join(rootDir, "shared-assets"), "staging");
+  const stagingDir = uniqueSiblingPath(path2.join(rootDir, "shared-assets"), "staging");
   const retiredDirs = [];
   try {
     for (const asset of assets) {
-      const absolutePath = path.join(stagingDir, asset.relativeCachePath);
-      mkdirSync(path.dirname(absolutePath), { recursive: true });
-      writeFileSync(absolutePath, asset.content, "utf8");
+      const absolutePath = path2.join(stagingDir, asset.relativeCachePath);
+      mkdirSync2(path2.dirname(absolutePath), { recursive: true });
+      writeFileSync2(absolutePath, asset.content, "utf8");
     }
-    mkdirSync(rootDir, { recursive: true });
+    mkdirSync2(rootDir, { recursive: true });
     for (const topLevelDir of ["templates", "examples"]) {
-      const targetDir = path.join(rootDir, topLevelDir);
-      const stagingTopLevelDir = path.join(stagingDir, topLevelDir);
+      const targetDir = path2.join(rootDir, topLevelDir);
+      const stagingTopLevelDir = path2.join(stagingDir, topLevelDir);
       const retiredDir = uniqueSiblingPath(targetDir, "retired");
-      if (existsSync(targetDir)) {
+      if (existsSync2(targetDir)) {
         renameSync(targetDir, retiredDir);
         retiredDirs.push(retiredDir);
       }
-      if (existsSync(stagingTopLevelDir)) {
+      if (existsSync2(stagingTopLevelDir)) {
         renameSync(stagingTopLevelDir, targetDir);
       }
     }
     for (const retiredDir of retiredDirs) {
-      rmSync(retiredDir, { recursive: true, force: true });
+      rmSync2(retiredDir, { recursive: true, force: true });
     }
   } finally {
-    rmSync(stagingDir, { recursive: true, force: true });
+    rmSync2(stagingDir, { recursive: true, force: true });
     for (const retiredDir of retiredDirs) {
-      rmSync(retiredDir, { recursive: true, force: true });
+      rmSync2(retiredDir, { recursive: true, force: true });
     }
   }
 }
 function writeManifestAtomically(manifestPath, exportVersion, exportedFiles) {
   const manifestTempPath = uniqueSiblingPath(manifestPath, "tmp");
   try {
-    writeFileSync(manifestTempPath, stringifyYamlDocument({
+    writeFileSync2(manifestTempPath, stringifyYamlDocument({
       export_version: exportVersion,
       exported_files: exportedFiles,
       last_sync_time: new Date().toISOString()
     }), "utf8");
     renameSync(manifestTempPath, manifestPath);
   } finally {
-    rmSync(manifestTempPath, { force: true });
+    rmSync2(manifestTempPath, { force: true });
   }
 }
 function synchronizeSharedSchemaCache() {
@@ -15525,7 +15555,7 @@ function synchronizeSharedSchemaCache() {
       exportedFiles
     };
   }
-  mkdirSync(rootDir, { recursive: true });
+  mkdirSync2(rootDir, { recursive: true });
   swapInRefreshedAssets(rootDir, assets);
   writeManifestAtomically(manifestPath, exportVersion, exportedFiles);
   return {
@@ -15544,17 +15574,17 @@ function formatSharedSchemaCacheWarning(error, rootDir = getSharedSchemaCacheRoo
 // src/validation.ts
 var import_ajv = __toESM(require_ajv(), 1);
 var import_ajv_formats = __toESM(require_dist(), 1);
-import { existsSync as existsSync2, readFileSync as readFileSync3 } from "fs";
-import path2 from "path";
-import { fileURLToPath } from "url";
-function getBundledDir(...segments) {
-  const thisDir = path2.dirname(fileURLToPath(import.meta.url));
-  const distPath = path2.join(thisDir, "templates", ...segments);
-  if (existsSync2(distPath))
+import { existsSync as existsSync3, readFileSync as readFileSync4 } from "fs";
+import path3 from "path";
+import { fileURLToPath as fileURLToPath2 } from "url";
+function getBundledDir2(...segments) {
+  const thisDir = path3.dirname(fileURLToPath2(import.meta.url));
+  const distPath = path3.join(thisDir, "templates", ...segments);
+  if (existsSync3(distPath))
     return distPath;
-  return path2.join(thisDir, "..", "templates", ...segments);
+  return path3.join(thisDir, "..", "templates", ...segments);
 }
-var BUNDLED_SCHEMA_DIR = getBundledDir("strict-spec-driven", "schemas");
+var BUNDLED_SCHEMA_DIR = getBundledDir2("strict-spec-driven", "schemas");
 function schemaTemplateKey(schemaFile) {
   return `strict-spec-driven/schemas/${schemaFile}`;
 }
@@ -15562,7 +15592,7 @@ function readBundledSchemaContent(schemaFile) {
   const embedded = readEmbeddedTemplate(schemaTemplateKey(schemaFile));
   if (embedded !== undefined)
     return embedded;
-  return readFileSync3(getBundledSchemaPath(schemaFile), "utf8");
+  return readFileSync4(getBundledSchemaPath(schemaFile), "utf8");
 }
 function resolveAjvConstructor() {
   const value = import_ajv.default;
@@ -15714,7 +15744,7 @@ function compileSchema(schema2) {
   return createSchemaValidator().compile(schema2);
 }
 function getBundledSchemaPath(schemaFile) {
-  return path2.join(BUNDLED_SCHEMA_DIR, schemaFile);
+  return path3.join(BUNDLED_SCHEMA_DIR, schemaFile);
 }
 function loadBundledSchema(schemaFile) {
   const raw = parseYamlDocument(readBundledSchemaContent(schemaFile));
@@ -15834,34 +15864,34 @@ function asString(value) {
   return typeof value === "string" ? value : undefined;
 }
 function repositoryRoot() {
-  const thisDir = path3.dirname(fileURLToPath2(import.meta.url));
-  return path3.join(thisDir, "..");
+  const thisDir = path4.dirname(fileURLToPath3(import.meta.url));
+  return path4.join(thisDir, "..");
 }
 function readInventoryContent() {
   const embedded = readEmbeddedTemplate(YAML_MUTATION_INVENTORY_PATH);
   if (embedded !== undefined)
     return embedded;
-  return readFileSync4(path3.join(repositoryRoot(), YAML_MUTATION_INVENTORY_PATH), "utf8");
+  return readFileSync5(path4.join(repositoryRoot(), YAML_MUTATION_INVENTORY_PATH), "utf8");
 }
 function isReadableFile(candidatePath) {
   try {
-    return existsSync3(candidatePath) && statSync2(candidatePath).isFile();
+    return existsSync4(candidatePath) && statSync3(candidatePath).isFile();
   } catch {
     return false;
   }
 }
 function isCacheDirectory(candidatePath) {
   try {
-    return existsSync3(candidatePath) && statSync2(candidatePath).isDirectory();
+    return existsSync4(candidatePath) && statSync3(candidatePath).isDirectory();
   } catch {
     return false;
   }
 }
 function bareAssetName(assetKey) {
-  return path3.posix.basename(assetKey, ".yaml");
+  return path4.posix.basename(assetKey, ".yaml");
 }
 function exampleKeyFromRegistry(primaryExample) {
-  const normalized = path3.posix.normalize(path3.posix.join(SCHEMA_DECLARED_DIR, primaryExample));
+  const normalized = path4.posix.normalize(path4.posix.join(SCHEMA_DECLARED_DIR, primaryExample));
   return normalized.startsWith("examples/strict-spec-driven/") ? normalized : undefined;
 }
 function emptyAssets() {
@@ -15871,10 +15901,10 @@ function resolveAssets(schemaFile, primaryExample, cacheRoot) {
   if (schemaFile === undefined)
     return emptyAssets();
   const schemaKey = `${SCHEMA_KEY_PREFIX}${schemaFile}`;
-  const declaredSchemaFile = path3.posix.join(SCHEMA_DECLARED_DIR, schemaFile);
-  const cachedSchemaPath = path3.join(cacheRoot, declaredSchemaFile);
+  const declaredSchemaFile = path4.posix.join(SCHEMA_DECLARED_DIR, schemaFile);
+  const cachedSchemaPath = path4.join(cacheRoot, declaredSchemaFile);
   const exampleKey = primaryExample === undefined ? undefined : exampleKeyFromRegistry(primaryExample);
-  const cachedExamplePath = exampleKey === undefined ? undefined : path3.join(cacheRoot, exampleKey);
+  const cachedExamplePath = exampleKey === undefined ? undefined : path4.join(cacheRoot, exampleKey);
   return {
     schemaKey,
     declaredSchemaFile,
@@ -16039,18 +16069,22 @@ var COMMAND_METADATA_ENTRIES = {
   propose: {
     name: "propose",
     group: "change",
-    summary: "Scaffold a new strict change directory with empty planning artifacts.",
-    mcpDescription: "Mutates strict workflow state by creating a new change scaffold.",
+    summary: "Create a new strict change container, without writing any planning artifact.",
+    mcpDescription: "Mutates strict workflow state by creating a new change container.",
     usage: `Usage: strict-spec-cli propose <change-name>
 `,
     arguments: [CHANGE_NAME_ARG],
     flags: [],
     output: {
       format: "text",
-      description: "The created change directory followed by each scaffolded planning artifact path."
+      description: "The created change directory and its specs/ directory, followed by the generate invocation that authors each planning artifact."
     },
     exitCodes: SUCCESS_EXIT_CODES,
-    notes: ["Creates proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and an empty specs/ directory."]
+    notes: [
+      "Creates only the change directory and an empty specs/ directory. Planning artifacts are written by generate, from real content, so an unauthored artifact is absent rather than a placeholder.",
+      "Rejects an invalid change name, a change directory that already holds files, and a third active change. Running it again against a change directory that holds no files succeeds as a no-op, so an interrupted first authoring call can be retried.",
+      "propose is optional: the first generate invocation for a change creates the container itself, in the same atomic operation that writes the artifact."
+    ]
   },
   generate: {
     name: "generate",
@@ -16447,6 +16481,8 @@ var COMMAND_METADATA_ENTRIES = {
       { code: 1, meaning: "Usage error, unsupported argument, or a rejected merge." }
     ],
     notes: [
+      "The change need not exist yet. The first successful generate call creates the change container and the artifact it authors in one atomic operation, and a rejected or failed call removes every path it created, so a failed first write leaves no change behind and a failed later write leaves the existing change untouched.",
+      "A target artifact that does not exist is created from typed defaults merged with the supplied named arguments; no placeholder file is ever written. Creating questions.yaml seeds the requirement-interrogation set open, which is workflow-required state rather than placeholder content.",
       "valid reports write success; ready (tasks only) reports completeness. A ready: false result is a successful write, not a failure, and is resolved by adding the missing tasks rather than by rebuilding the list.",
       "Restating an existing (section, task id) is a field-level merge: it overwrites only the fields supplied, so status and command survive a text-only edit.",
       "Use the --flag=value form when a value begins with a dash, such as task text naming a CLI flag.",
@@ -18361,7 +18397,6 @@ function writeError(message) {
 }
 
 // src/cli/argv.ts
-var CHANGE_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 function normalizeCliInvocation(argv) {
   const [subcommand, ...subcommandArgs] = argv;
   return { subcommand, subcommandArgs };
@@ -18570,233 +18605,6 @@ function createCliCommandTable(registry) {
   return commands;
 }
 
-// src/scaffold.ts
-import { copyFileSync, existsSync as existsSync4, mkdirSync as mkdirSync2, readFileSync as readFileSync5, readdirSync, statSync as statSync3, writeFileSync as writeFileSync2 } from "fs";
-import path4 from "path";
-import { fileURLToPath as fileURLToPath3 } from "url";
-function getBundledDir2(...segments) {
-  const thisDir = path4.dirname(fileURLToPath3(import.meta.url));
-  const distPath = path4.join(thisDir, "templates", ...segments);
-  if (existsSync4(distPath))
-    return distPath;
-  return path4.join(thisDir, "..", "templates", ...segments);
-}
-var BUNDLED_SCAFFOLD_DIR = getBundledDir2("strict-spec-driven", "scaffold");
-function scaffoldTemplateKey(relativePath) {
-  return `strict-spec-driven/scaffold/${relativePath}`;
-}
-var REQUIRED_SCAFFOLD_ASSETS = [
-  "config.yaml",
-  "harness.yaml",
-  "architecture.yaml",
-  "specs/INDEX.yaml",
-  "tech/INDEX.yaml",
-  "roadmap/INDEX.yaml",
-  "lessons/INDEX.yaml"
-];
-var REQUIRED_CHANGE_TEMPLATE_ASSETS = [
-  "changes/proposal.yaml",
-  "changes/design.yaml",
-  "changes/tasks.yaml",
-  "changes/questions.yaml"
-];
-var CHANGE_TEMPLATE_NAME_PLACEHOLDER = "{{change_name}}";
-var CHANGE_TEMPLATE_REGRESSION_COMMAND_PLACEHOLDER = "{{project_regression_command}}";
-var REGRESSION_COMMAND_FALLBACK = "REPLACE WITH the complete project regression command (build plus full test run)";
-var STRICT_WORKFLOW_DIR = ".strict-spec-driven";
-var LEGACY_WORKFLOW_DIR = ".spec-driven";
-var MAX_ACTIVE_CHANGE_COUNT = 2;
-function readConfiguredRegressionCommand(rootDir) {
-  const configPath = path4.join(rootDir, STRICT_WORKFLOW_DIR, "config.yaml");
-  if (!existsSync4(configPath))
-    return null;
-  try {
-    const parsed = parseYamlDocument(readFileSync5(configPath, "utf8"));
-    const command = parsed?.review_evidence?.project_regression?.command;
-    return typeof command === "string" && command.trim().length > 0 ? command : null;
-  } catch {
-    return null;
-  }
-}
-var cachedScaffoldTaskPlaceholders;
-function getScaffoldTaskPlaceholders() {
-  if (cachedScaffoldTaskPlaceholders)
-    return cachedScaffoldTaskPlaceholders;
-  const rendered = readBundledScaffoldTemplate("changes/tasks.yaml").replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, "scaffold").replaceAll(CHANGE_TEMPLATE_REGRESSION_COMMAND_PLACEHOLDER, JSON.stringify(REGRESSION_COMMAND_FALLBACK));
-  const parsed = parseYamlDocument(rendered);
-  const texts = [];
-  for (const sectionTasks of Object.values(parsed?.sections ?? {})) {
-    for (const task of Object.values(sectionTasks ?? {})) {
-      if (task?.command === REGRESSION_COMMAND_FALLBACK)
-        continue;
-      if (typeof task?.text === "string")
-        texts.push(task.text);
-    }
-  }
-  cachedScaffoldTaskPlaceholders = { texts, commands: [REGRESSION_COMMAND_FALLBACK] };
-  return cachedScaffoldTaskPlaceholders;
-}
-var cachedScaffoldProposalPlaceholders;
-function getScaffoldProposalPlaceholders() {
-  if (cachedScaffoldProposalPlaceholders)
-    return cachedScaffoldProposalPlaceholders;
-  const rendered = readBundledScaffoldTemplate("changes/proposal.yaml").replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, "scaffold");
-  const parsed = parseYamlDocument(rendered);
-  const strings = (value) => Array.isArray(value) ? value.filter((entry) => typeof entry === "string") : [];
-  cachedScaffoldProposalPlaceholders = {
-    what: strings(parsed?.summary?.what),
-    why: strings(parsed?.summary?.why),
-    scopeIn: strings(parsed?.scope?.in),
-    scopeOut: strings(parsed?.scope?.out),
-    unchangedBehavior: strings(parsed?.unchanged_behavior)
-  };
-  return cachedScaffoldProposalPlaceholders;
-}
-var cachedScaffoldDesignPlaceholders;
-function getScaffoldDesignPlaceholders() {
-  if (cachedScaffoldDesignPlaceholders)
-    return cachedScaffoldDesignPlaceholders;
-  const rendered = readBundledScaffoldTemplate("changes/design.yaml").replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, "scaffold");
-  const parsed = parseYamlDocument(rendered);
-  cachedScaffoldDesignPlaceholders = {
-    approach: Array.isArray(parsed?.approach) ? parsed.approach.filter((entry) => typeof entry === "string") : [],
-    decisionIds: Object.keys(parsed?.decisions ?? {}),
-    alternativeOptions: (parsed?.alternatives ?? []).map((entry) => entry?.option).filter((option) => typeof option === "string"),
-    risks: Array.isArray(parsed?.risks) ? parsed.risks.filter((entry) => typeof entry === "string") : []
-  };
-  return cachedScaffoldDesignPlaceholders;
-}
-function normalizeRelativeScaffoldPath(relativePath) {
-  const normalized = relativePath.split("\\").join("/");
-  if (path4.isAbsolute(normalized)) {
-    throw new Error(`Scaffold asset path must be repo-relative, got '${relativePath}'`);
-  }
-  const parts = normalized.split("/");
-  if (!normalized || parts.some((part) => part.length === 0 || part === "." || part === "..")) {
-    throw new Error(`Scaffold asset path must be normalized, got '${relativePath}'`);
-  }
-  return normalized;
-}
-function toRepoRelativePath(rootDir, absolutePath) {
-  return path4.relative(rootDir, absolutePath).split(path4.sep).join("/");
-}
-function directoryTreeContainsFiles(directoryPath) {
-  for (const entry of readdirSync(directoryPath, { withFileTypes: true })) {
-    if (entry.isDirectory()) {
-      if (directoryTreeContainsFiles(path4.join(directoryPath, entry.name))) {
-        return true;
-      }
-      continue;
-    }
-    return true;
-  }
-  return false;
-}
-function getBundledScaffoldPath(relativePath) {
-  const normalized = normalizeRelativeScaffoldPath(relativePath);
-  const resolved = path4.resolve(BUNDLED_SCAFFOLD_DIR, normalized);
-  const relativeToRoot = path4.relative(BUNDLED_SCAFFOLD_DIR, resolved);
-  if (relativeToRoot.startsWith("..") || path4.isAbsolute(relativeToRoot)) {
-    throw new Error(`Scaffold asset path escapes scaffold root: '${relativePath}'`);
-  }
-  return resolved;
-}
-function readBundledScaffoldTemplate(relativePath) {
-  const embedded = readEmbeddedTemplate(scaffoldTemplateKey(relativePath));
-  if (embedded !== undefined)
-    return embedded;
-  return readFileSync5(getBundledScaffoldPath(relativePath), "utf8");
-}
-function loadBundledScaffoldYaml(relativePath) {
-  return parseYamlDocument(readBundledScaffoldTemplate(relativePath));
-}
-function getRequiredBundledScaffoldAssets() {
-  return [...REQUIRED_SCAFFOLD_ASSETS];
-}
-function findMissingRequiredScaffoldAssets() {
-  return getRequiredBundledScaffoldAssets().filter((relativePath) => !hasEmbeddedTemplate(scaffoldTemplateKey(relativePath)) && !existsSync4(getBundledScaffoldPath(relativePath)));
-}
-function getRequiredBundledChangeTemplateAssets() {
-  return [...REQUIRED_CHANGE_TEMPLATE_ASSETS];
-}
-function findMissingRequiredChangeTemplateAssets() {
-  return getRequiredBundledChangeTemplateAssets().filter((relativePath) => !hasEmbeddedTemplate(scaffoldTemplateKey(relativePath)) && !existsSync4(getBundledScaffoldPath(relativePath)));
-}
-function listActiveChangeNames(rootDir) {
-  const strictChangesRootDir = path4.join(rootDir, STRICT_WORKFLOW_DIR, "changes");
-  if (!existsSync4(strictChangesRootDir) || !statSync3(strictChangesRootDir).isDirectory()) {
-    return [];
-  }
-  return readdirSync(strictChangesRootDir, { withFileTypes: true }).filter((entry) => entry.isDirectory() && entry.name !== "archive").map((entry) => entry.name).sort((left, right) => left.localeCompare(right));
-}
-function initializeStrictChangeScaffold(rootDir, changeName) {
-  const strictChangesRootDir = path4.join(rootDir, STRICT_WORKFLOW_DIR, "changes");
-  const changeDir = path4.join(strictChangesRootDir, changeName);
-  const repoRelativeChangeDir = toRepoRelativePath(rootDir, changeDir);
-  const blockingActiveChanges = listActiveChangeNames(rootDir).filter((name) => name !== changeName);
-  if (blockingActiveChanges.length >= MAX_ACTIVE_CHANGE_COUNT) {
-    const blockingList = blockingActiveChanges.map((name) => `'${name}'`).join(", ");
-    throw new Error(`cannot create change '${changeName}': active changes ${blockingList} already fill the limit of two active changes; archive or cancel one first`);
-  }
-  if (existsSync4(changeDir)) {
-    if (!statSync3(changeDir).isDirectory()) {
-      throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
-    }
-    if (directoryTreeContainsFiles(changeDir)) {
-      throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
-    }
-  }
-  mkdirSync2(changeDir, { recursive: true });
-  const planningArtifacts = [];
-  const regressionCommand = readConfiguredRegressionCommand(rootDir) ?? REGRESSION_COMMAND_FALLBACK;
-  for (const templateAssetPath of getRequiredBundledChangeTemplateAssets()) {
-    const outputFileName = path4.basename(templateAssetPath);
-    const outputPath = path4.join(changeDir, outputFileName);
-    const templateContent = readBundledScaffoldTemplate(templateAssetPath);
-    const outputContent = templateContent.replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, changeName).replaceAll(CHANGE_TEMPLATE_REGRESSION_COMMAND_PLACEHOLDER, JSON.stringify(regressionCommand));
-    writeFileSync2(outputPath, outputContent, "utf8");
-    planningArtifacts.push(toRepoRelativePath(rootDir, outputPath));
-  }
-  const specsDir = path4.join(changeDir, "specs");
-  mkdirSync2(specsDir, { recursive: true });
-  return {
-    changeDir: repoRelativeChangeDir,
-    planningArtifacts,
-    specsDir: `${toRepoRelativePath(rootDir, specsDir)}/`
-  };
-}
-function initializeStrictScaffold(rootDir) {
-  const warnings = [];
-  const created = [];
-  const skipped = [];
-  const strictRootDir = path4.join(rootDir, STRICT_WORKFLOW_DIR);
-  const legacyRootDir = path4.join(rootDir, LEGACY_WORKFLOW_DIR);
-  if (existsSync4(legacyRootDir) && statSync3(legacyRootDir).isDirectory()) {
-    warnings.push("Warning: detected legacy '.spec-driven/' directory; strict init will continue using '.strict-spec-driven/'.");
-  }
-  for (const assetPath of getRequiredBundledScaffoldAssets()) {
-    const targetPath = path4.join(strictRootDir, assetPath);
-    if (existsSync4(targetPath)) {
-      skipped.push(assetPath);
-      continue;
-    }
-    mkdirSync2(path4.dirname(targetPath), { recursive: true });
-    const embedded = readEmbeddedTemplate(scaffoldTemplateKey(assetPath));
-    if (embedded !== undefined) {
-      writeFileSync2(targetPath, embedded, "utf8");
-    } else {
-      copyFileSync(getBundledScaffoldPath(assetPath), targetPath);
-    }
-    created.push(assetPath);
-  }
-  return {
-    rootDir: strictRootDir,
-    created,
-    skipped,
-    warnings
-  };
-}
-
 // src/cli/cmd-scaffold.ts
 function runInit(argv = []) {
   if (handleHelpRequest("init", argv)) {
@@ -18841,26 +18649,16 @@ function runPropose(argv) {
     writeError("change name must be kebab-case (lowercase letters, numbers, and hyphens)");
     return 1;
   }
-  const missingAssets = findMissingRequiredChangeTemplateAssets();
-  if (missingAssets.length > 0) {
-    writeError("missing bundled change templates required by propose:");
-    for (const assetPath of missingAssets) {
-      writeErr(`- ${assetPath}
-`);
-    }
-    return 1;
-  }
   try {
     const result = initializeStrictChangeScaffold(process.cwd(), changeName);
-    writeOut(`Created strict change scaffold at ${result.changeDir}/
+    writeOut(result.created ? `Created strict change at ${result.changeDir}/
+` : `Reused existing empty strict change at ${result.changeDir}/
 `);
-    writeOut(`Planning artifacts:
-`);
-    for (const artifactPath of result.planningArtifacts) {
-      writeOut(`- ${artifactPath}
-`);
-    }
     writeOut(`- ${result.specsDir}
+`);
+    writeOut(`No planning artifacts were written; author each one with:
+`);
+    writeOut(`- strict-spec-cli generate ${changeName} <proposal|design|tasks|questions> --<named-args>
 `);
     return 0;
   } catch (error) {
@@ -18871,11 +18669,11 @@ function runPropose(argv) {
 }
 
 // src/cli/cmd-generation.ts
-import { existsSync as existsSync7, readFileSync as readFileSync8, rmSync as rmSync3 } from "fs";
+import { existsSync as existsSync7, readFileSync as readFileSync8, rmSync as rmSync4 } from "fs";
 import path7 from "path";
 
 // src/propose-generation.ts
-import { existsSync as existsSync6, readFileSync as readFileSync7, statSync as statSync5 } from "fs";
+import { existsSync as existsSync6, readFileSync as readFileSync7 } from "fs";
 import path6 from "path";
 
 // src/yaml-mutation.ts
@@ -18885,7 +18683,7 @@ import {
   readFileSync as readFileSync6,
   realpathSync,
   renameSync as renameSync2,
-  rmSync as rmSync2,
+  rmSync as rmSync3,
   rmdirSync,
   statSync as statSync4,
   writeFileSync as writeFileSync3
@@ -18897,7 +18695,7 @@ var nodeFileSystem = {
   mkdir: (directoryPath) => mkdirSync3(directoryPath),
   writeExclusive: (filePath, content) => writeFileSync3(filePath, content, { encoding: "utf8", flag: "wx" }),
   rename: renameSync2,
-  remove: (filePath) => rmSync2(filePath, { force: true }),
+  remove: (filePath) => rmSync3(filePath, { force: true }),
   removeEmptyDirectory: rmdirSync
 };
 var transactionSequence = 0;
@@ -19344,13 +19142,6 @@ function formatGenerationDiagnostics(artifact, inputLabel, diagnostics, artifact
   ].join(`
 `);
 }
-function ensureExistingChangeDir(rootDir, changeName) {
-  const changeDir = path6.join(rootDir, STRICT_WORKFLOW_DIR2, "changes", changeName);
-  if (!existsSync6(changeDir) || !statSync5(changeDir).isDirectory()) {
-    throw new Error(`change '${changeName}' not found`);
-  }
-  return changeDir;
-}
 function buildProposalArtifact(changeName, input) {
   const summary = asRecord2(input.summary, "$.summary");
   const scope = asRecord2(input.scope, "$.scope");
@@ -19748,7 +19539,15 @@ function isGeneratableArtifact(value) {
   return GENERATABLE_ARTIFACTS.includes(value);
 }
 function writeGeneratedArtifact(rootDir, changeName, artifact, input, inputLabel) {
-  const changeDir = ensureExistingChangeDir(rootDir, changeName);
+  const reservation = reserveChangeContainer(rootDir, changeName);
+  try {
+    return writeGeneratedArtifactIntoContainer(rootDir, reservation.changeDir, changeName, artifact, input, inputLabel);
+  } catch (error) {
+    unwindChangeContainer(reservation);
+    throw error;
+  }
+}
+function writeGeneratedArtifactIntoContainer(rootDir, changeDir, changeName, artifact, input, inputLabel) {
   const target = buildTarget(rootDir, changeDir, changeName, artifact, input);
   const artifactPath = normalizeRepoRelativePath(rootDir, target.absolutePath);
   const preWriteDiagnostics = validateGeneratedArtifact(target.artifactType, target.artifact, artifactPath);
@@ -19813,6 +19612,49 @@ function writeGeneratedArtifact(rootDir, changeName, artifact, input, inputLabel
 }
 function generateChangeArtifactFromInput(rootDir, changeName, artifact, input) {
   return writeGeneratedArtifact(rootDir, changeName, artifact, input, "command input");
+}
+
+// src/requirement-questions.ts
+var CANONICAL_REQUIREMENT_QUESTIONS = [
+  {
+    id: "requirement-problem",
+    asks: "what is concretely going wrong today, and for whom",
+    question: "What is concretely going wrong today, and for whom?",
+    context: "Why this is asked: the change is planned against a need, and the need lives only with the " + 'requester. A "problem" here means what someone does or suffers today — not a feature that is ' + "missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and " + "the underlying problem is still unstated. What a sufficient answer contains: who is affected, " + 'what they do today instead, and how often. Worked example: "every Monday one person spends ' + 'forty minutes copying order rows into a spreadsheet to send the weekly report". What it ' + "changes: this becomes the proposal's why, and it decides whether the change is worth making."
+  },
+  {
+    id: "requirement-outcome",
+    asks: "what observable difference proves the problem is solved",
+    question: "What observable difference proves the problem is solved?",
+    context: "Why this is asked: without a success condition, nobody can tell afterwards whether the change " + 'worked. "Observable" means someone outside the system can check it without reading the code. ' + "What a sufficient answer contains: what a person will see, or no longer have to do, once this " + `is done. Worked example: "the report is in the manager's inbox on Monday morning without ` + `anyone assembling it". What it changes: this becomes the delta spec's scenarios and the ` + "acceptance evidence at review time."
+  },
+  {
+    id: "requirement-trigger",
+    asks: "why now — what forced this",
+    question: "Why now — what forced this?",
+    context: "Why this is asked: work that nothing forced is the work most often thrown away later. This " + "question catches a request that sounds reasonable but has no real driver behind it. What a " + "sufficient answer contains: the concrete event, deadline, incident, or cost that made this " + 'surface now, or an honest statement that nothing did. Worked example: "the report was missed ' + 'last month and it was raised with the team". What it changes: a change with no trigger is a ' + "candidate for deferral, and the answer is weighed at review before archive."
+  },
+  {
+    id: "requirement-non-goals",
+    asks: "what must explicitly not change",
+    question: "What must explicitly not change?",
+    context: "Why this is asked: the requester knows which nearby behavior other people depend on, and the " + 'agent does not. A "non-goal" is something the change must leave alone even though it sits ' + "close to the work. What a sufficient answer contains: the behavior, setting, or output that " + 'must survive untouched, and who relies on it. Worked example: "do not change the saved ' + `filters — several people rely on their own". What it changes: these become the proposal's ` + "unchanged_behavior items, which review checks the finished result against."
+  },
+  {
+    id: "requirement-interpretation",
+    asks: "which reading of the request is intended",
+    question: "Which reading of the request is intended, where more than one is possible?",
+    context: "Why this is asked: a short request usually admits several readings, and building the wrong one " + "is indistinguishable from building nothing. What a sufficient answer contains: the reading " + "that is meant, stated plainly enough to rule the others out — or a statement that only one " + 'reading exists and what it is. Worked example: "export means the version sent to the manager, ' + 'not the one I read myself". What it changes: this fixes the scope boundary before any code is ' + "written, and settles disputes about what was asked for."
+  }
+];
+function buildSeededRequirementQuestions() {
+  return CANONICAL_REQUIREMENT_QUESTIONS.map((canonical) => ({
+    id: canonical.id,
+    question: canonical.question,
+    context: canonical.context,
+    kind: "requirement",
+    status: "open"
+  }));
 }
 
 // src/cli/cmd-generation.ts
@@ -20211,9 +20053,12 @@ function parseQuestionCommandInput(argv, rootDir) {
 }
 function existingQuestionsInput(rootDir, changeName) {
   const artifact = readYamlIfExists(rootDir, `${STRICT_WORKFLOW_DIR3}/changes/${changeName}/questions.yaml`);
+  if (!artifact) {
+    return { open: buildSeededRequirementQuestions(), resolved: [] };
+  }
   return {
-    open: Array.isArray(artifact?.open) ? artifact.open : [],
-    resolved: Array.isArray(artifact?.resolved) ? artifact.resolved : []
+    open: Array.isArray(artifact.open) ? artifact.open : [],
+    resolved: Array.isArray(artifact.resolved) ? artifact.resolved : []
   };
 }
 function removeQuestionById(open, resolved, id) {
@@ -21049,7 +20894,7 @@ function runArtifactDelete(rootDir, changeName, artifact, argv) {
   const absolutePath = path7.join(rootDir, artifactPath);
   const deleted = existsSync7(absolutePath);
   if (deleted)
-    rmSync3(absolutePath);
+    rmSync4(absolutePath);
   return { changeName, artifact, artifactPath, deleted };
 }
 function buildInputFromNamedArgs(rootDir, changeName, artifact, argv, removalOutcome) {
@@ -21112,7 +20957,7 @@ function runGenerate(argv) {
 }
 
 // src/cli/cmd-change.ts
-import { existsSync as existsSync18, rmSync as rmSync4, statSync as statSync12 } from "fs";
+import { existsSync as existsSync18, rmSync as rmSync5, statSync as statSync11 } from "fs";
 import path19 from "path";
 
 // src/apply.ts
@@ -21177,7 +21022,7 @@ import {
 import path16 from "path";
 
 // src/roadmap.ts
-import { existsSync as existsSync13, statSync as statSync9 } from "fs";
+import { existsSync as existsSync13, statSync as statSync8 } from "fs";
 import path14 from "path";
 
 // src/roadmap/model.ts
@@ -21262,7 +21107,7 @@ function cloneDefaultMilestoneIntakeQuestions() {
 }
 
 // src/roadmap/shared.ts
-import { existsSync as existsSync9, readdirSync as readdirSync2, statSync as statSync6 } from "fs";
+import { existsSync as existsSync9, readdirSync as readdirSync2, statSync as statSync5 } from "fs";
 import path10 from "path";
 
 // src/diagnostics.ts
@@ -21314,7 +21159,7 @@ function isRecord3(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function listYamlFiles(directoryPath) {
-  if (!existsSync9(directoryPath) || !statSync6(directoryPath).isDirectory()) {
+  if (!existsSync9(directoryPath) || !statSync5(directoryPath).isDirectory()) {
     return [];
   }
   const files = [];
@@ -21354,7 +21199,7 @@ function readYamlFile(filePath) {
 }
 
 // src/roadmap/load.ts
-import { existsSync as existsSync10, readFileSync as readFileSync11, statSync as statSync7 } from "fs";
+import { existsSync as existsSync10, readFileSync as readFileSync11, statSync as statSync6 } from "fs";
 import path11 from "path";
 
 // src/roadmap/validate.ts
@@ -21886,7 +21731,7 @@ function loadRoadmap(rootDir, options = {}) {
   const archiveDir = path11.join(rootDir, ROADMAP_ARCHIVE_DIR);
   const indexPath = path11.join(rootDir, ROADMAP_INDEX_PATH);
   const milestonesDir = path11.join(rootDir, ROADMAP_MILESTONES_DIR);
-  if (!existsSync10(roadmapDir) || !statSync7(roadmapDir).isDirectory()) {
+  if (!existsSync10(roadmapDir) || !statSync6(roadmapDir).isDirectory()) {
     diagnostics.push(makeDiagnostic("schema", ROADMAP_DIR, "$", "strict roadmap directory not found", ROADMAP_DIR, "missing"));
     return { warnings, diagnostics, indexArtifact: null, milestones: [], plannedChanges: [] };
   }
@@ -21978,7 +21823,7 @@ function loadRoadmap(rootDir, options = {}) {
 function loadArchivedPlannedChangeIds(rootDir) {
   const archivePlannedChangesDir = path11.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR);
   const ids = new Set;
-  if (!existsSync10(archivePlannedChangesDir) || !statSync7(archivePlannedChangesDir).isDirectory()) {
+  if (!existsSync10(archivePlannedChangesDir) || !statSync6(archivePlannedChangesDir).isDirectory()) {
     return ids;
   }
   for (const absolutePath of listYamlFiles(archivePlannedChangesDir)) {
@@ -21999,7 +21844,7 @@ function loadArchivedPlannedChangeIds(rootDir) {
 }
 
 // src/roadmap/status.ts
-import { existsSync as existsSync11, readdirSync as readdirSync3, statSync as statSync8 } from "fs";
+import { existsSync as existsSync11, readdirSync as readdirSync3, statSync as statSync7 } from "fs";
 import path12 from "path";
 var MISSING_ORDER_SORT_VALUE = Number.MAX_SAFE_INTEGER;
 function roadmapMilestoneId(milestone) {
@@ -22024,7 +21869,7 @@ function getChangeStateIndex(rootDir) {
   const changesDir = path12.join(rootDir, STRICT_WORKFLOW_DIR4, "changes");
   const active = new Set;
   const archived = new Set;
-  if (!existsSync11(changesDir) || !statSync8(changesDir).isDirectory()) {
+  if (!existsSync11(changesDir) || !statSync7(changesDir).isDirectory()) {
     return { active, archived };
   }
   for (const entry of readdirSync3(changesDir, { withFileTypes: true })) {
@@ -22033,7 +21878,7 @@ function getChangeStateIndex(rootDir) {
     active.add(entry.name);
   }
   const archiveDir = path12.join(changesDir, "archive");
-  if (existsSync11(archiveDir) && statSync8(archiveDir).isDirectory()) {
+  if (existsSync11(archiveDir) && statSync7(archiveDir).isDirectory()) {
     for (const entry of readdirSync3(archiveDir, { withFileTypes: true })) {
       if (!entry.isDirectory())
         continue;
@@ -22933,7 +22778,7 @@ function syncRoadmap(rootDir, options = {}) {
     };
   }
   const roadmapDir = path14.join(rootDir, ROADMAP_DIR);
-  if ((!existsSync13(roadmapDir) || !statSync9(roadmapDir).isDirectory()) && (options.stagedMutations?.length ?? 0) === 0) {
+  if ((!existsSync13(roadmapDir) || !statSync8(roadmapDir).isDirectory()) && (options.stagedMutations?.length ?? 0) === 0) {
     return {
       valid: false,
       warnings: roadmap.warnings,
@@ -23020,7 +22865,7 @@ function syncRoadmap(rootDir, options = {}) {
 }
 
 // src/verify.ts
-import { existsSync as existsSync14, readdirSync as readdirSync4, readFileSync as readFileSync13, statSync as statSync10 } from "fs";
+import { existsSync as existsSync14, readdirSync as readdirSync4, readFileSync as readFileSync13, statSync as statSync9 } from "fs";
 import path15 from "path";
 var STRICT_WORKFLOW_DIR5 = ".strict-spec-driven";
 var FORBIDDEN_SPEC_SUBDIRS = new Set([".strict-spec-driven", "changes", "archive"]);
@@ -23155,115 +23000,6 @@ function checkTaskListCompleteness(artifact, artifactPath) {
       });
     }
   }
-  const placeholders = getScaffoldTaskPlaceholders();
-  const placeholderTexts = new Set(placeholders.texts);
-  const placeholderCommands = new Set(placeholders.commands);
-  for (const [sectionName, taskMap] of Object.entries(sections)) {
-    for (const [taskId, task] of Object.entries(taskMap ?? {})) {
-      if (typeof task.text === "string" && placeholderTexts.has(task.text)) {
-        diagnostics.push({
-          source: "task_completeness",
-          artifactPath,
-          fieldPath: `$.sections.${sectionName}.${taskId}.text`,
-          message: `task '${taskId}' still has scaffold placeholder text; replace it with the real task before archiving`,
-          expected: "authored task text",
-          actual: task.text
-        });
-      }
-      if (typeof task.command === "string" && placeholderCommands.has(task.command)) {
-        diagnostics.push({
-          source: "task_completeness",
-          artifactPath,
-          fieldPath: `$.sections.${sectionName}.${taskId}.command`,
-          message: `task '${taskId}' still has scaffold placeholder command; replace it with the real command before archiving`,
-          expected: "authored task command",
-          actual: task.command
-        });
-      }
-    }
-  }
-  return diagnostics;
-}
-function checkDesignCompleteness(artifact, artifactPath) {
-  if (!artifact || typeof artifact !== "object")
-    return [];
-  const design = artifact;
-  const placeholders = getScaffoldDesignPlaceholders();
-  const diagnostics = [];
-  const reportList = (values2, seeded, field) => {
-    if (!Array.isArray(values2))
-      return;
-    const seededSet = new Set(seeded);
-    values2.forEach((entry, index) => {
-      if (typeof entry !== "string" || !seededSet.has(entry))
-        return;
-      diagnostics.push({
-        source: "design_completeness",
-        artifactPath,
-        fieldPath: `$.${field}[${index}]`,
-        message: `design ${field} still has scaffold placeholder content; replace it before archiving`,
-        expected: `authored ${field} content`,
-        actual: entry
-      });
-    });
-  };
-  reportList(design.approach, placeholders.approach, "approach");
-  reportList(design.risks, placeholders.risks, "risks");
-  for (const decisionId of placeholders.decisionIds) {
-    if (design.decisions && Object.prototype.hasOwnProperty.call(design.decisions, decisionId)) {
-      diagnostics.push({
-        source: "design_completeness",
-        artifactPath,
-        fieldPath: `$.decisions.${decisionId}`,
-        message: `design still has scaffold placeholder decision '${decisionId}'; replace or remove it before archiving`,
-        expected: "authored decisions only",
-        actual: decisionId
-      });
-    }
-  }
-  const seededOptions = new Set(placeholders.alternativeOptions);
-  (Array.isArray(design.alternatives) ? design.alternatives : []).forEach((entry, index) => {
-    if (typeof entry?.option !== "string" || !seededOptions.has(entry.option))
-      return;
-    diagnostics.push({
-      source: "design_completeness",
-      artifactPath,
-      fieldPath: `$.alternatives[${index}].option`,
-      message: "design alternatives still has scaffold placeholder content; replace it before archiving",
-      expected: "authored alternative content",
-      actual: entry.option
-    });
-  });
-  return diagnostics;
-}
-function checkProposalCompleteness(artifact, artifactPath) {
-  if (!artifact || typeof artifact !== "object")
-    return [];
-  const proposal = artifact;
-  const placeholders = getScaffoldProposalPlaceholders();
-  const diagnostics = [];
-  const reportList = (values2, seeded, fieldPath, label) => {
-    if (!Array.isArray(values2))
-      return;
-    const seededSet = new Set(seeded);
-    values2.forEach((entry, index) => {
-      if (typeof entry !== "string" || !seededSet.has(entry))
-        return;
-      diagnostics.push({
-        source: "proposal_completeness",
-        artifactPath,
-        fieldPath: `${fieldPath}[${index}]`,
-        message: `proposal ${label} still has scaffold placeholder content; replace it before archiving`,
-        expected: `authored ${label} content`,
-        actual: entry
-      });
-    });
-  };
-  reportList(proposal.summary?.what, placeholders.what, "$.summary.what", "summary.what");
-  reportList(proposal.summary?.why, placeholders.why, "$.summary.why", "summary.why");
-  reportList(proposal.scope?.in, placeholders.scopeIn, "$.scope.in", "scope.in");
-  reportList(proposal.scope?.out, placeholders.scopeOut, "$.scope.out", "scope.out");
-  reportList(proposal.unchanged_behavior, placeholders.unchangedBehavior, "$.unchanged_behavior", "unchanged_behavior");
   return diagnostics;
 }
 function validateDeltaSpecs(changeDir, artifactPathPrefix) {
@@ -23830,7 +23566,7 @@ function verifyChange(rootDir, changeName) {
   let completeTasks = 0;
   let openQuestionCount = 0;
   const specsRoot = path15.join(rootDir, STRICT_WORKFLOW_DIR5, "specs");
-  if (existsSync14(specsRoot) && statSync10(specsRoot).isDirectory()) {
+  if (existsSync14(specsRoot) && statSync9(specsRoot).isDirectory()) {
     for (const entry of readdirSync4(specsRoot, { withFileTypes: true })) {
       if (entry.isDirectory() && FORBIDDEN_SPEC_SUBDIRS.has(entry.name)) {
         allDiagnostics.push({
@@ -23845,20 +23581,22 @@ function verifyChange(rootDir, changeName) {
     }
   }
   const artifactConfigs = [
-    ["change_proposal", "proposal.yaml"],
-    ["change_design", "design.yaml"],
-    ["task_list", "tasks.yaml"],
-    ["question_list", "questions.yaml"]
+    ["change_proposal", "proposal.yaml", "proposal"],
+    ["change_design", "design.yaml", "design"],
+    ["task_list", "tasks.yaml", "tasks"],
+    ["question_list", "questions.yaml", "questions"]
   ];
-  for (const [artifactType, fileName] of artifactConfigs) {
+  for (const [artifactType, fileName, generateArtifactName] of artifactConfigs) {
     const filePath = path15.join(changeDir, fileName);
     const artifactPath = `.strict-spec-driven/changes/${changeName}/${fileName}`;
     if (!existsSync14(filePath)) {
       allDiagnostics.push({
-        source: "schema",
+        source: "missing_artifact",
         artifactPath,
         fieldPath: "$",
-        message: `required artifact '${fileName}' is missing`
+        message: `required artifact '${fileName}' has not been authored; create it with ` + `'strict-spec-cli generate ${changeName} ${generateArtifactName} --<named-args>'`,
+        expected: `an authored ${fileName}`,
+        actual: "no file at that path"
       });
       continue;
     }
@@ -23879,12 +23617,6 @@ function verifyChange(rootDir, changeName) {
       completeTasks = taskResult.completeTasks;
       allDiagnostics.push(...checkTestingGates(taskArtifact, artifactPath));
       allDiagnostics.push(...checkTaskListCompleteness(taskArtifact, artifactPath));
-    }
-    if (artifactType === "change_design") {
-      allDiagnostics.push(...checkDesignCompleteness(artifact, artifactPath));
-    }
-    if (artifactType === "change_proposal") {
-      allDiagnostics.push(...checkProposalCompleteness(artifact, artifactPath));
     }
     if (artifactType === "question_list") {
       const questionArtifact = artifact;
@@ -24499,7 +24231,7 @@ import { existsSync as existsSync17, readFileSync as readFileSync15 } from "fs";
 import path18 from "path";
 
 // src/cli/fs.ts
-import { existsSync as existsSync16, readdirSync as readdirSync6, statSync as statSync11 } from "fs";
+import { existsSync as existsSync16, readdirSync as readdirSync6, statSync as statSync10 } from "fs";
 import path17 from "path";
 function normalizeRepoRelativePath4(rootDir, absolutePath) {
   return path17.relative(rootDir, absolutePath).split(path17.sep).join("/");
@@ -24508,13 +24240,13 @@ function normalizePathSeparators(value) {
   return value.split(path17.sep).join("/");
 }
 function listDirectoryNames(directoryPath) {
-  if (!existsSync16(directoryPath) || !statSync11(directoryPath).isDirectory()) {
+  if (!existsSync16(directoryPath) || !statSync10(directoryPath).isDirectory()) {
     return [];
   }
   return readdirSync6(directoryPath, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
 }
 function listYamlFiles4(directoryPath) {
-  if (!existsSync16(directoryPath) || !statSync11(directoryPath).isDirectory()) {
+  if (!existsSync16(directoryPath) || !statSync10(directoryPath).isDirectory()) {
     return [];
   }
   const files = [];
@@ -24535,7 +24267,7 @@ function listYamlFiles4(directoryPath) {
   return files;
 }
 function listFilesRecursive(directoryPath) {
-  if (!existsSync16(directoryPath) || !statSync11(directoryPath).isDirectory()) {
+  if (!existsSync16(directoryPath) || !statSync10(directoryPath).isDirectory()) {
     return [];
   }
   const files = [];
@@ -24720,7 +24452,7 @@ function runList(argv) {
   }
   const rootDir = process.cwd();
   const changesDir = getChangesDir(rootDir);
-  if (!existsSync18(changesDir) || !statSync12(changesDir).isDirectory()) {
+  if (!existsSync18(changesDir) || !statSync11(changesDir).isDirectory()) {
     writeOut(`No .strict-spec-driven/changes/ directory found.
 `);
     return 0;
@@ -24775,13 +24507,13 @@ function runModify(argv) {
     return 0;
   }
   const activeTargetDir = path19.join(getChangesDir(rootDir), target);
-  if (existsSync18(activeTargetDir) && statSync12(activeTargetDir).isDirectory()) {
+  if (existsSync18(activeTargetDir) && statSync11(activeTargetDir).isDirectory()) {
     printChangeArtifacts(rootDir, target, activeTargetDir);
     return 0;
   }
   const archiveRoot = getArchiveDir(rootDir);
   const archivedTargetDir = path19.join(archiveRoot, target);
-  if (existsSync18(archivedTargetDir) && statSync12(archivedTargetDir).isDirectory()) {
+  if (existsSync18(archivedTargetDir) && statSync11(archivedTargetDir).isDirectory()) {
     printChangeArtifacts(rootDir, target, archivedTargetDir);
     return 0;
   }
@@ -24809,13 +24541,13 @@ function runCancel(argv) {
   const rootDir = process.cwd();
   const archiveRoot = getArchiveDir(rootDir);
   const archivedTargetDir = path19.join(archiveRoot, target);
-  if (existsSync18(archivedTargetDir) && statSync12(archivedTargetDir).isDirectory()) {
+  if (existsSync18(archivedTargetDir) && statSync11(archivedTargetDir).isDirectory()) {
     writeError(`cancel is limited to active changes; archived target '${target}' cannot be cancelled`);
     return 1;
   }
   const activeTargetDir = path19.join(getChangesDir(rootDir), target);
-  if (existsSync18(activeTargetDir) && statSync12(activeTargetDir).isDirectory()) {
-    rmSync4(activeTargetDir, { recursive: true, force: true });
+  if (existsSync18(activeTargetDir) && statSync11(activeTargetDir).isDirectory()) {
+    rmSync5(activeTargetDir, { recursive: true, force: true });
     writeOut(`Cancelled: ${normalizeRepoRelativePath4(rootDir, activeTargetDir)}
 `);
     return 0;
@@ -24830,7 +24562,7 @@ function runCancel(argv) {
 }
 
 // src/cli/cmd-workflow.ts
-import { existsSync as existsSync20, statSync as statSync13 } from "node:fs";
+import { existsSync as existsSync20, statSync as statSync12 } from "node:fs";
 import path21 from "node:path";
 
 // src/workflow-state.ts
@@ -24859,13 +24591,6 @@ var EMPTY_SPEC_DECISION_IDS = new Set([
   "technical-only-no-spec",
   "empty-spec-decision"
 ]);
-var CANONICAL_REQUIREMENT_QUESTIONS = [
-  { id: "requirement-problem", asks: "what is concretely going wrong today, and for whom" },
-  { id: "requirement-outcome", asks: "what observable difference proves the problem is solved" },
-  { id: "requirement-trigger", asks: "why now — what forced this" },
-  { id: "requirement-non-goals", asks: "what must explicitly not change" },
-  { id: "requirement-interpretation", asks: "which reading of the request is intended" }
-];
 function changeDir(rootDir, changeName) {
   return path20.join(rootDir, STRICT_WORKFLOW_DIR8, "changes", changeName);
 }
@@ -25146,7 +24871,7 @@ function runCheckWorkflowState(argv) {
     return 1;
   }
   const workflowStatePath = path21.join(process.cwd(), STRICT_WORKFLOW_STATE_DIR);
-  if (existsSync20(workflowStatePath) && statSync13(workflowStatePath).isDirectory()) {
+  if (existsSync20(workflowStatePath) && statSync12(workflowStatePath).isDirectory()) {
     if (checkWorkflowConfig(workflowStatePath) !== 0) {
       return 1;
     }
@@ -27102,12 +26827,12 @@ function runRoadmapResume(argv) {
 }
 
 // src/sops.ts
-import { existsSync as existsSync27, readdirSync as readdirSync9, statSync as statSync15 } from "fs";
+import { existsSync as existsSync27, readdirSync as readdirSync9, statSync as statSync14 } from "fs";
 import path29 from "path";
 import { createHash as createHash2 } from "crypto";
 
 // src/sop-categories.ts
-import { existsSync as existsSync26, readFileSync as readFileSync17, readdirSync as readdirSync8, statSync as statSync14 } from "fs";
+import { existsSync as existsSync26, readFileSync as readFileSync17, readdirSync as readdirSync8, statSync as statSync13 } from "fs";
 import path28 from "path";
 import { fileURLToPath as fileURLToPath4 } from "url";
 var CATEGORY_TEMPLATE_PREFIX = "strict-spec-driven/sop-categories/";
@@ -27129,7 +26854,7 @@ function listSopCategoryIds() {
     }
   }
   const dir = getBundledCategoryDir();
-  if (existsSync26(dir) && statSync14(dir).isDirectory()) {
+  if (existsSync26(dir) && statSync13(dir).isDirectory()) {
     for (const name of readdirSync8(dir)) {
       if (name.endsWith(".yaml")) {
         ids.add(name.slice(0, -".yaml".length));
@@ -27226,7 +26951,7 @@ function makeDiagnostic2(rootDir, message, fieldPath = "$", absolutePath) {
 }
 function listSopFiles(rootDir) {
   const dir = sopsDir(rootDir);
-  if (!existsSync27(dir) || !statSync15(dir).isDirectory()) {
+  if (!existsSync27(dir) || !statSync14(dir).isDirectory()) {
     return [];
   }
   return readdirSync9(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path29.join(dir, name)).sort();
@@ -28128,7 +27853,7 @@ function runSopCategoryShow(argv) {
 import {
   existsSync as existsSync28,
   readdirSync as readdirSync10,
-  statSync as statSync16
+  statSync as statSync15
 } from "fs";
 import path30 from "path";
 import { createHash as createHash3 } from "crypto";
@@ -28173,20 +27898,20 @@ function makeDiagnostic3(rootDir, message, fieldPath = "$", absolutePath) {
   };
 }
 function listLegacyLessonFilesInDir(dir) {
-  if (!existsSync28(dir) || !statSync16(dir).isDirectory()) {
+  if (!existsSync28(dir) || !statSync15(dir).isDirectory()) {
     return [];
   }
   return readdirSync10(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path30.join(dir, name)).sort();
 }
 function listCategorizedLessonFilesInDir(dir, category) {
-  if (!existsSync28(dir) || !statSync16(dir).isDirectory()) {
+  if (!existsSync28(dir) || !statSync15(dir).isDirectory()) {
     return [];
   }
   const categories = category === undefined ? getLessonCategories().sort() : [category];
   const files = [];
   for (const candidateCategory of categories) {
     const categoryDir = path30.join(dir, candidateCategory);
-    if (!existsSync28(categoryDir) || !statSync16(categoryDir).isDirectory())
+    if (!existsSync28(categoryDir) || !statSync15(categoryDir).isDirectory())
       continue;
     files.push(...readdirSync10(categoryDir).filter((name) => name.endsWith(".yaml")).map((name) => path30.join(categoryDir, name)).sort());
   }
@@ -29022,11 +28747,11 @@ function runLessonObsolete(argv) {
 }
 
 // src/maintenance.ts
-import { existsSync as existsSync33, readdirSync as readdirSync11, statSync as statSync18, writeFileSync as writeFileSync7 } from "fs";
+import { existsSync as existsSync33, readdirSync as readdirSync11, statSync as statSync17, writeFileSync as writeFileSync7 } from "fs";
 import path35 from "path";
 
 // src/architecture.ts
-import { existsSync as existsSync30, readFileSync as readFileSync19, statSync as statSync17 } from "fs";
+import { existsSync as existsSync30, readFileSync as readFileSync19, statSync as statSync16 } from "fs";
 import path32 from "path";
 
 // src/document-render.ts
@@ -29169,7 +28894,7 @@ function loadArchitectureArtifact(rootDir) {
   return { artifact: artifact ?? {}, diagnostics: result2.diagnostics };
 }
 function listTechFiles(techDir) {
-  if (!existsSync30(techDir) || !statSync17(techDir).isDirectory())
+  if (!existsSync30(techDir) || !statSync16(techDir).isDirectory())
     return [];
   return listFilesRecursive(techDir).filter((filePath) => {
     const basename = path32.basename(filePath);
@@ -29847,10 +29572,10 @@ function getDesignSystemStatus(rootDir) {
 // src/maintenance.ts
 var STRICT_WORKFLOW_DIR12 = ".strict-spec-driven";
 var FORBIDDEN_SPEC_SUBDIRS2 = new Set([".strict-spec-driven", "changes", "archive"]);
-var REGRESSION_COMMAND_FALLBACK2 = "REPLACE WITH the complete project regression command (build plus full test run)";
+var REGRESSION_COMMAND_FALLBACK = "REPLACE WITH the complete project regression command (build plus full test run)";
 function configuredRegressionCommand(config) {
   const command = config.review_evidence?.project_regression?.command;
-  return typeof command === "string" && command.trim().length > 0 ? command : REGRESSION_COMMAND_FALLBACK2;
+  return typeof command === "string" && command.trim().length > 0 ? command : REGRESSION_COMMAND_FALLBACK;
 }
 function getChangesDir2(rootDir) {
   return path35.join(rootDir, STRICT_WORKFLOW_DIR12, "changes");
@@ -29876,7 +29601,7 @@ function runRoadmapSyncCheck(rootDir) {
 }
 function runSpecsDirectoryStructureCheck(rootDir) {
   const specsDir = path35.join(rootDir, STRICT_WORKFLOW_DIR12, "specs");
-  if (!existsSync33(specsDir) || !statSync18(specsDir).isDirectory())
+  if (!existsSync33(specsDir) || !statSync17(specsDir).isDirectory())
     return [];
   const findings = [];
   for (const entry of readdirSync11(specsDir, { withFileTypes: true })) {
@@ -29996,6 +29721,17 @@ function buildProposalYaml(changeName, findings) {
     unchanged_behavior: []
   };
 }
+function buildQuestionsYaml(changeName) {
+  return {
+    schema: "strict-spec-driven/question-list/v1",
+    schema_version: 1,
+    artifact_type: "question_list",
+    schema_file: "templates/strict-spec-driven/schemas/question-list.yaml",
+    change: changeName,
+    open: buildSeededRequirementQuestions(),
+    resolved: []
+  };
+}
 function buildTasksYaml(changeName, findings, regressionCommand) {
   const implementationTasks = {};
   for (const [i2, f] of findings.entries()) {
@@ -30084,6 +29820,7 @@ function runMaintenance(rootDir) {
   const changeDir2 = path35.join(getChangesDir2(rootDir), changeName);
   writeFileSync7(path35.join(changeDir2, "proposal.yaml"), stringifyYamlDocument(buildProposalYaml(changeName, findings)), "utf8");
   writeFileSync7(path35.join(changeDir2, "tasks.yaml"), stringifyYamlDocument(buildTasksYaml(changeName, findings, configuredRegressionCommand(config))), "utf8");
+  writeFileSync7(path35.join(changeDir2, "questions.yaml"), stringifyYamlDocument(buildQuestionsYaml(changeName)), "utf8");
   return { valid: true, checksRun, findingsCount: findings.length, generatedChange: changeName, seedingSkippedReason: null };
 }
 
@@ -30091,7 +29828,7 @@ function runMaintenance(rootDir) {
 import {
   existsSync as existsSync39,
   readdirSync as readdirSync13,
-  statSync as statSync24,
+  statSync as statSync23,
   writeFileSync as writeFileSync9
 } from "fs";
 import path41 from "path";
@@ -30100,7 +29837,7 @@ import path41 from "path";
 import {
   existsSync as existsSync35,
   readFileSync as readFileSync22,
-  statSync as statSync20
+  statSync as statSync19
 } from "fs";
 import path37 from "path";
 
@@ -30921,7 +30658,7 @@ import {
   mkdirSync as mkdirSync6,
   readdirSync as readdirSync12,
   readFileSync as readFileSync21,
-  statSync as statSync19,
+  statSync as statSync18,
   writeFileSync as writeFileSync8
 } from "fs";
 import path36 from "path";
@@ -30931,7 +30668,7 @@ function toRepoRelativePath2(rootDir, absolutePath) {
   return toPosix3(path36.relative(rootDir, absolutePath));
 }
 function listFilesRecursive2(directoryPath) {
-  if (!existsSync34(directoryPath) || !statSync19(directoryPath).isDirectory()) {
+  if (!existsSync34(directoryPath) || !statSync18(directoryPath).isDirectory()) {
     return [];
   }
   const files = [];
@@ -30969,7 +30706,7 @@ function buildStrictMarkdownTargetPath(rootDir, repoRelativeTargetPath) {
 }
 function listLegacyChangeDirectories(rootDir) {
   const changesRoot = path36.join(rootDir, LEGACY_WORKFLOW_DIR2, "changes");
-  if (!existsSync34(changesRoot) || !statSync19(changesRoot).isDirectory()) {
+  if (!existsSync34(changesRoot) || !statSync18(changesRoot).isDirectory()) {
     return [];
   }
   const directories = [];
@@ -30980,7 +30717,7 @@ function listLegacyChangeDirectories(rootDir) {
     }
     if (entry.name === "archive") {
       const archiveRoot = path36.join(changesRoot, "archive");
-      if (!existsSync34(archiveRoot) || !statSync19(archiveRoot).isDirectory()) {
+      if (!existsSync34(archiveRoot) || !statSync18(archiveRoot).isDirectory()) {
         continue;
       }
       const archiveEntries = readdirSync12(archiveRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
@@ -31037,7 +30774,7 @@ function convertLegacyChangeArtifacts(rootDir, result2, handledLegacyFiles) {
     let changeId = fallbackChangeId;
     const legacyProposalPath = path37.join(changeDirectory.legacyDirectoryPath, "proposal.md");
     const repoRelativeProposalPath = `${changeDirectory.repoRelativeDirectory}/proposal.md`;
-    if (existsSync35(legacyProposalPath) && statSync20(legacyProposalPath).isFile()) {
+    if (existsSync35(legacyProposalPath) && statSync19(legacyProposalPath).isFile()) {
       handledLegacyFiles.add(repoRelativeProposalPath);
       try {
         const proposalArtifact = parseLegacyProposal(repoRelativeProposalPath, readFileSync22(legacyProposalPath, "utf8"), fallbackChangeId, changeDirectory.archived);
@@ -31081,7 +30818,7 @@ function convertLegacyChangeArtifacts(rootDir, result2, handledLegacyFiles) {
     for (const artifactFile of changeArtifactFiles) {
       const legacyFilePath = path37.join(changeDirectory.legacyDirectoryPath, artifactFile.legacyName);
       const repoRelativeLegacyFilePath = `${changeDirectory.repoRelativeDirectory}/${artifactFile.legacyName}`;
-      if (!existsSync35(legacyFilePath) || !statSync20(legacyFilePath).isFile()) {
+      if (!existsSync35(legacyFilePath) || !statSync19(legacyFilePath).isFile()) {
         continue;
       }
       handledLegacyFiles.add(repoRelativeLegacyFilePath);
@@ -31101,7 +30838,7 @@ function convertLegacyChangeArtifacts(rootDir, result2, handledLegacyFiles) {
       }
     }
     const legacyDeltaSpecsRoot = path37.join(changeDirectory.legacyDirectoryPath, "specs");
-    if (existsSync35(legacyDeltaSpecsRoot) && statSync20(legacyDeltaSpecsRoot).isDirectory()) {
+    if (existsSync35(legacyDeltaSpecsRoot) && statSync19(legacyDeltaSpecsRoot).isDirectory()) {
       const deltaSpecFiles = listFilesRecursive2(legacyDeltaSpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path37.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
       for (const legacyDeltaSpecPath of deltaSpecFiles) {
         handledLegacyFiles.add(legacyDeltaSpecPath);
@@ -31128,7 +30865,7 @@ function convertLegacyChangeArtifacts(rootDir, result2, handledLegacyFiles) {
 import {
   existsSync as existsSync36,
   readFileSync as readFileSync23,
-  statSync as statSync21
+  statSync as statSync20
 } from "fs";
 import path38 from "path";
 
@@ -31435,12 +31172,12 @@ var LEGACY_ROADMAP_DIR = `${LEGACY_WORKFLOW_DIR2}/roadmap`;
 var STRICT_ROADMAP_DIR = `${STRICT_WORKFLOW_DIR13}/roadmap`;
 function convertLegacyRoadmapArtifacts(rootDir, result2, handledLegacyFiles) {
   const legacyRoadmapRoot = path38.join(rootDir, LEGACY_ROADMAP_DIR);
-  if (!existsSync36(legacyRoadmapRoot) || !statSync21(legacyRoadmapRoot).isDirectory()) {
+  if (!existsSync36(legacyRoadmapRoot) || !statSync20(legacyRoadmapRoot).isDirectory()) {
     return;
   }
   const legacyIndexPath = `${LEGACY_ROADMAP_DIR}/INDEX.md`;
   const legacyIndexAbsPath = path38.join(legacyRoadmapRoot, "INDEX.md");
-  if (existsSync36(legacyIndexAbsPath) && statSync21(legacyIndexAbsPath).isFile()) {
+  if (existsSync36(legacyIndexAbsPath) && statSync20(legacyIndexAbsPath).isFile()) {
     handledLegacyFiles.add(legacyIndexPath);
     try {
       const content = readFileSync23(legacyIndexAbsPath, "utf8");
@@ -31463,7 +31200,7 @@ function convertLegacyRoadmapArtifacts(rootDir, result2, handledLegacyFiles) {
     }
   }
   const legacyMilestonesRoot = path38.join(legacyRoadmapRoot, "milestones");
-  if (!existsSync36(legacyMilestonesRoot) || !statSync21(legacyMilestonesRoot).isDirectory()) {
+  if (!existsSync36(legacyMilestonesRoot) || !statSync20(legacyMilestonesRoot).isDirectory()) {
     return;
   }
   const milestoneFiles = listFilesRecursive2(legacyMilestonesRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path38.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
@@ -31494,7 +31231,7 @@ function convertLegacyRoadmapArtifacts(rootDir, result2, handledLegacyFiles) {
 function convertLegacySpecsIndex(rootDir, result2, handledLegacyFiles) {
   const legacySpecsIndexPath = `${LEGACY_WORKFLOW_DIR2}/specs/INDEX.md`;
   const legacySpecsIndexAbsPath = path38.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs", "INDEX.md");
-  if (!existsSync36(legacySpecsIndexAbsPath) || !statSync21(legacySpecsIndexAbsPath).isFile()) {
+  if (!existsSync36(legacySpecsIndexAbsPath) || !statSync20(legacySpecsIndexAbsPath).isFile()) {
     return;
   }
   handledLegacyFiles.add(legacySpecsIndexPath);
@@ -31533,7 +31270,7 @@ function convertLegacySpecsIndex(rootDir, result2, handledLegacyFiles) {
 import {
   existsSync as existsSync37,
   readFileSync as readFileSync24,
-  statSync as statSync22
+  statSync as statSync21
 } from "fs";
 import path39 from "path";
 var SPEC_INDEX_SCHEMA_FILE2 = "templates/strict-spec-driven/schemas/spec-index.yaml";
@@ -31582,7 +31319,7 @@ function regenerateStrictSpecIndex(rootDir) {
 }
 function convertLegacySpecArtifacts(rootDir, result2, handledLegacyFiles) {
   const legacySpecsRoot = path39.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs");
-  if (!existsSync37(legacySpecsRoot) || !statSync22(legacySpecsRoot).isDirectory()) {
+  if (!existsSync37(legacySpecsRoot) || !statSync21(legacySpecsRoot).isDirectory()) {
     return false;
   }
   let convertedAny = false;
@@ -31660,7 +31397,7 @@ function sortMigrationResult(result2) {
 import {
   existsSync as existsSync38,
   readFileSync as readFileSync25,
-  statSync as statSync23
+  statSync as statSync22
 } from "fs";
 import path40 from "path";
 var LEGACY_CONFIG_PATH = `${LEGACY_WORKFLOW_DIR2}/config.yaml`;
@@ -31695,7 +31432,7 @@ function normalizeLegacyConfigValue(value) {
 }
 function loadStrictConfigFromLegacy(rootDir, errors) {
   const legacyConfigAbsolutePath = path40.join(rootDir, LEGACY_CONFIG_PATH);
-  if (!existsSync38(legacyConfigAbsolutePath) || !statSync23(legacyConfigAbsolutePath).isFile()) {
+  if (!existsSync38(legacyConfigAbsolutePath) || !statSync22(legacyConfigAbsolutePath).isFile()) {
     errors.push(makeDiagnostic4("legacy_config_missing", "Bootstrap migration requires .spec-driven/config.yaml to exist before migrate can initialize strict workflow state.", LEGACY_CONFIG_PATH));
     return null;
   }
@@ -31744,12 +31481,12 @@ function migrateLegacyWorkflow(rootDir, options) {
     errors: [],
     manualFollowUp: []
   };
-  if (!existsSync39(legacyRootAbsolutePath) || !statSync24(legacyRootAbsolutePath).isDirectory()) {
+  if (!existsSync39(legacyRootAbsolutePath) || !statSync23(legacyRootAbsolutePath).isDirectory()) {
     result2.errors.push(makeDiagnostic4("legacy_source_missing", "Bootstrap migration requires a .spec-driven/ directory at the repository root.", LEGACY_WORKFLOW_DIR2));
     return sortMigrationResult(result2);
   }
   if (existsSync39(strictRootAbsolutePath)) {
-    const strictRootStat = statSync24(strictRootAbsolutePath);
+    const strictRootStat = statSync23(strictRootAbsolutePath);
     if (!strictRootStat.isDirectory()) {
       result2.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into .strict-spec-driven because a non-directory entry already exists at that path.", undefined, STRICT_WORKFLOW_DIR13));
       return sortMigrationResult(result2);
@@ -31850,7 +31587,7 @@ function runMaintenanceCommand(argv) {
 
 // src/cli/cmd-mcp-install.ts
 import { execFileSync, execSync } from "child_process";
-import { existsSync as existsSync40, mkdirSync as mkdirSync7, readFileSync as readFileSync26, statSync as statSync25, writeFileSync as writeFileSync10 } from "fs";
+import { existsSync as existsSync40, mkdirSync as mkdirSync7, readFileSync as readFileSync26, statSync as statSync24, writeFileSync as writeFileSync10 } from "fs";
 import os2 from "os";
 import path42 from "path";
 import { fileURLToPath as fileURLToPath5 } from "url";
@@ -32098,7 +31835,7 @@ function runMcpInstall(argv, deps = DEFAULT_DEPS) {
     return 1;
   }
   const projectRoot = path42.resolve(parsed.value.projectRoot ?? process.cwd());
-  if (!existsSync40(projectRoot) || !statSync25(projectRoot).isDirectory()) {
+  if (!existsSync40(projectRoot) || !statSync24(projectRoot).isDirectory()) {
     writeError(`project root '${projectRoot}' is not a directory`);
     return 1;
   }
@@ -32121,12 +31858,12 @@ function runMcpInstall(argv, deps = DEFAULT_DEPS) {
 }
 
 // src/cli/cmd-operations.ts
-import { existsSync as existsSync45, readFileSync as readFileSync31, statSync as statSync30 } from "fs";
+import { existsSync as existsSync45, readFileSync as readFileSync31, statSync as statSync29 } from "fs";
 import { execSync as execSync2 } from "child_process";
 import path47 from "path";
 
 // src/skills.ts
-import { existsSync as existsSync42, readdirSync as readdirSync14, readFileSync as readFileSync28, statSync as statSync27 } from "node:fs";
+import { existsSync as existsSync42, readdirSync as readdirSync14, readFileSync as readFileSync28, statSync as statSync26 } from "node:fs";
 import path44 from "node:path";
 
 // src/skills/model.ts
@@ -32836,7 +32573,7 @@ function sortDiagnostics2(diagnostics) {
 }
 
 // src/skills/fs-checks.ts
-import { existsSync as existsSync41, lstatSync, readFileSync as readFileSync27, readlinkSync, statSync as statSync26 } from "node:fs";
+import { existsSync as existsSync41, lstatSync, readFileSync as readFileSync27, readlinkSync, statSync as statSync25 } from "node:fs";
 import path43 from "node:path";
 function validateRequiredSymlink(skillDir, skillName, entryName, expectedTarget, diagnostics) {
   const entryPath = path43.join(skillDir, entryName);
@@ -32857,7 +32594,7 @@ function validateRequiredSymlink(skillDir, skillName, entryName, expectedTarget,
     return;
   }
   const resolved = path43.resolve(skillDir, target);
-  if (!existsSync41(resolved) || !statSync26(resolved).isDirectory()) {
+  if (!existsSync41(resolved) || !statSync25(resolved).isDirectory()) {
     diagnostics.push(makeDiagnostic5(`skill.${entryName}_symlink.broken`, relativeSkillPath, `skill '${skillName}' ${entryName} symlink target does not resolve to a directory`));
   }
 }
@@ -33002,7 +32739,7 @@ function validateStrictSkillPackaging(rootDir) {
   const diagnostics = [];
   const skillsRoot = path44.join(rootDir, "skills");
   const relativeSkillsRoot = "skills";
-  if (!existsSync42(skillsRoot) || !statSync27(skillsRoot).isDirectory()) {
+  if (!existsSync42(skillsRoot) || !statSync26(skillsRoot).isDirectory()) {
     diagnostics.push(makeDiagnostic5("skills.directory.missing", relativeSkillsRoot, "skills directory is missing"));
     return {
       valid: false,
@@ -33049,7 +32786,7 @@ function validateStrictSkillPackaging(rootDir) {
 }
 
 // src/cli/spec-mapping.ts
-import { existsSync as existsSync43, readdirSync as readdirSync15, readFileSync as readFileSync29, statSync as statSync28 } from "fs";
+import { existsSync as existsSync43, readdirSync as readdirSync15, readFileSync as readFileSync29, statSync as statSync27 } from "fs";
 import path45 from "path";
 var STRICT_SPECS_DIR = path45.join(".strict-spec-driven", "specs");
 var FORBIDDEN_SPEC_SUBDIRS3 = new Set([".strict-spec-driven", "changes", "archive"]);
@@ -33175,7 +32912,7 @@ function verifySpecMappings(rootDir) {
     implementation: new Set,
     tests: new Set
   };
-  if (!existsSync43(specsDir) || !statSync28(specsDir).isDirectory()) {
+  if (!existsSync43(specsDir) || !statSync27(specsDir).isDirectory()) {
     diagnostics.push(makeMappingDiagnostic("mapping_input", STRICT_SPECS_DIR, "$", "spec mapping inputs are unavailable because .strict-spec-driven/specs/ does not exist", "existing .strict-spec-driven/specs/ directory"));
   }
   if (diagnostics.length === 0) {
@@ -33231,7 +32968,7 @@ function verifySpecMappings(rootDir) {
 }
 
 // src/cli/tech-mapping.ts
-import { existsSync as existsSync44, readFileSync as readFileSync30, statSync as statSync29 } from "fs";
+import { existsSync as existsSync44, readFileSync as readFileSync30, statSync as statSync28 } from "fs";
 import path46 from "path";
 var STRICT_TECH_DIR = path46.join(".strict-spec-driven", "tech");
 var EXCLUDED_TECH_BASENAMES2 = new Set(["INDEX.yaml"]);
@@ -33351,7 +33088,7 @@ function verifyTechMappings(rootDir) {
   const diagnostics = [];
   const techDir = path46.join(rootDir, STRICT_TECH_DIR);
   const mapped = { implementation: new Set, enforcement: new Set };
-  if (!existsSync44(techDir) || !statSync29(techDir).isDirectory()) {
+  if (!existsSync44(techDir) || !statSync28(techDir).isDirectory()) {
     diagnostics.push(makeDiagnostic6("mapping_input", STRICT_TECH_DIR, "$", "tech mapping inputs are unavailable because .strict-spec-driven/tech/ does not exist", "existing .strict-spec-driven/tech/ directory"));
     return {
       valid: false,
@@ -33387,7 +33124,7 @@ function getTechStatus(rootDir) {
     strengthCounts: { MUST: 0, SHOULD: 0, MAY: 0 },
     standards: []
   };
-  if (!existsSync44(techDir) || !statSync29(techDir).isDirectory()) {
+  if (!existsSync44(techDir) || !statSync28(techDir).isDirectory()) {
     return empty;
   }
   const standards = [];
@@ -33451,7 +33188,7 @@ function runShip(argv) {
   const archiveRoot = getArchiveDir(rootDir);
   let resolvedArchiveName = null;
   const exactDir = path47.join(archiveRoot, target);
-  if (existsSync45(exactDir) && statSync30(exactDir).isDirectory()) {
+  if (existsSync45(exactDir) && statSync29(exactDir).isDirectory()) {
     resolvedArchiveName = target;
   } else {
     const bareMatches = findArchivedMatchesByBareName(rootDir, target);
@@ -33546,7 +33283,7 @@ function runTechStatus(argv) {
 }
 var ARCHIVE_DATE_PATTERN = /^(\d{4}-\d{2}-\d{2})-(.+)$/;
 function getDirectoryCreationTimeMs(directoryPath) {
-  const stats = statSync30(directoryPath);
+  const stats = statSync29(directoryPath);
   return stats.birthtimeMs > 0 ? stats.birthtimeMs : stats.ctimeMs;
 }
 function runCommitAndPush(argv) {
@@ -35005,12 +34742,12 @@ function runDesignStatus(argv) {
 }
 
 // src/harness.ts
-import { closeSync, existsSync as existsSync49, mkdirSync as mkdirSync8, openSync, readFileSync as readFileSync32, renameSync as renameSync4, rmSync as rmSync5, rmdirSync as rmdirSync3, statSync as statSync32, writeFileSync as writeFileSync11, appendFileSync } from "fs";
+import { closeSync, existsSync as existsSync49, mkdirSync as mkdirSync8, openSync, readFileSync as readFileSync32, renameSync as renameSync4, rmSync as rmSync6, rmdirSync as rmdirSync3, statSync as statSync31, writeFileSync as writeFileSync11, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
 import path51 from "path";
 
 // src/harness-author.ts
-import { existsSync as existsSync48, readdirSync as readdirSync17, rmdirSync as rmdirSync2, statSync as statSync31 } from "fs";
+import { existsSync as existsSync48, readdirSync as readdirSync17, rmdirSync as rmdirSync2, statSync as statSync30 } from "fs";
 import path50 from "path";
 var HARNESS_SCHEMA_ID = "strict-spec-driven/harness/v1";
 var HARNESS_FAMILY_ROOT = ".strict-spec-driven";
@@ -35113,7 +34850,7 @@ function baseComponent(type2) {
 }
 function activeSessionPaths(rootDir) {
   const sessionsDir = path50.join(rootDir, HARNESS_SESSIONS_DIR);
-  if (!existsSync48(sessionsDir) || !statSync31(sessionsDir).isDirectory())
+  if (!existsSync48(sessionsDir) || !statSync30(sessionsDir).isDirectory())
     return [];
   return readdirSync17(sessionsDir).filter((entry) => entry !== "archive").map((entry) => path50.join(sessionsDir, entry, "session.yaml")).filter((entry) => existsSync48(entry));
 }
@@ -35627,7 +35364,7 @@ function writeRuntimeState(rootDir, state) {
 `, "utf8");
 }
 function clearRuntimeState(rootDir) {
-  rmSync5(getRuntimePaths(rootDir).absoluteRuntimeDir, { recursive: true, force: true });
+  rmSync6(getRuntimePaths(rootDir).absoluteRuntimeDir, { recursive: true, force: true });
 }
 function snapshot(record) {
   const alive = isProcessAlive(record.pid);
@@ -36645,7 +36382,7 @@ function doctorHarness(rootDir) {
     const seenPorts = new Map;
     for (const component of environmentPlan.components) {
       const workingDirectory = path51.join(rootDir, component.workingDirectory);
-      if (!existsSync49(workingDirectory) || !statSync32(workingDirectory).isDirectory()) {
+      if (!existsSync49(workingDirectory) || !statSync31(workingDirectory).isDirectory()) {
         addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.working_directory`, "harness component working directory is missing", {
           source: "filesystem",
           componentId: component.id,
@@ -36909,7 +36646,7 @@ function buildHarnessSessionArchiveDestination(rootDir, sessionId) {
   return candidate;
 }
 function isDirectory(filePath) {
-  return existsSync49(filePath) && statSync32(filePath).isDirectory();
+  return existsSync49(filePath) && statSync31(filePath).isDirectory();
 }
 function createHarnessSession(rootDir, sessionId) {
   const sessionDir = path51.join(rootDir, HARNESS_SESSIONS_DIR2, sessionId);
@@ -37750,11 +37487,13 @@ if (isDirectInvocation(process.argv[1], import.meta.url)) {
 export {
   writeChangeTasks,
   verifyChange,
+  unwindChangeContainer,
   syncRoadmap,
   stringifyYamlDocument,
   runMaintenance,
   run,
   resumeMilestone,
+  reserveChangeContainer,
   reopenMilestone,
   recommendRoadmapChange,
   readChangeTasks,
@@ -37770,14 +37509,12 @@ export {
   getWorkflowState,
   getRoadmapStatus,
   getRequiredBundledScaffoldAssets,
-  getRequiredBundledChangeTemplateAssets,
   getDesignSystemStatus,
   getBundledScaffoldPath,
   getArchitectureStatus,
   generateDesignDocument,
   generateArchitectureDocument,
   findMissingRequiredScaffoldAssets,
-  findMissingRequiredChangeTemplateAssets,
   createSchemaValidator,
   compileSchema,
   commands,

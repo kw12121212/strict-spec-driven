@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, statSync, writeFileSync } from "fs";
 import path from "path";
 import { parseYamlFile, stringifyYamlDocument } from "./yaml.js";
+import { buildSeededRequirementQuestions } from "./requirement-questions.js";
 import { MAX_ACTIVE_CHANGE_COUNT, initializeStrictChangeScaffold, listActiveChangeNames } from "./scaffold.js";
 import { syncRoadmap } from "./roadmap.js";
 import type { RoadmapSyncResult } from "./roadmap.js";
@@ -231,6 +232,18 @@ function buildProposalYaml(changeName: string, findings: MaintenanceFinding[]): 
   };
 }
 
+function buildQuestionsYaml(changeName: string): object {
+  return {
+    schema: "strict-spec-driven/question-list/v1",
+    schema_version: 1,
+    artifact_type: "question_list",
+    schema_file: "templates/strict-spec-driven/schemas/question-list.yaml",
+    change: changeName,
+    open: buildSeededRequirementQuestions(),
+    resolved: [],
+  };
+}
+
 function buildTasksYaml(changeName: string, findings: MaintenanceFinding[], regressionCommand: string): object {
   const implementationTasks: Record<string, { text: string; status: string }> = {};
   for (const [i, f] of findings.entries()) {
@@ -327,6 +340,10 @@ export function runMaintenance(rootDir: string): MaintenanceResult {
 
   initializeStrictChangeScaffold(rootDir, changeName);
 
+  // Maintenance authors only the artifacts it has real content for. design.yaml is left absent
+  // rather than seeded, because the approach is a human decision the check results cannot supply;
+  // verify reports it as an unauthored required artifact. questions.yaml carries the
+  // requirement-interrogation set, which a seeded change needs as much as a hand-proposed one.
   const changeDir = path.join(getChangesDir(rootDir), changeName);
   writeFileSync(
     path.join(changeDir, "proposal.yaml"),
@@ -336,6 +353,11 @@ export function runMaintenance(rootDir: string): MaintenanceResult {
   writeFileSync(
     path.join(changeDir, "tasks.yaml"),
     stringifyYamlDocument(buildTasksYaml(changeName, findings, configuredRegressionCommand(config))),
+    "utf8",
+  );
+  writeFileSync(
+    path.join(changeDir, "questions.yaml"),
+    stringifyYamlDocument(buildQuestionsYaml(changeName)),
     "utf8",
   );
 

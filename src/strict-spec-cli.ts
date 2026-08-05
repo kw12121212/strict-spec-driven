@@ -46,14 +46,14 @@ import {
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 import { compileSchema, createSchemaValidator } from "./validation.js";
 import {
-  findMissingRequiredChangeTemplateAssets,
   findMissingRequiredScaffoldAssets,
   getBundledScaffoldPath,
-  getRequiredBundledChangeTemplateAssets,
   getRequiredBundledScaffoldAssets,
   initializeStrictChangeScaffold,
   initializeStrictScaffold,
   loadBundledScaffoldYaml,
+  reserveChangeContainer,
+  unwindChangeContainer,
   readBundledScaffoldTemplate,
 } from "./scaffold.js";
 import { applyTask, readChangeTasks, writeChangeTasks } from "./apply.js";
@@ -73,10 +73,10 @@ export {
   loadBundledScaffoldYaml,
   getRequiredBundledScaffoldAssets,
   findMissingRequiredScaffoldAssets,
-  getRequiredBundledChangeTemplateAssets,
-  findMissingRequiredChangeTemplateAssets,
   initializeStrictScaffold,
   initializeStrictChangeScaffold,
+  reserveChangeContainer,
+  unwindChangeContainer,
 };
 export { applyTask, readChangeTasks, writeChangeTasks };
 export { verifyChange };

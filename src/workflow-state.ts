@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "fs";
 import path from "path";
+import { CANONICAL_REQUIREMENT_QUESTIONS } from "./requirement-questions.js";
 import { flattenTasks } from "./task-list.js";
 import { parseYamlDocument } from "./yaml.js";
 import { verifyChange, type VerifyDiagnostic } from "./verify.js";
@@ -24,20 +25,6 @@ type QuestionListArtifact = {
   open?: QuestionEntry[];
   resolved?: QuestionEntry[];
 };
-
-/**
- * The requirement-interrogation set. These are answered only from the requester's own words or
- * replayed roadmap detail, never from repository evidence, so ready checks that each one was
- * actually answered rather than inferred. The summary text makes a blocked ready actionable
- * without reading the skill.
- */
-const CANONICAL_REQUIREMENT_QUESTIONS: ReadonlyArray<{ id: string; asks: string }> = [
-  { id: "requirement-problem", asks: "what is concretely going wrong today, and for whom" },
-  { id: "requirement-outcome", asks: "what observable difference proves the problem is solved" },
-  { id: "requirement-trigger", asks: "why now — what forced this" },
-  { id: "requirement-non-goals", asks: "what must explicitly not change" },
-  { id: "requirement-interpretation", asks: "which reading of the request is intended" },
-];
 
 type ProposalArtifact = {
   scope?: {

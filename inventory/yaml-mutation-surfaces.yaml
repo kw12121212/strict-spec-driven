@@ -210,7 +210,6 @@ artifact_families:
       - examples/strict-spec-driven/change-design.yaml
       - examples/strict-spec-driven/task-list.yaml
       - examples/strict-spec-driven/question-list*.yaml
-      - templates/strict-spec-driven/scaffold/changes/*.yaml
     ownership: repository-owned
     validation_owner: >-
       templates/strict-spec-driven/schemas/change-proposal.yaml, change-design.yaml,
@@ -237,8 +236,8 @@ artifact_families:
       - src/cli/cmd-change.ts
       - src/cli/cmd-generation.ts
     evidence:
-      - templates/strict-spec-driven/scaffold/changes/proposal.yaml
       - src/propose-generation.ts
+      - src/cli/cmd-generation.ts
   change-delta-state:
     artifact_types:
       - delta_spec

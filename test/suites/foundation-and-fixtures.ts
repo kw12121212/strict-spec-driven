@@ -102,25 +102,18 @@ const CANONICAL_REQUIREMENT_IDS = [
  * human answers them. Fixtures that expect a verifiable change must answer them like a requester.
  */
 /**
- * Clears the bundled scaffold placeholder content that verify now reports. Nothing rebuilds an
- * artifact any more, so seeded placeholders persist until they are named for removal.
+ * Authors the design and proposal artifacts a change needs before it can verify. Nothing is seeded,
+ * so these are creations rather than replacements of placeholder content.
  */
 function clearScaffoldPlaceholders(changeName: string, cwd: string): void {
   cli([
     "generate", changeName, "design",
-    "--approach", "Authored approach that replaces the scaffold placeholder.",
-    "--remove-approach", "Describe the implementation approach.",
-    "--remove-decision", "sample-decision",
-    "--remove-alternative", "Describe an alternative approach that was considered.",
-    "--remove-risk", "Describe a risk this change carries and how it is mitigated.",
+    "--approach", "Authored approach recorded for this change.",
   ], { cwd });
   cli([
     "generate", changeName, "proposal",
-    "--what", "Placeholder-free summary.",
-    "--why", "Placeholder-free rationale.",
-    "--remove-in", "Add [specific behavior] to [target artifact].",
-    "--remove-out", "Implement unrelated workflow behavior.",
-    "--remove-unchanged", "Existing strict workflow behavior remains unchanged unless explicitly listed in scope.",
+    "--what", "Authored summary.",
+    "--why", "Authored rationale.",
   ], { cwd });
 }
 
@@ -1404,83 +1397,76 @@ try {
 
   const changeName = "add-propose-command";
   const firstPropose = cli(["propose", changeName], { cwd: proposeTempDir });
-  context.assert(firstPropose.status === 0, "propose creates strict change scaffold", `got exit code ${firstPropose.status}`);
+  context.assert(firstPropose.status === 0, "propose creates the strict change container", `got exit code ${firstPropose.status}`);
 
   const changeDir = path.join(proposeTempDir, ".strict-spec-driven", "changes", changeName);
   context.assert(existsSync(changeDir), "propose creates change directory");
 
-  const expectedArtifacts = ["proposal.yaml", "design.yaml", "tasks.yaml", "questions.yaml"];
-  for (const artifact of expectedArtifacts) {
+  const planningArtifacts = ["proposal.yaml", "design.yaml", "tasks.yaml", "questions.yaml"];
+  for (const artifact of planningArtifacts) {
     context.assert(
-      existsSync(path.join(changeDir, artifact)),
-      `propose creates planning artifact (${artifact})`,
+      !existsSync(path.join(changeDir, artifact)),
+      `propose writes no placeholder planning artifact (${artifact})`,
     );
   }
   context.assert(existsSync(path.join(changeDir, "specs")), "propose creates specs directory");
   context.assert(
-    firstPropose.stdout.includes(`Created strict change scaffold at .strict-spec-driven/changes/${changeName}/`),
+    firstPropose.stdout.includes(`Created strict change at .strict-spec-driven/changes/${changeName}/`),
     "propose output identifies created change directory",
     `stdout: ${firstPropose.stdout.trim()}`,
   );
-  for (const artifact of [...expectedArtifacts, "specs/"]) {
+  context.assert(
+    firstPropose.stdout.includes(`- .strict-spec-driven/changes/${changeName}/specs/`),
+    "propose output lists the created specs directory",
+    `stdout: ${firstPropose.stdout.trim()}`,
+  );
+  context.assert(
+    firstPropose.stdout.includes(`strict-spec-cli generate ${changeName} <proposal|design|tasks|questions>`),
+    "propose output names the command that authors each planning artifact",
+    `stdout: ${firstPropose.stdout.trim()}`,
+  );
+
+  // An unauthored artifact is absent rather than placeholder-filled, so verify must say so by name
+  // and point at the command that creates it. This is what replaced placeholder-literal detection.
+  const unauthoredVerify = cli(["verify", changeName], { cwd: proposeTempDir });
+  context.assert(unauthoredVerify.status !== 0, "verify fails for a change with no authored artifacts");
+  const unauthoredVerifyPayload = JSON.parse(unauthoredVerify.stdout) as {
+    diagnostics: { source: string; artifactPath: string; message: string }[];
+  };
+  for (const artifact of planningArtifacts) {
+    const diagnostic = unauthoredVerifyPayload.diagnostics.find(
+      (entry) => entry.source === "missing_artifact" && entry.artifactPath.endsWith(`/${artifact}`),
+    );
     context.assert(
-      firstPropose.stdout.includes(`- .strict-spec-driven/changes/${changeName}/${artifact}`),
-      `propose output lists created path (.strict-spec-driven/changes/${changeName}/${artifact})`,
+      Boolean(diagnostic),
+      `verify reports the unauthored artifact by name (${artifact})`,
+      `diagnostics: ${JSON.stringify(unauthoredVerifyPayload.diagnostics.map((entry) => entry.source))}`,
+    );
+    context.assert(
+      Boolean(diagnostic?.message.includes(`strict-spec-cli generate ${changeName} `)),
+      `verify names the authoring command for the unauthored artifact (${artifact})`,
+      `message: ${diagnostic?.message ?? "<none>"}`,
     );
   }
 
-  const proposalArtifact = readFileSync(path.join(changeDir, "proposal.yaml"), "utf8");
+  const proposeIdempotent = cli(["propose", changeName], { cwd: proposeTempDir });
   context.assert(
-    proposalArtifact.includes(`id: ${changeName}`),
-    "propose template placeholders are rendered with change name",
-  );
-  const taskArtifact = readFileSync(path.join(changeDir, "tasks.yaml"), "utf8");
-  context.assert(
-    taskArtifact.includes("    run-project-regression:\n")
-      && taskArtifact.includes("coverage contract")
-      && !taskArtifact.includes("bun run build"),
-    "propose scaffold carries a single project-regression Testing task instead of hardcoded toolchain commands",
+    proposeIdempotent.status === 0,
+    "propose is idempotent against an artifact-free container so an interrupted first write can be retried",
+    `stderr: ${proposeIdempotent.stderr.trim()}`,
   );
   context.assert(
-    taskArtifact.includes('command: "REPLACE WITH the complete project regression command'),
-    "propose scaffold without a configured regression command renders an explicit placeholder",
-  );
-  context.assert(
-    taskArtifact.includes("  validation_task: run-project-regression\n")
-      && taskArtifact.includes("  unit_test_task: run-project-regression\n"),
-    "propose scaffold testing gates reference the project-regression task",
+    proposeIdempotent.stdout.includes("Reused existing empty strict change"),
+    "propose reports reuse rather than creation for an artifact-free container",
+    `stdout: ${proposeIdempotent.stdout.trim()}`,
   );
 
-  const configuredWorkspace = mkdtempSync(path.join(os.tmpdir(), "strict-spec-driven-propose-config-"));
-  try {
-    mkdirSync(path.join(configuredWorkspace, ".strict-spec-driven"), { recursive: true });
-    writeFileSync(
-      path.join(configuredWorkspace, ".strict-spec-driven", "config.yaml"),
-      [
-        "schema: strict-spec-driven/config/v1",
-        "schema_version: 1",
-        "artifact_type: workflow_config",
-        "review_evidence:",
-        "  project_regression:",
-        "    method: complete_project_regression",
-        "    command: npm run build && npm test -- --coverage",
-        "",
-      ].join("\n"),
-      "utf8",
-    );
-    const configuredPropose = cli(["propose", "configured-change"], { cwd: configuredWorkspace });
-    context.assert(configuredPropose.status === 0, "propose succeeds in a workspace with a configured regression command");
-    const configuredTasks = readFileSync(
-      path.join(configuredWorkspace, ".strict-spec-driven", "changes", "configured-change", "tasks.yaml"),
-      "utf8",
-    );
-    context.assert(
-      configuredTasks.includes('command: "npm run build && npm test -- --coverage"'),
-      "propose scaffold renders the project's configured regression command into the testing gate task",
-    );
-  } finally {
-    rmSync(configuredWorkspace, { recursive: true, force: true });
-  }
+  const authoredDesign = cli(
+    ["generate", changeName, "design", "--approach", "Author the design directly, with no scaffold to overwrite."],
+    { cwd: proposeTempDir },
+  );
+  context.assert(authoredDesign.status === 0, "generate authors an artifact into an existing container", `stderr: ${authoredDesign.stderr.trim()}`);
+  const designArtifact = readFileSync(path.join(changeDir, "design.yaml"), "utf8");
 
   const duplicatePropose = cli(["propose", changeName], { cwd: proposeTempDir });
   context.assert(duplicatePropose.status !== 0, "propose rejects duplicate changes", `got exit code ${duplicatePropose.status}`);
@@ -1490,7 +1476,7 @@ try {
     `stderr: ${duplicatePropose.stderr.trim()}`,
   );
   context.assert(
-    readFileSync(path.join(changeDir, "proposal.yaml"), "utf8") === proposalArtifact,
+    readFileSync(path.join(changeDir, "design.yaml"), "utf8") === designArtifact,
     "propose duplicate-change failure preserves existing artifacts",
   );
 
@@ -1519,10 +1505,10 @@ try {
     emptyDirPropose.status === 0,
     "propose succeeds while only archived changes exist under changes/archive/",
   );
-  for (const artifact of expectedArtifacts) {
+  for (const artifact of planningArtifacts) {
     context.assert(
-      existsSync(path.join(emptyDirChangePath, artifact)),
-      `propose writes planning artifact into reusable empty directory (${artifact})`,
+      !existsSync(path.join(emptyDirChangePath, artifact)),
+      `propose writes no placeholder into a reused empty directory (${artifact})`,
     );
   }
   context.assert(
@@ -1539,9 +1525,14 @@ const generateTempDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-driven-g
 try {
   const changeName = "scripted-change";
   const generatePropose = cli(["propose", changeName], { cwd: generateTempDir });
-  context.assert(generatePropose.status === 0, "generate setup creates strict change scaffold", `got exit code ${generatePropose.status}`);
+  context.assert(generatePropose.status === 0, "generate setup creates the strict change container", `got exit code ${generatePropose.status}`);
   const changeDir = path.join(generateTempDir, ".strict-spec-driven", "changes", changeName);
   const proposalPath = path.join(changeDir, "proposal.yaml");
+  const designSetup = cli(
+    ["generate", changeName, "design", "--approach", "Set up an unrelated artifact that later writes must leave alone."],
+    { cwd: generateTempDir },
+  );
+  context.assert(designSetup.status === 0, "generate setup authors the design artifact", `stderr: ${designSetup.stderr.trim()}`);
   const originalDesign = readFileSync(path.join(changeDir, "design.yaml"), "utf8");
 
   // The generated deltas target cli-foundation, so that main spec must exist in
@@ -1605,7 +1596,6 @@ try {
     );
   }
 
-  const scaffoldProposal = readFileSync(proposalPath, "utf8");
   const nonFlagGenerate = cli(["generate", changeName, "proposal", "proposal.json"], { cwd: generateTempDir });
   context.assert(nonFlagGenerate.status !== 0, "generate rejects positional JSON input");
   context.assert(
@@ -1613,7 +1603,7 @@ try {
     "generate positional input failure prints named-argument usage only",
     `stderr: ${nonFlagGenerate.stderr.trim()}`,
   );
-  context.assert(readFileSync(proposalPath, "utf8") === scaffoldProposal, "generate positional input does not rewrite artifact");
+  context.assert(!existsSync(proposalPath), "generate positional input creates no artifact");
 
   const generatedProposal = cli([
     "generate",
@@ -1636,7 +1626,7 @@ try {
     generatedProposalJson.artifactPath === `.strict-spec-driven/changes/${changeName}/proposal.yaml`,
     "generate reports the written proposal artifact path",
   );
-  context.assert(generatedProposalJson.replaced === true, "generate reports replacement when scaffold artifact exists");
+  context.assert(generatedProposalJson.replaced === false, "generate reports creation when the target artifact does not exist yet");
 
   const parsedGeneratedProposal = yamlModule.parseYamlDocument<{
     change: { id: string };
@@ -1688,8 +1678,8 @@ try {
     "generate writes design artifact",
   );
 
-  // generate tasks builds the task list one task at a time. Nothing rebuilds the list, so the
-  // scaffold's placeholder tasks stay until they are removed by id.
+  // generate tasks builds the task list one task at a time. The first call creates the artifact from
+  // typed defaults, so the list starts with exactly the task supplied and no placeholder to remove.
   const firstTask = cli([
     "generate", changeName, "tasks",
     "--section", "Implementation", "--task", "do-the-work", "--text", "Implement the scoped behavior.",
@@ -1699,25 +1689,28 @@ try {
     readFileSync(path.join(changeDir, "tasks.yaml"), "utf8"),
   );
   context.assert(
-    "do-the-work" in (afterFirstTask.sections.Implementation ?? {})
-      && "implement-change" in (afterFirstTask.sections.Implementation ?? {}),
-    "generate tasks appends alongside the scaffold placeholder tasks rather than rebuilding the list",
+    Object.keys(afterFirstTask.sections.Implementation ?? {}).length === 1
+      && "do-the-work" in (afterFirstTask.sections.Implementation ?? {}),
+    "generate tasks creates the list holding only the supplied task, with no placeholder alongside it",
   );
 
-  // Clearing the scaffold's Testing and Verification tasks is the only way to empty those sections,
-  // and it is what makes the readiness diagnostics observable again.
+  // A second Implementation task appends, and removing it by id leaves its sibling in place.
+  cli([
+    "generate", changeName, "tasks",
+    "--section", "Implementation", "--task", "extra-work", "--text", "An extra task to remove by id.",
+  ], { cwd: generateTempDir });
   const removePlaceholder = cli([
     "generate", changeName, "tasks",
-    "--remove", "implement-change", "--remove", "run-project-regression", "--remove", "verify-scope",
+    "--remove", "extra-work",
   ], { cwd: generateTempDir });
   const afterRemoval = yamlModule.parseYamlDocument<{ sections: Record<string, Record<string, unknown>> }>(
     readFileSync(path.join(changeDir, "tasks.yaml"), "utf8"),
   );
   context.assert(
     removePlaceholder.status === 0
-      && !("implement-change" in (afterRemoval.sections.Implementation ?? {}))
+      && !("extra-work" in (afterRemoval.sections.Implementation ?? {}))
       && "do-the-work" in (afterRemoval.sections.Implementation ?? {}),
-    "generate tasks --remove drops the named placeholder task and leaves its siblings",
+    "generate tasks --remove drops the named task and leaves its siblings",
     `stderr: ${removePlaceholder.stderr.trim()}`,
   );
   const removalJson = JSON.parse(removePlaceholder.stdout.trim());
@@ -1961,6 +1954,40 @@ try {
     !existsSync(path.join(generateTempDir, ".strict-spec-driven", "changes", capacityBlockedChangeName)),
     "third-change rejection writes no scaffold state",
   );
+
+  // generate can create a change, so it crosses the same boundary and must enforce the same limit.
+  // A separate copy of the check in each command would drift into two answers.
+  const capacityBlockedGenerate = cli(
+    ["generate", capacityBlockedChangeName, "design", "--approach", "Should never be written."],
+    { cwd: generateTempDir },
+  );
+  context.assert(
+    capacityBlockedGenerate.status !== 0
+      && capacityBlockedGenerate.stderr.includes("limit of two active changes"),
+    "generate rejects a third active change through the same boundary as propose",
+    `status: ${capacityBlockedGenerate.status} stderr: ${capacityBlockedGenerate.stderr.trim()}`,
+  );
+  context.assert(
+    !existsSync(path.join(generateTempDir, ".strict-spec-driven", "changes", capacityBlockedChangeName)),
+    "a generate call refused by the active-change limit creates no change directory",
+  );
+
+  // A rejected write into a change that already exists must leave that change entirely alone: the
+  // unwind list holds only paths the call itself created, and here it created none.
+  const existingChangeDesignPath = path.join(generateTempDir, ".strict-spec-driven", "changes", changeName, "design.yaml");
+  const existingChangeDesignBefore = readFileSync(existingChangeDesignPath, "utf8");
+  const rejectedIntoExisting = cli(
+    ["generate", changeName, "proposal", "--what", "Missing why must be rejected."],
+    { cwd: generateTempDir },
+  );
+  context.assert(
+    rejectedIntoExisting.status !== 0
+      && existsSync(path.join(generateTempDir, ".strict-spec-driven", "changes", changeName))
+      && readFileSync(existingChangeDesignPath, "utf8") === existingChangeDesignBefore,
+    "a rejected write into an existing change leaves the container and its other artifacts unchanged",
+    `stderr: ${rejectedIntoExisting.stderr.trim()}`,
+  );
+
   const cancelScripted = cli(["cancel", changeName], { cwd: generateTempDir });
   context.assert(cancelScripted.status === 0, "cancel frees one active-change slot", `stderr: ${cancelScripted.stderr.trim()}`);
   const directChangeDir = path.join(generateTempDir, ".strict-spec-driven", "changes", directChangeName);
@@ -2388,26 +2415,28 @@ try {
     "generate preserves existing scenario order and appends compatible scenario ids in call order",
   );
 
-  // Every bundled change scaffold artifact must parse and validate, because nothing rebuilds an
-  // artifact any more: the first write reads the seeded file and merges into it.
+  // Authoring one artifact of a bare change must create exactly that artifact and leave the rest
+  // absent, with verify naming each unauthored one instead of grading placeholder content.
   const scaffoldRoundTripChange = "scaffold-round-trip-change";
   cli(["propose", scaffoldRoundTripChange], { cwd: generateTempDir });
   const scaffoldDesignWrite = cli([
-    "generate", scaffoldRoundTripChange, "design", "--approach", "Populated without any rebuild flag.",
+    "generate", scaffoldRoundTripChange, "design", "--approach", "Authored into a change that had no artifacts.",
   ], { cwd: generateTempDir });
   context.assert(
     scaffoldDesignWrite.status === 0,
-    "generate design populates a freshly scaffolded change without any rebuild flag",
+    "generate design authors an artifact into a change that holds none",
     `stderr: ${scaffoldDesignWrite.stderr.trim()}`,
   );
   const scaffoldVerify = JSON.parse(
     cli(["verify", scaffoldRoundTripChange], { cwd: generateTempDir }).stdout.trim(),
   );
+  const missingArtifactPaths = scaffoldVerify.diagnostics
+    .filter((d: { source: string }) => d.source === "missing_artifact")
+    .map((d: { artifactPath: string }) => d.artifactPath.split("/").pop());
   context.assert(
-    scaffoldVerify.diagnostics.some((d: { source: string }) => d.source === "design_completeness")
-      && scaffoldVerify.diagnostics.some((d: { source: string }) => d.source === "proposal_completeness"),
-    "verify reports leftover design and proposal scaffold placeholder content",
-    JSON.stringify(scaffoldVerify.diagnostics.map((d: { source: string }) => d.source)),
+    missingArtifactPaths.sort().join(",") === "proposal.yaml,questions.yaml,tasks.yaml",
+    "verify reports every unauthored artifact and not the one that was authored",
+    JSON.stringify(missingArtifactPaths),
   );
 
   // Proposal writes merge, so an invocation that restates only one scope entry keeps the others.
@@ -2632,34 +2661,30 @@ try {
   rmSync(generateTempDir, { recursive: true, force: true });
 }
 
-// verify's task-list completeness gate: leftover scaffold placeholders and empty required sections.
+// verify's task-list completeness gate: unauthored artifacts and empty required sections.
 const verifyCompletenessDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-driven-verify-completeness-"));
 try {
   const completenessChange = "verify-completeness-change";
   const proposeCompleteness = cli(["propose", completenessChange], { cwd: verifyCompletenessDir });
-  context.assert(proposeCompleteness.status === 0, "verify completeness setup scaffolds a change", `stderr: ${proposeCompleteness.stderr.trim()}`);
+  context.assert(proposeCompleteness.status === 0, "verify completeness setup creates a change container", `stderr: ${proposeCompleteness.stderr.trim()}`);
 
-  // A freshly scaffolded change still carries placeholder task text in every section.
+  // A change with nothing authored yet reports every required artifact as absent by name.
   const placeholderVerify = cli(["verify", completenessChange], { cwd: verifyCompletenessDir });
   const placeholderVerifyJson = JSON.parse(placeholderVerify.stdout.trim());
   context.assert(
-    placeholderVerifyJson.diagnostics.some(
-      (d: { source: string; fieldPath: string }) => d.source === "task_completeness" && d.fieldPath.endsWith(".text"),
-    ),
-    "verify reports leftover scaffold placeholder task text as a completeness diagnostic",
+    placeholderVerifyJson.diagnostics.filter(
+      (d: { source: string }) => d.source === "missing_artifact",
+    ).length === 4,
+    "verify reports each unauthored required artifact rather than grading placeholder content",
     placeholderVerify.stdout.trim(),
   );
 
-  // Removing the scaffold tasks by id leaves Testing and Verification empty, which is now the only
-  // way to empty a section: no flag rebuilds the list.
+  // Authoring only an Implementation task leaves Testing and Verification empty.
   const emptyRebuild = cli([
     "generate", completenessChange, "tasks",
     "--section", "Implementation", "--task", "only-impl", "--text", "Only implementation.",
-    "--remove", "implement-change",
-    "--remove", "run-project-regression",
-    "--remove", "verify-scope",
   ], { cwd: verifyCompletenessDir });
-  context.assert(emptyRebuild.status === 0, "verify completeness removal empties the other sections", `stderr: ${emptyRebuild.stderr.trim()}`);
+  context.assert(emptyRebuild.status === 0, "verify completeness setup authors only an Implementation task", `stderr: ${emptyRebuild.stderr.trim()}`);
   const emptySectionVerify = cli(["verify", completenessChange], { cwd: verifyCompletenessDir });
   const emptySectionJson = JSON.parse(emptySectionVerify.stdout.trim());
   context.assert(
@@ -2986,8 +3011,8 @@ try {
     `stdout: ${firstPropose.stdout.trim()} stderr: ${firstPropose.stderr.trim()}`,
   );
   context.assert(
-    existsSync(path.join(firstCopiedWorkspace.workspaceRoot, copiedWorkspaceChangePath, "proposal.yaml")),
-    "copied workspace records new change artifacts inside the temp copy",
+    existsSync(path.join(firstCopiedWorkspace.workspaceRoot, copiedWorkspaceChangePath, "specs")),
+    "copied workspace records the new change container inside the temp copy",
   );
   context.assert(
     !existsSync(path.join(todoProjectRoot, copiedWorkspaceChangePath)),
@@ -3013,8 +3038,8 @@ try {
     `stdout: ${secondPropose.stdout.trim()} stderr: ${secondPropose.stderr.trim()}`,
   );
   context.assert(
-    existsSync(path.join(secondCopiedWorkspace.workspaceRoot, copiedWorkspaceChangePath, "proposal.yaml")),
-    "repeat copied workspace run creates the same change artifacts again",
+    existsSync(path.join(secondCopiedWorkspace.workspaceRoot, copiedWorkspaceChangePath, "specs")),
+    "repeat copied workspace run creates the same change container again",
   );
 } finally {
   secondCopiedWorkspace.cleanup();
@@ -3070,8 +3095,26 @@ function runCopiedWorkspaceCliFlowScenario(): {
       `stdout: ${copiedProposeStdout} stderr: ${copiedPropose.stderr.trim()}`,
     );
     context.assert(
-      existsSync(path.join(workspaceRoot, copiedWorkspaceCliChangePath, "proposal.yaml")),
-      "copied workspace propose records change artifacts inside the temp workspace",
+      existsSync(path.join(workspaceRoot, copiedWorkspaceCliChangePath, "specs")),
+      "copied workspace propose records the change container inside the temp workspace",
+    );
+    context.assert(
+      !existsSync(path.join(workspaceRoot, copiedWorkspaceCliChangePath, "proposal.yaml")),
+      "copied workspace propose writes no placeholder planning artifact",
+    );
+
+    // The interrogation gate arrives with the questions artifact, which is authored rather than
+    // scaffolded, so the change only becomes blocked once that artifact exists.
+    const copiedQuestions = projectWorkspaceCli(workspaceRoot, [
+      "generate", "copied-workspace-cli-change", "questions",
+      "--open", "copied-workspace-question",
+      "--question", "Does the copied workspace behave like a real project?",
+      "--context", "Recorded so the change has an authored questions artifact.",
+    ]);
+    context.assert(
+      copiedQuestions.status === 0,
+      "copied workspace authors the questions artifact through generate",
+      `stderr: ${copiedQuestions.stderr.trim()}`,
     );
 
     const copiedList = projectWorkspaceCli(workspaceRoot, ["list"]);
@@ -3296,11 +3339,11 @@ for (const relativeAssetPath of scaffoldModule.getRequiredBundledScaffoldAssets(
   context.assert(statSync(distAssetPath).isFile(), `dist scaffold asset is a file (${relativeAssetPath})`);
 }
 
-for (const changeAsset of scaffoldModule.getRequiredBundledChangeTemplateAssets()) {
-  const distAssetPath = path.join(distScaffoldDir, changeAsset);
-  context.assert(existsSync(distAssetPath), `dist change template asset exists (${changeAsset})`);
-  context.assert(statSync(distAssetPath).isFile(), `dist change template asset is a file (${changeAsset})`);
-}
+// Change planning artifacts are authored from typed defaults, so no change template ships at all.
+context.assert(
+  !existsSync(path.join(distScaffoldDir, "changes")),
+  "dist scaffold bundle ships no change planning artifact templates",
+);
 
 const distSchemaFiles = [
   "harness-session.yaml",
@@ -3427,9 +3470,24 @@ try {
   const changeDir = path.join(distOnlyProposeDir, ".strict-spec-driven", "changes", "test-change");
   context.assert(existsSync(changeDir), "propose from dist creates change directory");
   for (const artifact of ["proposal.yaml", "design.yaml", "tasks.yaml", "questions.yaml"]) {
-    context.assert(existsSync(path.join(changeDir, artifact)), `propose from dist creates artifact (${artifact})`);
+    context.assert(
+      !existsSync(path.join(changeDir, artifact)),
+      `propose from dist writes no placeholder artifact (${artifact})`,
+    );
   }
   context.assert(existsSync(path.join(changeDir, "specs")), "propose from dist creates specs directory");
+
+  // Authoring must also work from dist-only output, since that is where the typed defaults live now
+  // that no template file backs them.
+  const distOnlyGenerate = cli(
+    ["generate", "test-change", "design", "--approach", "Authored from a dist-only environment."],
+    { cwd: distOnlyProposeDir },
+  );
+  context.assert(
+    distOnlyGenerate.status === 0 && existsSync(path.join(changeDir, "design.yaml")),
+    "generate authors an artifact from dist-only output",
+    `stderr: ${distOnlyGenerate.stderr.trim()}`,
+  );
 } finally {
   rmSync(distOnlyProposeDir, { recursive: true, force: true });
 }

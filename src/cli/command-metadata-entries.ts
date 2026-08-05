@@ -55,17 +55,21 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
   propose: {
     name: "propose",
     group: "change",
-    summary: "Scaffold a new strict change directory with empty planning artifacts.",
-    mcpDescription: "Mutates strict workflow state by creating a new change scaffold.",
+    summary: "Create a new strict change container, without writing any planning artifact.",
+    mcpDescription: "Mutates strict workflow state by creating a new change container.",
     usage: "Usage: strict-spec-cli propose <change-name>\n",
     arguments: [CHANGE_NAME_ARG],
     flags: [],
     output: {
       format: "text",
-      description: "The created change directory followed by each scaffolded planning artifact path.",
+      description: "The created change directory and its specs/ directory, followed by the generate invocation that authors each planning artifact.",
     },
     exitCodes: SUCCESS_EXIT_CODES,
-    notes: ["Creates proposal.yaml, design.yaml, tasks.yaml, questions.yaml, and an empty specs/ directory."],
+    notes: [
+      "Creates only the change directory and an empty specs/ directory. Planning artifacts are written by generate, from real content, so an unauthored artifact is absent rather than a placeholder.",
+      "Rejects an invalid change name, a change directory that already holds files, and a third active change. Running it again against a change directory that holds no files succeeds as a no-op, so an interrupted first authoring call can be retried.",
+      "propose is optional: the first generate invocation for a change creates the container itself, in the same atomic operation that writes the artifact.",
+    ],
   },
 
   generate: {
@@ -473,6 +477,8 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       { code: 1, meaning: "Usage error, unsupported argument, or a rejected merge." },
     ],
     notes: [
+      "The change need not exist yet. The first successful generate call creates the change container and the artifact it authors in one atomic operation, and a rejected or failed call removes every path it created, so a failed first write leaves no change behind and a failed later write leaves the existing change untouched.",
+      "A target artifact that does not exist is created from typed defaults merged with the supplied named arguments; no placeholder file is ever written. Creating questions.yaml seeds the requirement-interrogation set open, which is workflow-required state rather than placeholder content.",
       "valid reports write success; ready (tasks only) reports completeness. A ready: false result is a successful write, not a failure, and is resolved by adding the missing tasks rather than by rebuilding the list.",
       "Restating an existing (section, task id) is a field-level merge: it overwrites only the fields supplied, so status and command survive a text-only edit.",
       "Use the --flag=value form when a value begins with a dash, such as task text naming a CLI flag.",

@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { hasEmbeddedTemplate, readEmbeddedTemplate } from "./embedded-templates.js";
@@ -26,149 +26,12 @@ const REQUIRED_SCAFFOLD_ASSETS = [
   "roadmap/INDEX.yaml",
   "lessons/INDEX.yaml",
 ] as const;
-const REQUIRED_CHANGE_TEMPLATE_ASSETS = [
-  "changes/proposal.yaml",
-  "changes/design.yaml",
-  "changes/tasks.yaml",
-  "changes/questions.yaml",
-] as const;
-const CHANGE_TEMPLATE_NAME_PLACEHOLDER = "{{change_name}}";
-const CHANGE_TEMPLATE_REGRESSION_COMMAND_PLACEHOLDER = "{{project_regression_command}}";
-const REGRESSION_COMMAND_FALLBACK =
-  "REPLACE WITH the complete project regression command (build plus full test run)";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const LEGACY_WORKFLOW_DIR = ".spec-driven";
 export const MAX_ACTIVE_CHANGE_COUNT = 2;
-
-function readConfiguredRegressionCommand(rootDir: string): string | null {
-  const configPath = path.join(rootDir, STRICT_WORKFLOW_DIR, "config.yaml");
-  if (!existsSync(configPath)) return null;
-  try {
-    const parsed = parseYamlDocument<{
-      review_evidence?: { project_regression?: { command?: unknown } };
-    }>(readFileSync(configPath, "utf8"));
-    const command = parsed?.review_evidence?.project_regression?.command;
-    return typeof command === "string" && command.trim().length > 0 ? command : null;
-  } catch {
-    return null;
-  }
-}
-
-export type ScaffoldTaskPlaceholders = {
-  /** Task texts that only stand in for real work and must be replaced before a change verifies. */
-  texts: string[];
-  /** Task commands that only stand in for a real command. */
-  commands: string[];
-};
-
-let cachedScaffoldTaskPlaceholders: ScaffoldTaskPlaceholders | undefined;
-
-/**
- * Derives the placeholder task content from the bundled change scaffold so verify and the scaffold
- * itself never drift apart. The scaffold's regression task is a real task changes are expected to
- * keep, so only its unfilled command counts as a placeholder — every other scaffold task text does.
- */
-export function getScaffoldTaskPlaceholders(): ScaffoldTaskPlaceholders {
-  if (cachedScaffoldTaskPlaceholders) return cachedScaffoldTaskPlaceholders;
-
-  const rendered = readBundledScaffoldTemplate("changes/tasks.yaml")
-    .replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, "scaffold")
-    .replaceAll(CHANGE_TEMPLATE_REGRESSION_COMMAND_PLACEHOLDER, JSON.stringify(REGRESSION_COMMAND_FALLBACK));
-  const parsed = parseYamlDocument<{
-    sections?: Record<string, Record<string, { text?: unknown; command?: unknown }> | undefined>;
-  }>(rendered);
-
-  const texts: string[] = [];
-  for (const sectionTasks of Object.values(parsed?.sections ?? {})) {
-    for (const task of Object.values(sectionTasks ?? {})) {
-      if (task?.command === REGRESSION_COMMAND_FALLBACK) continue;
-      if (typeof task?.text === "string") texts.push(task.text);
-    }
-  }
-
-  cachedScaffoldTaskPlaceholders = { texts, commands: [REGRESSION_COMMAND_FALLBACK] };
-  return cachedScaffoldTaskPlaceholders;
-}
-
-/** The bundled proposal scaffold's placeholder content, by field. */
-export type ScaffoldProposalPlaceholders = {
-  what: string[];
-  why: string[];
-  scopeIn: string[];
-  scopeOut: string[];
-  unchangedBehavior: string[];
-};
-
-let cachedScaffoldProposalPlaceholders: ScaffoldProposalPlaceholders | undefined;
-
-/**
- * Derives the placeholder proposal content from the bundled change scaffold. The proposal generator
- * merges into the recorded artifact rather than rebuilding it, so seeded placeholder entries now
- * survive every later write and must be reported before archive.
- */
-export function getScaffoldProposalPlaceholders(): ScaffoldProposalPlaceholders {
-  if (cachedScaffoldProposalPlaceholders) return cachedScaffoldProposalPlaceholders;
-
-  const rendered = readBundledScaffoldTemplate("changes/proposal.yaml")
-    .replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, "scaffold");
-  const parsed = parseYamlDocument<{
-    summary?: { what?: unknown; why?: unknown };
-    scope?: { in?: unknown; out?: unknown };
-    unchanged_behavior?: unknown;
-  }>(rendered);
-
-  const strings = (value: unknown): string[] =>
-    Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
-
-  cachedScaffoldProposalPlaceholders = {
-    what: strings(parsed?.summary?.what),
-    why: strings(parsed?.summary?.why),
-    scopeIn: strings(parsed?.scope?.in),
-    scopeOut: strings(parsed?.scope?.out),
-    unchangedBehavior: strings(parsed?.unchanged_behavior),
-  };
-  return cachedScaffoldProposalPlaceholders;
-}
-
-/** The bundled design scaffold's placeholder content, by field. */
-export type ScaffoldDesignPlaceholders = {
-  approach: string[];
-  decisionIds: string[];
-  alternativeOptions: string[];
-  risks: string[];
-};
-
-let cachedScaffoldDesignPlaceholders: ScaffoldDesignPlaceholders | undefined;
-
-/**
- * Derives the placeholder design content from the bundled change scaffold, so verify and the
- * scaffold never drift apart. These entries used to be cleared as a side effect of rebuilding the
- * artifact; with every write merging instead, unreplaced placeholders would otherwise survive
- * silently into an archived change.
- */
-export function getScaffoldDesignPlaceholders(): ScaffoldDesignPlaceholders {
-  if (cachedScaffoldDesignPlaceholders) return cachedScaffoldDesignPlaceholders;
-
-  const rendered = readBundledScaffoldTemplate("changes/design.yaml")
-    .replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, "scaffold");
-  const parsed = parseYamlDocument<{
-    approach?: unknown;
-    decisions?: Record<string, unknown>;
-    alternatives?: { option?: unknown }[];
-    risks?: unknown;
-  }>(rendered);
-
-  cachedScaffoldDesignPlaceholders = {
-    approach: Array.isArray(parsed?.approach) ? parsed.approach.filter((entry): entry is string => typeof entry === "string") : [],
-    decisionIds: Object.keys(parsed?.decisions ?? {}),
-    alternativeOptions: (parsed?.alternatives ?? [])
-      .map((entry) => entry?.option)
-      .filter((option): option is string => typeof option === "string"),
-    risks: Array.isArray(parsed?.risks) ? parsed.risks.filter((entry): entry is string => typeof entry === "string") : [],
-  };
-  return cachedScaffoldDesignPlaceholders;
-}
+/** Canonical change-name rule, owned here because this module creates the directory it names. */
+export const CHANGE_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export type StrictInitResult = {
   rootDir: string;
@@ -179,8 +42,34 @@ export type StrictInitResult = {
 
 export type StrictChangeScaffoldResult = {
   changeDir: string;
-  planningArtifacts: string[];
   specsDir: string;
+  /** False when the container already existed, so propose can report a no-op rather than a create. */
+  created: boolean;
+};
+
+export type ChangeContainerReservation = {
+  /** Absolute path of the change directory. */
+  changeDir: string;
+  /** Repo-relative change directory, for output and diagnostics. */
+  repoRelativeChangeDir: string;
+  /** Absolute path of the change's specs directory. */
+  specsDir: string;
+  /** True when this reservation created the container rather than finding it. */
+  created: boolean;
+  /**
+   * Absolute paths this reservation created, in creation order. Only these are unwound on failure,
+   * so a rejected write into a pre-existing change never deletes anything the caller did not make.
+   */
+  createdPaths: string[];
+};
+
+export type ReserveChangeContainerOptions = {
+  /**
+   * Rejects a container that already holds files. propose sets this so a populated change is a
+   * collision; artifact authoring leaves it unset, because writing into a populated change is the
+   * normal incremental edit.
+   */
+  rejectPopulated?: boolean;
 };
 
 function normalizeRelativeScaffoldPath(relativePath: string): string {
@@ -243,17 +132,6 @@ export function findMissingRequiredScaffoldAssets(): string[] {
   );
 }
 
-export function getRequiredBundledChangeTemplateAssets(): string[] {
-  return [...REQUIRED_CHANGE_TEMPLATE_ASSETS];
-}
-
-export function findMissingRequiredChangeTemplateAssets(): string[] {
-  return getRequiredBundledChangeTemplateAssets().filter(
-    (relativePath) =>
-      !hasEmbeddedTemplate(scaffoldTemplateKey(relativePath)) && !existsSync(getBundledScaffoldPath(relativePath)),
-  );
-}
-
 export function listActiveChangeNames(rootDir: string): string[] {
   const strictChangesRootDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "changes");
   if (!existsSync(strictChangesRootDir) || !statSync(strictChangesRootDir).isDirectory()) {
@@ -265,47 +143,90 @@ export function listActiveChangeNames(rootDir: string): string[] {
     .sort((left, right) => left.localeCompare(right));
 }
 
-export function initializeStrictChangeScaffold(rootDir: string, changeName: string): StrictChangeScaffoldResult {
+/**
+ * The single boundary every change-authoring entry point crosses before writing anything. It
+ * validates the change name, the active-change limit, and the collision rule, then creates the
+ * change container only if it is absent, recording exactly what it created so a failed first write
+ * can be unwound. Both propose and artifact authoring call it, so the limit has one answer rather
+ * than one per command, and the unwind list belongs to the transition rather than to whichever
+ * command happened to start it.
+ *
+ * An artifact-free container counts as an active change: the limit bounds concurrent work, not
+ * concurrent files, so an interrupted first authoring call still occupies a slot.
+ */
+export function reserveChangeContainer(
+  rootDir: string,
+  changeName: string,
+  options: ReserveChangeContainerOptions = {},
+): ChangeContainerReservation {
+  if (!CHANGE_NAME_PATTERN.test(changeName)) {
+    throw new Error("change name must be kebab-case (lowercase letters, numbers, and hyphens)");
+  }
+
   const strictChangesRootDir = path.join(rootDir, STRICT_WORKFLOW_DIR, "changes");
   const changeDir = path.join(strictChangesRootDir, changeName);
   const repoRelativeChangeDir = toRepoRelativePath(rootDir, changeDir);
-  const blockingActiveChanges = listActiveChangeNames(rootDir).filter((name) => name !== changeName);
-  if (blockingActiveChanges.length >= MAX_ACTIVE_CHANGE_COUNT) {
-    const blockingList = blockingActiveChanges.map((name) => `'${name}'`).join(", ");
-    throw new Error(
-      `cannot create change '${changeName}': active changes ${blockingList} already fill the limit of two active changes; archive or cancel one first`,
-    );
-  }
-  if (existsSync(changeDir)) {
-    if (!statSync(changeDir).isDirectory()) {
-      throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
-    }
-    if (directoryTreeContainsFiles(changeDir)) {
-      throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
-    }
-  }
-
-  mkdirSync(changeDir, { recursive: true });
-  const planningArtifacts: string[] = [];
-  const regressionCommand = readConfiguredRegressionCommand(rootDir) ?? REGRESSION_COMMAND_FALLBACK;
-  for (const templateAssetPath of getRequiredBundledChangeTemplateAssets()) {
-    const outputFileName = path.basename(templateAssetPath);
-    const outputPath = path.join(changeDir, outputFileName);
-    const templateContent = readBundledScaffoldTemplate(templateAssetPath);
-    const outputContent = templateContent
-      .replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, changeName)
-      .replaceAll(CHANGE_TEMPLATE_REGRESSION_COMMAND_PLACEHOLDER, JSON.stringify(regressionCommand));
-    writeFileSync(outputPath, outputContent, "utf8");
-    planningArtifacts.push(toRepoRelativePath(rootDir, outputPath));
-  }
-
   const specsDir = path.join(changeDir, "specs");
-  mkdirSync(specsDir, { recursive: true });
+
+  const containerExists = existsSync(changeDir);
+  if (containerExists && !statSync(changeDir).isDirectory()) {
+    throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
+  }
+  if (containerExists && options.rejectPopulated && directoryTreeContainsFiles(changeDir)) {
+    throw new Error(`change '${changeName}' already exists at ${repoRelativeChangeDir}`);
+  }
+
+  if (!containerExists) {
+    const blockingActiveChanges = listActiveChangeNames(rootDir).filter((name) => name !== changeName);
+    if (blockingActiveChanges.length >= MAX_ACTIVE_CHANGE_COUNT) {
+      const blockingList = blockingActiveChanges.map((name) => `'${name}'`).join(", ");
+      throw new Error(
+        `cannot create change '${changeName}': active changes ${blockingList} already fill the limit of two active changes; archive or cancel one first`,
+      );
+    }
+  }
+
+  // Record only the directories this call brings into existence. mkdirSync with recursive can
+  // create several levels at once, so each absent level is captured separately and the unwind
+  // removes exactly them, leaving any pre-existing level alone.
+  const createdPaths: string[] = [];
+  for (const directoryPath of [strictChangesRootDir, changeDir, specsDir]) {
+    if (existsSync(directoryPath)) continue;
+    mkdirSync(directoryPath, { recursive: true });
+    createdPaths.push(directoryPath);
+  }
 
   return {
-    changeDir: repoRelativeChangeDir,
-    planningArtifacts,
-    specsDir: `${toRepoRelativePath(rootDir, specsDir)}/`,
+    changeDir,
+    repoRelativeChangeDir,
+    specsDir,
+    created: !containerExists,
+    createdPaths,
+  };
+}
+
+/**
+ * Removes exactly the paths a reservation created, newest first, so a rejected or failed first
+ * authoring call leaves no change behind. A reservation that found an existing container created
+ * nothing and therefore removes nothing.
+ */
+export function unwindChangeContainer(reservation: ChangeContainerReservation): void {
+  for (const createdPath of [...reservation.createdPaths].reverse()) {
+    rmSync(createdPath, { recursive: true, force: true });
+  }
+}
+
+/**
+ * Creates the change container for propose. It writes no planning artifacts: those exist only once
+ * an authoring command has real content for them. Running it again against an artifact-free
+ * container succeeds as a no-op, so an interrupted first authoring call can be retried.
+ */
+export function initializeStrictChangeScaffold(rootDir: string, changeName: string): StrictChangeScaffoldResult {
+  const reservation = reserveChangeContainer(rootDir, changeName, { rejectPopulated: true });
+  return {
+    changeDir: reservation.repoRelativeChangeDir,
+    specsDir: `${toRepoRelativePath(rootDir, reservation.specsDir)}/`,
+    created: reservation.created,
   };
 }
 

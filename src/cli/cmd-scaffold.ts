@@ -1,5 +1,4 @@
 import {
-  findMissingRequiredChangeTemplateAssets,
   findMissingRequiredScaffoldAssets,
   initializeStrictChangeScaffold,
   initializeStrictScaffold,
@@ -51,23 +50,16 @@ export function runPropose(argv: string[]): number {
     return 1;
   }
 
-  const missingAssets = findMissingRequiredChangeTemplateAssets();
-  if (missingAssets.length > 0) {
-    writeError("missing bundled change templates required by propose:");
-    for (const assetPath of missingAssets) {
-      writeErr(`- ${assetPath}\n`);
-    }
-    return 1;
-  }
-
   try {
     const result = initializeStrictChangeScaffold(process.cwd(), changeName);
-    writeOut(`Created strict change scaffold at ${result.changeDir}/\n`);
-    writeOut("Planning artifacts:\n");
-    for (const artifactPath of result.planningArtifacts) {
-      writeOut(`- ${artifactPath}\n`);
-    }
+    writeOut(
+      result.created
+        ? `Created strict change at ${result.changeDir}/\n`
+        : `Reused existing empty strict change at ${result.changeDir}/\n`,
+    );
     writeOut(`- ${result.specsDir}\n`);
+    writeOut("No planning artifacts were written; author each one with:\n");
+    writeOut(`- strict-spec-cli generate ${changeName} <proposal|design|tasks|questions> --<named-args>\n`);
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

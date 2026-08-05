@@ -240,7 +240,7 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
    `strict-spec-cli generate <change-name> tasks` once for each task so no task
    list is hand-written. Keep concrete task sections for `Implementation`,
    `Testing`, and `Verification`.
-   - first task is one invocation; the scaffold's placeholder tasks stay until removed by id:
+   - first task is one invocation; the task list starts absent and is created by this call:
      ```bash
      strict-spec-cli generate <change-name> tasks --section Implementation --task <task-id> --text "..."
      ```

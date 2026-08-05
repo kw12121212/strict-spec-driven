@@ -564,12 +564,6 @@ function generateReadyFixtureChange(workspaceRoot: string, changeName: string): 
       "Do not change persistence behavior",
       "--unchanged",
       "Existing todo creation and completion behavior remains unchanged",
-      "--remove-in",
-      "Add [specific behavior] to [target artifact].",
-      "--remove-out",
-      "Implement unrelated workflow behavior.",
-      "--remove-unchanged",
-      "Existing strict workflow behavior remains unchanged unless explicitly listed in scope.",
     ]).status === 0,
     `${changeName} fixture proposal generation exits zero`,
   );
@@ -586,16 +580,23 @@ function generateReadyFixtureChange(workspaceRoot: string, changeName: string): 
       "Use copied fixture code and tests as the implementation and validation evidence.",
       "--rationale",
       "The copied project proves the question gate works outside the self-hosted workflow state.",
-      "--remove-approach",
-      "Describe the implementation approach.",
-      "--remove-decision",
-      "sample-decision",
-      "--remove-alternative",
-      "Describe an alternative approach that was considered.",
-      "--remove-risk",
-      "Describe a risk this change carries and how it is mitigated.",
     ]).status === 0,
     `${changeName} fixture design generation exits zero`,
+  );
+  // The task list is authored like every other artifact now, so the fixture must supply all three
+  // sections and both testing gates for the change to reach ready.
+  context.assert(
+    projectWorkspaceCli(workspaceRoot, [
+      "generate", changeName, "tasks",
+      "--section", "Implementation", "--task", "record-fixture-evidence",
+      "--text", "Record the fixture evidence this change documents.", "--status", "complete",
+      "--section", "Testing", "--task", "run-fixture-tests",
+      "--text", "Run the fixture test suite.", "--status", "complete", "--command", "npm test",
+      "--section", "Verification", "--task", "verify-fixture-scope",
+      "--text", "Verify the fixture change matches its proposal scope.", "--status", "complete",
+      "--validation-task", "run-fixture-tests", "--unit-test-task", "run-fixture-tests",
+    ]).status === 0,
+    `${changeName} fixture tasks generation exits zero`,
   );
   context.assert(
     projectWorkspaceCli(workspaceRoot, ["generate", changeName, "questions", "--resolved", "fixture-technical", "--question", "Which fixture path?", "--context", "Fixture context.", "--answer", "The copied fixture path."]).status === 0,
@@ -3829,13 +3830,48 @@ try {
     open: Array<{ id: string; question: string; context: string; kind?: string; answered_by?: string }>;
     resolved: Array<{ id: string; answer: string; kind?: string; answered_by?: string }>;
   };
+
+  // propose writes no artifact, so the gate cannot be skipped by simply never authoring one: an
+  // absent questions.yaml blocks ready by name before any requirement question can be evaluated.
+  context.assert(
+    !existsSync(questionsPath),
+    "propose writes no questions artifact",
+  );
+  const unauthoredReady = projectWorkspaceCli(workspaceRoot, ["ready", changeName]);
+  const unauthoredReadyJson = JSON.parse(unauthoredReady.stdout.trim());
+  context.assert(
+    unauthoredReady.status !== 0
+      && unauthoredReadyJson.diagnostics.some(
+        (diagnostic: { source: string; artifactPath: string }) =>
+          diagnostic.source === "missing_artifact" && diagnostic.artifactPath.endsWith("/questions.yaml"),
+      ),
+    "an unauthored questions artifact blocks ready, so the interrogation gate cannot be bypassed",
+    `stdout: ${unauthoredReady.stdout.trim()}`,
+  );
+
+  // Authoring the artifact is what seeds the interrogation set, alongside whatever the caller asked
+  // to record. The five entries are workflow-required state, not content the caller supplied.
+  context.assert(
+    projectWorkspaceCli(workspaceRoot, [
+      "generate",
+      changeName,
+      "questions",
+      "--open",
+      "technical-detail",
+      "--question",
+      "Which storage path is used?",
+      "--context",
+      "Technical follow-up recorded alongside the seeded interrogation.",
+    ]).status === 0,
+    "authoring the questions artifact exits zero",
+  );
   const seeded = yamlModule.parseYamlDocument<SeededQuestions>(readFileSync(questionsPath, "utf8"));
 
   for (const questionId of CANONICAL_REQUIREMENT_IDS) {
     const entry = seeded.open.find((candidate) => candidate.id === questionId);
     context.assert(
       entry !== undefined && entry.kind === "requirement",
-      `propose seeds canonical requirement question '${questionId}' as open with kind requirement`,
+      `authoring questions seeds canonical requirement question '${questionId}' as open with kind requirement`,
     );
     context.assert(
       entry !== undefined
@@ -3846,15 +3882,15 @@ try {
     );
   }
   context.assert(
-    seeded.open.length === CANONICAL_REQUIREMENT_IDS.length,
-    "propose seeds exactly the five canonical requirement questions",
+    seeded.open.length === CANONICAL_REQUIREMENT_IDS.length + 1,
+    "authoring questions seeds exactly the five canonical requirement questions beside the supplied entry",
     `open ids: ${seeded.open.map((entry) => entry.id).join(", ")}`,
   );
 
   const freshReady = projectWorkspaceCli(workspaceRoot, ["ready", changeName]);
   context.assert(
     freshReady.status !== 0,
-    "a freshly scaffolded change is not ready while its seeded requirement questions are open",
+    "a change is not ready while its seeded requirement questions are open",
     `stdout: ${freshReady.stdout.trim()}`,
   );
   const freshReadyJson = JSON.parse(freshReady.stdout.trim());

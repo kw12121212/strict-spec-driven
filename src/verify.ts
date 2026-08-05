@@ -6,7 +6,6 @@ import {
   validateArtifact,
   type ValidationDiagnostic,
 } from "./validation.js";
-import { getScaffoldDesignPlaceholders, getScaffoldProposalPlaceholders, getScaffoldTaskPlaceholders } from "./scaffold.js";
 import { TASK_SECTION_NAMES } from "./propose-generation.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
@@ -249,139 +248,9 @@ function checkTaskListCompleteness(
     }
   }
 
-  // Leftover scaffold placeholder content means the task was never authored; matching the exact
-  // scaffold literals keeps a legitimately worded task from ever being misreported.
-  const placeholders = getScaffoldTaskPlaceholders();
-  const placeholderTexts = new Set(placeholders.texts);
-  const placeholderCommands = new Set(placeholders.commands);
-  for (const [sectionName, taskMap] of Object.entries(sections)) {
-    for (const [taskId, task] of Object.entries(taskMap ?? {})) {
-      if (typeof task.text === "string" && placeholderTexts.has(task.text)) {
-        diagnostics.push({
-          source: "task_completeness",
-          artifactPath,
-          fieldPath: `$.sections.${sectionName}.${taskId}.text`,
-          message: `task '${taskId}' still has scaffold placeholder text; replace it with the real task before archiving`,
-          expected: "authored task text",
-          actual: task.text,
-        });
-      }
-      if (typeof task.command === "string" && placeholderCommands.has(task.command)) {
-        diagnostics.push({
-          source: "task_completeness",
-          artifactPath,
-          fieldPath: `$.sections.${sectionName}.${taskId}.command`,
-          message: `task '${taskId}' still has scaffold placeholder command; replace it with the real command before archiving`,
-          expected: "authored task command",
-          actual: task.command,
-        });
-      }
-    }
-  }
-
   return diagnostics;
 }
 
-/**
- * Reports bundled scaffold placeholder content left in design.yaml. Every write now merges into the
- * recorded artifact instead of rebuilding it, so placeholders that used to be cleared as a side
- * effect of a rebuild would otherwise reach an archived change unnoticed. Matching the exact
- * scaffold literals keeps legitimately worded content from ever being misreported.
- */
-function checkDesignCompleteness(artifact: unknown, artifactPath: string): VerifyDiagnostic[] {
-  if (!artifact || typeof artifact !== "object") return [];
-  const design = artifact as {
-    approach?: unknown;
-    decisions?: Record<string, unknown>;
-    alternatives?: { option?: unknown }[];
-    risks?: unknown;
-  };
-  const placeholders = getScaffoldDesignPlaceholders();
-  const diagnostics: VerifyDiagnostic[] = [];
-
-  const reportList = (values: unknown, seeded: string[], field: string): void => {
-    if (!Array.isArray(values)) return;
-    const seededSet = new Set(seeded);
-    values.forEach((entry, index) => {
-      if (typeof entry !== "string" || !seededSet.has(entry)) return;
-      diagnostics.push({
-        source: "design_completeness",
-        artifactPath,
-        fieldPath: `$.${field}[${index}]`,
-        message: `design ${field} still has scaffold placeholder content; replace it before archiving`,
-        expected: `authored ${field} content`,
-        actual: entry,
-      });
-    });
-  };
-
-  reportList(design.approach, placeholders.approach, "approach");
-  reportList(design.risks, placeholders.risks, "risks");
-
-  for (const decisionId of placeholders.decisionIds) {
-    if (design.decisions && Object.prototype.hasOwnProperty.call(design.decisions, decisionId)) {
-      diagnostics.push({
-        source: "design_completeness",
-        artifactPath,
-        fieldPath: `$.decisions.${decisionId}`,
-        message: `design still has scaffold placeholder decision '${decisionId}'; replace or remove it before archiving`,
-        expected: "authored decisions only",
-        actual: decisionId,
-      });
-    }
-  }
-
-  const seededOptions = new Set(placeholders.alternativeOptions);
-  (Array.isArray(design.alternatives) ? design.alternatives : []).forEach((entry, index) => {
-    if (typeof entry?.option !== "string" || !seededOptions.has(entry.option)) return;
-    diagnostics.push({
-      source: "design_completeness",
-      artifactPath,
-      fieldPath: `$.alternatives[${index}].option`,
-      message: "design alternatives still has scaffold placeholder content; replace it before archiving",
-      expected: "authored alternative content",
-      actual: entry.option,
-    });
-  });
-
-  return diagnostics;
-}
-
-/** Reports bundled scaffold placeholder content left in proposal.yaml, which now also merges. */
-function checkProposalCompleteness(artifact: unknown, artifactPath: string): VerifyDiagnostic[] {
-  if (!artifact || typeof artifact !== "object") return [];
-  const proposal = artifact as {
-    summary?: { what?: unknown; why?: unknown };
-    scope?: { in?: unknown; out?: unknown };
-    unchanged_behavior?: unknown;
-  };
-  const placeholders = getScaffoldProposalPlaceholders();
-  const diagnostics: VerifyDiagnostic[] = [];
-
-  const reportList = (values: unknown, seeded: string[], fieldPath: string, label: string): void => {
-    if (!Array.isArray(values)) return;
-    const seededSet = new Set(seeded);
-    values.forEach((entry, index) => {
-      if (typeof entry !== "string" || !seededSet.has(entry)) return;
-      diagnostics.push({
-        source: "proposal_completeness",
-        artifactPath,
-        fieldPath: `${fieldPath}[${index}]`,
-        message: `proposal ${label} still has scaffold placeholder content; replace it before archiving`,
-        expected: `authored ${label} content`,
-        actual: entry,
-      });
-    });
-  };
-
-  reportList(proposal.summary?.what, placeholders.what, "$.summary.what", "summary.what");
-  reportList(proposal.summary?.why, placeholders.why, "$.summary.why", "summary.why");
-  reportList(proposal.scope?.in, placeholders.scopeIn, "$.scope.in", "scope.in");
-  reportList(proposal.scope?.out, placeholders.scopeOut, "$.scope.out", "scope.out");
-  reportList(proposal.unchanged_behavior, placeholders.unchangedBehavior, "$.unchanged_behavior", "unchanged_behavior");
-
-  return diagnostics;
-}
 
 function validateDeltaSpecs(
   changeDir: string,
@@ -1129,22 +998,29 @@ export function verifyChange(
     }
   }
 
-  const artifactConfigs: [string, string][] = [
-    ["change_proposal", "proposal.yaml"],
-    ["change_design", "design.yaml"],
-    ["task_list", "tasks.yaml"],
-    ["question_list", "questions.yaml"],
+  // Artifacts are created only when something has real content for them, so an unauthored artifact
+  // is literally absent rather than present-but-placeholder. Each diagnostic therefore names the
+  // authoring command, which is the only way the artifact can come into existence.
+  const artifactConfigs: [string, string, string][] = [
+    ["change_proposal", "proposal.yaml", "proposal"],
+    ["change_design", "design.yaml", "design"],
+    ["task_list", "tasks.yaml", "tasks"],
+    ["question_list", "questions.yaml", "questions"],
   ];
 
-  for (const [artifactType, fileName] of artifactConfigs) {
+  for (const [artifactType, fileName, generateArtifactName] of artifactConfigs) {
     const filePath = path.join(changeDir, fileName);
     const artifactPath = `.strict-spec-driven/changes/${changeName}/${fileName}`;
     if (!existsSync(filePath)) {
       allDiagnostics.push({
-        source: "schema",
+        source: "missing_artifact",
         artifactPath,
         fieldPath: "$",
-        message: `required artifact '${fileName}' is missing`,
+        message:
+          `required artifact '${fileName}' has not been authored; create it with `
+          + `'strict-spec-cli generate ${changeName} ${generateArtifactName} --<named-args>'`,
+        expected: `an authored ${fileName}`,
+        actual: "no file at that path",
       });
       continue;
     }
@@ -1170,14 +1046,6 @@ export function verifyChange(
 
       allDiagnostics.push(...checkTestingGates(taskArtifact, artifactPath));
       allDiagnostics.push(...checkTaskListCompleteness(taskArtifact, artifactPath));
-    }
-
-    if (artifactType === "change_design") {
-      allDiagnostics.push(...checkDesignCompleteness(artifact, artifactPath));
-    }
-
-    if (artifactType === "change_proposal") {
-      allDiagnostics.push(...checkProposalCompleteness(artifact, artifactPath));
     }
 
     if (artifactType === "question_list") {

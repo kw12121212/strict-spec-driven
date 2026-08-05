@@ -1,0 +1,44 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: replace-change-scaffold-with-lazy-generation
+  status: proposed
+summary:
+  what:
+    - 'Remove the placeholder change scaffold: propose no longer copies blank proposal.yaml, design.yaml, tasks.yaml, and questions.yaml from bundled templates. The first successful authoring invocation — propose itself, or any generate call — validates the change name, the two-active-change limit, and the collision rule, then atomically creates the change directory together with only the real schema-valid artifact content that invocation supplies or requires, removing every partial path on failure.'
+    - Make generate create a missing target artifact from typed defaults plus named arguments, and merge only named fields into an artifact that already exists, so a change accumulates real artifacts one authoring call at a time instead of starting from a full set of fake ones.
+    - Turn missing required artifacts into explicit ready and verify diagnostics that name the artifact and the command that would author it, replacing the current scaffold-placeholder detection in verify.
+    - Keep the five canonical requirement questions as enforceable workflow state, created and resolved only through structured CLI input rather than restored as a seeded blank file.
+    - Delete the obsolete change scaffold templates, the placeholder-literal detection helpers, and the scaffold-only tests and documentation they support.
+  why:
+    - The milestone's done criteria require that no supported command creates placeholder proposal, design, questions, tasks, delta-spec, or delta-tech YAML, and that the first successful authoring invocation atomically creates the change container and real content while a failure leaves no empty change behind. The current propose path fails all of it.
+    - 'The technical standard yaml-first-artifacts already forbids this at rule level: a YAML creation operation MUST persist only real caller-supplied or workflow-required state, blank documents and placeholder values MUST NOT be written, and a rejected first write MUST leave the target absent. src/scaffold.ts:268 writes four placeholder documents before any fact is known, so the repository violates its own binding MUST rule.'
+    - Placeholders turn absence into misleading invalid state. verify has had to grow three separate placeholder-literal detectors — checkTaskCompleteness, checkDesignCompleteness, and checkProposalCompleteness in src/verify.ts — that match exact bundled template strings just to notice an artifact was never authored. Once nothing writes placeholders, absence is detectable directly and all three detectors become dead weight.
+    - Placeholder content is not uniformly removable through the CLI. The proposal generator exposes --remove-in, --remove-out, and --remove-unchanged but no removal flag for summary.what or summary.why, so seeded placeholder entries in those two lists cannot be deleted through any supported command once written. Not writing them is the only complete fix.
+scope:
+  in:
+    - Replace initializeStrictChangeScaffold in src/scaffold.ts so propose creates the change container and no placeholder planning artifacts
+    - Move change-name validation, collision detection, and two-active-change enforcement onto a shared first-authoring path used by both propose and generate
+    - Make generate create a missing change directory and a missing target artifact from typed defaults and named arguments, and remove all partial paths when the write is rejected or fails
+    - Replace verify and ready scaffold-placeholder detection with explicit missing-required-artifact diagnostics that name the artifact and the authoring command
+    - Create or resolve the five canonical requirement questions through structured CLI input, preserving the interrogation gate without seeding a blank questions.yaml
+    - Delete templates/strict-spec-driven/scaffold/changes/proposal.yaml, design.yaml, tasks.yaml, and questions.yaml, the change-template asset list, and the getScaffoldTaskPlaceholders, getScaffoldDesignPlaceholders, and getScaffoldProposalPlaceholders helpers
+    - Update the cli-foundation main spec, its mapping entries for the removed template assets, the shared command metadata registry, and the bundled skill prompts that describe scaffold-then-populate
+    - Update or replace the scaffold-only test coverage in test/suites/change-lifecycle.ts and test/suites/foundation-and-fixtures.ts, and add coverage for atomic first-write creation, failed-write cleanup, and missing-artifact diagnostics
+    - Update inventory/yaml-mutation-surfaces.yaml and its embedded copy so the deleted change-template family and its repository evidence no longer appear, keeping the inventory check accurate
+    - Record and clear the four stale templates/strict-spec-driven/scaffold/changes/*.yaml entries that archive's additive mapping merge leaves in the live cli-foundation spec
+  out:
+    - Changing the schema or field model of change_proposal, change_design, task_list, or question_list
+    - Changing init scaffold behavior for .strict-spec-driven/ project state, which is workflow-required state rather than change planning content
+    - Changing archive merge behavior, roadmap linking, or change identity semantics
+    - Adding a --remove-what or --remove-why flag to generate proposal, which is a separate mutation-surface gap
+unchanged_behavior:
+  - 'Change identity semantics: a change is still named by its kebab-case directory under .strict-spec-driven/changes/'
+  - The two-active-change limit still rejects a third active change with the same message
+  - propose still rejects a non-kebab-case name and a colliding populated change directory, non-zero and without writing
+  - Archive still merges delta specs into main specs and reconciles the spec index and roadmap status
+  - All commands still operate from compiled dist/ output without the source tree, and output stays deterministic
+  - The five canonical requirement questions still block implementation handoff until answered by a human or replayed roadmap detail
+  - init still scaffolds .strict-spec-driven/ project state from bundled templates

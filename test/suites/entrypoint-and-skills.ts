@@ -416,10 +416,10 @@ context.assert(
   `stderr: ${unknownSampleShow.stderr.trim()}`,
 );
 
-const templateShow = cli(["template-show", "scaffold/changes/proposal.yaml"], { cwd: ROOT });
+const templateShow = cli(["template-show", "scaffold/config.yaml"], { cwd: ROOT });
 context.assert(templateShow.status === 0, "template-show exits zero for scaffold key", `stderr: ${templateShow.stderr.trim()}`);
 context.assert(
-  templateShow.stdout.includes("change:\n  id: {{change_name}}"),
+  templateShow.stdout.includes("artifact_type: workflow_config"),
   "template-show prints embedded scaffold content",
   `stdout: ${templateShow.stdout.trim()}`,
 );

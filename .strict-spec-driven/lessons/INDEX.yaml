@@ -50,3 +50,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/registered-schemas-can-be-stricter-than-compatib-2811c6.yaml
+    deleting-a-seeded-default-exposes-every-consumer-e1b2bd:
+      title: Deleting a seeded default exposes every consumer that never had to supply it
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/deleting-a-seeded-default-exposes-every-consumer-e1b2bd.yaml

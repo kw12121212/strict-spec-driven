@@ -7,6 +7,7 @@ import {
   isGeneratableArtifact,
   TASK_SECTION_NAMES,
 } from "../propose-generation.js";
+import { buildSeededRequirementQuestions } from "../requirement-questions.js";
 import { parseYamlDocument } from "../yaml.js";
 import { CHANGE_NAME_PATTERN, handleHelpRequest } from "./argv.js";
 import { getCommandUsage } from "./command-metadata.js";
@@ -572,14 +573,23 @@ function parseQuestionCommandInput(argv: string[], rootDir: string): QuestionCom
   return input;
 }
 
+/**
+ * Reads the recorded questions artifact, or the typed default for a change that has none yet. The
+ * default is the requirement-interrogation set seeded open: those five entries are workflow-required
+ * state rather than placeholder content, so creating the artifact without them would quietly retire
+ * the gate instead of relocating it.
+ */
 function existingQuestionsInput(rootDir: string, changeName: string): GenerationInputRecord {
   const artifact = readYamlIfExists<GenerationInputRecord>(
     rootDir,
     `${STRICT_WORKFLOW_DIR}/changes/${changeName}/questions.yaml`,
   );
+  if (!artifact) {
+    return { open: buildSeededRequirementQuestions(), resolved: [] };
+  }
   return {
-    open: Array.isArray(artifact?.open) ? artifact.open : [],
-    resolved: Array.isArray(artifact?.resolved) ? artifact.resolved : [],
+    open: Array.isArray(artifact.open) ? artifact.open : [],
+    resolved: Array.isArray(artifact.resolved) ? artifact.resolved : [],
   };
 }
 

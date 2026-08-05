@@ -1,0 +1,94 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: replace-change-scaffold-with-lazy-generation
+sections:
+  Implementation:
+    add-first-write-boundary:
+      text: Add a shared first-authoring boundary in src/scaffold.ts that validates the kebab-case change name, rejects a populated existing change directory, enforces MAX_ACTIVE_CHANGE_COUNT, and returns whether the change container already existed.
+      status: complete
+    make-propose-container-only:
+      text: Rewrite initializeStrictChangeScaffold so propose creates only the change container and its specs/ directory through the shared boundary, writing no proposal.yaml, design.yaml, tasks.yaml, or questions.yaml.
+      status: complete
+    add-typed-artifact-defaults:
+      text: Add a typed minimal default document for each of proposal, design, tasks, and questions carrying only schema headers and the change id, and have generate materialize it when the target artifact file is absent before merging named arguments.
+      status: complete
+    let-generate-create-change-container:
+      text: Route generate through the shared first-authoring boundary so a generate call for a change that does not yet exist creates the container atomically with the artifact it authors, replacing the current ensureExistingChangeDir rejection in src/propose-generation.ts.
+      status: complete
+    unwind-partial-first-write:
+      text: Record every directory and file the first authoring invocation creates and unwind exactly those paths in reverse order when validation, schema checking, or the write fails, leaving no change directory behind and never touching a pre-existing container.
+      status: complete
+    seed-requirement-questions-from-typed-state:
+      text: Write the five canonical requirement questions from typed workflow-required state inside the questions artifact creation path, keeping them unremovable through --remove-question and --delete.
+      status: complete
+    replace-verify-placeholder-checks:
+      text: Delete checkTaskCompleteness, checkDesignCompleteness, and checkProposalCompleteness placeholder-literal detection in src/verify.ts and report one missing-required-artifact diagnostic per absent artifact naming the authoring command, backing both verify and ready.
+      status: complete
+    delete-change-scaffold-templates:
+      text: Delete templates/strict-spec-driven/scaffold/changes/proposal.yaml, design.yaml, tasks.yaml, and questions.yaml, drop REQUIRED_CHANGE_TEMPLATE_ASSETS and the getScaffoldTaskPlaceholders, getScaffoldDesignPlaceholders, and getScaffoldProposalPlaceholders helpers, and regenerate embedded template assets.
+      status: complete
+    update-maintenance-seed-path:
+      text: Update src/maintenance.ts, which calls initializeStrictChangeScaffold to seed a maintenance change, so it authors its real artifacts through the generation path instead of relying on placeholder files.
+      status: complete
+    update-command-metadata-and-skills:
+      text: Update the shared command metadata registry so propose and generate help describes lazy atomic creation, and update every bundled skill prompt under skills/ that instructs an agent to propose first and populate a scaffold afterwards.
+      status: complete
+    update-mutation-surface-inventory:
+      text: Update inventory/yaml-mutation-surfaces.yaml, which lists templates/strict-spec-driven/scaffold/changes/*.yaml as an owned family and names proposal.yaml as repository evidence, so the inventory check stays accurate after the assets are deleted, and rebuild the embedded copy in src/embedded-templates.ts.
+      status: complete
+  Testing:
+    test-propose-writes-no-planning-artifacts:
+      text: Add coverage in test/suites/change-lifecycle.ts asserting propose creates the change directory and specs/ only, and that proposal.yaml, design.yaml, tasks.yaml, and questions.yaml are absent afterwards.
+      status: complete
+      command: bun test/run.ts
+    test-generate-creates-container-atomically:
+      text: Add coverage asserting a generate call for a nonexistent change creates the container together with only the authored artifact, and that a rejected first generate call leaves no change directory behind.
+      status: complete
+      command: bun test/run.ts
+    test-existing-container-survives-failed-write:
+      text: Add coverage asserting a failed authoring call into an existing change leaves the container, its other artifacts, and the target artifact's prior content unchanged.
+      status: complete
+      command: bun test/run.ts
+    test-missing-artifact-diagnostics:
+      text: Add coverage asserting verify and ready report a named missing-required-artifact diagnostic for each absent planning artifact and name the generate invocation that authors it, replacing the removed placeholder-detection assertions.
+      status: complete
+      command: bun test/run.ts
+    test-requirement-questions-and-active-limit:
+      text: Add coverage asserting the five canonical requirement questions are present after first questions authoring and still refuse removal, and that the two-active-change limit is enforced when generate rather than propose creates the third change.
+      status: complete
+      command: bun test/run.ts
+    update-scaffold-asset-tests:
+      text: Update test/suites/foundation-and-fixtures.ts and any fixture asserting the four change template assets exist or parse, so the removed bundled assets are no longer required.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+    update-template-show-test:
+      text: Update test/suites/entrypoint-and-skills.ts, which asserts template-show scaffold/changes/proposal.yaml exits zero and prints embedded scaffold content, to reference a scaffold key that still exists.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-scope:
+      text: Verify the implementation matches proposal scope and that every unchanged_behavior item still holds, in particular dist-only operation, deterministic output, archive merge behavior, and change identity semantics.
+      status: complete
+    run-ready-and-verify:
+      text: Run strict-spec-cli ready and strict-spec-cli verify for this change and confirm both report no blocking diagnostics.
+      status: complete
+      command: strict-spec-cli verify replace-change-scaffold-with-lazy-generation
+    check-spec-mapping-integrity:
+      text: Confirm the cli-foundation mapping no longer references the deleted change template assets and that no other spec or technical standard maps a removed path.
+      status: complete
+    check-archive-readiness:
+      text: Confirm archive still merges the delta spec into cli-foundation, applies the mapping removals, regenerates the spec index, and reconciles roadmap status for the cli-yaml-artifact-coverage milestone.
+      status: complete
+    clear-stale-cli-foundation-mappings:
+      text: 'Archive''s delta merge is additive and never removes mapping entries, so the four templates/strict-spec-driven/scaffold/changes/*.yaml paths at .strict-spec-driven/specs/cli/foundation.yaml lines 53-56 survive into the live spec after archive. Clear them with: strict-spec-cli spec-edit cli-foundation --remove-implementation templates/strict-spec-driven/scaffold/changes/proposal.yaml --remove-implementation templates/strict-spec-driven/scaffold/changes/design.yaml --remove-implementation templates/strict-spec-driven/scaffold/changes/tasks.yaml --remove-implementation templates/strict-spec-driven/scaffold/changes/questions.yaml'
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: run-project-regression
