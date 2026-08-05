@@ -1,0 +1,41 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: harness-domain-behavior
+mapping:
+  implementation:
+    - src/harness-author.ts
+    - src/harness.ts
+    - src/cli/cmd-harness.ts
+    - src/cli/command-metadata-entries.ts
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+    - inventory/yaml-mutation-surfaces.yaml
+    - skills/strict-spec-harness-init/SKILL.md
+    - src/mcp/inventory.ts
+    - src/mcp/tools.ts
+  tests:
+    - test/suites/harness-authoring.ts
+    - test/suites/harness-infer-doctor.ts
+    - test/run.ts
+operations:
+  ADDED:
+    harness-cli-authoring-contract:
+      strength: MUST
+      statement: The system MUST provide artifact-aware harness declaration authoring through named semantic CLI arguments for meaningful creation, non-destructive scalar and keyed updates, additive list updates, exact named removals, and explicit lifecycle-safe deletion; harness inference and supported doctor repairs that write the declaration MUST use the same confined, schema-validating atomic mutation boundary.
+      scenarios:
+        harness-authoring-preserves-unrelated-state:
+          - GIVEN: A valid harness declaration contains multiple environments, components, operations, readiness rules, dependencies, environment names, and safety settings
+          - WHEN: The operator invokes harness-edit with one named field, keyed entry, list addition, or named removal
+          - THEN: Only the named semantic target changes, additive values remain duplicate-free, every unrelated field and entry remains unchanged, and an equivalent repeat is a no-op
+        harness-authoring-rolls-back-invalid-candidates:
+          - GIVEN: A harness authoring request would violate the registered schema, a component relationship, path confinement, or a filesystem commit
+          - WHEN: The CLI validates and attempts the mutation
+          - THEN: The command exits non-zero with deterministic artifact-aware diagnostics and leaves the declaration and every sibling artifact byte-identical
+        harness-deletion-enforces-lifecycle:
+          - GIVEN: A harness declaration is referenced by active harness sessions or a delete request also contains editing intent
+          - WHEN: The operator requests whole-artifact deletion
+          - THEN: The command rejects deletion and preserves the declaration; an isolated permitted deletion removes only harness.yaml and reports the lifecycle side effects
+  MODIFIED: {}
+  REMOVED: {}

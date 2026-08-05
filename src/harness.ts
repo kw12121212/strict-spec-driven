@@ -1,10 +1,11 @@
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync, appendFileSync } from "fs";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, rmdirSync, statSync, writeFileSync, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
 import path from "path";
 import { normalizeRepoRelativePath } from "./cli/fs.js";
 import { readBundledScaffoldTemplate } from "./scaffold.js";
 import { loadBundledSchemaByArtifactType, validateArtifact, type ValidationDiagnostic } from "./validation.js";
 import { formatYamlParseSummary, getYamlDiagnosticDetails, parseYamlDocument, parseYamlFile, stringifyYamlDocument } from "./yaml.js";
+import { commitHarnessCandidate, commitHarnessSessionCandidate } from "./harness-author.js";
 
 export const HARNESS_DECLARATION_PATH = ".strict-spec-driven/harness.yaml";
 export const HARNESS_RUNTIME_DIR = ".strict-spec-driven/.runtime/harness";
@@ -18,7 +19,7 @@ const HARNESS_LOGS_DIR = `${HARNESS_RUNTIME_DIR}/logs`;
 const SESSION_ID_PATTERN = /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/;
 const TEMPLATE_SESSION_ID_PLACEHOLDER = "{{session_id}}";
 const SLEEP_SIGNAL = new Int32Array(new SharedArrayBuffer(4));
-const SCRIPT_NAMES = ["harness-infer", "harness-doctor", "harness-plan", "harness-start", "harness-stop", "harness-status", "harness-logs", "harness-session"] as const;
+const SCRIPT_NAMES = ["harness-edit", "harness-infer", "harness-doctor", "harness-plan", "harness-start", "harness-stop", "harness-status", "harness-logs", "harness-session"] as const;
 const STATEFUL_TYPES = new Set(["database", "cache", "queue", "object_storage", "external_resource"]);
 const MUTATING_OPERATIONS = new Set(["start", "stop", "cleanup"]);
 const ENV_SAMPLE_FILES = [".env.example", ".env.sample", ".env.local.example", "example.env"];
@@ -991,8 +992,26 @@ export function inferHarness(rootDir: string, options: { write?: boolean; force?
         })],
       };
     }
-    mkdirSync(path.dirname(absolutePath), { recursive: true });
-    writeFileSync(absolutePath, draft, "utf8");
+    const mutation = commitHarnessCandidate(rootDir, inferred.artifact, existsSync(absolutePath) ? "update" : "create");
+    if (!mutation.valid) {
+      return {
+        ok: false,
+        artifactPath,
+        created: false,
+        draft,
+        evidence: inferred.evidence,
+        diagnostics: mutation.diagnostics.map((entry) => ({
+          source: entry.code === "schema" ? "schema" : "filesystem",
+          artifactPath: entry.artifactPath,
+          fieldPath: entry.fieldPath,
+          message: entry.message,
+          expected: entry.expected,
+          actual: entry.actual,
+          phase: "declaration",
+          reason: `${entry.phase}:${entry.code}`,
+        })),
+      };
+    }
   }
   return { ok: true, artifactPath, created: options.write ?? false, draft, evidence: inferred.evidence, diagnostics: [] };
 }
@@ -1629,6 +1648,12 @@ export function fixHarnessDiagnostics(rootDir: string, diagnostics: HarnessDiagn
     for (const step of diag.recovery.steps) {
       if (step.action === "write_file") {
         const absolutePath = path.resolve(rootDir, step.path);
+        const relativePath = normalizeRepoRelativePath(rootDir, absolutePath);
+        if (relativePath.startsWith(".strict-spec-driven/") && /\.ya?ml$/i.test(relativePath)) {
+          throw new Error(
+            `harness-doctor recovery cannot write repository-owned YAML directly: ${relativePath}; declare a run_cli recovery that uses the artifact-aware authoring command`,
+          );
+        }
         const mode = step.mode ?? "overwrite";
         const key = `write_file::${absolutePath}::${mode}::${step.content}`;
         if (executedKeys.has(key)) continue;
@@ -1787,7 +1812,33 @@ export function createHarnessSession(rootDir: string, sessionId: string): Harnes
     return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$", "harness-session already exists", { expected: "new harness-session directory", actual: relativeSessionDir })] };
   }
   mkdirSync(evidenceDir, { recursive: true });
-  writeFileSync(sessionPath, readBundledScaffoldTemplate(HARNESS_SESSION_TEMPLATE_PATH).replaceAll(TEMPLATE_SESSION_ID_PLACEHOLDER, sessionId), "utf8");
+  const candidate = parseYamlDocument<Record<string, unknown>>(
+    readBundledScaffoldTemplate(HARNESS_SESSION_TEMPLATE_PATH).replaceAll(TEMPLATE_SESSION_ID_PLACEHOLDER, sessionId),
+    { source: relativeSessionPath },
+  );
+  const mutation = commitHarnessSessionCandidate(rootDir, sessionId, candidate, "create");
+  if (!mutation.valid) {
+    if (existsSync(evidenceDir)) rmdirSync(evidenceDir);
+    if (existsSync(sessionDir)) rmdirSync(sessionDir);
+    return {
+      ok: false,
+      sessionId,
+      sessionDir: relativeSessionDir,
+      sessionPath: relativeSessionPath,
+      evidenceDir: relativeEvidenceDir,
+      created: [],
+      diagnostics: mutation.diagnostics.map((entry) => ({
+        source: entry.code === "schema" ? "schema" : "filesystem",
+        artifactPath: entry.artifactPath,
+        fieldPath: entry.fieldPath,
+        message: entry.message,
+        expected: entry.expected,
+        actual: entry.actual,
+        phase: "session",
+        reason: `${entry.phase}:${entry.code}`,
+      })),
+    };
+  }
   return { ok: true, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: `${relativeEvidenceDir}/`, created: [relativeSessionPath, `${relativeEvidenceDir}/`], diagnostics: [] };
 }
 
@@ -1835,6 +1886,23 @@ export function archiveHarnessSession(rootDir: string, target: string): HarnessS
   }
   if (status !== "resolved" && status !== "blocked") {
     return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.status", "harness-session must be resolved or blocked before archive", { expected: "resolved or blocked", actual: typeof status === "string" ? status : typeof status })] };
+  }
+  const boundaryValidation = commitHarnessSessionCandidate(rootDir, sessionId, artifact as Record<string, unknown>, "update");
+  if (!boundaryValidation.valid) {
+    return {
+      ...missingResult,
+      sessionId,
+      diagnostics: boundaryValidation.diagnostics.map((entry) => ({
+        source: entry.code === "schema" ? "schema" : "filesystem",
+        artifactPath: entry.artifactPath,
+        fieldPath: entry.fieldPath,
+        message: entry.message,
+        expected: entry.expected,
+        actual: entry.actual,
+        phase: "session",
+        reason: `${entry.phase}:${entry.code}`,
+      })),
+    };
   }
   const archiveDestination = buildHarnessSessionArchiveDestination(rootDir, sessionId);
   const archivePath = path.join(archiveDestination, HARNESS_SESSION_FILE_NAME);

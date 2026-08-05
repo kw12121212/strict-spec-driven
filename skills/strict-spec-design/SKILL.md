@@ -29,6 +29,7 @@ before running anything. Do not guess.
 check-workflow-state: strict-spec-cli check-workflow-state
 design-status: strict-spec-cli design-status
 design-init: strict-spec-cli design-init
+design-edit: strict-spec-cli design-edit [named semantic fields or removals]
 design-generate: strict-spec-cli design-generate
 design-check: strict-spec-cli design-generate --check
 schema-show: strict-spec-cli schema-show design-system
@@ -113,7 +114,7 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If
    `strict-spec-cli tech-status` and read any `ui`-category standard so the
    identity you record is consistent with the rules that bind the code.
 
-6. **Write or update `.strict-spec-driven/design-system.yaml`** — keep token and
+6. **Write or update `.strict-spec-driven/design-system.yaml` through the CLI** — invoke `strict-spec-cli design-edit` once per identity, token, component, guidance, mapping, snapshot, or exact named removal. Never edit the YAML directly. Keep token and
    component ids stable across edits: they are the anchors readers, diffs, and
    component token references rely on. Preserve authoring order within a group,
    because the renderer emits entries in document order. Reference tokens from
@@ -149,6 +150,7 @@ confirm each edit.
 
 - Never hand-edit `DESIGN.md` or any file carrying the generated banner; change
   the source artifact and re-render
+- Never hand-edit `.strict-spec-driven/design-system.yaml`; use `design-edit` named fields and removals so unrelated entries are preserved and the full candidate validates before commit
 - Never record observable UI behavior or UI engineering rules here; they belong
   in main specs and `ui`-category technical standards respectively
 - Keep token and component ids stable; renaming an id is a content change

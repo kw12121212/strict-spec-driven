@@ -27,6 +27,7 @@ before running anything. Do not guess.
 check-workflow-state: strict-spec-cli check-workflow-state
 design-status: strict-spec-cli design-status
 design-init: strict-spec-cli design-init
+design-edit: strict-spec-cli design-edit [named semantic fields or removals]
 design-generate: strict-spec-cli design-generate
 design-check: strict-spec-cli design-generate --check
 schema-show: strict-spec-cli schema-show design-system
@@ -118,8 +119,7 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If
    that appears inconsistently across the code is a decision for the user, not a
    majority vote for you to take.
 
-8. **Write confirmed findings to the live artifact** — edit
-   `.strict-spec-driven/design-system.yaml` directly:
+8. **Write confirmed findings to the live artifact** — translate every confirmed finding into a named `strict-spec-cli design-edit` upsert or exact removal. Never edit `.strict-spec-driven/design-system.yaml` directly:
    - keep token and component ids stable; renaming an id reads to a reader as a
      deletion plus an addition and breaks every component token reference that
      points at it
@@ -146,6 +146,7 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If
   and re-render the document it feeds
 - Never hand-edit `DESIGN.md` or any file carrying the generated banner; change
   the artifact and re-render
+- Never hand-edit `.strict-spec-driven/design-system.yaml`; synchronize it only through `design-edit` named fields and removals
 - Read the recorded identity and the applicable `ui` standards before judging
   that any drift exists
 - Respect the user-selected scan scope

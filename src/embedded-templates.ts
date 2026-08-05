@@ -5209,18 +5209,19 @@ artifact_families:
     ownership: repository-owned
     validation_owner: templates/strict-spec-driven/schemas/architecture.yaml
     operations:
-      create: direct-write
-      update: direct-write
-      named_remove: direct-write
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - ARCHITECTURE.md must be regenerated after source changes.
-    cli_owners: []
-    direct_write_paths:
-      - skills/strict-spec-architecture/SKILL.md
+    cli_owners:
+      - architecture-edit
+    direct_write_paths: []
     evidence:
       - .strict-spec-driven/architecture.yaml
       - src/architecture.ts
+      - src/architecture-author.ts
   design-system-state:
     artifact_types:
       - design_system
@@ -5232,20 +5233,19 @@ artifact_families:
     validation_owner: templates/strict-spec-driven/schemas/design-system.yaml
     operations:
       create: cli-owned
-      update: direct-write
-      named_remove: direct-write
-      delete: human-only
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - DESIGN.md must be regenerated after source changes.
     cli_owners:
       - design-init
-    direct_write_paths:
-      - src/design-system.ts
-      - skills/strict-spec-design/SKILL.md
-      - skills/strict-spec-design-sync/SKILL.md
+      - design-edit
+    direct_write_paths: []
     evidence:
       - examples/strict-spec-driven/design-system.yaml
       - src/design-system.ts
+      - src/design-system-author.ts
   harness-state:
     artifact_types:
       - harness
@@ -5262,20 +5262,20 @@ artifact_families:
     operations:
       create: cli-owned
       update: cli-owned
-      named_remove: direct-write
+      named_remove: cli-owned
       delete: cli-owned
     reference_side_effects:
       - Session archive moves the session directory and preserves evidence paths.
       - Harness script generation writes non-YAML executable outputs.
     cli_owners:
+      - harness-edit
       - harness-infer
       - harness-session
-    direct_write_paths:
-      - src/harness.ts
-      - skills/strict-spec-harness-init/SKILL.md
+    direct_write_paths: []
     evidence:
       - .strict-spec-driven/harness.yaml
       - src/harness.ts
+      - src/harness-author.ts
   spec-state:
     artifact_types:
       - spec_index

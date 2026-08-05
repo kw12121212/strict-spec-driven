@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: migrate-harness-architecture-design-yaml
+  status: proposed
+summary:
+  what:
+    - Provide artifact-aware CLI authoring and lifecycle operations for harness declarations, harness investigation sessions, architecture artifacts, and design-system artifacts through the shared YAML mutation boundary.
+  why:
+    - These artifact families still contain direct YAML write paths, so normal AI-assisted maintenance can bypass schema validation, atomic commit, confinement, and non-destructive merge guarantees.
+scope:
+  in:
+    - Add structured semantic arguments and deterministic results for harness declaration and session authoring, architecture authoring, and design-system authoring.
+    - Route harness inference writes, supported doctor YAML repairs, session creation and archive, architecture refresh, design initialization, and design synchronization through commitYamlMutation.
+    - Add named removal and lifecycle-safe delete behavior, update mutation inventory ownership, CLI metadata, MCP exposure, and skill guidance, and regenerate ARCHITECTURE.md or DESIGN.md when their source artifacts change.
+    - Add focused unit and copied-project regressions covering preservation, idempotency, invalid-candidate rollback, path confinement, reference side effects, and deletion constraints.
+  out:
+    - Change artifact schemas or the semantic content model beyond what is necessary to expose safe mutation operations.
+    - Replace stable domain command names with one generic YAML writer or accept raw YAML payloads or arbitrary output paths.
+    - Hand-edit generated ARCHITECTURE.md or DESIGN.md, bundled YAML assets, unrelated YAML families, or legacy migration input.
+unchanged_behavior:
+  - Existing harness runtime planning, lifecycle, log, readiness, and safety behavior remains compatible.
+  - Architecture and design rendering, check-mode drift detection, default and overridden output paths, and status reporting remain compatible.
+  - Artifact families outside harness, harness sessions, architecture, and design-system retain their current mutation ownership and behavior.

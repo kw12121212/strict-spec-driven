@@ -1,0 +1,37 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: migrate-harness-architecture-design-yaml
+approach:
+  - Add artifact-family author modules that translate named semantic CLI arguments into validated candidate documents and commit them with the shared YAML mutation transaction. Introduce harness-edit, architecture-edit, and design-edit for structured authoring; extend harness-session with structured edit, named-removal, delete, create, validate, and archive paths; and keep harness-infer, harness-doctor, design-init, architecture/design skills, document generators, inventory metadata, MCP descriptions, and regressions aligned with those owners.
+decisions:
+  domain-specific-authoring-commands:
+    decision: Expose harness-edit, architecture-edit, and design-edit commands, and extend harness-session lifecycle actions, instead of accepting generic YAML paths or payloads.
+    rationale: Each schema has different keyed identities, required relationships, deletion rules, and generated-document side effects; domain commands can validate semantic intent while preserving existing command names and the roadmap's artifact-aware boundary.
+  shared-atomic-boundary:
+    decision: All repository-owned YAML creation, update, named removal, and permitted deletion in these domains must build complete candidates and commit through commitYamlMutation.
+    rationale: The existing boundary already enforces confinement, full-schema validation, no-op idempotency, atomic replacement, rollback diagnostics, and meaningful-state creation, so reusing it eliminates divergent direct-write behavior.
+  lifecycle-specific-deletion:
+    decision: Permit whole-artifact deletion only through explicit delete-only actions that enforce artifact-family lifecycle constraints and reject accompanying edit flags.
+    rationale: Harness declarations may be referenced by active sessions, sessions carry evidence and archive semantics, and architecture/design sources govern generated documents; lifecycle checks must prevent orphaning state or combining destructive and constructive intent.
+  generated-doc-reconciliation:
+    decision: Keep ARCHITECTURE.md and DESIGN.md generator-owned; successful source mutations report the required generator and skill workflows run it after authoring or synchronization.
+    rationale: The Markdown outputs are derived views rather than YAML transaction members, so explicit post-commit generation preserves their single source of truth and leaves check mode able to diagnose stale output deterministically.
+  preserve-inference-and-init:
+    decision: Retain harness-infer and design-init as compatible entry points while routing their YAML writes through the same family author modules and mutation boundary.
+    rationale: These commands already encode useful domain behavior and stable user expectations; sharing the writer removes unsafe filesystem mechanics without creating an unrelated migration.
+  inventory-and-skill-closure:
+    decision: Update the YAML mutation inventory, command metadata, MCP exposure, and the four authoring/synchronization skills in the same change.
+    rationale: The discoverable surface and AI guidance must name the actual CLI owners immediately, otherwise the repository would continue advertising direct-write paths after implementation closes them.
+alternatives:
+  - option: Add one generic yaml-edit command that accepts an artifact path and raw YAML.
+    reason: That would move direct editing behind a thin wrapper, lose schema-specific identity and lifecycle checks, and violate the existing CLI-owned semantic-argument standard.
+  - option: Make architecture-generate and design-generate silently rewrite their source YAML before rendering.
+    reason: Generation has no authoring intent and cannot infer safe semantic changes, so coupling mutation to rendering would make read/check workflows destructive.
+  - option: Delete architecture or design source artifacts automatically when generated documents are absent or stale.
+    reason: Rendered-document drift does not prove deletion intent and automatic cleanup could destroy the only authoritative source artifact.
+risks:
+  - The four schemas have many nested keyed collections; incomplete flag grouping could preserve top-level fields while accidentally replacing sibling entries, so regressions must compare unrelated parsed state before and after every mutation type.
+  - Session archive moves directories while YAML edits use atomic file commits; ordering mistakes could strand evidence or partially transition lifecycle state, so archive preconditions and failure-injection tests must cover the full directory move.
+  - Updating source YAML without regenerating its Markdown projection can leave temporary drift; command results and skills must make the required generator explicit and check-mode regressions must remain strict.

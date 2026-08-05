@@ -35952,18 +35952,19 @@ artifact_families:
     ownership: repository-owned
     validation_owner: templates/strict-spec-driven/schemas/architecture.yaml
     operations:
-      create: direct-write
-      update: direct-write
-      named_remove: direct-write
-      delete: human-only
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - ARCHITECTURE.md must be regenerated after source changes.
-    cli_owners: []
-    direct_write_paths:
-      - skills/strict-spec-architecture/SKILL.md
+    cli_owners:
+      - architecture-edit
+    direct_write_paths: []
     evidence:
       - .strict-spec-driven/architecture.yaml
       - src/architecture.ts
+      - src/architecture-author.ts
   design-system-state:
     artifact_types:
       - design_system
@@ -35975,20 +35976,19 @@ artifact_families:
     validation_owner: templates/strict-spec-driven/schemas/design-system.yaml
     operations:
       create: cli-owned
-      update: direct-write
-      named_remove: direct-write
-      delete: human-only
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
     reference_side_effects:
       - DESIGN.md must be regenerated after source changes.
     cli_owners:
       - design-init
-    direct_write_paths:
-      - src/design-system.ts
-      - skills/strict-spec-design/SKILL.md
-      - skills/strict-spec-design-sync/SKILL.md
+      - design-edit
+    direct_write_paths: []
     evidence:
       - examples/strict-spec-driven/design-system.yaml
       - src/design-system.ts
+      - src/design-system-author.ts
   harness-state:
     artifact_types:
       - harness
@@ -36005,20 +36005,20 @@ artifact_families:
     operations:
       create: cli-owned
       update: cli-owned
-      named_remove: direct-write
+      named_remove: cli-owned
       delete: cli-owned
     reference_side_effects:
       - Session archive moves the session directory and preserves evidence paths.
       - Harness script generation writes non-YAML executable outputs.
     cli_owners:
+      - harness-edit
       - harness-infer
       - harness-session
-    direct_write_paths:
-      - src/harness.ts
-      - skills/strict-spec-harness-init/SKILL.md
+    direct_write_paths: []
     evidence:
       - .strict-spec-driven/harness.yaml
       - src/harness.ts
+      - src/harness-author.ts
   spec-state:
     artifact_types:
       - spec_index
@@ -40545,6 +40545,39 @@ var COMMAND_METADATA_ENTRIES = {
     },
     exitCodes: SUCCESS_EXIT_CODES
   },
+  "architecture-edit": {
+    name: "architecture-edit",
+    group: "operations",
+    summary: "Create, update, remove named entries from, or safely delete the architecture YAML source.",
+    mcpDescription: "Mutates the repository-owned architecture YAML through named semantic fields and the atomic boundary.",
+    usage: `Usage: strict-spec-cli architecture-edit [named fields and removals | --delete]
+`,
+    arguments: [],
+    flags: [
+      { name: "--id", arity: "value", valueLabel: "<id>", description: "Set the architecture id; required with --title when creating the artifact." },
+      { name: "--title", arity: "value", valueLabel: "<text>", description: "Set the architecture title." },
+      { name: "--component", arity: "value", valueLabel: "<id>", description: "Select one component to create or update." },
+      { name: "--component-title", arity: "value", valueLabel: "<text>", description: "Set the selected component title; required for a new component." },
+      { name: "--component-responsibility", arity: "value", valueLabel: "<text>", description: "Set the selected component responsibility; required for a new component." },
+      ...["boundary", "depends-on", "implementation"].map((name) => ({ name: `--${name}`, arity: "value", valueLabel: "<value>", description: `Append one ${name.replaceAll("-", " ")} to the selected component without duplicates.`, repeatable: true, repeatSemantics: "Repeated values append uniquely." })),
+      { name: "--flow", arity: "value", valueLabel: "<id>", description: "Select one data flow to create or update." },
+      { name: "--flow-title", arity: "value", valueLabel: "<text>", description: "Set the selected data-flow title." },
+      { name: "--flow-trigger", arity: "value", valueLabel: "<text>", description: "Set the selected data-flow trigger." },
+      ...["flow-step", "flow-component"].map((name) => ({ name: `--${name}`, arity: "value", valueLabel: "<value>", description: `Append one ${name.replaceAll("-", " ")} without duplicates.`, repeatable: true, repeatSemantics: "Repeated values append uniquely." })),
+      { name: "--decision", arity: "value", valueLabel: "<id>", description: "Select one architecture decision to create or update." },
+      ...["decision-title", "decision-statement", "decision-rationale", "decision-status"].map((name) => ({ name: `--${name}`, arity: "value", valueLabel: "<value>", description: `Set the selected ${name.replaceAll("-", " ")} field.` })),
+      { name: "--alternative", arity: "value", valueLabel: "<text>", description: "Append one rejected alternative without duplicates.", repeatable: true, repeatSemantics: "Repeated values append uniquely." },
+      ...["component", "flow", "decision"].map((name) => ({ name: `--remove-${name}`, arity: "value", valueLabel: "<id>", description: `Remove only the named ${name}.`, repeatable: true, repeatSemantics: "Each occurrence removes one keyed entry." })),
+      ...["boundary", "dependency", "implementation", "flow-step", "flow-component", "alternative"].map((name) => ({ name: `--remove-${name}`, arity: "value", valueLabel: "<owner:value>", description: `Remove only the exact named ${name.replaceAll("-", " ")} from its owner.`, repeatable: true, repeatSemantics: "Each occurrence removes one exact nested list value." })),
+      { name: "--delete", arity: "boolean", description: "Delete only architecture.yaml; cannot be combined with any edit or removal flag and never deletes ARCHITECTURE.md." }
+    ],
+    output: { format: "json", keys: ["valid", "committed", "artifactPath", "operation", "changes", "diagnostics", "generatedDocument"], description: "An artifact-aware mutation result that reports whether architecture-generate must reconcile ARCHITECTURE.md." },
+    exitCodes: [
+      { code: 0, meaning: "The complete candidate validated and committed, or the invocation was an idempotent no-op." },
+      { code: 1, meaning: "Usage, schema, relationship, confinement, or filesystem validation rejected the mutation and preserved prior state." }
+    ],
+    notes: ["Source mutations never edit or delete ARCHITECTURE.md; run the reported generator after a changed mutation."]
+  },
   "architecture-generate": {
     name: "architecture-generate",
     group: "operations",
@@ -40612,6 +40645,44 @@ var COMMAND_METADATA_ENTRIES = {
       { code: 1, meaning: "Usage error, a missing architecture artifact, or a schema-invalid artifact." }
     ],
     notes: ["Read-only: mapping drift is reported, never repaired."]
+  },
+  "design-edit": {
+    name: "design-edit",
+    group: "operations",
+    summary: "Create, update, remove named entries from, or safely delete the design-system YAML source.",
+    mcpDescription: "Mutates the repository-owned design-system YAML through named semantic fields and the atomic boundary.",
+    usage: `Usage: strict-spec-cli design-edit [named fields and removals | --delete]
+`,
+    arguments: [],
+    flags: [
+      { name: "--id", arity: "value", valueLabel: "<id>", description: "Set the design-system id; required with --title and --overview when creating the artifact." },
+      { name: "--title", arity: "value", valueLabel: "<text>", description: "Set the design-system title." },
+      { name: "--token-group", arity: "value", valueLabel: "<colors|typography|layout|elevation|shapes>", description: "Select the fixed token group for one token mutation." },
+      { name: "--token", arity: "value", valueLabel: "<name>", description: "Select one token name to create or update." },
+      { name: "--token-value", arity: "value", valueLabel: "<value>", description: "Set a colors, layout, elevation, or shapes token value." },
+      { name: "--token-property", arity: "value", valueLabel: "<name=value>", description: "Set one typography token property.", repeatable: true, repeatSemantics: "Repeated properties merge into the selected typography token." },
+      { name: "--component", arity: "value", valueLabel: "<id>", description: "Select one design component to create or update." },
+      { name: "--component-title", arity: "value", valueLabel: "<text>", description: "Set the selected component title; required for a new component." },
+      { name: "--component-description", arity: "value", valueLabel: "<text>", description: "Set the selected component description." },
+      { name: "--component-token", arity: "value", valueLabel: "<name=token-ref>", description: "Upsert one named component token mapping.", repeatable: true, repeatSemantics: "Repeated mappings merge by token role name." },
+      { name: "--implementation", arity: "value", valueLabel: "<path>", description: "Append one component implementation mapping without duplicates.", repeatable: true, repeatSemantics: "Repeated paths append uniquely." },
+      { name: "--snapshot", arity: "value", valueLabel: "<path>", description: "Append one visual-regression snapshot mapping without duplicates.", repeatable: true, repeatSemantics: "Repeated paths append uniquely." },
+      { name: "--overview", arity: "value", valueLabel: "<text>", description: "Set the design guidance overview." },
+      { name: "--do", arity: "value", valueLabel: "<text>", description: "Append one recommended practice without duplicates.", repeatable: true, repeatSemantics: "Repeated values append uniquely." },
+      { name: "--dont", arity: "value", valueLabel: "<text>", description: "Append one prohibited practice without duplicates.", repeatable: true, repeatSemantics: "Repeated values append uniquely." },
+      { name: "--remove-token", arity: "value", valueLabel: "<group:name>", description: "Remove one exact named token.", repeatable: true, repeatSemantics: "Each occurrence removes one token and drops its group only when empty." },
+      { name: "--remove-component", arity: "value", valueLabel: "<id>", description: "Remove one named design component.", repeatable: true, repeatSemantics: "Each occurrence removes one keyed component." },
+      ...["component-token", "implementation", "snapshot"].map((name) => ({ name: `--remove-${name}`, arity: "value", valueLabel: "<component:value>", description: `Remove one exact ${name.replaceAll("-", " ")} from its component.`, repeatable: true, repeatSemantics: "Each occurrence removes one exact nested value." })),
+      { name: "--remove-do", arity: "value", valueLabel: "<exact-text>", description: "Remove one exact recommended practice.", repeatable: true, repeatSemantics: "Each occurrence removes one exact value." },
+      { name: "--remove-dont", arity: "value", valueLabel: "<exact-text>", description: "Remove one exact prohibited practice.", repeatable: true, repeatSemantics: "Each occurrence removes one exact value." },
+      { name: "--delete", arity: "boolean", description: "Delete only design-system.yaml; cannot be combined with edits and never deletes DESIGN.md." }
+    ],
+    output: { format: "json", keys: ["valid", "committed", "artifactPath", "operation", "changes", "diagnostics", "generatedDocument"], description: "An artifact-aware mutation result that reports whether design-generate must reconcile DESIGN.md." },
+    exitCodes: [
+      { code: 0, meaning: "The complete candidate validated and committed, or the invocation was an idempotent no-op." },
+      { code: 1, meaning: "Usage, schema, confinement, or filesystem validation rejected the mutation and preserved prior state." }
+    ],
+    notes: ["Source mutations never edit or delete DESIGN.md; run the reported generator after a changed mutation."]
   },
   "design-init": {
     name: "design-init",
@@ -40884,6 +40955,67 @@ var COMMAND_METADATA_ENTRIES = {
       { code: 1, meaning: "Usage error or failed inference." }
     ]
   },
+  "harness-edit": {
+    name: "harness-edit",
+    group: "harness",
+    summary: "Create, update, remove named entries from, or safely delete the harness declaration.",
+    mcpDescription: "Mutates the repository-owned harness YAML through named semantic fields and the atomic artifact-aware boundary.",
+    usage: `Usage: strict-spec-cli harness-edit [named fields and removals | --delete]
+`,
+    arguments: [],
+    flags: [
+      { name: "--id", arity: "value", valueLabel: "<id>", description: "Set the harness id; required when creating the declaration." },
+      { name: "--description", arity: "value", valueLabel: "<text>", description: "Set the harness description without replacing other fields." },
+      { name: "--environment", arity: "value", valueLabel: "<id>", description: "Select one environment to create or update." },
+      { name: "--environment-kind", arity: "value", valueLabel: "<development|production>", description: "Set the selected environment kind; required for a new environment." },
+      { name: "--environment-description", arity: "value", valueLabel: "<text>", description: "Set the selected environment description." },
+      { name: "--component-environment", arity: "value", valueLabel: "<id>", description: "Select the environment that owns the component mutation." },
+      { name: "--component", arity: "value", valueLabel: "<id>", description: "Select one component to create or update." },
+      { name: "--component-type", arity: "value", valueLabel: "<type>", description: "Set the component type; required for a new component." },
+      { name: "--component-description", arity: "value", valueLabel: "<text>", description: "Set the selected component description." },
+      { name: "--working-directory", arity: "value", valueLabel: "<path>", description: "Set the selected component working directory." },
+      ...["depends-on", "required-env", "optional-env", "url", "port", "readiness-note", "evidence-label", "unavailable-condition"].map((name) => ({
+        name: `--${name}`,
+        arity: "value",
+        valueLabel: "<value>",
+        description: `Append one ${name.replaceAll("-", " ")} value to the selected component without duplicates.`,
+        repeatable: true,
+        repeatSemantics: "Repeated values append uniquely and never replace the recorded list."
+      })),
+      { name: "--readiness-type", arity: "value", valueLabel: "<http|tcp|manual>", description: "Set readiness type and clear fields that do not apply to the selected type." },
+      { name: "--readiness-url", arity: "value", valueLabel: "<url>", description: "Set the HTTP readiness URL." },
+      { name: "--readiness-port", arity: "value", valueLabel: "<port>", description: "Set the TCP readiness port." },
+      { name: "--readiness-timeout", arity: "value", valueLabel: "<seconds>", description: "Set the positive readiness timeout." },
+      { name: "--readiness-interval", arity: "value", valueLabel: "<seconds>", description: "Set the positive readiness polling interval." },
+      { name: "--operation", arity: "value", valueLabel: "<start|stop|status|logs>", description: "Select one component operation to upsert; requires --operation-mode." },
+      { name: "--operation-mode", arity: "value", valueLabel: "<mode>", description: "Set the selected operation mode." },
+      { name: "--operation-command", arity: "value", valueLabel: "<command>", description: "Set the selected script operation command; use --operation-command=<value> when it begins with a dash." },
+      { name: "--operation-requires-confirmation", arity: "value", valueLabel: "<true|false>", description: "Set whether the selected operation requires confirmation." },
+      { name: "--operation-allow-stateful-lifecycle", arity: "value", valueLabel: "<true|false>", description: "Set the selected operation stateful-lifecycle permission." },
+      ...["environment", "component", "dependency", "required-env", "optional-env", "url", "port", "readiness-note", "evidence-label", "unavailable-condition", "operation"].map((name) => ({
+        name: `--remove-${name}`,
+        arity: "value",
+        valueLabel: name === "environment" ? "<id>" : name === "component" ? "<environment:component>" : "<environment:component:value>",
+        description: `Remove only the exact named ${name.replaceAll("-", " ")} entry.`,
+        repeatable: true,
+        repeatSemantics: "Each occurrence removes one exact semantic target; absent targets are no-ops unless schema validity would be lost."
+      })),
+      { name: "--delete", arity: "boolean", description: "Delete only harness.yaml when no active sessions reference it; cannot be combined with editing flags." }
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "committed", "exitStatus", "artifactPath", "operation", "changes", "diagnostics"],
+      description: "An artifact-aware mutation result; unchanged repeats commit successfully with changed false."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The complete candidate validated and the requested mutation committed or was an idempotent no-op." },
+      { code: 1, meaning: "Usage, confinement, schema, relationship, lifecycle, or filesystem validation rejected the mutation and preserved prior state." }
+    ],
+    notes: [
+      "New declarations must supply --id plus a schema-valid environment and component in the first invocation.",
+      "Whole-artifact deletion is isolated; generated scripts and active session evidence are never removed implicitly."
+    ]
+  },
   "harness-doctor": {
     name: "harness-doctor",
     group: "harness",
@@ -41049,12 +41181,12 @@ var COMMAND_METADATA_ENTRIES = {
   "harness-session": {
     name: "harness-session",
     group: "harness",
-    summary: "Create, validate, or archive a harness investigation session.",
-    mcpDescription: "Mutates harness investigation state by creating a new harness session.",
-    usage: `Usage: strict-spec-cli harness-session <create|validate|archive> <session-id|session.yaml>
+    summary: "Create, edit, delete, validate, or archive a harness investigation session.",
+    mcpDescription: "Mutates harness investigation YAML and its evidence-safe lifecycle through named semantic operations.",
+    usage: `Usage: strict-spec-cli harness-session <create|edit|delete|validate|archive> <session-id|session.yaml> [named edit fields]
 `,
     arguments: [
-      { name: "create|validate|archive", description: "The session lifecycle action to perform.", required: true },
+      { name: "create|edit|delete|validate|archive", description: "The session lifecycle action to perform; delete is refused while evidence is present and archive requires resolved or blocked status.", required: true },
       { name: "session-id|session.yaml", description: "Session id, or a path to a session.yaml file.", required: true }
     ],
     output: {
@@ -41062,10 +41194,56 @@ var COMMAND_METADATA_ENTRIES = {
       keys: ["ok", "diagnostics"],
       description: "A JSON session lifecycle result."
     },
-    flags: [],
+    flags: [
+      ...["status", "owner", "environment", "issue-summary", "observed-behavior", "expected-behavior", "expected-failure", "verification-status"].map((name) => ({
+        name: `--${name}`,
+        arity: "value",
+        valueLabel: "<value>",
+        description: `Edit only the session ${name.replaceAll("-", " ")} field.`
+      })),
+      ...["selected-component", "precondition", "replay-command", "verification-evidence"].map((name) => ({
+        name: `--${name}`,
+        arity: "value",
+        valueLabel: "<value>",
+        description: `Append one ${name.replaceAll("-", " ")} without duplicates.`,
+        repeatable: true,
+        repeatSemantics: "Repeated values append uniquely and preserve the existing list."
+      })),
+      { name: "--step", arity: "value", valueLabel: "<id>", description: "Upsert one reproduction step; requires --step-action." },
+      { name: "--verification-step", arity: "value", valueLabel: "<id>", description: "Upsert one verification step; requires --step-action and cannot accompany --step." },
+      { name: "--step-action", arity: "value", valueLabel: "<text>", description: "Set the selected step action." },
+      { name: "--step-expected", arity: "value", valueLabel: "<text>", description: "Set the selected step expected result." },
+      { name: "--step-target", arity: "value", valueLabel: "<component-id>", description: "Set the selected step component target." },
+      ...["evidence", "evidence-kind", "evidence-path", "evidence-description", "hypothesis", "hypothesis-statement", "hypothesis-status", "finding", "finding-summary", "finding-status", "finding-target", "checkpoint", "checkpoint-reason", "checkpoint-action", "checkpoint-sensitive", "checkpoint-status", "checkpoint-resume", "manual-action", "manual-actor", "manual-summary", "manual-status"].map((name) => ({
+        name: `--${name}`,
+        arity: "value",
+        valueLabel: "<value>",
+        description: `Supply the structured ${name.replaceAll("-", " ")} field for one keyed session entry; all required fields for that entry must be supplied together.`
+      })),
+      ...["hypothesis-evidence", "finding-evidence", "checkpoint-evidence-before", "checkpoint-evidence-after", "manual-evidence"].map((name) => ({
+        name: `--${name}`,
+        arity: "value",
+        valueLabel: "<evidence-id>",
+        description: `Attach one ${name.replaceAll("-", " ")} reference to the selected keyed entry.`,
+        repeatable: true,
+        repeatSemantics: "Repeated references are recorded in invocation order."
+      })),
+      ...["selected-component", "precondition", "step", "verification-step", "evidence", "hypothesis", "finding", "checkpoint", "manual-action", "replay-command", "verification-evidence"].map((name) => ({
+        name: `--remove-${name}`,
+        arity: "value",
+        valueLabel: "<exact-value-or-id>",
+        description: `Remove only the exact named ${name.replaceAll("-", " ")} entry.`,
+        repeatable: true,
+        repeatSemantics: "Each occurrence removes one exact entry and preserves every sibling."
+      }))
+    ],
     exitCodes: [
       { code: 0, meaning: "The session action succeeded." },
-      { code: 1, meaning: "Usage error or failed session action." }
+      { code: 1, meaning: "Usage, schema, confinement, lifecycle, reference, or filesystem validation rejected the action without partial YAML state." }
+    ],
+    notes: [
+      "Edit flags apply only to the edit action; create remains compatible and writes its schema-valid workflow-required initial state through the shared boundary.",
+      "Delete removes only sessions whose evidence directory is empty; archive is the evidence-preserving terminal operation."
     ]
   },
   "mcp-install": {
@@ -42026,6 +42204,27 @@ var MCP_MUTATING_TOOL_INVENTORY = [
     mutates: true
   },
   {
+    name: "harness_edit",
+    description: mcpToolDescription("harness-edit"),
+    safety: "write",
+    cliCommand: "harness-edit",
+    mutates: true
+  },
+  {
+    name: "architecture_edit",
+    description: mcpToolDescription("architecture-edit"),
+    safety: "write",
+    cliCommand: "architecture-edit",
+    mutates: true
+  },
+  {
+    name: "design_edit",
+    description: mcpToolDescription("design-edit"),
+    safety: "write",
+    cliCommand: "design-edit",
+    mutates: true
+  },
+  {
     name: "harness_start",
     description: mcpToolDescription("harness-start"),
     safety: "lifecycle",
@@ -42041,6 +42240,13 @@ var MCP_MUTATING_TOOL_INVENTORY = [
   },
   {
     name: "harness_session_create",
+    description: mcpToolDescription("harness-session"),
+    safety: "write",
+    cliCommand: "harness-session",
+    mutates: true
+  },
+  {
+    name: "harness_session_mutate",
     description: mcpToolDescription("harness-session"),
     safety: "write",
     cliCommand: "harness-session",
@@ -42453,6 +42659,16 @@ var harnessSessionCreateSchema = exports_external.strictObject({
   session: exports_external.string().min(1),
   ...confirmField
 });
+var artifactAuthorSchema = exports_external.strictObject({
+  args: exports_external.array(exports_external.string().min(1)).min(1),
+  ...confirmField
+});
+var harnessSessionMutateSchema = exports_external.strictObject({
+  action: exports_external.enum(["create", "edit", "delete", "archive"]),
+  session: exports_external.string().min(1),
+  args: exports_external.array(exports_external.string().min(1)).optional(),
+  ...confirmField
+});
 function command(inventory, toCliArgs, inputSchema = emptySchema) {
   return {
     ...inventory,
@@ -42511,6 +42727,9 @@ var MUTATING_TOOL_DEFINITIONS = [
   ], generateArtifactSchema),
   command(inventoryFor("mark_next_task_complete"), (args) => ["apply", String(args.change)], changeConfirmSchema),
   command(inventoryFor("cancel_change"), (args) => ["cancel", String(args.change)], changeConfirmSchema),
+  command(inventoryFor("harness_edit"), (args) => ["harness-edit", ...Array.isArray(args.args) ? args.args.map(String) : []], artifactAuthorSchema),
+  command(inventoryFor("architecture_edit"), (args) => ["architecture-edit", ...Array.isArray(args.args) ? args.args.map(String) : []], artifactAuthorSchema),
+  command(inventoryFor("design_edit"), (args) => ["design-edit", ...Array.isArray(args.args) ? args.args.map(String) : []], artifactAuthorSchema),
   command(inventoryFor("roadmap_sync"), (args) => {
     const cliArgs = ["roadmap-sync"];
     if (args.materializePlannedChanges === true)
@@ -42536,7 +42755,13 @@ var MUTATING_TOOL_DEFINITIONS = [
       cliArgs.push("--confirm");
     return cliArgs;
   }, harnessStopSchema),
-  command(inventoryFor("harness_session_create"), (args) => ["harness-session", "create", String(args.session)], harnessSessionCreateSchema)
+  command(inventoryFor("harness_session_create"), (args) => ["harness-session", "create", String(args.session)], harnessSessionCreateSchema),
+  command(inventoryFor("harness_session_mutate"), (args) => [
+    "harness-session",
+    String(args.action),
+    String(args.session),
+    ...Array.isArray(args.args) ? args.args.map(String) : []
+  ], harnessSessionMutateSchema)
 ];
 var MCP_TOOL_DEFINITIONS = [
   ...READ_ONLY_TOOL_DEFINITIONS,

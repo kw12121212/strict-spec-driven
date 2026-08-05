@@ -202,6 +202,27 @@ export const MCP_MUTATING_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
     mutates: true,
   },
   {
+    name: "harness_edit",
+    description: mcpToolDescription("harness-edit"),
+    safety: "write",
+    cliCommand: "harness-edit",
+    mutates: true,
+  },
+  {
+    name: "architecture_edit",
+    description: mcpToolDescription("architecture-edit"),
+    safety: "write",
+    cliCommand: "architecture-edit",
+    mutates: true,
+  },
+  {
+    name: "design_edit",
+    description: mcpToolDescription("design-edit"),
+    safety: "write",
+    cliCommand: "design-edit",
+    mutates: true,
+  },
+  {
     name: "harness_start",
     description: mcpToolDescription("harness-start"),
     safety: "lifecycle",
@@ -217,6 +238,13 @@ export const MCP_MUTATING_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
   },
   {
     name: "harness_session_create",
+    description: mcpToolDescription("harness-session"),
+    safety: "write",
+    cliCommand: "harness-session",
+    mutates: true,
+  },
+  {
+    name: "harness_session_mutate",
     description: mcpToolDescription("harness-session"),
     safety: "write",
     cliCommand: "harness-session",

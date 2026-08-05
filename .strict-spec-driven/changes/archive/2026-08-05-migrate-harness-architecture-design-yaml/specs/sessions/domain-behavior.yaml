@@ -1,0 +1,41 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: sessions-domain-behavior
+mapping:
+  implementation:
+    - src/harness-author.ts
+    - src/harness.ts
+    - src/cli/cmd-harness.ts
+    - src/cli/command-metadata-entries.ts
+    - inventory/yaml-mutation-surfaces.yaml
+    - skills/strict-spec-harness-session/SKILL.md
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+    - src/mcp/inventory.ts
+    - src/mcp/tools.ts
+  tests:
+    - test/suites/harness-session-authoring.ts
+    - test/suites/harness-session.ts
+    - test/run.ts
+operations:
+  ADDED:
+    investigation-session-cli-authoring-contract:
+      strength: MUST
+      statement: The system MUST make harness-session create and structured authoring write session YAML through named semantic arguments and the shared atomic mutation boundary, support exact named removal and explicit lifecycle-safe deletion, and preserve the complete evidence directory when a resolved or blocked session is archived.
+      scenarios:
+        session-authoring-is-non-destructive:
+          - GIVEN: An active harness session contains checkpoints, investigation steps, evidence references, findings, and next actions
+          - WHEN: The operator upserts or removes one named session entry
+          - THEN: Only the selected entry changes, unrelated evidence and YAML state remain unchanged, and the complete candidate validates before commit
+        session-delete-and-archive-are-distinct:
+          - GIVEN: An active session has evidence and is either proposed, resolved, or blocked
+          - WHEN: The operator requests delete or archive
+          - THEN: Delete requires isolated explicit intent and applicable safety preconditions, while archive requires resolved or blocked status and moves the session YAML plus its evidence directory together
+        session-failure-preserves-directory:
+          - GIVEN: Session creation, editing, deletion, or archive fails validation, confinement, reference, or filesystem checks
+          - WHEN: The lifecycle operation exits non-zero
+          - THEN: No partial session YAML, evidence move, archive directory, or sibling change remains
+  MODIFIED: {}
+  REMOVED: {}

@@ -26,6 +26,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 architecture-status: strict-spec-cli architecture-status
+architecture-edit: strict-spec-cli architecture-edit [named semantic fields or removals]
 architecture-generate: strict-spec-cli architecture-generate
 architecture-check: strict-spec-cli architecture-generate --check
 schema-show: strict-spec-cli schema-show architecture
@@ -98,7 +99,7 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If
    strict artifacts. Run `strict-spec-cli tech-status` so the architecture you
    describe is consistent with the standards that bind the code.
 
-5. **Write or update `.strict-spec-driven/architecture.yaml`** — keep component,
+5. **Write or update `.strict-spec-driven/architecture.yaml` through the CLI** — invoke `strict-spec-cli architecture-edit` once per header, component, data-flow, decision, nested list addition, or exact named removal. Never edit the YAML directly. Keep component,
    flow, and decision ids stable across edits: they are the anchors readers and
    diffs rely on. Preserve authoring order, because the renderer emits
    components, flows, and decisions in document order. Record a decision only
@@ -125,6 +126,7 @@ on-demand check: it is deliberately not wired into `verify`, `ready`, or
 
 - Never hand-edit `ARCHITECTURE.md` or any file carrying the generated banner; change
   the source artifact and re-render
+- Never hand-edit `.strict-spec-driven/architecture.yaml`; use `architecture-edit` named fields and removals so unrelated entries are preserved and the full candidate validates before commit
 - Never duplicate spec or technical-standard content into the architecture
   artifact
 - Keep component, data flow, and decision ids stable; renaming an id is a

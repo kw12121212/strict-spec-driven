@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
 import {
   DocumentSourceError,
@@ -12,13 +12,11 @@ import {
   type DocumentBlock,
   type DocumentRenderResult,
 } from "./document-render.js";
-import { readBundledScaffoldTemplate } from "./scaffold.js";
+import { initializeDesignSystemThroughMutation } from "./design-system-author.js";
 import { loadBundledSchemaByArtifactType, validateArtifact, type ValidationDiagnostic } from "./validation.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
 const DESIGN_SYSTEM_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR}/design-system.yaml`;
-/** Scaffold asset design-init writes. It is deliberately absent from the init asset list. */
-const DESIGN_SYSTEM_SCAFFOLD_ASSET = "design-system.yaml";
 
 export const DEFAULT_DESIGN_DOCUMENT_PATH = "DESIGN.md";
 /** Entry point named in the missing-artifact error so operators know how to create the source. */
@@ -86,8 +84,10 @@ export function initializeDesignSystemArtifact(rootDir: string): DesignInitResul
     return { artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH, created: false, skipped: true };
   }
 
-  mkdirSync(path.dirname(absolutePath), { recursive: true });
-  writeFileSync(absolutePath, readBundledScaffoldTemplate(DESIGN_SYSTEM_SCAFFOLD_ASSET), "utf8");
+  const mutation = initializeDesignSystemThroughMutation(rootDir);
+  if (!mutation.valid) {
+    throw new Error(`failed to initialize design-system artifact: ${mutation.diagnostics.map((entry) => `${entry.code} ${entry.fieldPath}: ${entry.message}`).join("; ")}`);
+  }
   return { artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH, created: true, skipped: false };
 }
 

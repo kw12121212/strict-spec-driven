@@ -21,19 +21,25 @@ mapping:
     - scripts/harness-session
     - examples/strict-spec-driven/harness.yaml
     - examples/strict-spec-driven/harness-session.yaml
+    - src/harness-author.ts
+    - src/cli/command-metadata-entries.ts
+    - src/cli/registry.ts
+    - src/strict-spec-cli.ts
+    - inventory/yaml-mutation-surfaces.yaml
+    - src/mcp/inventory.ts
+    - src/mcp/tools.ts
   tests:
     - test/suites/harness-contracts.ts
     - test/suites/harness-plan.ts
     - test/suites/harness-infer-doctor.ts
     - test/suites/harness-lifecycle.ts
     - test/suites/harness-session.ts
+    - test/suites/harness-authoring.ts
+    - test/run.ts
 requirements:
   harness-declaration-contract:
     strength: MUST
-    statement: >-
-      The system MUST provide a strict harness declaration contract that records environments, typed
-      components, dependencies, readiness, lifecycle operations, generated script expectations,
-      evidence metadata, and secret-safe environment variable names without storing secret values.
+    statement: The system MUST provide a strict harness declaration contract that records environments, typed components, dependencies, readiness, lifecycle operations, generated script expectations, evidence metadata, and secret-safe environment variable names without storing secret values.
     scenarios:
       harness-schema-and-examples-validate:
         - GIVEN: harness schema and example artifacts are available
@@ -45,84 +51,55 @@ requirements:
         - THEN: validation fails with diagnostics at the forbidden secret fields
   harness-plan-contract:
     strength: MUST
-    statement: >-
-      The system MUST make harness-plan derive a deterministic selected-environment plan from
-      .strict-spec-driven/harness.yaml, including dependency-ordered components and optional
-      readonly status/logs metadata, and MUST report deterministic diagnostics for missing
-      declarations or invalid references.
+    statement: The system MUST make harness-plan derive a deterministic selected-environment plan from .strict-spec-driven/harness.yaml, including dependency-ordered components and optional readonly status/logs metadata, and MUST report deterministic diagnostics for missing declarations or invalid references.
     scenarios:
       valid-plan-is-derived:
         - GIVEN: a valid harness declaration exists
         - WHEN: harness-plan is run for an environment
-        - THEN: >-
-            the command exits zero and emits JSON with the canonical artifact path, selected
-            environment, and dependency-ordered components
+        - THEN: the command exits zero and emits JSON with the canonical artifact path, selected environment, and dependency-ordered components
       invalid-plan-reports-diagnostics:
         - GIVEN: the harness declaration is missing or references a missing dependency
         - WHEN: harness-plan runs
         - THEN: the command exits non-zero and emits deterministic filesystem or reference diagnostics
   harness-infer-contract:
     strength: MUST
-    statement: >-
-      The system MUST make harness-infer inspect safe repository metadata and emit a schema-valid
-      manual-first draft, preferring package lifecycle scripts over compose, Procfile, and Makefile
-      signals while recording explicit evidence when no lifecycle signal is inferred.
+    statement: The system MUST make harness-infer inspect safe repository metadata and emit a schema-valid manual-first draft, preferring package lifecycle scripts over compose, Procfile, and Makefile signals while recording explicit evidence when no lifecycle signal is inferred.
     scenarios:
       infer-prefers-package-scripts:
         - GIVEN: repository metadata contains both package lifecycle scripts and other runtime signals
         - WHEN: harness-infer runs without --write
-        - THEN: >-
-            the command exits zero, emits a non-written draft using the package script, preserves
-            manual and readonly safety defaults, and reports evidence for the selected signal
+        - THEN: the command exits zero, emits a non-written draft using the package script, preserves manual and readonly safety defaults, and reports evidence for the selected signal
       infer-records-no-detection:
         - GIVEN: no supported lifecycle signal exists
         - WHEN: harness-infer runs
         - THEN: the command exits zero with a manual draft and explicit no-detection evidence
   harness-doctor-contract:
     strength: MUST
-    statement: >-
-      The system MUST make harness-doctor report deterministic non-mutating diagnostics for invalid
-      harness state, generated wrapper drift, missing working directories, missing package scripts,
-      required environment names absent from sample env files, duplicate ports, and safety policy
-      issues, and MAY repair supported diagnostics when --fix is supplied.
+    statement: The system MUST make harness-doctor report deterministic non-mutating diagnostics for invalid harness state, generated wrapper drift, missing working directories, missing package scripts, required environment names absent from sample env files, duplicate ports, and safety policy issues, and MAY repair supported diagnostics when --fix is supplied.
     scenarios:
       doctor-reports-repairable-issues:
-        - GIVEN: >-
-            a harness declaration has missing wrappers, missing env sample names, missing working
-            directories, or missing package script references
+        - GIVEN: a harness declaration has missing wrappers, missing env sample names, missing working directories, or missing package script references
         - WHEN: harness-doctor runs
-        - THEN: >-
-            the command exits non-zero with deterministic diagnostics and recovery actions for
-            supported repairable issues
+        - THEN: the command exits non-zero with deterministic diagnostics and recovery actions for supported repairable issues
       doctor-fix-applies-supported-recovery:
         - GIVEN: harness-doctor diagnostics include supported script or env-sample recovery actions
         - WHEN: harness-doctor --fix runs
         - THEN: the command applies those recoveries and subsequent doctor validation can pass
   harness-lifecycle-contract:
     strength: MUST
-    statement: >-
-      The system MUST make harness-start, harness-status, harness-logs, and harness-stop operate
-      from managed runtime state and captured logs rather than executing readonly status/log
-      commands from the declaration.
+    statement: The system MUST make harness-start, harness-status, harness-logs, and harness-stop operate from managed runtime state and captured logs rather than executing readonly status/log commands from the declaration.
     scenarios:
       lifecycle-records-runtime-state:
         - GIVEN: a harness component can be started and reach readiness
         - WHEN: harness-start runs for the selected environment
-        - THEN: >-
-            the command exits zero and reports deterministic runtime state and log paths for running
-            components
+        - THEN: the command exits zero and reports deterministic runtime state and log paths for running components
       status-and-logs-use-runtime-state:
         - GIVEN: runtime state exists for a managed component
         - WHEN: harness-status or harness-logs runs
-        - THEN: >-
-            status reports runtime-derived component state and logs reads the captured runtime log
-            even when status/logs declarations are omitted
+        - THEN: status reports runtime-derived component state and logs reads the captured runtime log even when status/logs declarations are omitted
   harness-logs-output-bound:
     strength: MUST
-    statement: >-
-      The system MUST bound harness-logs output to the most recent 200 lines by default, accept
-      --tail <n> for a positive explicit line count, and accept --all as the explicit full-output
-      override.
+    statement: The system MUST bound harness-logs output to the most recent 200 lines by default, accept --tail <n> for a positive explicit line count, and accept --all as the explicit full-output override.
     scenarios:
       logs-default-tail:
         - GIVEN: a managed component has a captured log longer than 200 lines
@@ -134,46 +111,31 @@ requirements:
         - THEN: the requested tail count or complete captured log is printed
   harness-safety-guardrails:
     strength: MUST
-    statement: >-
-      The system MUST enforce harness safety guardrails for production mutating operations, stateful
-      lifecycle components, required runtime environment values, and partial-start failures.
+    statement: The system MUST enforce harness safety guardrails for production mutating operations, stateful lifecycle components, required runtime environment values, and partial-start failures.
     scenarios:
       stateful-lifecycle-requires-permission:
-        - GIVEN: >-
-            a stateful component has script lifecycle operations without explicit stateful lifecycle
-            permission
+        - GIVEN: a stateful component has script lifecycle operations without explicit stateful lifecycle permission
         - WHEN: harness-start runs
         - THEN: the command exits non-zero with safety diagnostics pointing to allow_stateful_lifecycle
       documented-env-names-are-not-runtime-values:
-        - GIVEN: >-
-            a required environment name is documented in an env sample file but not exported in the
-            current process
+        - GIVEN: a required environment name is documented in an env sample file but not exported in the current process
         - WHEN: harness-start runs
-        - THEN: >-
-            the command exits non-zero and explains that env sample files document names only and
-            are not loaded automatically
+        - THEN: the command exits non-zero and explains that env sample files document names only and are not loaded automatically
       partial-start-reports-running-components:
         - GIVEN: one component starts and a later component fails readiness
         - WHEN: harness-start exits non-zero
         - THEN: the result reports the still-running component and a harness-stop recovery instruction
   harness-scripts-contract:
     strength: MUST
-    statement: >-
-      The system MUST make harness-scripts generate and verify the project-local harness wrapper
-      scripts for infer, doctor, plan, start, stop, status, logs, and session commands.
+    statement: The system MUST make harness-scripts generate and verify the project-local harness wrapper scripts for infer, doctor, plan, start, stop, status, logs, and session commands.
     scenarios:
       scripts-generate-and-verify:
         - GIVEN: a strict project has a harness declaration
         - WHEN: harness-scripts generate and harness-scripts verify run
-        - THEN: >-
-            the wrapper script set is created and verification exits zero when wrappers match
-            expected content
+        - THEN: the wrapper script set is created and verification exits zero when wrappers match expected content
   harness-session-contract:
     strength: MUST
-    statement: >-
-      The system MUST make harness-session create, validate, and archive investigation sessions
-      under .strict-spec-driven/harness-sessions/ with deterministic session paths, evidence
-      directories, validation diagnostics, and archive preconditions.
+    statement: The system MUST make harness-session create, validate, and archive investigation sessions under .strict-spec-driven/harness-sessions/ with deterministic session paths, evidence directories, validation diagnostics, and archive preconditions.
     scenarios:
       session-create-and-validate:
         - GIVEN: a valid harness declaration exists
@@ -183,3 +145,19 @@ requirements:
         - GIVEN: a harness session is still proposed
         - WHEN: harness-session archive <id> runs
         - THEN: the command exits non-zero with diagnostics requiring resolved or blocked status
+  harness-cli-authoring-contract:
+    strength: MUST
+    statement: The system MUST provide artifact-aware harness declaration authoring through named semantic CLI arguments for meaningful creation, non-destructive scalar and keyed updates, additive list updates, exact named removals, and explicit lifecycle-safe deletion; harness inference and supported doctor repairs that write the declaration MUST use the same confined, schema-validating atomic mutation boundary.
+    scenarios:
+      harness-authoring-preserves-unrelated-state:
+        - GIVEN: A valid harness declaration contains multiple environments, components, operations, readiness rules, dependencies, environment names, and safety settings
+        - WHEN: The operator invokes harness-edit with one named field, keyed entry, list addition, or named removal
+        - THEN: Only the named semantic target changes, additive values remain duplicate-free, every unrelated field and entry remains unchanged, and an equivalent repeat is a no-op
+      harness-authoring-rolls-back-invalid-candidates:
+        - GIVEN: A harness authoring request would violate the registered schema, a component relationship, path confinement, or a filesystem commit
+        - WHEN: The CLI validates and attempts the mutation
+        - THEN: The command exits non-zero with deterministic artifact-aware diagnostics and leaves the declaration and every sibling artifact byte-identical
+      harness-deletion-enforces-lifecycle:
+        - GIVEN: A harness declaration is referenced by active harness sessions or a delete request also contains editing intent
+        - WHEN: The operator requests whole-artifact deletion
+        - THEN: The command rejects deletion and preserves the declaration; an isolated permitted deletion removes only harness.yaml and reports the lifecycle side effects

@@ -19,8 +19,15 @@ mapping:
     - templates/strict-spec-driven/scaffold/design-system.yaml
     - src/embedded-templates.ts
     - skills/strict-spec-design-sync/SKILL.md
+    - src/design-system-author.ts
+    - src/strict-spec-cli.ts
+    - inventory/yaml-mutation-surfaces.yaml
+    - src/mcp/inventory.ts
+    - src/mcp/tools.ts
   tests:
     - test/suites/design-system-document.ts
+    - test/suites/design-system-authoring.ts
+    - test/run.ts
 requirements:
   design-system-document-rendering:
     strength: MUST
@@ -130,3 +137,19 @@ requirements:
         - GIVEN: A directory with no strict workflow state
         - WHEN: The operator runs init without running design-init
         - THEN: The workflow config, spec index, and architecture artifact are created and no design-system artifact is created
+  design-system-cli-authoring-contract:
+    strength: MUST
+    statement: The workflow MUST provide design-edit as an artifact-aware named-argument command for meaningful design-system creation, non-destructive identity, token, component mapping, visual snapshot, and guidance updates, exact named removals, and explicit guarded deletion through the shared atomic mutation boundary; design-init and design synchronization MUST use the same writer while DESIGN.md remains generator-owned.
+    scenarios:
+      design-upsert-and-removal-preserve-siblings:
+        - GIVEN: A valid design-system artifact declares multiple token groups, tokens, components, mappings, snapshots, and guidance entries
+        - WHEN: The operator upserts one named value or removes one exact named entry through design-edit
+        - THEN: Only the named target changes, additive values remain duplicate-free, siblings remain unchanged, and the result reports that design-generate must reconcile DESIGN.md
+      design-init-uses-shared-boundary:
+        - GIVEN: Strict workflow state exists without a design-system artifact
+        - WHEN: The operator runs design-init
+        - THEN: The command creates the schema-valid bundled initial state through the shared mutation boundary, reports an existing artifact as unchanged, and leaves no file behind after validation or commit failure
+      design-delete-is-explicit-and-safe:
+        - GIVEN: A design-system artifact and possibly a rendered DESIGN.md exist
+        - WHEN: The operator requests whole-artifact deletion
+        - THEN: The command accepts only isolated delete intent under the declared lifecycle constraints, never deletes the generated document implicitly, and preserves all files on rejection

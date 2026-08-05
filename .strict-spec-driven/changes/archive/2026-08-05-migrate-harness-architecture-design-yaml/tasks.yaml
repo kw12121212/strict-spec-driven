@@ -1,0 +1,68 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: migrate-harness-architecture-design-yaml
+sections:
+  Implementation:
+    add-harness-authoring:
+      text: Implement a harness declaration author module and harness-edit CLI command with structured scalar, environment, component, operation, readiness, dependency, environment-name, and safety-policy upserts plus exact named removals and delete-only lifecycle checks, all committed through commitYamlMutation.
+      status: complete
+      command: bun run build
+    migrate-harness-infer-doctor:
+      text: Route harness-infer writes and every supported harness-doctor recovery that targets repository-owned YAML through the harness author module and shared mutation boundary while preserving non-YAML wrapper and env-sample recovery behavior.
+      status: complete
+      command: bun run build
+    add-session-authoring:
+      text: Extend harness-session with structured session field, checkpoint, step, evidence, finding, and next-action upserts, exact named removals, explicit delete, shared-boundary creation, and archive preconditions that preserve the full evidence directory without partial lifecycle transitions.
+      status: complete
+      command: bun run build
+    add-architecture-authoring:
+      text: Implement architecture-edit with structured overview, component, implementation mapping, data-flow, decision, alternative, and named-removal arguments; support meaningful creation and guarded delete-only behavior through commitYamlMutation and report ARCHITECTURE.md regeneration as a source-change side effect.
+      status: complete
+      command: bun run build
+    add-design-authoring:
+      text: Implement design-edit with structured identity, token-group, token, component mapping, snapshot, guidance, and named-removal arguments; route design-init and design synchronization writes through commitYamlMutation, add guarded delete-only behavior, and report DESIGN.md regeneration as a source-change side effect.
+      status: complete
+      command: bun run build
+    register-surfaces-and-guidance:
+      text: Register the new and extended commands in CLI metadata, dispatch, help, YAML mutation surface discovery, and MCP exposure; update inventory operation ownership and the harness-init, harness-session, architecture, design, and design-sync skills to use named CLI mutations followed by the appropriate generator.
+      status: complete
+      command: bun run build && bun run check:yaml-inventory
+    align-structured-mappings:
+      text: Carry every new implementation, test, inventory, metadata, and skill path in the four delta-spec mapping fields so archive merges complete and resolvable domain mappings without relocating or deleting existing mapped files.
+      status: complete
+      command: strict-spec-cli ready migrate-harness-architecture-design-yaml
+  Testing:
+    lint-sources:
+      text: Type-check all TypeScript sources after the domain mutation paths are implemented.
+      status: complete
+      command: bun run lint
+    validate-build-and-inventory:
+      text: Compile the project and validate the tracked YAML mutation inventory after command ownership changes.
+      status: complete
+      command: bun run build && bun run check:yaml-inventory
+    test-domain-mutations:
+      text: Add and run behavior regressions for each domain covering meaningful create, scalar and keyed upsert, additive idempotency, sibling preservation, exact named removal, permitted and rejected delete, path confinement, schema and relationship failure rollback, session archive evidence preservation, and generated-document reconciliation signals.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the configured complete project regression and enforce the declared minimum line-coverage threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-proposal-readiness:
+      text: Confirm the populated proposal remains ready after implementation updates and contains no unresolved questions.
+      status: complete
+      command: strict-spec-cli ready migrate-harness-architecture-design-yaml
+    verify-change-and-mappings:
+      text: Validate proposal readiness and the live technical-standard mappings before archive; delta-spec mapping shape and path resolution remain covered by change readiness, while the merged live spec audit runs immediately after archive.
+      status: complete
+      command: strict-spec-cli ready migrate-harness-architecture-design-yaml && strict-spec-cli verify-tech-mappings
+    confirm-archive-merge-readiness:
+      text: Confirm all four delta specs are ready for additive archive merging with canonical target paths, unique requirement and scenario ids, and resolvable implementation and test paths.
+      status: complete
+      command: strict-spec-cli ready migrate-harness-architecture-design-yaml
+testing_gates:
+  validation_task: validate-build-and-inventory
+  unit_test_task: test-domain-mutations

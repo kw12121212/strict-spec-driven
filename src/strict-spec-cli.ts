@@ -28,10 +28,11 @@ import { runMcpInstall } from "./cli/cmd-mcp-install.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMappings, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
 import { runSampleList, runSampleShow, runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
 import { runYamlSurfaceList, runYamlSurfaceShow } from "./cli/cmd-yaml-surface.js";
-import { runArchitectureGenerate, runArchitectureStatus } from "./cli/cmd-architecture.js";
-import { runDesignGenerate, runDesignInit, runDesignStatus } from "./cli/cmd-design.js";
+import { runArchitectureEdit, runArchitectureGenerate, runArchitectureStatus } from "./cli/cmd-architecture.js";
+import { runDesignEdit, runDesignGenerate, runDesignInit, runDesignStatus } from "./cli/cmd-design.js";
 import {
   runHarnessDoctor,
+  runHarnessEdit,
   runHarnessInfer,
   runHarnessLogs,
   runHarnessPlan,
@@ -112,8 +113,10 @@ export const commands = createCliCommandTable({
   "verify-spec-mappings": (argv) => runVerifySpecMappings(argv),
   "verify-tech-mappings": (argv) => runVerifyTechMappings(argv),
   "tech-status": (argv) => runTechStatus(argv),
+  "architecture-edit": (argv) => runArchitectureEdit(argv),
   "architecture-generate": (argv) => runArchitectureGenerate(argv),
   "architecture-status": (argv) => runArchitectureStatus(argv),
+  "design-edit": (argv) => runDesignEdit(argv),
   "design-init": (argv) => runDesignInit(argv),
   "design-generate": (argv) => runDesignGenerate(argv),
   "design-status": (argv) => runDesignStatus(argv),
@@ -126,6 +129,7 @@ export const commands = createCliCommandTable({
   "template-show": (argv) => runTemplateShow(argv),
   "yaml-surface-list": (argv) => runYamlSurfaceList(argv),
   "yaml-surface-show": (argv) => runYamlSurfaceShow(argv),
+  "harness-edit": (argv) => runHarnessEdit(argv),
   "harness-infer": (argv) => runHarnessInfer(argv),
   "harness-doctor": (argv) => runHarnessDoctor(argv),
   "harness-plan": (argv) => runHarnessPlan(argv),

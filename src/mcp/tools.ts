@@ -46,6 +46,16 @@ const harnessSessionCreateSchema = z.strictObject({
   session: z.string().min(1),
   ...confirmField,
 });
+const artifactAuthorSchema = z.strictObject({
+  args: z.array(z.string().min(1)).min(1),
+  ...confirmField,
+});
+const harnessSessionMutateSchema = z.strictObject({
+  action: z.enum(["create", "edit", "delete", "archive"]),
+  session: z.string().min(1),
+  args: z.array(z.string().min(1)).optional(),
+  ...confirmField,
+});
 
 type ReadToolArgs = Record<string, unknown>;
 
@@ -131,6 +141,9 @@ export const MUTATING_TOOL_DEFINITIONS: McpToolDefinition[] = [
   ], generateArtifactSchema),
   command(inventoryFor("mark_next_task_complete"), (args) => ["apply", String(args.change)], changeConfirmSchema),
   command(inventoryFor("cancel_change"), (args) => ["cancel", String(args.change)], changeConfirmSchema),
+  command(inventoryFor("harness_edit"), (args) => ["harness-edit", ...(Array.isArray(args.args) ? args.args.map(String) : [])], artifactAuthorSchema),
+  command(inventoryFor("architecture_edit"), (args) => ["architecture-edit", ...(Array.isArray(args.args) ? args.args.map(String) : [])], artifactAuthorSchema),
+  command(inventoryFor("design_edit"), (args) => ["design-edit", ...(Array.isArray(args.args) ? args.args.map(String) : [])], artifactAuthorSchema),
   command(inventoryFor("roadmap_sync"), (args) => {
     const cliArgs = ["roadmap-sync"];
     if (args.materializePlannedChanges === true) cliArgs.push("--materialize-planned-changes");
@@ -152,6 +165,12 @@ export const MUTATING_TOOL_DEFINITIONS: McpToolDefinition[] = [
     return cliArgs;
   }, harnessStopSchema),
   command(inventoryFor("harness_session_create"), (args) => ["harness-session", "create", String(args.session)], harnessSessionCreateSchema),
+  command(inventoryFor("harness_session_mutate"), (args) => [
+    "harness-session",
+    String(args.action),
+    String(args.session),
+    ...(Array.isArray(args.args) ? args.args.map(String) : []),
+  ], harnessSessionMutateSchema),
 ];
 
 export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
