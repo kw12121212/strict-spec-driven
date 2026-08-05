@@ -324,8 +324,8 @@ harness:
           evidence_labels: []
           unavailable_conditions: []
 `,
-  "strict-spec-driven/scaffold/lessons/INDEX.yaml": `schema: strict-spec-driven/lessons-index/v1
-schema_version: 1
+  "strict-spec-driven/scaffold/lessons/INDEX.yaml": `schema: strict-spec-driven/lessons-index/v2
+schema_version: 2
 artifact_type: lessons_index
 schema_file: ../schemas/lessons-index.yaml
 # Lessons record reusable engineering experience — a pitfall, a path that failed, or diagnostic
@@ -333,7 +333,7 @@ schema_file: ../schemas/lessons-index.yaml
 # \`strict-spec-cli lesson-create\`; this index is rebuilt from the lesson files and is not
 # hand-edited. A lesson that becomes general enough to bind is promoted into a technical standard
 # rule and keeps its original text as the motivating context that rule omits.
-lessons: {}
+categories: {}
 `,
   "strict-spec-driven/scaffold/roadmap/INDEX.yaml": `schema: strict-spec-driven/roadmap-index/v2
 schema_version: 2
@@ -2075,13 +2075,13 @@ json_schema:
 `,
   "strict-spec-driven/schemas/lessons-index.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
-schema_id: strict-spec-driven/lessons-index/v1
+schema_id: strict-spec-driven/lessons-index/v2
 artifact_type: lessons_index
 artifact_name: lessons-index
 description: >-
-  Strict YAML lesson index artifact (keyed lesson map keyed by conflict-resistant lesson id)
-  describing each recorded lesson's title, category, status, occurrence count, and path, so lessons
-  are discoverable without reading every lesson file.
+  Strict YAML lesson index artifact grouping conflict-resistant lesson ids by their category and
+  describing each recorded lesson's title, status, occurrence count, and canonical nested path, so
+  one category can be discovered without reading unrelated lesson files.
 example_ref: ../../../examples/strict-spec-driven/lessons-index.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
@@ -2092,52 +2092,55 @@ json_schema:
     - schema_version
     - artifact_type
     - schema_file
-    - lessons
+    - categories
   properties:
     schema:
       type: string
-      const: strict-spec-driven/lessons-index/v1
+      const: strict-spec-driven/lessons-index/v2
     schema_version:
       type: integer
-      const: 1
+      const: 2
     artifact_type:
       type: string
       const: lessons_index
     schema_file:
       type: string
-    lessons:
+    categories:
       type: object
-      additionalProperties:
-        type: object
-        additionalProperties: false
-        required:
-          - title
-          - category
-          - status
-          - occurrences
-          - path
-        properties:
-          title:
-            type: string
-            minLength: 1
-          category:
-            type: string
-            minLength: 1
-          status:
-            type: string
-            enum:
-              - active
-              - promoted
-              - obsolete
-          occurrences:
-            type: integer
-            minimum: 1
-            description: >-
-              Recorded encounter count, mirrored into the index so recurrence can be ranked without
-              opening every lesson file.
-          path:
-            type: string
-            minLength: 1
+      additionalProperties: false
+      patternProperties:
+        "^(coding|architecture|security|performance|api|testing|tooling|operations|documentation|ui)$":
+          type: object
+          minProperties: 1
+          additionalProperties: false
+          patternProperties:
+            "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
+              type: object
+              additionalProperties: false
+              required:
+                - title
+                - status
+                - occurrences
+                - path
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                status:
+                  type: string
+                  enum:
+                    - active
+                    - promoted
+                    - obsolete
+                occurrences:
+                  type: integer
+                  minimum: 1
+                  description: >-
+                    Recorded encounter count, mirrored into the index so recurrence can be ranked
+                    without opening the lesson file.
+                path:
+                  type: string
+                  minLength: 1
 `,
   "strict-spec-driven/schemas/main-spec.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -2860,12 +2863,28 @@ entries:
     schema_file: lessons-index.yaml
     primary_example: ../../../examples/strict-spec-driven/lessons-index.yaml
     compatibility:
-      status: current
+      status: superseded
       introduced_in: 1
       supersedes: []
+      superseded_by: strict-spec-driven/lessons-index/v2
       compatible_with: []
       notes:
-        - Lessons index is a keyed map keyed by conflict-resistant lesson id for merge-friendly multi-author authoring.
+        - Superseded by v2 category-grouped lesson maps and canonical nested lesson paths.
+  - schema_id: strict-spec-driven/lessons-index/v2
+    schema_version: 2
+    artifact_type: lessons_index
+    artifact_name: lessons-index
+    schema_file: lessons-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/lessons-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 2
+      supersedes:
+        - strict-spec-driven/lessons-index/v1
+      compatible_with: []
+      notes:
+        - Populated lesson categories group conflict-resistant lesson ids and point to canonical category-directory paths.
+        - INDEX.yaml remains the only lesson index; category directories do not carry their own indexes.
   - schema_id: strict-spec-driven/harness/v1
     schema_version: 1
     artifact_type: harness
@@ -4681,17 +4700,17 @@ occurrences:
     date: "2026-04-24"
     evidence: "bun test/run.ts passed against dist/verify.js compiled before the src/verify.ts edit"
 `,
-  "examples/strict-spec-driven/lessons-index.yaml": `schema: strict-spec-driven/lessons-index/v1
-schema_version: 1
+  "examples/strict-spec-driven/lessons-index.yaml": `schema: strict-spec-driven/lessons-index/v2
+schema_version: 2
 artifact_type: lessons_index
 schema_file: ../../templates/strict-spec-driven/schemas/lessons-index.yaml
-lessons:
-  rebuild-before-trusting-dist-tests-a1b2c3:
-    title: Rebuild before trusting dist-backed test results
-    category: testing
-    status: active
-    occurrences: 1
-    path: .strict-spec-driven/lessons/rebuild-before-trusting-dist-tests-a1b2c3.yaml
+categories:
+  testing:
+    rebuild-before-trusting-dist-tests-a1b2c3:
+      title: Rebuild before trusting dist-backed test results
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/rebuild-before-trusting-dist-tests-a1b2c3.yaml
 `,
   "examples/strict-spec-driven/main-spec.yaml": `schema: strict-spec-driven/main-spec/v1
 schema_version: 1

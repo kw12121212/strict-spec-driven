@@ -1579,6 +1579,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     notes: [
       "The lesson id is derived from the title plus a hash of the title, category, and applies-when condition, so recording the same experience twice is idempotent and leaves existing occurrences untouched (created is false).",
       "A lesson carries no MUST/SHOULD/MAY strength and no enforcement mapping; a lesson general enough to bind belongs in a technical standard and is promoted with lesson-edit.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating.",
     ],
   },
 
@@ -1586,7 +1587,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     name: "lesson-list",
     group: "lessons",
     summary: "List recorded lessons, active ones by default.",
-    usage: "Usage: strict-spec-cli lesson-list [--all]\n",
+    usage: "Usage: strict-spec-cli lesson-list [--all] [--category <category>]\n",
     arguments: [],
     flags: [
       {
@@ -1595,6 +1596,13 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
         description:
           "Include promoted and obsolete lessons. Both are hidden by default because a promoted lesson is already surfaced as the technical-standard rule it became.",
       },
+      {
+        name: "--category",
+        arity: "value",
+        valueLabel: "<category>",
+        description:
+          "Return only lessons in one subject area from the lesson category vocabulary; an unsupported value exits non-zero and names the accepted categories.",
+      },
     ],
     output: {
       format: "json",
@@ -1602,6 +1610,9 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       description: "A JSON list of lessons with id, title, category, status, occurrence count, and path.",
     },
     exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating; this one-time upgrade can mutate project layout even for list and status commands.",
+    ],
   },
 
   "lesson-show": {
@@ -1617,7 +1628,10 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       description: "A JSON lesson result carrying the full artifact.",
     },
     exitCodes: VALIDITY_EXIT_CODES,
-    notes: ["Shows a lesson in any status, so a promoted or obsolete lesson stays reachable after it leaves the default list."],
+    notes: [
+      "Shows a lesson in any status, so a promoted or obsolete lesson stays reachable after it leaves the default list.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating.",
+    ],
   },
 
   "lesson-edit": {
@@ -1659,6 +1673,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
       "A recurrence is appended rather than replacing earlier occurrences, so the occurrence count stays an honest record of how often the condition was hit and remains the objective signal for promotion.",
       "Promotion keeps the lesson's original context, observation, takeaway, and occurrences: the technical-standard rule states what must be done but omits the failure that motivated it.",
       "An obsolete lesson cannot be edited; retirement is terminal and is recorded with lesson-obsolete.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating.",
     ],
   },
 
@@ -1686,6 +1701,7 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     notes: [
       "The lesson file is never deleted: a lesson retired because its root-cause analysis was wrong is itself reusable experience, and discarding it would hand the same reasoning trap to the next person.",
       "Retiring an already-obsolete lesson is idempotent and reports obsoleted false without rewriting the recorded reason.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating.",
     ],
   },
 
@@ -1693,21 +1709,29 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     name: "lesson-status",
     group: "lessons",
     summary: "Report the lesson store with the highest-recurrence lessons first.",
-    usage: "Usage: strict-spec-cli lesson-status [--all]\n",
+    usage: "Usage: strict-spec-cli lesson-status [--all] [--category <category>]\n",
     arguments: [],
     flags: [
       { name: "--all", arity: "boolean", description: "Include promoted and obsolete lessons in the reported list." },
+      {
+        name: "--category",
+        arity: "value",
+        valueLabel: "<category>",
+        description:
+          "Scope lessonCount, statusCounts, categoryCounts, and lessons to one accepted lesson category; an unsupported value exits non-zero and names the accepted categories.",
+      },
     ],
     output: {
       format: "json",
       keys: ["valid", "lessonCount", "statusCounts", "categoryCounts", "lessons", "diagnostics"],
       description:
-        "A JSON lesson store report; lessonCount, statusCounts, and categoryCounts always cover every lesson, while lessons honors --all.",
+        "A JSON lesson store report; without --category the counts cover every lesson, while --category scopes every count and lesson entry to the selected category and --all controls status visibility in lessons.",
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
       "Lessons are ordered by occurrence count descending, then by creation order, so the lessons with the strongest evidence for promotion into a binding rule appear first.",
       "This is the consumption entry point read alongside tech-status when planning or implementing a change.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating; this one-time upgrade can mutate project layout even for list and status commands.",
     ],
   },
 

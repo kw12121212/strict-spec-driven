@@ -8060,14 +8060,15 @@ var COMMAND_METADATA_ENTRIES = {
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
       "The lesson id is derived from the title plus a hash of the title, category, and applies-when condition, so recording the same experience twice is idempotent and leaves existing occurrences untouched (created is false).",
-      "A lesson carries no MUST/SHOULD/MAY strength and no enforcement mapping; a lesson general enough to bind belongs in a technical standard and is promoted with lesson-edit."
+      "A lesson carries no MUST/SHOULD/MAY strength and no enforcement mapping; a lesson general enough to bind belongs in a technical standard and is promoted with lesson-edit.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating."
     ]
   },
   "lesson-list": {
     name: "lesson-list",
     group: "lessons",
     summary: "List recorded lessons, active ones by default.",
-    usage: `Usage: strict-spec-cli lesson-list [--all]
+    usage: `Usage: strict-spec-cli lesson-list [--all] [--category <category>]
 `,
     arguments: [],
     flags: [
@@ -8075,6 +8076,12 @@ var COMMAND_METADATA_ENTRIES = {
         name: "--all",
         arity: "boolean",
         description: "Include promoted and obsolete lessons. Both are hidden by default because a promoted lesson is already surfaced as the technical-standard rule it became."
+      },
+      {
+        name: "--category",
+        arity: "value",
+        valueLabel: "<category>",
+        description: "Return only lessons in one subject area from the lesson category vocabulary; an unsupported value exits non-zero and names the accepted categories."
       }
     ],
     output: {
@@ -8082,7 +8089,10 @@ var COMMAND_METADATA_ENTRIES = {
       keys: ["valid", "lessons", "diagnostics"],
       description: "A JSON list of lessons with id, title, category, status, occurrence count, and path."
     },
-    exitCodes: VALIDITY_EXIT_CODES
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating; this one-time upgrade can mutate project layout even for list and status commands."
+    ]
   },
   "lesson-show": {
     name: "lesson-show",
@@ -8098,7 +8108,10 @@ var COMMAND_METADATA_ENTRIES = {
       description: "A JSON lesson result carrying the full artifact."
     },
     exitCodes: VALIDITY_EXIT_CODES,
-    notes: ["Shows a lesson in any status, so a promoted or obsolete lesson stays reachable after it leaves the default list."]
+    notes: [
+      "Shows a lesson in any status, so a promoted or obsolete lesson stays reachable after it leaves the default list.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating."
+    ]
   },
   "lesson-edit": {
     name: "lesson-edit",
@@ -8138,7 +8151,8 @@ var COMMAND_METADATA_ENTRIES = {
     notes: [
       "A recurrence is appended rather than replacing earlier occurrences, so the occurrence count stays an honest record of how often the condition was hit and remains the objective signal for promotion.",
       "Promotion keeps the lesson's original context, observation, takeaway, and occurrences: the technical-standard rule states what must be done but omits the failure that motivated it.",
-      "An obsolete lesson cannot be edited; retirement is terminal and is recorded with lesson-obsolete."
+      "An obsolete lesson cannot be edited; retirement is terminal and is recorded with lesson-obsolete.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating."
     ]
   },
   "lesson-obsolete": {
@@ -8165,28 +8179,36 @@ var COMMAND_METADATA_ENTRIES = {
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
       "The lesson file is never deleted: a lesson retired because its root-cause analysis was wrong is itself reusable experience, and discarding it would hand the same reasoning trap to the next person.",
-      "Retiring an already-obsolete lesson is idempotent and reports obsoleted false without rewriting the recorded reason."
+      "Retiring an already-obsolete lesson is idempotent and reports obsoleted false without rewriting the recorded reason.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating."
     ]
   },
   "lesson-status": {
     name: "lesson-status",
     group: "lessons",
     summary: "Report the lesson store with the highest-recurrence lessons first.",
-    usage: `Usage: strict-spec-cli lesson-status [--all]
+    usage: `Usage: strict-spec-cli lesson-status [--all] [--category <category>]
 `,
     arguments: [],
     flags: [
-      { name: "--all", arity: "boolean", description: "Include promoted and obsolete lessons in the reported list." }
+      { name: "--all", arity: "boolean", description: "Include promoted and obsolete lessons in the reported list." },
+      {
+        name: "--category",
+        arity: "value",
+        valueLabel: "<category>",
+        description: "Scope lessonCount, statusCounts, categoryCounts, and lessons to one accepted lesson category; an unsupported value exits non-zero and names the accepted categories."
+      }
     ],
     output: {
       format: "json",
       keys: ["valid", "lessonCount", "statusCounts", "categoryCounts", "lessons", "diagnostics"],
-      description: "A JSON lesson store report; lessonCount, statusCounts, and categoryCounts always cover every lesson, while lessons honors --all."
+      description: "A JSON lesson store report; without --category the counts cover every lesson, while --category scopes every count and lesson entry to the selected category and --all controls status visibility in lessons."
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
       "Lessons are ordered by occurrence count descending, then by creation order, so the lessons with the strongest evidence for promotion into a binding rule appear first.",
-      "This is the consumption entry point read alongside tech-status when planning or implementing a change."
+      "This is the consumption entry point read alongside tech-status when planning or implementing a change.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating; this one-time upgrade can mutate project layout even for list and status commands."
     ]
   },
   maintenance: {
@@ -8891,8 +8913,8 @@ harness:
           evidence_labels: []
           unavailable_conditions: []
 `,
-  "strict-spec-driven/scaffold/lessons/INDEX.yaml": `schema: strict-spec-driven/lessons-index/v1
-schema_version: 1
+  "strict-spec-driven/scaffold/lessons/INDEX.yaml": `schema: strict-spec-driven/lessons-index/v2
+schema_version: 2
 artifact_type: lessons_index
 schema_file: ../schemas/lessons-index.yaml
 # Lessons record reusable engineering experience — a pitfall, a path that failed, or diagnostic
@@ -8900,7 +8922,7 @@ schema_file: ../schemas/lessons-index.yaml
 # \`strict-spec-cli lesson-create\`; this index is rebuilt from the lesson files and is not
 # hand-edited. A lesson that becomes general enough to bind is promoted into a technical standard
 # rule and keeps its original text as the motivating context that rule omits.
-lessons: {}
+categories: {}
 `,
   "strict-spec-driven/scaffold/roadmap/INDEX.yaml": `schema: strict-spec-driven/roadmap-index/v2
 schema_version: 2
@@ -10642,13 +10664,13 @@ json_schema:
 `,
   "strict-spec-driven/schemas/lessons-index.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
-schema_id: strict-spec-driven/lessons-index/v1
+schema_id: strict-spec-driven/lessons-index/v2
 artifact_type: lessons_index
 artifact_name: lessons-index
 description: >-
-  Strict YAML lesson index artifact (keyed lesson map keyed by conflict-resistant lesson id)
-  describing each recorded lesson's title, category, status, occurrence count, and path, so lessons
-  are discoverable without reading every lesson file.
+  Strict YAML lesson index artifact grouping conflict-resistant lesson ids by their category and
+  describing each recorded lesson's title, status, occurrence count, and canonical nested path, so
+  one category can be discovered without reading unrelated lesson files.
 example_ref: ../../../examples/strict-spec-driven/lessons-index.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
@@ -10659,52 +10681,55 @@ json_schema:
     - schema_version
     - artifact_type
     - schema_file
-    - lessons
+    - categories
   properties:
     schema:
       type: string
-      const: strict-spec-driven/lessons-index/v1
+      const: strict-spec-driven/lessons-index/v2
     schema_version:
       type: integer
-      const: 1
+      const: 2
     artifact_type:
       type: string
       const: lessons_index
     schema_file:
       type: string
-    lessons:
+    categories:
       type: object
-      additionalProperties:
-        type: object
-        additionalProperties: false
-        required:
-          - title
-          - category
-          - status
-          - occurrences
-          - path
-        properties:
-          title:
-            type: string
-            minLength: 1
-          category:
-            type: string
-            minLength: 1
-          status:
-            type: string
-            enum:
-              - active
-              - promoted
-              - obsolete
-          occurrences:
-            type: integer
-            minimum: 1
-            description: >-
-              Recorded encounter count, mirrored into the index so recurrence can be ranked without
-              opening every lesson file.
-          path:
-            type: string
-            minLength: 1
+      additionalProperties: false
+      patternProperties:
+        "^(coding|architecture|security|performance|api|testing|tooling|operations|documentation|ui)$":
+          type: object
+          minProperties: 1
+          additionalProperties: false
+          patternProperties:
+            "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
+              type: object
+              additionalProperties: false
+              required:
+                - title
+                - status
+                - occurrences
+                - path
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                status:
+                  type: string
+                  enum:
+                    - active
+                    - promoted
+                    - obsolete
+                occurrences:
+                  type: integer
+                  minimum: 1
+                  description: >-
+                    Recorded encounter count, mirrored into the index so recurrence can be ranked
+                    without opening the lesson file.
+                path:
+                  type: string
+                  minLength: 1
 `,
   "strict-spec-driven/schemas/main-spec.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -11427,12 +11452,28 @@ entries:
     schema_file: lessons-index.yaml
     primary_example: ../../../examples/strict-spec-driven/lessons-index.yaml
     compatibility:
-      status: current
+      status: superseded
       introduced_in: 1
       supersedes: []
+      superseded_by: strict-spec-driven/lessons-index/v2
       compatible_with: []
       notes:
-        - Lessons index is a keyed map keyed by conflict-resistant lesson id for merge-friendly multi-author authoring.
+        - Superseded by v2 category-grouped lesson maps and canonical nested lesson paths.
+  - schema_id: strict-spec-driven/lessons-index/v2
+    schema_version: 2
+    artifact_type: lessons_index
+    artifact_name: lessons-index
+    schema_file: lessons-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/lessons-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 2
+      supersedes:
+        - strict-spec-driven/lessons-index/v1
+      compatible_with: []
+      notes:
+        - Populated lesson categories group conflict-resistant lesson ids and point to canonical category-directory paths.
+        - INDEX.yaml remains the only lesson index; category directories do not carry their own indexes.
   - schema_id: strict-spec-driven/harness/v1
     schema_version: 1
     artifact_type: harness
@@ -13248,17 +13289,17 @@ occurrences:
     date: "2026-04-24"
     evidence: "bun test/run.ts passed against dist/verify.js compiled before the src/verify.ts edit"
 `,
-  "examples/strict-spec-driven/lessons-index.yaml": `schema: strict-spec-driven/lessons-index/v1
-schema_version: 1
+  "examples/strict-spec-driven/lessons-index.yaml": `schema: strict-spec-driven/lessons-index/v2
+schema_version: 2
 artifact_type: lessons_index
 schema_file: ../../templates/strict-spec-driven/schemas/lessons-index.yaml
-lessons:
-  rebuild-before-trusting-dist-tests-a1b2c3:
-    title: Rebuild before trusting dist-backed test results
-    category: testing
-    status: active
-    occurrences: 1
-    path: .strict-spec-driven/lessons/rebuild-before-trusting-dist-tests-a1b2c3.yaml
+categories:
+  testing:
+    rebuild-before-trusting-dist-tests-a1b2c3:
+      title: Rebuild before trusting dist-backed test results
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/rebuild-before-trusting-dist-tests-a1b2c3.yaml
 `,
   "examples/strict-spec-driven/main-spec.yaml": `schema: strict-spec-driven/main-spec/v1
 schema_version: 1
@@ -25686,22 +25727,32 @@ function runSopCategoryShow(argv) {
 }
 
 // src/lessons.ts
-import { existsSync as existsSync26, mkdirSync as mkdirSync10, readdirSync as readdirSync10, statSync as statSync14, writeFileSync as writeFileSync11 } from "fs";
+import {
+  cpSync,
+  existsSync as existsSync26,
+  mkdirSync as mkdirSync10,
+  mkdtempSync,
+  readdirSync as readdirSync10,
+  renameSync as renameSync4,
+  rmSync as rmSync6,
+  statSync as statSync14,
+  writeFileSync as writeFileSync11
+} from "fs";
 import path28 from "path";
 import { createHash as createHash3 } from "crypto";
 var STRICT_WORKFLOW_DIR10 = ".strict-spec-driven";
 var LESSONS_DIR = `${STRICT_WORKFLOW_DIR10}/lessons`;
 var LESSONS_INDEX_PATH = `${LESSONS_DIR}/INDEX.yaml`;
 var LESSON_SCHEMA_ID = "strict-spec-driven/lesson/v1";
-var LESSONS_INDEX_SCHEMA_ID = "strict-spec-driven/lessons-index/v1";
+var LESSONS_INDEX_SCHEMA_ID = "strict-spec-driven/lessons-index/v2";
 function lessonsDir(rootDir) {
   return path28.join(rootDir, LESSONS_DIR);
 }
 function lessonsIndexPath(rootDir) {
   return path28.join(rootDir, LESSONS_INDEX_PATH);
 }
-function lessonFilePath(rootDir, lessonId) {
-  return path28.join(lessonsDir(rootDir), `${lessonId}.yaml`);
+function categoryLessonFilePath(rootDir, category, lessonId) {
+  return path28.join(lessonsDir(rootDir), category, `${lessonId}.yaml`);
 }
 function repoRelative2(rootDir, absolutePath) {
   return path28.relative(rootDir, absolutePath).split(path28.sep).join("/");
@@ -25729,12 +25780,32 @@ function makeDiagnostic3(rootDir, message, fieldPath = "$", absolutePath) {
     message
   };
 }
-function listLessonFiles(rootDir) {
-  const dir = lessonsDir(rootDir);
+function listLegacyLessonFilesInDir(dir) {
   if (!existsSync26(dir) || !statSync14(dir).isDirectory()) {
     return [];
   }
   return readdirSync10(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path28.join(dir, name)).sort();
+}
+function listCategorizedLessonFilesInDir(dir, category) {
+  if (!existsSync26(dir) || !statSync14(dir).isDirectory()) {
+    return [];
+  }
+  const categories = category === undefined ? getLessonCategories().sort() : [category];
+  const files = [];
+  for (const candidateCategory of categories) {
+    const categoryDir = path28.join(dir, candidateCategory);
+    if (!existsSync26(categoryDir) || !statSync14(categoryDir).isDirectory())
+      continue;
+    files.push(...readdirSync10(categoryDir).filter((name) => name.endsWith(".yaml")).map((name) => path28.join(categoryDir, name)).sort());
+  }
+  return files;
+}
+function listLessonFiles(rootDir, category) {
+  const dir = lessonsDir(rootDir);
+  return [
+    ...category === undefined ? listLegacyLessonFilesInDir(dir) : [],
+    ...listCategorizedLessonFilesInDir(dir, category)
+  ];
 }
 function compareLessons(left, right) {
   const order = left.createdAt.localeCompare(right.createdAt);
@@ -25759,9 +25830,9 @@ function buildLessonArtifact(input, lessonId) {
     occurrences: [{ ...input.occurrence }]
   };
 }
-function rebuildLessonsIndex(rootDir) {
+function buildLessonsIndex(rootDir, filePaths) {
   const entries = [];
-  for (const filePath of listLessonFiles(rootDir)) {
+  for (const filePath of filePaths) {
     const artifact = parseYamlFile(filePath);
     const lessonId = artifact?.lesson?.id;
     if (typeof lessonId !== "string" || lessonId.length === 0) {
@@ -25769,29 +25840,179 @@ function rebuildLessonsIndex(rootDir) {
     }
     entries.push({
       id: lessonId,
+      category: artifact.category,
       createdAt: String(artifact.created_at ?? ""),
       indexEntry: {
         title: artifact.lesson.title,
-        category: artifact.category,
         status: artifact.status,
         occurrences: Array.isArray(artifact.occurrences) ? artifact.occurrences.length : 0,
-        path: repoRelative2(rootDir, filePath)
+        path: `${LESSONS_DIR}/${artifact.category}/${lessonId}.yaml`
       }
     });
   }
-  const sorted = {};
-  for (const entry of entries.sort(compareLessons)) {
-    sorted[entry.id] = entry.indexEntry;
+  const categories = {};
+  const sortedEntries = entries.sort(compareLessons);
+  for (const category of [...new Set(sortedEntries.map((entry) => entry.category))].sort()) {
+    const lessons = {};
+    for (const entry of sortedEntries.filter((candidate) => candidate.category === category)) {
+      lessons[entry.id] = entry.indexEntry;
+    }
+    categories[category] = lessons;
   }
-  const indexArtifact = {
+  return {
     schema: LESSONS_INDEX_SCHEMA_ID,
-    schema_version: 1,
+    schema_version: 2,
     artifact_type: "lessons_index",
     schema_file: "templates/strict-spec-driven/schemas/lessons-index.yaml",
-    lessons: sorted
+    categories
   };
-  mkdirSync10(lessonsDir(rootDir), { recursive: true });
-  writeFileSync11(lessonsIndexPath(rootDir), stringifyYamlDocument(indexArtifact), "utf8");
+}
+function writeLessonsIndex(rootDir, storeDir, filePaths) {
+  const indexArtifact = buildLessonsIndex(rootDir, filePaths);
+  writeFileSync11(path28.join(storeDir, "INDEX.yaml"), stringifyYamlDocument(indexArtifact), "utf8");
+}
+function rebuildLessonsIndex(rootDir) {
+  const storeDir = lessonsDir(rootDir);
+  mkdirSync10(storeDir, { recursive: true });
+  writeLessonsIndex(rootDir, storeDir, listCategorizedLessonFilesInDir(storeDir));
+}
+function errorMessage(error) {
+  return error instanceof Error ? error.message : String(error);
+}
+function validateMigrationSources(rootDir, legacyFiles) {
+  const diagnostics = [];
+  const destinations = new Map;
+  const storeDir = lessonsDir(rootDir);
+  const existingFiles = listCategorizedLessonFilesInDir(storeDir);
+  const seenIds = new Map;
+  for (const filePath of [...existingFiles, ...legacyFiles]) {
+    let artifact;
+    try {
+      artifact = parseYamlFile(filePath);
+    } catch (error) {
+      diagnostics.push(makeDiagnostic3(rootDir, `failed to parse lesson: ${errorMessage(error)}`, "$", filePath));
+      continue;
+    }
+    const artifactDiagnostics = validateLessonArtifact(rootDir, artifact, filePath);
+    diagnostics.push(...artifactDiagnostics);
+    if (artifactDiagnostics.length > 0)
+      continue;
+    const lessonId = artifact.lesson.id;
+    const earlierPath = seenIds.get(lessonId);
+    if (earlierPath !== undefined) {
+      diagnostics.push(makeDiagnostic3(rootDir, `duplicate lesson id '${lessonId}' also appears at ${repoRelative2(rootDir, earlierPath)}`, "$.lesson.id", filePath));
+      continue;
+    }
+    seenIds.set(lessonId, filePath);
+    const expectedPath = categoryLessonFilePath(rootDir, artifact.category, lessonId);
+    if (existingFiles.includes(filePath) && path28.resolve(filePath) !== path28.resolve(expectedPath)) {
+      diagnostics.push(makeDiagnostic3(rootDir, `categorized lesson path must be ${repoRelative2(rootDir, expectedPath)}`, "$.lesson.id", filePath));
+      continue;
+    }
+    if (legacyFiles.includes(filePath)) {
+      destinations.set(filePath, { artifact, destination: expectedPath });
+    }
+  }
+  return { diagnostics, destinations };
+}
+function copyDirectoryContents(sourceDir, destinationDir) {
+  for (const entry of readdirSync10(sourceDir, { withFileTypes: true })) {
+    cpSync(path28.join(sourceDir, entry.name), path28.join(destinationDir, entry.name), {
+      recursive: entry.isDirectory(),
+      preserveTimestamps: true
+    });
+  }
+}
+function prepareLessonStore(rootDir) {
+  const storeDir = lessonsDir(rootDir);
+  const legacyFiles = listLegacyLessonFilesInDir(storeDir);
+  if (legacyFiles.length === 0) {
+    return { valid: true, migrated: false, diagnostics: [] };
+  }
+  const preflight = validateMigrationSources(rootDir, legacyFiles);
+  if (preflight.diagnostics.length > 0) {
+    return { valid: false, migrated: false, diagnostics: preflight.diagnostics };
+  }
+  const parentDir = path28.dirname(storeDir);
+  let stagingDir = null;
+  let backupRoot = null;
+  let backupDir = null;
+  let originalMoved = false;
+  let replacementLive = false;
+  try {
+    stagingDir = mkdtempSync(path28.join(parentDir, ".lessons-migration-"));
+    backupRoot = mkdtempSync(path28.join(parentDir, ".lessons-backup-"));
+    backupDir = path28.join(backupRoot, "lessons");
+    copyDirectoryContents(storeDir, stagingDir);
+    for (const [sourcePath, { artifact }] of preflight.destinations) {
+      const stagedSource = path28.join(stagingDir, path28.basename(sourcePath));
+      const stagedDestinationDir = path28.join(stagingDir, artifact.category);
+      mkdirSync10(stagedDestinationDir, { recursive: true });
+      renameSync4(stagedSource, path28.join(stagedDestinationDir, `${artifact.lesson.id}.yaml`));
+    }
+    writeLessonsIndex(rootDir, stagingDir, listCategorizedLessonFilesInDir(stagingDir));
+    renameSync4(storeDir, backupDir);
+    originalMoved = true;
+    try {
+      renameSync4(stagingDir, storeDir);
+      replacementLive = true;
+    } catch (error) {
+      renameSync4(backupDir, storeDir);
+      originalMoved = false;
+      throw error;
+    }
+    rmSync6(backupRoot, { recursive: true, force: true });
+    return { valid: true, migrated: true, diagnostics: [] };
+  } catch (error) {
+    if (originalMoved && !replacementLive && backupDir !== null && existsSync26(backupDir) && !existsSync26(storeDir)) {
+      try {
+        renameSync4(backupDir, storeDir);
+        originalMoved = false;
+      } catch (rollbackError) {
+        return {
+          valid: false,
+          migrated: false,
+          diagnostics: [
+            makeDiagnostic3(rootDir, `lesson migration failed (${errorMessage(error)}) and rollback failed (${errorMessage(rollbackError)}); original store remains at ${repoRelative2(rootDir, backupDir)}`)
+          ]
+        };
+      }
+    }
+    return {
+      valid: false,
+      migrated: false,
+      diagnostics: [makeDiagnostic3(rootDir, `lesson migration failed: ${errorMessage(error)}`)]
+    };
+  } finally {
+    if (!replacementLive && stagingDir !== null && existsSync26(stagingDir)) {
+      rmSync6(stagingDir, { recursive: true, force: true });
+    }
+    if (!originalMoved && backupRoot !== null && existsSync26(backupRoot)) {
+      rmSync6(backupRoot, { recursive: true, force: true });
+    }
+  }
+}
+function findLessonFilePath(rootDir, lessonId) {
+  const indexPath = lessonsIndexPath(rootDir);
+  if (existsSync26(indexPath)) {
+    try {
+      const index = parseYamlFile(indexPath);
+      for (const category of Object.keys(index.categories ?? {}).sort()) {
+        if (index.categories[category]?.[lessonId] !== undefined) {
+          const candidate = categoryLessonFilePath(rootDir, category, lessonId);
+          if (existsSync26(candidate))
+            return candidate;
+        }
+      }
+    } catch {}
+  }
+  for (const filePath of listCategorizedLessonFilesInDir(lessonsDir(rootDir))) {
+    try {
+      if (parseYamlFile(filePath)?.lesson?.id === lessonId)
+        return filePath;
+    } catch {}
+  }
+  return null;
 }
 function validateLessonArtifact(rootDir, artifact, absolutePath) {
   const artifactPath = repoRelative2(rootDir, absolutePath);
@@ -25851,8 +26072,12 @@ function createLesson(rootDir, input) {
       ]
     };
   }
+  const preparation = prepareLessonStore(rootDir);
+  if (!preparation.valid) {
+    return { valid: false, created: false, lessonId: null, path: null, diagnostics: preparation.diagnostics };
+  }
   const lessonId = deriveLessonId(input);
-  const filePath = lessonFilePath(rootDir, lessonId);
+  const filePath = categoryLessonFilePath(rootDir, input.category, lessonId);
   if (existsSync26(filePath)) {
     return { valid: true, created: false, lessonId, path: repoRelative2(rootDir, filePath), diagnostics: [] };
   }
@@ -25861,14 +26086,14 @@ function createLesson(rootDir, input) {
   if (validationDiagnostics.length > 0) {
     return { valid: false, created: false, lessonId, path: null, diagnostics: validationDiagnostics };
   }
-  mkdirSync10(lessonsDir(rootDir), { recursive: true });
+  mkdirSync10(path28.dirname(filePath), { recursive: true });
   writeFileSync11(filePath, stringifyYamlDocument(artifact), "utf8");
   rebuildLessonsIndex(rootDir);
   return { valid: true, created: true, lessonId, path: repoRelative2(rootDir, filePath), diagnostics: [] };
 }
-function readLessonEntries(rootDir) {
+function readLessonEntries(rootDir, category) {
   const entries = [];
-  for (const filePath of listLessonFiles(rootDir)) {
+  for (const filePath of listLessonFiles(rootDir, category)) {
     const artifact = parseYamlFile(filePath);
     const lessonId = artifact?.lesson?.id;
     if (typeof lessonId !== "string" || lessonId.length === 0) {
@@ -25886,6 +26111,16 @@ function readLessonEntries(rootDir) {
   }
   return entries;
 }
+function validateCategoryOption(rootDir, category) {
+  if (category === undefined)
+    return [];
+  const categories = getLessonCategories();
+  if (categories.includes(category))
+    return [];
+  return [
+    makeDiagnostic3(rootDir, `unknown lesson category '${category}'; expected one of [${categories.join(", ")}]`, "$.category")
+  ];
+}
 function stripCreatedAt(entry) {
   return {
     id: entry.id,
@@ -25897,12 +26132,22 @@ function stripCreatedAt(entry) {
   };
 }
 function listLessons(rootDir, options = {}) {
-  const entries = readLessonEntries(rootDir).filter((entry) => options.includeAll === true || entry.status === "active").sort(compareLessons).map(stripCreatedAt);
+  const categoryDiagnostics = validateCategoryOption(rootDir, options.category);
+  if (categoryDiagnostics.length > 0)
+    return { valid: false, lessons: [], diagnostics: categoryDiagnostics };
+  const preparation = prepareLessonStore(rootDir);
+  if (!preparation.valid)
+    return { valid: false, lessons: [], diagnostics: preparation.diagnostics };
+  const entries = readLessonEntries(rootDir, options.category).filter((entry) => options.includeAll === true || entry.status === "active").sort(compareLessons).map(stripCreatedAt);
   return { valid: true, lessons: entries, diagnostics: [] };
 }
 function showLesson(rootDir, lessonId) {
-  const filePath = lessonFilePath(rootDir, lessonId);
-  if (!existsSync26(filePath)) {
+  const preparation = prepareLessonStore(rootDir);
+  if (!preparation.valid) {
+    return { valid: false, lessonId, path: null, lesson: null, diagnostics: preparation.diagnostics };
+  }
+  const filePath = findLessonFilePath(rootDir, lessonId);
+  if (filePath === null) {
     return {
       valid: false,
       lessonId,
@@ -25915,7 +26160,29 @@ function showLesson(rootDir, lessonId) {
   return { valid: true, lessonId, path: repoRelative2(rootDir, filePath), lesson, diagnostics: [] };
 }
 function getLessonStatus(rootDir, options = {}) {
-  const all = readLessonEntries(rootDir);
+  const categoryDiagnostics = validateCategoryOption(rootDir, options.category);
+  if (categoryDiagnostics.length > 0) {
+    return {
+      valid: false,
+      lessonCount: 0,
+      statusCounts: { active: 0, promoted: 0, obsolete: 0 },
+      categoryCounts: {},
+      lessons: [],
+      diagnostics: categoryDiagnostics
+    };
+  }
+  const preparation = prepareLessonStore(rootDir);
+  if (!preparation.valid) {
+    return {
+      valid: false,
+      lessonCount: 0,
+      statusCounts: { active: 0, promoted: 0, obsolete: 0 },
+      categoryCounts: {},
+      lessons: [],
+      diagnostics: preparation.diagnostics
+    };
+  }
+  const all = readLessonEntries(rootDir, options.category);
   const visible = all.filter((entry) => options.includeAll === true || entry.status === "active");
   const statusCounts = { active: 0, promoted: 0, obsolete: 0 };
   const categoryCounts = {};
@@ -25924,6 +26191,9 @@ function getLessonStatus(rootDir, options = {}) {
       statusCounts[entry.status] += 1;
     }
     categoryCounts[entry.category] = (categoryCounts[entry.category] ?? 0) + 1;
+  }
+  if (options.category !== undefined && categoryCounts[options.category] === undefined) {
+    categoryCounts[options.category] = 0;
   }
   const lessons = visible.sort((left, right) => {
     const byRecurrence = right.occurrences - left.occurrences;
@@ -25943,8 +26213,19 @@ function getLessonStatus(rootDir, options = {}) {
   };
 }
 function editLesson(rootDir, input) {
-  const filePath = lessonFilePath(rootDir, input.lessonId);
-  if (!existsSync26(filePath)) {
+  const preparation = prepareLessonStore(rootDir);
+  if (!preparation.valid) {
+    return {
+      valid: false,
+      edited: false,
+      lessonId: input.lessonId,
+      path: null,
+      lesson: null,
+      diagnostics: preparation.diagnostics
+    };
+  }
+  const filePath = findLessonFilePath(rootDir, input.lessonId);
+  if (filePath === null) {
     return {
       valid: false,
       edited: false,
@@ -25994,7 +26275,7 @@ function editLesson(rootDir, input) {
   if (validationDiagnostics.length > 0) {
     return { valid: false, edited: false, lessonId: input.lessonId, path: null, lesson: null, diagnostics: validationDiagnostics };
   }
-  mkdirSync10(lessonsDir(rootDir), { recursive: true });
+  mkdirSync10(path28.dirname(filePath), { recursive: true });
   writeFileSync11(filePath, stringifyYamlDocument(artifact), "utf8");
   rebuildLessonsIndex(rootDir);
   return { valid: true, edited: true, lessonId: input.lessonId, path: repoRelative2(rootDir, filePath), lesson: artifact, diagnostics: [] };
@@ -26010,8 +26291,19 @@ function obsoleteLesson(rootDir, lessonId, reason) {
       diagnostics: [makeDiagnostic3(rootDir, "obsoleting a lesson requires a reason explaining why it no longer holds", "$.obsoleted_reason")]
     };
   }
-  const filePath = lessonFilePath(rootDir, lessonId);
-  if (!existsSync26(filePath)) {
+  const preparation = prepareLessonStore(rootDir);
+  if (!preparation.valid) {
+    return {
+      valid: false,
+      obsoleted: false,
+      lessonId,
+      path: null,
+      lesson: null,
+      diagnostics: preparation.diagnostics
+    };
+  }
+  const filePath = findLessonFilePath(rootDir, lessonId);
+  if (filePath === null) {
     return {
       valid: false,
       obsoleted: false,
@@ -26136,13 +26428,16 @@ function runLessonList(argv) {
   let flags;
   try {
     flags = parseFlagMap3(argv);
-    ensureAllowedFlags3(flags, ["all"]);
+    ensureAllowedFlags3(flags, ["all", "category"]);
   } catch (error) {
     writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}
 `);
     return 1;
   }
-  const result = listLessons(process.cwd(), { includeAll: "all" in flags });
+  const result = listLessons(process.cwd(), {
+    includeAll: "all" in flags,
+    category: singleValue2(flags, "category")
+  });
   writeJson(result);
   return result.valid ? 0 : 1;
 }
@@ -26153,13 +26448,16 @@ function runLessonStatus(argv) {
   let flags;
   try {
     flags = parseFlagMap3(argv);
-    ensureAllowedFlags3(flags, ["all"]);
+    ensureAllowedFlags3(flags, ["all", "category"]);
   } catch (error) {
     writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}
 `);
     return 1;
   }
-  const result = getLessonStatus(process.cwd(), { includeAll: "all" in flags });
+  const result = getLessonStatus(process.cwd(), {
+    includeAll: "all" in flags,
+    category: singleValue2(flags, "category")
+  });
   writeJson(result);
   return result.valid ? 0 : 1;
 }
@@ -30882,7 +31180,7 @@ function runDesignStatus(argv) {
 }
 
 // src/harness.ts
-import { closeSync, existsSync as existsSync43, mkdirSync as mkdirSync15, openSync, readFileSync as readFileSync32, renameSync as renameSync4, rmSync as rmSync6, statSync as statSync29, writeFileSync as writeFileSync18, appendFileSync } from "fs";
+import { closeSync, existsSync as existsSync43, mkdirSync as mkdirSync15, openSync, readFileSync as readFileSync32, renameSync as renameSync5, rmSync as rmSync7, statSync as statSync29, writeFileSync as writeFileSync18, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
 import path45 from "path";
 var HARNESS_DECLARATION_PATH = ".strict-spec-driven/harness.yaml";
@@ -31005,7 +31303,7 @@ function writeRuntimeState(rootDir, state) {
 `, "utf8");
 }
 function clearRuntimeState(rootDir) {
-  rmSync6(getRuntimePaths(rootDir).absoluteRuntimeDir, { recursive: true, force: true });
+  rmSync7(getRuntimePaths(rootDir).absoluteRuntimeDir, { recursive: true, force: true });
 }
 function snapshot(record) {
   const alive = isProcessAlive(record.pid);
@@ -32331,7 +32629,7 @@ function archiveHarnessSession(rootDir, target) {
   }
   const archiveDestination = buildHarnessSessionArchiveDestination(rootDir, sessionId);
   const archivePath = path45.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
-  renameSync4(sourceDir, archiveDestination);
+  renameSync5(sourceDir, archiveDestination);
   return {
     ok: true,
     sessionId,

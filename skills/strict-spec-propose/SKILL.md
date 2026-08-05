@@ -24,7 +24,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
-lesson-status: strict-spec-cli lesson-status
+lesson-status: strict-spec-cli lesson-status [--category <category>]
 propose: strict-spec-cli propose <change-name>
 generate: strict-spec-cli generate <change-name> <proposal|design|questions|delta-spec|delta-tech> --<named-args>
 ready: strict-spec-cli ready <change-name>
@@ -205,7 +205,10 @@ run `init` from this skill.
      applicable MUST rule as a binding design constraint and every SHOULD rule
      as the default the proposal follows unless it records an explicit
      justification. If no standards apply, note that and continue.
-   - run `strict-spec-cli lesson-status` and read the lessons it ranks first.
+   - select the lesson category that matches the affected spec or technical area, run
+     `strict-spec-cli lesson-status --category <category>`, and read the lessons it ranks first.
+     Repeat for another category when the proposal genuinely spans more than one; use the
+     unfiltered command only when repository evidence cannot identify a relevant category.
      Lessons are recorded experience, not binding rules: they carry no MUST or
      SHOULD strength, so treat each one as a warning worth checking against this
      change rather than a constraint to satisfy. Match on `applies_when` — that

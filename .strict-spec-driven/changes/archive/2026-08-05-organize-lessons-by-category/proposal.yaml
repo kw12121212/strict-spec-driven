@@ -1,0 +1,25 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: organize-lessons-by-category
+  status: proposed
+summary:
+  what:
+    - Store lesson artifacts in category directories behind one category-grouped root index, automatically upgrade legacy flat stores on lesson-command access, and support category-scoped discovery.
+  why:
+    - As lessons accumulate, an unpartitioned store and unfiltered status output make relevant experience harder to find and easier to miss; changing the layout now keeps migration cost low while the store is still small.
+scope:
+  in:
+    - Version the lessons index contract to group populated categories and point to category-directory lesson paths.
+    - Create new lessons under .strict-spec-driven/lessons/<category>/<lesson-id>.yaml and resolve existing lessons across that layout.
+    - Make every lesson command transactionally migrate legacy root-level lesson files for every project before performing its valid operation.
+    - Add --category <category> filtering to lesson-list and lesson-status, including category-scoped totals and status counts.
+    - Update CLI metadata, schema registry, examples, scaffold and embedded assets, YAML mutation inventory, lesson-consuming skills, self-hosted lessons, and mapped regression coverage.
+  out:
+    - Add full-text search, tags, new lesson categories, per-category index files, a manual migration command, or the broader roadmap YAML mutation refactor.
+unchanged_behavior:
+  - Lesson content fields, category vocabulary, lifecycle statuses, promotion and obsolescence semantics remain unchanged.
+  - Lesson id derivation, idempotent creation, recurrence appending, recurrence ranking, and default hiding of promoted and obsolete lessons remain unchanged.
+  - The root lessons index remains the only lesson index artifact.

@@ -1,0 +1,63 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: organize-lessons-by-category
+sections:
+  Implementation:
+    update-index-contract-assets:
+      text: Define lessons-index/v2 grouped-category schema and update its registry entry, example, scaffold, generated embedded assets, and lesson-domain mappings while keeping lesson/v1 unchanged.
+      status: complete
+    implement-transactional-layout-migration:
+      text: Implement category-directory lesson paths and a project-wide automatic legacy-layout migration shared by every lesson command, with complete preflight, sibling staging, atomic directory replacement, rollback, deterministic diagnostics, and index rebuild.
+      status: complete
+    add-category-discovery-filter:
+      text: Add validated --category <category> support to lesson-list and lesson-status, scope all status totals to the selected category, retain --all and recurrence ordering, and update shared CLI command metadata.
+      status: complete
+    update-consumers-and-inventory:
+      text: Update lesson-consuming skill prompts to query relevant categories and revise the YAML mutation inventory and other repository-owned path references for nested lesson storage.
+      status: complete
+    migrate-self-hosted-lessons:
+      text: Rebuild compiled and embedded output, then exercise a lesson command to automatically migrate this repository's six legacy flat lessons into the tooling category directory and regenerate the v2 root index.
+      status: complete
+      command: bun run build && node dist/scripts/strict-spec-driven.js lesson-status --category tooling
+  Testing:
+    add-lesson-layout-regression:
+      text: Extend the existing mapped lessons regression suite with new-project nested creation, grouped-index output, all-command legacy migration, successful content preservation, collision and malformed-input rollback, id lookup, category filtering, invalid category diagnostics, and unchanged lifecycle behavior.
+      status: complete
+    validate-yaml-assets:
+      text: Validate the v2 schema, example, scaffold, embedded bundle, and nested lesson inventory paths through build and deterministic YAML inventory checks.
+      status: complete
+      command: bun run build && bun run check:yaml-inventory
+    run-lint:
+      text: Run the repository's TypeScript no-emit lint check against the final source and generated template bundle.
+      status: complete
+      command: bun run lint
+    run-lesson-regression:
+      text: Build current TypeScript and run the project test runner containing the mapped lesson, fixture, CLI metadata, skill, maintenance, and lifecycle regressions.
+      status: complete
+      command: bun run build && bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression and enforce the configured minimum src/** line coverage after rebuilding current output.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-proposal-readiness:
+      text: Run the deterministic proposal readiness check after all implementation and test tasks are complete.
+      status: complete
+      command: strict-spec-cli ready organize-lessons-by-category
+    verify-mappings:
+      text: Verify that every changed implementation, schema, skill, inventory, and test path remains covered by strict spec and technical-standard mappings.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings && strict-spec-cli verify-tech-mappings
+    inspect-migration-evidence:
+      text: Confirm the self-hosted store has no root-level lesson YAML files besides INDEX.yaml, every indexed path resolves under its declared category, and a repeated lesson-status call performs no further migration.
+      status: complete
+      command: node dist/scripts/strict-spec-driven.js lesson-status --category tooling
+    verify-change-artifacts:
+      text: Validate strict YAML change structure, resolved questions, task completion, and delta-spec shape.
+      status: complete
+      command: strict-spec-cli verify organize-lessons-by-category
+testing_gates:
+  validation_task: validate-yaml-assets
+  unit_test_task: run-lesson-regression

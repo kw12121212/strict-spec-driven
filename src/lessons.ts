@@ -1,4 +1,14 @@
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "fs";
 import path from "path";
 import { createHash } from "crypto";
 import { parseYamlFile, stringifyYamlDocument } from "./yaml.js";
@@ -8,7 +18,7 @@ const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const LESSONS_DIR = `${STRICT_WORKFLOW_DIR}/lessons`;
 const LESSONS_INDEX_PATH = `${LESSONS_DIR}/INDEX.yaml`;
 const LESSON_SCHEMA_ID = "strict-spec-driven/lesson/v1";
-const LESSONS_INDEX_SCHEMA_ID = "strict-spec-driven/lessons-index/v1";
+const LESSONS_INDEX_SCHEMA_ID = "strict-spec-driven/lessons-index/v2";
 
 export type LessonStatus = "active" | "promoted" | "obsolete";
 
@@ -62,6 +72,22 @@ export type LessonListEntry = {
   path: string;
 };
 
+type LessonIndexEntry = Omit<LessonListEntry, "id" | "category">;
+type LessonsIndexArtifact = {
+  schema: string;
+  schema_version: number;
+  artifact_type: string;
+  schema_file: string;
+  categories: Record<string, Record<string, LessonIndexEntry>>;
+};
+
+type LessonStorePreparation = {
+  valid: boolean;
+  migrated: boolean;
+  diagnostics: ValidationDiagnostic[];
+};
+
+export type LessonQueryOptions = { includeAll?: boolean; category?: string };
 export type ListLessonsResult = { valid: boolean; lessons: LessonListEntry[]; diagnostics: ValidationDiagnostic[] };
 export type ShowLessonResult = {
   valid: boolean;
@@ -120,8 +146,8 @@ function lessonsIndexPath(rootDir: string): string {
   return path.join(rootDir, LESSONS_INDEX_PATH);
 }
 
-function lessonFilePath(rootDir: string, lessonId: string): string {
-  return path.join(lessonsDir(rootDir), `${lessonId}.yaml`);
+function categoryLessonFilePath(rootDir: string, category: string, lessonId: string): string {
+  return path.join(lessonsDir(rootDir), category, `${lessonId}.yaml`);
 }
 
 function repoRelative(rootDir: string, absolutePath: string): string {
@@ -173,8 +199,7 @@ function makeDiagnostic(rootDir: string, message: string, fieldPath = "$", absol
   };
 }
 
-function listLessonFiles(rootDir: string): string[] {
-  const dir = lessonsDir(rootDir);
+function listLegacyLessonFilesInDir(dir: string): string[] {
   if (!existsSync(dir) || !statSync(dir).isDirectory()) {
     return [];
   }
@@ -182,6 +207,33 @@ function listLessonFiles(rootDir: string): string[] {
     .filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml")
     .map((name) => path.join(dir, name))
     .sort();
+}
+
+function listCategorizedLessonFilesInDir(dir: string, category?: string): string[] {
+  if (!existsSync(dir) || !statSync(dir).isDirectory()) {
+    return [];
+  }
+  const categories = category === undefined ? getLessonCategories().sort() : [category];
+  const files: string[] = [];
+  for (const candidateCategory of categories) {
+    const categoryDir = path.join(dir, candidateCategory);
+    if (!existsSync(categoryDir) || !statSync(categoryDir).isDirectory()) continue;
+    files.push(
+      ...readdirSync(categoryDir)
+        .filter((name) => name.endsWith(".yaml"))
+        .map((name) => path.join(categoryDir, name))
+        .sort(),
+    );
+  }
+  return files;
+}
+
+function listLessonFiles(rootDir: string, category?: string): string[] {
+  const dir = lessonsDir(rootDir);
+  return [
+    ...(category === undefined ? listLegacyLessonFilesInDir(dir) : []),
+    ...listCategorizedLessonFilesInDir(dir, category),
+  ];
 }
 
 function compareLessons(left: { id: string; createdAt: string }, right: { id: string; createdAt: string }): number {
@@ -209,15 +261,15 @@ function buildLessonArtifact(input: CreateLessonInput, lessonId: string): Lesson
   };
 }
 
-/** Rebuilds .strict-spec-driven/lessons/INDEX.yaml deterministically from the lessons on disk. */
-export function rebuildLessonsIndex(rootDir: string): void {
+function buildLessonsIndex(rootDir: string, filePaths: string[]): LessonsIndexArtifact {
   const entries: Array<{
     id: string;
+    category: string;
     createdAt: string;
-    indexEntry: { title: string; category: string; status: LessonStatus; occurrences: number; path: string };
+    indexEntry: LessonIndexEntry;
   }> = [];
 
-  for (const filePath of listLessonFiles(rootDir)) {
+  for (const filePath of filePaths) {
     const artifact = parseYamlFile<LessonArtifact>(filePath);
     const lessonId = artifact?.lesson?.id;
     if (typeof lessonId !== "string" || lessonId.length === 0) {
@@ -225,32 +277,225 @@ export function rebuildLessonsIndex(rootDir: string): void {
     }
     entries.push({
       id: lessonId,
+      category: artifact.category,
       createdAt: String(artifact.created_at ?? ""),
       indexEntry: {
         title: artifact.lesson.title,
-        category: artifact.category,
         status: artifact.status,
         occurrences: Array.isArray(artifact.occurrences) ? artifact.occurrences.length : 0,
-        path: repoRelative(rootDir, filePath),
+        path: `${LESSONS_DIR}/${artifact.category}/${lessonId}.yaml`,
       },
     });
   }
 
-  const sorted: Record<string, { title: string; category: string; status: LessonStatus; occurrences: number; path: string }> = {};
-  for (const entry of entries.sort(compareLessons)) {
-    sorted[entry.id] = entry.indexEntry;
+  const categories: Record<string, Record<string, LessonIndexEntry>> = {};
+  const sortedEntries = entries.sort(compareLessons);
+  for (const category of [...new Set(sortedEntries.map((entry) => entry.category))].sort()) {
+    const lessons: Record<string, LessonIndexEntry> = {};
+    for (const entry of sortedEntries.filter((candidate) => candidate.category === category)) {
+      lessons[entry.id] = entry.indexEntry;
+    }
+    categories[category] = lessons;
   }
 
-  const indexArtifact = {
+  return {
     schema: LESSONS_INDEX_SCHEMA_ID,
-    schema_version: 1,
+    schema_version: 2,
     artifact_type: "lessons_index",
     schema_file: "templates/strict-spec-driven/schemas/lessons-index.yaml",
-    lessons: sorted,
+    categories,
   };
+}
 
-  mkdirSync(lessonsDir(rootDir), { recursive: true });
-  writeFileSync(lessonsIndexPath(rootDir), stringifyYamlDocument(indexArtifact), "utf8");
+function writeLessonsIndex(rootDir: string, storeDir: string, filePaths: string[]): void {
+  const indexArtifact = buildLessonsIndex(rootDir, filePaths);
+  writeFileSync(path.join(storeDir, "INDEX.yaml"), stringifyYamlDocument(indexArtifact), "utf8");
+}
+
+/** Rebuilds .strict-spec-driven/lessons/INDEX.yaml deterministically from categorized lessons. */
+export function rebuildLessonsIndex(rootDir: string): void {
+  const storeDir = lessonsDir(rootDir);
+  mkdirSync(storeDir, { recursive: true });
+  writeLessonsIndex(rootDir, storeDir, listCategorizedLessonFilesInDir(storeDir));
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function validateMigrationSources(rootDir: string, legacyFiles: string[]): {
+  diagnostics: ValidationDiagnostic[];
+  destinations: Map<string, { artifact: LessonArtifact; destination: string }>;
+} {
+  const diagnostics: ValidationDiagnostic[] = [];
+  const destinations = new Map<string, { artifact: LessonArtifact; destination: string }>();
+  const storeDir = lessonsDir(rootDir);
+  const existingFiles = listCategorizedLessonFilesInDir(storeDir);
+  const seenIds = new Map<string, string>();
+
+  for (const filePath of [...existingFiles, ...legacyFiles]) {
+    let artifact: LessonArtifact;
+    try {
+      artifact = parseYamlFile<LessonArtifact>(filePath);
+    } catch (error) {
+      diagnostics.push(makeDiagnostic(rootDir, `failed to parse lesson: ${errorMessage(error)}`, "$", filePath));
+      continue;
+    }
+
+    const artifactDiagnostics = validateLessonArtifact(rootDir, artifact, filePath);
+    diagnostics.push(...artifactDiagnostics);
+    if (artifactDiagnostics.length > 0) continue;
+
+    const lessonId = artifact.lesson.id;
+    const earlierPath = seenIds.get(lessonId);
+    if (earlierPath !== undefined) {
+      diagnostics.push(
+        makeDiagnostic(
+          rootDir,
+          `duplicate lesson id '${lessonId}' also appears at ${repoRelative(rootDir, earlierPath)}`,
+          "$.lesson.id",
+          filePath,
+        ),
+      );
+      continue;
+    }
+    seenIds.set(lessonId, filePath);
+
+    const expectedPath = categoryLessonFilePath(rootDir, artifact.category, lessonId);
+    if (existingFiles.includes(filePath) && path.resolve(filePath) !== path.resolve(expectedPath)) {
+      diagnostics.push(
+        makeDiagnostic(
+          rootDir,
+          `categorized lesson path must be ${repoRelative(rootDir, expectedPath)}`,
+          "$.lesson.id",
+          filePath,
+        ),
+      );
+      continue;
+    }
+    if (legacyFiles.includes(filePath)) {
+      destinations.set(filePath, { artifact, destination: expectedPath });
+    }
+  }
+
+  return { diagnostics, destinations };
+}
+
+function copyDirectoryContents(sourceDir: string, destinationDir: string): void {
+  for (const entry of readdirSync(sourceDir, { withFileTypes: true })) {
+    cpSync(path.join(sourceDir, entry.name), path.join(destinationDir, entry.name), {
+      recursive: entry.isDirectory(),
+      preserveTimestamps: true,
+    });
+  }
+}
+
+/**
+ * Upgrades a legacy flat lesson store as a single directory replacement. Preflight happens before
+ * staging, and the original directory stays in a sibling backup until the categorized store is
+ * live, so a failed migration never leaves a mixture of old and new paths.
+ */
+function prepareLessonStore(rootDir: string): LessonStorePreparation {
+  const storeDir = lessonsDir(rootDir);
+  const legacyFiles = listLegacyLessonFilesInDir(storeDir);
+  if (legacyFiles.length === 0) {
+    return { valid: true, migrated: false, diagnostics: [] };
+  }
+
+  const preflight = validateMigrationSources(rootDir, legacyFiles);
+  if (preflight.diagnostics.length > 0) {
+    return { valid: false, migrated: false, diagnostics: preflight.diagnostics };
+  }
+
+  const parentDir = path.dirname(storeDir);
+  let stagingDir: string | null = null;
+  let backupRoot: string | null = null;
+  let backupDir: string | null = null;
+  let originalMoved = false;
+  let replacementLive = false;
+
+  try {
+    stagingDir = mkdtempSync(path.join(parentDir, ".lessons-migration-"));
+    backupRoot = mkdtempSync(path.join(parentDir, ".lessons-backup-"));
+    backupDir = path.join(backupRoot, "lessons");
+    copyDirectoryContents(storeDir, stagingDir);
+    for (const [sourcePath, { artifact }] of preflight.destinations) {
+      const stagedSource = path.join(stagingDir, path.basename(sourcePath));
+      const stagedDestinationDir = path.join(stagingDir, artifact.category);
+      mkdirSync(stagedDestinationDir, { recursive: true });
+      renameSync(stagedSource, path.join(stagedDestinationDir, `${artifact.lesson.id}.yaml`));
+    }
+    writeLessonsIndex(rootDir, stagingDir, listCategorizedLessonFilesInDir(stagingDir));
+
+    renameSync(storeDir, backupDir);
+    originalMoved = true;
+    try {
+      renameSync(stagingDir, storeDir);
+      replacementLive = true;
+    } catch (error) {
+      renameSync(backupDir, storeDir);
+      originalMoved = false;
+      throw error;
+    }
+    rmSync(backupRoot, { recursive: true, force: true });
+    return { valid: true, migrated: true, diagnostics: [] };
+  } catch (error) {
+    if (originalMoved && !replacementLive && backupDir !== null && existsSync(backupDir) && !existsSync(storeDir)) {
+      try {
+        renameSync(backupDir, storeDir);
+        originalMoved = false;
+      } catch (rollbackError) {
+        return {
+          valid: false,
+          migrated: false,
+          diagnostics: [
+            makeDiagnostic(
+              rootDir,
+              `lesson migration failed (${errorMessage(error)}) and rollback failed (${errorMessage(rollbackError)}); original store remains at ${repoRelative(rootDir, backupDir)}`,
+            ),
+          ],
+        };
+      }
+    }
+    return {
+      valid: false,
+      migrated: false,
+      diagnostics: [makeDiagnostic(rootDir, `lesson migration failed: ${errorMessage(error)}`)],
+    };
+  } finally {
+    if (!replacementLive && stagingDir !== null && existsSync(stagingDir)) {
+      rmSync(stagingDir, { recursive: true, force: true });
+    }
+    if (!originalMoved && backupRoot !== null && existsSync(backupRoot)) {
+      rmSync(backupRoot, { recursive: true, force: true });
+    }
+  }
+}
+
+function findLessonFilePath(rootDir: string, lessonId: string): string | null {
+  const indexPath = lessonsIndexPath(rootDir);
+  if (existsSync(indexPath)) {
+    try {
+      const index = parseYamlFile<LessonsIndexArtifact>(indexPath);
+      for (const category of Object.keys(index.categories ?? {}).sort()) {
+        if (index.categories[category]?.[lessonId] !== undefined) {
+          const candidate = categoryLessonFilePath(rootDir, category, lessonId);
+          if (existsSync(candidate)) return candidate;
+        }
+      }
+    } catch {
+      // Fall back to the lesson artifacts so a stale index never makes a valid lesson unreachable.
+    }
+  }
+
+  for (const filePath of listCategorizedLessonFilesInDir(lessonsDir(rootDir))) {
+    try {
+      if (parseYamlFile<LessonArtifact>(filePath)?.lesson?.id === lessonId) return filePath;
+    } catch {
+      // The command that opens this exact file will report its validation error; keep searching.
+    }
+  }
+  return null;
 }
 
 /**
@@ -333,8 +578,13 @@ export function createLesson(rootDir: string, input: CreateLessonInput): CreateL
     };
   }
 
+  const preparation = prepareLessonStore(rootDir);
+  if (!preparation.valid) {
+    return { valid: false, created: false, lessonId: null, path: null, diagnostics: preparation.diagnostics };
+  }
+
   const lessonId = deriveLessonId(input);
-  const filePath = lessonFilePath(rootDir, lessonId);
+  const filePath = categoryLessonFilePath(rootDir, input.category, lessonId);
   if (existsSync(filePath)) {
     return { valid: true, created: false, lessonId, path: repoRelative(rootDir, filePath), diagnostics: [] };
   }
@@ -345,16 +595,16 @@ export function createLesson(rootDir: string, input: CreateLessonInput): CreateL
     return { valid: false, created: false, lessonId, path: null, diagnostics: validationDiagnostics };
   }
 
-  mkdirSync(lessonsDir(rootDir), { recursive: true });
+  mkdirSync(path.dirname(filePath), { recursive: true });
   writeFileSync(filePath, stringifyYamlDocument(artifact), "utf8");
   rebuildLessonsIndex(rootDir);
 
   return { valid: true, created: true, lessonId, path: repoRelative(rootDir, filePath), diagnostics: [] };
 }
 
-function readLessonEntries(rootDir: string): Array<LessonListEntry & { createdAt: string }> {
+function readLessonEntries(rootDir: string, category?: string): Array<LessonListEntry & { createdAt: string }> {
   const entries: Array<LessonListEntry & { createdAt: string }> = [];
-  for (const filePath of listLessonFiles(rootDir)) {
+  for (const filePath of listLessonFiles(rootDir, category)) {
     const artifact = parseYamlFile<LessonArtifact>(filePath);
     const lessonId = artifact?.lesson?.id;
     if (typeof lessonId !== "string" || lessonId.length === 0) {
@@ -373,6 +623,19 @@ function readLessonEntries(rootDir: string): Array<LessonListEntry & { createdAt
   return entries;
 }
 
+function validateCategoryOption(rootDir: string, category?: string): ValidationDiagnostic[] {
+  if (category === undefined) return [];
+  const categories = getLessonCategories();
+  if (categories.includes(category)) return [];
+  return [
+    makeDiagnostic(
+      rootDir,
+      `unknown lesson category '${category}'; expected one of [${categories.join(", ")}]`,
+      "$.category",
+    ),
+  ];
+}
+
 function stripCreatedAt(entry: LessonListEntry & { createdAt: string }): LessonListEntry {
   return {
     id: entry.id,
@@ -389,8 +652,12 @@ function stripCreatedAt(entry: LessonListEntry & { createdAt: string }): LessonL
  * is already surfaced as a technical-standard rule, so showing it here too would duplicate the same
  * guidance at every consumption point and train readers to skim.
  */
-export function listLessons(rootDir: string, options: { includeAll?: boolean } = {}): ListLessonsResult {
-  const entries = readLessonEntries(rootDir)
+export function listLessons(rootDir: string, options: LessonQueryOptions = {}): ListLessonsResult {
+  const categoryDiagnostics = validateCategoryOption(rootDir, options.category);
+  if (categoryDiagnostics.length > 0) return { valid: false, lessons: [], diagnostics: categoryDiagnostics };
+  const preparation = prepareLessonStore(rootDir);
+  if (!preparation.valid) return { valid: false, lessons: [], diagnostics: preparation.diagnostics };
+  const entries = readLessonEntries(rootDir, options.category)
     .filter((entry) => options.includeAll === true || entry.status === "active")
     .sort(compareLessons)
     .map(stripCreatedAt);
@@ -398,8 +665,12 @@ export function listLessons(rootDir: string, options: { includeAll?: boolean } =
 }
 
 export function showLesson(rootDir: string, lessonId: string): ShowLessonResult {
-  const filePath = lessonFilePath(rootDir, lessonId);
-  if (!existsSync(filePath)) {
+  const preparation = prepareLessonStore(rootDir);
+  if (!preparation.valid) {
+    return { valid: false, lessonId, path: null, lesson: null, diagnostics: preparation.diagnostics };
+  }
+  const filePath = findLessonFilePath(rootDir, lessonId);
+  if (filePath === null) {
     return {
       valid: false,
       lessonId,
@@ -417,8 +688,30 @@ export function showLesson(rootDir: string, lessonId: string): ShowLessonResult 
  * Occurrence count is the objective evidence that a lesson has earned promotion into a binding
  * rule, so ordering by it puts the promotion candidates where they will actually be read.
  */
-export function getLessonStatus(rootDir: string, options: { includeAll?: boolean } = {}): LessonStatusResult {
-  const all = readLessonEntries(rootDir);
+export function getLessonStatus(rootDir: string, options: LessonQueryOptions = {}): LessonStatusResult {
+  const categoryDiagnostics = validateCategoryOption(rootDir, options.category);
+  if (categoryDiagnostics.length > 0) {
+    return {
+      valid: false,
+      lessonCount: 0,
+      statusCounts: { active: 0, promoted: 0, obsolete: 0 },
+      categoryCounts: {},
+      lessons: [],
+      diagnostics: categoryDiagnostics,
+    };
+  }
+  const preparation = prepareLessonStore(rootDir);
+  if (!preparation.valid) {
+    return {
+      valid: false,
+      lessonCount: 0,
+      statusCounts: { active: 0, promoted: 0, obsolete: 0 },
+      categoryCounts: {},
+      lessons: [],
+      diagnostics: preparation.diagnostics,
+    };
+  }
+  const all = readLessonEntries(rootDir, options.category);
   const visible = all.filter((entry) => options.includeAll === true || entry.status === "active");
 
   const statusCounts: Record<LessonStatus, number> = { active: 0, promoted: 0, obsolete: 0 };
@@ -428,6 +721,9 @@ export function getLessonStatus(rootDir: string, options: { includeAll?: boolean
       statusCounts[entry.status] += 1;
     }
     categoryCounts[entry.category] = (categoryCounts[entry.category] ?? 0) + 1;
+  }
+  if (options.category !== undefined && categoryCounts[options.category] === undefined) {
+    categoryCounts[options.category] = 0;
   }
 
   const lessons = visible
@@ -457,12 +753,12 @@ export function validateLessons(rootDir: string, lessonId?: string): ValidateLes
   const diagnostics: ValidationDiagnostic[] = [];
   let checkedCount = 0;
 
-  const targetFiles = lessonId ? [lessonFilePath(rootDir, lessonId)] : listLessonFiles(rootDir);
+  const selectedFile = lessonId ? findLessonFilePath(rootDir, lessonId) : null;
+  const targetFiles = lessonId ? (selectedFile ? [selectedFile] : []) : listLessonFiles(rootDir);
+  if (lessonId && selectedFile === null) {
+    diagnostics.push(makeDiagnostic(rootDir, `lesson '${lessonId}' not found`, "$.lesson.id"));
+  }
   for (const filePath of targetFiles) {
-    if (!existsSync(filePath)) {
-      diagnostics.push(makeDiagnostic(rootDir, `lesson '${lessonId}' not found`, "$.lesson.id"));
-      continue;
-    }
     const artifact = parseYamlFile<unknown>(filePath);
     diagnostics.push(...validateLessonArtifact(rootDir, artifact, filePath));
     checkedCount += 1;
@@ -486,8 +782,19 @@ export function validateLessons(rootDir: string, lessonId?: string): ValidateLes
  * count stays an honest record of how often the condition was actually hit.
  */
 export function editLesson(rootDir: string, input: EditLessonInput): EditLessonResult {
-  const filePath = lessonFilePath(rootDir, input.lessonId);
-  if (!existsSync(filePath)) {
+  const preparation = prepareLessonStore(rootDir);
+  if (!preparation.valid) {
+    return {
+      valid: false,
+      edited: false,
+      lessonId: input.lessonId,
+      path: null,
+      lesson: null,
+      diagnostics: preparation.diagnostics,
+    };
+  }
+  const filePath = findLessonFilePath(rootDir, input.lessonId);
+  if (filePath === null) {
     return {
       valid: false,
       edited: false,
@@ -541,7 +848,7 @@ export function editLesson(rootDir: string, input: EditLessonInput): EditLessonR
     return { valid: false, edited: false, lessonId: input.lessonId, path: null, lesson: null, diagnostics: validationDiagnostics };
   }
 
-  mkdirSync(lessonsDir(rootDir), { recursive: true });
+  mkdirSync(path.dirname(filePath), { recursive: true });
   writeFileSync(filePath, stringifyYamlDocument(artifact), "utf8");
   rebuildLessonsIndex(rootDir);
   return { valid: true, edited: true, lessonId: input.lessonId, path: repoRelative(rootDir, filePath), lesson: artifact, diagnostics: [] };
@@ -564,8 +871,20 @@ export function obsoleteLesson(rootDir: string, lessonId: string, reason: string
     };
   }
 
-  const filePath = lessonFilePath(rootDir, lessonId);
-  if (!existsSync(filePath)) {
+  const preparation = prepareLessonStore(rootDir);
+  if (!preparation.valid) {
+    return {
+      valid: false,
+      obsoleted: false,
+      lessonId,
+      path: null,
+      lesson: null,
+      diagnostics: preparation.diagnostics,
+    };
+  }
+
+  const filePath = findLessonFilePath(rootDir, lessonId);
+  if (filePath === null) {
     return {
       valid: false,
       obsoleted: false,

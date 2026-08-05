@@ -25,7 +25,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
-lesson-status: strict-spec-cli lesson-status
+lesson-status: strict-spec-cli lesson-status [--category <category>]
 lesson-edit: strict-spec-cli lesson-edit <lesson-id> --promoted-standard <id> --promoted-rule <id>
 verify-tech-mappings: strict-spec-cli verify-tech-mappings
 modify: strict-spec-cli modify [change-name|archive-dir]
@@ -82,7 +82,9 @@ run `init` from this skill.
    - `.strict-spec-driven/tech/INDEX.yaml`
    - run `tech-status` to enumerate existing standards and rules
    - every strict YAML standard file relevant to the chosen scope
-   - run `lesson-status` to see recorded experience in the same area. A lesson
+   - run `lesson-status --category <category>` for each technical category in scope to see recorded
+     experience in the same area. Use unfiltered status only when no relevant category can be
+     identified. A lesson
      with repeated occurrences is the strongest evidence that a convention has
      earned a binding rule: the occurrence count is objective proof the project
      keeps hitting it, and the lesson's observation already supplies the

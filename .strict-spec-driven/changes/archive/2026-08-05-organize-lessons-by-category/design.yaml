@@ -1,0 +1,41 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: organize-lessons-by-category
+approach:
+  - Introduce a lessons-index v2 shape keyed first by populated category and then by lesson id; each entry retains title, status, occurrence count, and canonical nested path while the lesson artifact schema remains v1.
+  - Route every valid lesson command through one layout-preparation operation that detects root-level lesson YAML files, validates every source artifact and destination collision, stages the complete categorized store beside the live directory, atomically swaps directories, and restores the original store if the swap cannot complete.
+  - Create new lessons directly in their schema-defined category directory, locate existing lesson ids through the rebuilt grouped index with deterministic fallback diagnostics, and rebuild the sole root index after every lesson mutation.
+  - Extend lesson-list and lesson-status with a validated --category value; filter visible lessons and all reported totals to that category while preserving --all status visibility and recurrence ordering.
+  - Update bundled schemas, registry, examples, scaffold and embedded output, CLI metadata, inventory, lesson-consuming skill guidance, and this repository's live lesson layout, then prove behavior in the existing mapped lesson and fixture suites.
+decisions:
+  single-grouped-index:
+    decision: Use one lessons/INDEX.yaml whose v2 categories map contains the lesson entries for each populated category; do not create category-local indexes.
+    rationale: One generated index keeps discovery cheap without introducing synchronization between global and per-category metadata.
+  automatic-project-wide-migration:
+    decision: Every valid lesson command in every project automatically upgrades a detected flat lesson store before completing its requested operation, including commands normally considered read-only.
+    rationale: The requester explicitly chose automatic migration while lesson stores are still small, and lesson-status is the common entry point that ensures old projects upgrade without a separate operator step.
+  transactional-directory-swap:
+    decision: Perform legacy migration as a preflighted staged directory replacement with rollback instead of moving source files one by one in place.
+    rationale: A multi-file in-place move can leave mixed layouts after an I/O failure; sibling staging and directory renames keep migration all-or-nothing on the same filesystem.
+  category-filtered-reporting:
+    decision: lesson-list and lesson-status accept one --category <category>; lesson-status lessonCount, statusCounts, categoryCounts, and lessons all describe only the selected category.
+    rationale: Filtering only the lesson array would leave noisy and misleading global counts, while a single category matches the directory and index partition model and can be invoked repeatedly for multi-category work.
+  preserve-lesson-semantics:
+    decision: Keep lesson/v1 content, ids, lifecycle, recurrence, ranking, and category vocabulary unchanged; only the index version, storage path, migration behavior, and discovery filter change.
+    rationale: This isolates the change to the confirmed discoverability problem and avoids coupling it to the planned broader lesson mutation work.
+alternatives:
+  - option: Keep lesson files flat and add only --category filtering.
+    reason: It reduces command output but does not provide the confirmed category-directory storage layout or filesystem discoverability.
+  - option: Create an INDEX.yaml inside every category directory.
+    reason: Multiple generated indexes add synchronization and validation failure modes without improving the confirmed single-index workflow.
+  - option: Require an explicit migration command for existing projects.
+    reason: The requester explicitly requires automatic migration across all projects and all lesson commands while migration cost is low.
+  - option: Move legacy files in place as each file is encountered.
+    reason: A later failure could leave a partially migrated mixed layout, violating the confirmed all-or-nothing compatibility behavior.
+risks:
+  - A read-oriented lesson command can mutate an old project's layout on first access; document the one-time upgrade in CLI metadata and report migrated paths deterministically.
+  - Malformed legacy lessons or destination collisions can block every lesson command; preflight the complete store, emit path-aware diagnostics, and leave the original directory untouched.
+  - The grouped index is a breaking artifact shape; issue lessons-index/v2 and regenerate the index during automatic migration while leaving lesson/v1 content unchanged.
+  - Directory replacement can fail after the original directory is renamed; keep a sibling backup until the staged directory is live and exercise rollback failure paths in regression tests.

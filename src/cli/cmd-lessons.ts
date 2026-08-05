@@ -121,13 +121,16 @@ export function runLessonList(argv: string[]): number {
   let flags: FlagMap;
   try {
     flags = parseFlagMap(argv);
-    ensureAllowedFlags(flags, ["all"]);
+    ensureAllowedFlags(flags, ["all", "category"]);
   } catch (error) {
     writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}\n`);
     return 1;
   }
 
-  const result = listLessons(process.cwd(), { includeAll: "all" in flags });
+  const result = listLessons(process.cwd(), {
+    includeAll: "all" in flags,
+    category: singleValue(flags, "category"),
+  });
   writeJson(result);
   return result.valid ? 0 : 1;
 }
@@ -140,13 +143,16 @@ export function runLessonStatus(argv: string[]): number {
   let flags: FlagMap;
   try {
     flags = parseFlagMap(argv);
-    ensureAllowedFlags(flags, ["all"]);
+    ensureAllowedFlags(flags, ["all", "category"]);
   } catch (error) {
     writeUsage(`Error: ${error instanceof Error ? error.message : String(error)}\n`);
     return 1;
   }
 
-  const result = getLessonStatus(process.cwd(), { includeAll: "all" in flags });
+  const result = getLessonStatus(process.cwd(), {
+    includeAll: "all" in flags,
+    category: singleValue(flags, "category"),
+  });
   writeJson(result);
   return result.valid ? 0 : 1;
 }

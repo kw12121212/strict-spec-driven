@@ -25787,14 +25787,15 @@ var COMMAND_METADATA_ENTRIES = {
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
       "The lesson id is derived from the title plus a hash of the title, category, and applies-when condition, so recording the same experience twice is idempotent and leaves existing occurrences untouched (created is false).",
-      "A lesson carries no MUST/SHOULD/MAY strength and no enforcement mapping; a lesson general enough to bind belongs in a technical standard and is promoted with lesson-edit."
+      "A lesson carries no MUST/SHOULD/MAY strength and no enforcement mapping; a lesson general enough to bind belongs in a technical standard and is promoted with lesson-edit.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating."
     ]
   },
   "lesson-list": {
     name: "lesson-list",
     group: "lessons",
     summary: "List recorded lessons, active ones by default.",
-    usage: `Usage: strict-spec-cli lesson-list [--all]
+    usage: `Usage: strict-spec-cli lesson-list [--all] [--category <category>]
 `,
     arguments: [],
     flags: [
@@ -25802,6 +25803,12 @@ var COMMAND_METADATA_ENTRIES = {
         name: "--all",
         arity: "boolean",
         description: "Include promoted and obsolete lessons. Both are hidden by default because a promoted lesson is already surfaced as the technical-standard rule it became."
+      },
+      {
+        name: "--category",
+        arity: "value",
+        valueLabel: "<category>",
+        description: "Return only lessons in one subject area from the lesson category vocabulary; an unsupported value exits non-zero and names the accepted categories."
       }
     ],
     output: {
@@ -25809,7 +25816,10 @@ var COMMAND_METADATA_ENTRIES = {
       keys: ["valid", "lessons", "diagnostics"],
       description: "A JSON list of lessons with id, title, category, status, occurrence count, and path."
     },
-    exitCodes: VALIDITY_EXIT_CODES
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating; this one-time upgrade can mutate project layout even for list and status commands."
+    ]
   },
   "lesson-show": {
     name: "lesson-show",
@@ -25825,7 +25835,10 @@ var COMMAND_METADATA_ENTRIES = {
       description: "A JSON lesson result carrying the full artifact."
     },
     exitCodes: VALIDITY_EXIT_CODES,
-    notes: ["Shows a lesson in any status, so a promoted or obsolete lesson stays reachable after it leaves the default list."]
+    notes: [
+      "Shows a lesson in any status, so a promoted or obsolete lesson stays reachable after it leaves the default list.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating."
+    ]
   },
   "lesson-edit": {
     name: "lesson-edit",
@@ -25865,7 +25878,8 @@ var COMMAND_METADATA_ENTRIES = {
     notes: [
       "A recurrence is appended rather than replacing earlier occurrences, so the occurrence count stays an honest record of how often the condition was hit and remains the objective signal for promotion.",
       "Promotion keeps the lesson's original context, observation, takeaway, and occurrences: the technical-standard rule states what must be done but omits the failure that motivated it.",
-      "An obsolete lesson cannot be edited; retirement is terminal and is recorded with lesson-obsolete."
+      "An obsolete lesson cannot be edited; retirement is terminal and is recorded with lesson-obsolete.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating."
     ]
   },
   "lesson-obsolete": {
@@ -25892,28 +25906,36 @@ var COMMAND_METADATA_ENTRIES = {
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
       "The lesson file is never deleted: a lesson retired because its root-cause analysis was wrong is itself reusable experience, and discarding it would hand the same reasoning trap to the next person.",
-      "Retiring an already-obsolete lesson is idempotent and reports obsoleted false without rewriting the recorded reason."
+      "Retiring an already-obsolete lesson is idempotent and reports obsoleted false without rewriting the recorded reason.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating."
     ]
   },
   "lesson-status": {
     name: "lesson-status",
     group: "lessons",
     summary: "Report the lesson store with the highest-recurrence lessons first.",
-    usage: `Usage: strict-spec-cli lesson-status [--all]
+    usage: `Usage: strict-spec-cli lesson-status [--all] [--category <category>]
 `,
     arguments: [],
     flags: [
-      { name: "--all", arity: "boolean", description: "Include promoted and obsolete lessons in the reported list." }
+      { name: "--all", arity: "boolean", description: "Include promoted and obsolete lessons in the reported list." },
+      {
+        name: "--category",
+        arity: "value",
+        valueLabel: "<category>",
+        description: "Scope lessonCount, statusCounts, categoryCounts, and lessons to one accepted lesson category; an unsupported value exits non-zero and names the accepted categories."
+      }
     ],
     output: {
       format: "json",
       keys: ["valid", "lessonCount", "statusCounts", "categoryCounts", "lessons", "diagnostics"],
-      description: "A JSON lesson store report; lessonCount, statusCounts, and categoryCounts always cover every lesson, while lessons honors --all."
+      description: "A JSON lesson store report; without --category the counts cover every lesson, while --category scopes every count and lesson entry to the selected category and --all controls status visibility in lessons."
     },
     exitCodes: VALIDITY_EXIT_CODES,
     notes: [
       "Lessons are ordered by occurrence count descending, then by creation order, so the lessons with the strongest evidence for promotion into a binding rule appear first.",
-      "This is the consumption entry point read alongside tech-status when planning or implementing a change."
+      "This is the consumption entry point read alongside tech-status when planning or implementing a change.",
+      "Every valid lesson command automatically and transactionally upgrades a legacy flat lesson store to category directories before operating; this one-time upgrade can mutate project layout even for list and status commands."
     ]
   },
   maintenance: {
@@ -29840,8 +29862,8 @@ harness:
           evidence_labels: []
           unavailable_conditions: []
 `,
-  "strict-spec-driven/scaffold/lessons/INDEX.yaml": `schema: strict-spec-driven/lessons-index/v1
-schema_version: 1
+  "strict-spec-driven/scaffold/lessons/INDEX.yaml": `schema: strict-spec-driven/lessons-index/v2
+schema_version: 2
 artifact_type: lessons_index
 schema_file: ../schemas/lessons-index.yaml
 # Lessons record reusable engineering experience — a pitfall, a path that failed, or diagnostic
@@ -29849,7 +29871,7 @@ schema_file: ../schemas/lessons-index.yaml
 # \`strict-spec-cli lesson-create\`; this index is rebuilt from the lesson files and is not
 # hand-edited. A lesson that becomes general enough to bind is promoted into a technical standard
 # rule and keeps its original text as the motivating context that rule omits.
-lessons: {}
+categories: {}
 `,
   "strict-spec-driven/scaffold/roadmap/INDEX.yaml": `schema: strict-spec-driven/roadmap-index/v2
 schema_version: 2
@@ -31591,13 +31613,13 @@ json_schema:
 `,
   "strict-spec-driven/schemas/lessons-index.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
-schema_id: strict-spec-driven/lessons-index/v1
+schema_id: strict-spec-driven/lessons-index/v2
 artifact_type: lessons_index
 artifact_name: lessons-index
 description: >-
-  Strict YAML lesson index artifact (keyed lesson map keyed by conflict-resistant lesson id)
-  describing each recorded lesson's title, category, status, occurrence count, and path, so lessons
-  are discoverable without reading every lesson file.
+  Strict YAML lesson index artifact grouping conflict-resistant lesson ids by their category and
+  describing each recorded lesson's title, status, occurrence count, and canonical nested path, so
+  one category can be discovered without reading unrelated lesson files.
 example_ref: ../../../examples/strict-spec-driven/lessons-index.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
@@ -31608,52 +31630,55 @@ json_schema:
     - schema_version
     - artifact_type
     - schema_file
-    - lessons
+    - categories
   properties:
     schema:
       type: string
-      const: strict-spec-driven/lessons-index/v1
+      const: strict-spec-driven/lessons-index/v2
     schema_version:
       type: integer
-      const: 1
+      const: 2
     artifact_type:
       type: string
       const: lessons_index
     schema_file:
       type: string
-    lessons:
+    categories:
       type: object
-      additionalProperties:
-        type: object
-        additionalProperties: false
-        required:
-          - title
-          - category
-          - status
-          - occurrences
-          - path
-        properties:
-          title:
-            type: string
-            minLength: 1
-          category:
-            type: string
-            minLength: 1
-          status:
-            type: string
-            enum:
-              - active
-              - promoted
-              - obsolete
-          occurrences:
-            type: integer
-            minimum: 1
-            description: >-
-              Recorded encounter count, mirrored into the index so recurrence can be ranked without
-              opening every lesson file.
-          path:
-            type: string
-            minLength: 1
+      additionalProperties: false
+      patternProperties:
+        "^(coding|architecture|security|performance|api|testing|tooling|operations|documentation|ui)$":
+          type: object
+          minProperties: 1
+          additionalProperties: false
+          patternProperties:
+            "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
+              type: object
+              additionalProperties: false
+              required:
+                - title
+                - status
+                - occurrences
+                - path
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                status:
+                  type: string
+                  enum:
+                    - active
+                    - promoted
+                    - obsolete
+                occurrences:
+                  type: integer
+                  minimum: 1
+                  description: >-
+                    Recorded encounter count, mirrored into the index so recurrence can be ranked
+                    without opening the lesson file.
+                path:
+                  type: string
+                  minLength: 1
 `,
   "strict-spec-driven/schemas/main-spec.yaml": `schema: strict-spec-driven/schema/v1
 schema_version: 1
@@ -32376,12 +32401,28 @@ entries:
     schema_file: lessons-index.yaml
     primary_example: ../../../examples/strict-spec-driven/lessons-index.yaml
     compatibility:
-      status: current
+      status: superseded
       introduced_in: 1
       supersedes: []
+      superseded_by: strict-spec-driven/lessons-index/v2
       compatible_with: []
       notes:
-        - Lessons index is a keyed map keyed by conflict-resistant lesson id for merge-friendly multi-author authoring.
+        - Superseded by v2 category-grouped lesson maps and canonical nested lesson paths.
+  - schema_id: strict-spec-driven/lessons-index/v2
+    schema_version: 2
+    artifact_type: lessons_index
+    artifact_name: lessons-index
+    schema_file: lessons-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/lessons-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 2
+      supersedes:
+        - strict-spec-driven/lessons-index/v1
+      compatible_with: []
+      notes:
+        - Populated lesson categories group conflict-resistant lesson ids and point to canonical category-directory paths.
+        - INDEX.yaml remains the only lesson index; category directories do not carry their own indexes.
   - schema_id: strict-spec-driven/harness/v1
     schema_version: 1
     artifact_type: harness
@@ -34197,17 +34238,17 @@ occurrences:
     date: "2026-04-24"
     evidence: "bun test/run.ts passed against dist/verify.js compiled before the src/verify.ts edit"
 `,
-  "examples/strict-spec-driven/lessons-index.yaml": `schema: strict-spec-driven/lessons-index/v1
-schema_version: 1
+  "examples/strict-spec-driven/lessons-index.yaml": `schema: strict-spec-driven/lessons-index/v2
+schema_version: 2
 artifact_type: lessons_index
 schema_file: ../../templates/strict-spec-driven/schemas/lessons-index.yaml
-lessons:
-  rebuild-before-trusting-dist-tests-a1b2c3:
-    title: Rebuild before trusting dist-backed test results
-    category: testing
-    status: active
-    occurrences: 1
-    path: .strict-spec-driven/lessons/rebuild-before-trusting-dist-tests-a1b2c3.yaml
+categories:
+  testing:
+    rebuild-before-trusting-dist-tests-a1b2c3:
+      title: Rebuild before trusting dist-backed test results
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/rebuild-before-trusting-dist-tests-a1b2c3.yaml
 `,
   "examples/strict-spec-driven/main-spec.yaml": `schema: strict-spec-driven/main-spec/v1
 schema_version: 1

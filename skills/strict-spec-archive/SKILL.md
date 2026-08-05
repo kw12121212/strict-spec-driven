@@ -22,7 +22,7 @@ verify: strict-spec-cli verify <change-name>
 verify-spec-mappings: strict-spec-cli verify-spec-mappings
 generate: strict-spec-cli generate <change-name> delta-tech --<named-args>
 archive: strict-spec-cli archive <change-name>
-lesson-status: strict-spec-cli lesson-status
+lesson-status: strict-spec-cli lesson-status [--category <category>]
 ```
 
 ## Responsibility Split

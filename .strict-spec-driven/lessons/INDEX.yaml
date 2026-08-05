@@ -1,41 +1,41 @@
-schema: strict-spec-driven/lessons-index/v1
-schema_version: 1
+schema: strict-spec-driven/lessons-index/v2
+schema_version: 2
 artifact_type: lessons_index
 schema_file: templates/strict-spec-driven/schemas/lessons-index.yaml
-lessons:
-  an-unsupported-argument-error-only-disproves-the-582410:
-    title: An unsupported-argument error only disproves the name, not the capability
-    category: tooling
-    status: active
-    occurrences: 1
-    path: .strict-spec-driven/lessons/an-unsupported-argument-error-only-disproves-the-582410.yaml
-  a-schema-field-is-not-live-until-the-artifact-ge-910119:
-    title: A schema field is not live until the artifact generator's normalizer copies it
-    category: tooling
-    status: active
-    occurrences: 1
-    path: .strict-spec-driven/lessons/a-schema-field-is-not-live-until-the-artifact-ge-910119.yaml
-  apply-completes-the-next-task-in-list-order-not-268fb1:
-    title: apply completes the next task in list order, not the task you just finished
-    category: tooling
-    status: active
-    occurrences: 1
-    path: .strict-spec-driven/lessons/apply-completes-the-next-task-in-list-order-not-268fb1.yaml
-  a-flag-that-skips-reading-an-artifact-hides-a-br-47afe2:
-    title: A flag that skips reading an artifact hides a broken artifact
-    category: tooling
-    status: active
-    occurrences: 1
-    path: .strict-spec-driven/lessons/a-flag-that-skips-reading-an-artifact-hides-a-br-47afe2.yaml
-  an-empty-search-result-is-evidence-about-the-sea-668a85:
-    title: An empty search result is evidence about the search, not the code
-    category: tooling
-    status: active
-    occurrences: 1
-    path: .strict-spec-driven/lessons/an-empty-search-result-is-evidence-about-the-sea-668a85.yaml
-  a-technical-only-test-file-still-needs-a-spec-ma-ff2067:
-    title: A technical-only test file still needs a spec mapping
-    category: tooling
-    status: active
-    occurrences: 1
-    path: .strict-spec-driven/lessons/a-technical-only-test-file-still-needs-a-spec-ma-ff2067.yaml
+categories:
+  tooling:
+    an-unsupported-argument-error-only-disproves-the-582410:
+      title: An unsupported-argument error only disproves the name, not the capability
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/an-unsupported-argument-error-only-disproves-the-582410.yaml
+    a-schema-field-is-not-live-until-the-artifact-ge-910119:
+      title: A schema field is not live until the artifact generator's normalizer copies it
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-schema-field-is-not-live-until-the-artifact-ge-910119.yaml
+    apply-completes-the-next-task-in-list-order-not-268fb1:
+      title: apply completes the next task in list order, not the task you just finished
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/apply-completes-the-next-task-in-list-order-not-268fb1.yaml
+    a-flag-that-skips-reading-an-artifact-hides-a-br-47afe2:
+      title: A flag that skips reading an artifact hides a broken artifact
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-flag-that-skips-reading-an-artifact-hides-a-br-47afe2.yaml
+    an-empty-search-result-is-evidence-about-the-sea-668a85:
+      title: An empty search result is evidence about the search, not the code
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/an-empty-search-result-is-evidence-about-the-sea-668a85.yaml
+    a-technical-only-test-file-still-needs-a-spec-ma-ff2067:
+      title: A technical-only test file still needs a spec mapping
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-technical-only-test-file-still-needs-a-spec-ma-ff2067.yaml
+    backticks-inside-double-quoted-shell-arguments-e-191d66:
+      title: Backticks inside double-quoted shell arguments execute command substitution
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/backticks-inside-double-quoted-shell-arguments-e-191d66.yaml

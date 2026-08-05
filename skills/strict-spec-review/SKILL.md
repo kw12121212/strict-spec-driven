@@ -21,7 +21,7 @@ tech-status: strict-spec-cli tech-status
 verify-tech-mappings: strict-spec-cli verify-tech-mappings
 modify: strict-spec-cli modify [change-name|archive-dir]
 verify: strict-spec-cli verify <change-name>
-lesson-status: strict-spec-cli lesson-status
+lesson-status: strict-spec-cli lesson-status [--category <category>]
 lesson-create: strict-spec-cli lesson-create --title <text> --category <category> --context <text> --observation <text> --takeaway <text> --applies-when <text> --origin <text> --evidence <text>
 lesson-edit: strict-spec-cli lesson-edit <lesson-id> --origin <text> --evidence <text>
 ```
@@ -153,7 +153,7 @@ run `init` from this skill.
    When one applies, first check whether an existing lesson already covers the
    same `applies_when` condition:
    ```bash
-   strict-spec-cli lesson-status
+   strict-spec-cli lesson-status --category <category>
    ```
    If it does, append the recurrence instead of creating a near-duplicate:
    ```bash

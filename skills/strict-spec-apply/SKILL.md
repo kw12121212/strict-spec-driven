@@ -18,7 +18,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
-lesson-status: strict-spec-cli lesson-status
+lesson-status: strict-spec-cli lesson-status [--category <category>]
 verify-tech-mappings: strict-spec-cli verify-tech-mappings
 modify: strict-spec-cli modify [change-name|archive-dir]
 apply: strict-spec-cli apply <change-name>
@@ -87,7 +87,10 @@ run `init` from this skill.
      `strict-spec-cli tech-status` and read the
      relevant files under `.strict-spec-driven/tech/`. These are the engineering
      rules the implementation must satisfy.
-   - run `strict-spec-cli lesson-status` and read the lessons it ranks first.
+   - select the lesson category that matches the affected spec or technical area, run
+     `strict-spec-cli lesson-status --category <category>`, and read the lessons it ranks first.
+     Repeat for another category when the change genuinely spans more than one; use the unfiltered
+     command only when repository evidence cannot identify a relevant category.
      Lessons are recorded experience, not binding rules: they carry no MUST or
      SHOULD strength, so treat each one as a warning worth checking against this
      change rather than a constraint to satisfy. Match on `applies_when` — that

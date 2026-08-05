@@ -1,12 +1,12 @@
 schema: strict-spec-driven/schema/v1
 schema_version: 1
-schema_id: strict-spec-driven/lessons-index/v1
+schema_id: strict-spec-driven/lessons-index/v2
 artifact_type: lessons_index
 artifact_name: lessons-index
 description: >-
-  Strict YAML lesson index artifact (keyed lesson map keyed by conflict-resistant lesson id)
-  describing each recorded lesson's title, category, status, occurrence count, and path, so lessons
-  are discoverable without reading every lesson file.
+  Strict YAML lesson index artifact grouping conflict-resistant lesson ids by their category and
+  describing each recorded lesson's title, status, occurrence count, and canonical nested path, so
+  one category can be discovered without reading unrelated lesson files.
 example_ref: ../../../examples/strict-spec-driven/lessons-index.yaml
 json_schema:
   $schema: "http://json-schema.org/draft-07/schema#"
@@ -17,49 +17,52 @@ json_schema:
     - schema_version
     - artifact_type
     - schema_file
-    - lessons
+    - categories
   properties:
     schema:
       type: string
-      const: strict-spec-driven/lessons-index/v1
+      const: strict-spec-driven/lessons-index/v2
     schema_version:
       type: integer
-      const: 1
+      const: 2
     artifact_type:
       type: string
       const: lessons_index
     schema_file:
       type: string
-    lessons:
+    categories:
       type: object
-      additionalProperties:
-        type: object
-        additionalProperties: false
-        required:
-          - title
-          - category
-          - status
-          - occurrences
-          - path
-        properties:
-          title:
-            type: string
-            minLength: 1
-          category:
-            type: string
-            minLength: 1
-          status:
-            type: string
-            enum:
-              - active
-              - promoted
-              - obsolete
-          occurrences:
-            type: integer
-            minimum: 1
-            description: >-
-              Recorded encounter count, mirrored into the index so recurrence can be ranked without
-              opening every lesson file.
-          path:
-            type: string
-            minLength: 1
+      additionalProperties: false
+      patternProperties:
+        "^(coding|architecture|security|performance|api|testing|tooling|operations|documentation|ui)$":
+          type: object
+          minProperties: 1
+          additionalProperties: false
+          patternProperties:
+            "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$":
+              type: object
+              additionalProperties: false
+              required:
+                - title
+                - status
+                - occurrences
+                - path
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                status:
+                  type: string
+                  enum:
+                    - active
+                    - promoted
+                    - obsolete
+                occurrences:
+                  type: integer
+                  minimum: 1
+                  description: >-
+                    Recorded encounter count, mirrored into the index so recurrence can be ranked
+                    without opening the lesson file.
+                path:
+                  type: string
+                  minLength: 1

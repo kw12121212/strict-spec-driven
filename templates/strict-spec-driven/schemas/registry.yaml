@@ -277,12 +277,28 @@ entries:
     schema_file: lessons-index.yaml
     primary_example: ../../../examples/strict-spec-driven/lessons-index.yaml
     compatibility:
-      status: current
+      status: superseded
       introduced_in: 1
       supersedes: []
+      superseded_by: strict-spec-driven/lessons-index/v2
       compatible_with: []
       notes:
-        - Lessons index is a keyed map keyed by conflict-resistant lesson id for merge-friendly multi-author authoring.
+        - Superseded by v2 category-grouped lesson maps and canonical nested lesson paths.
+  - schema_id: strict-spec-driven/lessons-index/v2
+    schema_version: 2
+    artifact_type: lessons_index
+    artifact_name: lessons-index
+    schema_file: lessons-index.yaml
+    primary_example: ../../../examples/strict-spec-driven/lessons-index.yaml
+    compatibility:
+      status: current
+      introduced_in: 2
+      supersedes:
+        - strict-spec-driven/lessons-index/v1
+      compatible_with: []
+      notes:
+        - Populated lesson categories group conflict-resistant lesson ids and point to canonical category-directory paths.
+        - INDEX.yaml remains the only lesson index; category directories do not carry their own indexes.
   - schema_id: strict-spec-driven/harness/v1
     schema_version: 1
     artifact_type: harness

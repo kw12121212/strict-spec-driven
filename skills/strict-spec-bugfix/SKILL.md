@@ -18,7 +18,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
-lesson-status: strict-spec-cli lesson-status
+lesson-status: strict-spec-cli lesson-status [--category <category>]
 lesson-create: strict-spec-cli lesson-create --title <text> --category <category> --context <text> --observation <text> --takeaway <text> --applies-when <text> --origin <text> --evidence <text>
 lesson-edit: strict-spec-cli lesson-edit <lesson-id> --origin <text> --evidence <text>
 propose: strict-spec-cli propose <change-name>
@@ -216,7 +216,8 @@ run `init` from this skill.
      `strict-spec-cli tech-status` and reading the relevant files under
      `.strict-spec-driven/tech/`
    - the recorded experience that may bear on this defect by running
-     `strict-spec-cli lesson-status` and matching its `applies_when` conditions
+     `strict-spec-cli lesson-status --category <category>` for the category matching the failing
+     area and matching its `applies_when` conditions
      against the failing area. Lessons carry no MUST or SHOULD strength; treat
      them as warnings worth checking, and weight a lesson with several
      occurrences because it has bitten this project repeatedly.
@@ -334,7 +335,7 @@ run `init` from this skill.
     with the reason. Record one when the defect slipped through a gap that will
     let the next defect through too — a missing test shape, a misleading error
     message, an invariant nothing enforces. First check
-    `strict-spec-cli lesson-status` for an existing lesson with the same
+    `strict-spec-cli lesson-status --category <category>` for an existing lesson with the same
     `applies_when` condition and append the recurrence with `lesson-edit`
     instead of creating a near-duplicate. Do not manufacture an entry: a fix for
     a plain typo teaches nothing and should be declared "no lesson".

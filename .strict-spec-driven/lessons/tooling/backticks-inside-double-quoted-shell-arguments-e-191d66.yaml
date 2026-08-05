@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: backticks-inside-double-quoted-shell-arguments-e-191d66
+  title: Backticks inside double-quoted shell arguments execute command substitution
+category: tooling
+status: active
+created_at: '2026-08-05T07:31:58.842Z'
+updated_at: '2026-08-05T07:31:58.842Z'
+context: Searching skill text with a shell regex that contained Markdown code spans inside a double-quoted command argument.
+observation: The shell executed the text between literal backticks as a command, so a read-only search unexpectedly ran lesson-status and migrated the repository lesson store.
+takeaway: Use single-quoted regex arguments, argv-safe process APIs, or escaped literal backticks whenever a shell pattern contains Markdown code spans.
+applies_when: Constructing shell search commands whose pattern contains Markdown code spans or literal backticks.
+occurrences:
+  - origin: organize-lessons-by-category
+    date: '2026-08-05'
+    evidence: An rg check unexpectedly emitted lesson-status JSON and moved six flat lesson files into the tooling category before the planned migration task ran.

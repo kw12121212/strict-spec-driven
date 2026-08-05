@@ -1,0 +1,66 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: lessons-domain-behavior
+mapping:
+  implementation:
+    - src/lessons.ts
+    - src/cli/cmd-lessons.ts
+    - src/cli/command-metadata-entries.ts
+    - templates/strict-spec-driven/schemas/lessons-index.yaml
+    - templates/strict-spec-driven/schemas/registry.yaml
+    - templates/strict-spec-driven/scaffold/lessons/INDEX.yaml
+    - examples/strict-spec-driven/lessons-index.yaml
+    - inventory/yaml-mutation-surfaces.yaml
+    - src/embedded-templates.ts
+  tests:
+    - test/suites/lessons.ts
+operations:
+  ADDED:
+    lesson-categorized-storage-contract:
+      strength: MUST
+      statement: The system MUST store each lesson at .strict-spec-driven/lessons/<category>/<lesson-id>.yaml and maintain exactly one .strict-spec-driven/lessons/INDEX.yaml using the lessons-index/v2 contract, where populated categories group their lesson entries and each entry reports its canonical nested path.
+      scenarios:
+        create-uses-category-directory:
+          - GIVEN: a strict workflow with no recorded lessons
+          - WHEN: lesson-create records a lesson in the testing category
+          - THEN: the lesson is written under .strict-spec-driven/lessons/testing with its derived id, the reported path names that file, and no root-level lesson file is created
+        root-index-groups-populated-categories:
+          - GIVEN: lessons exist in more than one category
+          - WHEN: the lessons index is rebuilt
+          - THEN: the sole root INDEX.yaml validates as lessons-index/v2, groups each lesson under its category, and points every entry to its nested category path without creating category-local indexes
+    lesson-automatic-layout-migration-contract:
+      strength: MUST
+      statement: Before every valid lesson command operates in any project, the system MUST detect legacy lesson YAML files stored directly under .strict-spec-driven/lessons, transactionally migrate all of them into their declared category directories, replace the legacy index with a grouped lessons-index/v2 index, and either preserve the complete original store on failure or complete the whole migration before the requested command continues.
+      scenarios:
+        every-command-upgrades-legacy-projects:
+          - GIVEN: an external strict project has valid active, promoted, or obsolete lesson files in the legacy flat lessons directory
+          - WHEN: any registered lesson command is invoked with otherwise valid arguments
+          - THEN: all legacy lessons are moved to their declared category directories with content and lifecycle data preserved, the v2 root index is rebuilt, no legacy root lesson files remain, and the requested command completes against the migrated store
+        migration-failure-leaves-store-untouched:
+          - GIVEN: a legacy lesson store contains a malformed lesson, an unknown category, or a destination collision
+          - WHEN: a lesson command attempts automatic migration
+          - THEN: the command exits non-zero with deterministic path-aware diagnostics and the original files and index remain byte-for-byte in their pre-migration locations with no staged or partially migrated store left behind
+        migrated-layout-is-idempotent:
+          - GIVEN: a project lesson store has already been migrated successfully
+          - WHEN: another lesson command runs
+          - THEN: no files are moved or rewritten solely for migration and the command operates normally on the categorized layout
+    lesson-category-filter-contract:
+      strength: MUST
+      statement: The system MUST allow lesson-list and lesson-status to accept one --category value from the lesson category vocabulary so their visible lesson collection is limited to that category, and lesson-status lessonCount, statusCounts, categoryCounts, and lessons all describe the selected category while existing --all visibility and recurrence ordering semantics remain in force.
+      scenarios:
+        list-filters-one-category:
+          - GIVEN: active lessons exist in testing and tooling categories
+          - WHEN: lesson-list runs with --category testing
+          - THEN: only testing lessons are returned and every reported path resolves under the testing directory
+        status-counts-selected-category:
+          - GIVEN: active, promoted, and obsolete lessons exist across multiple categories
+          - WHEN: lesson-status runs with --category tooling and --all
+          - THEN: lessonCount, statusCounts, categoryCounts, and the recurrence-ranked lesson list count only tooling lessons while including every tooling status
+        invalid-category-is-rejected:
+          - GIVEN: a strict workflow with categorized lessons
+          - WHEN: lesson-list or lesson-status receives a category outside the schema vocabulary
+          - THEN: the command exits non-zero with a deterministic diagnostic naming the unsupported category and the accepted category values
+  MODIFIED: {}
+  REMOVED: {}

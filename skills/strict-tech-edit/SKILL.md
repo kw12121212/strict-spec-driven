@@ -33,7 +33,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
-lesson-status: strict-spec-cli lesson-status
+lesson-status: strict-spec-cli lesson-status [--category <category>]
 lesson-edit: strict-spec-cli lesson-edit <lesson-id> --promoted-standard <id> --promoted-rule <id>
 verify-tech-mappings: strict-spec-cli verify-tech-mappings
 schema-show: strict-spec-cli schema-show main-tech
@@ -68,7 +68,8 @@ run `init` from this skill.
    - the schema contract via `schema-show main-tech` when unsure of the shape
 
 2. **Check whether a lesson is being promoted** — run
-   `strict-spec-cli lesson-status` and check whether recorded experience already
+   `strict-spec-cli lesson-status --category <category>` with the target standard's category and
+   check whether recorded experience already
    covers the rule being added. A lesson with repeated occurrences is the
    strongest case for a new standard: the recurrence count is objective evidence
    that the rule is needed, and the lesson's `observation` already supplies the

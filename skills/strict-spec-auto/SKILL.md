@@ -18,7 +18,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
-lesson-status: strict-spec-cli lesson-status
+lesson-status: strict-spec-cli lesson-status [--category <category>]
 lesson-create: strict-spec-cli lesson-create --title <text> --category <category> --context <text> --observation <text> --takeaway <text> --applies-when <text> --origin <text> --evidence <text>
 lesson-edit: strict-spec-cli lesson-edit <lesson-id> --origin <text> --evidence <text>
 propose: strict-spec-cli propose <change-name>
@@ -206,8 +206,11 @@ run `init` from this skill.
    relevant files under `.strict-spec-driven/tech/`), mapped implementation and
    test files, repository status, and regression configuration when needed. Do
    not reread unrelated roadmap, archive, or spec files just because they exist.
-   Also run `strict-spec-cli lesson-status` and match its `applies_when`
-   conditions against the work at hand. Lessons carry no MUST or SHOULD
+   Also select the lesson category matching the affected spec or technical area, run
+   `strict-spec-cli lesson-status --category <category>`, and match its `applies_when`
+   conditions against the work at hand. Repeat for another category when the change genuinely
+   spans more than one; use the unfiltered command only when repository evidence cannot identify a
+   relevant category. Lessons carry no MUST or SHOULD
    strength, so treat them as warnings worth checking rather than constraints to
    satisfy; weight a lesson with several occurrences, because the count means
    this project has hit it repeatedly.
@@ -385,7 +388,7 @@ run `init` from this skill.
    approach overturned during implementation, a question the proposal did not
    foresee, a task added because of a discovery rather than a scope change, or a
    regression failure exposing a trap this change did not introduce. When one
-   applies, check `strict-spec-cli lesson-status` for an existing lesson with the
+   applies, check `strict-spec-cli lesson-status --category <category>` for an existing lesson with the
    same `applies_when` condition and append the recurrence with
    `lesson-edit <lesson-id> --origin <change-name> --evidence "..."` rather than
    creating a near-duplicate; otherwise record a new one with `lesson-create`.

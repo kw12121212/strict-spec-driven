@@ -322,6 +322,7 @@ artifact_families:
       - lesson
     path_patterns:
       - .strict-spec-driven/lessons/INDEX.yaml
+      - .strict-spec-driven/lessons/*/*.yaml
       - .strict-spec-driven/lessons/*.yaml
       - examples/strict-spec-driven/lessons-index.yaml
       - examples/strict-spec-driven/lesson.yaml
@@ -334,10 +335,15 @@ artifact_families:
       named_remove: not-applicable
       delete: human-only
     reference_side_effects:
-      - Lesson index metadata must match lesson artifacts.
+      - The lessons-index/v2 category groups and canonical paths must match categorized lesson artifacts.
+      - Every valid lesson command transactionally migrates legacy root-level lesson YAML files before operating.
     cli_owners:
       - lesson-create
+      - lesson-list
+      - lesson-show
       - lesson-edit
+      - lesson-obsolete
+      - lesson-status
     direct_write_paths:
       - src/lessons.ts
     evidence:
