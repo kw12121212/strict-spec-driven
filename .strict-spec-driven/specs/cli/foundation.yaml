@@ -40,6 +40,7 @@ mapping:
     - src/validation.ts
     - src/workflow-state.ts
     - src/yaml.ts
+    - src/yaml-mutation.ts
     - src/apply.ts
     - src/verify.ts
     - src/skills.ts

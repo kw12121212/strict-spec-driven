@@ -1,0 +1,14 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: prove-mapping-removal-complete
+  milestone: remove-artifact-file-mappings
+status: planned
+summary: Prove the removal is complete and the project regression holds.
+details: Sweep the whole repository for surviving references to spec or tech mapping fields, the deleted commands, and the deleted skill across source, schemas, examples, skills, specs, standards, tests, generated documents, and README material, and remove or justify each remaining hit. Run the complete project regression with the coverage gate and record the measured coverage against the threshold decision from the milestone intake questions.
+depends_on:
+  - remove-mapping-from-lifecycle-code
+  - drop-mapping-counts-from-architecture
+  - purge-mapping-from-skills

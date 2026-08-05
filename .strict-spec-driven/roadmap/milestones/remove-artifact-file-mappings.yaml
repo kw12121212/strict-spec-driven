@@ -1,0 +1,61 @@
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: ../schemas/roadmap-milestone.yaml
+milestone:
+  remove-artifact-file-mappings:
+    title: Remove spec and standard file mappings
+order: 400
+goal: Delete the spec and technical-standard file mapping fields together with their audit commands, repair skill, schema surface, and governing requirements, because no workflow step ever reads a mapping to decide anything while their upkeep produces drift, audit noise, and a dedicated repair skill for no return.
+scope:
+  in:
+    - Removal of the mapping field from the main-spec, delta-spec, main-tech, and delta-tech schemas, in the bundled templates, the embedded template copies, and the reference examples.
+    - Removal of the recorded mapping fields from every live main spec and technical standard in this repository.
+    - Deletion of the verify-spec-mappings and verify-tech-mappings commands together with src/cli/spec-mapping.ts and src/cli/tech-mapping.ts, their registry entries, CLI help, command metadata, and MCP tool and inventory entries.
+    - Removal of the additive mapping union performed by archive for both delta specs and delta tech, and of mapping arguments in proposal generation, artifact generation, and migration parsers.
+    - Deletion of the strict-spec-resync-code-mapping skill and removal of mapping upkeep instructions from every remaining skill.
+    - Removal of the main-spec requirements that define mapping and mapping-audit behavior, and of the workflow-scope-discipline rule that exists only to manage additive mapping rot.
+    - Removal of the spec mapping implementation and test counts from architecture rendering, dropping those columns from the generated ARCHITECTURE.md.
+  out:
+    - The architecture artifact component mapping and its drift reporting, which is retained because it is rendered into ARCHITECTURE.md and therefore has a real consumer.
+    - Any replacement traceability mechanism. This milestone removes a capability and deliberately substitutes nothing.
+    - Schema and artifact fields that use the word mapping for unrelated purposes, including design-system, lesson, roadmap, and registry structures.
+done_criteria:
+  - No main spec, delta spec, technical standard, or delta tech artifact in this repository carries a file mapping field, and the bundled and embedded schemas no longer define one.
+  - verify-spec-mappings and verify-tech-mappings are absent from CLI help, the command registry, command metadata, and the MCP tool inventory, and their implementation files are deleted.
+  - Archiving a change performs no mapping merge, and proposal generation, artifact generation, and legacy migration produce artifacts with no mapping field.
+  - The strict-spec-resync-code-mapping skill is removed from the repository and from skill packaging, and no remaining skill instructs an agent to author, repair, or audit a mapping.
+  - The main specs and technical standards no longer contain requirements or rules describing mapping behavior, and no artifact references a deleted mapping command.
+  - ARCHITECTURE.md regenerates without the spec mapping count columns and matches its generated-doc check.
+  - The complete project regression command passes for the final state with the coverage gate satisfied.
+intake_questions:
+  - id: legacy-mapping-tolerance
+    question: After the field is removed, must an artifact that still carries a mapping field fail validation, or be accepted and ignored?
+    context: The bundled schemas ship to external projects through init and migrate, and those projects hold specs and standards written with mapping fields.
+    impact: Strict rejection would invalidate every existing external artifact on upgrade, while silent acceptance leaves dead data in artifacts indefinitely.
+    recommendation: Accept and ignore a residual mapping field rather than rejecting it, strip it in migration and in any CLI write that touches the artifact, and report it as an advisory warning so it disappears through normal use.
+  - id: removal-versus-deprecation
+    question: Must the two audit commands be deleted outright, or retained as deprecated no-op commands for a transition period?
+    context: Callers outside this repository may invoke verify-spec-mappings or verify-tech-mappings from their own scripts, skills, or MCP clients.
+    impact: Deleting outright turns those callers into hard failures, while keeping shims preserves the maintenance burden the milestone exists to remove.
+    recommendation: Delete outright and let the unknown-command diagnostic name the removal, because a no-op shim that always reports success is a worse failure mode than a clear error.
+  - id: coverage-threshold-after-removal
+    question: Does the declared coverage threshold of 78 stay unchanged after roughly 750 lines of covered implementation are deleted?
+    context: The review gate runs bun scripts/coverage-gate.ts --threshold 78 over src, and deleting a well-tested subsystem changes the measured ratio.
+    impact: An unexamined threshold either blocks the milestone on an artifact of the deletion or silently lowers the real quality bar.
+    recommendation: Keep 78 and adjust only if the final measured value forces it, recording the measurement as the justification rather than tuning the threshold to make the gate pass.
+planned_changes: {}
+dependencies:
+  - cli-yaml-mutation-foundation should complete first so the artifact edits that strip mapping fields run through the CLI-owned YAML mutation boundary rather than ad hoc text edits, which is exactly the case that boundary exists to handle.
+risks:
+  - Removal is irreversible traceability loss. If a spec-to-code lookup is wanted later it must be rebuilt from nothing, and the recorded path evidence in the current mappings will be gone.
+  - External projects upgrading the schemas may still carry mapping fields in their own specs and standards; a strict schema rejection would invalidate their artifacts on upgrade.
+  - Roughly 750 lines of well-covered implementation are being deleted, which moves measured src coverage in an unpredictable direction against the declared threshold of 78 and may force a threshold decision mid-milestone.
+  - Mapping is referenced by more than one hundred requirement lines across two large specs; removing them through delta specs risks deleting neighboring requirements or leaving dangling references in other specs, standards, and skills.
+  - Skills are packaged and installed artifacts, so deleting one requires packaging and marketplace updates or installed copies will dangle after upgrade.
+status: proposed
+notes:
+  - 'Decision evidence: the user reviewed a requirement-level mapping rebuild, judged it still not good enough to justify its cost, and chose outright removal instead.'
+  - 'Scope evidence: the user confirmed removal covers both spec mapping and technical-standard mapping, and chose to drop the spec mapping count columns from ARCHITECTURE.md rather than substitute another statistic.'
+  - 'Problem evidence: mapping is written by propose, apply, and archive and audited by verify-spec-mappings and verify-tech-mappings, but no CLI command or skill step ever reads a mapping to decide what to do, and cli/foundation.yaml maps 189 requirements onto one flat 87-file list.'
+details: 'The mapping field is write-only bookkeeping. Skills instruct agents to keep it in sync, archive unions delta mapping into the target artifact without ever removing an entry, and two audit commands totalling roughly 750 lines check that the recorded paths still resolve. Nothing reads a mapping to decide which code to open, which requirements a changed file threatens, or which tests to rerun. The upkeep is real: a dedicated repair skill exists solely to fix drift, the additive merge guarantees stale entries survive every rename, and a technical-standard rule was written to manage that rot. A requirement-level rebuild was evaluated and rejected as not worth its cost, so this milestone removes the capability outright and substitutes nothing. The architecture component mapping is deliberately kept because it is rendered into ARCHITECTURE.md and therefore has a reader.'

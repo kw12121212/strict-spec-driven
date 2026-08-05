@@ -527,6 +527,24 @@ exclusions:
       - AGENTS.md
       - RTK.md
 mutation_surfaces:
+  shared-yaml-mutation-core:
+    path_patterns:
+      - src/yaml-mutation.ts
+    mechanism: filesystem-writer
+    classification: cli-owned
+    operations:
+      - create
+      - update
+      - delete
+      - rename
+    families:
+      - change-planning-state
+      - change-delta-state
+      - lessons-state
+    evidence:
+      - src/yaml-mutation.ts
+      - src/propose-generation.ts
+      - src/lessons.ts
   change-filesystem-writers:
     path_patterns:
       - src/apply.ts

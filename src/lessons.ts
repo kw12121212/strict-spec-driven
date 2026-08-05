@@ -13,6 +13,7 @@ import path from "path";
 import { createHash } from "crypto";
 import { parseYamlFile, stringifyYamlDocument } from "./yaml.js";
 import { loadBundledSchemaBySchemaId, validateArtifact, type ValidationDiagnostic } from "./validation.js";
+import { commitYamlMutation, type YamlMutationOperation } from "./yaml-mutation.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 const LESSONS_DIR = `${STRICT_WORKFLOW_DIR}/lessons`;
@@ -548,6 +549,38 @@ export function validateLessonArtifact(
   return diagnostics;
 }
 
+function writeValidatedLessonArtifact(
+  rootDir: string,
+  filePath: string,
+  artifact: LessonArtifact,
+  operation: YamlMutationOperation,
+): void {
+  const mutation = commitYamlMutation({
+    rootDir,
+    mutations: [{
+      artifactFamily: "lessons-state",
+      artifactId: artifact.lesson.id,
+      schemaId: LESSON_SCHEMA_ID,
+      familyRoot: lessonsDir(rootDir),
+      absolutePath: filePath,
+      operation,
+      candidate: artifact,
+      validateCandidate: (value) => validateLessonArtifact(rootDir, value, filePath).map((entry) => ({
+        code: entry.source,
+        fieldPath: entry.fieldPath,
+        message: entry.message,
+        expected: entry.expected,
+        actual: entry.actual,
+      })),
+    }],
+  });
+  if (!mutation.valid) {
+    throw new Error(
+      `failed to write lesson artifact: ${mutation.diagnostics.map((entry) => `${entry.code} ${entry.artifactPath} ${entry.fieldPath}: ${entry.message}`).join("; ")}`,
+    );
+  }
+}
+
 /**
  * Creates a lesson with a conflict-resistant generated id and active status, maintaining the
  * lessons index. Idempotent: if the derived id already exists, existing lesson state is left
@@ -595,8 +628,7 @@ export function createLesson(rootDir: string, input: CreateLessonInput): CreateL
     return { valid: false, created: false, lessonId, path: null, diagnostics: validationDiagnostics };
   }
 
-  mkdirSync(path.dirname(filePath), { recursive: true });
-  writeFileSync(filePath, stringifyYamlDocument(artifact), "utf8");
+  writeValidatedLessonArtifact(rootDir, filePath, artifact, "create");
   rebuildLessonsIndex(rootDir);
 
   return { valid: true, created: true, lessonId, path: repoRelative(rootDir, filePath), diagnostics: [] };
@@ -848,8 +880,7 @@ export function editLesson(rootDir: string, input: EditLessonInput): EditLessonR
     return { valid: false, edited: false, lessonId: input.lessonId, path: null, lesson: null, diagnostics: validationDiagnostics };
   }
 
-  mkdirSync(path.dirname(filePath), { recursive: true });
-  writeFileSync(filePath, stringifyYamlDocument(artifact), "utf8");
+  writeValidatedLessonArtifact(rootDir, filePath, artifact, "update");
   rebuildLessonsIndex(rootDir);
   return { valid: true, edited: true, lessonId: input.lessonId, path: repoRelative(rootDir, filePath), lesson: artifact, diagnostics: [] };
 }
@@ -913,7 +944,7 @@ export function obsoleteLesson(rootDir: string, lessonId: string, reason: string
     return { valid: false, obsoleted: false, lessonId, path: null, lesson: null, diagnostics: validationDiagnostics };
   }
 
-  writeFileSync(filePath, stringifyYamlDocument(artifact), "utf8");
+  writeValidatedLessonArtifact(rootDir, filePath, artifact, "update");
   rebuildLessonsIndex(rootDir);
   return { valid: true, obsoleted: true, lessonId, path: repoRelative(rootDir, filePath), lesson: artifact, diagnostics: [] };
 }

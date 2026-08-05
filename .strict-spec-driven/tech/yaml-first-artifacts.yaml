@@ -9,6 +9,7 @@ standard:
 mapping:
   implementation:
     - src/yaml.ts
+    - src/yaml-mutation.ts
     - src/validation.ts
     - src/scaffold.ts
     - src/architecture.ts

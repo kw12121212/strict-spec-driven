@@ -6505,7 +6505,7 @@ var require_dist = __commonJS((exports, module) => {
 
 // src/strict-spec-cli.ts
 import { fileURLToPath as fileURLToPath5 } from "url";
-import { realpathSync } from "fs";
+import { realpathSync as realpathSync2 } from "fs";
 
 // src/cli/command-metadata-entries.ts
 var CHANGE_NAME_ARG = {
@@ -17174,12 +17174,12 @@ function runPropose(argv) {
 }
 
 // src/cli/cmd-generation.ts
-import { existsSync as existsSync5, readFileSync as readFileSync6, rmSync as rmSync2 } from "fs";
-import path5 from "path";
+import { existsSync as existsSync6, readFileSync as readFileSync7, rmSync as rmSync3 } from "fs";
+import path6 from "path";
 
 // src/propose-generation.ts
-import { existsSync as existsSync4, mkdirSync as mkdirSync3, readFileSync as readFileSync5, statSync as statSync3, writeFileSync as writeFileSync3 } from "fs";
-import path4 from "path";
+import { existsSync as existsSync5, readFileSync as readFileSync6, statSync as statSync4 } from "fs";
+import path5 from "path";
 
 // src/validation.ts
 var import_ajv = __toESM(require_ajv(), 1);
@@ -17458,13 +17458,337 @@ function validateArtifact(schema2, artifact, artifactPath, options = {}) {
   return { valid: diagnostics.length === 0, diagnostics };
 }
 
+// src/yaml-mutation.ts
+import {
+  existsSync as existsSync4,
+  mkdirSync as mkdirSync3,
+  readFileSync as readFileSync5,
+  realpathSync,
+  renameSync as renameSync2,
+  rmSync as rmSync2,
+  rmdirSync,
+  statSync as statSync3,
+  writeFileSync as writeFileSync3
+} from "fs";
+import path4 from "path";
+var nodeFileSystem = {
+  exists: existsSync4,
+  read: (filePath) => readFileSync5(filePath, "utf8"),
+  mkdir: (directoryPath) => mkdirSync3(directoryPath),
+  writeExclusive: (filePath, content) => writeFileSync3(filePath, content, { encoding: "utf8", flag: "wx" }),
+  rename: renameSync2,
+  remove: (filePath) => rmSync2(filePath, { force: true }),
+  removeEmptyDirectory: rmdirSync
+};
+var transactionSequence = 0;
+function toPosix2(value) {
+  return value.split(path4.sep).join("/");
+}
+function isWithin(parentPath, candidatePath) {
+  const relative = path4.relative(parentPath, candidatePath);
+  return relative === "" || !relative.startsWith(`..${path4.sep}`) && relative !== ".." && !path4.isAbsolute(relative);
+}
+function nearestExistingPath(candidatePath) {
+  let cursor = candidatePath;
+  while (!existsSync4(cursor)) {
+    const parent = path4.dirname(cursor);
+    if (parent === cursor)
+      return cursor;
+    cursor = parent;
+  }
+  return cursor;
+}
+function physicalConfinementDiagnostic(rootDir, familyRoot, absolutePath, artifactPath) {
+  try {
+    const realRoot = realpathSync(rootDir);
+    const familyAnchor = nearestExistingPath(familyRoot);
+    const realFamilyAnchor = realpathSync(familyAnchor);
+    if (!isWithin(realRoot, realFamilyAnchor)) {
+      return diagnostic(artifactPath, "planning", "family-root-symlink-escape", "$.familyRoot", "declared artifact-family location resolves outside the repository root");
+    }
+    if (existsSync4(familyRoot) && !statSync3(familyRoot).isDirectory()) {
+      return diagnostic(artifactPath, "planning", "family-root-not-directory", "$.familyRoot", "declared artifact-family location must be a directory");
+    }
+    const realFamilyBoundary = existsSync4(familyRoot) ? realpathSync(familyRoot) : realFamilyAnchor;
+    const targetAnchor = nearestExistingPath(existsSync4(absolutePath) ? absolutePath : path4.dirname(absolutePath));
+    const realTargetAnchor = realpathSync(targetAnchor);
+    if (!isWithin(realFamilyBoundary, realTargetAnchor)) {
+      return diagnostic(artifactPath, "planning", "target-symlink-escape", "$.absolutePath", "mutation target resolves outside its declared repository-owned artifact family");
+    }
+    return null;
+  } catch (error) {
+    return diagnostic(artifactPath, "planning", "path-resolution-failed", "$.absolutePath", "failed to resolve the physical mutation target path", { actual: errorCode(error) });
+  }
+}
+function compareMutations(left, right) {
+  return [left.artifactFamily, left.artifactId, left.artifactPath, left.operation].join("\x00").localeCompare([right.artifactFamily, right.artifactId, right.artifactPath, right.operation].join("\x00"));
+}
+function compareDiagnostics(left, right) {
+  return [left.artifactPath, left.phase, left.code, left.fieldPath, left.message].join("\x00").localeCompare([right.artifactPath, right.phase, right.code, right.fieldPath, right.message].join("\x00"));
+}
+function diagnostic(artifactPath, phase, code, fieldPath, message, details = {}) {
+  return { artifactPath, phase, code, fieldPath, message, ...details };
+}
+function validationDiagnostic(issue, defaultArtifactPath, phase, defaultCode) {
+  return {
+    artifactPath: issue.artifactPath ?? defaultArtifactPath,
+    phase,
+    code: issue.code ?? defaultCode,
+    fieldPath: issue.fieldPath,
+    message: issue.message,
+    ...issue.expected !== undefined ? { expected: issue.expected } : {},
+    ...issue.actual !== undefined ? { actual: issue.actual } : {}
+  };
+}
+function isMeaningfulArtifact(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    return false;
+  return Object.keys(value).length > 0;
+}
+function result(planned, diagnostics, committed) {
+  return {
+    valid: committed && diagnostics.length === 0,
+    committed,
+    exitStatus: committed && diagnostics.length === 0 ? 0 : 1,
+    changes: [...planned].sort(compareMutations).map((mutation) => ({
+      artifactFamily: mutation.artifactFamily,
+      artifactId: mutation.artifactId,
+      schemaId: mutation.schemaId,
+      artifactPath: mutation.artifactPath,
+      operation: mutation.operation,
+      role: mutation.role,
+      changed: mutation.changed
+    })),
+    diagnostics: [...diagnostics].sort(compareDiagnostics)
+  };
+}
+function errorCode(error) {
+  if (error && typeof error === "object" && "code" in error && typeof error.code === "string") {
+    return error.code;
+  }
+  return error instanceof Error ? error.name : "unknown-error";
+}
+function createOwnedDirectories(rootDir, directoryPath, fileSystem, createdDirectories) {
+  const missing = [];
+  let cursor = directoryPath;
+  while (cursor !== rootDir && !fileSystem.exists(cursor)) {
+    if (!isWithin(rootDir, cursor)) {
+      throw new Error("directory escaped the repository root");
+    }
+    missing.push(cursor);
+    cursor = path4.dirname(cursor);
+  }
+  for (const missingDirectory of missing.reverse()) {
+    fileSystem.mkdir(missingDirectory);
+    createdDirectories.push(missingDirectory);
+  }
+}
+function removeCreatedDirectories(createdDirectories, fileSystem) {
+  for (const directoryPath of [...createdDirectories].reverse()) {
+    try {
+      fileSystem.removeEmptyDirectory(directoryPath);
+    } catch {}
+  }
+}
+function siblingWorkPath(targetPath, transactionId, index, suffix) {
+  return path4.join(path4.dirname(targetPath), `.${path4.basename(targetPath)}.strict-spec-${transactionId}-${index}.${suffix}`);
+}
+function rollbackEntries(entries, fileSystem, transactionId) {
+  const diagnostics = [];
+  for (const entry of [...entries].reverse()) {
+    const { mutation } = entry;
+    try {
+      if (entry.targetInstalled && fileSystem.exists(mutation.absolutePath)) {
+        fileSystem.remove(mutation.absolutePath);
+      }
+      if (entry.backupCreated && entry.backupPath && fileSystem.exists(entry.backupPath)) {
+        fileSystem.rename(entry.backupPath, mutation.absolutePath);
+      } else if (entry.backupCreated && mutation.previousContent !== null) {
+        const restorePath = siblingWorkPath(mutation.absolutePath, transactionId, 0, "restore");
+        if (fileSystem.exists(restorePath))
+          fileSystem.remove(restorePath);
+        fileSystem.writeExclusive(restorePath, mutation.previousContent);
+        fileSystem.rename(restorePath, mutation.absolutePath);
+      }
+      if (entry.temporaryPath && fileSystem.exists(entry.temporaryPath)) {
+        fileSystem.remove(entry.temporaryPath);
+      }
+    } catch (error) {
+      diagnostics.push(diagnostic(mutation.artifactPath, "rollback", "rollback-failed", "$", "failed to restore the pre-mutation filesystem state", { actual: errorCode(error) }));
+    }
+  }
+  return diagnostics;
+}
+function commitYamlMutation(options) {
+  const fileSystem = options.fileSystem ?? nodeFileSystem;
+  const rootDir = path4.resolve(options.rootDir);
+  const diagnostics = [];
+  const seenPaths = new Set;
+  const planned = [];
+  const transactionId = `${process.pid}-${++transactionSequence}`;
+  if (options.mutations.length === 0) {
+    diagnostics.push(diagnostic("<transaction>", "planning", "empty-transaction", "$.mutations", "a YAML mutation transaction must contain at least one artifact operation"));
+    return result(planned, diagnostics, false);
+  }
+  for (const request of options.mutations) {
+    const familyRoot = path4.resolve(rootDir, request.familyRoot);
+    const absolutePath = path4.resolve(request.absolutePath);
+    const artifactPath = toPosix2(path4.relative(rootDir, absolutePath));
+    const artifactLabel = artifactPath && !artifactPath.startsWith("../") ? artifactPath : request.artifactId;
+    if (!isWithin(rootDir, familyRoot) || !isWithin(familyRoot, absolutePath) || absolutePath === familyRoot) {
+      diagnostics.push(diagnostic(artifactLabel, "planning", "path-outside-family", "$.absolutePath", "mutation target must be a file inside its declared repository-owned artifact family", { expected: toPosix2(path4.relative(rootDir, familyRoot)), actual: artifactPath }));
+      continue;
+    }
+    const confinementDiagnostic = physicalConfinementDiagnostic(rootDir, familyRoot, absolutePath, artifactPath);
+    if (confinementDiagnostic) {
+      diagnostics.push(confinementDiagnostic);
+      continue;
+    }
+    if (seenPaths.has(absolutePath)) {
+      diagnostics.push(diagnostic(artifactPath, "planning", "duplicate-target", "$.absolutePath", "a mutation transaction may name each target path only once"));
+      continue;
+    }
+    seenPaths.add(absolutePath);
+    let exists = false;
+    let previousContent = null;
+    try {
+      exists = fileSystem.exists(absolutePath);
+      previousContent = exists ? fileSystem.read(absolutePath) : null;
+    } catch (error) {
+      diagnostics.push(diagnostic(artifactPath, "planning", "target-read-failed", "$", "failed to read the current YAML artifact before planning its mutation", { actual: errorCode(error) }));
+      continue;
+    }
+    let serializedCandidate;
+    let validatedCandidate = request.candidate;
+    if (request.operation === "create" && exists) {
+      diagnostics.push(diagnostic(artifactPath, "planning", "target-exists", "$", "create requires an absent target"));
+    } else if ((request.operation === "update" || request.operation === "delete") && !exists) {
+      diagnostics.push(diagnostic(artifactPath, "planning", "target-missing", "$", `${request.operation} requires an existing target`));
+    }
+    if (request.operation !== "delete") {
+      if (!isMeaningfulArtifact(request.candidate)) {
+        diagnostics.push(diagnostic(artifactPath, "validation", "empty-candidate", "$", "create and update require a non-empty YAML mapping candidate"));
+      } else if (!request.validateCandidate) {
+        diagnostics.push(diagnostic(artifactPath, "validation", "missing-candidate-validator", "$", "create and update require complete-candidate schema validation"));
+      } else {
+        try {
+          serializedCandidate = stringifyYamlDocument(request.candidate);
+          const serializedArtifact = parseYamlDocument(serializedCandidate, { source: artifactPath });
+          validatedCandidate = serializedArtifact;
+          for (const issue of request.validateCandidate(serializedArtifact, { artifactPath, schemaId: request.schemaId })) {
+            diagnostics.push(validationDiagnostic(issue, artifactPath, "validation", "candidate-invalid"));
+          }
+        } catch (error) {
+          diagnostics.push(diagnostic(artifactPath, "validation", "candidate-validation-failed", "$", "failed to serialize or validate the complete YAML candidate", { actual: errorCode(error) }));
+        }
+      }
+    } else if (request.candidate !== undefined || request.validateCandidate !== undefined) {
+      diagnostics.push(diagnostic(artifactPath, "planning", "delete-with-edit", "$", "whole-artifact deletion cannot be combined with candidate edits or validation"));
+    }
+    planned.push({
+      artifactFamily: request.artifactFamily,
+      artifactId: request.artifactId,
+      schemaId: request.schemaId,
+      artifactPath,
+      absolutePath,
+      operation: request.operation,
+      role: request.role ?? "artifact",
+      candidate: validatedCandidate,
+      serializedCandidate,
+      previousContent,
+      changed: request.operation === "delete" ? exists : previousContent !== serializedCandidate
+    });
+  }
+  planned.sort(compareMutations);
+  if (diagnostics.length === 0 && options.validateRelationships) {
+    const candidateByIdentity = new Map(planned.map((mutation) => [`${mutation.artifactFamily}\x00${mutation.artifactId}`, mutation.candidate]));
+    try {
+      const relationshipIssues = options.validateRelationships({
+        mutations: planned,
+        getCandidate: (artifactFamily, artifactId) => candidateByIdentity.get(`${artifactFamily}\x00${artifactId}`)
+      });
+      for (const issue of relationshipIssues) {
+        diagnostics.push(validationDiagnostic(issue, "<transaction>", "validation", "relationship-invalid"));
+      }
+    } catch (error) {
+      diagnostics.push(diagnostic("<transaction>", "validation", "relationship-validation-failed", "$.relationships", "failed to validate YAML mutation relationships and side effects", { actual: errorCode(error) }));
+    }
+  }
+  if (diagnostics.length > 0) {
+    return result(planned, diagnostics, false);
+  }
+  const activeMutations = planned.filter((mutation) => mutation.changed);
+  if (activeMutations.length === 0) {
+    return result(planned, [], true);
+  }
+  const createdDirectories = [];
+  const entries = activeMutations.map((mutation) => ({
+    mutation,
+    targetInstalled: false,
+    backupCreated: false
+  }));
+  try {
+    for (const [index, entry] of entries.entries()) {
+      if (entry.mutation.operation === "delete")
+        continue;
+      createOwnedDirectories(rootDir, path4.dirname(entry.mutation.absolutePath), fileSystem, createdDirectories);
+      const temporaryPath = siblingWorkPath(entry.mutation.absolutePath, transactionId, index, "stage");
+      if (fileSystem.exists(temporaryPath))
+        fileSystem.remove(temporaryPath);
+      entry.temporaryPath = temporaryPath;
+      fileSystem.writeExclusive(temporaryPath, entry.mutation.serializedCandidate ?? "");
+    }
+  } catch (error) {
+    diagnostics.push(diagnostic("<transaction>", "staging", "stage-failed", "$", "failed to stage the complete YAML mutation transaction", { actual: errorCode(error) }));
+    diagnostics.push(...rollbackEntries(entries, fileSystem, transactionId));
+    removeCreatedDirectories(createdDirectories, fileSystem);
+    return result(planned, diagnostics, false);
+  }
+  try {
+    for (const [index, entry] of entries.entries()) {
+      const { mutation } = entry;
+      if (mutation.operation === "update" || mutation.operation === "delete") {
+        const backupPath = siblingWorkPath(mutation.absolutePath, transactionId, index, "backup");
+        if (fileSystem.exists(backupPath))
+          fileSystem.remove(backupPath);
+        fileSystem.rename(mutation.absolutePath, backupPath);
+        entry.backupPath = backupPath;
+        entry.backupCreated = true;
+      }
+      if (mutation.operation === "create" || mutation.operation === "update") {
+        fileSystem.rename(entry.temporaryPath ?? "", mutation.absolutePath);
+        entry.targetInstalled = true;
+        entry.temporaryPath = undefined;
+      }
+    }
+  } catch (error) {
+    diagnostics.push(diagnostic("<transaction>", "commit", "commit-failed", "$", "failed to commit the complete YAML mutation transaction", { actual: errorCode(error) }));
+    diagnostics.push(...rollbackEntries(entries, fileSystem, transactionId));
+    removeCreatedDirectories(createdDirectories, fileSystem);
+    return result(planned, diagnostics, false);
+  }
+  try {
+    for (const entry of entries) {
+      if (entry.backupPath && fileSystem.exists(entry.backupPath)) {
+        fileSystem.remove(entry.backupPath);
+      }
+    }
+  } catch (error) {
+    diagnostics.push(diagnostic("<transaction>", "commit", "cleanup-failed", "$", "failed to remove transaction backups after commit", { actual: errorCode(error) }));
+    diagnostics.push(...rollbackEntries(entries, fileSystem, transactionId));
+    removeCreatedDirectories(createdDirectories, fileSystem);
+    return result(planned, diagnostics, false);
+  }
+  return result(planned, [], true);
+}
+
 // src/propose-generation.ts
 var STRICT_WORKFLOW_DIR2 = ".strict-spec-driven";
 var GENERATABLE_ARTIFACTS = ["proposal", "design", "questions", "tasks", "delta-spec", "delta-tech"];
 var TASK_SECTION_NAMES = ["Implementation", "Testing", "Verification"];
 var TASK_STATUS_VALUES = ["pending", "complete"];
 function normalizeRepoRelativePath(rootDir, absolutePath) {
-  return path4.relative(rootDir, absolutePath).split(path4.sep).join("/");
+  return path5.relative(rootDir, absolutePath).split(path5.sep).join("/");
 }
 function isRecord(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -17507,11 +17831,11 @@ function asOptionalStringArray(value, fieldPath) {
 }
 function validateGeneratedArtifact(artifactType, artifact, artifactPath) {
   const schema2 = loadBundledSchemaByArtifactType(artifactType);
-  const result = validateArtifact(schema2, artifact, artifactPath);
-  return result.diagnostics;
+  const result2 = validateArtifact(schema2, artifact, artifactPath);
+  return result2.diagnostics;
 }
 function formatDiagnostics(diagnostics) {
-  return diagnostics.map((diagnostic) => `${diagnostic.artifactPath} ${diagnostic.fieldPath}: ${diagnostic.message}`).join("; ");
+  return diagnostics.map((diagnostic2) => `${diagnostic2.artifactPath} ${diagnostic2.fieldPath}: ${diagnostic2.message}`).join("; ");
 }
 function mapGeneratedFieldToInputField(artifact, fieldPath) {
   if (fieldPath === "$")
@@ -17556,13 +17880,13 @@ function mapGeneratedFieldToInputField(artifact, fieldPath) {
   return fieldPath;
 }
 function formatGenerationDiagnostics(artifact, inputLabel, diagnostics) {
-  const lines = diagnostics.map((diagnostic) => {
-    const inputField = mapGeneratedFieldToInputField(artifact, diagnostic.fieldPath);
+  const lines = diagnostics.map((diagnostic2) => {
+    const inputField = mapGeneratedFieldToInputField(artifact, diagnostic2.fieldPath);
     const details = [
-      diagnostic.message,
-      diagnostic.expected ? `expected ${diagnostic.expected}` : undefined,
-      diagnostic.actual ? `actual ${diagnostic.actual}` : undefined,
-      `generated field ${diagnostic.fieldPath}`
+      diagnostic2.message,
+      diagnostic2.expected ? `expected ${diagnostic2.expected}` : undefined,
+      diagnostic2.actual ? `actual ${diagnostic2.actual}` : undefined,
+      `generated field ${diagnostic2.fieldPath}`
     ].filter((value) => Boolean(value));
     return `- ${inputField}: ${details.join("; ")}`;
   });
@@ -17573,8 +17897,8 @@ function formatGenerationDiagnostics(artifact, inputLabel, diagnostics) {
 `);
 }
 function ensureExistingChangeDir(rootDir, changeName) {
-  const changeDir = path4.join(rootDir, STRICT_WORKFLOW_DIR2, "changes", changeName);
-  if (!existsSync4(changeDir) || !statSync3(changeDir).isDirectory()) {
+  const changeDir = path5.join(rootDir, STRICT_WORKFLOW_DIR2, "changes", changeName);
+  if (!existsSync5(changeDir) || !statSync4(changeDir).isDirectory()) {
     throw new Error(`change '${changeName}' not found`);
   }
   return changeDir;
@@ -17800,20 +18124,20 @@ function normalizeDeltaSpecRelativePath(relativePath) {
   if (normalized.startsWith(strictSpecsPrefix)) {
     normalized = normalized.slice(strictSpecsPrefix.length);
   }
-  if (path4.isAbsolute(normalized)) {
+  if (path5.isAbsolute(normalized)) {
     throw new Error("input field '$.spec_path' must be relative to the strict specs directory");
   }
   const parts = normalized.split("/");
-  if (normalized.length === 0 || parts.some((part) => part.length === 0 || part === "." || part === "..") || path4.basename(normalized) === "INDEX.yaml" || !(normalized.endsWith(".yaml") || normalized.endsWith(".yml"))) {
+  if (normalized.length === 0 || parts.some((part) => part.length === 0 || part === "." || part === "..") || path5.basename(normalized) === "INDEX.yaml" || !(normalized.endsWith(".yaml") || normalized.endsWith(".yml"))) {
     throw new Error("input field '$.spec_path' must be a normalized YAML path under the strict specs directory");
   }
   return normalized;
 }
 function readSpecIndexPathForTarget(rootDir, targetSpec) {
-  const indexPath = path4.join(rootDir, STRICT_WORKFLOW_DIR2, "specs", "INDEX.yaml");
-  if (!existsSync4(indexPath))
+  const indexPath = path5.join(rootDir, STRICT_WORKFLOW_DIR2, "specs", "INDEX.yaml");
+  if (!existsSync5(indexPath))
     return;
-  const index = parseYamlDocument(readFileSync5(indexPath, "utf8"), { source: normalizeRepoRelativePath(rootDir, indexPath) });
+  const index = parseYamlDocument(readFileSync6(indexPath, "utf8"), { source: normalizeRepoRelativePath(rootDir, indexPath) });
   const match = (index.specs ?? []).find((candidate) => candidate.id === targetSpec);
   return typeof match?.path === "string" ? match.path : undefined;
 }
@@ -17867,20 +18191,20 @@ function normalizeDeltaTechRelativePath(relativePath) {
   if (normalized.startsWith(strictTechPrefix)) {
     normalized = normalized.slice(strictTechPrefix.length);
   }
-  if (path4.isAbsolute(normalized)) {
+  if (path5.isAbsolute(normalized)) {
     throw new Error("input field '$.tech_path' must be relative to the strict tech directory");
   }
   const parts = normalized.split("/");
-  if (normalized.length === 0 || parts.some((part) => part.length === 0 || part === "." || part === "..") || path4.basename(normalized) === "INDEX.yaml" || !(normalized.endsWith(".yaml") || normalized.endsWith(".yml"))) {
+  if (normalized.length === 0 || parts.some((part) => part.length === 0 || part === "." || part === "..") || path5.basename(normalized) === "INDEX.yaml" || !(normalized.endsWith(".yaml") || normalized.endsWith(".yml"))) {
     throw new Error("input field '$.tech_path' must be a normalized YAML path under the strict tech directory");
   }
   return normalized;
 }
 function readTechIndexPathForTarget(rootDir, targetStandard) {
-  const indexPath = path4.join(rootDir, STRICT_WORKFLOW_DIR2, "tech", "INDEX.yaml");
-  if (!existsSync4(indexPath))
+  const indexPath = path5.join(rootDir, STRICT_WORKFLOW_DIR2, "tech", "INDEX.yaml");
+  if (!existsSync5(indexPath))
     return;
-  const index = parseYamlDocument(readFileSync5(indexPath, "utf8"), { source: normalizeRepoRelativePath(rootDir, indexPath) });
+  const index = parseYamlDocument(readFileSync6(indexPath, "utf8"), { source: normalizeRepoRelativePath(rootDir, indexPath) });
   const match = (index.standards ?? []).find((candidate) => candidate.id === targetStandard);
   return typeof match?.path === "string" ? match.path : undefined;
 }
@@ -17934,32 +18258,32 @@ function buildTarget(rootDir, changeDir, changeName, artifact, input) {
       return {
         artifact: buildProposalArtifact(changeName, input),
         artifactType: "change_proposal",
-        absolutePath: path4.join(changeDir, "proposal.yaml")
+        absolutePath: path5.join(changeDir, "proposal.yaml")
       };
     case "design":
       return {
         artifact: buildDesignArtifact(changeName, input),
         artifactType: "change_design",
-        absolutePath: path4.join(changeDir, "design.yaml")
+        absolutePath: path5.join(changeDir, "design.yaml")
       };
     case "questions":
       return {
         artifact: buildQuestionsArtifact(changeName, input),
         artifactType: "question_list",
-        absolutePath: path4.join(changeDir, "questions.yaml")
+        absolutePath: path5.join(changeDir, "questions.yaml")
       };
     case "tasks":
       return {
         artifact: buildTaskListArtifact(changeName, input),
         artifactType: "task_list",
-        absolutePath: path4.join(changeDir, "tasks.yaml")
+        absolutePath: path5.join(changeDir, "tasks.yaml")
       };
     case "delta-spec": {
       const deltaSpec = buildDeltaSpecArtifact(rootDir, input);
       return {
         artifact: deltaSpec.artifact,
         artifactType: "delta_spec",
-        absolutePath: path4.join(changeDir, "specs", deltaSpec.relativePath)
+        absolutePath: path5.join(changeDir, "specs", deltaSpec.relativePath)
       };
     }
     case "delta-tech": {
@@ -17967,7 +18291,7 @@ function buildTarget(rootDir, changeDir, changeName, artifact, input) {
       return {
         artifact: deltaTech.artifact,
         artifactType: "delta_tech",
-        absolutePath: path4.join(changeDir, "tech", deltaTech.relativePath)
+        absolutePath: path5.join(changeDir, "tech", deltaTech.relativePath)
       };
     }
   }
@@ -17983,10 +18307,30 @@ function writeGeneratedArtifact(rootDir, changeName, artifact, input, inputLabel
   if (preWriteDiagnostics.length > 0) {
     throw new Error(formatGenerationDiagnostics(artifact, inputLabel, preWriteDiagnostics));
   }
-  const replaced = existsSync4(target.absolutePath);
-  mkdirSync3(path4.dirname(target.absolutePath), { recursive: true });
-  writeFileSync3(target.absolutePath, stringifyYamlDocument(target.artifact), "utf8");
-  const writtenArtifact = parseYamlDocument(readFileSync5(target.absolutePath, "utf8"), { source: artifactPath });
+  const replaced = existsSync5(target.absolutePath);
+  const mutation = commitYamlMutation({
+    rootDir,
+    mutations: [{
+      artifactFamily: "strict-change",
+      artifactId: `${changeName}/${artifact}`,
+      schemaId: target.artifactType,
+      familyRoot: changeDir,
+      absolutePath: target.absolutePath,
+      operation: replaced ? "update" : "create",
+      candidate: target.artifact,
+      validateCandidate: (candidate, context) => validateGeneratedArtifact(target.artifactType, candidate, context.artifactPath).map((entry) => ({
+        code: entry.source,
+        fieldPath: entry.fieldPath,
+        message: entry.message,
+        expected: entry.expected,
+        actual: entry.actual
+      }))
+    }]
+  });
+  if (!mutation.valid) {
+    throw new Error(`failed to write ${artifact} artifact: ${mutation.diagnostics.map((entry) => `${entry.code} ${entry.artifactPath} ${entry.fieldPath}: ${entry.message}`).join("; ")}`);
+  }
+  const writtenArtifact = parseYamlDocument(readFileSync6(target.absolutePath, "utf8"), { source: artifactPath });
   const diagnostics = validateGeneratedArtifact(target.artifactType, writtenArtifact, artifactPath);
   if (diagnostics.length > 0) {
     throw new Error(`written ${artifact} artifact is invalid: ${formatDiagnostics(diagnostics)}`);
@@ -18060,8 +18404,8 @@ function resolveStringValue(value, rootDir) {
   if (!value.startsWith("@") || value === "@") {
     return value;
   }
-  const inputPath = path5.resolve(rootDir, value.slice(1));
-  return readFileSync6(inputPath, "utf8");
+  const inputPath = path6.resolve(rootDir, value.slice(1));
+  return readFileSync7(inputPath, "utf8");
 }
 var PROPOSAL_ARGUMENTS = [
   "what",
@@ -18131,10 +18475,10 @@ function isRecord2(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function readYamlIfExists(rootDir, repoRelativePath) {
-  const absolutePath = path5.join(rootDir, repoRelativePath);
-  if (!existsSync5(absolutePath))
+  const absolutePath = path6.join(rootDir, repoRelativePath);
+  if (!existsSync6(absolutePath))
     return;
-  return parseYamlDocument(readFileSync6(absolutePath, "utf8"), { source: repoRelativePath });
+  return parseYamlDocument(readFileSync7(absolutePath, "utf8"), { source: repoRelativePath });
 }
 function deepEqual(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
@@ -19247,10 +19591,10 @@ function runArtifactDelete(rootDir, changeName, artifact, argv) {
     }
   }
   const artifactPath = resolveDeleteTarget(rootDir, changeName, artifact, flags);
-  const absolutePath = path5.join(rootDir, artifactPath);
-  const deleted = existsSync5(absolutePath);
+  const absolutePath = path6.join(rootDir, artifactPath);
+  const deleted = existsSync6(absolutePath);
   if (deleted)
-    rmSync2(absolutePath);
+    rmSync3(absolutePath);
   return { changeName, artifact, artifactPath, deleted };
 }
 function buildInputFromNamedArgs(rootDir, changeName, artifact, argv, removalOutcome) {
@@ -19298,12 +19642,12 @@ function runGenerate(argv) {
     }
     const removalOutcome = { removed: [], unmatched: [] };
     const input = buildInputFromNamedArgs(process.cwd(), changeName, artifact, namedArgs, removalOutcome);
-    const result = generateChangeArtifactFromInput(process.cwd(), changeName, artifact, input);
+    const result2 = generateChangeArtifactFromInput(process.cwd(), changeName, artifact, input);
     if (removalOutcome.removed.length > 0)
-      result.removedTasks = removalOutcome.removed;
+      result2.removedTasks = removalOutcome.removed;
     if (removalOutcome.unmatched.length > 0)
-      result.unmatchedRemovals = removalOutcome.unmatched;
-    writeJson(result);
+      result2.unmatchedRemovals = removalOutcome.unmatched;
+    writeJson(result2);
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -19313,12 +19657,12 @@ function runGenerate(argv) {
 }
 
 // src/cli/cmd-change.ts
-import { existsSync as existsSync16, rmSync as rmSync3, statSync as statSync10 } from "fs";
-import path17 from "path";
+import { existsSync as existsSync17, rmSync as rmSync4, statSync as statSync11 } from "fs";
+import path18 from "path";
 
 // src/apply.ts
-import { existsSync as existsSync6, readFileSync as readFileSync7, writeFileSync as writeFileSync4 } from "fs";
-import path6 from "path";
+import { existsSync as existsSync7, readFileSync as readFileSync8, writeFileSync as writeFileSync4 } from "fs";
+import path7 from "path";
 function applyTask(tasksYamlContent) {
   const artifact = parseYamlDocument(tasksYamlContent);
   let totalTasks = 0;
@@ -19355,31 +19699,31 @@ function applyTask(tasksYamlContent) {
   };
 }
 function readChangeTasks(rootDir, changeName) {
-  const tasksPath = path6.join(rootDir, ".strict-spec-driven", "changes", changeName, "tasks.yaml");
-  if (!existsSync6(tasksPath)) {
+  const tasksPath = path7.join(rootDir, ".strict-spec-driven", "changes", changeName, "tasks.yaml");
+  if (!existsSync7(tasksPath)) {
     throw new Error(`change '${changeName}' not found`);
   }
-  return readFileSync7(tasksPath, "utf8");
+  return readFileSync8(tasksPath, "utf8");
 }
 function writeChangeTasks(rootDir, changeName, content) {
-  const tasksPath = path6.join(rootDir, ".strict-spec-driven", "changes", changeName, "tasks.yaml");
+  const tasksPath = path7.join(rootDir, ".strict-spec-driven", "changes", changeName, "tasks.yaml");
   writeFileSync4(tasksPath, content, "utf8");
 }
 
 // src/archive.ts
 import {
-  existsSync as existsSync13,
+  existsSync as existsSync14,
   mkdirSync as mkdirSync5,
   readdirSync as readdirSync5,
-  readFileSync as readFileSync12,
-  renameSync as renameSync3,
+  readFileSync as readFileSync13,
+  renameSync as renameSync4,
   writeFileSync as writeFileSync6
 } from "fs";
-import path14 from "path";
+import path15 from "path";
 
 // src/roadmap.ts
-import { existsSync as existsSync11, renameSync as renameSync2, statSync as statSync7 } from "fs";
-import path12 from "path";
+import { existsSync as existsSync12, renameSync as renameSync3, statSync as statSync8 } from "fs";
+import path13 from "path";
 
 // src/roadmap/model.ts
 var STRICT_WORKFLOW_DIR4 = ".strict-spec-driven";
@@ -19463,13 +19807,13 @@ function cloneDefaultMilestoneIntakeQuestions() {
 }
 
 // src/roadmap/shared.ts
-import { existsSync as existsSync7, readdirSync as readdirSync2, statSync as statSync4 } from "fs";
-import path8 from "path";
+import { existsSync as existsSync8, readdirSync as readdirSync2, statSync as statSync5 } from "fs";
+import path9 from "path";
 
 // src/diagnostics.ts
-import path7 from "node:path";
-function toPosix2(value) {
-  return value.split(path7.sep).join("/");
+import path8 from "node:path";
+function toPosix3(value) {
+  return value.split(path8.sep).join("/");
 }
 function buildDeterministicSortKey(parts) {
   return parts.map((part) => part == null ? "" : String(part)).join("|");
@@ -19484,14 +19828,14 @@ function sortByDeterministicKey(values2, getParts) {
 
 // src/roadmap/shared.ts
 function normalizeRepoRelativePath2(rootDir, absolutePath) {
-  return toPosix2(path8.relative(rootDir, absolutePath));
+  return toPosix3(path9.relative(rootDir, absolutePath));
 }
 function resolveStrictWorkflowPath(rootDir, workflowRelativePath) {
-  const normalized = toPosix2(workflowRelativePath);
+  const normalized = toPosix3(workflowRelativePath);
   if (normalized.startsWith(`${STRICT_WORKFLOW_DIR4}/`)) {
-    return path8.join(rootDir, normalized);
+    return path9.join(rootDir, normalized);
   }
-  return path8.join(rootDir, STRICT_WORKFLOW_DIR4, normalized);
+  return path9.join(rootDir, STRICT_WORKFLOW_DIR4, normalized);
 }
 function ensureTrailingNewline(value) {
   return value.endsWith(`
@@ -19502,27 +19846,27 @@ function makeDiagnostic(source, artifactPath, fieldPath, message, expected, actu
   return { source, artifactPath, fieldPath, message, expected, actual };
 }
 function sortDiagnostics(diagnostics) {
-  return sortByDeterministicKey(diagnostics, (diagnostic) => [
-    diagnostic.source,
-    diagnostic.artifactPath,
-    diagnostic.fieldPath,
-    diagnostic.message,
-    diagnostic.expected ?? "",
-    diagnostic.actual ?? ""
+  return sortByDeterministicKey(diagnostics, (diagnostic2) => [
+    diagnostic2.source,
+    diagnostic2.artifactPath,
+    diagnostic2.fieldPath,
+    diagnostic2.message,
+    diagnostic2.expected ?? "",
+    diagnostic2.actual ?? ""
   ]);
 }
 function isRecord3(value) {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 function listYamlFiles(directoryPath) {
-  if (!existsSync7(directoryPath) || !statSync4(directoryPath).isDirectory()) {
+  if (!existsSync8(directoryPath) || !statSync5(directoryPath).isDirectory()) {
     return [];
   }
   const files = [];
   function walk(currentPath) {
     const entries = readdirSync2(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
-      const fullPath = path8.join(currentPath, entry.name);
+      const fullPath = path9.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -19536,9 +19880,9 @@ function listYamlFiles(directoryPath) {
   return files;
 }
 function isRepoRelativePath(value) {
-  if (path8.isAbsolute(value))
+  if (path9.isAbsolute(value))
     return false;
-  const normalized = path8.posix.normalize(toPosix2(value));
+  const normalized = path9.posix.normalize(toPosix3(value));
   return normalized !== ".." && !normalized.startsWith("../");
 }
 function isDeclaredRoadmapStatus(value) {
@@ -19555,8 +19899,8 @@ function readYamlFile(filePath) {
 }
 
 // src/roadmap/load.ts
-import { existsSync as existsSync8, readFileSync as readFileSync9, statSync as statSync5 } from "fs";
-import path9 from "path";
+import { existsSync as existsSync9, readFileSync as readFileSync10, statSync as statSync6 } from "fs";
+import path10 from "path";
 
 // src/roadmap/validate.ts
 var MILESTONE_ID_PATTERN = /^(\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$/;
@@ -19575,15 +19919,15 @@ function validateStringArray(parent, key, artifactPath, fieldPath, diagnostics) 
     diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "value must be a string sequence", "string[]", String(value)));
     return null;
   }
-  const result = [];
+  const result2 = [];
   for (const [index, entry] of value.entries()) {
     if (typeof entry !== "string" || entry.length === 0) {
       diagnostics.push(makeDiagnostic("schema", artifactPath, `${fieldPath}[${index}]`, "sequence item must be a non-empty string", "non-empty string", String(entry)));
       continue;
     }
-    result.push(entry);
+    result2.push(entry);
   }
-  return result;
+  return result2;
 }
 function validateOptionalString(parent, key, artifactPath, fieldPath, diagnostics) {
   if (!(key in parent) || parent[key] === undefined)
@@ -19609,7 +19953,7 @@ function validateMilestoneIntakeQuestions(artifact, artifactPath, diagnostics) {
     diagnostics.push(makeDiagnostic("schema", artifactPath, "$.intake_questions", "intake_questions must contain at least one question", "one or more intake question entries", "empty sequence"));
     return null;
   }
-  const result = [];
+  const result2 = [];
   const seenIds = new Set;
   for (const [index, entry] of value.entries()) {
     const fieldPath = `$.intake_questions[${index}]`;
@@ -19631,10 +19975,10 @@ function validateMilestoneIntakeQuestions(artifact, artifactPath, diagnostics) {
       seenIds.add(id);
     }
     if (id && question && context && impact && recommendation && QUESTION_ID_PATTERN.test(id)) {
-      result.push({ id, question, context, impact, recommendation });
+      result2.push({ id, question, context, impact, recommendation });
     }
   }
-  return result.length > 0 ? result : null;
+  return result2.length > 0 ? result2 : null;
 }
 function validateRoadmapIndexArtifact(artifact, artifactPath, diagnostics) {
   if (!isRecord3(artifact)) {
@@ -19785,7 +20129,7 @@ function validateExternalRefsMetadata(value, artifactPath, fieldPath, diagnostic
     diagnostics.push(makeDiagnostic("schema", artifactPath, fieldPath, "external_refs must be a sequence", "external reference[]", String(value)));
     return null;
   }
-  const result = [];
+  const result2 = [];
   let valid = true;
   for (const [index, entry] of value.entries()) {
     const entryPath = `${fieldPath}[${index}]`;
@@ -19806,9 +20150,9 @@ function validateExternalRefsMetadata(value, artifactPath, fieldPath, diagnostic
       valid = false;
       continue;
     }
-    result.push({ label, target });
+    result2.push({ label, target });
   }
-  return valid ? result : null;
+  return valid ? result2 : null;
 }
 function validateTeamMetadata(value, artifactPath, diagnostics) {
   if (!isRecord3(value)) {
@@ -20063,8 +20407,8 @@ function validateMilestoneArtifact(artifact, artifactPath, diagnostics) {
 
 // src/roadmap/load.ts
 function isInsideDirectory(filePath, directoryPath) {
-  const relativePath = path9.relative(directoryPath, filePath);
-  return relativePath.length > 0 && !relativePath.startsWith("..") && !path9.isAbsolute(relativePath);
+  const relativePath = path10.relative(directoryPath, filePath);
+  return relativePath.length > 0 && !relativePath.startsWith("..") && !path10.isAbsolute(relativePath);
 }
 function listStandalonePlannedChangeFiles(roadmapDir, indexPath, milestonesDir, archiveDir) {
   return listYamlFiles(roadmapDir).filter((filePath) => {
@@ -20083,16 +20427,16 @@ function appendLegacyInlinePlannedChangeDiagnostic(artifactPath, plannedChangeId
 function loadRoadmap(rootDir, options = {}) {
   const warnings = [];
   const diagnostics = [];
-  const roadmapDir = path9.join(rootDir, ROADMAP_DIR);
-  const archiveDir = path9.join(rootDir, ROADMAP_ARCHIVE_DIR);
-  const indexPath = path9.join(rootDir, ROADMAP_INDEX_PATH);
-  const milestonesDir = path9.join(rootDir, ROADMAP_MILESTONES_DIR);
-  if (!existsSync8(roadmapDir) || !statSync5(roadmapDir).isDirectory()) {
+  const roadmapDir = path10.join(rootDir, ROADMAP_DIR);
+  const archiveDir = path10.join(rootDir, ROADMAP_ARCHIVE_DIR);
+  const indexPath = path10.join(rootDir, ROADMAP_INDEX_PATH);
+  const milestonesDir = path10.join(rootDir, ROADMAP_MILESTONES_DIR);
+  if (!existsSync9(roadmapDir) || !statSync6(roadmapDir).isDirectory()) {
     diagnostics.push(makeDiagnostic("schema", ROADMAP_DIR, "$", "strict roadmap directory not found", ROADMAP_DIR, "missing"));
     return { warnings, diagnostics, indexArtifact: null, milestones: [], plannedChanges: [] };
   }
   let indexArtifact = null;
-  if (existsSync8(indexPath)) {
+  if (existsSync9(indexPath)) {
     try {
       indexArtifact = validateRoadmapIndexArtifact(readYamlFile(indexPath), ROADMAP_INDEX_PATH, diagnostics);
     } catch (error) {
@@ -20114,7 +20458,7 @@ function loadRoadmap(rootDir, options = {}) {
   for (const absolutePath of milestoneFiles) {
     const artifactPath = normalizeRepoRelativePath2(rootDir, absolutePath);
     try {
-      const raw = readFileSync9(absolutePath, "utf8");
+      const raw = readFileSync10(absolutePath, "utf8");
       const artifact = validateMilestoneArtifact(readYamlFile(absolutePath), artifactPath, diagnostics);
       if (!artifact)
         continue;
@@ -20122,11 +20466,11 @@ function loadRoadmap(rootDir, options = {}) {
       if (!options.allowInlinePlannedChanges && inlinePlannedChangeIds.length > 0) {
         appendLegacyInlinePlannedChangeDiagnostic(artifactPath, inlinePlannedChangeIds, diagnostics);
       }
-      const relativeMilestonePath = toPosix2(path9.relative(milestonesDir, absolutePath));
+      const relativeMilestonePath = toPosix3(path10.relative(milestonesDir, absolutePath));
       milestones.push({
         absolutePath,
         artifactPath,
-        file: path9.basename(relativeMilestonePath),
+        file: path10.basename(relativeMilestonePath),
         relativeMilestonePath,
         repoRelativePath: normalizeRepoRelativePath2(rootDir, absolutePath),
         raw,
@@ -20145,15 +20489,15 @@ function loadRoadmap(rootDir, options = {}) {
   for (const absolutePath of listStandalonePlannedChangeFiles(roadmapDir, indexPath, milestonesDir, archiveDir)) {
     const artifactPath = normalizeRepoRelativePath2(rootDir, absolutePath);
     try {
-      const raw = readFileSync9(absolutePath, "utf8");
+      const raw = readFileSync10(absolutePath, "utf8");
       const artifact = validateStandalonePlannedChangeArtifact(readYamlFile(absolutePath), artifactPath, diagnostics);
       if (!artifact)
         continue;
-      const relativeRoadmapPath = toPosix2(path9.relative(roadmapDir, absolutePath));
+      const relativeRoadmapPath = toPosix3(path10.relative(roadmapDir, absolutePath));
       plannedChanges.push({
         absolutePath,
         artifactPath,
-        file: path9.basename(relativeRoadmapPath),
+        file: path10.basename(relativeRoadmapPath),
         relativeRoadmapPath,
         repoRelativePath: normalizeRepoRelativePath2(rootDir, absolutePath),
         raw,
@@ -20177,9 +20521,9 @@ function loadRoadmap(rootDir, options = {}) {
   };
 }
 function loadArchivedPlannedChangeIds(rootDir) {
-  const archivePlannedChangesDir = path9.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR);
+  const archivePlannedChangesDir = path10.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR);
   const ids = new Set;
-  if (!existsSync8(archivePlannedChangesDir) || !statSync5(archivePlannedChangesDir).isDirectory()) {
+  if (!existsSync9(archivePlannedChangesDir) || !statSync6(archivePlannedChangesDir).isDirectory()) {
     return ids;
   }
   for (const absolutePath of listYamlFiles(archivePlannedChangesDir)) {
@@ -20200,8 +20544,8 @@ function loadArchivedPlannedChangeIds(rootDir) {
 }
 
 // src/roadmap/status.ts
-import { existsSync as existsSync9, readdirSync as readdirSync3, statSync as statSync6 } from "fs";
-import path10 from "path";
+import { existsSync as existsSync10, readdirSync as readdirSync3, statSync as statSync7 } from "fs";
+import path11 from "path";
 var MISSING_ORDER_SORT_VALUE = Number.MAX_SAFE_INTEGER;
 function roadmapMilestoneId(milestone) {
   const milestoneField = milestone.artifact.milestone;
@@ -20222,10 +20566,10 @@ function sortMilestonesByRoadmapOrder(milestones) {
   return milestones.slice().sort(compareMilestonesByRoadmapOrder);
 }
 function getChangeStateIndex(rootDir) {
-  const changesDir = path10.join(rootDir, STRICT_WORKFLOW_DIR4, "changes");
+  const changesDir = path11.join(rootDir, STRICT_WORKFLOW_DIR4, "changes");
   const active = new Set;
   const archived = new Set;
-  if (!existsSync9(changesDir) || !statSync6(changesDir).isDirectory()) {
+  if (!existsSync10(changesDir) || !statSync7(changesDir).isDirectory()) {
     return { active, archived };
   }
   for (const entry of readdirSync3(changesDir, { withFileTypes: true })) {
@@ -20233,8 +20577,8 @@ function getChangeStateIndex(rootDir) {
       continue;
     active.add(entry.name);
   }
-  const archiveDir = path10.join(changesDir, "archive");
-  if (existsSync9(archiveDir) && statSync6(archiveDir).isDirectory()) {
+  const archiveDir = path11.join(changesDir, "archive");
+  if (existsSync10(archiveDir) && statSync7(archiveDir).isDirectory()) {
     for (const entry of readdirSync3(archiveDir, { withFileTypes: true })) {
       if (!entry.isDirectory())
         continue;
@@ -20442,7 +20786,7 @@ function getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges
       id,
       entry,
       source: "inline",
-      path: toPosix2(path10.join("roadmap", "milestones", milestone.relativeMilestonePath))
+      path: toPosix3(path11.join("roadmap", "milestones", milestone.relativeMilestonePath))
     });
   }
   for (const plannedChange of standalonePlannedChanges) {
@@ -20450,7 +20794,7 @@ function getMergedPlannedChangesForMilestone(milestone, standalonePlannedChanges
     merged.set(id, {
       id,
       source: "standalone",
-      path: toPosix2(path10.join("roadmap", plannedChange.relativeRoadmapPath)),
+      path: toPosix3(path11.join("roadmap", plannedChange.relativeRoadmapPath)),
       loadedPlannedChange: plannedChange,
       entry: {
         status: plannedChange.artifact.status,
@@ -20489,7 +20833,7 @@ function buildMilestoneStatus(milestone, changeStates, plannedChangeEntries = ge
     mismatches.push(`declared status '${milestone.artifact.status}' does not match derived status '${derivedStatus}'`);
   }
   return {
-    path: toPosix2(path10.join("roadmap", "milestones", milestone.relativeMilestonePath)),
+    path: toPosix3(path11.join("roadmap", "milestones", milestone.relativeMilestonePath)),
     id: milestone.artifact.milestone.id,
     title: milestone.artifact.milestone.title,
     ...typeof milestone.artifact.order === "number" ? { order: milestone.artifact.order } : {},
@@ -20505,10 +20849,10 @@ function orderMilestoneStatuses(rootDir, roadmap, statuses, roadmapIndexPath) {
   const diagnostics = roadmap.diagnostics;
   if (roadmap.indexArtifact) {
     for (const entry of roadmap.indexArtifact.milestones) {
-      const normalizedPath = toPosix2(entry.path);
+      const normalizedPath = toPosix3(entry.path);
       const status = statuses.get(normalizedPath);
       const absolutePath = resolveStrictWorkflowPath(rootDir, normalizedPath);
-      if (!existsSync9(absolutePath)) {
+      if (!existsSync10(absolutePath)) {
         diagnostics.push(makeDiagnostic("reference", roadmapIndexPath, `$.milestones.${entry.id}.path`, "roadmap index entry references a missing milestone file", "existing roadmap milestone file", normalizedPath));
         continue;
       }
@@ -20527,7 +20871,7 @@ function orderMilestoneStatuses(rootDir, roadmap, statuses, roadmapIndexPath) {
     }
   }
   for (const milestone of roadmap.milestones) {
-    const milestonePath = toPosix2(path10.join("roadmap", "milestones", milestone.relativeMilestonePath));
+    const milestonePath = toPosix3(path11.join("roadmap", "milestones", milestone.relativeMilestonePath));
     if (seenPaths.has(milestonePath))
       continue;
     if (roadmap.indexArtifact) {
@@ -20535,18 +20879,18 @@ function orderMilestoneStatuses(rootDir, roadmap, statuses, roadmapIndexPath) {
     }
   }
   return sortMilestonesByRoadmapOrder(roadmap.milestones).map((milestone, index) => {
-    const milestonePath = toPosix2(path10.join("roadmap", "milestones", milestone.relativeMilestonePath));
+    const milestonePath = toPosix3(path11.join("roadmap", "milestones", milestone.relativeMilestonePath));
     const status = statuses.get(milestonePath);
     return status ? { ...status, displayOrdinal: index + 1 } : null;
   }).filter((status) => status !== null);
 }
 
 // src/roadmap/sync.ts
-import { existsSync as existsSync10, mkdirSync as mkdirSync4, readFileSync as readFileSync10, writeFileSync as writeFileSync5 } from "fs";
-import path11 from "path";
+import { existsSync as existsSync11, mkdirSync as mkdirSync4, readFileSync as readFileSync11, writeFileSync as writeFileSync5 } from "fs";
+import path12 from "path";
 function writeFileIfChanged(filePath, nextContent, updatedFiles, rootDir) {
   const normalized = ensureTrailingNewline(nextContent);
-  const current = existsSync10(filePath) ? ensureTrailingNewline(readFileSync10(filePath, "utf8")) : null;
+  const current = existsSync11(filePath) ? ensureTrailingNewline(readFileSync11(filePath, "utf8")) : null;
   if (current === normalized)
     return;
   writeFileSync5(filePath, normalized, "utf8");
@@ -20632,10 +20976,10 @@ function buildCanonicalPlannedChangeArtifact(plannedChange, status) {
   };
 }
 function materializedPlannedChangePath(rootDir, milestone, plannedChangeId) {
-  return path11.join(rootDir, ROADMAP_DIR, "planned-changes", canonicalPlannedChangeFileName(milestone.artifact.milestone.id, plannedChangeId));
+  return path12.join(rootDir, ROADMAP_DIR, "planned-changes", canonicalPlannedChangeFileName(milestone.artifact.milestone.id, plannedChangeId));
 }
 function ensurePlannedChangeDirectory(filePath) {
-  mkdirSync4(path11.dirname(filePath), { recursive: true });
+  mkdirSync4(path12.dirname(filePath), { recursive: true });
 }
 function extractMilestoneId(artifact) {
   const milestoneField = artifact.milestone;
@@ -20662,7 +21006,7 @@ function buildRoadmapIndexArtifact(milestones) {
   for (const milestone of milestoneEntries) {
     milestonesMap[extractMilestoneId(milestone.artifact)] = {
       title: extractMilestoneTitle(milestone.artifact),
-      path: toPosix2(path11.join("roadmap", "milestones", milestone.relativeMilestonePath)),
+      path: toPosix3(path12.join("roadmap", "milestones", milestone.relativeMilestonePath)),
       status: milestone.artifact.status
     };
   }
@@ -20730,14 +21074,14 @@ function appendDiagnostics(lines, diagnostics) {
   if (diagnostics.length === 0)
     return;
   lines.push("Diagnostics:");
-  for (const diagnostic of diagnostics) {
-    lines.push(`- [${diagnostic.source}] ${diagnostic.artifactPath} ${diagnostic.fieldPath}`);
-    lines.push(`  message: ${diagnostic.message}`);
-    if (diagnostic.expected !== undefined) {
-      lines.push(`  expected: ${diagnostic.expected}`);
+  for (const diagnostic2 of diagnostics) {
+    lines.push(`- [${diagnostic2.source}] ${diagnostic2.artifactPath} ${diagnostic2.fieldPath}`);
+    lines.push(`  message: ${diagnostic2.message}`);
+    if (diagnostic2.expected !== undefined) {
+      lines.push(`  expected: ${diagnostic2.expected}`);
     }
-    if (diagnostic.actual !== undefined) {
-      lines.push(`  actual: ${diagnostic.actual}`);
+    if (diagnostic2.actual !== undefined) {
+      lines.push(`  actual: ${diagnostic2.actual}`);
     }
   }
   lines.push("");
@@ -20773,15 +21117,15 @@ function loadRoadmapStatusContext(rootDir) {
     milestones
   };
 }
-function formatRoadmapOverview(result) {
-  const lines = [`Roadmap overview (${result.valid ? "valid" : "invalid"})`, ""];
-  appendWarnings(lines, result.warnings);
-  appendDiagnostics(lines, result.diagnostics);
+function formatRoadmapOverview(result2) {
+  const lines = [`Roadmap overview (${result2.valid ? "valid" : "invalid"})`, ""];
+  appendWarnings(lines, result2.warnings);
+  appendDiagnostics(lines, result2.diagnostics);
   lines.push("Milestone summary:");
-  if (result.milestones.length === 0) {
+  if (result2.milestones.length === 0) {
     lines.push("(none)");
   } else {
-    const summaryRows = renderTextTable(result.milestones, [
+    const summaryRows = renderTextTable(result2.milestones, [
       { header: "ID", value: (milestone) => milestone.id },
       { header: "Declared", value: (milestone) => milestone.declaredStatus },
       { header: "Derived", value: (milestone) => milestone.derivedStatus },
@@ -20798,10 +21142,10 @@ function formatRoadmapOverview(result) {
   }
   lines.push("");
   lines.push("Milestone detail:");
-  if (result.milestones.length === 0) {
+  if (result2.milestones.length === 0) {
     lines.push("(none)");
   } else {
-    for (const milestone of result.milestones) {
+    for (const milestone of result2.milestones) {
       lines.push(`[${milestone.id}] ${milestone.title}`);
       lines.push(`path: ${milestone.path}`);
       lines.push(`status: declared=${milestone.declaredStatus} derived=${milestone.derivedStatus}`);
@@ -20962,10 +21306,10 @@ function fixPlannedChangeFileNames(rootDir, allowInlinePlannedChanges) {
     const canonical = canonicalPlannedChangeFileName(plannedChange.artifact.planned_change.milestone, plannedChange.artifact.planned_change.id);
     if (plannedChange.file === canonical)
       continue;
-    const targetPath = path12.join(path12.dirname(plannedChange.absolutePath), canonical);
-    if (existsSync11(targetPath))
+    const targetPath = path13.join(path13.dirname(plannedChange.absolutePath), canonical);
+    if (existsSync12(targetPath))
       continue;
-    renameSync2(plannedChange.absolutePath, targetPath);
+    renameSync3(plannedChange.absolutePath, targetPath);
     renamedFiles.push({
       from: normalizeRepoRelativePath2(rootDir, plannedChange.absolutePath),
       to: normalizeRepoRelativePath2(rootDir, targetPath)
@@ -20981,7 +21325,7 @@ function syncRoadmap(rootDir, options = {}) {
   });
   const changeStates = getChangeStateIndex(rootDir);
   appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
-  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH);
+  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH);
   if (blockingDiagnostics.length > 0) {
     return {
       valid: false,
@@ -20992,8 +21336,8 @@ function syncRoadmap(rootDir, options = {}) {
       milestones: []
     };
   }
-  const roadmapDir = path12.join(rootDir, ROADMAP_DIR);
-  if (!existsSync11(roadmapDir) || !statSync7(roadmapDir).isDirectory()) {
+  const roadmapDir = path13.join(rootDir, ROADMAP_DIR);
+  if (!existsSync12(roadmapDir) || !statSync8(roadmapDir).isDirectory()) {
     return {
       valid: false,
       warnings: roadmap.warnings,
@@ -21033,7 +21377,7 @@ function syncRoadmap(rootDir, options = {}) {
       plannedChange.raw = ensureTrailingNewline(stringifyYamlDocument(nextPlannedChangeArtifact));
     }
   }
-  const indexPath = path12.join(rootDir, ROADMAP_INDEX_PATH);
+  const indexPath = path13.join(rootDir, ROADMAP_INDEX_PATH);
   const nextIndex = buildRoadmapIndexArtifact(roadmap.milestones);
   writeFileIfChanged(indexPath, stringifyYamlDocument(nextIndex), updatedFiles, rootDir);
   const status = getRoadmapStatus(rootDir);
@@ -21048,8 +21392,8 @@ function syncRoadmap(rootDir, options = {}) {
 }
 
 // src/verify.ts
-import { existsSync as existsSync12, readdirSync as readdirSync4, readFileSync as readFileSync11, statSync as statSync8 } from "fs";
-import path13 from "path";
+import { existsSync as existsSync13, readdirSync as readdirSync4, readFileSync as readFileSync12, statSync as statSync9 } from "fs";
+import path14 from "path";
 var STRICT_WORKFLOW_DIR5 = ".strict-spec-driven";
 var FORBIDDEN_SPEC_SUBDIRS = new Set([".strict-spec-driven", "changes", "archive"]);
 function collectDiagnostics(results) {
@@ -21101,8 +21445,8 @@ function validateArtifactSchema(artifactType, artifact, artifactPath) {
     });
   }
   const schema2 = loadBundledSchemaByArtifactType(artifactType);
-  const result = validateArtifact(schema2, artifact, artifactPath);
-  diagnostics.push(...collectDiagnostics(result.diagnostics));
+  const result2 = validateArtifact(schema2, artifact, artifactPath);
+  diagnostics.push(...collectDiagnostics(result2.diagnostics));
   return diagnostics;
 }
 function checkTaskCompletion(artifact, artifactPath) {
@@ -21295,18 +21639,18 @@ function checkProposalCompleteness(artifact, artifactPath) {
   return diagnostics;
 }
 function validateDeltaSpecs(changeDir, artifactPathPrefix) {
-  const specsDir = path13.join(changeDir, "specs");
-  if (!existsSync12(specsDir))
+  const specsDir = path14.join(changeDir, "specs");
+  if (!existsSync13(specsDir))
     return [];
   const diagnostics = [];
   function scanDir(dir) {
     for (const entry of readdirSync4(dir, { withFileTypes: true })) {
-      const fullPath = path13.join(dir, entry.name);
+      const fullPath = path14.join(dir, entry.name);
       if (entry.isDirectory()) {
         scanDir(fullPath);
       } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
-        const relativePath = path13.relative(specsDir, fullPath).split(path13.sep).join("/");
-        const content = readFileSync11(fullPath, "utf8");
+        const relativePath = path14.relative(specsDir, fullPath).split(path14.sep).join("/");
+        const content = readFileSync12(fullPath, "utf8");
         const artifactPath = `${artifactPathPrefix}/${relativePath}`;
         let artifact;
         try {
@@ -21323,18 +21667,18 @@ function validateDeltaSpecs(changeDir, artifactPathPrefix) {
   return diagnostics;
 }
 function validateDeltaTech(changeDir, artifactPathPrefix) {
-  const techDir = path13.join(changeDir, "tech");
-  if (!existsSync12(techDir))
+  const techDir = path14.join(changeDir, "tech");
+  if (!existsSync13(techDir))
     return [];
   const diagnostics = [];
   function scanDir(dir) {
     for (const entry of readdirSync4(dir, { withFileTypes: true })) {
-      const fullPath = path13.join(dir, entry.name);
+      const fullPath = path14.join(dir, entry.name);
       if (entry.isDirectory()) {
         scanDir(fullPath);
       } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
-        const relativePath = path13.relative(techDir, fullPath).split(path13.sep).join("/");
-        const content = readFileSync11(fullPath, "utf8");
+        const relativePath = path14.relative(techDir, fullPath).split(path14.sep).join("/");
+        const content = readFileSync12(fullPath, "utf8");
         const artifactPath = `${artifactPathPrefix}/${relativePath}`;
         let artifact;
         try {
@@ -21351,14 +21695,14 @@ function validateDeltaTech(changeDir, artifactPathPrefix) {
   return diagnostics;
 }
 function listYamlFiles2(directoryPath) {
-  if (!existsSync12(directoryPath)) {
+  if (!existsSync13(directoryPath)) {
     return [];
   }
   const files = [];
   function walk(currentPath) {
     const entries = readdirSync4(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
-      const fullPath = path13.join(currentPath, entry.name);
+      const fullPath = path14.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -21372,15 +21716,15 @@ function listYamlFiles2(directoryPath) {
   return files;
 }
 function buildMainSpecRequirementIndex(rootDir) {
-  const specsRoot = path13.join(rootDir, STRICT_WORKFLOW_DIR5, "specs");
+  const specsRoot = path14.join(rootDir, STRICT_WORKFLOW_DIR5, "specs");
   const diagnostics = [];
   const specsById = new Map;
   for (const specPath of listYamlFiles2(specsRoot)) {
-    if (path13.basename(specPath) === "INDEX.yaml") {
+    if (path14.basename(specPath) === "INDEX.yaml") {
       continue;
     }
-    const artifactPath = path13.relative(rootDir, specPath).split(path13.sep).join("/");
-    const content = readFileSync11(specPath, "utf8");
+    const artifactPath = path14.relative(rootDir, specPath).split(path14.sep).join("/");
+    const content = readFileSync12(specPath, "utf8");
     let artifact;
     try {
       artifact = parseYamlDocument(content, { source: artifactPath });
@@ -21418,10 +21762,10 @@ function checkAddedRequirementCollisions(rootDir, changeDir) {
   const diagnostics = [];
   const { diagnostics: mainSpecDiagnostics, specsById } = buildMainSpecRequirementIndex(rootDir);
   diagnostics.push(...mainSpecDiagnostics);
-  const specsDir = path13.join(changeDir, "specs");
+  const specsDir = path14.join(changeDir, "specs");
   for (const deltaSpecPath of listYamlFiles2(specsDir)) {
-    const artifactPath = path13.relative(rootDir, deltaSpecPath).split(path13.sep).join("/");
-    const content = readFileSync11(deltaSpecPath, "utf8");
+    const artifactPath = path14.relative(rootDir, deltaSpecPath).split(path14.sep).join("/");
+    const content = readFileSync12(deltaSpecPath, "utf8");
     let artifact;
     try {
       artifact = parseYamlDocument(content, { source: artifactPath });
@@ -21462,10 +21806,10 @@ function checkNewSpecDeltaRules(rootDir, changeDir) {
   for (const entry of specsById.values()) {
     existingPaths.add(entry.artifactPath);
   }
-  const specsDir = path13.join(changeDir, "specs");
+  const specsDir = path14.join(changeDir, "specs");
   for (const deltaSpecPath of listYamlFiles2(specsDir)) {
-    const artifactPath = path13.relative(rootDir, deltaSpecPath).split(path13.sep).join("/");
-    const content = readFileSync11(deltaSpecPath, "utf8");
+    const artifactPath = path14.relative(rootDir, deltaSpecPath).split(path14.sep).join("/");
+    const content = readFileSync12(deltaSpecPath, "utf8");
     let artifact;
     try {
       artifact = parseYamlDocument(content, { source: artifactPath });
@@ -21506,12 +21850,12 @@ function checkNewSpecDeltaRules(rootDir, changeDir) {
       });
     }
     if (typeof targetPath === "string" && targetPath.length > 0) {
-      const normalized = targetPath.split(path13.sep).join("/");
+      const normalized = targetPath.split(path14.sep).join("/");
       const specsPrefix = `${STRICT_WORKFLOW_DIR5}/specs/`;
       const isUnderSpecs = normalized.startsWith(specsPrefix);
       const isYaml = normalized.endsWith(".yaml");
       const hasTraversal = normalized.split("/").includes("..");
-      const isIndex = path13.basename(normalized) === "INDEX.yaml";
+      const isIndex = path14.basename(normalized) === "INDEX.yaml";
       if (!isUnderSpecs || !isYaml || hasTraversal || isIndex) {
         diagnostics.push({
           source: "new_spec_path",
@@ -21567,13 +21911,13 @@ function formatUnresolvableDeltaTargetMessage(changeName, deltaArtifactPath, tar
 function checkUnresolvableDeltaTargets(rootDir, changeDir) {
   const diagnostics = [];
   const { specsById } = buildMainSpecRequirementIndex(rootDir);
-  const changeName = path13.basename(changeDir);
-  const specsDir = path13.join(changeDir, "specs");
+  const changeName = path14.basename(changeDir);
+  const specsDir = path14.join(changeDir, "specs");
   const deltas = [];
   const introducedIds = new Set;
   for (const deltaSpecPath of listYamlFiles2(specsDir)) {
-    const artifactPath = path13.relative(rootDir, deltaSpecPath).split(path13.sep).join("/");
-    const content = readFileSync11(deltaSpecPath, "utf8");
+    const artifactPath = path14.relative(rootDir, deltaSpecPath).split(path14.sep).join("/");
+    const content = readFileSync12(deltaSpecPath, "utf8");
     let artifact;
     try {
       artifact = parseYamlDocument(content, { source: artifactPath });
@@ -21618,15 +21962,15 @@ function checkUnresolvableDeltaTargets(rootDir, changeDir) {
   return diagnostics;
 }
 function buildMainTechRuleIndex(rootDir) {
-  const techRoot = path13.join(rootDir, STRICT_WORKFLOW_DIR5, "tech");
+  const techRoot = path14.join(rootDir, STRICT_WORKFLOW_DIR5, "tech");
   const diagnostics = [];
   const standardsById = new Map;
   for (const techPath of listYamlFiles2(techRoot)) {
-    if (path13.basename(techPath) === "INDEX.yaml") {
+    if (path14.basename(techPath) === "INDEX.yaml") {
       continue;
     }
-    const artifactPath = path13.relative(rootDir, techPath).split(path13.sep).join("/");
-    const content = readFileSync11(techPath, "utf8");
+    const artifactPath = path14.relative(rootDir, techPath).split(path14.sep).join("/");
+    const content = readFileSync12(techPath, "utf8");
     let artifact;
     try {
       artifact = parseYamlDocument(content, { source: artifactPath });
@@ -21664,10 +22008,10 @@ function checkTechDeltaTargets(rootDir, changeDir) {
   const diagnostics = [];
   const { diagnostics: mainTechDiagnostics, standardsById } = buildMainTechRuleIndex(rootDir);
   diagnostics.push(...mainTechDiagnostics);
-  const techDir = path13.join(changeDir, "tech");
+  const techDir = path14.join(changeDir, "tech");
   for (const deltaTechPath of listYamlFiles2(techDir)) {
-    const artifactPath = path13.relative(rootDir, deltaTechPath).split(path13.sep).join("/");
-    const content = readFileSync11(deltaTechPath, "utf8");
+    const artifactPath = path14.relative(rootDir, deltaTechPath).split(path14.sep).join("/");
+    const content = readFileSync12(deltaTechPath, "utf8");
     let artifact;
     try {
       artifact = parseYamlDocument(content, { source: artifactPath });
@@ -21716,19 +22060,19 @@ function checkTechDeltaTargets(rootDir, changeDir) {
   return diagnostics;
 }
 function checkExclusiveActiveTechTargets(rootDir, changeName) {
-  const changesDir = path13.join(rootDir, STRICT_WORKFLOW_DIR5, "changes");
-  if (!existsSync12(changesDir))
+  const changesDir = path14.join(rootDir, STRICT_WORKFLOW_DIR5, "changes");
+  if (!existsSync13(changesDir))
     return [];
   const diagnostics = [];
   const targetMap = new Map;
   const activeDirs = readdirSync4(changesDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
   for (const activeChange of activeDirs) {
-    const techDir = path13.join(changesDir, activeChange, "tech");
-    if (!existsSync12(techDir))
+    const techDir = path14.join(changesDir, activeChange, "tech");
+    if (!existsSync13(techDir))
       continue;
     for (const deltaTechPath of listYamlFiles2(techDir)) {
-      const artifactPath = path13.relative(rootDir, deltaTechPath).split(path13.sep).join("/");
-      const content = readFileSync11(deltaTechPath, "utf8");
+      const artifactPath = path14.relative(rootDir, deltaTechPath).split(path14.sep).join("/");
+      const content = readFileSync12(deltaTechPath, "utf8");
       let artifact;
       try {
         artifact = parseYamlDocument(content, { source: artifactPath });
@@ -21782,8 +22126,8 @@ function checkExclusiveActiveTechTargets(rootDir, changeName) {
   return diagnostics;
 }
 function checkExclusiveActiveTargets(rootDir, changeName) {
-  const changesDir = path13.join(rootDir, STRICT_WORKFLOW_DIR5, "changes");
-  if (!existsSync12(changesDir))
+  const changesDir = path14.join(rootDir, STRICT_WORKFLOW_DIR5, "changes");
+  if (!existsSync13(changesDir))
     return [];
   const diagnostics = [];
   const targetMap = new Map;
@@ -21791,12 +22135,12 @@ function checkExclusiveActiveTargets(rootDir, changeName) {
   for (const activeChange of activeDirs) {
     let scanDir = function(dir) {
       for (const entry of readdirSync4(dir, { withFileTypes: true })) {
-        const fullPath = path13.join(dir, entry.name);
+        const fullPath = path14.join(dir, entry.name);
         if (entry.isDirectory()) {
           scanDir(fullPath);
         } else if (entry.isFile() && (entry.name.endsWith(".yaml") || entry.name.endsWith(".yml"))) {
-          const artifactPath = path13.relative(rootDir, fullPath).split(path13.sep).join("/");
-          const content = readFileSync11(fullPath, "utf8");
+          const artifactPath = path14.relative(rootDir, fullPath).split(path14.sep).join("/");
+          const content = readFileSync12(fullPath, "utf8");
           let artifact;
           try {
             artifact = parseYamlDocument(content, { source: artifactPath });
@@ -21824,8 +22168,8 @@ function checkExclusiveActiveTargets(rootDir, changeName) {
         }
       }
     };
-    const specsDir = path13.join(changesDir, activeChange, "specs");
-    if (!existsSync12(specsDir))
+    const specsDir = path14.join(changesDir, activeChange, "specs");
+    if (!existsSync13(specsDir))
       continue;
     scanDir(specsDir);
   }
@@ -21849,16 +22193,16 @@ function checkExclusiveActiveTargets(rootDir, changeName) {
   return diagnostics;
 }
 function verifyChange(rootDir, changeName) {
-  const changeDir = path13.join(rootDir, STRICT_WORKFLOW_DIR5, "changes", changeName);
-  if (!existsSync12(changeDir)) {
+  const changeDir = path14.join(rootDir, STRICT_WORKFLOW_DIR5, "changes", changeName);
+  if (!existsSync13(changeDir)) {
     throw new Error(`change '${changeName}' not found`);
   }
   const allDiagnostics = [];
   let totalTasks = 0;
   let completeTasks = 0;
   let openQuestionCount = 0;
-  const specsRoot = path13.join(rootDir, STRICT_WORKFLOW_DIR5, "specs");
-  if (existsSync12(specsRoot) && statSync8(specsRoot).isDirectory()) {
+  const specsRoot = path14.join(rootDir, STRICT_WORKFLOW_DIR5, "specs");
+  if (existsSync13(specsRoot) && statSync9(specsRoot).isDirectory()) {
     for (const entry of readdirSync4(specsRoot, { withFileTypes: true })) {
       if (entry.isDirectory() && FORBIDDEN_SPEC_SUBDIRS.has(entry.name)) {
         allDiagnostics.push({
@@ -21879,9 +22223,9 @@ function verifyChange(rootDir, changeName) {
     ["question_list", "questions.yaml"]
   ];
   for (const [artifactType, fileName] of artifactConfigs) {
-    const filePath = path13.join(changeDir, fileName);
+    const filePath = path14.join(changeDir, fileName);
     const artifactPath = `.strict-spec-driven/changes/${changeName}/${fileName}`;
-    if (!existsSync12(filePath)) {
+    if (!existsSync13(filePath)) {
       allDiagnostics.push({
         source: "schema",
         artifactPath,
@@ -21890,7 +22234,7 @@ function verifyChange(rootDir, changeName) {
       });
       continue;
     }
-    const content = readFileSync11(filePath, "utf8");
+    const content = readFileSync12(filePath, "utf8");
     let artifact;
     try {
       artifact = parseYamlDocument(content, { source: artifactPath });
@@ -21950,7 +22294,7 @@ function verifyChange(rootDir, changeName) {
 // src/archive.ts
 var STRICT_WORKFLOW_DIR6 = ".strict-spec-driven";
 function normalizeRepoRelativePath3(rootDir, absolutePath) {
-  return path14.relative(rootDir, absolutePath).split(path14.sep).join("/");
+  return path15.relative(rootDir, absolutePath).split(path15.sep).join("/");
 }
 function formatLocalDate(date = new Date) {
   const year = String(date.getFullYear());
@@ -21965,14 +22309,14 @@ function asObject2(value, description) {
   return value;
 }
 function listYamlFiles3(directoryPath) {
-  if (!existsSync13(directoryPath)) {
+  if (!existsSync14(directoryPath)) {
     return [];
   }
   const files = [];
   function walk(currentPath) {
     const entries = readdirSync5(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
-      const fullPath = path14.join(currentPath, entry.name);
+      const fullPath = path15.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -21986,20 +22330,20 @@ function listYamlFiles3(directoryPath) {
   return files;
 }
 function readYamlFile2(filePath) {
-  const content = readFileSync12(filePath, "utf8");
+  const content = readFileSync13(filePath, "utf8");
   return parseYamlDocument(content);
 }
 function writeYamlFile(filePath, value) {
   writeFileSync6(filePath, stringifyYamlDocument(value), "utf8");
 }
 function assertUniqueRequirementIds(requirements, specPath) {}
-function formatVerifyDiagnostic(diagnostic) {
-  return `${diagnostic.source} ${diagnostic.artifactPath} ${diagnostic.fieldPath}: ${diagnostic.message}`;
+function formatVerifyDiagnostic(diagnostic2) {
+  return `${diagnostic2.source} ${diagnostic2.artifactPath} ${diagnostic2.fieldPath}: ${diagnostic2.message}`;
 }
-function formatVerificationFailure(result) {
-  const diagnosticSummary = result.diagnostics.slice(0, 5).map(formatVerifyDiagnostic).join("; ");
+function formatVerificationFailure(result2) {
+  const diagnosticSummary = result2.diagnostics.slice(0, 5).map(formatVerifyDiagnostic).join("; ");
   const suffix = diagnosticSummary.length > 0 ? `: ${diagnosticSummary}` : "";
-  return `change '${result.changeName}' failed verification (${result.diagnostics.length} diagnostic(s))${suffix}`;
+  return `change '${result2.changeName}' failed verification (${result2.diagnostics.length} diagnostic(s))${suffix}`;
 }
 function buildNewMainSpec(deltaSpec) {
   if (!deltaSpec.spec) {
@@ -22022,10 +22366,10 @@ function buildNewMainSpec(deltaSpec) {
   };
 }
 function collectMainSpecPathsById(rootDir) {
-  const specsRoot = path14.join(rootDir, STRICT_WORKFLOW_DIR6, "specs");
+  const specsRoot = path15.join(rootDir, STRICT_WORKFLOW_DIR6, "specs");
   const byId = new Map;
   for (const specPath of listYamlFiles3(specsRoot)) {
-    if (path14.basename(specPath) === "INDEX.yaml") {
+    if (path15.basename(specPath) === "INDEX.yaml") {
       continue;
     }
     const parsed = readYamlFile2(specPath);
@@ -22084,22 +22428,22 @@ function applyDeltaToMainSpec(mainSpec, deltaSpec, report, specPath) {
   }
 }
 function buildArchiveDestination(rootDir, changeName) {
-  const archiveRoot = path14.join(rootDir, STRICT_WORKFLOW_DIR6, "changes", "archive");
+  const archiveRoot = path15.join(rootDir, STRICT_WORKFLOW_DIR6, "changes", "archive");
   mkdirSync5(archiveRoot, { recursive: true });
   const datePrefix = formatLocalDate();
   const baseName = `${datePrefix}-${changeName}`;
-  let candidate = path14.join(archiveRoot, baseName);
+  let candidate = path15.join(archiveRoot, baseName);
   let sequence = 2;
-  while (existsSync13(candidate)) {
-    candidate = path14.join(archiveRoot, `${baseName}-${sequence}`);
+  while (existsSync14(candidate)) {
+    candidate = path15.join(archiveRoot, `${baseName}-${sequence}`);
     sequence += 1;
   }
   return candidate;
 }
 function regenerateSpecIndex(rootDir) {
-  const specsRoot = path14.join(rootDir, STRICT_WORKFLOW_DIR6, "specs");
-  const indexPath = path14.join(specsRoot, "INDEX.yaml");
-  const specs = listYamlFiles3(specsRoot).filter((filePath) => path14.basename(filePath) !== "INDEX.yaml").map((filePath) => {
+  const specsRoot = path15.join(rootDir, STRICT_WORKFLOW_DIR6, "specs");
+  const indexPath = path15.join(specsRoot, "INDEX.yaml");
+  const specs = listYamlFiles3(specsRoot).filter((filePath) => path15.basename(filePath) !== "INDEX.yaml").map((filePath) => {
     const parsed = readYamlFile2(filePath);
     const artifact = asObject2(parsed, `spec '${filePath}'`);
     if (artifact.artifact_type !== "main_spec") {
@@ -22133,7 +22477,7 @@ function regenerateSpecIndex(rootDir) {
     schema_file: "templates/strict-spec-driven/schemas/spec-index.yaml",
     specs: []
   };
-  if (existsSync13(indexPath)) {
+  if (existsSync14(indexPath)) {
     const parsed = readYamlFile2(indexPath);
     const artifact = asObject2(parsed, `spec index '${indexPath}'`);
     indexArtifact = {
@@ -22141,16 +22485,16 @@ function regenerateSpecIndex(rootDir) {
       specs: []
     };
   } else {
-    mkdirSync5(path14.dirname(indexPath), { recursive: true });
+    mkdirSync5(path15.dirname(indexPath), { recursive: true });
   }
   indexArtifact.specs = specs;
   writeYamlFile(indexPath, indexArtifact);
 }
 function collectMainTechPathsById(rootDir) {
-  const techRoot = path14.join(rootDir, STRICT_WORKFLOW_DIR6, "tech");
+  const techRoot = path15.join(rootDir, STRICT_WORKFLOW_DIR6, "tech");
   const byId = new Map;
   for (const techPath of listYamlFiles3(techRoot)) {
-    if (path14.basename(techPath) === "INDEX.yaml") {
+    if (path15.basename(techPath) === "INDEX.yaml") {
       continue;
     }
     const parsed = readYamlFile2(techPath);
@@ -22171,16 +22515,16 @@ function collectMainTechPathsById(rootDir) {
   return byId;
 }
 function unionStringArrays(existing, additions) {
-  const result = [];
+  const result2 = [];
   const seen = new Set;
   for (const value of [...existing ?? [], ...additions ?? []]) {
     if (typeof value !== "string" || seen.has(value)) {
       continue;
     }
     seen.add(value);
-    result.push(value);
+    result2.push(value);
   }
-  return result;
+  return result2;
 }
 function applyTechOperations(rules, deltaTech, report) {
   const operations = deltaTech.operations ?? {};
@@ -22251,12 +22595,12 @@ function buildNewMainTech(deltaTech) {
   };
 }
 function regenerateTechIndex(rootDir) {
-  const techRoot = path14.join(rootDir, STRICT_WORKFLOW_DIR6, "tech");
-  if (!existsSync13(techRoot)) {
+  const techRoot = path15.join(rootDir, STRICT_WORKFLOW_DIR6, "tech");
+  if (!existsSync14(techRoot)) {
     return;
   }
-  const indexPath = path14.join(techRoot, "INDEX.yaml");
-  const standards = listYamlFiles3(techRoot).filter((filePath) => path14.basename(filePath) !== "INDEX.yaml").map((filePath) => {
+  const indexPath = path15.join(techRoot, "INDEX.yaml");
+  const standards = listYamlFiles3(techRoot).filter((filePath) => path15.basename(filePath) !== "INDEX.yaml").map((filePath) => {
     const parsed = readYamlFile2(filePath);
     const artifact = asObject2(parsed, `tech '${filePath}'`);
     if (artifact.artifact_type !== "main_tech") {
@@ -22295,7 +22639,7 @@ function regenerateTechIndex(rootDir) {
     schema_file: "templates/strict-spec-driven/schemas/tech-index.yaml",
     standards: []
   };
-  if (existsSync13(indexPath)) {
+  if (existsSync14(indexPath)) {
     const parsed = readYamlFile2(indexPath);
     const artifact = asObject2(parsed, `tech index '${indexPath}'`);
     indexArtifact = {
@@ -22303,18 +22647,18 @@ function regenerateTechIndex(rootDir) {
       standards: []
     };
   } else {
-    mkdirSync5(path14.dirname(indexPath), { recursive: true });
+    mkdirSync5(path15.dirname(indexPath), { recursive: true });
   }
   indexArtifact.standards = standards;
   writeYamlFile(indexPath, indexArtifact);
 }
 function mergeDeltaTechStandards(rootDir, changeDir) {
-  const deltaTechDir = path14.join(changeDir, "tech");
+  const deltaTechDir = path15.join(changeDir, "tech");
   const deltaTechPaths = listYamlFiles3(deltaTechDir);
   if (deltaTechPaths.length === 0) {
     return [];
   }
-  const techRoot = path14.join(rootDir, STRICT_WORKFLOW_DIR6, "tech");
+  const techRoot = path15.join(rootDir, STRICT_WORKFLOW_DIR6, "tech");
   const mainTechPathsById = collectMainTechPathsById(rootDir);
   const newStandardPaths = new Map;
   const mainTechCache = new Map;
@@ -22353,7 +22697,7 @@ function mergeDeltaTechStandards(rootDir, changeDir) {
     } else if (newStandardPaths.has(deltaTech.target_standard)) {
       cacheKey = newStandardPaths.get(deltaTech.target_standard);
     } else {
-      cacheKey = path14.join(techRoot, `${deltaTech.target_standard}.yaml`);
+      cacheKey = path15.join(techRoot, `${deltaTech.target_standard}.yaml`);
       mainTechCache.set(cacheKey, buildNewMainTech(deltaTech));
       newStandardPaths.set(deltaTech.target_standard, cacheKey);
       report.created = true;
@@ -22378,15 +22722,15 @@ function mergeDeltaTechStandards(rootDir, changeDir) {
   });
 }
 function syncRoadmapAfterArchive(rootDir) {
-  const roadmapDir = path14.join(rootDir, ROADMAP_DIR);
-  if (!existsSync13(roadmapDir)) {
+  const roadmapDir = path15.join(rootDir, ROADMAP_DIR);
+  if (!existsSync14(roadmapDir)) {
     return null;
   }
   return syncRoadmap(rootDir);
 }
 function archiveChange(rootDir, changeName) {
-  const changeDir = path14.join(rootDir, STRICT_WORKFLOW_DIR6, "changes", changeName);
-  if (!existsSync13(changeDir)) {
+  const changeDir = path15.join(rootDir, STRICT_WORKFLOW_DIR6, "changes", changeName);
+  if (!existsSync14(changeDir)) {
     throw new Error(`change '${changeName}' not found`);
   }
   const verifyResult = verifyChange(rootDir, changeName);
@@ -22395,14 +22739,14 @@ function archiveChange(rootDir, changeName) {
   }
   const requiredArtifacts = ["proposal.yaml", "design.yaml", "tasks.yaml", "questions.yaml"];
   for (const artifactName of requiredArtifacts) {
-    const artifactPath = path14.join(changeDir, artifactName);
-    if (!existsSync13(artifactPath)) {
+    const artifactPath = path15.join(changeDir, artifactName);
+    if (!existsSync14(artifactPath)) {
       throw new Error(`required artifact '${artifactName}' is missing`);
     }
     readYamlFile2(artifactPath);
   }
   const mainSpecPathsById = collectMainSpecPathsById(rootDir);
-  const deltaSpecsDir = path14.join(changeDir, "specs");
+  const deltaSpecsDir = path15.join(changeDir, "specs");
   const deltaSpecPaths = listYamlFiles3(deltaSpecsDir);
   const mainSpecCache = new Map;
   const newSpecPaths = new Map;
@@ -22428,7 +22772,7 @@ function archiveChange(rootDir, changeName) {
       cacheKey = newSpecPaths.get(deltaSpec.target_spec);
       created = true;
     } else if (deltaSpec.spec) {
-      cacheKey = path14.join(rootDir, deltaSpec.spec.path);
+      cacheKey = path15.join(rootDir, deltaSpec.spec.path);
       mainSpecCache.set(cacheKey, buildNewMainSpec(deltaSpec));
       newSpecPaths.set(deltaSpec.target_spec, cacheKey);
       created = true;
@@ -22453,13 +22797,13 @@ function archiveChange(rootDir, changeName) {
     applyDeltaToMainSpec(mainSpec, deltaSpec, report, cacheKey);
   }
   for (const [mainSpecPath, mainSpecArtifact] of mainSpecCache) {
-    mkdirSync5(path14.dirname(mainSpecPath), { recursive: true });
+    mkdirSync5(path15.dirname(mainSpecPath), { recursive: true });
     writeYamlFile(mainSpecPath, mainSpecArtifact);
   }
   regenerateSpecIndex(rootDir);
   const mergedStandards = mergeDeltaTechStandards(rootDir, changeDir);
   const archiveDestination = buildArchiveDestination(rootDir, changeName);
-  renameSync3(changeDir, archiveDestination);
+  renameSync4(changeDir, archiveDestination);
   const roadmapSync = syncRoadmapAfterArchive(rootDir);
   const mergedSpecs = Array.from(mergeReports.values()).sort((left, right) => {
     const bySpecPath = left.specPath.localeCompare(right.specPath);
@@ -22523,33 +22867,33 @@ function archiveChange(rootDir, changeName) {
 }
 
 // src/cli/changes.ts
-import { existsSync as existsSync15, readFileSync as readFileSync13 } from "fs";
-import path16 from "path";
+import { existsSync as existsSync16, readFileSync as readFileSync14 } from "fs";
+import path17 from "path";
 
 // src/cli/fs.ts
-import { existsSync as existsSync14, readdirSync as readdirSync6, statSync as statSync9 } from "fs";
-import path15 from "path";
+import { existsSync as existsSync15, readdirSync as readdirSync6, statSync as statSync10 } from "fs";
+import path16 from "path";
 function normalizeRepoRelativePath4(rootDir, absolutePath) {
-  return path15.relative(rootDir, absolutePath).split(path15.sep).join("/");
+  return path16.relative(rootDir, absolutePath).split(path16.sep).join("/");
 }
 function normalizePathSeparators(value) {
-  return value.split(path15.sep).join("/");
+  return value.split(path16.sep).join("/");
 }
 function listDirectoryNames(directoryPath) {
-  if (!existsSync14(directoryPath) || !statSync9(directoryPath).isDirectory()) {
+  if (!existsSync15(directoryPath) || !statSync10(directoryPath).isDirectory()) {
     return [];
   }
   return readdirSync6(directoryPath, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
 }
 function listYamlFiles4(directoryPath) {
-  if (!existsSync14(directoryPath) || !statSync9(directoryPath).isDirectory()) {
+  if (!existsSync15(directoryPath) || !statSync10(directoryPath).isDirectory()) {
     return [];
   }
   const files = [];
   function walk(currentPath) {
     const entries = readdirSync6(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
-      const fullPath = path15.join(currentPath, entry.name);
+      const fullPath = path16.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -22563,14 +22907,14 @@ function listYamlFiles4(directoryPath) {
   return files;
 }
 function listFilesRecursive(directoryPath) {
-  if (!existsSync14(directoryPath) || !statSync9(directoryPath).isDirectory()) {
+  if (!existsSync15(directoryPath) || !statSync10(directoryPath).isDirectory()) {
     return [];
   }
   const files = [];
   function walk(currentPath) {
     const entries = readdirSync6(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
-      const fullPath = path15.join(currentPath, entry.name);
+      const fullPath = path16.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -22587,26 +22931,26 @@ function listFilesRecursive(directoryPath) {
 // src/cli/changes.ts
 var STRICT_WORKFLOW_DIR7 = ".strict-spec-driven";
 function getChangesDir(rootDir) {
-  return path16.join(rootDir, STRICT_WORKFLOW_DIR7, "changes");
+  return path17.join(rootDir, STRICT_WORKFLOW_DIR7, "changes");
 }
 function getArchiveDir(rootDir) {
-  return path16.join(getChangesDir(rootDir), "archive");
+  return path17.join(getChangesDir(rootDir), "archive");
 }
 function readActiveChangeStatus(rootDir, changeName) {
-  const changeDir = path16.join(getChangesDir(rootDir), changeName);
-  const questionsPath = path16.join(changeDir, "questions.yaml");
-  const tasksPath = path16.join(changeDir, "tasks.yaml");
+  const changeDir = path17.join(getChangesDir(rootDir), changeName);
+  const questionsPath = path17.join(changeDir, "questions.yaml");
+  const tasksPath = path17.join(changeDir, "tasks.yaml");
   try {
-    if (existsSync15(questionsPath)) {
-      const questionsArtifact = parseYamlDocument(readFileSync13(questionsPath, "utf8"));
+    if (existsSync16(questionsPath)) {
+      const questionsArtifact = parseYamlDocument(readFileSync14(questionsPath, "utf8"));
       if (Array.isArray(questionsArtifact.open) && questionsArtifact.open.length > 0) {
         return "blocked";
       }
     }
-    if (!existsSync15(tasksPath)) {
+    if (!existsSync16(tasksPath)) {
       return "proposed";
     }
-    const tasksArtifact = parseYamlDocument(readFileSync13(tasksPath, "utf8"));
+    const tasksArtifact = parseYamlDocument(readFileSync14(tasksPath, "utf8"));
     let total = 0;
     let complete = 0;
     for (const taskMap of Object.values(tasksArtifact.sections ?? {})) {
@@ -22650,12 +22994,12 @@ function printChangeArtifacts(rootDir, name, changeDir) {
   writeOut(`Artifacts for '${name}':
 `);
   for (const artifact of ["proposal.yaml", "design.yaml", "tasks.yaml", "questions.yaml"]) {
-    const artifactPath = path17.join(changeDir, artifact);
+    const artifactPath = path18.join(changeDir, artifact);
     const displayPath = normalizeRepoRelativePath4(rootDir, artifactPath);
-    writeOut(`  ${displayPath}${existsSync16(artifactPath) ? "" : " (missing)"}
+    writeOut(`  ${displayPath}${existsSync17(artifactPath) ? "" : " (missing)"}
 `);
   }
-  const specsDir = path17.join(changeDir, "specs");
+  const specsDir = path18.join(changeDir, "specs");
   const specFiles = listYamlFiles4(specsDir);
   if (specFiles.length === 0) {
     writeOut(`  ${normalizeRepoRelativePath4(rootDir, specsDir)}/ (empty)
@@ -22682,9 +23026,9 @@ function runApply(argv) {
   }
   try {
     const tasksYaml = readChangeTasks(process.cwd(), changeName);
-    const { result, updatedYaml } = applyTask(tasksYaml);
+    const { result: result2, updatedYaml } = applyTask(tasksYaml);
     writeChangeTasks(process.cwd(), changeName, updatedYaml);
-    writeJson(result);
+    writeJson(result2);
     return 0;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -22706,9 +23050,9 @@ function runVerify(argv) {
     return 1;
   }
   try {
-    const result = verifyChange(process.cwd(), changeName);
-    writeJson(result);
-    return result.valid ? 0 : 1;
+    const result2 = verifyChange(process.cwd(), changeName);
+    writeJson(result2);
+    return result2.valid ? 0 : 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     writeError(message);
@@ -22729,9 +23073,9 @@ function runArchive(argv) {
     return 1;
   }
   try {
-    const result = archiveChange(process.cwd(), changeName);
-    writeJson(result);
-    return result.valid ? 0 : 1;
+    const result2 = archiveChange(process.cwd(), changeName);
+    writeJson(result2);
+    return result2.valid ? 0 : 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     writeError(message);
@@ -22748,7 +23092,7 @@ function runList(argv) {
   }
   const rootDir = process.cwd();
   const changesDir = getChangesDir(rootDir);
-  if (!existsSync16(changesDir) || !statSync10(changesDir).isDirectory()) {
+  if (!existsSync17(changesDir) || !statSync11(changesDir).isDirectory()) {
     writeOut(`No .strict-spec-driven/changes/ directory found.
 `);
     return 0;
@@ -22802,14 +23146,14 @@ function runModify(argv) {
     }
     return 0;
   }
-  const activeTargetDir = path17.join(getChangesDir(rootDir), target);
-  if (existsSync16(activeTargetDir) && statSync10(activeTargetDir).isDirectory()) {
+  const activeTargetDir = path18.join(getChangesDir(rootDir), target);
+  if (existsSync17(activeTargetDir) && statSync11(activeTargetDir).isDirectory()) {
     printChangeArtifacts(rootDir, target, activeTargetDir);
     return 0;
   }
   const archiveRoot = getArchiveDir(rootDir);
-  const archivedTargetDir = path17.join(archiveRoot, target);
-  if (existsSync16(archivedTargetDir) && statSync10(archivedTargetDir).isDirectory()) {
+  const archivedTargetDir = path18.join(archiveRoot, target);
+  if (existsSync17(archivedTargetDir) && statSync11(archivedTargetDir).isDirectory()) {
     printChangeArtifacts(rootDir, target, archivedTargetDir);
     return 0;
   }
@@ -22836,14 +23180,14 @@ function runCancel(argv) {
   }
   const rootDir = process.cwd();
   const archiveRoot = getArchiveDir(rootDir);
-  const archivedTargetDir = path17.join(archiveRoot, target);
-  if (existsSync16(archivedTargetDir) && statSync10(archivedTargetDir).isDirectory()) {
+  const archivedTargetDir = path18.join(archiveRoot, target);
+  if (existsSync17(archivedTargetDir) && statSync11(archivedTargetDir).isDirectory()) {
     writeError(`cancel is limited to active changes; archived target '${target}' cannot be cancelled`);
     return 1;
   }
-  const activeTargetDir = path17.join(getChangesDir(rootDir), target);
-  if (existsSync16(activeTargetDir) && statSync10(activeTargetDir).isDirectory()) {
-    rmSync3(activeTargetDir, { recursive: true, force: true });
+  const activeTargetDir = path18.join(getChangesDir(rootDir), target);
+  if (existsSync17(activeTargetDir) && statSync11(activeTargetDir).isDirectory()) {
+    rmSync4(activeTargetDir, { recursive: true, force: true });
     writeOut(`Cancelled: ${normalizeRepoRelativePath4(rootDir, activeTargetDir)}
 `);
     return 0;
@@ -22858,25 +23202,25 @@ function runCancel(argv) {
 }
 
 // src/cli/cmd-workflow.ts
-import { existsSync as existsSync18, statSync as statSync11 } from "node:fs";
-import path19 from "node:path";
+import { existsSync as existsSync19, statSync as statSync12 } from "node:fs";
+import path20 from "node:path";
 
 // src/workflow-state.ts
-import { existsSync as existsSync17, readdirSync as readdirSync7, readFileSync as readFileSync14 } from "fs";
-import path18 from "path";
+import { existsSync as existsSync18, readdirSync as readdirSync7, readFileSync as readFileSync15 } from "fs";
+import path19 from "path";
 
 // src/task-list.ts
 function flattenTasks(artifact) {
   const sections = artifact.sections;
   if (!sections)
     return [];
-  const result = [];
+  const result2 = [];
   for (const [sectionName, taskMap] of Object.entries(sections)) {
     for (const [taskId, task] of Object.entries(taskMap ?? {})) {
-      result.push({ sectionName, taskId, text: task.text, status: task.status, command: task.command });
+      result2.push({ sectionName, taskId, text: task.text, status: task.status, command: task.command });
     }
   }
-  return result;
+  return result2;
 }
 
 // src/workflow-state.ts
@@ -22895,19 +23239,19 @@ var CANONICAL_REQUIREMENT_QUESTIONS = [
   { id: "requirement-interpretation", asks: "which reading of the request is intended" }
 ];
 function changeDir(rootDir, changeName) {
-  return path18.join(rootDir, STRICT_WORKFLOW_DIR8, "changes", changeName);
+  return path19.join(rootDir, STRICT_WORKFLOW_DIR8, "changes", changeName);
 }
 function toRepoPath(rootDir, absolutePath) {
-  return path18.relative(rootDir, absolutePath).split(path18.sep).join("/");
+  return path19.relative(rootDir, absolutePath).split(path19.sep).join("/");
 }
 function listDeltaSpecFiles(rootDir, changeName) {
-  const specsDir = path18.join(changeDir(rootDir, changeName), "specs");
-  if (!existsSync17(specsDir))
+  const specsDir = path19.join(changeDir(rootDir, changeName), "specs");
+  if (!existsSync18(specsDir))
     return [];
   const files = [];
   function walk(currentPath) {
     for (const entry of readdirSync7(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      const fullPath = path18.join(currentPath, entry.name);
+      const fullPath = path19.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -22927,11 +23271,11 @@ function hasExplicitEmptySpecDecision(rootDir, changeName) {
   return Object.keys(design.decisions).some((decisionId) => EMPTY_SPEC_DECISION_IDS.has(decisionId.toLowerCase()));
 }
 function readChangeArtifact(rootDir, changeName, artifactName) {
-  const artifactPath = path18.join(changeDir(rootDir, changeName), artifactName);
-  if (!existsSync17(artifactPath))
+  const artifactPath = path19.join(changeDir(rootDir, changeName), artifactName);
+  if (!existsSync18(artifactPath))
     return;
   try {
-    return parseYamlDocument(readFileSync14(artifactPath, "utf8"), {
+    return parseYamlDocument(readFileSync15(artifactPath, "utf8"), {
       source: toRepoPath(rootDir, artifactPath)
     });
   } catch {
@@ -22939,19 +23283,19 @@ function readChangeArtifact(rootDir, changeName, artifactName) {
   }
 }
 function readOpenQuestionIds(rootDir, changeName) {
-  const questionsPath = path18.join(changeDir(rootDir, changeName), "questions.yaml");
-  if (!existsSync17(questionsPath))
+  const questionsPath = path19.join(changeDir(rootDir, changeName), "questions.yaml");
+  if (!existsSync18(questionsPath))
     return [];
-  const artifact = parseYamlDocument(readFileSync14(questionsPath, "utf8"), {
+  const artifact = parseYamlDocument(readFileSync15(questionsPath, "utf8"), {
     source: toRepoPath(rootDir, questionsPath)
   });
   return (artifact.open ?? []).map((question) => question.id).filter((id) => typeof id === "string" && id.length > 0).sort();
 }
 function readFirstPendingTask(rootDir, changeName) {
-  const tasksPath = path18.join(changeDir(rootDir, changeName), "tasks.yaml");
-  if (!existsSync17(tasksPath))
+  const tasksPath = path19.join(changeDir(rootDir, changeName), "tasks.yaml");
+  if (!existsSync18(tasksPath))
     return;
-  const artifact = parseYamlDocument(readFileSync14(tasksPath, "utf8"), { source: toRepoPath(rootDir, tasksPath) });
+  const artifact = parseYamlDocument(readFileSync15(tasksPath, "utf8"), { source: toRepoPath(rootDir, tasksPath) });
   return flattenTasks(artifact).find((task) => task.status !== "complete");
 }
 function hasEntries(value) {
@@ -23022,10 +23366,10 @@ function checkDeterministicQuestionGateEvidence(rootDir, changeName) {
     diagnostics.push(proposalReadinessDiagnostic(changeName, "design.yaml", "$.decisions", "design must record at least one decision before implementation handoff", "at least one design decision", "empty or missing decisions"));
   }
   for (const deltaSpecPath of listDeltaSpecFiles(rootDir, changeName)) {
-    const absolutePath = path18.join(rootDir, deltaSpecPath);
+    const absolutePath = path19.join(rootDir, deltaSpecPath);
     let artifact;
     try {
-      artifact = parseYamlDocument(readFileSync14(absolutePath, "utf8"), { source: deltaSpecPath });
+      artifact = parseYamlDocument(readFileSync15(absolutePath, "utf8"), { source: deltaSpecPath });
     } catch {
       continue;
     }
@@ -23066,7 +23410,7 @@ function suggestionsForDiagnostics(rootDir, changeName, diagnostics) {
       reason: `Mark pending task '${firstPendingTask.taskId}' complete after the work is done.`
     });
   }
-  if (diagnostics.some((diagnostic) => diagnostic.source !== "task_completion" && diagnostic.source !== "open_questions")) {
+  if (diagnostics.some((diagnostic2) => diagnostic2.source !== "task_completion" && diagnostic2.source !== "open_questions")) {
     suggestions.push({
       command: `strict-spec-cli verify ${changeName}`,
       reason: "Rerun strict verification after fixing reported artifact or workflow diagnostics."
@@ -23095,7 +23439,7 @@ function getWorkflowState(rootDir, changeName) {
 }
 function checkProposalReadiness(rootDir, changeName) {
   const verification = verifyChange(rootDir, changeName);
-  const diagnostics = verification.diagnostics.filter((diagnostic) => diagnostic.source !== "task_completion" && diagnostic.source !== "task_completeness");
+  const diagnostics = verification.diagnostics.filter((diagnostic2) => diagnostic2.source !== "task_completion" && diagnostic2.source !== "task_completeness");
   diagnostics.push(...checkDeterministicQuestionGateEvidence(rootDir, changeName));
   diagnostics.push(...checkRequirementIntakeEvidence(rootDir, changeName));
   const hasMissingDeltaSpecDiagnostic = listDeltaSpecFiles(rootDir, changeName).length === 0 && !hasExplicitEmptySpecDecision(rootDir, changeName);
@@ -23133,8 +23477,8 @@ function checkProposalReadiness(rootDir, changeName) {
 var STRICT_WORKFLOW_STATE_DIR = ".strict-spec-driven";
 var WORKFLOW_CONFIG_RELATIVE_PATH = `${STRICT_WORKFLOW_STATE_DIR}/config.yaml`;
 function checkWorkflowConfig(workflowStatePath) {
-  const configPath = path19.join(workflowStatePath, "config.yaml");
-  if (!existsSync18(configPath)) {
+  const configPath = path20.join(workflowStatePath, "config.yaml");
+  if (!existsSync19(configPath)) {
     return 0;
   }
   let artifact;
@@ -23146,22 +23490,22 @@ function checkWorkflowConfig(workflowStatePath) {
     writeError(message);
     return 1;
   }
-  let result;
+  let result2;
   try {
     const schema2 = loadBundledSchemaByArtifactType("workflow_config");
-    result = validateArtifact(schema2, artifact, WORKFLOW_CONFIG_RELATIVE_PATH);
+    result2 = validateArtifact(schema2, artifact, WORKFLOW_CONFIG_RELATIVE_PATH);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     writeError(`workflow config validation could not run: ${message}`);
     return 1;
   }
-  if (result.valid) {
+  if (result2.valid) {
     return 0;
   }
   writeError(`workflow config validation failed: ${WORKFLOW_CONFIG_RELATIVE_PATH}`);
-  for (const diagnostic of result.diagnostics) {
-    const expected = diagnostic.expected !== undefined ? ` (expected: ${diagnostic.expected})` : "";
-    writeError(`${diagnostic.fieldPath}: ${diagnostic.message}${expected}`);
+  for (const diagnostic2 of result2.diagnostics) {
+    const expected = diagnostic2.expected !== undefined ? ` (expected: ${diagnostic2.expected})` : "";
+    writeError(`${diagnostic2.fieldPath}: ${diagnostic2.message}${expected}`);
   }
   return 1;
 }
@@ -23173,8 +23517,8 @@ function runCheckWorkflowState(argv) {
     writeUsage(getCommandUsage("check-workflow-state"));
     return 1;
   }
-  const workflowStatePath = path19.join(process.cwd(), STRICT_WORKFLOW_STATE_DIR);
-  if (existsSync18(workflowStatePath) && statSync11(workflowStatePath).isDirectory()) {
+  const workflowStatePath = path20.join(process.cwd(), STRICT_WORKFLOW_STATE_DIR);
+  if (existsSync19(workflowStatePath) && statSync12(workflowStatePath).isDirectory()) {
     if (checkWorkflowConfig(workflowStatePath) !== 0) {
       return 1;
     }
@@ -23201,9 +23545,9 @@ function runReady(argv) {
     return 1;
   }
   try {
-    const result = checkProposalReadiness(process.cwd(), changeName);
-    writeJson(result);
-    return result.ready ? 0 : 1;
+    const result2 = checkProposalReadiness(process.cwd(), changeName);
+    writeJson(result2);
+    return result2.ready ? 0 : 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     writeError(message);
@@ -23234,17 +23578,17 @@ function runNext(argv) {
 }
 
 // src/roadmap/archive.ts
-import { existsSync as existsSync19, mkdirSync as mkdirSync6, unlinkSync, writeFileSync as writeFileSync7 } from "fs";
-import path20 from "path";
+import { existsSync as existsSync20, mkdirSync as mkdirSync6, unlinkSync, writeFileSync as writeFileSync7 } from "fs";
+import path21 from "path";
 function archivePlannedChangePath(rootDir, plannedChange) {
   const relative = plannedChange.relativeRoadmapPath.startsWith("planned-changes/") ? plannedChange.relativeRoadmapPath.slice("planned-changes/".length) : plannedChange.relativeRoadmapPath;
-  return path20.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR, relative);
+  return path21.join(rootDir, ROADMAP_ARCHIVE_PLANNED_CHANGES_DIR, relative);
 }
 function archiveMilestonePath(rootDir, milestone) {
-  return path20.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR, milestone.relativeMilestonePath);
+  return path21.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR, milestone.relativeMilestonePath);
 }
 function writeYamlFile2(filePath, value) {
-  mkdirSync6(path20.dirname(filePath), { recursive: true });
+  mkdirSync6(path21.dirname(filePath), { recursive: true });
   writeFileSync7(filePath, stringifyYamlDocument(value), "utf8");
 }
 function buildSkippedMilestone(status) {
@@ -23264,11 +23608,11 @@ function buildSkippedMilestone(status) {
 }
 function appendCollisionDiagnostics(targets, diagnostics, rootDir) {
   for (const target of targets) {
-    if (existsSync19(target.milestoneArchivePath)) {
+    if (existsSync20(target.milestoneArchivePath)) {
       diagnostics.push(makeDiagnostic("semantic", target.milestone.repoRelativePath, "$", "roadmap milestone archive destination already exists", "available archive destination", normalizeRepoRelativePath2(rootDir, target.milestoneArchivePath)));
     }
     for (const plannedChange of target.plannedChanges) {
-      if (!existsSync19(plannedChange.archivePath))
+      if (!existsSync20(plannedChange.archivePath))
         continue;
       diagnostics.push(makeDiagnostic("semantic", plannedChange.plannedChange.repoRelativePath, "$", "roadmap planned-change archive destination already exists", "available archive destination", normalizeRepoRelativePath2(rootDir, plannedChange.archivePath)));
     }
@@ -23360,7 +23704,7 @@ function archiveRoadmapMilestones(rootDir, milestoneId) {
       updatedFiles.push(normalizeRepoRelativePath2(rootDir, plannedChangeTarget.archivePath));
       archivedPlannedChanges.push({
         id: plannedChangeTarget.plannedChange.artifact.planned_change.id,
-        sourcePath: toPosix2(path20.join("roadmap", plannedChangeTarget.plannedChange.relativeRoadmapPath)),
+        sourcePath: toPosix3(path21.join("roadmap", plannedChangeTarget.plannedChange.relativeRoadmapPath)),
         archivePath: normalizeRepoRelativePath2(rootDir, plannedChangeTarget.archivePath).replace(/^\.strict-spec-driven\//, "")
       });
     }
@@ -23375,7 +23719,7 @@ function archiveRoadmapMilestones(rootDir, milestoneId) {
   if (targets.length > 0) {
     const archivedMilestonePaths = new Set(targets.map((target) => target.milestone.absolutePath));
     const remainingMilestones = roadmap.milestones.filter((milestone) => !archivedMilestonePaths.has(milestone.absolutePath));
-    writeYamlFile2(path20.join(rootDir, ROADMAP_INDEX_PATH), buildRoadmapIndexArtifact(remainingMilestones));
+    writeYamlFile2(path21.join(rootDir, ROADMAP_INDEX_PATH), buildRoadmapIndexArtifact(remainingMilestones));
     updatedFiles.push(ROADMAP_INDEX_PATH);
   }
   return {
@@ -23389,19 +23733,19 @@ function archiveRoadmapMilestones(rootDir, milestoneId) {
 }
 
 // src/roadmap/author.ts
-import { existsSync as existsSync20, mkdirSync as mkdirSync7, readFileSync as readFileSync15, rmSync as rmSync4, writeFileSync as writeFileSync8 } from "fs";
-import path21 from "path";
+import { existsSync as existsSync21, mkdirSync as mkdirSync7, readFileSync as readFileSync16, rmSync as rmSync5, writeFileSync as writeFileSync8 } from "fs";
+import path22 from "path";
 var MILESTONE_ID_PATTERN2 = /^(\d{4}-)?([a-z0-9][a-z0-9-]*[a-z0-9]|[a-z0-9])$/;
 function uniqueStrings2(values2) {
   const seen = new Set;
-  const result = [];
+  const result2 = [];
   for (const value of values2) {
     if (seen.has(value))
       continue;
     seen.add(value);
-    result.push(value);
+    result2.push(value);
   }
-  return result;
+  return result2;
 }
 function hasAnyField(input) {
   return Boolean(input.title) || Boolean(input.goal) || input.scopeIn.length > 0 || input.scopeOut.length > 0 || input.doneCriteria.length > 0 || input.intakeQuestions.length > 0 || input.dependencies.length > 0 || input.risks.length > 0 || input.notes.length > 0 || input.details !== undefined || input.removedScopeIn.length > 0 || input.removedScopeOut.length > 0 || input.removedDoneCriteria.length > 0 || input.removedDependencies.length > 0 || input.removedRisks.length > 0 || input.removedNotes.length > 0 || input.removedIntakeQuestions.length > 0;
@@ -23427,31 +23771,31 @@ function sameIntakeQuestion(left, right) {
   return left.id === right.id && left.question === right.question && left.context === right.context && left.impact === right.impact && left.recommendation === right.recommendation;
 }
 function mergeIntakeQuestions(existing, additions, removedIds, artifactPath, diagnostics) {
-  const result = [];
+  const result2 = [];
   const indexById = new Map;
   for (const question of existing) {
-    indexById.set(question.id, result.length);
-    result.push(question);
+    indexById.set(question.id, result2.length);
+    result2.push(question);
   }
   const writtenThisInvocation = new Set;
   for (const question of additions) {
     const existingIndex = indexById.get(question.id);
     if (existingIndex === undefined) {
-      indexById.set(question.id, result.length);
-      result.push(question);
+      indexById.set(question.id, result2.length);
+      result2.push(question);
       writtenThisInvocation.add(question.id);
       continue;
     }
-    const current = result[existingIndex];
+    const current = result2[existingIndex];
     if (writtenThisInvocation.has(question.id) && !sameIntakeQuestion(current, question)) {
       diagnostics.push(makeDiagnostic("semantic", artifactPath, `$.intake_questions.${question.id}`, "intake question id supplied twice in one invocation with conflicting content", `${current.question} | ${current.context} | ${current.impact} | ${current.recommendation}`, `${question.question} | ${question.context} | ${question.impact} | ${question.recommendation}`));
       continue;
     }
-    result[existingIndex] = question;
+    result2[existingIndex] = question;
     writtenThisInvocation.add(question.id);
   }
   const removed = new Set(removedIds);
-  return result.filter((question) => !removed.has(question.id));
+  return result2.filter((question) => !removed.has(question.id));
 }
 function nextScalar(existing, incoming) {
   return incoming === undefined ? existing : incoming;
@@ -23531,7 +23875,7 @@ function generateRoadmapMilestone(rootDir, input) {
   }
   const roadmap = loadRoadmap(rootDir, { allowInlinePlannedChanges: true });
   const preflight = getRoadmapStatus(rootDir);
-  const blockingPreflightDiagnostics = preflight.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH && diagnostic.artifactPath !== ROADMAP_DIR);
+  const blockingPreflightDiagnostics = preflight.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH && diagnostic2.artifactPath !== ROADMAP_DIR);
   if (blockingPreflightDiagnostics.length > 0) {
     return {
       valid: false,
@@ -23552,9 +23896,9 @@ function generateRoadmapMilestone(rootDir, input) {
     };
   }
   const existing = findExistingMilestone(roadmap.milestones, input.id);
-  const milestonePath = existing?.absolutePath ?? path21.join(rootDir, ROADMAP_MILESTONES_DIR, `${input.id}.yaml`);
+  const milestonePath = existing?.absolutePath ?? path22.join(rootDir, ROADMAP_MILESTONES_DIR, `${input.id}.yaml`);
   const artifactPath = normalizeRepoRelativePath2(rootDir, milestonePath);
-  if (!existing && existsSync20(milestonePath)) {
+  if (!existing && existsSync21(milestonePath)) {
     diagnostics.push(makeDiagnostic("semantic", artifactPath, "$.milestone", "milestone destination already exists for a different or invalid milestone", "unused milestone file path", artifactPath));
   }
   const nextArtifact = buildArtifact(input, existing, nextAppendedMilestoneOrder(roadmap.milestones), artifactPath, diagnostics);
@@ -23571,13 +23915,13 @@ function generateRoadmapMilestone(rootDir, input) {
     };
   }
   const updatedFiles = [];
-  const previousMilestoneContent = existsSync20(milestonePath) ? readFileSync15(milestonePath, "utf8") : null;
-  mkdirSync7(path21.dirname(milestonePath), { recursive: true });
+  const previousMilestoneContent = existsSync21(milestonePath) ? readFileSync16(milestonePath, "utf8") : null;
+  mkdirSync7(path22.dirname(milestonePath), { recursive: true });
   writeFileIfChanged(milestonePath, stringifyYamlDocument(nextArtifact), updatedFiles, rootDir);
   const syncResult = syncRoadmap(rootDir);
   if (!syncResult.valid) {
     if (previousMilestoneContent === null) {
-      rmSync4(milestonePath, { force: true });
+      rmSync5(milestonePath, { force: true });
     } else {
       writeFileSync8(milestonePath, previousMilestoneContent, "utf8");
     }
@@ -23649,7 +23993,7 @@ function generateRoadmapPlannedChange(rootDir, input) {
   }
   const roadmap = loadRoadmap(rootDir);
   const preflight = getRoadmapStatus(rootDir);
-  const blockingPreflightDiagnostics = preflight.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH && diagnostic.artifactPath !== ROADMAP_DIR);
+  const blockingPreflightDiagnostics = preflight.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH && diagnostic2.artifactPath !== ROADMAP_DIR);
   if (blockingPreflightDiagnostics.length > 0) {
     return {
       valid: false,
@@ -23693,9 +24037,9 @@ function generateRoadmapPlannedChange(rootDir, input) {
       milestones: []
     };
   }
-  const plannedChangePath = existing?.absolutePath ?? path21.join(rootDir, plannedChangesDir, canonicalPlannedChangeFileName(input.milestone, input.id));
+  const plannedChangePath = existing?.absolutePath ?? path22.join(rootDir, plannedChangesDir, canonicalPlannedChangeFileName(input.milestone, input.id));
   const artifactPath = normalizeRepoRelativePath2(rootDir, plannedChangePath);
-  if (!existing && existsSync20(plannedChangePath)) {
+  if (!existing && existsSync21(plannedChangePath)) {
     diagnostics.push(makeDiagnostic("semantic", artifactPath, "$.planned_change", "planned change destination already exists for a different or invalid planned change", "unused planned change file path", artifactPath));
   }
   const nextArtifact = buildPlannedChangeArtifact(input, existing, artifactPath, diagnostics);
@@ -23712,13 +24056,13 @@ function generateRoadmapPlannedChange(rootDir, input) {
     };
   }
   const updatedFiles = [];
-  const previousContent = existsSync20(plannedChangePath) ? readFileSync15(plannedChangePath, "utf8") : null;
-  mkdirSync7(path21.dirname(plannedChangePath), { recursive: true });
+  const previousContent = existsSync21(plannedChangePath) ? readFileSync16(plannedChangePath, "utf8") : null;
+  mkdirSync7(path22.dirname(plannedChangePath), { recursive: true });
   writeFileIfChanged(plannedChangePath, stringifyYamlDocument(nextArtifact), updatedFiles, rootDir);
   const syncResult = syncRoadmap(rootDir);
   if (!syncResult.valid) {
     if (previousContent === null) {
-      rmSync4(plannedChangePath, { force: true });
+      rmSync5(plannedChangePath, { force: true });
     } else {
       writeFileSync8(plannedChangePath, previousContent, "utf8");
     }
@@ -23745,8 +24089,8 @@ function generateRoadmapPlannedChange(rootDir, input) {
 }
 
 // src/roadmap/move.ts
-import { existsSync as existsSync21, readFileSync as readFileSync16, rmSync as rmSync5, writeFileSync as writeFileSync9 } from "fs";
-import path22 from "path";
+import { existsSync as existsSync22, readFileSync as readFileSync17, rmSync as rmSync6, writeFileSync as writeFileSync9 } from "fs";
+import path23 from "path";
 function invalidMoveResult(warnings, diagnostics) {
   return {
     valid: false,
@@ -23758,7 +24102,7 @@ function invalidMoveResult(warnings, diagnostics) {
 }
 function archivedMilestoneExists(rootDir, milestoneId) {
   const diagnostics = [];
-  const archiveDir = path22.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR);
+  const archiveDir = path23.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR);
   for (const filePath of listYamlFiles(archiveDir)) {
     const artifact = validateMilestoneArtifact(readYamlFile(filePath), filePath, diagnostics);
     if (artifact?.milestone.id === milestoneId)
@@ -23812,7 +24156,7 @@ function movePlannedChangeToMilestone(rootDir, input) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
   appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
-  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH);
+  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH);
   if (blockingDiagnostics.length > 0)
     return invalidMoveResult(roadmap.warnings, blockingDiagnostics);
   const targetMilestone = roadmap.milestones.find((milestone) => milestone.artifact.milestone.id === input.targetMilestoneId);
@@ -23853,10 +24197,10 @@ function movePlannedChangeToMilestone(rootDir, input) {
       makeDiagnostic("semantic", plannedChange.repoRelativePath, "$.planned_change.milestone", "roadmap-move-planned-change refuses to move a completed planned change because it can flip the source milestone from complete back to proposed and make the target milestone report work it never contained; rerun with --allow-complete to move it deliberately", "planned change with unstarted or in-progress strict change state", "archived strict change state")
     ]);
   }
-  const destinationAbsolutePath = path22.join(path22.dirname(plannedChange.absolutePath), canonicalPlannedChangeFileName(input.targetMilestoneId, input.plannedChangeId));
+  const destinationAbsolutePath = path23.join(path23.dirname(plannedChange.absolutePath), canonicalPlannedChangeFileName(input.targetMilestoneId, input.plannedChangeId));
   const destinationPath = normalizeRepoRelativePath2(rootDir, destinationAbsolutePath);
   const renames = destinationAbsolutePath !== plannedChange.absolutePath;
-  if (renames && existsSync21(destinationAbsolutePath)) {
+  if (renames && existsSync22(destinationAbsolutePath)) {
     return invalidMoveResult(roadmap.warnings, [
       makeDiagnostic("semantic", destinationPath, "$.planned_change", "roadmap-move-planned-change destination filename is already occupied", "unused canonical planned change file path", destinationPath)
     ]);
@@ -23877,15 +24221,15 @@ function movePlannedChangeToMilestone(rootDir, input) {
   ];
   const targetStatus = buildMilestoneStatus(targetMilestone, changeStates, getMergedPlannedChangesForMilestone(targetMilestone, targetStandalone));
   const nextArtifact = buildCanonicalPlannedChangeArtifact(draftPlannedChange, targetStatus);
-  const previousContent = readFileSync16(plannedChange.absolutePath, "utf8");
+  const previousContent = readFileSync17(plannedChange.absolutePath, "utf8");
   const updatedFiles = [];
   writeFileIfChanged(destinationAbsolutePath, stringifyYamlDocument(nextArtifact), updatedFiles, rootDir);
   if (renames) {
-    rmSync5(plannedChange.absolutePath, { force: true });
+    rmSync6(plannedChange.absolutePath, { force: true });
   }
   const syncResult = syncRoadmap(rootDir);
   if (!syncResult.valid) {
-    rmSync5(destinationAbsolutePath, { force: true });
+    rmSync6(destinationAbsolutePath, { force: true });
     writeFileSync9(plannedChange.absolutePath, previousContent, "utf8");
     return {
       valid: false,
@@ -23917,7 +24261,7 @@ function movePlannedChangeToMilestone(rootDir, input) {
 }
 
 // src/roadmap/pause.ts
-import path23 from "path";
+import path24 from "path";
 var DEFAULT_PAUSE_REASON = "operator applied a deliberate hold";
 var DEFAULT_RESUME_REASON = "operator cleared a deliberate hold";
 var PAUSED_NOT_SET = "milestone is not paused";
@@ -23993,7 +24337,7 @@ function pauseMilestone(rootDir, milestoneId, options = {}) {
   const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
-  const milestonePathResolved = toPosix2(path23.join("roadmap", "milestones", milestone.relativeMilestonePath));
+  const milestonePathResolved = toPosix3(path24.join("roadmap", "milestones", milestone.relativeMilestonePath));
   const previousStatus = milestone.artifact.status;
   const pausedOn = buildPauseDate();
   const nextPaused = {
@@ -24022,7 +24366,7 @@ function pauseMilestone(rootDir, milestoneId, options = {}) {
   writeFileIfChanged(milestone.absolutePath, nextContent, updatedFiles, rootDir);
   milestone.artifact = nextArtifact;
   milestone.raw = nextContent;
-  const indexPath = path23.join(rootDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
+  const indexPath = path24.join(rootDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
   const nextIndex = buildRoadmapIndexArtifact(roadmap.milestones);
   writeFileIfChanged(indexPath, stringifyYamlDocument(nextIndex), updatedFiles, rootDir);
   const pausedSummary = {
@@ -24072,7 +24416,7 @@ function resumeMilestone(rootDir, milestoneId, options = {}) {
   const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
-  const milestonePathResolved = toPosix2(path23.join("roadmap", "milestones", milestone.relativeMilestonePath));
+  const milestonePathResolved = toPosix3(path24.join("roadmap", "milestones", milestone.relativeMilestonePath));
   const previousStatus = milestone.artifact.status;
   const previousPaused = milestone.artifact.paused ?? null;
   if (!previousPaused) {
@@ -24113,7 +24457,7 @@ function resumeMilestone(rootDir, milestoneId, options = {}) {
   writeFileIfChanged(milestone.absolutePath, nextContent, updatedFiles, rootDir);
   milestone.artifact = nextArtifact;
   milestone.raw = nextContent;
-  const indexPath = path23.join(rootDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
+  const indexPath = path24.join(rootDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
   const nextIndex = buildRoadmapIndexArtifact(roadmap.milestones);
   writeFileIfChanged(indexPath, stringifyYamlDocument(nextIndex), updatedFiles, rootDir);
   const resumedSummary = {
@@ -24142,8 +24486,8 @@ function resumeMilestone(rootDir, milestoneId, options = {}) {
 }
 
 // src/roadmap/reopen.ts
-import { existsSync as existsSync22, mkdirSync as mkdirSync8 } from "fs";
-import path24 from "path";
+import { existsSync as existsSync23, mkdirSync as mkdirSync8 } from "fs";
+import path25 from "path";
 var DEFAULT_REOPEN_REASON = "gaps discovered after completion";
 var PLANNED_CHANGES_DIRNAME2 = "planned-changes";
 var FOLLOWUP_SCHEMA_FILE = "../../templates/strict-spec-driven/schemas/planned-change.yaml";
@@ -24161,7 +24505,7 @@ function findMilestoneById2(roadmap, milestoneId) {
   return roadmap.milestones.find((milestone) => milestone.artifact.milestone.id === milestoneId);
 }
 function seedFollowUpPlannedChange(roadmap, rootDir, milestone, frozenPlannedChanges, reason, updatedFiles) {
-  const plannedChangesDir = path24.join(rootDir, ".strict-spec-driven", "roadmap", PLANNED_CHANGES_DIRNAME2);
+  const plannedChangesDir = path25.join(rootDir, ".strict-spec-driven", "roadmap", PLANNED_CHANGES_DIRNAME2);
   mkdirSync8(plannedChangesDir, { recursive: true });
   const milestoneId = milestone.artifact.milestone.id;
   const existingIds = new Set(roadmap.plannedChanges.map((plannedChange) => plannedChange.artifact.planned_change.id));
@@ -24169,7 +24513,7 @@ function seedFollowUpPlannedChange(roadmap, rootDir, milestone, frozenPlannedCha
   let id = baseId;
   let suffix = 2;
   let fileName = canonicalPlannedChangeFileName(milestoneId, id);
-  while (existingIds.has(id) || existsSync22(path24.join(plannedChangesDir, fileName))) {
+  while (existingIds.has(id) || existsSync23(path25.join(plannedChangesDir, fileName))) {
     id = `${baseId}-${suffix}`;
     suffix += 1;
     fileName = canonicalPlannedChangeFileName(milestoneId, id);
@@ -24189,9 +24533,9 @@ function seedFollowUpPlannedChange(roadmap, rootDir, milestone, frozenPlannedCha
     details: `Scope and plan the follow-up work discovered when reopening milestone ${milestoneId}. Reason: ${reason}. Refine this placeholder into concrete planned-change detail.`,
     depends_on: latestArchived ? [latestArchived.id] : []
   };
-  const absolutePath = path24.join(plannedChangesDir, fileName);
+  const absolutePath = path25.join(plannedChangesDir, fileName);
   writeFileIfChanged(absolutePath, stringifyYamlDocument(artifact), updatedFiles, rootDir);
-  return { id, path: toPosix2(path24.join("roadmap", PLANNED_CHANGES_DIRNAME2, fileName)) };
+  return { id, path: toPosix3(path25.join("roadmap", PLANNED_CHANGES_DIRNAME2, fileName)) };
 }
 function reopenMilestone(rootDir, milestoneId, options = {}) {
   const reason = (options.reason ?? "").trim() || DEFAULT_REOPEN_REASON;
@@ -24220,7 +24564,7 @@ function reopenMilestone(rootDir, milestoneId, options = {}) {
   const status = buildMilestoneStatus(milestone, changeStates, plannedChangeEntries);
   const milestoneIdResolved = status.id;
   const milestoneTitleResolved = status.title;
-  const milestonePathResolved = toPosix2(path24.join("roadmap", "milestones", milestone.relativeMilestonePath));
+  const milestonePathResolved = toPosix3(path25.join("roadmap", "milestones", milestone.relativeMilestonePath));
   const previousStatus = milestone.artifact.status;
   const priorCanonical = normalizeMilestoneStatus(previousStatus);
   const diagnostics = [];
@@ -24258,7 +24602,7 @@ function reopenMilestone(rootDir, milestoneId, options = {}) {
   writeFileIfChanged(reloadedMilestone.absolutePath, nextContent, updatedFiles, rootDir);
   reloadedMilestone.artifact = nextMilestoneArtifact;
   reloadedMilestone.raw = nextContent;
-  const indexPath = path24.join(rootDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
+  const indexPath = path25.join(rootDir, ".strict-spec-driven", "roadmap", "INDEX.yaml");
   const nextIndex = buildRoadmapIndexArtifact(reloaded.roadmap.milestones);
   writeFileIfChanged(indexPath, stringifyYamlDocument(nextIndex), updatedFiles, rootDir);
   const reopenedSummary = {
@@ -24300,11 +24644,11 @@ function emptyReopened(milestoneId) {
 }
 
 // src/roadmap/order.ts
-import { existsSync as existsSync23 } from "fs";
-import path25 from "path";
+import { existsSync as existsSync24 } from "fs";
+import path26 from "path";
 function archivedMilestoneExists2(rootDir, milestoneId) {
   const diagnostics = [];
-  const archiveDir = path25.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR);
+  const archiveDir = path26.join(rootDir, ROADMAP_ARCHIVE_MILESTONES_DIR);
   for (const filePath of listYamlFiles(archiveDir)) {
     const artifact = validateMilestoneArtifact(readYamlFile(filePath), filePath, diagnostics);
     if (artifact?.milestone.id === milestoneId)
@@ -24378,12 +24722,12 @@ function reorderRoadmapMilestone(rootDir, input) {
   const roadmap = loadRoadmap(rootDir);
   const changeStates = getChangeStateIndex(rootDir);
   appendRoadmapCrossFileDiagnostics(roadmap, changeStates, loadArchivedPlannedChangeIds(rootDir));
-  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic) => diagnostic.artifactPath !== ROADMAP_INDEX_PATH);
+  const blockingDiagnostics = roadmap.diagnostics.filter((diagnostic2) => diagnostic2.artifactPath !== ROADMAP_INDEX_PATH);
   if (blockingDiagnostics.length > 0)
     return invalidOrderResult(roadmap.warnings, blockingDiagnostics);
   const targetLookup = findActiveMilestone(roadmap.milestones, rootDir, input.milestoneId, "target");
   if (targetLookup.diagnostic || !targetLookup.milestone) {
-    return invalidOrderResult(roadmap.warnings, [targetLookup.diagnostic].filter((diagnostic) => Boolean(diagnostic)));
+    return invalidOrderResult(roadmap.warnings, [targetLookup.diagnostic].filter((diagnostic2) => Boolean(diagnostic2)));
   }
   let nextOrder = input.mode === "order" ? input.order : undefined;
   if (input.mode !== "order") {
@@ -24394,12 +24738,12 @@ function reorderRoadmapMilestone(rootDir, input) {
     }
     const neighborLookup = findActiveMilestone(roadmap.milestones, rootDir, input.neighborId, "neighbor");
     if (neighborLookup.diagnostic || !neighborLookup.milestone) {
-      return invalidOrderResult(roadmap.warnings, [neighborLookup.diagnostic].filter((diagnostic) => Boolean(diagnostic)));
+      return invalidOrderResult(roadmap.warnings, [neighborLookup.diagnostic].filter((diagnostic2) => Boolean(diagnostic2)));
     }
     const sortedWithoutTarget = sortMilestonesByRoadmapOrder(roadmap.milestones.filter((milestone) => milestone.artifact.milestone.id !== input.milestoneId));
     const midpoint = midpointOrder(sortedWithoutTarget, input.mode, neighborLookup.milestone);
     if (midpoint.diagnostic || midpoint.order === undefined) {
-      return invalidOrderResult(roadmap.warnings, [midpoint.diagnostic].filter((diagnostic) => Boolean(diagnostic)));
+      return invalidOrderResult(roadmap.warnings, [midpoint.diagnostic].filter((diagnostic2) => Boolean(diagnostic2)));
     }
     nextOrder = midpoint.order;
   }
@@ -24426,7 +24770,7 @@ function renumberRoadmapMilestones(rootDir) {
   if (!status.valid)
     return invalidOrderResult(status.warnings, status.diagnostics);
   const roadmap = loadRoadmap(rootDir);
-  if (!existsSync23(path25.join(rootDir, ROADMAP_INDEX_PATH))) {
+  if (!existsSync24(path26.join(rootDir, ROADMAP_INDEX_PATH))) {
     return invalidOrderResult(roadmap.warnings, [
       makeDiagnostic("schema", ROADMAP_INDEX_PATH, "$", "roadmap index is missing", ROADMAP_INDEX_PATH, "missing")
     ]);
@@ -24455,10 +24799,10 @@ var ROADMAP_MOVE_PLANNED_CHANGE_USAGE = getCommandUsage("roadmap-move-planned-ch
 var ROADMAP_GENERATE_USAGE = getCommandUsage("roadmap-generate");
 var ACTIONABLE_BLOCKER_LIMIT = 10;
 var ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set;
-function summarizeRoadmapRecommendation(result, args) {
+function summarizeRoadmapRecommendation(result2, args) {
   const skippedByCode = {};
   let eligible = 0;
-  for (const candidate of result.candidates) {
+  for (const candidate of result2.candidates) {
     if (candidate.eligible) {
       eligible += 1;
       continue;
@@ -24467,28 +24811,28 @@ function summarizeRoadmapRecommendation(result, args) {
       skippedByCode[reason.code] = (skippedByCode[reason.code] ?? 0) + 1;
     }
   }
-  const blockers = result.candidates.filter((candidate) => !candidate.eligible && !candidate.skipReasons.some((reason) => reason.code === "workflow-state-archived") && candidate.skipReasons.some((reason) => reason.code !== "workflow-state-archived")).slice(0, ACTIONABLE_BLOCKER_LIMIT).map((candidate) => ({
+  const blockers = result2.candidates.filter((candidate) => !candidate.eligible && !candidate.skipReasons.some((reason) => reason.code === "workflow-state-archived") && candidate.skipReasons.some((reason) => reason.code !== "workflow-state-archived")).slice(0, ACTIONABLE_BLOCKER_LIMIT).map((candidate) => ({
     id: candidate.id,
     path: candidate.path,
     milestone: candidate.milestone,
     skipReasonCodes: candidate.skipReasons.map((reason) => reason.code)
   }));
-  const recommendation = result.recommendation === null ? null : {
-    id: result.recommendation.id,
-    changeName: result.recommendation.changeName,
-    path: result.recommendation.path,
-    milestone: result.recommendation.milestone
+  const recommendation = result2.recommendation === null ? null : {
+    id: result2.recommendation.id,
+    changeName: result2.recommendation.changeName,
+    path: result2.recommendation.path,
+    milestone: result2.recommendation.milestone
   };
   return {
-    valid: result.valid,
-    status: result.status,
-    warnings: result.warnings,
-    diagnostics: result.diagnostics,
+    valid: result2.valid,
+    status: result2.status,
+    warnings: result2.warnings,
+    diagnostics: result2.diagnostics,
     recommendation,
     candidateSummary: {
-      total: result.candidates.length,
+      total: result2.candidates.length,
       eligible,
-      skipped: result.candidates.length - eligible,
+      skipped: result2.candidates.length - eligible,
       skippedByCode
     },
     blockers,
@@ -24503,9 +24847,9 @@ function runRoadmapStatus(argv) {
     writeUsage(getCommandUsage("roadmap-status"));
     return 1;
   }
-  const result = getRoadmapStatus(process.cwd());
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = getRoadmapStatus(process.cwd());
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runRoadmapOverview(argv) {
   if (handleHelpRequest("roadmap-overview", argv)) {
@@ -24515,9 +24859,9 @@ function runRoadmapOverview(argv) {
     writeUsage(getCommandUsage("roadmap-overview"));
     return 1;
   }
-  const result = getRoadmapStatus(process.cwd());
-  writeOut(formatRoadmapOverview(result));
-  return result.valid ? 0 : 1;
+  const result2 = getRoadmapStatus(process.cwd());
+  writeOut(formatRoadmapOverview(result2));
+  return result2.valid ? 0 : 1;
 }
 var ROADMAP_SYNC_USAGE = getCommandUsage("roadmap-sync");
 function runRoadmapSync(argv) {
@@ -24538,9 +24882,9 @@ function runRoadmapSync(argv) {
     writeUsage(ROADMAP_SYNC_USAGE);
     return 1;
   }
-  const result = syncRoadmap(process.cwd(), { materializePlannedChanges, fixNames });
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = syncRoadmap(process.cwd(), { materializePlannedChanges, fixNames });
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function parseRoadmapGenerateFlags(argv) {
   const flags = {};
@@ -24697,46 +25041,46 @@ function runRoadmapGenerate(argv) {
     return 1;
   }
   try {
-    const result = generateRoadmapMilestone(process.cwd(), input);
-    writeJson(result);
-    return result.valid ? 0 : 1;
+    const result2 = generateRoadmapMilestone(process.cwd(), input);
+    writeJson(result2);
+    return result2.valid ? 0 : 1;
   } catch (error) {
     writeError(error instanceof Error ? error.message : String(error));
     return 1;
   }
 }
 function parseRoadmapRecommendArgs(argv) {
-  const result = { includeDetails: false };
+  const result2 = { includeDetails: false };
   for (let index = 0;index < argv.length; index += 1) {
     const token = argv[index];
     if (token === "--details") {
-      if (result.includeDetails)
+      if (result2.includeDetails)
         throw new Error("--details may only be supplied once");
-      result.includeDetails = true;
+      result2.includeDetails = true;
       continue;
     }
     if (token === "--milestone") {
-      if (result.milestoneId !== undefined)
+      if (result2.milestoneId !== undefined)
         throw new Error("--milestone may only be supplied once");
       const value = argv[index + 1];
       if (value === undefined || value.length === 0 || value.startsWith("--"))
         throw new Error("missing value for --milestone");
-      result.milestoneId = value;
+      result2.milestoneId = value;
       index += 1;
       continue;
     }
     if (token.startsWith("--milestone=")) {
-      if (result.milestoneId !== undefined)
+      if (result2.milestoneId !== undefined)
         throw new Error("--milestone may only be supplied once");
       const value = token.slice("--milestone=".length);
       if (value.length === 0)
         throw new Error("missing value for --milestone");
-      result.milestoneId = value;
+      result2.milestoneId = value;
       continue;
     }
     throw new Error(`unsupported argument: ${token}`);
   }
-  return result;
+  return result2;
 }
 function runRoadmapRecommend(argv) {
   if (handleHelpRequest("roadmap-recommend", argv)) {
@@ -24750,9 +25094,9 @@ function runRoadmapRecommend(argv) {
     writeUsage(ROADMAP_RECOMMEND_USAGE);
     return 1;
   }
-  const result = recommendRoadmapChange(process.cwd(), { milestoneId: args.milestoneId });
-  writeJson(args.includeDetails ? result : summarizeRoadmapRecommendation(result, args));
-  return result.status === "recommended" ? 0 : 1;
+  const result2 = recommendRoadmapChange(process.cwd(), { milestoneId: args.milestoneId });
+  writeJson(args.includeDetails ? result2 : summarizeRoadmapRecommendation(result2, args));
+  return result2.status === "recommended" ? 0 : 1;
 }
 function runRoadmapArchive(argv) {
   if (handleHelpRequest("roadmap-archive", argv)) {
@@ -24762,9 +25106,9 @@ function runRoadmapArchive(argv) {
     writeUsage(ROADMAP_ARCHIVE_USAGE);
     return 1;
   }
-  const result = archiveRoadmapMilestones(process.cwd(), argv[0]);
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = archiveRoadmapMilestones(process.cwd(), argv[0]);
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function parseRoadmapReorderArgs(argv) {
   const [milestoneId, ...rest] = argv;
@@ -24829,9 +25173,9 @@ function runRoadmapReorder(argv) {
     writeUsage(ROADMAP_REORDER_USAGE);
     return 1;
   }
-  const result = reorderRoadmapMilestone(process.cwd(), input);
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = reorderRoadmapMilestone(process.cwd(), input);
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function parseRoadmapMovePlannedChangeArgs(argv) {
   const [plannedChangeId, ...rest] = argv;
@@ -24884,9 +25228,9 @@ function runRoadmapMovePlannedChange(argv) {
     writeUsage(ROADMAP_MOVE_PLANNED_CHANGE_USAGE);
     return 1;
   }
-  const result = movePlannedChangeToMilestone(process.cwd(), input);
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = movePlannedChangeToMilestone(process.cwd(), input);
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runRoadmapRenumber(argv) {
   if (handleHelpRequest("roadmap-renumber", argv)) {
@@ -24896,9 +25240,9 @@ function runRoadmapRenumber(argv) {
     writeUsage(ROADMAP_RENUMBER_USAGE);
     return 1;
   }
-  const result = renumberRoadmapMilestones(process.cwd());
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = renumberRoadmapMilestones(process.cwd());
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runRoadmapReopen(argv) {
   if (handleHelpRequest("roadmap-reopen", argv)) {
@@ -24933,9 +25277,9 @@ function runRoadmapReopen(argv) {
     writeUsage(ROADMAP_REOPEN_USAGE);
     return 1;
   }
-  const result = reopenMilestone(process.cwd(), milestoneId, reason !== undefined ? { reason } : {});
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = reopenMilestone(process.cwd(), milestoneId, reason !== undefined ? { reason } : {});
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function parseOptionalReasonArg(argv, usage2) {
   if (argv.length === 0) {
@@ -24976,9 +25320,9 @@ function runRoadmapPause(argv) {
   const parsed = parseOptionalReasonArg(argv, ROADMAP_PAUSE_USAGE);
   if (typeof parsed === "number")
     return parsed;
-  const result = pauseMilestone(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = pauseMilestone(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runRoadmapResume(argv) {
   if (handleHelpRequest("roadmap-resume", argv)) {
@@ -24987,27 +25331,27 @@ function runRoadmapResume(argv) {
   const parsed = parseOptionalReasonArg(argv, ROADMAP_RESUME_USAGE);
   if (typeof parsed === "number")
     return parsed;
-  const result = resumeMilestone(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = resumeMilestone(process.cwd(), parsed.milestoneId, parsed.reason !== undefined ? { reason: parsed.reason } : {});
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 
 // src/sops.ts
-import { existsSync as existsSync25, mkdirSync as mkdirSync9, readdirSync as readdirSync9, statSync as statSync13, writeFileSync as writeFileSync10 } from "fs";
-import path27 from "path";
+import { existsSync as existsSync26, mkdirSync as mkdirSync9, readdirSync as readdirSync9, statSync as statSync14, writeFileSync as writeFileSync10 } from "fs";
+import path28 from "path";
 import { createHash as createHash2 } from "crypto";
 
 // src/sop-categories.ts
-import { existsSync as existsSync24, readFileSync as readFileSync17, readdirSync as readdirSync8, statSync as statSync12 } from "fs";
-import path26 from "path";
+import { existsSync as existsSync25, readFileSync as readFileSync18, readdirSync as readdirSync8, statSync as statSync13 } from "fs";
+import path27 from "path";
 import { fileURLToPath as fileURLToPath3 } from "url";
 var CATEGORY_TEMPLATE_PREFIX = "strict-spec-driven/sop-categories/";
 function getBundledCategoryDir() {
-  const thisDir = path26.dirname(fileURLToPath3(import.meta.url));
-  const distPath = path26.join(thisDir, "templates", "strict-spec-driven", "sop-categories");
-  if (existsSync24(distPath))
+  const thisDir = path27.dirname(fileURLToPath3(import.meta.url));
+  const distPath = path27.join(thisDir, "templates", "strict-spec-driven", "sop-categories");
+  if (existsSync25(distPath))
     return distPath;
-  return path26.join(thisDir, "..", "templates", "strict-spec-driven", "sop-categories");
+  return path27.join(thisDir, "..", "templates", "strict-spec-driven", "sop-categories");
 }
 function categoryDiagnostic(message, fieldPath = "$") {
   return { source: "schema", artifactPath: CATEGORY_TEMPLATE_PREFIX, fieldPath, message };
@@ -25020,7 +25364,7 @@ function listSopCategoryIds() {
     }
   }
   const dir = getBundledCategoryDir();
-  if (existsSync24(dir) && statSync12(dir).isDirectory()) {
+  if (existsSync25(dir) && statSync13(dir).isDirectory()) {
     for (const name of readdirSync8(dir)) {
       if (name.endsWith(".yaml")) {
         ids.add(name.slice(0, -".yaml".length));
@@ -25033,11 +25377,11 @@ function loadSopCategoryDefinition(categoryId) {
   const embedded = readEmbeddedTemplate(`${CATEGORY_TEMPLATE_PREFIX}${categoryId}.yaml`);
   let content = embedded;
   if (content === undefined) {
-    const diskPath = path26.join(getBundledCategoryDir(), `${categoryId}.yaml`);
-    if (!existsSync24(diskPath)) {
+    const diskPath = path27.join(getBundledCategoryDir(), `${categoryId}.yaml`);
+    if (!existsSync25(diskPath)) {
       return null;
     }
-    content = readFileSync17(diskPath, "utf8");
+    content = readFileSync18(diskPath, "utf8");
   }
   return parseYamlDocument(content);
 }
@@ -25086,16 +25430,16 @@ var SECTION_FIELDS = {
   references: "references"
 };
 function sopsDir(rootDir) {
-  return path27.join(rootDir, SOPS_DIR);
+  return path28.join(rootDir, SOPS_DIR);
 }
 function sopsIndexPath(rootDir) {
-  return path27.join(rootDir, SOPS_INDEX_PATH);
+  return path28.join(rootDir, SOPS_INDEX_PATH);
 }
 function sopFilePath(rootDir, sopId) {
-  return path27.join(sopsDir(rootDir), `${sopId}.yaml`);
+  return path28.join(sopsDir(rootDir), `${sopId}.yaml`);
 }
 function repoRelative(rootDir, absolutePath) {
-  return path27.relative(rootDir, absolutePath).split(path27.sep).join("/");
+  return path28.relative(rootDir, absolutePath).split(path28.sep).join("/");
 }
 function slugify(value) {
   const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48).replace(/^-+|-+$/g, "");
@@ -25117,10 +25461,10 @@ function makeDiagnostic2(rootDir, message, fieldPath = "$", absolutePath) {
 }
 function listSopFiles(rootDir) {
   const dir = sopsDir(rootDir);
-  if (!existsSync25(dir) || !statSync13(dir).isDirectory()) {
+  if (!existsSync26(dir) || !statSync14(dir).isDirectory()) {
     return [];
   }
-  return readdirSync9(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path27.join(dir, name)).sort();
+  return readdirSync9(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path28.join(dir, name)).sort();
 }
 function compareSops(left, right) {
   const order = left.createdAt.localeCompare(right.createdAt);
@@ -25210,28 +25554,28 @@ function nonEmptyArray(value) {
   return Array.isArray(value) && value.length > 0;
 }
 function resolveSpecLink(rootDir, target) {
-  if (existsSync25(path27.join(rootDir, target))) {
+  if (existsSync26(path28.join(rootDir, target))) {
     return true;
   }
-  const indexPath = path27.join(rootDir, STRICT_WORKFLOW_DIR9, "specs", "INDEX.yaml");
-  if (!existsSync25(indexPath)) {
+  const indexPath = path28.join(rootDir, STRICT_WORKFLOW_DIR9, "specs", "INDEX.yaml");
+  if (!existsSync26(indexPath)) {
     return false;
   }
   const index = parseYamlFile(indexPath);
   return Array.isArray(index?.specs) && index.specs.some((spec) => spec?.id === target);
 }
 function resolveChangeLink(rootDir, target) {
-  const active = path27.join(rootDir, STRICT_WORKFLOW_DIR9, "changes", target);
-  const archived = path27.join(rootDir, STRICT_WORKFLOW_DIR9, "changes", "archive", target);
-  return existsSync25(active) || existsSync25(archived);
+  const active = path28.join(rootDir, STRICT_WORKFLOW_DIR9, "changes", target);
+  const archived = path28.join(rootDir, STRICT_WORKFLOW_DIR9, "changes", "archive", target);
+  return existsSync26(active) || existsSync26(archived);
 }
 function resolveRoadmapLink(rootDir, target) {
-  const milestoneFile = path27.join(rootDir, STRICT_WORKFLOW_DIR9, "roadmap", "milestones", `${target}.yaml`);
-  if (existsSync25(milestoneFile)) {
+  const milestoneFile = path28.join(rootDir, STRICT_WORKFLOW_DIR9, "roadmap", "milestones", `${target}.yaml`);
+  if (existsSync26(milestoneFile)) {
     return true;
   }
-  const indexPath = path27.join(rootDir, STRICT_WORKFLOW_DIR9, "roadmap", "INDEX.yaml");
-  if (!existsSync25(indexPath)) {
+  const indexPath = path28.join(rootDir, STRICT_WORKFLOW_DIR9, "roadmap", "INDEX.yaml");
+  if (!existsSync26(indexPath)) {
     return false;
   }
   const index = parseYamlFile(indexPath);
@@ -25336,7 +25680,7 @@ function createSop(rootDir, input) {
   }
   const sopId = deriveSopId(input);
   const filePath = sopFilePath(rootDir, sopId);
-  if (existsSync25(filePath)) {
+  if (existsSync26(filePath)) {
     return { valid: true, created: false, sopId, path: repoRelative(rootDir, filePath), diagnostics: [] };
   }
   const artifact = buildSopArtifact(input, sopId);
@@ -25371,7 +25715,7 @@ function listSops(rootDir) {
 }
 function showSop(rootDir, sopId) {
   const filePath = sopFilePath(rootDir, sopId);
-  if (!existsSync25(filePath)) {
+  if (!existsSync26(filePath)) {
     return { valid: false, sopId, path: null, sop: null, diagnostics: [makeDiagnostic2(rootDir, `sop '${sopId}' not found`, "$.sop.id")] };
   }
   const sop = parseYamlFile(filePath);
@@ -25382,7 +25726,7 @@ function validateSops(rootDir, sopId) {
   let checkedCount = 0;
   const targetFiles = sopId ? [sopFilePath(rootDir, sopId)] : listSopFiles(rootDir);
   for (const filePath of targetFiles) {
-    if (!existsSync25(filePath)) {
+    if (!existsSync26(filePath)) {
       diagnostics.push(makeDiagnostic2(rootDir, `sop '${sopId}' not found`, "$.sop.id"));
       continue;
     }
@@ -25392,7 +25736,7 @@ function validateSops(rootDir, sopId) {
   }
   if (!sopId) {
     const indexPath = sopsIndexPath(rootDir);
-    if (existsSync25(indexPath)) {
+    if (existsSync26(indexPath)) {
       const indexSchema = loadBundledSchemaBySchemaId(SOPS_INDEX_SCHEMA_ID);
       const indexArtifact = parseYamlFile(indexPath);
       diagnostics.push(...validateArtifact(indexSchema, indexArtifact, repoRelative(rootDir, indexPath)).diagnostics);
@@ -25402,7 +25746,7 @@ function validateSops(rootDir, sopId) {
 }
 function editSop(rootDir, input) {
   const filePath = sopFilePath(rootDir, input.sopId);
-  if (!existsSync25(filePath)) {
+  if (!existsSync26(filePath)) {
     return { valid: false, edited: false, sopId: input.sopId, path: null, sop: null, diagnostics: [makeDiagnostic2(rootDir, `sop '${input.sopId}' not found`, "$.sop.id")] };
   }
   const artifact = parseYamlFile(filePath);
@@ -25605,9 +25949,9 @@ function runSopCreate(argv) {
 `);
     return 1;
   }
-  const result = createSop(process.cwd(), input);
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = createSop(process.cwd(), input);
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runSopList(argv) {
   if (handleHelpRequest("sop-list", argv)) {
@@ -25617,9 +25961,9 @@ function runSopList(argv) {
     writeUsage(getCommandUsage("sop-list"));
     return 1;
   }
-  const result = listSops(process.cwd());
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = listSops(process.cwd());
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runSopShow(argv) {
   if (handleHelpRequest("sop-show", argv)) {
@@ -25629,9 +25973,9 @@ function runSopShow(argv) {
     writeUsage(getCommandUsage("sop-show"));
     return 1;
   }
-  const result = showSop(process.cwd(), argv[0]);
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = showSop(process.cwd(), argv[0]);
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runSopValidate(argv) {
   if (handleHelpRequest("sop-validate", argv)) {
@@ -25641,9 +25985,9 @@ function runSopValidate(argv) {
     writeUsage(getCommandUsage("sop-validate"));
     return 1;
   }
-  const result = validateSops(process.cwd(), argv[0]);
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = validateSops(process.cwd(), argv[0]);
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 var SOP_EDIT_FLAGS = ["title", "purpose", "trigger", "scope-in", "scope-out", "success"];
 var SOP_EDIT_USAGE = getCommandUsage("sop-edit");
@@ -25697,9 +26041,9 @@ function runSopEdit(argv) {
   if ("success" in flags) {
     input.successCriteria = flags.success;
   }
-  const result = editSop(process.cwd(), input);
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = editSop(process.cwd(), input);
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runSopCategoryList(argv) {
   if (handleHelpRequest("sop-category-list", argv)) {
@@ -25709,9 +26053,9 @@ function runSopCategoryList(argv) {
     writeUsage(getCommandUsage("sop-category-list"));
     return 1;
   }
-  const result = listSopCategories();
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = listSopCategories();
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runSopCategoryShow(argv) {
   if (handleHelpRequest("sop-category-show", argv)) {
@@ -25721,24 +26065,24 @@ function runSopCategoryShow(argv) {
     writeUsage(getCommandUsage("sop-category-show"));
     return 1;
   }
-  const result = showSopCategory(argv[0]);
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = showSopCategory(argv[0]);
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 
 // src/lessons.ts
 import {
   cpSync,
-  existsSync as existsSync26,
+  existsSync as existsSync27,
   mkdirSync as mkdirSync10,
   mkdtempSync,
   readdirSync as readdirSync10,
-  renameSync as renameSync4,
-  rmSync as rmSync6,
-  statSync as statSync14,
+  renameSync as renameSync5,
+  rmSync as rmSync7,
+  statSync as statSync15,
   writeFileSync as writeFileSync11
 } from "fs";
-import path28 from "path";
+import path29 from "path";
 import { createHash as createHash3 } from "crypto";
 var STRICT_WORKFLOW_DIR10 = ".strict-spec-driven";
 var LESSONS_DIR = `${STRICT_WORKFLOW_DIR10}/lessons`;
@@ -25746,16 +26090,16 @@ var LESSONS_INDEX_PATH = `${LESSONS_DIR}/INDEX.yaml`;
 var LESSON_SCHEMA_ID = "strict-spec-driven/lesson/v1";
 var LESSONS_INDEX_SCHEMA_ID = "strict-spec-driven/lessons-index/v2";
 function lessonsDir(rootDir) {
-  return path28.join(rootDir, LESSONS_DIR);
+  return path29.join(rootDir, LESSONS_DIR);
 }
 function lessonsIndexPath(rootDir) {
-  return path28.join(rootDir, LESSONS_INDEX_PATH);
+  return path29.join(rootDir, LESSONS_INDEX_PATH);
 }
 function categoryLessonFilePath(rootDir, category, lessonId) {
-  return path28.join(lessonsDir(rootDir), category, `${lessonId}.yaml`);
+  return path29.join(lessonsDir(rootDir), category, `${lessonId}.yaml`);
 }
 function repoRelative2(rootDir, absolutePath) {
-  return path28.relative(rootDir, absolutePath).split(path28.sep).join("/");
+  return path29.relative(rootDir, absolutePath).split(path29.sep).join("/");
 }
 function slugify2(value) {
   const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48).replace(/^-+|-+$/g, "");
@@ -25781,22 +26125,22 @@ function makeDiagnostic3(rootDir, message, fieldPath = "$", absolutePath) {
   };
 }
 function listLegacyLessonFilesInDir(dir) {
-  if (!existsSync26(dir) || !statSync14(dir).isDirectory()) {
+  if (!existsSync27(dir) || !statSync15(dir).isDirectory()) {
     return [];
   }
-  return readdirSync10(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path28.join(dir, name)).sort();
+  return readdirSync10(dir).filter((name) => name.endsWith(".yaml") && name !== "INDEX.yaml").map((name) => path29.join(dir, name)).sort();
 }
 function listCategorizedLessonFilesInDir(dir, category) {
-  if (!existsSync26(dir) || !statSync14(dir).isDirectory()) {
+  if (!existsSync27(dir) || !statSync15(dir).isDirectory()) {
     return [];
   }
   const categories = category === undefined ? getLessonCategories().sort() : [category];
   const files = [];
   for (const candidateCategory of categories) {
-    const categoryDir = path28.join(dir, candidateCategory);
-    if (!existsSync26(categoryDir) || !statSync14(categoryDir).isDirectory())
+    const categoryDir = path29.join(dir, candidateCategory);
+    if (!existsSync27(categoryDir) || !statSync15(categoryDir).isDirectory())
       continue;
-    files.push(...readdirSync10(categoryDir).filter((name) => name.endsWith(".yaml")).map((name) => path28.join(categoryDir, name)).sort());
+    files.push(...readdirSync10(categoryDir).filter((name) => name.endsWith(".yaml")).map((name) => path29.join(categoryDir, name)).sort());
   }
   return files;
 }
@@ -25869,7 +26213,7 @@ function buildLessonsIndex(rootDir, filePaths) {
 }
 function writeLessonsIndex(rootDir, storeDir, filePaths) {
   const indexArtifact = buildLessonsIndex(rootDir, filePaths);
-  writeFileSync11(path28.join(storeDir, "INDEX.yaml"), stringifyYamlDocument(indexArtifact), "utf8");
+  writeFileSync11(path29.join(storeDir, "INDEX.yaml"), stringifyYamlDocument(indexArtifact), "utf8");
 }
 function rebuildLessonsIndex(rootDir) {
   const storeDir = lessonsDir(rootDir);
@@ -25905,7 +26249,7 @@ function validateMigrationSources(rootDir, legacyFiles) {
     }
     seenIds.set(lessonId, filePath);
     const expectedPath = categoryLessonFilePath(rootDir, artifact.category, lessonId);
-    if (existingFiles.includes(filePath) && path28.resolve(filePath) !== path28.resolve(expectedPath)) {
+    if (existingFiles.includes(filePath) && path29.resolve(filePath) !== path29.resolve(expectedPath)) {
       diagnostics.push(makeDiagnostic3(rootDir, `categorized lesson path must be ${repoRelative2(rootDir, expectedPath)}`, "$.lesson.id", filePath));
       continue;
     }
@@ -25917,7 +26261,7 @@ function validateMigrationSources(rootDir, legacyFiles) {
 }
 function copyDirectoryContents(sourceDir, destinationDir) {
   for (const entry of readdirSync10(sourceDir, { withFileTypes: true })) {
-    cpSync(path28.join(sourceDir, entry.name), path28.join(destinationDir, entry.name), {
+    cpSync(path29.join(sourceDir, entry.name), path29.join(destinationDir, entry.name), {
       recursive: entry.isDirectory(),
       preserveTimestamps: true
     });
@@ -25933,40 +26277,40 @@ function prepareLessonStore(rootDir) {
   if (preflight.diagnostics.length > 0) {
     return { valid: false, migrated: false, diagnostics: preflight.diagnostics };
   }
-  const parentDir = path28.dirname(storeDir);
+  const parentDir = path29.dirname(storeDir);
   let stagingDir = null;
   let backupRoot = null;
   let backupDir = null;
   let originalMoved = false;
   let replacementLive = false;
   try {
-    stagingDir = mkdtempSync(path28.join(parentDir, ".lessons-migration-"));
-    backupRoot = mkdtempSync(path28.join(parentDir, ".lessons-backup-"));
-    backupDir = path28.join(backupRoot, "lessons");
+    stagingDir = mkdtempSync(path29.join(parentDir, ".lessons-migration-"));
+    backupRoot = mkdtempSync(path29.join(parentDir, ".lessons-backup-"));
+    backupDir = path29.join(backupRoot, "lessons");
     copyDirectoryContents(storeDir, stagingDir);
     for (const [sourcePath, { artifact }] of preflight.destinations) {
-      const stagedSource = path28.join(stagingDir, path28.basename(sourcePath));
-      const stagedDestinationDir = path28.join(stagingDir, artifact.category);
+      const stagedSource = path29.join(stagingDir, path29.basename(sourcePath));
+      const stagedDestinationDir = path29.join(stagingDir, artifact.category);
       mkdirSync10(stagedDestinationDir, { recursive: true });
-      renameSync4(stagedSource, path28.join(stagedDestinationDir, `${artifact.lesson.id}.yaml`));
+      renameSync5(stagedSource, path29.join(stagedDestinationDir, `${artifact.lesson.id}.yaml`));
     }
     writeLessonsIndex(rootDir, stagingDir, listCategorizedLessonFilesInDir(stagingDir));
-    renameSync4(storeDir, backupDir);
+    renameSync5(storeDir, backupDir);
     originalMoved = true;
     try {
-      renameSync4(stagingDir, storeDir);
+      renameSync5(stagingDir, storeDir);
       replacementLive = true;
     } catch (error) {
-      renameSync4(backupDir, storeDir);
+      renameSync5(backupDir, storeDir);
       originalMoved = false;
       throw error;
     }
-    rmSync6(backupRoot, { recursive: true, force: true });
+    rmSync7(backupRoot, { recursive: true, force: true });
     return { valid: true, migrated: true, diagnostics: [] };
   } catch (error) {
-    if (originalMoved && !replacementLive && backupDir !== null && existsSync26(backupDir) && !existsSync26(storeDir)) {
+    if (originalMoved && !replacementLive && backupDir !== null && existsSync27(backupDir) && !existsSync27(storeDir)) {
       try {
-        renameSync4(backupDir, storeDir);
+        renameSync5(backupDir, storeDir);
         originalMoved = false;
       } catch (rollbackError) {
         return {
@@ -25984,23 +26328,23 @@ function prepareLessonStore(rootDir) {
       diagnostics: [makeDiagnostic3(rootDir, `lesson migration failed: ${errorMessage(error)}`)]
     };
   } finally {
-    if (!replacementLive && stagingDir !== null && existsSync26(stagingDir)) {
-      rmSync6(stagingDir, { recursive: true, force: true });
+    if (!replacementLive && stagingDir !== null && existsSync27(stagingDir)) {
+      rmSync7(stagingDir, { recursive: true, force: true });
     }
-    if (!originalMoved && backupRoot !== null && existsSync26(backupRoot)) {
-      rmSync6(backupRoot, { recursive: true, force: true });
+    if (!originalMoved && backupRoot !== null && existsSync27(backupRoot)) {
+      rmSync7(backupRoot, { recursive: true, force: true });
     }
   }
 }
 function findLessonFilePath(rootDir, lessonId) {
   const indexPath = lessonsIndexPath(rootDir);
-  if (existsSync26(indexPath)) {
+  if (existsSync27(indexPath)) {
     try {
       const index = parseYamlFile(indexPath);
       for (const category of Object.keys(index.categories ?? {}).sort()) {
         if (index.categories[category]?.[lessonId] !== undefined) {
           const candidate = categoryLessonFilePath(rootDir, category, lessonId);
-          if (existsSync26(candidate))
+          if (existsSync27(candidate))
             return candidate;
         }
       }
@@ -26049,6 +26393,30 @@ function validateLessonArtifact(rootDir, artifact, absolutePath) {
   }
   return diagnostics;
 }
+function writeValidatedLessonArtifact(rootDir, filePath, artifact, operation) {
+  const mutation = commitYamlMutation({
+    rootDir,
+    mutations: [{
+      artifactFamily: "lessons-state",
+      artifactId: artifact.lesson.id,
+      schemaId: LESSON_SCHEMA_ID,
+      familyRoot: lessonsDir(rootDir),
+      absolutePath: filePath,
+      operation,
+      candidate: artifact,
+      validateCandidate: (value) => validateLessonArtifact(rootDir, value, filePath).map((entry) => ({
+        code: entry.source,
+        fieldPath: entry.fieldPath,
+        message: entry.message,
+        expected: entry.expected,
+        actual: entry.actual
+      }))
+    }]
+  });
+  if (!mutation.valid) {
+    throw new Error(`failed to write lesson artifact: ${mutation.diagnostics.map((entry) => `${entry.code} ${entry.artifactPath} ${entry.fieldPath}: ${entry.message}`).join("; ")}`);
+  }
+}
 function createLesson(rootDir, input) {
   const diagnostics = [];
   if (!input.title || input.title.trim().length === 0) {
@@ -26078,7 +26446,7 @@ function createLesson(rootDir, input) {
   }
   const lessonId = deriveLessonId(input);
   const filePath = categoryLessonFilePath(rootDir, input.category, lessonId);
-  if (existsSync26(filePath)) {
+  if (existsSync27(filePath)) {
     return { valid: true, created: false, lessonId, path: repoRelative2(rootDir, filePath), diagnostics: [] };
   }
   const artifact = buildLessonArtifact(input, lessonId);
@@ -26086,8 +26454,7 @@ function createLesson(rootDir, input) {
   if (validationDiagnostics.length > 0) {
     return { valid: false, created: false, lessonId, path: null, diagnostics: validationDiagnostics };
   }
-  mkdirSync10(path28.dirname(filePath), { recursive: true });
-  writeFileSync11(filePath, stringifyYamlDocument(artifact), "utf8");
+  writeValidatedLessonArtifact(rootDir, filePath, artifact, "create");
   rebuildLessonsIndex(rootDir);
   return { valid: true, created: true, lessonId, path: repoRelative2(rootDir, filePath), diagnostics: [] };
 }
@@ -26275,8 +26642,7 @@ function editLesson(rootDir, input) {
   if (validationDiagnostics.length > 0) {
     return { valid: false, edited: false, lessonId: input.lessonId, path: null, lesson: null, diagnostics: validationDiagnostics };
   }
-  mkdirSync10(path28.dirname(filePath), { recursive: true });
-  writeFileSync11(filePath, stringifyYamlDocument(artifact), "utf8");
+  writeValidatedLessonArtifact(rootDir, filePath, artifact, "update");
   rebuildLessonsIndex(rootDir);
   return { valid: true, edited: true, lessonId: input.lessonId, path: repoRelative2(rootDir, filePath), lesson: artifact, diagnostics: [] };
 }
@@ -26326,7 +26692,7 @@ function obsoleteLesson(rootDir, lessonId, reason) {
   if (validationDiagnostics.length > 0) {
     return { valid: false, obsoleted: false, lessonId, path: null, lesson: null, diagnostics: validationDiagnostics };
   }
-  writeFileSync11(filePath, stringifyYamlDocument(artifact), "utf8");
+  writeValidatedLessonArtifact(rootDir, filePath, artifact, "update");
   rebuildLessonsIndex(rootDir);
   return { valid: true, obsoleted: true, lessonId, path: repoRelative2(rootDir, filePath), lesson: artifact, diagnostics: [] };
 }
@@ -26417,9 +26783,9 @@ function runLessonCreate(argv) {
       evidence: singleValue2(flags, "evidence")
     }
   };
-  const result = createLesson(process.cwd(), input);
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = createLesson(process.cwd(), input);
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runLessonList(argv) {
   if (handleHelpRequest("lesson-list", argv)) {
@@ -26434,12 +26800,12 @@ function runLessonList(argv) {
 `);
     return 1;
   }
-  const result = listLessons(process.cwd(), {
+  const result2 = listLessons(process.cwd(), {
     includeAll: "all" in flags,
     category: singleValue2(flags, "category")
   });
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runLessonStatus(argv) {
   if (handleHelpRequest("lesson-status", argv)) {
@@ -26454,12 +26820,12 @@ function runLessonStatus(argv) {
 `);
     return 1;
   }
-  const result = getLessonStatus(process.cwd(), {
+  const result2 = getLessonStatus(process.cwd(), {
     includeAll: "all" in flags,
     category: singleValue2(flags, "category")
   });
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runLessonShow(argv) {
   if (handleHelpRequest("lesson-show", argv)) {
@@ -26469,9 +26835,9 @@ function runLessonShow(argv) {
     writeUsage(getCommandUsage("lesson-show"));
     return 1;
   }
-  const result = showLesson(process.cwd(), argv[0]);
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = showLesson(process.cwd(), argv[0]);
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 var LESSON_EDIT_FLAGS = [
   "title",
@@ -26548,9 +26914,9 @@ function runLessonEdit(argv) {
   if (promotedStandard !== undefined && promotedRule !== undefined) {
     input.promotedTo = { standard: promotedStandard, rule: promotedRule };
   }
-  const result = editLesson(process.cwd(), input);
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = editLesson(process.cwd(), input);
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runLessonObsolete(argv) {
   if (handleHelpRequest("lesson-obsolete", argv)) {
@@ -26576,22 +26942,22 @@ function runLessonObsolete(argv) {
 `);
     return 1;
   }
-  const result = obsoleteLesson(process.cwd(), lessonId, reason);
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = obsoleteLesson(process.cwd(), lessonId, reason);
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 
 // src/maintenance.ts
-import { existsSync as existsSync30, readdirSync as readdirSync11, statSync as statSync16, writeFileSync as writeFileSync14 } from "fs";
-import path32 from "path";
+import { existsSync as existsSync31, readdirSync as readdirSync11, statSync as statSync17, writeFileSync as writeFileSync14 } from "fs";
+import path33 from "path";
 
 // src/architecture.ts
-import { existsSync as existsSync28, readFileSync as readFileSync19, statSync as statSync15 } from "fs";
-import path30 from "path";
+import { existsSync as existsSync29, readFileSync as readFileSync20, statSync as statSync16 } from "fs";
+import path31 from "path";
 
 // src/document-render.ts
-import { existsSync as existsSync27, mkdirSync as mkdirSync11, readFileSync as readFileSync18, writeFileSync as writeFileSync12 } from "fs";
-import path29 from "path";
+import { existsSync as existsSync28, mkdirSync as mkdirSync11, readFileSync as readFileSync19, writeFileSync as writeFileSync12 } from "fs";
+import path30 from "path";
 var STRICT_WORKFLOW_DIR11 = ".strict-spec-driven";
 
 class DocumentSourceError extends Error {
@@ -26606,10 +26972,10 @@ function asRecord2(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 function readYamlIfPresent(absolutePath, artifactPath) {
-  if (!existsSync27(absolutePath))
+  if (!existsSync28(absolutePath))
     return null;
   try {
-    return parseYamlDocument(readFileSync18(absolutePath, "utf8"), { source: artifactPath });
+    return parseYamlDocument(readFileSync19(absolutePath, "utf8"), { source: artifactPath });
   } catch {
     return null;
   }
@@ -26618,11 +26984,11 @@ function renderBulletList(values3) {
   return values3.map((value) => `- ${value}`);
 }
 function trimTrailingBlankLines(lines) {
-  const result = [...lines];
-  while (result.length > 0 && result[result.length - 1] === "") {
-    result.pop();
+  const result2 = [...lines];
+  while (result2.length > 0 && result2[result2.length - 1] === "") {
+    result2.pop();
   }
-  return result;
+  return result2;
 }
 function blocksToDocument(blocks) {
   return blocks.map((block) => block.lines.join(`
@@ -26670,26 +27036,26 @@ function renderBlocksToDocument(rootDir, blocks, options) {
   const content = blocksToDocument(blocks);
   const sources = allSources(blocks);
   const relativeOutputPath = (options.outputPath ?? options.defaultOutputPath).replaceAll("\\", "/");
-  if (path29.isAbsolute(relativeOutputPath)) {
+  if (path30.isAbsolute(relativeOutputPath)) {
     throw new DocumentSourceError(`${options.documentLabel} output path must be repo-relative, got '${relativeOutputPath}'`);
   }
-  const absoluteOutputPath = path29.resolve(rootDir, relativeOutputPath);
+  const absoluteOutputPath = path30.resolve(rootDir, relativeOutputPath);
   const normalizedOutputPath = normalizeRepoRelativePath4(rootDir, absoluteOutputPath);
   if (normalizedOutputPath === ".." || normalizedOutputPath.startsWith("../")) {
     throw new DocumentSourceError(`${options.documentLabel} output path cannot traverse outside the repository, got '${relativeOutputPath}'`);
   }
   if (options.check) {
     const base = { outputPath: normalizedOutputPath, mode: "check", written: false, sources };
-    if (!existsSync27(absoluteOutputPath)) {
+    if (!existsSync28(absoluteOutputPath)) {
       return { ...base, documentExists: false, current: false, staleSources: sources };
     }
-    const diskContent = readFileSync18(absoluteOutputPath, "utf8");
+    const diskContent = readFileSync19(absoluteOutputPath, "utf8");
     if (diskContent === content) {
       return { ...base, documentExists: true, current: true, staleSources: [] };
     }
     return { ...base, documentExists: true, current: false, staleSources: collectStaleSources(blocks, diskContent) };
   }
-  mkdirSync11(path29.dirname(absoluteOutputPath), { recursive: true });
+  mkdirSync11(path30.dirname(absoluteOutputPath), { recursive: true });
   writeFileSync12(absoluteOutputPath, content, "utf8");
   return {
     outputPath: normalizedOutputPath,
@@ -26711,28 +27077,28 @@ var EXCLUDED_TECH_BASENAMES = new Set(["INDEX.yaml"]);
 var DEFAULT_ARCHITECTURE_DOCUMENT_PATH = "ARCHITECTURE.md";
 var ARCHITECTURE_AUTHORING_ENTRY_POINT = "/strict-spec-architecture";
 function getArchitectureArtifactPath(rootDir) {
-  return path30.join(rootDir, STRICT_WORKFLOW_DIR11, "architecture.yaml");
+  return path31.join(rootDir, STRICT_WORKFLOW_DIR11, "architecture.yaml");
 }
 function loadArchitectureArtifact(rootDir) {
   const absolutePath = getArchitectureArtifactPath(rootDir);
-  if (!existsSync28(absolutePath)) {
+  if (!existsSync29(absolutePath)) {
     throw new DocumentSourceError(`architecture artifact is missing: ${ARCHITECTURE_ARTIFACT_PATH}; run ${ARCHITECTURE_AUTHORING_ENTRY_POINT} to author it`);
   }
   let artifact;
   try {
-    artifact = parseYamlDocument(readFileSync19(absolutePath, "utf8"), { source: ARCHITECTURE_ARTIFACT_PATH });
+    artifact = parseYamlDocument(readFileSync20(absolutePath, "utf8"), { source: ARCHITECTURE_ARTIFACT_PATH });
   } catch (error) {
     throw new DocumentSourceError(`architecture artifact is not valid YAML: ${ARCHITECTURE_ARTIFACT_PATH}: ${error instanceof Error ? error.message : String(error)}`);
   }
   const schema2 = loadBundledSchemaByArtifactType("architecture");
-  const result = validateArtifact(schema2, artifact, ARCHITECTURE_ARTIFACT_PATH);
-  return { artifact: artifact ?? {}, diagnostics: result.diagnostics };
+  const result2 = validateArtifact(schema2, artifact, ARCHITECTURE_ARTIFACT_PATH);
+  return { artifact: artifact ?? {}, diagnostics: result2.diagnostics };
 }
 function listTechFiles(techDir) {
-  if (!existsSync28(techDir) || !statSync15(techDir).isDirectory())
+  if (!existsSync29(techDir) || !statSync16(techDir).isDirectory())
     return [];
   return listFilesRecursive(techDir).filter((filePath) => {
-    const basename = path30.basename(filePath);
+    const basename = path31.basename(filePath);
     return basename.endsWith(".yaml") && !EXCLUDED_TECH_BASENAMES.has(basename);
   }).sort();
 }
@@ -26757,7 +27123,7 @@ function renderHeaderBlock(artifact) {
   };
 }
 function renderOverviewBlock(rootDir) {
-  const config = readYamlIfPresent(path30.join(rootDir, STRICT_WORKFLOW_DIR11, "config.yaml"), WORKFLOW_CONFIG_PATH);
+  const config = readYamlIfPresent(path31.join(rootDir, STRICT_WORKFLOW_DIR11, "config.yaml"), WORKFLOW_CONFIG_PATH);
   const context = asText(config?.context);
   return {
     id: "overview",
@@ -26842,7 +27208,7 @@ function renderDecisionsBlock(artifact) {
   };
 }
 function renderSpecificationSurfaceBlock(rootDir) {
-  const index = readYamlIfPresent(path30.join(rootDir, STRICT_WORKFLOW_DIR11, "specs", "INDEX.yaml"), SPEC_INDEX_PATH);
+  const index = readYamlIfPresent(path31.join(rootDir, STRICT_WORKFLOW_DIR11, "specs", "INDEX.yaml"), SPEC_INDEX_PATH);
   const rawSpecs = index?.specs;
   const specs = Array.isArray(rawSpecs) ? rawSpecs : [];
   const lines = [
@@ -26866,7 +27232,7 @@ function renderSpecificationSurfaceBlock(rootDir) {
     const specId = asText(spec.id);
     const specPath = asText(spec.path);
     const specTitle = asText(spec.title) || specId;
-    const mainSpec = specPath ? readYamlIfPresent(path30.join(rootDir, specPath), specPath) : null;
+    const mainSpec = specPath ? readYamlIfPresent(path31.join(rootDir, specPath), specPath) : null;
     const requirementCount = mainSpec ? Object.keys(asRecord2(mainSpec.requirements)).length : null;
     const mapping = asRecord2(mainSpec?.mapping);
     const implementationCount = mainSpec ? asStringArray2(mapping.implementation).length : null;
@@ -26882,7 +27248,7 @@ function renderSpecificationSurfaceBlock(rootDir) {
   };
 }
 function renderTechnicalStandardsBlock(rootDir) {
-  const techFiles = listTechFiles(path30.join(rootDir, STRICT_WORKFLOW_DIR11, "tech"));
+  const techFiles = listTechFiles(path31.join(rootDir, STRICT_WORKFLOW_DIR11, "tech"));
   const lines = [
     "## Technical Standards",
     "",
@@ -26935,7 +27301,7 @@ function buildArchitectureBlocks(rootDir, artifact) {
 function generateArchitectureDocument(rootDir, options = {}) {
   const { artifact, diagnostics } = loadArchitectureArtifact(rootDir);
   if (diagnostics.length > 0) {
-    const details = diagnostics.map((diagnostic) => `${diagnostic.fieldPath}: ${diagnostic.message}`).join("; ");
+    const details = diagnostics.map((diagnostic2) => `${diagnostic2.fieldPath}: ${diagnostic2.message}`).join("; ");
     throw new DocumentSourceError(`architecture artifact does not validate: ${ARCHITECTURE_ARTIFACT_PATH}: ${details}`);
   }
   const blocks = buildArchitectureBlocks(rootDir, artifact);
@@ -26953,7 +27319,7 @@ function getArchitectureStatus(rootDir) {
   for (const [componentId, rawComponent] of Object.entries(components)) {
     const implementation = asStringArray2(asRecord2(asRecord2(rawComponent).mapping).implementation);
     for (const mappedPath of implementation) {
-      if (!existsSync28(path30.join(rootDir, mappedPath))) {
+      if (!existsSync29(path31.join(rootDir, mappedPath))) {
         mappingDrift.push({ component: componentId, path: mappedPath });
       }
     }
@@ -26971,8 +27337,8 @@ function getArchitectureStatus(rootDir) {
 }
 
 // src/design-system.ts
-import { existsSync as existsSync29, mkdirSync as mkdirSync12, readFileSync as readFileSync20, writeFileSync as writeFileSync13 } from "fs";
-import path31 from "path";
+import { existsSync as existsSync30, mkdirSync as mkdirSync12, readFileSync as readFileSync21, writeFileSync as writeFileSync13 } from "fs";
+import path32 from "path";
 var DESIGN_SYSTEM_ARTIFACT_PATH = `${STRICT_WORKFLOW_DIR11}/design-system.yaml`;
 var DESIGN_SYSTEM_SCAFFOLD_ASSET = "design-system.yaml";
 var DEFAULT_DESIGN_DOCUMENT_PATH = "DESIGN.md";
@@ -26985,31 +27351,31 @@ var TOKEN_GROUPS = [
   { key: "shapes", heading: "## Shapes" }
 ];
 function getDesignSystemArtifactPath(rootDir) {
-  return path31.join(rootDir, STRICT_WORKFLOW_DIR11, "design-system.yaml");
+  return path32.join(rootDir, STRICT_WORKFLOW_DIR11, "design-system.yaml");
 }
 function initializeDesignSystemArtifact(rootDir) {
   const absolutePath = getDesignSystemArtifactPath(rootDir);
-  if (existsSync29(absolutePath)) {
+  if (existsSync30(absolutePath)) {
     return { artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH, created: false, skipped: true };
   }
-  mkdirSync12(path31.dirname(absolutePath), { recursive: true });
+  mkdirSync12(path32.dirname(absolutePath), { recursive: true });
   writeFileSync13(absolutePath, readBundledScaffoldTemplate(DESIGN_SYSTEM_SCAFFOLD_ASSET), "utf8");
   return { artifactPath: DESIGN_SYSTEM_ARTIFACT_PATH, created: true, skipped: false };
 }
 function loadDesignSystemArtifact(rootDir) {
   const absolutePath = getDesignSystemArtifactPath(rootDir);
-  if (!existsSync29(absolutePath)) {
+  if (!existsSync30(absolutePath)) {
     throw new DocumentSourceError(`design-system artifact is missing: ${DESIGN_SYSTEM_ARTIFACT_PATH}; run ${DESIGN_AUTHORING_ENTRY_POINT} to author it`);
   }
   let artifact;
   try {
-    artifact = parseYamlDocument(readFileSync20(absolutePath, "utf8"), { source: DESIGN_SYSTEM_ARTIFACT_PATH });
+    artifact = parseYamlDocument(readFileSync21(absolutePath, "utf8"), { source: DESIGN_SYSTEM_ARTIFACT_PATH });
   } catch (error) {
     throw new DocumentSourceError(`design-system artifact is not valid YAML: ${DESIGN_SYSTEM_ARTIFACT_PATH}: ${error instanceof Error ? error.message : String(error)}`);
   }
   const schema2 = loadBundledSchemaByArtifactType("design_system");
-  const result = validateArtifact(schema2, artifact, DESIGN_SYSTEM_ARTIFACT_PATH);
-  return { artifact: artifact ?? {}, diagnostics: result.diagnostics };
+  const result2 = validateArtifact(schema2, artifact, DESIGN_SYSTEM_ARTIFACT_PATH);
+  return { artifact: artifact ?? {}, diagnostics: result2.diagnostics };
 }
 function declaredTokenGroups(artifact) {
   const tokens = asRecord2(artifact.tokens);
@@ -27159,7 +27525,7 @@ function buildDesignSystemBlocks(artifact) {
 function generateDesignDocument(rootDir, options = {}) {
   const { artifact, diagnostics } = loadDesignSystemArtifact(rootDir);
   if (diagnostics.length > 0) {
-    const details = diagnostics.map((diagnostic) => `${diagnostic.fieldPath}: ${diagnostic.message}`).join("; ");
+    const details = diagnostics.map((diagnostic2) => `${diagnostic2.fieldPath}: ${diagnostic2.message}`).join("; ");
     throw new DocumentSourceError(`design-system artifact does not validate: ${DESIGN_SYSTEM_ARTIFACT_PATH}: ${details}`);
   }
   const blocks = buildDesignSystemBlocks(artifact);
@@ -27188,12 +27554,12 @@ function getDesignSystemStatus(rootDir) {
   for (const [componentId, rawComponent] of Object.entries(components)) {
     const mapping = asRecord2(asRecord2(rawComponent).mapping);
     for (const mappedPath of asStringArray2(mapping.implementation)) {
-      if (!existsSync29(path31.join(rootDir, mappedPath))) {
+      if (!existsSync30(path32.join(rootDir, mappedPath))) {
         mappingDrift.push({ component: componentId, path: mappedPath, kind: "implementation" });
       }
     }
     for (const snapshotPath of asStringArray2(mapping.snapshots)) {
-      if (!existsSync29(path31.join(rootDir, snapshotPath))) {
+      if (!existsSync30(path32.join(rootDir, snapshotPath))) {
         mappingDrift.push({ component: componentId, path: snapshotPath, kind: "snapshot" });
       }
     }
@@ -27219,30 +27585,30 @@ function configuredRegressionCommand(config) {
   return typeof command === "string" && command.trim().length > 0 ? command : REGRESSION_COMMAND_FALLBACK2;
 }
 function getChangesDir2(rootDir) {
-  return path32.join(rootDir, STRICT_WORKFLOW_DIR12, "changes");
+  return path33.join(rootDir, STRICT_WORKFLOW_DIR12, "changes");
 }
 function generateChangeName(rootDir, date) {
   const changesDir = getChangesDir2(rootDir);
   let candidate = `maintenance-${date}`;
-  if (!existsSync30(path32.join(changesDir, candidate)))
+  if (!existsSync31(path33.join(changesDir, candidate)))
     return candidate;
   for (let i2 = 2;i2 <= 99; i2++) {
     candidate = `maintenance-${date}-${i2}`;
-    if (!existsSync30(path32.join(changesDir, candidate)))
+    if (!existsSync31(path33.join(changesDir, candidate)))
       return candidate;
   }
   throw new Error(`Could not generate a unique maintenance change name for date ${date}`);
 }
 function runRoadmapSyncCheck(rootDir) {
-  const result = syncRoadmap(rootDir);
-  return result.updatedFiles.map((file) => ({
+  const result2 = syncRoadmap(rootDir);
+  return result2.updatedFiles.map((file) => ({
     check: "roadmap-sync-check",
     description: `Synced roadmap file: ${file}`
   }));
 }
 function runSpecsDirectoryStructureCheck(rootDir) {
-  const specsDir = path32.join(rootDir, STRICT_WORKFLOW_DIR12, "specs");
-  if (!existsSync30(specsDir) || !statSync16(specsDir).isDirectory())
+  const specsDir = path33.join(rootDir, STRICT_WORKFLOW_DIR12, "specs");
+  if (!existsSync31(specsDir) || !statSync17(specsDir).isDirectory())
     return [];
   const findings = [];
   for (const entry of readdirSync11(specsDir, { withFileTypes: true })) {
@@ -27268,19 +27634,19 @@ var GENERATED_DOCUMENT_TARGETS = [
 function runGeneratedDocCheck(rootDir) {
   const findings = [];
   for (const target of GENERATED_DOCUMENT_TARGETS) {
-    let result;
+    let result2;
     try {
-      result = target.check(rootDir);
+      result2 = target.check(rootDir);
     } catch (error) {
       if (error instanceof DocumentSourceError)
         continue;
       throw error;
     }
-    if (!result.documentExists || result.current)
+    if (!result2.documentExists || result2.current)
       continue;
     findings.push({
       check: "generated-doc-check",
-      description: `Re-render stale ${result.outputPath} after changes to ${result.staleSources.join(", ")}: ${target.reRenderCommand}`
+      description: `Re-render stale ${result2.outputPath} after changes to ${result2.staleSources.join(", ")}: ${target.reRenderCommand}`
     });
   }
   return findings;
@@ -27292,7 +27658,7 @@ function referencedPathsThatVanished(rootDir, text) {
   for (const token of text.match(PATH_TOKEN_PATTERN) ?? []) {
     if (token.includes("://") || token.startsWith(".."))
       continue;
-    if (existsSync30(path32.join(rootDir, token)))
+    if (existsSync31(path33.join(rootDir, token)))
       continue;
     if (!missing.includes(token))
       missing.push(token);
@@ -27300,7 +27666,7 @@ function referencedPathsThatVanished(rootDir, text) {
   return missing;
 }
 function changeIsArchived(rootDir, changeName) {
-  return existsSync30(path32.join(getChangesDir2(rootDir), "archive", changeName));
+  return existsSync31(path33.join(getChangesDir2(rootDir), "archive", changeName));
 }
 function daysSince(isoDate) {
   const parsed = Date.parse(isoDate);
@@ -27396,8 +27762,8 @@ function buildTasksYaml(changeName, findings, regressionCommand) {
   };
 }
 function runMaintenance(rootDir) {
-  const configPath = path32.join(rootDir, STRICT_WORKFLOW_DIR12, "config.yaml");
-  if (!existsSync30(configPath)) {
+  const configPath = path33.join(rootDir, STRICT_WORKFLOW_DIR12, "config.yaml");
+  if (!existsSync31(configPath)) {
     return { valid: true, checksRun: 0, findingsCount: 0, generatedChange: null, seedingSkippedReason: null };
   }
   let config;
@@ -27447,28 +27813,28 @@ function runMaintenance(rootDir) {
   const date = new Date().toISOString().slice(0, 10);
   const changeName = generateChangeName(rootDir, date);
   initializeStrictChangeScaffold(rootDir, changeName);
-  const changeDir2 = path32.join(getChangesDir2(rootDir), changeName);
-  writeFileSync14(path32.join(changeDir2, "proposal.yaml"), stringifyYamlDocument(buildProposalYaml(changeName, findings)), "utf8");
-  writeFileSync14(path32.join(changeDir2, "tasks.yaml"), stringifyYamlDocument(buildTasksYaml(changeName, findings, configuredRegressionCommand(config))), "utf8");
+  const changeDir2 = path33.join(getChangesDir2(rootDir), changeName);
+  writeFileSync14(path33.join(changeDir2, "proposal.yaml"), stringifyYamlDocument(buildProposalYaml(changeName, findings)), "utf8");
+  writeFileSync14(path33.join(changeDir2, "tasks.yaml"), stringifyYamlDocument(buildTasksYaml(changeName, findings, configuredRegressionCommand(config))), "utf8");
   return { valid: true, checksRun, findingsCount: findings.length, generatedChange: changeName, seedingSkippedReason: null };
 }
 
 // src/migrate.ts
 import {
-  existsSync as existsSync36,
+  existsSync as existsSync37,
   readdirSync as readdirSync13,
-  statSync as statSync22,
+  statSync as statSync23,
   writeFileSync as writeFileSync16
 } from "fs";
-import path38 from "path";
+import path39 from "path";
 
 // src/migrate/converters/changes.ts
 import {
-  existsSync as existsSync32,
-  readFileSync as readFileSync22,
-  statSync as statSync18
+  existsSync as existsSync33,
+  readFileSync as readFileSync23,
+  statSync as statSync19
 } from "fs";
-import path34 from "path";
+import path35 from "path";
 
 // src/migrate/parsers/shared.ts
 function isRecord4(value) {
@@ -27720,16 +28086,16 @@ function truncateId(id, maxLen) {
   if (id.length <= maxLen)
     return id;
   const words = id.split("-");
-  let result = words[0];
+  let result2 = words[0];
   for (let i2 = 1;i2 < words.length; i2++) {
-    const candidate = `${result}-${words[i2]}`;
+    const candidate = `${result2}-${words[i2]}`;
     if (candidate.length <= maxLen) {
-      result = candidate;
+      result2 = candidate;
     } else {
       break;
     }
   }
-  return result.length > 0 ? result : id.slice(0, maxLen).replace(/-+$/, "");
+  return result2.length > 0 ? result2 : id.slice(0, maxLen).replace(/-+$/, "");
 }
 function parseLegacyProposal(sourcePath, content, fallbackChangeId, archived) {
   const body = content.replace(/\r\n/g, `
@@ -28283,28 +28649,28 @@ function parseLegacyDeltaSpec(sourcePath, content) {
 
 // src/migrate/shared.ts
 import {
-  existsSync as existsSync31,
+  existsSync as existsSync32,
   mkdirSync as mkdirSync13,
   readdirSync as readdirSync12,
-  readFileSync as readFileSync21,
-  statSync as statSync17,
+  readFileSync as readFileSync22,
+  statSync as statSync18,
   writeFileSync as writeFileSync15
 } from "fs";
-import path33 from "path";
+import path34 from "path";
 var LEGACY_WORKFLOW_DIR2 = ".spec-driven";
 var STRICT_WORKFLOW_DIR13 = ".strict-spec-driven";
 function toRepoRelativePath2(rootDir, absolutePath) {
-  return toPosix2(path33.relative(rootDir, absolutePath));
+  return toPosix3(path34.relative(rootDir, absolutePath));
 }
 function listFilesRecursive2(directoryPath) {
-  if (!existsSync31(directoryPath) || !statSync17(directoryPath).isDirectory()) {
+  if (!existsSync32(directoryPath) || !statSync18(directoryPath).isDirectory()) {
     return [];
   }
   const files = [];
   function walk(currentPath) {
     const entries = readdirSync12(currentPath, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
     for (const entry of entries) {
-      const fullPath = path33.join(currentPath, entry.name);
+      const fullPath = path34.join(currentPath, entry.name);
       if (entry.isDirectory()) {
         walk(fullPath);
         continue;
@@ -28321,21 +28687,21 @@ function makeDiagnostic4(code, message, sourcePath, targetPath) {
   return { code, message, sourcePath, targetPath };
 }
 function readYamlFile3(filePath) {
-  return parseYamlDocument(readFileSync21(filePath, "utf8"));
+  return parseYamlDocument(readFileSync22(filePath, "utf8"));
 }
 function writeYamlFile3(filePath, value) {
-  mkdirSync13(path33.dirname(filePath), { recursive: true });
+  mkdirSync13(path34.dirname(filePath), { recursive: true });
   writeFileSync15(filePath, stringifyYamlDocument(value), "utf8");
 }
 function replaceMarkdownExtension(repoRelativePath) {
   return repoRelativePath.replace(/\.md$/i, ".yaml");
 }
 function buildStrictMarkdownTargetPath(rootDir, repoRelativeTargetPath) {
-  return path33.join(rootDir, ...repoRelativeTargetPath.split("/"));
+  return path34.join(rootDir, ...repoRelativeTargetPath.split("/"));
 }
 function listLegacyChangeDirectories(rootDir) {
-  const changesRoot = path33.join(rootDir, LEGACY_WORKFLOW_DIR2, "changes");
-  if (!existsSync31(changesRoot) || !statSync17(changesRoot).isDirectory()) {
+  const changesRoot = path34.join(rootDir, LEGACY_WORKFLOW_DIR2, "changes");
+  if (!existsSync32(changesRoot) || !statSync18(changesRoot).isDirectory()) {
     return [];
   }
   const directories = [];
@@ -28345,8 +28711,8 @@ function listLegacyChangeDirectories(rootDir) {
       continue;
     }
     if (entry.name === "archive") {
-      const archiveRoot = path33.join(changesRoot, "archive");
-      if (!existsSync31(archiveRoot) || !statSync17(archiveRoot).isDirectory()) {
+      const archiveRoot = path34.join(changesRoot, "archive");
+      if (!existsSync32(archiveRoot) || !statSync18(archiveRoot).isDirectory()) {
         continue;
       }
       const archiveEntries = readdirSync12(archiveRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
@@ -28355,9 +28721,9 @@ function listLegacyChangeDirectories(rootDir) {
           continue;
         }
         directories.push({
-          legacyDirectoryPath: path33.join(archiveRoot, archiveEntry.name),
+          legacyDirectoryPath: path34.join(archiveRoot, archiveEntry.name),
           repoRelativeDirectory: `${LEGACY_WORKFLOW_DIR2}/changes/archive/${archiveEntry.name}`,
-          strictDirectoryPath: path33.join(rootDir, STRICT_WORKFLOW_DIR13, "changes", "archive", archiveEntry.name),
+          strictDirectoryPath: path34.join(rootDir, STRICT_WORKFLOW_DIR13, "changes", "archive", archiveEntry.name),
           directoryName: archiveEntry.name,
           archived: true
         });
@@ -28365,23 +28731,23 @@ function listLegacyChangeDirectories(rootDir) {
       continue;
     }
     directories.push({
-      legacyDirectoryPath: path33.join(changesRoot, entry.name),
+      legacyDirectoryPath: path34.join(changesRoot, entry.name),
       repoRelativeDirectory: `${LEGACY_WORKFLOW_DIR2}/changes/${entry.name}`,
-      strictDirectoryPath: path33.join(rootDir, STRICT_WORKFLOW_DIR13, "changes", entry.name),
+      strictDirectoryPath: path34.join(rootDir, STRICT_WORKFLOW_DIR13, "changes", entry.name),
       directoryName: entry.name,
       archived: false
     });
   }
   return directories;
 }
-function recordDeferredArtifact(result, sourcePath, reason, recommendation, kind = "legacy_markdown_artifact", code = "converter_unavailable") {
-  result.skipped.push({
+function recordDeferredArtifact(result2, sourcePath, reason, recommendation, kind = "legacy_markdown_artifact", code = "converter_unavailable") {
+  result2.skipped.push({
     kind,
     sourcePath,
     reason
   });
-  result.warnings.push(makeDiagnostic4(code, reason, sourcePath));
-  result.manualFollowUp.push({
+  result2.warnings.push(makeDiagnostic4(code, reason, sourcePath));
+  result2.manualFollowUp.push({
     sourcePath,
     reason,
     recommendation
@@ -28397,28 +28763,28 @@ function makeConversionFailure(sourcePath, error) {
 }
 
 // src/migrate/converters/changes.ts
-function convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles) {
+function convertLegacyChangeArtifacts(rootDir, result2, handledLegacyFiles) {
   for (const changeDirectory of listLegacyChangeDirectories(rootDir)) {
     const fallbackChangeId = changeDirectory.archived ? toKebabCase(changeDirectory.directoryName.replace(/^\d{4}-\d{2}-\d{2}-/, "")) : toKebabCase(changeDirectory.directoryName);
     let changeId = fallbackChangeId;
-    const legacyProposalPath = path34.join(changeDirectory.legacyDirectoryPath, "proposal.md");
+    const legacyProposalPath = path35.join(changeDirectory.legacyDirectoryPath, "proposal.md");
     const repoRelativeProposalPath = `${changeDirectory.repoRelativeDirectory}/proposal.md`;
-    if (existsSync32(legacyProposalPath) && statSync18(legacyProposalPath).isFile()) {
+    if (existsSync33(legacyProposalPath) && statSync19(legacyProposalPath).isFile()) {
       handledLegacyFiles.add(repoRelativeProposalPath);
       try {
-        const proposalArtifact = parseLegacyProposal(repoRelativeProposalPath, readFileSync22(legacyProposalPath, "utf8"), fallbackChangeId, changeDirectory.archived);
+        const proposalArtifact = parseLegacyProposal(repoRelativeProposalPath, readFileSync23(legacyProposalPath, "utf8"), fallbackChangeId, changeDirectory.archived);
         changeId = proposalArtifact.change.id;
         const strictTargetPath = `${changeDirectory.strictDirectoryPath.replace(`${rootDir}/`, "")}/proposal.yaml`;
-        writeYamlFile3(path34.join(changeDirectory.strictDirectoryPath, "proposal.yaml"), proposalArtifact);
-        result.converted.push({
+        writeYamlFile3(path35.join(changeDirectory.strictDirectoryPath, "proposal.yaml"), proposalArtifact);
+        result2.converted.push({
           kind: "change_proposal",
           sourcePath: repoRelativeProposalPath,
-          targetPath: toPosix2(strictTargetPath),
+          targetPath: toPosix3(strictTargetPath),
           note: "Migrated legacy Markdown proposal into a strict YAML change_proposal artifact."
         });
       } catch (error) {
         const deferredArtifact = makeConversionFailure(repoRelativeProposalPath, error);
-        recordDeferredArtifact(result, repoRelativeProposalPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
+        recordDeferredArtifact(result2, repoRelativeProposalPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
       }
     }
     const changeArtifactFiles = [
@@ -28445,37 +28811,37 @@ function convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles) {
       }
     ];
     for (const artifactFile of changeArtifactFiles) {
-      const legacyFilePath = path34.join(changeDirectory.legacyDirectoryPath, artifactFile.legacyName);
+      const legacyFilePath = path35.join(changeDirectory.legacyDirectoryPath, artifactFile.legacyName);
       const repoRelativeLegacyFilePath = `${changeDirectory.repoRelativeDirectory}/${artifactFile.legacyName}`;
-      if (!existsSync32(legacyFilePath) || !statSync18(legacyFilePath).isFile()) {
+      if (!existsSync33(legacyFilePath) || !statSync19(legacyFilePath).isFile()) {
         continue;
       }
       handledLegacyFiles.add(repoRelativeLegacyFilePath);
       try {
-        const artifact = artifactFile.convert(repoRelativeLegacyFilePath, readFileSync22(legacyFilePath, "utf8"), changeId);
+        const artifact = artifactFile.convert(repoRelativeLegacyFilePath, readFileSync23(legacyFilePath, "utf8"), changeId);
         const strictTargetPath = `${changeDirectory.strictDirectoryPath.replace(`${rootDir}/`, "")}/${artifactFile.targetName}`;
-        writeYamlFile3(path34.join(changeDirectory.strictDirectoryPath, artifactFile.targetName), artifact);
-        result.converted.push({
+        writeYamlFile3(path35.join(changeDirectory.strictDirectoryPath, artifactFile.targetName), artifact);
+        result2.converted.push({
           kind: artifactFile.kind,
           sourcePath: repoRelativeLegacyFilePath,
-          targetPath: toPosix2(strictTargetPath),
+          targetPath: toPosix3(strictTargetPath),
           note: artifactFile.note
         });
       } catch (error) {
         const deferredArtifact = makeConversionFailure(repoRelativeLegacyFilePath, error);
-        recordDeferredArtifact(result, repoRelativeLegacyFilePath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
+        recordDeferredArtifact(result2, repoRelativeLegacyFilePath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
       }
     }
-    const legacyDeltaSpecsRoot = path34.join(changeDirectory.legacyDirectoryPath, "specs");
-    if (existsSync32(legacyDeltaSpecsRoot) && statSync18(legacyDeltaSpecsRoot).isDirectory()) {
-      const deltaSpecFiles = listFilesRecursive2(legacyDeltaSpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path34.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
+    const legacyDeltaSpecsRoot = path35.join(changeDirectory.legacyDirectoryPath, "specs");
+    if (existsSync33(legacyDeltaSpecsRoot) && statSync19(legacyDeltaSpecsRoot).isDirectory()) {
+      const deltaSpecFiles = listFilesRecursive2(legacyDeltaSpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path35.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
       for (const legacyDeltaSpecPath of deltaSpecFiles) {
         handledLegacyFiles.add(legacyDeltaSpecPath);
         try {
-          const deltaArtifact = parseLegacyDeltaSpec(legacyDeltaSpecPath, readFileSync22(path34.join(rootDir, legacyDeltaSpecPath), "utf8"));
+          const deltaArtifact = parseLegacyDeltaSpec(legacyDeltaSpecPath, readFileSync23(path35.join(rootDir, legacyDeltaSpecPath), "utf8"));
           const strictTargetPath = replaceMarkdownExtension(legacyDeltaSpecPath.replace(`${LEGACY_WORKFLOW_DIR2}/changes/`, `${STRICT_WORKFLOW_DIR13}/changes/`).replace("/specs/", "/specs/"));
           writeYamlFile3(buildStrictMarkdownTargetPath(rootDir, strictTargetPath), deltaArtifact);
-          result.converted.push({
+          result2.converted.push({
             kind: "delta_spec",
             sourcePath: legacyDeltaSpecPath,
             targetPath: strictTargetPath,
@@ -28483,7 +28849,7 @@ function convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles) {
           });
         } catch (error) {
           const deferredArtifact = makeConversionFailure(legacyDeltaSpecPath, error);
-          recordDeferredArtifact(result, legacyDeltaSpecPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
+          recordDeferredArtifact(result2, legacyDeltaSpecPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
         }
       }
     }
@@ -28492,11 +28858,11 @@ function convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles) {
 
 // src/migrate/converters/roadmap.ts
 import {
-  existsSync as existsSync33,
-  readFileSync as readFileSync23,
-  statSync as statSync19
+  existsSync as existsSync34,
+  readFileSync as readFileSync24,
+  statSync as statSync20
 } from "fs";
-import path35 from "path";
+import path36 from "path";
 
 // src/converters/roadmap.ts
 var ROADMAP_INDEX_SCHEMA_FILE = "templates/strict-spec-driven/schemas/roadmap-index.yaml";
@@ -28799,24 +29165,24 @@ function convertSpecsIndex(markdown) {
 // src/migrate/converters/roadmap.ts
 var LEGACY_ROADMAP_DIR = `${LEGACY_WORKFLOW_DIR2}/roadmap`;
 var STRICT_ROADMAP_DIR = `${STRICT_WORKFLOW_DIR13}/roadmap`;
-function convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles) {
-  const legacyRoadmapRoot = path35.join(rootDir, LEGACY_ROADMAP_DIR);
-  if (!existsSync33(legacyRoadmapRoot) || !statSync19(legacyRoadmapRoot).isDirectory()) {
+function convertLegacyRoadmapArtifacts(rootDir, result2, handledLegacyFiles) {
+  const legacyRoadmapRoot = path36.join(rootDir, LEGACY_ROADMAP_DIR);
+  if (!existsSync34(legacyRoadmapRoot) || !statSync20(legacyRoadmapRoot).isDirectory()) {
     return;
   }
   const legacyIndexPath = `${LEGACY_ROADMAP_DIR}/INDEX.md`;
-  const legacyIndexAbsPath = path35.join(legacyRoadmapRoot, "INDEX.md");
-  if (existsSync33(legacyIndexAbsPath) && statSync19(legacyIndexAbsPath).isFile()) {
+  const legacyIndexAbsPath = path36.join(legacyRoadmapRoot, "INDEX.md");
+  if (existsSync34(legacyIndexAbsPath) && statSync20(legacyIndexAbsPath).isFile()) {
     handledLegacyFiles.add(legacyIndexPath);
     try {
-      const content = readFileSync23(legacyIndexAbsPath, "utf8");
+      const content = readFileSync24(legacyIndexAbsPath, "utf8");
       const conversionResult = convertRoadmapIndex(content);
       if (!conversionResult.ok) {
-        recordDeferredArtifact(result, legacyIndexPath, conversionResult.reason, conversionResult.recommendation, "legacy_markdown_artifact", "conversion_ambiguous");
+        recordDeferredArtifact(result2, legacyIndexPath, conversionResult.reason, conversionResult.recommendation, "legacy_markdown_artifact", "conversion_ambiguous");
       } else {
         const strictIndexPath = `${STRICT_ROADMAP_DIR}/INDEX.yaml`;
         writeYamlFile3(buildStrictMarkdownTargetPath(rootDir, strictIndexPath), conversionResult.artifact);
-        result.converted.push({
+        result2.converted.push({
           kind: "roadmap_index",
           sourcePath: legacyIndexPath,
           targetPath: strictIndexPath,
@@ -28825,27 +29191,27 @@ function convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles) {
       }
     } catch (error) {
       const deferredArtifact = makeConversionFailure(legacyIndexPath, error);
-      recordDeferredArtifact(result, legacyIndexPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
+      recordDeferredArtifact(result2, legacyIndexPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
     }
   }
-  const legacyMilestonesRoot = path35.join(legacyRoadmapRoot, "milestones");
-  if (!existsSync33(legacyMilestonesRoot) || !statSync19(legacyMilestonesRoot).isDirectory()) {
+  const legacyMilestonesRoot = path36.join(legacyRoadmapRoot, "milestones");
+  if (!existsSync34(legacyMilestonesRoot) || !statSync20(legacyMilestonesRoot).isDirectory()) {
     return;
   }
-  const milestoneFiles = listFilesRecursive2(legacyMilestonesRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path35.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
+  const milestoneFiles = listFilesRecursive2(legacyMilestonesRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => path36.basename(repoRelativePath) !== "README.md").filter((repoRelativePath) => repoRelativePath.endsWith(".md")).sort((left, right) => left.localeCompare(right));
   for (const legacyMilestoneFile of milestoneFiles) {
     handledLegacyFiles.add(legacyMilestoneFile);
     try {
-      const content = readFileSync23(path35.join(rootDir, legacyMilestoneFile), "utf8");
-      const filename = path35.basename(legacyMilestoneFile);
+      const content = readFileSync24(path36.join(rootDir, legacyMilestoneFile), "utf8");
+      const filename = path36.basename(legacyMilestoneFile);
       const conversionResult = convertRoadmapMilestone(content, filename);
       if (!conversionResult.ok) {
-        recordDeferredArtifact(result, legacyMilestoneFile, conversionResult.reason, conversionResult.recommendation, "legacy_markdown_artifact", "conversion_ambiguous");
+        recordDeferredArtifact(result2, legacyMilestoneFile, conversionResult.reason, conversionResult.recommendation, "legacy_markdown_artifact", "conversion_ambiguous");
         continue;
       }
-      const strictMilestonePath = toPosix2(legacyMilestoneFile.replace(`${LEGACY_ROADMAP_DIR}/`, `${STRICT_ROADMAP_DIR}/`).replace(/\.md$/i, ".yaml").replace(/milestones\/\d+-/, (match) => match.replace(/\d+/, (digits) => digits.padStart(4, "0"))));
+      const strictMilestonePath = toPosix3(legacyMilestoneFile.replace(`${LEGACY_ROADMAP_DIR}/`, `${STRICT_ROADMAP_DIR}/`).replace(/\.md$/i, ".yaml").replace(/milestones\/\d+-/, (match) => match.replace(/\d+/, (digits) => digits.padStart(4, "0"))));
       writeYamlFile3(buildStrictMarkdownTargetPath(rootDir, strictMilestonePath), conversionResult.artifact);
-      result.converted.push({
+      result2.converted.push({
         kind: "roadmap_milestone",
         sourcePath: legacyMilestoneFile,
         targetPath: strictMilestonePath,
@@ -28853,21 +29219,21 @@ function convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles) {
       });
     } catch (error) {
       const deferredArtifact = makeConversionFailure(legacyMilestoneFile, error);
-      recordDeferredArtifact(result, legacyMilestoneFile, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
+      recordDeferredArtifact(result2, legacyMilestoneFile, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
     }
   }
 }
-function convertLegacySpecsIndex(rootDir, result, handledLegacyFiles) {
+function convertLegacySpecsIndex(rootDir, result2, handledLegacyFiles) {
   const legacySpecsIndexPath = `${LEGACY_WORKFLOW_DIR2}/specs/INDEX.md`;
-  const legacySpecsIndexAbsPath = path35.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs", "INDEX.md");
-  if (!existsSync33(legacySpecsIndexAbsPath) || !statSync19(legacySpecsIndexAbsPath).isFile()) {
+  const legacySpecsIndexAbsPath = path36.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs", "INDEX.md");
+  if (!existsSync34(legacySpecsIndexAbsPath) || !statSync20(legacySpecsIndexAbsPath).isFile()) {
     return;
   }
   handledLegacyFiles.add(legacySpecsIndexPath);
   const strictSpecsIndexPath = `${STRICT_WORKFLOW_DIR13}/specs/INDEX.yaml`;
-  const strictSpecsIndexAbsPath = path35.join(rootDir, STRICT_WORKFLOW_DIR13, "specs", "INDEX.yaml");
-  if (existsSync33(strictSpecsIndexAbsPath)) {
-    result.converted.push({
+  const strictSpecsIndexAbsPath = path36.join(rootDir, STRICT_WORKFLOW_DIR13, "specs", "INDEX.yaml");
+  if (existsSync34(strictSpecsIndexAbsPath)) {
+    result2.converted.push({
       kind: "spec_index",
       sourcePath: legacySpecsIndexPath,
       targetPath: strictSpecsIndexPath,
@@ -28876,14 +29242,14 @@ function convertLegacySpecsIndex(rootDir, result, handledLegacyFiles) {
     return;
   }
   try {
-    const content = readFileSync23(legacySpecsIndexAbsPath, "utf8");
+    const content = readFileSync24(legacySpecsIndexAbsPath, "utf8");
     const conversionResult = convertSpecsIndex(content);
     if (!conversionResult.ok) {
-      recordDeferredArtifact(result, legacySpecsIndexPath, conversionResult.reason, conversionResult.recommendation, "legacy_markdown_artifact", "conversion_ambiguous");
+      recordDeferredArtifact(result2, legacySpecsIndexPath, conversionResult.reason, conversionResult.recommendation, "legacy_markdown_artifact", "conversion_ambiguous");
       return;
     }
     writeYamlFile3(strictSpecsIndexAbsPath, conversionResult.artifact);
-    result.converted.push({
+    result2.converted.push({
       kind: "spec_index",
       sourcePath: legacySpecsIndexPath,
       targetPath: strictSpecsIndexPath,
@@ -28891,25 +29257,25 @@ function convertLegacySpecsIndex(rootDir, result, handledLegacyFiles) {
     });
   } catch (error) {
     const deferredArtifact = makeConversionFailure(legacySpecsIndexPath, error);
-    recordDeferredArtifact(result, legacySpecsIndexPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
+    recordDeferredArtifact(result2, legacySpecsIndexPath, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
   }
 }
 
 // src/migrate/converters/specs.ts
 import {
-  existsSync as existsSync34,
-  readFileSync as readFileSync24,
-  statSync as statSync20
+  existsSync as existsSync35,
+  readFileSync as readFileSync25,
+  statSync as statSync21
 } from "fs";
-import path36 from "path";
+import path37 from "path";
 var SPEC_INDEX_SCHEMA_FILE2 = "templates/strict-spec-driven/schemas/spec-index.yaml";
 function regenerateStrictSpecIndex(rootDir) {
-  const specsRoot = path36.join(rootDir, STRICT_WORKFLOW_DIR13, "specs");
-  const indexPath = path36.join(specsRoot, "INDEX.yaml");
+  const specsRoot = path37.join(rootDir, STRICT_WORKFLOW_DIR13, "specs");
+  const indexPath = path37.join(specsRoot, "INDEX.yaml");
   const specs = listFilesRecursive2(specsRoot).map((absolutePath) => ({
     absolutePath,
     repoRelativePath: toRepoRelativePath2(rootDir, absolutePath)
-  })).filter(({ absolutePath }) => absolutePath.endsWith(".yaml") || absolutePath.endsWith(".yml")).filter(({ absolutePath }) => path36.basename(absolutePath) !== "INDEX.yaml").map(({ absolutePath, repoRelativePath }) => {
+  })).filter(({ absolutePath }) => absolutePath.endsWith(".yaml") || absolutePath.endsWith(".yml")).filter(({ absolutePath }) => path37.basename(absolutePath) !== "INDEX.yaml").map(({ absolutePath, repoRelativePath }) => {
     const artifact = readYamlFile3(absolutePath);
     if (!isRecord4(artifact) || artifact.artifact_type !== "main_spec") {
       return null;
@@ -28930,7 +29296,7 @@ function regenerateStrictSpecIndex(rootDir) {
     }
     return left.id.localeCompare(right.id);
   });
-  const indexArtifact = existsSync34(indexPath) ? {
+  const indexArtifact = existsSync35(indexPath) ? {
     ...readYamlFile3(indexPath),
     schema: "strict-spec-driven/spec-index/v1",
     schema_version: 1,
@@ -28946,20 +29312,20 @@ function regenerateStrictSpecIndex(rootDir) {
   };
   writeYamlFile3(indexPath, indexArtifact);
 }
-function convertLegacySpecArtifacts(rootDir, result, handledLegacyFiles) {
-  const legacySpecsRoot = path36.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs");
-  if (!existsSync34(legacySpecsRoot) || !statSync20(legacySpecsRoot).isDirectory()) {
+function convertLegacySpecArtifacts(rootDir, result2, handledLegacyFiles) {
+  const legacySpecsRoot = path37.join(rootDir, LEGACY_WORKFLOW_DIR2, "specs");
+  if (!existsSync35(legacySpecsRoot) || !statSync21(legacySpecsRoot).isDirectory()) {
     return false;
   }
   let convertedAny = false;
-  const legacySpecFiles = listFilesRecursive2(legacySpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => repoRelativePath.endsWith(".md")).filter((repoRelativePath) => path36.basename(repoRelativePath) !== "INDEX.md").filter((repoRelativePath) => path36.basename(repoRelativePath) !== "README.md").sort((left, right) => left.localeCompare(right));
+  const legacySpecFiles = listFilesRecursive2(legacySpecsRoot).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).filter((repoRelativePath) => repoRelativePath.endsWith(".md")).filter((repoRelativePath) => path37.basename(repoRelativePath) !== "INDEX.md").filter((repoRelativePath) => path37.basename(repoRelativePath) !== "README.md").sort((left, right) => left.localeCompare(right));
   for (const legacySpecFile of legacySpecFiles) {
     handledLegacyFiles.add(legacySpecFile);
     try {
-      const strictArtifact = parseLegacyMainSpec(legacySpecFile, readFileSync24(path36.join(rootDir, legacySpecFile), "utf8"));
+      const strictArtifact = parseLegacyMainSpec(legacySpecFile, readFileSync25(path37.join(rootDir, legacySpecFile), "utf8"));
       const strictTargetPath = replaceMarkdownExtension(legacySpecFile.replace(`${LEGACY_WORKFLOW_DIR2}/specs/`, `${STRICT_WORKFLOW_DIR13}/specs/`));
       writeYamlFile3(buildStrictMarkdownTargetPath(rootDir, strictTargetPath), strictArtifact);
-      result.converted.push({
+      result2.converted.push({
         kind: "main_spec",
         sourcePath: legacySpecFile,
         targetPath: strictTargetPath,
@@ -28968,7 +29334,7 @@ function convertLegacySpecArtifacts(rootDir, result, handledLegacyFiles) {
       convertedAny = true;
     } catch (error) {
       const deferredArtifact = makeConversionFailure(legacySpecFile, error);
-      recordDeferredArtifact(result, legacySpecFile, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
+      recordDeferredArtifact(result2, legacySpecFile, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "conversion_ambiguous");
     }
   }
   if (convertedAny) {
@@ -29013,22 +29379,22 @@ function describeDeferredLegacyArtifact(repoRelativePath) {
     recommendation: "Add a dedicated migration converter for this artifact type before treating the migration as complete."
   };
 }
-function sortMigrationResult(result) {
-  sortByDeterministicKey(result.converted, (artifact) => [artifact.targetPath, artifact.sourcePath ?? "", artifact.kind, artifact.note]);
-  sortByDeterministicKey(result.skipped, (artifact) => [artifact.sourcePath, artifact.kind, artifact.reason]);
-  sortByDeterministicKey(result.warnings, (diagnostic) => [diagnostic.code, diagnostic.sourcePath ?? "", diagnostic.targetPath ?? "", diagnostic.message]);
-  sortByDeterministicKey(result.errors, (diagnostic) => [diagnostic.code, diagnostic.sourcePath ?? "", diagnostic.targetPath ?? "", diagnostic.message]);
-  sortByDeterministicKey(result.manualFollowUp, (entry) => [entry.sourcePath, entry.reason, entry.recommendation]);
-  return result;
+function sortMigrationResult(result2) {
+  sortByDeterministicKey(result2.converted, (artifact) => [artifact.targetPath, artifact.sourcePath ?? "", artifact.kind, artifact.note]);
+  sortByDeterministicKey(result2.skipped, (artifact) => [artifact.sourcePath, artifact.kind, artifact.reason]);
+  sortByDeterministicKey(result2.warnings, (diagnostic2) => [diagnostic2.code, diagnostic2.sourcePath ?? "", diagnostic2.targetPath ?? "", diagnostic2.message]);
+  sortByDeterministicKey(result2.errors, (diagnostic2) => [diagnostic2.code, diagnostic2.sourcePath ?? "", diagnostic2.targetPath ?? "", diagnostic2.message]);
+  sortByDeterministicKey(result2.manualFollowUp, (entry) => [entry.sourcePath, entry.reason, entry.recommendation]);
+  return result2;
 }
 
 // src/migrate/preflight.ts
 import {
-  existsSync as existsSync35,
-  readFileSync as readFileSync25,
-  statSync as statSync21
+  existsSync as existsSync36,
+  readFileSync as readFileSync26,
+  statSync as statSync22
 } from "fs";
-import path37 from "path";
+import path38 from "path";
 var LEGACY_CONFIG_PATH = `${LEGACY_WORKFLOW_DIR2}/config.yaml`;
 var STRICT_CONFIG_PATH = `${STRICT_WORKFLOW_DIR13}/config.yaml`;
 var LEGACY_CONFIG_TEXT_REPLACEMENTS = [
@@ -29060,14 +29426,14 @@ function normalizeLegacyConfigValue(value) {
   return value;
 }
 function loadStrictConfigFromLegacy(rootDir, errors) {
-  const legacyConfigAbsolutePath = path37.join(rootDir, LEGACY_CONFIG_PATH);
-  if (!existsSync35(legacyConfigAbsolutePath) || !statSync21(legacyConfigAbsolutePath).isFile()) {
+  const legacyConfigAbsolutePath = path38.join(rootDir, LEGACY_CONFIG_PATH);
+  if (!existsSync36(legacyConfigAbsolutePath) || !statSync22(legacyConfigAbsolutePath).isFile()) {
     errors.push(makeDiagnostic4("legacy_config_missing", "Bootstrap migration requires .spec-driven/config.yaml to exist before migrate can initialize strict workflow state.", LEGACY_CONFIG_PATH));
     return null;
   }
   let legacyConfigArtifact;
   try {
-    legacyConfigArtifact = parseYamlDocument(readFileSync25(legacyConfigAbsolutePath, "utf8"));
+    legacyConfigArtifact = parseYamlDocument(readFileSync26(legacyConfigAbsolutePath, "utf8"));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     errors.push(makeDiagnostic4("legacy_config_invalid", `Legacy workflow config could not be parsed as YAML: ${message}`, LEGACY_CONFIG_PATH));
@@ -29099,9 +29465,9 @@ function getReportedStrictScaffoldAssets() {
 
 // src/migrate.ts
 function migrateLegacyWorkflow(rootDir, options) {
-  const legacyRootAbsolutePath = path38.join(rootDir, LEGACY_WORKFLOW_DIR2);
-  const strictRootAbsolutePath = path38.join(rootDir, STRICT_WORKFLOW_DIR13);
-  const result = {
+  const legacyRootAbsolutePath = path39.join(rootDir, LEGACY_WORKFLOW_DIR2);
+  const strictRootAbsolutePath = path39.join(rootDir, STRICT_WORKFLOW_DIR13);
+  const result2 = {
     valid: false,
     targetRoot: STRICT_WORKFLOW_DIR13,
     converted: [],
@@ -29110,31 +29476,31 @@ function migrateLegacyWorkflow(rootDir, options) {
     errors: [],
     manualFollowUp: []
   };
-  if (!existsSync36(legacyRootAbsolutePath) || !statSync22(legacyRootAbsolutePath).isDirectory()) {
-    result.errors.push(makeDiagnostic4("legacy_source_missing", "Bootstrap migration requires a .spec-driven/ directory at the repository root.", LEGACY_WORKFLOW_DIR2));
-    return sortMigrationResult(result);
+  if (!existsSync37(legacyRootAbsolutePath) || !statSync23(legacyRootAbsolutePath).isDirectory()) {
+    result2.errors.push(makeDiagnostic4("legacy_source_missing", "Bootstrap migration requires a .spec-driven/ directory at the repository root.", LEGACY_WORKFLOW_DIR2));
+    return sortMigrationResult(result2);
   }
-  if (existsSync36(strictRootAbsolutePath)) {
-    const strictRootStat = statSync22(strictRootAbsolutePath);
+  if (existsSync37(strictRootAbsolutePath)) {
+    const strictRootStat = statSync23(strictRootAbsolutePath);
     if (!strictRootStat.isDirectory()) {
-      result.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into .strict-spec-driven because a non-directory entry already exists at that path.", undefined, STRICT_WORKFLOW_DIR13));
-      return sortMigrationResult(result);
+      result2.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into .strict-spec-driven because a non-directory entry already exists at that path.", undefined, STRICT_WORKFLOW_DIR13));
+      return sortMigrationResult(result2);
     }
     if (readdirSync13(strictRootAbsolutePath).length > 0) {
-      result.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into a non-empty .strict-spec-driven directory. You must manually delete it before running migration. Do NOT delete it automatically — ask the user to run: rm -rf .strict-spec-driven", undefined, STRICT_WORKFLOW_DIR13));
-      return sortMigrationResult(result);
+      result2.errors.push(makeDiagnostic4("strict_target_conflict", "Cannot migrate into a non-empty .strict-spec-driven directory. You must manually delete it before running migration. Do NOT delete it automatically — ask the user to run: rm -rf .strict-spec-driven", undefined, STRICT_WORKFLOW_DIR13));
+      return sortMigrationResult(result2);
     }
   }
-  const strictConfig = loadStrictConfigFromLegacy(rootDir, result.errors);
+  const strictConfig = loadStrictConfigFromLegacy(rootDir, result2.errors);
   if (!strictConfig) {
-    return sortMigrationResult(result);
+    return sortMigrationResult(result2);
   }
   const legacyFiles = listFilesRecursive2(legacyRootAbsolutePath).map((absolutePath) => toRepoRelativePath2(rootDir, absolutePath)).sort((left, right) => left.localeCompare(right));
   options?.onProgress?.(`scanning: found ${legacyFiles.length} legacy files`);
   initializeStrictScaffold(rootDir);
-  const strictConfigAbsolutePath = path38.join(rootDir, STRICT_CONFIG_PATH);
+  const strictConfigAbsolutePath = path39.join(rootDir, STRICT_CONFIG_PATH);
   writeFileSync16(strictConfigAbsolutePath, stringifyYamlDocument(strictConfig), "utf8");
-  result.converted.push({
+  result2.converted.push({
     kind: "workflow_config",
     sourcePath: LEGACY_CONFIG_PATH,
     targetPath: STRICT_CONFIG_PATH,
@@ -29142,41 +29508,41 @@ function migrateLegacyWorkflow(rootDir, options) {
   });
   const handledLegacyFiles = new Set([LEGACY_CONFIG_PATH]);
   for (const scaffoldAsset of getReportedStrictScaffoldAssets()) {
-    result.converted.push({
+    result2.converted.push({
       kind: "strict_scaffold_asset",
       targetPath: `${STRICT_WORKFLOW_DIR13}/${scaffoldAsset}`,
       note: "Ensured required strict scaffold asset is available for migration output."
     });
   }
   options?.onProgress?.("converting: specs");
-  convertLegacySpecArtifacts(rootDir, result, handledLegacyFiles);
+  convertLegacySpecArtifacts(rootDir, result2, handledLegacyFiles);
   options?.onProgress?.("converting: changes");
-  convertLegacyChangeArtifacts(rootDir, result, handledLegacyFiles);
+  convertLegacyChangeArtifacts(rootDir, result2, handledLegacyFiles);
   options?.onProgress?.("converting: roadmap");
-  convertLegacyRoadmapArtifacts(rootDir, result, handledLegacyFiles);
-  convertLegacySpecsIndex(rootDir, result, handledLegacyFiles);
-  const unhandled = legacyFiles.filter((f) => !handledLegacyFiles.has(f) && path38.basename(f) !== "README.md");
+  convertLegacyRoadmapArtifacts(rootDir, result2, handledLegacyFiles);
+  convertLegacySpecsIndex(rootDir, result2, handledLegacyFiles);
+  const unhandled = legacyFiles.filter((f) => !handledLegacyFiles.has(f) && path39.basename(f) !== "README.md");
   if (unhandled.length > 0) {
     options?.onProgress?.(`deferring: ${unhandled.length} unhandled files`);
   }
   for (const legacyFile of unhandled) {
     const deferredArtifact = describeDeferredLegacyArtifact(legacyFile);
-    recordDeferredArtifact(result, legacyFile, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "converter_unavailable");
+    recordDeferredArtifact(result2, legacyFile, deferredArtifact.reason, deferredArtifact.recommendation, deferredArtifact.kind, "converter_unavailable");
   }
-  const strictChangesAbsolutePath = path38.join(strictRootAbsolutePath, "changes");
-  const convertedActiveChangeNames = existsSync36(strictChangesAbsolutePath) ? readdirSync13(strictChangesAbsolutePath, { withFileTypes: true }).filter((entry) => entry.isDirectory() && entry.name !== "archive").map((entry) => entry.name).sort((left, right) => left.localeCompare(right)) : [];
+  const strictChangesAbsolutePath = path39.join(strictRootAbsolutePath, "changes");
+  const convertedActiveChangeNames = existsSync37(strictChangesAbsolutePath) ? readdirSync13(strictChangesAbsolutePath, { withFileTypes: true }).filter((entry) => entry.isDirectory() && entry.name !== "archive").map((entry) => entry.name).sort((left, right) => left.localeCompare(right)) : [];
   if (convertedActiveChangeNames.length > MAX_ACTIVE_CHANGE_COUNT) {
     const activeChangeList = convertedActiveChangeNames.map((name) => `'${name}'`).join(", ");
-    result.warnings.push(makeDiagnostic4("multiple_active_changes", `Migration converted ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but the strict workflow allows at most two active changes at a time.`, `${LEGACY_WORKFLOW_DIR2}/changes`, `${STRICT_WORKFLOW_DIR13}/changes`));
-    result.manualFollowUp.push({
+    result2.warnings.push(makeDiagnostic4("multiple_active_changes", `Migration converted ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but the strict workflow allows at most two active changes at a time.`, `${LEGACY_WORKFLOW_DIR2}/changes`, `${STRICT_WORKFLOW_DIR13}/changes`));
+    result2.manualFollowUp.push({
       sourcePath: `${LEGACY_WORKFLOW_DIR2}/changes`,
       reason: `The converted strict workflow state contains ${convertedActiveChangeNames.length} active changes (${activeChangeList}), but at most two active changes are allowed at a time.`,
       recommendation: "Archive or cancel converted active changes until only two remain before continuing strict workflow work."
     });
   }
-  options?.onProgress?.(`done: ${result.converted.length} converted, ${result.skipped.length} skipped, ${result.warnings.length} warnings, ${result.errors.length} errors`);
-  result.valid = true;
-  return sortMigrationResult(result);
+  options?.onProgress?.(`done: ${result2.converted.length} converted, ${result2.skipped.length} skipped, ${result2.warnings.length} warnings, ${result2.errors.length} errors`);
+  result2.valid = true;
+  return sortMigrationResult(result2);
 }
 
 // src/cli/cmd-migration.ts
@@ -29189,12 +29555,12 @@ function runMigrate(argv) {
     return 1;
   }
   try {
-    const result = migrateLegacyWorkflow(process.cwd(), {
+    const result2 = migrateLegacyWorkflow(process.cwd(), {
       onProgress: (phase) => writeErr(`[migrate ${new Date().toISOString()}] ${phase}
 `)
     });
-    writeJson(result);
-    return result.valid ? 0 : 1;
+    writeJson(result2);
+    return result2.valid ? 0 : 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     writeError(message);
@@ -29209,16 +29575,16 @@ function runMaintenanceCommand(argv) {
     writeUsage(getCommandUsage("maintenance"));
     return 1;
   }
-  const result = runMaintenance(process.cwd());
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = runMaintenance(process.cwd());
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 
 // src/cli/cmd-mcp-install.ts
 import { execFileSync, execSync } from "child_process";
-import { existsSync as existsSync37, mkdirSync as mkdirSync14, readFileSync as readFileSync26, statSync as statSync23, writeFileSync as writeFileSync17 } from "fs";
+import { existsSync as existsSync38, mkdirSync as mkdirSync14, readFileSync as readFileSync27, statSync as statSync24, writeFileSync as writeFileSync17 } from "fs";
 import os2 from "os";
-import path39 from "path";
+import path40 from "path";
 import { fileURLToPath as fileURLToPath4 } from "url";
 var MCP_INSTALL_CLIENTS = ["claude-code", "codex", "opencode", "copilot", "json"];
 var MCP_INSTALL_ALL_CLIENTS = MCP_INSTALL_CLIENTS.filter((client) => client !== "json");
@@ -29305,21 +29671,21 @@ function parseMcpInstallArgs(argv) {
   return { ok: true, value: { clients: selected, scope, entryName, projectRoot, configPath } };
 }
 function resolvePackageRoot() {
-  const moduleDir = path39.dirname(fileURLToPath4(import.meta.url));
-  return path39.resolve(moduleDir, "..", "..");
+  const moduleDir = path40.dirname(fileURLToPath4(import.meta.url));
+  return path40.resolve(moduleDir, "..", "..");
 }
 function resolveMcpEntrypointPath(packageRoot) {
-  return path39.join(packageRoot, "dist", "scripts", "strict-spec-driven-mcp.js");
+  return path40.join(packageRoot, "dist", "scripts", "strict-spec-driven-mcp.js");
 }
 function buildServerInvocation(entrypointPath, projectRoot) {
   return { command: "node", args: [entrypointPath, "--project", projectRoot] };
 }
 function parseExistingJsonObject(filePath) {
-  if (!existsSync37(filePath)) {
+  if (!existsSync38(filePath)) {
     return { ok: true, value: {} };
   }
   try {
-    const parsed = JSON.parse(readFileSync26(filePath, "utf8"));
+    const parsed = JSON.parse(readFileSync27(filePath, "utf8"));
     if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
       return { ok: false, error: `existing config at ${filePath} is not a JSON object` };
     }
@@ -29358,24 +29724,24 @@ function mergeCopilotConfig(existing, name, invocation) {
 }
 function userConfigHome() {
   const xdg = process.env.XDG_CONFIG_HOME;
-  return xdg && xdg.length > 0 ? xdg : path39.join(os2.homedir(), ".config");
+  return xdg && xdg.length > 0 ? xdg : path40.join(os2.homedir(), ".config");
 }
 function resolveFileClientTarget(client, scope, projectRoot, configPath) {
   if (client === "json") {
     if (!configPath) {
       return { ok: false, error: "client 'json' requires --config <path>" };
     }
-    return { ok: true, path: path39.resolve(configPath) };
+    return { ok: true, path: path40.resolve(configPath) };
   }
   if (client === "opencode") {
     return {
       ok: true,
-      path: scope === "user" ? path39.join(userConfigHome(), "opencode", "opencode.json") : path39.join(projectRoot, "opencode.json")
+      path: scope === "user" ? path40.join(userConfigHome(), "opencode", "opencode.json") : path40.join(projectRoot, "opencode.json")
     };
   }
   return {
     ok: true,
-    path: scope === "user" ? path39.join(userConfigHome(), "Code", "User", "mcp.json") : path39.join(projectRoot, ".vscode", "mcp.json")
+    path: scope === "user" ? path40.join(userConfigHome(), "Code", "User", "mcp.json") : path40.join(projectRoot, ".vscode", "mcp.json")
   };
 }
 function registerFileClient(client, targetPath, name, invocation) {
@@ -29392,7 +29758,7 @@ function registerFileClient(client, targetPath, name, invocation) {
     content = mergeMcpServersConfig(existing.value, name, invocation);
   }
   try {
-    mkdirSync14(path39.dirname(targetPath), { recursive: true });
+    mkdirSync14(path40.dirname(targetPath), { recursive: true });
     writeFileSync17(targetPath, content);
   } catch (error) {
     return { client, status: "error", detail: `failed to write ${targetPath}: ${error instanceof Error ? error.message : String(error)}` };
@@ -29463,8 +29829,8 @@ function runMcpInstall(argv, deps = DEFAULT_DEPS) {
     writeUsage(USAGE);
     return 1;
   }
-  const projectRoot = path39.resolve(parsed.value.projectRoot ?? process.cwd());
-  if (!existsSync37(projectRoot) || !statSync23(projectRoot).isDirectory()) {
+  const projectRoot = path40.resolve(parsed.value.projectRoot ?? process.cwd());
+  if (!existsSync38(projectRoot) || !statSync24(projectRoot).isDirectory()) {
     writeError(`project root '${projectRoot}' is not a directory`);
     return 1;
   }
@@ -29483,17 +29849,17 @@ function runMcpInstall(argv, deps = DEFAULT_DEPS) {
     entrypointPath,
     results
   });
-  return results.some((result) => result.status === "error") ? 1 : 0;
+  return results.some((result2) => result2.status === "error") ? 1 : 0;
 }
 
 // src/cli/cmd-operations.ts
-import { existsSync as existsSync42, readFileSync as readFileSync31, statSync as statSync28 } from "fs";
+import { existsSync as existsSync43, readFileSync as readFileSync32, statSync as statSync29 } from "fs";
 import { execSync as execSync2 } from "child_process";
-import path44 from "path";
+import path45 from "path";
 
 // src/skills.ts
-import { existsSync as existsSync39, readdirSync as readdirSync14, readFileSync as readFileSync28, statSync as statSync25 } from "node:fs";
-import path41 from "node:path";
+import { existsSync as existsSync40, readdirSync as readdirSync14, readFileSync as readFileSync29, statSync as statSync26 } from "node:fs";
+import path42 from "node:path";
 
 // src/skills/model.ts
 var REQUIRED_METADATA_FIELDS = ["skill_id", "author", "type", "version"];
@@ -30022,7 +30388,7 @@ var MIGRATION_STRICT_SKILL_EXPECTATIONS = {
   }
 };
 function makeDiagnostic5(code, diagPath, message, expected, actual) {
-  return { code, path: toPosix2(diagPath), message, expected, actual };
+  return { code, path: toPosix3(diagPath), message, expected, actual };
 }
 
 // src/skills/content.ts
@@ -30174,22 +30540,22 @@ function validateCommandSection(skillName, content, skillPath, diagnostics) {
 
 // src/skills/diagnostics.ts
 function sortDiagnostics2(diagnostics) {
-  return sortByDeterministicKey(diagnostics, (diagnostic) => [
-    diagnostic.code,
-    diagnostic.path,
-    diagnostic.message,
-    diagnostic.expected ?? "",
-    diagnostic.actual ?? ""
+  return sortByDeterministicKey(diagnostics, (diagnostic2) => [
+    diagnostic2.code,
+    diagnostic2.path,
+    diagnostic2.message,
+    diagnostic2.expected ?? "",
+    diagnostic2.actual ?? ""
   ]);
 }
 
 // src/skills/fs-checks.ts
-import { existsSync as existsSync38, lstatSync, readFileSync as readFileSync27, readlinkSync, statSync as statSync24 } from "node:fs";
-import path40 from "node:path";
+import { existsSync as existsSync39, lstatSync, readFileSync as readFileSync28, readlinkSync, statSync as statSync25 } from "node:fs";
+import path41 from "node:path";
 function validateRequiredSymlink(skillDir, skillName, entryName, expectedTarget, diagnostics) {
-  const entryPath = path40.join(skillDir, entryName);
-  const relativeSkillPath = path40.join("skills", skillName, entryName);
-  if (!existsSync38(entryPath)) {
+  const entryPath = path41.join(skillDir, entryName);
+  const relativeSkillPath = path41.join("skills", skillName, entryName);
+  if (!existsSync39(entryPath)) {
     diagnostics.push(makeDiagnostic5(`skill.${entryName}_symlink.missing`, relativeSkillPath, `skill '${skillName}' is missing required ${entryName} symlink`));
     return;
   }
@@ -30198,27 +30564,27 @@ function validateRequiredSymlink(skillDir, skillName, entryName, expectedTarget,
     diagnostics.push(makeDiagnostic5(`skill.${entryName}_symlink.invalid_type`, relativeSkillPath, `skill '${skillName}' ${entryName} entry must be a symlink`));
     return;
   }
-  const target = toPosix2(readlinkSync(entryPath));
-  const normalizedExpected = toPosix2(expectedTarget);
+  const target = toPosix3(readlinkSync(entryPath));
+  const normalizedExpected = toPosix3(expectedTarget);
   if (target !== normalizedExpected) {
     diagnostics.push(makeDiagnostic5(`skill.${entryName}_symlink.invalid_target`, relativeSkillPath, `skill '${skillName}' ${entryName} symlink must point to '${normalizedExpected}'`, normalizedExpected, target));
     return;
   }
-  const resolved = path40.resolve(skillDir, target);
-  if (!existsSync38(resolved) || !statSync24(resolved).isDirectory()) {
+  const resolved = path41.resolve(skillDir, target);
+  if (!existsSync39(resolved) || !statSync25(resolved).isDirectory()) {
     diagnostics.push(makeDiagnostic5(`skill.${entryName}_symlink.broken`, relativeSkillPath, `skill '${skillName}' ${entryName} symlink target does not resolve to a directory`));
   }
 }
 function validateMarketplaceMetadata(rootDir, skillNames, diagnostics) {
-  const metadataPath = path40.join(rootDir, "skills", "marketplace.json");
-  const relativeMetadataPath = path40.join("skills", "marketplace.json");
-  if (!existsSync38(metadataPath)) {
+  const metadataPath = path41.join(rootDir, "skills", "marketplace.json");
+  const relativeMetadataPath = path41.join("skills", "marketplace.json");
+  if (!existsSync39(metadataPath)) {
     diagnostics.push(makeDiagnostic5("skills.marketplace.missing", relativeMetadataPath, "skills marketplace metadata file is missing"));
     return 0;
   }
   let parsed;
   try {
-    parsed = JSON.parse(readFileSync27(metadataPath, "utf8"));
+    parsed = JSON.parse(readFileSync28(metadataPath, "utf8"));
   } catch (error) {
     diagnostics.push(makeDiagnostic5("skills.marketplace.parse_error", relativeMetadataPath, "skills marketplace metadata must be valid JSON", "valid JSON", error instanceof Error ? error.message : String(error)));
     return 0;
@@ -30348,9 +30714,9 @@ function validateLegacyReferences(skillName, content, skillPath, diagnostics) {
 // src/skills.ts
 function validateStrictSkillPackaging(rootDir) {
   const diagnostics = [];
-  const skillsRoot = path41.join(rootDir, "skills");
+  const skillsRoot = path42.join(rootDir, "skills");
   const relativeSkillsRoot = "skills";
-  if (!existsSync39(skillsRoot) || !statSync25(skillsRoot).isDirectory()) {
+  if (!existsSync40(skillsRoot) || !statSync26(skillsRoot).isDirectory()) {
     diagnostics.push(makeDiagnostic5("skills.directory.missing", relativeSkillsRoot, "skills directory is missing"));
     return {
       valid: false,
@@ -30364,17 +30730,17 @@ function validateStrictSkillPackaging(rootDir) {
   }
   const skillNames = readdirSync14(skillsRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
   for (const skillName of skillNames) {
-    const skillDir = path41.join(skillsRoot, skillName);
-    const skillPath = path41.join("skills", skillName, "SKILL.md");
+    const skillDir = path42.join(skillsRoot, skillName);
+    const skillPath = path42.join("skills", skillName, "SKILL.md");
     if (!skillName.startsWith("strict-spec-") && !skillName.startsWith("strict-roadmap-") && !skillName.startsWith("strict-tech-")) {
-      diagnostics.push(makeDiagnostic5("skill.directory.legacy_name", path41.join("skills", skillName), "skill directory must use strict prefix", "strict-spec-*, strict-roadmap-*, or strict-tech-*", skillName));
+      diagnostics.push(makeDiagnostic5("skill.directory.legacy_name", path42.join("skills", skillName), "skill directory must use strict prefix", "strict-spec-*, strict-roadmap-*, or strict-tech-*", skillName));
     }
-    const skillFilePath = path41.join(skillDir, "SKILL.md");
-    if (!existsSync39(skillFilePath)) {
+    const skillFilePath = path42.join(skillDir, "SKILL.md");
+    if (!existsSync40(skillFilePath)) {
       diagnostics.push(makeDiagnostic5("skill.file.missing", skillPath, "skill directory must include SKILL.md"));
       continue;
     }
-    const content = readFileSync28(skillFilePath, "utf8");
+    const content = readFileSync29(skillFilePath, "utf8");
     const frontmatter = parseFrontmatter(content, skillPath, diagnostics);
     if (frontmatter) {
       validateFrontmatterFields(frontmatter, skillName, skillPath, diagnostics);
@@ -30397,9 +30763,9 @@ function validateStrictSkillPackaging(rootDir) {
 }
 
 // src/cli/spec-mapping.ts
-import { existsSync as existsSync40, readdirSync as readdirSync15, readFileSync as readFileSync29, statSync as statSync26 } from "fs";
-import path42 from "path";
-var STRICT_SPECS_DIR = path42.join(".strict-spec-driven", "specs");
+import { existsSync as existsSync41, readdirSync as readdirSync15, readFileSync as readFileSync30, statSync as statSync27 } from "fs";
+import path43 from "path";
+var STRICT_SPECS_DIR = path43.join(".strict-spec-driven", "specs");
 var FORBIDDEN_SPEC_SUBDIRS3 = new Set([".strict-spec-driven", "changes", "archive"]);
 var EXCLUDED_MAPPING_SPEC_BASENAMES = new Set(["INDEX.yaml"]);
 function makeMappingDiagnostic(source, artifactPath, fieldPath, message, expected, actual) {
@@ -30412,11 +30778,11 @@ function normalizeMappedPath(rootDir, artifactPath, field, index, rawPath, diagn
     return null;
   }
   const normalizedInput = rawPath.trim().replaceAll("\\", "/");
-  if (path42.isAbsolute(normalizedInput)) {
+  if (path43.isAbsolute(normalizedInput)) {
     diagnostics.push(makeMappingDiagnostic("mapping_coverage", artifactPath, fieldPath, "mapping entry must be repo-relative", "repo-relative path", normalizedInput));
     return null;
   }
-  const resolved = path42.resolve(rootDir, normalizedInput);
+  const resolved = path43.resolve(rootDir, normalizedInput);
   const repoRelative3 = normalizeRepoRelativePath4(rootDir, resolved);
   if (repoRelative3 === ".." || repoRelative3.startsWith("../")) {
     diagnostics.push(makeMappingDiagnostic("mapping_coverage", artifactPath, fieldPath, "mapping entry cannot traverse outside repository", "path inside repository", normalizedInput));
@@ -30426,7 +30792,7 @@ function normalizeMappedPath(rootDir, artifactPath, field, index, rawPath, diagn
     diagnostics.push(makeMappingDiagnostic("mapping_coverage", artifactPath, fieldPath, "mapping entry must be normalized repo-relative path", repoRelative3, normalizedInput));
     return null;
   }
-  if (!existsSync40(path42.join(rootDir, repoRelative3))) {
+  if (!existsSync41(path43.join(rootDir, repoRelative3))) {
     diagnostics.push(makeMappingDiagnostic("mapping_coverage", artifactPath, fieldPath, "mapping entry points to a file that does not exist", "existing file path", normalizedInput));
     return null;
   }
@@ -30434,7 +30800,7 @@ function normalizeMappedPath(rootDir, artifactPath, field, index, rawPath, diagn
 }
 function parseSpecMapping(rootDir, specPath, diagnostics) {
   const artifactPath = normalizeRepoRelativePath4(rootDir, specPath);
-  const content = readFileSync29(specPath, "utf8");
+  const content = readFileSync30(specPath, "utf8");
   let doc;
   try {
     doc = parseYamlDocument(content, { source: artifactPath });
@@ -30482,13 +30848,13 @@ function parseSpecMapping(rootDir, specPath, diagnostics) {
   return normalized;
 }
 function collectEvidenceCandidates(rootDir) {
-  const implementation = listFilesRecursive(path42.join(rootDir, "src")).filter((file) => file.endsWith(".ts")).map((file) => normalizeRepoRelativePath4(rootDir, file));
+  const implementation = listFilesRecursive(path43.join(rootDir, "src")).filter((file) => file.endsWith(".ts")).map((file) => normalizeRepoRelativePath4(rootDir, file));
   for (const file of ["package.json", "tsconfig.json"]) {
-    if (existsSync40(path42.join(rootDir, file))) {
+    if (existsSync41(path43.join(rootDir, file))) {
       implementation.push(file);
     }
   }
-  const tests = listFilesRecursive(path42.join(rootDir, "test")).filter((file) => file.endsWith(".ts")).map((file) => normalizeRepoRelativePath4(rootDir, file));
+  const tests = listFilesRecursive(path43.join(rootDir, "test")).filter((file) => file.endsWith(".ts")).map((file) => normalizeRepoRelativePath4(rootDir, file));
   const dedupeSort = (values3) => [...new Set(values3.map((value) => normalizePathSeparators(value)))].sort();
   return {
     implementation: dedupeSort(implementation),
@@ -30518,23 +30884,23 @@ function sortMappingDiagnostics(diagnostics) {
 }
 function verifySpecMappings(rootDir) {
   const diagnostics = [];
-  const specsDir = path42.join(rootDir, STRICT_SPECS_DIR);
+  const specsDir = path43.join(rootDir, STRICT_SPECS_DIR);
   const mapped = {
     implementation: new Set,
     tests: new Set
   };
-  if (!existsSync40(specsDir) || !statSync26(specsDir).isDirectory()) {
+  if (!existsSync41(specsDir) || !statSync27(specsDir).isDirectory()) {
     diagnostics.push(makeMappingDiagnostic("mapping_input", STRICT_SPECS_DIR, "$", "spec mapping inputs are unavailable because .strict-spec-driven/specs/ does not exist", "existing .strict-spec-driven/specs/ directory"));
   }
   if (diagnostics.length === 0) {
     for (const entry of readdirSync15(specsDir, { withFileTypes: true })) {
       if (entry.isDirectory() && FORBIDDEN_SPEC_SUBDIRS3.has(entry.name)) {
-        diagnostics.push(makeMappingDiagnostic("mapping_input", path42.join(STRICT_SPECS_DIR, entry.name), "$", `.strict-spec-driven/specs/ must not contain a '${entry.name}' subdirectory; workflow state directories belong under .strict-spec-driven/ directly`, `no '${entry.name}' subdirectory under .strict-spec-driven/specs/`, `found .strict-spec-driven/specs/${entry.name}/`));
+        diagnostics.push(makeMappingDiagnostic("mapping_input", path43.join(STRICT_SPECS_DIR, entry.name), "$", `.strict-spec-driven/specs/ must not contain a '${entry.name}' subdirectory; workflow state directories belong under .strict-spec-driven/ directly`, `no '${entry.name}' subdirectory under .strict-spec-driven/specs/`, `found .strict-spec-driven/specs/${entry.name}/`));
       }
     }
   }
   const specFiles = diagnostics.length === 0 ? listFilesRecursive(specsDir).filter((filePath) => {
-    const basename = path42.basename(filePath);
+    const basename = path43.basename(filePath);
     return basename.endsWith(".yaml") && !EXCLUDED_MAPPING_SPEC_BASENAMES.has(basename);
   }) : [];
   if (diagnostics.length === 0 && specFiles.length === 0) {
@@ -30551,7 +30917,7 @@ function verifySpecMappings(rootDir) {
   let evidenceCandidates = { implementation: [], tests: [] };
   let unmappedImplementation = [];
   let unmappedTests = [];
-  const hasInputErrors = diagnostics.some((diagnostic) => diagnostic.source === "mapping_input");
+  const hasInputErrors = diagnostics.some((diagnostic2) => diagnostic2.source === "mapping_input");
   if (!hasInputErrors) {
     evidenceCandidates = collectEvidenceCandidates(rootDir);
     unmappedImplementation = evidenceCandidates.implementation.filter((file) => !mapped.implementation.has(file));
@@ -30579,9 +30945,9 @@ function verifySpecMappings(rootDir) {
 }
 
 // src/cli/tech-mapping.ts
-import { existsSync as existsSync41, readFileSync as readFileSync30, statSync as statSync27 } from "fs";
-import path43 from "path";
-var STRICT_TECH_DIR = path43.join(".strict-spec-driven", "tech");
+import { existsSync as existsSync42, readFileSync as readFileSync31, statSync as statSync28 } from "fs";
+import path44 from "path";
+var STRICT_TECH_DIR = path44.join(".strict-spec-driven", "tech");
 var EXCLUDED_TECH_BASENAMES2 = new Set(["INDEX.yaml"]);
 var MECHANICAL_ENFORCEMENT_METHODS = new Set(["lint", "ci", "test"]);
 function makeDiagnostic6(source, artifactPath, fieldPath, message, expected, actual) {
@@ -30594,11 +30960,11 @@ function validateMappedPath(rootDir, artifactPath, field, index, rawPath, diagno
     return null;
   }
   const normalizedInput = rawPath.trim().replaceAll("\\", "/");
-  if (path43.isAbsolute(normalizedInput)) {
+  if (path44.isAbsolute(normalizedInput)) {
     diagnostics.push(makeDiagnostic6("mapping_coverage", artifactPath, fieldPath, "mapping entry must be repo-relative", "repo-relative path", normalizedInput));
     return null;
   }
-  const resolved = path43.resolve(rootDir, normalizedInput);
+  const resolved = path44.resolve(rootDir, normalizedInput);
   const repoRelative3 = normalizeRepoRelativePath4(rootDir, resolved);
   if (repoRelative3 === ".." || repoRelative3.startsWith("../")) {
     diagnostics.push(makeDiagnostic6("mapping_coverage", artifactPath, fieldPath, "mapping entry cannot traverse outside repository", "path inside repository", normalizedInput));
@@ -30608,7 +30974,7 @@ function validateMappedPath(rootDir, artifactPath, field, index, rawPath, diagno
     diagnostics.push(makeDiagnostic6("mapping_coverage", artifactPath, fieldPath, "mapping entry must be normalized repo-relative path", repoRelative3, normalizedInput));
     return null;
   }
-  if (!existsSync41(path43.join(rootDir, repoRelative3))) {
+  if (!existsSync42(path44.join(rootDir, repoRelative3))) {
     diagnostics.push(makeDiagnostic6("mapping_coverage", artifactPath, fieldPath, "mapping entry points to a file that does not exist", "existing file path", normalizedInput));
     return null;
   }
@@ -30616,7 +30982,7 @@ function validateMappedPath(rootDir, artifactPath, field, index, rawPath, diagno
 }
 function parseTechMapping(rootDir, techPath, diagnostics) {
   const artifactPath = normalizeRepoRelativePath4(rootDir, techPath);
-  const content = readFileSync30(techPath, "utf8");
+  const content = readFileSync31(techPath, "utf8");
   let doc;
   try {
     doc = parseYamlDocument(content, { source: artifactPath });
@@ -30655,7 +31021,7 @@ function checkEnforcementDeclaration(rootDir, techPath, diagnostics) {
   const artifactPath = normalizeRepoRelativePath4(rootDir, techPath);
   let doc;
   try {
-    doc = parseYamlDocument(readFileSync30(techPath, "utf8"), { source: artifactPath });
+    doc = parseYamlDocument(readFileSync31(techPath, "utf8"), { source: artifactPath });
   } catch {
     return;
   }
@@ -30691,15 +31057,15 @@ function sortDiagnostics3(diagnostics) {
 }
 function listTechFiles2(techDir) {
   return listFilesRecursive(techDir).filter((filePath) => {
-    const basename = path43.basename(filePath);
+    const basename = path44.basename(filePath);
     return basename.endsWith(".yaml") && !EXCLUDED_TECH_BASENAMES2.has(basename);
   });
 }
 function verifyTechMappings(rootDir) {
   const diagnostics = [];
-  const techDir = path43.join(rootDir, STRICT_TECH_DIR);
+  const techDir = path44.join(rootDir, STRICT_TECH_DIR);
   const mapped = { implementation: new Set, enforcement: new Set };
-  if (!existsSync41(techDir) || !statSync27(techDir).isDirectory()) {
+  if (!existsSync42(techDir) || !statSync28(techDir).isDirectory()) {
     diagnostics.push(makeDiagnostic6("mapping_input", STRICT_TECH_DIR, "$", "tech mapping inputs are unavailable because .strict-spec-driven/tech/ does not exist", "existing .strict-spec-driven/tech/ directory"));
     return {
       valid: false,
@@ -30727,7 +31093,7 @@ function verifyTechMappings(rootDir) {
   };
 }
 function getTechStatus(rootDir) {
-  const techDir = path43.join(rootDir, STRICT_TECH_DIR);
+  const techDir = path44.join(rootDir, STRICT_TECH_DIR);
   const empty = {
     techDirExists: false,
     standardCount: 0,
@@ -30735,7 +31101,7 @@ function getTechStatus(rootDir) {
     strengthCounts: { MUST: 0, SHOULD: 0, MAY: 0 },
     standards: []
   };
-  if (!existsSync41(techDir) || !statSync27(techDir).isDirectory()) {
+  if (!existsSync42(techDir) || !statSync28(techDir).isDirectory()) {
     return empty;
   }
   const standards = [];
@@ -30744,7 +31110,7 @@ function getTechStatus(rootDir) {
     const artifactPath = normalizeRepoRelativePath4(rootDir, techFile);
     let doc;
     try {
-      doc = parseYamlDocument(readFileSync30(techFile, "utf8"), { source: artifactPath });
+      doc = parseYamlDocument(readFileSync31(techFile, "utf8"), { source: artifactPath });
     } catch {
       continue;
     }
@@ -30798,8 +31164,8 @@ function runShip(argv) {
   const rootDir = process.cwd();
   const archiveRoot = getArchiveDir(rootDir);
   let resolvedArchiveName = null;
-  const exactDir = path44.join(archiveRoot, target);
-  if (existsSync42(exactDir) && statSync28(exactDir).isDirectory()) {
+  const exactDir = path45.join(archiveRoot, target);
+  if (existsSync43(exactDir) && statSync29(exactDir).isDirectory()) {
     resolvedArchiveName = target;
   } else {
     const bareMatches = findArchivedMatchesByBareName(rootDir, target);
@@ -30817,13 +31183,13 @@ function runShip(argv) {
     writeError(`archived change '${target}' not found`);
     return 1;
   }
-  const resolvedArchiveDir = path44.join(archiveRoot, resolvedArchiveName);
+  const resolvedArchiveDir = path45.join(archiveRoot, resolvedArchiveName);
   const archivePath = normalizeRepoRelativePath4(rootDir, resolvedArchiveDir);
   let proposalSummary = "";
-  const proposalPath = path44.join(resolvedArchiveDir, "proposal.yaml");
-  if (existsSync42(proposalPath)) {
+  const proposalPath = path45.join(resolvedArchiveDir, "proposal.yaml");
+  if (existsSync43(proposalPath)) {
     try {
-      const proposalDoc = parseYamlDocument(readFileSync31(proposalPath, "utf8"));
+      const proposalDoc = parseYamlDocument(readFileSync32(proposalPath, "utf8"));
       const summary = proposalDoc.summary;
       if (summary && typeof summary === "object" && !Array.isArray(summary)) {
         const what = summary.what;
@@ -30836,13 +31202,13 @@ function runShip(argv) {
     } catch {}
   }
   const roadmapSnapshot = getRoadmapStatus(rootDir);
-  const result = {
+  const result2 = {
     changeName: resolvedArchiveName,
     archivePath,
     proposalSummary,
     roadmapSnapshot
   };
-  writeJson(result);
+  writeJson(result2);
   return 0;
 }
 function runValidateSkills(argv) {
@@ -30853,9 +31219,9 @@ function runValidateSkills(argv) {
     writeUsage(getCommandUsage("validate-skills"));
     return 1;
   }
-  const result = validateStrictSkillPackaging(process.cwd());
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = validateStrictSkillPackaging(process.cwd());
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runVerifySpecMappings(argv) {
   if (handleHelpRequest("verify-spec-mappings", argv)) {
@@ -30865,9 +31231,9 @@ function runVerifySpecMappings(argv) {
     writeUsage(getCommandUsage("verify-spec-mappings"));
     return 1;
   }
-  const result = verifySpecMappings(process.cwd());
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = verifySpecMappings(process.cwd());
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runVerifyTechMappings(argv) {
   if (handleHelpRequest("verify-tech-mappings", argv)) {
@@ -30877,9 +31243,9 @@ function runVerifyTechMappings(argv) {
     writeUsage(getCommandUsage("verify-tech-mappings"));
     return 1;
   }
-  const result = verifyTechMappings(process.cwd());
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = verifyTechMappings(process.cwd());
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runTechStatus(argv) {
   if (handleHelpRequest("tech-status", argv)) {
@@ -30894,7 +31260,7 @@ function runTechStatus(argv) {
 }
 var ARCHIVE_DATE_PATTERN = /^(\d{4}-\d{2}-\d{2})-(.+)$/;
 function getDirectoryCreationTimeMs(directoryPath) {
-  const stats = statSync28(directoryPath);
+  const stats = statSync29(directoryPath);
   return stats.birthtimeMs > 0 ? stats.birthtimeMs : stats.ctimeMs;
 }
 function runCommitAndPush(argv) {
@@ -30916,7 +31282,7 @@ function runCommitAndPush(argv) {
     const match = ARCHIVE_DATE_PATTERN.exec(name);
     return match ? {
       dirName: name,
-      createdAtMs: getDirectoryCreationTimeMs(path44.join(archiveRoot, name)),
+      createdAtMs: getDirectoryCreationTimeMs(path45.join(archiveRoot, name)),
       bareName: match[2]
     } : null;
   }).filter((entry) => entry !== null).sort((a, b) => b.createdAtMs - a.createdAtMs || b.dirName.localeCompare(a.dirName));
@@ -31068,16 +31434,16 @@ function runArchitectureGenerate(argv) {
     return 1;
   }
   try {
-    const result = generateArchitectureDocument(process.cwd(), { check: parsed.check, outputPath: parsed.outputPath });
-    writeJson(result);
-    if (result.current) {
+    const result2 = generateArchitectureDocument(process.cwd(), { check: parsed.check, outputPath: parsed.outputPath });
+    writeJson(result2);
+    if (result2.current) {
       return 0;
     }
-    if (!result.documentExists) {
-      writeError(`architecture document is missing: ${result.outputPath}; run architecture-generate to render it`);
+    if (!result2.documentExists) {
+      writeError(`architecture document is missing: ${result2.outputPath}; run architecture-generate to render it`);
       return 1;
     }
-    writeError(`architecture document is stale: ${result.outputPath}; re-render it after changing ${result.staleSources.join(", ")}`);
+    writeError(`architecture document is stale: ${result2.outputPath}; re-render it after changing ${result2.staleSources.join(", ")}`);
     return 1;
   } catch (error) {
     if (error instanceof DocumentSourceError) {
@@ -31097,9 +31463,9 @@ function runArchitectureStatus(argv) {
     return 1;
   }
   try {
-    const result = getArchitectureStatus(process.cwd());
-    writeJson(result);
-    return result.valid ? 0 : 1;
+    const result2 = getArchitectureStatus(process.cwd());
+    writeJson(result2);
+    return result2.valid ? 0 : 1;
   } catch (error) {
     if (error instanceof DocumentSourceError) {
       writeError(error.message);
@@ -31137,16 +31503,16 @@ function runDesignGenerate(argv) {
     return 1;
   }
   try {
-    const result = generateDesignDocument(process.cwd(), { check: parsed.check, outputPath: parsed.outputPath });
-    writeJson(result);
-    if (result.current) {
+    const result2 = generateDesignDocument(process.cwd(), { check: parsed.check, outputPath: parsed.outputPath });
+    writeJson(result2);
+    if (result2.current) {
       return 0;
     }
-    if (!result.documentExists) {
-      writeError(`design document is missing: ${result.outputPath}; run design-generate to render it`);
+    if (!result2.documentExists) {
+      writeError(`design document is missing: ${result2.outputPath}; run design-generate to render it`);
       return 1;
     }
-    writeError(`design document is stale: ${result.outputPath}; re-render it after changing ${result.staleSources.join(", ")}`);
+    writeError(`design document is stale: ${result2.outputPath}; re-render it after changing ${result2.staleSources.join(", ")}`);
     return 1;
   } catch (error) {
     if (error instanceof DocumentSourceError) {
@@ -31166,9 +31532,9 @@ function runDesignStatus(argv) {
     return 1;
   }
   try {
-    const result = getDesignSystemStatus(process.cwd());
-    writeJson(result);
-    return result.valid ? 0 : 1;
+    const result2 = getDesignSystemStatus(process.cwd());
+    writeJson(result2);
+    return result2.valid ? 0 : 1;
   } catch (error) {
     if (error instanceof DocumentSourceError) {
       writeError(error.message);
@@ -31180,9 +31546,9 @@ function runDesignStatus(argv) {
 }
 
 // src/harness.ts
-import { closeSync, existsSync as existsSync43, mkdirSync as mkdirSync15, openSync, readFileSync as readFileSync32, renameSync as renameSync5, rmSync as rmSync7, statSync as statSync29, writeFileSync as writeFileSync18, appendFileSync } from "fs";
+import { closeSync, existsSync as existsSync44, mkdirSync as mkdirSync15, openSync, readFileSync as readFileSync33, renameSync as renameSync6, rmSync as rmSync8, statSync as statSync30, writeFileSync as writeFileSync18, appendFileSync } from "fs";
 import { spawn, spawnSync } from "child_process";
-import path45 from "path";
+import path46 from "path";
 var HARNESS_DECLARATION_PATH = ".strict-spec-driven/harness.yaml";
 var HARNESS_RUNTIME_DIR = ".strict-spec-driven/.runtime/harness";
 var HARNESS_RUNTIME_STATE_PATH = `${HARNESS_RUNTIME_DIR}/state.json`;
@@ -31236,9 +31602,9 @@ function yamlDiagnosticFromError(artifactPath, error) {
   };
 }
 function getRuntimePaths(rootDir) {
-  const absoluteRuntimeDir = path45.join(rootDir, HARNESS_RUNTIME_DIR);
-  const absoluteLogsDir = path45.join(rootDir, HARNESS_LOGS_DIR);
-  const absoluteStatePath = path45.join(rootDir, HARNESS_RUNTIME_STATE_PATH);
+  const absoluteRuntimeDir = path46.join(rootDir, HARNESS_RUNTIME_DIR);
+  const absoluteLogsDir = path46.join(rootDir, HARNESS_LOGS_DIR);
+  const absoluteStatePath = path46.join(rootDir, HARNESS_RUNTIME_STATE_PATH);
   return {
     absoluteRuntimeDir,
     absoluteLogsDir,
@@ -31270,10 +31636,10 @@ function isProcessAlive(pid) {
 }
 function readRuntimeState(rootDir) {
   const paths = getRuntimePaths(rootDir);
-  if (!existsSync43(paths.absoluteStatePath))
+  if (!existsSync44(paths.absoluteStatePath))
     return { ok: true, state: null };
   try {
-    const state = JSON.parse(readFileSync32(paths.absoluteStatePath, "utf8"));
+    const state = JSON.parse(readFileSync33(paths.absoluteStatePath, "utf8"));
     if (typeof state !== "object" || state === null || state.version !== 1 || typeof state.artifactPath !== "string" || typeof state.harnessId !== "string" || typeof state.environmentId !== "string" || !Array.isArray(state.componentOrder) || typeof state.components !== "object" || state.components === null) {
       return {
         ok: false,
@@ -31303,7 +31669,7 @@ function writeRuntimeState(rootDir, state) {
 `, "utf8");
 }
 function clearRuntimeState(rootDir) {
-  rmSync7(getRuntimePaths(rootDir).absoluteRuntimeDir, { recursive: true, force: true });
+  rmSync8(getRuntimePaths(rootDir).absoluteRuntimeDir, { recursive: true, force: true });
 }
 function snapshot(record) {
   const alive = isProcessAlive(record.pid);
@@ -31464,20 +31830,20 @@ function assertOperationAllowed(artifactPath, environment, component, operationN
   return null;
 }
 function readJsonFile(filePath) {
-  if (!existsSync43(filePath))
+  if (!existsSync44(filePath))
     return null;
   try {
-    return JSON.parse(readFileSync32(filePath, "utf8"));
+    return JSON.parse(readFileSync33(filePath, "utf8"));
   } catch {
     return null;
   }
 }
 function detectPackageRunner(rootDir) {
-  if (existsSync43(path45.join(rootDir, "bun.lock")) || existsSync43(path45.join(rootDir, "bun.lockb")))
+  if (existsSync44(path46.join(rootDir, "bun.lock")) || existsSync44(path46.join(rootDir, "bun.lockb")))
     return "bun run";
-  if (existsSync43(path45.join(rootDir, "pnpm-lock.yaml")))
+  if (existsSync44(path46.join(rootDir, "pnpm-lock.yaml")))
     return "pnpm run";
-  if (existsSync43(path45.join(rootDir, "yarn.lock")))
+  if (existsSync44(path46.join(rootDir, "yarn.lock")))
     return "yarn";
   return "npm run";
 }
@@ -31523,11 +31889,11 @@ function readEnvSampleNames(rootDir) {
   const names = new Set;
   const evidence = [];
   for (const relativePath of ENV_SAMPLE_FILES) {
-    const absolutePath = path45.join(rootDir, relativePath);
-    if (!existsSync43(absolutePath))
+    const absolutePath = path46.join(rootDir, relativePath);
+    if (!existsSync44(absolutePath))
       continue;
     evidence.push(relativePath);
-    for (const line of readFileSync32(absolutePath, "utf8").split(/\r?\n/)) {
+    for (const line of readFileSync33(absolutePath, "utf8").split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#"))
         continue;
@@ -31581,7 +31947,7 @@ function inferComposePort(service) {
   return null;
 }
 function detectPackageScriptSignal(rootDir, packageJson, scripts) {
-  if (!existsSync43(path45.join(rootDir, "package.json"))) {
+  if (!existsSync44(path46.join(rootDir, "package.json"))) {
     return { candidate: null, evidence: [] };
   }
   const preferredScript = PACKAGE_SCRIPT_NAMES.find((name) => scripts[name] !== undefined);
@@ -31607,11 +31973,11 @@ function detectPackageScriptSignal(rootDir, packageJson, scripts) {
 function detectComposeServiceSignal(rootDir) {
   const evidence = [];
   for (const relativePath of COMPOSE_FILES) {
-    const absolutePath = path45.join(rootDir, relativePath);
-    if (!existsSync43(absolutePath))
+    const absolutePath = path46.join(rootDir, relativePath);
+    if (!existsSync44(absolutePath))
       continue;
     try {
-      const compose = parseYamlDocument(readFileSync32(absolutePath, "utf8"), { source: relativePath });
+      const compose = parseYamlDocument(readFileSync33(absolutePath, "utf8"), { source: relativePath });
       const services = isRecord5(compose) && isRecord5(compose.services) ? Object.entries(compose.services).filter((entry) => isRecord5(entry[1])) : [];
       const eligible = services.filter(([, service2]) => ("build" in service2) || readStringOrStringArray(service2.command) !== undefined);
       if (eligible.length === 0) {
@@ -31637,11 +32003,11 @@ function detectComposeServiceSignal(rootDir) {
   return { candidate: null, evidence };
 }
 function detectProcfileSignal(rootDir, packageJson) {
-  const procfilePath = path45.join(rootDir, "Procfile");
-  if (!existsSync43(procfilePath)) {
+  const procfilePath = path46.join(rootDir, "Procfile");
+  if (!existsSync44(procfilePath)) {
     return { candidate: null, evidence: [] };
   }
-  const entries = readFileSync32(procfilePath, "utf8").split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0 && !line.startsWith("#")).map((line) => line.match(/^([A-Za-z0-9_-]+):\s*(.+)$/)).filter((match) => match !== null).map((match) => ({ name: match[1], command: match[2].trim() })).filter((entry) => entry.command.length > 0);
+  const entries = readFileSync33(procfilePath, "utf8").split(/\r?\n/).map((line) => line.trim()).filter((line) => line.length > 0 && !line.startsWith("#")).map((line) => line.match(/^([A-Za-z0-9_-]+):\s*(.+)$/)).filter((match) => match !== null).map((match) => ({ name: match[1], command: match[2].trim() })).filter((entry) => entry.command.length > 0);
   const eligible = entries.filter((entry) => !PROCFILE_EXCLUDED_PROCESS_NAMES.has(entry.name.toLowerCase()));
   if (eligible.length === 0) {
     return {
@@ -31663,11 +32029,11 @@ function detectProcfileSignal(rootDir, packageJson) {
   };
 }
 function detectMakefileSignal(rootDir) {
-  const makefilePath = path45.join(rootDir, "Makefile");
-  if (!existsSync43(makefilePath)) {
+  const makefilePath = path46.join(rootDir, "Makefile");
+  if (!existsSync44(makefilePath)) {
     return { candidate: null, evidence: [] };
   }
-  const target = readFileSync32(makefilePath, "utf8").split(/\r?\n/).map((line) => line.match(/^([A-Za-z0-9_.-]+)\s*:(?![=])/)).find((match) => match !== null && !match[1].startsWith(".") && MAKEFILE_TARGET_NAMES.has(match[1]));
+  const target = readFileSync33(makefilePath, "utf8").split(/\r?\n/).map((line) => line.match(/^([A-Za-z0-9_.-]+)\s*:(?![=])/)).find((match) => match !== null && !match[1].startsWith(".") && MAKEFILE_TARGET_NAMES.has(match[1]));
   if (!target) {
     return {
       candidate: null,
@@ -31703,7 +32069,7 @@ function detectHarnessInferenceSignal(rootDir, packageJson, scripts) {
   return { signal: null, evidence };
 }
 function buildInferredHarness(rootDir) {
-  const packageJson = readJsonFile(path45.join(rootDir, "package.json"));
+  const packageJson = readJsonFile(path46.join(rootDir, "package.json"));
   const scripts = getPackageScripts(packageJson);
   const envSamples = readEnvSampleNames(rootDir);
   const inference = detectHarnessInferenceSignal(rootDir, packageJson, scripts);
@@ -31724,7 +32090,7 @@ function buildInferredHarness(rootDir) {
       artifact_type: "harness",
       schema_file: "templates/strict-spec-driven/schemas/harness.yaml",
       harness: {
-        id: path45.basename(rootDir).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "default",
+        id: path46.basename(rootDir).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "default",
         description: "AI-assisted draft inferred from repository metadata. Review commands and safety policy before enabling lifecycle scripts.",
         environments: {
           development: {
@@ -31803,7 +32169,7 @@ function buildInferredHarness(rootDir) {
   };
 }
 function inferHarness(rootDir, options = {}) {
-  const absolutePath = path45.join(rootDir, HARNESS_DECLARATION_PATH);
+  const absolutePath = path46.join(rootDir, HARNESS_DECLARATION_PATH);
   const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
   const inferred = buildInferredHarness(rootDir);
   const draft = stringifyYamlDocument(inferred.artifact);
@@ -31813,7 +32179,7 @@ function inferHarness(rootDir, options = {}) {
     return { ok: false, artifactPath, created: false, draft, evidence: inferred.evidence, diagnostics };
   }
   if (options.write) {
-    if (existsSync43(absolutePath) && !options.force) {
+    if (existsSync44(absolutePath) && !options.force) {
       return {
         ok: false,
         artifactPath,
@@ -31826,15 +32192,15 @@ function inferHarness(rootDir, options = {}) {
         })]
       };
     }
-    mkdirSync15(path45.dirname(absolutePath), { recursive: true });
+    mkdirSync15(path46.dirname(absolutePath), { recursive: true });
     writeFileSync18(absolutePath, draft, "utf8");
   }
   return { ok: true, artifactPath, created: options.write ?? false, draft, evidence: inferred.evidence, diagnostics: [] };
 }
 function deriveHarnessPlan(rootDir, environmentId, componentIds = []) {
-  const absolutePath = path45.join(rootDir, HARNESS_DECLARATION_PATH);
+  const absolutePath = path46.join(rootDir, HARNESS_DECLARATION_PATH);
   const artifactPath = normalizeRepoRelativePath4(rootDir, absolutePath);
-  if (!existsSync43(absolutePath)) {
+  if (!existsSync44(absolutePath)) {
     throw new Error("missing-harness");
   }
   const artifact = parseYamlFile(absolutePath);
@@ -31933,7 +32299,7 @@ function normalizeOperation(operation) {
   };
 }
 function getHarnessPlanResult(rootDir, environmentId, componentIds = []) {
-  const artifactPath = normalizeRepoRelativePath4(rootDir, path45.join(rootDir, HARNESS_DECLARATION_PATH));
+  const artifactPath = normalizeRepoRelativePath4(rootDir, path46.join(rootDir, HARNESS_DECLARATION_PATH));
   try {
     return {
       valid: true,
@@ -32096,7 +32462,7 @@ function startHarness(rootDir, options = {}) {
       return { ok: false, artifactPath: planResult.artifactPath, runtimeStatePath: writablePaths.relativeStatePath, harnessId: planResult.harness.id, environmentId: planResult.environment.id, components: summarizeRuntimeState(state), diagnostics };
     }
     const missingEnvironment = getMissingRequiredEnvironment(component);
-    const logAbsolutePath = path45.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
+    const logAbsolutePath = path46.join(writablePaths.absoluteLogsDir, `${component.id}.log`);
     const logPath = normalizeRepoRelativePath4(rootDir, logAbsolutePath);
     if (missingEnvironment.length > 0) {
       const failureReason = formatMissingRequiredEnvironmentFailure(missingEnvironment);
@@ -32156,7 +32522,7 @@ function startHarness(rootDir, options = {}) {
     writeFileSync18(logAbsolutePath, "", "utf8");
     const logDescriptor = openSync(logAbsolutePath, "a");
     const child = spawn(component.operations.start.command ?? "", [], {
-      cwd: path45.join(rootDir, component.workingDirectory),
+      cwd: path46.join(rootDir, component.workingDirectory),
       env: process.env,
       shell: true,
       detached: true,
@@ -32220,7 +32586,7 @@ function getHarnessLogs(rootDir, options = {}) {
   if (record === undefined) {
     return { ok: false, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, diagnostics: [createDiagnostic(runtime.state.artifactPath, "$", "harness-logs received an unknown declared component id", { source: "logs", phase: "logs", componentId, expected: ids.join(", "), actual: componentId })] };
   }
-  const content = readFileSync32(path45.join(rootDir, record.logPath), "utf8");
+  const content = readFileSync33(path46.join(rootDir, record.logPath), "utf8");
   const boundedContent = options.all ? content : takeTailLines(content, options.tailLines ?? DEFAULT_HARNESS_LOG_TAIL_LINES);
   return { ok: true, artifactPath: runtime.state.artifactPath, runtimeStatePath: runtime.state.runtimeStatePath, componentId, logPath: record.logPath, content: boundedContent, diagnostics: [] };
 }
@@ -32253,10 +32619,10 @@ function stopHarness(rootDir, options = {}) {
       continue;
     }
     if (record.stopCommand) {
-      const result = spawnSync(record.stopCommand, [], { cwd: path45.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
-      if (result.status !== 0) {
+      const result2 = spawnSync(record.stopCommand, [], { cwd: path46.join(rootDir, record.workingDirectory), env: process.env, shell: true, encoding: "utf8" });
+      if (result2.status !== 0) {
         record.status = "failed";
-        record.failureReason = result.stderr.trim() || result.stdout.trim() || "stop command failed";
+        record.failureReason = result2.stderr.trim() || result2.stdout.trim() || "stop command failed";
         diagnostics.push(createDiagnostic(plan.artifactPath, `$.harness.environments.${plan.environment.id}.components.${component.id}.operations.stop.command`, "harness stop command failed", { source: "runtime_state", phase: "cleanup", componentId: component.id, actual: record.failureReason }));
         continue;
       }
@@ -32282,13 +32648,13 @@ function addDoctorDiagnostic(diagnostics, artifactPath, fieldPath, message, opti
   diagnostics.push(createDiagnostic(artifactPath, fieldPath, message, options));
 }
 function doctorHarness(rootDir) {
-  const artifactPath = normalizeRepoRelativePath4(rootDir, path45.join(rootDir, HARNESS_DECLARATION_PATH));
+  const artifactPath = normalizeRepoRelativePath4(rootDir, path46.join(rootDir, HARNESS_DECLARATION_PATH));
   const planResult = getHarnessPlanResult(rootDir);
   const diagnostics = [];
   if (!planResult.valid) {
     return { ok: false, artifactPath: planResult.artifactPath, diagnostics: planResult.diagnostics };
   }
-  const absolutePath = path45.join(rootDir, HARNESS_DECLARATION_PATH);
+  const absolutePath = path46.join(rootDir, HARNESS_DECLARATION_PATH);
   const artifact = parseYamlFile(absolutePath);
   const rootEnvSamples = readEnvSampleNames(rootDir);
   const wrapperCheck = verifyHarnessScripts(rootDir);
@@ -32302,8 +32668,8 @@ function doctorHarness(rootDir) {
     }
     const seenPorts = new Map;
     for (const component of environmentPlan.components) {
-      const workingDirectory = path45.join(rootDir, component.workingDirectory);
-      if (!existsSync43(workingDirectory) || !statSync29(workingDirectory).isDirectory()) {
+      const workingDirectory = path46.join(rootDir, component.workingDirectory);
+      if (!existsSync44(workingDirectory) || !statSync30(workingDirectory).isDirectory()) {
         addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.working_directory`, "harness component working directory is missing", {
           source: "filesystem",
           componentId: component.id,
@@ -32311,19 +32677,19 @@ function doctorHarness(rootDir) {
           actual: component.workingDirectory
         });
       }
-      const componentEnvSamples = workingDirectory === rootDir || !existsSync43(workingDirectory) ? { names: [], evidence: [] } : readEnvSampleNames(workingDirectory);
+      const componentEnvSamples = workingDirectory === rootDir || !existsSync44(workingDirectory) ? { names: [], evidence: [] } : readEnvSampleNames(workingDirectory);
       const documentedEnvNames = new Set([...rootEnvSamples.names, ...componentEnvSamples.names]);
       for (const name of component.environment.required) {
         if (!documentedEnvNames.has(name)) {
           let targetPath = ".env.example";
           if (componentEnvSamples.evidence.length > 0) {
-            targetPath = path45.join(component.workingDirectory, componentEnvSamples.evidence[0]);
+            targetPath = path46.join(component.workingDirectory, componentEnvSamples.evidence[0]);
           } else if (rootEnvSamples.evidence.length > 0) {
             targetPath = rootEnvSamples.evidence[0];
           } else if (component.workingDirectory !== ".") {
-            targetPath = path45.join(component.workingDirectory, ".env.example");
+            targetPath = path46.join(component.workingDirectory, ".env.example");
           }
-          const repoRelativeTarget = normalizeRepoRelativePath4(rootDir, path45.resolve(rootDir, targetPath));
+          const repoRelativeTarget = normalizeRepoRelativePath4(rootDir, path46.resolve(rootDir, targetPath));
           const recovery = {
             type: "bootstrap_env",
             description: `Append missing required environment variable ${name} to ${repoRelativeTarget}`,
@@ -32372,7 +32738,7 @@ ${name}=
           continue;
         const scriptName = extractPackageScriptName(operation.command);
         if (scriptName !== null) {
-          const packageJson = readJsonFile(path45.join(workingDirectory, "package.json"));
+          const packageJson = readJsonFile(path46.join(workingDirectory, "package.json"));
           const scripts = getPackageScripts(packageJson);
           if (scripts[scriptName] === undefined) {
             addDoctorDiagnostic(diagnostics, environmentPlan.artifactPath, `$.harness.environments.${environmentId}.components.${component.id}.operations.${operationName}.command`, "harness operation references a missing package script", {
@@ -32429,14 +32795,14 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
       continue;
     for (const step of diag.recovery.steps) {
       if (step.action === "write_file") {
-        const absolutePath = path45.resolve(rootDir, step.path);
+        const absolutePath = path46.resolve(rootDir, step.path);
         const mode = step.mode ?? "overwrite";
         const key = `write_file::${absolutePath}::${mode}::${step.content}`;
         if (executedKeys.has(key))
           continue;
         executedKeys.add(key);
-        const dir = path45.dirname(absolutePath);
-        if (!existsSync43(dir)) {
+        const dir = path46.dirname(absolutePath);
+        if (!existsSync44(dir)) {
           mkdirSync15(dir, { recursive: true });
         }
         if (mode === "append") {
@@ -32450,14 +32816,14 @@ function fixHarnessDiagnostics(rootDir, diagnostics) {
         if (executedKeys.has(key))
           continue;
         executedKeys.add(key);
-        const cliPath = path45.resolve(process.argv[1]);
+        const cliPath = path46.resolve(process.argv[1]);
         const display = ["strict-spec-cli", ...step.args].join(" ");
-        const result = spawnSync(process.execPath, [cliPath, ...step.args], { cwd: rootDir, encoding: "utf8" });
-        if (result.error) {
-          throw new Error(`Failed to execute recovery command: ${display}. Error: ${result.error.message}`);
+        const result2 = spawnSync(process.execPath, [cliPath, ...step.args], { cwd: rootDir, encoding: "utf8" });
+        if (result2.error) {
+          throw new Error(`Failed to execute recovery command: ${display}. Error: ${result2.error.message}`);
         }
-        if (result.status !== 0) {
-          const detail = [result.stderr, result.stdout].map((s) => (s ?? "").trim()).filter((s) => s.length > 0).join(`
+        if (result2.status !== 0) {
+          const detail = [result2.stderr, result2.stdout].map((s) => (s ?? "").trim()).filter((s) => s.length > 0).join(`
 `);
           throw new Error(`Failed to execute recovery command: ${display}${detail ? `
 ${detail}` : ""}`);
@@ -32489,11 +32855,11 @@ function wrapperContent(scriptName) {
 `);
 }
 function generateHarnessScripts(rootDir) {
-  const scriptsDir = path45.join(rootDir, "scripts");
+  const scriptsDir = path46.join(rootDir, "scripts");
   mkdirSync15(scriptsDir, { recursive: true });
   const created = [];
   for (const scriptName of SCRIPT_NAMES) {
-    const absolutePath = path45.join(scriptsDir, scriptName);
+    const absolutePath = path46.join(scriptsDir, scriptName);
     writeFileSync18(absolutePath, wrapperContent(scriptName), { encoding: "utf8", mode: 493 });
     created.push(normalizeRepoRelativePath4(rootDir, absolutePath));
   }
@@ -32514,8 +32880,8 @@ function verifyHarnessScripts(rootDir) {
   };
   for (const scriptName of SCRIPT_NAMES) {
     const relativePath = `scripts/${scriptName}`;
-    const absolutePath = path45.join(rootDir, relativePath);
-    if (!existsSync43(absolutePath)) {
+    const absolutePath = path46.join(rootDir, relativePath);
+    if (!existsSync44(absolutePath)) {
       diagnostics.push(createDiagnostic(relativePath, "$", "harness script is missing", {
         source: "scripts",
         phase: "scripts",
@@ -32525,7 +32891,7 @@ function verifyHarnessScripts(rootDir) {
       }));
       continue;
     }
-    const content = readFileSync32(absolutePath, "utf8");
+    const content = readFileSync33(absolutePath, "utf8");
     if (content !== wrapperContent(scriptName)) {
       diagnostics.push(createDiagnostic(relativePath, "$", "harness script content does not match generated wrapper", {
         source: "scripts",
@@ -32544,38 +32910,38 @@ function normalizeHarnessSessionPath(rootDir, target) {
   const normalized = target.split("\\").join("/");
   const looksLikePath = normalized.includes("/") || normalized.endsWith(".yaml");
   const repoRelativePath = looksLikePath ? normalized : `${HARNESS_SESSIONS_DIR}/${normalized}/${HARNESS_SESSION_FILE_NAME}`;
-  const absolutePath = path45.resolve(rootDir, repoRelativePath);
+  const absolutePath = path46.resolve(rootDir, repoRelativePath);
   return { artifactPath: normalizeRepoRelativePath4(rootDir, absolutePath), absolutePath };
 }
 function formatLocalDate2(date = new Date) {
   return `${String(date.getFullYear())}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 function buildHarnessSessionArchiveDestination(rootDir, sessionId) {
-  const archiveRoot = path45.join(rootDir, HARNESS_SESSION_ARCHIVE_DIR);
+  const archiveRoot = path46.join(rootDir, HARNESS_SESSION_ARCHIVE_DIR);
   mkdirSync15(archiveRoot, { recursive: true });
   const baseName = `${formatLocalDate2()}-${sessionId}`;
-  let candidate = path45.join(archiveRoot, baseName);
+  let candidate = path46.join(archiveRoot, baseName);
   let sequence = 2;
-  while (existsSync43(candidate)) {
-    candidate = path45.join(archiveRoot, `${baseName}-${sequence}`);
+  while (existsSync44(candidate)) {
+    candidate = path46.join(archiveRoot, `${baseName}-${sequence}`);
     sequence += 1;
   }
   return candidate;
 }
 function isDirectory(filePath) {
-  return existsSync43(filePath) && statSync29(filePath).isDirectory();
+  return existsSync44(filePath) && statSync30(filePath).isDirectory();
 }
 function createHarnessSession(rootDir, sessionId) {
-  const sessionDir = path45.join(rootDir, HARNESS_SESSIONS_DIR, sessionId);
-  const sessionPath = path45.join(sessionDir, HARNESS_SESSION_FILE_NAME);
-  const evidenceDir = path45.join(sessionDir, "evidence");
+  const sessionDir = path46.join(rootDir, HARNESS_SESSIONS_DIR, sessionId);
+  const sessionPath = path46.join(sessionDir, HARNESS_SESSION_FILE_NAME);
+  const evidenceDir = path46.join(sessionDir, "evidence");
   const relativeSessionDir = normalizeRepoRelativePath4(rootDir, sessionDir);
   const relativeSessionPath = normalizeRepoRelativePath4(rootDir, sessionPath);
   const relativeEvidenceDir = normalizeRepoRelativePath4(rootDir, evidenceDir);
   if (!SESSION_ID_PATTERN.test(sessionId) || sessionId === "archive") {
     return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$.harness_session.id", "harness-session id must be kebab-case and not reserved", { expected: "lowercase letters, numbers, hyphens, and not 'archive'", actual: sessionId })] };
   }
-  if (existsSync43(sessionPath) || existsSync43(evidenceDir)) {
+  if (existsSync44(sessionPath) || existsSync44(evidenceDir)) {
     return { ok: false, sessionId, sessionDir: relativeSessionDir, sessionPath: relativeSessionPath, evidenceDir: relativeEvidenceDir, created: [], diagnostics: [createDiagnostic(relativeSessionPath, "$", "harness-session already exists", { expected: "new harness-session directory", actual: relativeSessionDir })] };
   }
   mkdirSync15(evidenceDir, { recursive: true });
@@ -32584,7 +32950,7 @@ function createHarnessSession(rootDir, sessionId) {
 }
 function validateHarnessSession(rootDir, target) {
   const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
-  if (!existsSync43(absolutePath)) {
+  if (!existsSync44(absolutePath)) {
     return { valid: false, artifactPath, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
   }
   let artifact;
@@ -32598,15 +32964,15 @@ function validateHarnessSession(rootDir, target) {
 }
 function archiveHarnessSession(rootDir, target) {
   const { artifactPath, absolutePath } = normalizeHarnessSessionPath(rootDir, target);
-  const sourceDir = path45.dirname(absolutePath);
+  const sourceDir = path46.dirname(absolutePath);
   const relativeSourceDir = normalizeRepoRelativePath4(rootDir, sourceDir);
   const missingResult = { ok: false, sessionId: null, sourceDir: relativeSourceDir, sourcePath: artifactPath, archiveDir: null, archivePath: null };
-  if (!existsSync43(absolutePath)) {
+  if (!existsSync44(absolutePath)) {
     return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session artifact not found", { expected: "session.yaml file", actual: "missing" })] };
   }
-  const activeRoot = path45.resolve(rootDir, HARNESS_SESSIONS_DIR);
-  const sourceParent = path45.dirname(path45.resolve(sourceDir));
-  if (path45.basename(absolutePath) !== HARNESS_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
+  const activeRoot = path46.resolve(rootDir, HARNESS_SESSIONS_DIR);
+  const sourceParent = path46.dirname(path46.resolve(sourceDir));
+  if (path46.basename(absolutePath) !== HARNESS_SESSION_FILE_NAME || sourceParent !== activeRoot || !isDirectory(sourceDir)) {
     return { ...missingResult, diagnostics: [createDiagnostic(artifactPath, "$", "harness-session archive target must be an active session.yaml artifact", { expected: `${HARNESS_SESSIONS_DIR}/<session-id>/${HARNESS_SESSION_FILE_NAME}`, actual: artifactPath })] };
   }
   const validation = validateHarnessSession(rootDir, artifactPath);
@@ -32621,15 +32987,15 @@ function archiveHarnessSession(rootDir, target) {
   if (sessionId === "archive") {
     return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id is reserved for archived sessions", { expected: "non-reserved harness-session id", actual: sessionId })] };
   }
-  if (path45.basename(sourceDir) !== sessionId) {
-    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path45.basename(sourceDir), actual: sessionId })] };
+  if (path46.basename(sourceDir) !== sessionId) {
+    return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.id", "harness-session id must match its active directory name", { expected: path46.basename(sourceDir), actual: sessionId })] };
   }
   if (status !== "resolved" && status !== "blocked") {
     return { ...missingResult, sessionId, diagnostics: [createDiagnostic(artifactPath, "$.harness_session.status", "harness-session must be resolved or blocked before archive", { expected: "resolved or blocked", actual: typeof status === "string" ? status : typeof status })] };
   }
   const archiveDestination = buildHarnessSessionArchiveDestination(rootDir, sessionId);
-  const archivePath = path45.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
-  renameSync5(sourceDir, archiveDestination);
+  const archivePath = path46.join(archiveDestination, HARNESS_SESSION_FILE_NAME);
+  renameSync6(sourceDir, archiveDestination);
   return {
     ok: true,
     sessionId,
@@ -32722,9 +33088,9 @@ function runHarnessPlan(argv) {
   const selection = parseSelectionArgs(argv, HARNESS_PLAN_USAGE, false);
   if (selection === null)
     return 1;
-  const result = getHarnessPlanResult(process.cwd(), selection.environment, selection.components);
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  const result2 = getHarnessPlanResult(process.cwd(), selection.environment, selection.components);
+  writeJson(result2);
+  return result2.valid ? 0 : 1;
 }
 function runHarnessInfer(argv) {
   if (handleHelpRequest("harness-infer", argv)) {
@@ -32748,9 +33114,9 @@ function runHarnessInfer(argv) {
     writeUsage(HARNESS_INFER_USAGE);
     return 1;
   }
-  const result = inferHarness(process.cwd(), { write, force });
-  writeJson(result);
-  return result.ok ? 0 : 1;
+  const result2 = inferHarness(process.cwd(), { write, force });
+  writeJson(result2);
+  return result2.ok ? 0 : 1;
 }
 function runHarnessDoctor(argv) {
   if (handleHelpRequest("harness-doctor", argv)) {
@@ -32765,23 +33131,23 @@ function runHarnessDoctor(argv) {
       return 1;
     }
   }
-  let result = doctorHarness(process.cwd());
-  if (fix && !result.ok) {
+  let result2 = doctorHarness(process.cwd());
+  if (fix && !result2.ok) {
     try {
       const maxPasses = 5;
-      for (let pass = 0;pass < maxPasses && !result.ok; pass++) {
-        const fixed = fixHarnessDiagnostics(process.cwd(), result.diagnostics);
+      for (let pass = 0;pass < maxPasses && !result2.ok; pass++) {
+        const fixed = fixHarnessDiagnostics(process.cwd(), result2.diagnostics);
         if (!fixed)
           break;
-        result = doctorHarness(process.cwd());
+        result2 = doctorHarness(process.cwd());
       }
     } catch (error) {
       writeError(error.message);
       return 1;
     }
   }
-  writeJson(result);
-  return result.ok ? 0 : 1;
+  writeJson(result2);
+  return result2.ok ? 0 : 1;
 }
 function runHarnessStart(argv) {
   if (handleHelpRequest("harness-start", argv)) {
@@ -32790,13 +33156,13 @@ function runHarnessStart(argv) {
   const selection = parseSelectionArgs(argv, HARNESS_START_USAGE, true);
   if (selection === null)
     return 1;
-  const result = startHarness(process.cwd(), {
+  const result2 = startHarness(process.cwd(), {
     environment: selection.environment,
     components: selection.components,
     confirm: selection.confirm
   });
-  writeJson(result);
-  return result.ok ? 0 : 1;
+  writeJson(result2);
+  return result2.ok ? 0 : 1;
 }
 function runHarnessStop(argv) {
   if (handleHelpRequest("harness-stop", argv)) {
@@ -32805,9 +33171,9 @@ function runHarnessStop(argv) {
   const selection = parseSelectionArgs(argv, HARNESS_STOP_USAGE, true);
   if (selection === null || selection.environment !== undefined || selection.components.length > 0)
     return 1;
-  const result = stopHarness(process.cwd(), { confirm: selection.confirm });
-  writeJson(result);
-  return result.ok ? 0 : 1;
+  const result2 = stopHarness(process.cwd(), { confirm: selection.confirm });
+  writeJson(result2);
+  return result2.ok ? 0 : 1;
 }
 function runHarnessStatus(argv) {
   if (handleHelpRequest("harness-status", argv)) {
@@ -32817,9 +33183,9 @@ function runHarnessStatus(argv) {
     writeUsage(HARNESS_STATUS_USAGE);
     return 1;
   }
-  const result = getHarnessStatus(process.cwd());
-  writeJson(result);
-  return result.ok ? 0 : 1;
+  const result2 = getHarnessStatus(process.cwd());
+  writeJson(result2);
+  return result2.ok ? 0 : 1;
 }
 function runHarnessLogs(argv) {
   if (handleHelpRequest("harness-logs", argv)) {
@@ -32828,12 +33194,12 @@ function runHarnessLogs(argv) {
   const parsed = parseHarnessLogsArgs(argv);
   if (parsed === null)
     return 1;
-  const result = getHarnessLogs(process.cwd(), parsed);
-  if (!result.ok) {
-    writeJson(result);
+  const result2 = getHarnessLogs(process.cwd(), parsed);
+  if (!result2.ok) {
+    writeJson(result2);
     return 1;
   }
-  writeOut(result.content ?? "");
+  writeOut(result2.content ?? "");
   return 0;
 }
 function runHarnessScripts(argv) {
@@ -32845,9 +33211,9 @@ function runHarnessScripts(argv) {
     writeUsage(HARNESS_SCRIPTS_USAGE);
     return 1;
   }
-  const result = action === "generate" ? generateHarnessScripts(process.cwd()) : verifyHarnessScripts(process.cwd());
-  writeJson(result);
-  return result.ok ? 0 : 1;
+  const result2 = action === "generate" ? generateHarnessScripts(process.cwd()) : verifyHarnessScripts(process.cwd());
+  writeJson(result2);
+  return result2.ok ? 0 : 1;
 }
 function runHarnessSession(argv) {
   const [action, target, ...extraArgs] = argv;
@@ -32863,18 +33229,18 @@ function runHarnessSession(argv) {
       writeError("harness-session id must be kebab-case (lowercase letters, numbers, and hyphens)");
       return 1;
     }
-    const result2 = createHarnessSession(process.cwd(), target);
-    writeJson(result2);
-    return result2.ok ? 0 : 1;
+    const result3 = createHarnessSession(process.cwd(), target);
+    writeJson(result3);
+    return result3.ok ? 0 : 1;
   }
   if (action === "validate") {
-    const result2 = validateHarnessSession(process.cwd(), target);
-    writeJson(result2);
-    return result2.valid ? 0 : 1;
+    const result3 = validateHarnessSession(process.cwd(), target);
+    writeJson(result3);
+    return result3.valid ? 0 : 1;
   }
-  const result = archiveHarnessSession(process.cwd(), target);
-  writeJson(result);
-  return result.ok ? 0 : 1;
+  const result2 = archiveHarnessSession(process.cwd(), target);
+  writeJson(result2);
+  return result2.ok ? 0 : 1;
 }
 // src/strict-spec-cli.ts
 var commands = createCliCommandTable({
@@ -32952,7 +33318,7 @@ function isDirectInvocation(argvPath, moduleUrl) {
   if (!argvPath)
     return false;
   try {
-    return realpathSync(argvPath) === realpathSync(fileURLToPath5(moduleUrl));
+    return realpathSync2(argvPath) === realpathSync2(fileURLToPath5(moduleUrl));
   } catch {
     const modulePath = fileURLToPath5(moduleUrl);
     return modulePath.includes("~BUN") || modulePath.includes("$bunfs");

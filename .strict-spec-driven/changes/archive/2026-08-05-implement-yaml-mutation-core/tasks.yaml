@@ -1,0 +1,40 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: implement-yaml-mutation-core
+sections:
+  Implementation:
+    implement-transaction-core:
+      text: Add the typed schema-aware YAML mutation plan, deterministic change-set and diagnostics, confinement checks, pre-commit validation hooks, staging, atomic commit, and rollback implementation in src/yaml-mutation.ts and supporting shared modules.
+      status: complete
+      command: bun run build
+    migrate-shared-write-helpers:
+      text: Route selected existing reusable YAML write helpers through the mutation core, preserving their public command behavior, serialization, updated-file reporting, and no-op semantics.
+      status: complete
+      command: bun run build
+    align-structured-mappings:
+      text: Ensure existing strict spec and technical-standard mapping coverage includes the mutation-core implementation and regression files through the applicable CLI-owned mapping workflow, without changing requirement or rule statements.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings && strict-spec-cli verify-tech-mappings
+  Testing:
+    validate-build-and-inventory:
+      text: Compile the TypeScript and validate the repository YAML mutation inventory after the core and helper integrations.
+      status: complete
+      command: bun run build && bun run check:yaml-inventory
+    test-mutation-core-regressions:
+      text: Add and run behavior-facing regressions for preservation, deterministic results, invalid-candidate no-write behavior, failed creation cleanup, multi-file atomicity, rollback, and compatibility of migrated helpers.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-proposal-readiness:
+      text: Confirm the populated change remains proposal-ready after implementation task updates.
+      status: complete
+      command: strict-spec-cli ready implement-yaml-mutation-core
+    verify-change-and-mappings:
+      text: Run both structured mapping checks, then complete this final task so the automatic workflow can immediately run strict change verification against an all-complete task list.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings && strict-spec-cli verify-tech-mappings
+testing_gates:
+  validation_task: validate-build-and-inventory
+  unit_test_task: test-mutation-core-regressions

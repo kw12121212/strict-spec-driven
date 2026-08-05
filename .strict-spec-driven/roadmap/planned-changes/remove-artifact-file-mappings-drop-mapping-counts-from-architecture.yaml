@@ -1,0 +1,12 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: drop-mapping-counts-from-architecture
+  milestone: remove-artifact-file-mappings
+status: planned
+summary: Remove the spec mapping counts from architecture rendering.
+details: Stop src/architecture.ts from reading main-spec mapping to compute implementation and test file counts, drop those columns from the rendered ARCHITECTURE.md, regenerate the document, and keep the generated-doc maintenance check passing. Leave the architecture component mapping and its drift reporting untouched, since that mapping is rendered and therefore has a reader.
+depends_on:
+  - remove-mapping-from-artifact-schemas

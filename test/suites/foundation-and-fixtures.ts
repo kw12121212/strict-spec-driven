@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, rmdirSync, statSync, symlinkSync, writeFileSync } from "fs";
 import os from "os";
 import path from "path";
 import {
@@ -28,6 +28,9 @@ import {
 } from "../../scripts/check-yaml-mutation-inventory.js";
 
 const YAML_MUTATION_INVENTORY_PATH = path.join(ROOT, "inventory", "yaml-mutation-surfaces.yaml");
+
+type YamlMutationModule = typeof import("../../src/yaml-mutation.js");
+type YamlMutationFileSystem = import("../../src/yaml-mutation.js").YamlMutationFileSystem;
 
 function loadYamlMutationInventory(): Record<string, unknown> {
   return load(readFileSync(YAML_MUTATION_INVENTORY_PATH, "utf8")) as Record<string, unknown>;
@@ -206,6 +209,344 @@ try {
   );
 } finally {
   rmSync(tempDir, { recursive: true, force: true });
+}
+
+context.section("[2b] shared YAML mutation boundary");
+
+const yamlMutationModule = await loadDistModule<YamlMutationModule>("yaml-mutation.js");
+const mutationRoot = mkdtempSync(path.join(os.tmpdir(), "strict-yaml-mutation-"));
+const ownedMutationRoot = path.join(mutationRoot, "owned");
+mkdirSync(ownedMutationRoot);
+const updatePath = path.join(ownedMutationRoot, "update.yaml");
+const deletePath = path.join(ownedMutationRoot, "delete.yaml");
+const createPath = path.join(ownedMutationRoot, "create.yaml");
+writeFileSync(updatePath, yamlModule.stringifyYamlDocument({ schema: "fixture/v1", value: "before" }), "utf8");
+writeFileSync(deletePath, yamlModule.stringifyYamlDocument({ schema: "fixture/v1", value: "remove" }), "utf8");
+
+try {
+  let relationshipValidationRuns = 0;
+  const committed = yamlMutationModule.commitYamlMutation({
+    rootDir: mutationRoot,
+    mutations: [
+      {
+        artifactFamily: "fixture",
+        artifactId: "delete",
+        schemaId: "fixture/v1",
+        familyRoot: ownedMutationRoot,
+        absolutePath: deletePath,
+        operation: "delete",
+        role: "reference",
+      },
+      {
+        artifactFamily: "fixture",
+        artifactId: "create",
+        schemaId: "fixture/v1",
+        familyRoot: ownedMutationRoot,
+        absolutePath: createPath,
+        operation: "create",
+        candidate: { schema: "fixture/v1", value: "created" },
+        validateCandidate: () => [],
+      },
+      {
+        artifactFamily: "fixture",
+        artifactId: "update",
+        schemaId: "fixture/v1",
+        familyRoot: ownedMutationRoot,
+        absolutePath: updatePath,
+        operation: "update",
+        candidate: { schema: "fixture/v1", value: "after" },
+        validateCandidate: () => [],
+      },
+    ],
+    validateRelationships: (transaction) => {
+      relationshipValidationRuns++;
+      return transaction.getCandidate("fixture", "create") ? [] : [{
+        fieldPath: "$.references",
+        message: "created fixture must participate in the transaction",
+      }];
+    },
+  });
+  context.assert(
+    committed.valid && committed.committed && committed.exitStatus === 0,
+    "shared YAML mutation commits a validated multi-file transaction",
+    JSON.stringify(committed.diagnostics),
+  );
+  context.assert(relationshipValidationRuns === 1, "shared YAML mutation validates relationships once before commit");
+  context.assert(
+    committed.changes.map((change) => change.artifactId).join(",") === "create,delete,update",
+    "shared YAML mutation reports a deterministic change-set order",
+    JSON.stringify(committed.changes),
+  );
+  context.assert(
+    yamlModule.parseYamlFile<{ value: string }>(createPath).value === "created"
+      && yamlModule.parseYamlFile<{ value: string }>(updatePath).value === "after"
+      && !existsSync(deletePath),
+    "shared YAML mutation applies create, update, and delete effects together",
+  );
+
+  const updateBytes = readFileSync(updatePath, "utf8");
+  const noOp = yamlMutationModule.commitYamlMutation({
+    rootDir: mutationRoot,
+    mutations: [{
+      artifactFamily: "fixture",
+      artifactId: "update",
+      schemaId: "fixture/v1",
+      familyRoot: ownedMutationRoot,
+      absolutePath: updatePath,
+      operation: "update",
+      candidate: { schema: "fixture/v1", value: "after" },
+      validateCandidate: () => [],
+    }],
+  });
+  context.assert(
+    noOp.valid && noOp.changes[0]?.changed === false && readFileSync(updatePath, "utf8") === updateBytes,
+    "shared YAML mutation reports and preserves byte-identical no-op updates",
+  );
+
+  const rejectedBytes = readFileSync(updatePath, "utf8");
+  const rejected = yamlMutationModule.commitYamlMutation({
+    rootDir: mutationRoot,
+    mutations: [{
+      artifactFamily: "fixture",
+      artifactId: "update",
+      schemaId: "fixture/v1",
+      familyRoot: ownedMutationRoot,
+      absolutePath: updatePath,
+      operation: "update",
+      candidate: { schema: "fixture/v1", value: "invalid" },
+      validateCandidate: () => [{
+        code: "schema",
+        fieldPath: "$.value",
+        message: "fixture value is invalid",
+        expected: "valid fixture value",
+        actual: "invalid",
+      }],
+    }],
+  });
+  context.assert(
+    !rejected.valid
+      && rejected.diagnostics[0]?.code === "schema"
+      && readFileSync(updatePath, "utf8") === rejectedBytes,
+    "shared YAML mutation rejects an invalid complete candidate before writing",
+    JSON.stringify(rejected.diagnostics),
+  );
+
+  const outsidePath = path.join(mutationRoot, "outside.yaml");
+  const outside = yamlMutationModule.commitYamlMutation({
+    rootDir: mutationRoot,
+    mutations: [{
+      artifactFamily: "fixture",
+      artifactId: "outside",
+      schemaId: "fixture/v1",
+      familyRoot: ownedMutationRoot,
+      absolutePath: outsidePath,
+      operation: "create",
+      candidate: { schema: "fixture/v1", value: "outside" },
+      validateCandidate: () => [],
+    }],
+  });
+  context.assert(
+    !outside.valid
+      && outside.diagnostics.some((entry) => entry.code === "path-outside-family")
+      && !existsSync(outsidePath),
+    "shared YAML mutation rejects an arbitrary path outside the declared artifact family",
+  );
+
+  const physicalOutsideRoot = path.join(mutationRoot, "physical-outside");
+  mkdirSync(physicalOutsideRoot);
+  const escapedDirectory = path.join(ownedMutationRoot, "escaped-link");
+  symlinkSync(physicalOutsideRoot, escapedDirectory, "dir");
+  const escapedPath = path.join(escapedDirectory, "escaped.yaml");
+  const symlinkEscape = yamlMutationModule.commitYamlMutation({
+    rootDir: mutationRoot,
+    mutations: [{
+      artifactFamily: "fixture",
+      artifactId: "symlink-escape",
+      schemaId: "fixture/v1",
+      familyRoot: ownedMutationRoot,
+      absolutePath: escapedPath,
+      operation: "create",
+      candidate: { schema: "fixture/v1", value: "outside" },
+      validateCandidate: () => [],
+    }],
+  });
+  context.assert(
+    !symlinkEscape.valid
+      && symlinkEscape.diagnostics.some((entry) => entry.code === "target-symlink-escape")
+      && !existsSync(path.join(physicalOutsideRoot, "escaped.yaml")),
+    "shared YAML mutation rejects a lexically confined target that resolves through a symlink escape",
+  );
+
+  const validatorFailureBytes = readFileSync(updatePath, "utf8");
+  const validatorFailure = yamlMutationModule.commitYamlMutation({
+    rootDir: mutationRoot,
+    mutations: [{
+      artifactFamily: "fixture",
+      artifactId: "validator-failure",
+      schemaId: "fixture/v1",
+      familyRoot: ownedMutationRoot,
+      absolutePath: updatePath,
+      operation: "update",
+      candidate: { schema: "fixture/v1", value: "validator-throws" },
+      validateCandidate: () => {
+        throw Object.assign(new Error("injected validator failure"), { code: "EVALID" });
+      },
+    }],
+  });
+  context.assert(
+    !validatorFailure.valid
+      && validatorFailure.diagnostics.some(
+        (entry) => entry.code === "candidate-validation-failed" && entry.actual === "EVALID",
+      )
+      && readFileSync(updatePath, "utf8") === validatorFailureBytes,
+    "candidate validator exceptions become deterministic no-write diagnostics",
+  );
+
+  const baseFileSystem: YamlMutationFileSystem = {
+    exists: existsSync,
+    read: (filePath) => readFileSync(filePath, "utf8"),
+    mkdir: (directoryPath) => mkdirSync(directoryPath),
+    writeExclusive: (filePath, content) => writeFileSync(filePath, content, { encoding: "utf8", flag: "wx" }),
+    rename: renameSync,
+    remove: (filePath) => rmSync(filePath, { force: true }),
+    removeEmptyDirectory: rmdirSync,
+  };
+  const failedCreatePath = path.join(ownedMutationRoot, "new-container", "failed.yaml");
+  const failedCreate = yamlMutationModule.commitYamlMutation({
+    rootDir: mutationRoot,
+    mutations: [{
+      artifactFamily: "fixture",
+      artifactId: "failed-create",
+      schemaId: "fixture/v1",
+      familyRoot: ownedMutationRoot,
+      absolutePath: failedCreatePath,
+      operation: "create",
+      candidate: { schema: "fixture/v1", value: "never-written" },
+      validateCandidate: () => [],
+    }],
+    fileSystem: {
+      ...baseFileSystem,
+      writeExclusive: () => {
+        throw Object.assign(new Error("injected staging failure"), { code: "EIO" });
+      },
+    },
+  });
+  context.assert(
+    !failedCreate.valid
+      && failedCreate.diagnostics.some((entry) => entry.code === "stage-failed" && entry.actual === "EIO")
+      && !existsSync(failedCreatePath)
+      && !existsSync(path.dirname(failedCreatePath)),
+    "failed first writes leave no artifact or empty container",
+    JSON.stringify(failedCreate.diagnostics),
+  );
+
+  const rollbackAPath = path.join(ownedMutationRoot, "rollback-a.yaml");
+  const rollbackBPath = path.join(ownedMutationRoot, "rollback-b.yaml");
+  const rollbackABytes = yamlModule.stringifyYamlDocument({ schema: "fixture/v1", value: "original-a" });
+  const rollbackBBytes = yamlModule.stringifyYamlDocument({ schema: "fixture/v1", value: "original-b" });
+  writeFileSync(rollbackAPath, rollbackABytes, "utf8");
+  writeFileSync(rollbackBPath, rollbackBBytes, "utf8");
+  let renameCount = 0;
+  const rolledBack = yamlMutationModule.commitYamlMutation({
+    rootDir: mutationRoot,
+    mutations: [
+      {
+        artifactFamily: "fixture",
+        artifactId: "rollback-a",
+        schemaId: "fixture/v1",
+        familyRoot: ownedMutationRoot,
+        absolutePath: rollbackAPath,
+        operation: "update",
+        candidate: { schema: "fixture/v1", value: "changed-a" },
+        validateCandidate: () => [],
+      },
+      {
+        artifactFamily: "fixture",
+        artifactId: "rollback-b",
+        schemaId: "fixture/v1",
+        familyRoot: ownedMutationRoot,
+        absolutePath: rollbackBPath,
+        operation: "update",
+        candidate: { schema: "fixture/v1", value: "changed-b" },
+        validateCandidate: () => [],
+      },
+    ],
+    fileSystem: {
+      ...baseFileSystem,
+      rename: (sourcePath, destinationPath) => {
+        renameCount++;
+        if (renameCount === 4) {
+          throw Object.assign(new Error("injected commit failure"), { code: "EIO" });
+        }
+        renameSync(sourcePath, destinationPath);
+      },
+    },
+  });
+  context.assert(
+    !rolledBack.valid
+      && rolledBack.diagnostics.some((entry) => entry.code === "commit-failed" && entry.actual === "EIO")
+      && readFileSync(rollbackAPath, "utf8") === rollbackABytes
+      && readFileSync(rollbackBPath, "utf8") === rollbackBBytes,
+    "a mid-commit failure restores every pre-existing file byte-for-byte",
+    JSON.stringify(rolledBack.diagnostics),
+  );
+
+  const cleanupAPath = path.join(ownedMutationRoot, "cleanup-a.yaml");
+  const cleanupBPath = path.join(ownedMutationRoot, "cleanup-b.yaml");
+  const cleanupABytes = yamlModule.stringifyYamlDocument({ schema: "fixture/v1", value: "cleanup-original-a" });
+  const cleanupBBytes = yamlModule.stringifyYamlDocument({ schema: "fixture/v1", value: "cleanup-original-b" });
+  writeFileSync(cleanupAPath, cleanupABytes, "utf8");
+  writeFileSync(cleanupBPath, cleanupBBytes, "utf8");
+  let removeCount = 0;
+  const cleanupRolledBack = yamlMutationModule.commitYamlMutation({
+    rootDir: mutationRoot,
+    mutations: [
+      {
+        artifactFamily: "fixture",
+        artifactId: "cleanup-a",
+        schemaId: "fixture/v1",
+        familyRoot: ownedMutationRoot,
+        absolutePath: cleanupAPath,
+        operation: "update",
+        candidate: { schema: "fixture/v1", value: "cleanup-changed-a" },
+        validateCandidate: () => [],
+      },
+      {
+        artifactFamily: "fixture",
+        artifactId: "cleanup-b",
+        schemaId: "fixture/v1",
+        familyRoot: ownedMutationRoot,
+        absolutePath: cleanupBPath,
+        operation: "update",
+        candidate: { schema: "fixture/v1", value: "cleanup-changed-b" },
+        validateCandidate: () => [],
+      },
+    ],
+    fileSystem: {
+      ...baseFileSystem,
+      remove: (filePath) => {
+        removeCount++;
+        if (removeCount === 2) {
+          throw Object.assign(new Error("injected cleanup failure"), { code: "EACCES" });
+        }
+        rmSync(filePath, { force: true });
+      },
+    },
+  });
+  context.assert(
+    !cleanupRolledBack.valid
+      && cleanupRolledBack.diagnostics.some((entry) => entry.code === "cleanup-failed" && entry.actual === "EACCES")
+      && readFileSync(cleanupAPath, "utf8") === cleanupABytes
+      && readFileSync(cleanupBPath, "utf8") === cleanupBBytes,
+    "a backup cleanup failure reconstructs removed snapshots and restores the transaction",
+    JSON.stringify(cleanupRolledBack.diagnostics),
+  );
+  context.assert(
+    readdirSync(ownedMutationRoot).every((entry) => !entry.includes(".strict-spec-")),
+    "successful commits and rollbacks remove all staging and backup files",
+  );
+} finally {
+  rmSync(mutationRoot, { recursive: true, force: true });
 }
 
 const roadmapIndexExample = yamlModule.parseYamlFile<{

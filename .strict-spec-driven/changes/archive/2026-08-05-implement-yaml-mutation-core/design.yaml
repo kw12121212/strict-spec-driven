@@ -1,0 +1,26 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: implement-yaml-mutation-core
+approach:
+  - Introduce a focused TypeScript mutation service that accepts artifact-aware, already-resolved targets plus explicit create, replace, or delete candidates; snapshots pre-existing bytes; validates path confinement, complete candidates, relationships, and declared side effects before any write; then commits staged files atomically and restores every touched path on failure. Existing domain helpers delegate filesystem mechanics to this service while retaining their builders, validation rules, command surfaces, and result envelopes.
+  - Represent results as deterministically sorted structured operations and diagnostics so callers can report the artifact identity, operation, validation state, and exit outcome without parsing prose. Exercise the boundary through direct regression tests and selected existing helper integrations rather than prematurely migrating unrelated artifact families.
+decisions:
+  transaction-lifecycle:
+    decision: Separate mutation planning and validation from commit, and forbid commit when any candidate, relationship, confinement, or side-effect diagnostic exists.
+    rationale: A strict phase boundary guarantees that invalid state cannot become visible and makes the same safety contract reusable across domain commands.
+  atomic-filesystem-boundary:
+    decision: Stage replacement content beside each target, atomically rename staged files into place, and retain byte snapshots until all operations succeed so a failed multi-file commit restores prior files and removes failed creations.
+    rationale: Rename-based visibility plus retained snapshots provides deterministic rollback for creates, updates, and deletions without exposing partial serialized YAML.
+  compatible-helper-adoption:
+    decision: Move only shared filesystem and serialization mechanics behind the new service; preserve existing artifact builders, semantic validation, command names, and output envelopes.
+    rationale: The roadmap requires a reusable core now while reserving full artifact-family command migration for dependent planned changes.
+  no-delta-spec:
+    decision: Leave specs empty because this implementation realizes requirements already merged into cli-foundation and does not change the observable contract.
+    rationale: Repeating unchanged requirements in a delta would misrepresent implementation work as a new behavior change; the existing main spec remains authoritative.
+alternatives:
+  - option: Add a generic CLI command that accepts arbitrary YAML payloads and paths.
+    reason: That would violate the archived artifact-aware intent contract and merely hide unsafe direct editing behind a command.
+risks:
+  - Filesystem rollback can itself fail; diagnostics must preserve the original failure and report restoration failures deterministically while tests isolate and inject each failure point.

@@ -1,0 +1,23 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: implement-yaml-mutation-core
+  status: proposed
+summary:
+  what:
+    - Implement a reusable schema-aware YAML mutation transaction boundary for repository-owned artifacts.
+  why:
+    - The archived mutation contract requires complete-candidate validation, confined paths, deterministic change sets, and atomic rollback before later artifact-family migrations can proceed.
+scope:
+  in:
+    - Add typed mutation planning, validation, deterministic diagnostic and change-set, atomic commit, and rollback services under src/.
+    - Migrate existing shared YAML write helpers that can adopt the boundary without changing their command interfaces or output contracts.
+    - Add failure-injection and preservation regressions for successful multi-file commits, invalid candidates, failed creates, and mid-commit failures.
+  out:
+    - Expose new artifact-family commands or migrate every repository-owned YAML family.
+    - Change command names, semantic CLI arguments, schemas, or user-facing domain behavior.
+unchanged_behavior:
+  - Established domain-specific CLI commands, semantic inputs, and result shapes remain compatible.
+  - External YAML, legacy migration input, rendered non-YAML documents, and inventoried read-only or human-only exceptions remain outside the mutation boundary.

@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, statSync } from "fs";
 import path from "path";
 import { loadBundledSchemaByArtifactType, validateArtifact, type ValidationDiagnostic } from "./validation.js";
-import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
+import { parseYamlDocument } from "./yaml.js";
+import { commitYamlMutation } from "./yaml-mutation.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 
@@ -667,8 +668,34 @@ function writeGeneratedArtifact(
   }
 
   const replaced = existsSync(target.absolutePath);
-  mkdirSync(path.dirname(target.absolutePath), { recursive: true });
-  writeFileSync(target.absolutePath, stringifyYamlDocument(target.artifact), "utf8");
+  const mutation = commitYamlMutation({
+    rootDir,
+    mutations: [{
+      artifactFamily: "strict-change",
+      artifactId: `${changeName}/${artifact}`,
+      schemaId: target.artifactType,
+      familyRoot: changeDir,
+      absolutePath: target.absolutePath,
+      operation: replaced ? "update" : "create",
+      candidate: target.artifact,
+      validateCandidate: (candidate, context) => validateGeneratedArtifact(
+        target.artifactType,
+        candidate,
+        context.artifactPath,
+      ).map((entry) => ({
+        code: entry.source,
+        fieldPath: entry.fieldPath,
+        message: entry.message,
+        expected: entry.expected,
+        actual: entry.actual,
+      })),
+    }],
+  });
+  if (!mutation.valid) {
+    throw new Error(
+      `failed to write ${artifact} artifact: ${mutation.diagnostics.map((entry) => `${entry.code} ${entry.artifactPath} ${entry.fieldPath}: ${entry.message}`).join("; ")}`,
+    );
+  }
 
   const writtenArtifact = parseYamlDocument<unknown>(readFileSync(target.absolutePath, "utf8"), { source: artifactPath });
   const diagnostics = validateGeneratedArtifact(target.artifactType, writtenArtifact, artifactPath);

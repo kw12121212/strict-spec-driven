@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: registered-schemas-can-be-stricter-than-compatib-2811c6
+  title: Registered schemas can be stricter than compatibility paths
+category: tooling
+status: active
+created_at: '2026-08-05T08:55:56.891Z'
+updated_at: '2026-08-05T08:55:56.891Z'
+context: Migrating an existing YAML writer behind a shared schema-validating mutation boundary while preserving its established command behavior.
+observation: Roadmap and apply adapters revalidated candidates with current registered schemas and broke existing nonnumeric milestone and minimal task-list compatibility fixtures even though the public commands previously accepted them.
+takeaway: Before moving an existing writer behind shared schema validation, identify and reuse the exact domain validator that already governs that write and run the full compatibility suite; when no exact validator exists, choose a different adoption point instead of silently strengthening behavior.
+applies_when: Migrating an existing YAML write helper behind a shared schema-validating mutation boundary while preserving its public behavior.
+occurrences:
+  - origin: implement-yaml-mutation-core
+    date: '2026-08-05'
+    evidence: The full suite failed first at roadmap-move-planned-change for milestone beta and then at apply for a minimal task fixture; moving adoption to already schema-exact lesson writes restored all 2,936 tests.

@@ -39,3 +39,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/backticks-inside-double-quoted-shell-arguments-e-191d66.yaml
+    registered-schemas-can-be-stricter-than-compatib-2811c6:
+      title: Registered schemas can be stricter than compatibility paths
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/registered-schemas-can-be-stricter-than-compatib-2811c6.yaml
