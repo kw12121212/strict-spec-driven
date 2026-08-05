@@ -295,9 +295,9 @@ try {
     "question resolution removes the open entry and writes resolved state",
   );
 
-  // The fixture above deliberately has a completed task, so rebuilding requires --force.
+  // The fixture above deliberately has a completed task; every write merges, so it survives.
   const scriptedTasksGenerate = cli([
-    "generate", changeName, "tasks", "--reset", "--force",
+    "generate", changeName, "tasks",
     "--section", "Implementation", "--task", "do-the-work", "--text", "Implement the scoped behavior.",
     "--section", "Testing", "--task", "run-tests", "--text", "Run the tests.", "--command", "bun test/run.ts",
     "--section", "Verification", "--task", "verify-scope", "--text", "Verify the change scope.",
@@ -564,6 +564,12 @@ function generateReadyFixtureChange(workspaceRoot: string, changeName: string): 
       "Do not change persistence behavior",
       "--unchanged",
       "Existing todo creation and completion behavior remains unchanged",
+      "--remove-in",
+      "Add [specific behavior] to [target artifact].",
+      "--remove-out",
+      "Implement unrelated workflow behavior.",
+      "--remove-unchanged",
+      "Existing strict workflow behavior remains unchanged unless explicitly listed in scope.",
     ]).status === 0,
     `${changeName} fixture proposal generation exits zero`,
   );
@@ -572,7 +578,6 @@ function generateReadyFixtureChange(workspaceRoot: string, changeName: string): 
       "generate",
       changeName,
       "design",
-      "--reset",
       "--approach",
       "Reuse the existing todo fixture files and record complete evidence.",
       "--decision",
@@ -581,11 +586,19 @@ function generateReadyFixtureChange(workspaceRoot: string, changeName: string): 
       "Use copied fixture code and tests as the implementation and validation evidence.",
       "--rationale",
       "The copied project proves the question gate works outside the self-hosted workflow state.",
+      "--remove-approach",
+      "Describe the implementation approach.",
+      "--remove-decision",
+      "sample-decision",
+      "--remove-alternative",
+      "Describe an alternative approach that was considered.",
+      "--remove-risk",
+      "Describe a risk this change carries and how it is mitigated.",
     ]).status === 0,
     `${changeName} fixture design generation exits zero`,
   );
   context.assert(
-    projectWorkspaceCli(workspaceRoot, ["generate", changeName, "questions", "--reset"]).status === 0,
+    projectWorkspaceCli(workspaceRoot, ["generate", changeName, "questions", "--resolved", "fixture-technical", "--question", "Which fixture path?", "--context", "Fixture context.", "--answer", "The copied fixture path."]).status === 0,
     `${changeName} fixture empty questions generation exits zero`,
   );
   resolveSeededRequirementQuestions(workspaceRoot, changeName);
@@ -666,7 +679,6 @@ try {
     "generate",
     "fixture-blocked",
     "questions",
-    "--reset",
     "--open",
     "data-compatibility",
     "--question",
@@ -3789,7 +3801,7 @@ context.assert(
   "generate help output surfaces the design alternative and risk arguments",
 );
 context.assert(
-  generateHelp.stdout.includes("design [--reset]") && generateHelp.stdout.includes("[--alternative <text> --reason <text>]"),
+  generateHelp.stdout.includes("design --approach <text>") && generateHelp.stdout.includes("[--alternative <text> --reason <text>]"),
   "the generate usage line for design lists the alternative and reason arguments",
 );
 
@@ -3864,13 +3876,12 @@ try {
     `messages: ${requirementDiagnostics.map((d: { message: string }) => d.message).join(" | ")}`,
   );
 
-  // Rebuilding the technical questions must never clear the interrogation itself.
+  // Adding a technical question must never disturb the interrogation entries alongside it.
   context.assert(
     projectWorkspaceCli(workspaceRoot, [
       "generate",
       changeName,
       "questions",
-      "--reset",
       "--open",
       "technical-detail",
       "--question",
@@ -3878,17 +3889,17 @@ try {
       "--context",
       "Technical follow-up recorded alongside the seeded interrogation.",
     ]).status === 0,
-    "questions --reset with a technical entry exits zero",
+    "questions accepts a technical entry alongside the seeded interrogation",
   );
-  const afterReset = yamlModule.parseYamlDocument<SeededQuestions>(readFileSync(questionsPath, "utf8"));
+  const afterTechnicalEntry = yamlModule.parseYamlDocument<SeededQuestions>(readFileSync(questionsPath, "utf8"));
   context.assert(
-    CANONICAL_REQUIREMENT_IDS.every((questionId) => afterReset.open.some((entry) => entry.id === questionId)),
-    "questions --reset preserves every requirement-kind entry",
-    `open ids: ${afterReset.open.map((entry) => entry.id).join(", ")}`,
+    CANONICAL_REQUIREMENT_IDS.every((questionId) => afterTechnicalEntry.open.some((entry) => entry.id === questionId)),
+    "adding a technical question preserves every requirement-kind entry",
+    `open ids: ${afterTechnicalEntry.open.map((entry) => entry.id).join(", ")}`,
   );
   context.assert(
-    afterReset.open.some((entry) => entry.id === "technical-detail"),
-    "questions --reset still records the supplied technical entry",
+    afterTechnicalEntry.open.some((entry) => entry.id === "technical-detail"),
+    "the supplied technical entry is recorded",
   );
 
   context.assert(

@@ -183,9 +183,7 @@ satisfy artifact shape.
 - One requirement can include multiple scenario groups by repeating
   `--scenario`. A later compatible call for the same
   operation, requirement id, strength, and statement appends new scenario ids
-  and remains idempotent for equivalent scenarios. Never use `--reset` or direct
-  YAML editing merely to append compatible scenarios; `--reset` rebuilds the
-  entire target delta artifact.
+  and remains idempotent for equivalent scenarios. Scenarios append on their own, so nothing needs rebuilding or hand-editing to add one. Drop a single scenario with `--remove-scenario <requirement-id>:<scenario-id>` and a whole requirement with `--remove-requirement <id>`.
 - A technical-only bugfix still needs complete workflow tasks: reproduction
   evidence, script or tooling edits when applicable, focused tests, validation
   commands, `ready`/`verify` checks, and archive-readiness or archive-merge

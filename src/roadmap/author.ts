@@ -47,8 +47,13 @@ export type RoadmapMilestoneAuthorInput = {
   risks: string[];
   notes: string[];
   details?: string;
-  reset: boolean;
-  resetIntakeQuestions: boolean;
+  removedScopeIn: string[];
+  removedScopeOut: string[];
+  removedDoneCriteria: string[];
+  removedDependencies: string[];
+  removedRisks: string[];
+  removedNotes: string[];
+  removedIntakeQuestions: string[];
 };
 
 export type RoadmapMilestoneAuthorResult = {
@@ -85,27 +90,45 @@ function hasAnyField(input: RoadmapMilestoneAuthorInput): boolean {
     || input.dependencies.length > 0
     || input.risks.length > 0
     || input.notes.length > 0
-    || input.details !== undefined;
-}
-
-function conflictDiagnostic(
-  artifactPath: string,
-  fieldPath: string,
-  expected: string,
-  actual: string,
-): RoadmapDiagnostic {
-  return makeDiagnostic(
-    "semantic",
-    artifactPath,
-    fieldPath,
-    "existing milestone field has conflicting content; rerun with --reset to replace it",
-    expected,
-    actual,
-  );
+    || input.details !== undefined
+    // Removing a recorded entry is a field argument too, so a removal-only invocation is valid.
+    || input.removedScopeIn.length > 0
+    || input.removedScopeOut.length > 0
+    || input.removedDoneCriteria.length > 0
+    || input.removedDependencies.length > 0
+    || input.removedRisks.length > 0
+    || input.removedNotes.length > 0
+    || input.removedIntakeQuestions.length > 0;
 }
 
 function appendUnique(existing: string[], additions: string[]): string[] {
   return uniqueStrings([...existing, ...additions]);
+}
+
+/**
+ * Appends supplied values and drops only entries named for removal. No flag replaces a list the
+ * invocation did not name, which is what previously let a goal edit discard recorded risks.
+ */
+function mergeList(
+  existing: string[],
+  additions: string[],
+  removals: string[],
+  flagName: string,
+): string[] {
+  let merged = appendUnique(existing, additions);
+  for (const needle of removals) {
+    const matched = merged.filter((entry) => entry.includes(needle));
+    if (matched.length === 0) {
+      throw new Error(`--${flagName} matched no entry: '${needle}'`);
+    }
+    if (matched.length > 1) {
+      throw new Error(
+        `--${flagName} matched ${matched.length} entries: ${matched.map((entry) => `'${entry}'`).join(", ")}; supply a substring that matches exactly one`,
+      );
+    }
+    merged = merged.filter((entry) => entry !== matched[0]);
+  }
+  return merged;
 }
 
 function sameIntakeQuestion(left: MilestoneIntakeQuestion, right: MilestoneIntakeQuestion): boolean {
@@ -116,52 +139,65 @@ function sameIntakeQuestion(left: MilestoneIntakeQuestion, right: MilestoneIntak
     && left.recommendation === right.recommendation;
 }
 
+/**
+ * Merges intake questions by id, preserving recorded order. Restating an id replaces just that
+ * question; naming it twice in one invocation with different content is a typo and is reported.
+ */
 function mergeIntakeQuestions(
   existing: MilestoneIntakeQuestion[],
   additions: MilestoneIntakeQuestion[],
-  resetIntakeQuestions: boolean,
+  removedIds: string[],
   artifactPath: string,
   diagnostics: RoadmapDiagnostic[],
 ): MilestoneIntakeQuestion[] {
-  // The global --reset flag never removes or replaces existing intake
-  // questions; only the dedicated --reset-intake-questions flag does.
-  const source = resetIntakeQuestions && additions.length > 0 ? additions : [...existing, ...additions];
   const result: MilestoneIntakeQuestion[] = [];
-  const byId = new Map<string, MilestoneIntakeQuestion>();
-  for (const question of source) {
-    const current = byId.get(question.id);
-    if (!current) {
-      byId.set(question.id, question);
+  const indexById = new Map<string, number>();
+  for (const question of existing) {
+    indexById.set(question.id, result.length);
+    result.push(question);
+  }
+
+  const writtenThisInvocation = new Set<string>();
+  for (const question of additions) {
+    const existingIndex = indexById.get(question.id);
+    if (existingIndex === undefined) {
+      indexById.set(question.id, result.length);
       result.push(question);
+      writtenThisInvocation.add(question.id);
       continue;
     }
-    if (sameIntakeQuestion(current, question)) continue;
-    diagnostics.push(
-      makeDiagnostic(
-        "semantic",
-        artifactPath,
-        `$.intake_questions.${question.id}`,
-        "existing intake question has conflicting content; rerun with --reset-intake-questions to replace the intake question list",
-        `${current.question} | ${current.context} | ${current.impact} | ${current.recommendation}`,
-        `${question.question} | ${question.context} | ${question.impact} | ${question.recommendation}`,
-      ),
-    );
+    const current = result[existingIndex] as MilestoneIntakeQuestion;
+    if (writtenThisInvocation.has(question.id) && !sameIntakeQuestion(current, question)) {
+      diagnostics.push(
+        makeDiagnostic(
+          "semantic",
+          artifactPath,
+          `$.intake_questions.${question.id}`,
+          "intake question id supplied twice in one invocation with conflicting content",
+          `${current.question} | ${current.context} | ${current.impact} | ${current.recommendation}`,
+          `${question.question} | ${question.context} | ${question.impact} | ${question.recommendation}`,
+        ),
+      );
+      continue;
+    }
+    result[existingIndex] = question;
+    writtenThisInvocation.add(question.id);
   }
-  return result;
+
+  const removed = new Set(removedIds);
+  return result.filter((question) => !removed.has(question.id));
 }
 
+/**
+ * A supplied scalar replaces the recorded one. The caller named the field and gave the new value,
+ * so there is nothing left to confirm; requiring a flag to permit this is what forced callers to
+ * arm a whole-artifact rebuild just to fix a goal.
+ */
 function nextScalar(
   existing: string | undefined,
   incoming: string | undefined,
-  reset: boolean,
-  artifactPath: string,
-  fieldPath: string,
-  diagnostics: RoadmapDiagnostic[],
 ): string | undefined {
-  if (incoming === undefined) return existing;
-  if (existing === undefined || reset || existing === incoming) return incoming;
-  diagnostics.push(conflictDiagnostic(artifactPath, fieldPath, existing, incoming));
-  return existing;
+  return incoming === undefined ? existing : incoming;
 }
 
 function buildMilestoneMap(id: string, title: string): Record<string, { title: string }> {
@@ -202,20 +238,13 @@ function buildArtifact(
     return null;
   }
 
-  const title = nextScalar(
-    existing?.artifact.milestone.title,
-    input.title,
-    input.reset,
-    artifactPath,
-    "$.milestone.<id>.title",
-    diagnostics,
-  );
-  const goal = nextScalar(existing?.artifact.goal, input.goal, input.reset, artifactPath, "$.goal", diagnostics);
-  const details = nextScalar(existing?.artifact.details, input.details, input.reset, artifactPath, "$.details", diagnostics);
+  const title = nextScalar(existing?.artifact.milestone.title, input.title);
+  const goal = nextScalar(existing?.artifact.goal, input.goal);
+  const details = nextScalar(existing?.artifact.details, input.details);
   const intakeQuestions = mergeIntakeQuestions(
     existing?.artifact.intake_questions ?? [],
     input.intakeQuestions,
-    input.resetIntakeQuestions,
+    input.removedIntakeQuestions,
     artifactPath,
     diagnostics,
   );
@@ -231,28 +260,26 @@ function buildArtifact(
     ...(!existing ? { order: initialOrder } : typeof existing.artifact.order === "number" ? { order: existing.artifact.order } : {}),
     goal,
     scope: {
-      in: input.reset && input.scopeIn.length > 0
-        ? uniqueStrings(input.scopeIn)
-        : appendUnique(existing?.artifact.scope.in ?? [], input.scopeIn),
-      out: input.reset && input.scopeOut.length > 0
-        ? uniqueStrings(input.scopeOut)
-        : appendUnique(existing?.artifact.scope.out ?? [], input.scopeOut),
+      in: mergeList(existing?.artifact.scope.in ?? [], input.scopeIn, input.removedScopeIn, "remove-scope-in"),
+      out: mergeList(existing?.artifact.scope.out ?? [], input.scopeOut, input.removedScopeOut, "remove-scope-out"),
     },
-    done_criteria: input.reset && input.doneCriteria.length > 0
-      ? uniqueStrings(input.doneCriteria)
-      : appendUnique(existing?.artifact.done_criteria ?? [], input.doneCriteria),
+    done_criteria: mergeList(
+      existing?.artifact.done_criteria ?? [],
+      input.doneCriteria,
+      input.removedDoneCriteria,
+      "remove-done",
+    ),
     intake_questions: intakeQuestions,
     planned_changes: existing?.artifact.planned_changes ?? {},
-    dependencies: input.reset && input.dependencies.length > 0
-      ? uniqueStrings(input.dependencies)
-      : appendUnique(existing?.artifact.dependencies ?? [], input.dependencies),
-    risks: input.reset && input.risks.length > 0
-      ? uniqueStrings(input.risks)
-      : appendUnique(existing?.artifact.risks ?? [], input.risks),
+    dependencies: mergeList(
+      existing?.artifact.dependencies ?? [],
+      input.dependencies,
+      input.removedDependencies,
+      "remove-dependency",
+    ),
+    risks: mergeList(existing?.artifact.risks ?? [], input.risks, input.removedRisks, "remove-risk"),
     status: existing?.artifact.status ?? "proposed",
-    notes: input.reset && input.notes.length > 0
-      ? uniqueStrings(input.notes)
-      : appendUnique(existing?.artifact.notes ?? [], input.notes),
+    notes: mergeList(existing?.artifact.notes ?? [], input.notes, input.removedNotes, "remove-note"),
     ...(details !== undefined ? { details } : {}),
   };
 }
@@ -420,7 +447,7 @@ export type RoadmapPlannedChangeAuthorInput = {
   details?: string;
   dependsOn: string[];
   status?: string;
-  reset: boolean;
+  removedDependsOn: string[];
 };
 
 export type RoadmapPlannedChangeAuthorResult = {
@@ -460,9 +487,9 @@ function buildPlannedChangeArtifact(
     return null;
   }
 
-  const summary = nextScalar(existing?.artifact.summary, input.summary, input.reset, artifactPath, "$.summary", diagnostics);
-  const details = nextScalar(existing?.artifact.details, input.details, input.reset, artifactPath, "$.details", diagnostics);
-  const status = nextScalar(existing?.artifact.status, input.status, input.reset, artifactPath, "$.status", diagnostics);
+  const summary = nextScalar(existing?.artifact.summary, input.summary);
+  const details = nextScalar(existing?.artifact.details, input.details);
+  const status = nextScalar(existing?.artifact.status, input.status);
 
   if (!summary || !details) return null;
 
@@ -478,9 +505,12 @@ function buildPlannedChangeArtifact(
     status: (status ?? "planned") as DeclaredPlannedChangeStatus,
     summary,
     details,
-    depends_on: input.reset && input.dependsOn.length > 0
-      ? uniqueStrings(input.dependsOn)
-      : appendUnique(existing?.artifact.depends_on ?? [], input.dependsOn),
+    depends_on: mergeList(
+      existing?.artifact.depends_on ?? [],
+      input.dependsOn,
+      input.removedDependsOn,
+      "remove-depends-on",
+    ),
     ...(existing?.artifact.team !== undefined ? { team: existing.artifact.team } : {}),
     ...(existing?.artifact.extensions !== undefined ? { extensions: existing.artifact.extensions } : {}),
   };

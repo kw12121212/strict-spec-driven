@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: an-empty-search-result-is-evidence-about-the-sea-668a85
+  title: An empty search result is evidence about the search, not the code
+category: tooling
+status: active
+created_at: '2026-08-05T05:27:26.485Z'
+updated_at: '2026-08-05T05:27:26.485Z'
+context: Auditing how far --reset reached across the repository, using grep to count references in src/, skills/, and test/ and to confirm that the MCP and migrate modules had none.
+observation: 'Partway through the session grep began returning exit 1 with no matches on files under the repository while still working on files elsewhere. Python confirmed 30 occurrences of ''reset'' in a file grep reported as clean. The counts already reported to the user were wrong in the same direction everywhere: 21 metadata references not 19, 57 skill references not 51. The failure was silent and one-sided, so it looked exactly like a clean result rather than a broken tool.'
+takeaway: A zero-match result is the one search outcome that cannot be distinguished from a broken search, so never let a negative be the last word on scope. Confirm any 'there are none' with a second mechanism before reporting it or narrowing scope on it, and when counts drive a task list, prefer a script that prints per-file totals over a bare grep -c, because a total that is silently low still looks plausible.
+applies_when: About to report that something does not appear anywhere, or to size or scope work from search-tool counts, particularly when a prior search in the same session returned results and a later one returns none.
+occurrences:
+  - origin: remove-reset-flags
+    date: '2026-08-05'
+    evidence: grep -c reset on src/cli/cmd-generation.ts exited 1 while python reported 30 matches in the same file; corrected totals were 33 --reset refs in src, 57 across 11 skills, 96 across 4 test suites

@@ -89,7 +89,7 @@ run `init` from this skill.
      `operations`
    - in `tasks.yaml`, prefer `strict-spec-cli generate <change-name> tasks` to
      add or update a task — one invocation per task, `--section <name> --task
-     <id> --text "..."` (upserts by section and task id, without `--reset` so
+     <id> --text "..."` (upserts by section and task id, so
      other tasks are untouched). Restating a task is a field-level merge that
      overwrites only the fields you pass, so an existing `status: complete` and
      `command` are preserved automatically on a text-only edit — you no longer

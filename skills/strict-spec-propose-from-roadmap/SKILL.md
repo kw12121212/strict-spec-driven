@@ -229,7 +229,7 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
 6. **Generate `design.yaml`** — run one direct CLI invocation with named
    arguments:
    ```bash
-   strict-spec-cli generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."
+   strict-spec-cli generate <change-name> design --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."
    ```
    Populate `approach`, `decisions`, `alternatives`, and `risks`. Make the
    design conform to applicable technical standards. Record any SHOULD-rule
@@ -240,14 +240,14 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
    `strict-spec-cli generate <change-name> tasks` once for each task so no task
    list is hand-written. Keep concrete task sections for `Implementation`,
    `Testing`, and `Verification`.
-   - first task clears the scaffold placeholders:
+   - first task is one invocation; the scaffold's placeholder tasks stay until removed by id:
      ```bash
-     strict-spec-cli generate <change-name> tasks --reset --section Implementation --task <task-id> --text "..."
+     strict-spec-cli generate <change-name> tasks --section Implementation --task <task-id> --text "..."
      ```
-     `--reset` refuses when the list already has completed tasks unless you add
+     No flag rebuilds the list, so a recorded completion can only be dropped by naming it with
      `--force`, and always requires at least one task group so the list is
      never rebuilt empty
-   - each later task is one more invocation without `--reset`:
+   - each later task is one more invocation:
      ```bash
      strict-spec-cli generate <change-name> tasks --section Testing --task <task-id> --text "..." --command "..."
      ```
@@ -272,9 +272,9 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
      checks when relevant
 
 8. **Generate `questions.yaml`** — run one direct CLI invocation for the full
-   artifact. Use `--reset` when intentionally replacing scaffold content:
+   artifact. Restating an id overwrites just that entry:
    ```bash
-   strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..." --resolved <question-id> --question "..." --context "..." --answer "..."
+   strict-spec-cli generate <change-name> questions --open <question-id> --question "..." --context "..." --resolved <question-id> --question "..." --context "..." --answer "..."
    ```
    Record open questions as structured entries under `open` using `id`,
    `question`, and `context`; the `questions` generator has no `--impact` or
@@ -292,9 +292,7 @@ Before any other step, run `strict-spec-cli check-workflow-state`. If `.strict-s
    One requirement can include multiple scenario groups by repeating
    `--scenario`. A later compatible call for the same operation, requirement id,
    strength, and statement appends new scenario ids and remains idempotent for
-   equivalent scenarios. Never use `--reset` or direct YAML editing merely to
-   append compatible scenarios; `--reset` rebuilds the entire target delta
-   artifact.
+   equivalent scenarios. Scenarios append on their own, so nothing needs rebuilding or hand-editing to add one. Drop a single scenario with `--remove-scenario <requirement-id>:<scenario-id>` and a whole requirement with `--remove-requirement <id>`.
    The generated files under `.strict-spec-driven/changes/<name>/specs/` should
    mirror target main spec paths. If the change has no observable spec impact,
    leave the `specs/` directory empty rather than inventing a prose-only file.

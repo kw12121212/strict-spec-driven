@@ -1,0 +1,48 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: remove-reset-flags
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'Resetting happened while editing the roadmap: recorded milestone content was wiped. The requester lost it and had to recover it by hand. The mechanism is that roadmap-generate milestone requires --reset to change any scalar such as --goal, and the same flag simultaneously flips every supplied list field (scope, done criteria, dependencies, risks, notes) from append to replace, so an edit that touches one field silently discards unrelated recorded entries.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: 'Editing commands only ever merge; they never discard. Rebuilding a whole artifact must be a separate explicit act (--delete), not a flag on an edit command. Concretely: --reset is gone from the CLI entirely, because in practice it was never needed for anything an edit should do.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: 'It has already cost real work once: content was lost during a recent roadmap edit and had to be reconstructed manually. Without a fix it will happen again, and possibly without being noticed at the time.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: 'Three things must not change: the on-disk YAML format (no schema, field-name, or layout changes, and no migration of existing changes, archives, or roadmap files); the requirement-interrogation gate, which must not be removed or weakened by any new flag; and the command and subcommand names, which stay as they are so the skill command tables remain valid.'
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: Removing --reset means scalars become directly overwritable by restating them, with no confirming flag, and single list entries become deletable through a --remove-<field> flag that names the target. It does not mean scalars become immutable, and it does not mean lists become declarative whole-list replacements. Scope is limited to removing --reset; building CLI authoring paths for the remaining agent-authored artifact families is separate work for a later roadmap milestone.
+    status: resolved
+    kind: requirement
+    answered_by: human
+  - id: roadmap-delete-support
+    question: Should roadmap-generate milestone and planned-change support --delete for whole-artifact rebuild, or should --delete be limited to change planning artifacts?
+    context: 'Impact: deleting a milestone is not a local act. Milestone files own a planned_changes map while planned changes also exist as standalone files under roadmap/planned-changes/, and roadmap-sync, roadmap-archive, and change artifacts carrying roadmap linkage all read that relationship. A --delete that removes a milestone still holding planned changes would strand those files and break roadmap status derivation. Options: (a) recommended — no --delete on roadmap commands at all, since restating a scalar now overwrites it and --remove-scope-in, --remove-risk, --remove-note, --remove-intake-question and the rest cover every field, leaving no case that requires a rebuild; (b) --delete on both, refusing when the milestone still holds planned changes and naming them, which adds a genuinely destructive capability to a change whose whole purpose is preventing accidental loss; (c) --delete on planned-change only, where the blast radius is one file, with milestones never deletable. Recommendation: (a). This is recorded open because it adds destructive surface and is the requester''s call, not a judgment the agent should make silently.'
+    answer: No. roadmap-generate milestone and planned-change get no --delete. Restating a scalar now overwrites it, and the per-field removal flags (--remove-scope-in, --remove-scope-out, --remove-done, --remove-dependency, --remove-risk, --remove-note, --remove-intake-question, --remove-depends-on) cover every field, so no case requires a whole-artifact rebuild. Adding a destructive milestone-deletion entry point to a change whose purpose is preventing accidental loss would work against the change's own goal, and it would have to reconcile the milestone planned_changes map, the standalone planned-change files, roadmap-sync, and roadmap-archive. --delete stays limited to change planning artifacts.
+    status: resolved
+    answered_by: human

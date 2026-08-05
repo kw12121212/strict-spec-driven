@@ -18,7 +18,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 roadmap-generate-milestone: strict-spec-cli roadmap-generate milestone --<named-args>
-roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]
+roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." [--depends-on <planned-change-id>] [--status <planned|complete>] [--remove-depends-on <planned-change-id>]
 roadmap-status: strict-spec-cli roadmap-status
 roadmap-sync: strict-spec-cli roadmap-sync [--fix-names]
 ```
@@ -77,12 +77,7 @@ run `init` from this skill.
    ```bash
    strict-spec-cli roadmap-generate milestone --id <milestone-id> --title "..." --goal "..." --scope-in "..." --scope-out "..." --done "..." --dependency "..." --risk "..." --note "..." --details "..."
    ```
-   Use `--reset` only when you intentionally replace existing milestone
-   planning fields. Global `--reset` never removes or replaces existing
-   `intake_questions`: `--intake-question` values always merge additively, and
-   replacing the intake-question list requires the dedicated
-   `--reset-intake-questions` flag together with at least one
-   `--intake-question` value. Use `roadmap-generate milestone` for milestone
+   A supplied scalar field replaces the recorded value with no extra flag, and list fields always append, so editing one field never discards unrelated recorded content. `--intake-question` values merge by id, and restating an id replaces just that question. Remove a recorded entry by naming it: `--remove-scope-in`, `--remove-scope-out`, `--remove-done`, `--remove-dependency`, `--remove-risk` and `--remove-note` take a substring that must match exactly one entry, and `--remove-intake-question` takes an id. Use `roadmap-generate milestone` for milestone
    YAML shape and milestone-field changes; do not hand-roll milestone schema
    structure.
    Create and update standalone work items with:

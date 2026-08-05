@@ -1,0 +1,20 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: cli-command-metadata
+mapping:
+  implementation:
+    - src/cli/command-metadata-entries.ts
+  enforcement:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED: {}
+  MODIFIED:
+    help-describes-argument-semantics:
+      strength: MUST
+      statement: A command-metadata entry MUST document each accepted flag's meaning together with its required, repeatable, removal, and delete semantics, plus the command's output keys and exit-code meaning; describing operational semantics only in skill prompts instead of the metadata registry is not sufficient.
+      rationale: Agents invoke the strict CLI without a skill prompt loaded, and semantics such as whether a repeated list flag appends or a restated scalar overwrites, which single entry a removal flag targets, the fact that the delete flag removes a whole artifact and cannot be combined with other flags, and the fact that a ready:false result is a successful write rather than a failure are exactly the facts that cause incorrect retries when they are undiscoverable from --help.
+      enforcement:
+        method: test
+  REMOVED: {}

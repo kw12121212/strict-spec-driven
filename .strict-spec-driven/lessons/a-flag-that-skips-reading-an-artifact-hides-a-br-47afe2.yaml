@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-flag-that-skips-reading-an-artifact-hides-a-br-47afe2
+  title: A flag that skips reading an artifact hides a broken artifact
+category: tooling
+status: active
+created_at: '2026-08-05T05:27:14.288Z'
+updated_at: '2026-08-05T05:27:14.288Z'
+context: Removing the --reset family from the strict CLI's authoring commands, starting from the assumption that --reset was a convenience that merely rebuilt artifacts.
+observation: 'generate design without --reset failed outright on a freshly proposed change: the bundled design scaffold''s alternatives and risks placeholders were written as [bracketed text] followed by a period, which YAML parses as a flow sequence and then rejects. The template had been invalid the whole time. Nothing surfaced it because existingDesignInput returned an empty object when reset was set, so the only code path anyone used never opened the file. Removing the flag without repairing the scaffold would have made generate design fail on every new change.'
+takeaway: A flag that short-circuits reading existing state is also a flag that stops validating it. Before deleting such a bypass, exercise the non-bypass path against freshly seeded state, because whatever the bypass skipped has never been checked and may have been broken since it was written. Treat 'this template is only ever consumed by the path that ignores it' as a defect waiting to surface.
+applies_when: Removing or narrowing a code path that skips reading existing state (a reset, force, or overwrite flag), or changing a command from rebuild to merge semantics, where seeded or templated content will now be parsed for the first time.
+occurrences:
+  - origin: remove-reset-flags
+    date: '2026-08-05'
+    evidence: generate <change> design without --reset returned 'bad indentation of a mapping entry; line 14, column 47' from the bundled scaffold at templates/strict-spec-driven/scaffold/changes/design.yaml, which existingDesignInput never read while reset was set

@@ -1,0 +1,50 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: remove-reset-flags
+approach:
+  - Replace the single rebuild channel with two narrower ones. Where a write today refuses a conflicting update and forces a full rebuild, it instead overwrites exactly the field named on the command line; where content must be dropped, a removal flag names the single entry to drop. Whole-artifact rebuild survives only as --delete, which removes the artifact file and cannot be combined with any editing flag.
+  - 'Work outward from the write semantics: change the merge helpers first (upsertKeyedItem, mergeDeltaRequirement, nextScalar, buildProposalInput), then the flag parsing in cmd-generation.ts and cmd-roadmap.ts, then the command-metadata registry that all help surfaces derive from, then the delta spec and delta tech artifacts, then the skill prompts, then the tests.'
+  - Repair what --reset was masking before removing it. The bundled change design scaffold is not parseable YAML, and --reset is the only code path that skips reading it, so the flag has been hiding a broken template; verify's placeholder detection likewise covers only tasks.yaml, and --reset has been the de facto cleaner for design.yaml placeholders. Both must be fixed in the same change or removing the flag breaks the ordinary propose-then-populate path.
+  - 'Treat the requirement-interrogation gate as a hard boundary rather than a case to handle: questions.yaml gets no --delete at all, and its removal flag rejects requirement-kind ids, so the gate cannot be cleared through any flag combination.'
+decisions:
+  blast-radius-is-the-named-field:
+    decision: A command may only affect the fields explicitly named in that invocation. No flag widens the effect of another flag.
+    rationale: 'The roadmap incident was caused by one flag carrying two jobs: reset was mandatory to change a scalar, and it silently reflagged every supplied list from append to replace. Binding effect to naming removes that class of failure rather than renaming it.'
+  restating-overwrites:
+    decision: Restating an existing scalar or keyed item with new content overwrites it, with no confirming flag.
+    rationale: The caller already named the field and supplied the new value, so intent is unambiguous. Requiring an extra flag to confirm it is what created the forced rebuild in the first place.
+  duplicate-ids-conflict-within-one-invocation:
+    decision: Overwrite applies across invocations only. Naming the same id twice with conflicting content inside a single invocation still exits non-zero.
+    rationale: Across invocations a restatement is an edit; within one invocation it is a typo, since no caller means to set one field to two different values in the same breath. Today's conflict error protects both cases, and dropping it wholesale would discard the half that is still worth having.
+  removal-names-its-target:
+    decision: Deleting a list entry requires a removal flag naming that entry; keyed collections are named by id, and id-less free-text lists are named by a substring that must match exactly one entry, with zero or multiple matches exiting non-zero and listing the candidates.
+    rationale: Follows the existing generate tasks --remove precedent. Requiring exact full text for approach, risks, and alternatives would be unusable because those entries are long and YAML-folded; adding ids to them would change the artifact schema, which the non-goals forbid. Unambiguous substring matching needs no schema change and fails loudly rather than guessing.
+  delete-is-isolated:
+    decision: The --delete flag removes the whole artifact file. It is accepted only together with the flags that identify which artifact to delete, such as --target-spec or --target-standard, and is rejected alongside any editing flag.
+    rationale: Whole-artifact rebuild stays available as a separate deliberate act. Delta artifacts cannot be located without their identity flag, so an absolute sole-flag rule would make --delete unusable there; excluding editing flags is what actually prevents a rebuild from riding along on an edit, which is how the reset flag failed.
+  proposal-merges-like-every-other-artifact:
+    decision: generate proposal reads the existing proposal.yaml and merges into it, instead of rebuilding from flags alone.
+    rationale: buildProposalInput never reads the existing artifact, so every proposal write is an unconditional full replace and an omitted --in silently disappears. That is the same destructive behavior the change exists to remove, with no flag to blame for it, so leaving it in place would ship a workflow that still loses content by default.
+  questions-gate-is-inviolable:
+    decision: questions.yaml supports no --delete, and its removal flag refuses requirement-kind ids.
+    rationale: cli/foundation.yaml:2359 already requires that no flag can remove a requirement-kind entry. Once the reset flag is gone the preservation logic it carried disappears with it, so the guarantee must be re-established on the new flags rather than inherited.
+alternatives:
+  - option: Give approach, risks, and alternatives explicit ids so removal can target them by id
+    reason: Turns those array items from strings into objects, which changes the change-design schema and would require migrating every existing and archived change. The non-goals rule out schema and on-disk format changes, so unambiguous substring matching is used instead.
+  - option: Remove --reset without repairing the design scaffold
+    reason: 'Not viable: the scaffold''s alternatives and risks placeholders are not parseable YAML, and --reset is the only path that avoids reading the file. Removing the flag alone would make generate design fail on every newly proposed change.'
+  - option: Keep the reset flag but add a confirmation prompt or a diff of endangered content
+    reason: Leaves the destructive path as the mandatory route for ordinary scalar edits, so the prompt fires constantly during normal work and gets clicked through. It also cannot run non-interactively, which the agent-driven workflow depends on.
+  - option: Keep the reset flag but snapshot each artifact before writing so losses are recoverable
+    reason: Adds a backup store and a restore command to the workflow surface while leaving the trap in place. Recovery still costs the manual work that triggered this change.
+  - option: Make list flags fully declarative, where each invocation states the complete intended list
+    reason: 'Turns today''s trap into the default: omitting one entry silently deletes it, and every edit requires restating content the caller did not intend to touch.'
+risks:
+  - The main spec requirements at cli/foundation.yaml:1080, :2299, :2359, :2260 and roadmap/domain-behavior.yaml:144 encode reset semantics in their statements and scenarios. MODIFIED replaces a requirement wholesale at src/archive.ts:319, so any scenario omitted from a delta is deleted from the main spec on archive.
+  - cli/foundation.yaml:1321 and :1328 describe strict-spec-auto's context reset, which shares the word but is unrelated. A text-wide substitution would corrupt an unrelated requirement.
+  - 51 reset usages across 11 skill prompts include this repository's own brainstorm, propose, and auto skills. Prompts left stale will keep instructing agents to pass a flag that no longer exists, producing hard failures in the next workflow run.
+  - After --delete removes design.yaml, verify reports the change invalid because the artifact is required, and the change-design schema sets approach minItems to 1 so an empty design cannot be seeded. --delete therefore leaves a transient invalid state that must be documented and immediately followed by regeneration.
+  - Removing --force from generate tasks removes the guard that today refuses to discard completed tasks. The replacement must ensure no new flag can clear a completed task list in one step.
+  - Substring removal on id-less lists must reject an ambiguous match rather than choose one. A silent first-match rule would reintroduce exactly the unintended deletion this change exists to prevent.

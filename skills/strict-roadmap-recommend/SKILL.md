@@ -194,26 +194,24 @@ run `init` from this skill.
    every supported artifact, including `tasks.yaml`, with direct named
    arguments, and do not create JSON payload files.
    - `strict-spec-cli generate <change-name> proposal --what "..." --why "..." --in "..." --out "..." --unchanged "..." --milestone <milestone-id> --planned-change <planned-change-id>`
-   - `strict-spec-cli generate <change-name> design --reset --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
+   - `strict-spec-cli generate <change-name> design --approach "..." --decision <decision-id> --decision-text "..." --rationale "..."`
    - populate `tasks.yaml` with `strict-spec-cli generate <change-name> tasks`, **one invocation per task** so no task list is hand-written:
-     - first task: `strict-spec-cli generate <change-name> tasks --reset --section <Implementation|Testing|Verification> --task <task-id> --text "..." [--status pending|complete] [--command "..."]` — the `--reset` on this first call clears the scaffold placeholder tasks; if the list already has completed tasks, `--reset` refuses unless you add `--force`, and it always requires at least one task group so the list is never rebuilt empty
-     - each later task: the same command without `--reset`, one `--section`/`--task`/`--text` group per call
+     - first task: `strict-spec-cli generate <change-name> tasks --section <Implementation|Testing|Verification> --task <task-id> --text "..." [--status pending|complete] [--command "..."]` — the scaffold seeds placeholder tasks, so remove them by id with `--remove` once the real tasks are in; `verify` reports any placeholder text left behind
+     - each later task: one `--section`/`--task`/`--text` group per call
      - restating an existing `(section, task-id)` is a field-level merge — it overwrites only the fields you pass, so a task's `status: complete` and `command` survive a text-only edit; a brand-new task still needs `--text`
      - delete a task with `--remove <task-id>` (a repeatable global flag); to move a task between sections, `--remove` it and restate it under the new section in the same call
      - values may begin with a dash via `--text=...` or `--command=...` (the `--flag=value` form)
      - set the gates with `--validation-task <task-id>` and `--unit-test-task <task-id>`; both must reference `Testing` task ids
      - the command upserts by `(section, task-id)` and is idempotent; each call returns `{valid, ready, diagnostics}` — `valid` reports write success and `ready` reports completeness, so a `ready: false` result naming empty sections or unset gates is not a failed write, keep adding tasks and confirm with `verify` before handoff
      - cover concrete Implementation tasks for script, tooling, generated asset, documentation, or skill-prompt edits in scope; Testing tasks with runnable validation and unit/regression commands; and Verification tasks for `ready`, `verify`, mapping checks, and archive-readiness or archive-merge checks when relevant
-   - `strict-spec-cli generate <change-name> questions --reset --open <question-id> --question "..." --context "..."`
+   - `strict-spec-cli generate <change-name> questions --open <question-id> --question "..." --context "..."`
      Include impact analysis and recommendation/options in `--context`; do
      not pass nonexistent `--impact` or `--recommendation` flags.
    - only when the change has observable spec impact, `strict-spec-cli generate <change-name> delta-spec --target-spec <spec-id> --implementation "src/file.ts" --test "test/file.test.ts" --operation ADDED --requirement <requirement-id> --strength MUST --statement "..." --scenario <scenario-id> --given "..." --when "..." --then "..."` for each target spec
      One requirement can include multiple scenario groups by repeating
      `--scenario`. A later compatible call for the same operation, requirement
      id, strength, and statement appends new scenario ids and remains idempotent
-     for equivalent scenarios. Never use `--reset` or direct YAML editing merely
-     to append compatible scenarios; `--reset` rebuilds the entire target delta
-     artifact.
+     for equivalent scenarios. Scenarios append on their own, so nothing needs rebuilding or hand-editing to add one. Drop a single scenario with `--remove-scenario <requirement-id>:<scenario-id>` and a whole requirement with `--remove-requirement <id>`.
    - when the change alters a technical standard, generate delta tech under `.strict-spec-driven/changes/<change-name>/tech/` with `generate <change-name> delta-tech --target-standard <id> ...`; for user interface work, capture observable UI behavior as delta-spec requirements and UI engineering and design rules as a `ui`-category technical standard, with visual fidelity governed by visual-regression snapshots rather than inlined
    - if the change has no observable spec impact, leave the `specs/` directory
      empty rather than inventing a prose-only file

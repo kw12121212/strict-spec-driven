@@ -21,7 +21,7 @@ check-workflow-state: strict-spec-cli check-workflow-state
 roadmap-status: strict-spec-cli roadmap-status
 roadmap-reopen: strict-spec-cli roadmap-reopen <milestone-id> [--reason "..."]
 roadmap-sync: strict-spec-cli roadmap-sync [--fix-names]
-roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]
+roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." [--depends-on <planned-change-id>] [--status <planned|complete>] [--remove-depends-on <planned-change-id>]
 ```
 
 ## Prerequisites
@@ -107,7 +107,7 @@ run `init` from this skill.
    created one pending follow-up planned change (`seededFollowUp.path`) at its
    canonical `<milestone-id>-<planned-change-id>.yaml` filename. Refine its
    `summary`, `details`, and `depends_on` with
-   `roadmap-generate planned-change --reset`, and create further NEW standalone
+   `roadmap-generate planned-change`, and create further NEW standalone
    planned-change artifacts (each with `status: planned`) for additional gaps
    through the same command — the CLI computes the canonical filename itself;
    never choose planned-change filenames by hand. Never edit an existing

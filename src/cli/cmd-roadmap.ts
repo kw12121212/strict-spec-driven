@@ -30,7 +30,7 @@ const ROADMAP_RENUMBER_USAGE = getCommandUsage("roadmap-renumber");
 const ROADMAP_MOVE_PLANNED_CHANGE_USAGE = getCommandUsage("roadmap-move-planned-change");
 const ROADMAP_GENERATE_USAGE = getCommandUsage("roadmap-generate");
 const ACTIONABLE_BLOCKER_LIMIT = 10;
-const ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set(["reset", "reset-intake-questions"]);
+const ROADMAP_GENERATE_BOOLEAN_FLAGS = new Set<string>();
 
 type FlagMap = Record<string, string[]>;
 
@@ -224,15 +224,16 @@ function buildRoadmapMilestoneAuthorInput(argv: string[]): RoadmapMilestoneAutho
     "risk",
     "note",
     "details",
-    "reset",
-    "reset-intake-questions",
+    "remove-scope-in",
+    "remove-scope-out",
+    "remove-done",
+    "remove-dependency",
+    "remove-risk",
+    "remove-note",
+    "remove-intake-question",
   ]);
 
   const intakeQuestions = values(flags, "intake-question").map(parseIntakeQuestion);
-  const resetIntakeQuestions = values(flags, "reset-intake-questions").length > 0;
-  if (resetIntakeQuestions && intakeQuestions.length === 0) {
-    throw new Error("--reset-intake-questions requires at least one --intake-question value");
-  }
 
   return {
     id: requiredOne(flags, "id"),
@@ -246,8 +247,13 @@ function buildRoadmapMilestoneAuthorInput(argv: string[]): RoadmapMilestoneAutho
     risks: values(flags, "risk"),
     notes: values(flags, "note"),
     details: optionalOne(flags, "details"),
-    reset: values(flags, "reset").length > 0,
-    resetIntakeQuestions,
+    removedScopeIn: values(flags, "remove-scope-in"),
+    removedScopeOut: values(flags, "remove-scope-out"),
+    removedDoneCriteria: values(flags, "remove-done"),
+    removedDependencies: values(flags, "remove-dependency"),
+    removedRisks: values(flags, "remove-risk"),
+    removedNotes: values(flags, "remove-note"),
+    removedIntakeQuestions: values(flags, "remove-intake-question"),
   };
 }
 
@@ -260,7 +266,7 @@ function buildRoadmapPlannedChangeAuthorInput(argv: string[]): RoadmapPlannedCha
     "details",
     "depends-on",
     "status",
-    "reset",
+    "remove-depends-on",
   ]);
 
   return {
@@ -270,7 +276,7 @@ function buildRoadmapPlannedChangeAuthorInput(argv: string[]): RoadmapPlannedCha
     details: optionalOne(flags, "details"),
     dependsOn: values(flags, "depends-on"),
     status: optionalOne(flags, "status"),
-    reset: values(flags, "reset").length > 0,
+    removedDependsOn: values(flags, "remove-depends-on"),
   };
 }
 
@@ -293,9 +299,16 @@ export function runRoadmapGenerate(argv: string[]): number {
       writeUsage(ROADMAP_GENERATE_USAGE);
       return 1;
     }
-    const plannedChangeResult = generateRoadmapPlannedChange(process.cwd(), plannedChangeInput);
-    writeJson(plannedChangeResult);
-    return plannedChangeResult.valid ? 0 : 1;
+    try {
+      const plannedChangeResult = generateRoadmapPlannedChange(process.cwd(), plannedChangeInput);
+      writeJson(plannedChangeResult);
+      return plannedChangeResult.valid ? 0 : 1;
+    } catch (error) {
+      // An unresolvable removal is reported as a deterministic failure; it throws before any write,
+      // so the planned change is left byte-identical.
+      writeError(error instanceof Error ? error.message : String(error));
+      return 1;
+    }
   }
 
   let input: RoadmapMilestoneAuthorInput;
@@ -307,9 +320,16 @@ export function runRoadmapGenerate(argv: string[]): number {
     return 1;
   }
 
-  const result = generateRoadmapMilestone(process.cwd(), input);
-  writeJson(result);
-  return result.valid ? 0 : 1;
+  try {
+    const result = generateRoadmapMilestone(process.cwd(), input);
+    writeJson(result);
+    return result.valid ? 0 : 1;
+  } catch (error) {
+    // An unresolvable removal is reported as a deterministic failure; it throws before any write,
+    // so the milestone is left byte-identical.
+    writeError(error instanceof Error ? error.message : String(error));
+    return 1;
+  }
 }
 
 function parseRoadmapRecommendArgs(argv: string[]): RoadmapRecommendArgs {

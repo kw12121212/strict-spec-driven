@@ -19,7 +19,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 roadmap-generate-milestone: strict-spec-cli roadmap-generate milestone --<named-args>
-roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]
+roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." [--depends-on <planned-change-id>] [--status <planned|complete>] [--remove-depends-on <planned-change-id>]
 roadmap-status: strict-spec-cli roadmap-status
 roadmap-overview: strict-spec-cli roadmap-overview
 roadmap-sync: strict-spec-cli roadmap-sync [--fix-names]
@@ -103,15 +103,10 @@ run `init` from this skill.
    ```bash
    strict-spec-cli roadmap-generate milestone --id <milestone-id> --title "..." --goal "..." --scope-in "..." --scope-out "..." --done "..." --dependency "..." --risk "..." --note "..." --details "..."
    ```
-   Use `--reset` only when you intentionally replace existing milestone
-   planning fields. Global `--reset` never removes or replaces existing
-   `intake_questions`: `--intake-question` values always merge additively, and
-   replacing the intake-question list requires the dedicated
-   `--reset-intake-questions` flag together with at least one
-   `--intake-question` value. Fix standalone planned-change `summary`, `details`,
+   A supplied scalar field replaces the recorded value with no extra flag, and list fields always append, so editing one field never discards unrelated recorded content. `--intake-question` values merge by id, and restating an id replaces just that question. Remove a recorded entry by naming it: `--remove-scope-in`, `--remove-scope-out`, `--remove-done`, `--remove-dependency`, `--remove-risk` and `--remove-note` take a substring that must match exactly one entry, and `--remove-intake-question` takes an id. Fix standalone planned-change `summary`, `details`,
    `depends_on`, and `status` through the planned-change authoring command:
    ```bash
-   strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." --reset
+   strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..."
    ```
    The CLI owns the canonical `<milestone-id>-<planned-change-id>.yaml`
    filename; never create or rename planned-change files by hand. Tighten

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, rmSync } from "fs";
 import path from "path";
 import {
   generateChangeArtifactFromInput,
@@ -13,7 +13,7 @@ import { getCommandUsage } from "./command-metadata.js";
 import { writeError, writeJson, writeUsage } from "./output.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
-const BOOLEAN_FLAGS = new Set(["reset"]);
+const BOOLEAN_FLAGS = new Set(["delete"]);
 
 type FlagMap = Record<string, string[]>;
 
@@ -22,12 +22,12 @@ function usage(): string {
     "Usage: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>",
     "",
     "Examples:",
-    "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
-    "  strict-spec-cli generate <change-name> design [--reset] --approach <text> [--decision <id> --decision-text <text> --rationale <text>]",
-    "  strict-spec-cli generate <change-name> questions [--reset] [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]...",
-    "  strict-spec-cli generate <change-name> tasks [--reset [--force]] [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>]",
-    "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--reset] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]...",
-    "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--reset] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]...",
+    "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>] [--remove-in <substring>] [--remove-out <substring>] [--remove-unchanged <substring>]",
+    "  strict-spec-cli generate <change-name> design --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>] [--remove-approach <substring>] [--remove-decision <id>] [--remove-alternative <substring>] [--remove-risk <substring>] | --delete",
+    "  strict-spec-cli generate <change-name> questions [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]... [--remove-question <id>]",
+    "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete",
+    "  strict-spec-cli generate <change-name> delta-spec --target-spec <id> [--spec-path <path>] [--title <text> --new-spec-path <repo-relative-path>] [--implementation <path>] [--test <path>] [--operation <ADDED|MODIFIED|REMOVED> --requirement <id> ...]... [--remove-requirement <id>] [--remove-scenario <requirement-id>:<scenario-id>] [--remove-implementation <path>] [--remove-test <path>] | --target-spec <id> --delete",
+    "  strict-spec-cli generate <change-name> delta-tech --target-standard <id> [--tech-path <path>] [--title <text> --category <cat>] [--implementation <path>] [--enforcement <path>] [--operation <ADDED|MODIFIED|REMOVED> --rule <id> --strength <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method <lint|ci|test|review|manual> [--detail <text>] [--example-good <text>] [--example-bad <text>] [--exception <text>] | --rule <id> --reason <text>]... [--remove-rule <id>] [--remove-implementation <path>] [--remove-enforcement <path>] | --target-standard <id> --delete",
   ].join("\n") + "\n";
 }
 
@@ -76,6 +76,9 @@ export const PROPOSAL_ARGUMENTS = [
   "in",
   "out",
   "unchanged",
+  "remove-in",
+  "remove-out",
+  "remove-unchanged",
   "status",
   "milestone",
   "planned-change",
@@ -84,7 +87,7 @@ export const PROPOSAL_ARGUMENTS = [
 ] as const;
 
 export const DESIGN_ARGUMENTS = [
-  "reset",
+  "delete",
   "approach",
   "decision",
   "decision-text",
@@ -92,6 +95,10 @@ export const DESIGN_ARGUMENTS = [
   "alternative",
   "reason",
   "risk",
+  "remove-approach",
+  "remove-decision",
+  "remove-alternative",
+  "remove-risk",
 ] as const;
 
 /** Named arguments the questions artifact accepts, so metadata coverage guards them too. */
@@ -104,6 +111,7 @@ export const QUESTION_ARGUMENTS = [
   "answer",
   "kind",
   "answered-by",
+  "remove-question",
 ] as const;
 
 /** Every named argument the generate command accepts through a declared allow-list. */
@@ -169,59 +177,122 @@ function deepEqual(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function upsertKeyedItem(collection: GenerationInputRecord, id: string, item: GenerationInputRecord, fieldName: string): void {
-  const existing = collection[id];
-  if (existing === undefined) {
-    collection[id] = item;
-    return;
-  }
-  if (!deepEqual(existing, item)) {
-    throw new Error(`duplicate ${fieldName} '${id}' has conflicting content`);
-  }
+/**
+ * The identifiers a single invocation has already written, keyed by collection.
+ *
+ * Restating an identifier that only exists on disk is an edit and overwrites silently, because the
+ * caller named the field and supplied the new value. Restating one twice inside the same invocation
+ * is a typo instead, since no caller means to set one field to two different values in the same
+ * breath, so the conflict error is kept for exactly that case.
+ */
+type WriteSession = Set<string>;
+
+function newWriteSession(): WriteSession {
+  return new Set<string>();
 }
 
+/** Records an id as written by this invocation, returning false when it was already written. */
+function claimWrite(session: WriteSession, scope: string, id: string): boolean {
+  const key = `${scope}\u0000${id}`;
+  if (session.has(key)) return false;
+  session.add(key);
+  return true;
+}
+
+function upsertKeyedItem(
+  collection: GenerationInputRecord,
+  id: string,
+  item: GenerationInputRecord,
+  fieldName: string,
+  session: WriteSession,
+): void {
+  const existing = collection[id];
+  const firstWriteThisInvocation = claimWrite(session, fieldName, id);
+  if (!firstWriteThisInvocation && existing !== undefined && !deepEqual(existing, item)) {
+    throw new Error(`duplicate ${fieldName} '${id}' has conflicting content`);
+  }
+  collection[id] = item;
+}
+
+/**
+ * Removes exactly one entry from an id-less free-text list by substring match.
+ *
+ * These lists carry no identifiers and their entries are long enough that requiring the full text
+ * verbatim would make removal unusable. A match that is absent or ambiguous fails loudly and names
+ * the candidates rather than picking one, because silently choosing the first match would
+ * reintroduce the unintended deletion this flag exists to prevent.
+ */
+function removeOneBySubstring<T>(
+  entries: T[],
+  needle: string,
+  flagName: string,
+  describe: (entry: T) => string,
+): T[] {
+  const matched = entries.filter((entry) => describe(entry).includes(needle));
+  if (matched.length === 0) {
+    throw new Error(`--${flagName} matched no entry: '${needle}'`);
+  }
+  if (matched.length > 1) {
+    const candidates = matched.map((entry) => `'${describe(entry)}'`).join(", ");
+    throw new Error(
+      `--${flagName} matched ${matched.length} entries: ${candidates}; supply a substring that matches exactly one`,
+    );
+  }
+  return entries.filter((entry) => entry !== matched[0]);
+}
+
+/** Removes a keyed item by id, reporting a no-op rather than failing when it is already absent. */
+function removeKeyedItem(collection: GenerationInputRecord, id: string): void {
+  delete collection[id];
+}
+
+/**
+ * Merges one delta requirement, appending scenarios that are new and overwriting fields a later
+ * invocation restates. Conflicts still fail within a single invocation, matching upsertKeyedItem.
+ */
 function mergeDeltaRequirement(
   collection: GenerationInputRecord,
   requirementId: string,
   incoming: GenerationInputRecord,
+  session: WriteSession,
 ): void {
   const existing = collection[requirementId];
+  const firstWriteThisInvocation = claimWrite(session, "delta requirement", requirementId);
   if (existing === undefined) {
     collection[requirementId] = incoming;
     return;
   }
   if (!isRecord(existing)) {
-    throw new Error(`duplicate delta requirement '${requirementId}' has conflicting content`);
+    collection[requirementId] = incoming;
+    return;
   }
 
   for (const fieldName of ["strength", "statement"] as const) {
-    if (!deepEqual(existing[fieldName], incoming[fieldName])) {
+    if (deepEqual(existing[fieldName], incoming[fieldName])) continue;
+    if (!firstWriteThisInvocation) {
       throw new Error(`duplicate delta requirement '${requirementId}' has conflicting ${fieldName}`);
     }
   }
 
-  const existingScenarios = existing.scenarios;
-  const incomingScenarios = incoming.scenarios;
-  if (!isRecord(existingScenarios) || !isRecord(incomingScenarios)) {
-    throw new Error(`duplicate delta requirement '${requirementId}' has conflicting scenarios`);
-  }
+  const existingScenarios = isRecord(existing.scenarios) ? existing.scenarios : {};
+  const incomingScenarios = isRecord(incoming.scenarios) ? incoming.scenarios : {};
 
   const mergedScenarios: GenerationInputRecord = { ...existingScenarios };
   for (const [scenarioId, steps] of Object.entries(incomingScenarios)) {
     const existingSteps = mergedScenarios[scenarioId];
-    if (existingSteps === undefined) {
-      mergedScenarios[scenarioId] = steps;
-      continue;
-    }
-    if (!deepEqual(existingSteps, steps)) {
+    const firstScenarioWrite = claimWrite(session, `scenario ${requirementId}`, scenarioId);
+    if (existingSteps !== undefined && !firstScenarioWrite && !deepEqual(existingSteps, steps)) {
       throw new Error(
         `duplicate scenario '${scenarioId}' for delta requirement '${requirementId}' has conflicting content`,
       );
     }
+    mergedScenarios[scenarioId] = steps;
   }
 
   collection[requirementId] = {
     ...existing,
+    strength: incoming.strength ?? existing.strength,
+    statement: incoming.statement ?? existing.statement,
     scenarios: mergedScenarios,
   };
 }
@@ -231,18 +302,44 @@ function upsertListItem<T extends GenerationInputRecord>(
   item: T,
   id: string,
   fieldName: string,
+  session: WriteSession,
 ): T[] {
-  const existing = collection.find((candidate) => candidate.id === id);
-  if (!existing) {
+  const existingIndex = collection.findIndex((candidate) => candidate.id === id);
+  const firstWriteThisInvocation = claimWrite(session, fieldName, id);
+  if (existingIndex === -1) {
     return [...collection, item];
   }
-  if (!deepEqual(existing, item)) {
+  if (!firstWriteThisInvocation && !deepEqual(collection[existingIndex], item)) {
     throw new Error(`duplicate ${fieldName} '${id}' has conflicting content`);
   }
-  return collection;
+  const next = [...collection];
+  next[existingIndex] = item;
+  return next;
 }
 
-function buildProposalInput(flags: FlagMap): GenerationInputRecord {
+/**
+ * Reads the recorded proposal so a later invocation merges into it. Rebuilding from the arguments
+ * alone made every proposal write a silent full replace, so omitting one --in dropped it without
+ * any flag to blame.
+ */
+function existingProposalInput(rootDir: string, changeName: string): {
+  in: string[];
+  out: string[];
+  unchanged: string[];
+} {
+  const artifact = readYamlIfExists<GenerationInputRecord>(
+    rootDir,
+    `${STRICT_WORKFLOW_DIR}/changes/${changeName}/proposal.yaml`,
+  );
+  const scope = isRecord(artifact?.scope) ? artifact.scope : {};
+  return {
+    in: Array.isArray(scope.in) ? scope.in as string[] : [],
+    out: Array.isArray(scope.out) ? scope.out as string[] : [],
+    unchanged: Array.isArray(artifact?.unchanged_behavior) ? artifact.unchanged_behavior as string[] : [],
+  };
+}
+
+function buildProposalInput(rootDir: string, changeName: string, flags: FlagMap): GenerationInputRecord {
   ensureAllowedFlags(flags, [...PROPOSAL_ARGUMENTS]);
 
   const what = uniqueStrings(values(flags, "what"));
@@ -250,13 +347,31 @@ function buildProposalInput(flags: FlagMap): GenerationInputRecord {
   if (what.length === 0) throw new Error("missing required argument --what");
   if (why.length === 0) throw new Error("missing required argument --why");
 
+  const existing = existingProposalInput(rootDir, changeName);
+  const removedIn = values(flags, "remove-in");
+  const removedOut = values(flags, "remove-out");
+  const removedUnchanged = values(flags, "remove-unchanged");
+
+  let scopeIn = uniqueStrings([...existing.in, ...values(flags, "in")]);
+  let scopeOut = uniqueStrings([...existing.out, ...values(flags, "out")]);
+  let unchanged = uniqueStrings([...existing.unchanged, ...values(flags, "unchanged")]);
+  for (const needle of removedIn) {
+    scopeIn = removeOneBySubstring(scopeIn, needle, "remove-in", (entry) => entry);
+  }
+  for (const needle of removedOut) {
+    scopeOut = removeOneBySubstring(scopeOut, needle, "remove-out", (entry) => entry);
+  }
+  for (const needle of removedUnchanged) {
+    unchanged = removeOneBySubstring(unchanged, needle, "remove-unchanged", (entry) => entry);
+  }
+
   const input: GenerationInputRecord = {
     summary: { what, why },
     scope: {
-      in: uniqueStrings(values(flags, "in")),
-      out: uniqueStrings(values(flags, "out")),
+      in: scopeIn,
+      out: scopeOut,
     },
-    unchanged_behavior: uniqueStrings(values(flags, "unchanged")),
+    unchanged_behavior: unchanged,
   };
 
   const status = optionalOne(flags, "status");
@@ -273,10 +388,7 @@ function buildProposalInput(flags: FlagMap): GenerationInputRecord {
   return input;
 }
 
-function existingDesignInput(rootDir: string, changeName: string, reset: boolean): GenerationInputRecord {
-  if (reset) {
-    return { approach: [], decisions: {}, alternatives: [], risks: [] };
-  }
+function existingDesignInput(rootDir: string, changeName: string): GenerationInputRecord {
   const artifact = readYamlIfExists<GenerationInputRecord>(
     rootDir,
     `${STRICT_WORKFLOW_DIR}/changes/${changeName}/design.yaml`,
@@ -291,10 +403,11 @@ function existingDesignInput(rootDir: string, changeName: string, reset: boolean
 
 function buildDesignInput(rootDir: string, changeName: string, flags: FlagMap): GenerationInputRecord {
   ensureAllowedFlags(flags, [...DESIGN_ARGUMENTS]);
+  const session = newWriteSession();
 
-  const input = existingDesignInput(rootDir, changeName, hasFlag(flags, "reset"));
-  input.approach = uniqueStrings([...(Array.isArray(input.approach) ? input.approach as string[] : []), ...values(flags, "approach")]);
-  input.risks = uniqueStrings([...(Array.isArray(input.risks) ? input.risks as string[] : []), ...values(flags, "risk")]);
+  const input = existingDesignInput(rootDir, changeName);
+  let approach = uniqueStrings([...(Array.isArray(input.approach) ? input.approach as string[] : []), ...values(flags, "approach")]);
+  let risks = uniqueStrings([...(Array.isArray(input.risks) ? input.risks as string[] : []), ...values(flags, "risk")]);
 
   const decisions = isRecord(input.decisions) ? input.decisions : {};
   const decisionIds = values(flags, "decision");
@@ -307,11 +420,14 @@ function buildDesignInput(rootDir: string, changeName: string, flags: FlagMap): 
     upsertKeyedItem(decisions, decisionIds[index] as string, {
       decision: decisionTexts[index],
       rationale: rationales[index],
-    }, "decision");
+    }, "decision", session);
+  }
+  for (const decisionId of values(flags, "remove-decision")) {
+    removeKeyedItem(decisions, decisionId);
   }
   input.decisions = decisions;
 
-  const alternatives = Array.isArray(input.alternatives) ? input.alternatives as GenerationInputRecord[] : [];
+  let alternatives = Array.isArray(input.alternatives) ? input.alternatives as GenerationInputRecord[] : [];
   const alternativeOptions = values(flags, "alternative");
   const reasons = values(flags, "reason");
   if (alternativeOptions.length !== reasons.length) {
@@ -320,9 +436,27 @@ function buildDesignInput(rootDir: string, changeName: string, flags: FlagMap): 
   for (let index = 0; index < alternativeOptions.length; index += 1) {
     const item = { option: alternativeOptions[index], reason: reasons[index] };
     if (!alternatives.some((alternative) => deepEqual(alternative, item))) {
-      alternatives.push(item);
+      alternatives = [...alternatives, item];
     }
   }
+
+  for (const needle of values(flags, "remove-approach")) {
+    approach = removeOneBySubstring(approach, needle, "remove-approach", (entry) => entry);
+  }
+  for (const needle of values(flags, "remove-risk")) {
+    risks = removeOneBySubstring(risks, needle, "remove-risk", (entry) => entry);
+  }
+  for (const needle of values(flags, "remove-alternative")) {
+    alternatives = removeOneBySubstring(
+      alternatives,
+      needle,
+      "remove-alternative",
+      (entry) => typeof entry.option === "string" ? entry.option : "",
+    );
+  }
+
+  input.approach = approach;
+  input.risks = risks;
   input.alternatives = alternatives;
 
   return input;
@@ -364,12 +498,12 @@ function withQuestionAttribution(
 }
 
 type QuestionCommandInput = {
-  reset: boolean;
+  removals: string[];
   items: QuestionGroup[];
 };
 
 function parseQuestionCommandInput(argv: string[], rootDir: string): QuestionCommandInput {
-  const input: QuestionCommandInput = { reset: false, items: [] };
+  const input: QuestionCommandInput = { removals: [], items: [] };
   let currentItem: QuestionGroup | undefined;
 
   function readValue(name: string, index: number): string {
@@ -397,8 +531,9 @@ function parseQuestionCommandInput(argv: string[], rootDir: string): QuestionCom
     }
 
     const name = token.slice(2);
-    if (name === "reset") {
-      input.reset = true;
+    if (name === "remove-question") {
+      input.removals.push(readValue(name, index));
+      index += 1;
       continue;
     }
     if (name === "open" || name === "resolved" || name === "resolve") {
@@ -437,29 +572,48 @@ function parseQuestionCommandInput(argv: string[], rootDir: string): QuestionCom
   return input;
 }
 
-function existingQuestionsInput(rootDir: string, changeName: string, reset: boolean): GenerationInputRecord {
+function existingQuestionsInput(rootDir: string, changeName: string): GenerationInputRecord {
   const artifact = readYamlIfExists<GenerationInputRecord>(
     rootDir,
     `${STRICT_WORKFLOW_DIR}/changes/${changeName}/questions.yaml`,
   );
-  const open = Array.isArray(artifact?.open) ? artifact.open : [];
-  const resolved = Array.isArray(artifact?.resolved) ? artifact.resolved : [];
-  if (reset) {
-    // A rebuild clears technical questions only; the seeded requirement interrogation survives it,
-    // because a flag that could clear the gate would make the gate advisory.
-    return {
-      open: open.filter(isRequirementQuestion),
-      resolved: resolved.filter(isRequirementQuestion),
-    };
+  return {
+    open: Array.isArray(artifact?.open) ? artifact.open : [],
+    resolved: Array.isArray(artifact?.resolved) ? artifact.resolved : [],
+  };
+}
+
+/**
+ * Drops a question by id. Requirement-kind entries are the interrogation gate itself, so removing
+ * one is refused: a flag that could clear the gate would make the gate advisory.
+ */
+function removeQuestionById(
+  open: GenerationInputRecord[],
+  resolved: GenerationInputRecord[],
+  id: string,
+): { open: GenerationInputRecord[]; resolved: GenerationInputRecord[] } {
+  const target = [...open, ...resolved].find((candidate) => candidate.id === id);
+  if (target && isRequirementQuestion(target)) {
+    throw new Error(
+      `--remove-question cannot remove requirement question '${id}': requirement entries are the interrogation gate`,
+    );
   }
-  return { open, resolved };
+  return {
+    open: open.filter((candidate) => candidate.id !== id),
+    resolved: resolved.filter((candidate) => candidate.id !== id),
+  };
 }
 
 function buildQuestionsInputFromArgs(rootDir: string, changeName: string, argv: string[]): GenerationInputRecord {
   const commandInput = parseQuestionCommandInput(argv, rootDir);
-  const input = existingQuestionsInput(rootDir, changeName, commandInput.reset);
+  const session = newWriteSession();
+  const input = existingQuestionsInput(rootDir, changeName);
   let open = Array.isArray(input.open) ? input.open as GenerationInputRecord[] : [];
   let resolved = Array.isArray(input.resolved) ? input.resolved as GenerationInputRecord[] : [];
+
+  for (const id of commandInput.removals) {
+    ({ open, resolved } = removeQuestionById(open, resolved, id));
+  }
 
   for (const item of commandInput.items) {
     if (item.kind === "open") {
@@ -472,7 +626,7 @@ function buildQuestionsInputFromArgs(rootDir: string, changeName: string, argv: 
         id: item.id,
         question: item.question,
         context: item.context,
-      }, item), item.id, "open question");
+      }, item), item.id, "open question", session);
       continue;
     }
 
@@ -490,7 +644,7 @@ function buildQuestionsInputFromArgs(rootDir: string, changeName: string, argv: 
         question,
         context,
         answer: item.answer,
-      }, item, existingRecord), item.id, "resolved question");
+      }, item, existingRecord), item.id, "resolved question", session);
       continue;
     }
 
@@ -502,7 +656,7 @@ function buildQuestionsInputFromArgs(rootDir: string, changeName: string, argv: 
       question: item.question,
       context: item.context,
       answer: item.answer,
-    }, item), item.id, "resolved question");
+    }, item), item.id, "resolved question", session);
   }
 
   input.open = open;
@@ -526,8 +680,6 @@ export type TaskRemovalOutcome = {
 };
 
 type TaskCommandInput = {
-  reset: boolean;
-  force: boolean;
   removals: string[];
   groups: TaskGroup[];
   validationTask?: string;
@@ -535,7 +687,7 @@ type TaskCommandInput = {
 };
 
 function parseTaskCommandInput(argv: string[], rootDir: string): TaskCommandInput {
-  const input: TaskCommandInput = { reset: false, force: false, removals: [], groups: [] };
+  const input: TaskCommandInput = { removals: [], groups: [] };
   let current: TaskGroup | undefined;
 
   function setField(field: "id" | "text" | "status" | "command", value: string, flagName: string): void {
@@ -571,12 +723,6 @@ function parseTaskCommandInput(argv: string[], rootDir: string): TaskCommandInpu
       return resolveStringValue(value, rootDir);
     };
 
-    if (name === "reset" || name === "force") {
-      if (inlineValue !== undefined) throw new Error(`--${name} does not take a value`);
-      if (name === "reset") input.reset = true;
-      else input.force = true;
-      continue;
-    }
     if (name === "section") {
       current = { section: readValue() };
       input.groups.push(current);
@@ -611,10 +757,7 @@ function parseTaskCommandInput(argv: string[], rootDir: string): TaskCommandInpu
   return input;
 }
 
-function existingTaskListInput(rootDir: string, changeName: string, reset: boolean): GenerationInputRecord {
-  if (reset) {
-    return { sections: {}, testing_gates: { validation_task: "", unit_test_task: "" } };
-  }
+function existingTaskListInput(rootDir: string, changeName: string): GenerationInputRecord {
   const artifact = readYamlIfExists<GenerationInputRecord>(
     rootDir,
     `${STRICT_WORKFLOW_DIR}/changes/${changeName}/tasks.yaml`,
@@ -661,24 +804,7 @@ function buildTaskListInputFromArgs(
   removalOutcome?: TaskRemovalOutcome,
 ): GenerationInputRecord {
   const commandInput = parseTaskCommandInput(argv, rootDir);
-
-  // Reset discards the existing task list, so it must never be able to silently drop recorded
-  // completions and must never be able to rebuild the list as an empty set.
-  if (commandInput.reset) {
-    if (commandInput.groups.length === 0) {
-      throw new Error("--reset requires at least one --section/--task/--text group so the task list is never rebuilt empty");
-    }
-    if (!commandInput.force) {
-      const completed = completedTaskIds(rootDir, changeName);
-      if (completed.length > 0) {
-        throw new Error(
-          `--reset would discard completed task(s): ${completed.join(", ")}; re-run with --force to rebuild anyway`,
-        );
-      }
-    }
-  }
-
-  const input = existingTaskListInput(rootDir, changeName, commandInput.reset);
+  const input = existingTaskListInput(rootDir, changeName);
   const sections = isRecord(input.sections) ? input.sections : {};
   const gates = isRecord(input.testing_gates) ? input.testing_gates : { validation_task: "", unit_test_task: "" };
 
@@ -770,11 +896,8 @@ function resolveDeltaExistingPath(rootDir: string, targetSpec: string, specPath:
   return `${targetSpec}.yaml`;
 }
 
-function existingDeltaInput(rootDir: string, changeName: string, targetSpec: string, specPath: string | undefined, reset: boolean): GenerationInputRecord {
+function existingDeltaInput(rootDir: string, changeName: string, targetSpec: string, specPath: string | undefined): GenerationInputRecord {
   const relativeSpecPath = resolveDeltaExistingPath(rootDir, targetSpec, specPath);
-  if (reset) {
-    return emptyDeltaInput(targetSpec, relativeSpecPath);
-  }
   const artifact = readYamlIfExists<GenerationInputRecord>(
     rootDir,
     `${STRICT_WORKFLOW_DIR}/changes/${changeName}/specs/${relativeSpecPath}`,
@@ -818,7 +941,6 @@ type DeltaRequirementGroup = {
 };
 
 type DeltaCommandInput = {
-  reset: boolean;
   targetSpec?: string;
   specPath?: string;
   title?: string;
@@ -826,14 +948,21 @@ type DeltaCommandInput = {
   implementation: string[];
   tests: string[];
   requirements: DeltaRequirementGroup[];
+  removedRequirements: string[];
+  removedScenarios: string[];
+  removedImplementation: string[];
+  removedTests: string[];
 };
 
 function parseDeltaCommandInput(argv: string[], rootDir: string): DeltaCommandInput {
   const input: DeltaCommandInput = {
-    reset: false,
     implementation: [],
     tests: [],
     requirements: [],
+    removedRequirements: [],
+    removedScenarios: [],
+    removedImplementation: [],
+    removedTests: [],
   };
   let currentOperation: string | undefined;
   let hasPendingOperation = false;
@@ -887,8 +1016,14 @@ function parseDeltaCommandInput(argv: string[], rootDir: string): DeltaCommandIn
     }
 
     const name = token.slice(2);
-    if (name === "reset") {
-      input.reset = true;
+    if (name === "remove-requirement" || name === "remove-scenario"
+      || name === "remove-implementation" || name === "remove-test") {
+      const value = readValue(name, index);
+      index += 1;
+      if (name === "remove-requirement") input.removedRequirements.push(value);
+      else if (name === "remove-scenario") input.removedScenarios.push(value);
+      else if (name === "remove-implementation") input.removedImplementation.push(value);
+      else input.removedTests.push(value);
       continue;
     }
     if (name === "target-spec") {
@@ -993,7 +1128,7 @@ function buildDeltaInputFromArgs(rootDir: string, changeName: string, argv: stri
   if (!targetSpec) {
     throw new Error("missing required argument --target-spec");
   }
-  const input = existingDeltaInput(rootDir, changeName, targetSpec, commandInput.specPath, commandInput.reset);
+  const input = existingDeltaInput(rootDir, changeName, targetSpec, commandInput.specPath);
 
   if (commandInput.title !== undefined || commandInput.newSpecPath !== undefined) {
     if (commandInput.title === undefined || commandInput.newSpecPath === undefined) {
@@ -1003,17 +1138,43 @@ function buildDeltaInputFromArgs(rootDir: string, changeName: string, argv: stri
   }
 
   const mapping = isRecord(input.mapping) ? input.mapping : {};
+  const removedImplementation = new Set(commandInput.removedImplementation);
+  const removedTests = new Set(commandInput.removedTests);
   mapping.implementation = uniqueStrings([
     ...(Array.isArray(mapping.implementation) ? mapping.implementation as string[] : []),
     ...commandInput.implementation,
-  ]);
+  ]).filter((entry) => !removedImplementation.has(entry));
   mapping.tests = uniqueStrings([
     ...(Array.isArray(mapping.tests) ? mapping.tests as string[] : []),
     ...commandInput.tests,
-  ]);
+  ]).filter((entry) => !removedTests.has(entry));
   input.mapping = mapping;
 
+  const session = newWriteSession();
   const operations = isRecord(input.operations) ? input.operations : {};
+
+  // Removals run before upserts so one invocation can drop a requirement and restate it.
+  for (const requirementId of commandInput.removedRequirements) {
+    for (const operationMap of Object.values(operations)) {
+      if (isRecord(operationMap)) removeKeyedItem(operationMap, requirementId);
+    }
+  }
+  for (const target of commandInput.removedScenarios) {
+    const separatorAt = target.indexOf(":");
+    if (separatorAt === -1) {
+      throw new Error(`--remove-scenario expects <requirement-id>:<scenario-id>, got '${target}'`);
+    }
+    const requirementId = target.slice(0, separatorAt);
+    const scenarioId = target.slice(separatorAt + 1);
+    for (const operationMap of Object.values(operations)) {
+      if (!isRecord(operationMap)) continue;
+      const requirement = operationMap[requirementId];
+      if (isRecord(requirement) && isRecord(requirement.scenarios)) {
+        removeKeyedItem(requirement.scenarios, scenarioId);
+      }
+    }
+  }
+
   for (const requirement of commandInput.requirements) {
     if (!["ADDED", "MODIFIED", "REMOVED"].includes(requirement.operation)) {
       throw new Error("--operation must be one of: ADDED, MODIFIED, REMOVED");
@@ -1027,7 +1188,7 @@ function buildDeltaInputFromArgs(rootDir: string, changeName: string, argv: stri
       if (requirement.strength || requirement.statement || requirement.scenarios.length > 0) {
         throw new Error(`removed requirement '${requirement.id}' only supports --reason`);
       }
-      upsertKeyedItem(operationMap, requirement.id, { reason: requirement.reason }, "delta requirement");
+      upsertKeyedItem(operationMap, requirement.id, { reason: requirement.reason }, "delta requirement", session);
       operations[requirement.operation] = operationMap;
       continue;
     }
@@ -1053,7 +1214,7 @@ function buildDeltaInputFromArgs(rootDir: string, changeName: string, argv: stri
       strength: requirement.strength,
       statement: requirement.statement,
       scenarios,
-    });
+    }, session);
     operations[requirement.operation] = operationMap;
   }
   input.operations = operations;
@@ -1101,12 +1262,8 @@ function existingDeltaTechInput(
   changeName: string,
   targetStandard: string,
   techPath: string | undefined,
-  reset: boolean,
 ): GenerationInputRecord {
   const relativeTechPath = resolveDeltaTechExistingPath(rootDir, targetStandard, techPath);
-  if (reset) {
-    return emptyDeltaTechInput(targetStandard, relativeTechPath);
-  }
   const artifact = readYamlIfExists<GenerationInputRecord>(
     rootDir,
     `${STRICT_WORKFLOW_DIR}/changes/${changeName}/tech/${relativeTechPath}`,
@@ -1141,7 +1298,9 @@ type TechRuleGroup = {
 };
 
 type DeltaTechCommandInput = {
-  reset: boolean;
+  removedRules: string[];
+  removedImplementation: string[];
+  removedEnforcement: string[];
   targetStandard?: string;
   techPath?: string;
   title?: string;
@@ -1153,10 +1312,12 @@ type DeltaTechCommandInput = {
 
 function parseDeltaTechCommandInput(argv: string[], rootDir: string): DeltaTechCommandInput {
   const input: DeltaTechCommandInput = {
-    reset: false,
     implementation: [],
     enforcement: [],
     rules: [],
+    removedRules: [],
+    removedImplementation: [],
+    removedEnforcement: [],
   };
   let currentOperation: string | undefined;
   let hasPendingOperation = false;
@@ -1192,8 +1353,12 @@ function parseDeltaTechCommandInput(argv: string[], rootDir: string): DeltaTechC
     }
 
     const name = token.slice(2);
-    if (name === "reset") {
-      input.reset = true;
+    if (name === "remove-rule" || name === "remove-implementation" || name === "remove-enforcement") {
+      const value = readValue(name, index);
+      index += 1;
+      if (name === "remove-rule") input.removedRules.push(value);
+      else if (name === "remove-implementation") input.removedImplementation.push(value);
+      else input.removedEnforcement.push(value);
       continue;
     }
     if (name === "target-standard") {
@@ -1295,7 +1460,8 @@ function buildDeltaTechInputFromArgs(rootDir: string, changeName: string, argv: 
   if (!targetStandard) {
     throw new Error("missing required argument --target-standard");
   }
-  const input = existingDeltaTechInput(rootDir, changeName, targetStandard, commandInput.techPath, commandInput.reset);
+  const input = existingDeltaTechInput(rootDir, changeName, targetStandard, commandInput.techPath);
+  const session = newWriteSession();
 
   if (commandInput.title !== undefined || commandInput.category !== undefined) {
     if (commandInput.title === undefined || commandInput.category === undefined) {
@@ -1309,13 +1475,21 @@ function buildDeltaTechInputFromArgs(rootDir: string, changeName: string, argv: 
     ...(Array.isArray(mapping.implementation) ? mapping.implementation as string[] : []),
     ...commandInput.implementation,
   ]);
+  const removedTechImplementation = new Set(commandInput.removedImplementation);
+  const removedEnforcement = new Set(commandInput.removedEnforcement);
   mapping.enforcement = uniqueStrings([
     ...(Array.isArray(mapping.enforcement) ? mapping.enforcement as string[] : []),
     ...commandInput.enforcement,
-  ]);
+  ]).filter((entry) => !removedEnforcement.has(entry));
+  mapping.implementation = (mapping.implementation as string[]).filter((entry) => !removedTechImplementation.has(entry));
   input.mapping = mapping;
 
   const operations = isRecord(input.operations) ? input.operations : {};
+  for (const ruleId of commandInput.removedRules) {
+    for (const operationMap of Object.values(operations)) {
+      if (isRecord(operationMap)) removeKeyedItem(operationMap, ruleId);
+    }
+  }
   for (const rule of commandInput.rules) {
     if (!["ADDED", "MODIFIED", "REMOVED"].includes(rule.operation)) {
       throw new Error("--operation must be one of: ADDED, MODIFIED, REMOVED");
@@ -1330,7 +1504,7 @@ function buildDeltaTechInputFromArgs(rootDir: string, changeName: string, argv: 
         || rule.examplesGood.length > 0 || rule.examplesBad.length > 0 || rule.exceptions.length > 0) {
         throw new Error(`removed rule '${rule.id}' only supports --reason`);
       }
-      upsertKeyedItem(operationMap, rule.id, { reason: rule.reason }, "delta tech rule");
+      upsertKeyedItem(operationMap, rule.id, { reason: rule.reason }, "delta tech rule", session);
       operations[rule.operation] = operationMap;
       continue;
     }
@@ -1358,11 +1532,87 @@ function buildDeltaTechInputFromArgs(rootDir: string, changeName: string, argv: 
     if (rule.exceptions.length > 0) {
       ruleValue.exceptions = rule.exceptions;
     }
-    upsertKeyedItem(operationMap, rule.id, ruleValue, "delta tech rule");
+    upsertKeyedItem(operationMap, rule.id, ruleValue, "delta tech rule", session);
     operations[rule.operation] = operationMap;
   }
   input.operations = operations;
   return input;
+}
+
+/** Flags that identify which artifact --delete targets, and so may accompany it. */
+const DELETE_COMPANION_FLAGS = new Set(["delete", "target-spec", "spec-path", "target-standard", "tech-path"]);
+
+/** Artifacts --delete refuses, with the reason reported to the caller. */
+const DELETE_REFUSALS: Partial<Record<GeneratableArtifact, string>> = {
+  questions:
+    "questions.yaml holds the requirement-interrogation entries, which no flag may clear; remove a technical question with --remove-question instead",
+  proposal:
+    "proposal.yaml is required for every change and is merged rather than rebuilt; restate the fields you want to change instead",
+};
+
+/**
+ * Resolves the artifact file --delete removes. Delta artifacts cannot be located without their
+ * identity flag, which is why --delete excludes editing flags rather than requiring it be alone.
+ */
+function resolveDeleteTarget(
+  rootDir: string,
+  changeName: string,
+  artifact: GeneratableArtifact,
+  flags: FlagMap,
+): string {
+  const changeDir = `${STRICT_WORKFLOW_DIR}/changes/${changeName}`;
+  if (artifact === "delta-spec") {
+    const targetSpec = requiredOne(flags, "target-spec");
+    return `${changeDir}/specs/${resolveDeltaExistingPath(rootDir, targetSpec, optionalOne(flags, "spec-path"))}`;
+  }
+  if (artifact === "delta-tech") {
+    const targetStandard = requiredOne(flags, "target-standard");
+    return `${changeDir}/tech/${resolveDeltaTechExistingPath(rootDir, targetStandard, optionalOne(flags, "tech-path"))}`;
+  }
+  return `${changeDir}/${artifact}.yaml`;
+}
+
+type DeleteResult = {
+  changeName: string;
+  artifact: GeneratableArtifact;
+  artifactPath: string;
+  deleted: boolean;
+};
+
+function runArtifactDelete(
+  rootDir: string,
+  changeName: string,
+  artifact: GeneratableArtifact,
+  argv: string[],
+): DeleteResult {
+  const flags = parseFlagMap(argv, rootDir);
+  const refusal = DELETE_REFUSALS[artifact];
+  if (refusal) {
+    throw new Error(`--delete is not supported for ${artifact}: ${refusal}`);
+  }
+  const editingFlags = Object.keys(flags).filter((flag) => !DELETE_COMPANION_FLAGS.has(flag));
+  if (editingFlags.length > 0) {
+    throw new Error(
+      `--delete cannot be combined with editing argument(s): ${editingFlags.map((flag) => `--${flag}`).join(", ")}`,
+    );
+  }
+
+  // Deleting the task list would discard recorded completions in one step, which is the class of
+  // loss this command set exists to prevent, so completed work blocks it and must be removed by id.
+  if (artifact === "tasks") {
+    const completed = completedTaskIds(rootDir, changeName);
+    if (completed.length > 0) {
+      throw new Error(
+        `--delete would discard completed task(s): ${completed.join(", ")}; remove them by id with --remove first`,
+      );
+    }
+  }
+
+  const artifactPath = resolveDeleteTarget(rootDir, changeName, artifact, flags);
+  const absolutePath = path.join(rootDir, artifactPath);
+  const deleted = existsSync(absolutePath);
+  if (deleted) rmSync(absolutePath);
+  return { changeName, artifact, artifactPath, deleted };
 }
 
 function buildInputFromNamedArgs(
@@ -1374,7 +1624,7 @@ function buildInputFromNamedArgs(
 ): GenerationInputRecord {
   switch (artifact) {
     case "proposal":
-      return buildProposalInput(parseFlagMap(argv, rootDir));
+      return buildProposalInput(rootDir, changeName, parseFlagMap(argv, rootDir));
     case "design":
       return buildDesignInput(rootDir, changeName, parseFlagMap(argv, rootDir));
     case "questions":
@@ -1413,6 +1663,10 @@ export function runGenerate(argv: string[]): number {
     }
 
     const namedArgs = [firstInputArg, ...extraArgs];
+    if (namedArgs.includes("--delete")) {
+      writeJson(runArtifactDelete(process.cwd(), changeName, artifact, namedArgs));
+      return 0;
+    }
     const removalOutcome: TaskRemovalOutcome = { removed: [], unmatched: [] };
     const input = buildInputFromNamedArgs(process.cwd(), changeName, artifact, namedArgs, removalOutcome);
     const result = generateChangeArtifactFromInput(process.cwd(), changeName, artifact, input);

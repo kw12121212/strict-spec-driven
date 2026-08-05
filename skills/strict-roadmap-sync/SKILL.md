@@ -22,7 +22,7 @@ roadmap-status: strict-spec-cli roadmap-status
 roadmap-sync: strict-spec-cli roadmap-sync
 roadmap-sync-materialize: strict-spec-cli roadmap-sync --materialize-planned-changes
 roadmap-sync-fix-names: strict-spec-cli roadmap-sync --fix-names
-roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." [--depends-on <planned-change-id>] [--status <planned|complete>] [--reset]
+roadmap-generate-planned-change: strict-spec-cli roadmap-generate planned-change --milestone <milestone-id> --id <planned-change-id> --summary "..." --details "..." [--depends-on <planned-change-id>] [--status <planned|complete>] [--remove-depends-on <planned-change-id>]
 ```
 
 ## Prerequisites

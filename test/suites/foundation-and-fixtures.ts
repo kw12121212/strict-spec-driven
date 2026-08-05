@@ -79,6 +79,29 @@ const CANONICAL_REQUIREMENT_IDS = [
  * propose seeds the requirement interrogation as open questions, so a change stays blocked until a
  * human answers them. Fixtures that expect a verifiable change must answer them like a requester.
  */
+/**
+ * Clears the bundled scaffold placeholder content that verify now reports. Nothing rebuilds an
+ * artifact any more, so seeded placeholders persist until they are named for removal.
+ */
+function clearScaffoldPlaceholders(changeName: string, cwd: string): void {
+  cli([
+    "generate", changeName, "design",
+    "--approach", "Authored approach that replaces the scaffold placeholder.",
+    "--remove-approach", "Describe the implementation approach.",
+    "--remove-decision", "sample-decision",
+    "--remove-alternative", "Describe an alternative approach that was considered.",
+    "--remove-risk", "Describe a risk this change carries and how it is mitigated.",
+  ], { cwd });
+  cli([
+    "generate", changeName, "proposal",
+    "--what", "Placeholder-free summary.",
+    "--why", "Placeholder-free rationale.",
+    "--remove-in", "Add [specific behavior] to [target artifact].",
+    "--remove-out", "Implement unrelated workflow behavior.",
+    "--remove-unchanged", "Existing strict workflow behavior remains unchanged unless explicitly listed in scope.",
+  ], { cwd });
+}
+
 function answerSeededRequirementQuestions(changeName: string, cwd: string): void {
   for (const questionId of CANONICAL_REQUIREMENT_IDS) {
     cli([
@@ -1287,7 +1310,6 @@ try {
       "generate",
       changeName,
       "design",
-      "--reset",
       "--approach",
       "Render strict artifacts through structured CLI generation.",
       "--decision",
@@ -1306,28 +1328,47 @@ try {
     "generate writes design artifact",
   );
 
-  // generate tasks builds the task list one task at a time, resetting scaffold placeholders first.
+  // generate tasks builds the task list one task at a time. Nothing rebuilds the list, so the
+  // scaffold's placeholder tasks stay until they are removed by id.
   const firstTask = cli([
-    "generate", changeName, "tasks", "--reset",
+    "generate", changeName, "tasks",
     "--section", "Implementation", "--task", "do-the-work", "--text", "Implement the scoped behavior.",
   ], { cwd: generateTempDir });
   context.assert(firstTask.status === 0, "generate tasks writes the first task", `stderr: ${firstTask.stderr.trim()}`);
-  const firstTaskJson = JSON.parse(firstTask.stdout.trim());
-  context.assert(
-    firstTaskJson.valid === true && firstTaskJson.ready === false,
-    "generate tasks reports a successful write as valid with the incomplete list as ready:false",
-  );
-  context.assert(
-    Array.isArray(firstTaskJson.diagnostics)
-      && firstTaskJson.diagnostics.some((diagnostic: { fieldPath: string }) => diagnostic.fieldPath === "$.sections.Testing"),
-    "generate tasks reports the missing Testing section as a readiness diagnostic",
-  );
-  const afterReset = yamlModule.parseYamlDocument<{ sections: Record<string, Record<string, unknown>> }>(
+  const afterFirstTask = yamlModule.parseYamlDocument<{ sections: Record<string, Record<string, unknown>> }>(
     readFileSync(path.join(changeDir, "tasks.yaml"), "utf8"),
   );
   context.assert(
-    Object.keys(afterReset.sections).length === 1 && "Implementation" in afterReset.sections,
-    "generate tasks --reset clears scaffold placeholder tasks",
+    "do-the-work" in (afterFirstTask.sections.Implementation ?? {})
+      && "implement-change" in (afterFirstTask.sections.Implementation ?? {}),
+    "generate tasks appends alongside the scaffold placeholder tasks rather than rebuilding the list",
+  );
+
+  // Clearing the scaffold's Testing and Verification tasks is the only way to empty those sections,
+  // and it is what makes the readiness diagnostics observable again.
+  const removePlaceholder = cli([
+    "generate", changeName, "tasks",
+    "--remove", "implement-change", "--remove", "run-project-regression", "--remove", "verify-scope",
+  ], { cwd: generateTempDir });
+  const afterRemoval = yamlModule.parseYamlDocument<{ sections: Record<string, Record<string, unknown>> }>(
+    readFileSync(path.join(changeDir, "tasks.yaml"), "utf8"),
+  );
+  context.assert(
+    removePlaceholder.status === 0
+      && !("implement-change" in (afterRemoval.sections.Implementation ?? {}))
+      && "do-the-work" in (afterRemoval.sections.Implementation ?? {}),
+    "generate tasks --remove drops the named placeholder task and leaves its siblings",
+    `stderr: ${removePlaceholder.stderr.trim()}`,
+  );
+  const removalJson = JSON.parse(removePlaceholder.stdout.trim());
+  context.assert(
+    removalJson.valid === true && removalJson.ready === false,
+    "generate tasks reports a successful write as valid with the incomplete list as ready:false",
+  );
+  context.assert(
+    Array.isArray(removalJson.diagnostics)
+      && removalJson.diagnostics.some((diagnostic: { fieldPath: string }) => diagnostic.fieldPath === "$.sections.Testing"),
+    "generate tasks reports the missing Testing section as a readiness diagnostic",
   );
 
   // Appending a Testing task and setting gates still writes while the list is incomplete.
@@ -1411,30 +1452,28 @@ try {
     "generate tasks restatement overwrites only supplied fields and preserves status and command",
   );
 
-  // --reset over a completed task is refused unless forced, and never rebuilds the list empty.
-  const resetBlocked = cli([
-    "generate", changeName, "tasks", "--reset",
+  // No flag rebuilds the list, so a completed task survives every edit and can only go away when
+  // it is named. This is the guard the old rebuild-with-force flags used to stand in for.
+  const completedBefore = readTasks().sections.Testing["run-tests"];
+  const addAlongsideCompleted = cli([
+    "generate", changeName, "tasks",
     "--section", "Implementation", "--task", "fresh", "--text", "Fresh start.",
   ], { cwd: generateTempDir });
   context.assert(
-    resetBlocked.status !== 0 && resetBlocked.stderr.includes("run-tests"),
-    "generate tasks --reset over completed work is refused and names the completed task",
-    `stderr: ${resetBlocked.stderr.trim()}`,
+    addAlongsideCompleted.status === 0
+      && JSON.stringify(readTasks().sections.Testing["run-tests"]) === JSON.stringify(completedBefore),
+    "generate tasks leaves a completed task untouched while appending new work",
+    `stderr: ${addAlongsideCompleted.stderr.trim()}`,
   );
-  const resetNoGroup = cli(["generate", changeName, "tasks", "--reset", "--force"], { cwd: generateTempDir });
+  const deleteOverCompleted = cli(["generate", changeName, "tasks", "--delete"], { cwd: generateTempDir });
   context.assert(
-    resetNoGroup.status !== 0 && resetNoGroup.stderr.includes("at least one"),
-    "generate tasks --reset with no task group is refused",
-    `stderr: ${resetNoGroup.stderr.trim()}`,
+    deleteOverCompleted.status !== 0 && deleteOverCompleted.stderr.includes("run-tests"),
+    "generate tasks --delete over completed work is refused and names the completed task",
+    `stderr: ${deleteOverCompleted.stderr.trim()}`,
   );
-  const resetForced = cli([
-    "generate", changeName, "tasks", "--reset", "--force",
-    "--section", "Implementation", "--task", "rebuilt", "--text", "Rebuilt task.",
-  ], { cwd: generateTempDir });
   context.assert(
-    resetForced.status === 0 && Object.keys(readTasks().sections).length === 1 && "Implementation" in readTasks().sections,
-    "generate tasks --reset --force rebuilds the list from the supplied tasks",
-    `stderr: ${resetForced.stderr.trim()}`,
+    readTasks().sections.Testing["run-tests"] !== undefined,
+    "a refused generate tasks --delete leaves the task list in place",
   );
 
   // --remove deletes a task; an unknown id is an idempotent no-op reported in the result.
@@ -1472,10 +1511,10 @@ try {
   // Values may begin with a dash via the --flag=value form.
   const dashValue = cli([
     "generate", changeName, "tasks",
-    "--section", "Implementation", "--task", "dashy", "--text=--reset clears placeholders",
+    "--section", "Implementation", "--task", "dashy", "--text=--delete removes the whole artifact",
   ], { cwd: generateTempDir });
   context.assert(
-    dashValue.status === 0 && readTasks().sections.Implementation["dashy"].text === "--reset clears placeholders",
+    dashValue.status === 0 && readTasks().sections.Implementation["dashy"].text === "--delete removes the whole artifact",
     "generate tasks --flag=value stores a value that begins with a dash",
     `stderr: ${dashValue.stderr.trim()}`,
   );
@@ -1483,7 +1522,11 @@ try {
   writeCompleteTasksArtifact(changeDir, changeName);
 
   context.assert(
-    cli(["generate", changeName, "questions", "--reset"], { cwd: generateTempDir }).status === 0,
+    cli([
+      "generate", changeName, "questions",
+      "--resolved", "technical-detail", "--question", "Which path?", "--context", "Context for the choice.",
+      "--answer", "The documented path.",
+    ], { cwd: generateTempDir }).status === 0,
     "generate writes questions artifact",
   );
   answerSeededRequirementQuestions(changeName, generateTempDir);
@@ -1532,6 +1575,7 @@ try {
     "generate unsupported artifact failure names allowed artifacts",
   );
 
+  clearScaffoldPlaceholders(changeName, generateTempDir);
   const verifyGenerated = cli(["verify", changeName], { cwd: generateTempDir });
   context.assert(verifyGenerated.status === 0, "generated complete change passes verify", `stderr: ${verifyGenerated.stderr.trim()} stdout: ${verifyGenerated.stdout.trim()}`);
 
@@ -1595,7 +1639,6 @@ try {
     "generate",
     directChangeName,
     "design",
-    "--reset",
     "--approach",
     "Use named CLI arguments.",
     "--approach",
@@ -1626,20 +1669,54 @@ try {
   ], { cwd: generateTempDir });
   context.assert(repeatedDesign.status === 0, "generate accepts repeated equivalent keyed design content", `stderr: ${repeatedDesign.stderr.trim()}`);
 
-  const conflictingDesign = cli([
+  // A later invocation restating an id is an edit and overwrites just that decision.
+  const amendedDesign = cli([
     "generate",
     directChangeName,
     "design",
     "--decision",
     "argument-driven-generation",
     "--decision-text",
-    "Conflicting decision text.",
+    "Amended decision text.",
     "--rationale",
     "Named arguments expose the CLI contract directly.",
   ], { cwd: generateTempDir });
-  context.assert(conflictingDesign.status !== 0, "generate rejects conflicting duplicate keyed design content");
+  const amendedDesignArtifact = yamlModule.parseYamlDocument<{
+    approach: string[];
+    decisions: Record<string, { decision: string }>;
+  }>(readFileSync(path.join(generateTempDir, ".strict-spec-driven", "changes", directChangeName, "design.yaml"), "utf8"));
   context.assert(
-    conflictingDesign.stderr.includes("duplicate decision 'argument-driven-generation'"),
+    amendedDesign.status === 0
+      && amendedDesignArtifact.decisions["argument-driven-generation"].decision === "Amended decision text.",
+    "generate overwrites a restated decision in a later invocation",
+    `stderr: ${amendedDesign.stderr.trim()}`,
+  );
+  context.assert(
+    amendedDesignArtifact.approach.length > 0,
+    "amending one decision leaves the recorded approach entries in place",
+  );
+
+  // Naming one id twice inside a single invocation is a typo, not an edit, and still fails.
+  const conflictingDesign = cli([
+    "generate",
+    directChangeName,
+    "design",
+    "--decision",
+    "same-invocation-twice",
+    "--decision-text",
+    "First text.",
+    "--rationale",
+    "First rationale.",
+    "--decision",
+    "same-invocation-twice",
+    "--decision-text",
+    "Second text.",
+    "--rationale",
+    "Second rationale.",
+  ], { cwd: generateTempDir });
+  context.assert(conflictingDesign.status !== 0, "generate rejects the same decision id supplied twice in one invocation");
+  context.assert(
+    conflictingDesign.stderr.includes("duplicate decision 'same-invocation-twice'"),
     "generate duplicate keyed conflict names the conflicting decision",
     `stderr: ${conflictingDesign.stderr.trim()}`,
   );
@@ -1650,7 +1727,6 @@ try {
     "generate",
     directChangeName,
     "questions",
-    "--reset",
     "--open",
     "open-cli-contract",
     "--question",
@@ -1677,14 +1753,28 @@ try {
     directOpenTechnical.length === 1 && directResolvedTechnical.length === 1,
     "generate writes open and resolved questions in one command",
   );
-  const resetQuestions = cli(["generate", directChangeName, "questions", "--reset"], { cwd: generateTempDir });
-  context.assert(resetQuestions.status === 0, "generate resets questions artifact from named arguments", `stderr: ${resetQuestions.stderr.trim()}`);
-  const resetQuestionsArtifact = yamlModule.parseYamlDocument<{ open: Array<{ id: string; kind?: string }> }>(
+  // No flag clears the interrogation gate: removal refuses a requirement id and --delete is refused
+  // outright for the questions artifact.
+  const removeRequirement = cli([
+    "generate", directChangeName, "questions", "--remove-question", CANONICAL_REQUIREMENT_IDS[0] as string,
+  ], { cwd: generateTempDir });
+  context.assert(
+    removeRequirement.status !== 0 && removeRequirement.stderr.includes("interrogation gate"),
+    "generate questions --remove-question refuses a requirement-kind entry",
+    `stderr: ${removeRequirement.stderr.trim()}`,
+  );
+  const deleteQuestions = cli(["generate", directChangeName, "questions", "--delete"], { cwd: generateTempDir });
+  context.assert(
+    deleteQuestions.status !== 0 && deleteQuestions.stderr.includes("not supported for questions"),
+    "generate questions rejects --delete",
+    `stderr: ${deleteQuestions.stderr.trim()}`,
+  );
+  const gateIntact = yamlModule.parseYamlDocument<{ open: Array<{ id: string; kind?: string }> }>(
     readFileSync(path.join(directChangeDir, "questions.yaml"), "utf8"),
   );
   context.assert(
-    CANONICAL_REQUIREMENT_IDS.every((questionId) => resetQuestionsArtifact.open.some((entry) => entry.id === questionId)),
-    "generate questions --reset preserves the seeded requirement interrogation",
+    CANONICAL_REQUIREMENT_IDS.every((questionId) => gateIntact.open.some((entry) => entry.id === questionId)),
+    "the seeded requirement interrogation survives every removal attempt",
   );
   answerSeededRequirementQuestions(directChangeName, generateTempDir);
 
@@ -1692,7 +1782,6 @@ try {
     "generate",
     directChangeName,
     "delta-spec",
-    "--reset",
     "--target-spec",
     "cli-foundation",
     "--spec-path",
@@ -1843,16 +1932,41 @@ try {
     "--statement",
     "Conflicting requirement statement.",
   ], { cwd: generateTempDir });
+  // A later invocation restating a requirement is an edit: the statement is replaced and the
+  // requirement's recorded scenarios survive.
   context.assert(
-    conflictingDeltaMetadata.status !== 0
-      && conflictingDeltaMetadata.stderr.includes("delta requirement 'argument-driven-test-requirement'")
-      && conflictingDeltaMetadata.stderr.includes("statement"),
-    "generate rejects conflicting delta requirement metadata with field context",
+    conflictingDeltaMetadata.status === 0,
+    "generate overwrites a restated delta requirement statement in a later invocation",
     `stderr: ${conflictingDeltaMetadata.stderr.trim()}`,
   );
+  const amendedDelta = yamlModule.parseYamlDocument<{
+    operations: { ADDED: Record<string, { statement: string; scenarios: Record<string, unknown> }> };
+  }>(readFileSync(directDeltaPath, "utf8"));
   context.assert(
-    readFileSync(directDeltaPath, "utf8") === appendedDeltaBytes,
-    "generate metadata conflicts leave the existing delta artifact unchanged",
+    amendedDelta.operations.ADDED["argument-driven-test-requirement"].statement === "Conflicting requirement statement."
+      && Object.keys(amendedDelta.operations.ADDED["argument-driven-test-requirement"].scenarios).length > 0,
+    "amending a delta requirement statement preserves its recorded scenarios",
+  );
+  const amendedDeltaBytes = readFileSync(directDeltaPath, "utf8");
+  // Naming the same requirement twice inside one invocation with different statements is a typo.
+  const sameInvocationRequirementConflict = cli([
+    "generate", directChangeName, "delta-spec",
+    "--target-spec", "cli-foundation", "--spec-path", "cli/foundation.yaml",
+    "--operation", "ADDED", "--requirement", "argument-driven-test-requirement",
+    "--strength", "MUST", "--statement", "First statement in one invocation.",
+    "--operation", "ADDED", "--requirement", "argument-driven-test-requirement",
+    "--strength", "MUST", "--statement", "Second statement in the same invocation.",
+  ], { cwd: generateTempDir });
+  context.assert(
+    sameInvocationRequirementConflict.status !== 0
+      && sameInvocationRequirementConflict.stderr.includes("delta requirement 'argument-driven-test-requirement'")
+      && sameInvocationRequirementConflict.stderr.includes("statement"),
+    "generate rejects one delta requirement id restated twice in a single invocation",
+    `stderr: ${sameInvocationRequirementConflict.stderr.trim()}`,
+  );
+  context.assert(
+    readFileSync(directDeltaPath, "utf8") === amendedDeltaBytes,
+    "a rejected same-invocation requirement conflict leaves the delta artifact unchanged",
   );
   const conflictingDeltaScenario = cli([
     ...incrementalScenarioArgs.slice(0, -2),
@@ -1860,15 +1974,35 @@ try {
     "conflicting scenario steps replace the artifact",
   ], { cwd: generateTempDir });
   context.assert(
-    conflictingDeltaScenario.status !== 0
-      && conflictingDeltaScenario.stderr.includes("scenario 'incremental-scenario-append'")
-      && conflictingDeltaScenario.stderr.includes("delta requirement 'argument-driven-test-requirement'"),
-    "generate rejects conflicting same-id delta scenarios with scenario and requirement context",
+    conflictingDeltaScenario.status === 0,
+    "generate overwrites a restated scenario's steps in a later invocation",
     `stderr: ${conflictingDeltaScenario.stderr.trim()}`,
   );
+  const scenarioAmended = yamlModule.parseYamlDocument<{
+    operations: { ADDED: Record<string, { scenarios: Record<string, Array<Record<string, string>>> }> };
+  }>(readFileSync(directDeltaPath, "utf8"));
   context.assert(
-    readFileSync(directDeltaPath, "utf8") === appendedDeltaBytes,
-    "generate scenario conflicts leave the existing delta artifact unchanged",
+    JSON.stringify(scenarioAmended.operations.ADDED["argument-driven-test-requirement"].scenarios["incremental-scenario-append"])
+      .includes("conflicting scenario steps replace the artifact"),
+    "amending one scenario replaces only that scenario's steps",
+  );
+  const scenarioAmendedBytes = readFileSync(directDeltaPath, "utf8");
+  const sameInvocationScenarioConflict = cli([
+    ...incrementalScenarioArgs,
+    "--scenario", "incremental-scenario-append",
+    "--given", "a different given",
+    "--when", "a different when",
+    "--then", "a different then",
+  ], { cwd: generateTempDir });
+  context.assert(
+    sameInvocationScenarioConflict.status !== 0
+      && sameInvocationScenarioConflict.stderr.includes("incremental-scenario-append"),
+    "generate rejects one scenario id restated twice in a single invocation",
+    `stderr: ${sameInvocationScenarioConflict.stderr.trim()}`,
+  );
+  context.assert(
+    readFileSync(directDeltaPath, "utf8") === scenarioAmendedBytes,
+    "a rejected same-invocation scenario conflict leaves the delta artifact unchanged",
   );
   const parsedDirectDelta = yamlModule.parseYamlDocument<{
     mapping: { implementation: string[] };
@@ -1894,6 +2028,99 @@ try {
     "generate preserves existing scenario order and appends compatible scenario ids in call order",
   );
 
+  // Every bundled change scaffold artifact must parse and validate, because nothing rebuilds an
+  // artifact any more: the first write reads the seeded file and merges into it.
+  const scaffoldRoundTripChange = "scaffold-round-trip-change";
+  cli(["propose", scaffoldRoundTripChange], { cwd: generateTempDir });
+  const scaffoldDesignWrite = cli([
+    "generate", scaffoldRoundTripChange, "design", "--approach", "Populated without any rebuild flag.",
+  ], { cwd: generateTempDir });
+  context.assert(
+    scaffoldDesignWrite.status === 0,
+    "generate design populates a freshly scaffolded change without any rebuild flag",
+    `stderr: ${scaffoldDesignWrite.stderr.trim()}`,
+  );
+  const scaffoldVerify = JSON.parse(
+    cli(["verify", scaffoldRoundTripChange], { cwd: generateTempDir }).stdout.trim(),
+  );
+  context.assert(
+    scaffoldVerify.diagnostics.some((d: { source: string }) => d.source === "design_completeness")
+      && scaffoldVerify.diagnostics.some((d: { source: string }) => d.source === "proposal_completeness"),
+    "verify reports leftover design and proposal scaffold placeholder content",
+    JSON.stringify(scaffoldVerify.diagnostics.map((d: { source: string }) => d.source)),
+  );
+
+  // Proposal writes merge, so an invocation that restates only one scope entry keeps the others.
+  cli([
+    "generate", scaffoldRoundTripChange, "proposal",
+    "--what", "Merge check.", "--why", "Merge rationale.",
+    "--in", "First recorded scope entry.", "--in", "Second recorded scope entry.",
+    "--unchanged", "Recorded unchanged behavior.",
+  ], { cwd: generateTempDir });
+  cli([
+    "generate", scaffoldRoundTripChange, "proposal",
+    "--what", "Merge check.", "--why", "Merge rationale.",
+    "--in", "Third recorded scope entry.",
+  ], { cwd: generateTempDir });
+  const mergedProposal = yamlModule.parseYamlDocument<{
+    scope: { in: string[] };
+    unchanged_behavior: string[];
+  }>(readFileSync(path.join(generateTempDir, ".strict-spec-driven", "changes", scaffoldRoundTripChange, "proposal.yaml"), "utf8"));
+  context.assert(
+    ["First recorded scope entry.", "Second recorded scope entry.", "Third recorded scope entry."]
+      .every((entry) => mergedProposal.scope.in.includes(entry))
+      && mergedProposal.unchanged_behavior.includes("Recorded unchanged behavior."),
+    "generate proposal merges a later invocation into the recorded scope instead of replacing it",
+    JSON.stringify(mergedProposal.scope.in),
+  );
+
+  // Substring removal must resolve to exactly one entry, and refuse rather than guess.
+  const ambiguousRemoval = cli([
+    "generate", scaffoldRoundTripChange, "proposal",
+    "--what", "Merge check.", "--why", "Merge rationale.",
+    "--remove-in", "recorded scope entry",
+  ], { cwd: generateTempDir });
+  context.assert(
+    ambiguousRemoval.status !== 0 && ambiguousRemoval.stderr.includes("matched 3 entries"),
+    "generate proposal refuses an ambiguous substring removal and names the candidates",
+    `stderr: ${ambiguousRemoval.stderr.trim()}`,
+  );
+  const exactRemoval = cli([
+    "generate", scaffoldRoundTripChange, "proposal",
+    "--what", "Merge check.", "--why", "Merge rationale.",
+    "--remove-in", "Second recorded scope entry.",
+  ], { cwd: generateTempDir });
+  const afterExactRemoval = yamlModule.parseYamlDocument<{ scope: { in: string[] } }>(
+    readFileSync(path.join(generateTempDir, ".strict-spec-driven", "changes", scaffoldRoundTripChange, "proposal.yaml"), "utf8"),
+  );
+  context.assert(
+    exactRemoval.status === 0
+      && !afterExactRemoval.scope.in.includes("Second recorded scope entry.")
+      && afterExactRemoval.scope.in.includes("First recorded scope entry.")
+      && afterExactRemoval.scope.in.includes("Third recorded scope entry."),
+    "generate proposal removes exactly the named scope entry and leaves its siblings",
+    JSON.stringify(afterExactRemoval.scope.in),
+  );
+
+  // --delete removes the whole artifact, but never alongside an editing flag.
+  const deleteWithEdit = cli([
+    "generate", scaffoldRoundTripChange, "design", "--delete", "--approach", "Should not be written.",
+  ], { cwd: generateTempDir });
+  const designPath = path.join(generateTempDir, ".strict-spec-driven", "changes", scaffoldRoundTripChange, "design.yaml");
+  context.assert(
+    deleteWithEdit.status !== 0
+      && deleteWithEdit.stderr.includes("cannot be combined with editing argument")
+      && existsSync(designPath),
+    "generate --delete is rejected alongside an editing flag and leaves the artifact in place",
+    `stderr: ${deleteWithEdit.stderr.trim()}`,
+  );
+  const deleteAlone = cli(["generate", scaffoldRoundTripChange, "design", "--delete"], { cwd: generateTempDir });
+  context.assert(
+    deleteAlone.status === 0 && !existsSync(designPath),
+    "generate --delete removes the target artifact file",
+    `stderr: ${deleteAlone.stderr.trim()}`,
+  );
+
   const missingArgument = cli(["generate", directChangeName, "proposal", "--what", "Missing why."], { cwd: generateTempDir });
   context.assert(missingArgument.status !== 0, "generate rejects missing required named arguments");
   context.assert(
@@ -1902,6 +2129,16 @@ try {
     `stderr: ${missingArgument.stderr.trim()}`,
   );
 
+  clearScaffoldPlaceholders(directChangeName, generateTempDir);
+  // The technical question recorded above is resolved by removing it: no flag rebuilds the list.
+  const removeTechnicalQuestion = cli([
+    "generate", directChangeName, "questions", "--remove-question", "open-cli-contract",
+  ], { cwd: generateTempDir });
+  context.assert(
+    removeTechnicalQuestion.status === 0,
+    "generate questions --remove-question drops a technical question",
+    `stderr: ${removeTechnicalQuestion.stderr.trim()}`,
+  );
   const verifyDirectGenerated = cli(["verify", directChangeName], { cwd: generateTempDir });
   context.assert(verifyDirectGenerated.status === 0, "argument-driven generated complete change passes verify", `stderr: ${verifyDirectGenerated.stderr.trim()} stdout: ${verifyDirectGenerated.stdout.trim()}`);
 
@@ -2053,12 +2290,16 @@ try {
     placeholderVerify.stdout.trim(),
   );
 
-  // Rebuilding the list with only an Implementation task leaves Testing and Verification empty.
+  // Removing the scaffold tasks by id leaves Testing and Verification empty, which is now the only
+  // way to empty a section: no flag rebuilds the list.
   const emptyRebuild = cli([
-    "generate", completenessChange, "tasks", "--reset", "--force",
+    "generate", completenessChange, "tasks",
     "--section", "Implementation", "--task", "only-impl", "--text", "Only implementation.",
+    "--remove", "implement-change",
+    "--remove", "run-project-regression",
+    "--remove", "verify-scope",
   ], { cwd: verifyCompletenessDir });
-  context.assert(emptyRebuild.status === 0, "verify completeness rebuild writes a single-section list", `stderr: ${emptyRebuild.stderr.trim()}`);
+  context.assert(emptyRebuild.status === 0, "verify completeness removal empties the other sections", `stderr: ${emptyRebuild.stderr.trim()}`);
   const emptySectionVerify = cli(["verify", completenessChange], { cwd: verifyCompletenessDir });
   const emptySectionJson = JSON.parse(emptySectionVerify.stdout.trim());
   context.assert(

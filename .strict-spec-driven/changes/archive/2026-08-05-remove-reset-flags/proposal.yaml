@@ -1,0 +1,37 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: remove-reset-flags
+  status: proposed
+summary:
+  what:
+    - 'Remove every --reset flag from the strict CLI''s artifact-authoring commands and make every authoring write non-destructive: restating a named scalar or keyed item overwrites just that field, a per-list removal flag deletes a single named entry, the proposal generator merges instead of rebuilding, and whole-artifact rebuild is available only as an isolated --delete. Repair the scaffold and verification gaps that --reset currently masks.'
+  why:
+    - 'Amending existing content currently has only one channel: whole-artifact rebuild. upsertKeyedItem (src/cli/cmd-generation.ts:172), mergeDeltaRequirement (src/cli/cmd-generation.ts:197), and nextScalar (src/roadmap/author.ts:162) all refuse a conflicting update, so changing a decision''s wording or a milestone''s goal forces --reset. In roadmap-generate milestone the same --reset simultaneously flips every supplied list field from append to replace (src/roadmap/author.ts:234-253), so a goal edit that also passes --risk silently reduces risks to that one entry. This has already destroyed recorded roadmap content once and required manual recovery. The proposal generator is worse still: buildProposalInput (src/cli/cmd-generation.ts:245) never reads the existing artifact, so every proposal write is an unconditional full replace with no flag to blame.'
+scope:
+  in:
+    - Remove --reset from generate design, generate questions, generate tasks (with --force), generate delta-spec, generate delta-tech, roadmap-generate milestone, and roadmap-generate planned-change, plus --reset-intake-questions
+    - Make restating a named scalar or keyed item overwrite that field instead of raising a conflict, across design decisions, delta-spec requirement strength and statement, delta-tech rules, questions entries, and roadmap milestone and planned-change scalars, while still rejecting a duplicate id restated with conflicting content inside a single invocation
+    - 'Add per-list removal flags following the existing generate tasks --remove pattern: keyed collections are targeted by id, and id-less free-text lists such as approach, risks, and alternatives are targeted by an unambiguous substring that must match exactly one entry'
+    - Make generate proposal read and merge the existing proposal.yaml instead of rebuilding it from flags alone, so adding one scope item cannot silently drop the others
+    - Add --delete for whole-artifact rebuild, accepted only alongside the flags that identify the target artifact and rejected alongside any editing flag
+    - Refuse a removal flag for requirement-kind entries and offer no --delete for questions.yaml, preserving the requirement-interrogation gate
+    - Repair the bundled change design scaffold, whose alternatives and risks placeholders are not parseable YAML; --reset currently masks this because it skips reading the file, so removing --reset without this fix makes generate design fail on every new change
+    - Extend verify's scaffold placeholder detection, which today covers only tasks.yaml, to design.yaml, so placeholder approach, decision, alternative, and risk content cannot survive into an archived change once --reset no longer clears it
+    - Update the shared command-metadata registry so help, JSON help, and the MCP capability inventory describe the new write semantics instead of reset semantics
+    - Update the 51 --reset usages across 11 bundled skill prompts
+    - Rewrite the reset-semantics assertions in the four affected test suites and add coverage for overwrite, removal, delete, proposal merge, scaffold parseability, and placeholder detection
+  out:
+    - Whole-artifact deletion for roadmap milestones and planned changes, pending the open question
+    - CLI authoring paths for main specs, technical standards, architecture.yaml, design-system.yaml, harness.yaml, and config.yaml, which remain agent-authored YAML and belong to a separate roadmap milestone
+    - Any change to schemas, field names, or on-disk file layout, including adding ids to the id-less design lists
+    - The context reset behavior described for strict-spec-auto in cli/foundation.yaml, which shares the word reset but is unrelated
+unchanged_behavior:
+  - Every strict YAML schema, field name, and on-disk file layout; existing changes, archives, and roadmap files need no migration
+  - Command and subcommand names; only flags change
+  - 'The requirement-interrogation gate''s strength: no command may remove or batch-clear requirement-kind questions'
+  - Archive and delta-merge behavior into main specs and technical standards
+  - The (section, task-id) field-level merge that generate tasks already performs, and its existing --remove flag
+  - The MCP tool surface, whose generate tool forwards a raw argument array and names no individual flag

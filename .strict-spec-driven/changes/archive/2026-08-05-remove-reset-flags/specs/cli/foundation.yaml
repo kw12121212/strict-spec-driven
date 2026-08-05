@@ -1,0 +1,206 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/cmd-generation.ts
+    - src/cli/command-metadata-entries.ts
+    - src/scaffold.ts
+    - src/verify.ts
+    - templates/strict-spec-driven/scaffold/changes/design.yaml
+  tests:
+    - test/suites/change-lifecycle.ts
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    cli-artifact-writes-affect-only-named-fields:
+      strength: MUST
+      statement: 'The system MUST confine every artifact-authoring write to the fields named in that invocation: restating an existing scalar or keyed item MUST overwrite it without requiring a confirming flag, repeated list values MUST append, and no flag MUST cause a list the caller did not name to be replaced or cleared. Discarding a single recorded entry MUST require a removal flag that names that entry, and the CLI MUST offer no flag that rebuilds an artifact in place as a side effect of an edit.'
+      scenarios:
+        restating-a-keyed-item-overwrites-only-that-item:
+          - GIVEN: a change artifact records several keyed items and several list entries
+          - WHEN: an authoring command restates one keyed item with new content
+          - THEN: that item's content is replaced, every other keyed item and every list entry is preserved unchanged, and the command exits zero
+        an-edit-never-widens-into-unnamed-lists:
+          - GIVEN: a roadmap milestone records multiple risks, scope entries, done criteria, dependencies, and notes
+          - WHEN: an authoring command changes the milestone goal while also supplying one additional risk
+          - THEN: the goal is replaced, the new risk is appended to the existing risks, and every previously recorded risk, scope entry, done criterion, dependency, and note remains present
+        removing-an-entry-requires-naming-it:
+          - GIVEN: an artifact list records several entries
+          - WHEN: an authoring command supplies a removal flag naming exactly one entry
+          - THEN: only the named entry is removed, the remaining entries are preserved in order, and the command exits zero
+    cli-artifact-delete-is-an-isolated-act:
+      strength: MUST
+      statement: 'The system MUST support deleting a change planning artifact as a separate deliberate act rather than as a mode of an editing command: the delete flag MUST remove the target artifact file, MUST be accepted only alongside the flags that identify which artifact to delete, and the command MUST exit non-zero without writing or deleting anything when the delete flag is combined with any editing flag. The questions artifact MUST NOT accept the delete flag because its requirement entries are the interrogation gate, the proposal artifact MUST NOT accept it because it is required for every change and is merged rather than rebuilt, and the task list MUST refuse it while any task is recorded complete so no single invocation can discard completed work.'
+      scenarios:
+        delete-removes-the-artifact-file:
+          - GIVEN: a change has a populated planning artifact
+          - WHEN: an authoring command runs with the delete flag as its only flag
+          - THEN: the artifact file is removed, the removal is reported, and the command exits zero
+        delete-is-rejected-alongside-any-edit-flag:
+          - GIVEN: a change has a populated planning artifact
+          - WHEN: an authoring command supplies the delete flag together with any editing flag
+          - THEN: the command exits non-zero, reports the conflict, and leaves the artifact byte-identical
+        delete-is-refused-over-completed-tasks:
+          - GIVEN: a change whose task list records at least one completed task
+          - WHEN: an authoring command supplies the delete flag for the task list
+          - THEN: the command exits non-zero naming the completed tasks, and the task list remains in place
+        delete-is-refused-for-required-merged-artifacts:
+          - GIVEN: a change with a populated questions or proposal artifact
+          - WHEN: an authoring command supplies the delete flag for either artifact
+          - THEN: the command exits non-zero explaining why that artifact cannot be deleted, and the artifact remains present and unchanged
+    cli-verify-detects-scaffold-placeholder-content:
+      strength: MUST
+      statement: The proposal-readiness and verify commands MUST report leftover bundled scaffold placeholder content in every change planning artifact that carries placeholders, covering the task text and command placeholders in tasks.yaml, the approach, decision, alternative, and risk placeholders in design.yaml, and the scope and unchanged-behavior placeholders in proposal.yaml, so seeded placeholder content blocks proposal handoff and can never reach an archived change.
+      scenarios:
+        design-placeholders-block-archive:
+          - GIVEN: a change whose design.yaml still carries bundled scaffold placeholder approach, decision, alternative, or risk content
+          - WHEN: verify runs for that change
+          - THEN: verify reports a diagnostic naming the placeholder field and instructing that it be replaced before archiving, and the change is not reported valid
+        authored-content-is-not-reported-as-placeholder:
+          - GIVEN: a change whose design.yaml content has been fully authored
+          - WHEN: verify runs for that change
+          - THEN: no placeholder diagnostic is reported for design.yaml
+        placeholders-block-proposal-handoff:
+          - GIVEN: a change whose design.yaml or proposal.yaml still carries bundled scaffold placeholder content
+          - WHEN: the proposal-readiness check runs for that change
+          - THEN: the change is not reported ready and a diagnostic names the placeholder field
+    cli-proposal-generator-merges-existing-content:
+      strength: MUST
+      statement: The proposal generator MUST read the existing proposal.yaml and merge supplied values into it rather than rebuilding the artifact from the invocation's arguments alone, so scope, out-of-scope, and unchanged-behavior entries recorded by an earlier invocation survive a later one that does not restate them.
+      scenarios:
+        adding-one-scope-entry-preserves-the-others:
+          - GIVEN: a proposal.yaml recording several in-scope, out-of-scope, and unchanged-behavior entries
+          - WHEN: a later proposal generation supplies the required summary arguments and one additional in-scope entry
+          - THEN: the new entry is appended and every previously recorded in-scope, out-of-scope, and unchanged-behavior entry remains present
+  MODIFIED:
+    cli-questions-generator-requirement-attribution:
+      strength: MUST
+      statement: The questions generator MUST accept --kind and --answered-by so requirement entries can be created and resolved with attribution, MUST carry an existing entry's kind forward when --resolve moves it from open to resolved, MUST reject a removal flag that names a requirement-kind entry, MUST NOT accept a delete flag for the questions artifact, MUST offer no flag or flag combination that removes or clears a requirement-kind entry, and MUST document these flags in the shared command-metadata registry.
+      scenarios:
+        removal-flag-refuses-a-requirement-entry:
+          - GIVEN: a change's questions artifact holds the seeded requirement-kind entries
+          - WHEN: an authoring command supplies a removal flag naming one of those requirement entries
+          - THEN: the command exits non-zero, reports that requirement entries cannot be removed, and leaves the questions artifact byte-identical
+        questions-artifact-rejects-delete:
+          - GIVEN: a change's questions artifact holds the seeded requirement-kind entries
+          - WHEN: an authoring command supplies the delete flag for the questions artifact
+          - THEN: the command exits non-zero, reports that the questions artifact cannot be deleted, and the artifact file remains present and unchanged
+        resolve-records-answer-attribution:
+          - GIVEN: an open requirement-kind question and a human-supplied answer
+          - WHEN: the questions generator resolves that id with an answer attributed to a human
+          - THEN: the entry moves to resolved carrying kind requirement and answered_by human
+        rejects-out-of-set-attribution-values:
+          - GIVEN: a questions generator invocation supplying a --kind or --answered-by value outside the permitted sets
+          - WHEN: the command runs
+          - THEN: the command exits non-zero naming the flag and its permitted values
+    cli-subcommands-support-help:
+      strength: MUST
+      statement: The system MUST support exact `--help` and `-h` help requests for the root CLI and every registered subcommand, printing help to stdout and exiting zero without performing the command's normal mutation or validation behavior; root help MUST list every registered command grouped by area with a one-line summary, and subcommand help MUST state the command summary, its positional arguments, a description of every accepted flag including whether it is required, repeatable, removal-scoped, or delete-scoped, the keys the command writes to its output, and the meaning of its exit codes.
+      scenarios:
+        repeatable-and-removal-flag-semantics-are-documented:
+          - GIVEN: a subcommand accepts a repeatable list flag, a removal flag, or a delete flag
+          - WHEN: its help is requested
+          - THEN: stdout states whether repeated values append or overwrite, which entry a removal flag targets, and that the delete flag removes the whole artifact and cannot be combined with other flags, without the caller needing an external skill prompt
+        root-help-lists-commands-with-summaries:
+          - GIVEN: the strict CLI is available
+          - WHEN: the root CLI is invoked with `--help`
+          - THEN: the command exits zero, stdout lists every registered command grouped by area with a one-line summary, canonical registration order is preserved within each group, and stderr is empty
+        subcommand-help-describes-full-surface:
+          - GIVEN: a registered strict CLI subcommand exists
+          - WHEN: that subcommand is invoked with `--help`
+          - THEN: the command exits zero, stdout contains the command summary, its positional arguments, a description for every accepted flag, the command's output keys, and its exit-code meaning, and stderr is empty
+        subcommand-help-skips-cache-sync:
+          - GIVEN: the shared cache root is empty
+          - WHEN: a registered subcommand is invoked with `--help`
+          - THEN: help is printed without creating or writing the shared schema or sample cache
+    cli-help-supports-machine-readable-json:
+      strength: MUST
+      statement: The system MUST support `--help --json` for the root CLI and every registered subcommand, writing a single parseable JSON payload to stdout, exiting zero, leaving stderr empty, performing no mutation or validation, and skipping shared schema and sample cache synchronization; the payload MUST carry the command name, summary, positional arguments, flags with their descriptions and their required, repeatable, removal, and delete semantics, the command's output keys, and its exit-code meaning.
+      scenarios:
+        json-help-carries-write-semantics:
+          - GIVEN: any registered subcommand
+          - WHEN: help is requested in machine-readable form
+          - THEN: the command exits zero, stdout is a single parseable JSON payload carrying that command's name, summary, positional arguments, flag descriptions with required, repeatable, removal, and delete semantics, output keys, and exit-code meaning, and stderr is empty
+        root-json-help-describes-every-command:
+          - GIVEN: the strict CLI is available
+          - WHEN: the root CLI is invoked with `--help --json`
+          - THEN: the command exits zero, stdout is a single parseable JSON payload describing every registered command with its group and summary, and stderr is empty
+        json-help-skips-cache-sync:
+          - GIVEN: the shared cache root is empty
+          - WHEN: any strict CLI command is invoked with `--help --json`
+          - THEN: the payload is printed without creating or writing the shared schema or sample cache
+    cli-generate-tasks-upserts-single-tasks:
+      strength: MUST
+      statement: The system MUST populate the strict task list through a generate tasks artifact that merges one task at a time by section and task id into the existing tasks.yaml, preserves task fields the invocation does not supply, sets testing gates from named arguments, removes a named task on request, offers no flag that discards completed work as part of an edit, and reports write success separately from task list completeness.
+      scenarios:
+        restatement-preserves-unsupplied-fields:
+          - GIVEN: a strict change tasks.yaml contains a task whose status is complete and which carries a command value
+          - WHEN: an agent runs generate tasks for that same section and task id supplying only new text
+          - THEN: the task text is updated while its completed status and command value are preserved
+        no-edit-flag-discards-completed-work:
+          - GIVEN: a strict change tasks.yaml contains at least one task whose status is complete
+          - WHEN: any generate tasks invocation that edits the list is run
+          - THEN: the completed task survives unless it is named by a removal flag, and no flag rebuilds the list in place
+        removal-deletes-a-named-task:
+          - GIVEN: a strict change tasks.yaml contains a task in a known section
+          - WHEN: an agent runs generate tasks with a remove argument naming that task id
+          - THEN: the task is deleted from the artifact
+          - THEN: repeating the same removal for an id that is no longer present succeeds and reports the removal as a no-op
+        values-may-begin-with-a-dash:
+          - GIVEN: a strict change scaffold exists
+          - WHEN: an agent supplies a task text or command whose value begins with a dash using the inline argument syntax
+          - THEN: the value is stored verbatim in the task entry
+    cli-strict-scaffold-template-assets:
+      strength: MUST
+      statement: The system MUST provide bundled strict scaffold template assets that can seed initial `.strict-spec-driven/` project state for init and fixture-driven tests, and every bundled scaffold artifact MUST parse as valid YAML and validate against its registered schema so a freshly seeded artifact can be read and merged by the authoring commands without any rebuild flag.
+      scenarios:
+        required-scaffold-template-asset-families-are-present:
+          - GIVEN: the strict CLI bundled templates are inspected
+          - WHEN: scaffold template assets are enumerated
+          - THEN: template assets exist for strict config, specs index, roadmap index, and empty changes state
+        scaffold-templates-remain-separate-from-contract-schemas-and-examples:
+          - GIVEN: strict template directories are inspected
+          - WHEN: scaffold template assets are compared to schema and example assets
+          - THEN: scaffold assets are stored as a distinct template bundle
+          - THEN: schema and example files remain dedicated to validation contracts and examples
+        every-scaffold-artifact-parses-and-validates:
+          - GIVEN: a change has just been proposed from the bundled scaffold
+          - WHEN: an authoring command populates one of its planning artifacts without any rebuild flag
+          - THEN: the seeded artifact parses, the command reads and merges into it, and the write succeeds
+    cli-propose-generation-prevents-duplicates:
+      strength: MUST
+      statement: The system MUST prevent duplicate YAML content when equivalent proposal population commands are executed more than once, MUST merge compatible incremental scenario additions for an existing delta-spec requirement without rebuilding the artifact or editing YAML directly, and MUST treat a later invocation that restates a keyed item with different content as an edit that overwrites only that item, while a single invocation that names one identifier twice with conflicting content fails before writing.
+      scenarios:
+        repeated-list-values-are-deduplicated:
+          - GIVEN: a strict change artifact already contains a generated list entry
+          - WHEN: the same population command supplies the same list entry again
+          - THEN: the resulting YAML artifact contains that list entry only once
+          - THEN: the original list order is preserved
+        keyed-items-are-upserted-by-identifier:
+          - GIVEN: a generated artifact contains a keyed item such as a task, question, decision, or requirement
+          - WHEN: a later population command targets the same item identifier with equivalent content
+          - THEN: the resulting YAML artifact contains one item for that identifier
+          - THEN: no duplicate keyed entry is written
+        a-later-restatement-overwrites-only-that-item:
+          - GIVEN: a generated artifact contains a keyed item such as a decision, question, requirement, or rule
+          - WHEN: a later population command targets the same identifier with different content
+          - THEN: that item's content is replaced, every other item and list entry in the artifact is preserved unchanged, and the command exits zero
+        conflicting-keyed-items-in-one-invocation-fail-before-write:
+          - GIVEN: a single population invocation names the same keyed identifier twice with conflicting content
+          - WHEN: the command runs
+          - THEN: the command exits non-zero before writing the artifact
+          - THEN: stderr identifies the duplicate identifier conflict
+        compatible-delta-requirement-scenarios-are-merged:
+          - GIVEN: a generated delta spec contains a requirement with stable strength, statement, and scenario ids
+          - WHEN: a later generation call targets the same operation and requirement with matching metadata and a new scenario id
+          - THEN: the new scenario is appended after existing scenarios while unrelated artifact content is preserved
+          - THEN: repeating an equivalent scenario remains idempotent
+        conflicting-delta-requirement-content-in-one-invocation-fails-before-write:
+          - GIVEN: a single generation invocation supplies different steps for the same scenario id of one requirement
+          - WHEN: the command runs
+          - THEN: the command exits non-zero before rewriting the artifact
+          - THEN: stderr identifies the conflicting requirement field or scenario id
+  REMOVED: {}

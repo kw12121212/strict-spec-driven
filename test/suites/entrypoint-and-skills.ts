@@ -746,8 +746,8 @@ context.assert(
       normalizedSkillContent.includes("One requirement can include multiple scenario groups by repeating `--scenario`")
         && normalizedSkillContent.includes("later compatible call for the same operation, requirement id, strength, and statement appends new scenario ids")
         && normalizedSkillContent.includes("remains idempotent for equivalent scenarios")
-        && normalizedSkillContent.includes("Never use `--reset` or direct YAML editing merely to append compatible scenarios")
-        && normalizedSkillContent.includes("`--reset` rebuilds the entire target delta artifact"),
+        && normalizedSkillContent.includes("Scenarios append on their own, so nothing needs rebuilding or hand-editing to add one")
+        && normalizedSkillContent.includes("Drop a single scenario with `--remove-scenario <requirement-id>:<scenario-id>`"),
       `${skillName} documents non-destructive incremental delta scenario generation`,
     );
   }

@@ -27,11 +27,11 @@ decisions:
     rationale: Explain the independent reasoning, tradeoff, or constraint behind this decision.
 alternatives:
   # Replace the sample entry below with real alternatives considered.
-  - option: [Alternative approach description].
-    reason: [Why it was accepted or rejected].
+  - option: "Describe an alternative approach that was considered."
+    reason: "Explain why it was rejected in favor of the chosen approach."
 risks:
   # Replace the sample entry below with real risks, or remove if none.
-  - [Risk description and mitigation].
+  - "Describe a risk this change carries and how it is mitigated."
 `,
   "strict-spec-driven/scaffold/changes/proposal.yaml": `schema: strict-spec-driven/change-proposal/v1
 schema_version: 1

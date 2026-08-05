@@ -1,0 +1,43 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: roadmap-domain-behavior
+mapping:
+  implementation:
+    - src/roadmap/author.ts
+    - src/cli/cmd-roadmap.ts
+  tests:
+    - test/suites/roadmap-and-migration.ts
+operations:
+  ADDED:
+    roadmap-milestone-entries-are-individually-removable:
+      strength: MUST
+      statement: 'The system MUST let a single recorded roadmap entry be removed by naming it: roadmap-generate milestone MUST accept removal flags targeting one scope entry, done criterion, dependency, risk, note, or intake question, and roadmap-generate planned-change MUST accept a removal flag targeting one depends_on entry. Each removal MUST leave every sibling entry unchanged, MUST be reported, and MUST succeed as a reported no-op when the named entry is already absent.'
+      scenarios:
+        removing-one-risk-leaves-siblings:
+          - GIVEN: a strict roadmap milestone records several risks
+          - WHEN: roadmap-generate milestone supplies a removal flag naming exactly one risk
+          - THEN: only that risk is removed, the remaining risks are preserved in order, the roadmap index is synchronized, and the command exits zero
+        removing-an-absent-entry-is-a-no-op:
+          - GIVEN: a strict roadmap milestone does not record a given note
+          - WHEN: roadmap-generate milestone supplies a removal flag naming that note
+          - THEN: the command exits zero, reports the removal as a no-op, and leaves the milestone unchanged
+  MODIFIED:
+    roadmap-milestone-authoring-command-contract:
+      strength: MUST
+      statement: The system MUST make roadmap-generate milestone create and safely update strict roadmap milestone artifacts using structured YAML fields, require explicit structured milestone intake questions when creating a milestone, run roadmap synchronization after successful writes, and report updated files deterministically, while standalone planned-change authoring remains on the dedicated roadmap-generate planned-change command. A supplied scalar field MUST overwrite the recorded value without any confirming flag; supplied list values and intake questions MUST merge additively, with a restated intake question id overwriting only that question; and the command MUST offer no flag that replaces or clears a list the invocation did not name, so editing one field can never discard unrelated recorded content.
+      scenarios:
+        editing-a-scalar-preserves-every-list:
+          - GIVEN: a strict roadmap milestone records a goal together with multiple scope entries, done criteria, dependencies, risks, notes, and intake questions
+          - WHEN: roadmap-generate milestone supplies a new goal and one additional risk
+          - THEN: the goal is replaced, the new risk is appended, and every previously recorded scope entry, done criterion, dependency, risk, note, and intake question remains present unchanged
+        restating-an-intake-question-overwrites-only-that-question:
+          - GIVEN: a strict roadmap milestone records multiple intake_questions entries
+          - WHEN: roadmap-generate milestone restates one intake question id with new content
+          - THEN: that question's content is replaced, every other intake question is preserved unchanged, and the roadmap index is synchronized
+        no-flag-replaces-an-unnamed-list:
+          - GIVEN: a strict roadmap milestone records multiple risks
+          - WHEN: any roadmap-generate milestone invocation runs without a removal flag naming a risk
+          - THEN: no recorded risk is removed, and the command offers no flag that would replace the risk list wholesale
+  REMOVED: {}

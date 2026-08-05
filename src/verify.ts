@@ -6,7 +6,7 @@ import {
   validateArtifact,
   type ValidationDiagnostic,
 } from "./validation.js";
-import { getScaffoldTaskPlaceholders } from "./scaffold.js";
+import { getScaffoldDesignPlaceholders, getScaffoldProposalPlaceholders, getScaffoldTaskPlaceholders } from "./scaffold.js";
 import { TASK_SECTION_NAMES } from "./propose-generation.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
@@ -278,6 +278,107 @@ function checkTaskListCompleteness(
       }
     }
   }
+
+  return diagnostics;
+}
+
+/**
+ * Reports bundled scaffold placeholder content left in design.yaml. Every write now merges into the
+ * recorded artifact instead of rebuilding it, so placeholders that used to be cleared as a side
+ * effect of a rebuild would otherwise reach an archived change unnoticed. Matching the exact
+ * scaffold literals keeps legitimately worded content from ever being misreported.
+ */
+function checkDesignCompleteness(artifact: unknown, artifactPath: string): VerifyDiagnostic[] {
+  if (!artifact || typeof artifact !== "object") return [];
+  const design = artifact as {
+    approach?: unknown;
+    decisions?: Record<string, unknown>;
+    alternatives?: { option?: unknown }[];
+    risks?: unknown;
+  };
+  const placeholders = getScaffoldDesignPlaceholders();
+  const diagnostics: VerifyDiagnostic[] = [];
+
+  const reportList = (values: unknown, seeded: string[], field: string): void => {
+    if (!Array.isArray(values)) return;
+    const seededSet = new Set(seeded);
+    values.forEach((entry, index) => {
+      if (typeof entry !== "string" || !seededSet.has(entry)) return;
+      diagnostics.push({
+        source: "design_completeness",
+        artifactPath,
+        fieldPath: `$.${field}[${index}]`,
+        message: `design ${field} still has scaffold placeholder content; replace it before archiving`,
+        expected: `authored ${field} content`,
+        actual: entry,
+      });
+    });
+  };
+
+  reportList(design.approach, placeholders.approach, "approach");
+  reportList(design.risks, placeholders.risks, "risks");
+
+  for (const decisionId of placeholders.decisionIds) {
+    if (design.decisions && Object.prototype.hasOwnProperty.call(design.decisions, decisionId)) {
+      diagnostics.push({
+        source: "design_completeness",
+        artifactPath,
+        fieldPath: `$.decisions.${decisionId}`,
+        message: `design still has scaffold placeholder decision '${decisionId}'; replace or remove it before archiving`,
+        expected: "authored decisions only",
+        actual: decisionId,
+      });
+    }
+  }
+
+  const seededOptions = new Set(placeholders.alternativeOptions);
+  (Array.isArray(design.alternatives) ? design.alternatives : []).forEach((entry, index) => {
+    if (typeof entry?.option !== "string" || !seededOptions.has(entry.option)) return;
+    diagnostics.push({
+      source: "design_completeness",
+      artifactPath,
+      fieldPath: `$.alternatives[${index}].option`,
+      message: "design alternatives still has scaffold placeholder content; replace it before archiving",
+      expected: "authored alternative content",
+      actual: entry.option,
+    });
+  });
+
+  return diagnostics;
+}
+
+/** Reports bundled scaffold placeholder content left in proposal.yaml, which now also merges. */
+function checkProposalCompleteness(artifact: unknown, artifactPath: string): VerifyDiagnostic[] {
+  if (!artifact || typeof artifact !== "object") return [];
+  const proposal = artifact as {
+    summary?: { what?: unknown; why?: unknown };
+    scope?: { in?: unknown; out?: unknown };
+    unchanged_behavior?: unknown;
+  };
+  const placeholders = getScaffoldProposalPlaceholders();
+  const diagnostics: VerifyDiagnostic[] = [];
+
+  const reportList = (values: unknown, seeded: string[], fieldPath: string, label: string): void => {
+    if (!Array.isArray(values)) return;
+    const seededSet = new Set(seeded);
+    values.forEach((entry, index) => {
+      if (typeof entry !== "string" || !seededSet.has(entry)) return;
+      diagnostics.push({
+        source: "proposal_completeness",
+        artifactPath,
+        fieldPath: `${fieldPath}[${index}]`,
+        message: `proposal ${label} still has scaffold placeholder content; replace it before archiving`,
+        expected: `authored ${label} content`,
+        actual: entry,
+      });
+    });
+  };
+
+  reportList(proposal.summary?.what, placeholders.what, "$.summary.what", "summary.what");
+  reportList(proposal.summary?.why, placeholders.why, "$.summary.why", "summary.why");
+  reportList(proposal.scope?.in, placeholders.scopeIn, "$.scope.in", "scope.in");
+  reportList(proposal.scope?.out, placeholders.scopeOut, "$.scope.out", "scope.out");
+  reportList(proposal.unchanged_behavior, placeholders.unchangedBehavior, "$.unchanged_behavior", "unchanged_behavior");
 
   return diagnostics;
 }
@@ -1069,6 +1170,14 @@ export function verifyChange(
 
       allDiagnostics.push(...checkTestingGates(taskArtifact, artifactPath));
       allDiagnostics.push(...checkTaskListCompleteness(taskArtifact, artifactPath));
+    }
+
+    if (artifactType === "change_design") {
+      allDiagnostics.push(...checkDesignCompleteness(artifact, artifactPath));
+    }
+
+    if (artifactType === "change_proposal") {
+      allDiagnostics.push(...checkProposalCompleteness(artifact, artifactPath));
     }
 
     if (artifactType === "question_list") {

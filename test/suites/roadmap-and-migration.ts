@@ -795,113 +795,158 @@ try {
     "roadmap-generate milestone does not rewrite standalone planned-change files",
   );
 
-  const beforeConflict = readFileSync(generatedMilestonePath, "utf8");
-  const conflictingMilestone = cli([
+  // A supplied scalar replaces the recorded value with no confirming flag.
+  const beforeScalarEdit = yamlModule.parseYamlFile<{
+    scope: { in: string[] };
+    done_criteria: string[];
+    risks: string[];
+    notes: string[];
+    intake_questions: Array<{ id: string }>;
+  }>(generatedMilestonePath);
+  const scalarEdit = cli([
     "roadmap-generate",
     "milestone",
     "--id",
     "authoring",
     "--goal",
-    "Replace the goal without reset.",
+    "Replace the goal with no extra flag.",
   ], { cwd: roadmapGenerateDir });
-  context.assert(conflictingMilestone.status !== 0, "roadmap-generate milestone rejects conflicting scalar updates without --reset");
   context.assert(
-    conflictingMilestone.stdout.includes("conflicting content")
-      && readFileSync(generatedMilestonePath, "utf8") === beforeConflict,
-    "roadmap-generate milestone reports the conflict and leaves the milestone unchanged before write",
-    conflictingMilestone.stdout,
+    scalarEdit.status === 0,
+    "roadmap-generate milestone replaces a scalar field without any confirming flag",
+    scalarEdit.stdout || scalarEdit.stderr,
   );
 
-  const resetMilestone = cli([
+  // The reported regression: editing one field while supplying one list value must never replace
+  // the lists the invocation did not name.
+  const blastRadius = cli([
     "roadmap-generate",
     "milestone",
     "--id",
     "authoring",
-    "--reset",
     "--goal",
-    "Replace the goal with explicit reset.",
-    "--scope-in",
-    "Reset milestone scope.",
-    "--done",
-    "Reset done criterion.",
-    "--intake-question",
-    "risks|What milestone risks could change the plan?|Reset can intentionally replace milestone questions.|Missing risk review affects dependencies and tests.|Record concrete compatibility, data, security, or release risks.",
-    "--note",
-    "Reset note.",
+    "Goal edited alongside one new risk.",
+    "--risk",
+    "An additional risk.",
   ], { cwd: roadmapGenerateDir });
-  context.assert(resetMilestone.status === 0, "roadmap-generate milestone replaces supplied fields with --reset", resetMilestone.stderr);
-  const resetArtifact = yamlModule.parseYamlFile<{
+  context.assert(blastRadius.status === 0, "roadmap-generate milestone edits a goal while appending a risk", blastRadius.stderr);
+  const afterBlastRadius = yamlModule.parseYamlFile<{
     goal: string;
     scope: { in: string[] };
     done_criteria: string[];
-    intake_questions: Array<{ id: string }>;
+    risks: string[];
     notes: string[];
+    intake_questions: Array<{ id: string }>;
   }>(generatedMilestonePath);
   context.assert(
-    resetArtifact.goal === "Replace the goal with explicit reset."
-      && resetArtifact.scope.in.join("\n") === "Reset milestone scope."
-      && resetArtifact.done_criteria.join("\n") === "Reset done criterion."
-      && resetArtifact.intake_questions.map((question) => question.id).join(",") === "objective,scope-boundary,verification-evidence,risks"
-      && resetArtifact.notes.join("\n") === "Reset note.",
-    "roadmap-generate milestone reset replaces supplied list fields while merging intake questions additively",
+    afterBlastRadius.goal === "Goal edited alongside one new risk."
+      && beforeScalarEdit.scope.in.every((entry) => afterBlastRadius.scope.in.includes(entry))
+      && beforeScalarEdit.done_criteria.every((entry) => afterBlastRadius.done_criteria.includes(entry))
+      && beforeScalarEdit.notes.every((entry) => afterBlastRadius.notes.includes(entry))
+      && beforeScalarEdit.risks.every((entry) => afterBlastRadius.risks.includes(entry))
+      && afterBlastRadius.risks.includes("An additional risk.")
+      && beforeScalarEdit.intake_questions.every(
+        (question) => afterBlastRadius.intake_questions.some((entry) => entry.id === question.id),
+      ),
+    "editing a milestone goal while adding one risk preserves every other recorded list entry",
   );
+
+  // Intake questions merge by id, and a restated id replaces only that question.
+  const intakeMerge = cli([
+    "roadmap-generate",
+    "milestone",
+    "--id",
+    "authoring",
+    "--intake-question",
+    "risks|What milestone risks could change the plan?|Risk review context.|Missing risk review affects dependencies and timing.|Review risks before committing.",
+  ], { cwd: roadmapGenerateDir });
+  context.assert(intakeMerge.status === 0, "roadmap-generate milestone appends a new intake question", intakeMerge.stderr);
+  const afterIntakeMerge = yamlModule.parseYamlFile<{ intake_questions: Array<{ id: string; question: string }> }>(generatedMilestonePath);
+  context.assert(
+    afterIntakeMerge.intake_questions.some((entry) => entry.id === "risks")
+      && beforeScalarEdit.intake_questions.every(
+        (question) => afterIntakeMerge.intake_questions.some((entry) => entry.id === question.id),
+      ),
+    "a new intake question merges alongside the recorded ones",
+  );
+
+  // Removing a recorded entry requires naming it, and an ambiguous substring is refused.
+  const removeNamedRisk = cli([
+    "roadmap-generate", "milestone", "--id", "authoring", "--remove-risk", "An additional risk.",
+  ], { cwd: roadmapGenerateDir });
+  const afterRiskRemoval = yamlModule.parseYamlFile<{ risks: string[] }>(generatedMilestonePath);
+  context.assert(
+    removeNamedRisk.status === 0 && !afterRiskRemoval.risks.includes("An additional risk."),
+    "roadmap-generate milestone --remove-risk drops the named risk",
+    removeNamedRisk.stderr,
+  );
+  const missingRemoval = cli([
+    "roadmap-generate", "milestone", "--id", "authoring", "--remove-note", "no such note anywhere",
+  ], { cwd: roadmapGenerateDir });
+  context.assert(
+    missingRemoval.status !== 0 && missingRemoval.stderr.includes("matched no entry"),
+    "roadmap-generate milestone refuses a removal that matches no entry",
+    missingRemoval.stderr,
+  );
+
   context.assert(
     readFileSync(standalonePath, "utf8") === standaloneBeforeUpdate,
-    "roadmap-generate milestone reset still does not rewrite standalone planned-change files",
+    "roadmap-generate milestone edits still do not rewrite standalone planned-change files",
   );
 
+  // Restating an intake question id replaces just that question and leaves its siblings recorded.
+  const beforeIntakeRestate = yamlModule.parseYamlFile<{ intake_questions: Array<{ id: string }> }>(generatedMilestonePath);
+  const restateIntake = cli([
+    "roadmap-generate",
+    "milestone",
+    "--id",
+    "authoring",
+    "--intake-question",
+    "objective|What different outcome should this milestone deliver?|Restating an id edits just that question.|A silent replacement would lose recorded planning questions.|Restate the question to amend it.",
+  ], { cwd: roadmapGenerateDir });
+  const afterIntakeRestate = yamlModule.parseYamlFile<{ intake_questions: Array<{ id: string; question: string }> }>(generatedMilestonePath);
+  context.assert(
+    restateIntake.status === 0
+      && afterIntakeRestate.intake_questions.find((entry) => entry.id === "objective")?.question
+        === "What different outcome should this milestone deliver?"
+      && beforeIntakeRestate.intake_questions.every(
+        (question) => afterIntakeRestate.intake_questions.some((entry) => entry.id === question.id),
+      ),
+    "roadmap-generate milestone restating an intake question id edits only that question",
+    restateIntake.stdout,
+  );
+
+  // Naming one intake question id twice in a single invocation with different content is a typo.
   const beforeIntakeConflict = readFileSync(generatedMilestonePath, "utf8");
-  const resetIntakeConflict = cli([
+  const sameInvocationIntakeConflict = cli([
     "roadmap-generate",
     "milestone",
     "--id",
     "authoring",
-    "--reset",
     "--intake-question",
-    "objective|What different outcome should this milestone deliver?|Global reset must not resolve intake conflicts by replacement.|Silent replacement loses recorded planning questions.|Surface the conflict for explicit resolution.",
+    "objective|First wording in one invocation.|Context one.|Impact one.|Recommendation one.",
+    "--intake-question",
+    "objective|Second wording in the same invocation.|Context two.|Impact two.|Recommendation two.",
   ], { cwd: roadmapGenerateDir });
   context.assert(
-    resetIntakeConflict.status !== 0
-      && resetIntakeConflict.stdout.includes("conflicting content")
+    sameInvocationIntakeConflict.status !== 0
+      && sameInvocationIntakeConflict.stdout.includes("supplied twice in one invocation")
       && readFileSync(generatedMilestonePath, "utf8") === beforeIntakeConflict,
-    "roadmap-generate milestone with global --reset reports same-id intake conflicts instead of replacing existing intake questions",
-    resetIntakeConflict.stdout,
+    "roadmap-generate milestone reports one intake question id supplied twice in a single invocation",
+    sameInvocationIntakeConflict.stdout,
   );
 
-  const replaceIntakeQuestions = cli([
-    "roadmap-generate",
-    "milestone",
-    "--id",
-    "authoring",
-    "--reset-intake-questions",
-    "--intake-question",
-    "final-outcome|What single outcome closes this milestone?|Explicit replacement consolidates milestone intake questions.|The consolidated question defines proposal scope for child changes.|Answer with the milestone's one observable completion outcome.",
+  // Removing an intake question requires naming its id.
+  const removeIntake = cli([
+    "roadmap-generate", "milestone", "--id", "authoring", "--remove-intake-question", "risks",
   ], { cwd: roadmapGenerateDir });
-  context.assert(replaceIntakeQuestions.status === 0, "roadmap-generate milestone replaces intake questions with --reset-intake-questions", replaceIntakeQuestions.stderr);
-  const replacedIntakeArtifact = yamlModule.parseYamlFile<{
-    goal: string;
-    intake_questions: Array<{ id: string }>;
-  }>(generatedMilestonePath);
+  const afterIntakeRemoval = yamlModule.parseYamlFile<{ intake_questions: Array<{ id: string }> }>(generatedMilestonePath);
   context.assert(
-    replacedIntakeArtifact.intake_questions.map((question) => question.id).join(",") === "final-outcome"
-      && replacedIntakeArtifact.goal === "Replace the goal with explicit reset.",
-    "roadmap-generate milestone --reset-intake-questions replaces the intake list with exactly the supplied entries while leaving other fields untouched",
-  );
-
-  const beforeRejectedIntakeReset = readFileSync(generatedMilestonePath, "utf8");
-  const resetIntakeWithoutEntries = cli([
-    "roadmap-generate",
-    "milestone",
-    "--id",
-    "authoring",
-    "--reset-intake-questions",
-  ], { cwd: roadmapGenerateDir });
-  context.assert(
-    resetIntakeWithoutEntries.status !== 0
-      && resetIntakeWithoutEntries.stderr.includes("--reset-intake-questions requires at least one --intake-question value")
-      && readFileSync(generatedMilestonePath, "utf8") === beforeRejectedIntakeReset,
-    "roadmap-generate milestone rejects --reset-intake-questions without --intake-question and leaves the milestone unchanged",
-    resetIntakeWithoutEntries.stderr,
+    removeIntake.status === 0
+      && !afterIntakeRemoval.intake_questions.some((entry) => entry.id === "risks")
+      && afterIntakeRemoval.intake_questions.some((entry) => entry.id === "objective"),
+    "roadmap-generate milestone --remove-intake-question drops only the named question",
+    removeIntake.stderr,
   );
 
   const missingIntakeQuestionMilestone = cli([
@@ -1037,7 +1082,9 @@ try {
     collapsePlannedChange.stdout,
   );
 
-  const conflictingUpdate = cli([
+  // A supplied scalar replaces the recorded value directly, and fields the invocation does not
+  // name are preserved.
+  const scalarUpdate = cli([
     "roadmap-generate",
     "planned-change",
     "--milestone",
@@ -1045,34 +1092,20 @@ try {
     "--id",
     "add-widget",
     "--summary",
-    "A different summary without reset.",
+    "Replaced summary with no extra flag.",
   ], { cwd: plannedChangeAuthoringDir });
   context.assert(
-    conflictingUpdate.status !== 0
-      && conflictingUpdate.stdout.includes("existing milestone field has conflicting content; rerun with --reset to replace it"),
-    "roadmap-generate planned-change rejects conflicting scalar updates without --reset",
-    conflictingUpdate.stdout,
+    scalarUpdate.status === 0,
+    "roadmap-generate planned-change replaces a scalar field without any confirming flag",
+    scalarUpdate.stdout || scalarUpdate.stderr,
   );
-
-  const resetUpdate = cli([
-    "roadmap-generate",
-    "planned-change",
-    "--milestone",
-    "0001-naming",
-    "--id",
-    "add-widget",
-    "--summary",
-    "Replaced summary after reset.",
-    "--reset",
-  ], { cwd: plannedChangeAuthoringDir });
-  context.assert(resetUpdate.status === 0, "roadmap-generate planned-change replaces scalar fields with --reset", resetUpdate.stdout || resetUpdate.stderr);
   const updatedArtifact = yamlModule.parseYamlFile<{ summary: string; details: string }>(
     path.join(plannedChangesDir, "0001-naming-add-widget.yaml"),
   );
   context.assert(
-    updatedArtifact.summary === "Replaced summary after reset."
+    updatedArtifact.summary === "Replaced summary with no extra flag."
       && updatedArtifact.details === "Concrete planning detail for the widget work.",
-    "roadmap-generate planned-change reset updates supplied fields and preserves the rest",
+    "roadmap-generate planned-change updates the supplied field and preserves the rest",
   );
 
   const unknownMilestone = cli([
@@ -4471,7 +4504,7 @@ function runCopiedSplitRoadmapHandoffScenario(): {
       generatedProposal.change.id === handoffChangeName
         && generatedProposal.roadmap.milestone === "0001-core-todo-workflows"
         && generatedProposal.roadmap.planned_change === handoffChangeName
-        && generatedProposal.unchanged_behavior[0]?.includes("canonical home"),
+        && generatedProposal.unchanged_behavior.some((entry) => entry.includes("canonical home")),
       "copied project handoff proposal preserves planned-change identity and roadmap reference without copying full roadmap metadata",
     );
 

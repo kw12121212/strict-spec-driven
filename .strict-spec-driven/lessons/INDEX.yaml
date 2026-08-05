@@ -21,3 +21,15 @@ lessons:
     status: active
     occurrences: 1
     path: .strict-spec-driven/lessons/apply-completes-the-next-task-in-list-order-not-268fb1.yaml
+  a-flag-that-skips-reading-an-artifact-hides-a-br-47afe2:
+    title: A flag that skips reading an artifact hides a broken artifact
+    category: tooling
+    status: active
+    occurrences: 1
+    path: .strict-spec-driven/lessons/a-flag-that-skips-reading-an-artifact-hides-a-br-47afe2.yaml
+  an-empty-search-result-is-evidence-about-the-sea-668a85:
+    title: An empty search result is evidence about the search, not the code
+    category: tooling
+    status: active
+    occurrences: 1
+    path: .strict-spec-driven/lessons/an-empty-search-result-is-evidence-about-the-sea-668a85.yaml

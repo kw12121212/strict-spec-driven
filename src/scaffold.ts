@@ -91,6 +91,85 @@ export function getScaffoldTaskPlaceholders(): ScaffoldTaskPlaceholders {
   return cachedScaffoldTaskPlaceholders;
 }
 
+/** The bundled proposal scaffold's placeholder content, by field. */
+export type ScaffoldProposalPlaceholders = {
+  what: string[];
+  why: string[];
+  scopeIn: string[];
+  scopeOut: string[];
+  unchangedBehavior: string[];
+};
+
+let cachedScaffoldProposalPlaceholders: ScaffoldProposalPlaceholders | undefined;
+
+/**
+ * Derives the placeholder proposal content from the bundled change scaffold. The proposal generator
+ * merges into the recorded artifact rather than rebuilding it, so seeded placeholder entries now
+ * survive every later write and must be reported before archive.
+ */
+export function getScaffoldProposalPlaceholders(): ScaffoldProposalPlaceholders {
+  if (cachedScaffoldProposalPlaceholders) return cachedScaffoldProposalPlaceholders;
+
+  const rendered = readBundledScaffoldTemplate("changes/proposal.yaml")
+    .replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, "scaffold");
+  const parsed = parseYamlDocument<{
+    summary?: { what?: unknown; why?: unknown };
+    scope?: { in?: unknown; out?: unknown };
+    unchanged_behavior?: unknown;
+  }>(rendered);
+
+  const strings = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+
+  cachedScaffoldProposalPlaceholders = {
+    what: strings(parsed?.summary?.what),
+    why: strings(parsed?.summary?.why),
+    scopeIn: strings(parsed?.scope?.in),
+    scopeOut: strings(parsed?.scope?.out),
+    unchangedBehavior: strings(parsed?.unchanged_behavior),
+  };
+  return cachedScaffoldProposalPlaceholders;
+}
+
+/** The bundled design scaffold's placeholder content, by field. */
+export type ScaffoldDesignPlaceholders = {
+  approach: string[];
+  decisionIds: string[];
+  alternativeOptions: string[];
+  risks: string[];
+};
+
+let cachedScaffoldDesignPlaceholders: ScaffoldDesignPlaceholders | undefined;
+
+/**
+ * Derives the placeholder design content from the bundled change scaffold, so verify and the
+ * scaffold never drift apart. These entries used to be cleared as a side effect of rebuilding the
+ * artifact; with every write merging instead, unreplaced placeholders would otherwise survive
+ * silently into an archived change.
+ */
+export function getScaffoldDesignPlaceholders(): ScaffoldDesignPlaceholders {
+  if (cachedScaffoldDesignPlaceholders) return cachedScaffoldDesignPlaceholders;
+
+  const rendered = readBundledScaffoldTemplate("changes/design.yaml")
+    .replaceAll(CHANGE_TEMPLATE_NAME_PLACEHOLDER, "scaffold");
+  const parsed = parseYamlDocument<{
+    approach?: unknown;
+    decisions?: Record<string, unknown>;
+    alternatives?: { option?: unknown }[];
+    risks?: unknown;
+  }>(rendered);
+
+  cachedScaffoldDesignPlaceholders = {
+    approach: Array.isArray(parsed?.approach) ? parsed.approach.filter((entry): entry is string => typeof entry === "string") : [],
+    decisionIds: Object.keys(parsed?.decisions ?? {}),
+    alternativeOptions: (parsed?.alternatives ?? [])
+      .map((entry) => entry?.option)
+      .filter((option): option is string => typeof option === "string"),
+    risks: Array.isArray(parsed?.risks) ? parsed.risks.filter((entry): entry is string => typeof entry === "string") : [],
+  };
+  return cachedScaffoldDesignPlaceholders;
+}
+
 export type StrictInitResult = {
   rootDir: string;
   created: string[];

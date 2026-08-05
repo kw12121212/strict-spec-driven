@@ -1,0 +1,138 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: remove-reset-flags
+sections:
+  Implementation:
+    impl-merge-helpers:
+      text: Make upsertKeyedItem and mergeDeltaRequirement in src/cli/cmd-generation.ts overwrite a restated keyed item instead of throwing on conflicting content, so amending a design decision or a delta requirement's strength and statement no longer requires a whole-artifact rebuild.
+      status: complete
+    impl-roadmap-scalars:
+      text: Make nextScalar in src/roadmap/author.ts overwrite a supplied scalar directly and drop its conflict diagnostic, so roadmap milestone title, goal, and details and planned-change summary, details, and status can be edited without any reset flag.
+      status: complete
+    impl-generation-remove-flags:
+      text: 'Remove the reset flag from generate design, questions, delta-spec, and delta-tech in src/cli/cmd-generation.ts, and add per-list removal flags that name a single target: remove-approach, remove-decision, remove-alternative, remove-risk, remove-requirement, remove-scenario, remove-implementation, remove-test, remove-enforcement, and remove-rule.'
+      status: complete
+    impl-tasks-flags:
+      text: Remove the reset and force flags from the generate tasks parser in src/cli/cmd-generation.ts while preserving the existing remove flag and the (section, task-id) field-level merge, and confirm no remaining flag can clear a completed task list in one invocation.
+      status: complete
+    impl-questions-gate:
+      text: 'Re-establish the requirement-interrogation gate on the new flags: remove-question must refuse a requirement-kind id, and the questions artifact must accept no delete flag, so no flag combination can clear or weaken the seeded requirement questions.'
+      status: complete
+    impl-roadmap-remove-flags:
+      text: Remove the reset and reset-intake-questions flags from roadmap-generate milestone and planned-change in src/cli/cmd-roadmap.ts and src/roadmap/author.ts, and add remove-scope-in, remove-scope-out, remove-done, remove-dependency, remove-risk, remove-note, remove-intake-question, and remove-depends-on.
+      status: complete
+    impl-delete-flag:
+      text: Add a delete flag to the generate subcommands for design, tasks, delta-spec, and delta-tech that removes the artifact file, rejecting the invocation when any other flag is present so whole-artifact rebuild can never ride along on an edit.
+      status: complete
+    impl-command-metadata:
+      text: Update the 21 reset references in src/cli/command-metadata-entries.ts so usage lines, flag definitions, and semantic notes describe overwrite, per-entry removal, and delete semantics; root help, subcommand help, JSON help, and the MCP capability inventory all derive from this registry.
+      status: complete
+    impl-skill-prompts:
+      text: Update the 57 --reset usages across the 11 bundled skill prompts under skills/, including this repository's own brainstorm, propose, propose-from-roadmap, and auto skills, so no prompt instructs an agent to pass a flag that no longer exists.
+      status: complete
+    impl-build:
+      text: Rebuild compiled output after the source edits, since the test suite runs against dist/.
+      status: complete
+      command: bun run build
+    impl-repair-design-scaffold:
+      text: Repair the bundled change design scaffold at templates/strict-spec-driven/scaffold/changes/design.yaml, whose alternatives and risks placeholders parse as flow sequences followed by a stray period and make the file unparseable, and rebuild the embedded template output so propose seeds a design.yaml that parses and validates.
+      status: complete
+    impl-design-placeholder-detection:
+      text: Extend the scaffold placeholder detection in src/scaffold.ts and src/verify.ts, which today derives placeholders from the tasks scaffold only, to cover design.yaml approach, decision, alternative and risk placeholders AND proposal.yaml scope and unchanged-behavior placeholders, since both artifacts now merge instead of being rebuilt and would otherwise carry seeded placeholder text into an archived change.
+      status: complete
+    impl-proposal-merge:
+      text: Make buildProposalInput in src/cli/cmd-generation.ts read the existing proposal.yaml and merge supplied values into it, so a proposal write is no longer an unconditional full replace and an omitted scope item is not silently dropped.
+      status: complete
+    impl-substring-removal:
+      text: Implement removal on the id-less design lists (approach, risks, alternatives) by substring match that must resolve to exactly one entry, exiting non-zero and listing the candidates when it matches zero or several.
+      status: complete
+    impl-duplicate-id-guard:
+      text: Keep the conflicting-duplicate-id error for ids restated with different content inside a single invocation, while allowing a restatement in a later invocation to overwrite, so upsertKeyedItem and mergeDeltaRequirement distinguish an edit from a typo.
+      status: complete
+    impl-generation-builder:
+      text: Carry the new write semantics through the artifact builder in src/propose-generation.ts, whose normalizers rebuild entries from fixed field lists and are the single write path for all six generatable artifacts, so removal, overwrite, and proposal merge actually reach the written YAML instead of being dropped between parsing and writing.
+      status: complete
+  Testing:
+    test-overwrite-and-remove:
+      text: Add coverage that restating a design decision, a delta-spec requirement statement, a delta-tech rule, and a roadmap milestone goal overwrites only that field, and that each remove flag deletes exactly the named entry while its siblings survive byte-identical.
+      status: complete
+      command: bun test/run.ts
+    test-blast-radius-regression:
+      text: 'Add the regression that reproduces the reported loss: editing a roadmap milestone goal while also supplying a new risk must leave every previously recorded risk, scope entry, done criterion, dependency, and note intact.'
+      status: complete
+      command: bun test/run.ts
+    test-questions-gate:
+      text: Add coverage that remove-question refuses a requirement-kind id, that the questions artifact rejects a delete flag, and that no flag combination clears the seeded requirement questions.
+      status: complete
+      command: bun test/run.ts
+    test-delete-isolation:
+      text: Add coverage that the delete flag removes the target artifact file and is rejected when combined with any other flag.
+      status: complete
+      command: bun test/run.ts
+    test-rewrite-reset-suites:
+      text: Rewrite the reset-semantics assertions in test/suites/roadmap-and-migration.ts, change-lifecycle.ts, foundation-and-fixtures.ts, and entrypoint-and-skills.ts to assert the replacement semantics, and assert that no registered command still accepts a reset flag.
+      status: complete
+      command: bun test/run.ts
+    test-validation:
+      text: Build the project and run the full test suite against compiled output.
+      status: complete
+      command: bun run build && bun test/run.ts
+    test-project-regression:
+      text: Run the configured complete project regression with the coverage gate, which is required review evidence before archive.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+    test-scaffold-parses:
+      text: Add coverage that every bundled change scaffold artifact parses and validates against its registered schema, and that generate design succeeds on a freshly proposed change without any rebuild flag.
+      status: complete
+      command: bun test/run.ts
+    test-design-placeholder-detection:
+      text: Add coverage that verify reports leftover design.yaml scaffold placeholder approach, decision, alternative, and risk content before archive.
+      status: complete
+      command: bun test/run.ts
+    test-proposal-merge:
+      text: Add coverage that generate proposal preserves previously recorded scope, out-of-scope, and unchanged-behavior entries when a later invocation supplies only one additional entry.
+      status: complete
+      command: bun test/run.ts
+    test-substring-removal-ambiguity:
+      text: Add coverage that substring removal deletes a single matching entry, and exits non-zero listing candidates when the substring matches zero or several entries.
+      status: complete
+      command: bun test/run.ts
+    test-duplicate-id-within-invocation:
+      text: Add coverage that restating one id with conflicting content twice in a single invocation exits non-zero, while restating it in a later invocation overwrites.
+      status: complete
+      command: bun test/run.ts
+    test-written-artifact-reflects-flags:
+      text: Assert on the written YAML file after each new flag, not on command exit status, so a successful write that silently drops the intended effect fails the test.
+      status: complete
+      command: bun test/run.ts
+  Verification:
+    verify-ready:
+      text: Confirm the change reports ready for handoff once the open roadmap-delete-support question is resolved.
+      status: complete
+      command: strict-spec-cli ready remove-reset-flags
+    verify-artifacts:
+      text: Confirm artifact structure, task completion, and open questions.
+      status: complete
+      command: strict-spec-cli verify remove-reset-flags
+    verify-spec-mappings:
+      text: Confirm the delta spec implementation and test mappings resolve to real files.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+    verify-tech-mappings:
+      text: Confirm the delta tech standard mappings resolve to real files.
+      status: complete
+      command: strict-spec-cli verify-tech-mappings
+    verify-no-reset-remains:
+      text: Grep the source, bundled skills, and command metadata for any surviving reset flag reference, confirming the only remaining matches are the unrelated strict-spec-auto context reset requirements at cli/foundation.yaml lines 1321 and 1328.
+      status: complete
+    verify-archive-readiness:
+      text: Confirm the delta spec and delta tech artifacts merge cleanly into cli-foundation, roadmap-domain-behavior, and the cli-command-metadata standard, and that no stale mapping entries are left behind by the merge.
+      status: complete
+    verify-scaffold-roundtrip:
+      text: 'Confirm the ordinary path works end to end on a fresh change: propose, then populate proposal, design, tasks, and questions with no rebuild flag anywhere, then ready and verify.'
+      status: complete
+testing_gates:
+  validation_task: test-validation
+  unit_test_task: test-project-regression
