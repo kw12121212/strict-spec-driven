@@ -1,0 +1,50 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: inventory-yaml-mutation-surfaces
+sections:
+  Implementation:
+    author-yaml-inventory:
+      text: Create inventory/yaml-mutation-surfaces.yaml with stable family and mutation-surface identifiers covering every repository-owned YAML or YML location, schema or validation owner, supported create/update/named-removal/delete operations, index and reference side effects, current CLI ownership, remaining direct-write paths, explicit exclusions, and evidence.
+      status: complete
+    implement-inventory-checker:
+      text: Add scripts/check-yaml-mutation-inventory.ts to parse and validate the matrix, enumerate Git-tracked YAML plus active strict roadmap YAML, scan repository code, scripts, MCP, skills, and documentation for mutation evidence, expand declared patterns, and emit deterministic diagnostics for uncovered paths, stale evidence, duplicate ids, invalid classifications, and unaccounted mutation surfaces.
+      status: complete
+    expose-inventory-check:
+      text: Add a package.json script for the inventory checker so later roadmap work and local validation can consume the coverage matrix through one stable command.
+      status: complete
+    add-inventory-regressions:
+      text: Add YAML mutation inventory regression cases to the already-mapped test/suites/foundation-and-fixtures.ts suite, covering successful repository validation plus representative failures for an uncovered YAML family, stale evidence path, invalid operation or classification, duplicate id, and unaccounted direct-write surface.
+      status: complete
+    sync-inventory-coverage-standard:
+      text: Capture the operator-confirmed mandatory YAML mutation inventory convention as an ADDED rule in a yaml-first-artifacts delta-tech artifact with implementation and enforcement mappings.
+      status: complete
+  Testing:
+    run-project-regression:
+      text: Run the configured complete project regression and enforce the minimum src/** line coverage threshold required as review evidence.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+    validate-yaml-inventory:
+      text: Run the dedicated YAML mutation inventory completeness and structure check.
+      status: complete
+      command: bun run check:yaml-inventory
+  Verification:
+    verify-ready:
+      text: Confirm the populated technical-only change is ready for implementation with resolved roadmap-backed requirement questions and a justified empty specs directory.
+      status: complete
+      command: strict-spec-cli ready inventory-yaml-mutation-surfaces
+    verify-mappings:
+      text: Confirm existing strict spec and technical-standard mappings remain valid after adding the inventory, checker, and tests.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings && strict-spec-cli verify-tech-mappings
+    verify-archive-readiness:
+      text: Confirm the persistent inventory remains outside active change state and the operator-confirmed yaml-first-artifacts delta-tech rule is ready to merge during archive without losing implementation or enforcement mappings.
+      status: complete
+    verify-change:
+      text: After the other verification tasks are complete, confirm the finished change artifact structure, task state, question state, explicit no-delta-spec decision, and yaml-first-artifacts delta-tech artifact pass strict verification.
+      status: complete
+      command: strict-spec-cli verify inventory-yaml-mutation-surfaces
+testing_gates:
+  validation_task: validate-yaml-inventory
+  unit_test_task: run-project-regression

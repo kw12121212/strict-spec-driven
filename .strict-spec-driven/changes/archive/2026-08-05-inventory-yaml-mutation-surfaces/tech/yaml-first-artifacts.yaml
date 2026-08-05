@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: yaml-first-artifacts
+mapping:
+  implementation:
+    - inventory/yaml-mutation-surfaces.yaml
+    - scripts/check-yaml-mutation-inventory.ts
+    - package.json
+  enforcement:
+    - test/suites/foundation-and-fixtures.ts
+operations:
+  ADDED:
+    yaml-mutation-surfaces-stay-inventoried:
+      strength: MUST
+      statement: Every repository-owned YAML or YML artifact family and every repository code, CLI, MCP, skill, or documentation mutation surface MUST remain represented in inventory/yaml-mutation-surfaces.yaml with its ownership, supported operations, reference side effects, current CLI ownership or direct-write paths, and repository evidence; the dedicated inventory check MUST fail when coverage is missing, invalid, or stale.
+      rationale: The shared mutation contract and later artifact-family migrations depend on a complete evidence baseline; allowing an unclassified YAML family or mutation path would silently recreate the direct-write gaps this roadmap is intended to eliminate.
+      enforcement:
+        method: test
+        detail: bun run check:yaml-inventory validates the matrix directly, and test/suites/foundation-and-fixtures.ts covers repository completeness and deterministic failure diagnostics.
+  MODIFIED: {}
+  REMOVED: {}

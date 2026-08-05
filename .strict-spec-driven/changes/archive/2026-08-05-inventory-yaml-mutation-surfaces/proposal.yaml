@@ -1,0 +1,29 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: inventory-yaml-mutation-surfaces
+  status: proposed
+summary:
+  what:
+    - Add a checked-in, test-consumable inventory that maps every repository-owned YAML artifact family to its identity, location pattern, validation owner, supported mutation operations, reference side effects, current CLI ownership, direct-write paths, and evidence-backed classification.
+  why:
+    - The CLI-owned YAML mutation foundation needs a complete evidence baseline before its mutation contract and shared implementation can safely cover every repository-owned YAML surface without hidden direct-write exceptions.
+scope:
+  in:
+    - Inventory active and archived strict workflow state, bundled schemas, scaffolds, examples, fixtures, SOP categories, registries, manifests, and other version-controlled YAML or YML families.
+    - Inventory code, scripts, CLI handlers, MCP tools, skills, and documentation that create, update, remove entries from, delete, copy, rename, or otherwise prescribe writes to repository-owned YAML.
+    - Record create, field-level update, named-entry removal, and whole-artifact deletion support together with index or reference side effects, current CLI ownership, remaining direct-write paths, and evidence.
+    - Add a reusable validation command and regression suite that compare repository evidence with the checked-in matrix.
+    - Classify external dependency content, legacy migration input, generated caches, rendered non-YAML output, and genuine human-only files explicitly instead of silently omitting them.
+  out:
+    - Define the final shared YAML mutation contract or implement its atomic mutation core.
+    - Expose new user-facing CLI or MCP mutation commands or migrate existing artifact-family writers to them.
+    - Take ownership of external or third-party YAML, legacy .spec-driven migration input, generated caches, or rendered non-YAML documents.
+unchanged_behavior:
+  - Existing CLI, MCP, skill, archive, migration, and artifact-authoring behavior remains unchanged; this change inventories and verifies current coverage only.
+  - Existing repository-owned YAML contents remain unchanged except for the new inventory, roadmap and change lifecycle state, and the archive merge of the confirmed inventory-coverage rule into the yaml-first-artifacts technical standard.
+roadmap:
+  milestone: cli-yaml-mutation-foundation
+  planned_change: inventory-yaml-mutation-surfaces

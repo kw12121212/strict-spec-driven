@@ -1,0 +1,827 @@
+schema: strict-spec-driven/yaml-mutation-inventory/v1
+schema_version: 1
+artifact_type: yaml_mutation_inventory
+inventory:
+  id: repository-yaml-mutation-surfaces
+  title: Repository YAML Mutation Surfaces
+  scope: >-
+    Every repository-owned YAML or YML family and every repository code, CLI, MCP, skill, and
+    documentation surface that can mutate it or direct another actor to mutate it.
+  discovery:
+    yaml_paths: git ls-files -co --exclude-standard -- '*.yaml' '*.yml'
+    mutation_paths: >-
+      Git-visible TypeScript, JavaScript, Markdown, shell, PowerShell, and JSON files containing
+      filesystem mutation calls or YAML-authoring guidance.
+  operation_states:
+    - cli-owned
+    - direct-write
+    - human-only
+    - read-only
+    - generated
+    - not-applicable
+  ownership_classes:
+    - repository-owned
+    - legacy-input
+    - external
+    - generated-cache
+    - rendered-output
+    - human-only
+artifact_families:
+  workflow-config:
+    artifact_types:
+      - workflow_config
+    path_patterns:
+      - .strict-spec-driven/config.yaml
+      - examples/strict-spec-driven/config.yaml
+      - templates/strict-spec-driven/scaffold/config.yaml
+    ownership: repository-owned
+    validation_owner: templates/strict-spec-driven/schemas/config.yaml
+    operations:
+      create: cli-owned
+      update: direct-write
+      named_remove: direct-write
+      delete: human-only
+    reference_side_effects:
+      - Review evidence and maintenance behavior change when config fields change.
+    cli_owners:
+      - init
+    direct_write_paths:
+      - src/migrate.ts
+      - src/scaffold.ts
+      - skills/strict-spec-init/SKILL.md
+    evidence:
+      - .strict-spec-driven/config.yaml
+      - templates/strict-spec-driven/schemas/config.yaml
+  architecture-state:
+    artifact_types:
+      - architecture
+    path_patterns:
+      - .strict-spec-driven/architecture.yaml
+      - examples/strict-spec-driven/architecture.yaml
+      - templates/strict-spec-driven/scaffold/architecture.yaml
+      - test/fixtures/projects/*/.strict-spec-driven/architecture.yaml
+    ownership: repository-owned
+    validation_owner: templates/strict-spec-driven/schemas/architecture.yaml
+    operations:
+      create: direct-write
+      update: direct-write
+      named_remove: direct-write
+      delete: human-only
+    reference_side_effects:
+      - ARCHITECTURE.md must be regenerated after source changes.
+    cli_owners: []
+    direct_write_paths:
+      - skills/strict-spec-architecture/SKILL.md
+    evidence:
+      - .strict-spec-driven/architecture.yaml
+      - src/architecture.ts
+  design-system-state:
+    artifact_types:
+      - design_system
+    path_patterns:
+      - .strict-spec-driven/design-system.yaml
+      - examples/strict-spec-driven/design-system.yaml
+      - templates/strict-spec-driven/scaffold/design-system.yaml
+    ownership: repository-owned
+    validation_owner: templates/strict-spec-driven/schemas/design-system.yaml
+    operations:
+      create: cli-owned
+      update: direct-write
+      named_remove: direct-write
+      delete: human-only
+    reference_side_effects:
+      - DESIGN.md must be regenerated after source changes.
+    cli_owners:
+      - design-init
+    direct_write_paths:
+      - src/design-system.ts
+      - skills/strict-spec-design/SKILL.md
+      - skills/strict-spec-design-sync/SKILL.md
+    evidence:
+      - examples/strict-spec-driven/design-system.yaml
+      - src/design-system.ts
+  harness-state:
+    artifact_types:
+      - harness
+      - harness_session
+    path_patterns:
+      - .strict-spec-driven/harness.yaml
+      - .strict-spec-driven/harness-sessions/**/session.yaml
+      - examples/strict-spec-driven/harness.yaml
+      - examples/strict-spec-driven/harness-session.yaml
+      - templates/strict-spec-driven/scaffold/harness.yaml
+      - templates/strict-spec-driven/scaffold/harness-sessions/session.yaml
+    ownership: repository-owned
+    validation_owner: templates/strict-spec-driven/schemas/harness.yaml and harness-session.yaml
+    operations:
+      create: cli-owned
+      update: cli-owned
+      named_remove: direct-write
+      delete: cli-owned
+    reference_side_effects:
+      - Session archive moves the session directory and preserves evidence paths.
+      - Harness script generation writes non-YAML executable outputs.
+    cli_owners:
+      - harness-infer
+      - harness-session
+    direct_write_paths:
+      - src/harness.ts
+      - skills/strict-spec-harness-init/SKILL.md
+    evidence:
+      - .strict-spec-driven/harness.yaml
+      - src/harness.ts
+  spec-state:
+    artifact_types:
+      - spec_index
+      - main_spec
+    path_patterns:
+      - .strict-spec-driven/specs/INDEX.yaml
+      - .strict-spec-driven/specs/**/*.yaml
+      - examples/strict-spec-driven/spec-index.yaml
+      - examples/strict-spec-driven/main-spec.yaml
+      - templates/strict-spec-driven/scaffold/specs/INDEX.yaml
+    ownership: repository-owned
+    validation_owner: templates/strict-spec-driven/schemas/spec-index.yaml and main-spec.yaml
+    operations:
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: direct-write
+    reference_side_effects:
+      - Spec index entries and implementation/test mappings must stay synchronized.
+      - Archive merges delta spec operations into main specs.
+    cli_owners:
+      - archive
+    direct_write_paths:
+      - src/archive.ts
+      - src/scaffold.ts
+      - skills/strict-spec-spec-edit/SKILL.md
+      - skills/strict-spec-sync-specs/SKILL.md
+    evidence:
+      - .strict-spec-driven/specs/INDEX.yaml
+      - .strict-spec-driven/specs/contracts/yaml-artifacts.yaml
+  tech-state:
+    artifact_types:
+      - tech_index
+      - main_tech
+    path_patterns:
+      - .strict-spec-driven/tech/INDEX.yaml
+      - .strict-spec-driven/tech/**/*.yaml
+      - examples/strict-spec-driven/tech-index.yaml
+      - examples/strict-spec-driven/main-tech*.yaml
+      - templates/strict-spec-driven/scaffold/tech/INDEX.yaml
+    ownership: repository-owned
+    validation_owner: templates/strict-spec-driven/schemas/tech-index.yaml and main-tech.yaml
+    operations:
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: direct-write
+    reference_side_effects:
+      - Tech index entries and implementation/enforcement mappings must stay synchronized.
+      - Archive merges delta tech operations into main standards.
+    cli_owners:
+      - archive
+    direct_write_paths:
+      - src/archive.ts
+      - skills/strict-tech-edit/SKILL.md
+      - skills/strict-tech-sync/SKILL.md
+    evidence:
+      - .strict-spec-driven/tech/INDEX.yaml
+      - .strict-spec-driven/tech/yaml-first-artifacts.yaml
+  change-planning-state:
+    artifact_types:
+      - change_proposal
+      - change_design
+      - task_list
+      - question_list
+    path_patterns:
+      - .strict-spec-driven/changes/*/proposal.yaml
+      - .strict-spec-driven/changes/*/design.yaml
+      - .strict-spec-driven/changes/*/tasks.yaml
+      - .strict-spec-driven/changes/*/questions.yaml
+      - .strict-spec-driven/changes/archive/*/proposal.yaml
+      - .strict-spec-driven/changes/archive/*/design.yaml
+      - .strict-spec-driven/changes/archive/*/tasks.yaml
+      - .strict-spec-driven/changes/archive/*/questions.yaml
+      - examples/strict-spec-driven/change-proposal.yaml
+      - examples/strict-spec-driven/change-design.yaml
+      - examples/strict-spec-driven/task-list.yaml
+      - examples/strict-spec-driven/question-list*.yaml
+      - templates/strict-spec-driven/scaffold/changes/*.yaml
+    ownership: repository-owned
+    validation_owner: >-
+      templates/strict-spec-driven/schemas/change-proposal.yaml, change-design.yaml,
+      task-list.yaml, and question-list.yaml
+    operations:
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
+    reference_side_effects:
+      - Task state controls apply, verify, review, and archive gates.
+      - Proposal roadmap links reconcile planned-change status during archive.
+    cli_owners:
+      - propose
+      - generate
+      - apply
+      - cancel
+      - archive
+    direct_write_paths:
+      - src/apply.ts
+      - src/archive.ts
+      - src/propose-generation.ts
+      - src/scaffold.ts
+      - src/cli/cmd-change.ts
+      - src/cli/cmd-generation.ts
+    evidence:
+      - templates/strict-spec-driven/scaffold/changes/proposal.yaml
+      - src/propose-generation.ts
+  change-delta-state:
+    artifact_types:
+      - delta_spec
+      - delta_tech
+    path_patterns:
+      - .strict-spec-driven/changes/*/specs/**/*.yaml
+      - .strict-spec-driven/changes/*/tech/**/*.yaml
+      - .strict-spec-driven/changes/archive/*/specs/**/*.yaml
+      - .strict-spec-driven/changes/archive/*/tech/**/*.yaml
+      - examples/strict-spec-driven/delta-spec*.yaml
+      - examples/strict-spec-driven/delta-tech*.yaml
+    ownership: repository-owned
+    validation_owner: templates/strict-spec-driven/schemas/delta-spec.yaml and delta-tech.yaml
+    operations:
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
+    reference_side_effects:
+      - Verify checks active target conflicts and mappings.
+      - Archive merges operations into main specs or technical standards.
+    cli_owners:
+      - generate
+      - archive
+    direct_write_paths:
+      - src/archive.ts
+      - src/propose-generation.ts
+      - src/cli/cmd-generation.ts
+    evidence:
+      - examples/strict-spec-driven/delta-spec.operations.yaml
+      - examples/strict-spec-driven/delta-tech.operations.yaml
+  roadmap-state:
+    artifact_types:
+      - roadmap_index
+      - roadmap_milestone
+      - planned_change
+    path_patterns:
+      - .strict-spec-driven/roadmap/INDEX.yaml
+      - .strict-spec-driven/roadmap/milestones/*.yaml
+      - .strict-spec-driven/roadmap/planned-changes/*.yaml
+      - .strict-spec-driven/roadmap/archive/milestones/*.yaml
+      - .strict-spec-driven/roadmap/archive/planned-changes/*.yaml
+      - examples/strict-spec-driven/roadmap-index.yaml
+      - examples/strict-spec-driven/roadmap-milestone*.yaml
+      - examples/strict-spec-driven/planned-change.yaml
+      - templates/strict-spec-driven/scaffold/roadmap/INDEX.yaml
+    ownership: repository-owned
+    validation_owner: >-
+      templates/strict-spec-driven/schemas/roadmap-index.yaml, roadmap-milestone.yaml, and
+      planned-change.yaml
+    operations:
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: cli-owned
+    reference_side_effects:
+      - Index status and milestone/planned-change references must reconcile atomically.
+      - Archive removes completed active roadmap artifacts after writing archive targets.
+    cli_owners:
+      - roadmap-generate
+      - roadmap-sync
+      - roadmap-move-planned-change
+      - roadmap-pause
+      - roadmap-resume
+      - roadmap-reorder
+      - roadmap-reopen
+      - roadmap-archive
+    direct_write_paths:
+      - src/roadmap.ts
+      - src/roadmap/archive.ts
+      - src/roadmap/author.ts
+      - src/roadmap/move.ts
+      - src/roadmap/order.ts
+      - src/roadmap/pause.ts
+      - src/roadmap/reopen.ts
+      - src/roadmap/sync.ts
+    evidence:
+      - .strict-spec-driven/roadmap/INDEX.yaml
+      - src/roadmap/author.ts
+  lessons-state:
+    artifact_types:
+      - lessons_index
+      - lesson
+    path_patterns:
+      - .strict-spec-driven/lessons/INDEX.yaml
+      - .strict-spec-driven/lessons/*.yaml
+      - examples/strict-spec-driven/lessons-index.yaml
+      - examples/strict-spec-driven/lesson.yaml
+      - templates/strict-spec-driven/scaffold/lessons/INDEX.yaml
+    ownership: repository-owned
+    validation_owner: templates/strict-spec-driven/schemas/lessons-index.yaml and lesson.yaml
+    operations:
+      create: cli-owned
+      update: cli-owned
+      named_remove: not-applicable
+      delete: human-only
+    reference_side_effects:
+      - Lesson index metadata must match lesson artifacts.
+    cli_owners:
+      - lesson-create
+      - lesson-edit
+    direct_write_paths:
+      - src/lessons.ts
+    evidence:
+      - .strict-spec-driven/lessons/INDEX.yaml
+      - src/lessons.ts
+  sop-state:
+    artifact_types:
+      - sops_index
+      - sop_category
+      - sop
+    path_patterns:
+      - .strict-spec-driven/sops/INDEX.yaml
+      - .strict-spec-driven/sops/categories/*.yaml
+      - .strict-spec-driven/sops/*.yaml
+      - examples/strict-spec-driven/sops-index.yaml
+      - examples/strict-spec-driven/sop-category.yaml
+      - examples/strict-spec-driven/sop.yaml
+      - templates/strict-spec-driven/sop-categories/*.yaml
+    ownership: repository-owned
+    validation_owner: >-
+      templates/strict-spec-driven/schemas/sops-index.yaml, sop-category.yaml, and sop.yaml
+    operations:
+      create: cli-owned
+      update: cli-owned
+      named_remove: cli-owned
+      delete: human-only
+    reference_side_effects:
+      - SOP index and category allowlists must remain consistent with SOP artifacts.
+    cli_owners:
+      - sop-create
+      - sop-edit
+    direct_write_paths:
+      - src/sops.ts
+    evidence:
+      - examples/strict-spec-driven/sop.yaml
+      - src/sops.ts
+  bundled-schema-assets:
+    artifact_types:
+      - json_schema_yaml
+      - schema_registry
+    path_patterns:
+      - templates/strict-spec-driven/schemas/*.yaml
+    ownership: repository-owned
+    validation_owner: test/suites/foundation-and-fixtures.ts
+    operations:
+      create: human-only
+      update: human-only
+      named_remove: human-only
+      delete: human-only
+    reference_side_effects:
+      - Registry entries, primary examples, embedded templates, and shared schema cache exports must stay synchronized.
+    cli_owners: []
+    direct_write_paths: []
+    evidence:
+      - templates/strict-spec-driven/schemas/registry.yaml
+      - test/suites/foundation-and-fixtures.ts
+  bundled-scaffold-assets:
+    artifact_types:
+      - scaffold_yaml
+    path_patterns:
+      - templates/strict-spec-driven/scaffold/**/*.yaml
+    ownership: repository-owned
+    validation_owner: test/suites/foundation-and-fixtures.ts
+    operations:
+      create: human-only
+      update: human-only
+      named_remove: human-only
+      delete: human-only
+    reference_side_effects:
+      - Embedded templates and init/propose output must be regenerated and revalidated.
+    cli_owners: []
+    direct_write_paths: []
+    evidence:
+      - templates/strict-spec-driven/scaffold/config.yaml
+      - scripts/gen-templates-bundle.ts
+  bundled-reference-examples:
+    artifact_types:
+      - example_yaml
+    path_patterns:
+      - examples/strict-spec-driven/*.yaml
+    ownership: repository-owned
+    validation_owner: test/suites/foundation-and-fixtures.ts
+    operations:
+      create: human-only
+      update: human-only
+      named_remove: human-only
+      delete: human-only
+    reference_side_effects:
+      - Schema registry and example coverage references must remain complete.
+    cli_owners: []
+    direct_write_paths: []
+    evidence:
+      - examples/strict-spec-driven/schema-registry.yaml
+      - scripts/gen-templates-bundle.ts
+  validation-fixtures:
+    artifact_types:
+      - test_fixture_yaml
+    path_patterns:
+      - test/fixtures/validation/*.yaml
+    ownership: repository-owned
+    validation_owner: test/suites/foundation-and-fixtures.ts
+    operations:
+      create: human-only
+      update: human-only
+      named_remove: human-only
+      delete: human-only
+    reference_side_effects:
+      - Fixture matrices and asserted diagnostics must be updated together.
+    cli_owners: []
+    direct_write_paths: []
+    evidence:
+      - test/fixtures/validation/schema-check.valid.yaml
+      - test/suites/foundation-and-fixtures.ts
+  legacy-migration-input:
+    artifact_types:
+      - legacy_config_input
+    path_patterns:
+      - test/fixtures/projects/*/.spec-driven/**/*.yaml
+    ownership: legacy-input
+    validation_owner: migration fixture assertions
+    operations:
+      create: human-only
+      update: human-only
+      named_remove: not-applicable
+      delete: not-applicable
+    reference_side_effects:
+      - Migration tests treat these files as immutable input and write strict output elsewhere.
+    cli_owners:
+      - migrate
+    direct_write_paths: []
+    evidence:
+      - test/fixtures/projects/todo-app/.spec-driven/config.yaml
+      - test/suites/roadmap-and-migration.ts
+  yaml-mutation-inventory:
+    artifact_types:
+      - yaml_mutation_inventory
+    path_patterns:
+      - inventory/yaml-mutation-surfaces.yaml
+    ownership: repository-owned
+    validation_owner: scripts/check-yaml-mutation-inventory.ts
+    operations:
+      create: human-only
+      update: human-only
+      named_remove: human-only
+      delete: human-only
+    reference_side_effects:
+      - The dedicated checker and regression suite must agree with every inventory field and pattern.
+    cli_owners: []
+    direct_write_paths: []
+    evidence:
+      - inventory/yaml-mutation-surfaces.yaml
+exclusions:
+  external-dependency-yaml:
+    path_patterns:
+      - node_modules/**/*.yaml
+      - vendor/**/*.yml
+    ownership: external
+    evidence:
+      - package.json
+  generated-schema-cache:
+    path_patterns:
+      - .strict-spec-schemas/**/*.yaml
+      - dist/templates/**/*.yaml
+    ownership: generated-cache
+    evidence:
+      - src/shared-schema-cache.ts
+      - package.json
+  rendered-non-yaml-documents:
+    path_patterns:
+      - ARCHITECTURE.md
+      - DESIGN.md
+    ownership: rendered-output
+    evidence:
+      - src/document-render.ts
+  human-only-repository-files:
+    path_patterns:
+      - AGENTS.md
+      - RTK.md
+    ownership: human-only
+    evidence:
+      - AGENTS.md
+      - RTK.md
+mutation_surfaces:
+  change-filesystem-writers:
+    path_patterns:
+      - src/apply.ts
+      - src/archive.ts
+      - src/propose-generation.ts
+      - src/scaffold.ts
+      - src/cli/cmd-change.ts
+      - src/cli/cmd-generation.ts
+    mechanism: filesystem-writer
+    classification: remaining-direct-writer
+    operations:
+      - create
+      - update
+      - named-remove
+      - delete
+      - rename
+    families:
+      - workflow-config
+      - spec-state
+      - tech-state
+      - change-planning-state
+      - change-delta-state
+    evidence:
+      - src/propose-generation.ts
+      - src/archive.ts
+  roadmap-filesystem-writers:
+    path_patterns:
+      - src/roadmap.ts
+      - src/roadmap/archive.ts
+      - src/roadmap/author.ts
+      - src/roadmap/move.ts
+      - src/roadmap/order.ts
+      - src/roadmap/pause.ts
+      - src/roadmap/reopen.ts
+      - src/roadmap/sync.ts
+    mechanism: filesystem-writer
+    classification: remaining-direct-writer
+    operations:
+      - create
+      - update
+      - named-remove
+      - delete
+      - rename
+    families:
+      - roadmap-state
+    evidence:
+      - src/roadmap/author.ts
+      - src/roadmap/archive.ts
+  domain-filesystem-writers:
+    path_patterns:
+      - src/design-system.ts
+      - src/harness.ts
+      - src/lessons.ts
+      - src/sops.ts
+      - src/maintenance.ts
+      - src/migrate.ts
+      - src/migrate/shared.ts
+    mechanism: filesystem-writer
+    classification: remaining-direct-writer
+    operations:
+      - create
+      - update
+      - delete
+      - rename
+    families:
+      - workflow-config
+      - design-system-state
+      - harness-state
+      - spec-state
+      - tech-state
+      - change-planning-state
+      - change-delta-state
+      - roadmap-state
+      - lessons-state
+      - sop-state
+    evidence:
+      - src/harness.ts
+      - src/lessons.ts
+  generated-and-rendered-writers:
+    path_patterns:
+      - scripts/gen-templates-bundle.ts
+      - src/shared-schema-cache.ts
+      - src/document-render.ts
+      - scripts/build-native-cli.ts
+      - scripts/coverage-gate.ts
+    mechanism: generated-output-writer
+    classification: generated
+    operations:
+      - create
+      - update
+      - delete
+      - rename
+      - copy
+    families:
+      - bundled-schema-assets
+      - bundled-scaffold-assets
+      - bundled-reference-examples
+      - architecture-state
+      - design-system-state
+    evidence:
+      - scripts/gen-templates-bundle.ts
+      - src/shared-schema-cache.ts
+      - src/document-render.ts
+  external-configuration-writer:
+    path_patterns:
+      - src/cli/cmd-mcp-install.ts
+    mechanism: filesystem-writer
+    classification: external
+    operations:
+      - create
+      - update
+    families: []
+    evidence:
+      - src/cli/cmd-mcp-install.ts
+  cli-domain-handlers:
+    path_patterns:
+      - src/cli/cmd-architecture.ts
+      - src/cli/cmd-change.ts
+      - src/cli/cmd-design.ts
+      - src/cli/cmd-generation.ts
+      - src/cli/cmd-harness.ts
+      - src/cli/cmd-lessons.ts
+      - src/cli/cmd-migration.ts
+      - src/cli/cmd-operations.ts
+      - src/cli/cmd-roadmap.ts
+      - src/cli/cmd-scaffold.ts
+      - src/cli/cmd-sops.ts
+      - src/cli/cmd-workflow.ts
+    mechanism: cli-command
+    classification: cli-owned
+    operations:
+      - create
+      - update
+      - named-remove
+      - delete
+      - rename
+    families:
+      - workflow-config
+      - architecture-state
+      - design-system-state
+      - harness-state
+      - spec-state
+      - tech-state
+      - change-planning-state
+      - change-delta-state
+      - roadmap-state
+      - lessons-state
+      - sop-state
+    evidence:
+      - src/cli/cmd-generation.ts
+      - src/cli/cmd-roadmap.ts
+  mcp-mutating-tools:
+    path_patterns:
+      - src/mcp/tools.ts
+      - src/mcp/inventory.ts
+      - src/mcp/prompts.ts
+    mechanism: mcp-cli-delegation
+    classification: cli-owned
+    operations:
+      - create
+      - update
+      - named-remove
+      - delete
+      - rename
+    families:
+      - workflow-config
+      - harness-state
+      - change-planning-state
+      - change-delta-state
+      - roadmap-state
+      - lessons-state
+      - sop-state
+    evidence:
+      - src/mcp/tools.ts
+      - src/mcp/inventory.ts
+  bundled-skill-guidance:
+    path_patterns:
+      - skills/strict-roadmap-archive/SKILL.md
+      - skills/strict-roadmap-move/SKILL.md
+      - skills/strict-roadmap-pause/SKILL.md
+      - skills/strict-roadmap-plan/SKILL.md
+      - skills/strict-roadmap-recommend/SKILL.md
+      - skills/strict-roadmap-reopen/SKILL.md
+      - skills/strict-roadmap-reorder/SKILL.md
+      - skills/strict-roadmap-resume/SKILL.md
+      - skills/strict-roadmap-review/SKILL.md
+      - skills/strict-roadmap-sync/SKILL.md
+      - skills/strict-spec-apply/SKILL.md
+      - skills/strict-spec-architecture/SKILL.md
+      - skills/strict-spec-archive/SKILL.md
+      - skills/strict-spec-auto/SKILL.md
+      - skills/strict-spec-brainstorm/SKILL.md
+      - skills/strict-spec-bugfix/SKILL.md
+      - skills/strict-spec-design/SKILL.md
+      - skills/strict-spec-design-sync/SKILL.md
+      - skills/strict-spec-harness-init/SKILL.md
+      - skills/strict-spec-harness-session/SKILL.md
+      - skills/strict-spec-init/SKILL.md
+      - skills/strict-spec-maintenance/SKILL.md
+      - skills/strict-spec-migrate/SKILL.md
+      - skills/strict-spec-modify/SKILL.md
+      - skills/strict-spec-propose-from-roadmap/SKILL.md
+      - skills/strict-spec-propose/SKILL.md
+      - skills/strict-spec-resync-code-mapping/SKILL.md
+      - skills/strict-spec-review/SKILL.md
+      - skills/strict-spec-sop/SKILL.md
+      - skills/strict-spec-spec-edit/SKILL.md
+      - skills/strict-spec-sync-specs/SKILL.md
+      - skills/strict-tech-edit/SKILL.md
+      - skills/strict-tech-sync/SKILL.md
+    mechanism: agent-guidance
+    classification: remaining-direct-writer
+    operations:
+      - create
+      - update
+      - named-remove
+      - delete
+      - rename
+    families:
+      - workflow-config
+      - architecture-state
+      - design-system-state
+      - harness-state
+      - spec-state
+      - tech-state
+      - change-planning-state
+      - change-delta-state
+      - roadmap-state
+      - lessons-state
+      - sop-state
+      - bundled-schema-assets
+      - bundled-scaffold-assets
+      - bundled-reference-examples
+    evidence:
+      - skills/strict-spec-auto/SKILL.md
+      - skills/strict-roadmap-review/SKILL.md
+  operator-documentation-guidance:
+    path_patterns:
+      - README.md
+      - README.zh.md
+      - ROADMAP_GUIDE.md
+      - ROADMAP_GUIDE.zh.md
+      - DEBUG_QUICKSTART.md
+      - DESIGN_QUICKSTART.md
+      - DESIGN_QUICKSTART.zh.md
+      - ARCHITECTURE_QUICKSTART.md
+      - ARCHITECTURE_QUICKSTART.zh.md
+      - HARNESS.md
+      - HARNESS.zh.md
+      - QUICKSTART.md
+      - QUICKSTART.zh.md
+      - ROADMAP_QUICKSTART.md
+      - ROADMAP_QUICKSTART.zh.md
+      - RTK.md
+    mechanism: documentation-guidance
+    classification: remaining-direct-writer
+    operations:
+      - create
+      - update
+      - named-remove
+      - delete
+      - rename
+    families:
+      - workflow-config
+      - spec-state
+      - tech-state
+      - change-planning-state
+      - change-delta-state
+      - roadmap-state
+      - lessons-state
+      - sop-state
+    evidence:
+      - README.md
+      - ROADMAP_GUIDE.md
+  read-only-skill-guidance:
+    path_patterns:
+      - skills/strict-spec-ship/SKILL.md
+      - skills/strict-spec-verify/SKILL.md
+    mechanism: agent-guidance
+    classification: read-only
+    operations:
+      - read
+    families:
+      - spec-state
+      - tech-state
+      - change-planning-state
+      - change-delta-state
+      - roadmap-state
+    evidence:
+      - skills/strict-spec-verify/SKILL.md
+      - skills/strict-spec-ship/SKILL.md
+  generated-document-guidance:
+    path_patterns:
+      - ARCHITECTURE.md
+    mechanism: generated-documentation
+    classification: generated
+    operations:
+      - update
+    families:
+      - architecture-state
+      - design-system-state
+    evidence:
+      - ARCHITECTURE.md
+      - src/document-render.ts

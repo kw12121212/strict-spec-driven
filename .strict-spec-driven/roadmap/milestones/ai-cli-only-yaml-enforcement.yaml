@@ -1,0 +1,45 @@
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: ../schemas/roadmap-milestone.yaml
+milestone:
+  ai-cli-only-yaml-enforcement:
+    title: AI CLI-only YAML enforcement
+order: 300
+goal: Remove direct YAML authoring from AI workflows and enforce that every AI-requested YAML mutation is expressed and completed through the strict CLI.
+scope:
+  in:
+    - Rewrite every mutation-capable Agent Skill to invoke supported CLI commands and remove direct YAML editing, hand-written payload, and fallback-to-file-edit guidance.
+    - Expose complete mutation intent through self-describing CLI help and MCP surfaces so agents do not need schema-shaped file writes.
+    - Extend validate-skills and repository maintenance checks to detect forbidden direct YAML mutation guidance and missing CLI command mappings.
+    - Update English and Chinese operator documentation and run end-to-end regression for create, update, named removal, deletion, archive, and rollback paths.
+    - Provide every AI mutation workflow with an exact CLI operating protocol plus discoverable Schema and Example locations for the target artifact.
+  out:
+    - Blocking humans from manually editing YAML outside the AI workflow.
+    - Operating-system filesystem sandboxing or interception of unrelated tools.
+done_criteria:
+  - All bundled mutation-capable skills use only CLI commands for repository-owned YAML creation, modification, entry removal, and artifact deletion.
+  - validate-skills reports deterministic path-specific failures for forbidden direct YAML edit guidance or missing mutation command mappings.
+  - CLI and MCP help fully describe every mutation argument, removal and deletion constraint, output, and failure mode needed by AI callers.
+  - Documentation contains no supported workflow that instructs AI to edit YAML text directly, and complete regression plus coverage gate pass.
+  - Repository maintenance fails when specs, technical standards, skills, MCP metadata, documentation, or source code reintroduce an unregistered AI-facing YAML write path, while permitting documented read-only and human-only exceptions.
+  - Every AI-facing mutation entry point names the exact CLI command sequence, validation step, bundled Schema key and resolvable schema_file location, bundled Example key or example_ref location, and the no-fallback behavior when a required command is unavailable.
+  - Schema guidance resolves schema_file beneath the default shared cache root ~/.strict-spec-schemas/ (or the configured cache root), and Example guidance resolves example_ref beneath its cached examples tree; installed Skills never assume a source-repository templates directory.
+intake_questions:
+  - id: enforcement-level
+    question: What enforcement proves that AI no longer edits YAML directly?
+    context: A sufficient answer must cover packaged skill instructions, MCP and help surfaces, repository policy checks, and regressions without relying on an unenforceable statement alone.
+    impact: Documentation-only guidance can drift and reintroduce direct apply_patch or fallback editing instructions.
+    recommendation: Validate CLI-only guidance statically, reject direct-edit instructions in mutation-capable skills, audit code and docs, and prove representative workflows without direct YAML writes.
+planned_changes: {}
+dependencies:
+  - Depends on complete artifact-family coverage so skill migration never removes the only available way to perform an operation.
+risks:
+  - Overbroad textual linting can flag read-only YAML inspection or generated examples; enforcement must distinguish reads from mutations.
+  - A skill can comply syntactically while shelling out to an unregistered writer; regression must exercise observable filesystem mutations through the CLI.
+  - Schema or Example paths embedded as repository-relative assumptions can break installed Skills; guidance must prefer CLI discovery and resolve declared paths through the shared schema cache.
+status: proposed
+notes:
+  - 'Policy boundary: the prohibition targets AI mutation workflows. Read-only inspection remains allowed, and human manual editing is not technically blocked.'
+  - 'User decision: AI guidance must explain how to operate the CLI and must surface the target YAML Schema and Example locations as safeguards against malformed authoring intent.'
+details: This milestone turns the product rule into enforceable packaging and regression behavior. Skill command maps become the authoritative route for YAML writes; direct apply_patch, ad hoc scripts, heredocs, temporary YAML payload construction, and fallback hand-edit instructions are removed from mutation workflows. Static validation and end-to-end tests prevent regression while preserving read-only inspection and human operator autonomy.

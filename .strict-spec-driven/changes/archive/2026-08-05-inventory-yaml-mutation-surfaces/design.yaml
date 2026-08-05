@@ -1,0 +1,30 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: inventory-yaml-mutation-surfaces
+approach:
+  - Add scripts/check-yaml-mutation-inventory.ts and a package script to parse the matrix, enumerate repository-owned YAML/YML paths from Git plus the active strict roadmap state, scan declared code/skill/documentation roots for YAML mutation evidence, expand inventory patterns, and emit deterministic diagnostics for uncovered paths, stale evidence, duplicate ids, invalid classifications, or unaccounted mutation surfaces.
+  - Maintain inventory/yaml-mutation-surfaces.yaml as the canonical coverage matrix, organized by stable family and mutation-surface ids. Each family records location patterns, representative evidence, schema or validation ownership, allowed create/update/named-removal/delete operations, index or reference side effects, current CLI owner, and an explicit ownership classification; each mutation surface records its paths, mechanism, affected families, and current ownership boundary.
+  - Add the regression cases to the already-mapped test/suites/foundation-and-fixtures.ts suite so inventory coverage remains part of the normal project regression without introducing an unmapped standalone test file.
+  - Add the confirmed inventory-coverage rule to the existing yaml-first-artifacts standard through an active-change delta-tech artifact, with the inventory and checker as implementation mappings and the foundation regression suite as enforcement.
+decisions:
+  canonical-inventory-location:
+    decision: Keep the persistent matrix under inventory/yaml-mutation-surfaces.yaml rather than under active .strict-spec-driven change state or bundled strict workflow assets.
+    rationale: The matrix is repository engineering evidence consumed across multiple roadmap changes; keeping it outside ephemeral change state prevents archive from moving it, while keeping it outside the bundled workflow assets avoids falsely presenting it as a portable end-user artifact.
+  evidence-driven-completeness:
+    decision: Prove completeness by comparing inventory patterns and mutation-surface evidence with repository discovery instead of maintaining an unvalidated prose checklist.
+    rationale: The planned change explicitly requires coverage beyond schema registries and ignore rules, so executable discovery is needed to catch newly added YAML families and direct-write paths deterministically.
+  no-delta-spec:
+    decision: Leave the specs directory empty because this technical inventory and regression change has no strict spec impact.
+    rationale: The work preserves observable CLI and workflow behavior and only adds internal repository evidence and enforcement, so inventing a behavioral requirement would misclassify technical maintenance as product behavior.
+  inventory-coverage-standard:
+    decision: Make complete YAML mutation inventory coverage a mandatory yaml-first-artifacts engineering rule.
+    rationale: The checked-in matrix and failing checker establish a durable repository convention used by every later mutation-foundation change; recording it as a MUST keeps the enforcement attributable and prevents future YAML families or mutation paths from bypassing the foundation.
+alternatives:
+  - option: Store the matrix as Markdown documentation.
+    reason: Markdown would not be reliably machine-consumable and would conflict with the repository's YAML-first constraint for structured workflow evidence.
+  - option: Derive the inventory entirely at test time with no checked-in classifications.
+    reason: Automatic discovery can find paths and syntax but cannot supply stable family identity, valid mutation semantics, CLI ownership, exclusions, or reference-side-effect judgment required by the roadmap.
+risks:
+  - Pattern-based discovery can over-classify fixtures or generated output; explicit classification enums, representative evidence, deterministic exclusions, and regression fixtures keep the boundary reviewable.

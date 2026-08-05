@@ -1,0 +1,12 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: migrate-harness-architecture-design-yaml
+  milestone: cli-yaml-artifact-coverage
+status: planned
+summary: Move harness, investigation, architecture, and design-system YAML mutations behind CLI commands.
+details: Provide complete structured authoring and lifecycle operations for harness.yaml, harness session artifacts, architecture.yaml, and design-system.yaml. Route inference, doctor repairs, session creation and archive, architecture refresh, design initialization and sync through the shared mutation boundary; add safe named removals and deletion constraints while keeping rendered ARCHITECTURE.md and DESIGN.md as generated non-YAML outputs.
+depends_on:
+  - expose-cli-yaml-mutation-surface

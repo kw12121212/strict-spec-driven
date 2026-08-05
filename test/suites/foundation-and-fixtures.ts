@@ -21,6 +21,25 @@ import {
   type YamlModule,
 } from "../support/harness.js";
 import { pathToFileURL } from "url";
+import { load } from "js-yaml";
+import {
+  validateYamlMutationInventory,
+  type InventoryDiagnostic,
+} from "../../scripts/check-yaml-mutation-inventory.js";
+
+const YAML_MUTATION_INVENTORY_PATH = path.join(ROOT, "inventory", "yaml-mutation-surfaces.yaml");
+
+function loadYamlMutationInventory(): Record<string, unknown> {
+  return load(readFileSync(YAML_MUTATION_INVENTORY_PATH, "utf8")) as Record<string, unknown>;
+}
+
+function cloneYamlMutationInventory(): Record<string, unknown> {
+  return structuredClone(loadYamlMutationInventory());
+}
+
+function hasInventoryDiagnostic(diagnostics: InventoryDiagnostic[], code: string, pathFragment?: string): boolean {
+  return diagnostics.some((diagnostic) => diagnostic.code === code && (!pathFragment || diagnostic.path.includes(pathFragment)));
+}
 
 function listFilesRecursive(rootDir: string): string[] {
   const files: string[] = [];
@@ -2964,6 +2983,80 @@ context.assert(existsSync(distHarnessSessionScaffoldPath), "dist harness-session
 context.assert(statSync(distHarnessSessionScaffoldPath).isFile(), "dist harness-session scaffold template is a file");
 
 context.assert(!existsSync(distExamplesDir), "dist/templates/strict-spec-driven/examples is not bundled after build");
+
+context.section("[9a] YAML mutation inventory coverage");
+
+const repositoryInventory = validateYamlMutationInventory({ rootDir: ROOT });
+context.assert(repositoryInventory.valid, "checked-in YAML mutation inventory covers the repository", JSON.stringify(repositoryInventory.diagnostics));
+context.assert(repositoryInventory.yamlPathCount >= 1_400, "inventory examines active, archived, bundled, example, and fixture YAML paths");
+context.assert(repositoryInventory.mutationPathCount >= 50, "inventory examines code and guidance mutation surfaces");
+context.assert(repositoryInventory.familyCount >= 15, "inventory records stable YAML family identities");
+context.assert(repositoryInventory.surfaceCount >= 8, "inventory separates filesystem, CLI, MCP, skill, and documentation surfaces");
+
+const uncoveredYaml = validateYamlMutationInventory({
+  rootDir: ROOT,
+  inventory: cloneYamlMutationInventory(),
+  yamlPaths: ["unclassified/new-family.yaml"],
+  mutationPaths: [],
+});
+context.assert(
+  hasInventoryDiagnostic(uncoveredYaml.diagnostics, "uncovered-yaml-path", "unclassified/new-family.yaml"),
+  "an unclassified YAML family produces a path-specific diagnostic",
+);
+
+const uncoveredMutation = validateYamlMutationInventory({
+  rootDir: ROOT,
+  inventory: cloneYamlMutationInventory(),
+  yamlPaths: [],
+  mutationPaths: ["src/new-yaml-writer.ts"],
+});
+context.assert(
+  hasInventoryDiagnostic(uncoveredMutation.diagnostics, "uncovered-mutation-path", "src/new-yaml-writer.ts"),
+  "an unaccounted direct-write surface produces a path-specific diagnostic",
+);
+
+const staleEvidenceInventory = cloneYamlMutationInventory();
+const staleFamilies = staleEvidenceInventory.artifact_families as Record<string, Record<string, unknown>>;
+(staleFamilies["workflow-config"].evidence as string[]).push("missing/inventory-evidence.yaml");
+const staleEvidence = validateYamlMutationInventory({ rootDir: ROOT, inventory: staleEvidenceInventory, yamlPaths: [], mutationPaths: [] });
+context.assert(
+  hasInventoryDiagnostic(staleEvidence.diagnostics, "stale-evidence", "workflow-config"),
+  "a stale evidence path names the owning family",
+);
+
+const invalidEnumsInventory = cloneYamlMutationInventory();
+const invalidFamilies = invalidEnumsInventory.artifact_families as Record<string, Record<string, unknown>>;
+(invalidFamilies["workflow-config"].operations as Record<string, unknown>).create = "unsafe-replace";
+const invalidSurfaces = invalidEnumsInventory.mutation_surfaces as Record<string, Record<string, unknown>>;
+invalidSurfaces["change-filesystem-writers"].classification = "unreviewed";
+(invalidSurfaces["change-filesystem-writers"].operations as string[]).push("truncate");
+const invalidEnums = validateYamlMutationInventory({ rootDir: ROOT, inventory: invalidEnumsInventory, yamlPaths: [], mutationPaths: [] });
+context.assert(hasInventoryDiagnostic(invalidEnums.diagnostics, "invalid-operation-state"), "invalid family operation states are rejected");
+context.assert(hasInventoryDiagnostic(invalidEnums.diagnostics, "invalid-surface-classification"), "invalid surface classifications are rejected");
+context.assert(hasInventoryDiagnostic(invalidEnums.diagnostics, "invalid-surface-operation"), "invalid surface operations are rejected");
+
+const duplicateInventoryRoot = mkdtempSync(path.join(os.tmpdir(), "strict-yaml-inventory-duplicate-"));
+try {
+  const duplicateInventoryPath = path.join(duplicateInventoryRoot, "inventory.yaml");
+  writeFileSync(duplicateInventoryPath, [
+    "schema: strict-spec-driven/yaml-mutation-inventory/v1",
+    "schema_version: 1",
+    "artifact_type: yaml_mutation_inventory",
+    "artifact_families:",
+    "  duplicate-id: {}",
+    "  duplicate-id: {}",
+    "mutation_surfaces: {}",
+    "",
+  ].join("\n"));
+  const duplicateId = validateYamlMutationInventory({ rootDir: duplicateInventoryRoot, inventoryPath: "inventory.yaml" });
+  context.assert(hasInventoryDiagnostic(duplicateId.diagnostics, "invalid-yaml"), "duplicate stable ids are rejected by YAML parsing");
+  context.assert(
+    duplicateId.diagnostics.some((diagnostic) => diagnostic.message.includes("duplicated mapping key")),
+    "duplicate-id diagnostic explains the conflicting mapping key",
+  );
+} finally {
+  rmSync(duplicateInventoryRoot, { recursive: true, force: true });
+}
 
 context.section("[10] init from dist-only environment");
 

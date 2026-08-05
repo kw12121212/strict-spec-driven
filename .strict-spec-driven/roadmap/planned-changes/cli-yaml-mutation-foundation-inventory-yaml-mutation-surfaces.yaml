@@ -1,0 +1,11 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: inventory-yaml-mutation-surfaces
+  milestone: cli-yaml-mutation-foundation
+status: complete
+summary: Inventory every repository-owned YAML artifact and mutation path.
+details: Build a checked-in, test-consumable coverage matrix from the complete set of version-controlled .yaml and .yml files, including hidden .strict-spec-driven state, archived artifacts, test fixtures, bundled schemas, scaffolds, samples, SOP categories, registries, manifests, command handlers, MCP tools, skills, and documentation. For each family record identity, location pattern, schema or validation owner, valid create/update/named-removal/delete operations, index or reference side effects, current CLI owner, and every remaining direct-write path. The discovery must not rely only on schema registry entries or ignore rules. Classify external dependency content, legacy migration input, generated caches, rendered non-YAML output, and genuine human-only files explicitly with evidence rather than silently omitting them.
+depends_on: []

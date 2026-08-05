@@ -1,0 +1,12 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: migrate-spec-tech-and-index-yaml
+  milestone: cli-yaml-artifact-coverage
+status: planned
+summary: Move main specs, technical standards, and index mutations behind CLI commands.
+details: Provide structured CLI creation, field and keyed requirement or rule edits, mapping additions and removals, deliberate deletion safeguards, rename or identity checks, and index reconciliation for main-spec, main-tech, spec index, and tech index artifacts. Replace direct-edit behavior in spec-edit, sync-specs, resync-code-mapping, tech-edit, and tech-sync workflows while preserving archive delta merge semantics.
+depends_on:
+  - expose-cli-yaml-mutation-surface

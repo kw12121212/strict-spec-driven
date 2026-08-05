@@ -1,0 +1,13 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: migrate-bundled-yaml-assets
+  milestone: cli-yaml-artifact-coverage
+status: planned
+summary: Move bundled schemas, scaffolds, samples, fixtures, registries, and YAML manifests behind CLI commands.
+details: After obsolete change-planning scaffold templates are removed, add maintainer-facing structured CLI operations for the remaining repository-bundled schema documents, initialization scaffolds, SOP category templates, minimal examples, positive and negative YAML test fixtures, schema and sample registries, YAML manifests, and every other inventoried repository-owned .yaml or .yml asset. Validate changed assets as a coherent set, regenerate embedded bundles and cache manifests when required, reject dangling registry, schema, scaffold, or example references, preserve intentionally invalid fixture semantics, and make deletion dependency-aware. Files discovered by the tracked-file inventory may not be omitted merely because they are not runtime workflow artifacts.
+depends_on:
+  - expose-cli-yaml-mutation-surface
+  - replace-change-scaffold-with-lazy-generation

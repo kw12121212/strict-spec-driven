@@ -1,0 +1,45 @@
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: ../schemas/roadmap-milestone.yaml
+milestone:
+  cli-yaml-artifact-coverage:
+    title: Complete CLI coverage for YAML artifact families
+order: 200
+goal: Make every repository-owned YAML artifact family fully creatable, incrementally editable, selectively removable, and safely deletable through supported CLI commands.
+scope:
+  in:
+    - Workflow config, change proposal/design/questions/tasks, delta specs, delta tech, main specs, main technical standards, and their indexes.
+    - Roadmap milestones, planned changes, roadmap index and archive state, SOPs and indexes, lessons and indexes.
+    - Harness declarations and sessions, architecture and design-system artifacts, schema registries, bundled schemas, scaffold templates, sample examples, and YAML manifests.
+    - Artifact-specific referential integrity, canonical naming, archive behavior, index reconciliation, and safe deletion constraints.
+    - Tracked test fixtures, hidden workflow files, archived strict state, and any present or future repository-owned file with a .yaml or .yml extension, whether or not it appears in the schema registry.
+    - Replace the placeholder-based change scaffold with lazy, structured CLI creation of real planning artifacts.
+  out:
+    - Changing the semantic content model of an artifact unless required to expose a safe CLI mutation operation.
+    - Removing existing stable CLI command names merely to present one monolithic command.
+done_criteria:
+  - Every artifact in the foundation inventory has tested CLI create, update, named removal, and delete behavior where its lifecycle permits that operation, or a deterministic rejection explaining the lifecycle rule.
+  - All domain commands use the shared validation and atomic-write boundary and no longer require direct YAML fallback instructions.
+  - Cross-file indexes, references, canonical filenames, archives, and generated registries remain valid after every supported mutation.
+  - A repository-level coverage check fails when a schema-registered or repository-owned YAML family has no declared CLI mutation owner.
+  - An automated tracked-file inventory fails when any repository-owned .yaml or .yml file, including fixtures, hidden paths, and archived state, lacks a declared mutation owner, lifecycle-specific CLI behavior, or an explicit excluded classification.
+  - No supported command creates placeholder proposal, design, questions, tasks, delta-spec, or delta-tech YAML; the first successful authoring invocation atomically creates the change container and real schema-valid artifact content, while failure leaves no empty change behind.
+intake_questions:
+  - id: compatibility-boundary
+    question: How should existing artifact-specific commands participate in the unified CLI model?
+    context: A sufficient answer must decide whether users keep domain commands such as generate, roadmap-generate, sop-edit, and lesson-edit while all writes share one safe mutation implementation.
+    impact: Replacing stable commands would create migration cost unrelated to eliminating direct YAML edits.
+    recommendation: Keep existing domain commands as compatible interfaces, fill their operation gaps, and route them through the shared CLI-owned mutation boundary.
+planned_changes: {}
+dependencies:
+  - Depends on completion of cli-yaml-mutation-foundation and its accepted mutation contract.
+risks:
+  - Artifact families have different identity and deletion rules; forcing identical flags without domain checks could weaken lifecycle safety.
+  - Bundled schema and template edits can invalidate bootstrap, examples, cache exports, or compiled embedded assets unless regeneration is included in the transaction.
+  - Removing scaffolded questions must preserve the canonical requirement-interrogation gate as real CLI-authored workflow state rather than silently dropping requirement evidence.
+status: proposed
+notes:
+  - 'Compatibility decision: retain domain-oriented commands for usability while standardizing their internal write path and completion semantics.'
+  - 'User decision: blank change scaffolds have no role in an AI CLI-only workflow; YAML planning artifacts are created only from structured facts supplied to CLI commands.'
+details: This milestone closes the operation matrix family by family. Each change must identify current direct-edit paths, add or extend named CLI arguments for all valid mutations, reject unsafe operations deterministically, update indexes and dependent artifacts within the same workflow, and add both unit and copied-project regression coverage. Completion means there is no repository-owned YAML artifact for which normal maintenance requires AI-authored YAML text.

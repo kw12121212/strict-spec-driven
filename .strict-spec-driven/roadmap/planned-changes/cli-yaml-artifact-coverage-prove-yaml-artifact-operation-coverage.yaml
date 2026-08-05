@@ -1,0 +1,16 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: prove-yaml-artifact-operation-coverage
+  milestone: cli-yaml-artifact-coverage
+status: planned
+summary: Enforce and regress complete CLI ownership of every YAML operation.
+details: Turn the inventory into an automated completeness gate. For every repository-owned YAML family, exercise creation, scalar and keyed updates, additive lists, named removals, allowed or rejected deletion, invalid-input no-mutation behavior, rollback, index and reference reconciliation, deterministic output, installed CLI behavior, and copied-project workflows. Fail when a new YAML family or direct-write path lacks a registered CLI mutation owner.
+depends_on:
+  - migrate-workflow-and-change-yaml
+  - migrate-spec-tech-and-index-yaml
+  - migrate-roadmap-sop-and-lesson-yaml
+  - migrate-harness-architecture-design-yaml
+  - migrate-bundled-yaml-assets

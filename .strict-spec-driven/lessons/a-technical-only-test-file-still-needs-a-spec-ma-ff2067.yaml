@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-technical-only-test-file-still-needs-a-spec-ma-ff2067
+  title: A technical-only test file still needs a spec mapping
+category: tooling
+status: active
+created_at: '2026-08-05T06:36:52.308Z'
+updated_at: '2026-08-05T06:36:52.308Z'
+context: Adding a standalone regression suite to a technical-only strict change with an explicit no-delta-spec decision.
+observation: verify-spec-mappings rejected the new standalone test file as unmapped; preserving the no-delta-spec decision required integrating the cases into an already mapped suite, overturning the initial design approach.
+takeaway: Before planning a new standalone test file for a technical-only change, check spec mapping requirements; either use an existing mapped suite or explicitly plan the required mapping artifact.
+applies_when: Planning a new standalone test file in a strict technical-only change that intentionally has no delta spec.
+occurrences:
+  - origin: inventory-yaml-mutation-surfaces
+    date: '2026-08-05'
+    evidence: strict-spec-cli verify-spec-mappings reported test/suites/yaml-mutation-inventory.ts as unmapped, so the regression cases moved to test/suites/foundation-and-fixtures.ts.

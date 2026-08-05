@@ -1,0 +1,12 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: define-yaml-mutation-contract
+  milestone: cli-yaml-mutation-foundation
+status: planned
+summary: Specify uniform safe semantics for every CLI-owned YAML mutation.
+details: 'Add observable requirements and applicable technical standards for artifact-aware creation, field-level scalar and keyed-item upsert, additive list changes, named single-entry removal, isolated whole-artifact deletion, path confinement, schema and relationship validation, deterministic diagnostics, atomic commit or rollback, and no loss of unnamed content. Require named arguments rather than raw YAML payloads or arbitrary output paths. Prohibit blank or placeholder YAML scaffolds: a creation command persists only real caller-supplied or workflow-required state, and a failed first write leaves no empty artifact container. Audit and replace superseded requirements that still direct agents to edit tasks.yaml, main specs, technical standards, roadmap definitions, harness declarations, or other YAML text directly. Preserve explicit read-only and human-only exceptions and keep established domain commands as compatible interfaces.'
+depends_on:
+  - inventory-yaml-mutation-surfaces

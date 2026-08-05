@@ -1,0 +1,39 @@
+schema: strict-spec-driven/roadmap-milestone/v2
+schema_version: 2
+artifact_type: roadmap_milestone
+schema_file: ../schemas/roadmap-milestone.yaml
+milestone:
+  cli-yaml-mutation-foundation:
+    title: CLI-owned YAML mutation foundation
+order: 100
+goal: Establish one safe, structured CLI mutation contract and shared implementation boundary for every repository-owned YAML artifact so AI callers never need direct file edits.
+scope:
+  in:
+    - Inventory every repository-owned YAML artifact family and every code, skill, MCP, and documentation path that can mutate it.
+    - Define structured create, field-level update, named-entry removal, and whole-artifact deletion semantics without replacing unnamed content.
+    - Provide schema selection, pre-write validation, atomic commit or rollback, deterministic diagnostics, and machine-readable help for YAML mutations.
+    - Preserve established artifact-specific CLI behavior while moving filesystem shape and YAML serialization behind the shared CLI-owned boundary.
+  out:
+    - YAML owned by dependencies, external repositories, legacy .spec-driven migration input, or user-selected arbitrary files outside this repository's declared artifact inventory.
+    - Rendered Markdown documents and other non-YAML outputs.
+done_criteria:
+  - A checked-in coverage inventory maps every repository-owned YAML family and mutation operation to a CLI entry point or an explicitly read-only classification.
+  - All shared mutation primitives validate the complete candidate artifact before an atomic write and leave files unchanged on invalid input.
+  - Create, update, named removal, and deliberate artifact deletion have deterministic, machine-readable contracts that never discard unnamed data.
+  - Every pre-existing requirement, technical standard, skill contract, and operator workflow that permits AI-authored YAML text is either replaced with an explicit CLI-owned path or retained only as a read-only or human-only exception with regression coverage.
+intake_questions:
+  - id: coverage-boundary
+    question: Which YAML files must be owned by CLI mutation workflows?
+    context: The request says all YAML additions, modifications, and deletions. A sufficient answer must define whether this includes active workflow state, bundled schemas, scaffolds, examples, registries, and manifests.
+    impact: A narrow boundary would leave direct-edit exceptions and prevent enforceable completion.
+    recommendation: Cover every repository-owned YAML file; exclude external or third-party YAML, legacy migration input, generated caches, and rendered non-YAML documents.
+planned_changes: {}
+dependencies:
+  - No earlier roadmap milestone; this foundation must complete before artifact-family migration begins.
+risks:
+  - A raw path-oriented editor could merely relocate unsafe direct editing into CLI arguments; commands must remain schema-aware and artifact-aware.
+  - Whole-file deletion and indexed artifacts can corrupt cross-file state unless dependency and index reconciliation are transactionally enforced.
+status: proposed
+notes:
+  - 'Decision evidence: the user''s word ''所有'' is interpreted as every repository-owned YAML surface, including bundled schemas, templates, examples, registries, manifests, and active strict workflow state.'
+details: This milestone defines the non-negotiable mutation semantics and reusable CLI boundary before individual artifact families migrate. AI supplies intent and named values; CLI code resolves paths, owns document shape, preserves unspecified fields, serializes YAML, validates schemas and relationships, performs atomic filesystem changes, and reports exactly what changed. Existing dedicated commands remain stable domain interfaces. The contract work must also reconcile superseded main-spec and technical-standard statements that still prescribe direct YAML edits, so the repository has one coherent rule before implementation proceeds.

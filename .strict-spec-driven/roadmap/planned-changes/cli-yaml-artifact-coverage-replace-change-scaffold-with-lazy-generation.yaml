@@ -1,0 +1,12 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: replace-change-scaffold-with-lazy-generation
+  milestone: cli-yaml-artifact-coverage
+status: planned
+summary: Replace placeholder change scaffolds with atomic lazy CLI generation.
+details: Remove the workflow in which propose copies blank or placeholder proposal.yaml, design.yaml, questions.yaml, and tasks.yaml before real facts are available. The first successful structured authoring invocation, whether exposed through propose or generate, must validate the change name and active-change limit, atomically create the change directory plus only the real schema-valid artifact content supplied or required by that invocation, and remove every partial path on failure. Later generate calls create a missing target artifact from typed defaults and named arguments or merge only named fields into an existing artifact. Missing required artifacts remain explicit ready and verify diagnostics rather than placeholder files. Canonical requirement questions remain enforceable workflow state, but they must be created or resolved through structured CLI input and must not justify restoring unrelated blank artifacts. Remove obsolete change scaffold templates, placeholder detection rules, scaffold-only tests, and documentation while preserving roadmap links, archive behavior, two-active-change enforcement, dist-only operation, deterministic output, and existing change identity semantics.
+depends_on:
+  - expose-cli-yaml-mutation-surface

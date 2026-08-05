@@ -1,0 +1,12 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: expose-cli-yaml-mutation-surface
+  milestone: cli-yaml-mutation-foundation
+status: planned
+summary: Expose complete structured CLI access to the shared YAML mutation boundary.
+details: Provide self-describing CLI entry points that address every inventoried artifact kind and valid operation without accepting raw YAML text or unsafe caller-selected paths. Keep stable domain commands available and route them through the shared core. Canonical command metadata, --help --json, mutation results, and actionable diagnostics must identify the artifact's bundled Schema key, declared schema_file path resolved beneath the default shared cache root ~/.strict-spec-schemas/ or its configured replacement, and bundled Example key or example_ref resolved beneath the cached examples tree. Direct callers to schema-list/schema-show and sample-list/sample-show. Document required, repeatable, removal, delete, validation, and rollback semantics, and expose deterministic JSON suitable for Agent Skills and MCP callers.
+depends_on:
+  - implement-yaml-mutation-core

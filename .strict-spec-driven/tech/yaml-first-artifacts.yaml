@@ -16,6 +16,9 @@ mapping:
     - src/document-render.ts
     - src/cli/cmd-generation.ts
     - src/roadmap/author.ts
+    - inventory/yaml-mutation-surfaces.yaml
+    - scripts/check-yaml-mutation-inventory.ts
+    - package.json
   enforcement:
     - templates/strict-spec-driven/schemas/registry.yaml
     - test/suites/foundation-and-fixtures.ts
@@ -68,3 +71,10 @@ rules:
     rationale: A single flag that both permitted a scalar edit and flipped supplied lists from append to replace destroyed recorded roadmap content, because the destructive behavior was reached by an argument combination the caller did not intend and could not see. Binding a write's effect to what the caller named removes that whole class of loss instead of renaming it, and keeps every authoring command safe to run without first reasoning about which other fields it might touch.
     enforcement:
       method: test
+  yaml-mutation-surfaces-stay-inventoried:
+    strength: MUST
+    statement: Every repository-owned YAML or YML artifact family and every repository code, CLI, MCP, skill, or documentation mutation surface MUST remain represented in inventory/yaml-mutation-surfaces.yaml with its ownership, supported operations, reference side effects, current CLI ownership or direct-write paths, and repository evidence; the dedicated inventory check MUST fail when coverage is missing, invalid, or stale.
+    rationale: The shared mutation contract and later artifact-family migrations depend on a complete evidence baseline; allowing an unclassified YAML family or mutation path would silently recreate the direct-write gaps this roadmap is intended to eliminate.
+    enforcement:
+      method: test
+      detail: bun run check:yaml-inventory validates the matrix directly, and test/suites/foundation-and-fixtures.ts covers repository completeness and deterministic failure diagnostics.

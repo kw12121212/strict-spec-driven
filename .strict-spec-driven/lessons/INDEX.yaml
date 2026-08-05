@@ -33,3 +33,9 @@ lessons:
     status: active
     occurrences: 1
     path: .strict-spec-driven/lessons/an-empty-search-result-is-evidence-about-the-sea-668a85.yaml
+  a-technical-only-test-file-still-needs-a-spec-ma-ff2067:
+    title: A technical-only test file still needs a spec mapping
+    category: tooling
+    status: active
+    occurrences: 1
+    path: .strict-spec-driven/lessons/a-technical-only-test-file-still-needs-a-spec-ma-ff2067.yaml

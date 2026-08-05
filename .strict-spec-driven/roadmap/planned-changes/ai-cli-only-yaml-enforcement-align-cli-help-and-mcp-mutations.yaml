@@ -1,0 +1,12 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: align-cli-help-and-mcp-mutations
+  milestone: ai-cli-only-yaml-enforcement
+status: planned
+summary: Make CLI help and MCP expose every YAML mutation and authoring reference needed by AI callers.
+details: Complete canonical command metadata for all artifact operations, including artifact identity, required and repeatable arguments, named removals, delete prohibitions, cross-file effects, outputs, validation, and rollback failures. For each artifact kind expose the bundled Schema key, declared schema_file path resolved beneath the default shared cache root ~/.strict-spec-schemas/ or its configured replacement, bundled Example key or example_ref resolved beneath the cached examples tree, schema-list/schema-show and sample-list/sample-show discovery commands, and installed-environment cache behavior. Generate root help, subcommand help, JSON help, MCP mutation descriptions, and remediation diagnostics from that source so an agent can discover, execute, and validate any supported YAML change without inspecting or constructing YAML text.
+depends_on:
+  - prove-yaml-artifact-operation-coverage

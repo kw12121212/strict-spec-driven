@@ -2,4 +2,16 @@ schema: strict-spec-driven/roadmap-index/v2
 schema_version: 2
 artifact_type: roadmap_index
 schema_file: ../schemas/roadmap-index.yaml
-milestones: {}
+milestones:
+  cli-yaml-mutation-foundation:
+    title: CLI-owned YAML mutation foundation
+    path: roadmap/milestones/cli-yaml-mutation-foundation.yaml
+    status: proposed
+  cli-yaml-artifact-coverage:
+    title: Complete CLI coverage for YAML artifact families
+    path: roadmap/milestones/cli-yaml-artifact-coverage.yaml
+    status: proposed
+  ai-cli-only-yaml-enforcement:
+    title: AI CLI-only YAML enforcement
+    path: roadmap/milestones/ai-cli-only-yaml-enforcement.yaml
+    status: proposed
