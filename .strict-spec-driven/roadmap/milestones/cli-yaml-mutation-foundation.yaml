@@ -33,7 +33,7 @@ dependencies:
 risks:
   - A raw path-oriented editor could merely relocate unsafe direct editing into CLI arguments; commands must remain schema-aware and artifact-aware.
   - Whole-file deletion and indexed artifacts can corrupt cross-file state unless dependency and index reconciliation are transactionally enforced.
-status: proposed
+status: complete
 notes:
   - 'Decision evidence: the user''s word ''所有'' is interpreted as every repository-owned YAML surface, including bundled schemas, templates, examples, registries, manifests, and active strict workflow state.'
 details: This milestone defines the non-negotiable mutation semantics and reusable CLI boundary before individual artifact families migrate. AI supplies intent and named values; CLI code resolves paths, owns document shape, preserves unspecified fields, serializes YAML, validates schemas and relationships, performs atomic filesystem changes, and reports exactly what changed. Existing dedicated commands remain stable domain interfaces. The contract work must also reconcile superseded main-spec and technical-standard statements that still prescribe direct YAML edits, so the repository has one coherent rule before implementation proceeds.

@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-self-populating-cache-cannot-be-made-absent-by-49b4d2
+  title: A self-populating cache cannot be made absent by pointing at an empty directory
+category: testing
+status: active
+created_at: '2026-08-05T09:55:24.653Z'
+updated_at: '2026-08-05T09:55:24.653Z'
+context: Writing a regression that asserts the YAML mutation surface falls back to bundled schema and example keys when the shared schema cache is unavailable, by running the CLI with STRICT_SPEC_SCHEMA_CACHE_DIR set to a fresh temporary path.
+observation: 'The assertion failed reporting schemaCacheAvailable: true with fully resolved cached paths. The CLI synchronizes the shared schema cache during startup, so naming a nonexistent directory caused it to be created and populated before the command ran; the test had silently exercised the present-cache path it was written to exclude. Pointing the variable at an existing regular file instead made synchronization fail to create a directory there and produced the genuinely unavailable cache the test needed.'
+takeaway: To test absence of a resource the process creates on demand, occupy its path with something the process cannot convert into that resource, rather than merely leaving the path empty. An empty path is an instruction to create; an occupied path of the wrong type is the only durable denial.
+applies_when: Writing a test that asserts fallback, degraded, or unavailable-resource behavior for a cache, directory, or file that the code under test creates or repairs on startup.
+occurrences:
+  - origin: expose-cli-yaml-mutation-surface
+    date: '2026-08-05'
+    evidence: 'test/suites/entrypoint-and-skills.ts asserts ''an unavailable shared schema cache still reports bundled keys and omits unresolved paths'' using a regular file at the cache root; src/shared-schema-cache.ts synchronizeSharedSchemaCache() calls mkdirSync(rootDir, { recursive: true }) on every CLI startup.'

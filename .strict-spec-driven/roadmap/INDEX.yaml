@@ -6,7 +6,7 @@ milestones:
   cli-yaml-mutation-foundation:
     title: CLI-owned YAML mutation foundation
     path: roadmap/milestones/cli-yaml-mutation-foundation.yaml
-    status: proposed
+    status: complete
   cli-yaml-artifact-coverage:
     title: Complete CLI coverage for YAML artifact families
     path: roadmap/milestones/cli-yaml-artifact-coverage.yaml

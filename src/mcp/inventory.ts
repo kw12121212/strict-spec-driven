@@ -1,4 +1,4 @@
-import { getCommandMetadata } from "../cli/command-metadata.js";
+import { getCommandArtifactSurface, getCommandMetadata } from "../cli/command-metadata.js";
 
 /**
  * MCP tool descriptions come from the shared command-metadata registry. Mutating commands carry
@@ -7,7 +7,12 @@ import { getCommandMetadata } from "../cli/command-metadata.js";
  */
 function mcpToolDescription(cliCommand: string): string {
   const metadata = getCommandMetadata(cliCommand);
-  return metadata.mcpDescription ?? metadata.summary;
+  const description = metadata.mcpDescription ?? metadata.summary;
+  const artifactSurface = getCommandArtifactSurface(cliCommand);
+  if (artifactSurface.length === 0) return description;
+  // MCP hosts see the same artifact kinds as CLI help, so a host can route an agent to
+  // schema-show and sample-show before it attempts a mutation it cannot yet shape correctly.
+  return `${description} Writes YAML artifact kinds: ${artifactSurface.map((entry) => entry.artifactKind).join(", ")}.`;
 }
 
 export const MCP_SERVER_NAME = "strict-spec-driven";

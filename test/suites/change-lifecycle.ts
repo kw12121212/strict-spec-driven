@@ -4107,4 +4107,122 @@ context.assert(
   `stderr: ${removedReviewResult.stderr.trim()}`,
 );
 
+context.section("[X] mutation results identify their recovery assets");
+
+const surfaceIdentifierFixture = createCopiedProjectWorkspace("todo-app");
+try {
+  const { workspaceRoot } = surfaceIdentifierFixture;
+  context.assert(
+    projectWorkspaceCli(workspaceRoot, ["propose", "identifier-probe"]).status === 0,
+    "identifier probe change scaffolds",
+  );
+
+  const successResult = projectWorkspaceCli(workspaceRoot, [
+    "generate",
+    "identifier-probe",
+    "proposal",
+    "--what",
+    "Probe the mutation result identifiers",
+    "--why",
+    "A successful write must name the schema and example that describe the artifact",
+  ]);
+  const successPayload = JSON.parse(successResult.stdout) as {
+    valid: boolean;
+    artifactKind?: string;
+    schemaKey?: string;
+    schemaFilePath?: string;
+    exampleKey?: string;
+  };
+  context.assert(
+    successResult.status === 0
+      && successPayload.valid
+      && successPayload.artifactKind === "change-planning-state"
+      && successPayload.schemaKey === "strict-spec-driven/schemas/change-proposal.yaml"
+      && successPayload.exampleKey === "examples/strict-spec-driven/change-proposal.yaml"
+      && typeof successPayload.schemaFilePath === "string",
+    "a successful mutation result identifies the artifact kind, schema key, cached schema path, and example key",
+    `stdout: ${successResult.stdout.trim()}`,
+  );
+
+  // An invalid category is rejected before any write, which is exactly when the caller most needs
+  // the schema and example that describe the artifact it failed to produce.
+  const failureResult = projectWorkspaceCli(workspaceRoot, [
+    "generate",
+    "identifier-probe",
+    "delta-tech",
+    "--target-standard",
+    "probe-standard",
+    "--title",
+    "Probe Standard",
+    "--category",
+    "not-a-valid-category",
+    "--operation",
+    "ADDED",
+    "--rule",
+    "probe-rule",
+    "--strength",
+    "MUST",
+    "--statement",
+    "Probe statement.",
+    "--rationale",
+    "Probe rationale.",
+    "--method",
+    "test",
+  ]);
+  context.assert(
+    failureResult.status !== 0
+      && failureResult.stderr.includes("Artifact kind change-delta-state")
+      && failureResult.stderr.includes("strict-spec-driven/schemas/delta-tech.yaml")
+      && failureResult.stderr.includes("schema-show delta-tech")
+      && failureResult.stderr.includes("sample-show delta-tech"),
+    "a rejected mutation names the artifact kind, schema, and the asset commands that print the contract",
+    `stderr: ${failureResult.stderr.trim()}`,
+  );
+  context.assert(
+    !existsSync(path.join(workspaceRoot, ".strict-spec-driven", "changes", "identifier-probe", "tech", "probe-standard.yaml")),
+    "a rejected mutation leaves no artifact behind",
+  );
+
+  // Startup synchronization recreates a merely-absent cache, so the unusable case is a regular
+  // file occupying the cache root path.
+  const blockedCacheRoot = path.join(mkdtempSync(path.join(os.tmpdir(), "strict-blocked-mutation-cache-")), "cache-root");
+  writeFileSync(blockedCacheRoot, "not a cache directory\n", "utf8");
+  const withoutCacheFailure = cli([
+    "generate",
+    "identifier-probe",
+    "delta-tech",
+    "--target-standard",
+    "probe-standard",
+    "--title",
+    "Probe Standard",
+    "--category",
+    "not-a-valid-category",
+    "--operation",
+    "ADDED",
+    "--rule",
+    "probe-rule",
+    "--strength",
+    "MUST",
+    "--statement",
+    "Probe statement.",
+    "--rationale",
+    "Probe rationale.",
+    "--method",
+    "test",
+  ], {
+    cwd: workspaceRoot,
+    env: { STRICT_SPEC_SCHEMA_CACHE_DIR: blockedCacheRoot },
+  });
+  rmSync(path.dirname(blockedCacheRoot), { recursive: true, force: true });
+  context.assert(
+    withoutCacheFailure.status !== 0
+      && withoutCacheFailure.stderr.includes("strict-spec-driven/schemas/delta-tech.yaml")
+      && !withoutCacheFailure.stderr.includes("cached at"),
+    "an unavailable schema cache still names the bundled schema key and omits a cached path",
+    `stderr: ${withoutCacheFailure.stderr.trim()}`,
+  );
+} finally {
+  surfaceIdentifierFixture.cleanup();
+}
+
 }

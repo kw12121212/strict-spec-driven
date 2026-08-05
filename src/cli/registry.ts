@@ -24,6 +24,8 @@ export const COMMAND_REGISTRATION_ORDER = [
   "sample-show",
   "template-list",
   "template-show",
+  "yaml-surface-list",
+  "yaml-surface-show",
   "harness-infer",
   "harness-doctor",
   "harness-plan",

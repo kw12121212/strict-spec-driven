@@ -20,6 +20,8 @@ mapping:
     - inventory/yaml-mutation-surfaces.yaml
     - scripts/check-yaml-mutation-inventory.ts
     - package.json
+    - scripts/gen-templates-bundle.ts
+    - src/yaml-mutation-surface.ts
   enforcement:
     - templates/strict-spec-driven/schemas/registry.yaml
     - test/suites/foundation-and-fixtures.ts
@@ -27,6 +29,7 @@ mapping:
     - test/suites/design-system-document.ts
     - test/suites/change-lifecycle.ts
     - test/suites/roadmap-and-migration.ts
+    - test/suites/entrypoint-and-skills.ts
 rules:
   artifacts-are-strict-yaml:
     strength: MUST
@@ -105,3 +108,9 @@ rules:
     enforcement:
       method: test
       detail: Creation regressions assert valid minimal state on success and target absence after missing input, invalid input, relationship failure, or commit failure.
+  runtime-repository-evidence-is-embedded:
+    strength: MUST
+    statement: Repository-owned evidence a CLI command must read while running inside another project MUST be embedded in the bundled asset set and read embedded-first, with a working-tree read only as a fallback; a command MUST NOT depend on a repository path that exists only in this repository's checkout.
+    rationale: The CLI is installed and run inside other projects, where this repository's working tree is absent, but every test and manual check runs from the checkout where such a path resolves. A direct working-tree read therefore passes the whole suite and fails for every installed user, and the failure surfaces only as a runtime ENOENT far from the code that introduced it. Embedding the asset and reading embedded-first makes the runtime and test environments agree.
+    enforcement:
+      method: test

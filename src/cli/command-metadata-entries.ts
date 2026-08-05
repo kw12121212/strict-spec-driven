@@ -878,6 +878,54 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     ],
   },
 
+  "yaml-surface-list": {
+    name: "yaml-surface-list",
+    group: "assets",
+    summary: "List every inventoried repository-owned YAML artifact family and its operation states.",
+    usage: "Usage: strict-spec-cli yaml-surface-list\n",
+    arguments: [],
+    flags: [],
+    output: {
+      format: "json",
+      keys: ["valid", "inventoryPath", "schemaCacheRoot", "schemaCacheAvailable", "families", "diagnostics"],
+      description:
+        "A JSON listing naming each artifact kind, its ownership class, its artifact types, its create, update, named_remove, and delete states, and its bundled schema and example keys.",
+    },
+    exitCodes: SUCCESS_EXIT_CODES,
+    notes: [
+      "Operation states are reported verbatim from the mutation inventory; a direct-write state means the operation has no CLI owner yet, not that it is forbidden.",
+      "Run yaml-surface-show <artifact-kind> for the owning commands, resolved schema path, and example references of one family.",
+    ],
+  },
+
+  "yaml-surface-show": {
+    name: "yaml-surface-show",
+    group: "assets",
+    summary: "Print the full YAML mutation surface for one inventoried artifact kind.",
+    usage: "Usage: strict-spec-cli yaml-surface-show <artifact-kind>\n",
+    arguments: [
+      {
+        name: "artifact-kind",
+        description: "An artifact family key reported by yaml-surface-list, such as workflow-config.",
+        required: true,
+      },
+    ],
+    flags: [],
+    output: {
+      format: "json",
+      keys: ["valid", "inventoryPath", "schemaCacheRoot", "schemaCacheAvailable", "family", "diagnostics"],
+      description:
+        "A JSON family record carrying ownership, artifact types with their schema and example keys, path patterns, per-operation state and owning commands, reference side effects, and the schema-show and sample-show commands that print the assets.",
+    },
+    exitCodes: [
+      { code: 0, meaning: "The artifact kind was found and its surface was printed." },
+      { code: 1, meaning: "Usage error, or an artifact kind absent from the mutation inventory." },
+    ],
+    notes: [
+      "schemaFilePath and exampleFilePath appear only when the shared schema cache holds the file; the bundled schemaKey and exampleKey are always reported.",
+    ],
+  },
+
   "harness-infer": {
     name: "harness-infer",
     group: "harness",

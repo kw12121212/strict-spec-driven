@@ -3,6 +3,7 @@ import path from "path";
 import { loadBundledSchemaByArtifactType, validateArtifact, type ValidationDiagnostic } from "./validation.js";
 import { parseYamlDocument } from "./yaml.js";
 import { commitYamlMutation } from "./yaml-mutation.js";
+import { resolveYamlArtifactIdentifiers } from "./yaml-mutation-surface.js";
 
 const STRICT_WORKFLOW_DIR = ".strict-spec-driven";
 
@@ -35,6 +36,14 @@ export type GenerateChangeArtifactResult = {
   ready?: boolean;
   /** Task ids deleted by `--remove`; present only when a tasks invocation removed something. */
   removedTasks?: string[];
+  /** Artifact kind written, from the YAML mutation surface. */
+  artifactKind?: string;
+  /** Bundled schema key describing the written artifact; inspect it with `schema-show`. */
+  schemaKey?: string;
+  /** Cached schema path, present only when the shared schema cache holds the file. */
+  schemaFilePath?: string;
+  /** Bundled example key for the written artifact; inspect it with `sample-show`. */
+  exampleKey?: string;
   /** Task ids named by `--remove` that were already absent, reported so the no-op is visible. */
   unmatchedRemovals?: string[];
 };
@@ -145,10 +154,33 @@ function mapGeneratedFieldToInputField(artifact: GeneratableArtifact, fieldPath:
   return fieldPath;
 }
 
+/**
+ * A rejected write is where a caller is most likely to be wrong about artifact shape, so the
+ * message names the schema and example that describe it rather than only the offending fields.
+ */
+function formatRecoveryAssets(artifactType: string): string[] {
+  const identifiers = resolveYamlArtifactIdentifiers(artifactType);
+  if (identifiers.schemaKey === undefined) return [];
+
+  const inspect = [
+    `schema-show ${path.posix.basename(identifiers.schemaKey, ".yaml")}`,
+    ...(identifiers.exampleKey === undefined
+      ? []
+      : [`sample-show ${path.posix.basename(identifiers.exampleKey, ".yaml")}`]),
+  ];
+  return [
+    `Artifact kind ${identifiers.artifactKind ?? artifactType}; schema ${identifiers.schemaKey}${
+      identifiers.schemaFilePath === undefined ? "" : ` (cached at ${identifiers.schemaFilePath})`
+    }.`,
+    `Inspect the contract with: ${inspect.join(", ")}`,
+  ];
+}
+
 function formatGenerationDiagnostics(
   artifact: GeneratableArtifact,
   inputLabel: string,
   diagnostics: ValidationDiagnostic[],
+  artifactType: string,
 ): string {
   const lines = diagnostics.map((diagnostic) => {
     const inputField = mapGeneratedFieldToInputField(artifact, diagnostic.fieldPath);
@@ -164,6 +196,7 @@ function formatGenerationDiagnostics(
   return [
     `${inputLabel} is invalid for ${artifact}; fix these field(s):`,
     ...lines,
+    ...formatRecoveryAssets(artifactType),
   ].join("\n");
 }
 
@@ -664,7 +697,7 @@ function writeGeneratedArtifact(
 
   const preWriteDiagnostics = validateGeneratedArtifact(target.artifactType, target.artifact, artifactPath);
   if (preWriteDiagnostics.length > 0) {
-    throw new Error(formatGenerationDiagnostics(artifact, inputLabel, preWriteDiagnostics));
+    throw new Error(formatGenerationDiagnostics(artifact, inputLabel, preWriteDiagnostics, target.artifactType));
   }
 
   const replaced = existsSync(target.absolutePath);
@@ -692,9 +725,10 @@ function writeGeneratedArtifact(
     }],
   });
   if (!mutation.valid) {
-    throw new Error(
+    throw new Error([
       `failed to write ${artifact} artifact: ${mutation.diagnostics.map((entry) => `${entry.code} ${entry.artifactPath} ${entry.fieldPath}: ${entry.message}`).join("; ")}`,
-    );
+      ...formatRecoveryAssets(target.artifactType),
+    ].join("\n"));
   }
 
   const writtenArtifact = parseYamlDocument<unknown>(readFileSync(target.absolutePath, "utf8"), { source: artifactPath });
@@ -702,6 +736,8 @@ function writeGeneratedArtifact(
   if (diagnostics.length > 0) {
     throw new Error(`written ${artifact} artifact is invalid: ${formatDiagnostics(diagnostics)}`);
   }
+
+  const identifiers = resolveYamlArtifactIdentifiers(target.artifactType);
 
   // Task lists are built one task at a time, so the artifact is structurally valid at every step
   // but may still be incomplete. The write itself succeeded (schema-validated above), so `valid`
@@ -717,6 +753,7 @@ function writeGeneratedArtifact(
       valid: true,
       diagnostics: readiness,
       ready: readiness.length === 0,
+      ...identifiers,
     };
   }
 
@@ -727,6 +764,7 @@ function writeGeneratedArtifact(
     replaced,
     valid: true,
     diagnostics: [],
+    ...identifiers,
   };
 }
 

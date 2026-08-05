@@ -1,0 +1,54 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: expose-cli-yaml-mutation-surface
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: AI agents working in this repository cannot learn from the CLI which operation owns a given repository-owned YAML artifact, which schema validates it, or where a minimal valid example lives. The completed mutation-surface inventory records that several families still have direct-write paths in skills and scripts, so agents keep hand-authoring YAML text and producing invalid or lossy artifacts. This affects every agent-driven strict workflow run in this repository.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: A caller can ask the CLI for the YAML mutation surface and receive, for every inventoried artifact family, its ownership class, its create, update, named-removal, and deletion states, the CLI commands that own each supported operation, and the schema and example keys that describe it. Machine-readable help for artifact-authoring commands names the same artifact kinds and asset references, and both successful mutation results and failure diagnostics identify the artifact kind, bundled schema key, resolved schema_file path, and bundled example key needed to correct the request.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: The milestone dependency implement-yaml-mutation-core was archived on 2026-08-05, leaving this the last planned change in the cli-yaml-mutation-foundation milestone. Both downstream milestones, cli-yaml-artifact-coverage and ai-cli-only-yaml-enforcement, are blocked on this milestone completing, and the roadmap recommendation reports every other candidate as dependency-incomplete.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: Existing domain CLI command names, positional arguments, flags, exit codes, and result payload keys must stay compatible, because the milestone explicitly preserves established domain interfaces. Families classified read-only, human-only, generated, or not-applicable must gain no write path. External YAML, legacy .spec-driven migration input, generated caches, and rendered non-YAML documents stay outside the surface. Artifact schemas, bundled examples, and the inventory classifications themselves are not changed by this work.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: Exposing the surface means making the shared mutation boundary discoverable and self-describing for every inventoried artifact kind and valid operation, not migrating each artifact family onto that boundary. Family-by-family migration, per-family create, update, removal, and delete commands, and the lazy change-scaffold replacement all belong to the next milestone, cli-yaml-artifact-coverage. This change therefore delivers discovery, metadata, and result and diagnostic identifiers that those later migrations plug into.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: surface-command-naming
+    question: Should the discovery commands be named yaml-surface-list and yaml-surface-show, or should they use an artifact-kind- prefix instead?
+    context: 'The roadmap planned change requires self-describing entry points that address every inventoried artifact kind but does not fix a command name. Impact: this affects proposal scope wording, the cli-foundation delta spec requirement statements, the command registry and metadata entries in implementation files, and the help regression tests; it does not affect dependencies or technical standards. Recommendation: use yaml-surface-list and yaml-surface-show because the surface spans artifact families, operations, schemas, and examples rather than artifact kinds alone, and it stays adjacent to the existing schema-list/schema-show and sample-list/sample-show naming. Options: (a) yaml-surface-list / yaml-surface-show; (b) artifact-kind-list / artifact-kind-show; (c) a single yaml-surface command with a positional artifact kind.'
+    answer: Use yaml-surface-list and yaml-surface-show <artifact-kind>. The surface spans artifact families, operations, schemas, and examples rather than artifact kinds alone, and the list/show pair matches the existing schema-list/schema-show and sample-list/sample-show naming so the output shape stays predictable.
+    status: resolved
+    answered_by: human
+  - id: direct-write-family-reporting
+    question: How should artifact families the inventory still classifies as direct-write be reported by the exposed surface before the artifact-coverage milestone migrates them?
+    context: 'The mutation inventory currently records direct-write states for several families because their CLI migration belongs to the next milestone. Impact: this affects the delta spec requirement for operation reporting, the surface module implementation, and the completeness regression; it does not affect proposal scope or technical standards. Recommendation: report the inventory state verbatim with no owning CLI command and an explicit note that the operation is not yet CLI-owned, so the surface never claims coverage that does not exist. Options: (a) report verbatim with an explicit not-yet-CLI-owned marker; (b) omit direct-write operations from the surface entirely; (c) report them as CLI-owned by the nearest domain command.'
+    answer: Report the inventory operation state verbatim, claim no owning CLI command for a direct-write operation, and mark it as not yet CLI-owned. Omitting the operation would leave an agent unable to distinguish a forbidden operation from an unimplemented one, and attributing it to the nearest domain command would claim support that does not exist.
+    status: resolved
+    answered_by: human

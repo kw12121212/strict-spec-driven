@@ -1,0 +1,71 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/yaml-mutation-surface.ts
+    - src/cli/command-metadata.ts
+    - src/cli/command-metadata-entries.ts
+    - src/cli/registry.ts
+    - src/yaml-mutation.ts
+    - src/cli/cmd-yaml-surface.ts
+    - src/strict-spec-cli.ts
+    - src/mcp/inventory.ts
+    - src/propose-generation.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/change-lifecycle.ts
+operations:
+  ADDED:
+    cli-exposes-yaml-mutation-surface:
+      strength: MUST
+      statement: The system MUST expose a machine-readable YAML mutation surface that reports every repository-owned YAML artifact family in the checked-in mutation inventory together with its ownership class, its state for each of create, update, named removal, and whole-artifact deletion, the CLI commands that own each supported operation, its bundled schema key, its declared schema_file path, and its bundled example key, and MUST report an inventoried operation state verbatim rather than claiming CLI ownership the repository does not yet provide.
+      scenarios:
+        surface-lists-every-inventoried-family:
+          - GIVEN: The repository mutation inventory declares a set of YAML artifact families with ownership classes and per-operation states
+          - WHEN: A caller requests the YAML mutation surface listing
+          - THEN: Every inventoried family appears exactly once with its ownership class, its four operation states, and its schema and example references
+        surface-detail-identifies-assets-and-routing:
+          - GIVEN: A caller requests the surface detail for an inventoried artifact kind
+          - WHEN: The system reports that artifact kind
+          - THEN: The result names the owning CLI commands for each supported operation, the bundled schema key, the resolved schema_file path, the bundled example key, and the schema-show and sample-show commands that print them
+        surface-does-not-overstate-ownership:
+          - GIVEN: The mutation inventory records an operation for a family as direct-write rather than cli-owned
+          - WHEN: The system reports that family through the mutation surface
+          - THEN: The operation is reported with its inventoried state and no owning CLI command is claimed for it
+        unknown-artifact-kind-is-rejected-deterministically:
+          - GIVEN: A caller requests surface detail for an artifact kind that is absent from the mutation inventory
+          - WHEN: The system resolves the request
+          - THEN: The request fails with a deterministic diagnostic naming the unknown artifact kind and no partial surface result is reported
+    cli-authoring-help-identifies-schema-and-example:
+      strength: MUST
+      statement: The system MUST make every CLI command that authors repository-owned YAML identify, through the same command-metadata source that renders text help, JSON help, and MCP tool descriptions, the artifact kinds it writes, each artifact's bundled schema key and declared schema_file path, its bundled example key, and the schema-show and sample-show commands that print them.
+      scenarios:
+        json-help-carries-artifact-assets:
+          - GIVEN: A caller requests machine-readable help for a command that authors a repository-owned YAML artifact
+          - WHEN: The system emits the help payload
+          - THEN: The payload names the artifact kinds the command writes with their bundled schema key, schema_file path, bundled example key, and the asset-inspection commands that print them
+        text-and-mcp-surfaces-match-json-help:
+          - GIVEN: A command authoring a repository-owned YAML artifact declares artifact-surface metadata
+          - WHEN: Text help, machine-readable help, and the MCP capability inventory describe that command
+          - THEN: All three surfaces report the same artifact kinds and asset references from the single command-metadata source
+    cli-mutation-results-identify-recovery-assets:
+      strength: MUST
+      statement: The system MUST report the affected artifact kind, its bundled schema key, its resolved schema_file path, and its bundled example key in both successful YAML mutation results and mutation failure diagnostics, resolving the schema_file path beneath the shared schema cache root and the example beneath the cached examples tree, and falling back to the bundled asset key when that cache is unavailable rather than failing the mutation or reporting an unusable path.
+      scenarios:
+        failed-mutation-names-its-recovery-assets:
+          - GIVEN: A YAML mutation is rejected because the candidate artifact fails validation
+          - WHEN: The system emits the failure diagnostics
+          - THEN: The diagnostics identify the artifact kind, bundled schema key, schema_file path, and bundled example key needed to correct the request, and no file is written
+        successful-mutation-reports-the-same-identifiers:
+          - GIVEN: A YAML mutation commits successfully
+          - WHEN: The system emits the mutation result
+          - THEN: The result identifies the same artifact kind, bundled schema key, schema_file path, and bundled example key as the corresponding failure diagnostics would
+        missing-cache-falls-back-to-bundled-keys:
+          - GIVEN: The shared schema cache root is absent or unreadable
+          - WHEN: The system reports schema and example references for a YAML mutation
+          - THEN: The bundled schema and example keys are still reported, no cache-derived path is presented as resolved, and the mutation outcome is unaffected
+  MODIFIED: {}
+  REMOVED: {}

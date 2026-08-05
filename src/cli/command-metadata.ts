@@ -1,3 +1,4 @@
+import { listYamlSurfaceFamilies } from "../yaml-mutation-surface.js";
 import { COMMAND_METADATA_ENTRIES } from "./command-metadata-entries.js";
 
 export const COMMAND_GROUP_ORDER = [
@@ -93,6 +94,34 @@ export function getCommandUsage(commandName: string): string {
   return getCommandMetadata(commandName).usage;
 }
 
+/** One artifact kind a command authors, with the assets a caller needs to supply valid content. */
+export type CliCommandArtifactSurfaceEntry = {
+  artifactKind: string;
+  artifactTypes: string[];
+  schemaKeys: string[];
+  declaredSchemaFiles: string[];
+  exampleKeys: string[];
+  inspectWith: string[];
+};
+
+/**
+ * Derived from the mutation inventory's `cli_owners` rather than restated per command, so a family
+ * that gains or loses a CLI owner updates text help, JSON help, and MCP descriptions together and
+ * no metadata entry can claim ownership the inventory does not record.
+ */
+export function getCommandArtifactSurface(commandName: string): CliCommandArtifactSurfaceEntry[] {
+  return listYamlSurfaceFamilies()
+    .filter((family) => family.cliOwners.includes(commandName))
+    .map((family) => ({
+      artifactKind: family.kind,
+      artifactTypes: family.artifactTypes.map((artifactType) => artifactType.artifactType),
+      schemaKeys: family.artifactTypes.flatMap((artifactType) => artifactType.schemaKey ?? []),
+      declaredSchemaFiles: family.artifactTypes.flatMap((artifactType) => artifactType.declaredSchemaFile ?? []),
+      exampleKeys: family.artifactTypes.flatMap((artifactType) => artifactType.exampleKey ?? []),
+      inspectWith: [...new Set(family.artifactTypes.flatMap((artifactType) => artifactType.inspectWith))],
+    }));
+}
+
 function formatFlagLabel(flag: CliCommandFlag): string {
   return flag.arity === "boolean" ? flag.name : `${flag.name} ${flag.valueLabel ?? "<value>"}`;
 }
@@ -153,6 +182,19 @@ export function formatCommandHelp(commandName: string): string {
   lines.push("", "Exit codes:");
   lines.push(...formatDefinitionList(metadata.exitCodes.map((exit) => [String(exit.code), exit.meaning])));
 
+  const artifactSurface = getCommandArtifactSurface(commandName);
+  if (artifactSurface.length > 0) {
+    lines.push("", "Artifacts written:");
+    lines.push(
+      ...formatDefinitionList(
+        artifactSurface.map((entry) => [
+          entry.artifactKind,
+          `${entry.artifactTypes.join(", ")} — inspect with ${entry.inspectWith.join(", ")}`,
+        ]),
+      ),
+    );
+  }
+
   if (metadata.notes && metadata.notes.length > 0) {
     lines.push("", "Notes:");
     for (const note of metadata.notes) {
@@ -197,6 +239,7 @@ export function buildCommandHelpPayload(commandName: string): unknown {
     output: metadata.output,
     exitCodes: metadata.exitCodes,
     notes: metadata.notes ?? [],
+    artifactSurface: getCommandArtifactSurface(commandName),
   };
 }
 

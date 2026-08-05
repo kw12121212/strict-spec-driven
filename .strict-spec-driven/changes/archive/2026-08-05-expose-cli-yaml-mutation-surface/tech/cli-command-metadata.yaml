@@ -1,0 +1,23 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: cli-command-metadata
+mapping:
+  implementation:
+    - src/cli/command-metadata.ts
+    - src/cli/command-metadata-entries.ts
+    - src/yaml-mutation-surface.ts
+    - src/mcp/inventory.ts
+  enforcement:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    authoring-metadata-names-artifact-assets:
+      strength: MUST
+      statement: The shared command-metadata registry MUST expose, for every CLI command that authors repository-owned YAML, the artifact kinds it writes together with each artifact's bundled schema key, declared schema_file path, and bundled example key, derived from the mutation inventory's declared CLI owners rather than restated per command; text help, machine-readable help, and MCP tool descriptions MUST render that single source, and MUST route callers to schema-show and sample-show instead of inlining schema or example content.
+      rationale: An agent that discovers a command from help still has to guess the artifact's field shape, and guessing is exactly what produces invalid candidates and retry loops. Deriving the artifact kinds from the inventory that already owns CLI ownership prevents a metadata entry from claiming coverage the repository does not record and keeps every help surface consistent as families gain or lose owners, while naming only keys avoids duplicating asset content that would drift from the bundled files.
+      enforcement:
+        method: test
+  MODIFIED: {}
+  REMOVED: {}

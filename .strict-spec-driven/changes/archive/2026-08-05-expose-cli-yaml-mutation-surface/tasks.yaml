@@ -1,0 +1,64 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: expose-cli-yaml-mutation-surface
+sections:
+  Implementation:
+    build-surface-model:
+      text: Add a typed YAML mutation surface module that loads inventory/yaml-mutation-surfaces.yaml and joins every artifact family to its ownership class, verbatim per-operation states, owning CLI commands, bundled schema key, declared schema_file path, and bundled example key.
+      status: complete
+      command: bun run build
+    resolve-cached-asset-paths:
+      text: Resolve declared schema_file paths beneath the shared schema cache root and example references beneath the cached examples tree, degrading deterministically to the bundled asset key when the cache is missing or unreadable.
+      status: complete
+      command: bun run build
+    add-surface-commands:
+      text: Add yaml-surface-list and yaml-surface-show <artifact-kind> command handlers with help and usage handling, deterministic JSON output, unknown-kind diagnostics, and explicit routing hints to schema-list, schema-show, sample-list, and sample-show.
+      status: complete
+      command: bun run build
+    register-surface-commands:
+      text: Register both surface commands in the canonical command registration order and command table, and add their command-metadata entries with summaries, arguments, flags, output keys, and exit-code meanings.
+      status: complete
+      command: bun run build
+    extend-command-metadata:
+      text: Add an optional artifact-surface field to the shared command-metadata type, populate it for artifact-authoring commands with the artifact kinds they write and their schema and example keys, and render it in text help, --help --json, and the MCP capability inventory from that single source.
+      status: complete
+      command: bun run build
+    carry-identifiers-in-mutations:
+      text: Extend the shared yaml-mutation result and diagnostic types with artifact kind, bundled schema key, resolved schema_file path, and bundled example key, and populate them on both successful commits and validation or filesystem failures.
+      status: complete
+      command: bun run build
+    align-structured-mappings:
+      text: Declare the new surface module, command handler, metadata, and regression files in the delta spec and delta tech mappings through the CLI-owned mapping workflow, without changing unrelated requirement or rule statements. verify-spec-mappings reads main specs only, so these entries become visible to it after archive merges the delta.
+      status: complete
+      command: strict-spec-cli verify-tech-mappings
+  Testing:
+    lint-sources:
+      text: Type-check every TypeScript source with the project lint command before running the heavier suites.
+      status: complete
+      command: bun run lint
+    validate-build-and-inventory:
+      text: Compile the TypeScript sources and validate the repository YAML mutation inventory so the exposed surface stays consistent with its checked-in evidence.
+      status: complete
+      command: bun run build && bun run check:yaml-inventory
+    test-surface-and-help-regressions:
+      text: Add and run behavior-facing regressions for surface completeness against every inventoried artifact family, verbatim operation-state reporting, unknown-artifact-kind diagnostics, artifact-surface fields in text help and --help --json, MCP description consistency, mutation result and diagnostic identifiers, and cached-asset path resolution including the missing-cache fallback.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression command; when the workflow config declares a coverage contract, this command enforces the minimum coverage threshold by exiting non-zero below it.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-proposal-readiness:
+      text: Confirm the populated change remains proposal-ready after implementation task updates.
+      status: complete
+      command: strict-spec-cli ready expose-cli-yaml-mutation-surface
+    verify-change-and-mappings:
+      text: Run the technical-standard mapping check and strict change verification, then confirm verify-spec-mappings reports valid once archive has merged the delta spec mapping for the new implementation files.
+      status: complete
+      command: strict-spec-cli verify-tech-mappings && strict-spec-cli verify expose-cli-yaml-mutation-surface
+testing_gates:
+  validation_task: validate-build-and-inventory
+  unit_test_task: test-surface-and-help-regressions

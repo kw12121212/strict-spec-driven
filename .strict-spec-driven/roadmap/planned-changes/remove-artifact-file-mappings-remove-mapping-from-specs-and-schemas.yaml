@@ -1,0 +1,11 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: remove-mapping-from-specs-and-schemas
+  milestone: remove-artifact-file-mappings
+status: planned
+summary: 'Remove mapping from the governing artifacts: requirements, rules, schemas, and every live spec and standard.'
+details: Settle the three milestone intake questions and carry the answers through the artifact layer in one pass. Remove the main-spec requirements that define mapping fields, mapping merge behavior, and the two mapping audit commands, using delta specs with explicit REMOVED operations against cli/foundation.yaml, contracts/yaml-artifacts.yaml, and operations/domain-behavior.yaml. Remove the workflow-scope-discipline rule relocated-mappings-declare-their-cleanup, which exists only to manage the additive mapping merge rot this milestone deletes. Remove the mapping property from the main-spec, delta-spec, main-tech, and delta-tech schemas in templates, in the embedded template bundle, and in the reference examples, applying the tolerance decision so a residual mapping field in an external artifact is accepted and ignored rather than rejected. Strip the recorded mapping fields from the twelve live main specs and from every technical standard that carries one. Confirm no surviving requirement or rule depends on a removed one, and cover schema validation, legacy tolerance, and scaffold output with regression.
+depends_on: []

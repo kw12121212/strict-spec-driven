@@ -10,6 +10,7 @@ import {
   writeFileSync,
 } from "fs";
 import path from "path";
+import { resolveYamlArtifactIdentifiers, type YamlArtifactIdentifiers } from "./yaml-mutation-surface.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
 export type YamlMutationOperation = "create" | "update" | "delete";
@@ -27,6 +28,7 @@ export type YamlMutationValidationIssue = {
 
 export type YamlMutationDiagnostic = Required<Pick<YamlMutationValidationIssue, "fieldPath" | "message">>
   & Omit<YamlMutationValidationIssue, "fieldPath" | "message">
+  & YamlArtifactIdentifiers
   & {
     code: string;
     artifactPath: string;
@@ -65,7 +67,7 @@ export type PlannedYamlMutation = {
 export type YamlMutationChange = Pick<
   PlannedYamlMutation,
   "artifactFamily" | "artifactId" | "schemaId" | "artifactPath" | "operation" | "role" | "changed"
->;
+> & YamlArtifactIdentifiers;
 
 export type YamlMutationRelationshipContext = {
   mutations: readonly PlannedYamlMutation[];
@@ -229,10 +231,16 @@ function isMeaningfulArtifact(value: unknown): boolean {
   return Object.keys(value).length > 0;
 }
 
+/**
+ * Identifiers are attached at result time rather than at each diagnostic site, so a planning
+ * failure that never produced a planned mutation still reports the schema and example a caller
+ * needs to correct the request.
+ */
 function result(
   planned: readonly PlannedYamlMutation[],
   diagnostics: readonly YamlMutationDiagnostic[],
   committed: boolean,
+  identifiersByArtifactPath: ReadonlyMap<string, YamlArtifactIdentifiers> = new Map(),
 ): YamlMutationResult {
   return {
     valid: committed && diagnostics.length === 0,
@@ -246,8 +254,12 @@ function result(
       operation: mutation.operation,
       role: mutation.role,
       changed: mutation.changed,
+      ...resolveYamlArtifactIdentifiers(mutation.schemaId),
     })),
-    diagnostics: [...diagnostics].sort(compareDiagnostics),
+    diagnostics: [...diagnostics].sort(compareDiagnostics).map((entry) => ({
+      ...identifiersByArtifactPath.get(entry.artifactPath),
+      ...entry,
+    })),
   };
 }
 
@@ -357,6 +369,17 @@ export function commitYamlMutation(options: CommitYamlMutationOptions): YamlMuta
   const seenPaths = new Set<string>();
   const planned: PlannedYamlMutation[] = [];
   const transactionId = `${process.pid}-${++transactionSequence}`;
+  const identifiersByArtifactPath = new Map<string, YamlArtifactIdentifiers>();
+
+  // Built from every request, not only the ones that survive planning, and keyed by both labels a
+  // diagnostic can carry so a rejected target still resolves to its schema and example.
+  for (const request of options.mutations) {
+    const identifiers = resolveYamlArtifactIdentifiers(request.schemaId);
+    if (Object.keys(identifiers).length === 0) continue;
+    const artifactPath = toPosix(path.relative(rootDir, path.resolve(request.absolutePath)));
+    identifiersByArtifactPath.set(request.artifactId, identifiers);
+    if (artifactPath) identifiersByArtifactPath.set(artifactPath, identifiers);
+  }
 
   if (options.mutations.length === 0) {
     diagnostics.push(diagnostic(
@@ -366,7 +389,7 @@ export function commitYamlMutation(options: CommitYamlMutationOptions): YamlMuta
       "$.mutations",
       "a YAML mutation transaction must contain at least one artifact operation",
     ));
-    return result(planned, diagnostics, false);
+    return result(planned, diagnostics, false, identifiersByArtifactPath);
   }
 
   for (const request of options.mutations) {
@@ -514,12 +537,12 @@ export function commitYamlMutation(options: CommitYamlMutationOptions): YamlMuta
     }
   }
   if (diagnostics.length > 0) {
-    return result(planned, diagnostics, false);
+    return result(planned, diagnostics, false, identifiersByArtifactPath);
   }
 
   const activeMutations = planned.filter((mutation) => mutation.changed);
   if (activeMutations.length === 0) {
-    return result(planned, [], true);
+    return result(planned, [], true, identifiersByArtifactPath);
   }
 
   const createdDirectories: string[] = [];
@@ -549,7 +572,7 @@ export function commitYamlMutation(options: CommitYamlMutationOptions): YamlMuta
     ));
     diagnostics.push(...rollbackEntries(entries, fileSystem, transactionId));
     removeCreatedDirectories(createdDirectories, fileSystem);
-    return result(planned, diagnostics, false);
+    return result(planned, diagnostics, false, identifiersByArtifactPath);
   }
 
   try {
@@ -579,7 +602,7 @@ export function commitYamlMutation(options: CommitYamlMutationOptions): YamlMuta
     ));
     diagnostics.push(...rollbackEntries(entries, fileSystem, transactionId));
     removeCreatedDirectories(createdDirectories, fileSystem);
-    return result(planned, diagnostics, false);
+    return result(planned, diagnostics, false, identifiersByArtifactPath);
   }
 
   try {
@@ -599,7 +622,7 @@ export function commitYamlMutation(options: CommitYamlMutationOptions): YamlMuta
     ));
     diagnostics.push(...rollbackEntries(entries, fileSystem, transactionId));
     removeCreatedDirectories(createdDirectories, fileSystem);
-    return result(planned, diagnostics, false);
+    return result(planned, diagnostics, false, identifiersByArtifactPath);
   }
-  return result(planned, [], true);
+  return result(planned, [], true, identifiersByArtifactPath);
 }

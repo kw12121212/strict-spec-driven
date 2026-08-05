@@ -3,6 +3,12 @@ schema_version: 2
 artifact_type: lessons_index
 schema_file: templates/strict-spec-driven/schemas/lessons-index.yaml
 categories:
+  testing:
+    a-self-populating-cache-cannot-be-made-absent-by-49b4d2:
+      title: A self-populating cache cannot be made absent by pointing at an empty directory
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/a-self-populating-cache-cannot-be-made-absent-by-49b4d2.yaml
   tooling:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability

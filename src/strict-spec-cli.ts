@@ -27,6 +27,7 @@ import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runMcpInstall } from "./cli/cmd-mcp-install.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMappings, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
 import { runSampleList, runSampleShow, runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
+import { runYamlSurfaceList, runYamlSurfaceShow } from "./cli/cmd-yaml-surface.js";
 import { runArchitectureGenerate, runArchitectureStatus } from "./cli/cmd-architecture.js";
 import { runDesignGenerate, runDesignInit, runDesignStatus } from "./cli/cmd-design.js";
 import {
@@ -123,6 +124,8 @@ export const commands = createCliCommandTable({
   "sample-show": (argv) => runSampleShow(argv),
   "template-list": (argv) => runTemplateList(argv),
   "template-show": (argv) => runTemplateShow(argv),
+  "yaml-surface-list": (argv) => runYamlSurfaceList(argv),
+  "yaml-surface-show": (argv) => runYamlSurfaceShow(argv),
   "harness-infer": (argv) => runHarnessInfer(argv),
   "harness-doctor": (argv) => runHarnessDoctor(argv),
   "harness-plan": (argv) => runHarnessPlan(argv),

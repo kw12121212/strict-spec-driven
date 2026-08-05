@@ -1,0 +1,29 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: expose-cli-yaml-mutation-surface
+  status: proposed
+summary:
+  what:
+    - Expose a self-describing CLI surface that maps every inventoried repository-owned YAML artifact kind and valid operation to its owning CLI entry point, bundled schema, and bundled example.
+    - Carry artifact kind, bundled schema key, cached schema_file path, and bundled example key through command metadata, machine-readable help, mutation results, and mutation diagnostics.
+  why:
+    - The shared mutation core exists but agents cannot discover which CLI operation owns an artifact kind, which schema validates it, or where to read a minimal valid example, so they still fall back to direct YAML edits.
+    - Later artifact-family migrations need one discoverable, machine-readable surface contract to plug into instead of inventing per-family discovery.
+scope:
+  in:
+    - Add a CLI discovery surface that reports every inventoried artifact family, its ownership class, its per-operation state, its owning CLI command, and its schema and example references.
+    - Extend the shared command-metadata registry so artifact-authoring commands declare the artifact kinds they write plus schema and example routing, and surface those fields in text help and --help --json.
+    - Extend yaml-mutation results and diagnostics to identify the affected artifact kind, bundled schema key, resolved cached schema_file path, and bundled example key.
+    - Resolve schema_file paths beneath the shared schema cache root and example references beneath the cached examples tree, degrading to the bundled key when the cache is unavailable.
+    - Add unit and regression coverage for surface completeness against inventory/yaml-mutation-surfaces.yaml, JSON help shape, and result and diagnostic identifiers.
+  out:
+    - Migrate individual YAML artifact families onto the shared mutation core or add new per-family create, update, removal, or delete commands.
+    - Rename, remove, or change the semantics of existing domain CLI commands.
+    - Change artifact schemas, bundled examples, or the mutation inventory classifications themselves.
+unchanged_behavior:
+  - Existing domain CLI command names, positional arguments, flags, exit codes, and result payload keys remain compatible.
+  - Families the inventory classifies as read-only, human-only, generated, or not-applicable keep that classification and gain no write path.
+  - External YAML, legacy .spec-driven migration input, generated caches, and rendered non-YAML documents stay outside the surface.

@@ -1,0 +1,21 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: yaml-first-artifacts
+mapping:
+  implementation:
+    - scripts/gen-templates-bundle.ts
+    - src/yaml-mutation-surface.ts
+  enforcement:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    runtime-repository-evidence-is-embedded:
+      strength: MUST
+      statement: Repository-owned evidence a CLI command must read while running inside another project MUST be embedded in the bundled asset set and read embedded-first, with a working-tree read only as a fallback; a command MUST NOT depend on a repository path that exists only in this repository's checkout.
+      rationale: The CLI is installed and run inside other projects, where this repository's working tree is absent, but every test and manual check runs from the checkout where such a path resolves. A direct working-tree read therefore passes the whole suite and fails for every installed user, and the failure surfaces only as a runtime ENOENT far from the code that introduced it. Embedding the asset and reading embedded-first makes the runtime and test environments agree.
+      enforcement:
+        method: test
+  MODIFIED: {}
+  REMOVED: {}

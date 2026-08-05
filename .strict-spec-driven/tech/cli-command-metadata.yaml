@@ -15,6 +15,7 @@ mapping:
     - src/cli/argv.ts
     - src/cli/entrypoint.ts
     - src/cli/cmd-generation.ts
+    - src/yaml-mutation-surface.ts
   enforcement:
     - test/suites/entrypoint-and-skills.ts
     - test/suites/change-lifecycle.ts
@@ -29,5 +30,11 @@ rules:
     strength: MUST
     statement: A command-metadata entry MUST document each accepted flag's meaning together with its required, repeatable, removal, and delete semantics, plus the command's output keys and exit-code meaning; describing operational semantics only in skill prompts instead of the metadata registry is not sufficient.
     rationale: Agents invoke the strict CLI without a skill prompt loaded, and semantics such as whether a repeated list flag appends or a restated scalar overwrites, which single entry a removal flag targets, the fact that the delete flag removes a whole artifact and cannot be combined with other flags, and the fact that a ready:false result is a successful write rather than a failure are exactly the facts that cause incorrect retries when they are undiscoverable from --help.
+    enforcement:
+      method: test
+  authoring-metadata-names-artifact-assets:
+    strength: MUST
+    statement: The shared command-metadata registry MUST expose, for every CLI command that authors repository-owned YAML, the artifact kinds it writes together with each artifact's bundled schema key, declared schema_file path, and bundled example key, derived from the mutation inventory's declared CLI owners rather than restated per command; text help, machine-readable help, and MCP tool descriptions MUST render that single source, and MUST route callers to schema-show and sample-show instead of inlining schema or example content.
+    rationale: An agent that discovers a command from help still has to guess the artifact's field shape, and guessing is exactly what produces invalid candidates and retry loops. Deriving the artifact kinds from the inventory that already owns CLI ownership prevents a metadata entry from claiming coverage the repository does not record and keeps every help surface consistent as families gain or lose owners, while naming only keys avoids duplicating asset content that would drift from the bundled files.
     enforcement:
       method: test

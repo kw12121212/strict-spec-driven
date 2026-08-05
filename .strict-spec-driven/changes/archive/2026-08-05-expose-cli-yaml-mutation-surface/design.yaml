@@ -1,0 +1,35 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: expose-cli-yaml-mutation-surface
+approach:
+  - Treat inventory/yaml-mutation-surfaces.yaml as the single source of truth for artifact kinds and operation states, and build a typed surface module that joins each inventoried family to its owning CLI command, its bundled schema asset, and its bundled example asset. Two new read-only commands expose that join for discovery. The existing command-metadata registry gains an optional artifact-surface field so authoring commands declare the kinds they write, which text help, JSON help, and the MCP capability inventory all render from the same source. The shared yaml-mutation result and diagnostic types gain the same identifiers so a failed write tells the caller exactly which schema and example to read next.
+decisions:
+  surface-source-of-truth:
+    decision: Derive the exposed surface from the checked-in mutation inventory rather than a second hand-maintained table.
+    rationale: The inventory already has a failing repository check for staleness, so reusing it prevents a parallel list that can drift and keeps the coverage milestone's family migrations honest.
+  two-read-only-commands:
+    decision: Expose discovery through yaml-surface-list and yaml-surface-show <artifact-kind> rather than a flag on every mutating command.
+    rationale: Discovery is a read operation over the whole inventory; attaching it to each writer would duplicate output and force callers to already know which command owns the kind before they can ask.
+  metadata-carries-assets:
+    decision: Expose the artifact surface through the shared command-metadata module as a value derived from the mutation inventory's cli_owners, rather than as a hand-populated field on each metadata entry.
+    rationale: A restated per-command field could claim ownership the inventory does not record and would drift as families gain or lose CLI owners; deriving it keeps one source of truth, satisfies the cli-command-metadata standard's single-source rule, and makes text help, JSON help, and MCP descriptions update together. Help still names only keys and routes to schema-show and sample-show so asset content is never duplicated.
+  cache-path-resolution:
+    decision: Resolve declared schema_file paths beneath the shared schema cache root and example references beneath the cached examples tree, falling back to the bundled key when the cache is absent or unreadable.
+    rationale: Agents read schemas from the shared cache, but a missing cache must degrade to a still-usable bundled key rather than failing a mutation or emitting an unusable path.
+  result-identifiers:
+    decision: Extend YamlMutationResult and YamlMutationDiagnostic with artifactKind, schemaKey, schemaFilePath, and exampleKey rather than only naming them in help.
+    rationale: A diagnostic is where a caller is most likely to be wrong about artifact shape, so the recovery route must be present in the failure payload itself, not only in help the caller already skipped.
+  preserve-direct-write-state:
+    decision: Report inventory operation states verbatim, including direct-write, instead of asserting CLI ownership the coverage milestone has not yet delivered.
+    rationale: Overstating ownership before the family migrations land would make the surface lie to agents and hide exactly the gaps the next milestone must close.
+alternatives:
+  - option: Attach a --describe-artifact flag to every mutating command instead of adding dedicated discovery commands.
+    reason: Rejected because a caller who does not yet know which command owns an artifact kind cannot reach the description, and the same inventory join would be duplicated across every writer.
+  - option: Maintain a separate hand-written table of artifact kinds, schemas, and examples in the CLI.
+    reason: Rejected because it would drift from inventory/yaml-mutation-surfaces.yaml, which already has a failing repository staleness check, leaving two disagreeing sources of truth.
+risks:
+  - The surface could overstate coverage by presenting direct-write families as CLI-owned; mitigated by reporting inventory operation states verbatim and asserting that verbatim reporting in the completeness regression.
+  - Duplicating schema or example content into help text would drift from the bundled assets; mitigated by carrying only keys and paths and routing callers to schema-show and sample-show.
+  - An absent or unreadable shared schema cache could turn a reporting concern into a mutation failure; mitigated by falling back to bundled asset keys and covering the missing-cache path with a regression.

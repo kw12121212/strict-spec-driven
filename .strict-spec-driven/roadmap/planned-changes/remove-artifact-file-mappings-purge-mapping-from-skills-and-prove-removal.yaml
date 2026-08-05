@@ -1,0 +1,12 @@
+schema: strict-spec-driven/planned-change/v1
+schema_version: 1
+artifact_type: planned_change
+schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
+planned_change:
+  id: purge-mapping-from-skills-and-prove-removal
+  milestone: remove-artifact-file-mappings
+status: planned
+summary: Delete the resync skill, strip mapping guidance from the remaining skills, and prove the removal is complete.
+details: Delete the strict-spec-resync-code-mapping skill and remove it from skill packaging and the marketplace manifest so installed copies do not dangle. Remove mapping command entries, upkeep steps, and rules from every remaining SKILL.md that references them, including apply, propose, verify, review, modify, bugfix, brainstorm, archive, auto, init, migrate, sync-specs, spec-edit, tech-edit, tech-sync, design, design-sync, and architecture. Then sweep the whole repository for surviving references to spec or tech mapping fields, the deleted commands, and the deleted skill across source, schemas, examples, skills, specs, standards, tests, generated documents, and README material, and remove or justify each remaining hit. Run the complete project regression with the coverage gate and record the measured coverage against the threshold decision from the milestone intake questions.
+depends_on:
+  - delete-mapping-commands-and-code

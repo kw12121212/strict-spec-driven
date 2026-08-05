@@ -6,7 +6,9 @@ import { fileURLToPath } from "url";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.dirname(SCRIPT_DIR);
-const ASSET_ROOTS = ["templates", "examples"] as const;
+// `templates` keys drop their root segment; every other root keeps it, so the embedded key matches
+// the repository-relative path that schema-show, sample-show, and the mutation surface already use.
+const ASSET_ROOTS = ["templates", "examples", "inventory"] as const;
 const OUTPUT_FILE = path.join(ROOT, "src", "embedded-templates.ts");
 
 function collectFiles(dir: string): string[] {

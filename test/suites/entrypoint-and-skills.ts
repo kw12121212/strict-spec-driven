@@ -7,6 +7,7 @@ import {
   cli,
   loadDistModule,
   type SkillValidationModule,
+  type YamlModule,
 } from "../support/harness.js";
 
 type StrictCliModule = {
@@ -29,11 +30,35 @@ type CommandMetadataEntry = {
 
 type CommandMetadataModule = {
   getAllCommandMetadata: () => CommandMetadataEntry[];
+  getCommandArtifactSurface: (commandName: string) => Array<{
+    artifactKind: string;
+    artifactTypes: string[];
+    schemaKeys: string[];
+    declaredSchemaFiles: string[];
+    exampleKeys: string[];
+    inspectWith: string[];
+  }>;
 };
 
 type McpInventoryModule = {
   MCP_READ_ONLY_TOOL_INVENTORY: Array<{ name: string; description: string; cliCommand: string; mutates: boolean }>;
   MCP_MUTATING_TOOL_INVENTORY: Array<{ name: string; description: string; cliCommand: string; mutates: boolean }>;
+};
+
+type EmbeddedTemplatesModule = {
+  getEmbeddedTemplateKeys: () => string[];
+  readEmbeddedTemplate: (key: string) => string | undefined;
+};
+
+type SurfaceFamilyPayload = {
+  kind: string;
+  schemaKey?: string;
+  declaredSchemaFile?: string;
+  schemaFilePath?: string;
+  exampleKey?: string;
+  exampleFilePath?: string;
+  artifactTypes: Array<{ artifactType: string; inspectWith: string[] }>;
+  operations: Record<string, { state: string; cliOwned: boolean; commands: string[]; note?: string }>;
 };
 
 export async function runEntrypointAndSkillsSuite(context: TestContext): Promise<void> {
@@ -63,6 +88,8 @@ const expectedCommandOrder = [
   "sample-show",
   "template-list",
   "template-show",
+  "yaml-surface-list",
+  "yaml-surface-show",
   "harness-infer",
   "harness-doctor",
   "harness-plan",
@@ -241,18 +268,26 @@ context.assert(
 
 const mcpInventory = (await loadDistModule("mcp/inventory.js")) as McpInventoryModule;
 const mcpTools = [...mcpInventory.MCP_READ_ONLY_TOOL_INVENTORY, ...mcpInventory.MCP_MUTATING_TOOL_INVENTORY];
+
+/**
+ * An MCP description is the metadata summary plus, for a command that authors repository-owned
+ * YAML, the artifact kinds derived from the mutation inventory. Both parts come from the shared
+ * command-metadata module, so the expectation is rebuilt from it rather than restated here.
+ */
+const expectedMcpDescription = (cliCommand: string): string | undefined => {
+  const metadata = metadataEntries.find((entry) => entry.name === cliCommand);
+  if (metadata === undefined) return undefined;
+  const base = metadata.mcpDescription ?? metadata.summary;
+  const artifactKinds = commandMetadata.getCommandArtifactSurface(cliCommand).map((entry) => entry.artifactKind);
+  return artifactKinds.length === 0 ? base : `${base} Writes YAML artifact kinds: ${artifactKinds.join(", ")}.`;
+};
+
 context.assert(
-  mcpTools.every((tool) => {
-    const metadata = metadataEntries.find((entry) => entry.name === tool.cliCommand);
-    return metadata !== undefined && tool.description === (metadata.mcpDescription ?? metadata.summary);
-  }),
+  mcpTools.every((tool) => tool.description === expectedMcpDescription(tool.cliCommand)),
   "every MCP tool description comes from its command metadata entry",
   `mismatched: ${
     mcpTools
-      .filter((tool) => {
-        const metadata = metadataEntries.find((entry) => entry.name === tool.cliCommand);
-        return metadata === undefined || tool.description !== (metadata.mcpDescription ?? metadata.summary);
-      })
+      .filter((tool) => tool.description !== expectedMcpDescription(tool.cliCommand))
       .map((tool) => tool.name)
       .join(", ")
   }`,
@@ -388,6 +423,166 @@ const strictCliModule = await loadDistModule<StrictCliModule>("strict-spec-cli.j
 context.assert(
   JSON.stringify(Object.keys(strictCliModule.commands)) === JSON.stringify(expectedCommandOrder),
   "exported command table preserves canonical registration order",
+);
+
+context.section("[3b] YAML mutation surface");
+
+// Read the inventory directly rather than through the surface module, so completeness is asserted
+// against the checked-in evidence instead of against the code under test.
+const yamlModule = await loadDistModule<YamlModule>("yaml.js");
+const inventoryArtifact = yamlModule.parseYamlDocument<{ artifact_families?: Record<string, unknown> }>(
+  readFileSync(path.join(ROOT, "inventory", "yaml-mutation-surfaces.yaml"), "utf8"),
+);
+const inventoryFamilyNames = Object.keys(inventoryArtifact.artifact_families ?? {}).sort();
+
+// The CLI runs inside other projects where this repository's working tree is absent, so the
+// inventory must reach it through the bundled asset set rather than a checkout-only path.
+const embeddedTemplates = await loadDistModule<EmbeddedTemplatesModule>("embedded-templates.js");
+context.assert(
+  embeddedTemplates.getEmbeddedTemplateKeys().includes("inventory/yaml-mutation-surfaces.yaml")
+    && (embeddedTemplates.readEmbeddedTemplate("inventory/yaml-mutation-surfaces.yaml") ?? "").includes(
+      "artifact_families:",
+    ),
+  "the mutation inventory is embedded in the bundled asset set rather than read only from the checkout",
+);
+
+const surfaceList = cli(["yaml-surface-list"], { cwd: ROOT });
+context.assert(surfaceList.status === 0, "yaml-surface-list exits zero", `stderr: ${surfaceList.stderr.trim()}`);
+
+const surfaceListPayload = JSON.parse(surfaceList.stdout) as {
+  valid: boolean;
+  inventoryPath: string;
+  families: Array<{ kind: string; ownership: string; operations: Record<string, string> }>;
+};
+context.assert(
+  JSON.stringify(surfaceListPayload.families.map((family) => family.kind)) === JSON.stringify(inventoryFamilyNames),
+  "yaml-surface-list reports every inventoried artifact family exactly once",
+  `surface: ${surfaceListPayload.families.map((family) => family.kind).join(",")}`,
+);
+context.assert(
+  surfaceListPayload.families.every((family) =>
+    ["create", "update", "named_remove", "delete"].every((operation) => typeof family.operations[operation] === "string")
+  ),
+  "yaml-surface-list reports all four operation states for every family",
+);
+
+// The inventory records config update as direct-write, so the surface must not claim an owner for
+// it while the artifact-coverage milestone is still outstanding.
+const surfaceShowConfig = cli(["yaml-surface-show", "workflow-config"], { cwd: ROOT });
+context.assert(surfaceShowConfig.status === 0, "yaml-surface-show exits zero for a known artifact kind", `stderr: ${surfaceShowConfig.stderr.trim()}`);
+
+const configFamily = (JSON.parse(surfaceShowConfig.stdout) as { family: SurfaceFamilyPayload }).family;
+context.assert(
+  configFamily.operations.create.state === "cli-owned"
+    && configFamily.operations.create.cliOwned
+    && configFamily.operations.create.commands.includes("init"),
+  "yaml-surface-show names the owning command for a cli-owned operation",
+  `create: ${JSON.stringify(configFamily.operations.create)}`,
+);
+context.assert(
+  configFamily.operations.update.state === "direct-write"
+    && configFamily.operations.update.cliOwned === false
+    && configFamily.operations.update.commands.length === 0
+    && configFamily.operations.update.note === "not yet CLI-owned",
+  "yaml-surface-show reports a direct-write operation verbatim without claiming an owner",
+  `update: ${JSON.stringify(configFamily.operations.update)}`,
+);
+context.assert(
+  configFamily.schemaKey === "strict-spec-driven/schemas/config.yaml"
+    && configFamily.declaredSchemaFile === "templates/strict-spec-driven/schemas/config.yaml"
+    && configFamily.exampleKey === "examples/strict-spec-driven/config.yaml"
+    && configFamily.artifactTypes[0]?.inspectWith.includes("schema-show config")
+    && configFamily.artifactTypes[0]?.inspectWith.includes("sample-show config"),
+  "yaml-surface-show identifies the schema key, declared schema_file, example key, and asset commands",
+  `assets: ${JSON.stringify({ schemaKey: configFamily.schemaKey, exampleKey: configFamily.exampleKey })}`,
+);
+
+const unknownSurfaceShow = cli(["yaml-surface-show", "not-an-artifact-kind"], { cwd: ROOT });
+const unknownSurfacePayload = JSON.parse(unknownSurfaceShow.stdout) as {
+  valid: boolean;
+  family?: unknown;
+  diagnostics: Array<{ code: string; actual?: string }>;
+};
+context.assert(
+  unknownSurfaceShow.status === 1
+    && unknownSurfacePayload.valid === false
+    && unknownSurfacePayload.family === undefined
+    && unknownSurfacePayload.diagnostics.some(
+      (diagnostic) => diagnostic.code === "unknown-artifact-kind" && diagnostic.actual === "not-an-artifact-kind",
+    ),
+  "yaml-surface-show rejects an unknown artifact kind with a deterministic diagnostic and no partial result",
+  `stdout: ${unknownSurfaceShow.stdout.trim()}`,
+);
+
+// The CLI synchronizes the shared cache on startup, so an unusable cache is modelled by an
+// existing regular file at the cache root: synchronization cannot create a directory there.
+const blockedCacheRoot = path.join(mkdtempSync(path.join(os.tmpdir(), "strict-blocked-cache-")), "cache-root");
+writeFileSync(blockedCacheRoot, "not a cache directory\n", "utf8");
+try {
+  const surfaceWithoutCache = cli(["yaml-surface-show", "workflow-config"], {
+    cwd: ROOT,
+    env: { STRICT_SPEC_SCHEMA_CACHE_DIR: blockedCacheRoot },
+  });
+  const withoutCachePayload = JSON.parse(surfaceWithoutCache.stdout) as {
+    schemaCacheAvailable: boolean;
+    family: SurfaceFamilyPayload;
+  };
+  context.assert(
+    surfaceWithoutCache.status === 0
+      && withoutCachePayload.schemaCacheAvailable === false
+      && withoutCachePayload.family.schemaKey === "strict-spec-driven/schemas/config.yaml"
+      && withoutCachePayload.family.exampleKey === "examples/strict-spec-driven/config.yaml"
+      && withoutCachePayload.family.schemaFilePath === undefined
+      && withoutCachePayload.family.exampleFilePath === undefined,
+    "an unavailable shared schema cache still reports bundled keys and omits unresolved paths",
+    `payload: ${surfaceWithoutCache.stdout.trim()}`,
+  );
+} finally {
+  rmSync(path.dirname(blockedCacheRoot), { recursive: true, force: true });
+}
+
+const generateHelpJson = cli(["generate", "--help", "--json"], { cwd: ROOT });
+const generateHelpPayload = JSON.parse(generateHelpJson.stdout) as {
+  artifactSurface: Array<{ artifactKind: string; schemaKeys: string[]; exampleKeys: string[]; inspectWith: string[] }>;
+};
+context.assert(
+  generateHelpPayload.artifactSurface.some(
+    (entry) =>
+      entry.artifactKind === "change-planning-state"
+      && entry.schemaKeys.includes("strict-spec-driven/schemas/change-proposal.yaml")
+      && entry.exampleKeys.includes("examples/strict-spec-driven/change-proposal.yaml")
+      && entry.inspectWith.includes("schema-show change-proposal"),
+  ),
+  "JSON help for an artifact-authoring command names its artifact kinds, schema keys, example keys, and asset commands",
+  `artifactSurface: ${JSON.stringify(generateHelpPayload.artifactSurface)}`,
+);
+
+const generateHelpText = cli(["generate", "--help"], { cwd: ROOT });
+context.assert(
+  generateHelpText.stdout.includes("Artifacts written:")
+    && generateHelpText.stdout.includes("change-planning-state")
+    && generateHelpText.stdout.includes("schema-show change-proposal"),
+  "text help renders the same artifact surface as JSON help",
+  `stdout: ${generateHelpText.stdout.trim()}`,
+);
+
+const surfaceMcpInventory = await loadDistModule<McpInventoryModule>("mcp/inventory.js");
+const generateTool = surfaceMcpInventory.MCP_MUTATING_TOOL_INVENTORY.find((tool) => tool.cliCommand === "generate");
+context.assert(
+  generateTool !== undefined
+    && generateTool.description.includes("Mutates")
+    && generateTool.description.includes("change-planning-state"),
+  "MCP tool descriptions state project-state mutation and the artifact kinds written",
+  `description: ${generateTool?.description ?? "<missing>"}`,
+);
+
+const readOnlySurfaceTool = surfaceMcpInventory.MCP_READ_ONLY_TOOL_INVENTORY.find(
+  (tool) => tool.cliCommand === "check-workflow-state",
+);
+context.assert(
+  readOnlySurfaceTool !== undefined && !readOnlySurfaceTool.description.includes("Writes YAML artifact kinds"),
+  "a command that authors no repository-owned YAML carries no artifact-surface clause",
+  `description: ${readOnlySurfaceTool?.description ?? "<missing>"}`,
 );
 
 const cliRegistryModule = await loadDistModule<CliRegistryModule>("cli/registry.js");
