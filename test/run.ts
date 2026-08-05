@@ -21,6 +21,7 @@ import { runOperationsSuite } from "./suites/operations.js";
 import { runRoadmapAndMigrationSuite } from "./suites/roadmap-and-migration.js";
 import { runLessonsSuite } from "./suites/lessons.js";
 import { runSopsSuite } from "./suites/sops.js";
+import { runSpecTechAuthoringSuite } from "./suites/spec-tech-authoring.js";
 
 async function main(): Promise<void> {
   const context = new TestContext();
@@ -43,6 +44,7 @@ async function main(): Promise<void> {
   await runArchitectureAuthoringSuite(context);
   await runDesignSystemDocumentSuite(context);
   await runDesignSystemAuthoringSuite(context);
+  await runSpecTechAuthoringSuite(context);
   await runMcpServerSuite(context);
   await runMcpInstallSuite(context);
   await runCoverageGateSuite(context);

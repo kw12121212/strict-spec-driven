@@ -1,6 +1,6 @@
 ---
 name: strict-tech-edit
-description: Create or modify individual strict YAML technical standard files directly for lightweight engineering-standard corrections.
+description: Create or modify individual strict YAML technical standard files through the CLI for lightweight engineering-standard corrections.
 metadata:
   skill_id: strict_tech_edit
   author: strict-spec-driven
@@ -9,8 +9,8 @@ metadata:
 ---
 
 You are helping the user create or modify strict YAML technical standard files
-under `.strict-spec-driven/tech/` directly, without going through the strict
-change workflow.
+under `.strict-spec-driven/tech/` through the artifact-aware CLI, without going
+through the strict change workflow.
 
 Technical standards capture the implementation-facing engineering rules that
 main specs deliberately exclude: technology choices, coding conventions,
@@ -32,6 +32,7 @@ before running anything. Do not guess.
 
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
+tech-edit: strict-spec-cli tech-edit <standard-id> [--tech-path <path>] --<named-args>
 tech-status: strict-spec-cli tech-status
 lesson-status: strict-spec-cli lesson-status [--category <category>]
 lesson-edit: strict-spec-cli lesson-edit <lesson-id> --promoted-standard <id> --promoted-rule <id>
@@ -112,13 +113,21 @@ run `init` from this skill.
 
    Wait for explicit confirmation before writing anything.
 
-7. **Apply the confirmed edits** — after confirmation:
-   - edit the target files under `.strict-spec-driven/tech/`
-   - preserve existing `mapping.implementation` and `mapping.enforcement` fields
-     unless the edit changes the governed or enforcing files
-   - if a new file or category was created, update
-     `.strict-spec-driven/tech/INDEX.yaml`
-   - for removals, delete the exact structured rule entries cleanly
+7. **Apply the confirmed edits through `tech-edit`** — after confirmation:
+   - create a standard with `tech-edit <standard-id> --tech-path <path>
+     --title <text> --category <category> --rule <id> --strength
+     <MUST|SHOULD|MAY> --statement <text> --rationale <text> --method
+     <lint|ci|test|review|manual>`
+   - update one rule by restating `--rule <id>` and only the scalar, enforcement,
+     example, or exception fields that changed
+   - add mappings with repeatable `--implementation` and `--enforcement`, and
+     remove exact paths with their named removal flags
+   - remove keyed content with `--remove-rule`, or rule-scoped examples and
+     exceptions with their named removal flags
+   - use isolated `tech-edit <standard-id> --delete` only for a confirmed whole
+     standard removal; active delta-tech references block deletion
+   Never edit main-tech or tech-index YAML text. The command validates the full
+   candidate and reconciles the index in the same transaction.
    - link any lesson the new rule came from, now that the standard exists:
      ```bash
      strict-spec-cli lesson-edit <lesson-id> --promoted-standard <standard-id> --promoted-rule <rule-id>
@@ -130,8 +139,7 @@ run `init` from this skill.
 
 8. **Validate the result** — after editing, verify:
    - each edited file remains valid strict YAML matching the `main-tech` schema
-   - `INDEX.yaml` reflects the current standard files and matches the `tech-index`
-     schema
+   - the mutation result reports the reconciled tech index
    - run `verify-tech-mappings` when mapping fields changed
    - run `tech-status` to confirm the standards and rules read back correctly
 
@@ -140,7 +148,7 @@ run `init` from this skill.
 
 ## Rules
 
-- Always read existing standards before editing
+- Always read existing standards before authoring through `tech-edit`
 - Present the exact changes and wait for confirmation before writing
 - Prefer existing categories and files unless the content clearly requires a new
   path
@@ -150,3 +158,5 @@ run `init` from this skill.
 - Do not create or interact with `.strict-spec-driven/changes/`
 - Keep mappings in `mapping.implementation` and `mapping.enforcement`, not in
   rule prose
+- Never hand-edit main-tech or tech-index YAML; express every standalone
+  mutation through `strict-spec-cli tech-edit`

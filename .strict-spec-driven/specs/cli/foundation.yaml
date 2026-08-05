@@ -96,6 +96,9 @@ mapping:
     - src/roadmap/author.ts
     - src/yaml-mutation-surface.ts
     - src/cli/cmd-yaml-surface.ts
+    - src/spec-tech-author.ts
+    - src/cli/cmd-spec-tech.ts
+    - inventory/yaml-mutation-surfaces.yaml
   tests:
     - test/run.ts
     - test/support/harness.ts
@@ -108,6 +111,7 @@ mapping:
     - test/fixtures/projects/todo-app/src/todos.ts
     - test/fixtures/projects/todo-app/test/todos.test.ts
     - test/suites/roadmap-and-migration.ts
+    - test/suites/spec-tech-authoring.ts
 requirements:
   cli-build-and-test-commands:
     strength: MUST
@@ -2579,3 +2583,27 @@ requirements:
         - GIVEN: The shared schema cache root is absent or unreadable
         - WHEN: The system reports schema and example references for a YAML mutation
         - THEN: The bundled schema and example keys are still reported, no cache-derived path is presented as resolved, and the mutation outcome is unaffected
+  cli-main-spec-and-tech-authoring:
+    strength: MUST
+    statement: The system MUST provide artifact-aware spec-edit and tech-edit CLI commands that create and incrementally mutate live main specs and technical standards from named semantic inputs, preserve unnamed content, add and remove structured mappings and keyed requirement or rule content, enforce stable identity and confined canonical paths, isolate and safeguard whole-artifact deletion, reconcile the corresponding spec or tech index in the same validated atomic operation, and report deterministic mutation and recovery metadata while preserving delta archive compatibility.
+    scenarios:
+      structured-create-and-update-reconciles-index:
+        - GIVEN: A caller supplies a stable spec or standard id and named semantic fields to spec-edit or tech-edit
+        - WHEN: The authoring command creates or updates the live main artifact
+        - THEN: Only the named content changes and the corresponding canonical index entry is created or reconciled atomically
+      named-removal-preserves-siblings:
+        - GIVEN: An existing main spec or standard contains multiple mappings, requirements or rules, scenarios, examples, exceptions, and unrelated fields
+        - WHEN: The caller names one supported mapping or keyed entry for removal
+        - THEN: Only that named entry is removed and all unnamed sibling content and index entries remain unchanged
+      unsafe-delete-or-identity-change-is-rejected:
+        - GIVEN: A delete request is mixed with edits, targets an artifact with active delta references, or conflicts with the artifact stable identity or canonical path
+        - WHEN: The live-document authoring command validates the request
+        - THEN: The command exits non-zero with deterministic conflict and recovery metadata and leaves the artifact and index unchanged
+      valid-delete-removes-artifact-and-index:
+        - GIVEN: A caller issues an isolated delete for a canonically resolved main spec or standard with no blocking references
+        - WHEN: The authoring command commits the deletion
+        - THEN: The main artifact and only its corresponding index entry are removed together without changing sibling artifacts
+      archive-merge-remains-compatible:
+        - GIVEN: A strict change contains a valid delta spec or delta tech targeting a live artifact managed by the new authoring commands
+        - WHEN: The existing archive workflow merges and reconciles the delta
+        - THEN: The merged main artifact and regenerated index remain valid and observable through the same live authoring and status surfaces

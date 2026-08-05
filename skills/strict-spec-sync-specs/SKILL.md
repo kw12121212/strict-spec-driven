@@ -1,6 +1,6 @@
 ---
 name: strict-spec-sync-specs
-description: Scan repository behavior and strict YAML specs for drift, then synchronize strict specs directly after user confirmation.
+description: Scan repository behavior and strict YAML specs for drift, then synchronize strict specs through the CLI after user confirmation.
 metadata:
   skill_id: strict_spec_sync_specs
   author: strict-spec-driven
@@ -18,6 +18,7 @@ before running anything. Do not guess.
 
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
+spec-edit: strict-spec-cli spec-edit <spec-id> [--spec-path <path>] --<named-args>
 verify-spec-mappings: strict-spec-cli verify-spec-mappings
 ```
 
@@ -78,18 +79,21 @@ run `init` from this skill.
    added, modified, or removed. Do not proceed until the user explicitly
    approves.
 
-7. **Edit strict YAML spec files directly** — for each confirmed gap:
-   - edit the corresponding file under `.strict-spec-driven/specs/`
-   - add, modify, or remove structured requirements and scenarios as needed
-   - preserve or update `mapping.implementation` and `mapping.tests` to match
-     the repository evidence used for the sync
-   - describe observable behavior only
-   - if no existing category or file fits, create the new strict spec file under
-     `.strict-spec-driven/specs/` with the correct relative path
+7. **Synchronize through `spec-edit`** — for each confirmed gap, invoke the CLI
+   with the stable spec id and only the named semantic fields that changed:
+   - create a new main spec with `--spec-path`, `--title`, and one complete
+     `--requirement` / `--scenario` group
+   - add or update requirements and scenarios by stable id
+   - append mappings with `--implementation` and `--test`, and remove stale
+     paths with the exact named removal flags
+   - remove obsolete keyed entries with `--remove-requirement` or
+     `--remove-scenario`
+   Describe observable behavior only. Never edit the main-spec YAML or spec
+   index text; `spec-edit` validates both and reconciles `INDEX.yaml`
+   transactionally.
 
 8. **Refresh supporting spec state** — after all strict spec edits are complete:
-   - update `.strict-spec-driven/specs/INDEX.yaml` if new files or categories
-     were created
+   - confirm each mutation result reports the reconciled spec index
    - run `verify-spec-mappings` when mapping fields changed
 
 9. **Report final changes** — summarize:
@@ -104,9 +108,9 @@ run `init` from this skill.
 - Respect the user-selected scope
 - Use code, tests, and nearby docs as evidence, but write only observable
   behavior into the strict specs
-- Do not create a strict change — edit `.strict-spec-driven/specs/` files
-  directly
+- Do not create a strict change — author live specs through `spec-edit`
 - Do not write a standalone report file; the summary belongs in chat
 - Get explicit user confirmation before editing any strict YAML spec file
 - Keep mappings in `mapping.implementation` and `mapping.tests`, not in
   requirement prose
+- Never hand-edit main-spec or spec-index YAML

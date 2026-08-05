@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: migrate-spec-tech-and-index-yaml
+  status: proposed
+summary:
+  what:
+    - Add artifact-aware CLI authoring for strict main specs and technical standards, including create, field and keyed-item upsert, mapping additions and removals, named requirement or rule removal, and safeguarded whole-artifact deletion.
+    - Reconcile spec and tech index entries atomically whenever main artifacts are created, renamed, updated, or deleted.
+  why:
+    - Main spec, technical standard, and index maintenance still requires direct YAML edits, leaving agents able to bypass validation, preservation, identity, and referential-integrity guarantees.
+scope:
+  in:
+    - Add compatible spec-edit and tech-edit CLI commands backed by the shared YAML mutation boundary and registered command metadata.
+    - Support structured scalar, keyed requirement or rule, scenario, example, exception, and mapping mutations with idempotent preservation of unnamed content.
+    - Enforce canonical identity and path confinement, explicit deletion safeguards, index reconciliation, deterministic diagnostics, and mutation-surface ownership updates.
+    - Route strict-spec-spec-edit, strict-spec-sync-specs, strict-spec-resync-code-mapping, strict-tech-edit, and strict-tech-sync through the new CLI commands.
+    - Add focused unit, CLI, copied-project, archive-compatibility, inventory, help, and skill-content regression coverage.
+  out:
+    - Change the main-spec, main-tech, spec-index, or tech-index schema content models.
+    - Remove or rename established archive, verify, sync, or skill interfaces beyond replacing their direct YAML mutation instructions.
+    - Introduce a raw YAML payload editor or arbitrary output-path writer.
+unchanged_behavior:
+  - Delta-spec and delta-tech archive merge semantics remain compatible and continue to regenerate the relevant indexes.
+  - Read-only status, mapping verification, and repository inspection behavior remains unchanged.
+  - All unrelated YAML artifact families and CLI commands remain unchanged.
+roadmap:
+  milestone: cli-yaml-artifact-coverage
+  planned_change: migrate-spec-tech-and-index-yaml

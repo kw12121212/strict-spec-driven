@@ -146,20 +146,21 @@ artifact_families:
       create: cli-owned
       update: cli-owned
       named_remove: cli-owned
-      delete: direct-write
+      delete: cli-owned
     reference_side_effects:
       - Spec index entries and implementation/test mappings must stay synchronized.
       - Archive merges delta spec operations into main specs.
     cli_owners:
       - archive
+      - spec-edit
     direct_write_paths:
       - src/archive.ts
       - src/scaffold.ts
-      - skills/strict-spec-spec-edit/SKILL.md
-      - skills/strict-spec-sync-specs/SKILL.md
     evidence:
       - .strict-spec-driven/specs/INDEX.yaml
       - .strict-spec-driven/specs/contracts/yaml-artifacts.yaml
+      - src/spec-tech-author.ts
+      - src/cli/cmd-spec-tech.ts
   tech-state:
     artifact_types:
       - tech_index
@@ -176,19 +177,20 @@ artifact_families:
       create: cli-owned
       update: cli-owned
       named_remove: cli-owned
-      delete: direct-write
+      delete: cli-owned
     reference_side_effects:
       - Tech index entries and implementation/enforcement mappings must stay synchronized.
       - Archive merges delta tech operations into main standards.
     cli_owners:
       - archive
+      - tech-edit
     direct_write_paths:
       - src/archive.ts
-      - skills/strict-tech-edit/SKILL.md
-      - skills/strict-tech-sync/SKILL.md
     evidence:
       - .strict-spec-driven/tech/INDEX.yaml
       - .strict-spec-driven/tech/yaml-first-artifacts.yaml
+      - src/spec-tech-author.ts
+      - src/cli/cmd-spec-tech.ts
   change-planning-state:
     artifact_types:
       - change_proposal
@@ -524,6 +526,7 @@ mutation_surfaces:
   shared-yaml-mutation-core:
     path_patterns:
       - src/yaml-mutation.ts
+      - src/spec-tech-author.ts
     mechanism: filesystem-writer
     classification: cli-owned
     operations:
@@ -532,6 +535,8 @@ mutation_surfaces:
       - delete
       - rename
     families:
+      - spec-state
+      - tech-state
       - change-planning-state
       - change-delta-state
       - lessons-state
@@ -680,6 +685,7 @@ mutation_surfaces:
       - src/cli/cmd-operations.ts
       - src/cli/cmd-roadmap.ts
       - src/cli/cmd-scaffold.ts
+      - src/cli/cmd-spec-tech.ts
       - src/cli/cmd-sops.ts
       - src/cli/cmd-workflow.ts
     mechanism: cli-command
@@ -721,6 +727,8 @@ mutation_surfaces:
     families:
       - workflow-config
       - harness-state
+      - spec-state
+      - tech-state
       - change-planning-state
       - change-delta-state
       - roadmap-state

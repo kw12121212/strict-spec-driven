@@ -1,0 +1,42 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: migrate-spec-tech-and-index-yaml
+sections:
+  Implementation:
+    implement-domain-authors:
+      text: Implement typed main-spec and main-tech authoring services that resolve stable identities and canonical paths, apply named field, keyed requirement/rule/scenario, example/exception, and mapping mutations, validate complete candidates and references, reconcile indexes, and enforce isolated deletion safeguards through the shared atomic mutation boundary.
+      status: complete
+    wire-cli-surfaces:
+      text: Add spec-edit and tech-edit command parsing, command-table exports, shared metadata/help/MCP artifact-surface declarations, mutation-result recovery identifiers, and update the YAML mutation inventory from direct-write to accurate CLI ownership.
+      status: complete
+    migrate-skill-guidance:
+      text: Update spec-edit, sync-specs, resync-code-mapping, tech-edit, and tech-sync skills to express live spec and standard mutations only through the new named CLI commands, then regenerate embedded assets.
+      status: complete
+  Testing:
+    add-authoring-regressions:
+      text: Add focused authoring and CLI regressions for create, scalar and keyed upsert, additive mappings, named removals, idempotency, canonical identity/path checks, atomic index reconciliation, guarded deletion, rollback on invalid or failed writes, deterministic help/results, copied-project use, archive compatibility, and skill/inventory enforcement.
+      status: complete
+    validate-build-and-inventory:
+      text: Build compiled and embedded outputs and validate the repository YAML mutation inventory.
+      status: complete
+      command: bun run build && bun run check:yaml-inventory
+    run-unit-regression:
+      text: Run the complete unit and workflow regression suite for CLI authoring, archive compatibility, skills, and copied-project behavior.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the configured complete project regression with the required source line-coverage threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-mappings-and-scope:
+      text: Confirm spec and technical-standard mappings cover the new implementation and tests, proposal readiness remains valid, and the implementation preserves every declared unchanged behavior.
+      status: complete
+    verify-archive-readiness:
+      text: After all tasks are complete, run strict change verification and confirm archive regression evidence proves delta-spec and delta-tech merges still reconcile live indexes without conflict.
+      status: complete
+testing_gates:
+  validation_task: validate-build-and-inventory
+  unit_test_task: run-unit-regression

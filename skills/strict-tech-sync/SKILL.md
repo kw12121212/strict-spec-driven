@@ -25,6 +25,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 tech-status: strict-spec-cli tech-status
+tech-edit: strict-spec-cli tech-edit <standard-id> [--tech-path <path>] --<named-args>
 lesson-status: strict-spec-cli lesson-status [--category <category>]
 lesson-edit: strict-spec-cli lesson-edit <lesson-id> --promoted-standard <id> --promoted-rule <id>
 verify-tech-mappings: strict-spec-cli verify-tech-mappings
@@ -133,14 +134,18 @@ run `init` from this skill.
    - in active-change mode, use `generate <change-name> delta-tech ...` to add or
      update a strict delta-tech artifact under the selected change; never edit a
      live main standard directly
-   - in standalone mode, edit the corresponding file under
-     `.strict-spec-driven/tech/` directly
+   - in standalone mode, invoke `tech-edit <standard-id>` with named semantic
+     arguments for each confirmed scalar, keyed rule, example, exception, or
+     mapping mutation; use `--tech-path`, title, category, and one complete rule
+     when creating a standard
    - add, modify, or remove structured rules with `strength`, `statement`,
      `rationale`, and `enforcement`
    - update `mapping.implementation` and `mapping.enforcement` to match the
      repository evidence used for the sync
    - if no existing category or file fits, create a new standard through the
      selected mode with the correct relative path and category
+   - never edit live main-tech or tech-index YAML text; `tech-edit` validates and
+     reconciles both atomically in standalone mode
 
 8. **Link any lesson this sync promoted** — when a rule written in the previous
    step originated from a recorded lesson, mark that lesson promoted now that
@@ -158,9 +163,8 @@ run `init` from this skill.
      delta-tech operation and mapping against the confirmed finding, and rerun
      any complete regression evidence invalidated by the artifact edit before
      archive continues
-   - in standalone mode, update `.strict-spec-driven/tech/INDEX.yaml` if new
-     files or categories were created and run `verify-tech-mappings` when
-     mapping fields changed
+   - in standalone mode, confirm `tech-edit` reported the reconciled tech index
+     and run `verify-tech-mappings` when mapping fields changed
    - run `tech-status` to confirm the standards read back correctly
 
 10. **Report final changes** — summarize:
@@ -176,9 +180,10 @@ run `init` from this skill.
 - Use code, configs, CI, and tests as evidence; record the rule plus its
   rationale and enforcement, not raw implementation detail
 - Do not create a strict change. In active-change mode write confirmed findings
-  only as delta tech inside the already selected change; edit live standards
-  directly only in standalone mode.
+  only as delta tech inside the already selected change; use `tech-edit` for
+  live standards only in standalone mode.
 - Do not write a standalone report file; the summary belongs in chat
 - Get explicit user confirmation before editing any strict YAML standard file
 - Keep mappings in `mapping.implementation` and `mapping.enforcement`, not in
   rule prose
+- Never hand-edit main-tech or tech-index YAML

@@ -18,6 +18,7 @@ before running anything. Do not guess.
 
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
+spec-edit: strict-spec-cli spec-edit <spec-id> [--implementation <path>] [--test <path>] [--remove-implementation <path>] [--remove-test <path>]
 verify-spec-mappings: strict-spec-cli verify-spec-mappings
 ```
 
@@ -85,9 +86,11 @@ run `init` from this skill.
 
    Wait for explicit confirmation before writing files.
 
-7. **Apply confirmed mapping repairs** — after confirmation, edit only
-   `mapping.implementation` and `mapping.tests` in the selected strict spec
-   files. Do not rewrite requirement behavior while repairing mappings.
+7. **Apply confirmed mapping repairs through `spec-edit`** — after confirmation,
+   invoke `spec-edit <spec-id>` with `--implementation` and `--test` for paths
+   to add, and `--remove-implementation` and `--remove-test` for exact stale
+   paths. The command preserves requirement behavior, validates the main spec,
+   and reconciles the spec index atomically. Never edit spec or index YAML text.
 
 8. **Validate after editing** — rerun `verify-spec-mappings`. Fix safe mapping
    field format issues immediately. If any remaining error needs human judgment,
@@ -110,3 +113,4 @@ run `init` from this skill.
 - Use repo-relative file paths only
 - Keep mappings at file granularity; do not use line numbers, ranges, or symbols
 - Always run `verify-spec-mappings` before and after confirmed mapping edits
+- Express every mapping mutation through `strict-spec-cli spec-edit`

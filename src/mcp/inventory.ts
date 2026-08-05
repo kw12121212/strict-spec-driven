@@ -174,6 +174,20 @@ export const MCP_MUTATING_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
     mutates: true,
   },
   {
+    name: "spec_edit",
+    description: mcpToolDescription("spec-edit"),
+    safety: "write",
+    cliCommand: "spec-edit",
+    mutates: true,
+  },
+  {
+    name: "tech_edit",
+    description: mcpToolDescription("tech-edit"),
+    safety: "write",
+    cliCommand: "tech-edit",
+    mutates: true,
+  },
+  {
     name: "mark_next_task_complete",
     description: mcpToolDescription("apply"),
     safety: "write",

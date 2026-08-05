@@ -50,6 +50,11 @@ const artifactAuthorSchema = z.strictObject({
   args: z.array(z.string().min(1)).min(1),
   ...confirmField,
 });
+const liveArtifactAuthorSchema = z.strictObject({
+  id: z.string().min(1),
+  args: z.array(z.string().min(1)).min(1),
+  ...confirmField,
+});
 const harnessSessionMutateSchema = z.strictObject({
   action: z.enum(["create", "edit", "delete", "archive"]),
   session: z.string().min(1),
@@ -139,6 +144,16 @@ export const MUTATING_TOOL_DEFINITIONS: McpToolDefinition[] = [
     String(args.artifact),
     ...(Array.isArray(args.args) ? args.args.map(String) : []),
   ], generateArtifactSchema),
+  command(inventoryFor("spec_edit"), (args) => [
+    "spec-edit",
+    String(args.id),
+    ...(Array.isArray(args.args) ? args.args.map(String) : []),
+  ], liveArtifactAuthorSchema),
+  command(inventoryFor("tech_edit"), (args) => [
+    "tech-edit",
+    String(args.id),
+    ...(Array.isArray(args.args) ? args.args.map(String) : []),
+  ], liveArtifactAuthorSchema),
   command(inventoryFor("mark_next_task_complete"), (args) => ["apply", String(args.change)], changeConfirmSchema),
   command(inventoryFor("cancel_change"), (args) => ["cancel", String(args.change)], changeConfirmSchema),
   command(inventoryFor("harness_edit"), (args) => ["harness-edit", ...(Array.isArray(args.args) ? args.args.map(String) : [])], artifactAuthorSchema),

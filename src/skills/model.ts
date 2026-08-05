@@ -367,6 +367,7 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
     requiredCommands: {
       modify: `${COMMAND_PREFIX} modify [change-name|archive-dir]`,
       generate: `${COMMAND_PREFIX} generate <change-name> delta-tech --<named-args>`,
+      "tech-edit": `${COMMAND_PREFIX} tech-edit <standard-id> [--tech-path <path>] --<named-args>`,
       verify: `${COMMAND_PREFIX} verify <change-name>`,
       "verify-tech-mappings": `${COMMAND_PREFIX} verify-tech-mappings`,
     },
@@ -381,6 +382,20 @@ export const CORE_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpectat
       "may not be deferred until after its active change is archived",
       "never edit a live main standard directly",
       "rerun any complete regression evidence invalidated by the artifact edit",
+    ],
+  },
+  "strict-tech-edit": {
+    requiredCommands: {
+      "tech-edit": `${COMMAND_PREFIX} tech-edit <standard-id> [--tech-path <path>] --<named-args>`,
+      "tech-status": `${COMMAND_PREFIX} tech-status`,
+      "verify-tech-mappings": `${COMMAND_PREFIX} verify-tech-mappings`,
+    },
+    requiredHeadings: ["## Steps", "## Rules"],
+    requiredSnippets: [
+      ".strict-spec-driven/tech/",
+      "mapping.implementation",
+      "mapping.enforcement",
+      "Never hand-edit main-tech or tech-index YAML",
     ],
   },
   "strict-spec-modify": {
@@ -560,6 +575,7 @@ export const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpe
   },
   "strict-spec-spec-edit": {
     requiredCommands: {
+      "spec-edit": `${COMMAND_PREFIX} spec-edit <spec-id> [--spec-path <path>] --<named-args>`,
       "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
@@ -567,6 +583,7 @@ export const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpe
   },
   "strict-spec-sync-specs": {
     requiredCommands: {
+      "spec-edit": `${COMMAND_PREFIX} spec-edit <spec-id> [--spec-path <path>] --<named-args>`,
       "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
     },
     requiredHeadings: ["## Steps", "## Rules"],
@@ -574,6 +591,7 @@ export const PLANNING_STRICT_SKILL_EXPECTATIONS: Record<string, SkillContentExpe
   },
   "strict-spec-resync-code-mapping": {
     requiredCommands: {
+      "spec-edit": `${COMMAND_PREFIX} spec-edit <spec-id> [--implementation <path>] [--test <path>] [--remove-implementation <path>] [--remove-test <path>]`,
       "verify-spec-mappings": `${COMMAND_PREFIX} verify-spec-mappings`,
     },
     requiredHeadings: ["## Steps", "## Rules"],

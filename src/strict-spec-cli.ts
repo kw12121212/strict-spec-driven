@@ -26,6 +26,7 @@ import { runLessonCreate, runLessonEdit, runLessonList, runLessonObsolete, runLe
 import { runMigrate, runMaintenanceCommand } from "./cli/cmd-migration.js";
 import { runMcpInstall } from "./cli/cmd-mcp-install.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMappings, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
+import { runSpecEdit, runTechEdit } from "./cli/cmd-spec-tech.js";
 import { runSampleList, runSampleShow, runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
 import { runYamlSurfaceList, runYamlSurfaceShow } from "./cli/cmd-yaml-surface.js";
 import { runArchitectureEdit, runArchitectureGenerate, runArchitectureStatus } from "./cli/cmd-architecture.js";
@@ -81,6 +82,8 @@ export { applyTask, readChangeTasks, writeChangeTasks };
 export { verifyChange };
 export { checkProposalReadiness, getWorkflowState };
 export { archiveChange };
+export { authorMainSpec, authorMainTech } from "./spec-tech-author.js";
+export type { MainSpecAuthorInput, MainTechAuthorInput, MainArtifactAuthorResult } from "./spec-tech-author.js";
 export { getRoadmapStatus, recommendRoadmapChange, syncRoadmap };
 export { archiveRoadmapMilestones } from "./roadmap/archive.js";
 export { reopenMilestone } from "./roadmap/reopen.js";
@@ -113,6 +116,8 @@ export const commands = createCliCommandTable({
   "verify-spec-mappings": (argv) => runVerifySpecMappings(argv),
   "verify-tech-mappings": (argv) => runVerifyTechMappings(argv),
   "tech-status": (argv) => runTechStatus(argv),
+  "spec-edit": (argv) => runSpecEdit(argv),
+  "tech-edit": (argv) => runTechEdit(argv),
   "architecture-edit": (argv) => runArchitectureEdit(argv),
   "architecture-generate": (argv) => runArchitectureGenerate(argv),
   "architecture-status": (argv) => runArchitectureStatus(argv),

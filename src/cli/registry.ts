@@ -12,6 +12,8 @@ export const COMMAND_REGISTRATION_ORDER = [
   "verify-spec-mappings",
   "verify-tech-mappings",
   "tech-status",
+  "spec-edit",
+  "tech-edit",
   "architecture-edit",
   "architecture-generate",
   "architecture-status",

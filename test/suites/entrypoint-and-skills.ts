@@ -76,6 +76,8 @@ const expectedCommandOrder = [
   "verify-spec-mappings",
   "verify-tech-mappings",
   "tech-status",
+  "spec-edit",
+  "tech-edit",
   "architecture-edit",
   "architecture-generate",
   "architecture-status",
@@ -890,7 +892,8 @@ context.assert(
       && normalizedTechSyncSkillContent.includes("explicitly approves both the normative content and its strength")
       && normalizedTechSyncSkillContent.includes("generate <change-name> delta-tech")
       && normalizedTechSyncSkillContent.includes("never edit a live main standard directly")
-      && normalizedTechSyncSkillContent.includes("edit live standards directly only in standalone mode")
+      && normalizedTechSyncSkillContent.includes("use `tech-edit` for live standards only in standalone mode")
+      && normalizedTechSyncSkillContent.includes("Never hand-edit main-tech or tech-index YAML")
       && normalizedArchiveSkillContent.includes("final current-change tech sync")
       && normalizedArchiveSkillContent.includes("explicitly classifies the pattern as not reusable")
       && normalizedArchiveSkillContent.includes("Never defer a confirmed reusable convention until after archive")

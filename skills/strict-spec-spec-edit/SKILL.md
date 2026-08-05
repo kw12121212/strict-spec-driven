@@ -1,6 +1,6 @@
 ---
 name: strict-spec-spec-edit
-description: Create or modify individual strict YAML main spec files directly for lightweight spec corrections.
+description: Create or modify individual strict YAML main spec files through the CLI for lightweight spec corrections.
 metadata:
   skill_id: strict_spec_spec_edit
   author: strict-spec-driven
@@ -9,8 +9,8 @@ metadata:
 ---
 
 You are helping the user create or modify strict YAML main spec files under
-`.strict-spec-driven/specs/` directly, without going through the strict change
-workflow.
+`.strict-spec-driven/specs/` through the artifact-aware CLI, without going
+through the strict change workflow.
 
 ## This Skill's Commands
 
@@ -19,6 +19,7 @@ before running anything. Do not guess.
 
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
+spec-edit: strict-spec-cli spec-edit <spec-id> [--spec-path <path>] --<named-args>
 verify-spec-mappings: strict-spec-cli verify-spec-mappings
 ```
 
@@ -73,19 +74,27 @@ run `init` from this skill.
 
    Wait for explicit confirmation before writing anything.
 
-6. **Apply the confirmed edits** — after confirmation:
-   - edit the target files under `.strict-spec-driven/specs/`
-   - preserve existing `mapping.implementation` and `mapping.tests` fields
-   - if the edit changes implementation or test evidence, update only those
-     mapping fields with repo-relative file paths
-   - if a new file or category was created, update
-     `.strict-spec-driven/specs/INDEX.yaml`
-   - for removals, delete the exact structured requirement entries cleanly
+6. **Apply the confirmed edits through the CLI** — after confirmation, issue
+   one or more `spec-edit` invocations with named semantic arguments:
+   - create a spec with `spec-edit <spec-id> --spec-path <path> --title <text>
+     --requirement <id> --strength <MUST|SHOULD|MAY> --statement <text>
+     --scenario <id> --given <text> --when <text> --then <text>`
+   - update one requirement or scenario by restating its id and only the fields
+     that changed; unnamed content is preserved
+   - add mappings with repeatable `--implementation` and `--test`; remove exact
+     paths with `--remove-implementation` and `--remove-test`
+   - remove keyed content with `--remove-requirement <id>` or
+     `--remove-scenario <requirement-id>:<scenario-id>`
+   - use an isolated `spec-edit <spec-id> --delete` only when the confirmed
+     change removes the whole spec; deletion is refused while active deltas
+     target it
+   Never edit the main-spec YAML or `INDEX.yaml` text. The command validates
+   the complete candidate and reconciles the index in the same transaction.
 
 7. **Validate the result** — after editing, verify:
    - each edited file remains valid strict YAML
    - requirement and scenario structures still match the strict schema contract
-   - `INDEX.yaml` reflects the current strict spec files
+   - the command result reports both the main artifact and reconciled index
    - mapping fields still use normalized repo-relative paths
 
    Run `verify-spec-mappings` when mapping fields changed.
@@ -95,7 +104,7 @@ run `init` from this skill.
 
 ## Rules
 
-- Always read existing strict specs before editing
+- Always read existing strict specs before authoring through `spec-edit`
 - Present the exact changes and wait for confirmation before writing
 - Prefer existing categories and files unless the content clearly requires a new
   path
@@ -104,3 +113,5 @@ run `init` from this skill.
 - Do not create or interact with `.strict-spec-driven/changes/`
 - Keep mappings in `mapping.implementation` and `mapping.tests`, not in
   requirement prose
+- Never hand-edit main-spec or spec-index YAML; express every mutation through
+  `strict-spec-cli spec-edit` with named arguments

@@ -1,0 +1,27 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: migrate-spec-tech-and-index-yaml
+approach:
+  - Introduce dedicated spec-edit and tech-edit domain commands that parse named semantic flags into typed authoring inputs, resolve live artifacts by stable id and confined canonical paths, and delegate candidate construction, schema validation, relationship checks, and writes to focused author modules built on the shared YAML mutation contract.
+  - Each authoring operation reads the existing main artifact and index, applies only named scalar, keyed-entry, list, mapping, or removal intent, validates the complete artifact pair, and commits the main artifact plus reconciled index as one recoverable operation. Creation requires meaningful identity and content; deletion is an isolated invocation and is refused when active delta references or identity/path inconsistencies make removal unsafe.
+  - Update command metadata, mutation inventory ownership, affected skills, exported CLI wiring, and generated embedded assets together, then prove behavior through module tests, subprocess/copied-project CLI tests, archive compatibility checks, inventory checks, and the complete coverage gate.
+decisions:
+  domain-command-boundary:
+    decision: Keep spec-edit and tech-edit as the public authoring interfaces and share internal authoring primitives instead of exposing a generic YAML editor.
+    rationale: The roadmap requires compatible domain commands and named semantic inputs; separate public commands preserve discoverability and schema-specific validation while shared mechanics prevent inconsistent safety behavior.
+  index-reconciliation:
+    decision: Treat a main artifact and its derived index entry as one mutation unit, rebuilding the canonical index from validated main files before commit.
+    rationale: An artifact write that succeeds without its index update leaves invalid cross-file state, while canonical regeneration avoids callers having to reproduce index document structure.
+  deletion-guard:
+    decision: Allow whole-artifact deletion only as a delete-only command after stable-id, canonical-path, and active-reference checks pass.
+    rationale: Deletion is legitimate maintenance but cannot be safe when mixed with edits or when active deltas still depend on the target; deterministic refusal preserves archive correctness.
+alternatives:
+  - option: Extend generate to edit live main specs and standards.
+    reason: generate is scoped to active change artifacts and delta operations; overloading it would blur live-document maintenance with change planning and break established spec-edit and tech-edit workflows.
+  - option: Provide one generic command accepting artifact type, output path, and YAML payload.
+    reason: That would move direct editing behind a thin wrapper, violate path confinement and semantic-intent requirements, and force callers to own document shape and index effects.
+risks:
+  - Atomic coordination across a main artifact and its index can regress rollback behavior; failure-injection tests will compare all affected files before and after rejected writes.
+  - Deletion and identity checks may reject previously tolerated inconsistent state; diagnostics and help must name the exact reference, path, or identity conflict and the recovery assets.

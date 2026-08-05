@@ -36035,20 +36035,21 @@ artifact_families:
       create: cli-owned
       update: cli-owned
       named_remove: cli-owned
-      delete: direct-write
+      delete: cli-owned
     reference_side_effects:
       - Spec index entries and implementation/test mappings must stay synchronized.
       - Archive merges delta spec operations into main specs.
     cli_owners:
       - archive
+      - spec-edit
     direct_write_paths:
       - src/archive.ts
       - src/scaffold.ts
-      - skills/strict-spec-spec-edit/SKILL.md
-      - skills/strict-spec-sync-specs/SKILL.md
     evidence:
       - .strict-spec-driven/specs/INDEX.yaml
       - .strict-spec-driven/specs/contracts/yaml-artifacts.yaml
+      - src/spec-tech-author.ts
+      - src/cli/cmd-spec-tech.ts
   tech-state:
     artifact_types:
       - tech_index
@@ -36065,19 +36066,20 @@ artifact_families:
       create: cli-owned
       update: cli-owned
       named_remove: cli-owned
-      delete: direct-write
+      delete: cli-owned
     reference_side_effects:
       - Tech index entries and implementation/enforcement mappings must stay synchronized.
       - Archive merges delta tech operations into main standards.
     cli_owners:
       - archive
+      - tech-edit
     direct_write_paths:
       - src/archive.ts
-      - skills/strict-tech-edit/SKILL.md
-      - skills/strict-tech-sync/SKILL.md
     evidence:
       - .strict-spec-driven/tech/INDEX.yaml
       - .strict-spec-driven/tech/yaml-first-artifacts.yaml
+      - src/spec-tech-author.ts
+      - src/cli/cmd-spec-tech.ts
   change-planning-state:
     artifact_types:
       - change_proposal
@@ -36413,6 +36415,7 @@ mutation_surfaces:
   shared-yaml-mutation-core:
     path_patterns:
       - src/yaml-mutation.ts
+      - src/spec-tech-author.ts
     mechanism: filesystem-writer
     classification: cli-owned
     operations:
@@ -36421,6 +36424,8 @@ mutation_surfaces:
       - delete
       - rename
     families:
+      - spec-state
+      - tech-state
       - change-planning-state
       - change-delta-state
       - lessons-state
@@ -36569,6 +36574,7 @@ mutation_surfaces:
       - src/cli/cmd-operations.ts
       - src/cli/cmd-roadmap.ts
       - src/cli/cmd-scaffold.ts
+      - src/cli/cmd-spec-tech.ts
       - src/cli/cmd-sops.ts
       - src/cli/cmd-workflow.ts
     mechanism: cli-command
@@ -36610,6 +36616,8 @@ mutation_surfaces:
     families:
       - workflow-config
       - harness-state
+      - spec-state
+      - tech-state
       - change-planning-state
       - change-delta-state
       - roadmap-state
@@ -40554,6 +40562,88 @@ var COMMAND_METADATA_ENTRIES = {
     },
     exitCodes: SUCCESS_EXIT_CODES
   },
+  "spec-edit": {
+    name: "spec-edit",
+    group: "operations",
+    summary: "Create, incrementally update, remove named entries from, or safely delete a live main spec and reconcile its index.",
+    mcpDescription: "Mutates a repository-owned main spec and its spec index through named semantic fields and the atomic YAML boundary.",
+    usage: `Usage: strict-spec-cli spec-edit <spec-id> [named fields and removals | --delete]
+`,
+    arguments: [{ name: "spec-id", description: "Stable main-spec id used to resolve the live artifact.", required: true }],
+    flags: [
+      { name: "--spec-path", arity: "value", valueLabel: "<repo-relative-path>", description: "Confined path below .strict-spec-driven/specs/; optional for creation and accepted on existing artifacts only when it matches the path resolved from the stable id." },
+      { name: "--title", arity: "value", valueLabel: "<text>", description: "Set the main-spec title; required with a complete requirement when creating a spec." },
+      { name: "--implementation", arity: "value", valueLabel: "<path>", description: "Append one repo-relative implementation mapping without duplicates.", repeatable: true, repeatSemantics: "Repeated values append uniquely." },
+      { name: "--test", arity: "value", valueLabel: "<path>", description: "Append one repo-relative test mapping without duplicates.", repeatable: true, repeatSemantics: "Repeated values append uniquely." },
+      { name: "--requirement", arity: "value", valueLabel: "<id>", description: "Select one keyed requirement to create or update; a new requirement also needs strength, statement, and a scenario." },
+      { name: "--strength", arity: "value", valueLabel: "<MUST|SHOULD|MAY>", description: "Set the selected requirement strength." },
+      { name: "--statement", arity: "value", valueLabel: "<text>", description: "Set the selected requirement statement." },
+      { name: "--scenario", arity: "value", valueLabel: "<id>", description: "Select one scenario under the selected requirement; supplied steps replace only that keyed scenario." },
+      { name: "--given", arity: "value", valueLabel: "<text>", description: "Add the GIVEN step to the selected scenario." },
+      { name: "--when", arity: "value", valueLabel: "<text>", description: "Add the WHEN step to the selected scenario." },
+      { name: "--then", arity: "value", valueLabel: "<text>", description: "Add the THEN step to the selected scenario." },
+      { name: "--and", arity: "value", valueLabel: "<text>", description: "Append an AND step to the selected scenario.", repeatable: true, repeatSemantics: "Repeated values preserve supplied order." },
+      { name: "--remove-requirement", arity: "value", valueLabel: "<id>", description: "Remove only this keyed requirement; an absent id is a no-op.", repeatable: true },
+      { name: "--remove-scenario", arity: "value", valueLabel: "<requirement-id>:<scenario-id>", description: "Remove only this keyed scenario from its requirement; an absent id is a no-op.", repeatable: true },
+      { name: "--remove-implementation", arity: "value", valueLabel: "<path>", description: "Remove this exact implementation mapping and preserve all others.", repeatable: true },
+      { name: "--remove-test", arity: "value", valueLabel: "<path>", description: "Remove this exact test mapping and preserve all others.", repeatable: true },
+      { name: "--delete", arity: "boolean", description: "Delete the resolved main spec and its index entry in one isolated transaction; refused with editing flags, path mismatches, or active delta references." }
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "indexPath", "operation"],
+      description: "A deterministic multi-artifact mutation result with schema and example recovery identifiers."
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "Scalar and keyed restatement affects only the named content; mappings append uniquely and removals are exact.",
+      "Creation defaults to .strict-spec-driven/specs/<spec-id>.yaml and persists only after a title and complete requirement validate.",
+      "Use schema-show main-spec and sample-show main-spec to inspect the artifact contract."
+    ]
+  },
+  "tech-edit": {
+    name: "tech-edit",
+    group: "operations",
+    summary: "Create, incrementally update, remove named entries from, or safely delete a live technical standard and reconcile its index.",
+    mcpDescription: "Mutates a repository-owned technical standard and its tech index through named semantic fields and the atomic YAML boundary.",
+    usage: `Usage: strict-spec-cli tech-edit <standard-id> [named fields and removals | --delete]
+`,
+    arguments: [{ name: "standard-id", description: "Stable technical-standard id used to resolve the live artifact.", required: true }],
+    flags: [
+      { name: "--tech-path", arity: "value", valueLabel: "<repo-relative-path>", description: "Confined path below .strict-spec-driven/tech/; optional for creation and accepted on existing artifacts only when it matches the path resolved from the stable id." },
+      { name: "--title", arity: "value", valueLabel: "<text>", description: "Set the standard title; required with category and a complete rule when creating a standard." },
+      { name: "--category", arity: "value", valueLabel: "<category>", description: "Set the registered technical-standard category." },
+      { name: "--implementation", arity: "value", valueLabel: "<path>", description: "Append one repo-relative implementation mapping without duplicates.", repeatable: true, repeatSemantics: "Repeated values append uniquely." },
+      { name: "--enforcement", arity: "value", valueLabel: "<path>", description: "Append one repo-relative enforcement mapping without duplicates.", repeatable: true, repeatSemantics: "Repeated values append uniquely." },
+      { name: "--rule", arity: "value", valueLabel: "<id>", description: "Select one keyed rule to create or update; a new rule also needs strength, statement, rationale, and method." },
+      { name: "--strength", arity: "value", valueLabel: "<MUST|SHOULD|MAY>", description: "Set the selected rule strength." },
+      { name: "--statement", arity: "value", valueLabel: "<text>", description: "Set the selected rule statement." },
+      { name: "--rationale", arity: "value", valueLabel: "<text>", description: "Set the selected rule rationale." },
+      { name: "--method", arity: "value", valueLabel: "<lint|ci|test|review|manual>", description: "Set the selected rule enforcement method." },
+      { name: "--detail", arity: "value", valueLabel: "<text>", description: "Set the selected rule enforcement detail." },
+      { name: "--example-good", arity: "value", valueLabel: "<text>", description: "Append one good example to the selected rule without duplicates.", repeatable: true },
+      { name: "--example-bad", arity: "value", valueLabel: "<text>", description: "Append one bad example to the selected rule without duplicates.", repeatable: true },
+      { name: "--exception", arity: "value", valueLabel: "<text>", description: "Append one exception to the selected rule without duplicates.", repeatable: true },
+      { name: "--remove-rule", arity: "value", valueLabel: "<id>", description: "Remove only this keyed rule; an absent id is a no-op.", repeatable: true },
+      { name: "--remove-example-good", arity: "value", valueLabel: "<text>", description: "Remove this exact good example from the selected rule.", repeatable: true },
+      { name: "--remove-example-bad", arity: "value", valueLabel: "<text>", description: "Remove this exact bad example from the selected rule.", repeatable: true },
+      { name: "--remove-exception", arity: "value", valueLabel: "<text>", description: "Remove this exact exception from the selected rule.", repeatable: true },
+      { name: "--remove-implementation", arity: "value", valueLabel: "<path>", description: "Remove this exact implementation mapping and preserve all others.", repeatable: true },
+      { name: "--remove-enforcement", arity: "value", valueLabel: "<path>", description: "Remove this exact enforcement mapping and preserve all others.", repeatable: true },
+      { name: "--delete", arity: "boolean", description: "Delete the resolved standard and its index entry in one isolated transaction; refused with editing flags, path mismatches, or active delta references." }
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "indexPath", "operation"],
+      description: "A deterministic multi-artifact mutation result with schema and example recovery identifiers."
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "Scalar and keyed restatement affects only the named content; mappings and rule lists append uniquely and removals are exact.",
+      "Creation defaults to .strict-spec-driven/tech/<standard-id>.yaml and persists only after a title, category, and complete rule validate.",
+      "Use schema-show main-tech and sample-show main-tech to inspect the artifact contract."
+    ]
+  },
   "architecture-edit": {
     name: "architecture-edit",
     group: "operations",
@@ -42231,6 +42321,20 @@ var MCP_MUTATING_TOOL_INVENTORY = [
     mutates: true
   },
   {
+    name: "spec_edit",
+    description: mcpToolDescription("spec-edit"),
+    safety: "write",
+    cliCommand: "spec-edit",
+    mutates: true
+  },
+  {
+    name: "tech_edit",
+    description: mcpToolDescription("tech-edit"),
+    safety: "write",
+    cliCommand: "tech-edit",
+    mutates: true
+  },
+  {
     name: "mark_next_task_complete",
     description: mcpToolDescription("apply"),
     safety: "write",
@@ -42718,6 +42822,11 @@ var artifactAuthorSchema = exports_external.strictObject({
   args: exports_external.array(exports_external.string().min(1)).min(1),
   ...confirmField
 });
+var liveArtifactAuthorSchema = exports_external.strictObject({
+  id: exports_external.string().min(1),
+  args: exports_external.array(exports_external.string().min(1)).min(1),
+  ...confirmField
+});
 var harnessSessionMutateSchema = exports_external.strictObject({
   action: exports_external.enum(["create", "edit", "delete", "archive"]),
   session: exports_external.string().min(1),
@@ -42780,6 +42889,16 @@ var MUTATING_TOOL_DEFINITIONS = [
     String(args.artifact),
     ...Array.isArray(args.args) ? args.args.map(String) : []
   ], generateArtifactSchema),
+  command(inventoryFor("spec_edit"), (args) => [
+    "spec-edit",
+    String(args.id),
+    ...Array.isArray(args.args) ? args.args.map(String) : []
+  ], liveArtifactAuthorSchema),
+  command(inventoryFor("tech_edit"), (args) => [
+    "tech-edit",
+    String(args.id),
+    ...Array.isArray(args.args) ? args.args.map(String) : []
+  ], liveArtifactAuthorSchema),
   command(inventoryFor("mark_next_task_complete"), (args) => ["apply", String(args.change)], changeConfirmSchema),
   command(inventoryFor("cancel_change"), (args) => ["cancel", String(args.change)], changeConfirmSchema),
   command(inventoryFor("harness_edit"), (args) => ["harness-edit", ...Array.isArray(args.args) ? args.args.map(String) : []], artifactAuthorSchema),
