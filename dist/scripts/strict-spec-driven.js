@@ -15994,9 +15994,6 @@ function loadYamlMutationSurface() {
   };
   return cachedSurface;
 }
-function listYamlSurfaceFamilies() {
-  return loadYamlMutationSurface().families;
-}
 function findYamlSurfaceFamily(kind) {
   return loadYamlMutationSurface().families.find((family) => family.kind === kind);
 }
@@ -16018,7 +16015,8 @@ function resolveYamlArtifactIdentifiers(artifactTypeOrSchemaId) {
     artifactKind: match.family.kind,
     ...match.artifactType.schemaKey !== undefined ? { schemaKey: match.artifactType.schemaKey } : {},
     ...match.artifactType.schemaFilePath !== undefined ? { schemaFilePath: match.artifactType.schemaFilePath } : {},
-    ...match.artifactType.exampleKey !== undefined ? { exampleKey: match.artifactType.exampleKey } : {}
+    ...match.artifactType.exampleKey !== undefined ? { exampleKey: match.artifactType.exampleKey } : {},
+    ...match.artifactType.inspectWith.length > 0 ? { inspectWith: match.artifactType.inspectWith } : {}
   };
 }
 
@@ -18505,15 +18503,49 @@ function getCommandMetadata(commandName) {
 function getCommandUsage(commandName) {
   return getCommandMetadata(commandName).usage;
 }
+function getArtifactCacheContext() {
+  const surface = loadYamlMutationSurface();
+  return { schemaCacheRoot: surface.schemaCacheRoot, schemaCacheAvailable: surface.schemaCacheAvailable };
+}
 function getCommandArtifactSurface(commandName) {
-  return listYamlSurfaceFamilies().filter((family) => family.cliOwners.includes(commandName)).map((family) => ({
-    artifactKind: family.kind,
-    artifactTypes: family.artifactTypes.map((artifactType) => artifactType.artifactType),
-    schemaKeys: family.artifactTypes.flatMap((artifactType) => artifactType.schemaKey ?? []),
-    declaredSchemaFiles: family.artifactTypes.flatMap((artifactType) => artifactType.declaredSchemaFile ?? []),
-    exampleKeys: family.artifactTypes.flatMap((artifactType) => artifactType.exampleKey ?? []),
-    inspectWith: [...new Set(family.artifactTypes.flatMap((artifactType) => artifactType.inspectWith))]
-  }));
+  return loadYamlMutationSurface().families.filter((family) => family.cliOwners.includes(commandName)).map((family) => {
+    const operations = YAML_SURFACE_OPERATIONS.map((operation) => ({
+      operation,
+      state: family.operations[operation].state,
+      cliOwned: family.operations[operation].cliOwned,
+      ownedBy: family.operations[operation].commands
+    }));
+    return {
+      artifactKind: family.kind,
+      artifactTypes: family.artifactTypes.map((artifactType) => artifactType.artifactType),
+      schemaKeys: family.artifactTypes.flatMap((artifactType) => artifactType.schemaKey ?? []),
+      declaredSchemaFiles: family.artifactTypes.flatMap((artifactType) => artifactType.declaredSchemaFile ?? []),
+      exampleKeys: family.artifactTypes.flatMap((artifactType) => artifactType.exampleKey ?? []),
+      inspectWith: [...new Set(family.artifactTypes.flatMap((artifactType) => artifactType.inspectWith))],
+      discoverWith: ["schema-list", "sample-list", `yaml-surface-show ${family.kind}`],
+      operations,
+      unsupportedOperations: operations.filter((entry) => !entry.cliOwned).map((entry) => entry.operation),
+      crossFileEffects: family.referenceSideEffects
+    };
+  });
+}
+function formatOperationSummary(operation) {
+  return operation.cliOwned ? `${operation.operation} (${operation.ownedBy.join(", ")})` : `${operation.operation} (${operation.state}, not CLI-owned)`;
+}
+function formatArtifactEntryLines(entry, indent) {
+  const detail = [
+    ["Schema:", entry.schemaKeys.join(", ")],
+    ["Schema file:", entry.declaredSchemaFiles.join(", ")],
+    ["Example:", entry.exampleKeys.join(", ")],
+    ["Operations:", entry.operations.map(formatOperationSummary).join(", ")],
+    ...entry.crossFileEffects.length > 0 ? [["Also affects:", entry.crossFileEffects.join(" ")]] : [],
+    ["Inspect:", entry.inspectWith.join(", ")],
+    ["Discover:", entry.discoverWith.join(", ")]
+  ].filter(([, value]) => value.length > 0);
+  return [
+    `${indent}${entry.artifactKind} (${entry.artifactTypes.join(", ")})`,
+    ...formatDefinitionList(detail, `${indent}  `)
+  ];
 }
 function formatFlagLabel(flag) {
   return flag.arity === "boolean" ? flag.name : `${flag.name} ${flag.valueLabel ?? "<value>"}`;
@@ -18561,11 +18593,12 @@ function formatCommandHelp(commandName) {
   lines.push(...formatDefinitionList(metadata.exitCodes.map((exit) => [String(exit.code), exit.meaning])));
   const artifactSurface = getCommandArtifactSurface(commandName);
   if (artifactSurface.length > 0) {
+    const cache = getArtifactCacheContext();
     lines.push("", "Artifacts written:");
-    lines.push(...formatDefinitionList(artifactSurface.map((entry) => [
-      entry.artifactKind,
-      `${entry.artifactTypes.join(", ")} — inspect with ${entry.inspectWith.join(", ")}`
-    ])));
+    for (const entry of artifactSurface) {
+      lines.push(...formatArtifactEntryLines(entry, "  "));
+    }
+    lines.push(`  Schema file and example paths resolve beneath ${cache.schemaCacheRoot}`, `  ${cache.schemaCacheAvailable ? "(cache present)." : "(cache unavailable here; the keys above still name the bundled assets)."}`);
   }
   if (metadata.notes && metadata.notes.length > 0) {
     lines.push("", "Notes:");
@@ -18583,7 +18616,8 @@ function formatRootHelp(commandNames) {
     "Usage: strict-spec-cli <command> [arguments]",
     "",
     "Run 'strict-spec-cli <command> --help' for full command help.",
-    "Add --json to any help request for machine-readable help."
+    "Add --json to any help request for machine-readable help.",
+    "Discover artifact contracts with schema-list, sample-list, and yaml-surface-list."
   ];
   const width = Math.max(...commandNames.map((name) => name.length));
   for (const group of COMMAND_GROUP_ORDER) {
@@ -18612,7 +18646,8 @@ function buildCommandHelpPayload(commandName) {
     output: metadata.output,
     exitCodes: metadata.exitCodes,
     notes: metadata.notes ?? [],
-    artifactSurface: getCommandArtifactSurface(commandName)
+    artifactSurface: getCommandArtifactSurface(commandName),
+    artifactCache: getArtifactCacheContext()
   };
 }
 function buildRootHelpPayload(commandNames) {
@@ -18620,6 +18655,7 @@ function buildRootHelpPayload(commandNames) {
     cli: "strict-spec-cli",
     usage: "strict-spec-cli <command> [arguments]",
     commandHelp: "strict-spec-cli <command> --help [--json]",
+    artifactDiscovery: ["schema-list", "sample-list", "yaml-surface-list"],
     groups: COMMAND_GROUP_ORDER.filter((group) => commandNames.some((name) => COMMAND_METADATA_ENTRIES[name]?.group === group)).map((group) => ({ id: group, title: COMMAND_GROUP_TITLES[group] })),
     commands: commandNames.map((name) => {
       const metadata = getCommandMetadata(name);

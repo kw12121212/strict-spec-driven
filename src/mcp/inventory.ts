@@ -1,4 +1,23 @@
-import { getCommandArtifactSurface, getCommandMetadata } from "../cli/command-metadata.js";
+import {
+  getArtifactCacheContext,
+  getCommandArtifactSurface,
+  getCommandMetadata,
+  type CliCommandArtifactSurfaceEntry,
+} from "../cli/command-metadata.js";
+
+/**
+ * A tool description is read into every host context whether or not the tool is used, so it names
+ * the assets an agent needs before its first write and defers the per-operation and cross-file
+ * detail to a command the agent runs only when it actually needs it.
+ */
+function describeArtifactEntry(entry: CliCommandArtifactSurfaceEntry): string {
+  const assets = [
+    entry.schemaKeys.length > 0 ? `schemas ${entry.schemaKeys.join(", ")}` : undefined,
+    entry.exampleKeys.length > 0 ? `examples ${entry.exampleKeys.join(", ")}` : undefined,
+    entry.inspectWith.length > 0 ? `print them with ${entry.inspectWith.join(", ")}` : undefined,
+  ].filter((part): part is string => part !== undefined);
+  return assets.length === 0 ? entry.artifactKind : `${entry.artifactKind} (${assets.join("; ")})`;
+}
 
 /**
  * MCP tool descriptions come from the shared command-metadata registry. Mutating commands carry
@@ -10,9 +29,16 @@ function mcpToolDescription(cliCommand: string): string {
   const description = metadata.mcpDescription ?? metadata.summary;
   const artifactSurface = getCommandArtifactSurface(cliCommand);
   if (artifactSurface.length === 0) return description;
-  // MCP hosts see the same artifact kinds as CLI help, so a host can route an agent to
-  // schema-show and sample-show before it attempts a mutation it cannot yet shape correctly.
-  return `${description} Writes YAML artifact kinds: ${artifactSurface.map((entry) => entry.artifactKind).join(", ")}.`;
+
+  const cache = getArtifactCacheContext();
+  return [
+    description,
+    `Writes YAML artifact kinds: ${artifactSurface.map(describeArtifactEntry).join("; ")}.`,
+    `Declared schema_file and example paths resolve beneath ${cache.schemaCacheRoot}, and the keys above name the bundled assets when that cache is unavailable.`,
+    `Run ${
+      artifactSurface.map((entry) => `'strict-spec-cli yaml-surface-show ${entry.artifactKind}'`).join(" and ")
+    } for the supported operations, their owning commands, and the cross-file effects of a write.`,
+  ].join(" ");
 }
 
 export const MCP_SERVER_NAME = "strict-spec-driven";

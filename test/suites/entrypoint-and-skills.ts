@@ -28,16 +28,28 @@ type CommandMetadataEntry = {
   exitCodes: Array<{ code: number; meaning: string }>;
 };
 
+type ArtifactSurfaceEntry = {
+  artifactKind: string;
+  artifactTypes: string[];
+  schemaKeys: string[];
+  declaredSchemaFiles: string[];
+  exampleKeys: string[];
+  inspectWith: string[];
+  discoverWith: string[];
+  operations: Array<{ operation: string; state: string; cliOwned: boolean; ownedBy: string[] }>;
+  unsupportedOperations: string[];
+  crossFileEffects: string[];
+};
+
 type CommandMetadataModule = {
   getAllCommandMetadata: () => CommandMetadataEntry[];
-  getCommandArtifactSurface: (commandName: string) => Array<{
-    artifactKind: string;
-    artifactTypes: string[];
-    schemaKeys: string[];
-    declaredSchemaFiles: string[];
-    exampleKeys: string[];
-    inspectWith: string[];
-  }>;
+  getCommandArtifactSurface: (commandName: string) => ArtifactSurfaceEntry[];
+  getArtifactCacheContext: () => { schemaCacheRoot: string; schemaCacheAvailable: boolean };
+  formatCommandHelp: (commandName: string) => string;
+  buildCommandHelpPayload: (commandName: string) => {
+    artifactSurface: ArtifactSurfaceEntry[];
+    artifactCache: { schemaCacheRoot: string; schemaCacheAvailable: boolean };
+  };
 };
 
 type McpInventoryModule = {
@@ -281,25 +293,37 @@ const mcpInventory = (await loadDistModule("mcp/inventory.js")) as McpInventoryM
 const mcpTools = [...mcpInventory.MCP_READ_ONLY_TOOL_INVENTORY, ...mcpInventory.MCP_MUTATING_TOOL_INVENTORY];
 
 /**
- * An MCP description is the metadata summary plus, for a command that authors repository-owned
- * YAML, the artifact kinds derived from the mutation inventory. Both parts come from the shared
- * command-metadata module, so the expectation is rebuilt from it rather than restated here.
+ * An MCP description opens with the metadata summary and, for a command that authors
+ * repository-owned YAML, must carry every asset reference the shared projection reports. The
+ * expectation lists the facts rather than rebuilding the sentence, so the test proves agreement
+ * with the projection instead of restating the production wording.
  */
-const expectedMcpDescription = (cliCommand: string): string | undefined => {
+const missingMcpDescriptionFacts = (cliCommand: string, description: string): string[] => {
   const metadata = metadataEntries.find((entry) => entry.name === cliCommand);
-  if (metadata === undefined) return undefined;
+  if (metadata === undefined) return ["<no metadata entry>"];
   const base = metadata.mcpDescription ?? metadata.summary;
-  const artifactKinds = commandMetadata.getCommandArtifactSurface(cliCommand).map((entry) => entry.artifactKind);
-  return artifactKinds.length === 0 ? base : `${base} Writes YAML artifact kinds: ${artifactKinds.join(", ")}.`;
+  const surface = commandMetadata.getCommandArtifactSurface(cliCommand);
+  const required = [
+    base,
+    ...surface.flatMap((entry) => [
+      entry.artifactKind,
+      ...entry.schemaKeys,
+      ...entry.exampleKeys,
+      ...entry.inspectWith,
+      `yaml-surface-show ${entry.artifactKind}`,
+    ]),
+    ...(surface.length === 0 ? [] : [commandMetadata.getArtifactCacheContext().schemaCacheRoot]),
+  ];
+  return required.filter((fact) => !description.includes(fact));
 };
 
 context.assert(
-  mcpTools.every((tool) => tool.description === expectedMcpDescription(tool.cliCommand)),
-  "every MCP tool description comes from its command metadata entry",
+  mcpTools.every((tool) => missingMcpDescriptionFacts(tool.cliCommand, tool.description).length === 0),
+  "every MCP tool description carries its command metadata summary and full artifact projection",
   `mismatched: ${
     mcpTools
-      .filter((tool) => tool.description !== expectedMcpDescription(tool.cliCommand))
-      .map((tool) => tool.name)
+      .filter((tool) => missingMcpDescriptionFacts(tool.cliCommand, tool.description).length > 0)
+      .map((tool) => `${tool.name} missing ${missingMcpDescriptionFacts(tool.cliCommand, tool.description).join(" | ")}`)
       .join(", ")
   }`,
 );
@@ -551,6 +575,96 @@ try {
   rmSync(path.dirname(blockedCacheRoot), { recursive: true, force: true });
 }
 
+// Same denial as above: help skips cache synchronization, but a mutation does not, so the blocked
+// path is what keeps both halves of this check exercising the genuinely unavailable cache.
+const deniedCacheRoot = path.join(mkdtempSync(path.join(os.tmpdir(), "strict-denied-cache-")), "cache-root");
+writeFileSync(deniedCacheRoot, "not a cache directory\n", "utf8");
+const deniedCacheProject = mkdtempSync(path.join(os.tmpdir(), "strict-denied-cache-project-"));
+try {
+  const deniedEnv = { STRICT_SPEC_SCHEMA_CACHE_DIR: deniedCacheRoot };
+
+  const deniedHelpJson = cli(["spec-edit", "--help", "--json"], { cwd: ROOT, env: deniedEnv });
+  const deniedHelpPayload = JSON.parse(deniedHelpJson.stdout) as {
+    artifactSurface: ArtifactSurfaceEntry[];
+    artifactCache: { schemaCacheAvailable: boolean };
+  };
+  const deniedSpecEntry = deniedHelpPayload.artifactSurface.find((entry) => entry.artifactKind === "spec-state");
+  context.assert(
+    deniedHelpJson.status === 0
+      && deniedHelpJson.stderr.length === 0
+      && deniedHelpPayload.artifactCache.schemaCacheAvailable === false
+      && deniedSpecEntry !== undefined
+      && deniedSpecEntry.schemaKeys.includes("strict-spec-driven/schemas/main-spec.yaml")
+      && deniedSpecEntry.exampleKeys.includes("examples/strict-spec-driven/main-spec.yaml")
+      && deniedSpecEntry.inspectWith.includes("schema-show main-spec"),
+    "help still reports bundled schema and example keys when the shared schema cache is unavailable",
+    `stdout: ${deniedHelpJson.stdout.trim()} stderr: ${deniedHelpJson.stderr.trim()}`,
+  );
+
+  const deniedHelpText = cli(["spec-edit", "--help"], { cwd: ROOT, env: deniedEnv });
+  context.assert(
+    deniedHelpText.status === 0
+      && deniedHelpText.stdout.includes("strict-spec-driven/schemas/main-spec.yaml")
+      && deniedHelpText.stdout.includes("cache unavailable here"),
+    "text help names the bundled assets and says the cache is unavailable rather than omitting them",
+    `stdout: ${deniedHelpText.stdout.trim()}`,
+  );
+
+  cli(["init"], { cwd: deniedCacheProject, env: deniedEnv });
+  cli([
+    "spec-edit",
+    "denied-cache-spec",
+    "--title",
+    "Denied Cache Spec",
+    "--requirement",
+    "r1",
+    "--strength",
+    "MUST",
+    "--statement",
+    "The system MUST report recovery assets without a cache.",
+    "--scenario",
+    "s1",
+    "--given",
+    "g",
+    "--when",
+    "w",
+    "--then",
+    "t",
+  ], { cwd: deniedCacheProject, env: deniedEnv });
+
+  const deniedMutation = cli(["spec-edit", "denied-cache-spec", "--delete", "--title", "x"], {
+    cwd: deniedCacheProject,
+    env: deniedEnv,
+  });
+  const deniedMutationPayload = JSON.parse(deniedMutation.stdout) as {
+    committed: boolean;
+    diagnostics: Array<{
+      artifactKind?: string;
+      schemaKey?: string;
+      schemaFilePath?: string;
+      exampleKey?: string;
+      inspectWith?: string[];
+    }>;
+  };
+  context.assert(
+    deniedMutation.status === 1
+      && deniedMutationPayload.committed === false
+      && deniedMutationPayload.diagnostics.some(
+        (diagnostic) =>
+          diagnostic.artifactKind === "spec-state"
+          && diagnostic.schemaKey === "strict-spec-driven/schemas/main-spec.yaml"
+          && diagnostic.exampleKey === "examples/strict-spec-driven/main-spec.yaml"
+          && diagnostic.schemaFilePath === undefined
+          && (diagnostic.inspectWith ?? []).includes("schema-show main-spec"),
+      ),
+    "a rejected mutation without a usable cache still names the bundled assets and their inspection commands",
+    `stdout: ${deniedMutation.stdout.trim()}`,
+  );
+} finally {
+  rmSync(path.dirname(deniedCacheRoot), { recursive: true, force: true });
+  rmSync(deniedCacheProject, { recursive: true, force: true });
+}
+
 const generateHelpJson = cli(["generate", "--help", "--json"], { cwd: ROOT });
 const generateHelpPayload = JSON.parse(generateHelpJson.stdout) as {
   artifactSurface: Array<{ artifactKind: string; schemaKeys: string[]; exampleKeys: string[]; inspectWith: string[] }>;
@@ -571,9 +685,106 @@ const generateHelpText = cli(["generate", "--help"], { cwd: ROOT });
 context.assert(
   generateHelpText.stdout.includes("Artifacts written:")
     && generateHelpText.stdout.includes("change-planning-state")
-    && generateHelpText.stdout.includes("schema-show change-proposal"),
+    && generateHelpText.stdout.includes("schema-show change-proposal")
+    && generateHelpText.stdout.includes("strict-spec-driven/schemas/change-proposal.yaml")
+    && generateHelpText.stdout.includes("examples/strict-spec-driven/change-proposal.yaml"),
   "text help renders the same artifact surface as JSON help",
   `stdout: ${generateHelpText.stdout.trim()}`,
+);
+context.assert(
+  generateHelpText.stdout.includes("yaml-surface-show change-planning-state"),
+  "text help names the command that returns the rest of the artifact contract",
+  `stdout: ${generateHelpText.stdout.trim()}`,
+);
+
+/**
+ * Every authoring command, checked against the module rather than through a subprocess each: the
+ * point is that no surface silently drops a projection field, and a per-command spawn would buy
+ * nothing the two rendered-CLI checks above do not already prove.
+ */
+const authoringCommands = metadataEntries
+  .map((entry) => entry.name)
+  .filter((name) => commandMetadata.getCommandArtifactSurface(name).length > 0);
+context.assert(
+  authoringCommands.length > 0,
+  "at least one registered command authors repository-owned YAML",
+);
+
+const surfaceRenderingGaps = authoringCommands.flatMap((name) => {
+  const surface = commandMetadata.getCommandArtifactSurface(name);
+  const text = commandMetadata.formatCommandHelp(name);
+  const payload = commandMetadata.buildCommandHelpPayload(name);
+  const cache = commandMetadata.getArtifactCacheContext();
+  const gaps: string[] = [];
+
+  if (JSON.stringify(payload.artifactSurface) !== JSON.stringify(surface)) {
+    gaps.push(`${name}: JSON help artifactSurface differs from the projection`);
+  }
+  if (JSON.stringify(payload.artifactCache) !== JSON.stringify(cache)) {
+    gaps.push(`${name}: JSON help artifactCache differs from the projection`);
+  }
+  if (!text.includes(cache.schemaCacheRoot)) {
+    gaps.push(`${name}: text help omits the shared schema cache root`);
+  }
+
+  for (const entry of surface) {
+    const facts = [
+      entry.artifactKind,
+      ...entry.schemaKeys,
+      ...entry.declaredSchemaFiles,
+      ...entry.exampleKeys,
+      ...entry.inspectWith,
+      ...entry.discoverWith,
+      ...entry.crossFileEffects,
+      ...entry.operations.map((operation) => operation.operation),
+      ...entry.operations.flatMap((operation) => operation.ownedBy),
+      ...entry.operations.filter((operation) => !operation.cliOwned).map((operation) => operation.state),
+    ];
+    gaps.push(...facts.filter((fact) => !text.includes(fact)).map((fact) => `${name}: text help omits '${fact}'`));
+  }
+
+  return gaps;
+});
+context.assert(
+  surfaceRenderingGaps.length === 0,
+  "text help and JSON help render the whole artifact projection for every authoring command",
+  surfaceRenderingGaps.slice(0, 8).join("; "),
+);
+
+/**
+ * The projection must not overstate ownership, so what help prints for a family is compared
+ * against what the inventory reports for that same family through yaml-surface-show.
+ */
+const configSurfaceEntry = commandMetadata
+  .getCommandArtifactSurface("config-edit")
+  .find((entry) => entry.artifactKind === "workflow-config");
+context.assert(
+  configSurfaceEntry !== undefined
+    && configSurfaceEntry.operations.every(
+      (operation) =>
+        operation.state === configFamily.operations[operation.operation]?.state
+        && operation.cliOwned === configFamily.operations[operation.operation]?.cliOwned
+        && JSON.stringify(operation.ownedBy) === JSON.stringify(configFamily.operations[operation.operation]?.commands),
+    )
+    && configSurfaceEntry.unsupportedOperations.includes("delete"),
+  "help operation states and owners match the mutation inventory and claim no unowned operation",
+  `entry: ${JSON.stringify(configSurfaceEntry?.operations)}`,
+);
+
+const configEditHelpText = commandMetadata.formatCommandHelp("config-edit");
+context.assert(
+  configEditHelpText.includes("delete (human-only, not CLI-owned)"),
+  "text help reports an operation the inventory does not route through the CLI with its inventoried state",
+  `stdout: ${configEditHelpText}`,
+);
+
+const rootTextHelp = cli(["--help"], { cwd: ROOT });
+context.assert(
+  rootTextHelp.stdout.includes("schema-list")
+    && rootTextHelp.stdout.includes("sample-list")
+    && rootTextHelp.stdout.includes("yaml-surface-list"),
+  "root help names the artifact contract discovery commands",
+  `stdout: ${rootTextHelp.stdout.trim()}`,
 );
 
 const surfaceMcpInventory = await loadDistModule<McpInventoryModule>("mcp/inventory.js");

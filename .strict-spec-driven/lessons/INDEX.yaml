@@ -70,3 +70,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/prerequisite-changes-can-make-a-roadmap-task-par-9e3db8.yaml
+    a-command-named-like-a-check-can-be-a-writer-63db07:
+      title: A command named like a check can be a writer
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/a-command-named-like-a-check-can-be-a-writer-63db07.yaml

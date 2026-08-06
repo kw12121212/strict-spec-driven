@@ -39841,9 +39841,6 @@ function loadYamlMutationSurface() {
   };
   return cachedSurface;
 }
-function listYamlSurfaceFamilies() {
-  return loadYamlMutationSurface().families;
-}
 
 // src/cli/command-metadata-entries.ts
 var CHANGE_NAME_ARG = {
@@ -42297,25 +42294,55 @@ function getCommandMetadata(commandName) {
   }
   return metadata;
 }
+function getArtifactCacheContext() {
+  const surface = loadYamlMutationSurface();
+  return { schemaCacheRoot: surface.schemaCacheRoot, schemaCacheAvailable: surface.schemaCacheAvailable };
+}
 function getCommandArtifactSurface(commandName) {
-  return listYamlSurfaceFamilies().filter((family) => family.cliOwners.includes(commandName)).map((family) => ({
-    artifactKind: family.kind,
-    artifactTypes: family.artifactTypes.map((artifactType) => artifactType.artifactType),
-    schemaKeys: family.artifactTypes.flatMap((artifactType) => artifactType.schemaKey ?? []),
-    declaredSchemaFiles: family.artifactTypes.flatMap((artifactType) => artifactType.declaredSchemaFile ?? []),
-    exampleKeys: family.artifactTypes.flatMap((artifactType) => artifactType.exampleKey ?? []),
-    inspectWith: [...new Set(family.artifactTypes.flatMap((artifactType) => artifactType.inspectWith))]
-  }));
+  return loadYamlMutationSurface().families.filter((family) => family.cliOwners.includes(commandName)).map((family) => {
+    const operations = YAML_SURFACE_OPERATIONS.map((operation) => ({
+      operation,
+      state: family.operations[operation].state,
+      cliOwned: family.operations[operation].cliOwned,
+      ownedBy: family.operations[operation].commands
+    }));
+    return {
+      artifactKind: family.kind,
+      artifactTypes: family.artifactTypes.map((artifactType) => artifactType.artifactType),
+      schemaKeys: family.artifactTypes.flatMap((artifactType) => artifactType.schemaKey ?? []),
+      declaredSchemaFiles: family.artifactTypes.flatMap((artifactType) => artifactType.declaredSchemaFile ?? []),
+      exampleKeys: family.artifactTypes.flatMap((artifactType) => artifactType.exampleKey ?? []),
+      inspectWith: [...new Set(family.artifactTypes.flatMap((artifactType) => artifactType.inspectWith))],
+      discoverWith: ["schema-list", "sample-list", `yaml-surface-show ${family.kind}`],
+      operations,
+      unsupportedOperations: operations.filter((entry) => !entry.cliOwned).map((entry) => entry.operation),
+      crossFileEffects: family.referenceSideEffects
+    };
+  });
 }
 
 // src/mcp/inventory.ts
+function describeArtifactEntry(entry) {
+  const assets = [
+    entry.schemaKeys.length > 0 ? `schemas ${entry.schemaKeys.join(", ")}` : undefined,
+    entry.exampleKeys.length > 0 ? `examples ${entry.exampleKeys.join(", ")}` : undefined,
+    entry.inspectWith.length > 0 ? `print them with ${entry.inspectWith.join(", ")}` : undefined
+  ].filter((part) => part !== undefined);
+  return assets.length === 0 ? entry.artifactKind : `${entry.artifactKind} (${assets.join("; ")})`;
+}
 function mcpToolDescription(cliCommand) {
   const metadata = getCommandMetadata(cliCommand);
   const description = metadata.mcpDescription ?? metadata.summary;
   const artifactSurface = getCommandArtifactSurface(cliCommand);
   if (artifactSurface.length === 0)
     return description;
-  return `${description} Writes YAML artifact kinds: ${artifactSurface.map((entry) => entry.artifactKind).join(", ")}.`;
+  const cache = getArtifactCacheContext();
+  return [
+    description,
+    `Writes YAML artifact kinds: ${artifactSurface.map(describeArtifactEntry).join("; ")}.`,
+    `Declared schema_file and example paths resolve beneath ${cache.schemaCacheRoot}, and the keys above name the bundled assets when that cache is unavailable.`,
+    `Run ${artifactSurface.map((entry) => `'strict-spec-cli yaml-surface-show ${entry.artifactKind}'`).join(" and ")} for the supported operations, their owning commands, and the cross-file effects of a write.`
+  ].join(" ");
 }
 var MCP_SERVER_NAME = "strict-spec-driven";
 var MCP_SERVER_VERSION = "0.1.0";

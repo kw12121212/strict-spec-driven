@@ -1,0 +1,27 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: align-cli-help-and-mcp-mutations
+approach:
+  - Widen the existing derived projection instead of adding a second metadata source. getCommandArtifactSurface already joins the mutation inventory to the command registry through cli_owners; it gains operations (state, cliOwned, owning commands), crossFileEffects from reference_side_effects, discovery commands including schema-list and sample-list, and the surface-level schemaCacheRoot and schemaCacheAvailable context. Text help, JSON help, root help, MCP tool descriptions, and mutation remediation then all render that one projection, so a family that changes ownership or side effects updates every surface at once.
+  - Text help gains an expanded 'Artifacts written' section listing, per artifact kind, the bundled schema key, declared schema_file path, bundled example key, the operations with their owning commands or inventoried non-CLI state, refused deletions, cross-file effects, and the schema-list/schema-show and sample-list/sample-show commands, followed by a line stating where those paths resolve beneath the shared cache root and that bundled keys remain usable when the cache is absent. JSON help carries the same fields structurally. MCP mutating tool descriptions name the artifact kinds with their schema and example keys and the inspection commands, routing hosts to yaml-surface-show for full per-operation detail rather than inlining it.
+  - Mutation failure diagnostics already carry artifactKind, schemaKey, schemaFilePath, and exampleKey; they gain the ready-to-run inspection commands from the same projection so a rejected mutation names the exact command that prints the contract it violated.
+decisions:
+  single-derived-projection:
+    decision: Extend CliCommandArtifactSurfaceEntry with operations, cross-file effects, discovery commands, and cache context, and render every surface from it.
+    rationale: A second registry of per-command operation text would drift from the inventory the moment a family gains or loses a CLI owner, which is exactly the failure the cli-command-metadata standard was written to prevent; deriving keeps a claim impossible unless the inventory records it.
+  mcp-routes-rather-than-inlines:
+    decision: MCP mutating tool descriptions name artifact kinds, schema keys, example keys, and the inspection commands, and point to yaml-surface-show for per-operation and cross-file detail.
+    rationale: Tool descriptions are loaded into every host context regardless of use, so inlining four operation states and side effects for each of several families per tool costs context on every call while a named follow-up command costs it only when an agent actually needs the detail.
+  cache-state-is-reported-not-enforced:
+    decision: Help states the resolved shared cache root and whether it is available, and always reports bundled asset keys, rather than failing or omitting assets when the cache is missing.
+    rationale: An installed environment without a synchronized cache is a normal state, and the existing mutation-result contract already falls back to bundled keys; making help fail or hide assets there would contradict it and strand the agent it is meant to guide.
+alternatives:
+  - option: Store per-command operation and side-effect prose in COMMAND_METADATA_ENTRIES.
+    reason: The entries file is already 2488 lines of hand-maintained text; restating inventory facts there guarantees the duplication the standard forbids, and the completeness test could no longer prove agreement because both sides would be hand-written.
+  - option: Inline the full per-operation matrix into every MCP tool description.
+    reason: It multiplies fixed per-tool description length by the number of families a command owns and pushes host context cost onto every session, without giving an agent anything yaml-surface-show does not already return on demand.
+risks:
+  - Text help for generate, which owns several families, can become long enough to bury the flag list; the artifact section must stay compact per kind and defer detail to yaml-surface-show.
+  - Rendering cached absolute paths makes help output machine-dependent, so regression assertions must key on structure and bundled keys rather than on a literal cache path.

@@ -1,0 +1,22 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: cli-command-metadata
+mapping:
+  implementation:
+    - src/cli/command-metadata.ts
+    - src/mcp/inventory.ts
+    - src/yaml-mutation-surface.ts
+  enforcement:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    help-surfaces-render-the-whole-artifact-projection:
+      strength: MUST
+      statement: Every help surface that describes a YAML-authoring command MUST render the whole derived artifact-surface projection its medium can carry — asset keys and paths, supported operations with owning commands, refused deletions, cross-file effects, discovery and inspection commands, and shared schema cache state — and a surface that can carry only part of it MUST name the command that returns the rest; no surface may silently omit a projection field, and no surface may restate a projection fact from its own literal.
+      rationale: 'The registry already prevented divergent command descriptions, but nothing prevented a surface from rendering a subset: text help and MCP tool descriptions printed artifact kinds while the same projection''s schema keys, paths, and example keys reached only JSON help, so what an agent could discover depended on which surface it happened to read. Requiring whole-projection rendering with an explicit named follow-up turns a silent omission into a visible routing decision, and forbidding surface-local literals keeps the completeness test able to prove agreement by comparing every surface against one source.'
+      enforcement:
+        method: test
+  MODIFIED: {}
+  REMOVED: {}

@@ -1,0 +1,42 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: align-cli-help-and-mcp-mutations
+open: []
+resolved:
+  - id: requirement-problem
+    question: What problem does this change solve, stated as what goes wrong today?
+    context: 'Asked so the change is anchored to an observed failure rather than to a desired implementation. A sufficient answer names who hits the problem, in what situation, and what concretely goes wrong. Answered from roadmap evidence: milestone ai-cli-only-yaml-enforcement and the planned change align-cli-help-and-mcp-mutations record that AI callers cannot discover the full YAML mutation contract from the CLI itself. Downstream this fixes which surfaces must change.'
+    answer: An AI caller invoking strict-spec-cli without a skill prompt loaded cannot learn from the CLI what an artifact write actually entails. Text help names only artifact kinds, MCP tool descriptions name only artifact kinds, and only --help --json carries schema keys, schema_file paths, and example keys; no surface states which operations a family supports, which command owns each, which deletions are refused, which sibling files a write also touches, or where schema and example assets resolve in an installed environment. The caller therefore guesses the artifact shape or reads YAML directly, which is exactly what the milestone forbids.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable outcome must exist when this change is done?
+    context: Asked so completion is judged from outside the system instead of from code shape. A sufficient answer describes what an external caller can observe, for example that running a help command prints a named fact it did not print before. Answered from the milestone done_criteria covering CLI and MCP help describing every mutation argument, removal and deletion constraint, output, and failure mode, plus resolvable schema and example locations. Downstream this drives the delta-spec scenarios.
+    answer: For every strict CLI command that authors repository-owned YAML, text help, machine-readable help, and the MCP tool description each state the artifact kinds written, each kind's bundled schema key, declared schema_file path, and bundled example key, the operations the family supports with their owning commands or inventoried non-CLI state, refused deletions, declared cross-file effects, and the schema-list/schema-show and sample-list/sample-show commands that print the assets. Help also states where those paths resolve beneath the shared schema cache root and that bundled keys remain reported when the cache is absent, and a rejected mutation names the inspection command for the contract it violated.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: When and how often does the problem occur, and what triggers it?
+    context: Asked so the change is sized against real frequency rather than a hypothetical. A sufficient answer names the triggering action and how routinely it happens, for example every invocation of a given command class. Answered from milestone scope, which requires agents to operate without schema-shaped file writes. Downstream this affects whether the fix belongs in always-loaded surfaces or in an on-demand command.
+    answer: It triggers on every AI-initiated YAML mutation attempted without a strict skill prompt loaded, which the milestone makes the normal case once skills stop carrying inlined YAML guidance. It also triggers on every MCP host session, because tool descriptions are the only contract an MCP host reads before choosing a tool.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must this change explicitly not do?
+    context: Asked so scope stays bounded and review can check the result against stated limits. A sufficient answer names capabilities a reader might reasonably expect that are deliberately excluded. Answered from the milestone's out-of-scope list and from the sibling planned changes that own skill migration, policy enforcement, and documentation. Downstream this sets proposal out-of-scope entries and guards against silent scope growth.
+    answer: It must not migrate Agent Skills to CLI-only guidance, extend validate-skills or maintenance policy checks, or update operator documentation, since sibling planned changes in this milestone own that work. It must not add mutation commands, artifact families, or inventory operation coverage, and it must not change command names, accepted flags, exit codes, or mutation behavior. It must not block or intercept human YAML editing.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which words in this request could be read more than one way, and which reading is intended?
+    context: Asked so an ambiguous term does not produce a technically compliant but wrong result. A sufficient answer names the ambiguous term and states the intended reading, for example whether complete means every surface or only the machine-readable one. Answered from the planned-change details, which enumerate the surfaces by name. Downstream this determines whether MCP descriptions inline detail or route to a follow-up command.
+    answer: 'Complete command metadata means the facts must be reachable from each named surface, not that every surface prints the same volume of text: root help, subcommand text help, JSON help, MCP tool descriptions, and remediation diagnostics each render the shared projection at the density that surface can carry, and MCP descriptions may name a follow-up command for per-operation detail. Resolved beneath the cache root means the reported path is the cache-resolved location when the cache holds the file and the bundled asset key otherwise; it never means the mutation fails when the cache is absent.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap

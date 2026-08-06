@@ -38,3 +38,9 @@ rules:
     rationale: An agent that discovers a command from help still has to guess the artifact's field shape, and guessing is exactly what produces invalid candidates and retry loops. Deriving the artifact kinds from the inventory that already owns CLI ownership prevents a metadata entry from claiming coverage the repository does not record and keeps every help surface consistent as families gain or lose owners, while naming only keys avoids duplicating asset content that would drift from the bundled files.
     enforcement:
       method: test
+  help-surfaces-render-the-whole-artifact-projection:
+    strength: MUST
+    statement: Every help surface that describes a YAML-authoring command MUST render the whole derived artifact-surface projection its medium can carry — asset keys and paths, supported operations with owning commands, refused deletions, cross-file effects, discovery and inspection commands, and shared schema cache state — and a surface that can carry only part of it MUST name the command that returns the rest; no surface may silently omit a projection field, and no surface may restate a projection fact from its own literal.
+    rationale: 'The registry already prevented divergent command descriptions, but nothing prevented a surface from rendering a subset: text help and MCP tool descriptions printed artifact kinds while the same projection''s schema keys, paths, and example keys reached only JSON help, so what an agent could discover depended on which surface it happened to read. Requiring whole-projection rendering with an explicit named follow-up turns a silent omission into a visible routing decision, and forbidding surface-local literals keeps the completeness test able to prove agreement by comparing every surface against one source.'
+    enforcement:
+      method: test

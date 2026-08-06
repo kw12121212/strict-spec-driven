@@ -297,6 +297,8 @@ export type YamlArtifactIdentifiers = {
   schemaKey?: string;
   schemaFilePath?: string;
   exampleKey?: string;
+  /** Ready-to-run commands that print the schema and example the reported keys name. */
+  inspectWith?: string[];
 };
 
 /**
@@ -315,5 +317,6 @@ export function resolveYamlArtifactIdentifiers(artifactTypeOrSchemaId: string): 
       ? { schemaFilePath: match.artifactType.schemaFilePath }
       : {}),
     ...(match.artifactType.exampleKey !== undefined ? { exampleKey: match.artifactType.exampleKey } : {}),
+    ...(match.artifactType.inspectWith.length > 0 ? { inspectWith: match.artifactType.inspectWith } : {}),
   };
 }

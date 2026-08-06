@@ -1,0 +1,69 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/cli/command-metadata.ts
+    - src/mcp/inventory.ts
+    - src/yaml-mutation-surface.ts
+    - src/yaml-mutation.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    cli-help-states-artifact-operations-and-cross-file-effects:
+      strength: MUST
+      statement: For every CLI command that authors repository-owned YAML, the system MUST state, from the same command-metadata source that renders text help, JSON help, and MCP surfaces, which of create, update, named removal, and whole-artifact deletion each written artifact family supports, the CLI command that owns each supported operation, each operation the inventory records as not CLI-owned reported with its inventoried state rather than as an owned operation, the deletions that are refused, and the declared cross-file effects a write to that family also produces; root help MUST name the commands that discover this contract.
+      scenarios:
+        help-states-operations-and-owners:
+          - GIVEN: A caller requests help for a command that authors a repository-owned YAML artifact family
+          - WHEN: The system describes that command
+          - THEN: The description states which of create, update, named removal, and whole-artifact deletion the family supports and names the CLI command that owns each supported operation
+        help-states-refused-deletions-and-cross-file-effects:
+          - GIVEN: An artifact family refuses whole-artifact deletion or declares reference side effects in the mutation inventory
+          - WHEN: The system describes a command that writes that family
+          - THEN: The description states the refused deletion and names each declared cross-file effect the write also produces
+        root-help-names-discovery-commands:
+          - GIVEN: A caller requests root help
+          - WHEN: The system prints the command list
+          - THEN: The output directs the caller to the commands that list bundled schemas, list bundled samples, and report the YAML mutation surface
+        help-does-not-claim-unowned-operations:
+          - GIVEN: The mutation inventory records an operation for a written family with a state other than cli-owned
+          - WHEN: The system describes the command that writes that family
+          - THEN: The operation is reported with its inventoried state and no owning CLI command is claimed for it
+    cli-mutation-remediation-names-inspection-commands:
+      strength: MUST
+      statement: The system MUST include, in both successful YAML mutation results and mutation failure diagnostics, the ready-to-run commands that print the affected artifact's bundled schema and example, derived from the same source that supplies the reported artifact kind, schema key, schema_file path, and example key, so a rejected mutation names the exact command that prints the contract it violated.
+      scenarios:
+        failed-mutation-names-its-inspection-commands:
+          - GIVEN: A YAML mutation is rejected because the candidate artifact fails validation
+          - WHEN: The system emits the failure diagnostics
+          - THEN: The diagnostics name the commands that print the affected artifact's bundled schema and example alongside the artifact kind and asset keys, and no file is written
+        successful-mutation-reports-the-same-inspection-commands:
+          - GIVEN: A YAML mutation commits successfully
+          - WHEN: The system emits the mutation result
+          - THEN: The result names the same inspection commands the corresponding failure diagnostics would report
+  MODIFIED:
+    cli-authoring-help-identifies-schema-and-example:
+      strength: MUST
+      statement: The system MUST make every CLI command that authors repository-owned YAML identify the artifact kinds it writes, and for each kind its bundled schema key, declared schema_file path, and bundled example key together with the schema-list, schema-show, sample-list, and sample-show commands that discover and print them, through the same command-metadata source that renders text help, JSON help, and MCP tool descriptions; text help and MCP tool descriptions MUST render those asset references rather than naming artifact kinds alone, and every surface MUST state the shared schema cache root the declared paths resolve beneath and MUST keep reporting bundled asset keys when that cache is unavailable.
+      scenarios:
+        text-help-carries-artifact-assets:
+          - GIVEN: A caller requests text help for a command that authors a repository-owned YAML artifact
+          - WHEN: The system prints the help
+          - THEN: The help names each artifact kind with its bundled schema key, declared schema_file path, and bundled example key, and the discovery and inspection commands that print them
+        json-help-carries-artifact-assets:
+          - GIVEN: A caller requests machine-readable help for a command that authors a repository-owned YAML artifact
+          - WHEN: The system emits the help payload
+          - THEN: The payload names the artifact kinds the command writes with their bundled schema key, schema_file path, bundled example key, and the asset discovery and inspection commands
+        mcp-descriptions-carry-artifact-assets:
+          - GIVEN: An MCP host reads the tool description for a mutating strict command
+          - WHEN: The system builds the capability inventory
+          - THEN: The description names the artifact kinds written with their bundled schema and example keys and the commands that print them, reporting the same kinds and asset references as text help and machine-readable help
+        surfaces-state-cache-resolution:
+          - GIVEN: A command that authors repository-owned YAML is described on any help surface
+          - WHEN: The system reports the artifact's declared schema_file path and bundled example
+          - THEN: The surface states the shared schema cache root those paths resolve beneath, and when that cache is unavailable the bundled schema and example keys are still reported with no cache-derived path presented as resolved
+  REMOVED: {}

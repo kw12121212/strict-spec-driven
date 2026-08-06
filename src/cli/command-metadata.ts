@@ -1,4 +1,8 @@
-import { listYamlSurfaceFamilies } from "../yaml-mutation-surface.js";
+import {
+  loadYamlMutationSurface,
+  YAML_SURFACE_OPERATIONS,
+  type YamlSurfaceOperationName,
+} from "../yaml-mutation-surface.js";
 import { COMMAND_METADATA_ENTRIES } from "./command-metadata-entries.js";
 
 export const COMMAND_GROUP_ORDER = [
@@ -96,7 +100,17 @@ export function getCommandUsage(commandName: string): string {
   return getCommandMetadata(commandName).usage;
 }
 
-/** One artifact kind a command authors, with the assets a caller needs to supply valid content. */
+/** One of the four inventoried operations, reported with whoever owns it. */
+export type CliCommandArtifactOperation = {
+  operation: YamlSurfaceOperationName;
+  /** The inventory state, reported verbatim so an unowned operation is never presented as owned. */
+  state: string;
+  cliOwned: boolean;
+  /** Owning CLI commands, empty for an operation the inventory does not record as CLI-owned. */
+  ownedBy: string[];
+};
+
+/** One artifact kind a command authors, with everything a caller needs to shape a valid write. */
 export type CliCommandArtifactSurfaceEntry = {
   artifactKind: string;
   artifactTypes: string[];
@@ -104,7 +118,29 @@ export type CliCommandArtifactSurfaceEntry = {
   declaredSchemaFiles: string[];
   exampleKeys: string[];
   inspectWith: string[];
+  /** Commands that enumerate the bundled assets and the family's own mutation contract. */
+  discoverWith: string[];
+  operations: CliCommandArtifactOperation[];
+  /** Operations the inventory does not route through the CLI, named so a caller stops asking. */
+  unsupportedOperations: string[];
+  /** Sibling files and regenerated outputs a write to this family also affects. */
+  crossFileEffects: string[];
 };
+
+/**
+ * Where the declared `schema_file` and example paths resolve, and whether that cache is present.
+ * Reported alongside the entries so every surface can state the installed-environment behavior
+ * instead of implying the bundled keys are the only reachable form of the assets.
+ */
+export type CliCommandArtifactCacheContext = {
+  schemaCacheRoot: string;
+  schemaCacheAvailable: boolean;
+};
+
+export function getArtifactCacheContext(): CliCommandArtifactCacheContext {
+  const surface = loadYamlMutationSurface();
+  return { schemaCacheRoot: surface.schemaCacheRoot, schemaCacheAvailable: surface.schemaCacheAvailable };
+}
 
 /**
  * Derived from the mutation inventory's `cli_owners` rather than restated per command, so a family
@@ -112,16 +148,59 @@ export type CliCommandArtifactSurfaceEntry = {
  * no metadata entry can claim ownership the inventory does not record.
  */
 export function getCommandArtifactSurface(commandName: string): CliCommandArtifactSurfaceEntry[] {
-  return listYamlSurfaceFamilies()
-    .filter((family) => family.cliOwners.includes(commandName))
-    .map((family) => ({
-      artifactKind: family.kind,
-      artifactTypes: family.artifactTypes.map((artifactType) => artifactType.artifactType),
-      schemaKeys: family.artifactTypes.flatMap((artifactType) => artifactType.schemaKey ?? []),
-      declaredSchemaFiles: family.artifactTypes.flatMap((artifactType) => artifactType.declaredSchemaFile ?? []),
-      exampleKeys: family.artifactTypes.flatMap((artifactType) => artifactType.exampleKey ?? []),
-      inspectWith: [...new Set(family.artifactTypes.flatMap((artifactType) => artifactType.inspectWith))],
-    }));
+  return loadYamlMutationSurface()
+    .families.filter((family) => family.cliOwners.includes(commandName))
+    .map((family) => {
+      const operations: CliCommandArtifactOperation[] = YAML_SURFACE_OPERATIONS.map((operation) => ({
+        operation,
+        state: family.operations[operation].state,
+        cliOwned: family.operations[operation].cliOwned,
+        ownedBy: family.operations[operation].commands,
+      }));
+
+      return {
+        artifactKind: family.kind,
+        artifactTypes: family.artifactTypes.map((artifactType) => artifactType.artifactType),
+        schemaKeys: family.artifactTypes.flatMap((artifactType) => artifactType.schemaKey ?? []),
+        declaredSchemaFiles: family.artifactTypes.flatMap((artifactType) => artifactType.declaredSchemaFile ?? []),
+        exampleKeys: family.artifactTypes.flatMap((artifactType) => artifactType.exampleKey ?? []),
+        inspectWith: [...new Set(family.artifactTypes.flatMap((artifactType) => artifactType.inspectWith))],
+        discoverWith: ["schema-list", "sample-list", `yaml-surface-show ${family.kind}`],
+        operations,
+        unsupportedOperations: operations.filter((entry) => !entry.cliOwned).map((entry) => entry.operation),
+        crossFileEffects: family.referenceSideEffects,
+      };
+    });
+}
+
+function formatOperationSummary(operation: CliCommandArtifactOperation): string {
+  return operation.cliOwned
+    ? `${operation.operation} (${operation.ownedBy.join(", ")})`
+    : `${operation.operation} (${operation.state}, not CLI-owned)`;
+}
+
+/**
+ * Renders the whole projection for one artifact kind. Text help is the surface an agent reads
+ * without a schema loaded, so it states the assets, the operation ownership, and the writes that
+ * reach other files, and names the commands that return the rest rather than omitting anything.
+ */
+function formatArtifactEntryLines(entry: CliCommandArtifactSurfaceEntry, indent: string): string[] {
+  const detail: Array<[string, string]> = [
+    ["Schema:", entry.schemaKeys.join(", ")],
+    ["Schema file:", entry.declaredSchemaFiles.join(", ")],
+    ["Example:", entry.exampleKeys.join(", ")],
+    ["Operations:", entry.operations.map(formatOperationSummary).join(", ")],
+    ...(entry.crossFileEffects.length > 0
+      ? ([["Also affects:", entry.crossFileEffects.join(" ")]] as Array<[string, string]>)
+      : []),
+    ["Inspect:", entry.inspectWith.join(", ")],
+    ["Discover:", entry.discoverWith.join(", ")],
+  ].filter(([, value]) => value.length > 0) as Array<[string, string]>;
+
+  return [
+    `${indent}${entry.artifactKind} (${entry.artifactTypes.join(", ")})`,
+    ...formatDefinitionList(detail, `${indent}  `),
+  ];
 }
 
 function formatFlagLabel(flag: CliCommandFlag): string {
@@ -186,14 +265,18 @@ export function formatCommandHelp(commandName: string): string {
 
   const artifactSurface = getCommandArtifactSurface(commandName);
   if (artifactSurface.length > 0) {
+    const cache = getArtifactCacheContext();
     lines.push("", "Artifacts written:");
+    for (const entry of artifactSurface) {
+      lines.push(...formatArtifactEntryLines(entry, "  "));
+    }
     lines.push(
-      ...formatDefinitionList(
-        artifactSurface.map((entry) => [
-          entry.artifactKind,
-          `${entry.artifactTypes.join(", ")} — inspect with ${entry.inspectWith.join(", ")}`,
-        ]),
-      ),
+      `  Schema file and example paths resolve beneath ${cache.schemaCacheRoot}`,
+      `  ${
+        cache.schemaCacheAvailable
+          ? "(cache present)."
+          : "(cache unavailable here; the keys above still name the bundled assets)."
+      }`,
     );
   }
 
@@ -214,6 +297,7 @@ export function formatRootHelp(commandNames: string[]): string {
     "",
     "Run 'strict-spec-cli <command> --help' for full command help.",
     "Add --json to any help request for machine-readable help.",
+    "Discover artifact contracts with schema-list, sample-list, and yaml-surface-list.",
   ];
 
   const width = Math.max(...commandNames.map((name) => name.length));
@@ -242,6 +326,7 @@ export function buildCommandHelpPayload(commandName: string): unknown {
     exitCodes: metadata.exitCodes,
     notes: metadata.notes ?? [],
     artifactSurface: getCommandArtifactSurface(commandName),
+    artifactCache: getArtifactCacheContext(),
   };
 }
 
@@ -250,6 +335,7 @@ export function buildRootHelpPayload(commandNames: string[]): unknown {
     cli: "strict-spec-cli",
     usage: "strict-spec-cli <command> [arguments]",
     commandHelp: "strict-spec-cli <command> --help [--json]",
+    artifactDiscovery: ["schema-list", "sample-list", "yaml-surface-list"],
     groups: COMMAND_GROUP_ORDER.filter((group) =>
       commandNames.some((name) => COMMAND_METADATA_ENTRIES[name]?.group === group)
     ).map((group) => ({ id: group, title: COMMAND_GROUP_TITLES[group] })),

@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: align-cli-help-and-mcp-mutations
+  status: proposed
+summary:
+  what:
+    - Render the complete artifact-mutation contract through strict CLI text help, JSON help, root help, MCP tool descriptions, and mutation remediation diagnostics from the single command-metadata source.
+    - Extend the derived command artifact surface with per-operation states and owning commands, delete prohibitions, declared cross-file reference side effects, schema-list and sample-list discovery commands, and shared schema cache resolution state.
+  why:
+    - An agent invoking the CLI without a skill prompt can currently learn artifact schema keys, schema_file paths, and example keys only from --help --json; text help names kinds alone and MCP names kinds alone, so the discoverable contract depends on which surface the caller happens to read.
+    - Nothing in any help surface states which operations a family supports, which command owns each one, which deletions are refused, which sibling files a write also touches, or where schema_file and example_ref resolve in an installed environment, so an agent must guess or inspect YAML to shape a mutation.
+scope:
+  in:
+    - Extend the derived artifact-surface projection in src/cli/command-metadata.ts with operations, cross-file effects, discovery commands, and shared schema cache context.
+    - Render that projection in text subcommand help, JSON help payloads, and a root-help pointer to the discovery commands.
+    - Render artifact assets and the schema/example inspection route in MCP mutating tool descriptions.
+    - Name ready-to-run schema-show and sample-show inspection commands in YAML mutation failure remediation diagnostics.
+    - Add regression coverage proving every mutating command's surfaces agree and that a missing shared schema cache degrades to bundled keys.
+  out:
+    - Migrating Agent Skills to CLI-only guidance, which is a separate planned change in this milestone.
+    - Adding new mutation commands, new artifact families, or new inventory operation coverage.
+    - Changing validate-skills policy checks or operator documentation.
+unchanged_behavior:
+  - Existing command names, accepted flags, exit codes, and mutation behavior stay as they are; only the descriptive surfaces gain content.
+  - Help requests remain non-mutating, skip cache synchronization, and keep stderr empty on success.
+  - The mutation inventory stays the single source of truth for families, operation states, and CLI ownership; no surface claims coverage it does not record.
+roadmap:
+  milestone: ai-cli-only-yaml-enforcement
+  planned_change: align-cli-help-and-mcp-mutations

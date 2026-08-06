@@ -1,0 +1,50 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: align-cli-help-and-mcp-mutations
+sections:
+  Implementation:
+    extend-artifact-surface-projection:
+      text: Extend CliCommandArtifactSurfaceEntry and getCommandArtifactSurface in src/cli/command-metadata.ts with per-operation state and owning commands, refused deletions, cross-file reference side effects, schema-list/sample-list discovery commands, and the shared schema cache root and availability, all derived from listYamlSurfaceFamilies().
+      status: complete
+    render-text-and-json-help:
+      text: Render the widened projection in formatCommandHelp and buildCommandHelpPayload so text help and JSON help both state each artifact kind's schema key, declared schema_file path, example key, operations with owning commands, refused deletions, cross-file effects, inspection commands, and the cache-resolution note.
+      status: complete
+    point-root-help-at-discovery:
+      text: Add a root-help line in formatRootHelp and buildRootHelpPayload directing callers to schema-list, sample-list, and yaml-surface-list for artifact contract discovery.
+      status: complete
+    extend-mcp-mutation-descriptions:
+      text: Extend mcpToolDescription in src/mcp/inventory.ts so mutating tool descriptions name each written artifact kind with its bundled schema key and example key plus the schema-show/sample-show inspection commands, and route hosts to yaml-surface-show for per-operation and cross-file detail.
+      status: complete
+    add-inspection-commands-to-remediation:
+      text: Extend YamlArtifactIdentifiers and resolveYamlArtifactIdentifiers in src/yaml-mutation-surface.ts with the ready-to-run inspection commands, and surface them in the mutation result and failure diagnostics produced in src/yaml-mutation.ts.
+      status: complete
+  Testing:
+    test-help-surface-agreement:
+      text: Add regression coverage in test/suites/entrypoint-and-skills.ts proving that for every mutating command, text help, JSON help, and the MCP tool description report the same artifact kinds, schema keys, example keys, and inspection commands, and that operation states and cross-file effects match the mutation inventory.
+      status: complete
+      command: bun test/run.ts
+    test-missing-cache-degrades-to-keys:
+      text: Add regression coverage proving help surfaces and mutation remediation still report bundled schema and example keys with no cache-derived path when the shared schema cache root is absent, and that help remains non-mutating with empty stderr.
+      status: complete
+      command: bun test/run.ts
+    run-project-regression:
+      text: Run the complete project regression suite with the coverage gate.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-change:
+      text: Run strict readiness and verification for the change.
+      status: complete
+      command: strict-spec-cli ready align-cli-help-and-mcp-mutations && strict-spec-cli verify align-cli-help-and-mcp-mutations
+    verify-mappings-and-inventory:
+      text: Confirm spec and tech mappings resolve and the YAML mutation inventory coverage check still passes after the surface widening.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings && strict-spec-cli verify-tech-mappings && bun scripts/check-yaml-mutation-inventory.ts
+    confirm-archive-merge-readiness:
+      text: Confirm the delta spec and delta tech artifacts merge cleanly into cli-foundation and the cli-command-metadata standard at archive.
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: test-help-surface-agreement
