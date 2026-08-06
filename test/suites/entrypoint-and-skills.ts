@@ -67,6 +67,7 @@ context.section("[1] entrypoint smoke test");
 const expectedCommandOrder = [
   "init",
   "check-workflow-state",
+  "config-edit",
   "propose",
   "generate",
   "apply",
@@ -476,8 +477,7 @@ context.assert(
   "yaml-surface-list reports all four operation states for every family",
 );
 
-// The inventory records config update as direct-write, so the surface must not claim an owner for
-// it while the artifact-coverage milestone is still outstanding.
+// Workflow config update and named removal are now CLI-owned by config-edit.
 const surfaceShowConfig = cli(["yaml-surface-show", "workflow-config"], { cwd: ROOT });
 context.assert(surfaceShowConfig.status === 0, "yaml-surface-show exits zero for a known artifact kind", `stderr: ${surfaceShowConfig.stderr.trim()}`);
 
@@ -490,11 +490,11 @@ context.assert(
   `create: ${JSON.stringify(configFamily.operations.create)}`,
 );
 context.assert(
-  configFamily.operations.update.state === "direct-write"
-    && configFamily.operations.update.cliOwned === false
-    && configFamily.operations.update.commands.length === 0
-    && configFamily.operations.update.note === "not yet CLI-owned",
-  "yaml-surface-show reports a direct-write operation verbatim without claiming an owner",
+  configFamily.operations.update.state === "cli-owned"
+    && configFamily.operations.update.cliOwned
+    && configFamily.operations.update.commands.includes("config-edit")
+    && configFamily.operations.named_remove.commands.includes("config-edit"),
+  "yaml-surface-show reports config update and named removal as owned by config-edit",
   `update: ${JSON.stringify(configFamily.operations.update)}`,
 );
 context.assert(

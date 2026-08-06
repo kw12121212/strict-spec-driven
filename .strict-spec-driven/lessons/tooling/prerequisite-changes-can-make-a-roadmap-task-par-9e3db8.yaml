@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: prerequisite-changes-can-make-a-roadmap-task-par-9e3db8
+  title: Prerequisite changes can make a roadmap task partly obsolete
+category: tooling
+status: active
+created_at: '2026-08-05T17:09:06.395Z'
+updated_at: '2026-08-05T17:09:06.395Z'
+context: The migrate-workflow-and-change-yaml roadmap item followed mutation-foundation changes that had already moved most archive behavior behind verified domain lifecycle code.
+observation: The initial design treated archive as needing a new cross-file transaction refactor, but direct inspection showed the existing verified archive pipeline already owned delta merges, index regeneration, roadmap reconciliation, and movement; only the newly changed apply write required migration.
+takeaway: Re-audit the live mutation surface after selecting a roadmap item, then narrow redundant implementation tasks while preserving the planned observable outcome and recording the correction in design and tasks.
+applies_when: a roadmap-backed change follows prerequisite milestones that may already implement part of its planned artifact-family or lifecycle scope
+occurrences:
+  - origin: migrate-workflow-and-change-yaml
+    date: '2026-08-05'
+    evidence: .strict-spec-driven/changes/migrate-workflow-and-change-yaml/design.yaml archive-integrity; .strict-spec-driven/changes/migrate-workflow-and-change-yaml/tasks.yaml migrate-lifecycle-writes; src/archive.ts; src/apply.ts

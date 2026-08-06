@@ -137,6 +137,10 @@ export const READ_ONLY_TOOL_DEFINITIONS: McpToolDefinition[] = [
 
 export const MUTATING_TOOL_DEFINITIONS: McpToolDefinition[] = [
   command(inventoryFor("init_workflow"), () => ["init"], confirmSchema),
+  command(inventoryFor("config_edit"), (args) => [
+    "config-edit",
+    ...(Array.isArray(args.args) ? args.args.map(String) : []),
+  ], artifactAuthorSchema),
   command(inventoryFor("propose_change"), (args) => ["propose", String(args.change)], changeConfirmSchema),
   command(inventoryFor("generate_change_artifact"), (args) => [
     "generate",

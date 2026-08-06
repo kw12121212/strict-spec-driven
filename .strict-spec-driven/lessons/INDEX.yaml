@@ -60,3 +60,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/a-regenerated-source-file-that-is-also-compiled-65ffa0.yaml
+    prerequisite-changes-can-make-a-roadmap-task-par-9e3db8:
+      title: Prerequisite changes can make a roadmap task partly obsolete
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/prerequisite-changes-can-make-a-roadmap-task-par-9e3db8.yaml

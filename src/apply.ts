@@ -1,5 +1,7 @@
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
+import { loadBundledSchemaByArtifactType, validateArtifact } from "./validation.js";
+import { commitYamlMutation } from "./yaml-mutation.js";
 import { parseYamlDocument, stringifyYamlDocument } from "./yaml.js";
 
 export type ApplyResult = {
@@ -60,5 +62,33 @@ export function readChangeTasks(rootDir: string, changeName: string): string {
 
 export function writeChangeTasks(rootDir: string, changeName: string, content: string): void {
   const tasksPath = path.join(rootDir, ".strict-spec-driven", "changes", changeName, "tasks.yaml");
-  writeFileSync(tasksPath, content, "utf8");
+  const artifactPath = `.strict-spec-driven/changes/${changeName}/tasks.yaml`;
+  const candidate = parseYamlDocument<unknown>(content, { source: artifactPath });
+  const mutation = commitYamlMutation({
+    rootDir,
+    mutations: [{
+      artifactFamily: "change-planning-state",
+      artifactId: `${changeName}/tasks`,
+      schemaId: "task_list",
+      familyRoot: path.join(rootDir, ".strict-spec-driven", "changes", changeName),
+      absolutePath: tasksPath,
+      operation: "update",
+      candidate,
+      validateCandidate: (value, context) => {
+        const validation = validateArtifact(loadBundledSchemaByArtifactType("task_list"), value, context.artifactPath);
+        return validation.diagnostics.map((entry) => ({
+          code: entry.source,
+          fieldPath: entry.fieldPath,
+          message: entry.message,
+          expected: entry.expected,
+          actual: entry.actual,
+        }));
+      },
+    }],
+  });
+  if (!mutation.valid) {
+    throw new Error(
+      `failed to update tasks.yaml: ${mutation.diagnostics.map((entry) => `${entry.code} ${entry.fieldPath}: ${entry.message}`).join("; ")}`,
+    );
+  }
 }

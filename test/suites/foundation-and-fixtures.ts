@@ -1642,18 +1642,30 @@ try {
     "generate proposal leaves unrelated planning artifacts unchanged",
   );
 
-  const beforeInvalidProposal = readFileSync(proposalPath, "utf8");
-  const invalidProposalGenerate = cli(["generate", changeName, "proposal", "--what", "Missing why should fail."], { cwd: generateTempDir });
-  context.assert(invalidProposalGenerate.status !== 0, "generate rejects incomplete named proposal input");
+  const partialProposalGenerate = cli([
+    "generate", changeName, "proposal", "--what", "Partial edits preserve existing summary entries.",
+  ], { cwd: generateTempDir });
+  context.assert(partialProposalGenerate.status === 0, "generate accepts a partial named proposal edit");
+  const partiallyEditedProposal = yamlModule.parseYamlDocument<{
+    summary: { what: string[]; why: string[] };
+  }>(readFileSync(proposalPath, "utf8"));
   context.assert(
-    invalidProposalGenerate.stderr.includes("missing required argument --why"),
-    "generate reports the missing named argument before write",
+    partiallyEditedProposal.summary.what.includes("Partial edits preserve existing summary entries.")
+      && partiallyEditedProposal.summary.why.includes("Scripted generation keeps YAML formatting deterministic."),
+    "generate merges partial proposal intent without dropping omitted summary entries",
+  );
+
+  const beforeInvalidProposal = readFileSync(proposalPath, "utf8");
+  const invalidProposalGenerate = cli([
+    "generate", changeName, "proposal", "--remove-why", "Scripted generation",
+  ], { cwd: generateTempDir });
+  context.assert(invalidProposalGenerate.status !== 0, "generate rejects removal of the last why entry");
+  context.assert(
+    invalidProposalGenerate.stderr.includes("proposal summary requires at least one --why entry"),
+    "generate reports the invalid named removal before write",
     `stderr: ${invalidProposalGenerate.stderr.trim()}`,
   );
-  context.assert(
-    readFileSync(proposalPath, "utf8") === beforeInvalidProposal,
-    "generate incomplete named input does not rewrite artifact",
-  );
+  context.assert(readFileSync(proposalPath, "utf8") === beforeInvalidProposal, "invalid proposal removal does not rewrite artifact");
 
   context.assert(
     cli([
@@ -1977,7 +1989,7 @@ try {
   const existingChangeDesignPath = path.join(generateTempDir, ".strict-spec-driven", "changes", changeName, "design.yaml");
   const existingChangeDesignBefore = readFileSync(existingChangeDesignPath, "utf8");
   const rejectedIntoExisting = cli(
-    ["generate", changeName, "proposal", "--what", "Missing why must be rejected."],
+    ["generate", changeName, "proposal", "--status", "not-a-valid-status"],
     { cwd: generateTempDir },
   );
   context.assert(
@@ -2128,6 +2140,10 @@ try {
     "The named-argument parser now supports multiple question groups.",
     "--answer",
     "Yes. One invocation can now populate both open and resolved questions.",
+    "--kind",
+    "technical",
+    "--answered-by",
+    "human",
   ], { cwd: generateTempDir });
   context.assert(directQuestions.status === 0, "generate writes full questions artifact from one named-argument command", `stderr: ${directQuestions.stderr.trim()}`);
   const directQuestionsArtifact = yamlModule.parseYamlDocument<{
@@ -2140,6 +2156,48 @@ try {
     directOpenTechnical.length === 1 && directResolvedTechnical.length === 1,
     "generate writes open and resolved questions in one command",
   );
+
+  const reopenQuestion = cli([
+    "generate", directChangeName, "questions",
+    "--open", "resolved-cli-contract",
+    "--question", "Can one command generate the full questions artifact?",
+    "--context", "The named-argument parser now supports multiple question groups.",
+  ], { cwd: generateTempDir });
+  const reopenedQuestions = yamlModule.parseYamlDocument<{
+    open: Array<{ id: string; kind?: string; answered_by?: string }>;
+    resolved: Array<{ id: string }>;
+  }>(readFileSync(path.join(directChangeDir, "questions.yaml"), "utf8"));
+  const reopenedQuestion = reopenedQuestions.open.find((entry) => entry.id === "resolved-cli-contract");
+  context.assert(
+    reopenQuestion.status === 0
+      && reopenedQuestion?.kind === "technical"
+      && reopenedQuestion.answered_by === "human"
+      && !reopenedQuestions.resolved.some((entry) => entry.id === "resolved-cli-contract"),
+    "restating a resolved question as open moves one id and preserves its attribution",
+    `stderr: ${reopenQuestion.stderr.trim()}`,
+  );
+
+  const resolveQuestionByRestatement = cli([
+    "generate", directChangeName, "questions",
+    "--resolved", "resolved-cli-contract",
+    "--question", "Can one command generate the full questions artifact?",
+    "--context", "The named-argument parser now supports multiple question groups.",
+    "--answer", "Yes. One invocation can populate both open and resolved questions.",
+  ], { cwd: generateTempDir });
+  const reResolvedQuestions = yamlModule.parseYamlDocument<{
+    open: Array<{ id: string }>;
+    resolved: Array<{ id: string; kind?: string; answered_by?: string }>;
+  }>(readFileSync(path.join(directChangeDir, "questions.yaml"), "utf8"));
+  const reResolvedQuestion = reResolvedQuestions.resolved.find((entry) => entry.id === "resolved-cli-contract");
+  context.assert(
+    resolveQuestionByRestatement.status === 0
+      && reResolvedQuestion?.kind === "technical"
+      && reResolvedQuestion.answered_by === "human"
+      && !reResolvedQuestions.open.some((entry) => entry.id === "resolved-cli-contract"),
+    "restating an open question as resolved moves one id and preserves its attribution",
+    `stderr: ${resolveQuestionByRestatement.stderr.trim()}`,
+  );
+
   // No flag clears the interrogation gate: removal refuses a requirement id and --delete is refused
   // outright for the questions artifact.
   const removeRequirement = cli([
@@ -2439,6 +2497,20 @@ try {
     JSON.stringify(missingArtifactPaths),
   );
 
+  const emptyDeltaFromRemoval = cli([
+    "generate", scaffoldRoundTripChange, "delta-spec",
+    "--target-spec", "cli-foundation",
+    "--spec-path", "cli/empty-removal.yaml",
+    "--remove-implementation", "src/not-recorded.ts",
+  ], { cwd: generateTempDir });
+  context.assert(
+    emptyDeltaFromRemoval.status !== 0
+      && emptyDeltaFromRemoval.stderr.includes("named removals cannot create an empty artifact")
+      && !existsSync(path.join(generateTempDir, ".strict-spec-driven", "changes", scaffoldRoundTripChange, "specs", "cli", "empty-removal.yaml")),
+    "named removals cannot create an empty delta artifact",
+    `stderr: ${emptyDeltaFromRemoval.stderr.trim()}`,
+  );
+
   // Proposal writes merge, so an invocation that restates only one scope entry keeps the others.
   cli([
     "generate", scaffoldRoundTripChange, "proposal",
@@ -2510,11 +2582,13 @@ try {
     `stderr: ${deleteAlone.stderr.trim()}`,
   );
 
-  const missingArgument = cli(["generate", directChangeName, "proposal", "--what", "Missing why."], { cwd: generateTempDir });
-  context.assert(missingArgument.status !== 0, "generate rejects missing required named arguments");
+  const missingArgument = cli([
+    "generate", directChangeName, "proposal", "--remove-what", "Populate artifacts",
+  ], { cwd: generateTempDir });
+  context.assert(missingArgument.status !== 0, "generate rejects removing the last required proposal summary entry");
   context.assert(
-    missingArgument.stderr.includes("--why"),
-    "generate missing argument failure names the missing flag",
+    missingArgument.stderr.includes("at least one --what"),
+    "generate required-summary failure names the missing summary field",
     `stderr: ${missingArgument.stderr.trim()}`,
   );
 

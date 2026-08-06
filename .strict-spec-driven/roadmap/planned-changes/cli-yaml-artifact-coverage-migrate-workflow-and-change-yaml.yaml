@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: migrate-workflow-and-change-yaml
   milestone: cli-yaml-artifact-coverage
-status: planned
+status: complete
 summary: Move workflow config and change-planning YAML mutations behind CLI commands.
 details: Cover config.yaml plus proposal, design, questions, tasks, delta-spec, and delta-tech artifacts after placeholder scaffolding has been removed. Extend existing propose, generate, modify, cancel, apply, verify, and archive flows where needed so missing artifacts are lazily created from named facts, existing artifacts receive only explicit field updates, and every valid list append, named removal, lifecycle deletion, index update, and archive merge is CLI-owned. Remove remaining task, mapping, question, or planning-file direct-edit fallbacks and modify or remove superseded main-spec scenarios that require direct task-list editing or pre-existing scaffold files. Preserve proposal and requirement-question non-deletion gates, completed-task safeguards, delta merge behavior, roadmap provenance, and stable change identity semantics.
 depends_on:

@@ -6,7 +6,7 @@ import { createCliCommandTable } from "./cli/registry.js";
 import { runInit, runPropose } from "./cli/cmd-scaffold.js";
 import { runGenerate } from "./cli/cmd-generation.js";
 import { runApply, runVerify, runArchive, runList, runModify, runCancel } from "./cli/cmd-change.js";
-import { runCheckWorkflowState, runNext, runReady } from "./cli/cmd-workflow.js";
+import { runCheckWorkflowState, runConfigEdit, runNext, runReady } from "./cli/cmd-workflow.js";
 import {
   runRoadmapArchive,
   runRoadmapGenerate,
@@ -114,6 +114,7 @@ export { DocumentSourceError } from "./document-render.js";
 export const commands = createCliCommandTable({
   init: (argv) => runInit(argv),
   "check-workflow-state": (argv) => runCheckWorkflowState(argv),
+  "config-edit": (argv) => runConfigEdit(argv),
   propose: (argv) => runPropose(argv),
   generate: (argv) => runGenerate(argv),
   apply: (argv) => runApply(argv),

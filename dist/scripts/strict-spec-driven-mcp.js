@@ -35787,13 +35787,14 @@ artifact_families:
     validation_owner: templates/strict-spec-driven/schemas/config.yaml
     operations:
       create: cli-owned
-      update: direct-write
-      named_remove: direct-write
+      update: cli-owned
+      named_remove: cli-owned
       delete: human-only
     reference_side_effects:
       - Review evidence and maintenance behavior change when config fields change.
     cli_owners:
       - init
+      - config-edit
     direct_write_paths:
       - src/migrate.ts
       - src/scaffold.ts
@@ -35801,6 +35802,7 @@ artifact_families:
     evidence:
       - .strict-spec-driven/config.yaml
       - templates/strict-spec-driven/schemas/config.yaml
+      - src/workflow-config-author.ts
   architecture-state:
     artifact_types:
       - architecture
@@ -39937,6 +39939,40 @@ var COMMAND_METADATA_ENTRIES = {
     ],
     notes: ["Run this before any other workflow command; run /strict-spec-init when it reports missing state."]
   },
+  "config-edit": {
+    name: "config-edit",
+    group: "workflow",
+    summary: "Update workflow config fields and named entries through semantic arguments.",
+    mcpDescription: "Mutates strict workflow config through confined named semantic fields and the atomic YAML boundary.",
+    usage: `Usage: strict-spec-cli config-edit [named fields and removals]
+`,
+    arguments: [],
+    flags: [
+      { name: "--preferred-human-language", arity: "value", valueLabel: "<language>", description: "Set the user's common human language." },
+      { name: "--context", arity: "value", valueLabel: "<text>", description: "Set the project context text." },
+      { name: "--rule", arity: "value", valueLabel: "<category>:<text>", description: "Append one rule to a named category without duplicates.", repeatable: true, repeatSemantics: "Each category:text value appends one unique rule." },
+      { name: "--regression-method", arity: "value", valueLabel: "<id>", description: "Set review_evidence.project_regression.method." },
+      { name: "--regression-command", arity: "value", valueLabel: "<command>", description: "Set the complete project regression command." },
+      { name: "--regression-meaning", arity: "value", valueLabel: "<text>", description: "Set the regression evidence meaning." },
+      { name: "--regression-unavailable-behavior", arity: "value", valueLabel: "<text>", description: "Set the behavior when regression evidence cannot run." },
+      { name: "--coverage-threshold", arity: "value", valueLabel: "<0-100>", description: "Set the configured line-coverage threshold." },
+      { name: "--coverage-include", arity: "value", valueLabel: "<glob>", description: "Append one coverage include path without duplicates.", repeatable: true, repeatSemantics: "Repeated values append uniquely." },
+      { name: "--coverage-exclude", arity: "value", valueLabel: "<glob>", description: "Append one coverage exclusion without duplicates.", repeatable: true, repeatSemantics: "Repeated values append uniquely." },
+      { name: "--maintenance-check", arity: "value", valueLabel: "<type>", description: "Upsert one maintenance check by type.", repeatable: true, repeatSemantics: "Each type creates or preserves one keyed check." },
+      ...["rule", "coverage-include", "coverage-exclude", "maintenance-check"].map((name) => ({ name: `--remove-${name}`, arity: "value", valueLabel: name === "rule" ? "<category>:<text>" : "<value>", description: `Remove only the exact named ${name.replaceAll("-", " ")}.`, repeatable: true, repeatSemantics: "Each occurrence removes one exact entry." })),
+      ...["preferred-human-language", "context", "regression-method", "regression-command", "regression-meaning", "regression-unavailable-behavior", "coverage"].map((name) => ({ name: `--remove-${name}`, arity: "boolean", description: `Remove only the ${name.replaceAll("-", " ")} field.` }))
+    ],
+    output: {
+      format: "json",
+      keys: ["valid", "committed", "exitStatus", "changes", "diagnostics", "artifactPath", "operation"],
+      description: "A deterministic workflow-config mutation result with schema and example recovery identifiers."
+    },
+    exitCodes: VALIDITY_EXIT_CODES,
+    notes: [
+      "The target is always .strict-spec-driven/config.yaml; config creation remains owned by init and whole-config deletion is intentionally unavailable.",
+      "Every unnamed field and nested entry is preserved; invalid complete candidates leave the file unchanged."
+    ]
+  },
   propose: {
     name: "propose",
     group: "change",
@@ -39966,7 +40002,7 @@ var COMMAND_METADATA_ENTRIES = {
       "Usage: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>",
       "",
       "Examples:",
-      "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>]",
+      "  strict-spec-cli generate <change-name> proposal [--what <text>] [--why <text>] [--in <text>] [--out <text>] [--unchanged <text>] [--remove-what <substring>] [--remove-why <substring>]",
       "  strict-spec-cli generate <change-name> design --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>] [--remove-approach <substring>] [--remove-decision <id>] [--remove-alternative <substring>] [--remove-risk <substring>]",
       "  strict-spec-cli generate <change-name> design --delete",
       "  strict-spec-cli generate <change-name> questions [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]...",
@@ -40021,6 +40057,22 @@ var COMMAND_METADATA_ENTRIES = {
         description: "Design artifact only: drops the one risk containing this substring, and must match exactly one.",
         repeatable: true,
         repeatSemantics: "Each value removes one entry, applied in the order supplied."
+      },
+      {
+        name: "--remove-what",
+        arity: "value",
+        valueLabel: "<substring>",
+        description: "Proposal artifact only: remove the one summary.what entry containing this substring; at least one must remain.",
+        repeatable: true,
+        repeatSemantics: "Each value removes one unambiguous entry."
+      },
+      {
+        name: "--remove-why",
+        arity: "value",
+        valueLabel: "<substring>",
+        description: "Proposal artifact only: remove the one summary.why entry containing this substring; at least one must remain.",
+        repeatable: true,
+        repeatSemantics: "Each value removes one unambiguous entry."
       },
       {
         name: "--remove-in",
@@ -42376,6 +42428,13 @@ var MCP_MUTATING_TOOL_INVENTORY = [
     mutates: true
   },
   {
+    name: "config_edit",
+    description: mcpToolDescription("config-edit"),
+    safety: "write",
+    cliCommand: "config-edit",
+    mutates: true
+  },
+  {
     name: "propose_change",
     description: mcpToolDescription("propose"),
     safety: "write",
@@ -42951,6 +43010,10 @@ var READ_ONLY_TOOL_DEFINITIONS = [
 ];
 var MUTATING_TOOL_DEFINITIONS = [
   command(inventoryFor("init_workflow"), () => ["init"], confirmSchema),
+  command(inventoryFor("config_edit"), (args) => [
+    "config-edit",
+    ...Array.isArray(args.args) ? args.args.map(String) : []
+  ], artifactAuthorSchema),
   command(inventoryFor("propose_change"), (args) => ["propose", String(args.change)], changeConfirmSchema),
   command(inventoryFor("generate_change_artifact"), (args) => [
     "generate",

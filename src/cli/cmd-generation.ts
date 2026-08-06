@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, rmSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import path from "path";
 import {
   generateChangeArtifactFromInput,
@@ -9,6 +9,7 @@ import {
 } from "../propose-generation.js";
 import { buildSeededRequirementQuestions } from "../requirement-questions.js";
 import { parseYamlDocument } from "../yaml.js";
+import { commitYamlMutation } from "../yaml-mutation.js";
 import { CHANGE_NAME_PATTERN, handleHelpRequest } from "./argv.js";
 import { getCommandUsage } from "./command-metadata.js";
 import { writeError, writeJson, writeUsage } from "./output.js";
@@ -23,7 +24,7 @@ function usage(): string {
     "Usage: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>",
     "",
     "Examples:",
-    "  strict-spec-cli generate <change-name> proposal --what <text> --why <text> [--in <text>] [--out <text>] [--unchanged <text>] [--remove-in <substring>] [--remove-out <substring>] [--remove-unchanged <substring>]",
+    "  strict-spec-cli generate <change-name> proposal [--what <text>] [--why <text>] [--in <text>] [--out <text>] [--unchanged <text>] [--remove-what <substring>] [--remove-why <substring>] [--remove-in <substring>] [--remove-out <substring>] [--remove-unchanged <substring>]",
     "  strict-spec-cli generate <change-name> design --approach <text> [--decision <id> --decision-text <text> --rationale <text>] [--alternative <text> --reason <text>] [--risk <text>] [--remove-approach <substring>] [--remove-decision <id>] [--remove-alternative <substring>] [--remove-risk <substring>] | --delete",
     "  strict-spec-cli generate <change-name> questions [(--open <id> --question <text> --context <text>)|(--resolved <id> --question <text> --context <text> --answer <text>)|(--resolve <id> --answer <text>)] [--kind <requirement|technical>] [--answered-by <human|roadmap|assumption>]... [--remove-question <id>]",
     "  strict-spec-cli generate <change-name> tasks [--section <Implementation|Testing|Verification> --task <id> [--text <text>] [--status <pending|complete>] [--command <text>]]... [--remove <id>]... [--validation-task <id>] [--unit-test-task <id>] | --delete",
@@ -74,6 +75,8 @@ function resolveStringValue(value: string, rootDir: string): string {
 export const PROPOSAL_ARGUMENTS = [
   "what",
   "why",
+  "remove-what",
+  "remove-why",
   "in",
   "out",
   "unchanged",
@@ -324,31 +327,47 @@ function upsertListItem<T extends GenerationInputRecord>(
  * any flag to blame.
  */
 function existingProposalInput(rootDir: string, changeName: string): {
+  what: string[];
+  why: string[];
   in: string[];
   out: string[];
   unchanged: string[];
+  status?: string;
+  roadmap?: GenerationInputRecord;
 } {
   const artifact = readYamlIfExists<GenerationInputRecord>(
     rootDir,
     `${STRICT_WORKFLOW_DIR}/changes/${changeName}/proposal.yaml`,
   );
+  const summary = isRecord(artifact?.summary) ? artifact.summary : {};
   const scope = isRecord(artifact?.scope) ? artifact.scope : {};
+  const change = isRecord(artifact?.change) ? artifact.change : {};
+  const roadmap = isRecord(artifact?.roadmap) ? artifact.roadmap : undefined;
   return {
+    what: Array.isArray(summary.what) ? summary.what as string[] : [],
+    why: Array.isArray(summary.why) ? summary.why as string[] : [],
     in: Array.isArray(scope.in) ? scope.in as string[] : [],
     out: Array.isArray(scope.out) ? scope.out as string[] : [],
     unchanged: Array.isArray(artifact?.unchanged_behavior) ? artifact.unchanged_behavior as string[] : [],
+    status: typeof change.status === "string" ? change.status : undefined,
+    roadmap,
   };
 }
 
 function buildProposalInput(rootDir: string, changeName: string, flags: FlagMap): GenerationInputRecord {
   ensureAllowedFlags(flags, [...PROPOSAL_ARGUMENTS]);
 
-  const what = uniqueStrings(values(flags, "what"));
-  const why = uniqueStrings(values(flags, "why"));
-  if (what.length === 0) throw new Error("missing required argument --what");
-  if (why.length === 0) throw new Error("missing required argument --why");
-
   const existing = existingProposalInput(rootDir, changeName);
+  let what = uniqueStrings([...existing.what, ...values(flags, "what")]);
+  let why = uniqueStrings([...existing.why, ...values(flags, "why")]);
+  for (const needle of values(flags, "remove-what")) {
+    what = removeOneBySubstring(what, needle, "remove-what", (entry) => entry);
+  }
+  for (const needle of values(flags, "remove-why")) {
+    why = removeOneBySubstring(why, needle, "remove-why", (entry) => entry);
+  }
+  if (what.length === 0) throw new Error("proposal summary requires at least one --what entry");
+  if (why.length === 0) throw new Error("proposal summary requires at least one --why entry");
   const removedIn = values(flags, "remove-in");
   const removedOut = values(flags, "remove-out");
   const removedUnchanged = values(flags, "remove-unchanged");
@@ -375,7 +394,7 @@ function buildProposalInput(rootDir: string, changeName: string, flags: FlagMap)
     unchanged_behavior: unchanged,
   };
 
-  const status = optionalOne(flags, "status");
+  const status = optionalOne(flags, "status") ?? existing.status;
   if (status) input.status = status;
 
   const milestone = optionalOne(flags, "milestone") ?? optionalOne(flags, "roadmap-milestone");
@@ -384,6 +403,8 @@ function buildProposalInput(rootDir: string, changeName: string, flags: FlagMap)
     if (!milestone) throw new Error("missing required argument --milestone");
     if (!plannedChange) throw new Error("missing required argument --planned-change");
     input.roadmap = { milestone, planned_change: plannedChange };
+  } else if (existing.roadmap) {
+    input.roadmap = existing.roadmap;
   }
 
   return input;
@@ -632,11 +653,13 @@ function buildQuestionsInputFromArgs(rootDir: string, changeName: string, argv: 
       if (item.answer !== undefined) {
         throw new Error(`--answer is only valid with --resolved for question '${item.id}'`);
       }
+      const inherited = [...open, ...resolved].find((candidate) => candidate.id === item.id);
+      resolved = resolved.filter((candidate) => candidate.id !== item.id);
       open = upsertListItem(open, withQuestionAttribution({
         id: item.id,
         question: item.question,
         context: item.context,
-      }, item), item.id, "open question", session);
+      }, item, inherited), item.id, "open question", session);
       continue;
     }
 
@@ -661,12 +684,14 @@ function buildQuestionsInputFromArgs(rootDir: string, changeName: string, argv: 
     if (!item.question) throw new Error(`missing required argument --question for question '${item.id}'`);
     if (!item.context) throw new Error(`missing required argument --context for question '${item.id}'`);
     if (!item.answer) throw new Error(`missing required argument --answer for resolved question '${item.id}'`);
+    const inherited = [...resolved, ...open].find((candidate) => candidate.id === item.id);
+    open = open.filter((candidate) => candidate.id !== item.id);
     resolved = upsertListItem(resolved, withQuestionAttribution({
       id: item.id,
       question: item.question,
       context: item.context,
       answer: item.answer,
-    }, item), item.id, "resolved question", session);
+    }, item, inherited), item.id, "resolved question", session);
   }
 
   input.open = open;
@@ -1589,6 +1614,15 @@ type DeleteResult = {
   deleted: boolean;
 };
 
+const DELETE_SCHEMA_IDS: Record<GeneratableArtifact, string> = {
+  proposal: "change_proposal",
+  design: "change_design",
+  questions: "question_list",
+  tasks: "task_list",
+  "delta-spec": "delta_spec",
+  "delta-tech": "delta_tech",
+};
+
 function runArtifactDelete(
   rootDir: string,
   changeName: string,
@@ -1621,7 +1655,26 @@ function runArtifactDelete(
   const artifactPath = resolveDeleteTarget(rootDir, changeName, artifact, flags);
   const absolutePath = path.join(rootDir, artifactPath);
   const deleted = existsSync(absolutePath);
-  if (deleted) rmSync(absolutePath);
+  if (deleted) {
+    const mutation = commitYamlMutation({
+      rootDir,
+      mutations: [{
+        artifactFamily: artifact === "delta-spec" || artifact === "delta-tech"
+          ? "change-delta-state"
+          : "change-planning-state",
+        artifactId: `${changeName}/${artifact}`,
+        schemaId: DELETE_SCHEMA_IDS[artifact],
+        familyRoot: path.join(rootDir, STRICT_WORKFLOW_DIR, "changes", changeName),
+        absolutePath,
+        operation: "delete",
+      }],
+    });
+    if (!mutation.valid) {
+      throw new Error(
+        `failed to delete ${artifact} artifact: ${mutation.diagnostics.map((entry) => `${entry.code} ${entry.artifactPath} ${entry.fieldPath}: ${entry.message}`).join("; ")}`,
+      );
+    }
+  }
   return { changeName, artifact, artifactPath, deleted };
 }
 

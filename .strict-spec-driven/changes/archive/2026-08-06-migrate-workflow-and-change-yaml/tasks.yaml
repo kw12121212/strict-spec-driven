@@ -1,0 +1,64 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: migrate-workflow-and-change-yaml
+sections:
+  Implementation:
+    add-config-authoring:
+      text: Add a typed workflow-config authoring module and registered CLI command for named scalar/list updates and named removals at the confined .strict-spec-driven/config.yaml target, with schema validation, atomic commit, deterministic diagnostics, and explicit rejection of deletion.
+      status: complete
+    centralize-planning-mutations:
+      text: Extract shared typed helpers for reading or lazily creating change artifacts, merging explicit semantic intent, validating full candidates and relationships, and atomically committing or rolling back proposal, design, questions, tasks, delta-spec, and delta-tech writes.
+      status: complete
+    complete-proposal-design-operations:
+      text: Complete proposal and design field/list upserts, explicit named removals, and lifecycle-permitted whole-artifact deletion while preserving change identity, roadmap provenance, unrelated content, and non-deletable proposal policy.
+      status: complete
+    complete-question-task-operations:
+      text: Complete question and task keyed upserts, named removals, testing-gate edits, and permitted deletion with deterministic protection for canonical requirement questions and completed tasks.
+      status: complete
+    complete-delta-operations:
+      text: Complete delta-spec and delta-tech target-confined mapping, requirement/rule, scenario, named-removal, and isolated deletion operations while preserving target identity and archive merge compatibility.
+      status: complete
+    migrate-lifecycle-writes:
+      text: Route apply task completion through the shared validated atomic YAML mutation boundary, and audit cancel, verify, and archive so their existing CLI-owned lifecycle policies, delta merges, index regeneration, roadmap reconciliation, active/archive identity, and deterministic failure behavior remain intact without introducing any direct-edit fallback.
+      status: complete
+    update-discovery-guidance:
+      text: Update command registration and metadata, MCP-derived descriptions, YAML mutation inventory classifications, bundled skills and documentation that still recommend direct edits, structured mappings, and any generated embedded or compiled assets affected by the new surfaces.
+      status: complete
+  Testing:
+    test-config-mutations:
+      text: Add focused tests for workflow-config create/update/removal semantics, nested unrelated-content preservation, deletion rejection, invalid-input diagnostics, path confinement, and rollback on failure.
+      status: complete
+      command: bun test/run.ts
+    test-planning-mutations:
+      text: Add focused change-lifecycle tests for each planning and delta artifact's lazy create, field/key/list update, idempotency, named removal, delete policy, safeguard rejection, and failed-write byte preservation.
+      status: complete
+      command: bun test/run.ts
+    test-lifecycle-archive:
+      text: Add copied-project regressions covering apply, cancel, verify, and archive success and failure, including delta merges, index regeneration, roadmap provenance, active/archive identity, and no partial cross-file state.
+      status: complete
+      command: bun test/run.ts
+    validate-inventory-build:
+      text: Build compiled output and validate the YAML mutation inventory, command metadata, bundled assets, skills, and schema/sample discovery after the migration.
+      status: complete
+      command: bun run build && bun run check:yaml-inventory
+    run-project-regression:
+      text: Run the complete project regression and enforce the configured minimum src/** line coverage threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    verify-change:
+      text: Run strict proposal readiness now; after every verification task is complete, run final strict change verification and confirm the delta spec matches implemented observable behavior.
+      status: complete
+      command: strict-spec-cli ready migrate-workflow-and-change-yaml
+    verify-mappings:
+      text: Validate every active delta mapping through strict change readiness, validate live technical mappings, and rerun the global spec mapping audit after archive merges the delta into the main spec.
+      status: complete
+      command: strict-spec-cli ready migrate-workflow-and-change-yaml && strict-spec-cli verify-tech-mappings
+    check-archive-readiness:
+      text: Confirm archive can merge the cli-foundation delta, preserve unrelated requirements and mappings, regenerate the spec index, reconcile the roadmap planned change and milestone, and move the change without partial state.
+      status: complete
+testing_gates:
+  validation_task: validate-inventory-build
+  unit_test_task: test-planning-mutations

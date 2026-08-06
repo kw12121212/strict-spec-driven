@@ -1,0 +1,32 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: migrate-workflow-and-change-yaml
+approach:
+  - Introduce an artifact-aware workflow-config authoring module and command that derives the confined config path, merges only named fields or list entries, rejects deletion, validates the whole candidate, and commits through the shared YAML mutation boundary.
+  - Refactor proposal-generation and lifecycle writers so proposal, design, questions, tasks, delta specs, and delta tech share typed defaults plus field-level upsert, additive-list, named-removal, isolated deletion, validation, and rollback mechanics without changing their domain commands.
+  - 'Keep lifecycle policy at the command boundary: preserve immutable change identity and roadmap linkage rules, non-deletable proposal and requirement-question gates, completed-task protection, delta target identity, active-only cancellation, and archive merge/reconciliation checks before committing mutations.'
+  - Update command metadata, mutation inventory, relevant skill prompts, mappings, and change-lifecycle/copied-project tests together; rebuild compiled and embedded outputs after source changes.
+decisions:
+  config-command-surface:
+    decision: Add a domain-oriented workflow config mutation command instead of exposing config through a generic path-and-payload writer.
+    rationale: Named config semantics keep the target confined, make removals explicit, and preserve the stable domain-command model chosen by the roadmap milestone.
+  shared-change-mutation-core:
+    decision: Move artifact parsing, candidate merging, schema validation, and atomic commit into shared typed helpers used by generate, apply, cancel, verify preparation, and archive where they mutate change YAML.
+    rationale: One mutation boundary prevents family-specific direct-write behavior from drifting while letting each lifecycle command retain its own policy checks and output contract.
+  lifecycle-deletion-policy:
+    decision: Permit whole-artifact deletion only where the lifecycle allows it, keep proposal and requirement questions protected, and make cancel the only operation that deletes an active change container.
+    rationale: Deletion uniformity must not weaken proposal provenance, interrogation gates, completed work safeguards, or active/archive identity rules.
+  archive-integrity:
+    decision: Retain the existing verified archive pipeline for delta merges, index regeneration, roadmap reconciliation, and active-to-archive movement, while ensuring this change introduces no direct-edit fallback and routes the newly changed apply write through the shared atomic YAML boundary.
+    rationale: Archive already owns these lifecycle effects through a domain CLI with preflight verification and deterministic merge rules; this family migration should preserve that behavior while moving newly exposed artifact authoring and task completion onto the shared mutation contract.
+alternatives:
+  - option: Add one generic yaml-edit command accepting a repository-relative path and YAML payload.
+    reason: It would merely relocate unsafe direct editing behind a command, permit arbitrary targets, and require callers to own document shape.
+  - option: Keep generate safe but leave apply, cancel, and archive on direct filesystem writes.
+    reason: That would leave normal lifecycle mutations outside the shared validation and rollback contract and fail the selected planned change's coverage boundary.
+risks:
+  - Archive transaction refactoring can corrupt indexes or roadmap status if staging misses a side effect; copied-project archive tests must compare all touched paths on success and injected failure.
+  - Completed-task and requirement-question protections can regress when generic removal helpers are introduced; targeted tests must assert deterministic rejection and byte preservation.
+  - Adding config authoring can accidentally overwrite optional nested review or maintenance fields; merge tests must include unrelated nested content and named removal.

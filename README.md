@@ -130,8 +130,9 @@ the system does; it cannot show what a person wants. Only the requester's own
 words — including what they already said in the request — or replayed roadmap
 planned-change and milestone detail may answer them.
 
-`propose` seeds five canonical questions into `questions.yaml` as open entries,
-so a freshly scaffolded change starts blocked until they are answered:
+The first `generate <change-name> questions ...` invocation seeds five canonical
+questions into `questions.yaml` as open entries, so a newly authored change is
+blocked until they are answered:
 
 | Question id | Asks | A sufficient answer contains |
 |---|---|---|
@@ -157,15 +158,15 @@ strict-spec-cli generate <change-name> questions --resolve requirement-problem \
 
 `ready` emits `requirement_intake` diagnostics and exits non-zero while any
 canonical question is missing, still open, answered by assumption, or resolved
-with no attribution at all. `--reset` on the questions generator preserves
-requirement-kind entries, and no flag removes them.
+with no attribution at all. No questions-generator flag removes
+requirement-kind entries.
 
 Enforcement splits into three layers, and it is worth being clear about which is
 which:
 
 | Layer | Mechanism | Guarantees |
 |---|---|---|
-| CLI | `propose` seeding, `ready` diagnostics | The questions exist, are answered, and carry attribution |
+| CLI | first questions authoring, `ready` diagnostics | The questions exist, are answered, and carry attribution |
 | Skills | The asking technique in the four skill prompts, enforced by `validate-skills` | The questions are asked one at a time, carrying a concrete guess, explained before they are posed, with pushback that states its reason |
 | Neither | — | Whether the agent genuinely interrogated. This is judgment and cannot be checked; recording `answered_by: assumption` makes an evasion visible rather than preventing it |
 
@@ -260,7 +261,7 @@ The CLI also embeds bundled schema and scaffold assets so installed skills do no
 strict-spec-cli schema-list
 strict-spec-cli schema-show change-proposal
 strict-spec-cli sample-show change-proposal
-strict-spec-cli template-show scaffold/changes/proposal.yaml
+strict-spec-cli template-show scaffold/config.yaml
 ```
 
 ### Shared Schema Cache

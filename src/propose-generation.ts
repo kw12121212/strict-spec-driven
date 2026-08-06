@@ -714,13 +714,27 @@ function writeGeneratedArtifactIntoContainer(
 ): GenerateChangeArtifactResult {
   const target = buildTarget(rootDir, changeDir, changeName, artifact, input);
   const artifactPath = normalizeRepoRelativePath(rootDir, target.absolutePath);
+  const replaced = existsSync(target.absolutePath);
+
+  if (!replaced && (artifact === "delta-spec" || artifact === "delta-tech")) {
+    const candidate = asRecord(target.artifact, "$generated");
+    const mapping = asRecord(candidate.mapping ?? {}, "$generated.mapping");
+    const operations = asRecord(candidate.operations ?? {}, "$generated.operations");
+    const mappingEntries = Object.values(mapping).flatMap((value) => Array.isArray(value) ? value : []);
+    const operationEntries = Object.values(operations).flatMap((value) => isRecord(value) ? Object.keys(value) : []);
+    const definesTarget = artifact === "delta-spec" ? candidate.spec !== undefined : candidate.standard !== undefined;
+    if (!definesTarget && mappingEntries.length === 0 && operationEntries.length === 0) {
+      throw new Error(
+        `new ${artifact} artifacts require a mapping addition, an operation, or new-target metadata; named removals cannot create an empty artifact`,
+      );
+    }
+  }
 
   const preWriteDiagnostics = validateGeneratedArtifact(target.artifactType, target.artifact, artifactPath);
   if (preWriteDiagnostics.length > 0) {
     throw new Error(formatGenerationDiagnostics(artifact, inputLabel, preWriteDiagnostics, target.artifactType));
   }
 
-  const replaced = existsSync(target.absolutePath);
   const mutation = commitYamlMutation({
     rootDir,
     mutations: [{

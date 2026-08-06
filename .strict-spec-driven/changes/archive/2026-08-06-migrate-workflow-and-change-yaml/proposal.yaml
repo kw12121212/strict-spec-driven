@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: migrate-workflow-and-change-yaml
+  status: proposed
+summary:
+  what:
+    - Add artifact-aware CLI mutation coverage for workflow config and every active change-planning YAML family.
+    - Route change lifecycle writes and archive merges through the shared validated atomic mutation boundary.
+  why:
+    - Agents and operators still encounter direct-edit fallbacks and family-specific filesystem writes for config, proposal, design, questions, tasks, delta specs, and delta tech.
+    - The mutation foundation and lazy artifact generation prerequisites are complete, so this family can now adopt the repository-wide safe mutation contract.
+scope:
+  in:
+    - Add named config update and named-removal operations while keeping config deletion human-only.
+    - Complete field, keyed-item, list, named-removal, and lifecycle deletion behavior for proposal, design, questions, tasks, delta-spec, and delta-tech artifacts.
+    - Preserve roadmap provenance, requirement-question gates, completed-task safeguards, target identity, delta merge semantics, referential integrity, and atomic rollback.
+    - Update command metadata, mutation inventory, bundled skill guidance, mappings, and focused plus copied-project regression coverage for the migrated families.
+  out:
+    - Changing the semantic content model of workflow config or change artifacts beyond what safe mutation requires.
+    - Replacing stable domain-oriented CLI commands with a monolithic generic YAML writer.
+    - Migrating roadmap, SOP, lesson, harness, architecture, design-system, schema, template, sample, fixture, or manifest families covered by later planned changes.
+unchanged_behavior:
+  - Existing stable command names, machine-readable output contracts, dist-only execution, and two-active-change behavior remain compatible.
+  - Requirement questions remain non-deletable until resolved, completed tasks cannot be silently discarded, and cancel remains limited to active changes.
+  - Verify and archive retain exclusive-target checks, delta merge behavior, index regeneration, roadmap reconciliation, and deterministic failures.
+roadmap:
+  milestone: cli-yaml-artifact-coverage
+  planned_change: migrate-workflow-and-change-yaml

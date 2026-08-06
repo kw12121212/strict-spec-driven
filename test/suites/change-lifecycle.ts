@@ -59,6 +59,8 @@ try {
       "schema: strict-spec-driven/task-list/v2",
       "schema_version: 2",
       "artifact_type: task_list",
+      "schema_file: templates/strict-spec-driven/schemas/task-list.yaml",
+      "change: my-change",
       "sections:",
       "  Implementation:",
       "    task-a:",
@@ -72,6 +74,9 @@ try {
       "      text: Run tests",
       "      status: pending",
       "      command: bun test/run.ts",
+      "testing_gates:",
+      "  validation_task: test-a",
+      "  unit_test_task: test-a",
     ].join("\n") + "\n",
     "utf8",
   );
@@ -157,11 +162,24 @@ const applyDeterminismDir = mkdtempSync(path.join(os.tmpdir(), "strict-spec-appl
 try {
   mkdirSync(path.join(applyDeterminismDir, ".strict-spec-driven", "changes", "det-test"), { recursive: true });
   const tasksContent = [
+    "schema: strict-spec-driven/task-list/v2",
+    "schema_version: 2",
+    "artifact_type: task_list",
+    "schema_file: templates/strict-spec-driven/schemas/task-list.yaml",
+    "change: det-test",
     "sections:",
-    "  Build:",
+    "  Implementation:",
     "    build:",
     "      text: Build step",
     "      status: pending",
+    "  Testing:",
+    "    test:",
+    "      text: Test step",
+    "      status: pending",
+    "      command: bun test/run.ts",
+    "testing_gates:",
+    "  validation_task: test",
+    "  unit_test_task: test",
   ].join("\n") + "\n";
 
   for (let i = 0; i < 2; i++) {
@@ -174,7 +192,7 @@ try {
     context.assert(result.status === 0, `apply determinism run ${i + 1} exits zero`);
     const parsed = JSON.parse(result.stdout.trim());
     context.assert(
-      parsed.sectionName === "Build" && parsed.taskId === "build" && !("taskText" in parsed),
+      parsed.sectionName === "Implementation" && parsed.taskId === "build" && !("taskText" in parsed),
       `apply determinism run ${i + 1} output matches expected fields`,
     );
   }
@@ -4143,7 +4161,120 @@ context.assert(
   `stderr: ${removedReviewResult.stderr.trim()}`,
 );
 
-context.section("[X] mutation results identify their recovery assets");
+context.section("[X] workflow config artifact-aware mutations");
+
+const configEditFixture = createCopiedProjectWorkspace("todo-app");
+try {
+  const { workspaceRoot } = configEditFixture;
+  const initResult = projectWorkspaceCli(workspaceRoot, ["init"]);
+  context.assert(initResult.status === 0, "config-edit fixture initializes strict workflow state", initResult.stderr.trim());
+  const configPath = path.join(workspaceRoot, ".strict-spec-driven", "config.yaml");
+  const beforeConfig = readFileSync(configPath, "utf8");
+
+  const editResult = projectWorkspaceCli(workspaceRoot, [
+    "config-edit",
+    "--preferred-human-language", "Chinese",
+    "--context", "Copied workspace config mutation coverage.",
+    "--rule", "workflow-test:Keep copied-project tests isolated.",
+    "--regression-command", "bun run build && bun test/run.ts",
+    "--coverage-threshold", "75",
+    "--coverage-include", "src/**",
+    "--coverage-exclude", "src/generated/**",
+    "--maintenance-check", "generated-doc-check",
+  ]);
+  context.assert(editResult.status === 0, "config-edit accepts named scalar and list intent", editResult.stderr.trim());
+  const editPayload = JSON.parse(editResult.stdout) as {
+    valid: boolean;
+    committed: boolean;
+    artifactPath: string;
+    changes: Array<{ artifactKind?: string; schemaKey?: string }>;
+  };
+  context.assert(
+    editPayload.valid
+      && editPayload.committed
+      && editPayload.artifactPath === ".strict-spec-driven/config.yaml"
+      && editPayload.changes[0]?.artifactKind === "workflow-config"
+      && editPayload.changes[0]?.schemaKey === "strict-spec-driven/schemas/config.yaml",
+    "config-edit reports the confined target and workflow-config recovery assets",
+    editResult.stdout.trim(),
+  );
+
+  const edited = yamlModule.parseYamlDocument<Record<string, any>>(readFileSync(configPath, "utf8"));
+  context.assert(edited.schema === "strict-spec-driven/config/v1", "config-edit preserves unnamed schema identity");
+  context.assert(edited.preferred_human_language === "Chinese", "config-edit updates a named scalar");
+  context.assert(
+    edited.rules["workflow-test"].includes("Keep copied-project tests isolated."),
+    "config-edit appends a categorized rule",
+  );
+  context.assert(
+    edited.review_evidence.project_regression.coverage.scope.include.includes("src/**")
+      && edited.review_evidence.project_regression.coverage.scope.exclude.includes("src/generated/**"),
+    "config-edit appends nested coverage lists",
+  );
+  context.assert(
+    edited.maintenance.checks.some((check: { type?: string }) => check.type === "generated-doc-check"),
+    "config-edit upserts a maintenance check by type",
+  );
+
+  const repeatResult = projectWorkspaceCli(workspaceRoot, [
+    "config-edit",
+    "--rule", "workflow-test:Keep copied-project tests isolated.",
+    "--coverage-include", "src/**",
+    "--maintenance-check", "generated-doc-check",
+  ]);
+  context.assert(repeatResult.status === 0, "equivalent config-edit intent is idempotent", repeatResult.stderr.trim());
+  const repeated = yamlModule.parseYamlDocument<Record<string, any>>(readFileSync(configPath, "utf8"));
+  context.assert(
+    repeated.rules["workflow-test"].filter((entry: string) => entry === "Keep copied-project tests isolated.").length === 1
+      && repeated.review_evidence.project_regression.coverage.scope.include.filter((entry: string) => entry === "src/**").length === 1
+      && repeated.maintenance.checks.filter((entry: { type?: string }) => entry.type === "generated-doc-check").length === 1,
+    "config-edit de-duplicates lists and keyed maintenance checks",
+  );
+
+  const removeResult = projectWorkspaceCli(workspaceRoot, [
+    "config-edit",
+    "--remove-rule", "workflow-test:Keep copied-project tests isolated.",
+    "--remove-coverage-exclude", "src/generated/**",
+    "--remove-maintenance-check", "generated-doc-check",
+    "--remove-context",
+  ]);
+  context.assert(removeResult.status === 0, "config-edit removes only named entries", removeResult.stderr.trim());
+  const removed = yamlModule.parseYamlDocument<Record<string, any>>(readFileSync(configPath, "utf8"));
+  context.assert(removed.context === undefined, "config-edit removes the named context scalar");
+  context.assert(removed.rules["workflow-test"] === undefined, "config-edit removes an empty rule category after its last entry");
+  context.assert(removed.maintenance === undefined, "config-edit removes an empty maintenance container");
+  context.assert(
+    removed.review_evidence.project_regression.coverage.scope.include.includes("src/**")
+      && removed.review_evidence.project_regression.coverage.scope.exclude === undefined,
+    "config-edit preserves unremoved coverage content",
+  );
+
+  const stableBeforeInvalid = readFileSync(configPath, "utf8");
+  const invalidThreshold = projectWorkspaceCli(workspaceRoot, ["config-edit", "--coverage-threshold", "101"]);
+  context.assert(
+    invalidThreshold.status !== 0 && invalidThreshold.stderr.includes("0 through 100"),
+    "config-edit rejects an invalid coverage threshold deterministically",
+    invalidThreshold.stderr.trim(),
+  );
+  context.assert(readFileSync(configPath, "utf8") === stableBeforeInvalid, "rejected config-edit leaves prior bytes unchanged");
+
+  const invalidRemoval = projectWorkspaceCli(workspaceRoot, ["config-edit", "--remove-coverage-include", "src/**"]);
+  context.assert(invalidRemoval.status !== 0, "config-edit rejects a candidate that violates the coverage schema");
+  context.assert(readFileSync(configPath, "utf8") === stableBeforeInvalid, "schema-invalid config removal rolls back completely");
+
+  const deleteResult = projectWorkspaceCli(workspaceRoot, ["config-edit", "--delete"]);
+  context.assert(
+    deleteResult.status !== 0 && deleteResult.stderr.includes("unsupported argument --delete"),
+    "config-edit exposes no whole-config deletion operation",
+    deleteResult.stderr.trim(),
+  );
+  context.assert(existsSync(configPath), "rejected config deletion leaves the workflow config present");
+  context.assert(beforeConfig !== readFileSync(configPath, "utf8"), "accepted config edits changed the initialized artifact");
+} finally {
+  configEditFixture.cleanup();
+}
+
+context.section("[Y] mutation results identify their recovery assets");
 
 const surfaceIdentifierFixture = createCopiedProjectWorkspace("todo-app");
 try {

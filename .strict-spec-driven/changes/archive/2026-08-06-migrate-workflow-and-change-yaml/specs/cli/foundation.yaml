@@ -1,0 +1,55 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/workflow-config-author.ts
+    - src/propose-generation.ts
+    - src/yaml-mutation.ts
+    - src/apply.ts
+    - src/archive.ts
+    - src/cli/cmd-workflow.ts
+    - src/cli/cmd-generation.ts
+    - src/cli/cmd-change.ts
+    - src/cli/command-metadata-entries.ts
+    - inventory/yaml-mutation-surfaces.yaml
+    - src/strict-spec-cli.ts
+    - src/cli/registry.ts
+    - src/mcp/inventory.ts
+    - src/mcp/tools.ts
+    - skills/strict-spec-init/SKILL.md
+    - skills/strict-spec-modify/SKILL.md
+    - README.md
+    - README.zh.md
+  tests:
+    - test/suites/change-lifecycle.ts
+    - test/suites/foundation-and-fixtures.ts
+    - test/suites/roadmap-and-migration.ts
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/mcp-server.ts
+operations:
+  ADDED:
+    cli-owns-workflow-config-and-change-yaml-mutations:
+      strength: MUST
+      statement: The system MUST expose artifact-aware CLI operations for workflow configuration and active change proposal, design, question, task, delta-spec, and delta-tech YAML that create or update only named semantic content, remove only named entries, permit whole-artifact or lifecycle deletion only where policy allows, preserve every unnamed field and related artifact, validate each complete resulting YAML artifact, atomically commit each changed artifact without requiring direct YAML editing, and preserve existing verified apply, cancel, verify, and archive lifecycle behavior.
+      scenarios:
+        config-named-mutation-preserves-unrelated-content:
+          - GIVEN: a valid workflow config contains review evidence, maintenance checks, rules, and unrelated optional content
+          - WHEN: a caller uses the config authoring command to update one named value or remove one named entry
+          - THEN: the confined config artifact is schema-valid, only the named content changes, every unrelated value remains unchanged, and deletion remains deterministically unavailable
+        planning-artifact-operations-are-intent-scoped:
+          - GIVEN: an active change contains valid proposal, design, questions, tasks, delta specs, or delta tech with content beyond the requested mutation
+          - WHEN: the corresponding domain CLI operation creates or updates a named field, keyed item, list value, mapping, requirement, rule, scenario, or testing gate, or requests a permitted named removal
+          - THEN: the command changes only the named semantic content, preserves change and target identity plus every unnamed value and sibling artifact, and emits deterministic machine-readable results
+        lifecycle-safeguards-govern-deletion:
+          - GIVEN: an active change contains proposal provenance, canonical requirement questions, completed tasks, delta targets, or archived-state relationships protected by lifecycle policy
+          - WHEN: a caller requests removal, whole-artifact deletion, cancellation, apply, verification, or archive
+          - THEN: the command preserves proposal and requirement-question gates, completed-task safeguards, active/archive identity, delta merge rules, indexes, and roadmap reconciliation, rejecting any forbidden transition before mutation
+        failed-artifact-mutation-rolls-back:
+          - GIVEN: a config, generated change artifact, artifact deletion, or apply task-status mutation would fail schema, confinement, relationship, or filesystem validation after its candidate has been prepared
+          - WHEN: the shared YAML mutation boundary attempts to commit the requested artifact operation
+          - THEN: the command exits non-zero with stable diagnostics and every pre-existing target and sibling artifact remains unchanged
+  MODIFIED: {}
+  REMOVED: {}

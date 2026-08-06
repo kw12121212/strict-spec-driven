@@ -160,6 +160,13 @@ export const MCP_MUTATING_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
     mutates: true,
   },
   {
+    name: "config_edit",
+    description: mcpToolDescription("config-edit"),
+    safety: "write",
+    cliCommand: "config-edit",
+    mutates: true,
+  },
+  {
     name: "propose_change",
     description: mcpToolDescription("propose"),
     safety: "write",

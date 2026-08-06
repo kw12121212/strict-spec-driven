@@ -18,6 +18,7 @@ before running anything. Do not guess.
 ```yaml
 check-workflow-state: strict-spec-cli check-workflow-state
 modify: strict-spec-cli modify [change-name|archive-dir]
+generate: strict-spec-cli generate <change-name> <proposal|design|questions|tasks|delta-spec|delta-tech> --<named-args>
 verify: strict-spec-cli verify <change-name>
 ```
 
@@ -81,13 +82,15 @@ run `init` from this skill.
    Also read `.strict-spec-driven/config.yaml`, `.strict-spec-driven/specs/INDEX.yaml`,
    and relevant main specs when editing delta specs.
 
-4. **Apply targeted edits**
-   - in `proposal.yaml`, update structured fields like `summary`, `scope`, or
-     `unchanged_behavior`
-   - in `design.yaml`, update `approach`, `decisions`, `alternatives`, or `risks`
-   - in strict YAML delta specs, preserve `target_spec`, `mapping`, and
-     `operations`
-   - in `tasks.yaml`, prefer `strict-spec-cli generate <change-name> tasks` to
+4. **Apply targeted edits through `generate`**
+   - for `proposal.yaml`, use the proposal generator's named summary, scope,
+     unchanged-behavior, status, roadmap-link, and removal arguments
+   - for `design.yaml`, use named approach, decision, alternative, risk,
+     removal, or isolated deletion arguments
+   - for strict YAML delta specs and delta tech, use target-confined mapping,
+     operation, requirement/rule, scenario, removal, and deletion arguments;
+     preserve `target_spec` or `target_standard` identity
+   - for `tasks.yaml`, use `strict-spec-cli generate <change-name> tasks` to
      add or update a task — one invocation per task, `--section <name> --task
      <id> --text "..."` (upserts by section and task id, so
      other tasks are untouched). Restating a task is a field-level merge that
@@ -97,12 +100,12 @@ run `init` from this skill.
      and move a task between sections by `--remove`-ing it and restating it
      under the new section in the same call; set gates with
      `--validation-task`/`--unit-test-task`. Use `--text=...`/`--command=...`
-     when a value begins with a dash. Fall back to direct YAML editing only for
-     changes the command cannot express, such as renaming a task id. Either
-     way, preserve existing `status: complete` entries unless the user
-     explicitly asks to change completed work
-   - in `questions.yaml`, add new `open` entries or move resolved decisions into
-     `resolved`
+     when a value begins with a dash. Rename a task id by removing the old id
+     and restating it under the new id in one invocation. Preserve existing
+     `status: complete` entries unless the user explicitly asks to change
+     completed work
+   - for `questions.yaml`, use named open, resolved, resolve, and removal
+     arguments; canonical requirement questions remain protected
 
 5. **Validate after editing** — when the edited change is implementation-complete,
    run:
@@ -121,3 +124,5 @@ run `init` from this skill.
 - Preserve completed task state unless the user explicitly asks otherwise
 - Keep strict delta specs aligned to the target main spec paths
 - Keep mappings in structured YAML fields, not prose
+- Never hand-edit change planning or delta YAML; every supported mutation flows
+  through `generate`

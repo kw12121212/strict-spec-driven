@@ -18,6 +18,7 @@ before running anything. Do not guess.
 
 ```yaml
 init: strict-spec-cli init
+config-edit: strict-spec-cli config-edit --<named-args>
 ```
 
 ## Prerequisites
@@ -58,7 +59,9 @@ the active user message explicitly asks for a different language.
    - what the project does
    - the tech stack and languages
    - key conventions or constraints worth preserving
-   Then configure `review_evidence.project_regression.command` with the
+   Apply the drafted values through `strict-spec-cli config-edit` named
+   arguments; never edit `config.yaml` directly. Then configure
+   `review_evidence.project_regression.command` with the
    project's real complete regression command (build plus full test run) for
    the detected toolchain — the scaffold ships a REPLACE placeholder, not a
    runnable command. Recommend declaring the commented coverage contract
@@ -92,6 +95,8 @@ the active user message explicitly asks for a different language.
 ## Rules
 
 - Do not create a change during initialization
+- Never hand-edit `.strict-spec-driven/config.yaml`; use `config-edit` for every
+  post-init field, list, and named-removal mutation
 - Keep the `context` field concise; a few sentences are enough
 - Do not overwrite existing `.strict-spec-driven/` artifacts when repairing
   scaffold files

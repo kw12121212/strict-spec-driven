@@ -127,7 +127,8 @@ Skills 是通过 `install.sh` 安装的 Agent Skills 包。在 Claude Code 中�
 只有请求者自己的话（包括他在当前请求里已经说过的内容），或者回放的路线图 planned-change
 与里程碑详情，才能回答这些问题。
 
-`propose` 会把五条固定问题作为 open 条目预置进 `questions.yaml`，因此新建的变更**一开始就是被阻断的**：
+第一次运行 `generate <change-name> questions ...` 时会把五条固定问题作为 open 条目写入
+`questions.yaml`，因此刚开始编写的变更会被阻断：
 
 | 问题 id | 问什么 | 怎样才算答完整 |
 |---|---|---|
@@ -150,14 +151,14 @@ strict-spec-cli generate <change-name> questions --resolve requirement-problem \
 ```
 
 只要任一固定问题缺失、仍处于 open、由 assumption 回答，或者已解决却完全没有归属标注，
-`ready` 就会输出 `requirement_intake` 诊断并非零退出。questions 生成器的 `--reset`
-会保留 requirement 类条目，并且没有任何标志可以删除它们。
+`ready` 就会输出 `requirement_intake` 诊断并非零退出。没有任何 questions 生成器标志
+可以删除 requirement 类条目。
 
 强制力分三层，值得说清楚哪层管什么：
 
 | 层 | 机制 | 保证什么 |
 |---|---|---|
-| CLI | `propose` 预置、`ready` 诊断 | 问题存在、已被回答、带有归属 |
+| CLI | 第一次编写 questions、`ready` 诊断 | 问题存在、已被回答、带有归属 |
 | Skills | 四个 skill 提示词中的提问技术，由 `validate-skills` 强制 | 一次问一条、每条带具体猜测、提问前先解释、推回时说明理由 |
 | 都不管 | — | agent 是否真的认真拷问过。这是判断，无法检查；记录 `answered_by: assumption` 让糊弄留下痕迹，而不是阻止它 |
 
@@ -218,7 +219,7 @@ CLI 也会内置捆绑的 schema 和脚手架资源，因此已安装的 Skills 
 node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-list
 node {{SKILL_DIR}}/scripts/strict-spec-driven.js schema-show change-proposal
 node {{SKILL_DIR}}/scripts/strict-spec-driven.js sample-show change-proposal
-node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/changes/proposal.yaml
+node {{SKILL_DIR}}/scripts/strict-spec-driven.js template-show scaffold/config.yaml
 ```
 
 ### 共享模式缓存

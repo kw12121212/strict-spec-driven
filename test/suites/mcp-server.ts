@@ -207,6 +207,7 @@ export async function runMcpServerSuite(context: TestContext): Promise<void> {
   context.assert(toolNames.includes("harness_logs"), "MCP read tools include bounded harness logs");
   const mutatingToolNames = toolsModule.MUTATING_TOOL_DEFINITIONS.map((tool) => tool.name);
   context.assert(mutatingToolNames.includes("init_workflow"), "MCP mutating tools include workflow init");
+  context.assert(mutatingToolNames.includes("config_edit"), "MCP mutating tools include workflow config authoring");
   context.assert(mutatingToolNames.includes("propose_change"), "MCP mutating tools include change proposal");
   context.assert(mutatingToolNames.includes("generate_change_artifact"), "MCP mutating tools include artifact generation");
   context.assert(mutatingToolNames.includes("mark_next_task_complete"), "MCP mutating tools include task-state completion");

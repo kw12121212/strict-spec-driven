@@ -5044,13 +5044,14 @@ artifact_families:
     validation_owner: templates/strict-spec-driven/schemas/config.yaml
     operations:
       create: cli-owned
-      update: direct-write
-      named_remove: direct-write
+      update: cli-owned
+      named_remove: cli-owned
       delete: human-only
     reference_side_effects:
       - Review evidence and maintenance behavior change when config fields change.
     cli_owners:
       - init
+      - config-edit
     direct_write_paths:
       - src/migrate.ts
       - src/scaffold.ts
@@ -5058,6 +5059,7 @@ artifact_families:
     evidence:
       - .strict-spec-driven/config.yaml
       - templates/strict-spec-driven/schemas/config.yaml
+      - src/workflow-config-author.ts
   architecture-state:
     artifact_types:
       - architecture
