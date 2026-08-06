@@ -9,6 +9,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/testing/a-self-populating-cache-cannot-be-made-absent-by-49b4d2.yaml
+    a-coverage-registry-that-only-names-other-tests-1d9037:
+      title: A coverage registry that only names other tests proves nothing until each entry is resolved
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/a-coverage-registry-that-only-names-other-tests-1d9037.yaml
   tooling:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability

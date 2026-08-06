@@ -1,0 +1,35 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: prove-yaml-artifact-operation-coverage
+approach:
+  - 'Extend the existing validateYamlMutationInventory function in scripts/check-yaml-mutation-inventory.ts with a completeness pass that runs after the current structural and coverage passes. The pass reads the registered CLI command list from the compiled command registry so a cli_owners entry naming a command the CLI does not register is a hard diagnostic, and it rejects a repository-owned family that declares any operation state cli-owned without at least one owner. Direct-write completeness reuses the already-declared direct_write_paths and the mutation-surface classifications: a path covered only by a surface classified remaining-direct-writer while its family claims CLI ownership is reported as an unowned mutation path.'
+  - Operation-matrix proof lives in a new test suite rather than in the script, because exercising create, update, removal, deletion, rollback, and copied-project behavior needs the existing copied-project workspace harness. The suite carries an explicit per-family case table keyed by inventory family id; a table entry names the CLI owner command it drives and which matrix dimensions that family's lifecycle permits, and the suite asserts the table's key set equals the inventory's family key set so a newly inventoried family fails until it declares matrix coverage. Each case runs its family's commands inside a copied project workspace, asserts the mutation, then asserts the invalid-input variant leaves the artifact byte-identical.
+decisions:
+  gate-lives-in-existing-script:
+    decision: Add the completeness diagnostics to scripts/check-yaml-mutation-inventory.ts rather than creating a second checker script.
+    rationale: inventory-edit already gates writes on this one function through the --candidate path, so a separate script would leave inventory writes ungated by the new completeness rules and would duplicate the discovery and pattern-matching code.
+  matrix-in-test-suite:
+    decision: Prove the per-operation matrix in a new test/suites/yaml-operation-matrix.ts suite driven by a family-keyed case table, not by static assertions inside the inventory script.
+    rationale: The matrix dimensions that matter (rollback, no-partial-write on invalid input, index reconciliation, copied-project behavior) are observable only by running the commands against a real workspace, which the script cannot do without becoming a test runner; the case table still gives the fail-on-new-family property the milestone requires.
+  matrix-registers-existing-coverage:
+    decision: The matrix suite declares each family/operation cell as either a reference to the existing suite and assertion that proves it, or as a cell the matrix suite executes itself; only uncovered cells run new commands.
+    rationale: The five completed migration changes already exercise most per-family operations across the authoring suites, so re-running them would duplicate assertions and lengthen the coverage-gate command that serves as review evidence, while the family-keyed table still supplies the fail-on-new-family property the milestone requires.
+  owner-required-only-for-cli-owned:
+    decision: The completeness gate requires a registered CLI owner only for operations whose state is cli-owned; human-only and not-applicable operations are proven through deterministic rejection in the matrix suite.
+    rationale: Requiring an owner for every operation state would need a new inventory field across every family, which the proposal places out of scope, and the milestone done criterion is already satisfied by a tested deterministic rejection.
+  direct-write-rule-checks-owner-not-classification:
+    decision: The direct-write completeness rule fails a family that declares direct_write_paths while naming no registered CLI owner, and a declared direct_write_path whose covering surfaces all carry a non-writing classification; it does not fail a path merely because its surface is classified remaining-direct-writer.
+    rationale: Surfaces such as src/apply.ts, src/archive.ts, and the bundled skill guidance are legitimately classified remaining-direct-writer today while their families are fully CLI-owned, so failing on that classification would reject the current inventory and force a classification change the milestone does not ask for; the milestone criterion is about a missing registered owner, not about the writer classification.
+  owners-checked-against-registration-order:
+    decision: Registered command names come from COMMAND_REGISTRATION_ORDER in src/cli/registry.ts, imported directly by the check script, rather than from compiled dist output.
+    rationale: That export carries only a type-level import, so reading it costs nothing at runtime and removes the stale-build failure mode a dist-based read would introduce, since scripts/ is copied into dist rather than compiled.
+alternatives:
+  - option: Assert the operation matrix by parsing test source files for per-family command invocations.
+    reason: Source-text matching proves a command name appears in a file, not that the operation succeeded or that invalid input left no partial write, so it would pass while the behavior is broken.
+  - option: Introduce a separate coverage-manifest YAML artifact declaring matrix cases outside the test suite.
+    reason: It adds a third document that must itself be kept in sync with both the inventory and the tests, multiplying the drift surface the change is meant to shrink.
+risks:
+  - A full matrix across seventeen families in copied workspaces can lengthen the regression suite noticeably, which affects the coverage-gate command used as review evidence.
+  - Families whose delete operation is human-only must assert deterministic rejection rather than deletion; treating rejection as a skipped dimension would leave a real gap unproven.

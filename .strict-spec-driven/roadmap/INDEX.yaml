@@ -10,7 +10,7 @@ milestones:
   cli-yaml-artifact-coverage:
     title: Complete CLI coverage for YAML artifact families
     path: roadmap/milestones/cli-yaml-artifact-coverage.yaml
-    status: proposed
+    status: complete
   ai-cli-only-yaml-enforcement:
     title: AI CLI-only YAML enforcement
     path: roadmap/milestones/ai-cli-only-yaml-enforcement.yaml

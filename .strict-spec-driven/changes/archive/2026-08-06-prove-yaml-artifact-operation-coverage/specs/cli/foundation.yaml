@@ -1,0 +1,60 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - scripts/check-yaml-mutation-inventory.ts
+  tests:
+    - test/suites/yaml-operation-matrix.ts
+    - test/suites/foundation-and-fixtures.ts
+    - test/run.ts
+operations:
+  ADDED:
+    cli-yaml-operation-matrix-regression:
+      strength: MUST
+      statement: The repository regression suite MUST prove, for every artifact family recorded in the YAML mutation inventory, the operations that family's lifecycle permits — creation, scalar and keyed updates, additive list updates, exact named removal, allowed deletion or deterministic deletion rejection, invalid-input rejection that leaves the artifact unchanged, rollback, index and reference reconciliation, deterministic repeated output, installed CLI behavior, and copied-project workflows — and MUST fail when an inventoried family has no declared operation-matrix coverage.
+      scenarios:
+        every-inventoried-family-has-matrix-coverage:
+          - GIVEN: The YAML mutation inventory declares a set of artifact families
+          - WHEN: The regression suite runs
+          - THEN: Each inventoried family is exercised through its declared CLI mutation owner across the operations its lifecycle permits
+        new-family-without-coverage-fails:
+          - GIVEN: An artifact family is added to the mutation inventory without operation-matrix coverage
+          - WHEN: The regression suite runs
+          - THEN: It fails with a diagnostic naming the family that has no declared operation-matrix coverage
+        invalid-input-leaves-artifact-unchanged:
+          - GIVEN: A matrix case supplies invalid input to a family's CLI mutation owner
+          - WHEN: The command is rejected
+          - THEN: The target artifact and every dependent index or reference are unchanged from before the attempt
+        lifecycle-rejection-is-proven:
+          - GIVEN: A family whose deletion is recorded as human-only or not-applicable
+          - WHEN: Deletion is attempted through that family's CLI mutation owner
+          - THEN: The command exits non-zero with a deterministic diagnostic explaining the lifecycle rule and the artifact remains present
+    cli-inventory-coverage-requires-registered-mutation-owner:
+      strength: MUST
+      statement: The repository YAML mutation coverage check MUST fail when a repository-owned artifact family declares an operation as CLI-owned without naming at least one CLI mutation owner, when a named owner is not a command the CLI registers, when a family declares direct-write paths while naming no registered CLI mutation owner at all, or when a declared direct-write path is covered only by mutation surfaces that classify it as something other than a writing surface, reporting each case as a distinct diagnostic identifying the family and the offending operation or path while leaving the existing path, surface, and evidence diagnostics unchanged.
+      scenarios:
+        cli-owned-operation-without-owner-fails:
+          - GIVEN: A family in the mutation inventory records an operation state of CLI-owned and declares no CLI mutation owners
+          - WHEN: The repository YAML mutation coverage check runs
+          - THEN: It exits non-zero with a diagnostic naming the family and the operation that has no declared CLI mutation owner
+        unregistered-owner-command-fails:
+          - GIVEN: A family names a CLI mutation owner that the CLI does not register as a command
+          - WHEN: The repository YAML mutation coverage check runs
+          - THEN: It exits non-zero with a diagnostic naming the family and the unregistered command
+        direct-write-path-without-any-owner-fails:
+          - GIVEN: A family declares direct-write paths while naming no registered CLI mutation owner
+          - WHEN: The repository YAML mutation coverage check runs
+          - THEN: It exits non-zero with a diagnostic naming the family and the direct-write path that no CLI command owns
+        direct-write-path-contradicted-by-its-surface-fails:
+          - GIVEN: A declared direct-write path is covered only by mutation surfaces classified as read-only, external, legacy-input, or human-only
+          - WHEN: The repository YAML mutation coverage check runs
+          - THEN: It exits non-zero with a diagnostic naming the family and the path its surfaces do not agree is a writing surface
+        current-inventory-passes:
+          - GIVEN: The checked-in mutation inventory in which every repository-owned family names registered CLI owners for its CLI-owned operations
+          - WHEN: The repository YAML mutation coverage check runs
+          - THEN: It exits zero and reports no completeness diagnostics
+  MODIFIED: {}
+  REMOVED: {}

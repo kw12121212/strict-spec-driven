@@ -1,0 +1,77 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: prove-yaml-artifact-operation-coverage
+open: []
+resolved:
+  - id: problem-being-solved
+    question: What problem does this change solve, and what would remain broken without it?
+    context: 'A sufficient answer names the concrete failure the milestone is closing rather than the implementation. Impact: proposal scope and delta-spec statements. Answered from the replayed roadmap planned-change and milestone detail rather than repository evidence.'
+    answer: The mutation inventory records which CLI command owns each YAML family, but nothing fails when that record is wrong or absent. The roadmap requires a repository-level coverage check that fails when a schema-registered or repository-owned YAML family has no declared CLI mutation owner, and an automated proof that each family's supported operations actually work. Without it, a newly added YAML family or a re-introduced direct-write path passes review silently.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: observable-outcome
+    question: What observable outcome marks this change as done?
+    context: 'A sufficient answer states externally checkable behavior, not internal structure. Impact: delta-spec scenarios and the Verification tasks. Answered from the roadmap milestone done_criteria.'
+    answer: The repository coverage check exits non-zero with a named diagnostic when a repository-owned family declares a cli-owned operation without a registered CLI mutation owner or when a declared direct-write path has no CLI owner, and the regression suite fails when an inventoried family has no operation-matrix case. Both pass against the current tree.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: operation-scope
+    question: Which operations must the automated proof exercise for each family?
+    context: 'A sufficient answer enumerates the matrix dimensions so the test table is not invented. Impact: implementation and testing task coverage. Answered from the planned-change details field.'
+    answer: Creation, scalar and keyed updates, additive lists, named removals, allowed or rejected deletion, invalid-input no-mutation behavior, rollback, index and reference reconciliation, deterministic output, installed CLI behavior, and copied-project workflows.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: The mutation inventory records which CLI command owns each repository-owned YAML family, but nothing fails when that record is wrong, empty, or names a command the CLI does not register, and no automated proof exists that a family's declared operations actually work. Maintainers adding a YAML family or reintroducing a direct-write path get no signal; the gap surfaces only in manual review.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: All five migration planned changes in the cli-yaml-artifact-coverage milestone are complete and every family now claims CLI ownership, so this is the milestone's remaining planned change and the point at which the claimed coverage must be enforced rather than asserted by hand.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: The repository coverage check exits non-zero with a named diagnostic when a repository-owned family declares a CLI-owned operation with no registered CLI mutation owner or has an unowned direct-write path, and the regression suite fails when an inventoried family has no operation-matrix case. Both pass against the current tree.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'Proving coverage means two enforced mechanisms, not documentation: a completeness pass inside the existing repository inventory check, and a per-family operation-matrix regression suite driven by a table keyed to the inventory''s family ids. It does not mean rewriting the inventory''s semantic model or changing any family''s existing mutation behavior.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: Existing inventory diagnostic codes and their behavior stay unchanged, inventory-edit stays gated on the same coverage function, yaml-surface-list keeps reporting inventoried operation states verbatim, no CLI command is added or renamed, no family's mutation behavior changes, and the configured coverage threshold stays at 78.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: matrix-suite-vs-existing-coverage
+    question: Should the operation-matrix suite re-execute every operation itself, or register the existing per-family suite coverage and only add the dimensions no suite proves today?
+    context: 'The five completed migration changes already added per-family operation coverage spread across foundation-and-fixtures, spec-tech-authoring, change-lifecycle, and the architecture, design-system, harness, and harness-session authoring suites, including deletion and rejection cases. Impact: this decides the size of the Implementation tasks exercise-operation-matrix and cover-installed-and-copied, the regression suite''s runtime (which the coverage-gate command used as review evidence must still complete), and whether coverage is asserted once or twice; it does not change proposal scope or the delta-spec statements, which speak of the regression suite as a whole rather than of one file. Options: (a) registry approach — the matrix suite owns the family-keyed table and the fail-on-new-family assertion, each cell names the suite and assertion that already proves it, and the suite executes only the cells nothing covers today; (b) self-contained approach — the matrix suite drives every operation for every family itself, independent of the existing suites. Recommendation: (a), because it keeps a single fail-on-new-family gate without duplicating seventeen families of workspace setup, and duplicated assertions would grow suite runtime against the same coverage threshold.'
+    answer: Registry plus gap-filling. The matrix suite owns the family-keyed coverage table and the fail-on-new-family assertion; each declared cell names the existing suite and assertion that already proves that operation, and the suite executes only the cells no existing suite covers. This keeps one gate without duplicating per-family workspace setup and keeps regression runtime bounded against the declared coverage threshold.
+    status: resolved
+    kind: technical
+    answered_by: human
+  - id: human-only-operation-owners
+    question: Should the completeness gate also require a named CLI command for operations recorded as human-only or not-applicable, so the deterministic rejection itself has an owner?
+    context: 'The milestone done criterion accepts either a tested CLI operation or a deterministic rejection explaining the lifecycle rule. Several families currently record delete as human-only (workflow-config, lessons, sop) or not-applicable (legacy-migration-input, lessons named_remove), and those states carry no owner reference today. Impact: this affects the gate''s diagnostic rules in scripts/check-yaml-mutation-inventory.ts, the inventory document''s per-family fields, and whether the matrix suite must assert a rejection message for each such operation; it does not affect proposal scope or any main-spec requirement beyond the gate statement. Options: (a) require an owner only for cli-owned operations and prove rejection behavior in the matrix suite without changing the inventory schema; (b) extend the inventory so human-only and not-applicable operations also name the command that rejects them, a stronger check at the cost of a schema and document change across every family. Recommendation: (a), because it meets the done criterion through tested rejection behavior and keeps this change out of the inventory''s semantic model, which the proposal lists as out of scope.'
+    answer: Only cli-owned operations require a registered CLI mutation owner. Operations recorded human-only or not-applicable carry no owner field; the matrix suite proves their deterministic rejection behavior instead. The inventory's semantic model is unchanged, matching the proposal's out-of-scope statement.
+    status: resolved
+    kind: technical
+    answered_by: human

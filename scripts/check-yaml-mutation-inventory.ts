@@ -5,8 +5,10 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { load } from "js-yaml";
+import { COMMAND_REGISTRATION_ORDER } from "../src/cli/registry.js";
 
 const INVENTORY_PATH = "inventory/yaml-mutation-surfaces.yaml";
+const REGISTERED_COMMANDS = new Set<string>(COMMAND_REGISTRATION_ORDER);
 const YAML_PATHSPECS = ["*.yaml", "*.yml"];
 const MUTATION_PATHSPECS = ["*.ts", "*.js", "*.mjs", "*.cjs", "*.md", "*.sh", "*.ps1", "*.json"];
 const OPERATION_KEYS = ["create", "update", "named_remove", "delete"] as const;
@@ -20,6 +22,7 @@ const SURFACE_CLASSIFICATIONS = new Set([
   "legacy-input",
   "human-only",
 ]);
+const WRITING_SURFACE_CLASSIFICATIONS = new Set(["cli-owned", "remaining-direct-writer", "generated"]);
 const SURFACE_MECHANISMS = new Set([
   "filesystem-writer",
   "generated-output-writer",
@@ -234,8 +237,35 @@ export function validateYamlMutationInventory(options: InventoryValidationOption
     if (!asStringArray(family.reference_side_effects)?.length) {
       addDiagnostic(diagnostics, "missing-reference-side-effects", `${familyPath}.reference_side_effects`, "reference side effects must be recorded explicitly");
     }
-    if (!asStringArray(family.cli_owners)) {
+    const cliOwners = asStringArray(family.cli_owners);
+    if (!cliOwners) {
       addDiagnostic(diagnostics, "invalid-cli-owners", `${familyPath}.cli_owners`, "CLI owners must be a string sequence, which may be empty");
+    } else {
+      // An operation the inventory advertises as CLI-owned is a claim that some command performs it.
+      // Without a named owner the claim is unfalsifiable, so the family reads as covered while the
+      // operation has no implementation anyone can point at.
+      for (const operation of OPERATION_KEYS) {
+        if (operations?.[operation] === "cli-owned" && cliOwners.length === 0) {
+          addDiagnostic(
+            diagnostics,
+            "missing-cli-owner",
+            `${familyPath}.operations.${operation}`,
+            `family '${familyId}' declares ${operation} as cli-owned but names no CLI mutation owner`,
+          );
+        }
+      }
+      // A named owner is only evidence if the CLI actually registers it; a renamed or dropped
+      // command would otherwise leave the inventory asserting coverage that cannot be invoked.
+      for (const owner of cliOwners) {
+        if (!REGISTERED_COMMANDS.has(owner)) {
+          addDiagnostic(
+            diagnostics,
+            "unknown-cli-owner",
+            `${familyPath}.cli_owners`,
+            `family '${familyId}' names '${owner}', which the CLI does not register as a command`,
+          );
+        }
+      }
     }
     const directWritePaths = asStringArray(family.direct_write_paths);
     if (!directWritePaths) {
@@ -245,6 +275,16 @@ export function validateYamlMutationInventory(options: InventoryValidationOption
         declaredDirectWritePaths.push({ familyId, path: directWritePath });
         if (!existsSync(path.join(rootDir, directWritePath))) {
           addDiagnostic(diagnostics, "stale-direct-write-path", `${familyPath}.direct_write_paths`, `direct write path does not exist: ${directWritePath}`);
+        }
+        // A direct writer alongside CLI owners is an accepted intermediate state; a direct writer
+        // with no CLI owner at all means the family's only route to mutation is an unowned one.
+        if (cliOwners?.length === 0) {
+          addDiagnostic(
+            diagnostics,
+            "unowned-direct-write-path",
+            `${familyPath}.direct_write_paths`,
+            `family '${familyId}' declares direct write path '${directWritePath}' but names no CLI mutation owner`,
+          );
         }
       }
     }
@@ -322,12 +362,30 @@ export function validateYamlMutationInventory(options: InventoryValidationOption
 
   const surfacePatterns = patternsFromEntries(surfaces);
   for (const directWritePath of declaredDirectWritePaths) {
+    const familyFieldPath = `$.artifact_families.${directWritePath.familyId}.direct_write_paths`;
     if (matchingPatterns(surfacePatterns, directWritePath.path).length === 0) {
       addDiagnostic(
         diagnostics,
         "uncovered-direct-write-path",
-        `$.artifact_families.${directWritePath.familyId}.direct_write_paths`,
+        familyFieldPath,
         `no mutation surface pattern covers declared direct write path: ${directWritePath.path}`,
+      );
+      continue;
+    }
+    // The family says this path writes YAML; its surfaces say what kind of writer it is. When every
+    // covering surface classifies it as something that does not write, the two halves of the
+    // inventory disagree and neither can be trusted as coverage evidence.
+    const coveringClassifications = Object.values(surfaces).filter((rawSurface) => {
+      const patterns = asStringArray(asMap(rawSurface)?.path_patterns) ?? [];
+      return matchingPatterns(patterns, directWritePath.path).length > 0;
+    }).map((rawSurface) => asMap(rawSurface)?.classification);
+    if (!coveringClassifications.some((classification) =>
+      typeof classification === "string" && WRITING_SURFACE_CLASSIFICATIONS.has(classification))) {
+      addDiagnostic(
+        diagnostics,
+        "non-writing-direct-write-surface",
+        familyFieldPath,
+        `direct write path '${directWritePath.path}' is covered only by surfaces that do not write it`,
       );
     }
   }

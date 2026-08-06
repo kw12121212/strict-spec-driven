@@ -3493,6 +3493,44 @@ context.assert(hasInventoryDiagnostic(invalidEnums.diagnostics, "invalid-operati
 context.assert(hasInventoryDiagnostic(invalidEnums.diagnostics, "invalid-surface-classification"), "invalid surface classifications are rejected");
 context.assert(hasInventoryDiagnostic(invalidEnums.diagnostics, "invalid-surface-operation"), "invalid surface operations are rejected");
 
+const missingOwnerInventory = cloneYamlMutationInventory();
+const missingOwnerFamilies = missingOwnerInventory.artifact_families as Record<string, Record<string, unknown>>;
+missingOwnerFamilies["workflow-config"].cli_owners = [];
+missingOwnerFamilies["workflow-config"].direct_write_paths = ["src/migrate.ts"];
+const missingOwner = validateYamlMutationInventory({ rootDir: ROOT, inventory: missingOwnerInventory, yamlPaths: [], mutationPaths: [] });
+context.assert(
+  hasInventoryDiagnostic(missingOwner.diagnostics, "missing-cli-owner", "workflow-config.operations.create"),
+  "a cli-owned operation with no declared owner names the family and the operation",
+);
+context.assert(
+  hasInventoryDiagnostic(missingOwner.diagnostics, "unowned-direct-write-path", "workflow-config.direct_write_paths"),
+  "a direct-write path in a family with no CLI owner is reported as unowned",
+);
+
+const unknownOwnerInventory = cloneYamlMutationInventory();
+const unknownOwnerFamilies = unknownOwnerInventory.artifact_families as Record<string, Record<string, unknown>>;
+(unknownOwnerFamilies["workflow-config"].cli_owners as string[]).push("config-rewrite");
+const unknownOwner = validateYamlMutationInventory({ rootDir: ROOT, inventory: unknownOwnerInventory, yamlPaths: [], mutationPaths: [] });
+context.assert(
+  hasInventoryDiagnostic(unknownOwner.diagnostics, "unknown-cli-owner", "workflow-config.cli_owners")
+    && unknownOwner.diagnostics.some((diagnostic) => diagnostic.message.includes("config-rewrite")),
+  "an owner the CLI does not register is reported with the offending command name",
+);
+
+const nonWritingSurfaceInventory = cloneYamlMutationInventory();
+const nonWritingFamilies = nonWritingSurfaceInventory.artifact_families as Record<string, Record<string, unknown>>;
+nonWritingFamilies["workflow-config"].direct_write_paths = ["skills/strict-spec-verify/SKILL.md"];
+const nonWritingSurface = validateYamlMutationInventory({
+  rootDir: ROOT,
+  inventory: nonWritingSurfaceInventory,
+  yamlPaths: [],
+  mutationPaths: [],
+});
+context.assert(
+  hasInventoryDiagnostic(nonWritingSurface.diagnostics, "non-writing-direct-write-surface", "workflow-config.direct_write_paths"),
+  "a direct-write path covered only by a read-only surface is reported as contradicted",
+);
+
 const duplicateInventoryRoot = mkdtempSync(path.join(os.tmpdir(), "strict-yaml-inventory-duplicate-"));
 try {
   const duplicateInventoryPath = path.join(duplicateInventoryRoot, "inventory.yaml");

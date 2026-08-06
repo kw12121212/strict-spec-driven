@@ -1,0 +1,31 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: prove-yaml-artifact-operation-coverage
+  status: proposed
+summary:
+  what:
+    - Turn the checked-in YAML mutation inventory into an enforced completeness gate that fails when a repository-owned YAML family or a declared direct-write path has no registered CLI mutation owner
+    - Add an operation-matrix regression suite that exercises the lifecycle-permitted CLI operations of every inventoried artifact family and fails when a family has no declared matrix case
+  why:
+    - The milestone requires a repository-level check that fails when a schema-registered or repository-owned YAML family lacks a declared CLI mutation owner; today the inventory check only proves path and surface coverage, never that a cli-owned operation names a real registered command
+    - All five migration planned changes are complete and every family now claims cli-owned operations, so without an enforced gate and an operation matrix the coverage is asserted by hand and silently regresses when a new family or direct-write path appears
+scope:
+  in:
+    - Declare per-family operation-matrix expectations and validate that every inventoried family is represented, so adding a family without matrix coverage fails
+    - Add a regression suite exercising creation, scalar and keyed updates, additive list updates, named removals, allowed or rejected deletion, invalid-input no-mutation, rollback, index and reference reconciliation, deterministic output, installed CLI behavior, and copied-project workflows across the inventoried families
+    - Wire the new suite into test/run.ts and keep the existing check:yaml-inventory package script and inventory-edit coverage gating working
+    - 'Extend scripts/check-yaml-mutation-inventory.ts with completeness diagnostics: an operation state of cli-owned with no cli_owners entry, a cli_owners entry that is not a registered CLI command, a family that declares direct_write_paths while naming no registered CLI owner at all, and a declared direct_write_path whose covering mutation surfaces all classify it as something other than a writing surface'
+  out:
+    - Changing the inventory schema's semantic model beyond the fields needed to declare matrix coverage
+    - Adding or renaming CLI commands, or altering any family's existing mutation behavior
+    - Raising the configured coverage threshold in .strict-spec-driven/config.yaml
+unchanged_behavior:
+  - The existing inventory diagnostics (uncovered-yaml-path, uncovered-mutation-path, uncovered-direct-write-path, stale-evidence, stale-surface-pattern) keep their codes and behavior
+  - inventory-edit stays gated on the repository inventory coverage check, and yaml-surface-list keeps reporting inventoried operation states verbatim
+  - scripts/check-yaml-mutation-inventory.ts stays runnable as bun scripts/check-yaml-mutation-inventory.ts and exits non-zero on diagnostics
+roadmap:
+  milestone: cli-yaml-artifact-coverage
+  planned_change: prove-yaml-artifact-operation-coverage

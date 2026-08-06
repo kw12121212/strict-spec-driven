@@ -1,0 +1,66 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: prove-yaml-artifact-operation-coverage
+sections:
+  Implementation:
+    add-cli-owner-completeness:
+      text: Extend validateYamlMutationInventory in scripts/check-yaml-mutation-inventory.ts with a missing-cli-owner diagnostic for any family declaring an operation state cli-owned while cli_owners is empty.
+      status: complete
+    validate-owner-names:
+      text: Validate every cli_owners entry against the CLI's registered command names and emit unknown-cli-owner for entries the CLI does not register.
+      status: complete
+    flag-unowned-direct-writes:
+      text: Emit unowned-direct-write-path when a family declares direct_write_paths while naming no registered CLI owner, and non-writing-direct-write-surface when a declared direct_write_path is covered only by surfaces classified read-only, external, legacy-input, or human-only.
+      status: complete
+    declare-matrix-table:
+      text: Add test/suites/yaml-operation-matrix.ts with a per-family coverage table keyed by inventory family id; each cell declares the owning CLI command and either the existing suite assertion that proves it or that the matrix suite executes it.
+      status: complete
+    assert-table-completeness:
+      text: Assert in the matrix suite that the case-table key set equals the inventory artifact_families key set, so a newly inventoried family fails until it declares matrix coverage.
+      status: complete
+    exercise-operation-matrix:
+      text: 'Populate the matrix cells: for each family and lifecycle-permitted operation, either reference the existing suite assertion that proves it or execute the operation in the matrix suite, covering creation, scalar and keyed updates, additive lists, named removal, allowed deletion or deterministic deletion rejection, invalid-input no-mutation, rollback, index and reference reconciliation, and deterministic repeated output.'
+      status: complete
+    cover-installed-and-copied:
+      text: Execute the matrix cells that no existing suite covers, including installed CLI behavior and copied-project workflows, using createCopiedProjectWorkspace and projectWorkspaceCli.
+      status: complete
+    register-suite:
+      text: Register runYamlOperationMatrixSuite in test/run.ts so the matrix suite runs in the complete project regression.
+      status: complete
+  Testing:
+    inventory-gate-unit-tests:
+      text: 'Add unit coverage in test/suites/foundation-and-fixtures.ts for the new completeness diagnostics: a candidate inventory with a cli-owned operation and empty cli_owners, one naming an unregistered command, and one whose direct_write_path is covered only by a remaining-direct-writer surface each produce the expected diagnostic code, while the checked-in inventory stays valid.'
+      status: complete
+    matrix-suite-run:
+      text: Run the new operation-matrix suite and confirm every inventoried family case passes, including the deletion-rejection cases for human-only families.
+      status: complete
+      command: bun test/run.ts
+    inventory-check-command:
+      text: Run the repository inventory coverage check and confirm it exits zero against the checked-in inventory with the new rules active.
+      status: complete
+      command: bun run check:yaml-inventory
+    project-regression:
+      text: Run the configured complete project regression with the declared coverage threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+  Verification:
+    run-ready:
+      text: Run strict ready for this change and confirm no blocking diagnostics remain.
+      status: complete
+      command: strict-spec-cli ready prove-yaml-artifact-operation-coverage
+    run-verify:
+      text: Run strict verify for this change and confirm artifact structure, task completion, open questions, and main-spec mapping validity.
+      status: complete
+      command: strict-spec-cli verify prove-yaml-artifact-operation-coverage
+    confirm-spec-mappings:
+      text: Confirm the delta spec's implementation and test mappings name the files actually changed and that verify-spec-mappings reports no missing coverage.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+    archive-readiness:
+      text: Confirm the delta spec merges cleanly into cli-foundation on archive and that the regenerated spec index stays valid.
+      status: complete
+testing_gates:
+  validation_task: inventory-check-command
+  unit_test_task: matrix-suite-run

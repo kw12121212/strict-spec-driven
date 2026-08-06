@@ -38,7 +38,7 @@ risks:
   - Artifact families have different identity and deletion rules; forcing identical flags without domain checks could weaken lifecycle safety.
   - Bundled schema and template edits can invalidate bootstrap, examples, cache exports, or compiled embedded assets unless regeneration is included in the transaction.
   - Removing scaffolded questions must preserve the canonical requirement-interrogation gate as real CLI-authored workflow state rather than silently dropping requirement evidence.
-status: proposed
+status: complete
 notes:
   - 'Compatibility decision: retain domain-oriented commands for usability while standardizing their internal write path and completion semantics.'
   - 'User decision: blank change scaffolds have no role in an AI CLI-only workflow; YAML planning artifacts are created only from structured facts supplied to CLI commands.'
