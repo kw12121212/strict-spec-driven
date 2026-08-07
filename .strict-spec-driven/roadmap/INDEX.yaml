@@ -14,7 +14,7 @@ milestones:
   ai-cli-only-yaml-enforcement:
     title: AI CLI-only YAML enforcement
     path: roadmap/milestones/ai-cli-only-yaml-enforcement.yaml
-    status: proposed
+    status: complete
   remove-artifact-file-mappings:
     title: Remove spec and standard file mappings
     path: roadmap/milestones/remove-artifact-file-mappings.yaml

@@ -1,0 +1,49 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: complete-cli-only-yaml-regression
+open: []
+resolved:
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: The AI CLI-only YAML enforcement milestone shipped its enforcement code, but the people relying on it — every agent and operator running a bundled skill against this repository — have no proof it still works end to end. The policy is proven only by calling scanTextForPolicyViolations on inline strings in test/suites/entrypoint-and-skills.ts, so validate-skills could stop exiting non-zero, stop naming the offending file, or stop classifying a package as mutation-capable, and every suite would stay green. Artifact families are proven only through CLI-driven paths in test/suites/yaml-operation-matrix.ts, leaving the MCP mutating tools an agent-reachable route with no per-family regression. Exemptions are honoured but never enumerated, so nobody can currently state that the repository has zero unexplained exceptions.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: Running validate-skills against a committed negative fixture skill root fails with a non-zero exit and a diagnostic naming the fixture SKILL.md path, line, and policy category, once per policy category. The operation matrix declares an mcp-driven cell for every artifact family in inventory/yaml-mutation-surfaces.yaml, and adding a family without one fails the suite. The exception audit reports every exemption with a recorded reason. validate-skills against the repository itself, the build, the full suite, and the configured coverage gate all pass with zero unexplained exceptions.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: This is the closing planned change of the ai-cli-only-yaml-enforcement milestone. Its two dependencies, enforce-cli-only-skill-policy and update-cli-only-yaml-documentation, are complete, and roadmap-recommend reports it as the only eligible candidate; the two remaining candidates in remove-artifact-file-mappings are dependency-blocked. The milestone cannot be claimed complete until its done criteria are demonstrated rather than asserted.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: The policy categories, matchers, and replacement guidance in src/cli-only-yaml-policy.ts must not be relaxed, widened, or narrowed — the milestone risk is that overbroad linting flags read-only inspection, so tuning matchers is out of scope here. validate-skills, maintenance, and MCP mutation behaviour must keep behaving as operations-cli-only-yaml-policy-check specifies. Read-only YAML inspection must stay unflagged and human manual editing must stay technically unblocked, per the milestone's stated policy boundary. The repository's own validate-skills run must keep exiting zero, so negative fixtures must not leak into the shipped skills scan.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: The planned change reads as proving existing enforcement, not building new enforcement. It adds no CLI command, MCP tool, or policy category, and produces no regression report artifact; it adds fixtures, suite coverage, an exception audit, and the delta tech that records the resulting rule. Where the planned change says run representative workflows for every artifact family, family scope is derived from inventory/yaml-mutation-surfaces.yaml rather than hand-enumerated, so a family added later cannot escape coverage.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: mcp-proof-depth
+    question: For the new mcp-driven matrix dimension, should each artifact family be proven by executing a real MCP mutating tool call end to end, or by asserting that the MCP tool delegates to the same owning CLI command already proven for that family?
+    context: 'Impact: this affects implementation files (test/suites/yaml-operation-matrix.ts and possibly test/support/harness.ts), test runtime, and the strength of the milestone completion claim. It does not affect proposal scope, spec delta, or technical standards, since the delta tech states the coverage requirement without fixing the proof mechanism. Recommendation: assert delegation equivalence per family, and execute real end-to-end MCP calls only for a small representative set. Options: (a) delegation-equivalence per family plus representative end-to-end calls, which keeps the suite fast while still proving the MCP path reaches the owning command; (b) full end-to-end MCP execution for every family, which is the strongest proof but multiplies suite runtime and duplicates assertions the CLI dimensions already make; (c) delegation equivalence only, which is cheapest but never observes an MCP-driven filesystem mutation.'
+    answer: Delegation equivalence per family, plus real end-to-end MCP execution for a representative set. For each of the nine families the inventory mcp-mutating-tools surface declares, assert the MCP tool maps its typed arguments to the owning CLI command already proven for that family. Then execute real MCP mutating tool calls for a representative set spanning the operation shapes — a scalar update, an artifact generation, and archive — and assert the observable filesystem mutation each time. Families outside the inventory's declared MCP family list take a not-applicable cell whose reason is read from the inventory rather than hand-written.
+    status: resolved
+    kind: technical
+    answered_by: human

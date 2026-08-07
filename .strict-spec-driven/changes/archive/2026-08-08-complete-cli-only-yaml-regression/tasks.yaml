@@ -1,0 +1,65 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: complete-cli-only-yaml-regression
+sections:
+  Implementation:
+    add-negative-skill-fixtures:
+      text: Add committed negative fixture skill packages under test/fixtures/ whose SKILL.md text carries one forbidden direct-edit construct per policy category (direct-file-edit, shell-or-heredoc-yaml-write, raw-yaml-payload, hand-edit-fallback), each classified mutation-capable by the inventory so the policy applies.
+      status: complete
+    prove-validate-skills-end-to-end:
+      text: Extend test/suites/entrypoint-and-skills.ts to run the shipped validate-skills CLI against the negative fixture root and assert non-zero exit plus a diagnostic naming the offending fixture SKILL.md path, line, and policy category for every category.
+      status: complete
+    add-mcp-matrix-dimension:
+      text: Add an mcp-driven dimension to MATRIX_DIMENSIONS in test/suites/yaml-operation-matrix.ts and fill a cell for every artifact family, using not-applicable only with a reason naming why the family has no MCP mutation entry point.
+      status: complete
+    audit-policy-exceptions:
+      text: Add an exception audit asserting EXEMPT_PATH_PREFIXES, inventory direct_write_paths, and the generated-document skip are each non-empty, reachable, and carry a non-empty recorded reason, so no exemption exists without an explanation.
+      status: complete
+    record-regression-delta-tech:
+      text: 'Record the delta tech for workflow-regression-coverage under the change tech/ directory: mutation-surface regression proves policy enforcement through the shipped entry point and proves every artifact family across both CLI and MCP surfaces.'
+      status: complete
+  Testing:
+    run-validate-skills:
+      text: Run validate-skills against the repository and confirm it still exits zero, proving the negative fixtures do not leak into the shipped skill scan.
+      status: complete
+      command: strict-spec-cli validate-skills
+    run-build:
+      text: Rebuild compiled output so the suites exercise the edited sources.
+      status: complete
+      command: bun run build
+    run-full-suite:
+      text: Run the complete test suite, including the extended entrypoint-and-skills, yaml-operation-matrix, and operations suites.
+      status: complete
+      command: bun test/run.ts
+    run-coverage-gate:
+      text: Run the configured project regression and coverage gate and confirm src/** line coverage stays at or above the declared threshold.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+    run-maintenance-policy-check:
+      text: Run repository maintenance and confirm the cli-only-yaml-policy check reports zero findings across specs, standards, MCP metadata, root documentation, and source.
+      status: complete
+      command: strict-spec-cli maintenance
+  Verification:
+    run-ready:
+      text: Confirm the change artifacts are structurally complete before handoff.
+      status: complete
+      command: strict-spec-cli ready complete-cli-only-yaml-regression
+    run-verify:
+      text: Confirm every task is complete, no open question blocks archive, and delta tech mapping resolves.
+      status: complete
+      command: strict-spec-cli verify complete-cli-only-yaml-regression
+    verify-tech-mappings:
+      text: Confirm the delta tech mapping paths for workflow-regression-coverage resolve to real implementation and enforcement files.
+      status: complete
+      command: strict-spec-cli verify-tech-mappings
+    confirm-archive-merge:
+      text: 'Confirm archive readiness: the delta tech merges cleanly into .strict-spec-driven/tech/workflow-regression-coverage.yaml and the roadmap planned change reconciles to complete.'
+      status: complete
+    confirm-zero-unexplained-exceptions:
+      text: Review every policy suppression reported by the suites and confirm each one is attributable to a registered, reasoned exemption, satisfying the planned change zero-unexplained-exceptions bar.
+      status: complete
+testing_gates:
+  validation_task: run-validate-skills
+  unit_test_task: run-full-suite

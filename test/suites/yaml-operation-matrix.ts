@@ -36,6 +36,7 @@ const MATRIX_DIMENSIONS = [
   "deterministic-output",
   "installed-cli",
   "copied-project",
+  "mcp-driven",
 ] as const;
 
 type MatrixDimension = (typeof MATRIX_DIMENSIONS)[number];
@@ -63,6 +64,10 @@ function notApplicable(reason: string): MatrixCell {
   return { kind: "not-applicable", reason };
 }
 
+const NO_MCP_TOOL = notApplicable(
+  "the inventory's mcp-mutating-tools surface does not list this family, so no MCP tool reaches it",
+);
+
 const CHECKOUT_SCOPED = notApplicable(
   "bundled-asset editing is repository maintenance scoped to this checkout and is never invoked from an installed CLI in another project",
 );
@@ -83,6 +88,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("change-lifecycle.ts", "equivalent config-edit intent is idempotent"),
       "installed-cli": RUNS_HERE,
       "copied-project": RUNS_HERE,
+      "mcp-driven": RUNS_HERE,
     },
   },
   "architecture-state": {
@@ -100,6 +106,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("architecture-document.ts", "a second architecture-generate run produces a byte-identical document"),
       "installed-cli": RUNS_HERE,
       "copied-project": RUNS_HERE,
+      "mcp-driven": RUNS_HERE,
     },
   },
   "design-system-state": {
@@ -117,6 +124,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("design-system-document.ts", "a second design-generate run produces a byte-identical document"),
       "installed-cli": RUNS_HERE,
       "copied-project": RUNS_HERE,
+      "mcp-driven": RUNS_HERE,
     },
   },
   "harness-state": {
@@ -134,6 +142,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("harness-authoring.ts", "harness-edit de-duplicates repeated list additions"),
       "installed-cli": RUNS_HERE,
       "copied-project": RUNS_HERE,
+      "mcp-driven": RUNS_HERE,
     },
   },
   "spec-state": {
@@ -151,6 +160,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("spec-tech-authoring.ts", "archive merges deltas into CLI-authored artifacts and preserves reconciled indexes"),
       "installed-cli": coveredBy("spec-tech-authoring.ts", "compiled CLI authors live spec state inside a copied external project"),
       "copied-project": coveredBy("spec-tech-authoring.ts", "compiled CLI authors live spec state inside a copied external project"),
+      "mcp-driven": RUNS_HERE,
     },
   },
   "tech-state": {
@@ -168,6 +178,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("spec-tech-authoring.ts", "archive merges deltas into CLI-authored artifacts and preserves reconciled indexes"),
       "installed-cli": RUNS_HERE,
       "copied-project": RUNS_HERE,
+      "mcp-driven": RUNS_HERE,
     },
   },
   "change-planning-state": {
@@ -185,6 +196,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("foundation-and-fixtures.ts", "generate tasks idempotent re-run succeeds"),
       "installed-cli": coveredBy("foundation-and-fixtures.ts", "generate authors an artifact from dist-only output"),
       "copied-project": coveredBy("change-lifecycle.ts", "copied project workspace propose creates an active strict change for lifecycle commands"),
+      "mcp-driven": RUNS_HERE,
     },
   },
   "change-delta-state": {
@@ -202,6 +214,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("foundation-and-fixtures.ts", "generate keeps a repeated equivalent appended scenario idempotent"),
       "installed-cli": coveredBy("foundation-and-fixtures.ts", "generate authors an artifact from dist-only output"),
       "copied-project": coveredBy("change-lifecycle.ts", "copied project workspace modify reports an empty delta-spec directory for the proposed change"),
+      "mcp-driven": RUNS_HERE,
     },
   },
   "roadmap-state": {
@@ -228,6 +241,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("roadmap-and-migration.ts", "roadmap-move-planned-change is an idempotent no-op for a planned change already in the target milestone"),
       "installed-cli": RUNS_HERE,
       "copied-project": RUNS_HERE,
+      "mcp-driven": RUNS_HERE,
     },
   },
   "lessons-state": {
@@ -245,6 +259,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("lessons.ts", "retiring an already-obsolete lesson is idempotent"),
       "installed-cli": RUNS_HERE,
       "copied-project": RUNS_HERE,
+      "mcp-driven": NO_MCP_TOOL,
     },
   },
   "sop-state": {
@@ -262,6 +277,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("sops.ts", "an unmatched SOP removal leaves both the SOP and index byte-identical"),
       "installed-cli": RUNS_HERE,
       "copied-project": RUNS_HERE,
+      "mcp-driven": NO_MCP_TOOL,
     },
   },
   "bundled-schema-assets": {
@@ -279,6 +295,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("foundation-and-fixtures.ts", "a failed embedded-bundle regeneration leaves both the asset and the bundle byte-identical"),
       "installed-cli": CHECKOUT_SCOPED,
       "copied-project": CHECKOUT_SCOPED,
+      "mcp-driven": NO_MCP_TOOL,
     },
   },
   "bundled-scaffold-assets": {
@@ -296,6 +313,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("foundation-and-fixtures.ts", "required scaffold asset manifest is deterministic"),
       "installed-cli": CHECKOUT_SCOPED,
       "copied-project": CHECKOUT_SCOPED,
+      "mcp-driven": NO_MCP_TOOL,
     },
   },
   "bundled-reference-examples": {
@@ -313,6 +331,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("foundation-and-fixtures.ts", "a failed embedded-bundle regeneration leaves both the asset and the bundle byte-identical"),
       "installed-cli": CHECKOUT_SCOPED,
       "copied-project": CHECKOUT_SCOPED,
+      "mcp-driven": NO_MCP_TOOL,
     },
   },
   "validation-fixtures": {
@@ -330,6 +349,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("foundation-and-fixtures.ts", "deletion remains supported for a must-not-parse fixture"),
       "installed-cli": CHECKOUT_SCOPED,
       "copied-project": CHECKOUT_SCOPED,
+      "mcp-driven": NO_MCP_TOOL,
     },
   },
   "yaml-mutation-inventory": {
@@ -347,6 +367,7 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("foundation-and-fixtures.ts", "duplicate stable ids are rejected by YAML parsing"),
       "installed-cli": CHECKOUT_SCOPED,
       "copied-project": CHECKOUT_SCOPED,
+      "mcp-driven": NO_MCP_TOOL,
     },
   },
   "legacy-migration-input": {
@@ -364,12 +385,59 @@ const OPERATION_MATRIX: Record<string, FamilyMatrix> = {
       "deterministic-output": coveredBy("roadmap-and-migration.ts", "migrate preserves scenario step ordering for migrated main specs"),
       "installed-cli": coveredBy("roadmap-and-migration.ts", "copied workspace migrate preserves roadmap milestone identity in strict output"),
       "copied-project": coveredBy("roadmap-and-migration.ts", "copied workspace migrate preserves planned change entries from the todo-project roadmap"),
+      "mcp-driven": NO_MCP_TOOL,
     },
   },
 };
 
 type InventoryFamily = { cli_owners?: string[] };
-type InventoryDocument = { artifact_families?: Record<string, InventoryFamily> };
+type InventorySurface = { families?: string[] };
+type InventoryDocument = {
+  artifact_families?: Record<string, InventoryFamily>;
+  mutation_surfaces?: Record<string, InventorySurface>;
+};
+
+type McpToolDefinitionShape = {
+  name: string;
+  cliCommand: string;
+  mutates: boolean;
+  toCliArgs: (args: Record<string, unknown>) => string[];
+};
+
+type McpToolsModule = {
+  MUTATING_TOOL_DEFINITIONS: McpToolDefinitionShape[];
+  callMutatingTool: (
+    name: string,
+    args: Record<string, unknown>,
+    options: {
+      projectRoot: string;
+      runner?: (args: string[], options: { cwd: string }) => { status: number; stdout: string; stderr: string };
+    },
+  ) => Promise<{ content: { text: string }[]; isError?: boolean }>;
+};
+
+/**
+ * The MCP tools that reach each family the inventory records as MCP-served. Keys are checked
+ * against the inventory below, so a family added to the MCP surface without a tool listed here
+ * fails rather than inheriting an empty check.
+ */
+const MCP_FAMILY_TOOLS: Record<string, string[]> = {
+  "workflow-config": ["init_workflow", "config_edit"],
+  "architecture-state": ["architecture_edit"],
+  "design-system-state": ["design_edit"],
+  "harness-state": ["harness_edit", "harness_session_create", "harness_session_mutate"],
+  "spec-state": ["spec_edit", "archive_change"],
+  "tech-state": ["tech_edit", "archive_change"],
+  "change-planning-state": [
+    "propose_change",
+    "generate_change_artifact",
+    "mark_next_task_complete",
+    "cancel_change",
+    "archive_change",
+  ],
+  "change-delta-state": ["generate_change_artifact", "archive_change"],
+  "roadmap-state": ["roadmap_sync"],
+};
 
 function suiteContainsAssertion(suite: string, assertion: string): boolean {
   const suitePath = path.join(SUITE_DIR, suite);
@@ -410,9 +478,10 @@ export async function runYamlOperationMatrixSuite(context: TestContext): Promise
   // Read the checked-in inventory directly rather than through the surface module, so completeness
   // is asserted against the recorded evidence instead of against the code under test.
   const yamlModule = await loadDistModule<YamlModule>("yaml.js");
-  const inventoryFamilies = yamlModule.parseYamlDocument<InventoryDocument>(
+  const inventoryDocument = yamlModule.parseYamlDocument<InventoryDocument>(
     readFileSync(INVENTORY_PATH, "utf8"),
-  ).artifact_families ?? {};
+  );
+  const inventoryFamilies = inventoryDocument.artifact_families ?? {};
   const inventoryIds = Object.keys(inventoryFamilies).sort();
   const matrixIds = Object.keys(OPERATION_MATRIX).sort();
 
@@ -652,6 +721,137 @@ export async function runYamlOperationMatrixSuite(context: TestContext): Promise
     );
   } finally {
     copied.cleanup();
+  }
+
+  // --- MCP-driven coverage ---------------------------------------------------------------------
+  // The CLI is not the only agent-reachable route into these artifacts; the MCP mutating tools are
+  // a second one. Every dimension above proves the CLI route only, so an MCP tool could stop
+  // reaching its owning command without a single cell noticing. Which families the MCP surface
+  // serves is read from the inventory rather than restated here, so the two cannot drift.
+
+  const mcpSurfaceFamilies = new Set(
+    inventoryDocument.mutation_surfaces?.["mcp-mutating-tools"]?.families ?? [],
+  );
+  context.assert(
+    mcpSurfaceFamilies.size > 0,
+    "the inventory records which artifact families the MCP mutating surface serves",
+  );
+  context.assert(
+    JSON.stringify([...mcpSurfaceFamilies].sort()) === JSON.stringify(Object.keys(MCP_FAMILY_TOOLS).sort()),
+    "every inventory-declared MCP family names the tools that reach it",
+    `inventory=${[...mcpSurfaceFamilies].sort().join(",")} mapped=${Object.keys(MCP_FAMILY_TOOLS).sort().join(",")}`,
+  );
+
+  // A not-applicable cell must mean the inventory records no MCP tool for the family, never that
+  // nobody got round to proving it.
+  for (const [familyId, family] of Object.entries(OPERATION_MATRIX)) {
+    const cell = family.cells["mcp-driven"];
+    const served = mcpSurfaceFamilies.has(familyId);
+    context.assert(
+      served ? cell.kind !== "not-applicable" : cell.kind === "not-applicable",
+      `${familyId} mcp-driven cell agrees with the inventory's MCP family list`,
+      `inventory serves this family=${served}; cell=${cell.kind}`,
+    );
+  }
+
+  const mcpTools = await loadDistModule<McpToolsModule>("mcp/tools.js");
+  const definitionsByName = new Map(mcpTools.MUTATING_TOOL_DEFINITIONS.map((tool) => [tool.name, tool]));
+
+  // Delegation equivalence: each family's MCP tools must route to a CLI command the inventory
+  // already records as an owner of that family, which is the command the CLI dimensions proved.
+  for (const [familyId, toolNames] of Object.entries(MCP_FAMILY_TOOLS)) {
+    const owners = new Set(inventoryFamilies[familyId]?.cli_owners ?? []);
+    const mismatches = toolNames.map((toolName) => {
+      const definition = definitionsByName.get(toolName);
+      if (definition === undefined) return `${toolName}: no such mutating tool`;
+      if (!definition.mutates) return `${toolName}: not classified as mutating`;
+      if (!owners.has(definition.cliCommand)) {
+        return `${toolName} -> ${definition.cliCommand} is not an inventory-declared owner`;
+      }
+      return undefined;
+    }).filter((entry): entry is string => entry !== undefined);
+    assertCell(
+      familyId, ["mcp-driven"],
+      mismatches.length === 0,
+      `${familyId}: every MCP tool delegates to a CLI command the inventory declares as an owner`,
+      mismatches.join(" | "),
+    );
+  }
+
+  // Delegation says which command an MCP call would run. It does not prove the call reaches disk,
+  // so a representative tool per operation shape is executed for real and its mutation observed.
+  const mcpWorkspace = initializedWorkspace("strict-yaml-matrix-mcp-");
+  try {
+    // The tool spawns the CLI for real; it is handed the harness runner so that spawn inherits the
+    // suite's redirected HOME and schema-cache root. The default runner would spawn the same
+    // compiled entrypoint with the developer's own environment, which the home-isolation standard
+    // forbids — the injection point is what keeps this end-to-end without writing a real home.
+    const envelopeOf = async (tool: string, args: Record<string, unknown>) => {
+      const result = await mcpTools.callMutatingTool(tool, args, {
+        projectRoot: mcpWorkspace,
+        runner: (cliArgs, options) => cli(cliArgs, { cwd: options.cwd }),
+      });
+      return JSON.parse(result.content[0]?.text ?? "{}") as { status?: number; stderr?: string };
+    };
+
+    const mcpConfigPath = path.join(mcpWorkspace, ".strict-spec-driven", "config.yaml");
+    const beforeConfig = readFileSync(mcpConfigPath, "utf8");
+    const configEnvelope = await envelopeOf("config_edit", {
+      args: ["--context", "Authored end to end through the MCP surface"],
+      confirm: true,
+    });
+    const afterConfig = readFileSync(mcpConfigPath, "utf8");
+    context.assert(
+      configEnvelope.status === 0
+        && afterConfig !== beforeConfig
+        && afterConfig.includes("Authored end to end through the MCP surface"),
+      "a real MCP config_edit call mutates workflow config on disk",
+      configEnvelope.stderr,
+    );
+
+    const proposeEnvelope = await envelopeOf("propose_change", { change: "mcp-matrix-change", confirm: true });
+    const generateEnvelope = await envelopeOf("generate_change_artifact", {
+      change: "mcp-matrix-change",
+      artifact: "proposal",
+      args: ["--what", "Prove MCP artifact generation", "--why", "The MCP route needs its own evidence"],
+      confirm: true,
+    });
+    const proposalPath = path.join(
+      mcpWorkspace, ".strict-spec-driven", "changes", "mcp-matrix-change", "proposal.yaml",
+    );
+    context.assert(
+      proposeEnvelope.status === 0
+        && generateEnvelope.status === 0
+        && existsSync(proposalPath)
+        && readFileSync(proposalPath, "utf8").includes("Prove MCP artifact generation"),
+      "a real MCP propose and generate pair writes change planning state on disk",
+      `${proposeEnvelope.stderr ?? ""} ${generateEnvelope.stderr ?? ""}`.trim(),
+    );
+
+    // A rejected MCP mutation must leave the artifact byte-identical, the same guarantee the
+    // invalid-input dimension proves for the CLI route.
+    const beforeRejected = readFileSync(proposalPath, "utf8");
+    const rejectedEnvelope = await envelopeOf("generate_change_artifact", {
+      change: "mcp-matrix-change",
+      artifact: "proposal",
+      args: ["--remove-what", "no such scope entry"],
+      confirm: true,
+    });
+    context.assert(
+      rejectedEnvelope.status !== 0 && readFileSync(proposalPath, "utf8") === beforeRejected,
+      "a rejected MCP mutation leaves the target artifact byte-identical",
+      String(rejectedEnvelope.status),
+    );
+
+    // Confirmation is the MCP surface's own gate, and it must stop the call before the CLI runs.
+    const beforeUnconfirmed = readFileSync(mcpConfigPath, "utf8");
+    const unconfirmedEnvelope = await envelopeOf("config_edit", { args: ["--context", "Never written"] });
+    context.assert(
+      unconfirmedEnvelope.status !== 0 && readFileSync(mcpConfigPath, "utf8") === beforeUnconfirmed,
+      "an unconfirmed MCP mutation never reaches the filesystem",
+    );
+  } finally {
+    rmSync(mcpWorkspace, { recursive: true, force: true });
   }
 
   const unexecuted: string[] = [];

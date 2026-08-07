@@ -12277,8 +12277,8 @@ mutation_surfaces:
       - change-planning-state
       - change-delta-state
       - roadmap-state
-      - lessons-state
-      - sop-state
+      - architecture-state
+      - design-system-state
     evidence:
       - src/mcp/tools.ts
       - src/mcp/inventory.ts
@@ -12414,6 +12414,20 @@ mutation_surfaces:
     evidence:
       - ARCHITECTURE.md
       - src/document-render.ts
+  policy-fixture-guidance:
+    path_patterns:
+      - test/fixtures/policy-skills/*/SKILL.md
+    mechanism: agent-guidance
+    classification: remaining-direct-writer
+    operations:
+      - create
+      - update
+    families:
+      - workflow-config
+      - spec-state
+    evidence:
+      - test/fixtures/policy-skills/README.md
+      - test/fixtures/policy-skills/strict-spec-fixture-direct-file-edit/SKILL.md
 `
 };
 function hasEmbeddedTemplate(key) {

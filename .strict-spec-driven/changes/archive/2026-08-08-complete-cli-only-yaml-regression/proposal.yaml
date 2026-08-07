@@ -1,0 +1,35 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: complete-cli-only-yaml-regression
+  status: proposed
+summary:
+  what:
+    - Add negative fixture skill packages containing forbidden direct-edit guidance and drive them through the shipped validate-skills CLI so each policy category is observed producing a path-specific non-zero failure.
+    - Extend the YAML operation matrix with an MCP-driven dimension so every artifact family declares MCP mutation coverage or a recorded not-applicable reason.
+    - Add an exception audit asserting every policy exemption, inventory direct_write_paths entry, and generated-document skip carries an enumerated reason, making zero-unexplained-exceptions machine-checked.
+    - Record a delta tech standard requiring shipped-entry-point proof and per-family MCP coverage for mutation-surface regression.
+  why:
+    - The milestone's enforcement code exists but its proof stops at module-function level, so validate-skills could stop failing on forbidden guidance without any suite noticing.
+    - The planned change requires representative skill-driven and MCP-driven workflows for every artifact family; the operation matrix currently proves only CLI-driven paths.
+    - Completion requires zero unexplained exceptions, which cannot be claimed while exemptions are honoured but never audited as a set.
+scope:
+  in:
+    - test/fixtures/ negative skill packages carrying forbidden direct-edit guidance per policy category
+    - test/suites/entrypoint-and-skills.ts end-to-end validate-skills assertions over those fixtures
+    - test/suites/yaml-operation-matrix.ts MCP-driven dimension and per-family cells
+    - exception-audit assertions over EXEMPT_PATH_PREFIXES, inventory direct_write_paths, and generated-document skips
+    - delta tech for workflow-regression-coverage
+  out:
+    - A structured JSON regression report artifact summarising every gate run
+    - New CLI commands, MCP tools, or policy categories
+    - Relaxing or widening any existing policy matcher or exemption
+unchanged_behavior:
+  - The CLI-only YAML mutation policy categories, matchers, and their replacement guidance stay as implemented.
+  - validate-skills, maintenance, and MCP mutation behaviour stay as specified in operations-cli-only-yaml-policy-check.
+  - Read-only YAML inspection and human manual editing remain permitted.
+roadmap:
+  milestone: ai-cli-only-yaml-enforcement
+  planned_change: complete-cli-only-yaml-regression

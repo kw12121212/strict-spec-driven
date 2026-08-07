@@ -1,0 +1,29 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: complete-cli-only-yaml-regression
+approach:
+  - Close the proof gap at the layer where each claim is actually made. Policy enforcement is proven through the shipped validate-skills entry point against committed negative fixture skill packages, not through direct module calls. Artifact-family coverage gains an MCP dimension in the existing operation matrix, so a family added to the inventory without MCP proof fails. Exceptions become an audited set rather than silently honoured branches. The delta tech records the resulting rule so a future change cannot regress the proof depth.
+decisions:
+  negative-fixtures-are-committed-skill-packages:
+    decision: Seed forbidden direct-edit guidance as committed fixture skill packages under test/fixtures/ and run the real validate-skills CLI against a fixture root, asserting non-zero exit and a diagnostic naming the fixture SKILL.md path and line.
+    rationale: A module-level scan proves the matcher fires; it does not prove the shipped command surfaces the failure. Only the CLI path proves what an agent or operator would actually observe, and a separate fixture root keeps the negative case out of the repository's own validate-skills run.
+  mcp-dimension-in-existing-matrix:
+    decision: Add an mcp-driven dimension to the existing OPERATION_MATRIX rather than a parallel MCP suite, with each family declaring covered-by, runs-here, or not-applicable with a recorded reason.
+    rationale: The matrix already fails when a family in the inventory lacks a cell, so extending it inherits the anti-vacuity property; a separate suite would let a new family gain CLI proof and silently skip MCP proof.
+  audit-exceptions-as-a-set:
+    decision: Assert that every EXEMPT_PATH_PREFIXES entry, inventory direct_write_paths entry, and generated-document skip carries a non-empty reason and is reachable, so an exemption cannot be added without an explanation.
+    rationale: Zero unexplained exceptions is the planned change completion bar; an exemption honoured but never enumerated produces the same green result as compliance.
+  no-delta-spec:
+    decision: Add no delta spec. The observable behaviour is already stated by operations-cli-only-yaml-policy-check in .strict-spec-driven/specs/operations/domain-behavior.yaml, and this change only proves it; the engineering rule it does add is carried as delta tech for workflow-regression-coverage.
+    rationale: Inventing a spec requirement to match artifact shape would restate existing behaviour and create a duplicate source of truth for the same observable policy failure.
+alternatives:
+  - option: Write a standalone MCP regression suite covering mutation tools family by family.
+    reason: It duplicates the matrix registry and loses the property that an unregistered family fails, which is the only reason the matrix is trustworthy.
+  - option: Prove validate-skills failure by temporarily mutating a real bundled skill during the test run.
+    reason: Mutating shipped content during a test risks leaving the repository dirty on failure and cannot be reviewed as a stable negative case.
+risks:
+  - Negative fixture skills could be picked up by the repository's own validate-skills or skill packaging scans, turning a deliberate violation into a false failure; the fixture root must stay outside the scanned skills directory.
+  - An mcp-driven cell filled with not-applicable for convenience would restore vacuity; each not-applicable reason must name why the family has no MCP entry point.
+  - The exception audit can pass vacuously if the exemption lists are empty at the time of writing; the audit must assert non-empty lists as well as per-entry reasons.

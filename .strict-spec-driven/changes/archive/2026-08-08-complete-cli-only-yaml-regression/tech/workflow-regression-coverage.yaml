@@ -1,0 +1,65 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: workflow-regression-coverage
+mapping:
+  implementation: []
+  enforcement:
+    - test/suites/yaml-operation-matrix.ts
+    - test/suites/entrypoint-and-skills.ts
+    - inventory/yaml-mutation-surfaces.yaml
+operations:
+  ADDED:
+    policy-enforcement-proven-through-shipped-entry-point:
+      strength: MUST
+      statement: A repository policy that blocks a class of authored guidance MUST be proven by a committed negative fixture driven through the shipped command an operator or agent actually runs, with the observed failure naming the offending file path, line, and policy category; a module-level scan of inline text is supporting evidence only and MUST NOT be the sole proof.
+      rationale: 'The scanner and the command that surfaces its result are separable: the matcher can keep firing while the command stops reporting, stops exiting non-zero, or stops classifying the package as in scope. Only the shipped entry point proves the failure a caller would actually see.'
+      enforcement:
+        method: test
+        detail: test/suites/entrypoint-and-skills.ts runs validate-skills against a negative fixture skill root and asserts non-zero exit plus a path-and-line diagnostic for every CLI-only YAML policy category.
+      examples:
+        good:
+          - Committing a fixture skill whose SKILL.md instructs a heredoc write to a YAML path, then asserting validate-skills exits non-zero and names that file and line.
+        bad:
+          - Asserting only that scanTextForPolicyViolations returns a match for an inline string, leaving the command's exit status and diagnostic text unproven.
+      exceptions:
+        - A policy with no shipped command surface, where the module function is itself the entry point, needs only the module-level proof.
+    mutation-coverage-spans-every-agent-facing-surface:
+      strength: MUST
+      statement: The mutation-surface coverage registry MUST declare a cell for every artifact family on every agent-facing entry surface, including both the CLI and the MCP tool surface, and each not-applicable cell MUST record why that family has no entry point on that surface.
+      rationale: A family can gain CLI proof and silently skip the MCP path, leaving an agent-reachable mutation route with no regression behind it; deriving the family set from the inventory makes the omission a failure instead of an absence nobody notices.
+      enforcement:
+        method: test
+        detail: test/suites/yaml-operation-matrix.ts derives families from inventory/yaml-mutation-surfaces.yaml and fails when any family lacks a cell for any dimension, including mcp-driven.
+      examples:
+        good:
+          - Adding an artifact family to the inventory and being forced to declare its mcp-driven cell as covered-by, runs-here, or not-applicable with a reason.
+        bad:
+          - Adding an mcp-driven cell of not-applicable with no reason, or omitting the dimension for a family that has an MCP mutating tool.
+    declared-surface-lists-are-checked-against-implementation:
+      strength: MUST
+      statement: 'When a coverage check derives its scope from a hand-maintained list inside a repository artifact — an inventory of surfaces, a family-to-tool mapping, a registry of owners — that list MUST itself be cross-checked against the implementation it describes, in both directions: an entry naming something the code does not provide, and a thing the code provides that no entry names, MUST both fail.'
+      rationale: Deriving scope from a checked-in list is what makes a coverage check non-vacuous, so the list silently becomes the thing nobody checks. An over-claiming entry produces coverage that cannot run; an omitted entry produces a reachable surface with no coverage at all. Both report green, and neither is visible from the check that trusts the list.
+      enforcement:
+        method: test
+        detail: test/suites/yaml-operation-matrix.ts asserts the inventory's mcp-mutating-tools family list and the suite's family-to-tool mapping are equal sets, and that every mapped tool resolves to a mutating tool delegating to an inventory-declared owner of that family.
+      examples:
+        good:
+          - Asserting the inventory's declared MCP family list equals the set of families for which a real MCP mutating tool exists, so a stale claim fails the suite.
+        bad:
+          - Reading the declared list to decide what to check without ever asking whether the list matches the code, so a family the inventory names but no tool serves is reported as covered.
+    subprocess-spawning-code-under-test-receives-the-isolated-runner:
+      strength: MUST
+      statement: When the code under test spawns a subprocess on the suite's behalf rather than through a test helper, the suite MUST supply the isolated runner through that module's own injection point, and MUST NOT rely on the module's default runner, which inherits the developer's environment.
+      rationale: 'Home isolation is applied by the test helper that spawns, so a module that spawns for itself escapes it entirely: the call looks like ordinary test code while the child process reads and writes the developer''s real home and shared caches. The injection point already exists for exactly this substitution, and using it keeps the end-to-end property intact.'
+      enforcement:
+        method: review
+        detail: test/suites/yaml-operation-matrix.ts passes the harness cli runner into callMutatingTool so the MCP end-to-end calls spawn the compiled CLI under the suite's redirected HOME and schema-cache root.
+      examples:
+        good:
+          - 'Calling callMutatingTool with runner: (args, options) => cli(args, { cwd: options.cwd }) so the spawn inherits the suite''s redirected environment.'
+        bad:
+          - Calling callMutatingTool with only projectRoot, letting the default runner spawn the CLI with the developer's own HOME and schema cache.
+  MODIFIED: {}
+  REMOVED: {}

@@ -2861,6 +2861,10 @@ context.section("[2d] CLI-only YAML mutation policy enforcement");
 {
 
 type CliOnlyYamlPolicyModule = {
+  EXEMPT_PATH_PREFIXES: { prefix: string; reason: string }[];
+  GENERATED_DOCUMENT_BANNER: string;
+  exemptPathReason: (relativeFile: string) => string | undefined;
+  isGeneratedDocument: (text: string) => boolean;
   scanTextForPolicyViolations: (file: string, text: string) => {
     matches: { file: string; line: number; category: string; excerpt: string; replacement: string }[];
     suppressions: { category: string; suppressedBy: string }[];
@@ -3036,6 +3040,213 @@ for (const skillName of readdirSync(path.join(ROOT, "skills"), { withFileTypes: 
     );
   }
 }
+
+// The assertions above call the policy module directly. That proves the matcher fires; it does not
+// prove the command an operator or agent actually runs reports the failure. validate-skills could
+// stop classifying a package as mutation-capable, stop rendering the match as a diagnostic, or stop
+// exiting non-zero, and every assertion above would still pass. The fixtures below close that gap by
+// driving the shipped CLI over committed non-compliant packages.
+
+const POLICY_FIXTURE_ROOT = path.join(ROOT, "test", "fixtures", "policy-skills");
+
+/** Each committed fixture package, the category it must produce, and the text that must produce it. */
+const NEGATIVE_FIXTURES: { pkg: string; category: string; violation: string }[] = [
+  {
+    pkg: "strict-spec-fixture-direct-file-edit",
+    category: "direct-file-edit",
+    violation: "Run apply_patch on .strict-spec-driven/config.yaml to set the field.",
+  },
+  {
+    pkg: "strict-spec-fixture-shell-heredoc",
+    category: "shell-or-heredoc-yaml-write",
+    violation: "Write it with cat <<EOF > .strict-spec-driven/specs/x.yaml",
+  },
+  {
+    pkg: "strict-spec-fixture-hand-edit-fallback",
+    category: "hand-edit-fallback",
+    violation: "If the command is unavailable, instead edit the .strict-spec-driven/specs/x.yaml by hand.",
+  },
+  {
+    pkg: "strict-spec-fixture-raw-yaml-payload",
+    category: "raw-yaml-payload",
+    violation: "Create a temporary YAML payload file and pass it to the command.",
+  },
+];
+
+// The manifest above is hand-written, so it is checked against the directory rather than trusted: a
+// fixture added without an entry would otherwise sit on disk proving nothing.
+const fixturePackagesOnDisk = readdirSync(POLICY_FIXTURE_ROOT, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .sort();
+context.assert(
+  JSON.stringify(fixturePackagesOnDisk) === JSON.stringify(NEGATIVE_FIXTURES.map((f) => f.pkg).sort()),
+  "every committed policy fixture package is claimed by the negative-fixture manifest",
+  `on disk: ${fixturePackagesOnDisk.join(", ")}`,
+);
+
+// Both enumerations of the text-scan categories must stay in lockstep, so adding a category to the
+// seeded list without an end-to-end fixture fails here rather than shipping unproven at CLI level.
+context.assert(
+  JSON.stringify([...new Set(NEGATIVE_FIXTURES.map((f) => f.category))].sort())
+    === JSON.stringify([...new Set(SEEDED_VIOLATIONS.map((v) => v.category))].sort()),
+  "every seeded policy category also has an end-to-end fixture package",
+);
+
+type SkillDiagnostic = { code?: string; path?: string; message?: string };
+
+/**
+ * Runs the shipped validate-skills against a throwaway root holding exactly one skill package,
+ * complete with the scripts symlink and marketplace entry a valid package needs. The packaging is
+ * completed deliberately: with no other defect left, the exit status and the diagnostic list are
+ * attributable to the guidance text alone, which is what makes the control run below meaningful.
+ */
+function validateSkillsOverPackage(pkg: string, skillText: string): { status: number; diagnostics: SkillDiagnostic[] } {
+  const root = mkdtempSync(path.join(os.tmpdir(), "strict-policy-fixture-"));
+  try {
+    const packageDir = path.join(root, "skills", pkg);
+    mkdirSync(packageDir, { recursive: true });
+    mkdirSync(path.join(root, "dist", "scripts"), { recursive: true });
+    writeFileSync(path.join(packageDir, "SKILL.md"), skillText, "utf8");
+    symlinkSync("../../dist/scripts", path.join(packageDir, "scripts"));
+    writeFileSync(
+      path.join(root, "skills", "marketplace.json"),
+      JSON.stringify(
+        {
+          schema: "strict-spec-driven/skill-marketplace/v1",
+          namespace: "strict-spec-driven",
+          skills: [{ name: pkg, family: "strict-spec" }],
+        },
+        null,
+        2,
+      ) + "\n",
+      "utf8",
+    );
+    const result = cli(["validate-skills"], { cwd: root });
+    let diagnostics: SkillDiagnostic[] = [];
+    try {
+      diagnostics = (JSON.parse(result.stdout.trim()) as { diagnostics?: SkillDiagnostic[] }).diagnostics ?? [];
+    } catch {
+      diagnostics = [];
+    }
+    return { status: result.status, diagnostics };
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+const describeDiagnostics = (diagnostics: SkillDiagnostic[]): string =>
+  diagnostics.map((diagnostic) => `${diagnostic.code}@${diagnostic.path}`).join(", ") || "none";
+
+for (const { pkg, category, violation } of NEGATIVE_FIXTURES) {
+  const fixtureFile = path.join(POLICY_FIXTURE_ROOT, pkg, "SKILL.md");
+  const fixtureText = readFileSync(fixtureFile, "utf8");
+
+  const violationIndex = fixtureText.indexOf(violation);
+  context.assert(
+    violationIndex !== -1,
+    `fixture ${pkg} still contains the violation text the manifest claims`,
+  );
+  if (violationIndex === -1) continue;
+  const expectedLine = fixtureText.slice(0, violationIndex).split("\n").length;
+  const expectedCode = `skill.cli_only_yaml.${category.replace(/-/g, "_")}`;
+  const expectedPath = `skills/${pkg}/SKILL.md:${expectedLine}`;
+
+  const violating = validateSkillsOverPackage(pkg, fixtureText);
+  context.assert(
+    violating.status !== 0,
+    `validate-skills exits non-zero for a package instructing a ${category} mutation`,
+  );
+  context.assert(
+    violating.diagnostics.length === 1
+      && violating.diagnostics[0]?.code === expectedCode
+      && violating.diagnostics[0]?.path === expectedPath,
+    `validate-skills reports ${category} at the exact fixture path and line, and nothing else`,
+    `expected only ${expectedCode} at ${expectedPath}; got ${describeDiagnostics(violating.diagnostics)}`,
+  );
+
+  // The control run is the same package with the one forbidden line removed. It must come back
+  // clean and exit zero, which attributes both the failure and its diagnostic to that line rather
+  // than to anything else about the fixture.
+  const compliantText = fixtureText.split("\n").filter((line) => !line.includes(violation)).join("\n");
+  const compliant = validateSkillsOverPackage(pkg, compliantText);
+  context.assert(
+    compliant.status === 0 && compliant.diagnostics.length === 0,
+    `removing the ${category} instruction makes the same package validate cleanly`,
+    `status ${compliant.status}; ${describeDiagnostics(compliant.diagnostics)}`,
+  );
+}
+
+// --- Exception audit -------------------------------------------------------------------------
+// Every check above can be silenced by an exemption, and an exemption that nobody enumerates is
+// indistinguishable from compliance: both report zero findings. The audit makes the exceptions
+// themselves the subject, so one cannot be added without a reason or quietly stop applying.
+
+context.assert(
+  policy.EXEMPT_PATH_PREFIXES.length > 0,
+  "the policy declares at least one exempt path prefix, so the audit below is not vacuous",
+);
+
+for (const { prefix, reason } of policy.EXEMPT_PATH_PREFIXES) {
+  context.assert(
+    reason.trim().length > 0,
+    `the '${prefix}' path exemption records why it is exempt`,
+  );
+  // An exemption is only real while it still fires. Probing it with a path underneath the prefix
+  // catches one that has been narrowed or misspelled into never matching anything.
+  context.assert(
+    policy.exemptPathReason(`${prefix}probe/example.md`) === reason,
+    `the '${prefix}' path exemption still applies to paths beneath it`,
+    String(policy.exemptPathReason(`${prefix}probe/example.md`)),
+  );
+}
+
+// A path outside every prefix must not come back exempt, or the audit above would pass against an
+// exemption that swallowed the whole repository.
+context.assert(
+  policy.exemptPathReason("src/cli-only-yaml-policy.ts") === undefined,
+  "a governed source path is not reported as exempt",
+);
+
+// The generated-document skip is the other way a surface leaves the policy's scope. It is keyed on
+// a banner, so both directions are probed: the banner exempts, and its absence does not.
+context.assert(
+  policy.GENERATED_DOCUMENT_BANNER.trim().length > 0
+    && policy.isGeneratedDocument(`# Title\n\n${policy.GENERATED_DOCUMENT_BANNER}\n\nBody.`)
+    && !policy.isGeneratedDocument("# Title\n\nHand-authored guidance.\n"),
+  "the generated-document exemption applies to banner-marked text and to nothing else",
+);
+
+// Registered writers are the third exception: a module writing YAML is permitted only because the
+// inventory names it. Each registration must still resolve to a file, so a deleted or renamed
+// module cannot leave a permanent hole in the allowlist.
+const registeredWriters = [...registry.registeredWriterPaths].sort();
+context.assert(
+  registeredWriters.length > 0,
+  "the inventory registers at least one permitted YAML writer",
+);
+const staleRegistrations = registeredWriters.filter(
+  (writerPath) => !writerPath.includes("*") && !existsSync(path.join(ROOT, writerPath)),
+);
+context.assert(
+  staleRegistrations.length === 0,
+  "every registered YAML writer path still resolves to a file in the repository",
+  staleRegistrations.join(", "),
+);
+
+// Finally, the src scan must report every suppression it applied rather than dropping it, so the
+// count of silenced matches is observable instead of implicit.
+context.assert(
+  sourceScan.suppressions.length > 0
+    && sourceScan.suppressions.every(
+      (entry) => entry.suppressedBy.trim().length > 0 && registry.registeredWriterPaths.has(entry.file),
+    ),
+  "every suppressed source-writer match names its reason and the registration that silenced it",
+  sourceScan.suppressions
+    .filter((entry) => !registry.registeredWriterPaths.has(entry.file))
+    .map((entry) => entry.file)
+    .join(", "),
+);
 
 }
 

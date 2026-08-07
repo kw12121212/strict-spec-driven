@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: complete-cli-only-yaml-regression
   milestone: ai-cli-only-yaml-enforcement
-status: planned
+status: complete
 summary: Prove end-to-end that AI workflows no longer require direct YAML edits.
 details: Run representative skill-driven and MCP-driven workflows for every artifact family through create, incremental update, named removal, deliberate delete or rejection, archive and rollback. Add negative fixtures containing forbidden direct-edit skill guidance, search the repository for remaining mutation instructions and unregistered YAML writers, run validate-skills, build, full test suite, copied-project regressions, generated-asset checks, and the configured coverage gate. Completion requires zero unexplained exceptions.
 depends_on:

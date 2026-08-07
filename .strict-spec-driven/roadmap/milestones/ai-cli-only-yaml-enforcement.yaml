@@ -38,7 +38,7 @@ risks:
   - Overbroad textual linting can flag read-only YAML inspection or generated examples; enforcement must distinguish reads from mutations.
   - A skill can comply syntactically while shelling out to an unregistered writer; regression must exercise observable filesystem mutations through the CLI.
   - Schema or Example paths embedded as repository-relative assumptions can break installed Skills; guidance must prefer CLI discovery and resolve declared paths through the shared schema cache.
-status: proposed
+status: complete
 notes:
   - 'Policy boundary: the prohibition targets AI mutation workflows. Read-only inspection remains allowed, and human manual editing is not technically blocked.'
   - 'User decision: AI guidance must explain how to operate the CLI and must surface the target YAML Schema and Example locations as safeguards against malformed authoring intent.'
