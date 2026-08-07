@@ -1,0 +1,74 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: add-ai-cli-yaml-authoring-guidance
+sections:
+  Implementation:
+    define-protocol-module:
+      text: Add src/yaml-authoring-protocol.ts declaring the ordered AI YAML authoring steps, each step's purpose and the command or lookup it maps to, and the terminal no-fallback boundary, as the single typed source for every surface. The published surface is the top-level command yaml-authoring-protocol, taking an optional inventoried artifact kind.
+      status: complete
+    record-family-validation-commands:
+      text: Record each artifact family's validation_command in inventory/yaml-mutation-surfaces.yaml through inventory-edit, and extend scripts/check-yaml-mutation-inventory.ts to validate the field.
+      status: complete
+    surface-validation-command:
+      text: Expose the inventoried validation_command through src/yaml-mutation-surface.ts so the protocol binding reads it rather than deriving or hardcoding it.
+      status: complete
+    bind-protocol-to-inventory:
+      text: Add the artifact-kind binding that joins protocol steps to the family record from src/yaml-mutation-surface.ts, reusing its inventory lookup, per-operation owning commands, verbatim operation states, inventoried validation command, and shared schema cache resolution without restating family facts.
+      status: complete
+    add-protocol-cli-command:
+      text: Add the read-only yaml-authoring-protocol command that prints the generic protocol with no argument and the artifact-bound protocol for an inventoried artifact kind, in src/cli/, wired through src/cli/registry.ts.
+      status: complete
+    register-command-metadata:
+      text: Register yaml-authoring-protocol in src/cli/command-metadata-entries.ts under the assets group with its arguments, output keys, exit-code meaning, and notes so root help, text help, and JSON help render it from the shared registry.
+      status: complete
+    render-protocol-in-mcp:
+      text: Render the same protocol module through the MCP capability surface in src/mcp/ so MCP callers receive the identical step order, artifact identity, schema and example references, validation command, and failure boundary as the CLI.
+      status: complete
+    rebuild-compiled-output:
+      text: Rebuild compiled dist/ output so tests run against the new command.
+      status: complete
+      command: bun run build
+  Testing:
+    test-generic-protocol:
+      text: 'Cover the generic protocol output: the ordered steps, the validation step, and the no-fallback failure boundary are all present, the command writes nothing, and stderr stays empty on success.'
+      status: complete
+    test-artifact-bound-protocol:
+      text: 'Cover the artifact-kind-bound protocol for an inventoried family: owning commands per operation, verbatim operation states, bundled schema key with cache-resolved schema_file path, bundled example key with cache-resolved path, inspection commands, and the artifact-specific validation command.'
+      status: complete
+    test-unknown-kind-and-cache-degradation:
+      text: Cover deterministic rejection of an artifact kind absent from the mutation inventory, and degradation to bundled schema and example keys with no cache-derived path reported as resolved when the shared schema cache is unavailable.
+      status: complete
+    test-installed-environment-resolution:
+      text: Packaging regression proving every protocol-referenced schema key, example key, and cache-relative path resolves in a source-tree checkout and in an installed environment with no repository-local templates directory.
+      status: complete
+    test-surface-agreement:
+      text: Prove the CLI protocol output and the MCP-rendered protocol derive from the same module and agree on step order, artifact identity, asset references, validation command, and failure boundary, and that the new command has complete command-metadata coverage.
+      status: complete
+    run-project-regression:
+      text: Run the complete project regression with the coverage gate and record the result as review evidence.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+    test-inventory-validation-command:
+      text: Cover that the inventory checker rejects a family missing its validation_command and that the mutation surface reports the inventoried value verbatim.
+      status: complete
+  Verification:
+    run-ready:
+      text: Confirm the change is ready to hand off from proposal to implementation.
+      status: complete
+      command: strict-spec-cli ready add-ai-cli-yaml-authoring-guidance
+    run-verify:
+      text: Verify artifact structure, task completion, open questions, and main-spec mapping validity before archive.
+      status: complete
+      command: strict-spec-cli verify add-ai-cli-yaml-authoring-guidance
+    verify-spec-and-tech-mappings:
+      text: Confirm the delta spec and delta tech implementation and enforcement mappings resolve to real files.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+    confirm-archive-merge:
+      text: Confirm the delta spec merges into cli-foundation and the delta tech rule merges into cli-command-metadata on archive without disturbing existing requirements or rules.
+      status: complete
+testing_gates:
+  validation_task: run-project-regression
+  unit_test_task: test-artifact-bound-protocol

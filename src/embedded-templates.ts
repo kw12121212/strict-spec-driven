@@ -5060,6 +5060,7 @@ artifact_families:
       - .strict-spec-driven/config.yaml
       - templates/strict-spec-driven/schemas/config.yaml
       - src/workflow-config-author.ts
+    validation_command: check-workflow-state
   architecture-state:
     artifact_types:
       - architecture
@@ -5084,6 +5085,7 @@ artifact_families:
       - .strict-spec-driven/architecture.yaml
       - src/architecture.ts
       - src/architecture-author.ts
+    validation_command: architecture-status
   design-system-state:
     artifact_types:
       - design_system
@@ -5108,6 +5110,7 @@ artifact_families:
       - examples/strict-spec-driven/design-system.yaml
       - src/design-system.ts
       - src/design-system-author.ts
+    validation_command: design-status
   harness-state:
     artifact_types:
       - harness
@@ -5138,6 +5141,7 @@ artifact_families:
       - .strict-spec-driven/harness.yaml
       - src/harness.ts
       - src/harness-author.ts
+    validation_command: harness-doctor
   spec-state:
     artifact_types:
       - spec_index
@@ -5169,6 +5173,7 @@ artifact_families:
       - .strict-spec-driven/specs/contracts/yaml-artifacts.yaml
       - src/spec-tech-author.ts
       - src/cli/cmd-spec-tech.ts
+    validation_command: verify-spec-mappings
   tech-state:
     artifact_types:
       - tech_index
@@ -5199,6 +5204,7 @@ artifact_families:
       - .strict-spec-driven/tech/yaml-first-artifacts.yaml
       - src/spec-tech-author.ts
       - src/cli/cmd-spec-tech.ts
+    validation_command: verify-tech-mappings
   change-planning-state:
     artifact_types:
       - change_proposal
@@ -5244,6 +5250,7 @@ artifact_families:
     evidence:
       - src/propose-generation.ts
       - src/cli/cmd-generation.ts
+    validation_command: verify <change-name>
   change-delta-state:
     artifact_types:
       - delta_spec
@@ -5275,6 +5282,7 @@ artifact_families:
     evidence:
       - examples/strict-spec-driven/delta-spec.operations.yaml
       - examples/strict-spec-driven/delta-tech.operations.yaml
+    validation_command: verify <change-name>
   roadmap-state:
     artifact_types:
       - roadmap_index
@@ -5315,6 +5323,7 @@ artifact_families:
       - .strict-spec-driven/roadmap/INDEX.yaml
       - src/roadmap/author.ts
       - src/roadmap/sync.ts
+    validation_command: roadmap-status
   lessons-state:
     artifact_types:
       - lessons_index
@@ -5348,6 +5357,7 @@ artifact_families:
     evidence:
       - .strict-spec-driven/lessons/INDEX.yaml
       - src/lessons.ts
+    validation_command: lesson-status
   sop-state:
     artifact_types:
       - sops_index
@@ -5378,6 +5388,7 @@ artifact_families:
     evidence:
       - examples/strict-spec-driven/sop.yaml
       - src/sops.ts
+    validation_command: sop-validate
   bundled-schema-assets:
     artifact_types:
       - json_schema_yaml
@@ -5399,6 +5410,7 @@ artifact_families:
     evidence:
       - templates/strict-spec-driven/schemas/registry.yaml
       - test/suites/foundation-and-fixtures.ts
+    validation_command: bun test/run.ts
   bundled-scaffold-assets:
     artifact_types:
       - scaffold_yaml
@@ -5420,6 +5432,7 @@ artifact_families:
     evidence:
       - templates/strict-spec-driven/scaffold/config.yaml
       - scripts/gen-templates-bundle.ts
+    validation_command: bun test/run.ts
   bundled-reference-examples:
     artifact_types:
       - example_yaml
@@ -5440,6 +5453,7 @@ artifact_families:
     evidence:
       - examples/strict-spec-driven/schema-registry.yaml
       - scripts/gen-templates-bundle.ts
+    validation_command: bun test/run.ts
   validation-fixtures:
     artifact_types:
       - test_fixture_yaml
@@ -5460,6 +5474,7 @@ artifact_families:
     evidence:
       - test/fixtures/validation/schema-check.valid.yaml
       - test/suites/foundation-and-fixtures.ts
+    validation_command: bun test/run.ts
   legacy-migration-input:
     artifact_types:
       - legacy_config_input
@@ -5499,6 +5514,7 @@ artifact_families:
     direct_write_paths: []
     evidence:
       - inventory/yaml-mutation-surfaces.yaml
+    validation_command: bun run check:yaml-inventory
 exclusions:
   external-dependency-yaml:
     path_patterns:

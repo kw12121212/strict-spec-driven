@@ -59,6 +59,11 @@ export type YamlSurfaceFamily = YamlSurfaceAssets & {
   cliOwners: string[];
   operations: Record<YamlSurfaceOperationName, YamlSurfaceOperation>;
   referenceSideEffects: string[];
+  /**
+   * The command that confirms this family's state after a mutation, reported from the inventory
+   * verbatim. Absent only for a family the inventory records as having no CLI-owned operation.
+   */
+  validationCommand?: string;
 };
 
 export type YamlMutationSurface = {
@@ -226,6 +231,9 @@ function buildFamily(
       YAML_SURFACE_OPERATIONS.map((operation) => [operation, buildOperation(asString(operationStates[operation]), cliOwners)]),
     ) as Record<YamlSurfaceOperationName, YamlSurfaceOperation>,
     referenceSideEffects: asStringArray(rawFamily.reference_side_effects),
+    ...(asString(rawFamily.validation_command) !== undefined
+      ? { validationCommand: asString(rawFamily.validation_command) }
+      : {}),
     ...familyAssets,
   };
 }

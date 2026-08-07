@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: add-ai-cli-yaml-authoring-guidance
   milestone: ai-cli-only-yaml-enforcement
-status: planned
+status: complete
 summary: Give AI agents a deterministic CLI-only YAML authoring protocol.
 details: 'Define and package one reusable AI operating protocol for every YAML mutation workflow: read the target command''s --help --json metadata; resolve the artifact Schema with schema-list/schema-show and its declared schema_file beneath the default shared cache root ~/.strict-spec-schemas/ or its configured replacement; inspect the registered minimal Example with sample-list/sample-show or resolve the schema''s example_ref beneath the cached examples tree; translate confirmed facts into documented named arguments; execute the CLI without raw YAML payloads; inspect the structured result and changed paths; run the artifact-specific status, validation, ready, or verify command; and stop with an actionable missing-capability report rather than direct-edit fallback. Require Skills and MCP prompts to state the exact command order, target artifact identity, Schema and Example keys plus resolvable cache-relative locations, validation command, and failure boundary. Add packaging tests proving all referenced keys and cached paths resolve in both source-tree and installed environments without assuming a repository-local templates directory.'
 depends_on:

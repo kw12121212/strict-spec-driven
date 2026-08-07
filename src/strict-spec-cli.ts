@@ -28,6 +28,7 @@ import { runMcpInstall } from "./cli/cmd-mcp-install.js";
 import { runShip, runValidateSkills, runVerifySpecMappings, runVerifyTechMappings, runTechStatus, runCommitAndPush } from "./cli/cmd-operations.js";
 import { runSpecEdit, runTechEdit } from "./cli/cmd-spec-tech.js";
 import { runSampleList, runSampleShow, runSchemaList, runSchemaShow, runTemplateList, runTemplateShow } from "./cli/cmd-templates.js";
+import { runYamlAuthoringProtocol } from "./cli/cmd-yaml-authoring-protocol.js";
 import { runYamlSurfaceList, runYamlSurfaceShow } from "./cli/cmd-yaml-surface.js";
 import {
   runFixtureEdit,
@@ -142,6 +143,7 @@ export const commands = createCliCommandTable({
   "template-show": (argv) => runTemplateShow(argv),
   "yaml-surface-list": (argv) => runYamlSurfaceList(argv),
   "yaml-surface-show": (argv) => runYamlSurfaceShow(argv),
+  "yaml-authoring-protocol": (argv) => runYamlAuthoringProtocol(argv),
   "schema-edit": (argv) => runSchemaEdit(argv),
   "template-edit": (argv) => runTemplateEdit(argv),
   "sample-edit": (argv) => runSampleEdit(argv),

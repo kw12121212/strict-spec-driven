@@ -1,0 +1,68 @@
+schema: strict-spec-driven/question-list/v1
+schema_version: 1
+artifact_type: question_list
+schema_file: templates/strict-spec-driven/schemas/question-list.yaml
+change: add-ai-cli-yaml-authoring-guidance
+open: []
+resolved:
+  - id: what-need-does-this-serve
+    question: What need does this change serve, stated as the problem an AI agent has today rather than as the solution?
+    context: 'Requirement-kind interrogation answered from the roadmap planned change add-ai-cli-yaml-authoring-guidance and its owning milestone ai-cli-only-yaml-enforcement, not from repository evidence. Impact: this fixes proposal scope and the shape of the delta spec requirement. A sufficient answer names the agent-facing gap without naming an implementation.'
+    answer: 'An AI agent performing a repository-owned YAML mutation has no single packaged statement of the order to operate the CLI in: it must independently work out how to read command help, resolve the artifact schema, inspect a minimal example, execute the command, check the structured result, validate the artifact, and what to do when a required command is unavailable. Each skill and prompt re-derives that order, and when a step is unclear the agent falls back to editing YAML directly.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: what-observable-outcome-proves-it-done
+    question: What observable outcome proves this change is complete?
+    context: 'Requirement-kind interrogation answered from the roadmap planned-change details and the milestone done_criteria. Impact: this determines the delta spec scenarios and the testing tasks. A sufficient answer is checkable from outside the system.'
+    answer: A caller can obtain the ordered CLI-only YAML authoring protocol from the strict CLI and from MCP, and for any inventoried artifact kind that protocol names the exact command sequence, the target artifact identity, the bundled schema key and its resolvable location beneath the shared schema cache root, the bundled example key and its resolvable location, the validation command, and the no-fallback behavior when a required command is unavailable -- and every referenced key and path resolves both in a source-tree checkout and in an installed environment with no repository-local templates directory.
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-problem
+    question: What is concretely going wrong today, and for whom?
+    context: 'Why this is asked: the change is planned against a need, and the need lives only with the requester. A "problem" here means what someone does or suffers today — not a feature that is missing. If the answer names a button, a field, a page, or an endpoint, it is a solution, and the underlying problem is still unstated. What a sufficient answer contains: who is affected, what they do today instead, and how often. Worked example: "every Monday one person spends forty minutes copying order rows into a spreadsheet to send the weekly report". What it changes: this becomes the proposal''s why, and it decides whether the change is worth making.'
+    answer: 'Replayed from roadmap planned change add-ai-cli-yaml-authoring-guidance: AI agents performing repository-owned YAML mutations have no packaged operating protocol. Each mutation-capable skill and MCP prompt independently re-derives the order to read help, resolve the schema, inspect an example, execute the command, check the result, and validate -- and when a step is unclear the agent falls back to editing YAML directly, which is the behavior the milestone exists to eliminate.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-outcome
+    question: What observable difference proves the problem is solved?
+    context: 'Why this is asked: without a success condition, nobody can tell afterwards whether the change worked. "Observable" means someone outside the system can check it without reading the code. What a sufficient answer contains: what a person will see, or no longer have to do, once this is done. Worked example: "the report is in the manager''s inbox on Monday morning without anyone assembling it". What it changes: this becomes the delta spec''s scenarios and the acceptance evidence at review time.'
+    answer: 'Replayed from the planned-change details and milestone done_criteria: the ordered CLI-only authoring protocol is obtainable from the strict CLI and from MCP; for any inventoried artifact kind it names the exact command sequence, target artifact identity, bundled Schema key with its resolvable location beneath the shared schema cache root, bundled Example key with its resolvable location, the validation command, and the no-fallback behavior when a required command is unavailable; and packaging tests prove every referenced key and cached path resolves in both a source-tree checkout and an installed environment with no repository-local templates directory.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-trigger
+    question: Why now — what forced this?
+    context: 'Why this is asked: work that nothing forced is the work most often thrown away later. This question catches a request that sounds reasonable but has no real driver behind it. What a sufficient answer contains: the concrete event, deadline, incident, or cost that made this surface now, or an honest statement that nothing did. Worked example: "the report was missed last month and it was raised with the team". What it changes: a change with no trigger is a candidate for deferral, and the answer is weighed at review before archive.'
+    answer: 'Replayed from roadmap dependency state: this planned change''s only dependency, align-cli-help-and-mcp-mutations, is complete, and the four remaining planned changes in milestone ai-cli-only-yaml-enforcement -- migrate-agent-skills-to-cli-only, enforce-cli-only-skill-policy, update-cli-only-yaml-documentation, and complete-cli-only-yaml-regression -- are all blocked on it because each needs a fixed protocol definition to migrate to, enforce against, document, and exercise.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-non-goals
+    question: What must explicitly not change?
+    context: 'Why this is asked: the requester knows which nearby behavior other people depend on, and the agent does not. A "non-goal" is something the change must leave alone even though it sits close to the work. What a sufficient answer contains: the behavior, setting, or output that must survive untouched, and who relies on it. Worked example: "do not change the saved filters — several people rely on their own". What it changes: these become the proposal''s unchanged_behavior items, which review checks the finished result against.'
+    answer: 'Replayed from the milestone scope.out and the sibling planned changes: this change must not block or intercept human manual YAML editing, must not add operating-system sandboxing, must not rewrite bundled SKILL.md files, must not add validate-skills policy checks, must not update operator documentation, and must not add new mutation commands, artifact families, or inventory operation coverage. Existing command names, flags, exit codes, and mutation behavior stay unchanged; the change adds a read-only descriptive surface only.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: requirement-interpretation
+    question: Which reading of the request is intended, where more than one is possible?
+    context: 'Why this is asked: a short request usually admits several readings, and building the wrong one is indistinguishable from building nothing. What a sufficient answer contains: the reading that is meant, stated plainly enough to rule the others out — or a statement that only one reading exists and what it is. Worked example: "export means the version sent to the manager, not the one I read myself". What it changes: this fixes the scope boundary before any code is written, and settles disputes about what was asked for.'
+    answer: 'Replayed from the planned-change details, which say to define and package one reusable protocol and require Skills and MCP prompts to state it: the intended reading is that this change defines the protocol as a single typed source and publishes it through the CLI and MCP surfaces, while adoption inside bundled skills is carried by migrate-agent-skills-to-cli-only and its enforcement by enforce-cli-only-skill-policy. Open question skills-scope-boundary records the residual ambiguity for human confirmation.'
+    status: resolved
+    kind: requirement
+    answered_by: roadmap
+  - id: protocol-surface-name
+    question: What should the new protocol surface be named, and should it be a top-level CLI command or a mode of an existing discovery command?
+    context: 'Impact: proposal scope and implementation files -- this fixes a public CLI surface name that later planned changes (skill migration, policy enforcement, documentation) will reference in skill command maps and operator docs, so renaming it afterwards is a breaking change across the milestone. Recommendation: a top-level read-only command named yaml-authoring-protocol, taking an optional inventoried artifact kind, sitting alongside schema-list, sample-list, yaml-surface-list, and yaml-surface-show under Bundled assets in root help. Options: (a) yaml-authoring-protocol as a new top-level command; (b) a --protocol mode on yaml-surface-show, which would make the generic protocol unreachable without naming an artifact kind; (c) yaml-protocol-show for symmetry with schema-show and sample-show. Design decision non-mutating-read-only-surface assumes option (a).'
+    answer: 'A new top-level read-only command named yaml-authoring-protocol, taking an optional inventoried artifact kind. With no argument it prints the generic ordered protocol and the no-fallback boundary; with an artifact kind it binds each step to that family''s owning commands, bundled schema key with its cache-resolved path, bundled example key with its cache-resolved path, and the artifact-specific validation command. It is listed under Bundled assets in root help alongside schema-list, sample-list, yaml-surface-list, and yaml-surface-show. Rejected: a --protocol mode on yaml-surface-show, because it would make the generic protocol unreachable without first naming an artifact kind, which is the case a caller starting a workflow hits first; and yaml-protocol-show, because schema-show and sample-show both take a required key and an optional-argument show command reads inconsistently against them.'
+    status: resolved
+    answered_by: human
+  - id: skills-scope-boundary
+    question: Is deferring all bundled SKILL.md rewrites to the migrate-agent-skills-to-cli-only planned change correct, or must this change already make at least one skill consume the published protocol as a worked reference?
+    context: 'Impact: proposal scope, implementation files, and tests. The planned-change details say Skills and MCP prompts must state the exact command order, while migrate-agent-skills-to-cli-only owns rewriting mutation-capable skills and enforce-cli-only-skill-policy owns the validate-skills checks, so the boundary between defining the protocol and adopting it in skills is genuinely ambiguous. Recommendation: defer every skill rewrite, as design decision defer-skill-rewrites records, and deliver the CLI and MCP surfaces only, because a partial skill migration here would leave the migration change with a mixed starting state. Options: (a) defer all skill rewrites; (b) migrate one representative mutation-capable skill in this change as a proof of adoption; (c) migrate every skill here and reduce migrate-agent-skills-to-cli-only to policy work.'
+    answer: Defer every bundled SKILL.md rewrite to migrate-agent-skills-to-cli-only, as design decision defer-skill-rewrites records. This change delivers the protocol module, the CLI surface, MCP rendering, and the packaging tests only; skills/ and the validate-skills policy checks are untouched. A partial skill migration here would leave the migration change with a mixed starting state.
+    status: resolved
+    answered_by: human

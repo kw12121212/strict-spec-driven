@@ -1,0 +1,35 @@
+schema: strict-spec-driven/change-design/v1
+schema_version: 1
+artifact_type: change_design
+schema_file: templates/strict-spec-driven/schemas/change-design.yaml
+change: add-ai-cli-yaml-authoring-guidance
+approach:
+  - 'Introduce a single typed protocol module in src/ that declares the ordered AI YAML authoring steps, each step''s purpose, the command or lookup it maps to, and the terminal no-fallback boundary. Add a strict CLI command registered through the existing command-metadata registry that renders that module: with no argument it prints the generic protocol; with an inventoried artifact kind it joins the protocol steps to the family record already produced by the YAML mutation surface, so owning commands per operation, bundled schema key, cache-resolved schema_file path, bundled example key, cache-resolved example path, and the schema-show and sample-show inspection commands come from the inventory and shared schema cache rather than from new literals. The MCP capability surface renders the same module so tool and prompt text cannot drift from the CLI. Regression covers generic output, artifact-bound output, unknown artifact kinds, cache-unavailable degradation, and resolution in an installed environment with no repository-local templates directory.'
+decisions:
+  protocol-single-source:
+    decision: The ordered protocol steps and the no-fallback boundary live in exactly one typed module; the CLI surface and the MCP surface both render that module and neither restates a step from its own literal.
+    rationale: The cli-command-metadata standard already forbids surface-local literals for command descriptions and artifact projections because duplicated text drifts. A protocol duplicated between a CLI renderer and MCP text would drift the same way, and the completeness test can only prove agreement by comparing every surface against one source.
+  derive-family-binding-from-inventory:
+    decision: The artifact-kind-bound protocol derives owning commands, schema key, schema_file path, example key, example path, and inspection commands from the existing mutation inventory and shared schema cache resolution used by yaml-surface-show, and reports inventoried operation states verbatim.
+    rationale: The inventory is already the single source of family ownership and operation state, and yaml-surface-show already resolves cache paths and degrades to bundled keys. Re-deriving those facts inside the protocol surface would let it claim CLI ownership the repository does not record, which the existing cli-exposes-yaml-mutation-surface requirement forbids.
+  cache-relative-asset-references:
+    decision: Protocol output references schema and example assets by bundled key plus their location beneath the shared schema cache root, never by a repository-relative templates path, and when the cache is unavailable it reports bundled keys with no cache-derived path presented as resolved.
+    rationale: Installed Skills have no source-repository templates directory, so a repository-relative reference is unresolvable exactly where the protocol matters most. Degrading to keys rather than failing matches the established surfaces-state-cache-resolution behavior and keeps the protocol usable without a synchronized cache.
+  defer-skill-rewrites:
+    decision: This change defines, packages, and publishes the protocol and renders it through CLI and MCP surfaces, but does not rewrite bundled SKILL.md files or add validate-skills policy checks.
+    rationale: migrate-agent-skills-to-cli-only and enforce-cli-only-skill-policy are separate planned changes in this milestone that depend on this one. Rewriting skills here would duplicate their scope and leave them without a stable protocol to migrate to.
+  non-mutating-read-only-surface:
+    decision: 'The protocol command is a read-only reporting surface: it writes nothing, keeps stderr empty on success, and exits non-zero only for usage errors or an artifact kind absent from the mutation inventory.'
+    rationale: Every existing discovery command in this family -- schema-list, sample-list, yaml-surface-list, yaml-surface-show -- behaves this way, and an agent must be able to consult the protocol at any point in a workflow without side effects.
+  validation-command-lives-in-inventory:
+    decision: Each artifact family's validation command is recorded as a validation_command field on the family in inventory/yaml-mutation-surfaces.yaml, written through inventory-edit, validated by the dedicated inventory checker, and read by the mutation surface; the protocol binding never derives or hardcodes it.
+    rationale: The inventory is already the single source of every other family fact the protocol reports -- ownership, operation states, owning commands, path patterns, side effects -- and the delta tech rule this change adds forbids a surface from introducing its own literals for family facts. Deriving a validation command from a naming convention over the command registry would guess, and guessing is what the protocol exists to stop.
+alternatives:
+  - option: Publish the protocol only as prose inside each bundled SKILL.md rather than as a CLI surface.
+    reason: Skill prose is not reachable by an agent that invokes the CLI directly or through MCP without a skill loaded, and duplicated prose across skills is exactly the drift the milestone exists to eliminate.
+  - option: Extend the existing yaml-surface-show output with protocol fields instead of adding a separate surface.
+    reason: yaml-surface-show answers what a family supports; overloading it with ordered operating steps would make the generic protocol unreachable without naming an artifact kind, which is the case a caller starting a workflow needs first.
+risks:
+  - The protocol can be published and still ignored, because nothing in this change enforces that skills follow it; enforcement lands in enforce-cli-only-skill-policy and is a deliberate deferral, not an oversight.
+  - Binding protocol steps to inventory-derived family records couples the surface to the inventory schema, so a future inventory field rename breaks protocol output unless regression pins the joined fields.
+  - Installed-environment resolution is proven by simulating a checkout without a repository-local templates directory; if the simulation diverges from real npm-installed layout, the packaging test can pass while installed Skills still fail.

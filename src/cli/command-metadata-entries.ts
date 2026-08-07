@@ -1340,6 +1340,50 @@ export const COMMAND_METADATA_ENTRIES: Record<string, CliCommandMetadata> = {
     ],
   },
 
+  "yaml-authoring-protocol": {
+    name: "yaml-authoring-protocol",
+    group: "assets",
+    summary: "Print the CLI-only YAML authoring protocol, optionally bound to one artifact kind.",
+    mcpDescription:
+      "Print the ordered CLI-only YAML authoring protocol an agent follows for any repository-owned YAML mutation, optionally bound to one inventoried artifact kind. Read-only; mutates nothing.",
+    usage: "Usage: strict-spec-cli yaml-authoring-protocol [<artifact-kind>]\n",
+    arguments: [
+      {
+        name: "artifact-kind",
+        description:
+          "An artifact family key reported by yaml-surface-list, such as workflow-config. Omit it to print the generic protocol that applies to every repository-owned YAML mutation.",
+        required: false,
+      },
+    ],
+    flags: [],
+    output: {
+      format: "json",
+      keys: [
+        "valid",
+        "inventoryPath",
+        "schemaCacheRoot",
+        "schemaCacheAvailable",
+        "steps",
+        "boundary",
+        "artifactKind",
+        "operations",
+        "validationCommand",
+        "diagnostics",
+      ],
+      description:
+        "A JSON protocol record carrying the ordered steps with the commands each one runs and the terminal no-fallback boundary. Naming an artifact kind additionally reports that family's ownership, artifact types, path patterns, per-operation state with owning commands, bundled schema and example keys with their cache-resolved paths, and its validation command.",
+    },
+    exitCodes: [
+      { code: 0, meaning: "The protocol was printed." },
+      { code: 1, meaning: "Usage error, or an artifact kind absent from the mutation inventory." },
+    ],
+    notes: [
+      "This command is read-only: it writes no artifact and is safe to consult at any point in a workflow.",
+      "The step order and the no-fallback boundary are identical on every surface that presents the protocol, including the MCP capability inventory.",
+      "A step reports an `unavailable` reason instead of a command when the inventory records no CLI owner or validation command for the artifact kind, or when the shared schema cache does not hold the asset; the bundled schema and example keys are still reported in that case.",
+    ],
+  },
+
   "harness-infer": {
     name: "harness-infer",
     group: "harness",

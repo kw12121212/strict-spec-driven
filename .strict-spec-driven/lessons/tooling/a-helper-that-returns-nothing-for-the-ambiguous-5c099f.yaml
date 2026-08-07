@@ -1,0 +1,19 @@
+schema: strict-spec-driven/lesson/v1
+schema_version: 1
+artifact_type: lesson
+schema_file: templates/strict-spec-driven/schemas/lesson.yaml
+lesson:
+  id: a-helper-that-returns-nothing-for-the-ambiguous-5c099f
+  title: A helper that returns nothing for the ambiguous case reads as 'nothing exists' to a new consumer
+category: tooling
+status: active
+created_at: '2026-08-06T16:56:37.205Z'
+updated_at: '2026-08-06T16:56:37.205Z'
+context: Binding a new CLI surface to the YAML mutation surface's per-family asset fields, which an existing helper deliberately leaves empty when a family registers more than one artifact type so that one type's schema is never presented as the whole family's.
+observation: The new surface treated those empty fields as the absence of any registered asset and told callers 'no registered schema covers this artifact kind' for change-planning-state, which actually registers four schemas. The original helper was correct for its own consumer, which only ever rendered a single-type summary; the deliberate blank became a false statement the moment a consumer reported it to a caller rather than skipping it. The per-artifact-type data the family already carried was right there and unused.
+takeaway: When reusing a helper whose field is empty by design for an ambiguous case, find out whether it means 'none' or 'more than one, ask elsewhere'. If it means the latter, read the itemized source instead of the collapsed field, because rendering the blank turns a deliberate abstention into a confident wrong answer.
+applies_when: Building a new consumer on an existing model whose summary field is intentionally left empty or absent for multi-valued, ambiguous, or unresolved cases.
+occurrences:
+  - origin: add-ai-cli-yaml-authoring-guidance
+    date: '2026-08-06'
+    evidence: src/yaml-mutation-surface.ts familyAssetsFrom() returns emptyAssets() when artifactTypes.length !== 1; src/yaml-authoring-protocol.ts assetStep() initially consumed family.schemaKey and reported 'no registered schema covers this artifact kind' for change-planning-state's four schemas until it was rebuilt over family.artifactTypes.

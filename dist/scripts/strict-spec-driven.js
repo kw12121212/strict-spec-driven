@@ -11574,6 +11574,7 @@ artifact_families:
       - .strict-spec-driven/config.yaml
       - templates/strict-spec-driven/schemas/config.yaml
       - src/workflow-config-author.ts
+    validation_command: check-workflow-state
   architecture-state:
     artifact_types:
       - architecture
@@ -11598,6 +11599,7 @@ artifact_families:
       - .strict-spec-driven/architecture.yaml
       - src/architecture.ts
       - src/architecture-author.ts
+    validation_command: architecture-status
   design-system-state:
     artifact_types:
       - design_system
@@ -11622,6 +11624,7 @@ artifact_families:
       - examples/strict-spec-driven/design-system.yaml
       - src/design-system.ts
       - src/design-system-author.ts
+    validation_command: design-status
   harness-state:
     artifact_types:
       - harness
@@ -11652,6 +11655,7 @@ artifact_families:
       - .strict-spec-driven/harness.yaml
       - src/harness.ts
       - src/harness-author.ts
+    validation_command: harness-doctor
   spec-state:
     artifact_types:
       - spec_index
@@ -11683,6 +11687,7 @@ artifact_families:
       - .strict-spec-driven/specs/contracts/yaml-artifacts.yaml
       - src/spec-tech-author.ts
       - src/cli/cmd-spec-tech.ts
+    validation_command: verify-spec-mappings
   tech-state:
     artifact_types:
       - tech_index
@@ -11713,6 +11718,7 @@ artifact_families:
       - .strict-spec-driven/tech/yaml-first-artifacts.yaml
       - src/spec-tech-author.ts
       - src/cli/cmd-spec-tech.ts
+    validation_command: verify-tech-mappings
   change-planning-state:
     artifact_types:
       - change_proposal
@@ -11758,6 +11764,7 @@ artifact_families:
     evidence:
       - src/propose-generation.ts
       - src/cli/cmd-generation.ts
+    validation_command: verify <change-name>
   change-delta-state:
     artifact_types:
       - delta_spec
@@ -11789,6 +11796,7 @@ artifact_families:
     evidence:
       - examples/strict-spec-driven/delta-spec.operations.yaml
       - examples/strict-spec-driven/delta-tech.operations.yaml
+    validation_command: verify <change-name>
   roadmap-state:
     artifact_types:
       - roadmap_index
@@ -11829,6 +11837,7 @@ artifact_families:
       - .strict-spec-driven/roadmap/INDEX.yaml
       - src/roadmap/author.ts
       - src/roadmap/sync.ts
+    validation_command: roadmap-status
   lessons-state:
     artifact_types:
       - lessons_index
@@ -11862,6 +11871,7 @@ artifact_families:
     evidence:
       - .strict-spec-driven/lessons/INDEX.yaml
       - src/lessons.ts
+    validation_command: lesson-status
   sop-state:
     artifact_types:
       - sops_index
@@ -11892,6 +11902,7 @@ artifact_families:
     evidence:
       - examples/strict-spec-driven/sop.yaml
       - src/sops.ts
+    validation_command: sop-validate
   bundled-schema-assets:
     artifact_types:
       - json_schema_yaml
@@ -11913,6 +11924,7 @@ artifact_families:
     evidence:
       - templates/strict-spec-driven/schemas/registry.yaml
       - test/suites/foundation-and-fixtures.ts
+    validation_command: bun test/run.ts
   bundled-scaffold-assets:
     artifact_types:
       - scaffold_yaml
@@ -11934,6 +11946,7 @@ artifact_families:
     evidence:
       - templates/strict-spec-driven/scaffold/config.yaml
       - scripts/gen-templates-bundle.ts
+    validation_command: bun test/run.ts
   bundled-reference-examples:
     artifact_types:
       - example_yaml
@@ -11954,6 +11967,7 @@ artifact_families:
     evidence:
       - examples/strict-spec-driven/schema-registry.yaml
       - scripts/gen-templates-bundle.ts
+    validation_command: bun test/run.ts
   validation-fixtures:
     artifact_types:
       - test_fixture_yaml
@@ -11974,6 +11988,7 @@ artifact_families:
     evidence:
       - test/fixtures/validation/schema-check.valid.yaml
       - test/suites/foundation-and-fixtures.ts
+    validation_command: bun test/run.ts
   legacy-migration-input:
     artifact_types:
       - legacy_config_input
@@ -12013,6 +12028,7 @@ artifact_families:
     direct_write_paths: []
     evidence:
       - inventory/yaml-mutation-surfaces.yaml
+    validation_command: bun run check:yaml-inventory
 exclusions:
   external-dependency-yaml:
     path_patterns:
@@ -15975,6 +15991,7 @@ function buildFamily(kind, rawFamily, registry, cacheRoot) {
     cliOwners,
     operations: Object.fromEntries(YAML_SURFACE_OPERATIONS.map((operation) => [operation, buildOperation(asString(operationStates[operation]), cliOwners)])),
     referenceSideEffects: asStringArray(rawFamily.reference_side_effects),
+    ...asString(rawFamily.validation_command) !== undefined ? { validationCommand: asString(rawFamily.validation_command) } : {},
     ...familyAssets
   };
 }
@@ -17327,6 +17344,47 @@ var COMMAND_METADATA_ENTRIES = {
     ],
     notes: [
       "schemaFilePath and exampleFilePath appear only when the shared schema cache holds the file; the bundled schemaKey and exampleKey are always reported."
+    ]
+  },
+  "yaml-authoring-protocol": {
+    name: "yaml-authoring-protocol",
+    group: "assets",
+    summary: "Print the CLI-only YAML authoring protocol, optionally bound to one artifact kind.",
+    mcpDescription: "Print the ordered CLI-only YAML authoring protocol an agent follows for any repository-owned YAML mutation, optionally bound to one inventoried artifact kind. Read-only; mutates nothing.",
+    usage: `Usage: strict-spec-cli yaml-authoring-protocol [<artifact-kind>]
+`,
+    arguments: [
+      {
+        name: "artifact-kind",
+        description: "An artifact family key reported by yaml-surface-list, such as workflow-config. Omit it to print the generic protocol that applies to every repository-owned YAML mutation.",
+        required: false
+      }
+    ],
+    flags: [],
+    output: {
+      format: "json",
+      keys: [
+        "valid",
+        "inventoryPath",
+        "schemaCacheRoot",
+        "schemaCacheAvailable",
+        "steps",
+        "boundary",
+        "artifactKind",
+        "operations",
+        "validationCommand",
+        "diagnostics"
+      ],
+      description: "A JSON protocol record carrying the ordered steps with the commands each one runs and the terminal no-fallback boundary. Naming an artifact kind additionally reports that family's ownership, artifact types, path patterns, per-operation state with owning commands, bundled schema and example keys with their cache-resolved paths, and its validation command."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The protocol was printed." },
+      { code: 1, meaning: "Usage error, or an artifact kind absent from the mutation inventory." }
+    ],
+    notes: [
+      "This command is read-only: it writes no artifact and is safe to consult at any point in a workflow.",
+      "The step order and the no-fallback boundary are identical on every surface that presents the protocol, including the MCP capability inventory.",
+      "A step reports an `unavailable` reason instead of a command when the inventory records no CLI owner or validation command for the artifact kind, or when the shared schema cache does not hold the asset; the bundled schema and example keys are still reported in that case."
     ]
   },
   "harness-infer": {
@@ -18843,6 +18901,7 @@ var COMMAND_REGISTRATION_ORDER = [
   "template-show",
   "yaml-surface-list",
   "yaml-surface-show",
+  "yaml-authoring-protocol",
   "schema-edit",
   "template-edit",
   "sample-edit",
@@ -34775,6 +34834,209 @@ function runSampleShow(argv) {
   return showKey(normalizeSampleKey(name), usage2);
 }
 
+// src/yaml-authoring-protocol.ts
+var YAML_AUTHORING_PROTOCOL_STEPS = [
+  {
+    order: 1,
+    id: "read-command-help",
+    title: "Read the owning command's machine-readable help",
+    intent: "Learn the command that owns the operation and its documented named arguments, output keys, and exit codes before shaping any input. Help is the contract; a remembered flag is not.",
+    commands: ["<owning-command> --help --json"]
+  },
+  {
+    order: 2,
+    id: "resolve-schema",
+    title: "Resolve the target artifact's schema",
+    intent: "Confirm the artifact's required fields, enums, and relationships from its registered schema rather than inferring them from a similar artifact.",
+    commands: ["schema-list", "schema-show <schema-key>"]
+  },
+  {
+    order: 3,
+    id: "inspect-example",
+    title: "Inspect the registered minimal example",
+    intent: "See one known-valid document of this artifact type, which resolves shape questions the schema states abstractly. The example is read-only reference; it is never copied into place as a starting file.",
+    commands: ["sample-list", "sample-show <example-key>"]
+  },
+  {
+    order: 4,
+    id: "translate-to-named-arguments",
+    title: "Translate confirmed facts into documented named arguments",
+    intent: "Express the intended change as the command's own semantic arguments. Every value must trace to something confirmed in the request, the schema, or repository evidence — an unconfirmed field is an open question, not a default.",
+    commands: []
+  },
+  {
+    order: 5,
+    id: "execute-owning-command",
+    title: "Execute the owning command with those arguments",
+    intent: "Perform the mutation through the command that owns it. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.",
+    commands: ["<owning-command> --<named-args>"]
+  },
+  {
+    order: 6,
+    id: "inspect-structured-result",
+    title: "Inspect the structured result and changed paths",
+    intent: "Read the returned result rather than assuming success. A result reporting incompleteness is a successful write with more work to do, not a failure to retry; diagnostics name what is missing.",
+    commands: []
+  },
+  {
+    order: 7,
+    id: "validate-artifact",
+    title: "Run the artifact's validation command",
+    intent: "Confirm the artifact and the state it participates in are valid after the write, which catches cross-file consequences a single mutation's own result cannot report.",
+    commands: ["<validation-command>"]
+  }
+];
+var YAML_AUTHORING_PROTOCOL_BOUNDARY = {
+  id: "no-direct-edit-fallback",
+  title: "Stop rather than edit YAML directly",
+  statement: "When a required command, argument, or artifact kind is unavailable, stop and report the missing capability. Editing the YAML directly, writing a raw payload, or scripting around the CLI is never an available fallback, and an unavailable command is a reason to stop rather than a reason to improvise.",
+  reportContains: [
+    "the operation that could not be completed",
+    "the artifact kind and target artifact it would have written",
+    "the command or argument that is missing",
+    "the discovery commands already consulted"
+  ]
+};
+function getYamlAuthoringProtocol() {
+  return {
+    steps: YAML_AUTHORING_PROTOCOL_STEPS,
+    boundary: YAML_AUTHORING_PROTOCOL_BOUNDARY
+  };
+}
+function unique(values3) {
+  return [...new Set(values3)];
+}
+function assetStep(step, listCommand, showCommandPrefix, artifactTypes, keyOf, cachedPathOf, assetLabel) {
+  const withKey = artifactTypes.filter((entry) => keyOf(entry) !== undefined);
+  const showCommands = unique(withKey.flatMap((entry) => entry.inspectWith.filter((command) => command.startsWith(showCommandPrefix))));
+  if (withKey.length === 0 || showCommands.length === 0) {
+    return {
+      ...step,
+      commands: [listCommand],
+      unavailable: `no registered ${assetLabel} covers this artifact kind`
+    };
+  }
+  const uncached = withKey.filter((entry) => cachedPathOf(entry) === undefined);
+  return {
+    ...step,
+    commands: showCommands,
+    ...uncached.length === 0 ? {} : {
+      unavailable: `the shared schema cache does not hold the ${assetLabel} for ${uncached.map((entry) => entry.artifactType).join(", ")}; use the bundled key`
+    }
+  };
+}
+function bindYamlAuthoringProtocol(family) {
+  const mutatingCommands = family.cliOwners;
+  const artifactTypes = family.artifactTypes.map((entry) => ({
+    artifactType: entry.artifactType,
+    ...entry.schemaId !== undefined ? { schemaId: entry.schemaId } : {},
+    ...entry.schemaKey !== undefined ? { schemaKey: entry.schemaKey } : {},
+    ...entry.schemaFilePath !== undefined ? { schemaFilePath: entry.schemaFilePath } : {},
+    ...entry.exampleKey !== undefined ? { exampleKey: entry.exampleKey } : {},
+    ...entry.exampleFilePath !== undefined ? { exampleFilePath: entry.exampleFilePath } : {},
+    inspectWith: entry.inspectWith
+  }));
+  const steps = YAML_AUTHORING_PROTOCOL_STEPS.map((step) => {
+    switch (step.id) {
+      case "read-command-help":
+      case "execute-owning-command":
+        return mutatingCommands.length === 0 ? {
+          ...step,
+          commands: [],
+          unavailable: "the inventory records no CLI owner for this artifact kind"
+        } : {
+          ...step,
+          commands: mutatingCommands.map((command) => step.id === "read-command-help" ? `${command} --help --json` : `${command} --<named-args>`)
+        };
+      case "resolve-schema":
+        return assetStep(step, "schema-list", "schema-show ", artifactTypes, (entry) => entry.schemaKey, (entry) => entry.schemaFilePath, "schema");
+      case "inspect-example":
+        return assetStep(step, "sample-list", "sample-show ", artifactTypes, (entry) => entry.exampleKey, (entry) => entry.exampleFilePath, "example");
+      case "validate-artifact":
+        return family.validationCommand === undefined ? {
+          ...step,
+          commands: [],
+          unavailable: "the inventory records no validation command for this artifact kind"
+        } : { ...step, commands: [family.validationCommand] };
+      default:
+        return { ...step };
+    }
+  });
+  return {
+    artifactKind: family.kind,
+    ownership: family.ownership,
+    artifactTypes,
+    pathPatterns: family.pathPatterns,
+    ...family.schemaKey !== undefined ? { schemaKey: family.schemaKey } : {},
+    ...family.schemaFilePath !== undefined ? { schemaFilePath: family.schemaFilePath } : {},
+    ...family.exampleKey !== undefined ? { exampleKey: family.exampleKey } : {},
+    ...family.exampleFilePath !== undefined ? { exampleFilePath: family.exampleFilePath } : {},
+    ...family.validationCommand !== undefined ? { validationCommand: family.validationCommand } : {},
+    operations: YAML_SURFACE_OPERATIONS.map((operation) => ({
+      operation,
+      state: family.operations[operation].state,
+      cliOwned: family.operations[operation].cliOwned,
+      commands: family.operations[operation].commands
+    })),
+    steps,
+    boundary: YAML_AUTHORING_PROTOCOL_BOUNDARY
+  };
+}
+
+// src/cli/cmd-yaml-authoring-protocol.ts
+function runYamlAuthoringProtocol(argv) {
+  const [kind, ...extraArgs] = argv;
+  if (handleHelpRequest("yaml-authoring-protocol", argv)) {
+    return 0;
+  }
+  if (extraArgs.length > 0) {
+    writeUsage(getCommandUsage("yaml-authoring-protocol"));
+    return 1;
+  }
+  const surface = loadYamlMutationSurface();
+  const context = {
+    inventoryPath: surface.inventoryPath,
+    schemaCacheRoot: surface.schemaCacheRoot,
+    schemaCacheAvailable: surface.schemaCacheAvailable
+  };
+  if (kind === undefined) {
+    const protocol = getYamlAuthoringProtocol();
+    writeJson({
+      valid: true,
+      ...context,
+      steps: protocol.steps,
+      boundary: protocol.boundary,
+      diagnostics: []
+    });
+    return 0;
+  }
+  const family = findYamlSurfaceFamily(kind);
+  if (!family) {
+    writeJson({
+      valid: false,
+      inventoryPath: surface.inventoryPath,
+      diagnostics: [
+        {
+          code: "unknown-artifact-kind",
+          fieldPath: "$.artifact_families",
+          message: `no inventoried artifact kind '${kind}'`,
+          expected: `one of: ${surface.families.map((entry) => entry.kind).join(", ")}`,
+          actual: kind
+        }
+      ]
+    });
+    return 1;
+  }
+  const bound = bindYamlAuthoringProtocol(family);
+  writeJson({
+    valid: true,
+    ...context,
+    ...bound,
+    diagnostics: []
+  });
+  return 0;
+}
+
 // src/cli/cmd-yaml-surface.ts
 function toListEntry(family) {
   return {
@@ -38706,6 +38968,7 @@ var commands = createCliCommandTable({
   "template-show": (argv) => runTemplateShow(argv),
   "yaml-surface-list": (argv) => runYamlSurfaceList(argv),
   "yaml-surface-show": (argv) => runYamlSurfaceShow(argv),
+  "yaml-authoring-protocol": (argv) => runYamlAuthoringProtocol(argv),
   "schema-edit": (argv) => runSchemaEdit(argv),
   "template-edit": (argv) => runTemplateEdit(argv),
   "sample-edit": (argv) => runSampleEdit(argv),

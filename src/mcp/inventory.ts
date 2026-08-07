@@ -38,6 +38,11 @@ function mcpToolDescription(cliCommand: string): string {
     `Run ${
       artifactSurface.map((entry) => `'strict-spec-cli yaml-surface-show ${entry.artifactKind}'`).join(" and ")
     } for the supported operations, their owning commands, and the cross-file effects of a write.`,
+    // Every mutating tool routes to the protocol, so an agent that reads only this description
+    // still learns the step order and that direct YAML editing is not an available fallback.
+    `Follow the CLI-only YAML authoring protocol for this write: run ${
+      artifactSurface.map((entry) => `'strict-spec-cli yaml-authoring-protocol ${entry.artifactKind}'`).join(" and ")
+    } for the ordered steps, the validation command, and the no-fallback boundary that forbids editing the YAML directly when a required command is unavailable.`,
   ].join(" ");
 }
 
@@ -131,6 +136,13 @@ export const MCP_READ_ONLY_TOOL_INVENTORY: McpCapabilityInventory["tools"] = [
     description: mcpToolDescription("roadmap-recommend"),
     safety: "read",
     cliCommand: "roadmap-recommend",
+    mutates: false,
+  },
+  {
+    name: "yaml_authoring_protocol",
+    description: mcpToolDescription("yaml-authoring-protocol"),
+    safety: "read",
+    cliCommand: "yaml-authoring-protocol",
     mutates: false,
   },
   {

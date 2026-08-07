@@ -12,6 +12,7 @@ import {
 
 const emptySchema = z.strictObject({});
 const changeSchema = z.strictObject({ change: z.string().min(1) });
+const optionalArtifactKindSchema = z.strictObject({ artifactKind: z.string().min(1).optional() });
 const confirmField = { confirm: z.boolean().optional() };
 const confirmSchema = z.strictObject({ ...confirmField });
 const changeConfirmSchema = z.strictObject({ change: z.string().min(1), ...confirmField });
@@ -114,6 +115,11 @@ export const READ_ONLY_TOOL_DEFINITIONS: McpToolDefinition[] = [
   command(inventoryFor("roadmap_status"), () => ["roadmap-status"]),
   command(inventoryFor("roadmap_overview"), () => ["roadmap-overview"]),
   command(inventoryFor("roadmap_recommend"), () => ["roadmap-recommend"]),
+  command(inventoryFor("yaml_authoring_protocol"), (args) => {
+    const cliArgs = ["yaml-authoring-protocol"];
+    if (typeof args.artifactKind === "string") cliArgs.push(args.artifactKind);
+    return cliArgs;
+  }, optionalArtifactKindSchema),
   command(inventoryFor("verify_spec_mappings"), () => ["verify-spec-mappings"]),
   command(inventoryFor("verify_tech_mappings"), () => ["verify-tech-mappings"]),
   command(inventoryFor("tech_status"), () => ["tech-status"]),

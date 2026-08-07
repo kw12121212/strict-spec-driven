@@ -16,9 +16,12 @@ mapping:
     - src/cli/entrypoint.ts
     - src/cli/cmd-generation.ts
     - src/yaml-mutation-surface.ts
+    - src/yaml-authoring-protocol.ts
+    - src/cli/cmd-yaml-authoring-protocol.ts
   enforcement:
     - test/suites/entrypoint-and-skills.ts
     - test/suites/change-lifecycle.ts
+    - test/suites/yaml-authoring-protocol.ts
 rules:
   single-source-command-descriptions:
     strength: MUST
@@ -44,3 +47,15 @@ rules:
     rationale: 'The registry already prevented divergent command descriptions, but nothing prevented a surface from rendering a subset: text help and MCP tool descriptions printed artifact kinds while the same projection''s schema keys, paths, and example keys reached only JSON help, so what an agent could discover depended on which surface it happened to read. Requiring whole-projection rendering with an explicit named follow-up turns a silent omission into a visible routing decision, and forbidding surface-local literals keeps the completeness test able to prove agreement by comparing every surface against one source.'
     enforcement:
       method: test
+  authoring-protocol-has-one-source:
+    strength: MUST
+    statement: The ordered AI YAML authoring protocol steps and their terminal missing-capability behavior MUST be declared in exactly one typed module, and every AI-facing surface that presents the protocol -- CLI text output, machine-readable output, and the MCP capability surface -- MUST render that module rather than restating a step, its order, or the no-fallback boundary from a surface-local literal.
+    rationale: 'The existing single-source rules in this standard exist because duplicated command descriptions and partially rendered artifact projections drifted between surfaces, leaving what an agent could discover dependent on which surface it happened to read. An operating protocol is more sensitive to that drift than a description is: a surface that omits or reorders a step teaches an agent a different workflow, and the step most likely to be dropped is the terminal one that forbids direct-edit fallback, which is the rule the protocol exists to carry. One typed source is also what lets a test prove agreement by comparing every surface against it instead of comparing surfaces to each other.'
+    enforcement:
+      method: test
+      detail: The protocol module owns step order, per-step intent, and the missing-capability boundary. Surfaces may choose formatting and may bind steps to a named artifact kind, but bind by deriving family facts from the mutation inventory and shared schema cache -- never by introducing new literals for commands, schema keys, example keys, or cache paths.
+    examples:
+      good:
+        - A CLI renderer and the MCP capability inventory both import the protocol step list from the protocol module and format it for their medium.
+      bad:
+        - The MCP tool description hardcodes an abbreviated four-step version of the protocol while the CLI prints the full seven-step list.

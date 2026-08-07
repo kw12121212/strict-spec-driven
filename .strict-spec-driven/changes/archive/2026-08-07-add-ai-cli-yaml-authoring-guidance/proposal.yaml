@@ -1,0 +1,43 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: add-ai-cli-yaml-authoring-guidance
+  status: proposed
+summary:
+  what:
+    - Define one canonical AI CLI-only YAML authoring protocol as a single typed source in src/ that names the ordered steps an agent must follow for any repository-owned YAML mutation.
+    - Publish that protocol through a new strict CLI surface that returns the generic step order, and when given an inventoried artifact kind binds each step to that family's owning commands, bundled schema key with its cache-resolved schema_file path, bundled example key with its cache-resolved path, validation command, and no-fallback failure boundary.
+    - Render the same protocol source through the MCP capability surface so MCP callers receive the identical command order, artifact identity, schema and example references, validation command, and failure boundary.
+    - Add packaging regression proving every protocol-referenced schema key, example key, and cache-relative path resolves in both a source-tree checkout and an installed environment that has no repository-local templates directory.
+    - Record each artifact family's validation command in the checked-in mutation inventory so the artifact-bound protocol names a real per-family validation step instead of a generic one.
+  why:
+    - Mutation-capable AI workflows have no single packaged statement of how to operate the CLI safely, so each skill and prompt re-derives its own step order and drifts toward direct YAML editing when a step is unclear.
+    - align-cli-help-and-mcp-mutations made per-command artifact assets discoverable, but nothing tells an agent the order to read help, resolve the schema, inspect the example, execute the command, check the structured result, and validate, nor what to do when a required command is missing.
+    - The four remaining planned changes in this milestone -- skill migration, policy enforcement, documentation, and end-to-end regression -- each need a fixed protocol definition to migrate to, enforce against, document, and exercise.
+    - Skill guidance that assumes a repository-local templates directory breaks in installed environments, so the protocol must reference the shared schema cache and be proven to resolve there.
+    - The planned change requires the protocol to run the artifact-specific status, validation, ready, or verify command, and the mutation inventory -- the single source of every other family fact -- does not record one, so the binding would otherwise have to invent the fact at the surface.
+scope:
+  in:
+    - Add a canonical protocol definition module under src/ as the single source of the ordered AI YAML authoring steps and their failure boundary.
+    - Add the CLI command that prints the generic protocol and the artifact-kind-bound protocol, registered in the shared command-metadata registry like every other command.
+    - Derive the artifact-bound protocol binding from the existing mutation inventory and shared schema cache resolution rather than restating family facts.
+    - Render the protocol through the MCP capability surface from the same source module.
+    - Add regression covering the generic protocol, the artifact-bound protocol, unknown artifact kinds, unavailable shared schema cache degradation, and installed-environment path resolution.
+    - Add a delta tech rule to cli-command-metadata requiring the protocol to have a single source rendered by every AI-facing surface.
+    - Add a per-family validation_command field to inventory/yaml-mutation-surfaces.yaml through inventory-edit, extend scripts/check-yaml-mutation-inventory.ts to validate it, and expose it through the YAML mutation surface.
+  out:
+    - Rewriting bundled SKILL.md files to CLI-only guidance, which is the migrate-agent-skills-to-cli-only planned change.
+    - Adding validate-skills policy checks that reject direct YAML edit guidance, which is the enforce-cli-only-skill-policy planned change.
+    - Updating English and Chinese operator documentation, which is the update-cli-only-yaml-documentation planned change.
+    - Running the milestone-wide end-to-end create, update, named removal, deletion, archive, and rollback regression, which is the complete-cli-only-yaml-regression planned change.
+    - Adding new mutation commands, new artifact families, or new inventory operation coverage.
+unchanged_behavior:
+  - Every existing command name, accepted flag, exit code, and mutation behavior stays as it is; the change adds a descriptive surface and does not alter any write path.
+  - The checked-in mutation inventory remains the single source of artifact families, operation states, and CLI ownership; the protocol surface reports inventoried facts verbatim and claims no coverage the inventory does not record.
+  - Protocol requests remain non-mutating and keep degrading to bundled schema and example keys when the shared schema cache is unavailable, exactly as the existing help and surface commands do.
+  - Existing mutation inventory families, ownership classes, operation states, path patterns, cli_owners, and reference side effects stay exactly as recorded; the inventory gains one field per family and loses nothing.
+roadmap:
+  milestone: ai-cli-only-yaml-enforcement
+  planned_change: add-ai-cli-yaml-authoring-guidance

@@ -35803,6 +35803,7 @@ artifact_families:
       - .strict-spec-driven/config.yaml
       - templates/strict-spec-driven/schemas/config.yaml
       - src/workflow-config-author.ts
+    validation_command: check-workflow-state
   architecture-state:
     artifact_types:
       - architecture
@@ -35827,6 +35828,7 @@ artifact_families:
       - .strict-spec-driven/architecture.yaml
       - src/architecture.ts
       - src/architecture-author.ts
+    validation_command: architecture-status
   design-system-state:
     artifact_types:
       - design_system
@@ -35851,6 +35853,7 @@ artifact_families:
       - examples/strict-spec-driven/design-system.yaml
       - src/design-system.ts
       - src/design-system-author.ts
+    validation_command: design-status
   harness-state:
     artifact_types:
       - harness
@@ -35881,6 +35884,7 @@ artifact_families:
       - .strict-spec-driven/harness.yaml
       - src/harness.ts
       - src/harness-author.ts
+    validation_command: harness-doctor
   spec-state:
     artifact_types:
       - spec_index
@@ -35912,6 +35916,7 @@ artifact_families:
       - .strict-spec-driven/specs/contracts/yaml-artifacts.yaml
       - src/spec-tech-author.ts
       - src/cli/cmd-spec-tech.ts
+    validation_command: verify-spec-mappings
   tech-state:
     artifact_types:
       - tech_index
@@ -35942,6 +35947,7 @@ artifact_families:
       - .strict-spec-driven/tech/yaml-first-artifacts.yaml
       - src/spec-tech-author.ts
       - src/cli/cmd-spec-tech.ts
+    validation_command: verify-tech-mappings
   change-planning-state:
     artifact_types:
       - change_proposal
@@ -35987,6 +35993,7 @@ artifact_families:
     evidence:
       - src/propose-generation.ts
       - src/cli/cmd-generation.ts
+    validation_command: verify <change-name>
   change-delta-state:
     artifact_types:
       - delta_spec
@@ -36018,6 +36025,7 @@ artifact_families:
     evidence:
       - examples/strict-spec-driven/delta-spec.operations.yaml
       - examples/strict-spec-driven/delta-tech.operations.yaml
+    validation_command: verify <change-name>
   roadmap-state:
     artifact_types:
       - roadmap_index
@@ -36058,6 +36066,7 @@ artifact_families:
       - .strict-spec-driven/roadmap/INDEX.yaml
       - src/roadmap/author.ts
       - src/roadmap/sync.ts
+    validation_command: roadmap-status
   lessons-state:
     artifact_types:
       - lessons_index
@@ -36091,6 +36100,7 @@ artifact_families:
     evidence:
       - .strict-spec-driven/lessons/INDEX.yaml
       - src/lessons.ts
+    validation_command: lesson-status
   sop-state:
     artifact_types:
       - sops_index
@@ -36121,6 +36131,7 @@ artifact_families:
     evidence:
       - examples/strict-spec-driven/sop.yaml
       - src/sops.ts
+    validation_command: sop-validate
   bundled-schema-assets:
     artifact_types:
       - json_schema_yaml
@@ -36142,6 +36153,7 @@ artifact_families:
     evidence:
       - templates/strict-spec-driven/schemas/registry.yaml
       - test/suites/foundation-and-fixtures.ts
+    validation_command: bun test/run.ts
   bundled-scaffold-assets:
     artifact_types:
       - scaffold_yaml
@@ -36163,6 +36175,7 @@ artifact_families:
     evidence:
       - templates/strict-spec-driven/scaffold/config.yaml
       - scripts/gen-templates-bundle.ts
+    validation_command: bun test/run.ts
   bundled-reference-examples:
     artifact_types:
       - example_yaml
@@ -36183,6 +36196,7 @@ artifact_families:
     evidence:
       - examples/strict-spec-driven/schema-registry.yaml
       - scripts/gen-templates-bundle.ts
+    validation_command: bun test/run.ts
   validation-fixtures:
     artifact_types:
       - test_fixture_yaml
@@ -36203,6 +36217,7 @@ artifact_families:
     evidence:
       - test/fixtures/validation/schema-check.valid.yaml
       - test/suites/foundation-and-fixtures.ts
+    validation_command: bun test/run.ts
   legacy-migration-input:
     artifact_types:
       - legacy_config_input
@@ -36242,6 +36257,7 @@ artifact_families:
     direct_write_paths: []
     evidence:
       - inventory/yaml-mutation-surfaces.yaml
+    validation_command: bun run check:yaml-inventory
 exclusions:
   external-dependency-yaml:
     path_patterns:
@@ -39822,6 +39838,7 @@ function buildFamily(kind, rawFamily, registry2, cacheRoot) {
     cliOwners,
     operations: Object.fromEntries(YAML_SURFACE_OPERATIONS.map((operation) => [operation, buildOperation(asString(operationStates[operation]), cliOwners)])),
     referenceSideEffects: asStringArray(rawFamily.reference_side_effects),
+    ...asString(rawFamily.validation_command) !== undefined ? { validationCommand: asString(rawFamily.validation_command) } : {},
     ...familyAssets
   };
 }
@@ -41151,6 +41168,47 @@ var COMMAND_METADATA_ENTRIES = {
       "schemaFilePath and exampleFilePath appear only when the shared schema cache holds the file; the bundled schemaKey and exampleKey are always reported."
     ]
   },
+  "yaml-authoring-protocol": {
+    name: "yaml-authoring-protocol",
+    group: "assets",
+    summary: "Print the CLI-only YAML authoring protocol, optionally bound to one artifact kind.",
+    mcpDescription: "Print the ordered CLI-only YAML authoring protocol an agent follows for any repository-owned YAML mutation, optionally bound to one inventoried artifact kind. Read-only; mutates nothing.",
+    usage: `Usage: strict-spec-cli yaml-authoring-protocol [<artifact-kind>]
+`,
+    arguments: [
+      {
+        name: "artifact-kind",
+        description: "An artifact family key reported by yaml-surface-list, such as workflow-config. Omit it to print the generic protocol that applies to every repository-owned YAML mutation.",
+        required: false
+      }
+    ],
+    flags: [],
+    output: {
+      format: "json",
+      keys: [
+        "valid",
+        "inventoryPath",
+        "schemaCacheRoot",
+        "schemaCacheAvailable",
+        "steps",
+        "boundary",
+        "artifactKind",
+        "operations",
+        "validationCommand",
+        "diagnostics"
+      ],
+      description: "A JSON protocol record carrying the ordered steps with the commands each one runs and the terminal no-fallback boundary. Naming an artifact kind additionally reports that family's ownership, artifact types, path patterns, per-operation state with owning commands, bundled schema and example keys with their cache-resolved paths, and its validation command."
+    },
+    exitCodes: [
+      { code: 0, meaning: "The protocol was printed." },
+      { code: 1, meaning: "Usage error, or an artifact kind absent from the mutation inventory." }
+    ],
+    notes: [
+      "This command is read-only: it writes no artifact and is safe to consult at any point in a workflow.",
+      "The step order and the no-fallback boundary are identical on every surface that presents the protocol, including the MCP capability inventory.",
+      "A step reports an `unavailable` reason instead of a command when the inventory records no CLI owner or validation command for the artifact kind, or when the shared schema cache does not hold the asset; the bundled schema and example keys are still reported in that case."
+    ]
+  },
   "harness-infer": {
     name: "harness-infer",
     group: "harness",
@@ -42341,7 +42399,8 @@ function mcpToolDescription(cliCommand) {
     description,
     `Writes YAML artifact kinds: ${artifactSurface.map(describeArtifactEntry).join("; ")}.`,
     `Declared schema_file and example paths resolve beneath ${cache.schemaCacheRoot}, and the keys above name the bundled assets when that cache is unavailable.`,
-    `Run ${artifactSurface.map((entry) => `'strict-spec-cli yaml-surface-show ${entry.artifactKind}'`).join(" and ")} for the supported operations, their owning commands, and the cross-file effects of a write.`
+    `Run ${artifactSurface.map((entry) => `'strict-spec-cli yaml-surface-show ${entry.artifactKind}'`).join(" and ")} for the supported operations, their owning commands, and the cross-file effects of a write.`,
+    `Follow the CLI-only YAML authoring protocol for this write: run ${artifactSurface.map((entry) => `'strict-spec-cli yaml-authoring-protocol ${entry.artifactKind}'`).join(" and ")} for the ordered steps, the validation command, and the no-fallback boundary that forbids editing the YAML directly when a required command is unavailable.`
   ].join(" ");
 }
 var MCP_SERVER_NAME = "strict-spec-driven";
@@ -42401,6 +42460,13 @@ var MCP_READ_ONLY_TOOL_INVENTORY = [
     description: mcpToolDescription("roadmap-recommend"),
     safety: "read",
     cliCommand: "roadmap-recommend",
+    mutates: false
+  },
+  {
+    name: "yaml_authoring_protocol",
+    description: mcpToolDescription("yaml-authoring-protocol"),
+    safety: "read",
+    cliCommand: "yaml-authoring-protocol",
     mutates: false
   },
   {
@@ -42939,6 +43005,7 @@ import path5 from "path";
 import { fileURLToPath as fileURLToPath3 } from "url";
 var emptySchema = exports_external.strictObject({});
 var changeSchema2 = exports_external.strictObject({ change: exports_external.string().min(1) });
+var optionalArtifactKindSchema = exports_external.strictObject({ artifactKind: exports_external.string().min(1).optional() });
 var confirmField = { confirm: exports_external.boolean().optional() };
 var confirmSchema = exports_external.strictObject({ ...confirmField });
 var changeConfirmSchema = exports_external.strictObject({ change: exports_external.string().min(1), ...confirmField });
@@ -43010,6 +43077,12 @@ var READ_ONLY_TOOL_DEFINITIONS = [
   command(inventoryFor("roadmap_status"), () => ["roadmap-status"]),
   command(inventoryFor("roadmap_overview"), () => ["roadmap-overview"]),
   command(inventoryFor("roadmap_recommend"), () => ["roadmap-recommend"]),
+  command(inventoryFor("yaml_authoring_protocol"), (args) => {
+    const cliArgs = ["yaml-authoring-protocol"];
+    if (typeof args.artifactKind === "string")
+      cliArgs.push(args.artifactKind);
+    return cliArgs;
+  }, optionalArtifactKindSchema),
   command(inventoryFor("verify_spec_mappings"), () => ["verify-spec-mappings"]),
   command(inventoryFor("verify_tech_mappings"), () => ["verify-tech-mappings"]),
   command(inventoryFor("tech_status"), () => ["tech-status"]),

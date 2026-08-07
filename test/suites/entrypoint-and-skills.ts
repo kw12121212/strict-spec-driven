@@ -107,6 +107,7 @@ const expectedCommandOrder = [
   "template-show",
   "yaml-surface-list",
   "yaml-surface-show",
+  "yaml-authoring-protocol",
   "schema-edit",
   "template-edit",
   "sample-edit",

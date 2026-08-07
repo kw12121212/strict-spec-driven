@@ -1,0 +1,70 @@
+schema: strict-spec-driven/delta-spec/v1
+schema_version: 1
+artifact_type: delta_spec
+schema_file: templates/strict-spec-driven/schemas/delta-spec.yaml
+target_spec: cli-foundation
+mapping:
+  implementation:
+    - src/yaml-authoring-protocol.ts
+    - src/cli/command-metadata-entries.ts
+    - src/cli/registry.ts
+    - src/mcp/inventory.ts
+    - src/cli/cmd-yaml-authoring-protocol.ts
+    - src/yaml-mutation-surface.ts
+    - src/strict-spec-cli.ts
+    - src/mcp/tools.ts
+    - inventory/yaml-mutation-surfaces.yaml
+    - scripts/check-yaml-mutation-inventory.ts
+  tests:
+    - test/suites/entrypoint-and-skills.ts
+    - test/suites/yaml-authoring-protocol.ts
+operations:
+  ADDED:
+    cli-publishes-ai-yaml-authoring-protocol:
+      strength: MUST
+      statement: The system MUST publish a single ordered CLI-only YAML authoring protocol that states, for any repository-owned YAML mutation, the order in which a caller reads command help, resolves the artifact schema, inspects the registered minimal example, executes the owning command with named arguments, inspects the structured result and changed paths, and runs the artifact-specific validation command, together with the terminal behavior that a caller whose required command is unavailable MUST stop with an actionable missing-capability report and MUST NOT fall back to editing the YAML directly; the protocol MUST be obtainable without naming an artifact kind, and every surface that presents it MUST present the same step order and the same terminal behavior.
+      scenarios:
+        protocol-is-obtainable-without-an-artifact-kind:
+          - GIVEN: A caller is starting a repository-owned YAML mutation and has not yet chosen an artifact kind
+          - WHEN: The caller requests the CLI-only YAML authoring protocol
+          - THEN: The ordered steps from help lookup through schema resolution, example inspection, command execution, structured-result inspection, and validation are reported in a fixed order
+          - THEN: The report states that an unavailable required command terminates the workflow with a missing-capability report and that direct YAML editing is not an available fallback
+        protocol-request-is-read-only:
+          - GIVEN: A caller requests the CLI-only YAML authoring protocol
+          - WHEN: The system reports the protocol
+          - THEN: No repository-owned YAML artifact is created, modified, or deleted
+          - THEN: The request succeeds with empty error output
+        every-surface-reports-the-same-protocol:
+          - GIVEN: The protocol is presented on more than one caller-facing surface
+          - WHEN: A caller compares the protocol reported by each surface
+          - THEN: Each surface reports the same ordered steps and the same terminal missing-capability behavior
+    cli-binds-authoring-protocol-to-artifact-kind:
+      strength: MUST
+      statement: The system MUST bind the CLI-only YAML authoring protocol to a named inventoried artifact kind on request, reporting for that kind the owning CLI command for each supported operation taken verbatim from the mutation inventory, the target artifact identity, its artifact-specific validation command, and for every artifact type the kind registers the bundled schema key together with the location its declared schema_file resolves to beneath the shared schema cache root, the bundled example key together with the location it resolves to beneath that cache, and the commands that print those assets; when the shared schema cache is unavailable the bundled schema and example keys MUST still be reported with no cache-derived path presented as resolved, and an artifact kind absent from the mutation inventory MUST be rejected with a deterministic diagnostic naming it and no partial protocol result.
+      scenarios:
+        bound-protocol-names-commands-and-assets:
+          - GIVEN: A caller names an artifact kind recorded in the repository mutation inventory
+          - WHEN: The caller requests the authoring protocol for that artifact kind
+          - THEN: Each protocol step names the owning CLI command, target artifact identity, or asset lookup that applies to that artifact kind
+          - THEN: The result reports the bundled schema key with its cache-resolved location, the bundled example key with its cache-resolved location, the commands that print them, and the artifact-specific validation command
+        bound-protocol-covers-every-registered-artifact-type:
+          - GIVEN: An inventoried artifact kind registers more than one artifact type
+          - WHEN: The caller requests the authoring protocol for that artifact kind
+          - THEN: Every registered artifact type is reported with its own bundled schema key, bundled example key, and resolved cache locations
+          - THEN: The schema and example steps name one inspection command per registered artifact type and report no absent-asset condition
+        bound-protocol-reports-inventoried-ownership-verbatim:
+          - GIVEN: The mutation inventory records an operation for an artifact kind as something other than CLI-owned
+          - WHEN: The caller requests the authoring protocol for that artifact kind
+          - THEN: That operation is reported with its inventoried state and no owning CLI command is claimed for it
+        bound-protocol-degrades-without-the-cache:
+          - GIVEN: The shared schema cache is unavailable
+          - WHEN: A caller requests the authoring protocol for an inventoried artifact kind
+          - THEN: The bundled schema key and bundled example key are still reported
+          - THEN: No cache-derived schema or example path is presented as resolved
+        bound-protocol-rejects-unknown-artifact-kind:
+          - GIVEN: A caller names an artifact kind that is absent from the mutation inventory
+          - WHEN: The system resolves the request
+          - THEN: The request fails with a deterministic diagnostic naming the unknown artifact kind
+          - THEN: No partial protocol result is reported
+  MODIFIED: {}
+  REMOVED: {}

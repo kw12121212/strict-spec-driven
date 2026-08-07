@@ -224,6 +224,18 @@ export function validateYamlMutationInventory(options: InventoryValidationOption
     if (typeof family.validation_owner !== "string" || family.validation_owner.length === 0) {
       addDiagnostic(diagnostics, "missing-validation-owner", `${familyPath}.validation_owner`, "validation owner is required");
     }
+    // The AI authoring protocol's final step runs this command, so a family whose mutations flow
+    // through the CLI must name one. Requiring it only where an operation is cli-owned keeps
+    // human-only and not-applicable families from having to invent a command nobody would run.
+    const hasCliOwnedOperation = OPERATION_KEYS.some((operation) => asMap(family.operations)?.[operation] === "cli-owned");
+    if (hasCliOwnedOperation && (typeof family.validation_command !== "string" || family.validation_command.length === 0)) {
+      addDiagnostic(
+        diagnostics,
+        "missing-validation-command",
+        `${familyPath}.validation_command`,
+        `family '${familyId}' has a cli-owned operation but names no validation command for the authoring protocol to run`,
+      );
+    }
     if (typeof family.ownership !== "string" || !ownershipClasses.has(family.ownership)) {
       addDiagnostic(diagnostics, "invalid-ownership", `${familyPath}.ownership`, `unknown ownership class: ${String(family.ownership)}`);
     }
