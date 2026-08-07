@@ -1,0 +1,30 @@
+schema: strict-spec-driven/change-proposal/v1
+schema_version: 1
+artifact_type: change_proposal
+schema_file: templates/strict-spec-driven/schemas/change-proposal.yaml
+change:
+  id: migrate-agent-skills-to-cli-only
+  status: proposed
+summary:
+  what:
+    - 'Rewrite every bundled mutation-capable Agent Skill under skills/ so its YAML authoring instructions are the shared CLI-only authoring protocol rendered by ''strict-spec-cli yaml-authoring-protocol <artifact-kind>'': each mutation workflow names the owning command''s ''--help --json'' lookup, the bundled Schema key and cache-resolved schema_file location via schema-show, the bundled Example key or example_ref location via sample-show, named-argument invocation of the owning CLI command, a structured-result check, and the family validation command. Replace ad hoc per-skill ''never hand-edit'' prose with the shared ordered protocol and the terminal no-direct-edit-fallback boundary, and prohibit heredoc or temporary YAML payload construction and ad hoc writer scripts.'
+    - Record the bundled-skill protocol surface rule as a delta tech on the cli-command-metadata standard, since a SKILL.md is static text that cannot render the protocol module at load time and therefore needs a restatement-plus-drift-check rule the existing standard does not cover.
+    - Modify the cli-command-metadata rule authoring-protocol-has-one-source to scope its render-not-restate requirement to request-time surfaces, so the static skill-package rule does not contradict it.
+    - Carry a testing standard rule requiring static checks over generated content to select their scope independently of that content and to be proven by a negative case.
+  why:
+    - 'src/yaml-authoring-protocol.ts and the yaml-authoring-protocol command already render the seven-step protocol and its no-fallback boundary, but no bundled skill references them: zero of 35 SKILL.md files mention yaml-authoring-protocol or a ''--help --json'' lookup, only 10 mention schema-show and 8 mention sample-show. AI mutation workflows therefore still learn inconsistent, surface-local YAML authoring rules, and the step most likely to be dropped is the boundary forbidding fallback to direct editing. Every remaining planned change in the ai-cli-only-yaml-enforcement and remove-artifact-file-mappings milestones is dependency-blocked behind this migration.'
+    - The cli-command-metadata standard currently requires every AI-facing protocol surface to render the typed module rather than restate it, which no static SKILL.md can satisfy; without an explicit rule for static surfaces the migration would either violate the standard or leave skills with no protocol text at all.
+    - The first version of this change's skill-content check classified skills by scanning text it had itself inserted, so deleting a protocol section would have reclassified the skill as exempt and passed instead of failing; the same trap recurs in the static checks the next planned change adds.
+scope:
+  in:
+    - Bundled skills under skills/ that direct a repository-owned YAML mutation; the shared authoring-protocol section added to each such SKILL.md; removal of residual direct-edit, payload-file, heredoc, and ad hoc writer-script guidance from those skills; preservation of preferred-language, requirement-interrogation, roadmap provenance, read-only inspection, and human-checkpoint instructions; regression tests in test/suites/entrypoint-and-skills.ts asserting each mutation-capable skill carries the protocol elements and the no-fallback stop rule.
+    - A delta tech rule on cli-command-metadata establishing bundled mutation-capable skill packages as static AI-facing protocol surfaces, with an automated drift check over the restated step titles and boundary statement.
+    - A delta tech MODIFIED operation on authoring-protocol-has-one-source scoping it to request-time AI-facing surfaces.
+    - A delta tech rule on workflow-regression-coverage governing non-vacuity of static checks over generated content.
+  out:
+    - Changes to validate-skills or maintenance static enforcement (owned by enforce-cli-only-skill-policy); operator documentation in English or Chinese (owned by update-cli-only-yaml-documentation); end-to-end multi-family regression and negative fixtures (owned by complete-cli-only-yaml-regression); changes to src/yaml-authoring-protocol.ts protocol content, CLI help text, or MCP metadata; blocking human manual YAML editing.
+unchanged_behavior:
+  - The seven protocol step ids and their order, the no-direct-edit-fallback boundary text, and every CLI command surface remain exactly as src/yaml-authoring-protocol.ts renders them. Read-only skills that direct no YAML mutation keep their current instructions. Each skill's existing lifecycle steps, checkpoints, handoffs, and command maps continue to work; only the YAML authoring instructions are replaced. inventory/yaml-mutation-surfaces.yaml keeps its current artifact families and operation states.
+roadmap:
+  milestone: ai-cli-only-yaml-enforcement
+  planned_change: migrate-agent-skills-to-cli-only

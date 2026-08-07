@@ -18,6 +18,11 @@ type CliRegistryModule = {
   COMMAND_REGISTRATION_ORDER: string[];
 };
 
+type YamlAuthoringProtocolModule = {
+  YAML_AUTHORING_PROTOCOL_STEPS: ReadonlyArray<{ order: number; id: string; title: string }>;
+  YAML_AUTHORING_PROTOCOL_BOUNDARY: { id: string; title: string; statement: string; reportContains: string[] };
+};
+
 type CommandMetadataEntry = {
   name: string;
   group: string;
@@ -2687,5 +2692,166 @@ try {
 } finally {
   rmSync(invalidSemanticSkillRoot, { recursive: true, force: true });
 }
+
+context.section("[2c] CLI-only YAML authoring protocol in mutation-capable skills");
+
+// The migrated set is derived from the same inventory the protocol command reads, so the checked
+// set and the protocol an agent is taught cannot drift apart. cli_owners mixes writers with
+// inspectors, so read-only lookups are excluded before a skill is called mutation-capable.
+const INVENTORY_INSPECTOR_COMMANDS = new Set(["lesson-list", "lesson-show", "lesson-status"]);
+// migrate creates .strict-spec-driven/ YAML but the inventory registers it only against
+// legacy-migration-input, the one family it reads rather than writes; see the change design.
+const PROTOCOL_SKILL_EXCEPTIONS = new Set(["strict-spec-migrate"]);
+
+const inventoryFamilies = (inventoryArtifact.artifact_families ?? {}) as Record<
+  string,
+  { operations?: Record<string, string>; cli_owners?: string[] }
+>;
+const mutatingOwnerCommands = new Set<string>();
+for (const family of Object.values(inventoryFamilies)) {
+  const operations = family.operations ?? {};
+  const hasCliOwnedOperation = ["create", "update", "named_remove", "delete"].some(
+    (operation) => operations[operation] === "cli-owned",
+  );
+  if (!hasCliOwnedOperation) continue;
+  for (const owner of family.cli_owners ?? []) {
+    if (!INVENTORY_INSPECTOR_COMMANDS.has(owner)) mutatingOwnerCommands.add(owner);
+  }
+}
+context.assert(
+  mutatingOwnerCommands.size > 0,
+  "the mutation inventory yields at least one CLI-owned mutation command",
+);
+
+const protocolModule = await loadDistModule<YamlAuthoringProtocolModule>("yaml-authoring-protocol.js");
+const protocolStepTitles = protocolModule.YAML_AUTHORING_PROTOCOL_STEPS.map((step) => step.title);
+const protocolBoundary = protocolModule.YAML_AUTHORING_PROTOCOL_BOUNDARY;
+const PROTOCOL_HEADING = "## CLI-Only YAML Authoring Protocol";
+
+// The protocol section itself names owning commands, so classifying from the whole file would be
+// circular: deleting the section could drop a skill's only command mention and silently reclassify
+// it as read-only, passing the "carries no section" branch instead of failing the missing one.
+// Membership is therefore decided from the skill body with the section removed.
+function bodyWithoutProtocolSection(skillText: string): string {
+  const start = skillText.indexOf(PROTOCOL_HEADING);
+  if (start === -1) return skillText;
+  const next = skillText.indexOf("\n## ", start + PROTOCOL_HEADING.length);
+  // slice(0, start) already ends with the blank line before the heading, so skip the matched "\n".
+  return skillText.slice(0, start) + (next === -1 ? "" : skillText.slice(next + 1));
+}
+
+const expectedProtocolSkills: string[] = [];
+const expectedReadOnlySkills: string[] = [];
+for (const skillName of strictSkillNames) {
+  const skillText = readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8");
+  const skillBody = bodyWithoutProtocolSection(skillText);
+  const directsMutation =
+    PROTOCOL_SKILL_EXCEPTIONS.has(skillName)
+    || [...mutatingOwnerCommands].some((command) =>
+      new RegExp(`strict-spec-cli\\s+${command}(?![a-z0-9-])`).test(skillBody),
+    );
+  (directsMutation ? expectedProtocolSkills : expectedReadOnlySkills).push(skillName);
+}
+context.assert(
+  bodyWithoutProtocolSection(`intro\n\n${PROTOCOL_HEADING}\n\nstrict-spec-cli spec-edit\n\n## Next\n\ntail`)
+    === "intro\n\n## Next\n\ntail",
+  "the membership scan removes the protocol section before looking for owning commands",
+);
+context.assert(
+  expectedProtocolSkills.length > 0 && expectedReadOnlySkills.length > 0,
+  "the derivation separates mutation-capable skills from read-only skills",
+);
+
+for (const skillName of expectedProtocolSkills) {
+  const skillText = readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8");
+  const normalized = skillText.replace(/\s+/g, " ");
+  context.assert(
+    skillText.includes(PROTOCOL_HEADING),
+    `${skillName} presents the CLI-only YAML authoring protocol section`,
+  );
+  // Step titles come from the typed module, so reordering or rewording a step there fails here
+  // rather than leaving a skill quietly restating a stale protocol.
+  const missingStepTitle = protocolStepTitles.find(
+    (title) => !normalized.includes(title.replace(/\s+/g, " ")),
+  );
+  context.assert(
+    missingStepTitle === undefined,
+    `${skillName} restates every protocol step title (missing: ${missingStepTitle ?? "none"})`,
+  );
+  context.assert(
+    normalized.includes(protocolBoundary.statement.replace(/\s+/g, " ")),
+    `${skillName} restates the no-direct-edit-fallback boundary verbatim`,
+  );
+  const missingReportItem = protocolBoundary.reportContains.find(
+    (item) => !normalized.includes(item.replace(/\s+/g, " ")),
+  );
+  context.assert(
+    missingReportItem === undefined,
+    `${skillName} names what to report when it stops (missing: ${missingReportItem ?? "none"})`,
+  );
+  context.assert(
+    normalized.includes("strict-spec-cli yaml-authoring-protocol"),
+    `${skillName} names the live yaml-authoring-protocol lookup`,
+  );
+  context.assert(
+    /strict-spec-cli\s+\S+\s+--help --json/.test(normalized),
+    `${skillName} names an owning command's machine-readable help lookup`,
+  );
+  context.assert(
+    normalized.includes("strict-spec-cli schema-show ")
+      && normalized.includes("strict-spec-cli sample-show "),
+    `${skillName} names its bundled schema and example lookups`,
+  );
+}
+
+for (const skillName of expectedReadOnlySkills) {
+  context.assert(
+    !readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8").includes(PROTOCOL_HEADING),
+    `${skillName} directs no YAML mutation and carries no authoring protocol section`,
+  );
+}
+
+// A skill may forbid these constructs; none may instruct one. The distinction is the direction of
+// the sentence, so the check targets imperative writes to a YAML path rather than the bare words.
+const FORBIDDEN_WRITE_INSTRUCTIONS: Array<{ label: string; pattern: RegExp }> = [
+  { label: "apply_patch on YAML", pattern: /apply_patch[^.\n]{0,80}\.ya?ml/gi },
+  { label: "heredoc into YAML", pattern: /<<\s*'?EOF'?[^\n]{0,80}\.ya?ml/gi },
+  { label: "shell redirect into YAML", pattern: /(?:cat|echo|printf)\s[^\n|]{0,80}>\s*[^\s|]*\.ya?ml/gi },
+  { label: "fallback to direct editing", pattern: /(?:fall\s?back|otherwise|instead)[^.\n]{0,60}(?:edit|write)[^.\n]{0,40}\.ya?ml/gi },
+  { label: "constructed payload file", pattern: /(?:create|write|build)\s+(?:a\s+)?(?:temporary\s+)?(?:YAML|JSON)\s+payload\s+file/gi },
+];
+
+// A skill is expected to forbid these constructs, so a match only counts when the surrounding
+// clause is not itself a prohibition. Without this the protocol's own "do not create JSON payload
+// files" wording would be read as an instruction to create one.
+const NEGATION_BEFORE = /\b(?:do not|don't|never|no|without|rather than|instead of|not)\b[^.]{0,80}$/i;
+function isProhibition(text: string, matchIndex: number): boolean {
+  const clauseStart = Math.max(0, text.lastIndexOf(".", matchIndex) + 1);
+  return NEGATION_BEFORE.test(text.slice(clauseStart, matchIndex));
+}
+
+for (const skillName of expectedProtocolSkills) {
+  const skillText = readFileSync(path.join(ROOT, "skills", skillName, "SKILL.md"), "utf8");
+  for (const { label, pattern } of FORBIDDEN_WRITE_INSTRUCTIONS) {
+    pattern.lastIndex = 0;
+    const instructing: string[] = [];
+    for (const match of skillText.matchAll(pattern)) {
+      if (match.index === undefined) continue;
+      if (isProhibition(skillText, match.index)) continue;
+      instructing.push(match[0]);
+    }
+    context.assert(
+      instructing.length === 0,
+      `${skillName} contains no ${label} instruction (found: ${instructing.join(" | ") || "none"})`,
+    );
+  }
+}
+
+// The negation guard must not blind the check: an unqualified instruction still fails.
+context.assert(
+  isProhibition("Do not create a JSON payload file", "Do not ".length + 0)
+    && !isProhibition("Create a JSON payload file for the artifact", 0),
+  "the prohibition guard distinguishes a forbidden instruction from a prohibition of it",
+);
 
 }

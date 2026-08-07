@@ -103,6 +103,14 @@ mapping:
     - src/workflow-config-author.ts
     - src/yaml-authoring-protocol.ts
     - src/cli/cmd-yaml-authoring-protocol.ts
+    - skills/strict-spec-architecture/SKILL.md
+    - skills/strict-spec-design/SKILL.md
+    - skills/strict-spec-sop/SKILL.md
+    - skills/strict-roadmap-move/SKILL.md
+    - skills/strict-roadmap-pause/SKILL.md
+    - skills/strict-roadmap-reorder/SKILL.md
+    - skills/strict-roadmap-resume/SKILL.md
+    - skills/strict-spec-design-sync/SKILL.md
   tests:
     - test/run.ts
     - test/support/harness.ts
@@ -2866,3 +2874,23 @@ requirements:
         - WHEN: The system resolves the request
         - THEN: The request fails with a deterministic diagnostic naming the unknown artifact kind
         - THEN: No partial protocol result is reported
+  cli-mutation-capable-skills-carry-authoring-protocol:
+    strength: MUST
+    statement: 'Every bundled skill that directs a CLI-owned create, update, named removal, or deletion of a repository-owned YAML artifact MUST present the shared CLI-only YAML authoring protocol: the ordered authoring steps, the owning command''s machine-readable help lookup, the bundled schema and example lookups for its artifact kinds, named-argument invocation of the owning command, a structured-result check, the family validation command, and the terminal boundary forbidding any fallback to editing YAML directly.'
+    scenarios:
+      mutation-skill-presents-protocol:
+        - GIVEN: a bundled skill that directs a CLI-owned mutation for an inventoried YAML artifact family
+        - WHEN: the skill package is validated
+        - THEN: the skill content presents the ordered authoring steps, its schema and example lookups, its owning mutation commands, and its validation command
+      mutation-skill-states-no-fallback-boundary:
+        - GIVEN: a bundled mutation-capable skill and an authoring step that cannot be completed because a required command, schema, or example is unavailable
+        - WHEN: the skill's authoring instructions are read
+        - THEN: they direct the agent to stop and report the unavailable command, schema, or example rather than write the YAML artifact by any other means
+      read-only-skill-exempt:
+        - GIVEN: a bundled skill whose CLI usage is limited to inspection and validation commands
+        - WHEN: the skill package is validated
+        - THEN: the skill is not required to present the authoring protocol and its existing instructions are unchanged
+      no-direct-write-instruction-remains:
+        - GIVEN: a bundled mutation-capable skill
+        - WHEN: its instructions for mutating a repository-owned YAML path are read
+        - THEN: no instruction directs writing that path through direct text editing, shell redirection, a heredoc, a constructed payload file, or an ad hoc writer script

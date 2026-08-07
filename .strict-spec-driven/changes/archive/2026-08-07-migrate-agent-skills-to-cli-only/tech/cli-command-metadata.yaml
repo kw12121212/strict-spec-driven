@@ -1,0 +1,37 @@
+schema: strict-spec-driven/delta-tech/v1
+schema_version: 1
+artifact_type: delta_tech
+schema_file: templates/strict-spec-driven/schemas/delta-tech.yaml
+target_standard: cli-command-metadata
+mapping:
+  implementation:
+    - skills/strict-spec-propose/SKILL.md
+    - skills/strict-spec-spec-edit/SKILL.md
+    - skills/strict-roadmap-plan/SKILL.md
+  enforcement:
+    - test/suites/entrypoint-and-skills.ts
+operations:
+  ADDED:
+    skill-packages-are-static-protocol-surfaces:
+      strength: MUST
+      statement: A bundled skill package that directs a CLI-owned YAML mutation is an AI-facing protocol surface that cannot render the protocol module at load time, so it MUST restate the ordered step titles, its bound owning commands, its schema and example lookups, its validation command, and the verbatim no-fallback boundary statement; because the restatement is static, an automated check MUST fail when a mutation-capable skill omits any step title or the boundary statement, so the restatement cannot drift from the typed module that owns it.
+      rationale: The existing single-module rendering rule assumes a surface that executes at request time; a SKILL.md is loaded as static text before any command runs, so an agent that reads only the skill would never see a protocol it merely links to. Requiring restatement plus a failing drift check keeps the module authoritative without leaving the pre-command instructions empty.
+      enforcement:
+        method: test
+        detail: The mutation-capable set is derived from inventory/yaml-mutation-surfaces.yaml by selecting artifact families whose create, update, named_remove, or delete operation is cli-owned, so the checked set and the protocol the CLI renders share one source.
+      examples:
+        good:
+          - A SKILL.md section listing the seven ordered step titles, the skill's owning mutation commands and validation command, its schema-show and sample-show lookups, the verbatim no-fallback boundary, and a pointer to 'strict-spec-cli yaml-authoring-protocol <artifact-kind>' for the concrete bound commands.
+        bad:
+          - A SKILL.md that only says 'never hand-edit this YAML' or that links to the protocol command without stating the boundary, leaving an agent unguided on its first mutation attempt and giving no static check anything to detect.
+      exceptions:
+        - A skill whose CLI usage is limited to inspection and validation commands directs no mutation and is not a protocol surface, so it carries no protocol section and the check does not apply to it.
+  MODIFIED:
+    authoring-protocol-has-one-source:
+      strength: MUST
+      statement: The ordered AI YAML authoring protocol steps and their terminal missing-capability behavior MUST be declared in exactly one typed module. Every AI-facing surface that resolves the protocol at request time -- CLI text output, machine-readable output, and the MCP capability surface -- MUST render that module rather than restating a step, its order, or the no-fallback boundary from a surface-local literal. A surface that is delivered as static text and cannot execute at load time is governed instead by the static-surface rule, which requires a checked restatement.
+      rationale: The original statement bound every AI-facing surface to runtime rendering, which no statically packaged skill file can satisfy, so a skill either carried no protocol text or violated the rule. Scoping this rule to request-time surfaces and routing static text to its own rule keeps the typed module authoritative for both without leaving one rule that forbids what another requires.
+      enforcement:
+        method: review
+        detail: Request-time surfaces execute code that can call the protocol module; static surfaces are packaged text an agent loads before any command runs.
+  REMOVED: {}

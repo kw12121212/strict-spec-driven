@@ -1,0 +1,69 @@
+schema: strict-spec-driven/task-list/v2
+schema_version: 2
+artifact_type: task_list
+schema_file: templates/strict-spec-driven/schemas/task-list.yaml
+change: migrate-agent-skills-to-cli-only
+sections:
+  Implementation:
+    derive-mutation-capable-skill-set:
+      text: Derive the authoritative mutation-capable skill list from inventory/yaml-mutation-surfaces.yaml by selecting every artifact family whose create, update, named_remove, or delete operation is cli-owned, then map each bundled skill under skills/ to the artifact kinds it directs. Record the resulting set and the read-only skills excluded from it.
+      status: complete
+      command: strict-spec-cli yaml-surface-list
+    draft-shared-protocol-section:
+      text: 'Draft the uniform ''CLI-Only YAML Authoring Protocol'' SKILL.md section from the rendered protocol: the seven ordered steps (read-command-help, resolve-schema, inspect-example, translate-to-named-arguments, execute-owning-command, inspect-structured-result, validate-artifact), the no-direct-edit-fallback boundary with what the agent reports instead of proceeding, and the per-skill binding to its artifact kinds and validation command.'
+      status: complete
+      command: strict-spec-cli yaml-authoring-protocol
+    migrate-change-planning-skills:
+      text: Apply the protocol section to the change-planning and delta skills (strict-spec-propose, strict-spec-propose-from-roadmap, strict-spec-brainstorm, strict-spec-bugfix, strict-spec-auto, strict-spec-modify, strict-spec-apply, strict-spec-archive, strict-roadmap-recommend), removing residual payload-file, heredoc, and hand-edit prose it supersedes while preserving lifecycle steps, checkpoints, and handoffs.
+      status: complete
+    migrate-spec-tech-and-document-skills:
+      text: Apply the protocol section to the spec, tech, architecture, and design skills (strict-spec-spec-edit, strict-spec-sync-specs, strict-tech-edit, strict-tech-sync, strict-spec-architecture, strict-spec-design, strict-spec-design-sync, strict-spec-resync-code-mapping), keeping the generated-document rules and confirmation checkpoints intact.
+      status: complete
+    migrate-roadmap-skills:
+      text: Apply the protocol section to the roadmap skills (strict-roadmap-plan, strict-roadmap-move, strict-roadmap-reorder, strict-roadmap-pause, strict-roadmap-resume, strict-roadmap-reopen, strict-roadmap-archive, strict-roadmap-review, strict-roadmap-sync), preserving roadmap provenance rules, scripted-recommendation authority, and the ban on hand-editing completion status.
+      status: complete
+    migrate-config-session-and-sop-skills:
+      text: Apply the protocol section to the remaining mutation-capable skills (strict-spec-init, strict-spec-harness-init, strict-spec-harness-session, strict-spec-sop, strict-spec-migrate, strict-spec-maintenance), preserving human checkpoints, the secret-value prohibition in harness-init, and the rule that a legacy .spec-driven/ directory is read-only migration input.
+      status: complete
+    reconcile-stale-command-maps:
+      text: 'Audit each migrated skill''s documented flags against current ''<command> --help --json'' output across all strict CLI commands, and correct genuine repo drift in place. Outcome: no repo drift found — every strict CLI flag mentioned in skills/ is declared by a current command, and the ''generate --reset'' staleness that prompted this task exists only in the installed copies under ~/.claude/skills/, which are outside this repository.'
+      status: complete
+      command: strict-spec-cli generate --help --json
+    remove-residual-direct-write-guidance:
+      text: Sweep the migrated skills for remaining heredoc, 'cat >', temporary YAML payload, JSON payload file, ad hoc writer script, and fallback direct-edit instructions, and replace each with the owning CLI command or the no-fallback stop rule. Confirm no migrated skill instructs an agent to write a repository-owned YAML path by any means other than a CLI command.
+      status: complete
+  Testing:
+    assert-protocol-section-per-skill:
+      text: Extend test/suites/entrypoint-and-skills.ts with assertions that every mutation-capable skill derived from inventory/yaml-mutation-surfaces.yaml carries the seven protocol step titles, the no-direct-edit-fallback boundary statement, a 'yaml-authoring-protocol' reference, a schema-show lookup, and a sample-show lookup, and that a read-only skill is not required to carry them.
+      status: complete
+    assert-no-direct-write-guidance:
+      text: Add negative assertions that no migrated skill contains heredoc, 'cat >' YAML redirection, JSON or YAML payload-file construction, ad hoc writer-script, or fallback direct-edit instructions targeting a repository-owned YAML path, while allowing read-only inspection and CLI command examples.
+      status: complete
+    run-validate-skills:
+      text: Run the packaging validator to confirm every rewritten SKILL.md still passes frontmatter, content, and marketplace-metadata checks after the migration.
+      status: complete
+      command: strict-spec-cli validate-skills
+    run-unit-and-regression-suite:
+      text: Build the project and run the complete test suite so the new skill-content assertions and every existing suite pass together.
+      status: complete
+      command: bun run build && bun test/run.ts
+  Verification:
+    run-ready:
+      text: Confirm the change artifacts are complete and no open question or unset gate blocks implementation handoff.
+      status: complete
+      command: strict-spec-cli ready migrate-agent-skills-to-cli-only
+    run-verify:
+      text: Confirm every task is complete, the delta spec targets a real main spec, and mapping fields resolve to files that exist.
+      status: complete
+      command: strict-spec-cli verify migrate-agent-skills-to-cli-only
+    run-coverage-gate:
+      text: Run the configured project regression and coverage gate as the review evidence required before archive.
+      status: complete
+      command: bun scripts/coverage-gate.ts --threshold 78
+    confirm-archive-merge-readiness:
+      text: Confirm the delta spec for cli-foundation merges cleanly into .strict-spec-driven/specs/cli/foundation.yaml on archive and that the merged requirement keeps its implementation and test mappings resolvable.
+      status: complete
+      command: strict-spec-cli verify-spec-mappings
+testing_gates:
+  validation_task: run-validate-skills
+  unit_test_task: run-unit-and-regression-suite

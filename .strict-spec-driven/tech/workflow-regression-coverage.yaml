@@ -19,6 +19,7 @@ mapping:
     - test/suites/roadmap-and-migration.ts
     - test/suites/change-lifecycle.ts
     - test/suites/coverage-gate.ts
+    - test/suites/entrypoint-and-skills.ts
 rules:
   cover-workflow-critical-behaviors:
     strength: MUST
@@ -46,3 +47,17 @@ rules:
     rationale: Startup-time home-directory side effects silently leak into developer machines through every spawned test subprocess unless isolation is the harness default rather than a per-test opt-in, and HOME-only isolation fails on Windows where os.homedir() reads USERPROFILE.
     enforcement:
       method: review
+  static-content-checks-prove-a-negative-case:
+    strength: MUST
+    statement: A static check over content that the same change generates or inserts MUST derive the set of files or entries it checks from a source independent of that generated content, and MUST be proven by running a negative case in which the content is removed and the check is observed to fail. A green suite over generated content is not coverage evidence until that negative case has been run at least once.
+    rationale: 'A check that decides its own scope by scanning the text it inserted is self-fulfilling: removing the content can drop the file out of the checked set and satisfy the exemption branch instead of failing the requirement branch, so the check reports success precisely when the thing it guards has been deleted. Independent scope selection removes the circularity, and the negative case is the only evidence that distinguishes a real guard from a vacuous one.'
+    enforcement:
+      method: test
+      detail: Independent sources include a registry, an inventory artifact, or the file body with the generated region excluded before scope is computed.
+    examples:
+      good:
+        - Deriving the checked skill set from inventory/yaml-mutation-surfaces.yaml and from each SKILL.md with the inserted protocol section stripped, then deleting one section and confirming the suite fails.
+      bad:
+        - Classifying a file as in-scope because it mentions a command that appears only inside the section the check inserted, so deleting the section silently reclassifies the file as exempt and the suite stays green.
+    exceptions:
+      - A check over content the change does not generate — pre-existing source, third-party files, or fixtures authored independently — carries no circularity and needs no negative-case proof beyond ordinary test design.

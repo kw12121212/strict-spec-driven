@@ -27,6 +27,38 @@ harness-scripts-verify: strict-spec-cli harness-scripts verify
 
 Run `strict-spec-cli check-workflow-state` before any workflow work. If `.strict-spec-driven/` is missing, stop immediately and tell the user to run `/strict-spec-init`. Do not run `init` from this skill.
 
+## CLI-Only YAML Authoring Protocol
+
+Every mutation of repository-owned YAML in this skill goes through the strict
+CLI. Run `strict-spec-cli yaml-authoring-protocol <artifact-kind>` for the
+live, artifact-bound form of these steps; it reports the owning commands, the
+bundled schema and example keys with their cache-resolved paths, and the
+validation command for that family.
+
+This skill writes `harness-state`.
+
+1. **Read the owning command's machine-readable help** — `strict-spec-cli harness-edit --help --json`, `strict-spec-cli harness-infer --help --json`
+2. **Resolve the target artifact's schema** — `strict-spec-cli schema-list`, then `strict-spec-cli schema-show harness`, `strict-spec-cli schema-show harness-session`
+3. **Inspect the registered minimal example** — `strict-spec-cli sample-list`, then `strict-spec-cli sample-show harness`, `strict-spec-cli sample-show harness-session`. The example is read-only reference; never copy it into place as a starting file.
+4. **Translate confirmed facts into documented named arguments** — every value must trace to the request, the schema, or repository evidence; an unconfirmed field is an open question, not a default.
+5. **Execute the owning command with those arguments** — `strict-spec-cli harness-edit`, `strict-spec-cli harness-infer`. Raw YAML payloads, heredocs, temporary artifact files, arbitrary output paths, and direct file edits are not part of this protocol.
+6. **Inspect the structured result and changed paths** — read the returned result rather than assuming success. A result reporting incompleteness is a successful write with more work to do, not a failure to retry; diagnostics name what is missing.
+7. **Run the artifact's validation command** — `strict-spec-cli harness-doctor`
+
+**Stop rather than edit YAML directly.**
+
+When a required command, argument, or artifact kind is unavailable, stop and
+report the missing capability. Editing the YAML directly, writing a raw
+payload, or scripting around the CLI is never an available fallback, and an
+unavailable command is a reason to stop rather than a reason to improvise.
+
+When you stop, report:
+
+- the operation that could not be completed
+- the artifact kind and target artifact it would have written
+- the command or argument that is missing
+- the discovery commands already consulted
+
 ## Preferred Human Language
 
 Before user-facing work, read `.strict-spec-driven/config.yaml` when it exists.

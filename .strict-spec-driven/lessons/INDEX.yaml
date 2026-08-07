@@ -14,6 +14,11 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/testing/a-coverage-registry-that-only-names-other-tests-1d9037.yaml
+    a-content-check-whose-subject-includes-the-text-1f5d78:
+      title: A content check whose subject includes the text it inserts can pass vacuously
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/testing/a-content-check-whose-subject-includes-the-text-1f5d78.yaml
   tooling:
     an-unsupported-argument-error-only-disproves-the-582410:
       title: An unsupported-argument error only disproves the name, not the capability
@@ -80,3 +85,8 @@ categories:
       status: active
       occurrences: 1
       path: .strict-spec-driven/lessons/tooling/a-helper-that-returns-nothing-for-the-ambiguous-5c099f.yaml
+    the-skill-you-are-running-is-the-installed-copy-a3b342:
+      title: The skill you are running is the installed copy, not the repository source
+      status: active
+      occurrences: 1
+      path: .strict-spec-driven/lessons/tooling/the-skill-you-are-running-is-the-installed-copy-a3b342.yaml

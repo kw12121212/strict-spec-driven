@@ -5,7 +5,7 @@ schema_file: ../../templates/strict-spec-driven/schemas/planned-change.yaml
 planned_change:
   id: migrate-agent-skills-to-cli-only
   milestone: ai-cli-only-yaml-enforcement
-status: planned
+status: complete
 summary: Rewrite all mutation-capable Agent Skills to use guided CLI-only YAML workflows.
 details: Audit every bundled skill and replace instructions to scaffold, write, patch, hand-edit, rebuild, or fall back to direct YAML changes with the shared AI CLI authoring protocol and exact structured command mappings. Each workflow must name the relevant --help --json lookup, bundled Schema and Example keys or resolvable schema_file/example_ref locations, named-argument invocation, structured-result check, and final validation command. Skills must supply confirmed facts to the first authoring command so it creates real artifacts lazily and atomically; they must not expect placeholder planning files to exist. Prohibit heredoc or temporary YAML payload generation and ad hoc writer scripts. Preserve preferred-language, requirement-interrogation, roadmap provenance, read-only inspection, and human checkpoints, and stop with a precise missing-command diagnostic instead of direct editing.
 depends_on:
